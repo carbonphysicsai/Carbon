@@ -18,7 +18,12 @@ adapter (`adapters/battery.py`):
   control. Five families carry the Test Lead's cooling vectors
   (`COOLING_VECTORS`): false cooling optimism, a flow imbalance masked behind
   a correct mean, an under-predicted pressure drop, sacrificing the hot group
-  for the representative one, and an out-of-regime Reynolds number;
+  for the representative one, and an out-of-regime Reynolds number. One more
+  carries the Test Lead's selective-crash probe (`selective_fault`): a
+  construction that faults only on the cases where it would score badly, run
+  through both of Carbon's real paths (the Interface v1 validator and
+  Graphite's pod path) to see whether the faulted cases are dropped from the
+  score;
 - **controls**, split `trained` (the engine may see them) and `held_out` (only
   the report reads them, for the wrongful-rejection rate), versioned by
   `CONTROLS_VERSION`; every held-out control is a genuinely different valid
@@ -52,6 +57,8 @@ verdict here is security acceptance or scientific qualification.
 
 from __future__ import annotations
 
+import ast
+import contextlib
 import copy
 import functools
 import hashlib
@@ -60,8 +67,11 @@ import math
 import shutil
 import struct
 import tempfile
+import threading
+import time
 from collections.abc import Mapping
 from dataclasses import dataclass
+from decimal import Decimal
 from pathlib import Path
 from statistics import fmean
 
@@ -72,8 +82,10 @@ from carbon.challenge_readiness.admission import CHECKS, LEDGER_TRACK
 CHALLENGE_ID = "chip-cold-plate"
 LEVEL = 0
 PROFILE = "level-0"
-ADAPTER_VERSION = "carbon.attack.adapter.cooling-l0.v1"
-CONTROLS_VERSION = "carbon.attack.controls.cooling-l0.v1"
+#: v2 adds the `selective_fault` family, its controls and the
+#: `missing_prediction_attribution` seam (GRAPHITE-ATTACKER-COOLING-SF-01).
+ADAPTER_VERSION = "carbon.attack.adapter.cooling-l0.v2"
+CONTROLS_VERSION = "carbon.attack.controls.cooling-l0.v2"
 TRACK = LEDGER_TRACK
 SPLITS = _core.SPLITS
 FAILING_TRIGGER, OTHER_SIGNAL = "FAILING_TRIGGER", "OTHER_SIGNAL"
@@ -1232,6 +1244,521 @@ def _resource_admissible(value):
     return code_run_refusal(value.get("arguments")) is None
 
 
+# selective fault: a construction that faults only where it would score badly ----------------
+#: The two real paths a cooling construction is scored on: the Interface v1
+#: validator (`challenge_validator.dispatch` over `challenge_validator.cooling`,
+#: #586) and Graphite's pod path (`graphite.experiment` with its registered
+#: attribution policy, `pod_outcome`, and cooling's `ChallengeScoring`, #584).
+FAULT_PATHS = ("interface_v1", "graphite")
+#: How the construction faults on a chosen case at its predict step: it
+#: raises, or it returns a non-finite peak or pressure drop.
+FAULT_MODES = ("none", "raise", "nonfinite_peak", "infinite_pressure")
+#: Which cases it faults on, chosen from its own error on the public PRACTICE
+#: references (which a miner sees): none, every case, the hot group, its
+#: worst tenth, every case worse than its own mean, or its worse half. Only
+#: the attack's choice of cases; no tolerance or weight.
+FAULT_SELECTIONS = (
+    "none",
+    "all",
+    "hot_group",
+    "worst_k",
+    "above_own_mean",
+    "worse_half",
+)
+_SCORED, _FAILED_WHOLE, _INELIGIBLE = "scored_complete", "failed_whole", "ineligible"
+#: The batch role the probe's private validator store prepares: public
+#: PRACTICE only (`cooling.PUBLIC_BATCH_KIND`), never a reserved role.
+PROBE_BATCH_ROLE = "attack-selective-fault-public-practice"
+PROBE_PROPOSAL = "selective-fault"
+
+
+class ConstructionFault(RuntimeError):
+    """A synthetic fault the probe's construction raises at its predict step."""
+
+
+#: Fitted kernel-ridge models by recipe (the fit is deterministic on the
+#: pinned public TRAIN bytes), and Carbon's own builds by job.
+_FITTED = {}
+_BUILT = {}
+_FAULT_LOCK = threading.Lock()
+
+
+def _fitted(family, settings, records):
+    """`recipes.build`, memoised by recipe and training records: the same
+    deterministic fit every path would run, computed once."""
+    from carbon.cold_plate import recipes
+
+    key = (family, _canonical(settings), _digest(records))
+    model = _FITTED.get(key)
+    if model is None:
+        model = _FITTED[key] = recipes.build(family, settings, records)
+    return model
+
+
+class _FaultingModel:
+    """The probe's construction: Carbon's own fitted model, faulting on the
+    chosen cases (by their inputs) in `mode`, honest everywhere else."""
+
+    def __init__(self, model, faulted_inputs, mode):
+        self.model, self.faulted, self.mode = model, frozenset(faulted_inputs), mode
+
+    def predict(self, inputs):
+        hit = _canonical(inputs) in self.faulted
+        if hit and self.mode == "raise":
+            raise ConstructionFault("synthetic construction fault at predict")
+        prediction = self.model.predict(inputs)
+        if hit and self.mode == "nonfinite_peak":
+            prediction = {**prediction, "peak_c": math.nan}
+        if hit and self.mode == "infinite_pressure":
+            prediction = {**prediction, "pressure_drop_pa": math.inf}
+        return prediction
+
+
+def _faulting(model, fault):
+    """`model`, or the probe's construction faulting on `fault["cases"]`."""
+    if fault is None or fault["mode"] == "none" or not fault["cases"]:
+        return model
+    inputs = {r["case_id"]: _canonical(r["inputs"]) for r in _records()}
+    return _FaultingModel(model, [inputs[c] for c in fault["cases"]], fault["mode"])
+
+
+def _model_for(recipe, fault):
+    train = _frozen_rule().material.train
+    return _faulting(_fitted(recipe.family, recipe.settings, train), fault)
+
+
+@contextlib.contextmanager
+def _construction_faults(fault):
+    """While open, the model `cold_plate.compile.rebuild` builds (through the
+    module's own `build`, the name it reads) is the probe's construction:
+    the Interface v1 validator rebuilds and predicts exactly as it always
+    does, and the construction faults where the attack says."""
+    from carbon.cold_plate import compile as cold_compile
+
+    def build(family, settings, records):
+        return _faulting(_fitted(family, settings, records), fault)
+
+    with _FAULT_LOCK:
+        original = cold_compile.build
+        cold_compile.build = build
+        try:
+            yield
+        finally:
+            cold_compile.build = original
+
+
+@functools.lru_cache(maxsize=8)
+def _honest_cached(strategy_json):
+    from carbon.cold_plate.compile import compile_recipe
+
+    _compiled, recipe = compile_recipe(json.loads(strategy_json))
+    model = _model_for(recipe, None)
+    predictions = {r["case_id"]: model.predict(r["inputs"]) for r in _records()}
+    rows, summary = _score(predictions)
+    return {
+        "predictions": predictions,
+        "errors": {r["case_id"]: r["error"] for r in rows if "error" in r},
+        "score": summary["score"],
+    }
+
+
+def _honest(strategy):
+    """The construction's own predictions with no fault, and its per-case
+    error and score under the frozen public PRACTICE rule."""
+    return copy.deepcopy(_honest_cached(_canonical(strategy)))
+
+
+def _faulted_cases(strategy, select):
+    """The cases the attack faults on (`FAULT_SELECTIONS`), from the
+    construction's own error on the public PRACTICE references."""
+    if select not in FAULT_SELECTIONS:
+        raise ValueError("unknown fault selection: " + str(select))
+    every = sorted(r["case_id"] for r in _records())
+    if select == "none":
+        return []
+    if select == "all":
+        return every
+    if select == "hot_group":
+        return sorted(_important_ids())
+    errors = _honest(strategy)["errors"]
+    worst_first = sorted(every, key=lambda case: (-errors[case], case))
+    if select == "worst_k":
+        return sorted(worst_first[: max(1, len(every) // 10)])
+    if select == "worse_half":
+        return sorted(worst_first[: len(every) // 2])
+    mean = fmean(errors.values())
+    return sorted(case for case in every if errors[case] > mean)
+
+
+def _fault_of(value):
+    strategy = value.get("strategy", _scaffold())
+    mode = value.get("mode", "none")
+    if mode not in FAULT_MODES:
+        raise ValueError("unknown fault mode: " + str(mode))
+    cases = _faulted_cases(strategy, value.get("select", "none"))
+    return strategy, {"mode": mode, "cases": cases}
+
+
+def _interface_v1(strategy, fault):
+    """One submission through the real Interface v1 validator: a private
+    store holding the pinned public PRACTICE references, `Validator.evaluate`
+    (the strict parse, dispatch, `CoolingAdapter.evaluate` and its outcome
+    contract) with the construction faulting, then the same submission once
+    more (does a FAILED_INFRA re-roll?)."""
+    from carbon.challenge_validator import cooling as validator_cooling
+    from carbon.challenge_validator.dispatch import Adapters, Operator, Validator
+    from carbon.challenge_validator.interface import Submission
+    from carbon.challenge_validator.ledger import AttemptLedger
+
+    with tempfile.TemporaryDirectory(prefix="cooling-attack-v1-") as directory:
+        root = Path(directory)
+        adapter = validator_cooling.CoolingAdapter(
+            root / "store", repository=REPOSITORY
+        )
+        ledger = AttemptLedger(root / "attempts.sqlite3")
+        served = Adapters([adapter])
+        operator = Operator(served, ledger)
+        contract_digest = adapter.contract_digest
+        batch = operator.prepare_batch(
+            contract_digest, PROBE_BATCH_ROLE, kind=validator_cooling.PUBLIC_BATCH_KIND
+        )
+        operator.ingest_references(
+            contract_digest, batch, [dict(r) for r in adapter.material.practice]
+        )
+        operator.open_pool(contract_digest)
+        validator = Validator(served, ledger)
+        submission = Submission(
+            hotkey="cooling-attack-probe",
+            receipt={"probe": PROBE_PROPOSAL},
+            challenge_id=adapter.challenge_id,
+            challenge_version=adapter.challenge_version,
+            strategy_json=json.dumps(strategy),
+            contract_digest=contract_digest,
+        )
+        with _construction_faults(fault):
+            first = validator.evaluate(submission)
+            again = validator.evaluate(submission)
+        status = adapter.store.status()
+        totals = ledger.totals()
+
+    def view(result):
+        outcome = result.get("outcome") or {}
+        return {
+            "kind": result["kind"],
+            "code": result.get("code"),
+            "state": outcome.get("state"),
+            "eligible": outcome.get("eligible"),
+            "score": outcome.get("score"),
+            "n_scored": outcome.get("n_scored"),
+            "n_cases": outcome.get("n_cases"),
+        }
+
+    out = view(first)
+    scored = out["kind"] == "OUTCOME" and out["state"] == "SCORED"
+    return {
+        **out,
+        "outcome": (
+            "SCORED" if scored else f"{out['kind']}:{out['code'] or out['state']}"
+        ),
+        "scored": scored,
+        "recorded_submissions": status["submissions"],
+        "ledger": {k: v for k, v in totals.items() if v},
+        "retry_same": view(again) == out,
+    }
+
+
+@functools.cache
+def _program_tail(program):
+    """The practice worker program (`practice.PROGRAM`, the code a pod runs)
+    from just after it builds its model: the prediction step and the writes
+    of `predictions.json` and `fit.json`, compiled exactly as written."""
+    tree = ast.parse(program)
+    for index, node in enumerate(tree.body):
+        if isinstance(node, ast.Assign) and [
+            getattr(t, "id", None) for t in node.targets
+        ] == ["model"]:
+            body = tree.body[index + 1 :]
+            break
+    else:
+        raise ValueError("the practice program builds no model")
+    return compile(ast.Module(body=body, type_ignores=[]), "<practice-program>", "exec")
+
+
+def _pod_outputs(strategy, fault):
+    """What a pod's program exports for this construction, `(files,
+    crashed)`: Carbon's practice program from its model onward, run on the
+    construction, as `pod_phase.run` would export it (the outputs it wrote,
+    and `failure.json` at stage `program` when it exited non-zero)."""
+    from carbon.agent_campaign.graphite import pod_phase
+    from carbon.cold_plate import practice
+    from carbon.cold_plate.compile import compile_recipe
+
+    _compiled, recipe = compile_recipe(strategy)
+    rule = _frozen_rule()
+    namespace = {
+        "json": json,
+        "time": time,
+        "model": _model_for(recipe, fault),
+        "train": list(rule.material.train),
+        "cases": rule.practice.inputs_document()["cases"],
+        "started": time.perf_counter(),
+    }
+    crashed = False
+    with tempfile.TemporaryDirectory(prefix="cooling-attack-program-") as directory:
+        namespace["out"] = Path(directory)
+        program = _program_tail(practice.PROGRAM)
+        try:
+            # Carbon's own pinned practice program, never participant code.
+            exec(program, namespace)  # noqa: S102
+        except Exception:  # noqa: BLE001 - the program exits non-zero
+            crashed = True
+        files = {
+            name: (Path(directory) / name).read_bytes()
+            for name in pod_phase.OUTPUTS
+            if (Path(directory) / name).is_file()
+        }
+    if crashed:
+        files["failure.json"] = json.dumps(
+            {"error": "exit 1", "stage": "program"}, sort_keys=True
+        ).encode()
+    else:
+        files["DONE.json"] = json.dumps(
+            {"exit": 0, "phase": "graphite_practice"}, sort_keys=True
+        ).encode()
+    return files, crashed
+
+
+def _scripted_outputs(files):
+    """A scripted pod's exports: Carbon's honest build of the job (what
+    `pod_phase.run` writes as `built.json`) and the program's files."""
+
+    def outputs(job):
+        from carbon.agent_campaign.graphite import pod_phase
+
+        key = (_canonical(job.strategy), job.contract_digest, job.seed)
+        built = _BUILT.get(key)
+        if built is None:
+            built = _BUILT[key] = pod_phase.built_record(
+                job.strategy, job.contract_digest, job.seed, REPOSITORY, _scoring()
+            )[0]
+        return {"built.json": json.dumps(built, sort_keys=True).encode(), **files}
+
+    return outputs
+
+
+@contextlib.contextmanager
+def _scratch(prefix):
+    """A temporary directory, removed bottom-up by name. `shutil.rmtree`
+    opens each subdirectory by its bare name, and the experiment keeps a
+    scratch subdirectory named `private`; removing by walk opens no file, so
+    the audit of what the adapter reads stays exact."""
+    import os
+
+    directory = tempfile.mkdtemp(prefix=prefix)
+    try:
+        yield directory
+    finally:
+        for parent, folders, files in os.walk(directory, topdown=False):
+            for name in files:
+                os.unlink(os.path.join(parent, name))
+            for name in folders:
+                os.rmdir(os.path.join(parent, name))
+        os.rmdir(directory)
+
+
+class _NoLadder:
+    def record_failure(self, *args, **kwargs):
+        raise AssertionError("one probe proposal never stalls")
+
+
+def _graphite(strategy, fault):
+    """One proposal through Graphite's real pod path (`experiment.Experiment.
+    run` at Level 0 with the registered attribution policy and cooling's
+    `ChallengeScoring`) on a scripted pod account that runs no pod and spends
+    nothing: admission, the session's honest baseline, the proposal's pod,
+    the independent rebuild check, then the frozen rule or the attribution
+    policy."""
+    from carbon.agent_campaign.graphite import experiment
+    from carbon.agent_campaign.graphite import pods as podlib
+
+    scoring = _scoring()
+    baseline_files, _ = _pod_outputs(_scaffold(), None)
+    files, crashed = _pod_outputs(strategy, fault)
+    account = podlib.ScriptedPods(
+        steps=[
+            podlib.Step(
+                outputs=_scripted_outputs(baseline_files), rate="0", charge="0"
+            ),
+            podlib.Step(
+                outcome="failed" if crashed else "done",
+                outputs=_scripted_outputs(files),
+                rate="0",
+                charge="0",
+            ),
+        ]
+    )
+    budget = experiment.Phase3Budget(
+        run_cap_usd=Decimal(0),
+        hourly_usd=Decimal(0),
+        pod_minutes=podlib.proposal_minutes(scoring),
+        max_pods=len(account.steps),
+        challenge_id=CHALLENGE_ID,
+    )
+    with _scratch("cooling-attack-graphite-") as directory:
+        run = experiment.Experiment(
+            root=Path(directory) / "run",
+            run_id="cooling-attack-selective-fault",
+            pods=account,
+            budget=budget,
+            baseline=_scaffold(),
+            token_committed=lambda: Decimal(0),
+            cancelled=lambda: False,
+            ladder=_NoLadder(),
+            emit=lambda _event, _body: None,
+            scorer=_frozen_rule(),
+            scoring=scoring,
+            repository=REPOSITORY,
+            clock=lambda: 0.0,
+            randomness=lambda n: b"\x03" * n,
+            construction_level=LEVEL,
+        )
+        why = {"hypothesis": "selective fault probe", "expected_effect": "typed"}
+        record = run.run(PROBE_PROPOSAL, "proposal", strategy, why=why)
+        rows = run.rows(PROBE_PROPOSAL)
+    frozen = record.get("frozen_rule") or {}
+    against = record.get("against_baseline") or {}
+    scored = record["status"] == "SCORED"
+    return {
+        "outcome": record["status"]
+        + ("" if scored else ":" + str(record.get("reason_code"))),
+        "scored": scored,
+        "eligible": frozen.get("eligible"),
+        "score": frozen.get("score"),
+        "n_scored": frozen.get("n_scored"),
+        "n_cases": None if rows is None else len(rows),
+        "n_gate_failed": frozen.get("n_gate_failed"),
+        "against_baseline": against.get("outcome"),
+        "pods_launched": len(account.launched),
+        "retried": any(a.get("attempt", 0) > 0 for a in record.get("attempts", [])),
+    }
+
+
+def selective_fault_boundary(value):
+    """The construction faults on the chosen cases; each real path scores
+    it. The evidence binds which cases faulted and the construction's score
+    with them (`score_all`, its honest score) and without them
+    (`score_without`, what an accounting that drops them would report)."""
+    strategy, fault = _fault_of(value)
+    honest = _honest(strategy)
+    kept = {
+        case: p
+        for case, p in honest["predictions"].items()
+        if case not in fault["cases"]
+    }
+    _rows, without = _score(kept)
+    return {
+        "mode": fault["mode"],
+        "select": value.get("select", "none"),
+        "faulted": fault["cases"],
+        "score_all": honest["score"],
+        "score_without": without["score"] if fault["cases"] else honest["score"],
+        "interface_v1": _interface_v1(strategy, fault),
+        "graphite": _graphite(strategy, fault),
+    }
+
+
+def dropping_accounting(value):
+    """Vulnerable specimen: an accounting that drops every faulted case from
+    the aggregate (as if each were typed FAILED_INFRA) and scores the rest,
+    on both paths."""
+    strategy, fault = _fault_of(value)
+    honest = _honest(strategy)
+    kept = {
+        case: p
+        for case, p in honest["predictions"].items()
+        if case not in fault["cases"]
+    }
+    _rows, summary = _score(kept)
+    path = {
+        "outcome": "SCORED",
+        "scored": True,
+        "eligible": bool(summary["eligible"]),
+        "score": summary["score"],
+        "n_scored": summary["n_scored"],
+        "n_cases": summary["n_cases"],
+    }
+    return {
+        "mode": fault["mode"],
+        "select": value.get("select", "none"),
+        "faulted": fault["cases"],
+        "score_all": honest["score"],
+        "score_without": summary["score"],
+        "interface_v1": dict(path),
+        "graphite": dict(path),
+    }
+
+
+def dodged(path):
+    """A path dodged faulted cases: it scored the attempt, eligible, over
+    fewer cases than it was given."""
+    return bool(
+        path.get("scored")
+        and path.get("eligible")
+        and path.get("n_cases") is not None
+        and path.get("n_scored") is not None
+        and path["n_scored"] < path["n_cases"]
+    )
+
+
+def selective_fault_breached(result):
+    """A selective fault dodged its cases on any path."""
+    return any(dodged(result[path]) for path in FAULT_PATHS)
+
+
+def _path_reads(path):
+    if path.get("scored") and path.get("eligible"):
+        return _SCORED if path.get("n_scored") == path.get("n_cases") else "dodged"
+    if path.get("scored"):
+        return _INELIGIBLE
+    return _FAILED_WHOLE
+
+
+def _selective_fault_control(value):
+    """A construction with the outcome its control names on every path
+    (`expect`): a legitimate one is scored over every case; one that faults
+    on every case uniformly is failed as a whole or ineligible; neither
+    dodges a case."""
+    result = selective_fault_boundary(value)
+    return not selective_fault_breached(result) and all(
+        _path_reads(result[path]) == value["expect"][path] for path in FAULT_PATHS
+    )
+
+
+def _selective_attacks():
+    return (
+        (
+            "fault_on_the_hot_group_only",
+            {"mode": "raise", "select": "hot_group"},
+        ),
+        (
+            "fault_on_the_worst_k_cases",
+            {"mode": "raise", "select": "worst_k"},
+        ),
+        (
+            "nonfinite_only_on_the_hard_cases",
+            {"mode": "nonfinite_peak", "select": "above_own_mean"},
+        ),
+        (
+            "raise_at_predict_for_a_subset",
+            {"mode": "raise", "select": "worse_half"},
+        ),
+        (
+            "infinite_pressure_on_the_worst_k_cases",
+            {"mode": "infinite_pressure", "select": "worst_k"},
+        ),
+    )
+
+
 # construction-evaluation isolation: staged bytes ---------------------------------------------
 def _labelled_practice():
     """The public PRACTICE set with a synthetic marker in every label: a
@@ -1709,6 +2236,9 @@ def clear_caches():
     _frozen_rule.cache_clear()
     _scoring.cache_clear()
     _control_recipe.cache_clear()
+    _honest_cached.cache_clear()
+    _FITTED.clear()
+    _BUILT.clear()
 
 
 # -- the families ------------------------------------------------------------------------------
@@ -1900,6 +2430,26 @@ def _families():
             admissible=_resource_admissible,
             attack_example="seconds_just_over_the_allowance",
             reads="public PRACTICE references and registered attribution policy",
+        ),
+        FamilySpec(
+            name="selective_fault",
+            check="resource_and_failure_accounting",
+            protocol_family="a selective crash: a construction that raises, or "
+            "returns a non-finite output, only on the cases where it would score "
+            "badly (its hot group, its worst cases, its worse half) must not get "
+            "those cases dropped from its score on either real path, the "
+            "Interface v1 validator or Graphite's pod path: the whole attempt is "
+            "failed or charged, or the set is ineligible, and a FAILED_INFRA "
+            "never re-rolls to a different result",
+            attacks=_selective_attacks,
+            boundary=selective_fault_boundary,
+            specimen=dropping_accounting,
+            breached=selective_fault_breached,
+            control_check=_selective_fault_control,
+            admissible=None,
+            attack_example="fault_on_the_worst_k_cases",
+            reads="public TRAIN and PRACTICE material, a temporary validator store "
+            "and a scripted pod account",
         ),
         FamilySpec(
             name="staged_bytes",
@@ -2114,6 +2664,50 @@ def _controls():
         "code_run_half_the_allowance",
         lambda: {"kind": "code_run", "arguments": {"seconds": CODE_RUN_SECONDS // 2}},
     )
+    add(
+        "selective_fault",
+        "trained",
+        "legitimate_construction",
+        lambda: {
+            "strategy": _scaffold(),
+            "mode": "none",
+            "select": "none",
+            "expect": {"interface_v1": _SCORED, "graphite": _SCORED},
+        },
+    )
+    add(
+        "selective_fault",
+        "held_out",
+        "legitimate_construction_length_4",
+        lambda: {
+            "strategy": _strategy(length="length_4"),
+            "mode": "none",
+            "select": "none",
+            "expect": {"interface_v1": _SCORED, "graphite": _SCORED},
+        },
+    )
+    add(
+        "selective_fault",
+        "held_out",
+        "uniform_raise_on_every_case",
+        lambda: {
+            "strategy": _scaffold(),
+            "mode": "raise",
+            "select": "all",
+            "expect": {"interface_v1": _FAILED_WHOLE, "graphite": _FAILED_WHOLE},
+        },
+    )
+    add(
+        "selective_fault",
+        "held_out",
+        "uniform_nonfinite_peak_on_every_case",
+        lambda: {
+            "strategy": _scaffold(),
+            "mode": "nonfinite_peak",
+            "select": "all",
+            "expect": {"interface_v1": _FAILED_WHOLE, "graphite": _INELIGIBLE},
+        },
+    )
     add("staged_bytes", "trained", "scaffold", lambda: {"strategy": _scaffold()})
     add(
         "staged_bytes",
@@ -2227,6 +2821,24 @@ SEAMS = (
         "timeout is FAILED_INFRA or CANDIDATE_FAILED is open, so this adapter "
         "judges neither",
         "owner: whether a pod timeout is FAILED_INFRA or CANDIDATE_FAILED",
+    ),
+    SeamSpec(
+        "missing_prediction_attribution",
+        "resource_and_failure_accounting",
+        0,
+        "both accountings type a case that arrives with no prediction "
+        "FAILED_INFRA and exclude it (exam.evaluate_case and exam.aggregate, "
+        "read by the Interface v1 validator and by Graphite's frozen rule), and "
+        "Graphite's host scores a pod's predictions file without checking that "
+        "it holds every case; a set that omits its worst cases stays eligible "
+        "with a better score. At Level 0 no construction can omit a case "
+        "(Carbon's own code predicts every case or fails the whole attempt, "
+        "which selective_fault runs), so this needs a harness or a "
+        "participant's own inference that omits one",
+        "owner (policy): whether a case without a prediction from the "
+        "construction's side is FAILED_INFRA and excluded or charged to the "
+        "candidate, and whether Carbon's hosts refuse an incomplete prediction "
+        "set",
     ),
     SeamSpec(
         "practice_result_path_state",

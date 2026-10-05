@@ -1,0 +1,29 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-motor-counted-empty-solver-logs",
+  "recorded_at": "2026-10-05T11:30:00Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "design",
+  "execution": {
+    "kind": "pod_run",
+    "ref": "docs/development/evidence/motor-decision-counted-v2 (campaign sha256:a414f6b18881ea491d4aab04c860777cef4126a5eafc5d371accf755568c9334, operator host Docker)",
+    "description": "Ran the registered 48-case counted GetDP campaign for the motor decision study, then imported and evaluated it; the registered importer refused every successful case, and study V2 adopted the campaign after proving identical decisions."
+  },
+  "expected": "The registered importer would admit the 48 successful cases as counted evidence and produce a finite-set comparator and regret for the four arms.",
+  "observed": "48/48 cases were OK, but the V1 importer marked every one REFERENCE_PROVENANCE_INVALID because it required non-empty log.mesh and log.getdp, and the pinned solver writes empty logs on success. #562 had fixture tests only, and no test had ever run the counted importer. Study V2 relaxed only that rule; its construction made decisions identical to V1's commitments sealed before dispatch, so it adopted the campaign. The comparator is complete (4 feasible, 4 infeasible, best d04). The analytical arms chose an infeasible design; the KRR arms chose d06 with regret 0.0192.",
+  "keep": [
+    "Hash and write-protect raw evidence before diagnosing an import failure, and never edit records or artifacts to pass an importer.",
+    "When a fix must change frozen code, ship a new study version and prove the new construction's decisions equal the sealed predecessor's before adopting its reference."
+  ],
+  "change": [
+    "Exercise every counted importer against at least one real solver case (calibration output is enough) before a counted campaign is dispatched; a fixture-only importer can refuse all real evidence."
+  ],
+  "protocol_elements": [
+    "counted evidence import",
+    "construction-before-reference custody",
+    "study versioning",
+    "raw evidence retention"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

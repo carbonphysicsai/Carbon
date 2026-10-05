@@ -18,6 +18,11 @@ The claims tested:
 - no sealed identity is named, and no sealed or study material is read;
 - each pinned value is a copy of its cooling source;
 - the phase-4 dry run runs end to end at cooling with nothing spent;
+- a selective crash (a construction that faults only where it would score
+  badly) is run through both real paths, the Interface v1 validator and
+  Graphite's pod path, and dodges no case on either; the missing-prediction
+  seam's premise (an omitted case is excluded, so the set stays eligible with a
+  better score) is pinned with its numbers;
 - mutations: disabling each boundary turns its guard red. Each mutation
   patches the module the check actually reads, never a re-export.
 """
@@ -506,6 +511,170 @@ def test_a_code_run_is_refused_before_dispatch_above_the_wall_allowance():
     assert A.code_run_refusal("seconds=1") == "code_run_arguments_unreadable"
 
 
+# -- selective fault: a construction that faults only where it would score badly -----------------
+SELECTIVE = A.family_spec("selective_fault")
+
+
+def _selective_results():
+    return {
+        name: (value, c.selective_fault_boundary(value))
+        for name, value in SELECTIVE.attacks()
+    }
+
+
+def test_a_selective_fault_dodges_no_case_on_either_real_path():
+    """Each attack faults only on cases the construction scores worse on (so
+    dropping them would improve its score), and each real path fails or
+    charges the whole attempt instead: the Interface v1 validator types it
+    FAILED_INFRA (`adapter_failure`), records no submission and gives the same
+    result again on a re-roll; Graphite's pod path types a crash
+    CANDIDATE_FAILED at stage `program`, never retried, and scores a
+    non-finite set ineligible (a regression), every faulted case a gate
+    failure."""
+    for name, (value, result) in _selective_results().items():
+        faulted = result["faulted"]
+        assert faulted, name
+        assert result["score_without"] < result["score_all"], name
+        assert not c.selective_fault_breached(result), name
+        v1 = result["interface_v1"]
+        assert v1["outcome"] == "FAILED_INFRA:adapter_failure", name
+        assert v1["recorded_submissions"] == 0 and v1["retry_same"], name
+        assert v1["ledger"] == {"FAILED_INFRA": 2}, name
+        graphite = result["graphite"]
+        assert graphite["pods_launched"] == 2 and not graphite["retried"], name
+        if value["mode"] == "raise":
+            assert graphite["outcome"] == "CANDIDATE_FAILED:program", name
+            assert not graphite["scored"], name
+        else:
+            assert graphite["outcome"] == "SCORED" and graphite["eligible"] is False
+            assert graphite["n_gate_failed"] == len(faulted), name
+            assert graphite["n_scored"] + len(faulted) == graphite["n_cases"], name
+            assert graphite["against_baseline"] == "REGRESSION", name
+
+
+def test_the_selective_fault_evidence_is_digest_bound():
+    """The oracle's evidence digest binds the boundary's whole result: which
+    cases faulted, the score with and without them, and each path's
+    outcome."""
+    for name, (value, result) in _selective_results().items():
+        reading = A.assess(SELECTIVE, (name, value))
+        assert (reading.reading, reading.oracle.verdict) == (c.HELD, c.HELD)
+        assert reading.oracle.specimen == c.FIRED
+        expected = c._digest(
+            {"family": "selective_fault", "attempt": name, "evidence": result}
+        )
+        assert reading.oracle.evidence_digest == expected, name
+
+
+def test_the_specimen_drops_the_faulted_cases_and_scores_better():
+    for name, value in SELECTIVE.attacks():
+        weak = c.dropping_accounting(value)
+        for path in c.FAULT_PATHS:
+            assert c.dodged(weak[path]), (name, path)
+            assert weak[path]["n_scored"] == 100 - len(weak["faulted"])
+        assert weak["score_without"] < weak["score_all"], name
+
+
+def test_the_selective_attacks_cover_the_test_leads_examples():
+    attacks = dict(SELECTIVE.attacks())
+    assert {
+        "fault_on_the_hot_group_only",
+        "fault_on_the_worst_k_cases",
+        "nonfinite_only_on_the_hard_cases",
+        "raise_at_predict_for_a_subset",
+    } <= set(attacks)
+    assert c._faulted_cases(c._scaffold(), "hot_group") == sorted(c._important_ids())
+    assert len(c._faulted_cases(c._scaffold(), "worst_k")) == 10
+    assert len(c._faulted_cases(c._scaffold(), "worse_half")) == 50
+    controls = {x.name: x.value() for x in A.control_specs("held_out")}
+    uniform = controls["selective_fault_held_out_uniform_raise_on_every_case"]
+    assert c._faulted_cases(uniform["strategy"], uniform["select"]) == sorted(
+        r["case_id"] for r in c._records()
+    )
+
+
+def test_the_probe_runs_carbons_own_validator_and_pod_path(monkeypatch):
+    """The boundary calls the real Interface v1 `CoolingAdapter.evaluate` (twice:
+    the attempt and its re-roll) and the real `Experiment.run`, and the pod's
+    program is Carbon's own practice program from its model onward."""
+    from carbon.agent_campaign.graphite import experiment
+    from carbon.challenge_validator import cooling as validator_cooling
+    from carbon.cold_plate import practice
+
+    calls = {"evaluate": 0, "run": 0}
+    evaluate, run = validator_cooling.CoolingAdapter.evaluate, experiment.Experiment.run
+
+    def counted_evaluate(self, submission):
+        calls["evaluate"] += 1
+        return evaluate(self, submission)
+
+    def counted_run(self, *args, **kwargs):
+        calls["run"] += 1
+        return run(self, *args, **kwargs)
+
+    monkeypatch.setattr(validator_cooling.CoolingAdapter, "evaluate", counted_evaluate)
+    monkeypatch.setattr(experiment.Experiment, "run", counted_run)
+    c.selective_fault_boundary(dict(SELECTIVE.attacks())[SELECTIVE.attack_example])
+    assert calls["evaluate"] == 2
+    assert calls["run"] >= 2  # the proposal, and the session's baseline it runs first
+    # The tail starts after `model = ...` and holds the prediction step.
+    tail = c._program_tail(practice.PROGRAM)
+    assert "predictions" in tail.co_names
+    assert _PROGRAM_PREDICTS in practice.PROGRAM
+
+
+def test_the_probe_batch_role_is_never_reserved():
+    from carbon.challenge_validator.interface import role_reserved
+
+    assert not role_reserved(c.PROBE_BATCH_ROLE)
+
+
+def _omitting(monkeypatch):
+    """A construction that omits its faulted cases (a predict that returns no
+    prediction), which no Level 0 construction can do."""
+
+    class Omitting:
+        def __init__(self, model, faulted):
+            self.model, self.faulted = model, faulted
+
+        def predict(self, inputs):
+            if c._canonical(inputs) in self.faulted:
+                return None
+            return self.model.predict(inputs)
+
+    def faulting(model, fault):
+        if fault is None or not fault["cases"]:
+            return model
+        inputs = {r["case_id"]: c._canonical(r["inputs"]) for r in c._records()}
+        return Omitting(model, {inputs[x] for x in fault["cases"]})
+
+    monkeypatch.setattr(c, "_faulting", faulting)
+
+
+def test_the_missing_prediction_seam_premise_holds(monkeypatch):
+    """The `missing_prediction_attribution` seam's premise, pinned with its
+    numbers: a case that arrives with no prediction is typed FAILED_INFRA and
+    excluded on both paths, so a set that omits its worst cases stays eligible
+    with a better score (Graphite's host scores the partial file with no
+    completeness check). No Level 0 construction can omit a case; if that
+    changes, or an owner decides otherwise, this test names the seam to
+    revisit."""
+    seams = {s.name: s for s in c.SEAMS}
+    assert seams["missing_prediction_attribution"].reserved_decision.startswith("owner")
+    _omitting(monkeypatch)
+    value = dict(SELECTIVE.attacks())["fault_on_the_worst_k_cases"]
+    strategy, fault = c._fault_of({**value, "mode": "nonfinite_peak"})
+    honest = c._honest(strategy)
+    v1 = c._interface_v1(strategy, fault)
+    graphite = c._graphite(strategy, fault)
+    for path in (v1, graphite):
+        assert c.dodged(path)
+        assert (path["n_scored"], path["n_cases"]) == (90, 100)
+        assert path["score"] < honest["score"]
+    assert v1["outcome"] == "SCORED" and v1["recorded_submissions"] == 1
+    assert graphite["outcome"] == "SCORED"
+
+
 # -- rebuild ------------------------------------------------------------------------------------
 def test_carbon_rebuilds_with_admit_and_refuses_with_a_typed_code():
     from carbon.challenge_validator.scoring import REBUILT_FIELDS
@@ -851,6 +1020,71 @@ def _pressure_left_out(m):
     )
 
 
+def _faulted_case_typed_failed_infra(m):
+    """The accounting drops a faulted case: a prediction that fails the
+    schema_finite gate is typed FAILED_INFRA (excluded) instead of
+    GATE_FAILED. `exam.score_case` reads `evaluate_case` from `exam` itself."""
+    from carbon.cold_plate import exam
+
+    original = exam.evaluate_case
+
+    def lax(prediction, reference, twin=None, infra_failed=False):
+        row = original(prediction, reference, twin, infra_failed)
+        if row["gates"].get("schema_finite") == exam.FAIL:
+            return {"state": exam.FAILED_INFRA, "gates": {}}
+        return row
+
+    m.setattr(exam, "evaluate_case", lax)
+
+
+def _validator_harness_drops_a_faulted_case(m):
+    """The Interface v1 validator catches a case's predict fault and records
+    no prediction for it. `CoolingAdapter.evaluate` reads `rebuild` from the
+    validator's own cooling module."""
+    from carbon.challenge_validator import cooling as validator_cooling
+
+    original = validator_cooling.rebuild
+
+    class Catching:
+        def __init__(self, model):
+            self.model = model
+
+        def predict(self, inputs):
+            try:
+                return self.model.predict(inputs)
+            except Exception:  # noqa: BLE001 - the mutation under test
+                return None
+
+    m.setattr(
+        validator_cooling,
+        "rebuild",
+        lambda recipe, material=None, **kw: Catching(original(recipe, material, **kw)),
+    )
+
+
+_PROGRAM_PREDICTS = (
+    'predictions = {case["case_id"]: model.predict(case["inputs"]) for case in cases}'
+)
+
+
+def _practice_program_drops_a_faulted_case(m):
+    """The pod's practice program catches a case's predict fault and writes no
+    prediction for it (`practice.PROGRAM`, which the pod path stages and the
+    probe runs)."""
+    from carbon.cold_plate import practice
+
+    assert _PROGRAM_PREDICTS in practice.PROGRAM
+    guarded = (
+        "def _guarded(case):\n"
+        "    try:\n"
+        '        return model.predict(case["inputs"])\n'
+        "    except Exception:\n"
+        "        return None\n"
+        'predictions = {case["case_id"]: _guarded(case) for case in cases}'
+    )
+    m.setattr(practice, "PROGRAM", practice.PROGRAM.replace(_PROGRAM_PREDICTS, guarded))
+
+
 def _screen_disabled(m):
     from carbon.cold_plate import population
 
@@ -1019,6 +1253,18 @@ MUTATIONS = {
         _failed_infra_counts_as_pass,
         lambda: _held_and_fired("resource_accounting"),
     ),
+    "faulted_case_typed_failed_infra": (
+        _faulted_case_typed_failed_infra,
+        lambda: _held_and_fired("selective_fault"),
+    ),
+    "validator_harness_drops_a_faulted_case": (
+        _validator_harness_drops_a_faulted_case,
+        lambda: _held_and_fired("selective_fault"),
+    ),
+    "practice_program_drops_a_faulted_case": (
+        _practice_program_drops_a_faulted_case,
+        lambda: _held_and_fired("selective_fault"),
+    ),
     "cooling_wall_allowance_lifted": (
         _cooling_wall_allowance_lifted,
         test_each_pinned_value_is_a_copy_of_its_cooling_source,
@@ -1079,3 +1325,54 @@ def test_every_guard_passes_without_its_mutation():
     """The other half of the mutation check: unmutated, each guard holds."""
     for _mutate, guard in MUTATIONS.values():
         guard()
+
+
+#: Under each accounting that drops faulted cases, the attacks that dodge and
+#: the path they dodge on.
+_DODGES = {
+    "faulted_case_typed_failed_infra": {
+        "nonfinite_only_on_the_hard_cases": ("graphite",),
+        "infinite_pressure_on_the_worst_k_cases": ("graphite",),
+    },
+    "validator_harness_drops_a_faulted_case": {
+        "fault_on_the_hot_group_only": ("interface_v1",),
+        "fault_on_the_worst_k_cases": ("interface_v1",),
+        "raise_at_predict_for_a_subset": ("interface_v1",),
+    },
+    "practice_program_drops_a_faulted_case": {
+        "fault_on_the_hot_group_only": ("graphite",),
+        "fault_on_the_worst_k_cases": ("graphite",),
+        "raise_at_predict_for_a_subset": ("graphite",),
+    },
+}
+
+
+@pytest.mark.parametrize("name", sorted(_DODGES))
+def test_an_accounting_that_drops_faulted_cases_turns_selective_fault_red(
+    name, monkeypatch
+):
+    """Which attacks breach, on which path, with the faulted cases gone from
+    the score: the dodged score is the score without them."""
+    mutate, _guard = MUTATIONS[name]
+    c.clear_caches()
+    try:
+        mutate(monkeypatch)
+        found = {}
+        for attack, value in SELECTIVE.attacks():
+            result = c.selective_fault_boundary(value)
+            paths = tuple(p for p in c.FAULT_PATHS if c.dodged(result[p]))
+            if paths:
+                found[attack] = paths
+                for path in paths:
+                    n = result[path]["n_cases"] - len(result["faulted"])
+                    assert result[path]["n_scored"] == n, (attack, path)
+                    assert result[path]["score"] == pytest.approx(
+                        result["score_without"]
+                    )
+                reading = A.assess(SELECTIVE, (attack, value))
+                assert reading.reading == c.BREACH
+                assert reading.oracle.condition == "FAILING_TRIGGER"
+        assert found == _DODGES[name]
+    finally:
+        monkeypatch.undo()
+        c.clear_caches()

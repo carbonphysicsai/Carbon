@@ -1,0 +1,30 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-validator-03-confirmation-sets",
+  "recorded_at": "2026-10-05T14:30:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-03 slice 1, branch claude/validator-confirmation-sets, from main 56187e74f. Native: the confirmation, contract, battery, hardening, cooling and scoring validator suites, the EV5 suite and the lessons log: 251 passed. scripts/check_quality.py --base origin/main passed. Canonical results are recorded in the PR.",
+    "description": "Battery's EV5 confirmation-set pattern became challenge-neutral tooling: a digest-pinned registry of confirmation roles whose size, law and strata come from recorded decisions and fail closed when unset; owner-only custody for Challenges without a validator deployment; an overlap check against published, private-pool and earlier sealed cases; a seal command that prints only the public commitment; and a pinning manifest."
+  },
+  "expected": "The EV5 pattern generalises by swapping the draw: one engine, a source per Challenge, and battery left on its deployment journal.",
+  "observed": "The engine generalised, but three things surfaced only on reading the decisions and the code. First, EV5 never compared its batch with any earlier private batch: freshness rested on role-keyed HMAC derivation alone, so the 'no case equals an EV5 case' requirement needed a real check. The only way to compare without storing EV5's cases is to regenerate each earlier set from the root in memory and require it to reproduce its committed fingerprint, which also catches a set registered with the wrong size. Second, a decision's words were not yet an input region: cooling's 'boundary-stress load and inlet range' matched no input range in the code (the study's boundary conditions move the hot spot), so it was held as HUMAN_INPUT and the Test Lead defined it within the hour. Third, a stratum quota needs a stated method; rejection inside the region for ceil(n/3) cases and the rest from the whole population keeps the 'at least' bound and a representative remainder, and the stratum's admission rate (5.7 % of cooling's admitted draws) was measured before registering it.",
+  "keep": [
+    "Register scientific values as pinned documents whose unset fields refuse every use, and make the document list exactly which fields are still the owner's.",
+    "Compare against a sealed set by regenerating it in memory and checking the committed fingerprint, never by storing its cases.",
+    "Measure a stratum's acceptance rate on the real population before registering a quota for it."
+  ],
+  "change": [
+    "When a decision names a region in words, check it maps to an input region in code before encoding it; ask for bounds instead of guessing.",
+    "Check that a shared test helper's tmp subdirectory exists before reusing a fixture that writes into it."
+  ],
+  "protocol_elements": [
+    "each Challenge's final evidence uses one sealed confirmation set, registered by role with decision-backed size, law and strata",
+    "a confirmation set may not repeat any published, private-pool or earlier sealed case, checked before its commitment",
+    "sealing prints only the public commitment; the cases stay on the operator host"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

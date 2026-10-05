@@ -526,3 +526,80 @@ def test_decision_value_orders_correct_abstain_and_unsafe(tmp_path):
         "by_value": ["exact"],
         "overlap": 0,
     }
+
+
+def test_mixed_hardware_one_time_cost_is_bracketed_beside_the_point(tmp_path):
+    p = problem()
+    mixed = track_b.Predictor(
+        name="mixed",
+        kind=track_b.MODEL,
+        planning_core_seconds=0.0,
+        planning_route=HOST,
+        infer=model("exact").infer,
+        one_time=(
+            ("training_data_generation", HOST, 400.0, "ALLOCATED_CPU_X_WALL", "h"),
+            ("training_data_generation", "toy-pod", 600.0, "ALLOCATED_CPU_X_WALL", "p"),
+        ),
+    )
+    arms = [
+        track_b.Arm("solver-grid", solver(), "fixed_grid"),
+        track_b.Arm("mixed-grid", mixed, "fixed_grid"),
+    ]
+
+    def run(label, factor):
+        conversions = (
+            ()
+            if factor is None
+            else (cost.Conversion("toy-pod", HOST, factor, f"toy {label}"),)
+        )
+        return track_b.economic(
+            p,
+            arms,
+            budget=6 * SOLVE_CORE_S,
+            unit=UNIT,
+            reference=reference(p),
+            directory=tmp_path / label,
+            ladder=(10,),
+            conversions=conversions,
+            assumption=label,
+            clock=clock,
+        )
+
+    point = run("point", None)
+    summary = track_b.bracket(
+        point, {"lower": run("lower", 1.0), "upper": run("upper", 1.6)}
+    )
+    mixed_row = summary["mixed-grid"]
+    assert mixed_row["point_status"] == cost.UNPRICED
+    assert mixed_row["one_time_range"] == [1000.0, pytest.approx(1360.0)]
+    # Solver per decision 600, model 0: 1000/600 -> 2 and 1360/600 -> 3.
+    assert mixed_row["break_even_range"] == [2, 3]
+    assert mixed_row["assumptions"]["upper"]["conversions"][0]["factor"] == 1.6
+
+
+def test_an_overrun_is_also_reported_at_the_rung_that_covers_it(tmp_path):
+    p = problem()
+    cases = {
+        point: track_b.Case(case.quantities, 150.0, HOST)
+        for point, case in reference(p)._cases.items()
+    }
+    pricey = track_b.Reference(cases, evidence_class="SYNTHETIC_FIXTURE", source="toy")
+    arms = [track_b.Arm("solver-grid", solver(pricey), "fixed_grid")]
+    rungs = {
+        f"k{k}": track_b.economic(
+            p,
+            arms,
+            budget=k * SOLVE_CORE_S,
+            unit=UNIT,
+            reference=pricey,
+            directory=tmp_path / f"k{k}",
+            ladder=(1,),
+            clock=clock,
+        )
+        for k in (6, 12)
+    }
+    overruns = track_b.ladder_overruns(rungs)
+    # Planned at 100 per solve, six solves cost 900 > 600: covered by k12.
+    assert overruns[0]["rung"] == "k6"
+    assert overruns[0]["actual_total_cost"] == 900.0
+    assert overruns[0]["also_reported_at_rung"] == "k12"
