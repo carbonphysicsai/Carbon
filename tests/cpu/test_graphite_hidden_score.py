@@ -363,3 +363,64 @@ def test_the_rerun_is_operator_evidence_only(
     record = (tmp_path / "run/experiment/proposals" / pid / "result.json").read_bytes()
     assert b"rerun" not in record
     assert "rerun" not in repr(events)
+
+
+# -- overdue pools (the Test Lead's ruling, 2026-10-05) -------------------------------------
+
+
+def test_a_score_on_an_overdue_pool_is_flagged_with_its_margin(
+    tmp_path,
+    refs,  # noqa: F811
+    backend,  # noqa: F811
+):
+    # Three screening batches and none prepared: the rotation cannot happen.
+    target = deployment(tmp_path, refs, backend, order=(0, 1, 2))
+    every = V2["rotation"]["every_blocks"]
+    _, on_time = pool(target, block=TEMPO + 5).submit("proposal", knn(8))
+    late = TEMPO + 5 + every + 100
+    _, overdue = pool(target, block=late).submit("baseline", knn(9))
+    assert (on_time["rotation_overdue"], on_time["overdue_margin_blocks"]) == (
+        False,
+        None,
+    )
+    assert overdue["pool_version"] == on_time["pool_version"]
+    assert (overdue["rotation_overdue"], overdue["overdue_margin_blocks"]) == (
+        True,
+        100,
+    )
+
+
+def record(pid, version, score, *, overdue=False, eligible=True, margin=None):
+    return {
+        "proposal_id": pid,
+        "kind": "proposal",
+        "submission_id": "bsub-" + pid,
+        "pool_version": version,
+        "aggregate": {"eligible": eligible, "score": score, "important_score": None},
+        "rotation_overdue": overdue,
+        "overdue_margin_blocks": margin,
+        "replay": "REPRODUCED",
+    }
+
+
+def test_overdue_scores_never_enter_the_primary_ranking():
+    found = hidden_score.report(
+        [
+            record("p-a", 1, 0.30),
+            record("p-b", 1, 0.10, overdue=True, margin=40),
+            record("p-c", 1, 0.20),
+            record("p-d", 1, 0.05, eligible=False),
+            record("p-e", 2, 0.50),
+            {"submission_id": "bsub-x", "replay": "MISMATCH"},
+        ]
+    )
+    primary = found["primary"]["by_pool_version"]
+    assert [r["proposal_id"] for r in primary["1"]] == ["p-c", "p-a", "p-d"]
+    assert [r["proposal_id"] for r in primary["2"]] == ["p-e"]
+    ranked = {r["proposal_id"] for rows in primary.values() for r in rows}
+    assert "p-b" not in ranked
+    assert found["overdue"]["descriptive_only"] is True
+    assert found["overdue"]["count"] == 1
+    [late] = found["overdue"]["records"]
+    assert (late["proposal_id"], late["overdue_margin_blocks"]) == ("p-b", 40)
+    assert found["replay_mismatch"] == ["bsub-x"]

@@ -53,6 +53,7 @@ from carbon.development_session.profile import canonical, digest
 VIEW_SCHEMA = "carbon.graphite.hidden-score.v1"
 OPERATOR_SCHEMA = "carbon.graphite.hidden-score-operator.v1"
 RERUN_SCHEMA = "carbon.graphite.hidden-fresh-rerun.v1"
+REPORT_SCHEMA = "carbon.graphite.hidden-pool-report.v1"
 #: Rerun states that are final; any other is retried later.
 RERUN_FINAL = ("SCORED", "CANDIDATE_FAILED")
 EVIDENCE = "DEVELOPMENT_HIDDEN_POOL"
@@ -143,9 +144,18 @@ class HiddenPool:
             return _view("UNAVAILABLE", code="hidden_state_" + moved.code), None
         if outcome["state"] != "SCORED":
             return _view("NOT_SCORED", outcome=outcome), None
-        return _view("SCORED", outcome=outcome), self._operator_record(outcome)
+        return _view("SCORED", outcome=outcome), self._operator_record(outcome, block)
 
-    def _operator_record(self, outcome):
+    def _overdue_margin(self, version, block):
+        """Blocks past the due rotation when this score was taken, or None when
+        the pool has since moved on and the margin is no longer known."""
+        store = self.target.store
+        started = store.pool_started_block()
+        if store.pool()["version"] != version or started is None:
+            return None
+        return block - started - self.target.rule["rotation"]["every_blocks"]
+
+    def _operator_record(self, outcome, block):
         from carbon.challenge_validator.battery import ScoreReplayMismatch
 
         sid = outcome["submission_id"]
@@ -176,6 +186,9 @@ class HiddenPool:
             "aggregate": full["aggregate"],
             "nomination": full["nomination"],
             "rotation_overdue": overdue,
+            "overdue_margin_blocks": (
+                self._overdue_margin(version, block) if overdue else None
+            ),
             "replay": "REPRODUCED",
             "score_record_digest": digest(canonical(full)),
         }
@@ -196,6 +209,68 @@ class HiddenPool:
         its nomination and finals, never by Graphite's ranking."""
         incumbent = self.target.store.incumbent()
         return None if incumbent is None else dict(incumbent)
+
+
+def report(records):
+    """A run's hidden-pool report from its operator records (in proposal
+    order).
+
+    Scores are comparable only within one pool version, so the primary
+    ranking is per pool version: eligible first, then by score (lower is
+    better). A score taken on an overdue pool was adaptively over-exposed
+    (the Test Lead's ruling of 2026-10-05). Such scores are reported
+    separately, counted, with their overdue margin, as descriptive evidence
+    only. They never enter the primary ranking, an alignment result or a
+    promotion claim. A record whose score did not replay is listed by
+    submission and never ranked.
+    """
+    reproduced = [r for r in records if r.get("replay") == "REPRODUCED"]
+    primary = {}
+    for record in reproduced:
+        if not record["rotation_overdue"]:
+            primary.setdefault(str(record["pool_version"]), []).append(record)
+
+    def rank_key(record):
+        score = record["aggregate"].get("score")
+        return (not record["aggregate"].get("eligible"), score is None, score or 0)
+
+    def row(record):
+        aggregate = record["aggregate"]
+        return {
+            "proposal_id": record.get("proposal_id"),
+            "kind": record.get("kind"),
+            "submission_id": record["submission_id"],
+            "eligible": bool(aggregate.get("eligible")),
+            "score": aggregate.get("score"),
+            "important_score": aggregate.get("important_score"),
+        }
+
+    overdue = [r for r in reproduced if r["rotation_overdue"]]
+    return {
+        "schema": REPORT_SCHEMA,
+        "evidence": EVIDENCE,
+        "primary": {
+            "by_pool_version": {
+                version: [row(r) for r in sorted(rows, key=rank_key)]
+                for version, rows in sorted(primary.items(), key=lambda i: int(i[0]))
+            },
+        },
+        "overdue": {
+            "descriptive_only": True,
+            "count": len(overdue),
+            "records": [
+                {
+                    **row(r),
+                    "pool_version": r["pool_version"],
+                    "overdue_margin_blocks": r.get("overdue_margin_blocks"),
+                }
+                for r in overdue
+            ],
+        },
+        "replay_mismatch": [
+            r["submission_id"] for r in records if r.get("replay") == "MISMATCH"
+        ],
+    }
 
 
 def _view(state, **fields):

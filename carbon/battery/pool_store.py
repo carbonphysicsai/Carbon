@@ -627,6 +627,13 @@ class PoolStore:
             db.execute("INSERT OR REPLACE INTO pool_clock VALUES(1, ?)", (latest,))
         return latest
 
+    def pool_started_block(self):
+        """The finalized block the current pool version started at (rule v2),
+        or None before the clock starts. Read only."""
+        with self.db() as db:
+            row = db.execute("SELECT block FROM pool_clock WHERE id=1").fetchone()
+        return None if row is None else row[0]
+
     def rotate_if_ready(self):
         """Resolve a pending rotation once a complete batch is prepared."""
         with self.transaction() as db:

@@ -499,6 +499,12 @@ class Experiment:
                 )
         return found
 
+    def hidden_report(self):
+        """The run's hidden-pool report (`hidden_score.report`): a primary
+        ranking per pool version, with overdue-pool scores kept apart as
+        descriptive evidence only."""
+        return hidden_score.report(self.hidden_records())
+
     def hidden_rerun(self, pid):
         """Re-score proposal `pid`, the run's winner as the operator names it,
         once on a fresh hidden batch (VALIDATOR-13 §6, `fresh_cases_rerun`).

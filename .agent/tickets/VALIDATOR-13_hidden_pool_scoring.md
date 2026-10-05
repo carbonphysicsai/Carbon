@@ -196,3 +196,11 @@ qualification, reward or LIVE authority.
   adapter, intake), Graphite phase 3, the pod suites and the lessons log
   passed (canonical).
 - `scripts/check_quality.py --base origin/main`: passed.
+- **Slice 3, overdue pools** (the Test Lead's ruling, 2026-10-05).
+  - Each operator record carries `overdue_margin_blocks`.
+  - `hidden_score.report` and `Experiment.hidden_report()` rank only
+    non-overdue, replay-reproduced scores, per pool version.
+  - Overdue-pool scores are listed separately, counted, with their margin, as
+    descriptive evidence only. They never enter a primary ranking, an
+    alignment (Q1) result or a promotion claim.
+  - Hidden-score tests: 14 passed (canonical).
