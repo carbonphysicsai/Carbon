@@ -63,7 +63,7 @@ from carbon.challenge_validator.scoring import (
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
 
-from . import baseline_retry, pod_logs, pod_outcome
+from . import baseline_retry, hidden_score, pod_logs, pod_outcome
 from . import pods as podlib
 from .roles import (
     CONSTRUCTOR_STALL_ATTEMPTS,
@@ -498,6 +498,28 @@ class Experiment:
                     }
                 )
         return found
+
+    def hidden_rerun(self, pid):
+        """Re-score proposal `pid`, the run's winner as the operator names it,
+        once on a fresh hidden batch (VALIDATOR-13 §6, `fresh_cases_rerun`).
+        Operator evidence only. It is written once to `hidden-rerun.json` when
+        final (`hidden_score.RERUN_FINAL`); waiting and infrastructure states
+        are returned and can be retried."""
+        if self.hidden is None:
+            raise ValueError("no hidden pool")
+        folder = self.root / "proposals" / pid
+        done = folder / "hidden-rerun.json"
+        if done.exists():
+            return json.loads(done.read_bytes())
+        scored = folder / "hidden-operator.json"
+        if not scored.exists():
+            raise ValueError("proposal_not_hidden_scored")
+        operator = json.loads(scored.read_bytes())
+        result = self.hidden.fresh_rerun(operator["submission_id"])
+        if result["state"] in hidden_score.RERUN_FINAL:
+            write_once(done, canonical({"proposal_id": pid, **result}))
+            return json.loads(done.read_bytes())
+        return result
 
     def findings(self):
         path = self.root / "findings.jsonl"

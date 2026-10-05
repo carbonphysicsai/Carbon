@@ -1091,6 +1091,56 @@ class BatteryValidator:
             raise RuntimeError("outcome field outside the disclosure allow-list")
         return out
 
+    def fresh_rerun(self, submission_id):
+        """Score a screened submission's retained model once on a fresh hidden
+        batch (VALIDATOR-13, `fresh_cases_rerun`): a prepared finalist batch no
+        result has used, consumed by this rerun and never scored again.
+        Operator-only; nothing here reaches a miner outcome.
+
+        One rerun per submission, idempotent: a replay returns the recorded
+        result. Returns `{"state": "WAITING_FOR_FRESH_SET"}` when no batch is
+        ready and `{"state": "FAILED_INFRA", ...}` for an infrastructure
+        failure, which is retried on the same batch. A candidate's own
+        inference failure is recorded, never inferred over.
+        """
+        rerun_id = "rerun-" + submission_id
+        done = self.store.rerun(rerun_id)
+        if done is not None:
+            return done
+        if self.store.score(submission_id) is None:
+            raise StateError("rerun_not_scored", submission_id)
+        fingerprint = self.store.claim_rerun_set(rerun_id)
+        if fingerprint is None:
+            return {"state": "WAITING_FOR_FRESH_SET"}
+        inputs = self.store.case_inputs([fingerprint])
+        ids = [c["case_id"] for c in self.store.batch(fingerprint)["document"]["cases"]]
+        try:
+            predictions = self._infer(submission_id, ids, inputs, rerun_id)
+        except WorkerFailure as failure:
+            if not failure.candidate:
+                return {"state": "FAILED_INFRA", "code": failure.code}
+            return self.store.record_rerun(
+                rerun_id,
+                {
+                    "state": "CANDIDATE_FAILED",
+                    "submission_id": submission_id,
+                    "code": failure.code,
+                },
+            )
+        _rows, aggregate = exam.evaluate(
+            predictions, ids, self._case_store([fingerprint])
+        )
+        return self.store.record_rerun(
+            rerun_id,
+            {
+                "state": "SCORED",
+                "submission_id": submission_id,
+                "rule_digest": rule_digest(self.rule),
+                "references": self._reference_identity([fingerprint]),
+                "aggregate": aggregate,
+            },
+        )
+
     def _finals_for(self, submission_id):
         with self.store.db() as db:
             return db.execute(

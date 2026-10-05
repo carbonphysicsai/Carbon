@@ -52,6 +52,9 @@ from carbon.development_session.profile import canonical, digest
 
 VIEW_SCHEMA = "carbon.graphite.hidden-score.v1"
 OPERATOR_SCHEMA = "carbon.graphite.hidden-score-operator.v1"
+RERUN_SCHEMA = "carbon.graphite.hidden-fresh-rerun.v1"
+#: Rerun states that are final; any other is retried later.
+RERUN_FINAL = ("SCORED", "CANDIDATE_FAILED")
 EVIDENCE = "DEVELOPMENT_HIDDEN_POOL"
 STATES = ("SCORED", "NOT_SCORED", "WINDOW_USED", "UNAVAILABLE")
 
@@ -176,6 +179,17 @@ class HiddenPool:
             "replay": "REPRODUCED",
             "score_record_digest": digest(canonical(full)),
         }
+
+    def fresh_rerun(self, submission_id):
+        """Re-score a hidden-scored submission once on a fresh hidden batch,
+        consumed by this use (`BatteryValidator.fresh_rerun`), under the
+        deployment's writer lock. Operator-only. The Challenge's one-shot
+        confirmation set is never used here."""
+        from carbon.battery import deployment
+
+        with deployment.writer(self.target):
+            result = self.target.fresh_rerun(submission_id)
+        return {"schema": RERUN_SCHEMA, "evidence": EVIDENCE, **result}
 
     def standing(self):
         """The deployment's incumbent: the validator's own leader, decided by

@@ -1039,6 +1039,68 @@ class PoolStore:
             )
             return nxt[0]
 
+    # --- fresh-case reruns (VALIDATOR-13) --------------------------------------------
+
+    def _rerun_event(self, db, kind, rerun_id):
+        for (body,) in db.execute(
+            "SELECT body FROM events WHERE kind=? ORDER BY sequence", (kind,)
+        ):
+            found = json.loads(body)
+            if found["rerun_id"] == rerun_id:
+                return found
+        return None
+
+    def claim_rerun_set(self, rerun_id):
+        """Assign one prepared, complete finalist batch to a fresh-case rerun
+        (idempotent by `rerun_id`). The batch is held `FINALIST` until the
+        rerun is recorded, so it is never released or reused meanwhile.
+        Returns None when no batch is ready."""
+        with self.transaction() as db:
+            claimed = self._rerun_event(db, "rerun_assigned", rerun_id)
+            if claimed is not None:
+                return claimed["fingerprint"]
+            nxt = db.execute(
+                "SELECT fingerprint FROM batches WHERE kind='finalist' AND "
+                "state='PREPARED' AND references_state='COMPLETE' ORDER BY sequence LIMIT 1"
+            ).fetchone()
+            if nxt is None:
+                return None
+            db.execute(
+                "UPDATE batches SET state='FINALIST' WHERE fingerprint=?", (nxt[0],)
+            )
+            self._event(
+                db, "rerun_assigned", {"rerun_id": rerun_id, "fingerprint": nxt[0]}
+            )
+            return nxt[0]
+
+    def record_rerun(self, rerun_id, body):
+        """Record a rerun's result once and consume its batch: it is never
+        scored again. A replay returns the first record."""
+        with self.transaction() as db:
+            done = self._rerun_event(db, "rerun_scored", rerun_id)
+            if done is not None:
+                return done
+            claimed = self._rerun_event(db, "rerun_assigned", rerun_id)
+            if claimed is None:
+                raise StateError("rerun_not_assigned")
+            db.execute(
+                "UPDATE batches SET state='CONSUMED' WHERE fingerprint=? "
+                "AND state='FINALIST'",
+                (claimed["fingerprint"],),
+            )
+            record = {
+                **body,
+                "rerun_id": rerun_id,
+                "fingerprint": claimed["fingerprint"],
+            }
+            self._event(db, "rerun_scored", record)
+            return json.loads(_json(record))
+
+    def rerun(self, rerun_id):
+        """A recorded rerun, or None."""
+        with self.db() as db:
+            return self._rerun_event(db, "rerun_scored", rerun_id)
+
     def complete_final(self, final_id, outcome, *, new_final=None):
         """Decide a final and apply what follows from it in one transaction.
 

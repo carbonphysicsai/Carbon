@@ -166,3 +166,33 @@ separate tickets:
 
 IMPLEMENTED and TESTED (DEVELOPMENT). It is not a security audit, and no
 qualification, reward or LIVE authority.
+
+## Build record
+
+- **Slice 1, hidden scoring.**
+  - `graphite/hidden_score.py` (`HiddenPool`) adds the hook
+    `Experiment(hidden=...)`.
+  - The agent's `hidden` view is the sealed miner outcome.
+  - `hidden-operator.json` holds the operator record;
+    `Experiment.hidden_records()` reads it.
+- **Slice 2, fresh-case rerun (§6).**
+  - `BatteryValidator.fresh_rerun` adds the store methods `claim_rerun_set`,
+    `record_rerun` and `rerun`, with no schema change. A prepared finalist
+    batch is held `FINALIST` during the rerun, then `CONSUMED`, which makes it
+    releasable.
+  - Graphite calls it through `HiddenPool.fresh_rerun` and
+    `Experiment.hidden_rerun(pid)`, for the winner the operator names.
+- **Follow-ups:**
+  - Delivery's selection moves onto the hidden evidence after #606 and #613
+    land, since they overlap `delivery.py`.
+  - A CLI flag wires a configured deployment into phase 3 and phase 4.
+  - The attack families `hidden_outcome_channel` and `rotation_exhaustion`
+    go to the Test Engineer.
+
+## Validation
+
+- `tests/cpu/test_graphite_hidden_score.py`: 12 passed (canonical).
+- The battery validator suites (daemon, rule v2, deployment, service,
+  adapter, intake), Graphite phase 3, the pod suites and the lessons log
+  passed (canonical).
+- `scripts/check_quality.py --base origin/main`: passed.

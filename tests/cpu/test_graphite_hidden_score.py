@@ -63,9 +63,16 @@ def locked(target, directory):
     return target
 
 
-def deployment(tmp_path, refs, backend, order=(0, 1, 2, 3)):  # noqa: F811
+def deployment(
+    tmp_path,
+    refs,  # noqa: F811
+    backend,  # noqa: F811
+    order=(0, 1, 2, 3),
+    finalist=False,
+):
     """A rule-v2 validator whose first three imported screening batches (in
-    `order`) are its active hidden pool."""
+    `order`) are its active hidden pool, with one fresh finalist batch when
+    `finalist`."""
     tmp_path.mkdir(mode=0o700, exist_ok=True)
     tmp_path.chmod(0o700)
     root = seeds.PrivateRoot.create(tmp_path / "root.bin")
@@ -83,6 +90,9 @@ def deployment(tmp_path, refs, backend, order=(0, 1, 2, 3)):  # noqa: F811
     target.start()
     for b in order:
         fp = target.import_batch(batch(refs, f"pscreen-B0{b}"), kind="screening")
+        target.ingest_references(fp, list(refs.values()))
+    if finalist:
+        fp = target.import_batch(batch(refs, "pfinal", 198), kind="finalist")
         target.ingest_references(fp, list(refs.values()))
     target.open_pool()
     return locked(target, tmp_path)
@@ -289,3 +299,67 @@ def test_a_hidden_pool_serves_only_its_own_challenge_at_level_0(
             scoring=cs.scoring_for("chip-cold-plate"),
             hidden=hidden,
         )
+
+
+# -- the fresh-case rerun (§6, amended) -----------------------------------------------------
+
+
+def test_a_winner_is_rescored_once_on_a_fresh_batch_that_is_then_consumed(
+    tmp_path,
+    refs,  # noqa: F811
+    backend,  # noqa: F811
+):
+    target = deployment(tmp_path, refs, backend, finalist=True)
+    hidden = pool(target)
+    [fresh] = [
+        b["fingerprint"] for b in target.store.batches() if b["kind"] == "finalist"
+    ]
+    _, operator = hidden.submit("proposal", knn(8))
+    sid = operator["submission_id"]
+    result = hidden.fresh_rerun(sid)
+    assert result["state"] == "SCORED"
+    assert result["fingerprint"] == fresh
+    assert result["fingerprint"] not in operator["active_batches"]
+    assert result["aggregate"]["n_scored"] > 0
+    # Single use: consumed, then releasable; never claimable by a final.
+    assert target.store.batch(fresh)["state"] == "CONSUMED"
+    assert fresh in target.store.releasable()
+    # A replay is the same record, and a second winner waits for a new batch.
+    assert hidden.fresh_rerun(sid) == result
+    _, second = hidden.submit("baseline", knn(9))
+    assert hidden.fresh_rerun(second["submission_id"])["state"] == (
+        "WAITING_FOR_FRESH_SET"
+    )
+
+
+def test_only_a_screened_submission_can_be_rerun(
+    tmp_path,
+    refs,  # noqa: F811
+    backend,  # noqa: F811
+):
+    from carbon.battery.pool_store import StateError
+
+    hidden = pool(deployment(tmp_path, refs, backend, finalist=True))
+    with pytest.raises(StateError) as refused:
+        hidden.fresh_rerun("bsub-" + "0" * 32)
+    assert refused.value.code == "rerun_not_scored"
+
+
+def test_the_rerun_is_operator_evidence_only(
+    tmp_path,
+    refs,  # noqa: F811
+    backend,  # noqa: F811
+):
+    target = deployment(tmp_path / "pool", refs, backend, finalist=True)
+    run, events = experiment(tmp_path / "run", pool(target))
+    feedback = propose(run)
+    pid = feedback["proposal_id"]
+    with pytest.raises(ValueError):
+        run.hidden_rerun("p-unknown")
+    first = run.hidden_rerun(pid)
+    assert first["state"] == "SCORED"
+    assert run.hidden_rerun(pid) == first
+    assert (tmp_path / "run/experiment/proposals" / pid / "hidden-rerun.json").exists()
+    record = (tmp_path / "run/experiment/proposals" / pid / "result.json").read_bytes()
+    assert b"rerun" not in record
+    assert "rerun" not in repr(events)
