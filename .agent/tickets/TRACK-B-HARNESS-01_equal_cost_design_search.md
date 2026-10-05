@@ -164,3 +164,24 @@ SPECIFIED, IMPLEMENTED and fixture/replay-TESTED. This is not scientific, securi
 Open decisions for the Test Lead:
 1. **Mixed-hardware one-time cost.** The TRAIN pools ran on the operator host and on RunPod CPU pods whose flavor was not recorded. A host-only unit therefore reports the learned and interpolation arms as UNPRICED_MIXED_HARDWARE in Q2, and their break-even is NOT_COMPUTABLE. A rate for both routes, or a cited paired-timing conversion, resolves this.
 2. **The planning charge for stopping.** The solver arm stops by the median solve cost. At B = 12 × median, its actual cost on the replay ran about 21% over B, and that run is flagged `actual_cost_exceeds_budget`. Should the planning charge be the median, the p95 or the timeout?
+
+## Test Lead decisions, 2026-10-05
+
+These are delegated working decisions under OWNER-GRAPHITE-TEST-WAVE-01 §5. They answer PR 2's open questions.
+
+1. **Mixed-hardware one-time cost.** A result is never NOT_COMPUTABLE when a labelled bracket exists.
+   - The point value keeps UNPRICED_MIXED_HARDWARE.
+   - Beside it, Q2 reports one-time cost and break-even N as a range under two declared conversions of unrecorded-flavor pod core-seconds into host core-seconds:
+     - lower: 1.0;
+     - upper: the motor paired host/cpu5c ratio, 1.63 (motor-timing-2026-10-04).
+
+     Both are labelled as assumptions. For cooling, the upper conversion is a labelled proxy.
+   - Implemented by `track_b.bracket` and each adapter's `bracket_conversions`.
+2. **Planning charge.** The solver arm plans with the p95 of measured solve cost on its route; actual cost always decides.
+   - An overrun stays flagged `actual_cost_exceeds_budget`.
+   - The arm is also reported at the smallest ladder rung that covers its actual cost (`track_b.ladder_overruns`).
+3. **`coarse_to_fine` on 2×2×2.** Reported as method behaviour. No new stride is registered.
+4. **`decision_value` order.** Accepted: defined regret, then abstention, then an unsafe selection. Unresolved evidence ranks nothing.
+5. **Cooling's B ladder.** Confirmed: k ∈ {6, 12, 24, 48} × the median solve. Motor's ladder is proposed the same way in the motor adapter PR.
+
+Consequence of p95 planning: k = 48 × the median no longer lets the solver arm plan the full set. The adapters therefore add `anchor_full_set`, which is 48 × the planning charge. It keeps the full-set anchor that the Test Lead asked for.

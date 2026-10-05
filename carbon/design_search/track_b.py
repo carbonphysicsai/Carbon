@@ -675,10 +675,15 @@ def economic(
     diagnostic_query_allowance=None,
     rates=(),
     conversions=(),
+    assumption=None,
     clock=time.process_time,
 ):
     """Q2: every arm at an equal total cost per decision ``budget`` (in
-    ``unit``), one-time costs amortised over each decision count N."""
+    ``unit``), one-time costs amortised over each decision count N.
+
+    ``assumption`` labels the ``conversions`` used, so that a result priced
+    under a declared conversion is never mistaken for a measured one (see
+    ``bracket``)."""
 
     _check_arms(arms)
     solvers = [arm for arm in arms if arm.predictor.kind == SOLVER]
@@ -806,6 +811,18 @@ def economic(
         "unit": unit.as_dict(),
         "decision_budget": budget,
         "ladder": list(ladder),
+        "conversion_assumption": {
+            "label": assumption,
+            "conversions": [
+                {
+                    "source": c.source,
+                    "target": c.target,
+                    "factor": c.factor,
+                    "evidence": c.evidence,
+                }
+                for c in conversions
+            ],
+        },
         "reference": {
             "evidence_class": reference.evidence_class,
             "source": reference.source,
@@ -923,3 +940,84 @@ def decision_value(scope_metrics):
     if scope_metrics["proposal_outcome"] == "CONFIRMED_INFEASIBLE":
         return (2, 0.0)
     return None
+
+
+def bracket(point, bounds):
+    """One-time cost and break-even per arm, as a range over declared
+    conversions (the Test Lead's delegated decision of 2026-10-05).
+
+    ``point`` is the economic result without conversions. In it, an arm whose
+    one-time cost spans unrated hardware stays UNPRICED_MIXED_HARDWARE.
+    ``bounds`` maps an assumption label to the economic result priced under
+    that labelled conversion. The range sits beside the point label, never
+    in place of it.
+    """
+
+    out = {}
+    for arm_id, priced in point["one_time_cost"].items():
+        values = {
+            label: result["one_time_cost"][arm_id]["value"]
+            for label, result in bounds.items()
+        }
+        evens = {
+            label: result["views"]["amortised_break_even"].get(arm_id)
+            for label, result in bounds.items()
+        }
+        known = sorted(v for v in values.values() if v is not None)
+        counts = sorted(
+            e["break_even_decisions"]
+            for e in evens.values()
+            if e and e.get("break_even_decisions") is not None
+        )
+        out[arm_id] = {
+            "point_status": priced["status"],
+            "point_value": priced["value"],
+            "one_time_by_assumption": values,
+            "one_time_range": [known[0], known[-1]] if known else None,
+            "break_even_by_assumption": {
+                label: (
+                    None
+                    if e is None
+                    else {
+                        "status": e["status"],
+                        "break_even_decisions": e["break_even_decisions"],
+                    }
+                )
+                for label, e in evens.items()
+            },
+            "break_even_range": [counts[0], counts[-1]] if counts else None,
+            "assumptions": {
+                label: result["conversion_assumption"]
+                for label, result in bounds.items()
+            },
+        }
+    return out
+
+
+def ladder_overruns(results_by_rung):
+    """Arms whose actual cost ran above B at a ladder rung, each with the
+    smallest rung whose B covers that actual cost. The arm is also reported
+    at that rung; the actual cost is always the deciding cost."""
+
+    rungs = sorted(results_by_rung.items(), key=lambda kv: kv[1]["decision_budget"])
+    out = []
+    for label, result in rungs:
+        for n, row in result["views"]["equal_cost_deciding"].items():
+            for arm_id, outcome in sorted(row.items()):
+                if not outcome.get("actual_cost_exceeds_budget"):
+                    continue
+                total = outcome["total_cost_per_decision"]
+                cover = next(
+                    (name for name, r in rungs if r["decision_budget"] >= total), None
+                )
+                out.append(
+                    {
+                        "rung": label,
+                        "decision_count": int(n),
+                        "arm_id": arm_id,
+                        "budget": result["decision_budget"],
+                        "actual_total_cost": total,
+                        "also_reported_at_rung": cover,
+                    }
+                )
+    return out
