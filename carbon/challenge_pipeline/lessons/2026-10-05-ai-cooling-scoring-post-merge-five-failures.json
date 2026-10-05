@@ -1,0 +1,30 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-post-merge-five-failures",
+  "recorded_at": "2026-10-05T03:27:56Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 post-merge canonical matrix attempt 4",
+    "description": "Ran the complete selected Cooling scoring, Graphite, pod-retry, Battery-compatibility and lessons matrix with science-jax and archive dependencies."
+  },
+  "expected": "The merged tree should preserve main's retry checks while every shared execution path uses the selected Challenge scorer.",
+  "observed": "493 tests passed and five failed. Four dry-run failures came from main's new failure-path check retaining a Battery SCAFFOLD symbol after the shared driver became Challenge-neutral; one retry test constructed RunPodPods without its Battery fixture scorer.",
+  "keep": [
+    "Keep the failure-path check in every dry run and keep its new baseline-retry assertions.",
+    "Keep RunPodPods refusing unnamed scoring when multiple Challenges are registered."
+  ],
+  "change": [
+    "Pass the dry run's selected baseline into the failure-path check instead of a Battery symbol.",
+    "Pass the Battery fixture scorer to the new RunPodPods test."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.graphite.pod_logs_retry",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

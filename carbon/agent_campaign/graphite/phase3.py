@@ -1403,8 +1403,9 @@ def dry_run(root, scoring, literature=None):
         # fails as infrastructure is retried once and scores (R2 run 4).
         "pod_failure_path": ex.failure_path_check(
             root / "pod-failure-path",
-            baseline=SCAFFOLD,
+            baseline=baseline,
             budget=provider.budget,
+            scoring=scoring,
             scorer=provider._frozen_rule(),
         ),
     }

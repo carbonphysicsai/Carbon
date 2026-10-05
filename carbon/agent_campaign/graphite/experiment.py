@@ -1372,7 +1372,14 @@ class _NoLadder:
 
 
 def failure_path_check(
-    root, *, baseline, budget, scorer=None, repository=REPOSITORY, level=0
+    root,
+    *,
+    baseline,
+    budget,
+    scoring,
+    scorer=None,
+    repository=REPOSITORY,
+    level=0,
 ):
     """Drive the R2 run-4 fixes with scripted pods: no pod, no network, no
     spend; Carbon's admission, rebuild check and frozen-rule scoring are real.
@@ -1394,6 +1401,7 @@ def failure_path_check(
 
     `root` must be new or empty. Returns a report with `status` OK or FAILED;
     it never raises for a failed check. The phase-3 dry run runs it."""
+    scoring = challenge_scoring.resolve(scoring)
     report = {
         "schema": FAILURE_CHECK_SCHEMA,
         "synthetic": True,
@@ -1436,6 +1444,7 @@ def failure_path_check(
                 ladder=_NoLadder(),
                 emit=lambda event_id, body: events.append((event_id, body)),
                 scorer=scorer,
+                scoring=scoring,
                 repository=repository,
                 clock=lambda: 0.0,
                 randomness=lambda n: b"\x03" * n,

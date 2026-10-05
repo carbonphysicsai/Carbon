@@ -421,9 +421,7 @@ def test_the_live_run_requires_the_phase4_grant_and_credentials(
     monkeypatch.setattr(phase4, "attack_modules", lambda: modules)
     code = _refusal(
         capsys,
-        lambda: phase4.main(
-            ["run", "--root", str(tmp_path / "r"), "--challenge", CID]
-        ),
+        lambda: phase4.main(["run", "--root", str(tmp_path / "r"), "--challenge", CID]),
     )
     assert code.startswith("required: --grant")
     other = tmp_path / "other-grant.json"

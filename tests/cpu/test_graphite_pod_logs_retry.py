@@ -30,6 +30,7 @@ from pathlib import Path
 import pytest
 from graphite_phase3_fixtures import (
     BASELINE,
+    SCORING,
     grant,
     propose,
     run_id,
@@ -51,7 +52,7 @@ from carbon.agent_campaign.graphite.pods import (
 REPOSITORY = Path(__file__).resolve().parents[2]
 L0, L4 = 0, 4
 RETRY = baseline_retry.RETRY_ID
-WORK = pods.contract_work_seconds()
+WORK = pods.contract_work_seconds(SCORING)
 CONFIRMED = {
     "before_running": 0.0,
     "first_running": 15.0,
@@ -83,13 +84,14 @@ def experiment(
     tokens=Decimal(0),
     seconds_left=None,
 ):
-    budget = ex.phase3_budget(grant())
+    budget = ex.phase3_budget(grant(), SCORING)
     if max_pods is not None:
         budget = ex.Phase3Budget(
             run_cap_usd=budget.run_cap_usd,
             hourly_usd=budget.hourly_usd,
             pod_minutes=budget.pod_minutes,
             max_pods=max_pods,
+            challenge_id=budget.challenge_id,
         )
     backend = ScriptedPods(steps=steps) if backend is None else backend
     events = []
@@ -106,6 +108,7 @@ def experiment(
         repository=REPOSITORY,
         clock=lambda: 1000.0,
         randomness=lambda n: b"\x02" * n,
+        scoring=SCORING,
         construction_level=level,
         seconds_left=seconds_left,
     )
@@ -353,6 +356,7 @@ def test_the_live_backend_records_the_pods_listing(tmp_path):
         http=account.http,
         sleep=lambda _s: None,
         balance_floor=lambda: Decimal(0),
+        scoring=SCORING,
     )
     job = PodJob("listing-1", {"x": 1}, "sha256:" + "0" * 64, 1, {"files": {}}, 30, 600)
     private = pods.private_dir(tmp_path / "private")
@@ -544,7 +548,7 @@ def test_no_second_retry(tmp_path):
 def _tight_tokens():
     """Token spend that leaves the run's cap room for the baseline's pod and
     one more after it, but not two."""
-    budget = ex.phase3_budget(grant())
+    budget = ex.phase3_budget(grant(), SCORING)
     return budget.run_cap_usd - Decimal("1.5") * budget.pod_reservation_usd
 
 
@@ -810,8 +814,10 @@ def test_a_session_compares_with_the_retried_baseline_and_bundles_it(tmp_path):
 
 
 def test_the_failure_path_check_is_ok_and_fails_when_a_fix_is_off(tmp_path):
-    budget = ex.phase3_budget(grant())
-    report = ex.failure_path_check(tmp_path / "ok", baseline=BASELINE, budget=budget)
+    budget = ex.phase3_budget(grant(), SCORING)
+    report = ex.failure_path_check(
+        tmp_path / "ok", baseline=BASELINE, budget=budget, scoring=SCORING
+    )
     assert report["status"] == "OK", report
     assert report["pods_launched"] == 4
     assert report["baseline_retry"]["retry_status"] == "SCORED"

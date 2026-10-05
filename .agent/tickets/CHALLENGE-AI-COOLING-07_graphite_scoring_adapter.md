@@ -1,6 +1,7 @@
 # CHALLENGE-AI-COOLING-07 — Graphite public-practice scoring adapter
 
-**Status:** active engineering implementation
+**Status:** implementation and canonical validation complete; exact-head
+delivery review, approval and merge gates pending
 
 **Authority:** OWNER-CHALLENGE-FOUNDATION-01,
 OWNER-CHALLENGE-DESIGN-01, OWNER-GRAPHITE-TEST-WAVE-01 section 3, and
@@ -67,17 +68,23 @@ Out of scope:
 
 ## Acceptance
 
-- [ ] Cooling is a named registered `ChallengeScoring`; unnamed resolution is
+- [x] Cooling is a named registered `ChallengeScoring`; unnamed resolution is
       refused once Battery and Cooling are both present.
-- [ ] The adapter rebuild record contains every neutral comparison field and
+- [x] The adapter rebuild record contains every neutral comparison field and
       is stable across host/pod routes.
-- [ ] Only the pinned public Cooling files pass the protected-data ship check.
-- [ ] The existing public practice score and gate semantics are unchanged.
-- [ ] The comparison reports paired descriptive differences, no interval and
+- [x] Only the pinned public Cooling files pass the protected-data ship check.
+- [x] The existing public practice score and gate semantics are unchanged.
+- [x] The comparison reports paired descriptive differences, no interval and
       no promotable result.
-- [ ] Battery's named scoring behavior remains unchanged.
-- [ ] Focused tests, applicable Graphite regression tests, lint and canonical
+- [x] Battery's named scoring behavior remains unchanged.
+- [x] Focused tests, applicable Graphite regression tests, lint and canonical
       acceptance pass at the delivered head.
+
+Engineering evidence: the final selected canonical matrix passed all 498 tests,
+and the exact-main changed-path quality gate reported Ruff 0/776 and Black
+0/68 debt entries across 26 changed Python files. These checks establish only
+the maturity ceiling below; delivery completion still depends on the current
+exact-head review, approval, merge and external-receipt protocol.
 
 ## Maturity ceiling
 
