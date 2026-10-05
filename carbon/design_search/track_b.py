@@ -769,6 +769,11 @@ def economic(
             "per_decision_search_cost": per_decision,
             "amortised_one_time_cost": amortised,
             "total_cost_per_decision": total,
+            # Stopping uses the planning charge, so a search whose actual
+            # charges ran above B is flagged rather than hidden.
+            "actual_cost_exceeds_budget": (
+                None if total is None or key[0] == "diagnostic" else total > budget
+            ),
             "cost_to_correct_decision": (
                 total if metrics[CONTRACT_SCOPE]["correct_decision"] else None
             ),

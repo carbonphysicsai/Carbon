@@ -180,6 +180,7 @@ def test_equal_cost_budget_stops_the_solver_and_amortises_one_time(tmp_path):
     assert solver_row["queries_used"] == 6
     assert solver_row["per_decision_search_cost"]["value"] == 600.0
     assert solver_row["status"] == "ABSTAIN"
+    assert solver_row["actual_cost_exceeds_budget"] is False
     # The model's one-time cost (1000) exceeds B at N=1 but not at N=10.
     assert deciding["1"]["exact-grid"]["status"] == track_b.OVER_BUDGET
     searched = deciding["10"]["exact-grid"]
