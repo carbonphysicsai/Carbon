@@ -41,15 +41,25 @@ def battery():
     return cs.scoring_for(CHALLENGE.challenge_id)
 
 
+@pytest.fixture
+def cooling():
+    return cs.scoring_for(registry.COLD_PLATE_CHALLENGE)
+
+
 class Second(BatteryScoring):
     """A second registered scoring, for the no-default rule."""
 
 
-def test_the_only_registered_scoring_serves_unnamed_callers(battery):
-    assert cs.registered() == [registry.BATTERY_CHALLENGE]
-    assert cs.scoring_for(None) is battery
-    assert cs.resolve(None) is battery
+def test_two_registered_scorings_remove_every_silent_default(battery, cooling):
+    assert cs.registered() == sorted(
+        [registry.BATTERY_CHALLENGE, registry.COLD_PLATE_CHALLENGE]
+    )
+    with pytest.raises(cs.ScoringUnavailable, match="challenge_scoring_must_be_named"):
+        cs.scoring_for(None)
+    with pytest.raises(cs.ScoringUnavailable, match="challenge_scoring_must_be_named"):
+        cs.resolve(None)
     assert cs.resolve(battery) is battery
+    assert cs.resolve(cooling) is cooling
     with pytest.raises(TypeError):
         cs.resolve(object())
     for unknown in ("cold-plate-v1", "", 7):
@@ -58,7 +68,7 @@ def test_the_only_registered_scoring_serves_unnamed_callers(battery):
         assert refused.value.code == "challenge_scoring_not_registered"
 
 
-def test_a_second_scoring_removes_every_silent_default(monkeypatch):
+def test_an_additional_scoring_keeps_every_silent_default_closed(monkeypatch):
     monkeypatch.setitem(cs._FACTORIES, "second-challenge-v1", Second)
     with pytest.raises(cs.ScoringUnavailable, match="challenge_scoring_must_be_named"):
         cs.scoring_for(None)
@@ -77,14 +87,18 @@ def test_battery_is_unchanged_through_the_port(battery):
         "id": CHALLENGE.challenge_id,
         "version": CHALLENGE.version,
     }
-    assert battery.data_paths == SHIPPED_BEFORE == pods.data_paths()
+    assert battery.data_paths == SHIPPED_BEFORE == pods.data_paths(battery)
     assert battery.construction_objective == OBJECTIVE_BEFORE
     assert battery.baseline_strategy() is SCAFFOLD
     assert battery.served_backends == ("jax",)
     envelope = dict(registry.contract(registry.BATTERY_CHALLENGE).envelope)
-    assert pods.contract_work_seconds() == envelope["worker_deadline_seconds"] == 600
-    assert pods.proposal_minutes() == 30
-    recorded = ex.recorded_contract()
+    assert (
+        pods.contract_work_seconds(battery)
+        == envelope["worker_deadline_seconds"]
+        == 600
+    )
+    assert pods.proposal_minutes(battery) == 30
+    recorded = ex.recorded_contract(battery)
     assert recorded == battery.recorded_contract()
     assert recorded["contract_digest"] == registry.contract_digest(
         registry.BATTERY_CHALLENGE
@@ -92,11 +106,11 @@ def test_battery_is_unchanged_through_the_port(battery):
 
 
 def test_the_build_is_the_same_by_every_route(battery):
-    contract = ex.recorded_contract()["contract_digest"]
+    contract = ex.recorded_contract(battery)["contract_digest"]
     direct, _files, _program = battery.built_record(SCAFFOLD, contract, 7, REPOSITORY)
     via_pod, _, _ = pod_phase.built_record(SCAFFOLD, contract, 7, REPOSITORY)
     assert via_pod == direct
-    admitted = ex.admit(SCAFFOLD, 7, REPOSITORY)
+    admitted = ex.admit(SCAFFOLD, 7, REPOSITORY, scoring=battery)
     named = ex.admit(SCAFFOLD, 7, REPOSITORY, scoring=battery)
     assert (
         admitted == named == {**direct, "record_sequence": admitted["record_sequence"]}
@@ -109,17 +123,17 @@ def test_the_build_is_the_same_by_every_route(battery):
 
 def test_admission_refusals_keep_their_codes(battery):
     with pytest.raises(ex.Unrebuildable, match="strategy_not_an_object"):
-        ex.admit([SCAFFOLD], 0)
+        ex.admit([SCAFFOLD], 0, scoring=battery)
     other = {**SCAFFOLD, "challenge_id": registry.BURGERS_CHALLENGE}
     with pytest.raises(ex.Unrebuildable) as refused:
-        ex.admit(other, 0)
+        ex.admit(other, 0, scoring=battery)
     assert refused.value.code == "not_the_battery_development_challenge"
     with pytest.raises(ex.Unrebuildable) as refused:
-        ex.admit({**SCAFFOLD, "backbone": "transolver"}, 0)
+        ex.admit({**SCAFFOLD, "backbone": "transolver"}, 0, scoring=battery)
     assert refused.value.code in ("contract_refused", "recipe_rejected")
     torch = {**SCAFFOLD, "parameters": {**SCAFFOLD["parameters"], "backend": "pytorch"}}
     with pytest.raises(ex.NotServed, match="backend_not_served:pytorch"):
-        ex.admit(torch, 0)
+        ex.admit(torch, 0, scoring=battery)
     # The experiment module's error types are the port's own.
     assert ex.Unrebuildable is cs.Unrebuildable and ex.NotServed is cs.NotServed
 
@@ -128,7 +142,7 @@ def test_the_frozen_rule_is_battery_rule_v2_on_public_practice(battery):
     from carbon.battery import exam
     from carbon.battery.practice import PracticeSet
 
-    rule = ex.FrozenRule(REPOSITORY)
+    rule = ex.frozen_rule(REPOSITORY, battery)
     assert type(rule) is type(battery.frozen_rule(REPOSITORY))
     margin = exam.RULES["v2"]["equivalence_margin_rel"]
     assert rule.identity["rule"] == "v2"
@@ -166,25 +180,28 @@ def test_protected_data_never_ships_whatever_a_challenge_declares(monkeypatch):
 def test_the_brief_and_checks_follow_the_sessions_scoring(battery):
     from graphite_phase3_fixtures import grant
 
-    budget = ex.phase3_budget(grant())
-    brief = phase3.session_brief(checkout_commit="1" * 40, budget=budget)
+    budget = ex.phase3_budget(grant(), battery)
+    brief = phase3.session_brief(
+        checkout_commit="1" * 40, budget=budget, scoring=battery
+    )
     observation = brief.initial_observation
     assert observation["challenge"] == battery.challenge()
     assert observation["objective"] == OBJECTIVE_BEFORE
     assert observation["baseline_strategy"] == SCAFFOLD
-    assert observation["construction_contract"] == ex.recorded_contract()
-    phase3.check_observation(observation)
+    assert observation["construction_contract"] == ex.recorded_contract(battery)
     phase3.check_observation(observation, battery)
     other = {
         **observation,
         "challenge": {"id": "burgers-dynamics-v1", "version": "1.0"},
     }
     with pytest.raises(phase3.ProviderUnavailable, match="phase3_challenge_not_served"):
-        phase3.check_observation(other)
+        phase3.check_observation(other, battery)
     manifest = {"challenge": {**battery.challenge(), "extra": "kept"}}
-    assert miner_path.check_challenge(manifest) == manifest["challenge"]
+    assert miner_path.check_challenge(manifest, battery) == manifest["challenge"]
     with pytest.raises(
         miner_path.MinerPathRefused,
         match="miner_campaign_is_not_the_sessions_challenge",
     ):
-        miner_path.check_challenge({"challenge": {"id": CHALLENGE.challenge_id}})
+        miner_path.check_challenge(
+            {"challenge": {"id": CHALLENGE.challenge_id}}, battery
+        )

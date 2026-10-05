@@ -1,23 +1,26 @@
 """Graphite phase 4: the Attacker session driver for the general attack engine.
 
-    python -m carbon.agent_campaign.graphite.phase4 run --root DIR --dry-run
-        [--challenge TOKEN] [--level N]
+    python -m carbon.agent_campaign.graphite.phase4 run --root DIR --dry-run \
+        --challenge TOKEN [--level N]
     python -m carbon.agent_campaign.graphite.phase4 run --root DIR \
         --grant docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json \
         --credential-file PATH \
         --miner-profile PROFILE.json --miner-campaign ID [--session N] \
-        [--challenge TOKEN] [--level N]
-
-`--level` (default 0) names the construction level. A level above 0 attacks
-the development-only contract variant `development_variants.DEV_VARIANTS`
-registers for (challenge, level), with the attack adapter registered under
-(challenge, level); either missing is a typed refusal
-(`development_variant_unregistered`, `no_attack_adapter_for_challenge_level`).
-The session's profile is then the variant itself, recorded on the controller
-as a development expansion (GRAPHITE-DEV-VARIANTS-01).
+        --challenge TOKEN [--level N]
+    python -m carbon.agent_campaign.graphite.phase4 prelive --root DIR \
+        --challenge TOKEN [--grant PATH]
     python -m carbon.agent_campaign.graphite.phase4 cancel --root DIR --session N
     python -m carbon.agent_campaign.graphite.phase4 status --root DIR [--dry-run]
     python -m carbon.agent_campaign.graphite.phase4 log --root DIR [--dry-run]
+
+`--level` (default 0) names the construction level of the named Challenge. A
+level above 0 attacks the development-only contract variant
+`development_variants.DEV_VARIANTS` registers for (challenge, level), with the
+attack adapter registered under (challenge, level); either missing is a typed
+refusal (`development_variant_unregistered`,
+`no_attack_adapter_for_challenge_level`). The session's profile is then the
+variant itself, recorded on the controller as a development expansion
+(GRAPHITE-DEV-VARIANTS-01). `prelive` checks Level 0.
 
 **The engine.** The attack engine is challenge-neutral and lives in
 `carbon.agent_campaign.attack` (the neutral core, its per-Challenge adapters,
@@ -36,7 +39,9 @@ families (each with its check and its boundary as the goal), the families
 declared NOT_RUN, the code-run wall allowance and the attack-knowledge
 snapshot the session runs under. `AttackerTools` enforces one resource rule
 before dispatch: a sandbox code run must ask for a wall allowance of at most
-the adapter's `code_run_seconds` (family `resource_and_failure_accounting`).
+the adapter's `code_run_seconds` (family `resource_and_failure_accounting`),
+by the adapter's own rule (`code_run_rule`), the function that family
+attacks, never a copy.
 Nothing else caps the session; money and time bind (OWNER-GRAPHITE-ATTACKER-01
 §5). An Attacker proposes no construction, so its session has no baseline and
 launches no pod; its frozen session record says so.
@@ -74,7 +79,13 @@ and B2. It sends nothing and spends nothing.
 
 **Grant.** A live run reads `GRAPHITE-GRANT-PHASE4`
 (OWNER-GRAPHITE-ATTACKER-01 §5), and only a copy whose canonical digest equals
-the committed file's (`check_committed_grant`). Nothing here grades a finding, submits, opens
+the committed blob at a pushed HEAD, with the grants directory clean
+(`check_committed_grant`); the working-tree file is never trusted.
+
+**`prelive`** (`phase4_prelive`) runs every real code path of a live run up
+to the network boundary, with fake transports at that boundary and nothing
+synthetic behind it, under the threading the live run uses; it spends
+nothing and must pass before the first live run. Nothing here grades a finding, submits, opens
 a pull request, writes weights or touches chain state. Not security
 acceptance. A live run is NOT executed in this work.
 """
@@ -83,6 +94,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import functools
 import json
 import os
 import re
@@ -130,10 +142,10 @@ GRANT_ID = "GRAPHITE-GRANT-PHASE4"
 GRANT_FILE = "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json"
 #: The pipeline stage an Attacker campaign runs at.
 STAGE = "test_iterate"
-#: The Challenge and construction level the CLI attacks by default (battery
-#: Level 0, the first adapter); `--challenge` names another registered one.
-BATTERY_CHALLENGE = "battery-fastcharge-ageing-development-v1"
-BATTERY_LEVEL = 0
+#: Graphite's current attack wave exercises registered Level 0 adapters. The
+#: Challenge is always an explicit CLI input; the neutral driver never
+#: substitutes another Challenge's identity.
+CONSTRUCTION_LEVEL = 0
 #: The grant's worst case budgets this many verify pods (grants/README.md);
 #: the pods' share stays reserved while Carbon's verify-pod rebuild is a seam.
 #: Money binds, not this count.
@@ -281,30 +293,45 @@ def is_code_run(name, arguments):
     )
 
 
+def code_run_rule(adapter, code_run_seconds):
+    """The one code-run rule an Attacker session's dispatcher applies: the
+    adapter's own `code_run_refusal` when it has one (battery's), which is
+    the rule its `resource_accounting` family attacks, else the core's rule
+    (`attack.adapter.code_run_refusal`) at the adapter's allowance. Never a
+    copy: the family and the dispatcher run the same function."""
+    own = getattr(adapter, "code_run_refusal", None)
+    if callable(own):
+        return own
+    from ..attack.adapter import code_run_refusal
+
+    return functools.partial(code_run_refusal, seconds=code_run_seconds)
+
+
 class AttackerTools:
     """What the Attacker's toolbox delegates to: the real miner path, with the
-    adapter's code-run wall allowance enforced before dispatch. No count caps a
-    session; money and time bind (OWNER-GRAPHITE-ATTACKER-01 §5)."""
+    adapter's code-run rule (`code_run_rule`) enforced before dispatch. No
+    count caps a session; money and time bind (OWNER-GRAPHITE-ATTACKER-01
+    §5)."""
 
-    def __init__(self, *, miner, emit, code_run_seconds):
+    def __init__(self, *, miner, emit, code_run_seconds, refusal=None):
         self.miner, self.emit = miner, emit
         self.code_run_seconds = code_run_seconds
+        self.refusal = refusal or code_run_rule(None, code_run_seconds)
 
     def _wall_refusal(self, arguments):
-        """The typed refusal of a code run that asks for no wall allowance or
-        one over the adapter's ceiling, or None. A timeout at the allowance is
-        FAILED_INFRA in the sandbox, never a pass."""
+        """The typed refusal of a code run the rule refuses (no wall
+        allowance, or one over the adapter's ceiling), or None. A run that
+        reaches its own allowance ends `DEADLINE` (`OWN_ALLOWANCE_ELAPSED`:
+        the allowance it chose elapsed, `research_carrier.
+        _observed_miner_failure`), its own outcome, never a pass; only a
+        failure Carbon cannot attribute to the run stays an infrastructure
+        failure."""
         if arguments.get("action") in CODE_ACTIONS:
             try:
                 inner = json.loads(arguments.get("arguments_json"))
             except (TypeError, ValueError):
                 inner = None
-            if type(inner) is not dict:
-                return "code_run_arguments_unreadable"
-            seconds = inner.get("seconds")
-            most = self.code_run_seconds
-            if type(seconds) is not int or not 1 <= seconds <= most:
-                return "code_run_needs_seconds_up_to_" + str(most)
+            return self.refusal(inner)
         return None
 
     async def call(self, name, arguments, identity):
@@ -331,17 +358,18 @@ class AttackerTools:
 
 
 # -- the budget and the pods -----------------------------------------------------------------
-def attacker_budget(grant, verify_pods=ATTACKER_VERIFY_PODS):
+def attacker_budget(grant, scoring, verify_pods=ATTACKER_VERIFY_PODS):
     """One Attacker run's share of the grant, split between the verify pods and
     the model-call tokens, like #504's budget but at the Attacker's worst-case
     pod count (`ATTACKER_VERIFY_PODS`). The grant's `worst_case_run_cost` is
     the combined cap; the token share is the session's model-call money cap."""
-    base = ex.phase3_budget(grant)
+    base = ex.phase3_budget(grant, scoring)
     budget = ex.Phase3Budget(
         run_cap_usd=base.run_cap_usd,
         hourly_usd=base.hourly_usd,
         pod_minutes=base.pod_minutes,
         max_pods=verify_pods,
+        challenge_id=base.challenge_id,
     )
     if budget.max_pods < 2 or budget.token_allowance_usd <= 0:
         raise ProviderUnavailable("grant_run_cost_cannot_cover_pods_and_tokens")
@@ -395,10 +423,19 @@ class AttackerProvider(Phase3Provider):
         adapter,
         miner_attach=None,
         miner_tools=None,
+        scoring=None,
         **kwargs,
     ):
+        from carbon.challenge_validator import scoring as challenge_scoring
+
         self.adapter = adapter
         self._code_run_seconds = adapter_code_run_seconds(adapter)
+        self._code_run_rule = code_run_rule(adapter, self._code_run_seconds)
+        scoring = (
+            challenge_scoring.scoring_for(adapter.challenge_id)
+            if scoring is None
+            else challenge_scoring.resolve(scoring)
+        )
         super().__init__(
             root=root,
             grant=grant,
@@ -406,11 +443,12 @@ class AttackerProvider(Phase3Provider):
             pods=pods,
             miner_attach=miner_attach,
             miner_tools=miner_tools,
+            scoring=scoring,
             **kwargs,
         )
         # The Attacker's worst case is its verify pods, not the Constructor's
         # twelve; the token share follows (grants/README.md).
-        self.budget = attacker_budget(grant)
+        self.budget = attacker_budget(grant, scoring)
 
     def session_limits_record(self, task):
         """The v2 record an Attacker session freezes: the base v2 rule (no
@@ -458,6 +496,7 @@ class AttackerProvider(Phase3Provider):
             repository=self.repository,
             clock=self.clock,
             randomness=self.randomness,
+            scoring=self.scoring,
         )
 
     def _manifest(self, opened):
@@ -490,6 +529,7 @@ class AttackerProvider(Phase3Provider):
                     miner=miner,
                     emit=emit,
                     code_run_seconds=self._code_run_seconds,
+                    refusal=self._code_run_rule,
                 ),
             )
             return await run_epoch(
@@ -747,10 +787,17 @@ def is_finding(verdict, verify):
     return breached
 
 
+#: Verdict reasons of an infrastructure failure that are not a crash or a
+#: timeout: FAILED_INFRA itself and a dispatch whose outcome is unresolved.
+INFRA_FAILURE_REASONS = ("FAILED_INFRA", "DISPATCH_UNRESOLVED")
+
+
 def store_outcome(verdict, verify):
-    """A verdict as the knowledge store's outcome vocabulary. A timeout or
-    crash, an unrebuildable construction, Graphite's own refusal (nothing
-    reached the path) and anything not judged are never a hold."""
+    """A verdict as the knowledge store's outcome vocabulary. A timeout,
+    an infrastructure failure (stored FAILED_INFRA, never folded into CRASH:
+    invariant 7) or a crash, an unrebuildable construction, Graphite's own
+    refusal (nothing reached the path) and anything not judged are never a
+    hold."""
     if verdict.outcome == verify.BREACHED:
         return "BREACHED"
     if verdict.rebuild == verify.UNREBUILDABLE:
@@ -758,7 +805,12 @@ def store_outcome(verdict, verify):
     if verdict.outcome == verify.HELD:
         return "NOT_RUN" if verdict.refused_by == "graphite" else "HELD"
     if verdict.outcome == verify.INFRA:
-        return "TIMEOUT" if "TIME" in (verdict.reason or "").upper() else "CRASH"
+        reason = (verdict.reason or "").upper()
+        if "TIME" in reason:
+            return "TIMEOUT"
+        if any(code in reason for code in INFRA_FAILURE_REASONS):
+            return "FAILED_INFRA"
+        return "CRASH"
     return "NOT_RUN"  # UNDETERMINED or NOT_APPLICABLE: nothing judged
 
 
@@ -1170,19 +1222,69 @@ def grant_digest(document):
     return digest(canonical(document))
 
 
+#: The directory the owner's grants are committed under; a live run refuses
+#: when anything in it differs from HEAD.
+GRANTS_DIR = str(Path(GRANT_FILE).parent)
+
+
+def _git(repository, *args):
+    return subprocess.run(
+        ["git", "-C", str(repository), *args],
+        capture_output=True,
+        check=False,
+    )
+
+
 def check_committed_grant(path, repository=REPOSITORY):
     """A live run's grant must be the committed GRAPHITE-GRANT-PHASE4, field
-    for field: its canonical digest must equal the committed file's. A local
-    copy with any amount, run count, runtime or identity changed is refused
-    (`grant_differs_from_the_committed_phase4_grant`), so the money a run may
-    spend is the owner-approved amount, never an edited copy's."""
+    for field, as HEAD holds it: never the working tree, which an operator
+    could edit together with the copy passed in.
+
+    - The committed blob is read from git (`git show HEAD:<GRANT_FILE>`);
+      none is `phase4_grant_not_committed`.
+    - The given copy's canonical digest must equal the committed blob's: any
+      amount, run count, runtime or identity changed, in the copy or in the
+      working tree it was taken from, is
+      `grant_differs_from_the_committed_phase4_grant`.
+    - HEAD must already be on a remote branch (`git branch -r --contains
+      HEAD`): `grant_commit_not_pushed`.
+    - The committed blob must be the one on main, which is what the owner
+      approved: a pushed feature branch carrying an edited grant is not.
+      `origin main` is fetched and the two blob ids compared; a fetch or a
+      main without the grant is `main_grant_unavailable`, a different blob
+      `grant_differs_from_main`.
+    - The grants directory must match HEAD (no change, staged or not, and no
+      untracked file): `grants_directory_has_uncommitted_changes`.
+
+    Returns the committed grant's canonical digest."""
     try:
         given = json.loads(Path(path).read_bytes())
-        committed = json.loads((Path(repository) / GRANT_FILE).read_bytes())
     except (OSError, ValueError):
+        raise RunnerRefused("phase4_grant_file_unreadable") from None
+    shown = _git(repository, "show", "HEAD:" + GRANT_FILE)
+    if shown.returncode != 0:
+        raise RunnerRefused("phase4_grant_not_committed")
+    try:
+        committed = json.loads(shown.stdout)
+    except ValueError:
         raise RunnerRefused("phase4_grant_file_unreadable") from None
     if grant_digest(given) != grant_digest(committed):
         raise RunnerRefused("grant_differs_from_the_committed_phase4_grant")
+    pushed = _git(repository, "branch", "-r", "--contains", "HEAD")
+    if pushed.returncode != 0 or not pushed.stdout.strip():
+        raise RunnerRefused("grant_commit_not_pushed")
+    fetched = _git(repository, "fetch", "--quiet", "origin", "main")
+    on_main = _git(repository, "rev-parse", "--verify", "origin/main:" + GRANT_FILE)
+    if fetched.returncode != 0 or on_main.returncode != 0:
+        raise RunnerRefused("main_grant_unavailable")
+    at_head = _git(repository, "rev-parse", "--verify", "HEAD:" + GRANT_FILE)
+    if at_head.returncode != 0 or at_head.stdout.strip() != on_main.stdout.strip():
+        raise RunnerRefused("grant_differs_from_main")
+    status = _git(
+        repository, "status", "--porcelain", "--untracked-files=all", "--", GRANTS_DIR
+    )
+    if status.returncode != 0 or status.stdout.strip():
+        raise RunnerRefused("grants_directory_has_uncommitted_changes")
     return grant_digest(committed)
 
 
@@ -1206,18 +1308,27 @@ def _store(root, dry_run):
 
 def command_run(args):
     atk = attack_modules()
-    challenge = args.challenge or BATTERY_CHALLENGE
+    challenge = args.challenge
     level = getattr(args, "level", None)
+    # The named Challenge's development variant first (a level above 0), then
+    # the attack adapter registered under (challenge, level); Level 0 is the
+    # adapter at CONSTRUCTION_LEVEL, as before.
     adapter, variant = adapter_for(
-        atk, challenge, BATTERY_LEVEL if level is None else level
+        atk, challenge, CONSTRUCTION_LEVEL if level is None else level
     )
+    from carbon.challenge_validator import scoring as challenge_scoring
+
+    try:
+        scoring = challenge_scoring.scoring_for(challenge)
+    except challenge_scoring.ScoringUnavailable as refused:
+        raise RunnerRefused(refused.code) from None
+    development = {} if variant is None else {"variant": variant}
     if args.dry_run:
         if any(
             (args.grant, args.credential_file, args.miner_profile, args.miner_campaign)
         ):
             raise RunnerRefused("dry_run_takes_no_grant_credential_or_miner_campaign")
-        level = {} if variant is None else {"variant": variant}
-        return dry_run(_root(args.root), adapter, atk, **level)
+        return dry_run(_root(args.root), adapter, atk, scoring=scoring, **development)
     missing = [
         name
         for name, value in (
@@ -1231,55 +1342,120 @@ def command_run(args):
     if missing:
         raise RunnerRefused("required: " + ", ".join(missing))
     root = _root(args.root)
-    grant = load_grant(args.grant)
+    grant, head = live_checks(args.grant)
+    engy = owner_only_file(args.credential_file)
+    store = _store(root, False)
+    from . import miner_path
+
+    model = live_model(grant, engy)
+
+    def attach(*, session):
+        return miner_path.attach(
+            args.miner_profile,
+            args.miner_campaign,
+            session=session,
+            scoring=scoring,
+        )
+
+    provider = live_provider(
+        store,
+        grant=grant,
+        model=model,
+        adapter=adapter,
+        miner_attach=attach,
+        scoring=scoring,
+    )
+    entry, coverage = run_live(
+        store,
+        grant,
+        provider,
+        adapter,
+        atk,
+        session=args.session,
+        head=head,
+        **development,
+    )
+    print(
+        json.dumps({"session": entry, "coverage": coverage}, indent=1, sort_keys=True)
+    )
+    return 0 if entry["provider_state"] == "succeeded" else 4
+
+
+# -- the live run's parts, shared with the pre-live gate (`phase4_prelive`) -------------------
+def live_checks(grant_path, repository=REPOSITORY):
+    """What a live run checks before anything opens: the grant file is the
+    phase-4 grant for Graphite and equals the committed blob at a pushed HEAD
+    with the grants directory clean (`check_committed_grant`), and HEAD, the
+    checkout the brief records and Carbon's side runs from, is pushed and
+    its shipped code clean (#504's `check_code_ref`). Returns (grant, head)."""
+    grant = load_grant(grant_path)
     if grant.grant_id != GRANT_ID:
         raise RunnerRefused("grant_is_not_the_phase4_grant")
     if grant.provider != "graphite":
         raise RunnerRefused("grant_provider_must_be_graphite")
-    check_committed_grant(args.grant)
-    engy = owner_only_file(args.credential_file)
-    # The brief records the checkout Carbon's side runs from: this HEAD,
-    # pushed and clean (#504's rule), so the run's code is identified.
-    head = _head()
-    check_code_ref(head)
-    store = _store(root, False)
-    from . import miner_path
+    check_committed_grant(grant_path, repository)
+    head = _head(repository)
+    check_code_ref(head, repository)
+    return grant, head
+
+
+def live_model(grant, credential_file, *, opener=None):
+    """The live run's model access (`model.LiveModel`). `opener` replaces
+    urllib's opener at the network boundary for the pre-live gate only."""
     from .model import LiveModel, ModelAccessRefused
 
     try:
-        model = LiveModel(grant=grant, credential_file=engy, provider="graphite")
+        return LiveModel(
+            grant=grant,
+            credential_file=credential_file,
+            provider="graphite",
+            opener=opener,
+        )
     except ModelAccessRefused as refused:
         raise RunnerRefused(refused.code) from None
 
-    def attach(*, session):
-        return miner_path.attach(
-            args.miner_profile, args.miner_campaign, session=session
-        )
 
-    provider = AttackerProvider(
-        root=store / "graphite",
+def live_provider(store, *, grant, model, adapter, miner_attach, scoring=None):
+    """The provider a live Attacker run drives: `AttackerProvider` on the
+    store's `graphite/` root with `NoVerifyPods` (Carbon's verify-pod rebuild
+    is the declared seam `POD_REBUILD_SEAM`: no pod and no compute store)."""
+    return AttackerProvider(
+        root=Path(store) / "graphite",
         grant=grant,
         model=model,
         pods=NoVerifyPods(),
         adapter=adapter,
-        miner_attach=attach,
+        miner_attach=miner_attach,
+        scoring=scoring,
     )
+
+
+def run_live(
+    store, grant, provider, adapter, atk, *, session, head, signals=True, variant=None
+):
+    """One live session from its controller to Carbon's side: the
+    controller, the attack-knowledge store, the session's pin (reused on a
+    resume, never re-snapshotted), the brief under that pin, the SIGINT and
+    SIGTERM cancel handlers (`signals`), and `run_session`. `variant` is a
+    development level's registered variant (`adapter_for`), or None at Level
+    0. Returns (log entry, coverage report)."""
     control = controller_for(store, provider, grant)
     try:
         kstore = open_store(store, atk)
-        resume = provider.find(session_key(args.session)) is not None
-        view = pin_session(store, args.session, kstore, resume=resume)
+        resume = provider.find(session_key(session)) is not None
+        view = pin_session(store, session, kstore, resume=resume)
         brief = session_brief(
             adapter, checkout_commit=head, knowledge=knowledge_brief(view, adapter)
         )
-        _install_cancel(provider, provider.run_id_for(session_key(args.session)))
-        entry, coverage = run_session(
+        if signals:
+            _install_cancel(provider, provider.run_id_for(session_key(session)))
+        return run_session(
             store,
             control,
             provider,
             adapter,
             brief,
-            args.session,
+            session,
             atk,
             budget=ATTACK_BUDGET,
             kstore=kstore,
@@ -1288,10 +1464,6 @@ def command_run(args):
         )
     finally:
         control.close()
-    print(
-        json.dumps({"session": entry, "coverage": coverage}, indent=1, sort_keys=True)
-    )
-    return 0 if entry["provider_state"] == "succeeded" else 4
 
 
 def _runs_dir(args):
@@ -1402,8 +1574,15 @@ def dry_run_script(adapter):
     ]
 
 
-def dry_run(root, adapter, atk, *, miner_tools=None, variant=None):
+def dry_run(root, adapter, atk, *, miner_tools=None, scoring=None, variant=None):
+    """One scripted session and Carbon's side, sending nothing and spending
+    nothing: the scripted model reports a zero charge, the whole run is under
+    the network guard (`phase4_prelive.network_guard`: any socket connect or
+    name lookup raises), and a run that settles anything other than zero
+    fails (exit 4). `variant` is a development level's registered variant
+    (`adapter_for`), or None at Level 0."""
     from .model import ScriptedModel
+    from .phase4_prelive import network_guard
     from .pods import ScriptedPods
 
     store = root / "attacker-dry-run"
@@ -1411,37 +1590,44 @@ def dry_run(root, adapter, atk, *, miner_tools=None, variant=None):
         shutil.rmtree(store)
     store.mkdir(mode=0o700)
     grant = dry_run_grant()
-    provider = AttackerProvider(
-        root=store / "graphite",
-        grant=grant,
-        model=ScriptedModel(dry_run_script(adapter)),
-        pods=ScriptedPods(),
-        adapter=adapter,
-        miner_tools=miner_tools,
-        randomness=lambda n: b"\x00" * n,
-    )
-    control = controller_for(store, provider, grant)
-    try:
-        kstore = open_store(store, atk)
-        view = pin_session(store, 1, kstore)
-        brief = session_brief(
-            adapter, checkout_commit="0" * 40, knowledge=knowledge_brief(view, adapter)
+    with network_guard() as attempts:
+        provider = AttackerProvider(
+            root=store / "graphite",
+            grant=grant,
+            model=ScriptedModel(dry_run_script(adapter), charged_micro=0),
+            pods=ScriptedPods(),
+            adapter=adapter,
+            miner_tools=miner_tools,
+            randomness=lambda n: b"\x00" * n,
+            scoring=scoring,
         )
-        entry, coverage = run_session(
-            store,
-            control,
-            provider,
-            adapter,
-            brief,
-            1,
-            atk,
-            budget=ATTACK_BUDGET,
-            kstore=kstore,
-            view=view,
-            variant=variant,
-        )
-    finally:
-        control.close()
+        control = controller_for(store, provider, grant)
+        try:
+            kstore = open_store(store, atk)
+            view = pin_session(store, 1, kstore)
+            brief = session_brief(
+                adapter,
+                checkout_commit="0" * 40,
+                knowledge=knowledge_brief(view, adapter),
+            )
+            entry, coverage = run_session(
+                store,
+                control,
+                provider,
+                adapter,
+                brief,
+                1,
+                atk,
+                budget=ATTACK_BUDGET,
+                kstore=kstore,
+                view=view,
+                variant=variant,
+            )
+        finally:
+            control.close()
+    settled_zero = entry["settled_usd"] is not None and Decimal(
+        entry["settled_usd"]
+    ) == Decimal(0)
     out = {
         "session": entry,
         "coverage": coverage,
@@ -1452,27 +1638,30 @@ def dry_run(root, adapter, atk, *, miner_tools=None, variant=None):
             "own. It sends nothing and spends nothing.",
             "money_cap_usd": str(provider.budget.token_allowance_usd),
             "settled_usd": entry["settled_usd"],
+            "settled_is_zero": settled_zero,
+            "network_attempts": list(attempts),
         },
     }
     print(json.dumps(out, indent=1, sort_keys=True))
-    return 0 if entry["provider_state"] == "succeeded" else 4
+    ok = entry["provider_state"] == "succeeded" and settled_zero and not attempts
+    return 0 if ok else 4
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="graphite.phase4")
     sub = parser.add_subparsers(dest="command", required=True)
-    challenge_help = "the Challenge's contract token (default: battery Level 0)"
+    challenge_help = "the registered Level 0 Challenge's contract token"
     run = sub.add_parser("run")
     run.add_argument("--root", required=True)
-    run.add_argument("--challenge", help=challenge_help)
+    run.add_argument("--challenge", required=True, help=challenge_help)
     run.add_argument(
         "--level",
         type=int,
-        default=BATTERY_LEVEL,
+        default=CONSTRUCTION_LEVEL,
         help=(
-            "construction level (default 0); a level above 0 attacks its "
-            "registered development-only variant with the adapter registered "
-            "for (challenge, level), or is refused"
+            "construction level (default 0); a level above 0 attacks the named "
+            "Challenge's registered development-only variant with the adapter "
+            "registered for (challenge, level), or is refused"
         ),
     )
     run.add_argument("--dry-run", action="store_true")
@@ -1491,13 +1680,39 @@ def main(argv=None):
         command = sub.add_parser(name)
         command.add_argument("--root", required=True)
         command.add_argument("--dry-run", action="store_true")
+    prelive = sub.add_parser("prelive")
+    prelive.add_argument("--root", required=True)
+    prelive.add_argument("--challenge", required=True, help=challenge_help)
+    prelive.add_argument(
+        "--grant",
+        default=str(REPOSITORY / GRANT_FILE),
+        help="the grant file a live run would pass (default: the committed one)",
+    )
     args = parser.parse_args(argv)
     return {
         "run": command_run,
         "cancel": command_cancel,
         "status": command_status,
         "log": command_log,
+        "prelive": command_prelive,
     }[args.command](args)
+
+
+def command_prelive(args):
+    """The pre-live gate (`phase4_prelive.prelive`)."""
+    from .phase4_prelive import prelive
+
+    atk = attack_modules()
+    adapter = get_adapter(atk, args.challenge, CONSTRUCTION_LEVEL)
+    from carbon.challenge_validator import scoring as challenge_scoring
+
+    try:
+        scoring = challenge_scoring.scoring_for(args.challenge)
+    except challenge_scoring.ScoringUnavailable as refused:
+        raise RunnerRefused(refused.code) from None
+    return prelive(
+        _root(args.root), adapter, atk, grant_path=args.grant, scoring=scoring
+    )
 
 
 if __name__ == "__main__":

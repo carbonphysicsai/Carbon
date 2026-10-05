@@ -22,9 +22,9 @@ from test_battery_validator_daemon import backend, refs  # noqa: F401 - fixtures
 from test_development_variants import FIXTURE_DIGESTS, install
 
 from carbon.battery import daemon as daemon_module
-from carbon.battery import intake as intake_module
 from carbon.battery import intake_client as ic
 from carbon.battery.pool_store import StateError
+from carbon.challenge_validator import dispatch
 
 NOT_SERVED = "development_variant_not_served"
 VARIANT = FIXTURE_DIGESTS[1]
@@ -83,6 +83,6 @@ def test_intake_refuses_a_variant(tmp_path, refs, backend):  # noqa: F811
     assert NOT_SERVED in ic.REFUSALS
     assert ic.describe(400, {"refused": NOT_SERVED})
     with pytest.MonkeyPatch.context() as patch:
-        patch.setattr(intake_module, "is_development_variant", lambda *a, **k: False)
+        patch.setattr(dispatch, "_development_variant", lambda *a, **k: False)
         with pytest.raises(AssertionError):
             check_intake(intake)  # queued for the daemon instead

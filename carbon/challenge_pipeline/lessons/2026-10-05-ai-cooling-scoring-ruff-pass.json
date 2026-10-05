@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-ruff-pass",
+  "recorded_at": "2026-10-05T01:12:08Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-07 focused Ruff rerun",
+    "description": "Reran Ruff over every changed Python implementation and test module after the isolated import-order repair."
+  },
+  "expected": "The focused lint surface should be clean.",
+  "observed": "Ruff exited 0: all checks passed.",
+  "keep": [
+    "Keep the Challenge-specific behavior behind registered adapters and the orchestration layer free of Challenge literals."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

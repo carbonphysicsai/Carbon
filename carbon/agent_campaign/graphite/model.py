@@ -160,7 +160,7 @@ class LiveModel:
 
     live = True
 
-    def __init__(self, *, grant, credential_file, provider, now=None):
+    def __init__(self, *, grant, credential_file, provider, now=None, opener=None):
         if type(grant) is not SpendingGrant:
             # A document, a template full of HUMAN_INPUT or None: no grant.
             raise ModelAccessRefused("spending_grant_required")
@@ -175,6 +175,9 @@ class LiveModel:
             raise ModelAccessRefused("credential_file_reference_required")
         self.grant = grant
         self.credential_reference = credential_file
+        # Replaces urllib's opener at the network boundary (the phase-4
+        # pre-live gate's fake HTTP transport); None in a live run.
+        self.opener = opener
 
     def transport_for(self, selection):
         if type(selection) is not ModelSelection:
@@ -185,4 +188,4 @@ class LiveModel:
             raise ModelAccessRefused("priced_ladder_model_required")
         if selection.credential.reference != self.credential_reference:
             raise ModelAccessRefused("credential_reference_mismatch")
-        return SelectionTransport(selection)
+        return SelectionTransport(selection, opener=self.opener)

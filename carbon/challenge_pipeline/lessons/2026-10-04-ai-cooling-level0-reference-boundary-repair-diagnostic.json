@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-reference-boundary-repair-diagnostic",
+  "recorded_at": "2026-10-04T21:10:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-06 reference-boundary repair diagnostic",
+    "description": "Ran the B-04 boundary, cooling contract, B-05 contract and challenge-pipeline suites after routing the reference identity through measurement authoring."
+  },
+  "expected": "The boundary repair and affected public authoring surface should pass without widening evaluator access.",
+  "observed": "The boundary and cooling checks passed. One unrelated Windows JSON-depth classification assertion in the full B-05 suite reported WRONG_TYPE instead of INVALID_VALUE; 83 tests passed and two skipped. No worker, solver, pod or paid scientific execution ran.",
+  "keep": [
+    "Treat the B-05 Windows JSON-depth mismatch as host-specific diagnostic evidence; canonical Linux remains authoritative."
+  ],
+  "change": [
+    "Narrow the repair verification to the affected B-04 boundary, cooling contract, B-05 public export and lesson-policy checks."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "reference-boundary",
+    "windows-diagnostic"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

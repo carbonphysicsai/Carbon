@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-quality-launcher",
+  "recorded_at": "2026-10-05T03:03:11Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-07 canonical quality-gate launcher",
+    "description": "Attempted to run scripts/check_quality.py through canonical.sh using the wrapper's pytest-only --focused mode."
+  },
+  "expected": "The changed-path quality script should receive --base origin/main.",
+  "observed": "The wrapper correctly routed --focused arguments to pytest, which rejected the quality script's --base option before the quality check ran.",
+  "keep": [
+    "Keep --focused for pytest targets only."
+  ],
+  "change": [
+    "Invoke the quality script through canonical.sh command mode."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -727,6 +727,7 @@ def test_a_relabelled_held_out_control_is_refused_by_its_registered_identity():
     family and input digest), not by its split label: relabelling it
     `trained` (or renaming or re-versioning it) does not get it run."""
     adapter = adapters.validate(synthetic_adapter(0))
+    context = adapters.run_context(adapter)
     (held,) = [c for c in adapter.controls("held_out") if c.family == "width_surface"]
     family = FAMILIES["width_surface"]
     for disguise in (
@@ -735,10 +736,36 @@ def test_a_relabelled_held_out_control_is_refused_by_its_registered_identity():
     ):
         assert disguise.identity == held.identity
         with pytest.raises(engine.HeldOutControlRefused):
-            engine.run_family(family, controls=(disguise,))
+            engine.run_family(family, controls=(disguise,), context=context)
     # A genuinely trained control still runs.
     (trained,) = [c for c in adapter.controls("trained") if c.family == "width_surface"]
-    assert engine.run_family(family, controls=(trained,)).records
+    assert engine.run_family(family, controls=(trained,), context=context).records
+
+
+def test_the_held_out_registry_is_scoped_per_adapter_and_never_only_grows():
+    """One adapter's held-out identities refuse controls in its own runs
+    only: another Challenge (or level) runs the same input as a trained
+    control, a run with no Challenge context is not refused by any adapter's
+    registration, and re-registering an adapter's split replaces its scope's
+    set instead of growing a process-wide one."""
+    adapter = adapters.validate(synthetic_adapter(0))
+    (held,) = [c for c in adapter.controls("held_out") if c.family == "width_surface"]
+    disguise = dataclasses.replace(held, split="trained")
+    family = FAMILIES["width_surface"]
+    other = engine.RunContext(challenge="another-challenge-v1", profile="level-0")
+    assert engine.run_family(family, controls=(disguise,), context=other).records
+    assert engine.run_family(family, controls=(disguise,)).records
+    scope = adapters.held_out_scope(adapter)
+    assert engine.is_registered_held_out(disguise, scope=scope)
+    assert not engine.is_registered_held_out(disguise)
+    # A new registration for the scope replaces it.
+    engine.register_held_out((), scope=scope)
+    assert not engine.is_registered_held_out(disguise, scope=scope)
+    adapters.register_held_out_identities(adapter)
+    assert engine.is_registered_held_out(disguise, scope=scope)
+    engine.clear_held_out(scope)
+    assert not engine.is_registered_held_out(disguise, scope=scope)
+    adapters.validate(adapter)  # registers it again for the tests after
 
 
 def test_mutation_a_label_only_check_lets_a_relabelled_held_out_control_run(
@@ -1181,12 +1208,31 @@ def _named(path):
     return named
 
 
+#: The whole attack package except its per-Challenge adapters
+#: (`attack/adapters/`), which are where a Challenge is named.
+NEUTRAL_ATTACK_MODULES = sorted(
+    str(path.relative_to(REPO))
+    for path in (REPO / "carbon/agent_campaign/attack").glob("*.py")
+)
+
+
+def test_the_neutrality_scan_covers_the_whole_attack_package():
+    assert {Path(m).name for m in NEUTRAL_ATTACK_MODULES} >= {
+        "__init__.py",
+        "adapter.py",
+        "analysis.py",
+        "benchmark.py",
+        "engine.py",
+        "knowledge.py",
+        "report.py",
+        "verify.py",
+    }
+
+
 @pytest.mark.parametrize(
     "module",
     [
-        "carbon/agent_campaign/attack/__init__.py",
-        "carbon/agent_campaign/attack/engine.py",
-        "carbon/agent_campaign/attack/adapter.py",
+        *NEUTRAL_ATTACK_MODULES,
         "carbon/agent_campaign/graphite/challenge.py",
         "carbon/challenge_pipeline/suite.py",
     ],

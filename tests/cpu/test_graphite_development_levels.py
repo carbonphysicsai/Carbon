@@ -39,11 +39,14 @@ from carbon.agent_campaign.graphite import phase3, phase4, pod_phase
 from carbon.agent_campaign.graphite import pods as podlib
 from carbon.agent_campaign.provider import ProviderUnavailable
 from carbon.battery.research import SCAFFOLD
+from carbon.challenge_validator import scoring as challenge_scoring
 from carbon.development_session.profile import canonical, digest
 from carbon.reconstruction import capability_registry as cr
 from carbon.reconstruction import development_variants as dv
 
 UNREGISTERED = "development_variant_unregistered"
+#: Every runner names its Challenge explicitly (#584): battery here.
+SCORING = challenge_scoring.scoring_for(BATTERY)
 
 
 def _refusal(capsys):
@@ -52,7 +55,7 @@ def _refusal(capsys):
 
 
 def _budget():
-    return ex.phase3_budget(SpendingGrant.from_document(phase3.DRY_RUN_GRANT))
+    return ex.phase3_budget(SpendingGrant.from_document(phase3.DRY_RUN_GRANT), SCORING)
 
 
 def _strategy(**parameters):
@@ -70,22 +73,25 @@ def variants(tmp_path, monkeypatch):
 
 
 def test_level_0_is_exactly_as_before(tmp_path):
-    assert phase3.development_variant_for(0) is None
-    document, profile = phase3.permission_profile()
+    assert phase3.development_variant_for(0, SCORING) is None
+    document, profile = phase3.permission_profile(SCORING)
     assert document == {
         "schema": phase3.PROFILE_SCHEMA,
         "level": 0,
-        "construction_contract": ex.recorded_contract(),
+        "construction_contract": ex.recorded_contract(SCORING),
         "surface": "declarative TrainingStrategy inside the recorded contract",
         "widens": [],
     }
     assert profile == digest(canonical(document))
-    assert phase3.recorded_level({"task": {"profile_digest": profile}}) == 0
-    assert phase3.recorded_variant({"task": {"profile_digest": profile}}) is None
-    brief = phase3.session_brief(checkout_commit="0" * 40, budget=_budget())
+    assert phase3.recorded_level({"task": {"profile_digest": profile}}, SCORING) == 0
+    opened = {"task": {"profile_digest": profile}}
+    assert phase3.recorded_variant(opened, SCORING) is None
+    brief = phase3.session_brief(
+        checkout_commit="0" * 40, budget=_budget(), scoring=SCORING
+    )
     observation = brief.initial_observation
     assert observation["level"] == 0
-    assert observation["construction_contract"] == ex.recorded_contract()
+    assert observation["construction_contract"] == ex.recorded_contract(SCORING)
     job = podlib.PodJob("i", {}, "sha256:" + "0" * 64, 1, {}, 1, 1)
     assert set(job.config(None)) == {
         "strategy",
@@ -95,29 +101,36 @@ def test_level_0_is_exactly_as_before(tmp_path):
         "seconds",
         "stop_admitting_epoch",
     }
-    assert "development" not in ex.admit(SCAFFOLD, 7)
+    assert "development" not in ex.admit(SCAFFOLD, 7, scoring=SCORING)
 
 
 # --- an unregistered level is refused before anything runs ----------------------------
 
 
 def check_unregistered_level_is_refused(tmp_path, capsys):
+    tmp_path.mkdir(parents=True, exist_ok=True)
     for level in (1, 2, 3):
         with pytest.raises(SystemExit):
-            phase3.development_variant_for(level)
+            phase3.development_variant_for(level, SCORING)
         assert _refusal(capsys) == UNREGISTERED
         with pytest.raises(SystemExit):
             phase4.development_variant_for(BATTERY, level)
         assert _refusal(capsys) == UNREGISTERED
     for level in (-1, "1"):
         with pytest.raises(SystemExit):
-            phase3.development_variant_for(level)
+            phase3.development_variant_for(level, SCORING)
         assert _refusal(capsys) == "level_is_a_ladder_level"
     with pytest.raises(SystemExit):
-        phase3.main(["run", "--root", str(tmp_path), "--dry-run", "--level", "2"])
+        phase3.main(
+            ["run", "--root", str(tmp_path), "--challenge", BATTERY]
+            + ["--dry-run", "--level", "2"]
+        )
     assert _refusal(capsys) == UNREGISTERED
     with pytest.raises(SystemExit):
-        phase4.main(["run", "--root", str(tmp_path), "--dry-run", "--level", "1"])
+        phase4.main(
+            ["run", "--root", str(tmp_path), "--challenge", BATTERY]
+            + ["--dry-run", "--level", "1"]
+        )
     assert _refusal(capsys) == UNREGISTERED
     assert list(tmp_path.iterdir()) == []  # nothing was read, written or spent
 
@@ -165,7 +178,7 @@ def test_level_0s_attack_adapter_is_unchanged():
     atk = phase4.attack_modules()
     adapter, variant = phase4.adapter_for(atk, BATTERY, 0)
     assert variant is None
-    assert adapter is phase4.get_adapter(atk, BATTERY, phase4.BATTERY_LEVEL)
+    assert adapter is phase4.get_adapter(atk, BATTERY, phase4.CONSTRUCTION_LEVEL)
     document, profile = phase4.attacker_profile(adapter)
     assert document["level"] == 0 and profile == digest(canonical(document))
 
@@ -175,27 +188,30 @@ def test_level_0s_attack_adapter_is_unchanged():
 
 def test_a_development_levels_profile_brief_and_recorded_level(variants):
     variant = variants[2]
-    assert phase3.development_variant_for(2) == variant
-    document, profile = phase3.permission_profile(variant)
+    assert phase3.development_variant_for(2, SCORING) == variant
+    document, profile = phase3.permission_profile(SCORING, variant)
     assert (document, profile) == (variant.document(), variant.digest)
     opened = {"task": {"profile_digest": profile}}
-    assert phase3.recorded_level(opened) == 2
-    assert phase3.recorded_variant(opened) == variant
-    assert phase3.recorded_level({"task": {"profile_digest": FIXTURE_DIGESTS[1]}}) == 1
+    assert phase3.recorded_level(opened, SCORING) == 2
+    assert phase3.recorded_variant(opened, SCORING) == variant
+    assert (
+        phase3.recorded_level({"task": {"profile_digest": FIXTURE_DIGESTS[1]}}, SCORING)
+        == 1
+    )
     assert phase3.recorded_level(
-        {"task": {"profile_digest": "sha256:" + "e" * 64}}
+        {"task": {"profile_digest": "sha256:" + "e" * 64}}, SCORING
     ) is (None)
     brief = phase3.session_brief(
-        checkout_commit="0" * 40, budget=_budget(), variant=variant
+        checkout_commit="0" * 40, budget=_budget(), scoring=SCORING, variant=variant
     )
     observation = brief.initial_observation
     assert observation["level"] == 2
     assert observation["construction_contract"] == dv.recorded_variant(variant)
-    phase3.check_observation(observation)
+    phase3.check_observation(observation, SCORING)
     with pytest.raises(
         ProviderUnavailable, match="development_variant_is_another_level"
     ):
-        phase3.check_observation(dict(observation, level=3))
+        phase3.check_observation(dict(observation, level=3), SCORING)
     named = dict(
         observation,
         construction_contract={
@@ -204,13 +220,35 @@ def test_a_development_levels_profile_brief_and_recorded_level(variants):
         },
     )
     with pytest.raises(ProviderUnavailable, match=UNREGISTERED):
-        phase3.check_observation(named)
+        phase3.check_observation(named, SCORING)
+
+
+def test_a_variant_serves_only_its_own_challenge(variants, capsys):
+    """A development level composes with the explicit-Challenge rule: a
+    battery variant is never another Challenge's level."""
+    other = next(
+        challenge_scoring.scoring_for(token)
+        for token in challenge_scoring.registered()
+        if token != BATTERY
+    )
+    with pytest.raises(SystemExit):
+        phase3.development_variant_for(1, other)
+    assert _refusal(capsys) == UNREGISTERED
+    with pytest.raises(SystemExit):
+        phase3.permission_profile(other, variants[1])
+    assert _refusal(capsys) == "development_variant_is_another_challenges"
+    opened = {"task": {"profile_digest": variants[1].digest}}
+    assert phase3.recorded_variant(opened, other) is None
+    assert phase3.recorded_level(opened, other) is None
+    with pytest.raises(SystemExit):
+        phase4.development_variant_for(other.challenge_id, 1)
+    assert _refusal(capsys) == UNREGISTERED
 
 
 def check_development_admission(variants):
     variant = variants[2]
     strategy = _strategy(fixture_only_cycles=3)
-    built = ex.admit(strategy, 7, variant=variant)
+    built = ex.admit(strategy, 7, scoring=SCORING, variant=variant)
     compiled = dv.compile_development(strategy, variant)
     assert built["development"] == compiled.development
     assert built["contract_digest"] == cr.contract(BATTERY).digest
@@ -228,13 +266,15 @@ def check_development_admission(variants):
     assert pod == expected
     assert ex.development_differences(built, pod) == []
     # A build without the variant's binding is a rebuild difference.
-    plain = ex.admit(_strategy(), 7)
+    plain = ex.admit(_strategy(), 7, scoring=SCORING)
     assert ex.development_differences(built, plain) == ["development"]
     # Level 0 never compiles the widened field; the variant's other value
     # binds differently.
     with pytest.raises(ex.Unrebuildable):
-        ex.admit(strategy, 7)
-    other = ex.admit(_strategy(fixture_only_cycles=4), 7, variant=variant)
+        ex.admit(strategy, 7, scoring=SCORING)
+    other = ex.admit(
+        _strategy(fixture_only_cycles=4), 7, scoring=SCORING, variant=variant
+    )
     assert other["development"] != built["development"]
     with pytest.raises(dv.VariantRefused) as refused:
         pod_phase.development_built_record(
@@ -264,7 +304,7 @@ def test_a_development_pod_job_names_its_variant(variants):
 def test_a_development_dry_run_runs_end_to_end(variants, tmp_path, capsys):
     root = tmp_path / "root"
     root.mkdir()
-    assert phase3.dry_run(root, level=1) == 0
+    assert phase3.dry_run(root, SCORING, development_variant=variants[1]) == 0
     output = capsys.readouterr().out
     result = json.loads(output[output.index("{\n") :])
     assert result["provider_state"] == "succeeded"

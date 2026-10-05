@@ -21,8 +21,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from carbon.reconstruction.capability_registry import (
-    BATTERY_CHALLENGE,
-    BURGERS_CHALLENGE,
     CONTRACTS,
     DEVELOPMENT_VARIANT_NOT_SERVED,
     Dimension,
@@ -180,7 +178,7 @@ class CompiledSubmission:
     challenge: str
     contract_digest: str
     compiled: object
-    #: The Burgers reconstruction profile, or the battery recipe.
+    #: The named Challenge's guarded reconstruction recipe/profile.
     construction: object
 
 
@@ -198,14 +196,12 @@ def compile_submission(strategy, *, contract_digest=None):
     item = CONTRACTS[challenge]
     if contract_digest is not None:
         check_contract_digest(challenge, contract_digest)
-    if challenge == BURGERS_CHALLENGE:
-        from carbon.development_session.research_catalog import compile_recipe
+    from carbon.challenge_registry.registry import compiler_for
 
-        compiled, construction = compile_recipe(strategy)
-    elif challenge == BATTERY_CHALLENGE:
-        from carbon.battery.compile import compile_recipe
-
-        compiled, construction = compile_recipe(strategy)
-    else:  # a registered contract with no compiler is a defect, not a refusal
-        raise RuntimeError("no compiler for a registered contract")
+    try:
+        compiled, construction = compiler_for(challenge)(strategy)
+    except LookupError:
+        # A registered construction contract without a compiler is a repository
+        # defect, not a candidate refusal or a fallback to another Challenge.
+        raise RuntimeError("no compiler for a registered contract") from None
     return CompiledSubmission(challenge, item.digest, compiled, construction)

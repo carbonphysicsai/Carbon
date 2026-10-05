@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-scoring-canonical-root-refusal",
+  "recorded_at": "2026-10-04T00:07:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 first canonical focused attempt",
+    "description": "Invoked the repository canonical wrapper for the challenge-neutral scoring, Cooling scoring and Cooling construction suites from the short Windows worktree path through WSL."
+  },
+  "expected": "The wrapper should recognize the linked worktree as the repository root and launch its isolated canonical Docker checkout.",
+  "observed": "The wrapper refused before Docker launch because WSL Git did not treat the Windows-owned linked worktree as a safe repository, so `rev-parse` could not establish the root. No tests, image build, solver, pod or spend occurred.",
+  "keep": [
+    "Keep the canonical wrapper's repository-root guard intact.",
+    "Treat a safe-directory identity refusal as setup, not as a test result."
+  ],
+  "change": [
+    "Rerun with a command-scoped Git safe-directory setting for this exact worktree."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "canonical-validation",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

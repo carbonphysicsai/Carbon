@@ -1,0 +1,37 @@
+{
+  "schema": "carbon.graphite.baseline-retry-policy.v1",
+  "version": "baseline-retry-v1",
+  "authority": "Owner (Ryan), 2026-10-04, after Graphite R2 run 4: approval of fix 3 (retry a failed baseline once), and the direction \"Yes, retry baseline crashes\" for the baseline's program crash; the engineering choices are GRAPHITE-POD-LOGS-RETRY-01",
+  "status": "DEVELOPMENT_WORKING_POLICY",
+  "applies_to": "session_baseline",
+  "max_retries": 1,
+  "retry_on_status": "FAILED_INFRA",
+  "retry_on_reasons": [
+    "candidate_failure_unattributed",
+    "compile",
+    "infra",
+    "pod",
+    "predictions_missing"
+  ],
+  "candidate_retry_on": [["CANDIDATE_FAILED", "program"]],
+  "never_on_status": ["CANDIDATE_RESOURCE_EXCEEDED"],
+  "seed": "same_as_failed_baseline",
+  "pods_required": 2,
+  "limits": [
+    "pod_launch_gate",
+    "remaining_elapsed_time",
+    "run_cap_tokens_plus_pods",
+    "session_pod_limit"
+  ],
+  "earlier_scored_results": "not_recompared",
+  "notes": [
+    "Applies to the session's baseline only: Carbon's own recipe (ChallengeScoring.baseline_strategy, registered in the session's brief) with Carbon's own seed, run by Carbon before any proposal's pod. No agent authors, chooses or seeds it. An agent proposal's outcome keeps pod-attribution-v1 unchanged and is never retried by this policy.",
+    "Carbon-side and deterministic: decided once, right after the session's baseline closes without a score, before the pod of the proposal that triggered it; the decision is recorded write-once and never re-decided.",
+    "Retried: a pod that ran and ended in infrastructure (the listed FAILED_INFRA reasons), and the baseline's program crash (CANDIDATE_FAILED, program), at the owner's direction of 2026-10-04. The crash keeps its attribution in the baseline's own record; the retry is a second, separately recorded run.",
+    "Never retried: CANDIDATE_RESOURCE_EXCEEDED; a launch the gate refused (launch_refused, nothing was created); a launch whose outcome is unknown (launch_unresolved); a process death (interrupted_not_rerun); the attribution policy's own timeout outcomes (already retried once); a second retry.",
+    "pods_required counts the retry's pod and the waiting proposal's pod: both must fit the session's pod limit, the run's money cap and, under the v2 session limits, the remaining elapsed time. The retry's own pod then passes the usual admission and the pod launch gate.",
+    "The retry reruns the same strategy with the failed baseline's seed: a rerun, not a new draw.",
+    "Result records are write-once: a result scored against no baseline before the retry is not re-compared, and the decision lists it.",
+    "Whether this policy is exploitable is for the Attacker's resource and accounting families to test; a change is a new registered version."
+  ]
+}

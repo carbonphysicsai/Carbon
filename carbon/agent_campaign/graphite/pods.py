@@ -64,8 +64,8 @@ SHIP_TREES = ("carbon", "scripts/dev/exam_design")
 #: Engineering allowances per proposal, each taken from an existing record
 #: (GRAPHITE-D20): the pod's start-up allowance is the rented runner's
 #: (`RentedCompute.startup_seconds`, 900 s); the job's own allowance is the
-#: Challenge contract's worker deadline (`envelope.worker_deadline_seconds`;
-#: battery's is 600 s); the export window is pod_control's default
+#: Challenge contract's worker deadline (`envelope.worker_deadline_seconds`);
+#: the export window is pod_control's default
 #: (`--export-minutes 5`).
 STARTUP_MINUTES = 15
 EXPORT_MINUTES = 5
@@ -74,8 +74,7 @@ POLL_SECONDS = 15.0
 
 def data_paths(scoring=None):
     """The data files the pod's phase reads, beside the `carbon` package and
-    the pod tooling: the Challenge's public development material only (for
-    battery, TRAIN v1, the OCV table and the public PRACTICE records), each
+    the pod tooling: the Challenge's public development material only, each
     pinned again by its own digest when the phase loads it."""
     return challenge_scoring.resolve(scoring).ship_check()
 
@@ -241,6 +240,10 @@ class PodBackend(Protocol):
     # own clock readings of the pod's phase, taken during `wait`. A backend
     # without it gives the experiment no host timing, so a timeout it cannot
     # confirm is never blamed on the candidate.
+    #
+    # Optional: `listing(handle) -> {path: sha256 hex} | None`, the digests
+    # the pod listed for the files of its last `fetch`. A kept log must match
+    # it (`pod_logs`); a backend without it keeps no log.
 
 
 # -- the hash-pinned code ship -------------------------------------------------------------
@@ -284,6 +287,13 @@ def code_manifest(ref, paths, repository=REPOSITORY):
     return manifest
 
 
+#: Directories never shipped from the code trees, at any depth (lower-case):
+#: an encrypted private reference blob lives under one
+#: (`scripts/dev/exam_design/private/`; VALIDATOR-01 security review,
+#: finding 5). Graphite's pod phase never reads it.
+UNSHIPPED_DIRECTORIES = frozenset({"private"})
+
+
 def ship_list(ref, repository=REPOSITORY, scoring=None):
     try:
         shipped = data_paths(scoring)
@@ -292,8 +302,12 @@ def ship_list(ref, repository=REPOSITORY, scoring=None):
     for path in shipped:
         if any(fragment in path.lower() for fragment in FORBIDDEN_DATA):
             raise PodFailure("ship", "forbidden data path " + path, executed=False)
-    paths = tracked(ref, SHIP_TREES, repository) + list(shipped)
-    return list(dict.fromkeys(paths))
+    code = [
+        path
+        for path in tracked(ref, SHIP_TREES, repository)
+        if not {part.lower() for part in Path(path).parts[:-1]} & UNSHIPPED_DIRECTORIES
+    ]
+    return list(dict.fromkeys(code + list(shipped)))
 
 
 def manifest_digest(manifest):
@@ -325,6 +339,7 @@ class RunPodPods:
         http=None,
         transport=None,
         balance_floor=operator_balance_floor,
+        scoring=None,
     ):
         from scripts.dev.exam_design.runpod.operator_compute import (
             ComputeService,
@@ -338,6 +353,7 @@ class RunPodPods:
             raise PodFailure(
                 "ship", "a 40-hex pushed commit is required", executed=False
             )
+        self.scoring = challenge_scoring.resolve(scoring)
         self.economics = prices()
         self.repository, self.code_ref = Path(repository), code_ref
         self.clock, self.sleep = clock, sleep
@@ -357,7 +373,7 @@ class RunPodPods:
         )
         self.service = ComputeService(self.store, self.adapter, clock=clock)
         self._tokens = {}
-        paths = ship_list(code_ref, self.repository)
+        paths = ship_list(code_ref, self.repository, self.scoring)
         self.manifest = code_manifest(code_ref, paths, self.repository)
         self.boot = (
             self.repository / "scripts/dev/exam_design/runpod/bootstrap.py"
@@ -545,9 +561,11 @@ class RunPodPods:
             at = self.clock()
             if code == 200:
                 try:
-                    stage = json.loads(body).get("stage")
+                    status = json.loads(body)
                 except ValueError:
-                    stage = None
+                    status = None
+                # A pod's own answer: an object, else no stage.
+                stage = status.get("stage") if type(status) is dict else None
                 if stage == "running_phase":
                     seen.setdefault("first_running", at)
                     seen["last_running"] = at
@@ -573,7 +591,14 @@ class RunPodPods:
         code, body = self._get(handle, "/files")
         if code != 200:
             raise PodFailure("fetch", f"listing failed ({code})", executed=True)
-        listing = json.loads(body)
+        # The caps first (VALIDATOR-01 finding 6), then the listed digests
+        # the run keeps (#580).
+        listing = fetch_limits(json.loads(body))
+        self.__dict__.setdefault("_listings", {})[handle.intent_id] = {
+            row["path"]: row["sha256"]
+            for row in listing
+            if type(row.get("path")) is str and type(row.get("sha256")) is str
+        }
         files = {}
 
         def get(path):
@@ -590,6 +615,11 @@ class RunPodPods:
             for row in listing:
                 files[row["path"]] = (Path(directory) / row["path"]).read_bytes()
         return files
+
+    def listing(self, handle):
+        """The sha256 the pod listed per file at its last fetch (each file
+        was also checked against it then, `pod_control.fetch_files`)."""
+        return self.__dict__.get("_listings", {}).get(handle.intent_id)
 
     def terminate(self, handle):
         from scripts.dev.exam_design.runpod.operator_compute import ComputeError
@@ -608,6 +638,28 @@ class RunPodPods:
         except ComputeError:
             return None
         return None if charge is None else Decimal(str(charge.amount_usd))
+
+
+#: Engineering limits on what Carbon fetches from one pod, checked on the
+#: pod's own listing before any file is downloaded (VALIDATOR-01 security
+#: review, finding 6). A pod's practice outputs are a few files of a few MB.
+MAX_FETCH_FILES, MAX_FETCH_BYTES = 64, 256 * 1024 * 1024
+
+
+def fetch_limits(listing):
+    """The pod's file listing, refused (as infrastructure) unless it is a list
+    of at most MAX_FETCH_FILES rows declaring at most MAX_FETCH_BYTES."""
+    if type(listing) is not list or len(listing) > MAX_FETCH_FILES:
+        raise PodFailure("fetch", "listing_over_limits", executed=True)
+    total = 0
+    for row in listing:
+        size = row.get("size") if type(row) is dict else None
+        if type(size) is not int or size < 0:
+            raise PodFailure("fetch", "listing_malformed", executed=True)
+        total += size
+    if total > MAX_FETCH_BYTES:
+        raise PodFailure("fetch", "listing_over_limits", executed=True)
+    return listing
 
 
 def _rate(rate):
@@ -660,7 +712,9 @@ class Step:
     - `hook`: a callable run while the job runs (for example to cancel);
     - `crash`: "wait" or "fetch" to die there, leaving the pod alive;
     - `timing`: the host's readings of the phase (`pod_outcome.HostTiming`
-      fields), or None when the host observed none.
+      fields), or None when the host observed none;
+    - `listed`: sha256 hex digests the pod lists in place of its files' own
+      (to script a listing that does not match what was fetched).
     """
 
     outcome: str = "done"
@@ -672,6 +726,7 @@ class Step:
     hook: object = None
     crash: str | None = None
     timing: dict | None = None
+    listed: dict | None = None
 
 
 @dataclass
@@ -684,6 +739,7 @@ class ScriptedPods:
     alive: dict = field(default_factory=dict)
     terminated: list = field(default_factory=list)
     deletes: int = 0
+    listings: dict = field(default_factory=dict)
 
     def describe(self):
         return {
@@ -741,7 +797,14 @@ class ScriptedPods:
 
             raise SimulatedCrash("pod fetch")
         job = self.alive[handle.pod_id]["job"]
-        return dict(step.outputs(job)) if step.outputs else {}
+        files = dict(step.outputs(job)) if step.outputs else {}
+        self.listings[handle.intent_id] = {
+            name: hashlib.sha256(body).hexdigest() for name, body in files.items()
+        } | dict(step.listed or {})
+        return files
+
+    def listing(self, handle):
+        return self.listings.get(handle.intent_id)
 
     def terminate(self, handle):
         self.deletes += 1
@@ -771,7 +834,7 @@ class ScriptedPods:
 _SYNTHETIC_BUILDS = {}
 
 
-def synthetic_outputs(quality, *, root=REPOSITORY, built=None):
+def synthetic_outputs(quality, *, root=REPOSITORY, built=None, scoring=None):
     """SYNTHETIC pod outputs for tests and `--dry-run`: nothing is trained.
 
     The pod "builds" honestly (`pod_phase.built_record`, unless `built`
@@ -779,15 +842,15 @@ def synthetic_outputs(quality, *, root=REPOSITORY, built=None):
     PRACTICE references with a deterministic error of size `quality` after the
     initial instant (so no gate fails): lower is better, 0 is exact. They exist
     only to drive Carbon's real scoring and comparison code."""
-    import math
-
-    cache = {}
 
     def outputs(job):
-        from carbon.battery.practice import PracticeSet
-
         from .pod_phase import built_record, development_built_record
 
+        selected = (
+            challenge_scoring.scoring_for(job.strategy.get("challenge_id"))
+            if scoring is None
+            else challenge_scoring.resolve(scoring)
+        )
         variant = getattr(job, "development_variant", None)
         key = (
             json.dumps(job.strategy, sort_keys=True),
@@ -809,20 +872,7 @@ def synthetic_outputs(quality, *, root=REPOSITORY, built=None):
                 job.strategy, job.contract_digest, variant, job.seed, root
             )[0]
             _SYNTHETIC_BUILDS[key] = record
-        predictions = {}
-        records = cache.get("practice")
-        if records is None:
-            records = cache["practice"] = PracticeSet.load(root).records
-        for index, ref in enumerate(records):
-            wave = 1.0 + 0.5 * math.sin(index * 0.7)
-            out = ref["outputs"]
-            predictions[ref["case_id"]] = {
-                "voltage_v": out["voltage_v"],
-                "temperature_c": [out["temperature_c"][0]]
-                + [t + quality * 0.5 * wave for t in out["temperature_c"][1:]],
-                "plating_margin_v": out["plating_margin_v"] + quality * 0.002 * wave,
-                "capacity_ah": out["capacity_ah"],
-            }
+        predictions = selected.synthetic_predictions(quality, root)
         return {
             "built.json": json.dumps(record, sort_keys=True).encode(),
             "predictions.json": json.dumps(predictions).encode(),
@@ -830,6 +880,42 @@ def synthetic_outputs(quality, *, root=REPOSITORY, built=None):
             "runtime.json": json.dumps({"synthetic": True}).encode(),
             "DONE.json": b'{"exit": 0, "synthetic": true}',
         }
+
+    return outputs
+
+
+#: The SYNTHETIC logs a scripted failed pod exports (`failed_outputs`).
+SYNTHETIC_LOGS = {
+    "program.log": (
+        b"SYNTHETIC program log: a scripted pod, nothing ran\n"
+        b"Traceback (most recent call last):\n"
+        b'  File "<string>", line 1, in <module>\n'
+        b"RuntimeError: SYNTHETIC scripted failure\n"
+    ),
+    "phase.log": b"SYNTHETIC phase log: a scripted pod, nothing ran\n",
+}
+
+
+def failed_outputs(stage="program", *, logs=None, root=REPOSITORY):
+    """SYNTHETIC outputs of a pod whose program exited non-zero, for tests
+    and `--dry-run`: the honest build, the pod's `failure.json` claim (none
+    when `stage` is None, as when the bootstrap failed) and its logs
+    (`SYNTHETIC_LOGS` unless `logs` is given). No predictions."""
+    from .pod_phase import built_record
+
+    def outputs(job):
+        key = (json.dumps(job.strategy, sort_keys=True), job.contract_digest, job.seed)
+        record = _SYNTHETIC_BUILDS.get(key)
+        if record is None:
+            record = built_record(job.strategy, job.contract_digest, job.seed, root)[0]
+            _SYNTHETIC_BUILDS[key] = record
+        files = {"built.json": json.dumps(record, sort_keys=True).encode()}
+        if stage is not None:
+            files["failure.json"] = json.dumps(
+                {"stage": stage, "error": "exit 1"}
+            ).encode()
+        files.update(SYNTHETIC_LOGS if logs is None else logs)
+        return files
 
     return outputs
 
@@ -931,7 +1017,9 @@ class InMemoryRunPod:
         return (200, self.FILES[name]) if name in self.FILES else (404, b"")
 
 
-def real_path_check(root, *, code_ref=None, repository=REPOSITORY, launches=2):
+def real_path_check(
+    root, *, code_ref=None, repository=REPOSITORY, launches=2, scoring=None
+):
     """Drive the live pod backend's real code path with no network and no
     spend, the way a live phase-3 session drives it (POD-STORE-THREADS-01).
 
@@ -993,6 +1081,7 @@ def real_path_check(root, *, code_ref=None, repository=REPOSITORY, launches=2):
             http=account.http,
             sleep=lambda _seconds: None,
             balance_floor=lambda: Decimal(0),  # synthetic: the account is in memory
+            scoring=scoring,
         )
         jobs = [
             PodJob(

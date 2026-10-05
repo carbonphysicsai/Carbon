@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-broad-windows-collection",
+  "recorded_at": "2026-10-04T20:05:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-06 broad Windows subsystem collection",
+    "description": "Attempted the broader construction, study, schema, research-wire and report CPU suite."
+  },
+  "expected": "The broader run should cover challenge-neutral corrections and retained practice reporting in addition to the focused cooling tests.",
+  "observed": "Collection stopped before tests ran because the diagnostic Windows virtual environment lacks the optional cryptography package imported by the MCP wire-door suite. This is the pre-existing host limitation already observed at baseline, not a cooling assertion failure. No worker, solver, pod or paid service ran.",
+  "keep": [
+    "Run the complete applicable set through the canonical dependency-complete Linux wrapper before delivery."
+  ],
+  "change": [
+    "Exclude the known dependency-blocked wire-door file from the next Windows diagnostic while retaining it in canonical acceptance."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "host-versus-canonical-validation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

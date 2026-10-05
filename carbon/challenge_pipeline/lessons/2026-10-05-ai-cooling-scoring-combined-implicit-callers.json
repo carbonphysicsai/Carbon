@@ -1,0 +1,29 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-combined-implicit-callers",
+  "recorded_at": "2026-10-05T02:31:38Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 final combined canonical regression audit",
+    "description": "Ran Cooling, neutral scoring, Graphite Phase 3/4, miner path, pod timeout and Battery compatibility suites together after registering Cooling as a second scorer."
+  },
+  "expected": "Shared paths should require an exact Challenge while every Challenge-specific production path and fixture supplies one explicitly.",
+  "observed": "The complete run found 38 failures clustered in four legacy single-Challenge assumptions: direct miner-path checks, Planner next-level fixture briefs without a registered Challenge, Phase 4's internal Experiment and runner providers omitting their selected scorer, and pod-timeout fixtures omitting Battery's scorer. All other selected tests passed.",
+  "keep": [
+    "Keep unnamed shared scoring fail closed; do not restore an implicit Battery default.",
+    "Keep Battery and Cooling scientific rules and contracts unchanged."
+  ],
+  "change": [
+    "Thread the selected scorer through Phase 4's Experiment, dry run and live provider.",
+    "Bind the Planner fixture brief, miner-path assertions and pod-timeout fixtures to their exact registered Challenge."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

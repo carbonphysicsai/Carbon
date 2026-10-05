@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-study-drift-pass",
+  "recorded_at": "2026-10-04T20:42:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "docs/development/cold_plate/level0",
+    "description": "Checked every generated study-sheet pin against the final working-tree registrations and sources."
+  },
+  "expected": "The committed draft artifacts should be exact derivatives of the live contract and source pins.",
+  "observed": "The checker reported no pin drift. The draft remains unexecuted and unfreezable with budget and population unset.",
+  "keep": [
+    "Require this drift check whenever the construction, worker, scoring or study adapter changes."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "challenge-admission-study",
+    "pin-integrity"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

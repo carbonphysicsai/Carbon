@@ -1218,6 +1218,175 @@ class ChallengeContract:
 
 BURGERS_CHALLENGE = "burgers-dynamics-v1"
 BATTERY_CHALLENGE = "battery-fastcharge-ageing-development-v1"
+COLD_PLATE_CHALLENGE = "chip-cold-plate"
+MOTOR_CHALLENGE = "electric-motor-magnetics"
+
+#: The exact public calibration grid used by the existing cold-plate learned
+#: baseline (`carbon.learned_baseline`).  Repeating the primitive JSON values
+#: here keeps this registry pure data; a focused test holds the two equal.
+COLD_PLATE_LENGTHS = (0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0)
+COLD_PLATE_RIDGES = (1e-8, 1e-6, 1e-4, 1e-2, 1e-1, 1.0)
+COLD_PLATE_LENGTH_CHOICES = (
+    "length_0p25",
+    "length_0p5",
+    "length_1",
+    "length_2",
+    "length_4",
+    "length_8",
+    "length_16",
+)
+COLD_PLATE_RIDGE_CHOICES = (
+    "ridge_1e_8",
+    "ridge_1e_6",
+    "ridge_1e_4",
+    "ridge_1e_2",
+    "ridge_1e_1",
+    "ridge_1",
+)
+
+COLD_PLATE_REGISTRY = (
+    _family(
+        "kernel_ridge",
+        "kernel_ridge",
+        "cold_plate_kernel_ridge",
+        "Gaussian kernel-ridge regression over the nine registered inputs; "
+        "trained only from the pinned public cold-plate TRAIN records",
+    ),
+    _field(
+        A,
+        "length",
+        Surface(
+            "model",
+            "choice",
+            COLD_PLATE_LENGTH_CHOICES,
+            None,
+            "length_8",
+        ),
+        "Gaussian-kernel length selected from the published calibration grid",
+        ("kernel_ridge",),
+    ),
+    _field(
+        A,
+        "ridge",
+        Surface(
+            "model",
+            "choice",
+            COLD_PLATE_RIDGE_CHOICES,
+            None,
+            "ridge_1e_6",
+        ),
+        "Kernel-ridge regularization selected from the published calibration grid",
+        ("kernel_ridge",),
+    ),
+    _todo(
+        M,
+        "neural_operator",
+        "A cold-plate neural-operator family has no registered reconstruction "
+        "recipe or evidence yet",
+    ),
+    _todo(
+        O,
+        "learned_optimizer",
+        "Kernel ridge is a deterministic closed-form fit; trainable optimizer "
+        "freedom is not implemented for this Challenge",
+    ),
+    _excluded(
+        M,
+        "pretrained_weights",
+        "Participant checkpoints, embeddings and other external learned state",
+        Trigger.EXTERNAL_STATE,
+    ),
+    _excluded(
+        J,
+        "loss_expressions",
+        "Participant-supplied loss code or expressions",
+        Trigger.EXECUTABLE_SUBMISSION,
+    ),
+    _excluded(
+        H,
+        "reference_solver_reuse",
+        "Construction may not reuse OpenFOAM or counted/private CFD evidence",
+        Trigger.EVIDENCE_DESIGN,
+    ),
+)
+
+#: The exact public calibration grid used by the existing Motor learned
+#: baseline. Primitive values are repeated here so this registry stays pure
+#: data; the Motor contract test holds them equal to `carbon.learned_baseline`.
+MOTOR_LENGTHS = (0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0)
+MOTOR_RIDGES = (1e-8, 1e-6, 1e-4, 1e-2, 1e-1, 1.0)
+MOTOR_LENGTH_CHOICES = (
+    "length_0p25",
+    "length_0p5",
+    "length_1",
+    "length_2",
+    "length_4",
+    "length_8",
+    "length_16",
+)
+MOTOR_RIDGE_CHOICES = (
+    "ridge_1e_8",
+    "ridge_1e_6",
+    "ridge_1e_4",
+    "ridge_1e_2",
+    "ridge_1e_1",
+    "ridge_1",
+)
+
+MOTOR_REGISTRY = (
+    _family(
+        "kernel_ridge",
+        "kernel_ridge",
+        "motor_kernel_ridge",
+        "Gaussian kernel-ridge regression over the eight registered inputs; "
+        "trained only from the pinned public Motor TRAIN records",
+    ),
+    _field(
+        A,
+        "length",
+        Surface("model", "choice", MOTOR_LENGTH_CHOICES, None, "length_4"),
+        "Gaussian-kernel length selected from the published calibration grid",
+        ("kernel_ridge",),
+    ),
+    _field(
+        A,
+        "ridge",
+        Surface("model", "choice", MOTOR_RIDGE_CHOICES, None, "ridge_1e_4"),
+        "Kernel-ridge regularization selected from the published calibration grid",
+        ("kernel_ridge",),
+    ),
+    _todo(
+        M,
+        "neural_operator",
+        "A Motor neural-operator family has no registered reconstruction recipe "
+        "or evidence yet",
+    ),
+    _todo(
+        O,
+        "learned_optimizer",
+        "Kernel ridge is a deterministic closed-form fit; trainable optimizer "
+        "freedom is not implemented for this Challenge",
+    ),
+    _excluded(
+        M,
+        "pretrained_weights",
+        "Participant checkpoints, embeddings and other external learned state",
+        Trigger.EXTERNAL_STATE,
+    ),
+    _excluded(
+        J,
+        "loss_expressions",
+        "Participant-supplied loss code or expressions",
+        Trigger.EXECUTABLE_SUBMISSION,
+    ),
+    _excluded(
+        H,
+        "reference_solver_reuse",
+        "Construction may not reuse GetDP or private, decision-study or "
+        "confirmation evidence",
+        Trigger.EVIDENCE_DESIGN,
+    ),
+)
 
 _WORKER_ENVELOPE = (
     ("worker_cpu", 2),
@@ -1261,7 +1430,38 @@ BATTERY_CONTRACT = ChallengeContract(
     envelope=_WORKER_ENVELOPE + (("train_cases", 400), ("batching", "full")),
 )
 
-CONTRACTS = {c.token: c for c in (BURGERS_CONTRACT, BATTERY_CONTRACT)}
+COLD_PLATE_CONTRACT = ChallengeContract(
+    token=COLD_PLATE_CHALLENGE,
+    version="1.0",
+    identity="carbon.chip-cold-plate-development.v1",
+    catalog_version="carbon.chip-cold-plate-recipes.v1",
+    capabilities=COLD_PLATE_REGISTRY,
+    envelope=tuple(
+        (key, "float64" if key == "precision" else value)
+        for key, value in _WORKER_ENVELOPE
+    )
+    + (("train_cases", 400), ("batching", "closed_form_full_train")),
+    lanes=(("session", ("kernel_ridge",)),),
+)
+
+MOTOR_CONTRACT = ChallengeContract(
+    token=MOTOR_CHALLENGE,
+    version="1.0",
+    identity="carbon.electric-motor-magnetics-development.v1",
+    catalog_version="carbon.electric-motor-magnetics-recipes.v1",
+    capabilities=MOTOR_REGISTRY,
+    envelope=tuple(
+        (key, "float64" if key == "precision" else value)
+        for key, value in _WORKER_ENVELOPE
+    )
+    + (("train_cases", 150), ("batching", "closed_form_full_train")),
+    lanes=(("session", ("kernel_ridge",)),),
+)
+
+CONTRACTS = {
+    c.token: c
+    for c in (BURGERS_CONTRACT, BATTERY_CONTRACT, COLD_PLATE_CONTRACT, MOTOR_CONTRACT)
+}
 
 
 class UnknownChallenge(KeyError):

@@ -34,7 +34,13 @@ data; Carbon re-checks each one outside the agent:
    An oracle `EXPOSURE` is `BREACHED` with `OTHER_SIGNAL`; one that did not
    answer (`FAILED_INFRA`, `TIMEOUT`, `CRASHED`) is `INFRA`; `NOT_RUN` (a
    seam) is `NOT_APPLICABLE`; `INCONCLUSIVE` (a hold the detector cannot
-   vouch for, or a path answer that is not plain) is `UNDETERMINED`. Only a
+   vouch for, or a path answer that is not plain) is `UNDETERMINED`. A
+   `HELD` counts only with the family specimen's `FIRED` verdict on the same
+   input: an oracle result that says it held without that specimen check
+   (`{"held": True}`) is `UNDETERMINED` (`oracle_hold_without_specimen`). The
+   view says whether Carbon rebuilt a construction (`rebuilt`); the generic
+   oracle (`attack.adapter.family_oracle`) judges nothing without one, which
+   reads `UNDETERMINED` (`oracle_needs_a_rebuilt_construction`). Only a
    `HELD` or `BREACHED` judgement is scored.
 7. **Specimen.** A breached attempt with a rebuilt construction is bundled
    and re-checked from the bundle alone (`delivery.clean_rebuild`, or the
@@ -54,7 +60,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from carbon.agent_campaign.attack import analysis
-from carbon.agent_campaign.graphite import tools as toolbox
 from carbon.challenge_readiness.admission import CONDITIONS
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
@@ -93,6 +98,15 @@ PROTECTED_WITHHELD_REASON = "oracle_protected_withheld"
 #: A path that refused a construction Carbon cannot rebuild: never scored,
 #: and never a hold for its family (the family's attack never ran).
 REFUSED_AT_REBUILD_REASON = "path_refused"
+#: The specimen verdict that makes an oracle's HELD evidence: the family's
+#: detector fired on the same input (`attack.engine.FIRED`).
+SPECIMEN_FIRED = "FIRED"
+#: An oracle that said HELD without a specimen that fired: never scored.
+HOLD_WITHOUT_SPECIMEN_REASON = "oracle_hold_without_specimen"
+#: The generic oracle's reading for an attempt with no rebuilt construction
+#: (`attack.adapter.NO_REBUILT_CONSTRUCTION`), and its verdict's reason.
+ORACLE_NO_REBUILT_CONSTRUCTION = "NO_REBUILT_CONSTRUCTION"
+NO_REBUILT_CONSTRUCTION_REASON = "oracle_needs_a_rebuilt_construction"
 
 
 def check_conditions(conditions):
@@ -285,6 +299,10 @@ class OracleAttempt:
     path_accepted: bool | None
     refused_by: str | None = None
     given: object = field(default=NO_VALUE, compare=False, repr=False)
+    #: Whether Carbon rebuilt a construction for this attempt (False when it
+    #: carried none or none Carbon could rebuild). The generic oracle
+    #: (`attack.adapter.family_oracle`) never scores an attempt without one.
+    rebuilt: bool | None = None
 
     @property
     def value(self):
@@ -301,7 +319,7 @@ class OracleAttempt:
         return self.tool.removeprefix(analysis.PREFIX)
 
 
-def oracle_attempt(attempt, construction=None, *, adapter=None):
+def oracle_attempt(attempt, construction=None, *, adapter=None, rebuilt=None):
     """The `OracleAttempt` view of an `analysis.Attempt` (see the class)."""
     if callable(getattr(adapter, "attempt_input", None)):
         given = NO_VALUE
@@ -316,6 +334,7 @@ def oracle_attempt(attempt, construction=None, *, adapter=None):
         path_accepted=attempt.accepted,
         refused_by=attempt.refused_by,
         given=given,
+        rebuilt=rebuilt,
     )
 
 
@@ -339,14 +358,19 @@ def _oracle(adapter, family, attempt):
     condition = getattr(condition, "value", condition)
     evidence = get("evidence", get("evidence_digest"))
     reason = None
+    reading = get("reading")
+    reading = getattr(reading, "value", reading)
     if outcome == ORACLE_EXPOSURE:
         outcome, condition = BREACHED, condition or OTHER_SIGNAL
         reason = "oracle_exposure"
     elif outcome in ORACLE_NO_ANSWER:
         outcome, condition, reason = INFRA, None, "oracle_no_answer:" + outcome
+    elif outcome == ORACLE_NOT_RUN and reading == ORACLE_NO_REBUILT_CONSTRUCTION:
+        # The generic oracle refused to judge an attempt Carbon rebuilt no
+        # construction for: no evidence, never scored.
+        outcome, condition = UNDETERMINED, None
+        reason = NO_REBUILT_CONSTRUCTION_REASON
     elif outcome == ORACLE_NOT_RUN:
-        reading = get("reading")
-        reading = getattr(reading, "value", reading)
         reason = (
             PROTECTED_WITHHELD_REASON
             if reading == ORACLE_PROTECTED_WITHHELD
@@ -355,6 +379,16 @@ def _oracle(adapter, family, attempt):
         outcome, condition = NOT_APPLICABLE, None
     elif outcome == ORACLE_INCONCLUSIVE:
         outcome, condition, reason = UNDETERMINED, None, "oracle_inconclusive"
+    elif outcome == HELD:
+        # A hold is evidence only when the family's detector fired on the
+        # same input (`attack.adapter.OracleResult`'s rule). A result that
+        # says it held without that specimen check, such as a bare
+        # `{"held": True}`, judged nothing: UNDETERMINED, never scored.
+        specimen = get("specimen")
+        specimen = getattr(specimen, "value", specimen)
+        if specimen != SPECIMEN_FIRED:
+            outcome, condition = UNDETERMINED, None
+            reason = HOLD_WITHOUT_SPECIMEN_REASON
     if outcome not in (HELD, BREACHED, UNDETERMINED, NOT_APPLICABLE, INFRA):
         raise ValueError("oracle_outcome_unknown: " + str(outcome))
     return outcome, condition, bool(get("near_miss", False)), evidence, reason
@@ -388,6 +422,12 @@ def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
     if attempt.withheld in (analysis.WITHHELD_RESULT, analysis.WITHHELD_JOURNAL):
         return verdict(
             BREACHED, conditions=(OTHER_SIGNAL,), reason="exposure:" + attempt.withheld
+        )
+    if attempt.withheld == analysis.WITHHELD_TARGET:
+        # The path answered with an attack target Graphite withheld from the
+        # agent: no exposure, and nothing Carbon can judge.
+        return verdict(
+            UNDETERMINED, reason="result_withheld_attack_target", refused_by="path"
         )
     if attempt.refused_by == "graphite":
         return verdict(HELD, refused_by="graphite", reason="refused_by_graphite")
@@ -436,7 +476,9 @@ def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
                 )
     if family == analysis.UNASSIGNED:
         return verdict(NOT_APPLICABLE, rebuild, reason="no_family_takes_this_attempt")
-    view = oracle_attempt(attempt, construction, adapter=adapter)
+    view = oracle_attempt(
+        attempt, construction, adapter=adapter, rebuilt=rebuild == REBUILT
+    )
     try:
         outcome, condition, near_miss, said, why = _oracle(adapter, family, view)
     except Exception as crashed:  # noqa: BLE001 - Carbon failed: never a pass
@@ -585,16 +627,29 @@ def bundle_specimen(construction, record, folder, *, label):
 
 
 # -- recording ------------------------------------------------------------------------------
+def names_protected(value):
+    """The redaction rule for finding evidence: the attack-knowledge store's
+    narrowed protected rule (`attack.knowledge.protected`: Graphite's
+    protected markers and the deny fragments that name sealed or confirmation
+    material) or a registered sealed identity. Not the live session's broad
+    request filter (`graphite.tools.protected`), which also refuses the attack
+    targets `.env`, `secret`, `credential` and repository paths: a finding
+    naming one is a breach to keep, not material to redact."""
+    from carbon.agent_campaign.attack import knowledge
+
+    return knowledge.protected(value) or knowledge.sealed_identity(value) is not None
+
+
 def finding_body(verdict, condition):
     """The evidence bytes a finding binds: the verdict record, or, if it
-    would name protected material, its digest alone (redacted, never
-    suppressed)."""
+    would name protected material (`names_protected`), its digest alone
+    (redacted, never suppressed)."""
     body = {
         "schema": FINDING_SCHEMA,
         "condition": condition,
         "verdict": verdict.record(),
     }
-    if toolbox.protected(body):
+    if names_protected(body):
         body = {
             "schema": FINDING_SCHEMA,
             "condition": condition,
@@ -622,7 +677,7 @@ def record(verdict, controller):
 
 def _record_body(controller, condition, body, tag):
     check_conditions((condition,))
-    if toolbox.protected(body):
+    if names_protected(body):
         body = {
             "schema": FINDING_SCHEMA,
             "condition": condition,

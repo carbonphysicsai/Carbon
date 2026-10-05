@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-ci-reference-boundary",
+  "recorded_at": "2026-10-04T21:05:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "PR 566 canonical CI run 37227716663 shard 0",
+    "description": "Ran the canonical invariant lane for the Level 0 cooling construction PR."
+  },
+  "expected": "Cooling research authoring should remain outside the protected evaluation implementation boundary.",
+  "observed": "The invariant lane reported one direct import of carbon.evaluation.refs from carbon/cold_plate/research.py; 291 other invariant tests passed. No worker, solver, pod or paid scientific execution ran.",
+  "keep": [
+    "Retain ReferencePolicyRef as identity-only authoring data and preserve the protected evaluation boundary."
+  ],
+  "change": [
+    "Expose ReferencePolicyRef through the challenge-neutral public measurement-authoring surface and consume it there."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "reference-boundary",
+    "canonical-ci"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

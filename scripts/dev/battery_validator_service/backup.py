@@ -62,6 +62,8 @@ PREFIX = "battery-validator-"
 
 def _members(intake_config, deployment_config):
     """`{file name in the backup: (role, source path, kind)}`."""
+    from carbon.battery.intake import attempt_ledger_path
+
     return {
         "root.bin": ("private_root", Path(deployment_config["private_root"]), "bytes"),
         "journal.jsonl": ("seed_journal", Path(deployment_config["journal"]), "bytes"),
@@ -72,11 +74,18 @@ def _members(intake_config, deployment_config):
             Path(intake_config["transport_journal"]),
             "sqlite",
         ),
+        # The operator's attempt ledger (VALIDATOR-01 VAL-D3): Track A's
+        # record of every submission attempt, refusals included.
+        "attempts.sqlite3": (
+            "attempt_ledger",
+            attempt_ledger_path(intake_config),
+            "sqlite",
+        ),
     }
 
 
-#: The members a deployment cannot be restored without; the intake's two are
-#: copied when they exist (an intake that never ran has neither).
+#: The members a deployment cannot be restored without; the intake's three
+#: are copied when they exist (an intake that never ran has none).
 REQUIRED_MEMBERS = ("root.bin", "journal.jsonl", "state.sqlite3")
 
 

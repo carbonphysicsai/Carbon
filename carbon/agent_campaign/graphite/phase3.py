@@ -1,16 +1,16 @@
 """GRAPHITE-01 phase 3: the Constructor at Level 0, and its runner.
 
-    python -m carbon.agent_campaign.graphite.phase3 run --root DIR \
+    python -m carbon.agent_campaign.graphite.phase3 run --root DIR --challenge TOKEN \
         --grant docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3.json \
         (--credential-file PATH | --credential-env ENGY_API_KEY) \
         (--runpod-key-file PATH | --runpod-key-env RUNPOD_API_KEY) \
         --miner-profile PROFILE.json --miner-campaign ID --code-ref SHA \
         --literature-snapshot SNAPSHOT.json [--allow-unchecked-cards] [--session N] \
         [--level N]
-    python -m carbon.agent_campaign.graphite.phase3 run --root DIR --dry-run \
+    python -m carbon.agent_campaign.graphite.phase3 run --root DIR --challenge TOKEN --dry-run \
         [--literature-snapshot SNAPSHOT.json [--allow-unchecked-cards]] [--level N]
     python -m carbon.agent_campaign.graphite.phase3 cancel --root DIR --session N
-    python -m carbon.agent_campaign.graphite.phase3 reconcile --root DIR --grant G \
+    python -m carbon.agent_campaign.graphite.phase3 reconcile --root DIR --challenge TOKEN --grant G \
         (--runpod-key-file PATH | --runpod-key-env RUNPOD_API_KEY) --code-ref SHA
     python -m carbon.agent_campaign.graphite.phase3 status --root DIR
     python -m carbon.agent_campaign.graphite.phase3 rebuild --bundle DIR
@@ -25,10 +25,11 @@ under one owner grant that covers both its model calls and its pods
    together, as the provider reports both);
 2. `Phase3Provider` drives the research loop with the Constructor's prompt and
    closed tools. Its miner tools go through the real miner path
-   (`miner_path.attach`, the standard miner MCP door) to a battery DEVELOPMENT
+   (`miner_path.attach`, the standard miner MCP door) to the named DEVELOPMENT
    campaign; its proposals go to Carbon's runner (`experiment`), which admits
    each one through the reconstruction gate, runs it on a pod, checks the
-   pod's build against Carbon's own, and scores it by the frozen rule;
+   pod's build against Carbon's own, and scores it by that Challenge's frozen
+   rule;
 3. inside the run, every model call is reserved before dispatch (the research
    ledger, capped at the run's token share) and every pod before launch (the
    pod ledger, against the run's combined cap); each settles from the
@@ -86,7 +87,10 @@ parallel-call rule runs before any spend: under `PARALLEL_CALLS_V2`
 several-call turns ran and how many did not. It also reports the session's
 limits: no model-call cap, the run's money cap and its elapsed limit; and the
 Constructor's model selection (GRAPHITE-D34): adapter, model, input window,
-admission ceiling, output cap, timeout and per-call reservation.
+admission ceiling, output cap, timeout and per-call reservation. It also runs
+`experiment.failure_path_check` (GRAPHITE-POD-LOGS-RETRY-01), which must be OK:
+a pod exiting non-zero keeps its logs, bounded, and a baseline failing as
+infrastructure is retried once and scores.
 
 **Model access** (GRAPHITE-D34, 2026-10-04). A new session opens on
 `engy-chat` (`ADAPTER`): Engy's Chat Completions replies report each call's
@@ -176,7 +180,7 @@ _TERMINAL = ("succeeded", "failed", "cancelled")
 #: The Engy adapter a new phase-3 session opens on (GRAPHITE-D34; owner,
 #: 2026-10-04: "perfect. I approve what comes back"). Engy's Chat Completions
 #: replies carry `x_engy.charged_micro`, which settles each call; its Messages
-#: endpoint returns no `x_engy` block (measured 2026-09-27, battery v2
+#: endpoint returns no `x_engy` block (measured 2026-09-27, the then-current
 #: finding 7), so every call of live sessions 1 and 2 on `engy-anthropic` kept
 #: its full reservation. A recorded session keeps the adapter it opened on.
 ADAPTER = "engy-chat"
@@ -235,7 +239,7 @@ class Phase3Tools:
         if self.seconds_left is None:
             return None
         left = self.seconds_left()
-        pods = 1 if self.experiment.baseline_record() is not None else 2
+        pods = 1 + self.experiment.pods_before_proposal()
         needed = pods * pod_seconds(self.experiment.budget)
         if left is None or needed <= left:
             return None
@@ -466,9 +470,26 @@ class Phase3Provider(GraphiteProvider):
             clock=self.clock,
             randomness=self.randomness,
             scoring=self.scoring,
-            construction_level=recorded_level(opened),
-            development_variant=recorded_variant(opened),
+            construction_level=recorded_level(opened, self.scoring),
+            seconds_left=self._time_gate(run_id, opened),
+            development_variant=recorded_variant(opened, self.scoring),
         )
+
+    def _next_level(self, run_id, role):
+        """The next-level writer bound to this session's exact Challenge."""
+
+        def write(arguments, identity):
+            return next_level.propose_tool(
+                arguments,
+                literature=self.literature,
+                run_dir=self._dir(run_id),
+                run_id=run_id,
+                identity=identity,
+                role=role.name.value,
+                scoring=self.scoring,
+            )
+
+        return write
 
     def _frozen_rule(self):
         """The frozen rule, loaded once per provider (its material is pinned)."""
@@ -738,23 +759,34 @@ def open_literature(path, *, allow_unchecked):
 
 
 # -- briefs, profile and the controller ------------------------------------------------------
-def development_variant_for(level, scoring=None):
-    """The construction level's development-only variant: None at Level 0
-    (the recorded miner-facing contract, unchanged); at a level above 0 the
-    variant `DEV_VARIANTS` registers for the session's Challenge, or a typed
-    refusal (`development_variant_unregistered`, OWNER-GRAPHITE-TEST-WAVE-03
-    §1). Only Carbon's development runners read a variant."""
+def development_variant_for(level, scoring):
+    """The construction level's development-only variant for the session's
+    named Challenge (`scoring`): None at Level 0 (the recorded miner-facing
+    contract, unchanged); at a level above 0 the variant `DEV_VARIANTS`
+    registers for that Challenge and level, or a typed refusal
+    (`development_variant_unregistered`, OWNER-GRAPHITE-TEST-WAVE-03 §1).
+    Only Carbon's development runners read a variant."""
     if level == 0 and type(level) is int:
         return None
     if type(level) is not int or level < 0:
         raise RunnerRefused("level_is_a_ladder_level")
     from carbon.reconstruction import development_variants
 
-    challenge = challenge_scoring.resolve(scoring).challenge_id
+    try:
+        challenge = challenge_scoring.resolve(scoring).challenge_id
+    except (challenge_scoring.ScoringUnavailable, TypeError):
+        raise RunnerRefused("challenge_scoring_must_be_named") from None
     try:
         return development_variants.variant(challenge, level)
     except development_variants.VariantRefused as refused:
         raise RunnerRefused(refused.code) from None
+
+
+def _variant_of(scoring, variant):
+    """A development level's variant, only for the session's own Challenge."""
+    if variant is not None and variant.challenge != scoring.challenge_id:
+        raise RunnerRefused("development_variant_is_another_challenges")
+    return variant
 
 
 def _variant_contract(variant):
@@ -780,9 +812,14 @@ def session_brief(
     """The Constructor's brief: the session Challenge's public development
     material only (its `ChallengeScoring`), and the session's offered
     literature (the phase-1 fixture when none is given). `variant` is the
-    development level's registered variant (`development_variant_for`), or
-    None at Level 0."""
-    scoring = challenge_scoring.resolve(scoring)
+    development level's registered variant (`development_variant_for`) for
+    the same Challenge, or None at Level 0."""
+    scoring = (
+        challenge_scoring.scoring_for(budget.challenge_id)
+        if scoring is None
+        else challenge_scoring.resolve(scoring)
+    )
+    variant = _variant_of(scoring, variant)
     baseline = scoring.baseline_strategy() if baseline is None else baseline
     literature = lit.FIXTURE_INDEX if literature is None else literature
     if variant is None:
@@ -818,46 +855,49 @@ def session_brief(
     )
 
 
-def permission_profile(variant=None):
-    """Level 0: the recorded battery construction contract, widened by
-    nothing. At a development level the profile is the registered variant
-    itself: its document, pinned by its digest, which is what the campaign
-    controller's development ledger records (GRAPHITE-DEV-VARIANTS-01)."""
-    if variant is not None:
+def permission_profile(scoring, variant=None):
+    """Level 0: the session Challenge's recorded contract, widened by nothing.
+    At a development level the profile is the registered variant itself: its
+    document, pinned by its digest, which is what the campaign controller's
+    development ledger records (GRAPHITE-DEV-VARIANTS-01)."""
+    scoring = challenge_scoring.resolve(scoring)
+    if _variant_of(scoring, variant) is not None:
         return variant.document(), variant.digest
     document = {
         "schema": PROFILE_SCHEMA,
         "level": 0,
-        "construction_contract": ex.recorded_contract(),
+        "construction_contract": ex.recorded_contract(scoring),
         "surface": "declarative TrainingStrategy inside the recorded contract",
         "widens": [],
     }
     return document, digest(canonical(document))
 
 
-def recorded_variant(opened):
-    """The registered development variant an opened run's task recorded as
-    its profile, or None (Level 0, or unknown)."""
+def recorded_variant(opened, scoring):
+    """The registered development variant of the session's Challenge that an
+    opened run's task recorded as its profile, or None (Level 0, or
+    unknown)."""
     from carbon.reconstruction import development_variants
 
+    challenge = challenge_scoring.resolve(scoring).challenge_id
     task = (opened or {}).get("task") or {}
     try:
-        return development_variants.registered(task.get("profile_digest"))
+        return development_variants.registered(task.get("profile_digest"), challenge)
     except development_variants.VariantRefused:
         return None
 
 
-def recorded_level(opened):
+def recorded_level(opened, scoring):
     """The construction level of an opened run, from the permission profile
     its task recorded: the profile's level only when the run's recorded
     profile digest is this profile's (Level 0's, or a registered development
-    variant's), else None (unknown). Never read from a submission
-    (`pod_outcome`)."""
-    document, profile = permission_profile()
+    variant's of the same Challenge), else None (unknown). Never read from a
+    submission (`pod_outcome`)."""
+    document, profile = permission_profile(scoring)
     task = (opened or {}).get("task") or {}
     if task.get("profile_digest") == profile:
         return document["level"]
-    found = recorded_variant(opened)
+    found = recorded_variant(opened, scoring)
     return None if found is None else found.level
 
 
@@ -949,7 +989,7 @@ def run_session(control, provider, brief, number, variant=None):
     if named != (None if variant is None else variant.digest):
         raise ValueError("the brief names another construction level")
     check_resume(provider, number)
-    _document, profile = permission_profile(variant)
+    _document, profile = permission_profile(provider.scoring, variant)
     ensure_campaign(
         control, checkout_digest=brief.checkout_manifest_digest, profile_digest=profile
     )
@@ -1168,12 +1208,18 @@ def _literature_from(args):
 
 
 def command_run(args):
-    level = getattr(args, "level", 0)
+    try:
+        scoring = challenge_scoring.scoring_for(args.challenge)
+    except challenge_scoring.ScoringUnavailable as refused:
+        raise RunnerRefused(refused.code) from None
+    # A development level resolves the named Challenge's registered variant
+    # before anything is read or spent; an unregistered one is refused here.
+    variant = development_variant_for(getattr(args, "level", 0), scoring)
+    level = {} if variant is None else {"development_variant": variant}
     if args.dry_run:
-        return dry_run(_root(args.root), literature=_literature_from(args), level=level)
-    # A development level resolves its registered variant before anything
-    # is read or spent; an unregistered one is refused here.
-    variant = development_variant_for(level)
+        return dry_run(
+            _root(args.root), scoring, literature=_literature_from(args), **level
+        )
     root = _root(args.root)
     grant = load_grant(args.grant)
     if grant.provider != "graphite":
@@ -1207,11 +1253,19 @@ def command_run(args):
             model = LiveModel(grant=grant, credential_file=engy, provider="graphite")
         except ModelAccessRefused as refused:
             raise RunnerRefused(refused.code) from None
-        pods = RunPodPods(root=root / "pods", key_file=runpod, code_ref=args.code_ref)
+        pods = RunPodPods(
+            root=root / "pods",
+            key_file=runpod,
+            code_ref=args.code_ref,
+            scoring=scoring,
+        )
 
         def attach(*, session):
             return miner_path.attach(
-                args.miner_profile, args.miner_campaign, session=session
+                args.miner_profile,
+                args.miner_campaign,
+                session=session,
+                scoring=scoring,
             )
 
         provider = Phase3Provider(
@@ -1221,6 +1275,7 @@ def command_run(args):
             pods=pods,
             miner_attach=attach,
             literature_index=literature,
+            scoring=scoring,
         )
         try:
             check_resume(provider, args.session)
@@ -1233,6 +1288,7 @@ def command_run(args):
                 checkout_commit=args.code_ref,
                 budget=budget,
                 literature=literature,
+                scoring=scoring,
                 variant=variant,
             )
             _install_cancel(provider, provider.run_id_for(session_key(args.session)))
@@ -1268,13 +1324,27 @@ def command_reconcile(args):
     from .model import ScriptedModel
     from .pods import RunPodPods
 
+    try:
+        scoring = challenge_scoring.scoring_for(args.challenge)
+    except challenge_scoring.ScoringUnavailable as refused:
+        raise RunnerRefused(refused.code) from None
+
     with secret_file(
         path=args.runpod_key_file, env=args.runpod_key_env, names=("RUNPOD_API_KEY",)
     ) as runpod:
-        pods = RunPodPods(root=root / "pods", key_file=runpod, code_ref=args.code_ref)
+        pods = RunPodPods(
+            root=root / "pods",
+            key_file=runpod,
+            code_ref=args.code_ref,
+            scoring=scoring,
+        )
         # Reconciliation makes no model call: a scripted model with no script.
         provider = Phase3Provider(
-            root=root / "graphite", grant=grant, model=ScriptedModel([]), pods=pods
+            root=root / "graphite",
+            grant=grant,
+            model=ScriptedModel([]),
+            pods=pods,
+            scoring=scoring,
         )
         report = {}
         for run in sorted((root / "graphite" / "runs").glob("graphite-*")):
@@ -1366,14 +1436,9 @@ class DryRunMiner:
         return {"status": "OK", "dry_run": True, "operation": name, "ran": False}
 
 
-def dry_run_script(baseline):
-    import copy
-
+def dry_run_script(baseline, variant, refused):
     from .model import text, tool, tools
 
-    better = copy.deepcopy(baseline)
-    better["parameters"]["width"] = 128
-    unrebuildable = {**baseline, "backbone": "transolver"}
     prefix = "carbon_research_v2__"
     return [
         # Live session 1's first turn: three tool calls at once. All three
@@ -1386,7 +1451,7 @@ def dry_run_script(baseline):
         tool(
             PROPOSE,
             {
-                "strategy_json": json.dumps(unrebuildable),
+                "strategy_json": json.dumps(refused),
                 "hypothesis": "an operator family outside the contract",
                 "expected_effect": "Carbon refuses it, typed",
             },
@@ -1394,8 +1459,8 @@ def dry_run_script(baseline):
         tool(
             PROPOSE,
             {
-                "strategy_json": json.dumps(better),
-                "hypothesis": "a wider MLP fits the trajectories better",
+                "strategy_json": json.dumps(variant),
+                "hypothesis": "a second registered construction choice",
                 "expected_effect": "a lower frozen-rule score than the baseline",
             },
         ),
@@ -1403,32 +1468,36 @@ def dry_run_script(baseline):
     ]
 
 
-def dry_run(root, literature=None, level=0):
-    from carbon.battery.research import SCAFFOLD
-
+def dry_run(root, scoring, literature=None, development_variant=None):
+    """`development_variant`: a development level's registered variant for the
+    same Challenge (`development_variant_for`), or None at Level 0."""
     from .model import ScriptedModel
     from .pods import ScriptedPods, Step, real_path_check, synthetic_outputs
 
-    variant = development_variant_for(level)
     root = root / "dry-run"
     if root.exists():
         shutil.rmtree(root)
     root.mkdir(mode=0o700)
+    scoring = challenge_scoring.resolve(scoring)
+    baseline = scoring.baseline_strategy()
+    variant = scoring.fixture_variant_strategy()
+    refused = scoring.fixture_refused_strategy()
     grant = SpendingGrant.from_document(DRY_RUN_GRANT)
     pods = ScriptedPods(
         steps=[
-            Step(outputs=synthetic_outputs(1.0), charge="0.20"),
-            Step(outputs=synthetic_outputs(0.4), charge="0.20"),
-            Step(outputs=synthetic_outputs(1.0), charge="0.20"),
+            Step(outputs=synthetic_outputs(1.0, scoring=scoring), charge="0.20"),
+            Step(outputs=synthetic_outputs(0.4, scoring=scoring), charge="0.20"),
+            Step(outputs=synthetic_outputs(1.0, scoring=scoring), charge="0.20"),
         ]
     )
     provider = Phase3Provider(
         root=root / "graphite",
         grant=grant,
-        model=ScriptedModel(dry_run_script(SCAFFOLD)),
+        model=ScriptedModel(dry_run_script(baseline, variant, refused)),
         pods=pods,
         miner_tools=DryRunMiner(),
         randomness=lambda n: b"\x00" * n,
+        scoring=scoring,
         **({} if literature is None else {"literature_index": literature}),
     )
     control = controller_for(root, provider, grant)
@@ -1437,9 +1506,10 @@ def dry_run(root, literature=None, level=0):
             checkout_commit="0" * 40,
             budget=provider.budget,
             literature=literature,
-            variant=variant,
+            scoring=scoring,
+            variant=development_variant,
         )
-        result = run_session(control, provider, brief, 1, variant)
+        result = run_session(control, provider, brief, 1, development_variant)
     finally:
         control.close()
     limits = result["session_limits"]
@@ -1464,12 +1534,22 @@ def dry_run(root, literature=None, level=0):
         # The scripted pods above never reach the operator layer; this drives
         # the live backend's own path, threads included, with RunPod in memory
         # (POD-STORE-THREADS-01).
-        "real_pod_path": real_path_check(root / "real-pod-path"),
+        "real_pod_path": real_path_check(root / "real-pod-path", scoring=scoring),
+        # A pod that exits non-zero keeps its logs, bounded; a baseline that
+        # fails as infrastructure is retried once and scores (R2 run 4).
+        "pod_failure_path": ex.failure_path_check(
+            root / "pod-failure-path",
+            baseline=baseline,
+            budget=provider.budget,
+            scoring=scoring,
+            scorer=provider._frozen_rule(),
+        ),
     }
     print(json.dumps(result, indent=1, default=str))
     ok = (
         result["provider_state"] == "succeeded"
         and result["dry_run"]["real_pod_path"]["status"] == "OK"
+        and result["dry_run"]["pod_failure_path"]["status"] == "OK"
     )
     return 0 if ok else 4
 
@@ -1479,6 +1559,7 @@ def main(argv=None):
     sub = parser.add_subparsers(dest="command", required=True)
     run = sub.add_parser("run")
     run.add_argument("--root", required=True)
+    run.add_argument("--challenge", required=True)
     run.add_argument("--dry-run", action="store_true")
     run.add_argument("--grant")
     run.add_argument(
@@ -1507,6 +1588,7 @@ def main(argv=None):
     cancel.add_argument("--session", type=int, required=True)
     reconcile = sub.add_parser("reconcile")
     reconcile.add_argument("--root", required=True)
+    reconcile.add_argument("--challenge", required=True)
     reconcile.add_argument("--grant", required=True)
     key = reconcile.add_mutually_exclusive_group(required=True)
     key.add_argument("--runpod-key-file")

@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-validator-lessons-pass",
+  "recorded_at": "2026-10-05T04:14:38Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-08 focused lessons acceptance",
+    "description": "Ran the canonical challenge-pipeline lessons suite after correcting the registered kind and stage tokens."
+  },
+  "expected": "All recorded Cooling validator execution lessons should satisfy the repository schema and render deterministically.",
+  "observed": "27 tests passed and one unrelated marked case was skipped in 0.14 seconds.",
+  "keep": [
+    "Keep a focused lessons validation before the final combined matrix when new records are added."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.validator_adapter",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

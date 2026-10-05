@@ -35,7 +35,12 @@ from carbon.reconstruction.challenge_contracts import (
     validate_for_challenge,
 )
 
-BATTERY, BURGERS = r.BATTERY_CHALLENGE, r.BURGERS_CHALLENGE
+BATTERY, BURGERS, COLD_PLATE, MOTOR = (
+    r.BATTERY_CHALLENGE,
+    r.BURGERS_CHALLENGE,
+    r.COLD_PLATE_CHALLENGE,
+    r.MOTOR_CHALLENGE,
+)
 
 
 def strategy(challenge=BATTERY, backbone="mlp", **parameters):
@@ -55,11 +60,20 @@ def refusals(value):
 
 
 def test_each_challenge_has_its_own_contract_and_digest():
-    assert set(r.CONTRACTS) == {BURGERS, BATTERY}
+    assert set(r.CONTRACTS) == {BURGERS, BATTERY, COLD_PLATE, MOTOR}
     assert r.contract(BATTERY).identity == (
         "carbon.battery-fastcharge-ageing-development.v1"
     )
     assert r.contract_digest(BATTERY) != r.contract_digest(BURGERS)
+    assert r.contract_digest(COLD_PLATE) not in {
+        r.contract_digest(BATTERY),
+        r.contract_digest(BURGERS),
+    }
+    assert r.contract_digest(MOTOR) not in {
+        r.contract_digest(BATTERY),
+        r.contract_digest(BURGERS),
+        r.contract_digest(COLD_PLATE),
+    }
     assert r.contract_digest(BATTERY) == r.contract(BATTERY).digest  # stable
     assert dict(r.rebuildable_families(BATTERY)) == {
         "knn": "battery_knn",

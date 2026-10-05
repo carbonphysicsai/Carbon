@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-pipeline-policy-final-pass",
+  "recorded_at": "2026-10-04T20:54:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-06 final challenge-pipeline policy pass",
+    "description": "Repeated the focused challenge-pipeline policy suite after adding the diagnostic and passing execution lessons."
+  },
+  "expected": "The complete accumulated Level 0 lesson set should validate without changing the pipeline's scientific state.",
+  "observed": "27 tests passed and one platform-marked test skipped. The pipeline remained defining and no worker, solver, pod or paid service ran.",
+  "keep": [
+    "Preserve an execution lesson for every future construction or validation run."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "execution-lessons",
+    "challenge-pipeline-policy"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

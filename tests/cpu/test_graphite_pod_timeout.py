@@ -26,7 +26,7 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
-from graphite_phase3_fixtures import BASELINE, grant
+from graphite_phase3_fixtures import BASELINE, SCORING, grant
 
 from carbon.agent_campaign.graphite import experiment as ex
 from carbon.agent_campaign.graphite import pod_outcome, pods
@@ -38,7 +38,7 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 #: code in the pod (the strict case these tests default to).
 L0, L4 = 0, 4
 V1 = "pod-attribution-v1"
-WORK = pods.contract_work_seconds()  # battery's declared 600 s
+WORK = pods.contract_work_seconds(SCORING)  # battery's declared 600 s
 #: Host readings confirming a timeout: the phase was seen running for more
 #: than the declared worker seconds.
 CONFIRMED = {
@@ -70,13 +70,14 @@ class Ladder:
 
 
 def experiment(tmp_path, steps, *, max_pods=None, backend=None, level=L4):
-    budget = ex.phase3_budget(grant())
+    budget = ex.phase3_budget(grant(), SCORING)
     if max_pods is not None:
         budget = ex.Phase3Budget(
             run_cap_usd=budget.run_cap_usd,
             hourly_usd=budget.hourly_usd,
             pod_minutes=budget.pod_minutes,
             max_pods=max_pods,
+            challenge_id=budget.challenge_id,
         )
     backend = ScriptedPods(steps=steps) if backend is None else backend
     events = []
@@ -94,6 +95,7 @@ def experiment(tmp_path, steps, *, max_pods=None, backend=None, level=L4):
         clock=lambda: 1000.0,
         randomness=lambda n: b"\x02" * n,
         construction_level=level,
+        scoring=SCORING,
     )
     return run, backend
 
@@ -604,13 +606,13 @@ def test_the_level_comes_from_the_runs_recorded_permission_profile():
     submission: the profile's level only when the digests match."""
     from carbon.agent_campaign.graphite import phase3
 
-    document, profile = phase3.permission_profile()
+    document, profile = phase3.permission_profile(SCORING)
     assert document["level"] == 0
-    assert phase3.recorded_level({"task": {"profile_digest": profile}}) == 0
+    assert phase3.recorded_level({"task": {"profile_digest": profile}}, SCORING) == 0
     other = "sha256:" + "f" * 64
-    assert phase3.recorded_level({"task": {"profile_digest": other}}) is None
-    assert phase3.recorded_level({"task": {}}) is None
-    assert phase3.recorded_level({}) is None
+    assert phase3.recorded_level({"task": {"profile_digest": other}}, SCORING) is None
+    assert phase3.recorded_level({"task": {}}, SCORING) is None
+    assert phase3.recorded_level({}, SCORING) is None
 
 
 # --- the registered policy ------------------------------------------------------

@@ -441,11 +441,14 @@ def test_outcome_answers_only_the_submitting_hotkey(validator):
 
 def test_the_miner_surface_has_no_route_to_operator_records(validator, fake):
     public = {n for n in dir(Validator) if not n.startswith("_")}
-    assert public == {"evaluate", "outcome", "served"}
+    # `screen` and `note` serve a queueing transport (battery's intake): they
+    # check and record; neither reads the ledger or any operator record.
+    assert public == {"evaluate", "outcome", "served", "screen", "note"}
     results = [
         validator.evaluate(sub()),
         validator.outcome(DIGEST, "sub-1", "hk-owner"),
         validator.served(),
+        validator.screen(sub(strategy_json="[1]")),
     ]
     no_echo(results)  # the fake's score record names MARKER as a case id
 
@@ -550,6 +553,7 @@ def test_attempts_are_counted_per_hotkey_by_kind_and_contract(validator, fake, l
     assert counts["total"] == 4
     assert counts["by_kind"] == {
         "OUTCOME": 1,
+        "RECEIVED": 0,
         "REFUSED": 2,
         "UNAVAILABLE": 1,
         "FAILED_INFRA": 0,
@@ -584,3 +588,24 @@ def test_the_validator_requires_its_parts(ledger):
         Validator([Fake()], ledger)
     with pytest.raises(TypeError):
         Validator(Adapters([Fake()]), None)
+
+
+def test_screen_passes_the_same_checks_as_evaluate_without_evaluating(
+    validator, fake, ledger
+):
+    from carbon.challenge_validator.dispatch import SCREEN_REFUSALS, Screened
+
+    screened = validator.screen(sub())
+    assert type(screened) is Screened
+    assert screened.adapter is fake
+    assert screened.admitted.strategy == json.loads(strategy())
+    assert fake.seen == [] and ledger.attempts() == []  # nothing evaluated or recorded
+    refused = validator.screen(sub(contract_digest="sha256:" + "e" * 64))
+    assert (refused["kind"], refused["code"]) == ("REFUSED", "contract_not_served")
+    assert refused["code"] in SCREEN_REFUSALS
+    assert [a["kind"] for a in ledger.attempts()] == ["REFUSED"]
+    validator.note(sub(), kind="RECEIVED", submission_id="sub-9", state="RECEIVED")
+    assert ledger.attempts()[-1]["submission_id"] == "sub-9"
+    assert ledger.totals()["RECEIVED"] == 1 and ledger.totals()["REFUSED"] == 1
+    with pytest.raises(ValueError):
+        validator.note(sub(), kind="SCORED")

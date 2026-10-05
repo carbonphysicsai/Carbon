@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-lesson-date-repair",
+  "recorded_at": "2026-10-05T02:47:12Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-07 overnight lesson-date repair",
+    "description": "Renamed the 32 Cooling scoring lessons whose actual UTC timestamps crossed midnight and updated each matching lesson_id mechanically."
+  },
+  "expected": "The repair should change only filename and lesson_id date prefixes while preserving actual timestamps and lesson content.",
+  "observed": "Exactly 32 verified files inside carbon/challenge_pipeline/lessons were renamed from 2026-10-04 to their actual 2026-10-05 UTC date; no target collision occurred.",
+  "keep": [
+    "Keep actual recorded_at timestamps unchanged and use them as the naming authority."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

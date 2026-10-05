@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-post-merge-targeted-pass",
+  "recorded_at": "2026-10-05T03:29:39Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 post-merge targeted repair validation",
+    "description": "Reran the four Challenge-bound dry-run cases and the RunPod listing case that failed in the complete merged matrix."
+  },
+  "expected": "The selected Challenge baseline and scorer should reach main's failure-path and RunPod listing checks without any Battery fallback.",
+  "observed": "All five previously failing canonical tests passed.",
+  "keep": [
+    "Keep the shared failure-path check parameterized by ChallengeScoring.",
+    "Keep Graphite CLI and pod construction Challenge-explicit."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.graphite.pod_logs_retry",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

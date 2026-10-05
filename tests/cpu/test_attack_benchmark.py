@@ -128,10 +128,12 @@ def test_held_out_wrongful_rejection_is_reported_on_both_sides():
 
 
 def test_b2_against_the_battery_harness_at_equal_budget():
-    """The deterministic side is `track_a.run()` itself."""
+    """The deterministic side is `track_a.run()` itself, reached through the
+    battery adapter (`deterministic_baseline`), never named by the core."""
+    from carbon.agent_campaign.attack.adapters import battery
     from carbon.battery import track_a
 
-    base = benchmark.track_a_baseline(REPOSITORY)
+    base = benchmark.adapter_baseline(battery.ADAPTER, REPOSITORY)
     assert [r["family"] for r in base] == [f.family_id for f in track_a.FAMILIES]
     records, coverage, _ = track_a.run(REPOSITORY)
     attacks = [r for r in records if r["role"] == "attack"]

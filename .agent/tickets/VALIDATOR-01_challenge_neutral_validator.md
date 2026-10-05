@@ -1,7 +1,8 @@
 # VALIDATOR-01 — One challenge-neutral validator, battery as the first adapter
 
-**Status:** slice 1 merged in bounded DEVELOPMENT scope (#559, `de4bf912`).
-Slice 2 implemented in bounded DEVELOPMENT scope, awaiting review.
+**Status:** slices 1 and 2 merged in bounded DEVELOPMENT scope (#559,
+`de4bf912`; #573, `feb40756`). Slice 3 (VAL-D3) implemented in bounded
+DEVELOPMENT scope, awaiting review.
 **Authority:**
 - OWNER-GRAPHITE-TEST-WAVE-01 §3: "validator build needs to start soon and
   shouldn't be hard";
@@ -14,6 +15,8 @@ Slice 2 implemented in bounded DEVELOPMENT scope, awaiting review.
 - Slice 1: branch `claude/validator-core`, from main `5d963845`.
 - Slice 2: branch `claude/validator-scoring`, from main `f49ac6d9f` (after
   the Attacker, #563).
+- Slice 3: branch `claude/validator-intake`, from main `feb40756` (after
+  #573). The Test Lead approved it on 2026-10-04 and the owner said start it.
 
 ## Outcome
 
@@ -291,6 +294,49 @@ as sealed outside the pool is refused.
   the proposal record (`attempts`). A restart after any attempt closes the
   proposal `interrupted_not_rerun`, as before.
 
+### Slice 3 (VAL-D3)
+
+- **VAL-D15 — the neutral door is battery intake's front door.** Every
+  authenticated `battery_submit` passes `Validator.screen` before the inbox
+  sees it. `screen` is new on the dispatcher side. It runs `evaluate`'s
+  pre-dispatch checks and returns the adapter and the strictly parsed
+  submission, or a recorded `REFUSED` envelope. `note` records what a
+  queueing transport did with a screened submission.
+  - `ChallengeAdapter` interface v1 is unchanged, so the cooling and motor
+    adapters are unaffected. The miner surface gains `screen` and `note`,
+    which check and record and read no operator record.
+- **VAL-D16 — battery's worker and daemon are unchanged.** The intake queues
+  asynchronously, and its worker admits and advances through
+  `BatteryValidator` as before. Only the door moved. A submission that passes
+  the door is admitted, rebuilt and scored exactly as before, under the same
+  submission id, because strict parsing returns what `json.loads` did.
+- **VAL-D17 — the door's refusals change one behaviour on purpose.** A stale
+  or unknown contract digest, a non-object strategy or a cross-Challenge
+  strategy was admitted and recorded `INVALID_CONSTRUCTION`. It is now refused
+  at once with its closed code (400): `contract_not_served`,
+  `strategy_not_object`, `challenge_mismatch`. It is never queued, evaluated
+  or counted against the window. The closed set is `SCREEN_REFUSALS`.
+  - Every code has a miner-client explanation (`intake_client.REFUSALS`) and a
+    Launchpad next step (`miner_launchpad.supervisor.NEXT_ACTIONS`). The
+    campaign path classifies each as `REFUSED`: the miner acts.
+- **VAL-D18 — the attempt ledger records every attempt at the door.**
+  - **What it records:** each attempt as `REFUSED` (the door's codes, or the
+    v2 window), `UNAVAILABLE` (`inbox_full`) or `RECEIVED`, the last with its
+    submission id. That id joins the inbox and the daemon, so refusals no
+    longer vanish and the follow-up changed only where they are recorded.
+  - **Where it lives:** `<inbox>.attempts.sqlite3`, or the intake
+    configuration's new optional `attempt_ledger`. A ledger in a directory
+    that isn't owner-only refuses the start (exit 2). The service creates its
+    state directory owner-only.
+  - **Operations:** `status` reports counts by kind, and `backup` copies it as
+    `attempts.sqlite3`.
+  - **Required:** the door is a required `BatteryIntake` argument, so there is
+    no path past it.
+- **VAL-D19 — the in-process campaign path is untouched.**
+  `campaign.evaluate_candidate` without an intake still calls
+  `deployment.evaluate` directly. It is Carbon's own trusted path, and moving
+  it is a separate change if wanted.
+
 ## Slices
 
 1. **The neutral validator and the battery adapter** (this PR):
@@ -314,8 +360,22 @@ as sealed outside the pool is refused.
      into `Experiment.run` with one retry.
    - Tests: `tests/cpu/test_challenge_validator_scoring.py` and
      `tests/cpu/test_graphite_pod_timeout.py`.
-3. **Follow-up:** battery's intake, worker and validator service onto the
-   neutral `Validator` (VAL-D3).
+3. **Battery's intake onto the neutral `Validator` (VAL-D3)**, from main
+   `feb40756`.
+   - `carbon/challenge_validator/dispatch.py`: `Validator.screen` and `note`,
+     `Screened`, `SCREEN_REFUSALS`.
+   - `ledger.py`: the `RECEIVED` kind and `totals`.
+   - `carbon/battery/intake.py`: the door (`neutral_door`, `_screen`), the
+     attempt ledger (`attempt_ledger`, `attempt_ledger_path`, optional
+     `attempt_ledger` configuration) and the module docstring.
+   - `carbon/battery/intake_client.py` and
+     `scripts/dev/miner_launchpad/supervisor.py`: an explanation and a next
+     step for each door code.
+   - `scripts/dev/battery_validator_service/{service,backup}.py`: ledger
+     counts in `status`, and the ledger in `backup`.
+   - `docs/development/BATTERY_VALIDATOR_SERVICE_RUNBOOK.md` §7.
+   - Tests: `tests/cpu/test_battery_intake.py` (the door) and
+     `tests/cpu/test_challenge_validator_contract.py` (`screen` and `note`).
 
 ## Validation
 
@@ -398,6 +458,33 @@ as sealed outside the pool is refused.
   fails identically on main `f49ac6d9f` (checked on a detached main checkout)
   and is fixed by #572 (PR Head, 2026-10-04).
 
+### Slice 3
+
+- `tests/cpu/test_battery_intake.py` gains the door:
+  - every door code refused at once (400), recorded, never queued, admitted
+    or recorded `INVALID_CONSTRUCTION`, with the strategy never stored. That
+    covers a stale digest, a wrong-case or spaced digest, NaN, a duplicate
+    key, an array, deep nesting, a huge integer, non-JSON and cross-Challenge;
+  - a passing submission recorded `RECEIVED` under its id and scored as
+    before;
+  - the client-computed submission id unchanged;
+  - a v2 window refusal recorded;
+  - every `SCREEN_REFUSALS` code explained and classified `REFUSED`;
+  - no intake without its door;
+  - an owner-only ledger and its configured path.
+- `tests/cpu/test_challenge_validator_contract.py`: `screen` and `note`, and
+  the `RECEIVED` kind.
+- `scripts/check_quality.py --base origin/main`: passed.
+- Canonical, slice 3 at `e71ff86cf` (same groups): **372 passed, pytest exit
+  0**. The run covers:
+  - the intake, intake end-to-end, remote submission, validator service,
+    daemon and deployment suites;
+  - the three `challenge_validator` suites;
+  - the Launchpad wire doors, the one-journey definition, provider deadlines
+    and the remote runner;
+  - the lessons log;
+  - the battery MCP stdio and Launchpad production journey service suites.
+
 ## Invariants exercised
 
 1 (no seed leakage), 3 (pinned evaluation), 4 (disclosure allow-list),
@@ -427,6 +514,30 @@ registration. For slice 2 it covers:
 
 The tests are not an audit. Not NETWORK_QUALIFIED. No LIVE, weights or
 reward.
+
+## Security review, 2026-10-04 (agent review: input to the owner's acceptance, not an acceptance)
+
+A read-only review of slices 1-3 at main `17babfc03` found no critical or
+high finding. The branch `claude/validator-hardening` addresses the findings
+that are reachable today.
+
+| # | Finding | Severity | Resolution |
+| --- | --- | --- | --- |
+| 1 | The reserved/sealed seed-role guard compared exact strings, but battery draws from `role.lower()`, so `EV5-Confirmation` drew EV5's sealed inputs; `operate prepare` had no guard | Medium | Fixed. Every spelling is matched (`canonical_role`, `role_reserved`) and the guard sits on battery's own pool path: `prepare_batch`, `import_batch` before any journal commit, and `add_batch`. `operate` answers a refusal by name |
+| 2 | Intake slow-body DoS: a trickled body held an in-flight slot, threads were unbounded, and peer buckets were cleared at 4,096 | Medium (exposed intake) | Fixed. The body is read under an absolute deadline before a slot is taken; connections are capped overall and per address; least-recent peer buckets are evicted. A proxy in front would share one peer's limits (operator note) |
+| 3 | At Levels 4-5 participant code could forge the pod's `/status` and timing; a self-chosen crash is FAILED_INFRA | Medium (Levels 4-5) | Open. A blocker before any Level 4-5 pod work: provider-API lifecycle, a separated supervisor image, and no reference outputs in the pod |
+| 4 | `RUNPOD_API_KEY` and `PROBE_TOKEN` are readable via `/proc` by the program | Medium (Levels 4-5) | Open. A blocker before Level 4-5; the owner should confirm the key's RunPod scope |
+| 5 | `FORBIDDEN_DATA` filtered only declared data paths, so an encrypted `private/` blob shipped | Low | Fixed. No `private/` directory ships (`pods.UNSHIPPED_DIRECTORIES`) |
+| 6 | Non-object pod files crashed the loop, and sizes were unbounded | Low | Fixed. Pod files are type-checked, claimed stages are bounded, and fetch listings are capped (`fetch_limits`) |
+| 7 | The attempt ledger grew without bound | Low | Fixed for growth: at most `MAX_REFUSED_ROWS_PER_HOUR` refused rows per hotkey, with the rest counted exactly in `overflow`. Retention is the owner's decision |
+
+Still for a human reviewer:
+- host and service configuration (uid, ownership, umask, systemd sandboxing);
+- TLS and any proxy;
+- the RunPod key's scope;
+- Docker isolation;
+- the NET-2 gateway and receipt journal;
+- custody of the real `PRIVATE_KEY`.
 
 ## Human input required
 

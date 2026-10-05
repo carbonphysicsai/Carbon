@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-validator-first-pass",
+  "recorded_at": "2026-10-05T03:58:58Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-08 first canonical adapter pass",
+    "description": "Ran the new Cooling adapter suite with the neutral Interface-v1 contract and Battery adapter compatibility suites."
+  },
+  "expected": "Cooling should satisfy Interface v1 on exact pinned public evidence without changing the neutral dispatcher or Battery behavior.",
+  "observed": "All 115 selected canonical tests passed in 47.40 seconds.",
+  "keep": [
+    "Keep reference ingestion exact against the pinned public PRACTICE artifact.",
+    "Keep the miner result aggregate-only and the full rows operator-only.",
+    "Keep fresh confirmation absent and its role reserved."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.validator_adapter",
+    "challenge.validator.interface_v1",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

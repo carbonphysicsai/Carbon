@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-final-lessons-pass",
+  "recorded_at": "2026-10-05T03:42:44Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 final lessons validation",
+    "description": "Ran the canonical challenge-pipeline suite after recording the post-merge test and quality executions."
+  },
+  "expected": "Every committed execution lesson should satisfy the registered schema and alignment rules.",
+  "observed": "All 28 challenge-pipeline tests passed in 1.54 seconds.",
+  "keep": [
+    "Keep one durable lesson entry after every test or build execution."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

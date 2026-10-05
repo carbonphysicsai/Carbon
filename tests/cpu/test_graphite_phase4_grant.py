@@ -12,9 +12,12 @@ from pathlib import Path
 
 from carbon.agent_campaign.grant import SpendingGrant
 from carbon.agent_campaign.graphite import experiment, phase4
+from carbon.challenge_validator import scoring as challenge_scoring
+from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 GRANT = REPOSITORY / "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json"
+SCORING = challenge_scoring.scoring_for(BATTERY_CHALLENGE)
 
 
 def _grant():
@@ -61,7 +64,7 @@ def test_the_ceiling_covers_three_runs_and_cleanup():
 def test_the_run_cost_is_the_pod_and_token_split():
     """Six verify pods (USD 1.48) plus about 40 glm-5.2 calls (USD 1.93)."""
     grant = _grant()
-    budget = phase4.attacker_budget(grant)
+    budget = phase4.attacker_budget(grant, SCORING)
     assert budget.max_pods == phase4.ATTACKER_VERIFY_PODS == 6
     assert budget.pod_allowance_usd == Decimal("1.48")
     assert budget.token_allowance_usd == Decimal("1.93")
@@ -73,7 +76,7 @@ def test_the_run_cost_is_the_pod_and_token_split():
 def test_the_grant_also_satisfies_the_shared_pod_budget():
     """The grant validates for #504's budget machinery that the provider
     inherits, so `AttackerProvider` can be built from it."""
-    budget = experiment.phase3_budget(_grant())
+    budget = experiment.phase3_budget(_grant(), SCORING)
     assert budget.max_pods >= 2 and budget.token_allowance_usd > 0
 
 

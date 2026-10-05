@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-canonical-cooling-pass",
+  "recorded_at": "2026-10-05T01:51:14Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 canonical Cooling adapter verification",
+    "description": "Ran all seven Cooling scoring-adapter tests in the repository's pinned canonical Linux environment after the comparison-vocabulary repair."
+  },
+  "expected": "The adapter, deterministic rebuild, public score, descriptive comparison, synthetic predictions and complete no-spend Graphite dry run should pass.",
+  "observed": "7 tests passed. The dry run constructed, scored, bundled and clean-rebuilt the Cooling variant while refusing the invalid fixture and using the in-memory real-pod path without network or spend.",
+  "keep": [
+    "Keep the standard Graphite outcome vocabulary with interpretation DESCRIPTIVE_PAIRED_MEAN_DIFFERENCE, no interval and promotable false.",
+    "Keep the explicit `--challenge chip-cold-plate` execution boundary."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

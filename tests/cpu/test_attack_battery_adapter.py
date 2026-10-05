@@ -300,8 +300,11 @@ def test_cached_reads_follow_the_live_contract_record(monkeypatch):
     first = b._expected_build(strategy, 7)
     real = experiment.recorded_contract
 
-    def newer():
-        return {**real(), "record_sequence": real()["record_sequence"] + 1}
+    def newer(scoring=None):
+        return {
+            **real(scoring),
+            "record_sequence": real(scoring)["record_sequence"] + 1,
+        }
 
     before = b._expected_build_cached.cache_info().misses
     monkeypatch.setattr(experiment, "recorded_contract", newer)
@@ -606,7 +609,7 @@ def test_carbon_rebuilds_with_admit_and_refuses_with_a_typed_code():
 def test_a_stale_contract_record_is_carbons_side_never_the_constructions(monkeypatch):
     from carbon.agent_campaign.graphite import experiment
 
-    def unrecorded():
+    def unrecorded(scoring=None):
         raise experiment.Unrebuildable("construction_contract_unrecorded")
 
     monkeypatch.setattr(experiment, "recorded_contract", unrecorded)

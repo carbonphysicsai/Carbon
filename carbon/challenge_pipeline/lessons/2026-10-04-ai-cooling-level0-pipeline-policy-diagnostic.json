@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-pipeline-policy-diagnostic",
+  "recorded_at": "2026-10-04T20:50:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-06 challenge-pipeline policy diagnostic",
+    "description": "Ran the focused challenge-pipeline policy suite against the accumulated Level 0 lesson records."
+  },
+  "expected": "All execution lessons should use the repository's registered vocabulary and the pipeline view should render.",
+  "observed": "The suite exposed unsupported ad hoc execution-kind labels in the new cooling lessons. A separate roadmap read failed under the Windows cp1252 default even though the tracked file is UTF-8. No worker, solver, pod or paid service ran.",
+  "keep": [
+    "Validate committed lesson records with the challenge-pipeline suite before delivery."
+  ],
+  "change": [
+    "Map environmental, study and quality executions to the registered lesson-kind vocabulary.",
+    "Run the cross-platform text test with Python UTF-8 mode on this Windows host."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "execution-lessons",
+    "challenge-pipeline-policy"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

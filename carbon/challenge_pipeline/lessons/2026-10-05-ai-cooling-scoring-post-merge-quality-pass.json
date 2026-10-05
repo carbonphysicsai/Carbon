@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-post-merge-quality-pass",
+  "recorded_at": "2026-10-05T03:41:43Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-07 final post-merge changed-path quality gate",
+    "description": "Reran scripts/check_quality.py through the canonical Linux wrapper against exact origin/main after applying the formatter's requested layout."
+  },
+  "expected": "Changed Python files should add no Ruff or Black debt.",
+  "observed": "The quality gate passed: Ruff 0 of 776 debt entries, Black 0 of 68 debt entries, and all 26 changed Python files clean.",
+  "keep": [
+    "Keep exact-main changed-path quality validation before PR handoff."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

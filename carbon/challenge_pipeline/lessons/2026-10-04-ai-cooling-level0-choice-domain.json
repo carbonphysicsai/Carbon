@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-choice-domain",
+  "recorded_at": "2026-10-04T19:40:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-06 second contract diagnostic",
+    "description": "Re-ran cooling contract, campaign and capability tests after fixing authoring assumptions and canonical material pins."
+  },
+  "expected": "The corrected authored graph and material loader should reach construction catalog validation.",
+  "observed": "Thirty-four tests passed and one Windows-only campaign test skipped. The material pins and authored physical graph passed. Catalog construction then correctly rejected floating-point members in ChoiceDomain, whose schema admits only canonical identifiers. No worker, solver, pod or paid service ran.",
+  "keep": [
+    "Use the B-02B catalog's exact domain types rather than bypassing them for an existing model.",
+    "Keep the published physical values visible even when their declarative representation uses stable tokens."
+  ],
+  "change": [
+    "Represent each finite calibration setting as a canonical choice token and map that token to its exact numeric value only after compilation."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "finite-choice-catalog",
+    "guarded-reconstruction"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

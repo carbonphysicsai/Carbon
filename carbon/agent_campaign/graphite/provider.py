@@ -614,6 +614,21 @@ class GraphiteProvider:
         """The next-level writer for one run (GRAPHITE-D30)."""
 
         def write(arguments, identity):
+            from carbon.challenge_validator import scoring as challenge_scoring
+
+            opened = self._opened(run_id)
+            brief = self._brief(opened["brief"]["digest"])
+            challenge = (brief.get("initial_observation") or {}).get("challenge")
+            challenge_id = challenge.get("id") if type(challenge) is dict else challenge
+            try:
+                scoring = challenge_scoring.scoring_for(challenge_id)
+            except challenge_scoring.ScoringUnavailable as refused:
+                return {
+                    "status": "REFUSED_INVALID_REQUEST",
+                    "reason_code": refused.code,
+                    "authority_granted": False,
+                    "dispatched": False,
+                }
             return next_level.propose_tool(
                 arguments,
                 literature=self.literature,
@@ -621,6 +636,7 @@ class GraphiteProvider:
                 run_id=run_id,
                 identity=identity,
                 role=role.name.value,
+                scoring=scoring,
             )
 
         return write

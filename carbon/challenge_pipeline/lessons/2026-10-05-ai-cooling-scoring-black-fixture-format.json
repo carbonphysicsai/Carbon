@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-black-fixture-format",
+  "recorded_at": "2026-10-05T02:40:45Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-07 Graphite fixture Black format",
+    "description": "Applied Black's mechanical formatting to tests/cpu/graphite_fixtures.py."
+  },
+  "expected": "Only layout should change; fixture behavior and Challenge binding should remain identical.",
+  "observed": "The formatter completed successfully without reporting another file.",
+  "keep": [
+    "Keep the new explicit observation parameter and its behavior."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

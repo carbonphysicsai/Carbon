@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-format-check",
+  "recorded_at": "2026-10-04T20:42:30Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "Ruff formatter exact changed-file diagnostic",
+    "description": "Used Ruff's formatter check as a non-hanging second opinion after the local Black process stalled."
+  },
+  "expected": "New files should be formatted; existing repository format debt should not be expanded opportunistically.",
+  "observed": "Twenty-three changed files were formatted. Ruff proposed whole-file rewrites in three existing shared modules for lines unrelated to this ticket; those files are repository format debt and were not mechanically rewritten. Black remains the repository authority and canonical CI will make the final determination.",
+  "keep": [
+    "Avoid unrelated whole-file churn in shared controller/report modules."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "quality-validation",
+    "scope-control"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

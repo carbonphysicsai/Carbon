@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-black-pass",
+  "recorded_at": "2026-10-05T01:15:55Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-07 focused Black verification",
+    "description": "Reran Black in check mode over every changed Python implementation and test module after formatting."
+  },
+  "expected": "The full focused formatting surface should be clean.",
+  "observed": "Black check completed successfully with no file reported for reformatting.",
+  "keep": [
+    "Keep the mechanically formatted implementation."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -326,7 +326,23 @@ submit, which is always the same submission:
 |---|---|
 | `QUEUED` | `evaluation_queued` |
 | `UNAVAILABLE` (the validator's side) | `intake_unreachable`, `snapshot_unavailable`, `rate`, `capacity`, `inbox_full`, `backend_not_served`, `commitment_reader_unavailable`, `evaluation_failed_infra`, `intake_answer_unrecognised` |
-| `REFUSED` (the miner acts) | `hotkey_window_used`, `commitment_required`, `TRANSPORT_IDENTITY`, `AUTH_*`, `snapshot_unknown`, `intake_changed_since_submission`, `intake_signer_changed`, `intake_mismatch`, `signer_unavailable` |
+| `REFUSED` (the miner acts) | `hotkey_window_used`, `commitment_required`, `TRANSPORT_IDENTITY`, `AUTH_*`, `snapshot_unknown`, `intake_changed_since_submission`, `intake_signer_changed`, `intake_mismatch`, `signer_unavailable`; the neutral door's codes (`contract_not_served`, `challenge_mismatch`, `non_finite_value`, `duplicate_key` and the rest of `challenge_validator.dispatch.SCREEN_REFUSALS`) |
+
+**The neutral door** (VALIDATOR-01 VAL-D3). Every authenticated
+`battery_submit` passes Carbon's challenge-neutral checks before the inbox
+sees it (`challenge_validator.Validator.screen`).
+- **A refusal** is answered at once (400, its closed code) and is never
+  queued, evaluated or counted against the hotkey's window.
+- **One behaviour change.** A stale or unknown contract digest, a non-object
+  strategy or a cross-Challenge strategy is refused at the door. Before, it
+  was admitted and recorded `INVALID_CONSTRUCTION`.
+- **The attempt ledger.** Every attempt is recorded in the operator's attempt
+  ledger: refused, received, refused for the window, or refused for a full
+  inbox. It sits at `<inbox>.attempts.sqlite3`, or wherever the intake
+  configuration's optional `attempt_ledger` points, in an owner-only directory.
+  A ledger in a shared directory refuses the start, exit 2. The ledger keeps
+  each submission's hash, never its strategy. `status` reports its counts by
+  kind, and `backup` copies it as `attempts.sqlite3`.
 
 `intake_client.explain(code)` gives each code's plain explanation. A
 refusal at admission that is not a verdict (`intake.RECEIVED_AGAIN`) is
