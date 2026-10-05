@@ -282,6 +282,13 @@ def code_manifest(ref, paths, repository=REPOSITORY):
     return manifest
 
 
+#: Directories never shipped from the code trees, at any depth (lower-case):
+#: an encrypted private reference blob lives under one
+#: (`scripts/dev/exam_design/private/`; VALIDATOR-01 security review,
+#: finding 5). Graphite's pod phase never reads it.
+UNSHIPPED_DIRECTORIES = frozenset({"private"})
+
+
 def ship_list(ref, repository=REPOSITORY, scoring=None):
     try:
         shipped = data_paths(scoring)
@@ -290,8 +297,12 @@ def ship_list(ref, repository=REPOSITORY, scoring=None):
     for path in shipped:
         if any(fragment in path.lower() for fragment in FORBIDDEN_DATA):
             raise PodFailure("ship", "forbidden data path " + path, executed=False)
-    paths = tracked(ref, SHIP_TREES, repository) + list(shipped)
-    return list(dict.fromkeys(paths))
+    code = [
+        path
+        for path in tracked(ref, SHIP_TREES, repository)
+        if not {part.lower() for part in Path(path).parts[:-1]} & UNSHIPPED_DIRECTORIES
+    ]
+    return list(dict.fromkeys(code + list(shipped)))
 
 
 def manifest_digest(manifest):
@@ -543,9 +554,11 @@ class RunPodPods:
             at = self.clock()
             if code == 200:
                 try:
-                    stage = json.loads(body).get("stage")
+                    status = json.loads(body)
                 except ValueError:
-                    stage = None
+                    status = None
+                # A pod's own answer: an object, else no stage.
+                stage = status.get("stage") if type(status) is dict else None
                 if stage == "running_phase":
                     seen.setdefault("first_running", at)
                     seen["last_running"] = at
@@ -571,13 +584,13 @@ class RunPodPods:
         code, body = self._get(handle, "/files")
         if code != 200:
             raise PodFailure("fetch", f"listing failed ({code})", executed=True)
-        listing = json.loads(body)
+        # The caps first (VALIDATOR-01 finding 6), then the listed digests
+        # the run keeps (#580).
+        listing = fetch_limits(json.loads(body))
         self.__dict__.setdefault("_listings", {})[handle.intent_id] = {
             row["path"]: row["sha256"]
-            for row in (listing if type(listing) is list else [])
-            if type(row) is dict
-            and type(row.get("path")) is str
-            and type(row.get("sha256")) is str
+            for row in listing
+            if type(row.get("path")) is str and type(row.get("sha256")) is str
         }
         files = {}
 
@@ -618,6 +631,28 @@ class RunPodPods:
         except ComputeError:
             return None
         return None if charge is None else Decimal(str(charge.amount_usd))
+
+
+#: Engineering limits on what Carbon fetches from one pod, checked on the
+#: pod's own listing before any file is downloaded (VALIDATOR-01 security
+#: review, finding 6). A pod's practice outputs are a few files of a few MB.
+MAX_FETCH_FILES, MAX_FETCH_BYTES = 64, 256 * 1024 * 1024
+
+
+def fetch_limits(listing):
+    """The pod's file listing, refused (as infrastructure) unless it is a list
+    of at most MAX_FETCH_FILES rows declaring at most MAX_FETCH_BYTES."""
+    if type(listing) is not list or len(listing) > MAX_FETCH_FILES:
+        raise PodFailure("fetch", "listing_over_limits", executed=True)
+    total = 0
+    for row in listing:
+        size = row.get("size") if type(row) is dict else None
+        if type(size) is not int or size < 0:
+            raise PodFailure("fetch", "listing_malformed", executed=True)
+        total += size
+    if total > MAX_FETCH_BYTES:
+        raise PodFailure("fetch", "listing_over_limits", executed=True)
+    return listing
 
 
 def _rate(rate):

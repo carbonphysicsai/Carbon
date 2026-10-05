@@ -909,7 +909,7 @@ class Experiment:
                     },
                 )
             built = _json(files.get("built.json"))
-            failure = _json(files.get("failure.json"))
+            failure = _object(files.get("failure.json"))
             differences = rebuild_differences(expected, built)
             if (failure or {}).get("stage") == "verification" and not differences:
                 differences = ["pod_refused_pinned_digests"]
@@ -964,7 +964,7 @@ class Experiment:
         scorer = self._scorer()
         rows, summary = scorer.score(predictions)
         write_once(folder / "rows.json", canonical(rows))
-        fit = _json(files.get("fit.json")) or {}
+        fit = _object(files.get("fit.json")) or {}
         record = {
             **common,
             "status": "SCORED",
@@ -1056,9 +1056,10 @@ class Experiment:
         files carry. The evidence keeps the raw claim, the host's timing and
         the policy, so the policy can be judged from it."""
         image = (self.pods.describe() or {}).get("image")
-        report = _json(files.get("supervisor.json"))
+        report = _object(files.get("supervisor.json"))
+        claim = _stage(failure)
         verdict = pod_outcome.classify(
-            claim=(failure or {}).get("stage"),
+            claim=claim,
             admissible=pod_outcome.admissible_stage(report, image),
             timing=timing,
             work_seconds=podlib.contract_work_seconds(self.scoring),
@@ -1073,7 +1074,7 @@ class Experiment:
             "attribution_policy": self.attribution.record(),
             "status": verdict.status,
             "reason_code": verdict.reason_code,
-            "claimed_stage": (failure or {}).get("stage"),
+            "claimed_stage": claim,
             "claim": _raw_claim(files.get("failure.json")),
             "failure_digest": (
                 digest(files["failure.json"]) if "failure.json" in files else None
@@ -1307,6 +1308,24 @@ def retry_intent(intent_id, attempt=1):
     """A retry's own pod intent: distinct, never a resend of an earlier one."""
     suffix = "-r" + str(attempt)
     return intent_id[: 120 - len(suffix)] + suffix
+
+
+#: The longest pod-claimed stage name recorded as such; anything else is kept
+#: only through the raw claim's digest (a pod's own text, hostile at Levels
+#: 4-5; VALIDATOR-01 security review, finding 6).
+MAX_STAGE = 32
+
+
+def _object(body):
+    """A pod file parsed as a JSON object, or None for anything else."""
+    value = _json(body)
+    return value if type(value) is dict else None
+
+
+def _stage(failure):
+    """The stage a pod's failure.json names, if it is a short string."""
+    stage = (failure or {}).get("stage")
+    return stage if type(stage) is str and 0 < len(stage) <= MAX_STAGE else None
 
 
 def _attempts(attempts):
