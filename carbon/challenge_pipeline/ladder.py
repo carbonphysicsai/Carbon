@@ -30,6 +30,10 @@ A pipeline record's `construction` block is checked against these rules:
   It must be a TESTED or FROZEN level at or below `level`. Only the chosen
   level may be FROZEN, because the frozen run, the lock and the miners' opening
   all happen there.
+- **TESTED and FROZEN rest on unconditional evidence**
+  (OWNER-GRAPHITE-TEST-WAVE-03 §2, `conditional-evidence.v1`). Exploration
+  continues past an open finding, but a result tagged with open findings is
+  never a level's TESTED or FROZEN evidence.
 
 These checks keep a record coherent. They do not open a level, judge whether a
 widening was wise or replace the admission ledger's own rule that no expansion
@@ -41,6 +45,8 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+
+from carbon.challenge_readiness import conditional_evidence
 
 #: Admission §3's planning levels, word for word.
 LEVELS = {
@@ -204,6 +210,15 @@ def validate(construction, where, root):
                 raise LadderError(
                     f"{at}: {entry['state']} needs its evidence in the repository"
                 )
+            try:
+                conditional_evidence.require_unconditional_path(
+                    Path(root) / evidence, site=f"{at} {entry['state']} evidence"
+                )
+            except conditional_evidence.ConditionalEvidenceError as error:
+                raise LadderError(
+                    f"{at}: {error}; a level is {entry['state']} only on "
+                    "unconditional evidence (conditional-evidence.v1)"
+                ) from error
         elif entry["evidence"] is not None:
             raise LadderError(f"{at}: an OPEN level has no evidence yet")
     for entry in levels[:-1]:

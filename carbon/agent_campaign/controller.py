@@ -24,10 +24,17 @@ and it holds every limit outside the agent:
   the run is `CANCELLED` only when the provider confirms every worker stopped,
   otherwise `CLEANUP_INCOMPLETE`, an actionable state that also halts dispatch.
   A closed chat session is not a stopped experiment.
-- **Findings stop expansion.** Emitted conditions (`carbon.battery.value.
-  divergence`, canary exposure) are recorded as findings; no permission
-  expansion may be recorded after one, mirroring
-  `carbon.challenge_readiness.admission`.
+- **Findings stop locking, not exploration** (OWNER-GRAPHITE-TEST-WAVE-03 §2).
+  Emitted conditions (`carbon.battery.value.divergence`, canary exposure) are
+  recorded as findings. No expansion on the LOCK path (`record_expansion`,
+  Track A's `expansions`) may be recorded after one, mirroring
+  `carbon.challenge_readiness.admission`. A development expansion
+  (`record_development_expansion`) proceeds into its own ledger, and every
+  result recorded while a finding is open (events, artifacts, terminal
+  states and development expansions) is tagged with the open findings under
+  `conditional-evidence.v1` (`carbon.challenge_readiness.conditional_evidence`).
+  A finding is open until an operator records its repair (`record_repair`).
+  It is never removed, and it keeps the LOCK path closed.
 - **Everything the agent returns is data.** Events and artifacts are stored by
   digest and scanned for canaries; nothing in them is interpreted as a command.
 
@@ -50,7 +57,7 @@ from decimal import Decimal
 from enum import Enum
 from pathlib import Path
 
-from carbon.challenge_readiness import admission
+from carbon.challenge_readiness import admission, conditional_evidence
 
 from . import boundaries
 from .grant import SpendingGrant
@@ -65,7 +72,12 @@ from .provider import (
     money,
 )
 
-ATTEMPT_SCHEMA = "carbon.agent-campaign.attempt.v1"
+#: v2: result entries (`RESULT_KINDS`) also carry `conditional_on` and
+#: `conditional_policy` (conditional-evidence.v1); every other key is v1's.
+ATTEMPT_SCHEMA = "carbon.agent-campaign.attempt.v2"
+#: The ledger entries that are results of a run: what the agent returned and
+#: how the run ended. Each is tagged with the findings open when it is recorded.
+RESULT_KINDS = frozenset({"event", "artifact", "terminal"})
 CRASH_POINTS = (
     "after_intent",
     "after_dispatch",
@@ -183,6 +195,8 @@ class CampaignController:
                 CREATE TABLE IF NOT EXISTS ledger (seq INTEGER PRIMARY KEY, body TEXT NOT NULL, hash TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS expansions (sequence INTEGER PRIMARY KEY, body TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS findings (id TEXT PRIMARY KEY, ordinal INTEGER NOT NULL UNIQUE, body TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS development_expansions (sequence INTEGER PRIMARY KEY, body TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS finding_states (seq INTEGER PRIMARY KEY, finding TEXT NOT NULL REFERENCES findings(id), state TEXT NOT NULL CHECK(state IN ('REPAIRED','RECURRED')), body TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS halts (reason TEXT PRIMARY KEY, detail TEXT NOT NULL);
             """)
         finally:
@@ -244,6 +258,8 @@ class CampaignController:
         if unknown:
             raise ValueError("unknown ledger fields: " + ", ".join(sorted(unknown)))
         body.update(entry)
+        if body["kind"] in RESULT_KINDS:
+            body.update(conditional_evidence.tag(self._open_findings(db)))
         text = _canonical(body)
         digest = "sha256:" + hashlib.sha256(text.encode()).hexdigest()
         db.execute("INSERT INTO ledger VALUES(?,?,?)", (seq + 1, text, digest))
@@ -376,6 +392,17 @@ class CampaignController:
         ).fetchone()
         return None if row is None else json.loads(row[0])["permissions"]
 
+    def development_profile(self, db=None):
+        """The newest development expansion's permissions digest, or None.
+        Development-only: it never changes `current_profile`."""
+        if db is None:
+            with self._db() as connection:
+                return self.development_profile(connection)
+        row = db.execute(
+            "SELECT body FROM development_expansions ORDER BY sequence DESC"
+        ).fetchone()
+        return None if row is None else json.loads(row[0])["permissions"]
+
     # -- spending ------------------------------------------------------------------------
     @staticmethod
     def _committed(row):
@@ -501,7 +528,8 @@ class CampaignController:
 
     @staticmethod
     def _expansion_blocked(db):
-        """Any finding blocks every later expansion."""
+        """Any finding, repaired or not, blocks every later LOCK-path
+        expansion. Development expansions are tagged instead."""
         return bool(db.execute("SELECT COUNT(*) FROM findings").fetchone()[0])
 
     # -- launch ------------------------------------------------------------------------
@@ -521,7 +549,10 @@ class CampaignController:
             campaign = self._campaign(db, spec.campaign_id)
             self._check_session(spec, campaign)
             profile = self.current_profile(db) or campaign["profile"]
-            if spec.profile_digest != profile:
+            # Exploration may also run under the newest development profile
+            # (OWNER-GRAPHITE-TEST-WAVE-03 §2); only Carbon's own campaigns
+            # are ever dispatched here.
+            if spec.profile_digest not in (profile, self.development_profile(db)):
                 raise ControllerError("profile_not_in_force")
             halts = self._halts(db)
             if halts:
@@ -959,6 +990,8 @@ class CampaignController:
         if condition not in admission.CONDITIONS:
             raise ControllerError("unknown_condition")
         if db.execute("SELECT 1 FROM findings WHERE id=?", (finding_id,)).fetchone():
+            if self._repaired(db, finding_id):
+                self._recur(db, finding_id, condition, ref)
             return
         after = db.execute("SELECT COUNT(*) FROM expansions").fetchone()[0]
         body = {
@@ -978,6 +1011,97 @@ class CampaignController:
             evidence=[ref],
             disposition="EXPANSION_BLOCKED",
         )
+
+    def _finding_body(self, db, finding_id):
+        row = db.execute(
+            "SELECT body FROM findings WHERE id=?", (finding_id,)
+        ).fetchone()
+        return None if row is None else json.loads(row[0])
+
+    @staticmethod
+    def _repaired(db, finding_id):
+        """Whether the finding's latest state is a recorded repair."""
+        row = db.execute(
+            "SELECT state FROM finding_states WHERE finding=? ORDER BY seq DESC",
+            (finding_id,),
+        ).fetchone()
+        return row is not None and row[0] == "REPAIRED"
+
+    def _recur(self, db, finding_id, condition, ref):
+        """A repaired finding recorded again is open again; the repair stays."""
+        body = {
+            "finding": conditional_evidence.reference(
+                self._finding_body(db, finding_id)
+            ),
+            "evidence": ref,
+            "recorded_at": _stamp(self.clock()),
+        }
+        db.execute(
+            "INSERT INTO finding_states(finding, state, body) VALUES(?,?,?)",
+            (finding_id, "RECURRED", _canonical(body)),
+        )
+        self._append(
+            db,
+            kind="finding_recurred",
+            observed_result={"id": finding_id, "condition": condition},
+            evidence=[ref],
+            disposition="FINDING_REOPENED",
+        )
+
+    def _open_findings(self, db):
+        return [
+            conditional_evidence.reference(json.loads(body))
+            for finding_id, body in db.execute(
+                "SELECT id, body FROM findings ORDER BY ordinal"
+            ).fetchall()
+            if not self._repaired(db, finding_id)
+        ]
+
+    def open_findings(self):
+        """Every open finding as `{id, digest}` (conditional-evidence.v1):
+        recorded and not repaired since."""
+        with self._db() as db:
+            return conditional_evidence.tag(self._open_findings(db))["conditional_on"]
+
+    def record_repair(self, finding_id, *, operator, note, evidence: bytes):
+        """An operator records that a finding is repaired and its affected
+        attacks re-run (OWNER-GRAPHITE-TEST-WAVE-03 §2), with the re-run's
+        evidence. Later results are no longer conditional on it. The finding
+        stays in the findings ledger and still blocks every LOCK-path
+        expansion; one that is recorded again is open again."""
+        if operator != self.operator:
+            raise ControllerError("operator_required")
+        if type(note) is not str or len(note.strip()) < 20:
+            raise ControllerError("say what was repaired and which attacks were re-run")
+        if type(evidence) is not bytes or not evidence:
+            raise ControllerError("repair_evidence_required")
+        with self._db() as db:
+            finding = self._finding_body(db, finding_id)
+            if finding is None:
+                raise ControllerError("no_such_finding")
+            if self._repaired(db, finding_id):
+                raise ControllerError("finding_already_repaired")
+            ref = self._store_evidence(evidence)
+            body = {
+                "finding": conditional_evidence.reference(finding),
+                "operator": operator,
+                "note": note.strip(),
+                "rerun_evidence": ref,
+                "recorded_at": _stamp(self.clock()),
+                "policy": conditional_evidence.identity(),
+            }
+            db.execute(
+                "INSERT INTO finding_states(finding, state, body) VALUES(?,?,?)",
+                (finding_id, "REPAIRED", _canonical(body)),
+            )
+            self._append(
+                db,
+                kind="finding_repaired",
+                observed_result=body,
+                evidence=[ref],
+                disposition="REPAIR_RECORDED",
+            )
+        return body
 
     def record_finding(self, finding_id, condition, evidence: bytes):
         identifier(finding_id, "finding id")
@@ -1008,10 +1132,9 @@ class CampaignController:
                 ids.append(finding_id)
         return ids
 
-    def record_expansion(self, *, challenge, profile, widened, permissions, operator):
-        """Append a widening of the permission profile. Refused after any
-        finding, and refused unless the challenge's live construction contract
-        is recorded (#468), whose newest record the entry binds."""
+    def _bound_version(self, challenge, permissions, operator):
+        """The operator, the permissions digest and the challenge's newest
+        recorded construction contract (#468), as the entry's `version`."""
         from carbon.reconstruction import expansion_record
 
         if operator != self.operator:
@@ -1026,6 +1149,17 @@ class CampaignController:
         if not history:
             raise ControllerError("construction_contract_unrecorded", challenge)
         newest = history[-1]
+        return "{}/{:04d} {}".format(
+            challenge, newest["sequence"], newest["contract_digest"]
+        )
+
+    def record_expansion(self, *, challenge, profile, widened, permissions, operator):
+        """Append a widening of the permission profile on the LOCK path
+        (Track A's `expansions`: what may be locked, opened to miners or feed
+        a frozen run). Refused after any finding, and refused unless the
+        challenge's live construction contract is recorded (#468), whose
+        newest record the entry binds."""
+        version = self._bound_version(challenge, permissions, operator)
         with self._db() as db:
             if self._expansion_blocked(db):
                 raise ControllerError("admission_expansion_after_finding")
@@ -1034,9 +1168,7 @@ class CampaignController:
                 "sequence": sequence,
                 "recorded_at": _stamp(self.clock()),
                 "profile": profile,
-                "version": "{}/{:04d} {}".format(
-                    challenge, newest["sequence"], newest["contract_digest"]
-                ),
+                "version": version,
                 "widened": widened,
                 "permissions": permissions,
             }
@@ -1057,10 +1189,74 @@ class CampaignController:
             )
         return entry
 
+    def record_development_expansion(
+        self, *, challenge, profile, widened, permissions, operator
+    ):
+        """Append a widening for a development-only contract variant, which
+        only Carbon's own campaigns run (OWNER-GRAPHITE-TEST-WAVE-03 §1-2).
+
+        It proceeds while findings are open and is tagged with them
+        (conditional-evidence.v1). It is recorded in the development ledger,
+        never in Track A's `expansions`: it never counts toward or enters a
+        LOCK, never changes `current_profile` and never reaches a miner."""
+        version = self._bound_version(challenge, permissions, operator)
+        with self._db() as db:
+            existing = [
+                json.loads(r[0])
+                for r in db.execute(
+                    "SELECT body FROM development_expansions ORDER BY sequence"
+                )
+            ]
+            entry = {
+                "sequence": len(existing) + 1,
+                "recorded_at": _stamp(self.clock()),
+                "kind": conditional_evidence.DEVELOPMENT_KIND,
+                "profile": profile,
+                "version": version,
+                "widened": widened,
+                "permissions": permissions,
+                **conditional_evidence.tag(self._open_findings(db)),
+            }
+            conditional_evidence.validate_development_ledger([*existing, entry])
+            db.execute(
+                "INSERT INTO development_expansions VALUES(?,?)",
+                (entry["sequence"], _canonical(entry)),
+            )
+            self._append(
+                db,
+                kind="development_expansion",
+                profile_digest=permissions,
+                observed_result=entry,
+                disposition=(
+                    "RECORDED_CONDITIONAL" if entry["conditional_on"] else "RECORDED"
+                ),
+            )
+        return entry
+
+    def development_ledger(self):
+        """The development expansions, validated, with the findings open now
+        and the policy identity. Never part of `admission_ledgers`."""
+        with self._db() as db:
+            expansions = [
+                json.loads(r[0])
+                for r in db.execute(
+                    "SELECT body FROM development_expansions ORDER BY sequence"
+                )
+            ]
+            open_now = self._open_findings(db)
+        conditional_evidence.validate_development_ledger(expansions)
+        return {
+            "expansions": expansions,
+            "expansions_digest": admission.ledger_digest(expansions),
+            "open_findings": conditional_evidence.tag(open_now)["conditional_on"],
+            "policy": conditional_evidence.identity(),
+        }
+
     def admission_ledgers(self):
         """Track A's `expansions` and `findings`, validated exactly as
         `carbon.challenge_readiness.admission` validates them (evidence paths
-        are relative to this controller's root)."""
+        are relative to this controller's root). Development expansions are
+        never here (`development_ledger`)."""
         with self._db() as db:
             expansions = [
                 json.loads(r[0])

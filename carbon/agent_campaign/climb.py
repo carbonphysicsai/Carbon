@@ -36,6 +36,11 @@ Rules:
   exercises leaves its interaction NOT_RUN.
 - The report never marks a level TESTED and never opens it. A person reads the
   report and records the level's state.
+- **The report says what it is conditional on** (OWNER-GRAPHITE-TEST-WAVE-03
+  §2). The caller passes the campaign controller's open findings
+  (`CampaignController.open_findings()`), and the report carries them as
+  `conditional_on` with the policy identity (`conditional-evidence.v1`). A
+  report that lists a finding is never TESTED evidence.
 """
 
 from __future__ import annotations
@@ -45,7 +50,10 @@ import json
 from collections.abc import Callable
 from dataclasses import dataclass
 
-REPORT_SCHEMA = "carbon.agent-campaign.climb-report.v1"
+from carbon.challenge_readiness import conditional_evidence
+
+#: v2: the report carries `conditional_on` and `conditional_policy`.
+REPORT_SCHEMA = "carbon.agent-campaign.climb-report.v2"
 PROFILE_SCHEMA = "carbon.agent-campaign.climb-profile.v1"
 STEPS = ("valid", "matched_attacks", "ablation", "interactions", "reconstruction")
 RUN_STATUSES = ("OK", "REFUSED", "FAILED_INFRA")
@@ -210,10 +218,12 @@ def _not_run(record, step, reason):
     record.steps[step] = {"state": "NOT_RUN", "reason": reason, "runs": []}
 
 
-def climb(plan, runners):
-    """Run the climb's steps in order; returns the report."""
+def climb(plan, runners, *, open_findings=()):
+    """Run the climb's steps in order; returns the report, tagged with the
+    findings open when the climb ran (`open_findings`, as `{id, digest}`)."""
     if type(plan) is not ClimbPlan or type(runners) is not Runners:
         raise TypeError("exact ClimbPlan and Runners required")
+    conditional = conditional_evidence.tag(open_findings)
     record = _Record()
     coverage = {}
 
@@ -318,4 +328,5 @@ def climb(plan, runners):
             "level_open_to_miners": False,
             "qualification": False,
         },
+        **conditional,
     }

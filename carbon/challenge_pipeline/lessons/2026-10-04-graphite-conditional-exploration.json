@@ -1,0 +1,32 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-04-graphite-conditional-exploration",
+ "recorded_at": "2026-10-04T21:15:40Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "claude/conditional-exploration from main 992d046b6 (GRAPHITE-CONDITIONAL-EXPLORATION-01, W2 of OWNER-GRAPHITE-TEST-WAVE-03)",
+  "description": "Built conditional exploration: development expansions in a separate controller ledger that proceed past an open finding, the conditional-evidence.v1 tag on every result recorded while a finding is open, an operator repair record, and one citation check wired into the ladder, level proposals, admission evidence and the LOCK, and a pipeline frozen run."
+ },
+ "expected": "A finding still refuses every LOCK-path expansion, while exploration on development variants continues. Results recorded while it is open carry its id and digest, and none of them can be cited as established evidence.",
+ "observed": "Nothing in the existing semantics ever released a finding. Findings are never removed and clear_halt leaves them in place, so 'open until repaired' needed a new operator repair record. The controller's idempotent finding record would also have kept a recurred defect silently repaired, so a repaired finding recorded again now reopens. Track A's LOCK ledger was already exact-key strict, so a separate development ledger kept it unchanged. The citation sites cite files as well as values, and one site (ladder evidence) is a Markdown status file, so the check also reads JSON Lines and Markdown-embedded tags.",
+ "keep": [
+  "One registered rule (conditional-evidence.v1) whose identity every tag records, so the Attacker can test the rule itself.",
+  "Tag at the writer (the controller's ledger append and each report builder), not at each caller, so a new caller cannot forget the tag.",
+  "One citation check, applied at every place that cites evidence as established, with one mutation per site."
+ ],
+ "change": [
+  "When a rule says 'until repaired', check first that the code has a repair event at all; here it did not, and a recurrence path was needed too.",
+  "Whether an operator's attestation with the re-run's evidence is enough to release a finding, or a specific re-run record should be required, is open for conditional-evidence.v2."
+ ],
+ "protocol_elements": [
+  "admission.findings",
+  "admission.lock",
+  "construction.ladder",
+  "graphite.controller",
+  "graphite.attacker"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
