@@ -87,3 +87,26 @@ validators published.
 ## Maturity
 
 Design only.
+
+## The validator GPU (OWNER-SHARED-ANSWER-KEY-01, the validator-GPU addendum)
+
+- **Pinned part: the NVIDIA A40 (48 GB) for launch.**
+  - About 25x the memory any registered contract needs today.
+  - Bit-identical across hosts and datacenters under the pinned configuration
+    (`GPU_DETERMINISM_STAGE_B`).
+  - The same digests as L4 and RTX 3060 on the tiny test model
+    (`GPU_DETERMINISM_STAGE_A`).
+
+  It is revisited only if testing needs more. Any change of part is a single
+  standard switch for all validators, after a determinism re-run at real
+  model sizes.
+- **Build items:**
+  1. A battery validator GPU backend on the pinned A40 configuration for JAX
+     recipes, using the reconstruction worker's existing GPU profile.
+  2. **PyTorch GPU rebuild:** a CUDA build of the PyTorch worker image, with
+     its own pinned determinism settings. Prove same-part bit-identity on two
+     A40 hosts before it scores.
+  3. **Record peak GPU memory** for every rebuild. It has never been measured.
+     The 600 s deadline and the envelope stay the contract's.
+  4. **Refuse any scored rebuild** that is not on an A40 with the pinned
+     configuration (`NOT_SCORED_UNPINNED_DEVICE`).

@@ -46,3 +46,16 @@ is scored on the same conditions, with the same solver results"). The owner's
 - security acceptance.
 
 These are designed in VALIDATOR-18, and acceptance stays the owner's.
+
+### The validator GPU (the owner, the same day)
+
+> A40 for launch, add it to VALIDATOR-18 unless we get exciting results that
+> require more in testing, Pytorch should be able to GPU rebuild too.
+
+- **The launch validator part is the NVIDIA A40 (48 GB),** with the pinned
+  determinism configuration. A larger part is considered only if testing
+  produces results that need it. That would be a new record, with the
+  determinism test re-run on that part at real model sizes.
+- **PyTorch recipes rebuild on GPU too.** Today they are CPU-only
+  (`torch_profile.py`). A PyTorch GPU build, with its own pinned determinism
+  configuration, is in scope.
