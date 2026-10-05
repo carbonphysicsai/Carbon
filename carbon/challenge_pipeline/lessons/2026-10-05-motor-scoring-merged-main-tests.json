@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-motor-scoring-merged-main-tests",
+  "recorded_at": "2026-10-05T16:00:00Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-MOTOR-05 committed head 451651fc2d1664cc31746bc861a5118ca20adefe", "description": "Ran Motor, Cooling, shared registry and Motor attacker tests after reconciling main."},
+  "expected": "The integrated scoring surface preserves the other Challenges and Motor's attack adapter.",
+  "observed": "All 148 affected tests passed in an exact-commit LF-native Linux snapshot. No paid pod, private Motor validator or counted reference solve was run.",
+  "keep": ["Test the exact integrated tree, not only the pre-merge branch."],
+  "change": ["Leave broader repository acceptance to PR CI on the delivered head."],
+  "protocol_elements": ["cross-Challenge regression", "development-only fixture", "main reconciliation"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
