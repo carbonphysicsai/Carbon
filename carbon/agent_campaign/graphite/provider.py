@@ -43,8 +43,9 @@ same under either rule.
 
 **Model settings** (GRAPHITE-D34, 2026-10-04). A session opens with its
 role's settings for its rung's model (`roles.MODEL_SETTINGS`): the
-Constructor gets the model's whole published context and a 600 s timeout;
-every other role keeps `DEFAULT_SETTINGS`. The session record freezes the
+Constructor and, since GRAPHITE-D35, the Attacker get the model's whole
+published context and a 600 s timeout; every other role keeps
+`DEFAULT_SETTINGS`. The session record freezes the
 selection, so a session resumes with the settings it opened with.
 
 **Cancellation.** `cancel` records the request; the worker stops at the
@@ -644,7 +645,7 @@ class GraphiteProvider:
     def _selection(self, model_id, role=None):
         """The selection a new session of `role` opens with on `model_id`. A
         role in `roles.MODEL_SETTINGS` gets its settings for that model
-        (GRAPHITE-D34), and a model they do not list is refused before
+        (GRAPHITE-D34, D35), and a model they do not list is refused before
         anything opens; any other role keeps `DEFAULT_SETTINGS`. A resume
         never calls this: it rebuilds the selection its record froze
         (`selection_from_record`)."""

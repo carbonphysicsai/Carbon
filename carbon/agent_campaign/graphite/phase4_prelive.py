@@ -48,8 +48,10 @@ It writes only under `DIR/attacker-prelive`, sends nothing, spends nothing,
 and prints one JSON report. Every failed path is listed under
 `blocking_findings` (with whether a phase-4 live run itself uses it) and
 fails the gate: exit 0 only when every path passed with no network use, 4
-otherwise. `phase4_live_path` reports the phase-4 paths alone. Not security
-acceptance.
+otherwise. `phase4_live_path` reports the phase-4 paths alone. The report's
+`attacker_model` block is the session's model selection as its record froze
+it: input window, admission ceiling, timeout and reservation per call against
+the run's token allowance (GRAPHITE-D35). Not security acceptance.
 """
 
 from __future__ import annotations
@@ -674,6 +676,9 @@ def prelive(
         "blocking_findings": blocking,
         "network_attempts": list(network),
         "spent_usd": report.get("spent_usd"),
+        # The Attacker's input window, admission ceiling, timeout and
+        # reservation per call, from the session record (GRAPHITE-D35).
+        "attacker_model": report.get("attacker_model"),
         "claims": {"security_acceptance": False, "live_run": False, "spend": False},
     }
     emit(json.dumps(out, indent=1, sort_keys=True, default=str))
@@ -773,6 +778,8 @@ def _run(gate, store, adapter, atk, grant_path, repository, scoring=None):
             raise AssertionError("a model request carried no key header")
         if threading.main_thread().name in engy.threads:
             raise AssertionError("a model request ran on the main thread")
+        # The selection the session record froze (GRAPHITE-D35).
+        state["attacker_model"] = phase4.attacker_model(provider, run_id)
         return {
             "provider_state": entry["provider_state"],
             "model_requests": len(engy.requests),
@@ -946,4 +953,7 @@ def _run(gate, store, adapter, atk, grant_path, repository, scoring=None):
         phase4=False,
     )
     entry = state.get("entry") or {}
-    return {"spent_usd": entry.get("settled_usd")}
+    return {
+        "spent_usd": entry.get("settled_usd"),
+        "attacker_model": state.get("attacker_model"),
+    }
