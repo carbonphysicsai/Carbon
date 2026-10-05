@@ -2865,18 +2865,10 @@ def _get(attempt, key, default=None):
 
 
 def _strategy_from(arguments):
-    raw = arguments.get("strategy_json")
-    if raw is None:
-        # A `check_design` call carries its construction in its design
-        # (`attack.analysis.design_of`, the core's one reading of it).
-        from carbon.agent_campaign.attack import analysis
+    # The core's one reading (`attack.analysis.strategy_argument`).
+    from carbon.agent_campaign.attack import analysis
 
-        design = analysis.design_of(dict(arguments))
-        return _MISSING if design is None else design
-    try:
-        return json.loads(raw)
-    except (TypeError, ValueError):
-        return raw
+    return analysis.strategy_argument(arguments, _MISSING)
 
 
 def _inner_arguments(arguments):

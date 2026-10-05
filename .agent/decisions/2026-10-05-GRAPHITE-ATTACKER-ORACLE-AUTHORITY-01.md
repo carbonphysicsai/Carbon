@@ -32,7 +32,9 @@ PRs.
 4. **The null-construction reading (`attack.analysis.construction`).** A
    workspace `strategy_json` that is absent, JSON null, or the string `"null"`
    is no construction; Carbon falls through to the design, matching the live
-   miner path. It is not read as an unparseable construction.
+   miner path. It is not read as an unparseable construction. The battery,
+   cooling and motor adapters' oracle input follows it too, through the one
+   core helper `analysis.strategy_argument`.
 5. **check_design is judged by its own verdict** (submittable / refused /
    excluded), not by whether the workspace task was created.
 6. **An unassigned attempt is never a breach except exposure:** the UNASSIGNED
@@ -80,9 +82,11 @@ evidence via `--carrier`.
 **Closure tool.** `scripts/dev/attack_rejudge.py` re-runs analysis and verify
 over a session journal (a copy) and prints per-attempt verdicts and evidence
 digests, read-only. On session 1 it reports zero findings
-(23 HELD / 18 NOT_APPLICABLE / 12 UNDETERMINED, 9 usability records); the
-executor closes the 35 through `record_repair`, citing this fix and the re-run
-digests.
+(23 HELD / 18 NOT_APPLICABLE / 12 UNDETERMINED, 7 usability records). Under
+the Test Lead's rule the executor closes through `record_repair` only the
+findings that re-judge HELD or NOT_APPLICABLE or carry a usability record,
+citing this fix and the re-run digests; an UNDETERMINED finding stays open
+with its reason.
 
 **Credit.** The Carbon Validator's independent probe
 (`validator-logs/boundary_probe.py`, main 83839718) is ported into
