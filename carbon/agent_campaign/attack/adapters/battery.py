@@ -90,6 +90,9 @@ CONDITION_OF = {
     WRONGFUL_REFUSAL: FAILING_TRIGGER,
     EXPOSURE: OTHER_SIGNAL,
 }
+#: The families whose input is a construction, so an advisory tool's
+#: acceptance can be checked against Carbon's own chain (`agreement`).
+AGREEMENT_FAMILIES = frozenset({"recipe_surface", "permission_ablation"})
 
 #: The wall allowance one code run may ask for: battery's practice worker
 #: allowance (`carbon.battery.research.PRACTICE_SECONDS`), as the step-4
@@ -2215,6 +2218,29 @@ class BatteryLevel0Adapter:
             verdict,
             weak,
         )
+
+    def agreement(self, family, attempt):
+        """Carbon's own two-part reading behind an `AGREED_ADMISSIBLE`
+        verdict (`attack.verify`, step 8), on the construction `attempt`
+        carries for `family`: `authoritative_accepts`, the full authoritative
+        chain (`carbon_admits`; never `validate_for_challenge` alone), and
+        `within_contract`, every capability it uses permitted at Level 0.
+        None for a family with no construction reading, an attempt carrying
+        none, or one naming protected material (never handed to a gate)."""
+        if family not in AGREEMENT_FAMILIES:
+            return None
+        value = self.attempt_input(family, attempt)
+        if family == "permission_ablation" and isinstance(value, Mapping):
+            value = value.get("strategy", _MISSING)
+        if value is _MISSING or not isinstance(value, Mapping):
+            return None
+        if _protected(value):
+            return None
+        return {
+            "construction": value,
+            "authoritative_accepts": bool(carbon_admits(value)),
+            "within_contract": uses(value) <= level0_permissions(),
+        }
 
     def carbon_code(self, refused):
         """Carbon's own refusal code behind a core `Unrebuildable`: the code
