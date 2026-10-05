@@ -65,6 +65,39 @@ class ScoringUnavailable(LookupError):
         self.code = code
 
 
+#: How a scored case with no prediction is typed (GRAPHITE-COVERAGE-PARITY-01,
+#: the Test Lead's ruling under OWNER-GRAPHITE-TEST-WAVE-02 §3; Track A: a
+#: partial artifact is never graded as valid). Every rule that applies it names
+#: it in its identity, so a record scored before it stays read as it was.
+COVERAGE_RULE = "missing-prediction-is-a-schema-gate-failure.v1"
+
+
+def cover(predictions, case_ids):
+    """`(asked, missing)`: one prediction for every scored case in `case_ids`.
+
+    A case the set leaves out, or gives no prediction (None), is asked as an
+    empty prediction. That fails the Challenge's own schema gate (a
+    prediction must be present, of its declared shape and finite), so the
+    case is GATE_FAILED and the set ineligible: the case is charged to the
+    construction, never typed FAILED_INFRA and never excluded from the score.
+    Carbon's own infrastructure failures keep their own typed path
+    (`infra_failed`), never this one. `missing` lists those cases in
+    `case_ids` order. A `predictions` that is not a mapping covers nothing.
+
+    Who is charged at Levels 4-5, where a participant's own code writes the
+    predictions, is the uid-separated attribution path's (VALIDATOR-04, not
+    built); the gate failure itself holds at every level."""
+    source = predictions if isinstance(predictions, dict) else {}
+    asked, missing = {}, []
+    for case in case_ids:
+        prediction = source.get(case)
+        if prediction is None:
+            missing.append(case)
+            prediction = {}
+        asked[case] = prediction
+    return asked, missing
+
+
 def clean(value):
     """`value` as plain JSON data: numpy scalars to Python, non-finite to None."""
     import numpy as np
@@ -302,6 +335,7 @@ def resolve(scoring):
 
 
 __all__ = [
+    "COVERAGE_RULE",
     "FORBIDDEN_DATA",
     "REBUILT_FIELDS",
     "ChallengeScoring",
@@ -311,6 +345,7 @@ __all__ = [
     "Unrebuildable",
     "admit",
     "clean",
+    "cover",
     "rebuild_differences",
     "registered",
     "resolve",
