@@ -9,6 +9,16 @@
   "journal_sequence": 14
  },
  "contract_digest": "sha256:bb08f9794fcd24afc70764fd953c8828e31dad49445ddbbeedc548cc5640fc31",
+ "deviations": [
+  {
+   "cost_estimate": 124,
+   "item": "confirmation reference solves",
+   "planned": 120,
+   "reason": "the 4 hidden duplicates test prediction consistency; they reuse their original's reference solve, as the validator does",
+   "ruling": "Test Lead, 2026-10-05, EV5-RUN-01 item 12"
+  }
+ ],
+ "execution": "EV5 runs from a checkout of the exact approved head commit of the PR that adds this record, never from a later main; every analysis and confirmation output records that commit (git rev-parse HEAD), and the worker-boundary CI result counts only at that commit",
  "files": {
   "carbon/__init__.py": "sha256:52b90fae8c928a0e2f72629494e7c6d5663945fdb5e68cda8e29da22c98b47b0",
   "carbon/agent_campaign/__init__.py": "sha256:79544a30af59075f22b11c55a1fa7c4afcc508f1bf6736ed1f8ad0d7bcf6628a",
@@ -159,7 +169,7 @@
   "carbon/battery/value/ev4_protected_conditions.py": "sha256:c8536fdba9860b71d053e9b29600133b03505e28152318725b883a94b8ad7734",
   "carbon/battery/value/ev5.py": "sha256:e40ec5ba68e056fda96916b5ce0c56e80357115abfe84ab3633af15141df55c3",
   "carbon/battery/value/ev5_protected_conditions.py": "sha256:32da8e46d3ac56700a04572f8570fb865ef1351aceae46b821f01f42aa6541b8",
-  "carbon/battery/value/ev5_run.py": "sha256:30813e033c5683344d665472ae4c408c8bf50bc2ebe8ccb8de32d9d7632f98c3",
+  "carbon/battery/value/ev5_run.py": "sha256:1d71d9969fd39ffb131d267d0de1f24dc1b325d06a815122f71b6fe5da865af8",
   "carbon/battery/value/experiment.py": "sha256:bbf95e2fd5c8e2abfa14ea6ed7fbc8f57f8b294eac1a44c77b071996403afe0a",
   "carbon/battery/value/false_acceptance.py": "sha256:ef950b6d0871dd9b21a51a2a08ba2c7a17391c0ea19a6925627ea1580b375a22",
   "carbon/battery/value/hypotheses.py": "sha256:a5c543f7a5eb859748ed7ffa51c271ec526d417c04738ee0c561dbd5f5591996",

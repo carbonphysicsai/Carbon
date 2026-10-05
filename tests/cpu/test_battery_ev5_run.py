@@ -103,6 +103,28 @@ def test_h1_a_wide_noise_band_alone_blocks_promotion():
     assert result["outcome"] == run.CONFIRMED
 
 
+def test_h1_reports_the_gated_pair_as_a_secondary_line_only():
+    rows = _real(aligned=True)
+    results = _results(rows)
+    verdicts = {m: {"verdict": "PASS"} for m in rows}
+    plain = run.h1(results, list(V), bootstrap=BOOT, band={"band": 0.1})
+    assert plain["secondary_gated"] is None
+    best = max(rows, key=lambda m: rows[m]["cand"])
+    verdicts[best] = {"verdict": "FAIL"}
+    gated = run.h1(
+        results, list(V), bootstrap=BOOT, band={"band": 0.1}, verdicts=verdicts
+    )
+    secondary = gated["secondary_gated"]
+    assert secondary["enters_promotion"] is False
+    assert (
+        secondary["paired_bootstrap"]["tau_proposed"]
+        < gated["paired_bootstrap"]["tau_proposed"]
+    )
+    # The promotion decision is the ungated primary's, unchanged.
+    assert gated["conditions"] == plain["conditions"]
+    assert gated["outcome"] == plain["outcome"]
+
+
 def test_h1_pool_excludes_controls_and_attack_constructions():
     rows = _real(aligned=True)
     rows["control-oracle"] = {
@@ -310,8 +332,11 @@ def _integrity(**changes):
         "failures": {},
         "scan": {
             "test": "tests/service/test_battery_track_a_service.py",
+            "run_id": 1,
+            "head_sha": "abc",
             "conclusion": "success",
         },
+        "head": "abc",
     }
     args.update(changes)
     return run.construction_integrity(**args)["verdict"]
@@ -320,7 +345,14 @@ def _integrity(**changes):
 def test_construction_integrity_known_answers():
     assert _integrity() == run.PASS
     assert _integrity(scan=None) == run.INCOMPLETE
-    assert _integrity(scan={"conclusion": "failure"}) == run.FAIL
+    failed = {"run_id": 1, "head_sha": "abc", "conclusion": "failure"}
+    assert _integrity(scan=failed) == run.FAIL
+    # The scan counts only at the exact commit the analysis runs from.
+    elsewhere = {"run_id": 1, "head_sha": "def", "conclusion": "success"}
+    assert _integrity(scan=elsewhere) == run.INCOMPLETE
+    unidentified = {"head_sha": "abc", "conclusion": "success"}
+    assert _integrity(scan=unidentified) == run.INCOMPLETE
+    assert _integrity(head=None) == run.INCOMPLETE
     finding = {"condition": "FAILING_TRIGGER"}
     breached = {"families": {"recipe_surface": "IN_PROGRESS"}, "findings": [finding]}
     assert _integrity(track_a_report=breached) == run.FAIL

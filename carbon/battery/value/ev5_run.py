@@ -136,6 +136,24 @@ def run_record(repository=REPOSITORY, trees=PINNED_TREES):
             "every ev5_run command re-hashes these files and refuses on any "
             "difference; written before the first EV5 solve"
         ),
+        "execution": (
+            "EV5 runs from a checkout of the exact approved head commit of the "
+            "PR that adds this record, never from a later main; every analysis "
+            "and confirmation output records that commit (git rev-parse HEAD), "
+            "and the worker-boundary CI result counts only at that commit"
+        ),
+        "deviations": [
+            {
+                "item": "confirmation reference solves",
+                "cost_estimate": 124,
+                "planned": 120,
+                "reason": (
+                    "the 4 hidden duplicates test prediction consistency; they "
+                    "reuse their original's reference solve, as the validator does"
+                ),
+                "ruling": "Test Lead, 2026-10-05, EV5-RUN-01 item 12",
+            }
+        ],
     }
 
 
@@ -175,6 +193,23 @@ def verify_pins(repository=REPOSITORY, record_path=None):
     if added:
         raise RunError("module_unpinned", ",".join(added))
     return record
+
+
+def checkout_head(repository=REPOSITORY):
+    """The commit this checkout is at, or None. EV5 runs from the exact
+    approved head commit; every output records it."""
+    import subprocess
+
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(repository), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return out.stdout.strip() or None
 
 
 # --- shared: the gate, the candidate's scores, ranking --------------------------------
@@ -250,11 +285,14 @@ def candidate_rule(repository=REPOSITORY):
 # --- H1 ------------------------------------------------------------------------------
 
 
-def h1(results, scenarios, *, bootstrap, band=None):
+def h1(results, scenarios, *, bootstrap, band=None, verdicts=None):
     """H1 on `results` whose `rule_scores` carry both rules (choice 4).
 
     `bootstrap` is the manifest's H1 block; `band` is
-    `divergence.tau_noise_band(results)`, computed when None (choice 6)."""
+    `divergence.tau_noise_band(results)`, computed when None (choice 6).
+    The primary comparison is ungated (choice 5). With `verdicts`, the gated
+    pair (gate failures last) is reported as a secondary line that enters no
+    promotion decision (choice 5, Test Lead ruling)."""
     pool = hypotheses.eligible_real(results)
     excluded = sorted(
         m
@@ -279,6 +317,27 @@ def h1(results, scenarios, *, bootstrap, band=None):
         rule: real_divergence.classified(results, rule)["counts"]["verification"]
         for rule in (CANDIDATE, DECIDING)
     }
+    secondary = None
+    if verdicts is not None:
+        status = {m: verdicts.get(m, {}).get("verdict") for m in members}
+        gated = {
+            rule: ranked_last(
+                {m: results["rule_scores"][m][rule] for m in members}, status
+            )
+            for rule in (CANDIDATE, DECIDING)
+        }
+        secondary = {
+            "rules": "both rules plus the gate, failures ranked last",
+            "paired_bootstrap": hypotheses.paired_bootstrap(
+                [gated[CANDIDATE][m] for m in members],
+                [gated[DECIDING][m] for m in members],
+                hypotheses.loss_matrix(results, members, scenarios),
+                replicates=bootstrap["replicates"],
+                seed=bootstrap["rng_seed"],
+                level=bootstrap["level"],
+            ),
+            "enters_promotion": False,
+        }
     low, delta = paired["interval"][0], paired["delta_tau"]
     conditions = {
         "interval_lower_bound_above_zero": low is not None and low > 0,
@@ -299,6 +358,7 @@ def h1(results, scenarios, *, bootstrap, band=None):
         "real_divergence_verification": counts,
         "conditions": conditions,
         "outcome": PROMOTE if all(conditions.values()) else CONFIRMED,
+        "secondary_gated": secondary,
     }
 
 
@@ -482,7 +542,9 @@ def adversarial(results, verdicts, findings):
 # --- construction integrity -----------------------------------------------------------
 
 
-def construction_integrity(track_a_report, refused, frozen, bundles, failures, scan):
+def construction_integrity(
+    track_a_report, refused, frozen, bundles, failures, scan, head=None
+):
     """The construction-integrity verdict (choice 11).
 
     - `track_a_report`: `track_a.run`'s report;
@@ -491,7 +553,10 @@ def construction_integrity(track_a_report, refused, frozen, bundles, failures, s
     - `bundles`: member → (recipe digest, seed) matched (True), mismatched
       (False) or absent (None), for every panel member;
     - `failures`: member → typed pod failure record, for absent members;
-    - `scan`: the worker-boundary CI result, or None.
+    - `scan`: the worker-boundary CI result, or None: {"test", "run_id",
+      "head_sha", "conclusion"};
+    - `head`: the commit this analysis runs from. The scan counts only when
+      it ran at exactly that commit (choice 11); otherwise INCOMPLETE.
     """
     families = track_a_report["families"]
     breaches = list(track_a_report["findings"])
@@ -501,7 +566,12 @@ def construction_integrity(track_a_report, refused, frozen, bundles, failures, s
     mismatched = sorted(m for m, ok in bundles.items() if ok is False)
     absent = sorted(m for m, ok in bundles.items() if ok is None)
     untyped = sorted(m for m in absent if not (failures.get(m) or {}).get("failure"))
-    if scan is None:
+    if (
+        scan is None
+        or not scan.get("run_id")
+        or head is None
+        or scan.get("head_sha") != head
+    ):
         scan_state = INCOMPLETE
     elif scan.get("conclusion") == "success":
         scan_state = PASS
@@ -523,7 +593,11 @@ def construction_integrity(track_a_report, refused, frozen, bundles, failures, s
         "rebuilds_mismatched": mismatched,
         "rebuilds_refused_typed": sorted(set(absent) - set(untyped)),
         "rebuilds_missing_untyped": untyped,
-        "worker_boundary_scan": {"state": scan_state, "evidence": scan},
+        "worker_boundary_scan": {
+            "state": scan_state,
+            "evidence": scan,
+            "required_head": head,
+        },
         "verdict": verdict,
     }
 
@@ -667,6 +741,7 @@ def analyse(experiment_root, out_dir, *, pod_failures=(), worker_boundary=None):
     from . import contract as ev
 
     frozen = manifest()
+    head = checkout_head()
     experiment, contract = _experiment(experiment_root)
     results = _results(experiment)
     out_results, verdicts, predictions = scored(experiment, contract, results)
@@ -692,12 +767,14 @@ def analyse(experiment_root, out_dir, *, pod_failures=(), worker_boundary=None):
         ),
         "optimizer_results_sha256": _sha256(optimizer_results.read_bytes()),
         "interpretation": TICKET,
+        "checkout_head": head,
         "gate": {"cutoff_bands": admissibility.THRESHOLD_BANDS, "members": verdicts},
         "value": {
             "H1": h1(
                 out_results,
                 scenarios,
                 bootstrap=frozen["hypotheses"]["H1"]["bootstrap"],
+                verdicts=verdicts,
             ),
             "H2": h2(
                 out_results,
@@ -717,6 +794,7 @@ def analyse(experiment_root, out_dir, *, pod_failures=(), worker_boundary=None):
             _bundle_matches(experiment),
             _pod_failures(pod_failures),
             scan,
+            head,
         ),
         "blended": False,
         "claims": frozen["claims"],
@@ -953,6 +1031,7 @@ def confirmation_report(contract, batch, refs, predictions, kinds, verdict_of):
         "members": rows,
         "attack_constructions_under_deciding_plus_gate": attacks,
         "rebuilds": "host CPU (DirectBackend); not bit-identical to the A40 panel",
+        "checkout_head": checkout_head(),
         "state": "DESCRIPTIVE",
         "enters_verdict": False,
         "publication": "held: owner-only until the Test Lead and owner rule (choice 12)",
