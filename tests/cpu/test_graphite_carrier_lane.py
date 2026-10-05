@@ -206,6 +206,9 @@ def _deadline_stop(tmp_path, elapsed):
 
 
 def _typed(pods, handle, attempt):
+    policy = pod_outcome.load_policy()
+    # The proposal's earlier attempts: one retried timeout per attempt before.
+    earlier = (policy.timeout["retried"][1],) * attempt
     return pod_outcome.classify(
         claim="timeout",
         admissible=None,
@@ -213,7 +216,8 @@ def _typed(pods, handle, attempt):
         work_seconds=pods.effective_work_seconds(600),
         attempt=attempt,
         level=0,
-        policy=pod_outcome.load_policy(),
+        policy=policy,
+        earlier=earlier,
     )
 
 
