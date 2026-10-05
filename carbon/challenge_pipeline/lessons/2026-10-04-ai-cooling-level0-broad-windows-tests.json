@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-broad-windows-tests",
+  "recorded_at": "2026-10-04T20:09:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-06 broad Windows diagnostic without optional wire dependencies",
+    "description": "Ran cooling, campaign, registry, battery-regression, study, strategy-schema and report CPU tests."
+  },
+  "expected": "The expanded pure-Python set should preserve battery behavior and exercise the Challenge-neutral seams.",
+  "observed": "294 tests passed and two skipped. One ticket-owned assertion was over-broadened: its AST scan intentionally collects only battery tokens and therefore should retain the original expected set even after a cooling registration hook is added. The other failure is the diagnostic environment's package not being installed for an isolated -I subprocess, unrelated to cooling behavior.",
+  "keep": [
+    "Retain the AST proof that shared workflow files import no Challenge package.",
+    "Run installed-package isolation in canonical acceptance, where the package is installed."
+  ],
+  "change": [
+    "Restore the battery-token scanner's exact expected set; add cooling-neutrality coverage through the existing import scanner instead."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "battery-regression",
+    "shared-workflow-neutrality"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -307,7 +307,9 @@ def project(row, root):
                     ),
                 }
             )
-    from carbon.development_session.research_campaign import PRACTICE_PROVENANCES
+    from carbon.development_session.research_campaign import practice_provenances
+
+    provenances = practice_provenances()
 
     with ledger.db() as db:
         if db.execute(
@@ -320,7 +322,7 @@ def project(row, root):
                 if digest(body) != pin:
                     raise RecordsDiffer("research result changed")
                 result = json.loads(body)
-                if result.get("provenance") in PRACTICE_PROVENANCES:
+                if result.get("provenance") in provenances:
                     value["experiments"].append(
                         {
                             "id": task,

@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-contract-pass",
+  "recorded_at": "2026-10-04T19:49:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-06 focused contract pass",
+    "description": "Ran the cooling construction, campaign and capability-registry tests after introducing canonical finite-choice tokens."
+  },
+  "expected": "The contract should compile exact calibration-grid choices, reject off-grid tokens, verify public material and preserve challenge dispatch.",
+  "observed": "All 40 applicable tests passed; one POSIX campaign-controller test skipped on Windows and one deliberately excluded monkeypatch case was not selected. The guarded recipe maps stable choice tokens to the exact published floating-point values only after B-02B validation.",
+  "keep": [
+    "Expose the token-to-value map in discovery so the declarative boundary remains easy to use.",
+    "Keep physical values inside the Challenge adapter and the shared compiler dispatch parameterized by Challenge."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "finite-choice-catalog",
+    "public-material-isolation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

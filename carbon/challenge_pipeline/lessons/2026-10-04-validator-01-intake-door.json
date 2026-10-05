@@ -1,0 +1,30 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-validator-01-intake-door",
+  "recorded_at": "2026-10-04T23:30:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-01 slice 3 (VAL-D3), branch claude/validator-intake at e71ff86cf, from main feb40756. Canonical (groups chain archive science-jax science-torch mcp): 372 passed, pytest exit 0. The run covers the intake, intake end-to-end, remote submission, validator service, daemon, deployment, the three challenge_validator suites, the Launchpad wire doors, the one-journey definition, provider deadlines, the remote runner, the lessons log, the battery MCP stdio service and the Launchpad production journey. scripts/check_quality.py passed.",
+    "description": "Battery's intake now screens every authenticated battery_submit through the challenge-neutral Validator before its inbox, and records every attempt in the operator's attempt ledger. The worker, the daemon and adapter interface v1 are unchanged."
+  },
+  "expected": "Refusals that used to become recorded INVALID_CONSTRUCTIONs are answered at the door and recorded in the ledger. Every passing submission keeps its id, admission and score, and nothing on the miner side meets a code it cannot explain.",
+  "observed": "The intake queues asynchronously, so evaluate's admit-and-score in one call did not fit its shape. Splitting the dispatcher's checks into screen (check and record a refusal) and note (record what the transport did) put the neutral door in front of the inbox without changing the adapter interface Codex builds against. Strict parsing returns exactly what json.loads did for a valid strategy, so ids computed client-side still match. Two closed-code tables outside the validator had to learn the new codes: the miner client's REFUSALS, through which campaign.intake_code maps any unknown code to intake_answer_unrecognised, and the Launchpad supervisor's NEXT_ACTIONS, whose own test caught the gap. The Launchpad journey, MCP stdio and container suites failed natively in WSL (MCP subprocesses importing the stale shared checkout; Docker-backed runners) and passed in the canonical container, which remains the only acceptance.",
+  "keep": [
+    "Give a queueing transport a screen-then-note door, rather than forcing it through a synchronous evaluate.",
+    "Make the neutral door a required constructor argument, so no path past it exists.",
+    "When adding refusal codes, grep for every closed-code table on the client and supervisor side; their tests are what catch a missing entry."
+  ],
+  "change": [
+    "List the native-only failure classes (MCP subprocess imports, Docker runners) in the test plan up front, so they are not mistaken for regressions.",
+    "Check the backup and status tooling whenever a new operator-side state file is added."
+  ],
+  "protocol_elements": [
+    "every submission reaches a Challenge's validator through one neutral door, which refuses by closed code and records every attempt",
+    "an adapter's own queue and worker sit behind the door unchanged",
+    "every closed refusal code has a miner-facing explanation and a next step"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

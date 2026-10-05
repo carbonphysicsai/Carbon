@@ -83,6 +83,9 @@ def build(tmp_path, refs, backend, rule=None):  # noqa: F811
         inbox=ib.Inbox(tmp_path / "inbox.sqlite3"),
         window=window,
         status_reader=target.outcome,
+        door=ib.neutral_door(
+            target, ib.attempt_ledger({"inbox": str(tmp_path / "inbox.sqlite3")})
+        ),
         rule=target.rule if rule is not None else None,
     )
     return intake, target
@@ -598,3 +601,166 @@ def test_the_worker_logs_a_failure_by_type_only(tmp_path):
         "RuntimeError",
     )
     assert "private path" not in line
+
+
+# --- the neutral door (VALIDATOR-01 VAL-D3) --------------------------------------
+
+
+def raw_submission(intake, strategy_json, digest=DIGEST, request="h1"):
+    """A battery_submit carrying `strategy_json` exactly as given."""
+    return ic._body(
+        facts(intake),
+        "battery_submit",
+        {"strategy_json": strategy_json, "contract_digest": digest},
+        request,
+    )
+
+
+def ledger_rows(intake):
+    return intake.door._ledger.attempts()
+
+
+def daemon_rows(target):
+    import sqlite3
+
+    with sqlite3.connect(target.store.path) as db:
+        return db.execute("SELECT COUNT(*) FROM submissions").fetchone()[0]
+
+
+@pytest.mark.parametrize(
+    ("strategy_json", "digest", "code"),
+    [
+        (json.dumps(STRATEGY), "sha256:" + "0" * 64, "contract_not_served"),
+        (json.dumps(STRATEGY), DIGEST.upper(), "contract_digest_malformed"),
+        (json.dumps(STRATEGY), " " + DIGEST, "contract_digest_malformed"),
+        (
+            json.dumps(STRATEGY).replace('"neighbours": 8', '"neighbours": NaN'),
+            DIGEST,
+            "non_finite_value",
+        ),
+        (
+            json.dumps(STRATEGY)[:-1] + ', "backbone": "mlp"}',
+            DIGEST,
+            "duplicate_key",
+        ),
+        ("[" + json.dumps(STRATEGY) + "]", DIGEST, "strategy_not_object"),
+        ("{" * 40 + "}" * 40, DIGEST, "strategy_nesting_too_deep"),
+        ('{"neighbours": ' + "9" * 40 + "}", DIGEST, "integer_out_of_range"),
+        ("not json", DIGEST, "strategy_not_json"),
+        (
+            json.dumps({**STRATEGY, "challenge_id": "burgers-dynamics-v1"}),
+            DIGEST,
+            "challenge_mismatch",
+        ),
+    ],
+    ids=[
+        "stale-digest",
+        "upper-digest",
+        "spaced-digest",
+        "nan",
+        "duplicate-key",
+        "array",
+        "deep",
+        "huge-int",
+        "not-json",
+        "cross-challenge",
+    ],
+)
+def test_the_door_refuses_by_code_and_records_never_queues(
+    deployed, strategy_json, digest, code
+):
+    intake, target = deployed
+    answer = post(intake, MINER, raw_submission(intake, strategy_json, digest))
+    assert (answer.status, answer.body) == (400, {"refused": code})
+    assert ic.explain(code) is not None  # the miner's client explains it
+    assert intake.inbox.received() == [] and intake.inbox.counts()["RECEIVED"] == 0
+    ib.work_once(intake.inbox, target)
+    assert daemon_rows(target) == 0  # never admitted, never INVALID_CONSTRUCTION
+    (row,) = ledger_rows(intake)
+    assert (row["kind"], row["code"], row["hotkey"]) == (
+        "REFUSED",
+        code,
+        MINER.ss58_address,
+    )
+    assert row["submission_sha256"].startswith("sha256:")
+    assert strategy_json not in json.dumps(row)  # the strategy is never stored
+
+
+def test_a_passing_submission_is_received_and_recorded_under_its_id(deployed):
+    intake, target = deployed
+    body = ic.submission_message(facts(intake), STRATEGY, DIGEST, request="r1")
+    answer = post(intake, MINER, body)
+    assert answer.status == 202
+    sid = answer.body["submission_id"]
+    (row,) = ledger_rows(intake)
+    assert (row["kind"], row["submission_id"], row["state"]) == (
+        "RECEIVED",
+        sid,
+        "RECEIVED",
+    )
+    ib.work_once(intake.inbox, target)
+    assert target.store.submission(sid)["state"] == "SCORED"
+    counts = intake.door._ledger.attempt_counts(MINER.ss58_address)
+    assert counts["by_kind"]["RECEIVED"] == 1 and counts["total"] == 1
+
+
+def test_the_same_recipe_through_the_door_keeps_its_submission_id(deployed):
+    """Strict parsing returns exactly what json.loads did, so the id a miner
+    computed before sending (`intake_client.submission_id`) still holds."""
+    intake, _ = deployed
+    body = ic.submission_message(facts(intake), STRATEGY, DIGEST, request="r1")
+    sid = post(intake, MINER, body).body["submission_id"]
+    assert sid == ic.submission_id(MINER.ss58_address, STRATEGY, DIGEST)
+
+
+def test_a_window_refusal_at_the_door_is_recorded(deployed_v2):
+    intake, _ = deployed_v2
+    first = ic.submission_message(facts(intake), STRATEGY, DIGEST, request="a")
+    assert post(intake, MINER, first).status == 202
+    second = ic.submission_message(facts(intake), OTHER_STRATEGY, DIGEST, request="b")
+    assert post(intake, MINER, second).status == 429
+    kinds = [(r["kind"], r["code"]) for r in ledger_rows(intake)]
+    assert kinds == [("RECEIVED", None), ("REFUSED", "hotkey_window_used")]
+
+
+def test_every_screen_refusal_has_a_client_explanation():
+    from carbon.challenge_validator.dispatch import SCREEN_REFUSALS
+
+    assert all(ic.explain(code) for code in SCREEN_REFUSALS)
+    from carbon.battery.campaign import intake_outcome
+
+    assert {intake_outcome(code) for code in SCREEN_REFUSALS} == {"REFUSED"}
+
+
+def test_no_intake_without_its_door(tmp_path, refs, backend):  # noqa: F811
+    intake, target = build(tmp_path, refs, backend)
+    with pytest.raises(TypeError):
+        ib.BatteryIntake(
+            context=intake.context,
+            receiver=intake.receiver,
+            journal=intake.journal,
+            verifier=intake.verifier,
+            inbox=intake.inbox,
+            window=intake.window,
+            status_reader=target.outcome,
+            door=None,
+        )
+
+
+def test_the_attempt_ledger_must_be_owner_only(tmp_path):
+    shared = tmp_path / "shared"
+    shared.mkdir()
+    shared.chmod(0o755)
+    with pytest.raises(ib.IntakeUnavailable) as refused:
+        ib.attempt_ledger({"inbox": str(shared / "inbox.sqlite3")})
+    assert refused.value.code == "intake_ledger_directory_not_owner_only"
+    private = tmp_path / "private"
+    private.mkdir(mode=0o700)
+    named = private / "attempts.sqlite3"
+    config = {"inbox": str(shared / "inbox.sqlite3"), "attempt_ledger": str(named)}
+    assert ib.attempt_ledger_path(config) == named
+    ib.attempt_ledger(config)
+    assert named.exists()
+    assert ib.attempt_ledger_path({"inbox": "/x/inbox.sqlite3"}) == Path(
+        "/x/inbox.sqlite3.attempts.sqlite3"
+    )

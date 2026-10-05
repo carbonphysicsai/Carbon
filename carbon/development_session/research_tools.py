@@ -292,7 +292,7 @@ _CHOICE = re.compile(r"[A-Za-z0-9_.:+-]{1,96}\Z")
 
 @functools.cache
 def _correction_choices():
-    from carbon.reconstruction.capability_registry import BATTERY_BACKENDS
+    from carbon.challenge_registry.campaigns import implemented_backends
 
     from .gpu_code_cell import WRAPPED
     from .julia_depot import ENVIRONMENTS
@@ -306,7 +306,7 @@ def _correction_choices():
     return {
         # The reconstruction backends a recipe may name, as the capability
         # registry registers them; a practice host serves some of them.
-        "backend_not_served": frozenset(BATTERY_BACKENDS),
+        "backend_not_served": implemented_backends(),
         "public_material_unknown": frozenset(every_public_material_name()),
         # The per-call read_file maximum, under each research tools rule.
         "read_file_range": frozenset(str(n) for n in READ_FILE_MAX_BYTES.values()),

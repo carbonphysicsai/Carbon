@@ -158,6 +158,37 @@ REFUSALS = {
     "tool": "The intake only accepts battery_submit and battery_status.",
     "submission_fields": "A submission needs exactly strategy_json and contract_digest.",
     "status_fields": "A status request needs exactly submission_id.",
+    # The validator's neutral checks (`challenge_validator.Validator.screen`),
+    # answered at once; nothing was queued, evaluated or counted.
+    "malformed_submission": (
+        "The submission's identity or receipt fields are malformed. Rebuild it "
+        "with your client and send again."
+    ),
+    "contract_digest_malformed": (
+        "The contract digest is not of the form sha256: plus 64 lowercase hex "
+        "characters. Copy it exactly from the Challenge's construction contract."
+    ),
+    "contract_not_served": (
+        "This validator does not serve that construction contract. Read the "
+        "Challenge's current contract digest, compile against it and send again."
+    ),
+    "challenge_mismatch": (
+        "The submission or its strategy names another Challenge than the "
+        "contract it was sent under. Send each strategy under its own "
+        "Challenge's contract."
+    ),
+    "oversized_submission": "The strategy is larger than this validator accepts.",
+    "strategy_not_utf8": "The strategy is not valid UTF-8 text.",
+    "strategy_bom": "The strategy starts with a byte-order mark; remove it.",
+    "strategy_nesting_too_deep": "The strategy nests objects or lists too deeply.",
+    "strategy_not_json": "The strategy is not valid JSON.",
+    "strategy_not_object": "The strategy must be a JSON object.",
+    "non_finite_value": (
+        "The strategy contains NaN or Infinity, or a number too large to be "
+        "finite. Use finite numbers only."
+    ),
+    "duplicate_key": "The strategy repeats a key in one object; give each key once.",
+    "integer_out_of_range": "The strategy has an integer outside the signed 64-bit range.",
     "snapshot_unknown": (
         "Your message names a chain snapshot this validator no longer holds. "
         "Read the intake again, rebuild and sign, then send at once."

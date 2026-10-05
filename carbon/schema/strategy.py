@@ -25,6 +25,7 @@ _SUPPORTED_BACKBONES = frozenset(
         "gino",
         "gno",
         "haar_operator",
+        "kernel_ridge",
         "knn",
         "mlp",
         "physicsnemo_fno",

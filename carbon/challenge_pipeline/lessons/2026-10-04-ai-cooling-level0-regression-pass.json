@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-regression-pass",
+  "recorded_at": "2026-10-04T20:41:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-06 broad Windows-safe regression",
+    "description": "Ran cooling construction plus Challenge registry/campaign, capability, battery-contract, admission-study, strategy-schema, and research-report regressions."
+  },
+  "expected": "Cooling should be reachable through exact Challenge seams while battery and shared structural behavior remain unchanged.",
+  "observed": "308 tests passed, two platform-marked tests skipped and seven known Windows dependency/installed-package cases were explicitly deselected. No assertion failed. This is diagnostic native-host evidence; canonical Linux remains delegated to PR CI because the local Docker/WSL engine is unavailable.",
+  "keep": [
+    "Carry the same focused files into canonical PR checks.",
+    "Keep native-host evidence labelled diagnostic rather than canonical."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "battery-regression",
+    "challenge-neutral-construction"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
