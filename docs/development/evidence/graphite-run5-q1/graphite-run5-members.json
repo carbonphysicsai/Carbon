@@ -1,0 +1,192 @@
+[
+  {
+    "proposal_id": "baseline",
+    "strategy": {
+      "backbone": "mlp",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "depth": 3,
+        "steps": 2000,
+        "width": 64
+      },
+      "schema_version": "1.0"
+    },
+    "seed": 1801172379,
+    "recipe_digest": "sha256:79fbc4875ba6006b7f1a6c9a88879d0fa535281cfea54be51dc956403d7498f9",
+    "practice_score": 0.07404252349670187,
+    "against_baseline": null,
+    "status": "SCORED",
+    "contract_digest": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e"
+  },
+  {
+    "proposal_id": "p-1585ecbf838a",
+    "strategy": {
+      "backbone": "deeponet",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "basis_functions": 10,
+        "deeponet_depth": 3,
+        "steps": 2000,
+        "width": 64
+      },
+      "schema_version": "1.0"
+    },
+    "seed": 475176988,
+    "recipe_digest": "sha256:63433dc6b67e97ca851b97ab910adb1aefc4a46e2aaab8eab792042285e0efda",
+    "practice_score": 0.08082905278260079,
+    "against_baseline": "REGRESSION",
+    "status": "SCORED",
+    "contract_digest": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e"
+  },
+  {
+    "proposal_id": "p-87b76ad0a2fd",
+    "strategy": {
+      "backbone": "deeponet",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "basis_functions": 10,
+        "deeponet_depth": 3,
+        "steps": 10000,
+        "width": 64
+      },
+      "schema_version": "1.0"
+    },
+    "seed": 3716900652,
+    "recipe_digest": "sha256:798de6a9d369658c46611b9cea8bce0885d51f757a06a265d52626add1ae5e9c",
+    "practice_score": 0.06515196254955603,
+    "against_baseline": "IMPROVEMENT",
+    "status": "SCORED",
+    "contract_digest": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e"
+  },
+  {
+    "proposal_id": "p-c41a9a1ebb82",
+    "strategy": {
+      "backbone": "deeponet",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "basis_functions": 20,
+        "deeponet_depth": 3,
+        "steps": 10000,
+        "width": 128
+      },
+      "schema_version": "1.0"
+    },
+    "seed": 524989794,
+    "recipe_digest": "sha256:228098c56ee02250ee789362772b7ca2d6b3ad7256faf3f19673cb8767cd0577",
+    "practice_score": 0.061001995643691485,
+    "against_baseline": "IMPROVEMENT",
+    "status": "SCORED",
+    "contract_digest": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e"
+  },
+  {
+    "proposal_id": "p-37985e699fe3",
+    "strategy": {
+      "backbone": "deeponet",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "basis_functions": 30,
+        "deeponet_depth": 4,
+        "steps": 10000,
+        "width": 128
+      },
+      "schema_version": "1.0"
+    },
+    "seed": 1919562590,
+    "recipe_digest": "sha256:36130135f70df94ce186e205338768f8037cbf50d4f6a215e9ec7839b19f39fb",
+    "practice_score": 0.06289528856694253,
+    "against_baseline": "IMPROVEMENT",
+    "status": "SCORED",
+    "contract_digest": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e"
+  },
+  {
+    "proposal_id": "p-69268f1b74ec",
+    "strategy": {
+      "backbone": "deeponet",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "arrhenius_features": true,
+        "basis_functions": 20,
+        "deeponet_depth": 3,
+        "ocv_initial_voltage": true,
+        "steps": 10000,
+        "width": 128
+      },
+      "schema_version": "1.0"
+    },
+    "seed": 1551240143,
+    "recipe_digest": "sha256:34c7cbb6ca9be0158836d110947547e9d0ed0a9e5568f90c98f6381885dc1de2",
+    "practice_score": 0.05937869909044359,
+    "against_baseline": "IMPROVEMENT",
+    "status": "SCORED",
+    "contract_digest": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e"
+  },
+  {
+    "proposal_id": "p-fa70c075f903",
+    "strategy": {
+      "backbone": "deeponet",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "arrhenius_features": true,
+        "basis_functions": 20,
+        "capacity_fade_head": true,
+        "deeponet_depth": 3,
+        "ocv_initial_voltage": true,
+        "steps": 10000,
+        "width": 128
+      },
+      "schema_version": "1.0"
+    },
+    "seed": 360154323,
+    "recipe_digest": "sha256:af5cae8d45b2a3e80331ec7d6e3f82499c4b8e9ef8830c32eca8b6d4d7d130f7",
+    "practice_score": 0.057552774665334816,
+    "against_baseline": "IMPROVEMENT",
+    "status": "SCORED",
+    "contract_digest": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e"
+  },
+  {
+    "proposal_id": "p-1d4aaff5d292",
+    "strategy": {
+      "backbone": "deeponet",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "arrhenius_features": true,
+        "basis_functions": 20,
+        "capacity_fade_head": true,
+        "deeponet_depth": 3,
+        "ocv_initial_voltage": true,
+        "steps": 15000,
+        "width": 128
+      },
+      "schema_version": "1.0"
+    },
+    "seed": 3718551111,
+    "recipe_digest": "sha256:06f5dd2ff5541a22b7a681ca9bc53a46f10189f150abcfab39dd8b9eb54de998",
+    "practice_score": 0.05617319925089667,
+    "against_baseline": "IMPROVEMENT",
+    "status": "SCORED",
+    "contract_digest": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e"
+  },
+  {
+    "proposal_id": "p-4fd7fb870d2b",
+    "strategy": {
+      "backbone": "deeponet",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "arrhenius_features": true,
+        "basis_functions": 30,
+        "capacity_fade_head": true,
+        "deeponet_depth": 3,
+        "ocv_initial_voltage": true,
+        "steps": 15000,
+        "width": 128
+      },
+      "schema_version": "1.0"
+    },
+    "seed": 1132250632,
+    "recipe_digest": "sha256:0fc19adb5852b71d0116439336ebf8a029312a09c0708b3273cd2e2effa91d9c",
+    "practice_score": 0.05986594321185995,
+    "against_baseline": "IMPROVEMENT",
+    "status": "SCORED",
+    "contract_digest": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e"
+  }
+]

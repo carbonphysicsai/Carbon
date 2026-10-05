@@ -1,0 +1,28 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-05-attacker-whole-context-window",
+ "recorded_at": "2026-10-05T11:15:00Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": ".agent/decisions/2026-10-05-GRAPHITE-D35.md; roles.WHOLE_CONTEXT_ROLES; phase4.attacker_model",
+  "description": "Gave the phase-4 Attacker its model's whole context through GRAPHITE-D34's role-keyed MODEL_SETTINGS, and printed the recorded selection in the phase-4 dry run and prelive."
+ },
+ "expected": "The Attacker joins D34's table with no new mechanism, and the run's 1.93 token allowance still holds at least one full reservation on its starting model.",
+ "observed": "One role entry was enough: AttackerProvider already selects through GraphiteProvider._selection on engy-chat. On glm-5.2 a call now reserves 0.18132992 (0.04763648 before), so the allowance holds ten full reservations instead of forty; one kimi-k3 call (2.0646912) exceeds it, so a session on that rung stops run_cap_reached before its first call.",
+ "keep": [
+  "Settings keyed by role and frozen in the session record: a new role joins with one entry, and a recorded session resumes with what it recorded.",
+  "Print the recorded selection, with the reservation per call against the token allowance, in the dry run and the pre-live gate before any spend."
+ ],
+ "change": [
+  "When a role gets a live session path, decide its model settings before its first live session, and check its top rung's whole-window reservation against its token allowance."
+ ],
+ "protocol_elements": [
+  "graphite.attacker",
+  "graphite.model-settings",
+  "graphite.phase4-grant"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

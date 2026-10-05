@@ -1,0 +1,47 @@
+{
+  "schema": "carbon.graphite.pod-attribution-policy.v2",
+  "version": "pod-attribution-v2",
+  "authority": "OWNER-GRAPHITE-TEST-WAVE-02 §3 (#564), the owner's delegated failure-attribution decision ('your recommendation'): the Test Lead's approval of the GPU-probe fix after Graphite R2 runs 4 and 5, with its conditions, and the Carbon Validator's seven binding constraints, 2026-10-05 (GRAPHITE-POD-GPU-PROBE-01). v1 (VAL-D13) stays registered for replay",
+  "status": "DEVELOPMENT_WORKING_POLICY",
+  "trusted_writer_levels": [0, 1, 2, 3],
+  "infra_retries": {
+    "max": 1,
+    "cap_reached": ["FAILED_INFRA", "infra_retry_cap_reached"]
+  },
+  "timeout": {
+    "retries": 1,
+    "confirm": "host_phase_min_at_least_work_seconds",
+    "contradict": "host_phase_max_below_work_seconds",
+    "repeated_confirmed": ["CANDIDATE_RESOURCE_EXCEEDED", "worker_timeout_repeated"],
+    "retried": ["FAILED_INFRA", "worker_timeout_retried"],
+    "unconfirmed": ["FAILED_INFRA", "worker_timeout_unconfirmed"],
+    "contradicted": ["FAILED_INFRA", "timeout_claim_contradicts_host_timing"]
+  },
+  "environment": {
+    "relaunches": 1,
+    "confirm": "program_never_started_and_probe_failed_before_program",
+    "contradict": "host_phase_min_at_least_work_seconds",
+    "inconsistent": ["FAILED_INFRA", "environment_claim_unattributed"],
+    "contradicted": ["FAILED_INFRA", "environment_claim_contradicts_host_timing"],
+    "repeated": ["FAILED_INFRA", "pod_environment_repeated"],
+    "on_repeated": "stop_session"
+  },
+  "admissible": {
+    "program": ["CANDIDATE_FAILED", "program"],
+    "compile": ["FAILED_INFRA", "compile"],
+    "environment": ["FAILED_INFRA", "pod_environment"]
+  },
+  "evidence_only": {
+    "program": ["FAILED_INFRA", "candidate_failure_unattributed"],
+    "compile": ["FAILED_INFRA", "candidate_failure_unattributed"],
+    "environment": ["FAILED_INFRA", "candidate_failure_unattributed"]
+  },
+  "no_claim": ["FAILED_INFRA", "pod"],
+  "notes": [
+    "Everything v1 decides is unchanged: Levels 0-3 program failure stays the candidate's; Levels 4-5 or an unknown level, a claim on an image without a SEPARATED_IMAGES record is evidence only; timeouts follow the retry rule at every level.",
+    "environment: Carbon's pod phase probes the GPU backend in the program's own interpreter and environment before any candidate code, and writes the result into its supervisor report. A failed probe claims environment and the program never runs.",
+    "An environment claim is admissible only where Carbon writes it (trusted_writer_levels, or a separated image's supervisor report), only when the export shows the program never started and the probe failed before it, and never when the host saw the phase run its whole worker allowance. Otherwise it is evidence only or an OTHER_SIGNAL, FAILED_INFRA, never a retry.",
+    "An admissible environment failure is relaunched once on a fresh pod, charged to the run's budget and admitted by its usual limits. infra_retries.max caps a proposal's infrastructure retries of every kind together; the counter never resets between timeouts and relaunches. A second environment failure stops the session as FAILED_INFRA, with no agent charge.",
+    "Whether this policy is exploitable is for the Attacker's resource and accounting families to test; a change is a new registered version."
+  ]
+}

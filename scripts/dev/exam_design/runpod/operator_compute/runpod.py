@@ -359,6 +359,10 @@ class RunPodAdapter:
         if spec.gpu_count:
             body["gpuTypeIds"] = [spec.gpu_type_id]
             body["gpuCount"] = spec.gpu_count
+        if spec.allowed_cuda_versions:
+            # REST v1 pod create: the host CUDA versions the pod may land on
+            # (EV4's `pod_control` sends the same field).
+            body["allowedCudaVersions"] = list(spec.allowed_cuda_versions)
         if spec.start_command:
             # REST v1 `dockerEntrypoint` replaces the image's ENTRYPOINT (read
             # 2026-10-02 from rest.runpod.io/v1/openapi.json); an empty
