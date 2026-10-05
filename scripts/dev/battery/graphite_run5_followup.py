@@ -30,8 +30,7 @@ from pathlib import Path
 
 from carbon.battery.value import panel as value_panel
 from carbon.design_search import score_value
-
-from .graphite_run5_alignment import CONTRACT, PANEL, ROOT
+from scripts.dev.battery.graphite_run5_alignment import CONTRACT, PANEL, ROOT
 
 EVIDENCE = ROOT / "docs/development/evidence/graphite-run5-q1"
 BUNDLED = "graphite-run5-p-1d4aaff5d292"
