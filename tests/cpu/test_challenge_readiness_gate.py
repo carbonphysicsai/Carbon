@@ -133,7 +133,7 @@ def test_green_only_when_every_item_passes(monkeypatch, tmp_path):
     def ok(item, ctx):
         return model.Result(model.PASS, "ok", ("e",))
 
-    for ref in set(i["check"] for i in model.load_items()):
+    for ref in {i["check"] for i in model.load_items()}:
         monkeypatch.setitem(checks.CHECKS, ref, ok)
     monkeypatch.setattr(runner, "load_conditions", lambda challenge: [])
     report = runner.run_gate(CHALLENGE, 0, root=tmp_path)
