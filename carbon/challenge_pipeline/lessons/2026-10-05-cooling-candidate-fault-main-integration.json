@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-main-integration",
+  "recorded_at": "2026-10-05T13:15:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "merge current main d62fefb90 into the candidate-fault ticket",
+    "description": "Reconciled nineteen current-main commits, including the merged Cooling selective-fault family in PR #602."
+  },
+  "expected": "Preserve current-main attack work and make the policy registration complement the real-path probe.",
+  "observed": "The merge was conflict-free. PR #602 already probes candidate-triggered prediction and non-finite faults on Interface v1 and Graphite; this ticket now binds its Interface-v1 evidence to the registered candidate-fault policy while its resource probe covers the complete registered fault inventory.",
+  "keep": [
+    "Preserve PR #602's real-path selective-fault family and controls.",
+    "Bind the real Interface-v1 result to policy data instead of cloning the construction probe."
+  ],
+  "change": [
+    "Add the exact candidate-fault policy record to selective-fault Interface-v1 evidence and its assertions."
+  ],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "graphite.attacker.cooling.selective_fault",
+    "challenge_validator.cooling"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

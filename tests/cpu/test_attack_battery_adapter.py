@@ -79,8 +79,10 @@ def _controls_pass(name, split="trained"):
 def test_the_registry_loads_battery_level_0_and_refuses_anything_else():
     assert adapters.load(b.CHALLENGE_ID, 0) is A
     assert (b.CHALLENGE_ID, 0) in adapters.registered()
+    # Level 1 has its own adapter (GRAPHITE-L1-BUILD-01); Level 2 has none.
+    assert adapters.load(b.CHALLENGE_ID, 1) is not A
     with pytest.raises(adapters.AdapterNotRegistered):
-        adapters.load(b.CHALLENGE_ID, 1)
+        adapters.load(b.CHALLENGE_ID, 2)
     with pytest.raises(adapters.AdapterNotRegistered):
         adapters.load("burgers-dynamics-v1", 0)
 
@@ -726,7 +728,15 @@ def test_higher_level_families_are_not_run_seams_with_nothing_to_execute():
 
     seams = A.level_families()
     assert {s.state for s in seams} == {b.NOT_RUN}
-    assert {s.level for s in seams} == set(LEVELS)
+    # Every ladder level is a seam here or has its own registered adapter
+    # (Level 1: `adapters.battery_level1`, GRAPHITE-L1-BUILD-01).
+    own = {
+        level
+        for challenge, level in adapters.registered()
+        if challenge == b.CHALLENGE_ID and level > 0
+    }
+    assert {s.level for s in seams} | own == set(LEVELS)
+    assert not {s.level for s in seams} & own
     assert {s.check for s in seams} <= CHECKS[b.TRACK]
     for seam in seams:
         assert not any(callable(v) for v in dataclasses.asdict(seam).values())

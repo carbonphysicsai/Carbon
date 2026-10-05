@@ -873,19 +873,32 @@ def _scoring(value):
     }
 
 
+def _pod_attribution():
+    """The construction-neutral pod-attribution attacks
+    (`attack.pod_attribution`, GRAPHITE-POD-GPU-PROBE-01)."""
+    from carbon.agent_campaign.attack import pod_attribution
+
+    return pod_attribution
+
+
 def resource_boundary(value):
     if value["kind"] == "code_run":
         refusal = code_run_refusal(value["arguments"])
         return {"kind": "code_run", "dispatched": refusal is None, "refusal": refusal}
+    if value["kind"] == _pod_attribution().KIND:
+        return _pod_attribution().boundary(value)
     return _scoring(value)
 
 
 def resource_specimen(value):
-    """Vulnerable specimen: a lifted allowance, and the accounting before
+    """Vulnerable specimen: a lifted allowance; the accounting before
     GRAPHITE-COVERAGE-PARITY-01 counted as a pass: every missing case typed
-    FAILED_INFRA, excluded, and the set eligible."""
+    FAILED_INFRA, excluded, and the set eligible; and a pod-outcome
+    classifier that trusts a candidate-written `environment` claim."""
     if value["kind"] == "code_run":
         return {"kind": "code_run", "dispatched": True, "refusal": None}
+    if value["kind"] == _pod_attribution().KIND:
+        return _pod_attribution().specimen(value)
     result = _scoring(value)
     missing = result["n_cases"] - len(value["predictions"])
     return {
@@ -899,6 +912,9 @@ def resource_specimen(value):
 def resource_breached(result):
     if result["kind"] == "code_run":
         return result["dispatched"]
+    if result["kind"] == _pod_attribution().KIND:
+        # A construction's own failure bought an environment relaunch.
+        return _pod_attribution().breached(result)
     if not result["partial"]:
         return False  # a complete set: its eligibility is the frozen rule's
     # A partial set is never eligible: each missing case is a schema-gate
@@ -933,6 +949,9 @@ def _resource_attacks():
             "no_predictions_scored",
             {"kind": "scoring", "predictions": {}, "partial": True},
         ),
+        # A construction's own failure dressed as the GPU probe's
+        # `environment` failure (pod-attribution-v2).
+        *_pod_attribution().attacks(),
     )
 
 
@@ -942,6 +961,8 @@ def _half_predictions():
 
 
 def _resource_control(value):
+    if value.get("kind") == _pod_attribution().KIND:
+        return _pod_attribution().control_passes(value)
     result = resource_boundary(value)
     if result["kind"] == "code_run":
         return result["dispatched"]
@@ -2046,7 +2067,9 @@ def _families():
             "allowance above code_run_seconds is refused before dispatch; and the "
             "frozen rule types every case a partial prediction set leaves out as a "
             "schema-gate failure, never FAILED_INFRA, so a partial set is never "
-            "eligible",
+            "eligible; and a construction's own failure never buys the GPU "
+            "probe's environment relaunch under the registered pod attribution "
+            "policy",
             attacks=_resource_attacks,
             boundary=resource_boundary,
             specimen=resource_specimen,
@@ -2332,13 +2355,9 @@ SEAMS = (
         "practice_disclosure checks practice.feedback and the intake's rule facts "
         "at function level only",
     ),
-    SeamSpec(
-        "level_1_loss_expressions",
-        "artifact_and_dependency_attacks",
-        1,
-        "the Level 1 surface is an engineering draft, not open: its attacks run "
-        "only after the owner accepts the proposal and an expansion record exists",
-    ),
+    # Level 1 is no longer a seam here: it runs in its own adapter,
+    # `adapters.battery_level1`, registered at (battery, 1) against the
+    # registered variant battery-l1-loss-expressions-v1 (GRAPHITE-L1-BUILD-01).
     SeamSpec(
         "level_2_schedules_and_sampling",
         "adaptive_feedback_and_state_attacks",

@@ -1,0 +1,97 @@
+{
+  "adoption": {
+    "adoption_digest": "sha256:1121334036ce5923e10fbc6acb2c3bfe4334f139a1ec2041c163668ba3355062",
+    "construction_identity_digest": "sha256:959fb6ba790d9ae3e9b8381aacbe046028aa0f9d8a9b2d1938c3c9e28df2d7d9",
+    "identical_decision_fields": [
+      "arm_id",
+      "model",
+      "method",
+      "declared_query_budget",
+      "queries_attempted",
+      "queries_successful",
+      "selections",
+      "selection",
+      "predicted_conditions"
+    ],
+    "study_id": "motor-synthetic-decision-v2"
+  },
+  "archive": {
+    "archive_sha256": "sha256:0030e926177955e351f59bee1052d3778a7b45a53ad57b16dd404ef7cb15f51d",
+    "off_machine": "owner's Google Drive folder Carbon HQ: motor-decision-counted-v1-archive.tar.gz with its MANIFEST",
+    "operator_host": "~carbon/shared/evidence/motor-decision-counted-v1/ (attempt-1 read-only, SHA256SUMS.attempt-1)"
+  },
+  "authority": [
+    "OWNER-DATA-MOTOR-01",
+    "OWNER-MOTOR-COUNTED-ADOPT-01"
+  ],
+  "campaign": {
+    "allocated_core_hours": 33.111,
+    "artifact_files": 9185,
+    "artifact_list_sha256": "sha256:58e430544043f9629a503e09dbbcbc1c5e28f00e7e602166ca31454f8946f0ee",
+    "backend": "DOCKER",
+    "campaign_id": "sha256:a414f6b18881ea491d4aab04c860777cef4126a5eafc5d371accf755568c9334",
+    "campaign_wall_s": 9973.9,
+    "code_commit": "992d046b63604d26028ff118ff096225eab7b4c2",
+    "construction_identity_digest": "sha256:81e76d3997d47be89abf3c1c63da4415cc492cfb24c921238df6f1c1c78ac0fc",
+    "cpus_per_execution": 2.0,
+    "dispatched_utc": "2026-10-05T00:18:17Z",
+    "host_contention_note": "Another session ran its test suite on the same host during part of the run; per-case wall times include that contention.",
+    "host_cpu_model": "12th Gen Intel(R) Core(TM) i7-12700H (20 threads)",
+    "initial_attempts": 48,
+    "parallel": 6,
+    "plan_sha256": "sha256:0998bab608348cb3ab77e9ca0357a6ce3c8809f36a6ef382613ed2d7d2c60036",
+    "records_sha256": "sha256:d87c0e384d1b35aab54307a533edd96fcdc949699a610a86d4a79a311ac12438",
+    "retry_attempts": 0,
+    "solver_image": "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+    "solver_wall_s_min_median_max": [
+      766.6,
+      1365.5,
+      1886.1
+    ],
+    "solver_wall_sum_s": 59599.4,
+    "status_counts": {
+      "OK": 48
+    },
+    "study_id": "motor-synthetic-decision-v1",
+    "timeout_s": 3600.0,
+    "v1_import_outcome": "REFUSED: every case REFERENCE_PROVENANCE_INVALID because log.mesh and log.getdp were empty on success"
+  },
+  "claims": "DEVELOPMENT only; descriptive fixed pilot over the registered finite set. No scientific, customer, population-reliability or production claim.",
+  "completed_date": "2026-10-05",
+  "decision_result": {
+    "arms": {
+      "analytic-v1:fixed_grid": {
+        "outcome": "CONFIRMED_INFEASIBLE",
+        "queries": 48,
+        "regret_ripple_fraction": null,
+        "regret_status": "INFEASIBLE_SELECTION"
+      },
+      "analytic-v1:screen_then_confirm": {
+        "outcome": "CONFIRMED_INFEASIBLE",
+        "queries": 48,
+        "regret_ripple_fraction": null,
+        "regret_status": "INFEASIBLE_SELECTION"
+      },
+      "learned-krr-v1:fixed_grid": {
+        "outcome": "CONFIRMED_FEASIBLE",
+        "queries": 48,
+        "regret_ripple_fraction": 0.019246665311291544,
+        "regret_status": "DEFINED_FINITE_SET"
+      },
+      "learned-krr-v1:screen_then_confirm": {
+        "outcome": "CONFIRMED_FEASIBLE",
+        "queries": 43,
+        "regret_ripple_fraction": 0.019246665311291544,
+        "regret_status": "DEFINED_FINITE_SET"
+      }
+    },
+    "best_design_id": "d04",
+    "best_worst_ripple_fraction": 0.245102140586187,
+    "comparator_status": "COMPLETE_FINITE_SET",
+    "confirmed_feasible_designs": 4,
+    "confirmed_infeasible_designs": 4,
+    "false_feasible_proposals": 2
+  },
+  "schema": "carbon.motor.counted-campaign-completion.v1",
+  "status": "COMPLETE"
+}

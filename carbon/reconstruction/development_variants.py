@@ -420,12 +420,15 @@ def _widened(entries, challenge, level):
 # -- the registry ---------------------------------------------------------------------
 @dataclass(frozen=True)
 class VariantRegistry:
-    """Every registered version, by name and by digest, and the variant each
-    (challenge, level) runs under."""
+    """Every registered version, by name and by digest, the variant each
+    (challenge, level) runs under, and the named arms: further variants at a
+    level that only Carbon's campaigns select by name, keyed
+    (challenge, level, arm) (GRAPHITE-L1-BUILD-01)."""
 
     by_version: dict
     by_digest: dict
     current: dict
+    arms: dict
 
 
 def load(directory=None):
@@ -455,18 +458,23 @@ def load(directory=None):
         if shipped and variant.status == FIXTURE:
             raise VariantRefused(FIXTURE_SHIPPED, version)
         by_version[version] = by_digest[pinned] = variant
-    current = {}
+    current, arms = {}, {}
     for entry in registry["current"]:
         variant = by_version[entry["version"]]
         key = (entry["challenge"], entry["level"])
         if key != (variant.challenge, variant.level):
             raise VariantRefused(MALFORMED, "current names another challenge or level")
-        if key in current:
+        target, key = (arms, (*key, entry["arm"])) if "arm" in entry else (current, key)
+        if key in target:
             raise VariantRefused(
-                MALFORMED, "one current variant per challenge and level"
+                MALFORMED, "one current variant per challenge, level and arm"
             )
-        current[key] = variant
-    return VariantRegistry(by_version, by_digest, current)
+        if any(
+            v.version == variant.version for v in (*current.values(), *arms.values())
+        ):
+            raise VariantRefused(MALFORMED, "a version is current under one name only")
+        target[key] = variant
+    return VariantRegistry(by_version, by_digest, current, arms)
 
 
 class _DevVariants(Mapping):
@@ -502,20 +510,38 @@ def check_base(variant):
     return variant
 
 
-def variant(challenge, level):
-    """The current registered variant for (challenge, level), with a fresh base;
-    else `development_variant_unregistered` (or `_base_stale`)."""
-    found = load().current.get((challenge, level))
+def variant(challenge, level, arm=None):
+    """The current registered variant for (challenge, level), or its named
+    `arm`, with a fresh base; else `development_variant_unregistered` (or
+    `_base_stale`)."""
+    registry = load()
+    found = (
+        registry.current.get((challenge, level))
+        if arm is None
+        else registry.arms.get((challenge, level, arm))
+    )
     if found is None:
-        raise VariantRefused(UNREGISTERED, f"{challenge} level {level}")
+        label = f"{challenge} level {level}" + ("" if arm is None else f" arm {arm}")
+        raise VariantRefused(UNREGISTERED, label)
     return check_base(found)
 
 
+def arm_of(found, registry=None):
+    """The arm a current variant is registered under; None for a level's own
+    variant (and for a variant that is not current)."""
+    registry = load() if registry is None else registry
+    for (_challenge, _level, arm), candidate in registry.arms.items():
+        if candidate.digest == found.digest:
+            return arm
+    return None
+
+
 def registered(digest, challenge=None):
-    """The current registered variant whose pinned digest is `digest` (and, when
-    named, whose Challenge is `challenge`), with a fresh base; else
-    `development_variant_unregistered`."""
-    for found in load().current.values():
+    """The current registered variant (a level's own, or a named arm) whose
+    pinned digest is `digest` (and, when named, whose Challenge is
+    `challenge`), with a fresh base; else `development_variant_unregistered`."""
+    registry = load()
+    for found in (*registry.current.values(), *registry.arms.values()):
         if found.digest == digest and challenge in (None, found.challenge):
             return check_base(found)
     raise VariantRefused(UNREGISTERED, str(digest)[:80])
@@ -535,20 +561,22 @@ def dev_records(challenge, root=None):
     return [json.loads((folder / n).read_text(encoding="utf-8")) for n in names]
 
 
-def newest_record(found, root=None):
-    """The newest development record that pins `found`, or None."""
+def newest_record(found, root=None, arm=None):
+    """The newest development record that pins `found` (for its level and
+    arm), or None. A level's own variant's records carry no arm."""
     for record in reversed(dev_records(found.challenge, root)):
-        if record.get("level") == found.level:
+        if record.get("level") == found.level and record.get("arm") == arm:
             return record if record.get("variant_digest") == found.digest else None
     return None
 
 
-def record_development(challenge, level, what, *, root=None, today=None):
-    """Append the current variant of (challenge, level) as the Challenge's next
-    development record, bound to the variant's digest and its base contract
-    record. Refused unless the variant is registered with a fresh base."""
-    found = variant(challenge, level)
-    if newest_record(found, root) is not None:
+def record_development(challenge, level, what, *, arm=None, root=None, today=None):
+    """Append the current variant of (challenge, level), or of its named arm,
+    as the Challenge's next development record, bound to the variant's digest
+    and its base contract record. Refused unless the variant is registered
+    with a fresh base."""
+    found = variant(challenge, level, arm)
+    if newest_record(found, root, arm) is not None:
         raise ValueError("nothing to record: this variant is already recorded")
     if type(what) is not str or len(what.strip()) < 20:
         raise ValueError("say what this development variant widens, and why")
@@ -572,6 +600,8 @@ def record_development(challenge, level, what, *, root=None, today=None):
         },
         "what": what.strip(),
     }
+    if arm is not None:
+        entry["arm"] = arm
     folder = _dev_folder(challenge, root)
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / f"{entry['sequence']:04d}.json"
@@ -633,20 +663,31 @@ def dev_problems(root=None):
 
 
 def dev_unrecorded(root=None):
-    """{(challenge, level): why} for every current variant no record pins."""
-    return {
-        key: "no development record pins the current variant"
-        for key, found in load().current.items()
-        if newest_record(found, root) is None
+    """{(challenge, level) or (challenge, level, arm): why} for every current
+    variant no record pins."""
+    registry = load()
+    why = "no development record pins the current variant"
+    found = {
+        key: why
+        for key, variant_ in registry.current.items()
+        if newest_record(variant_, root) is None
     }
+    found.update(
+        {
+            key: why
+            for key, variant_ in registry.arms.items()
+            if newest_record(variant_, root, key[2]) is None
+        }
+    )
+    return found
 
 
 def recorded_variant(found, root=None):
     """What a development run constructs under: the base contract record and
     the variant's own record, only if the newest development record for its
-    level pins it."""
+    level (and arm) pins it."""
     check_base(found)
-    record = newest_record(found, root)
+    record = newest_record(found, root, arm_of(found))
     if record is None:
         raise VariantRefused(UNRECORDED, f"{found.challenge} level {found.level}")
     return {
@@ -662,11 +703,22 @@ def recorded_variant(found, root=None):
 
 # -- the development-only compile path ------------------------------------------------
 #: Carbon's reconstruction of each widened capability, keyed by
-#: (challenge, capability id): `(value, admitted) -> JSON record` of what Carbon
-#: built for that value from the compiled base submission. A variant compiles
-#: only when every capability it widens has one (the reconstruction rule,
-#: OWNER-GRAPHITE-02). Empty until a real surface ships with its rebuild.
+#: (challenge, capability id): `(value, admitted, granted) -> JSON record` of
+#: what Carbon built for that value from the compiled base submission, under
+#: the variant's capabilities `granted`. A variant compiles only when every
+#: capability it widens has one (the reconstruction rule, OWNER-GRAPHITE-02).
+#: Battery's Level 1 registers its own (`carbon.battery.level1`) at import.
 RECONSTRUCTIONS = {}
+
+
+def _register_shipped_reconstructions():
+    from carbon.battery import level1
+
+    for key, build in level1.RECONSTRUCTIONS.items():
+        RECONSTRUCTIONS.setdefault(key, build)
+
+
+_register_shipped_reconstructions()
 
 
 @dataclass(frozen=True)
@@ -683,20 +735,25 @@ class CompiledDevelopment:
     level: int
     widened: dict
     reconstruction: dict
+    #: The capabilities a climb ablation left out (empty for a full compile).
+    without: tuple = ()
 
     @property
     def development(self):
         """The binding a built record carries beside the base fields."""
-        return {
+        binding = {
             "variant_digest": self.variant_digest,
             "level": self.level,
             "widened_digest": digest_of(
                 {"widened": self.widened, "reconstruction": self.reconstruction}
             ),
         }
+        if self.without:
+            binding["without"] = list(self.without)
+        return binding
 
 
-def compile_development(strategy, variant_):
+def compile_development(strategy, variant_, *, without=()):
     """Compile `strategy` under the registered development variant `variant_`.
 
     Development only: Graphite's experiment and pod phase call it when a
@@ -704,12 +761,22 @@ def compile_development(strategy, variant_):
     `challenge_contracts.compile_submission`, which refuses a variant digest.
     The widened parameters are checked against the variant's bounds; the rest
     compiles through `compile_submission` against the variant's base contract.
+
+    `without` names widened capabilities to leave out: the climb's
+    single-permission ablation (the expanded profile without one permission).
+    A field of a capability left out goes to the base contract, which refuses
+    it. Each reconstruction is called as `build(value, admitted, granted)`,
+    `granted` being the variant's capabilities that remain.
     Raises `VariantRefused`, or the base path's `SubmissionRefused` and
     `RecipeRejected`."""
     from carbon.reconstruction.challenge_contracts import compile_submission
 
     if type(variant_) is not DevContractVariant:
         raise TypeError("a DevContractVariant is required")
+    without = frozenset(without)
+    if not without <= set(variant_.permissions()):
+        raise VariantRefused(PARAMETER_REFUSED, "an ablation names another capability")
+    granted = frozenset(variant_.permissions()) - without
     if registered(variant_.digest, variant_.challenge) != variant_:
         raise VariantRefused(UNREGISTERED, variant_.version)
     if type(strategy) is not dict:
@@ -723,7 +790,9 @@ def compile_development(strategy, variant_):
     ]
     if missing:
         raise VariantRefused(RECONSTRUCTION_MISSING, ", ".join(missing))
-    fields = variant_.fields()
+    fields = {
+        name: w for name, w in variant_.fields().items() if w.capability_id in granted
+    }
     parameters = strategy.get("parameters")
     base, values = dict(strategy), {}
     if type(parameters) is dict:
@@ -745,7 +814,7 @@ def compile_development(strategy, variant_):
     for name in sorted(values):
         widened = fields[name]
         build = RECONSTRUCTIONS[(variant_.challenge, widened.capability_id)]
-        reconstruction[widened.capability_id] = build(values[name], admitted)
+        reconstruction[widened.capability_id] = build(values[name], admitted, granted)
     try:
         _canonical(values)
         _canonical(reconstruction)
@@ -760,6 +829,7 @@ def compile_development(strategy, variant_):
         level=variant_.level,
         widened=values,
         reconstruction=reconstruction,
+        without=tuple(sorted(without)),
     )
 
 
@@ -777,11 +847,11 @@ def built_record(strategy, variant_digest, seed, root=".", scoring=None):
     return scoring.built_from(compile_development(strategy, found), seed, root)
 
 
-def admit(scoring, strategy, seed, root, variant_):
+def admit(scoring, strategy, seed, root, variant_, *, without=()):
     """The development counterpart of `challenge_scoring.admit`: what Carbon
-    would build for `strategy` under `variant_`, with the base record's
-    sequence and the variant's binding. Raises `Unrebuildable` (never scored)
-    or `NotServed`."""
+    would build for `strategy` under `variant_` (less the capabilities a climb
+    ablation leaves out), with the base record's sequence and the variant's
+    binding. Raises `Unrebuildable` (never scored) or `NotServed`."""
     from carbon.challenge_validator import scoring as challenge_scoring
 
     if type(strategy) is not dict:
@@ -791,7 +861,7 @@ def admit(scoring, strategy, seed, root, variant_):
     try:
         recorded = recorded_variant(variant_)
         built, _files, _program = scoring.built_from(
-            compile_development(strategy, variant_), seed, root
+            compile_development(strategy, variant_, without=without), seed, root
         )
     except VariantRefused as refused:
         raise challenge_scoring.Unrebuildable(refused.code, refused.issues) from None
@@ -818,13 +888,17 @@ def main(argv=None) -> int:
     add.add_argument("--challenge", required=True, choices=sorted(CONTRACTS))
     add.add_argument("--level", required=True, type=int, choices=LEVELS)
     add.add_argument("--what", required=True)
+    add.add_argument("--arm", default=None, help="a named arm of the level")
     sub.add_parser("check", help="list unrecorded variants and malformed records")
     args = parser.parse_args(argv)
     if args.command == "record":
-        print(record_development(args.challenge, args.level, args.what))
+        print(record_development(args.challenge, args.level, args.what, arm=args.arm))
         return 0
     issues = [
-        f"{c} level {lvl}: {why}" for (c, lvl), why in dev_unrecorded().items()
+        f"{key[0]} level {key[1]}"
+        + (f" arm {key[2]}" if len(key) > 2 else "")
+        + f": {why}"
+        for key, why in dev_unrecorded().items()
     ] + dev_problems()
     print("\n".join(issues) if issues else "every development variant is recorded")
     return 1 if issues else 0

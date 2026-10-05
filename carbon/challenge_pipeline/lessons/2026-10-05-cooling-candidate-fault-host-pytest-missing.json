@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-host-pytest-missing",
+  "recorded_at": "2026-10-05T11:35:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "focused candidate-fault policy, validator and attacker tests",
+    "description": "Invoked the three focused CPU test modules with the available Windows Python launcher."
+  },
+  "expected": "The focused tests collect and exercise the registered policy end to end.",
+  "observed": "The launcher selected Visual Studio Python 3.9, which has no pytest installation, so no tests were collected.",
+  "keep": [
+    "Do not install or mutate the host interpreter for a repository test."
+  ],
+  "change": [
+    "Use the repository's existing Linux test environment from an LF-native checkout."
+  ],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_validator.cooling",
+    "graphite.attacker.cooling"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

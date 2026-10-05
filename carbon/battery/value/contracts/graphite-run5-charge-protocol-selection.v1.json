@@ -1,0 +1,495 @@
+{
+  "schema": "carbon.engineering-value-contract.v1",
+  "contract_id": "graphite-run5-battery-charge-protocol-selection",
+  "version": "1.0",
+  "status": "PROVISIONAL_DEVELOPMENT",
+  "challenge": {
+    "id": "battery-fastcharge-ageing-development-v1",
+    "version": "1.0"
+  },
+  "decision": {
+    "statement": "For each declared operating condition, select from a fixed grid of two-stage fast-charge protocols the one that reaches the constant-voltage phase soonest while meeting every constraint in that condition, or abstain if none qualifies.",
+    "intended_use": "Public synthetic DEVELOPMENT study (EV4): on a 100-member panel built to separate decision quality, does the proposed decision-aware rule rank real models by reference-verified decision quality better or worse than the deciding exam rule? Not a cell qualification, lifetime, warranty or safety claim.",
+    "adaptation": "one protocol per operating condition (each scenario holds exactly one condition)",
+    "claim_scope": "Charging speed is measured as time to constant-voltage onset (the voltage proxy below), not time to a target state of charge. The 30-cycle reference is not extrapolated to real-cell lifetime or safety.",
+    "changes_from_ev2": [
+      "fresh development and verification conditions, 12 each, none an EV1 or EV2 condition",
+      "a 100-member panel: EV2's 15 members plus 85 added (70 distinct recipes over MLP, DeepONet and kNN settings, and 15 second seeds)",
+      "pre-registered paired comparison H1: the bootstrap interval of the difference in Kendall tau-b between the proposed rule dar-p0-r100-a0 and the deciding rule control-exam-v1",
+      "pre-registered H3: the real-model blind spot (reference-verified false acceptances by eligible real members, and their rank under both rules)",
+      "reference solves and reconstructions on RunPod A40 pods under the owner's 2026-10-01 approval"
+    ],
+    "unchanged_from_ev2": "objective, constraints and thresholds, uncertainty bands, mistake costs, minimum useful improvement, baseline, tie rule, candidate grid, reference, models section, scoring candidates (every weight profile, decision-aware profile, component and aggregation), data scope, and the rule-selection rule"
+  },
+  "design_variables": {
+    "c1": {
+      "meaning": "first-stage constant-current rate, until 4.0 V",
+      "unit": "C",
+      "allowed": [
+        0.5,
+        0.75,
+        1.0,
+        1.25,
+        1.5,
+        1.75,
+        2.0
+      ]
+    },
+    "c2": {
+      "meaning": "second-stage constant-current rate, until 4.2 V",
+      "unit": "C",
+      "allowed": [
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ]
+    }
+  },
+  "operating_conditions": {
+    "variables": {
+      "t_amb_c": {
+        "meaning": "ambient and initial temperature",
+        "unit": "degC"
+      },
+      "soc0": {
+        "meaning": "initial state of charge",
+        "unit": "fraction"
+      }
+    },
+    "envelope": {
+      "t_amb_c": [
+        5.0,
+        40.0
+      ],
+      "soc0": [
+        0.05,
+        0.5
+      ]
+    },
+    "rule": "Conditions are fixed by the scenario; a selector cannot choose them."
+  },
+  "scenarios": {
+    "development": [
+      {
+        "id": "D-T5-S0.12",
+        "conditions": [
+          [
+            5.0,
+            0.12
+          ]
+        ]
+      },
+      {
+        "id": "D-T5-S0.33",
+        "conditions": [
+          [
+            5.0,
+            0.33
+          ]
+        ]
+      },
+      {
+        "id": "D-T5-S0.48",
+        "conditions": [
+          [
+            5.0,
+            0.48
+          ]
+        ]
+      },
+      {
+        "id": "D-T14-S0.12",
+        "conditions": [
+          [
+            14.0,
+            0.12
+          ]
+        ]
+      },
+      {
+        "id": "D-T14-S0.33",
+        "conditions": [
+          [
+            14.0,
+            0.33
+          ]
+        ]
+      },
+      {
+        "id": "D-T14-S0.48",
+        "conditions": [
+          [
+            14.0,
+            0.48
+          ]
+        ]
+      },
+      {
+        "id": "D-T24-S0.12",
+        "conditions": [
+          [
+            24.0,
+            0.12
+          ]
+        ]
+      },
+      {
+        "id": "D-T24-S0.33",
+        "conditions": [
+          [
+            24.0,
+            0.33
+          ]
+        ]
+      },
+      {
+        "id": "D-T24-S0.48",
+        "conditions": [
+          [
+            24.0,
+            0.48
+          ]
+        ]
+      },
+      {
+        "id": "D-T34-S0.12",
+        "conditions": [
+          [
+            34.0,
+            0.12
+          ]
+        ]
+      },
+      {
+        "id": "D-T34-S0.33",
+        "conditions": [
+          [
+            34.0,
+            0.33
+          ]
+        ]
+      },
+      {
+        "id": "D-T34-S0.48",
+        "conditions": [
+          [
+            34.0,
+            0.48
+          ]
+        ]
+      }
+    ],
+    "verification": [
+      {
+        "id": "V-T9-S0.06",
+        "conditions": [
+          [
+            9.0,
+            0.06
+          ]
+        ]
+      },
+      {
+        "id": "V-T9-S0.22",
+        "conditions": [
+          [
+            9.0,
+            0.22
+          ]
+        ]
+      },
+      {
+        "id": "V-T9-S0.40",
+        "conditions": [
+          [
+            9.0,
+            0.4
+          ]
+        ]
+      },
+      {
+        "id": "V-T19-S0.06",
+        "conditions": [
+          [
+            19.0,
+            0.06
+          ]
+        ]
+      },
+      {
+        "id": "V-T19-S0.22",
+        "conditions": [
+          [
+            19.0,
+            0.22
+          ]
+        ]
+      },
+      {
+        "id": "V-T19-S0.40",
+        "conditions": [
+          [
+            19.0,
+            0.4
+          ]
+        ]
+      },
+      {
+        "id": "V-T29-S0.06",
+        "conditions": [
+          [
+            29.0,
+            0.06
+          ]
+        ]
+      },
+      {
+        "id": "V-T29-S0.22",
+        "conditions": [
+          [
+            29.0,
+            0.22
+          ]
+        ]
+      },
+      {
+        "id": "V-T29-S0.40",
+        "conditions": [
+          [
+            29.0,
+            0.4
+          ]
+        ]
+      },
+      {
+        "id": "V-T38-S0.06",
+        "conditions": [
+          [
+            38.0,
+            0.06
+          ]
+        ]
+      },
+      {
+        "id": "V-T38-S0.22",
+        "conditions": [
+          [
+            38.0,
+            0.22
+          ]
+        ]
+      },
+      {
+        "id": "V-T38-S0.40",
+        "conditions": [
+          [
+            38.0,
+            0.4
+          ]
+        ]
+      }
+    ],
+    "condition_order": [
+      "t_amb_c",
+      "soc0"
+    ],
+    "rule": "Two interleaved 4 x 3 grids spanning the envelope, fixed before any EV4 solve; no condition repeats an EV1 or EV2 condition. A verification condition with no feasible protocol is reported as such, never replaced."
+  },
+  "objective": {
+    "name": "time_to_cv_onset",
+    "sense": "minimize",
+    "unit": "s",
+    "definition": "For the scenario's one condition, the time from charge start (the end of the reference's 120 s initial rest) to the first crossing of the terminal voltage above 4.19 V on the 30 s grid, by linear interpolation.",
+    "threshold_v": 4.19,
+    "charge_start_s": 120.0,
+    "window_s": 3600.0,
+    "unreached": "NOT_REACHED_IN_WINDOW: the protocol fails the reach constraint in that condition; its objective is undefined, never the window length."
+  },
+  "constraints": [
+    {
+      "id": "reach_cv_in_window",
+      "quantity": "time_to_cv_onset_s",
+      "rule": "reached within the window",
+      "unit": "s"
+    },
+    {
+      "id": "no_plating_onset",
+      "quantity": "plating_margin_v",
+      "rule": ">=",
+      "threshold": 0.0,
+      "unit": "V",
+      "meaning": "cycle-1 minimum plating overpotential stays non-negative"
+    },
+    {
+      "id": "peak_temperature",
+      "quantity": "peak_temperature_c",
+      "rule": "<=",
+      "threshold": 45.0,
+      "unit": "degC",
+      "meaning": "maximum volume-averaged temperature over the first hour"
+    }
+  ],
+  "preferences_status": "The thresholds, candidate grid, baseline, minimum useful improvement and mistake costs are provisional DEVELOPMENT engineering preferences. No customer declared them and none is commercially qualified.",
+  "minimum_useful_improvement_s": 120.0,
+  "mistake_costs": {
+    "unit": "multiples of the minimum useful improvement",
+    "false_acceptance": 10.0,
+    "missed_opportunity": 1.0,
+    "regret_per_minimum_useful_improvement": 1.0,
+    "status": "PROVISIONAL_DEVELOPMENT"
+  },
+  "baseline": {
+    "method": "fixed conservative default declared before any evaluation",
+    "protocol": {
+      "c1": 0.75,
+      "c2": 0.6
+    }
+  },
+  "tie_rule": "lowest predicted objective; exact ties broken by lower c1, then lower c2",
+  "reference": {
+    "generator": "carbon.battery.reference (PyBaMM 26.8.0.0, DFN, OKane2022, 30 cycles), pinned truth image and overlay lock",
+    "measurement_limitations": [
+      "voltage and temperature are kept only over the first 3600 s on a 30 s grid",
+      "no state-of-charge or current trajectory is recorded, so time to a target state of charge is not measurable",
+      "the plating margin is a cycle-1 minimum, not a lifetime plating measure"
+    ],
+    "uncertainty": {
+      "treatment": "a reference value within the band of a threshold is UNRESOLVED, never forced to pass or fail; a missing or failed reference is REFERENCE_UNAVAILABLE, never a candidate failure",
+      "basis": "maximum observed shift between standard and refined solves of the refined TRAIN cases (docs/development/evidence/exam-design-2026-09-24/refs-a-part*)",
+      "bands": {
+        "time_to_cv_onset_s": 3.15,
+        "plating_margin_v": 0.00197,
+        "peak_temperature_c": 0.157
+      }
+    }
+  },
+  "models": {
+    "training_data": "public TRAIN v1 only",
+    "reconstruction": "Carbon rebuilds each declared recipe with its declared seed through the battery construction contract",
+    "repetition": "reconstruction seeds are repetitions of one recipe, never separate model families",
+    "prediction_access": "models receive only design variables and operating conditions; reference answers are never visible to training or selection"
+  },
+  "scoring_candidates": {
+    "control": "carbon.battery.exam.v1 approved DEVELOPMENT rule: gates, then mean normalized case error",
+    "weight_profiles": [
+      {
+        "id": "p45-r30-a25",
+        "weights": {
+          "physics": 0.45,
+          "robustness": 0.3,
+          "accuracy": 0.25
+        }
+      },
+      {
+        "id": "p0-r30-a70",
+        "weights": {
+          "physics": 0.0,
+          "robustness": 0.3,
+          "accuracy": 0.7
+        }
+      },
+      {
+        "id": "p0-r20-a80",
+        "weights": {
+          "physics": 0.0,
+          "robustness": 0.2,
+          "accuracy": 0.8
+        },
+        "rationale": "sensitivity of p0-r30-a70"
+      },
+      {
+        "id": "p0-r40-a60",
+        "weights": {
+          "physics": 0.0,
+          "robustness": 0.4,
+          "accuracy": 0.6
+        },
+        "rationale": "sensitivity of p0-r30-a70"
+      }
+    ],
+    "components": {
+      "physics": "NOT_MEASURABLE for battery: no defensible physics measurement exists; the gates are mandatory checks, not a score",
+      "robustness": "1/(1+E_important): mean normalized case error over the published important region",
+      "accuracy": "1/(1+E): mean normalized case error over all scorable cases",
+      "decision_agreement": "1/(1 + mean cost per resolved constraint call) on the scoring set: for every case and every contract constraint, the model's PASS/FAIL call from its own predictions against the reference call with the contract's bands (UNRESOLVED references excluded); a false acceptance costs mistake_costs.false_acceptance, a false rejection mistake_costs.missed_opportunity"
+    },
+    "aggregation": "carbon.development-weight-profile.v1 weighted geometric mean; zero weights removed from ranking, gates kept",
+    "scoring_data": "retained exam-design private-role references (pscreen, pfinal, pverify), public since the campaign reveal",
+    "decision_aware_profiles": [
+      {
+        "id": "dar-p0-r100-a0",
+        "weights": {
+          "physics": 0.0,
+          "robustness": 1.0,
+          "accuracy": 0.0
+        },
+        "rationale": "decision agreement alone"
+      },
+      {
+        "id": "dar-p0-r30-a70",
+        "weights": {
+          "physics": 0.0,
+          "robustness": 0.3,
+          "accuracy": 0.7
+        },
+        "rationale": "EV1's p0-r30-a70 with the decision-aware robustness leg"
+      },
+      {
+        "id": "dar-p0-r50-a50",
+        "weights": {
+          "physics": 0.0,
+          "robustness": 0.5,
+          "accuracy": 0.5
+        },
+        "rationale": "sensitivity"
+      }
+    ]
+  },
+  "acceptance": {
+    "rule_selection": "on development scenarios, choose the profile whose model ranking has the highest Kendall tau with the decision-loss ranking; ties go to the control",
+    "verification": "freeze the chosen profile, then report its agreement on the verification scenarios; revising after inspecting them makes them development evidence",
+    "success_condition": "Carbon can compare several models on the same engineering decision and show whether its scoring prefers models that select better reference-verified designs",
+    "hypotheses": {
+      "H1": "Primary, paired: delta_tau = tau(dar-p0-r100-a0) - tau(control-exam-v1). Each tau is Kendall tau-b between the rule's ranking of the eligible reconstructed members and their decision-loss ranking on the 12 verification conditions. 95 % paired bootstrap interval, resampling members and conditions jointly, B = 10000, RNG seed 20261001. An interval that excludes 0 decides H1 in the direction of its sign; otherwise H1 is UNRESOLVED, never 'no difference'.",
+      "H2": "As EV2: dar-p0-r100-a0 scores the labelled boundary-optimist control below every eligible reconstructed member. Reported for every rule.",
+      "H3": "The real-model blind spot: the number of eligible reconstructed members that commit a reference-verified false acceptance (a selected protocol verified INFEASIBLE) on any verification condition, and each such member's rank under both rules.",
+      "continuity": "EV2's rule-selection procedure is kept: the development-chosen rule and its verification tau are reported.",
+      "interpretation": "H2 shows sensitivity to one constructed failure mode, not that the component catches every unsafe model. No outcome changes the testnet rule; a change needs its own prospective decision."
+    },
+    "paired_comparison": {
+      "hypothesis": "H1",
+      "proposed_rule": "dar-p0-r100-a0",
+      "deciding_rule": "control-exam-v1",
+      "split": "verification",
+      "pool": "eligible reconstructed members",
+      "statistic": "kendall_tau_b(proposed) - kendall_tau_b(deciding)",
+      "interval": "percentile",
+      "level": 0.95,
+      "resample": "members and conditions jointly, with replacement",
+      "replicates": 10000,
+      "rng": "numpy.random.default_rng (PCG64)",
+      "rng_seed": 20261001,
+      "decision": "an interval excluding 0 decides H1 in its sign's direction; otherwise UNRESOLVED"
+    }
+  },
+  "budgets": {
+    "reference_solves_max": 840,
+    "reconstructions_max": 100,
+    "compute": "RunPod A40 (<= USD 0.49/h), shared cap USD 15 with the Problem-C optimizer"
+  },
+  "data_scope": {
+    "classification": "PUBLIC_SYNTHETIC",
+    "permitted_use": "public DEVELOPMENT evidence; no client material; client studies require the private execution route"
+  },
+  "authority": {
+    "record": "Test Lead's delegated approval, 2026-10-05, under OWNER-GRAPHITE-TEST-WAVE-01: the first Q1 score-to-value test on Graphite run 5's constructions; CPU only on the operator host, no spend; EV4's committed development references (previously used), no new solves. The decision definition is EV4's, unchanged.",
+    "chain": false,
+    "reward": false,
+    "changes_testnet_rule": false,
+    "qualification": false
+  },
+  "case_prefix": "ev4",
+  "panel": "graphite-run5"
+}

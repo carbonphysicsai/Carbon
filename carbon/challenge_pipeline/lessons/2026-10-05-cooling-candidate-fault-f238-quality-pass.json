@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-f238-quality-pass",
+  "recorded_at": "2026-10-05T13:02:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "exact commit f238b23e focused Ruff and Black",
+    "description": "Ran quality checks on all eight changed Python source and test files in the LF-native exact tree."
+  },
+  "expected": "No Ruff findings and no Black changes remain.",
+  "observed": "Ruff passed; Black would leave all eight files unchanged.",
+  "keep": [
+    "Retain exact-tree quality evidence before PR handoff."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "quality_gate"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

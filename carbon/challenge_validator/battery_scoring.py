@@ -127,6 +127,20 @@ class BatteryScoring(ChallengeScoring):
         recipe = admitted.construction
         plan = admitted.compiled.construction_plan
         files = staged_files(root, PracticeSet.load(root), recipe, seed)
+        program = GPU_PROGRAM
+        development = getattr(admitted, "development", None)
+        loss = None
+        if development is not None:
+            # A Level-1 loss expression (Graphite only) is staged with its
+            # operation set and trained by the Level-1 program.
+            from carbon.battery import level1_worker
+
+            loss = level1_worker.expression_record(
+                getattr(admitted, "reconstruction", None)
+            )
+            if loss is not None:
+                files = {**files, **level1_worker.staged(loss)}
+                program = level1_worker.program()
         record = {
             "schema": BUILT_SCHEMA,
             "challenge": recipe.document()["challenge"],
@@ -136,15 +150,18 @@ class BatteryScoring(ChallengeScoring):
             "strategy_hash": plan.strategy_hash.value,
             "plan_digest": plan.to_ref().content_digest,
             "staged": {name: digest(body) for name, body in sorted(files.items())},
-            "program": digest(GPU_PROGRAM.encode()),
+            "program": digest(program.encode()),
             "seed": seed,
         }
-        development = getattr(admitted, "development", None)
         if development is not None:
             # A development construction (Graphite only) carries its variant
             # binding beside the base fields; a Level 0 record never does.
             record["development"] = development
-        return record, files, GPU_PROGRAM
+        if loss is not None:
+            # Until GPU identity is measured (Test Lead Q6), a Level-1 result
+            # says its rebuild is verified on CPU only.
+            record["rebuild"] = level1_worker.REBUILD_LABEL
+        return record, files, program
 
     def refusal(self, error):
         from carbon.development_session.research_catalog import RecipeRejected

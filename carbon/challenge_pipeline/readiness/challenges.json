@@ -1,0 +1,17 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-challenges.v1",
+ "rule": "Per-challenge component wiring for the readiness runner. The runner names no challenge; a component a challenge lacks is absent here and its item reports the gap. `tests` maps an item id to repository-relative pytest targets that really cover that item for this challenge.",
+ "challenges": {
+  "battery-fastcharge-ageing-development-v1": {
+   "validator_adapter": "carbon.challenge_validator.battery:BatteryAdapter",
+   "tests": {}
+  },
+  "chip-cold-plate": {
+   "validator_adapter": "carbon.challenge_validator.cooling:CoolingAdapter",
+   "tests": {}
+  },
+  "electric-motor-magnetics": {
+   "tests": {}
+  }
+ }
+}

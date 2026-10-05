@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-validator-11-carrier-lane-policy",
+  "recorded_at": "2026-10-05T18:00:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-11, branch claude/carrier-lane-policy, from main 506979c4d. Native: the carrier lane and lane policy suites, 26 passed. Canonical results are recorded in the PR.",
+    "description": "The CPU carrier lane's levels, deadline margin, price, attribution and environment probe became one registered, digest-pinned policy (carrier-lane-v1) that the lane refuses to run without, with a read-only environment check for the readiness gate."
+  },
+  "expected": "The lane's constants in code were enough to describe it.",
+  "observed": "A readiness gate needs to cite a lane's properties by a registered id and digest, the way it cites the attribution policy. Constants in code cannot be cited or pinned. The probe also showed that 'image present' has three honest values: the host doctor stops before inspecting the image when the host itself is ineligible, so presence is unknown there, not false.",
+  "keep": [
+    "Register any compute lane's declared properties as a pinned document, and have the lane verify its code against it at start.",
+    "Report a probe's unknowns as unknown rather than folding them into false."
+  ],
+  "change": [
+    "Register a new lane's policy in the same PR as the lane."
+  ],
+  "protocol_elements": [
+    "every compute lane runs under a registered, digest-pinned policy recorded on each run"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

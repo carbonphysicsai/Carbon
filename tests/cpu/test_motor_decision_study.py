@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import shutil
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -21,6 +22,19 @@ FIXTURE = (
     / "development"
     / "evidence"
     / "motor-decision-construction-fixture-v1"
+)
+#: V2 changes only the study identity; it exists because V1's importer refused
+#: successful runs with empty solver logs (OWNER-MOTOR-COUNTED-ADOPT-01). V1 and
+#: its fixture remain the historical record.
+CONFIG_V2 = (
+    REPOSITORY / "docs" / "development" / "studies" / "MOTOR_SYNTHETIC_DECISION_V2.json"
+)
+FIXTURE_V2 = (
+    REPOSITORY
+    / "docs"
+    / "development"
+    / "evidence"
+    / "motor-decision-construction-fixture-v2"
 )
 
 
@@ -51,14 +65,14 @@ def test_the_motor_study_is_exactly_the_owner_supplied_scenario():
 
 
 def test_committed_fixture_matches_current_freeze_and_stays_non_counted():
-    config = decision_study.load_config(CONFIG, repository=REPOSITORY)
+    config = decision_study.load_config(CONFIG_V2, repository=REPOSITORY)
     freeze, construction, _reconstruction, restored = decision_study.load_construction(
         config,
         repository=REPOSITORY,
-        directory=FIXTURE / "construction",
+        directory=FIXTURE_V2 / "construction",
     )
     result = json.loads(
-        (FIXTURE / "evaluation" / "result.json").read_text(encoding="utf-8")
+        (FIXTURE_V2 / "evaluation" / "result.json").read_text(encoding="utf-8")
     )
     assert freeze == decision_study.build_freeze(config, repository=REPOSITORY)
     assert len(restored) == 4
@@ -419,3 +433,152 @@ def test_fully_resolved_set_supports_exact_finite_regret():
     )
     assert result["status"] == "DEFINED_FINITE_SET"
     assert result["value_fraction"] == pytest.approx(0.1)
+
+
+def test_v2_differs_from_v1_only_in_study_identity():
+    v1 = decision_study.load_config(CONFIG, repository=REPOSITORY)
+    v2 = decision_study.load_config(CONFIG_V2, repository=REPOSITORY)
+    assert v2["study_id"] == "motor-synthetic-decision-v2"
+    assert {k: v for k, v in v1.items() if k != "study_id"} == {
+        k: v for k, v in v2.items() if k != "study_id"
+    }
+    assert decision_study.study_config_path(v2["study_id"]) == (
+        CONFIG_V2.relative_to(REPOSITORY).as_posix()
+    )
+
+
+@pytest.mark.parametrize("study_id", ["motor-synthetic-decision", "x-v2", 2])
+def test_an_unregistered_study_id_is_refused(tmp_path, study_id):
+    config = json.loads(CONFIG_V2.read_text(encoding="utf-8"))
+    config["study_id"] = study_id
+    path = tmp_path / "changed.json"
+    path.write_text(json.dumps(config), encoding="utf-8")
+    with pytest.raises(decision_study.StudyError, match="config_identity"):
+        decision_study.load_config(path, repository=REPOSITORY)
+
+
+def test_v1_fixture_remains_a_consistent_historical_record():
+    _freeze, construction = decision_study._historical_construction(
+        FIXTURE / "construction"
+    )
+    assert construction["study_id"] == "motor-synthetic-decision-v1"
+    assert construction["construction_identity_digest"] == (
+        "sha256:81e76d3997d47be89abf3c1c63da4415cc492cfb24c921238df6f1c1c78ac0fc"
+    )
+
+
+def _ok_case(directory, *, logs="", torque_files=61):
+    directory.mkdir(parents=True)
+    for name in ("params.json", "machine.pro", "mesh.py"):
+        (directory / name).write_text("x", encoding="utf-8")
+    mesh = {"elements": 10, "nodes": 6}
+    (directory / "mesh.json").write_text(
+        json.dumps({"steps": {"0": mesh}}), encoding="utf-8"
+    )
+    for name in ("log.mesh", "log.getdp"):
+        if logs is not None:
+            (directory / name).write_text(logs, encoding="utf-8")
+    (directory / "res").mkdir()
+    for k in range(torque_files):
+        (directory / "res" / f"torque_{k}.txt").write_text("1.0", encoding="utf-8")
+    return {"run": "exit 0", "checks": {"not_converged": 0}, "mesh": mesh}
+
+
+def test_empty_solver_logs_do_not_invalidate_a_successful_case(tmp_path):
+    record = _ok_case(tmp_path / "case")
+    assert decision_study._ok_case_artifacts_valid(tmp_path / "case", record)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        "missing_logs",
+        "short_torque",
+        "empty_torque",
+        "bad_exit",
+        "not_converged",
+        "mesh_mismatch",
+        "empty_params",
+    ],
+)
+def test_case_artifact_rule_still_refuses_unsupported_evidence(tmp_path, change):
+    case = tmp_path / "case"
+    if change == "missing_logs":
+        record = _ok_case(case, logs=None)
+    elif change == "short_torque":
+        record = _ok_case(case, torque_files=60)
+    else:
+        record = _ok_case(case)
+    if change == "empty_torque":
+        (case / "res" / "torque_0.txt").write_text("", encoding="utf-8")
+    elif change == "bad_exit":
+        record["run"] = "exit 1"
+    elif change == "not_converged":
+        record["checks"]["not_converged"] = 1
+    elif change == "mesh_mismatch":
+        record["mesh"] = {"elements": 11, "nodes": 6}
+    elif change == "empty_params":
+        (case / "params.json").write_text("", encoding="utf-8")
+    assert not decision_study._ok_case_artifacts_valid(case, record)
+
+
+def test_v2_construction_decides_exactly_what_v1_sealed(tmp_path):
+    v1 = decision_study.load_config(CONFIG, repository=REPOSITORY)
+    v2 = decision_study.load_config(CONFIG_V2, repository=REPOSITORY)
+    _, predecessor = decision_study._historical_construction(FIXTURE / "construction")
+    _, construction, _, _ = decision_study.load_construction(
+        v2, repository=REPOSITORY, directory=FIXTURE_V2 / "construction"
+    )
+    fields = decision_study.adoption_check(v2, construction, v1, predecessor)
+    assert "selection" in fields and "predicted_conditions" in fields
+    with pytest.raises(decision_study.StudyError, match="needs_a_predecessor"):
+        decision_study.adoption_check(v2, construction, v2, predecessor)
+    changed = copy.deepcopy(predecessor)
+    changed["arms"][0]["selection"] = {"design_id": "elsewhere"}
+    with pytest.raises(decision_study.StudyError, match="adopted_decisions_differ"):
+        decision_study.adoption_check(v2, construction, v1, changed)
+    other = copy.deepcopy(v1)
+    other["budgets"]["retry_reserve"] = 11
+    with pytest.raises(decision_study.StudyError, match="differ_beyond_identity"):
+        decision_study.adoption_check(v2, construction, other, predecessor)
+
+
+def test_an_altered_predecessor_commitment_is_refused(tmp_path):
+    copy_dir = tmp_path / "construction"
+    shutil.copytree(FIXTURE / "construction", copy_dir)
+    commitment = next(copy_dir.rglob("*.commitment.json"))
+    commitment.write_text(
+        commitment.read_text(encoding="utf-8") + " ", encoding="utf-8"
+    )
+    with pytest.raises(decision_study.StudyError, match="predecessor_commitment"):
+        decision_study._historical_construction(copy_dir)
+
+
+def test_committed_counted_v2_evidence_is_bound_and_consistent():
+    counted = REPOSITORY / "docs/development/evidence/motor-decision-counted-v2"
+    config = decision_study.load_config(CONFIG_V2, repository=REPOSITORY)
+    _, construction, _, restored = decision_study.load_construction(
+        config, repository=REPOSITORY, directory=counted / "construction"
+    )
+    fixture = json.loads(
+        (FIXTURE_V2 / "construction" / "construction.json").read_text(encoding="utf-8")
+    )
+    assert construction["construction_identity_digest"] == (
+        fixture["construction_identity_digest"]
+    )
+    result = json.loads((counted / "evaluation/result.json").read_text("utf-8"))
+    adoption = json.loads((counted / "adoption.json").read_text("utf-8"))
+    completion = json.loads((counted / "completion.json").read_text("utf-8"))
+    identity = construction["construction_identity_digest"]
+    assert result["construction_identity_digest"] == identity
+    assert result["evidence_class"] == "COUNTED_GETDP"
+    assert result["cost"]["reference_executions"] == 48
+    assert result["comparator"]["status"] == "COMPLETE_FINITE_SET"
+    body = {k: v for k, v in adoption.items() if k != "adoption_digest"}
+    assert adoption["adoption_digest"] == decision_study.experiment.digest(body)
+    assert adoption["construction_identity_digest"] == identity
+    assert adoption["predecessor_construction_identity_digest"] == (
+        completion["campaign"]["construction_identity_digest"]
+    )
+    assert completion["campaign"]["status_counts"] == {"OK": 48}
+    assert len(restored) == 4
