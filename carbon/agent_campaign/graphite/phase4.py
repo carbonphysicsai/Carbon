@@ -1,12 +1,12 @@
 """Graphite phase 4: the Attacker session driver for the general attack engine.
 
-    python -m carbon.agent_campaign.graphite.phase4 run --root DIR --dry-run
-        [--challenge TOKEN]
+    python -m carbon.agent_campaign.graphite.phase4 run --root DIR --dry-run \
+        --challenge TOKEN
     python -m carbon.agent_campaign.graphite.phase4 run --root DIR \
         --grant docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json \
         --credential-file PATH \
         --miner-profile PROFILE.json --miner-campaign ID [--session N] \
-        [--challenge TOKEN]
+        --challenge TOKEN
     python -m carbon.agent_campaign.graphite.phase4 cancel --root DIR --session N
     python -m carbon.agent_campaign.graphite.phase4 status --root DIR [--dry-run]
     python -m carbon.agent_campaign.graphite.phase4 log --root DIR [--dry-run]
@@ -120,10 +120,10 @@ GRANT_ID = "GRAPHITE-GRANT-PHASE4"
 GRANT_FILE = "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json"
 #: The pipeline stage an Attacker campaign runs at.
 STAGE = "test_iterate"
-#: The Challenge and construction level the CLI attacks by default (battery
-#: Level 0, the first adapter); `--challenge` names another registered one.
-BATTERY_CHALLENGE = "battery-fastcharge-ageing-development-v1"
-BATTERY_LEVEL = 0
+#: Graphite's current attack wave exercises registered Level 0 adapters. The
+#: Challenge is always an explicit CLI input; the neutral driver never
+#: substitutes another Challenge's identity.
+CONSTRUCTION_LEVEL = 0
 #: The grant's worst case budgets this many verify pods (grants/README.md);
 #: the pods' share stays reserved while Carbon's verify-pod rebuild is a seam.
 #: Money binds, not this count.
@@ -1147,8 +1147,8 @@ def _store(root, dry_run):
 
 def command_run(args):
     atk = attack_modules()
-    challenge = args.challenge or BATTERY_CHALLENGE
-    adapter = get_adapter(atk, challenge, BATTERY_LEVEL)
+    challenge = args.challenge
+    adapter = get_adapter(atk, challenge, CONSTRUCTION_LEVEL)
     from carbon.challenge_validator import scoring as challenge_scoring
 
     try:
@@ -1407,10 +1407,10 @@ def dry_run(root, adapter, atk, *, miner_tools=None, scoring=None):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="graphite.phase4")
     sub = parser.add_subparsers(dest="command", required=True)
-    challenge_help = "the Challenge's contract token (default: battery Level 0)"
+    challenge_help = "the registered Level 0 Challenge's contract token"
     run = sub.add_parser("run")
     run.add_argument("--root", required=True)
-    run.add_argument("--challenge", help=challenge_help)
+    run.add_argument("--challenge", required=True, help=challenge_help)
     run.add_argument("--dry-run", action="store_true")
     run.add_argument("--grant")
     run.add_argument(

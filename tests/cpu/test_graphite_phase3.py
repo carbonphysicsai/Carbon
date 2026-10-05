@@ -1909,6 +1909,20 @@ def test_the_dry_run_exercises_the_whole_session_without_spend(tmp_path, capsys)
     assert real["status"] == "OK" and real["failures"] == []
     assert real["off_caller_thread"] and real["creates"] == real["launches"] == 2
     assert real["network"] is False and real["pods_alive"] == []
+    # And the R2 run-4 fixes (GRAPHITE-POD-LOGS-RETRY-01): a pod exiting
+    # non-zero keeps its logs, bounded; a baseline failing as infrastructure
+    # is retried once, scores and is compared against.
+    failure = result["dry_run"]["pod_failure_path"]
+    assert failure["status"] == "OK" and failure["failures"] == []
+    assert failure["baseline_retry"]["retry"] is True
+    assert failure["baseline_retry"]["retry_status"] == "SCORED"
+    assert failure["compared"]["baseline"] == "baseline-retry-1"
+    assert failure["failed_pod"]["logs"][0]["truncated_bytes"] > 0
+    # A baseline whose program exits 1 (CANDIDATE_FAILED at Level 0) is also
+    # retried once and scores (owner, 2026-10-04).
+    crash = failure["baseline_crash_retry"]
+    assert crash["baseline"]["status"] == "CANDIDATE_FAILED"
+    assert (crash["retry"], crash["retry_status"]) == (True, "SCORED")
     # Its first turn returns three calls: under v2 all three run (LP-PROD-A).
     assert result["dry_run"]["parallel_calls_run"] == 3
     assert result["dry_run"]["parallel_calls_not_run"] == 0

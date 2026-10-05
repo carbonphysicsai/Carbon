@@ -34,10 +34,11 @@ from carbon.agent_campaign.graphite.roles import ROLES, RoleName
 from carbon.agent_campaign.provider import ProviderUnavailable, TaskSpec
 from carbon.challenge_validator import scoring as challenge_scoring
 from carbon.development_session.research_tools import PREFIX
+from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 GRANT_FILE = REPOSITORY / phase4.GRANT_FILE
-CID = phase4.BATTERY_CHALLENGE
+CID = BATTERY_CHALLENGE
 SCORING = challenge_scoring.scoring_for(CID)
 ENGINE = importlib.util.find_spec("carbon.agent_campaign.attack") is not None
 needs_engine = pytest.mark.skipif(
@@ -171,7 +172,16 @@ def test_the_dry_run_session_has_no_call_cap_and_freezes_the_attackers_limits(
     monkeypatch.setattr(phase4, "attack_modules", lambda: stand_in_modules(adapter))
     out = io.StringIO()
     with redirect_stdout(out):
-        code = phase4.main(["run", "--root", str(tmp_path / "root"), "--dry-run"])
+        code = phase4.main(
+            [
+                "run",
+                "--root",
+                str(tmp_path / "root"),
+                "--challenge",
+                CID,
+                "--dry-run",
+            ]
+        )
     assert code == 0
     assert "max_provider_calls" not in seen["kwargs"]
     limits = seen["opened"]["session_limits"]
@@ -395,12 +405,26 @@ def test_the_store_outcome_is_never_a_hold_for_what_was_not_judged(verdict, outc
 
 
 # -- the runner ----------------------------------------------------------------------------
+def test_run_requires_an_explicit_challenge(tmp_path, capsys):
+    """The neutral runner never falls back to Battery when selection is absent."""
+    with pytest.raises(SystemExit) as stopped:
+        phase4.main(["run", "--root", str(tmp_path / "r"), "--dry-run"])
+    assert stopped.value.code == 2
+    error = capsys.readouterr().err
+    assert "--challenge" in error and "required" in error
+
+
 def test_the_live_run_requires_the_phase4_grant_and_credentials(
     capsys, tmp_path, monkeypatch
 ):
     modules = stand_in_modules(StandIn())
     monkeypatch.setattr(phase4, "attack_modules", lambda: modules)
-    code = _refusal(capsys, lambda: phase4.main(["run", "--root", str(tmp_path / "r")]))
+    code = _refusal(
+        capsys,
+        lambda: phase4.main(
+            ["run", "--root", str(tmp_path / "r"), "--challenge", CID]
+        ),
+    )
     assert code.startswith("required: --grant")
     other = tmp_path / "other-grant.json"
     other.write_text(
@@ -415,6 +439,8 @@ def test_the_live_run_requires_the_phase4_grant_and_credentials(
         "run",
         "--root",
         str(tmp_path / "r"),
+        "--challenge",
+        CID,
         "--grant",
         str(other),
         "--credential-file",
@@ -902,6 +928,8 @@ def test_a_tampered_copy_of_the_committed_grant_is_refused(
             "run",
             "--root",
             str(tmp_path / "r"),
+            "--challenge",
+            CID,
             "--grant",
             str(tampered),
             "--credential-file",
@@ -919,7 +947,16 @@ def test_a_tampered_copy_of_the_committed_grant_is_refused(
 def test_the_battery_dry_run_produces_coverage_and_b2_with_no_spend(tmp_path):
     out = io.StringIO()
     with redirect_stdout(out):
-        code = phase4.main(["run", "--root", str(tmp_path / "root"), "--dry-run"])
+        code = phase4.main(
+            [
+                "run",
+                "--root",
+                str(tmp_path / "root"),
+                "--challenge",
+                CID,
+                "--dry-run",
+            ]
+        )
     assert code == 0
     body = out.getvalue()
     printed = json.loads(body[body.index('{\n "coverage"') :])

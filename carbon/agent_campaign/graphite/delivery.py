@@ -156,9 +156,18 @@ def deliver(experiment, directory, *, selection=None, proposals=()):
     expected = json.loads(
         (experiment.root / "proposals" / pid / "expected.json").read_bytes()
     )
-    baseline_record = experiment.record("baseline")
-    involved = {pid, "baseline"} | {r.get("proposal_id") for r in results}
-    log = [row for row in experiment.ledger.rows() if row.get("proposal") in involved]
+    # The session's baseline: its retry when the first did not score
+    # (`baseline_retry`); the run log carries both.
+    baseline_id = experiment.baseline_id()
+    baseline_record = experiment.record(baseline_id)
+    involved = {pid, "baseline", baseline_id} | {r.get("proposal_id") for r in results}
+    # Kept pod logs are operator evidence only (`pod_logs`): not even their
+    # index rows enter a bundle.
+    log = [
+        row
+        for row in experiment.ledger.rows()
+        if row.get("proposal") in involved and row.get("event") != "pod_logs_kept"
+    ]
     bodies = {
         "strategy.json": canonical(proposal),
         "recipe.json": canonical(expected),
