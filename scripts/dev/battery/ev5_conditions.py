@@ -15,7 +15,7 @@ script never writes to a campaign store.
   a reference-verified violation that ranks in the top half (one condition
   per member, its findings counted by band).
 - GATE_ANOMALY `GATE_DOES_NOT_SEPARATE_DECISION_VALUE`: H2 does not hold.
-- SCORE_VALUE_DIVERGENCE `KNOWN_BLIND_SPOT_UNCAUGHT`: H3's sign-error control
+- OTHER_SIGNAL `KNOWN_BLIND_SPOT_UNCAUGHT`: H3's sign-error control
   is caught by no rule (only the descriptive measurement separates it).
 """
 
@@ -125,7 +125,7 @@ def report(root=ROOT):
     if not h3["caught"]["by_rule"] and not h3["caught"]["by_gate"]:
         conditions.append(
             _condition(
-                "SCORE_VALUE_DIVERGENCE",
+                "OTHER_SIGNAL",
                 "control-localized_sign_error",
                 "KNOWN_BLIND_SPOT_UNCAUGHT",
                 {
@@ -153,8 +153,14 @@ def report(root=ROOT):
 
 
 def main():
+    from carbon.challenge_readiness.admission import CONDITIONS
+
     out = ROOT / EVIDENCE / "conditions.json"
     document = report()
+    # Only the admission vocabulary; the specific label is the `kind` subtype.
+    unknown = sorted({c["condition"] for c in document["conditions"]} - CONDITIONS)
+    if unknown:
+        raise SystemExit(f"refusing: conditions outside the vocabulary: {unknown}")
     out.write_text(json.dumps(document, indent=2, sort_keys=True) + "\n")
     print(
         json.dumps(

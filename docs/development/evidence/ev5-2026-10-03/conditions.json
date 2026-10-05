@@ -198,7 +198,7 @@
     },
     {
       "basis": "analysis.json value.H3",
-      "condition": "SCORE_VALUE_DIVERGENCE",
+      "condition": "OTHER_SIGNAL",
       "detail": {
         "near_limit_false_acceptance": 0.9459459459459459,
         "ranks": {
