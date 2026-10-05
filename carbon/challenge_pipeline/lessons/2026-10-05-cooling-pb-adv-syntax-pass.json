@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-syntax-pass",
+  "recorded_at": "2026-10-05T08:41:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 first implementation syntax check",
+    "description": "Compiled the changed Cooling customer-decision module and its focused test module with the available bundled Python interpreter."
+  },
+  "expected": "The additive PB-ADV mode dispatch, selection, commitment and tests would be syntactically valid Python.",
+  "observed": "Both changed Python modules compiled successfully with no syntax error. This is noncanonical diagnostic evidence and does not replace pytest or repository CI.",
+  "keep": [
+    "Keep the PB-ADV implementation local to Cooling's adapter and reuse the shared design-search method registry."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

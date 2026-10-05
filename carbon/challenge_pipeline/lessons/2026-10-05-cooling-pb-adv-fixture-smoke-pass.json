@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-fixture-smoke-pass",
+  "recorded_at": "2026-10-05T08:42:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "optimizer_pilot",
+    "ref": "CHALLENGE-AI-COOLING-09 noncanonical analytical fixture smoke",
+    "description": "Ran Cooling PB-ADV over a four-design by two-condition analytical fixture with K=2 through both the fixed-grid baseline and the registered challenge-neutral coarse-to-fine method."
+  },
+  "expected": "Both methods would serve PB-ADV without the former pb_adv_not_served error and would return at most K exact point proposals with binding-constraint evidence.",
+  "observed": "Both methods returned two point proposals after eight attempted model evaluations, and every fixed-grid proposal carried its recomputable binding constraint. No reference campaign or paid compute ran.",
+  "keep": [
+    "Use the same SearchAdapter and registered method implementation for Cooling Mode X rather than adding a Cooling branch to shared search code.",
+    "Keep K request-bound and explicit."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.design-search"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

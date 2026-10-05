@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-fixture-reconstruction",
+  "recorded_at": "2026-10-05T08:48:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "optimizer_pilot",
+    "ref": "CHALLENGE-AI-COOLING-09 analytical fixture reconstruction",
+    "description": "Reconstructed both existing models and executed the unchanged four-arm PB-INV analytical fixture construction into a new temporary directory, without any reference object or counted evidence access."
+  },
+  "expected": "The unchanged study configuration would persist all four commitments or abstentions before reference access while pinning the additive PB-ADV-capable code identity.",
+  "observed": "Construction completed with state ALL_ARMS_COMMITTED_BEFORE_REFERENCE and identity sha256:cd458908c9de0da3c90e7a03e3aab019cad15119738bc5902e435f782f64c996. No CFD, private evidence or paid compute was accessed."
+  ,
+  "keep": [
+    "Regenerate analytical fixture construction whenever a freeze-pinned implementation file changes, while leaving counted evidence immutable.",
+    "Keep construction complete before any reference session is created."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.reference-custody"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

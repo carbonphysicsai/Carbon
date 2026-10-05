@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-git-bash-root-mismatch",
+  "recorded_at": "2026-10-05T08:36:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 baseline canonical attempt 3",
+    "description": "Invoked the canonical wrapper through Git Bash after both WSL launch routes were unavailable."
+  },
+  "expected": "Git Bash would identify the managed worktree as the Carbon root and launch the pinned container.",
+  "observed": "The invocation stopped at the wrapper root-identity guard because MSYS and Git reported the worktree in different path forms; no test was collected or executed.",
+  "keep": [
+    "Preserve the wrapper's repository-root guard rather than weakening it for one host."
+  ],
+  "change": [
+    "Use native execution only as explicitly noncanonical diagnostic evidence here and require the normal GitHub canonical lanes before delivery."
+  ],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

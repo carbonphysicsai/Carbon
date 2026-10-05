@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-ruff-pass",
+  "recorded_at": "2026-10-05T08:57:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 focused Ruff check",
+    "description": "Ran Ruff against the changed Cooling customer-decision implementation and its focused regression module."
+  },
+  "expected": "The PB-ADV implementation and tests would introduce no focused Ruff violation."
+  ,
+  "observed": "Ruff reported All checks passed for both changed Python files."
+  ,
+  "keep": [
+    "Keep the Challenge-specific mechanism small enough for strict focused lint."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

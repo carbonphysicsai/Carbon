@@ -36,6 +36,7 @@ CHALLENGE = "chip-cold-plate"
 SCOPE = "periodic-straight-channel-cell-v1"
 MATERIAL = "DEVELOPMENT"
 MODE = "PB-INV"
+PB_ADV_MODE = "PB-ADV"
 
 CONTRACT_SCHEMA = "carbon.cold-plate.customer-decision-contract.v2"
 REQUEST_SCHEMA = "carbon.cold-plate.design-search-request.v2"
@@ -55,7 +56,7 @@ CONDITION_VARIABLES = (
     "hotspot_center_mm",
     "hotspot_width_mm",
 )
-MODES = (MODE,)
+MODES = (MODE, PB_ADV_MODE)
 VERDICTS = ("FEASIBLE", "INFEASIBLE", "REFERENCE_UNAVAILABLE")
 PROPOSAL_OUTCOMES = (
     "CONFIRMED_INFEASIBLE",
@@ -92,6 +93,13 @@ TIE_POLICY = (
     "ties use channel_width_mm, fin_width_mm, channel_depth_mm, then "
     "flow_lpm_per_kw"
 )
+PB_ADV_TIE_POLICY = (
+    "smallest supplied-limit-normalized predicted constraint margin among "
+    "predicted-feasible points; exact ties use channel_width_mm, fin_width_mm, "
+    "channel_depth_mm, flow_lpm_per_kw, then inlet_c, heat_load_w, "
+    "hotspot_ratio, hotspot_center_mm, hotspot_width_mm"
+)
+SEARCH_TIE_POLICY = f"{TIE_POLICY}; PB-ADV: {PB_ADV_TIE_POLICY}"
 DECISION = (
     "choose straight-channel geometry and flow control that minimize "
     "worst-case hydraulic power while meeting the supplied die and "
@@ -314,7 +322,7 @@ def request(
     validate_contract(decision_contract)
     if neutral.get("material") != MATERIAL:
         raise DecisionError("development_material_only")
-    if neutral.get("mode") != MODE:
+    if neutral.get("mode") not in MODES:
         raise DecisionError("unknown_mode")
     model = neutral.get("model")
     if type(model) is not dict or set(model) != {"member", "recipe_digest", "seed"}:
@@ -366,7 +374,9 @@ def request(
     ]
     space = _grid(normalized_designs, DESIGN_VARIABLES)
     condition_space = _conditions(normalized_conditions)
-    if neutral["verification_budget"] < len(condition_space):
+    if neutral["mode"] == MODE and neutral["verification_budget"] < len(
+        condition_space
+    ):
         raise DecisionError("verification_budget_below_condition_count")
     for design in space:
         for condition in condition_space:
@@ -383,7 +393,7 @@ def request(
         "challenge": CHALLENGE,
         "scope": SCOPE,
         "material": MATERIAL,
-        "mode": MODE,
+        "mode": neutral["mode"],
         "contract_digest": decision_contract["contract_digest"],
         "model": dict(model),
         "designs": normalized_designs,
@@ -445,7 +455,7 @@ def _validate_request(req, contract_digest=None):
         or req["challenge"] != CHALLENGE
         or req["scope"] != SCOPE
         or req["material"] != MATERIAL
-        or req["mode"] != MODE
+        or req["mode"] not in MODES
     ):
         raise DecisionError("request_identity")
     if contract_digest is not None and req["contract_digest"] != contract_digest:
@@ -469,7 +479,7 @@ def _validate_request(req, contract_digest=None):
     for name in ("query_budget", "verification_budget"):
         if type(req[name]) is not int or req[name] <= 0:
             raise DecisionError("positive_integer_required", name)
-    if req["verification_budget"] < len(req["conditions"]):
+    if req["mode"] == MODE and req["verification_budget"] < len(req["conditions"]):
         raise DecisionError("verification_budget_below_condition_count")
     return req
 
@@ -645,8 +655,46 @@ class Oracle:
         return rows
 
 
+def normalized_margins(decision_contract, row):
+    """Constraint margins normalized only by the two supplied limits.
+
+    These are an ordering for a finite DEVELOPMENT search, not an uncertainty
+    band or a scientific acceptance tolerance. Positive values are on the
+    predicted-feasible side of the corresponding supplied constraint.
+    """
+
+    constraints = decision_contract["constraints"]
+    return {
+        "die_peak_c_max": row["die_margin_c"]
+        / max(1.0, abs(constraints["die_peak_c_max"])),
+        "hydraulic_power_w_max": row["hydraulic_margin_w"]
+        / max(1.0, abs(constraints["hydraulic_power_w_max"])),
+    }
+
+
+def _binding_margin(decision_contract, row):
+    margins = normalized_margins(decision_contract, row)
+    binding = min(margins, key=lambda name: (margins[name], name))
+    return binding, margins[binding]
+
+
+def _point_selection(decision_contract, design, condition, row):
+    binding, margin = _binding_margin(decision_contract, row)
+    return {
+        **dict(zip(DESIGN_VARIABLES, design)),
+        **dict(zip(CONDITION_VARIABLES, condition)),
+        "predicted_margin_fraction": margin,
+        "binding_constraint": binding,
+    }
+
+
 def fixed_grid(decision_contract, oracle, req, space):
-    """Exhaustive customer baseline: feasible everywhere, then least pumping."""
+    """Exhaustive baseline for the request's registered search mode.
+
+    PB-INV selects the feasible-everywhere design with the least worst-case
+    pumping. PB-ADV selects up to K exact predicted-feasible points with the
+    smallest supplied-limit-normalized binding margin.
+    """
 
     conditions = [
         tuple(float(row[name]) for name in CONDITION_VARIABLES)
@@ -655,19 +703,36 @@ def fixed_grid(decision_contract, oracle, req, space):
     points = [(*design, *condition) for design in space for condition in conditions]
     rows = oracle.query(points)
     table = dict(zip(points, rows))
-    ranked = []
+    if req["mode"] == MODE:
+        ranked = []
+        for design in space:
+            values = [table[(*design, *condition)] for condition in conditions]
+            if all(row["feasible"] for row in values):
+                ranked.append((max(row["hydraulic_w"] for row in values), design))
+        if not ranked:
+            return []
+        worst, design = min(ranked)
+        return [
+            {
+                **dict(zip(DESIGN_VARIABLES, design)),
+                "predicted_worst_hydraulic_w": worst,
+            }
+        ]
+
+    ranked_points = []
     for design in space:
-        values = [table[(*design, *condition)] for condition in conditions]
-        if all(row["feasible"] for row in values):
-            ranked.append((max(row["hydraulic_w"] for row in values), design))
-    if not ranked:
-        return []
-    worst, design = min(ranked)
+        for condition in conditions:
+            row = table[(*design, *condition)]
+            if not row["feasible"]:
+                continue
+            binding, margin = _binding_margin(decision_contract, row)
+            ranked_points.append((margin, design, condition, binding, row))
+    ranked_points.sort(key=lambda item: item[:4])
     return [
-        {
-            **dict(zip(DESIGN_VARIABLES, design)),
-            "predicted_worst_hydraulic_w": worst,
-        }
+        _point_selection(decision_contract, design, condition, row)
+        for _margin, design, condition, _binding, row in ranked_points[
+            : req["verification_budget"]
+        ]
     ]
 
 
@@ -697,6 +762,13 @@ def _selection_point(selection):
     return tuple(_number(selection[name], name) for name in DESIGN_VARIABLES)
 
 
+def _selection_case(selection):
+    return tuple(
+        _number(selection[name], name)
+        for name in (*DESIGN_VARIABLES, *CONDITION_VARIABLES)
+    )
+
+
 def commit(req, selections, oracle, directory):
     """Validate and write a proposal before any reference can be called."""
 
@@ -704,32 +776,68 @@ def commit(req, selections, oracle, directory):
         raise DecisionError("oracle_request_mismatch")
     _validate_request(req, oracle.contract["contract_digest"])
     oracle._require_open()
-    if type(selections) is not list or len(selections) > 1:
-        raise DecisionError("pb_inv_commits_at_most_one_design")
-    if selections:
-        selection = selections[0]
-        if type(selection) is not dict or set(selection) != {
+    if type(selections) is not list:
+        raise DecisionError("selections_are_list")
+    successful = {
+        tuple(row["point"]): row["quantities"]
+        for row in oracle.log
+        if row["status"] == "OK"
+    }
+    if req["mode"] == MODE:
+        if len(selections) > 1:
+            raise DecisionError("pb_inv_commits_at_most_one_design")
+        if selections:
+            selection = selections[0]
+            if type(selection) is not dict or set(selection) != {
+                *DESIGN_VARIABLES,
+                "predicted_worst_hydraulic_w",
+            }:
+                raise DecisionError("selection_fields")
+            design = _selection_point(selection)
+            if design not in oracle.designs:
+                raise DecisionError("selection_outside_candidate_space")
+            rows = {
+                point: row
+                for point, row in successful.items()
+                if point[: len(DESIGN_VARIABLES)] == design
+            }
+            expected = {(*design, *condition) for condition in oracle.conditions}
+            if set(rows) != expected or not all(
+                rows[point]["feasible"] for point in expected
+            ):
+                raise DecisionError(
+                    "selection_not_verified_by_model_at_every_condition"
+                )
+            worst = max(rows[point]["hydraulic_w"] for point in expected)
+            if selection["predicted_worst_hydraulic_w"] != worst:
+                raise DecisionError("selection_objective_mismatch")
+    else:
+        if len(selections) > req["verification_budget"]:
+            raise DecisionError("verification_budget_exceeded")
+        expected_fields = {
             *DESIGN_VARIABLES,
-            "predicted_worst_hydraulic_w",
-        }:
-            raise DecisionError("selection_fields")
-        design = _selection_point(selection)
-        if design not in oracle.designs:
-            raise DecisionError("selection_outside_candidate_space")
-        rows = {
-            tuple(row["point"]): row["quantities"]
-            for row in oracle.log
-            if row["status"] == "OK"
-            if tuple(row["point"][: len(DESIGN_VARIABLES)]) == design
+            *CONDITION_VARIABLES,
+            "predicted_margin_fraction",
+            "binding_constraint",
         }
-        expected = {(*design, *condition) for condition in oracle.conditions}
-        if set(rows) != expected or not all(
-            rows[point]["feasible"] for point in expected
-        ):
-            raise DecisionError("selection_not_verified_by_model_at_every_condition")
-        worst = max(rows[point]["hydraulic_w"] for point in expected)
-        if selection["predicted_worst_hydraulic_w"] != worst:
-            raise DecisionError("selection_objective_mismatch")
+        points = []
+        for selection in selections:
+            if type(selection) is not dict or set(selection) != expected_fields:
+                raise DecisionError("selection_fields")
+            point = _selection_case(selection)
+            points.append(point)
+            row = successful.get(point)
+            if row is None:
+                raise DecisionError("selection_not_successfully_queried")
+            if not row["feasible"]:
+                raise DecisionError("selection_not_predicted_feasible")
+            binding, margin = _binding_margin(oracle.contract, row)
+            if selection["binding_constraint"] != binding:
+                raise DecisionError("selection_binding_constraint_mismatch")
+            if selection["predicted_margin_fraction"] != margin:
+                raise DecisionError("selection_margin_mismatch")
+        if len(set(points)) != len(points):
+            raise DecisionError("selection_points_repeated")
 
     body = {
         "schema": COMMITMENT_SCHEMA,
@@ -806,6 +914,18 @@ def _case_id(case):
 def _jobs(document):
     if not document["selections"]:
         return []
+    if document["request"]["mode"] == PB_ADV_MODE:
+        jobs = []
+        for selection in document["selections"]:
+            case = domain.check_inputs(
+                {
+                    name: selection[name]
+                    for name in (*DESIGN_VARIABLES, *CONDITION_VARIABLES)
+                }
+            )
+            jobs.append({"case_id": _case_id(case), "inputs": case})
+        return jobs
+
     design = {name: document["selections"][0][name] for name in DESIGN_VARIABLES}
     jobs = []
     for condition in document["request"]["conditions"]:
@@ -1201,27 +1321,19 @@ def adapter(decision_contract):
             for row in req["conditions"]
         )
         return View(
-            mode=MODE,
+            mode=req["mode"],
             designs=tuple(space),
             conditions=conditions,
             verification_budget=req["verification_budget"],
             passes=lambda row: row["feasible"],
             objective=lambda row: row["hydraulic_w"],
-            margin=lambda row: min(
-                row["die_margin_c"]
-                / max(1.0, abs(decision_contract["constraints"]["die_peak_c_max"])),
-                row["hydraulic_margin_w"]
-                / max(
-                    1.0,
-                    abs(decision_contract["constraints"]["hydraulic_power_w_max"]),
-                ),
-            ),
+            margin=lambda row: _binding_margin(decision_contract, row)[1],
             select_design=lambda design, worst: {
                 **dict(zip(DESIGN_VARIABLES, design)),
                 "predicted_worst_hydraulic_w": worst,
             },
-            select_point=lambda *_: (_ for _ in ()).throw(
-                DecisionError("pb_adv_not_served")
+            select_point=lambda design, condition, row: _point_selection(
+                decision_contract, design, condition, row
             ),
         )
 
@@ -1242,5 +1354,5 @@ def adapter(decision_contract):
             decision_contract, commitment, reference
         ),
         code_paths=CODE_PATHS,
-        tie_policy=TIE_POLICY,
+        tie_policy=SEARCH_TIE_POLICY,
     )

@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-lf-fixture-construction",
+  "recorded_at": "2026-10-05T08:52:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "optimizer_pilot",
+    "ref": "CHALLENGE-AI-COOLING-09 LF analytical fixture reconstruction",
+    "description": "Re-ran the unchanged four-arm PB-INV fixture construction from an LF-normalized source archive carrying the exact PB-ADV implementation patch."
+  },
+  "expected": "The construction freeze would bind Git-normalized source identities while keeping all proposals committed before reference access."
+  ,
+  "observed": "Construction completed as ALL_ARMS_COMMITTED_BEFORE_REFERENCE with identity sha256:403a4a1092f1fa30681420d4e0c47bb9f455bb3d0338ae3f5be7d87111434456. No reference evidence was available to the construction stage."
+  ,
+  "keep": [
+    "Generate durable fixture hashes from Git-normalized source bytes so evidence is portable across checkout line-ending policies."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.decision-study",
+    "challenge.reference-custody"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

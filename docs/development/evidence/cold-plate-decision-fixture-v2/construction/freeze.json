@@ -153,7 +153,7 @@
       "repeated_commitment": "FORBIDDEN"
     }
   },
-  "freeze_digest": "sha256:42c4e23a5e984edecbe3e47e8d616e3c28511e734d7ad937b13bf6e165037f0d",
+  "freeze_digest": "sha256:9583f6917850d05091047b81c04c35df7640e2b7dd76d96a6951d459d3684040",
   "reference_scope": {
     "comparison_set": "all declared design-condition pairs",
     "global_optimality_claim": false,
@@ -166,7 +166,7 @@
     "code": {
       "carbon/cold_plate/analysis.py": "sha256:0f42b8b224c318e232edfb7f4d2ca3449fb22239cebeaaaab61e08f984f877cb",
       "carbon/cold_plate/analytic.py": "sha256:0851499dfefe5d7c23bb99346ab98fd1593b6b91d346af907dedbdec67c24034",
-      "carbon/cold_plate/customer_decision.py": "sha256:a34bcf658b0c8dc1f27714d8687b14c6f164d758568bdc65802b0bfe8f8646e9",
+      "carbon/cold_plate/customer_decision.py": "sha256:4e88ab5d33076cc173d87683fc873270fc933b3d89160d424cc11d67c7fcb9d7",
       "carbon/cold_plate/decision_study.py": "sha256:5842bcd89566d57a55df56ae27831abf1aa5a12746ba545856e54eb601f439b4",
       "carbon/cold_plate/domain.py": "sha256:63104d66d3e32be7a35d65483a9535845569b13d56d7a76f7e18c503d9a055ee",
       "carbon/cold_plate/exam.py": "sha256:ffb9e94ae17a8b403c5d95f4e4985ef989a81d7ed35c2a45af062cff6cac17be",
@@ -278,7 +278,7 @@
       }
     ],
     "failure_handling": "an unavailable or unresolved reference result stays exactly that; a model or oracle failure ends that run and is recorded",
-    "freeze_digest": "sha256:dfd4f562824094a352e0f084b72e02db83f4b3b115ab6f02b759f71516b0fd89",
+    "freeze_digest": "sha256:db5a76931a4884c57bdf54324c9357bcb4e90f8e55e0a8d7d27e17aa26123394",
     "initialization": "deterministic; no method draws a random number",
     "material": "DEVELOPMENT",
     "methods": {
@@ -316,7 +316,7 @@
     "schema": "carbon.design-search.freeze.v1",
     "seed_policy": "deterministic frozen DEVELOPMENT models; no random draw",
     "stopping": "a method stops by its own rule or when its next query would exceed the query budget, and selects from what it queried",
-    "tie_policy": "lowest worst-case predicted hydraulic power among designs predicted to meet every customer-supplied limit at every declared condition; exact ties use channel_width_mm, fin_width_mm, channel_depth_mm, then flow_lpm_per_kw",
+    "tie_policy": "lowest worst-case predicted hydraulic power among designs predicted to meet every customer-supplied limit at every declared condition; exact ties use channel_width_mm, fin_width_mm, channel_depth_mm, then flow_lpm_per_kw; PB-ADV: smallest supplied-limit-normalized predicted constraint margin among predicted-feasible points; exact ties use channel_width_mm, fin_width_mm, channel_depth_mm, flow_lpm_per_kw, then inlet_c, heat_load_w, hotspot_ratio, hotspot_center_mm, hotspot_width_mm",
     "verification_budget": 6
   },
   "study_id": "ai-accelerator-cooling-synthetic-v1"

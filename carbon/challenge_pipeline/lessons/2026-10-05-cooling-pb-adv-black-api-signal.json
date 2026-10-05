@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-black-api-signal",
+  "recorded_at": "2026-10-05T09:05:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 in-process Black API attempt",
+    "description": "Checked the two files with Black's in-process format_file_contents API to avoid launcher stalls."
+  },
+  "expected": "The API would return formatted text for direct comparison."
+  ,
+  "observed": "Black raised its NothingChanged control signal on the first file; the one-line checker did not catch that signal, so it exited before checking the second file. This is positive evidence for only the first file, not a complete pass."
+  ,
+  "keep": [
+    "Use an in-process formatting API on this host."
+  ],
+  "change": [
+    "Use Black format_str, which returns text instead of raising NothingChanged, for a complete two-file comparison."
+  ],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

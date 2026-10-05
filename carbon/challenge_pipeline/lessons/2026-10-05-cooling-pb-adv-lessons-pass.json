@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-lessons-pass",
+  "recorded_at": "2026-10-05T08:56:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 lessons validation",
+    "description": "Validated the challenge-pipeline protocol, records and complete lessons log after recording every PB-ADV build and test execution."
+  },
+  "expected": "Every new execution record would satisfy the locked lesson schema without silently proposing a protocol revision."
+  ,
+  "observed": "The protocol remained DEFINING; seven records and 217 lessons were valid, with zero revisions awaiting a decision."
+  ,
+  "keep": [
+    "Continue recording one durable lesson per execution, including infrastructure-limited attempts."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

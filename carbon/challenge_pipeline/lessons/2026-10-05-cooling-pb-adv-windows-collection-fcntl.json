@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-windows-collection-fcntl",
+  "recorded_at": "2026-10-05T08:44:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 host focused matrix attempt",
+    "description": "Ran the cold-plate customer-decision and shared design-search pilot test files with a retained Windows virtual environment that includes pytest."
+  },
+  "expected": "Both focused files would collect as noncanonical diagnostics before the canonical CI run.",
+  "observed": "Collection stopped before tests because the shared design-search pilot imports Graphite's controller, which requires the POSIX-only fcntl module. This is host infrastructure incompatibility, not a test or scientific failure.",
+  "keep": [
+    "Keep Graphite locking on its POSIX canonical path and do not add a Windows fallback in this Cooling ticket."
+  ],
+  "change": [
+    "Run the platform-neutral cold-plate file separately on the host and leave the Graphite-integrated matrix to canonical Linux CI."
+  ],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.design-search"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

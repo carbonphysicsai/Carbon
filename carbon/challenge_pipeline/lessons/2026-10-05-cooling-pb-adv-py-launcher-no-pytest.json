@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-py-launcher-no-pytest",
+  "recorded_at": "2026-10-05T08:40:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 Windows py-launcher baseline attempt",
+    "description": "Attempted the focused existing tests with the Python interpreter selected by the Windows py launcher."
+  },
+  "expected": "The launcher-selected project host interpreter would provide pytest for a noncanonical diagnostic baseline.",
+  "observed": "The launcher selected Visual Studio Python 3.9 without pytest, so no tests were collected or executed.",
+  "keep": [
+    "Leave dependency and interpreter authority with the pinned canonical environment."
+  ],
+  "change": [
+    "Proceed with contract-first implementation and use GitHub canonical CI as the first executable acceptance environment for this ticket."
+  ],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

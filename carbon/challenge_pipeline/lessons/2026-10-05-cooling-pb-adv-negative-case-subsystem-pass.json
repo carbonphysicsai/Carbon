@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-negative-case-subsystem-pass",
+  "recorded_at": "2026-10-05T09:10:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 final matrix with infeasible-point refusal",
+    "description": "Re-ran the full bounded host matrix after adding the explicit queried-but-predicted-infeasible PB-ADV commitment refusal."
+  },
+  "expected": "The stronger fail-closed regression would pass without changing PB-INV, fixture, Track-B or Battery conformance behavior."
+  ,
+  "observed": "All 79 selected tests passed in 13.62 seconds; the one Windows-only raw-byte closeout assertion remained deselected for canonical Linux CI."
+  ,
+  "keep": [
+    "Keep commitment validation independent of method correctness: even a queried point cannot be committed by Mode X when the model predicted it infeasible."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.design-search",
+    "challenge.reference-custody"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

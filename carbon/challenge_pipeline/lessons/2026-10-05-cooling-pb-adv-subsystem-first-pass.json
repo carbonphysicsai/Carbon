@@ -1,0 +1,29 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-subsystem-first-pass",
+  "recorded_at": "2026-10-05T08:47:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 Cooling subsystem host matrix first pass",
+    "description": "Ran the Cooling decision-study, Cooling Track-B and neutral Track-B tests in the retained Windows pytest environment."
+  },
+  "expected": "The unchanged PB-INV study and Track-B paths would remain green, while any code-freeze impact of adding PB-ADV would be explicit.",
+  "observed": "Thirty-four tests passed. Four Track-B setup errors were caused by NumPy being absent from the retained virtual environment. One closeout hash assertion reflected Windows CRLF bytes. The other failure correctly detected that the committed analytical fixture freeze still pins the pre-PB-ADV customer_decision.py digest; the fixture must be regenerated without changing its frozen study configuration."
+  ,
+  "keep": [
+    "Keep current-code digest assertions on committed fixture evidence so additive implementation changes cannot be presented as evidence from the old code.",
+    "Keep the counted campaign evidence and closeout untouched."
+  ],
+  "change": [
+    "Regenerate only the analytical fixture construction and evaluation under the unchanged study configuration, then rerun with NumPy available; do not import or rerun counted CFD."
+  ],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.ai-cooling.decision-study",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

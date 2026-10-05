@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-commitment-smoke-pass",
+  "recorded_at": "2026-10-05T08:43:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "optimizer_pilot",
+    "ref": "CHALLENGE-AI-COOLING-09 commitment/reference analytical fixture smoke",
+    "description": "Persisted a K=2 PB-ADV commitment before constructing an analytical fixture reference session, then verified the exact two committed design-condition points through the classified reference path."
+  },
+  "expected": "Mode X would retain construction-before-reference custody and account one condition evidence evaluation for each committed point.",
+  "observed": "The write-once commitment existed before reference access, exactly two jobs were acquired and charged, and the fixture outcome was CONFIRMED_FEASIBLE. This is fixture evidence only, not a safety or qualification result.",
+  "keep": [
+    "Keep PB-ADV point verification on the existing classified reference session and write-once commitment path.",
+    "Keep fixture outcomes explicitly non-counted and non-qualifying."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.reference-custody"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

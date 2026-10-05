@@ -105,17 +105,17 @@ Best reference-feasible design in a sufficiently resolved complete set: `{"desig
     "initial_solver_executions": 48,
     "retry_reserve": 12
   },
-  "construction_wall_s": 1.1051675000344403,
-  "evaluation_wall_s": 0.18418360000941902,
-  "model_inference_wall_s": 0.22356400010176003,
+  "construction_wall_s": 1.604997300019022,
+  "evaluation_wall_s": 0.2032605999847874,
+  "model_inference_wall_s": 0.2422228001523763,
   "model_query_attempts": 127,
   "monetary_cost_status": "NO_OWNER_APPROVED_RESOURCE_RATE",
   "monetary_cost_usd": null,
   "per_decision_wall_s_by_arm": {
-    "analytic-v1/fixed_grid": 0.20715609996113926,
-    "analytic-v1/screen_then_confirm": 0.04899250000016764,
-    "learned-krr-v1/fixed_grid": 0.006020700035151094,
-    "learned-krr-v1/screen_then_confirm": 0.003291799977887422
+    "analytic-v1/fixed_grid": 0.21930860000429675,
+    "analytic-v1/screen_then_confirm": 0.05461899994406849,
+    "learned-krr-v1/fixed_grid": 0.010601999994833022,
+    "learned-krr-v1/screen_then_confirm": 0.004723099991679192
   },
   "reference_campaign_wall_s": 0.0,
   "reference_condition_evaluations": 72,
@@ -123,18 +123,18 @@ Best reference-feasible design in a sufficiently resolved complete set: `{"desig
   "reference_executions": 0,
   "reference_retries": 0,
   "reference_solver_wall_s": 0.0,
-  "study_end_to_end_wall_s": 1.2893511000438593,
+  "study_end_to_end_wall_s": 1.8082579000038095,
   "training_and_reconstruction": {
     "analytic-v1": {
       "kind": "ANALYTICAL_BASELINE"
     },
     "learned-krr-v1": {
-      "cpu_s": 8.640625,
+      "cpu_s": 15.640625,
       "historical_cost_status": "NOT_RECORDED_IN_PINNED_BASELINE_ARTIFACT",
       "historical_training_and_tuning_cost": null,
       "kind": "LEARNED_RECONSTRUCTION",
       "training_records": 400,
-      "wall_s": 0.6181663000024855
+      "wall_s": 1.1632293000002392
     }
   }
 }

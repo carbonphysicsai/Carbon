@@ -1,0 +1,29 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-subsystem-second-pass",
+  "recorded_at": "2026-10-05T08:51:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 affected-subsystem host matrix with bundled scientific packages",
+    "description": "Ran customer-decision, decision-study, Cooling and neutral Track-B, and Battery design-search commitment regressions with NumPy made available from the bundled runtime; excluded only the known Windows raw-byte closeout hash assertion."
+  },
+  "expected": "The implementation and cross-Challenge search semantics would pass, and regenerated fixture evidence would match current normalized source bytes."
+  ,
+  "observed": "Seventy-eight tests passed and one known Windows-only closeout byte assertion was deselected. The sole failure showed that the fixture regenerated from a CRLF checkout recorded CRLF code hashes while the repository test correctly compares normalized Git LF bytes. The product behavior passed; the fixture must be generated from an LF source tree."
+  ,
+  "keep": [
+    "Keep the fixture test's Git-byte normalization and cross-Challenge conformance coverage."
+  ],
+  "change": [
+    "Regenerate the analytical fixture from an LF archive plus the exact implementation patch, then rerun the same matrix."
+  ],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.design-search",
+    "challenge.ai-cooling.decision-study"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

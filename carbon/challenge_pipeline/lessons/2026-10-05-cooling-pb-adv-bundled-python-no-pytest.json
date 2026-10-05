@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-bundled-python-no-pytest",
+  "recorded_at": "2026-10-05T08:39:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 bundled-Python baseline attempt",
+    "description": "Attempted the focused existing tests with the desktop application's bundled Python runtime."
+  },
+  "expected": "The bundled interpreter would carry pytest and provide a noncanonical diagnostic baseline.",
+  "observed": "The bundled interpreter exists but has no pytest module, so no tests were collected or executed.",
+  "keep": [
+    "Treat the bundled runtime as an application dependency, not an assumed repository test environment."
+  ],
+  "change": [
+    "Use an existing project virtual environment if present; do not install dependencies merely to bypass the canonical host boundary."
+  ],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
