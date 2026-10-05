@@ -41,3 +41,10 @@ For comparison, battery's OD-2 margin is 0.0570.
 - **Subsamples understate the variance**, as the Test Lead expected. The margin falls from 0.107 to 0.057 as the overlap rises from 80% to 95%.
 - **The important-region score varies more.** Its relative SD is 0.105 under the bootstrap.
 - **Scope.** These are DEVELOPMENT testing values only: not a production threshold, not qualification, and not used for any payment.
+
+## Decision (Test Lead, delegated under WAVE-06 §1, 2026-10-05)
+
+- **Registered margin: 0.1316, battery's definition (relative SD to the seed mean).** A relative SD is scale-invariant, so it corrects for the bootstrap's degraded fits. The rule then applies the margin to the incumbent's own mean error. Re-basing the inflated absolute spread on the full-fit score would carry the degradation into the margin. That would over-widen it and hide real improvements.
+- **Sensitivity:** 0.197, the same spread relative to the full-fit score.
+- **Diagnostic:** about 0.21, which is 2 × the important-region relative SD. Battery keeps one margin, and so does cooling: important-region regressions already block through the rule's own flag.
+- **Status:** a testing acceptance under OWNER-GRAPHITE-TEST-WAVE-06 §1. It is a registered policy that can be revised on evidence. PR Head relays the value to Codex for cooling's compare.
