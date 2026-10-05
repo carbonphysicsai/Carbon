@@ -3,7 +3,7 @@
     python -m carbon.agent_campaign.graphite.phase4 run --root DIR --dry-run \
         --challenge TOKEN [--level N]
     python -m carbon.agent_campaign.graphite.phase4 run --root DIR \
-        --grant docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json \
+        --grant docs/development/graphite/grants/<the Challenge's grant>.json \
         --credential-file PATH \
         --miner-profile PROFILE.json --miner-campaign ID [--session N] \
         --challenge TOKEN [--level N]
@@ -84,10 +84,16 @@ under `DIR/attacker-dry-run`, with a synthetic copy of the grant and no miner
 path, then Carbon's side with the same engine, producing the coverage report
 and B2. It sends nothing and spends nothing.
 
-**Grant.** A live run reads `GRAPHITE-GRANT-PHASE4`
-(OWNER-GRAPHITE-ATTACKER-01 §5), and only a copy whose canonical digest equals
-the committed blob at a pushed HEAD, with the grants directory clean
-(`check_committed_grant`); the working-tree file is never trusted.
+**Grant.** Each Challenge has its own phase-4 grant (`PHASE4_GRANTS`):
+battery runs under `GRAPHITE-GRANT-PHASE4` (OWNER-GRAPHITE-ATTACKER-01 §5) and
+cooling under `GRAPHITE-GRANT-PHASE4-COOLING` (OWNER-GRAPHITE-TEST-WAVE-05 §2).
+A live run accepts only the grant registered for the Challenge named by
+`--challenge`, and only a copy whose canonical digest equals the committed
+blob at a pushed HEAD, that blob being the one on main, with the grants
+directory clean (`check_committed_grant`); the working-tree file is never
+trusted. Another Challenge's grant is `grant_is_for_another_challenge`; a
+Challenge with no registered grant, such as motor, is
+`no_phase4_grant_for_challenge`.
 
 **`prelive`** (`phase4_prelive`) runs every real code path of a live run up
 to the network boundary, with fake transports at that boundary and nothing
@@ -101,6 +107,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import dataclasses
 import functools
 import json
 import os
@@ -109,6 +116,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import types
 from decimal import Decimal
 from pathlib import Path
 
@@ -117,11 +125,16 @@ from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_loop import run_epoch
 from carbon.development_session.research_tools import PREFIX
+from carbon.reconstruction.capability_registry import (
+    BATTERY_CHALLENGE,
+    COLD_PLATE_CHALLENGE,
+)
 
 from .. import boundaries
 from ..grant import SpendingGrant
 from ..provider import ProviderUnavailable, TaskSpec
 from . import experiment as ex
+from . import grant_binding
 from . import tools as toolbox
 from .phase3 import (
     Phase3Provider,
@@ -142,10 +155,43 @@ OPERATOR = "graphite-phase4-runner"
 WORKSPACE = "graphite-phase4-workspace"
 CREDENTIAL_REF = "graphite-phase4-engy"
 PROFILE_SCHEMA = "carbon.graphite.phase4.attacker-profile.v1"
-#: The owner-approved grant the Attacker runs under (OWNER-GRAPHITE-ATTACKER-01
-#: §5). The dry run copies it under a synthetic identity.
-GRANT_ID = "GRAPHITE-GRANT-PHASE4"
-GRANT_FILE = "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json"
+#: The directory the owner's grants are committed under (`grant_binding`).
+GRANTS_DIR = grant_binding.GRANTS_DIR
+
+
+@dataclasses.dataclass(frozen=True)
+class Phase4Grant:
+    """One Challenge's owner-approved phase-4 grant: its id and its file."""
+
+    challenge: str
+    grant_id: str
+    grant_file: str
+
+
+#: The owner-approved grant each Challenge's Attacker runs under, keyed by
+#: the Challenge `--challenge` names: battery's (OWNER-GRAPHITE-ATTACKER-01
+#: §5) and cooling's (OWNER-GRAPHITE-TEST-WAVE-05 §2). The grant format has no
+#: Challenge field, so the binding lives here. A Challenge with no entry has
+#: no phase-4 grant (`phase4_grant`); motor's is proposed once its scorer
+#: exists. The dry run copies the named Challenge's grant under a synthetic
+#: identity.
+PHASE4_GRANTS = types.MappingProxyType(
+    {
+        entry.challenge: entry
+        for entry in (
+            Phase4Grant(
+                challenge=BATTERY_CHALLENGE,
+                grant_id="GRAPHITE-GRANT-PHASE4",
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-PHASE4.json",
+            ),
+            Phase4Grant(
+                challenge=COLD_PLATE_CHALLENGE,
+                grant_id="GRAPHITE-GRANT-PHASE4-COOLING",
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-PHASE4-COOLING.json",
+            ),
+        )
+    }
+)
 #: The pipeline stage an Attacker campaign runs at.
 STAGE = "test_iterate"
 #: Graphite's current attack wave exercises registered Level 0 adapters. The
@@ -1275,70 +1321,56 @@ def grant_digest(document):
     return digest(canonical(document))
 
 
-#: The directory the owner's grants are committed under; a live run refuses
-#: when anything in it differs from HEAD.
-GRANTS_DIR = str(Path(GRANT_FILE).parent)
+def phase4_grant(challenge):
+    """The phase-4 grant registered for `challenge` (`PHASE4_GRANTS`), or
+    `no_phase4_grant_for_challenge`: a Challenge without an owner-approved
+    phase-4 grant, such as motor, never borrows another's."""
+    entry = PHASE4_GRANTS.get(challenge) if isinstance(challenge, str) else None
+    if entry is None:
+        raise RunnerRefused("no_phase4_grant_for_challenge")
+    return entry
 
 
-def _git(repository, *args):
-    return subprocess.run(
-        ["git", "-C", str(repository), *args],
-        capture_output=True,
-        check=False,
-    )
+def bind_grant_to_challenge(document, entry):
+    """The grant document must name `entry`'s grant id: a grant registered
+    for another Challenge is `grant_is_for_another_challenge`, any other id
+    `grant_is_not_the_phase4_grant`."""
+    grant_id = document.get("grant_id") if isinstance(document, dict) else None
+    if grant_id == entry.grant_id:
+        return entry
+    if any(other.grant_id == grant_id for other in PHASE4_GRANTS.values()):
+        raise RunnerRefused("grant_is_for_another_challenge")
+    raise RunnerRefused("grant_is_not_the_phase4_grant")
 
 
-def check_committed_grant(path, repository=REPOSITORY):
-    """A live run's grant must be the committed GRAPHITE-GRANT-PHASE4, field
-    for field, as HEAD holds it: never the working tree, which an operator
-    could edit together with the copy passed in.
+def check_committed_grant(path, repository=REPOSITORY, *, challenge):
+    """A live run's grant must be the committed phase-4 grant registered for
+    `challenge` (`phase4_grant`), field for field, as HEAD holds it: never the
+    working tree, which an operator could edit together with the copy passed
+    in.
 
-    - The committed blob is read from git (`git show HEAD:<GRANT_FILE>`);
-      none is `phase4_grant_not_committed`.
-    - The given copy's canonical digest must equal the committed blob's: any
-      amount, run count, runtime or identity changed, in the copy or in the
-      working tree it was taken from, is
-      `grant_differs_from_the_committed_phase4_grant`.
-    - HEAD must already be on a remote branch (`git branch -r --contains
-      HEAD`): `grant_commit_not_pushed`.
-    - The committed blob must be the one on main, which is what the owner
-      approved: a pushed feature branch carrying an edited grant is not.
-      `origin main` is fetched and the two blob ids compared; a fetch or a
-      main without the grant is `main_grant_unavailable`, a different blob
-      `grant_differs_from_main`.
-    - The grants directory must match HEAD (no change, staged or not, and no
-      untracked file): `grants_directory_has_uncommitted_changes`.
+    - The Challenge must have a registered grant:
+      `no_phase4_grant_for_challenge`.
+    - The given copy must name that grant's id
+      (`bind_grant_to_challenge`): `grant_is_for_another_challenge` or
+      `grant_is_not_the_phase4_grant`.
+    - Then `grant_binding.check_committed_blob` on that Challenge's file: the
+      committed blob at HEAD (`phase4_grant_not_committed`), equal to the
+      given copy (`grant_differs_from_the_committed_phase4_grant`), at a
+      pushed HEAD (`grant_commit_not_pushed`), and the blob on main
+      (`main_grant_unavailable`, `grant_differs_from_main`), with the grants
+      directory clean (`grants_directory_has_uncommitted_changes`).
 
     Returns the committed grant's canonical digest."""
+    entry = phase4_grant(challenge)
     try:
         given = json.loads(Path(path).read_bytes())
     except (OSError, ValueError):
         raise RunnerRefused("phase4_grant_file_unreadable") from None
-    shown = _git(repository, "show", "HEAD:" + GRANT_FILE)
-    if shown.returncode != 0:
-        raise RunnerRefused("phase4_grant_not_committed")
-    try:
-        committed = json.loads(shown.stdout)
-    except ValueError:
-        raise RunnerRefused("phase4_grant_file_unreadable") from None
-    if grant_digest(given) != grant_digest(committed):
-        raise RunnerRefused("grant_differs_from_the_committed_phase4_grant")
-    pushed = _git(repository, "branch", "-r", "--contains", "HEAD")
-    if pushed.returncode != 0 or not pushed.stdout.strip():
-        raise RunnerRefused("grant_commit_not_pushed")
-    fetched = _git(repository, "fetch", "--quiet", "origin", "main")
-    on_main = _git(repository, "rev-parse", "--verify", "origin/main:" + GRANT_FILE)
-    if fetched.returncode != 0 or on_main.returncode != 0:
-        raise RunnerRefused("main_grant_unavailable")
-    at_head = _git(repository, "rev-parse", "--verify", "HEAD:" + GRANT_FILE)
-    if at_head.returncode != 0 or at_head.stdout.strip() != on_main.stdout.strip():
-        raise RunnerRefused("grant_differs_from_main")
-    status = _git(
-        repository, "status", "--porcelain", "--untracked-files=all", "--", GRANTS_DIR
+    bind_grant_to_challenge(given, entry)
+    return grant_binding.check_committed_blob(
+        given, repository, entry.grant_file, phase="phase4"
     )
-    if status.returncode != 0 or status.stdout.strip():
-        raise RunnerRefused("grants_directory_has_uncommitted_changes")
-    return grant_digest(committed)
 
 
 def _head(repository=REPOSITORY):
@@ -1381,7 +1413,14 @@ def command_run(args):
             (args.grant, args.credential_file, args.miner_profile, args.miner_campaign)
         ):
             raise RunnerRefused("dry_run_takes_no_grant_credential_or_miner_campaign")
-        return dry_run(_root(args.root), adapter, atk, scoring=scoring, **development)
+        return dry_run(
+            _root(args.root),
+            adapter,
+            atk,
+            challenge=challenge,
+            scoring=scoring,
+            **development,
+        )
     missing = [
         name
         for name, value in (
@@ -1395,7 +1434,7 @@ def command_run(args):
     if missing:
         raise RunnerRefused("required: " + ", ".join(missing))
     root = _root(args.root)
-    grant, head = live_checks(args.grant)
+    grant, head = live_checks(args.grant, challenge=challenge)
     engy = owner_only_file(args.credential_file)
     store = _store(root, False)
     from . import miner_path
@@ -1435,18 +1474,17 @@ def command_run(args):
 
 
 # -- the live run's parts, shared with the pre-live gate (`phase4_prelive`) -------------------
-def live_checks(grant_path, repository=REPOSITORY):
-    """What a live run checks before anything opens: the grant file is the
-    phase-4 grant for Graphite and equals the committed blob at a pushed HEAD
-    with the grants directory clean (`check_committed_grant`), and HEAD, the
-    checkout the brief records and Carbon's side runs from, is pushed and
-    its shipped code clean (#504's `check_code_ref`). Returns (grant, head)."""
+def live_checks(grant_path, repository=REPOSITORY, *, challenge):
+    """What a live run checks before anything opens: the grant file is a
+    valid Graphite grant, it is the phase-4 grant registered for `challenge`
+    and equals that grant's committed blob on main at a pushed HEAD with the
+    grants directory clean (`check_committed_grant`), and HEAD, the checkout
+    the brief records and Carbon's side runs from, is pushed and its shipped
+    code clean (#504's `check_code_ref`). Returns (grant, head)."""
     grant = load_grant(grant_path)
-    if grant.grant_id != GRANT_ID:
-        raise RunnerRefused("grant_is_not_the_phase4_grant")
     if grant.provider != "graphite":
         raise RunnerRefused("grant_provider_must_be_graphite")
-    check_committed_grant(grant_path, repository)
+    check_committed_grant(grant_path, repository, challenge=challenge)
     head = _head(repository)
     check_code_ref(head, repository)
     return grant, head
@@ -1608,14 +1646,16 @@ DRY_RUN_IDENTITY = {
 }
 
 
-def dry_run_grant(repository=REPOSITORY):
-    """A synthetic copy of GRAPHITE-GRANT-PHASE4: the same amounts, runs and
-    runtime, under a synthetic identity."""
+def dry_run_grant(challenge, repository=REPOSITORY):
+    """A synthetic copy of the phase-4 grant registered for `challenge`
+    (`phase4_grant`): the same amounts, runs and runtime, under a synthetic
+    identity."""
+    entry = phase4_grant(challenge)
     try:
-        document = json.loads((Path(repository) / GRANT_FILE).read_bytes())
+        document = json.loads((Path(repository) / entry.grant_file).read_bytes())
     except (OSError, ValueError):
         raise RunnerRefused("phase4_grant_file_unreadable") from None
-    if document.get("grant_id") != GRANT_ID:
+    if document.get("grant_id") != entry.grant_id:
         raise RunnerRefused("phase4_grant_file_names_another_grant")
     return SpendingGrant.from_document({**document, **DRY_RUN_IDENTITY})
 
@@ -1647,13 +1687,17 @@ def dry_run_script(adapter):
     ]
 
 
-def dry_run(root, adapter, atk, *, miner_tools=None, scoring=None, variant=None):
+def dry_run(
+    root, adapter, atk, *, challenge, miner_tools=None, scoring=None, variant=None
+):
     """One scripted session and Carbon's side, sending nothing and spending
     nothing: the scripted model reports a zero charge, the whole run is under
     the network guard (`phase4_prelive.network_guard`: any socket connect or
     name lookup raises), and a run that settles anything other than zero
-    fails (exit 4). `variant` is a development level's registered variant
-    (`adapter_for`), or None at Level 0."""
+    fails (exit 4). The grant is a synthetic copy of the one registered for
+    `challenge`, the Challenge `--challenge` names (`dry_run_grant`).
+    `variant` is a development level's registered variant (`adapter_for`),
+    or None at Level 0."""
     from .model import ScriptedModel
     from .phase4_prelive import network_guard
     from .pods import ScriptedPods
@@ -1662,7 +1706,7 @@ def dry_run(root, adapter, atk, *, miner_tools=None, scoring=None, variant=None)
     if store.exists():
         shutil.rmtree(store)
     store.mkdir(mode=0o700)
-    grant = dry_run_grant()
+    grant = dry_run_grant(challenge)
     with network_guard() as attempts:
         provider = AttackerProvider(
             root=store / "graphite",
@@ -1709,6 +1753,7 @@ def dry_run(root, adapter, atk, *, miner_tools=None, scoring=None, variant=None)
             "note": "scripted model, scripted pods, synthetic grant and no miner "
             "path; Carbon's analysis, verification and the report are the engine's "
             "own. It sends nothing and spends nothing.",
+            "grant_copied_from": phase4_grant(challenge).grant_id,
             "money_cap_usd": str(provider.budget.token_allowance_usd),
             # The Attacker's selection, as the session record froze it
             # (GRAPHITE-D35): window, admission ceiling, timeout, reservation.
@@ -1761,8 +1806,10 @@ def main(argv=None):
     prelive.add_argument("--challenge", required=True, help=challenge_help)
     prelive.add_argument(
         "--grant",
-        default=str(REPOSITORY / GRANT_FILE),
-        help="the grant file a live run would pass (default: the committed one)",
+        help=(
+            "the grant file a live run would pass (default: the committed grant "
+            "registered for --challenge)"
+        ),
     )
     args = parser.parse_args(argv)
     command = {
@@ -1825,8 +1872,17 @@ def command_prelive(args):
         scoring = challenge_scoring.scoring_for(args.challenge)
     except challenge_scoring.ScoringUnavailable as refused:
         raise RunnerRefused(refused.code) from None
+    # The default grant follows --challenge: the file registered for it.
+    grant_path = args.grant
+    if grant_path is None:
+        grant_path = str(REPOSITORY / phase4_grant(args.challenge).grant_file)
     return prelive(
-        _root(args.root), adapter, atk, grant_path=args.grant, scoring=scoring
+        _root(args.root),
+        adapter,
+        atk,
+        grant_path=grant_path,
+        challenge=args.challenge,
+        scoring=scoring,
     )
 
 

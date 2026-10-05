@@ -1279,7 +1279,9 @@ def _literature_from(args):
 COMPUTE_LANES = ("runpod", "carrier")
 #: Grants that pay for tokens only: their runs use the CPU carrier lane, and
 #: a RunPod launch under one is refused. The cooling CPU grant's id is the
-#: Test Lead's (2026-10-05); its file ships in its own PR.
+#: Test Lead's (2026-10-05); its file is
+#: docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3-COOLING-CPU.json, and
+#: a tokens-only run's pod money budget is 0 (`experiment.Phase3Budget`).
 TOKENS_ONLY_GRANTS = frozenset({"GRAPHITE-GRANT-PHASE3-COOLING-CPU"})
 
 
@@ -1333,6 +1335,11 @@ def command_run(args):
     grant = load_grant(args.grant)
     if grant.provider != "graphite":
         raise RunnerRefused("grant_provider_must_be_graphite")
+    # The grant bound to the named Challenge, and to main's committed blob
+    # where its registration says so (`grant_binding`).
+    from .grant_binding import check_phase3_grant
+
+    check_phase3_grant(args.grant, grant, challenge=args.challenge)
     if args.miner_profile is None or args.miner_campaign is None:
         raise RunnerRefused("the_real_miner_path_needs_a_miner_profile_and_campaign")
     if args.literature_snapshot is None:
