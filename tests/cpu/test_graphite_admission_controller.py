@@ -538,7 +538,7 @@ def test_the_committed_battery_level0_designation_is_pending(tmp_path):
 def test_the_designation_file_is_checked(tmp_path, monkeypatch):
     good = entry("fixture", OTHER)
     bad = [
-        dict(good, name="/home/carbon/graphite-p3-root"),
+        dict(good, name="/srv/runs/phase3-root"),
         dict(good, name="~/root"),
         dict(good, identity=None),
         dict(good, status=designations.PENDING),
