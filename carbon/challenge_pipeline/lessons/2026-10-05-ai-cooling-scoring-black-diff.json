@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-black-diff",
+  "recorded_at": "2026-10-05T03:40:31Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-07 canonical Black diff",
+    "description": "Asked the pinned canonical Black formatter for the exact formatting change required by the quality gate."
+  },
+  "expected": "The formatter should identify only the layout change reported by the quality gate.",
+  "observed": "Black requested one line-wrap change in the Phase 4 explicit-Challenge regression test and no semantic change.",
+  "keep": [
+    "Keep the explicit Challenge argument and regression semantics unchanged."
+  ],
+  "change": [
+    "Apply the canonical one-line layout."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

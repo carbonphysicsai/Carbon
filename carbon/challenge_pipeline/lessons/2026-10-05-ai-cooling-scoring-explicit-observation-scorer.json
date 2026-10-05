@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-explicit-observation-scorer",
+  "recorded_at": "2026-10-05T02:02:59Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 canonical affected-suite fail-fast run",
+    "description": "Ran the complete affected neutral-scoring and Graphite suite after restoring D34 replay compatibility."
+  },
+  "expected": "Every shared Graphite validation path should receive the exact session Challenge scorer once more than one Challenge is registered.",
+  "observed": "The run stopped at a legacy Phase 3 test that called check_observation without the provider's scorer. The implementation correctly failed closed with challenge_scoring_must_be_named before it could exercise the intended wrong-Challenge and unrebuildable-baseline assertions.",
+  "keep": [
+    "Keep unnamed scoring resolution fail closed when multiple Challenge scorings are registered."
+  ],
+  "change": [
+    "Pass the provider's exact ChallengeScoring to the two legacy check_observation assertions."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

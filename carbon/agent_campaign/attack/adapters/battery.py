@@ -548,10 +548,18 @@ def _control_recipe():
 
 
 @functools.cache
+def _challenge_scoring():
+    """Battery's exact scorer at the Challenge-neutral Graphite seam."""
+    from carbon.challenge_validator.scoring import scoring_for
+
+    return scoring_for(CHALLENGE_ID)
+
+
+@functools.cache
 def _frozen_rule():
     from carbon.agent_campaign.graphite.experiment import FrozenRule
 
-    return FrozenRule()
+    return FrozenRule(scoring=_challenge_scoring())
 
 
 def _oracle_predictions():
@@ -1088,7 +1096,9 @@ def rebuild_report_breached(result):
 def _expected_build_cached(strategy_json, seed, record):
     from carbon.agent_campaign.graphite import experiment
 
-    return experiment.admit(json.loads(strategy_json), seed)
+    return experiment.admit(
+        json.loads(strategy_json), seed, scoring=_challenge_scoring()
+    )
 
 
 def _expected_build(strategy_json, seed):
@@ -1097,7 +1107,7 @@ def _expected_build(strategy_json, seed):
     contract record is never compared against a stale build."""
     from carbon.agent_campaign.graphite import experiment
 
-    recorded = experiment.recorded_contract()
+    recorded = experiment.recorded_contract(_challenge_scoring())
     record = (recorded.get("contract_digest"), recorded.get("record_sequence"))
     return copy.deepcopy(_expected_build_cached(strategy_json, seed, record))
 
@@ -1221,13 +1231,13 @@ def build(construction, seed=0):
     if size > experiment.MAX_STRATEGY_BYTES:
         return refused("strategy_too_large")
     try:
-        record = experiment.admit(strategy, seed)
+        record = experiment.admit(strategy, seed, scoring=_challenge_scoring())
     except experiment.Unrebuildable as error:
         return refused(error.code, error.issues)
     except experiment.NotServed as error:
         from carbon.agent_campaign.graphite.pod_phase import built_record
 
-        contract = experiment.recorded_contract()
+        contract = experiment.recorded_contract(_challenge_scoring())
         record, _files, _program = built_record(
             strategy, contract["contract_digest"], seed, experiment.REPOSITORY
         )

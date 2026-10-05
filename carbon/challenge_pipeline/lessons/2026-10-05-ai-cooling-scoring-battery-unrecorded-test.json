@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-battery-unrecorded-test",
+  "recorded_at": "2026-10-05T02:19:06Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 canonical Battery adapter compatibility rerun",
+    "description": "Reran the Battery attack-adapter suites after binding its admissions to Battery's exact scorer."
+  },
+  "expected": "The stale-contract regression should preserve its typed refusal through the Challenge-explicit contract lookup.",
+  "observed": "Fifty-two checks passed before the test-local unrecorded-contract replacement failed because it retained the old zero-argument signature.",
+  "keep": [
+    "Keep the stale-contract condition classified as Carbon-side and never as a construction failure."
+  ],
+  "change": [
+    "Update the test-local replacement to accept the optional scorer while preserving its typed refusal."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

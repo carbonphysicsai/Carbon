@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-canonical-git-objects",
+  "recorded_at": "2026-10-05T01:43:47Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 canonical Cooling fail-fast diagnostic",
+    "description": "Ran the new Cooling adapter suite alone with fail-fast verbose output in the pinned Linux environment."
+  },
+  "expected": "The seven Cooling scoring tests, including the no-spend Graphite dry run, should pass.",
+  "observed": "Six adapter tests passed. The dry run completed construction and descriptive scoring correctly, but returned 4 because real_path_check could not read the pinned commit: the disposable shared clone's alternates file referenced the Windows object store, which is not mounted inside the canonical container.",
+  "keep": [
+    "Keep the scored Cooling behavior: the registered variant was SCORED with DESCRIPTIVE_IMPROVEMENT and the invalid construction was refused typed."
+  ],
+  "change": [
+    "Materialize the temporary clone's object store before using it as canonical source."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

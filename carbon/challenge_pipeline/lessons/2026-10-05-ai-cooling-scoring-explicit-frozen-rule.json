@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-explicit-frozen-rule",
+  "recorded_at": "2026-10-05T02:07:45Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 canonical affected-suite fail-fast rerun",
+    "description": "Reran the complete affected neutral-scoring and Graphite suite after making the observation checks Challenge-explicit."
+  },
+  "expected": "Legacy Battery regression tests should name Battery's scorer at shared scoring seams now that Cooling is registered too.",
+  "observed": "The run stopped at the final legacy direct FrozenRule construction, which omitted its Challenge and correctly received challenge_scoring_must_be_named.",
+  "keep": [
+    "Keep unnamed frozen-rule resolution fail closed when multiple Challenge scorings are registered."
+  ],
+  "change": [
+    "Pass the Battery fixture's exact ChallengeScoring to its direct FrozenRule construction."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

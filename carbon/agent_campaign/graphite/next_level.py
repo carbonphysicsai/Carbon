@@ -75,17 +75,17 @@ def _text(value, name, limit):
     return value.strip()
 
 
-def _contract():
-    """The recorded battery contract (Level 0's), or a typed refusal."""
-    from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE, contract
+def _contract(scoring):
+    """The session Challenge's recorded Level-0 contract, or a refusal."""
+    from carbon.reconstruction.capability_registry import contract
 
     from . import experiment as ex
 
     try:
-        recorded = ex.recorded_contract()
+        recorded = ex.recorded_contract(scoring)
     except ex.Unrebuildable:
         raise ProposalRefused("construction_contract_unrecorded") from None
-    return recorded, contract(BATTERY_CHALLENGE)
+    return recorded, contract(scoring.challenge_id)
 
 
 def _cited(capability_id, dimension, live):
@@ -105,7 +105,7 @@ def _cited(capability_id, dimension, live):
     raise ProposalRefused("contract_capability_id_not_in_the_contract")
 
 
-def build(arguments, *, literature, run_id, identity, role):
+def build(arguments, *, literature, run_id, identity, role, scoring):
     """A validated proposal record; `ProposalRefused` otherwise."""
     if type(arguments) is not dict or set(arguments) != set(_FIELDS):
         raise ProposalRefused("arguments_are_exactly_the_proposal_fields")
@@ -132,7 +132,7 @@ def build(arguments, *, literature, run_id, identity, role):
     dimension = arguments["contract_dimension"]
     if dimension not in CONTRACT_DIMENSIONS:
         raise ProposalRefused("contract_dimension_not_a_contract_dimension")
-    recorded, live = _contract()
+    recorded, live = _contract(scoring)
     cited = _cited(arguments["contract_capability_id"], dimension, live)
     body = {
         "capability": capability,
@@ -195,7 +195,7 @@ class ProposalStore:
         return path
 
 
-def propose_tool(arguments, *, literature, run_dir, run_id, identity, role):
+def propose_tool(arguments, *, literature, run_dir, run_id, identity, role, scoring):
     """The tool's answer: the stored record as data, or a typed refusal."""
     try:
         record = build(
@@ -204,6 +204,7 @@ def propose_tool(arguments, *, literature, run_dir, run_id, identity, role):
             run_id=run_id,
             identity=identity,
             role=role,
+            scoring=scoring,
         )
         ProposalStore(run_dir).write(record)
     except ProposalRefused as refused:

@@ -25,7 +25,7 @@ python -m carbon.agent_campaign.graphite.phase4 run --root DIR \
     --grant docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json \
     --credential-file PATH \
     --miner-profile PROFILE.json --miner-campaign ID [--session N] [--challenge TOKEN]
-python -m carbon.agent_campaign.graphite.phase4 prelive --root DIR [--challenge TOKEN] [--grant PATH]
+python -m carbon.agent_campaign.graphite.phase4 prelive --root DIR --challenge TOKEN [--grant PATH]
 python -m carbon.agent_campaign.graphite.phase4 cancel --root DIR --session N
 python -m carbon.agent_campaign.graphite.phase4 status --root DIR [--dry-run]
 python -m carbon.agent_campaign.graphite.phase4 log --root DIR [--dry-run]

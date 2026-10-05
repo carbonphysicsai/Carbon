@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-battery-adapter-explicit",
+  "recorded_at": "2026-10-05T02:07:45Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 canonical affected-suite fail-fast rerun",
+    "description": "Inspected all remaining unnamed neutral-scoring calls after the direct FrozenRule regression failed."
+  },
+  "expected": "Adding a second registered Challenge must not make Battery's Challenge-specific attack adapter depend on an implicit single-Challenge default.",
+  "observed": "The audit found three Battery-adapter calls into the neutral Graphite seam that relied on Battery being the only registered scorer: one frozen rule and two construction-contract reads.",
+  "keep": [
+    "Keep Battery's contract and scientific behavior unchanged."
+  ],
+  "change": [
+    "Resolve Battery's scorer by its registered Challenge id inside the Battery adapter and pass it explicitly at all three neutral seams."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

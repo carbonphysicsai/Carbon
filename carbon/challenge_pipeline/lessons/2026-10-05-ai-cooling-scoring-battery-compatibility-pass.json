@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-battery-compatibility-pass",
+  "recorded_at": "2026-10-05T02:20:54Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 canonical Battery compatibility completion",
+    "description": "Ran the repaired stale-contract regression plus the complete Battery attack report and verification suites in canonical Linux."
+  },
+  "expected": "Battery's attack boundary should retain its typed admission, cache, stale-contract, report and verification behavior after Cooling becomes a second registered scorer.",
+  "observed": "All selected checks passed. Battery's adapter now names Battery at every Challenge-neutral seam while its existing contract, scientific values and refusal policies remain unchanged.",
+  "keep": [
+    "Keep Challenge identity explicit in Challenge-specific adapters.",
+    "Keep shared neutral scoring resolution fail closed when no Challenge is named."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

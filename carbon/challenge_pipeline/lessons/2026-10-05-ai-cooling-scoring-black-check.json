@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-black-check",
+  "recorded_at": "2026-10-05T01:13:21Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-07 focused Black check",
+    "description": "Ran Black in check mode over every changed Python implementation and test module."
+  },
+  "expected": "The focused formatting surface should be clean.",
+  "observed": "Black reported six files requiring its mechanical formatting: battery_scoring.py, pods.py, provider.py, phase3.py, test_graphite_pod_timeout.py and test_graphite_phase3.py.",
+  "keep": [
+    "Keep the semantics and apply only Black's mechanical rewrite."
+  ],
+  "change": [
+    "Run Black on the same focused file set, then verify it in check mode."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

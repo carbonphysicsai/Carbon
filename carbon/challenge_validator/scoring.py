@@ -100,7 +100,13 @@ class PracticeRule(abc.ABC):
 
     @abc.abstractmethod
     def compare(self, baseline_rows, rows, eligible):
-        """The frozen paired comparison against the baseline's rows."""
+        """The frozen paired comparison against the baseline's rows.
+
+        Graphite consumes the standard outcome vocabulary `IMPROVEMENT`,
+        `NO_IMPROVEMENT`, `REGRESSION`, `TRADE_OFF` or
+        `INSUFFICIENT_EVIDENCE`. `promotable` remains Challenge-owned and may
+        be false even for descriptive DEVELOPMENT improvement.
+        """
 
 
 class ChallengeScoring(abc.ABC):
@@ -181,6 +187,30 @@ class ChallengeScoring(abc.ABC):
     def baseline_strategy(self):
         """The session's declared baseline strategy."""
 
+    def fixture_variant_strategy(self):
+        """A second contract-valid strategy for a synthetic dry run.
+
+        This is fixture plumbing only.  A Challenge must name it explicitly;
+        shared Graphite code never invents a construction choice.
+        """
+        raise NotImplementedError("the Challenge declares no dry-run variant")
+
+    def fixture_refused_strategy(self):
+        """A deterministic strategy the Challenge's contract must refuse.
+
+        Shared dry-run code cannot manufacture a Challenge-specific field or
+        construction family.  This is fixture plumbing only.
+        """
+        raise NotImplementedError("the Challenge declares no dry-run refusal")
+
+    def synthetic_predictions(self, quality, root):
+        """Public-reference predictions for a synthetic dry run.
+
+        The output is never official evidence and must be implemented by the
+        Challenge because prediction shapes are Challenge-owned.
+        """
+        raise NotImplementedError("the Challenge declares no synthetic predictions")
+
 
 def admit(scoring, strategy, seed, root, *, contract=None):
     """Compile `strategy` exactly as Carbon would rebuild it; return what Carbon
@@ -221,9 +251,18 @@ def _battery():
     return BatteryScoring()
 
 
+def _cooling():
+    from .cooling_scoring import CoolingScoring
+
+    return CoolingScoring()
+
+
 #: Registered scorings by Challenge token. A Challenge joins by record, with
 #: its own construction contract registered first.
-_FACTORIES = {"battery-fastcharge-ageing-development-v1": _battery}
+_FACTORIES = {
+    "battery-fastcharge-ageing-development-v1": _battery,
+    "chip-cold-plate": _cooling,
+}
 _CACHE = {}
 
 

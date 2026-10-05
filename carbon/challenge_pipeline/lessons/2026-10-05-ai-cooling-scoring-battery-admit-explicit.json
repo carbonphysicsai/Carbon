@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-battery-admit-explicit",
+  "recorded_at": "2026-10-05T02:16:08Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 canonical Battery adapter compatibility rerun",
+    "description": "Reran the Battery attack-adapter suites after updating their cache-invalidation replacement for the Challenge-explicit contract seam."
+  },
+  "expected": "Battery's adapter should test wrong-Challenge constructions against Battery's registered contract and return Battery's typed refusal.",
+  "observed": "Fifty-one checks passed before a wrong-Challenge attack reached experiment.admit without the adapter's scorer; registry dispatch refused the unregistered foreign Challenge before Battery's wrong-Challenge policy could classify it.",
+  "keep": [
+    "Keep registry dispatch for shared callers and Battery's existing typed wrong-Challenge refusal for its adapter boundary."
+  ],
+  "change": [
+    "Pass Battery's exact scorer to both adapter calls to experiment.admit."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

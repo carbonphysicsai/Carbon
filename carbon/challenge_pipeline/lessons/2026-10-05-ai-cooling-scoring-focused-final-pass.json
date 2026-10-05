@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-focused-final-pass",
+  "recorded_at": "2026-10-05T01:18:02Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 final Windows-focused adapter and contract regression",
+    "description": "Ran the Cooling scoring-adapter and existing Level-0 construction-contract suites after the challenge-owned dry-run fixture changes."
+  },
+  "expected": "The public scoring adapter and existing Level-0 contract should remain green; POSIX-only controller cases should skip on Windows.",
+  "observed": "16 tests passed and 2 POSIX-only tests skipped in 14.79 seconds.",
+  "keep": [
+    "Keep the public score, contract and host/pod rebuild parity unchanged.",
+    "Keep the end-to-end Graphite dry run in canonical Linux acceptance."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.ai_cooling.level0",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-quality-clone-modes",
+  "recorded_at": "2026-10-05T03:06:33Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-07 canonical changed-path quality gate",
+    "description": "Ran scripts/check_quality.py in canonical command mode inside the disposable Linux validation clone."
+  },
+  "expected": "The gate should compare this ticket's changed paths against the live main base with tracked file modes preserved.",
+  "observed": "The clone compared against a stale origin/main and classified 365 Python files; 21 copied Windows-mount files also had temporary executable bits, producing only EXE002 diagnostics. The real worktree has no mode changes, and live main advanced from 17babfc0 to fa1cba64 during implementation.",
+  "keep": [
+    "Keep the source files non-executable and do not add shebangs for a validation-copy artifact."
+  ],
+  "change": [
+    "Commit the ticket, merge the live main base, and recreate a fidelity-preserving canonical validation clone before rerunning the gate."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

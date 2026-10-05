@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-post-merge-group-failure",
+  "recorded_at": "2026-10-05T03:16:42Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 post-merge canonical matrix attempt 2",
+    "description": "Collected the merged Cooling scoring, Graphite, pod-retry, Battery-compatibility and lessons matrix through the canonical Linux wrapper using its default dependency group."
+  },
+  "expected": "The selected post-merge matrix should collect and run with its required scientific dependencies.",
+  "observed": "Collection stopped with ModuleNotFoundError for numpy because the direct wrapper invocation installed only the default dev group; the affected physics and Graphite tests require the registered science-jax group.",
+  "keep": [
+    "Keep dependency-group selection explicit for canonical scientific test matrices."
+  ],
+  "change": [
+    "Set CARBON_UV_GROUPS=science-jax for the post-merge matrix."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

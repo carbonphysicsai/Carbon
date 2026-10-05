@@ -5,9 +5,9 @@ The Constructor proposes; Carbon runs, scores and rebuilds (plan §5; invariants
 write-once under the run's private root:
 
 1. **Reconstruction gate** (OWNER-GRAPHITE-02's reconstruction rule). The
-   proposal must be a declarative battery `TrainingStrategy` that compiles
-   under the battery construction contract, and the live contract must be the
-   one its newest expansion record pins (`carbon/reconstruction/expansions`).
+   proposal must be a declarative strategy that compiles under the selected
+   Challenge's construction contract, and the live contract must be the one
+   its newest expansion record pins (`carbon/reconstruction/expansions`).
    Level 0 widens nothing. A proposal Carbon cannot rebuild is refused
    fail-closed, typed `REFUSED_UNREBUILDABLE`, recorded as a finding and
    never run or scored. Carbon computes, before any pod, exactly what it
@@ -21,13 +21,11 @@ write-once under the run's private root:
 3. **Independent rebuild.** What the pod reports it built is compared with
    what Carbon computed by itself. Any difference is a typed
    `REBUILD_MISMATCH` finding, and the proposal is not scored.
-4. **Frozen-rule score.** Carbon scores the fetched predictions on its own
-   host against the public PRACTICE references with the battery exam's gates,
-   frozen calibration and score (`carbon.battery.practice.score_practice`), and
-   compares each proposal with the session's baseline by the frozen paired
-   comparison (`carbon.battery.exam.final_compare`, rule v2's comparison and
-   equivalence margin). This is development feedback on adaptively seen
-   public cases, never an exam result.
+4. **Frozen-rule score.** Carbon scores fetched predictions on its own host
+   against the selected Challenge's public PRACTICE references, gates,
+   calibration and comparison rule through its named `ChallengeScoring`.
+   This is development feedback on adaptively seen public cases, never an exam
+   result.
 5. **Stall rule.** After `roles.CONSTRUCTOR_STALL_ATTEMPTS` (5, OWNER-GRAPHITE-02)
    scored proposals in a row that are not an IMPROVEMENT over the baseline,
    Carbon records one `BUILD_STALLED_AGAINST_BASELINE` observation on the
@@ -92,6 +90,7 @@ class Phase3Budget:
     hourly_usd: Decimal
     pod_minutes: int
     max_pods: int
+    challenge_id: str
 
     @property
     def pod_reservation_usd(self):
@@ -126,6 +125,7 @@ SESSION_POD_MINUTES = 360
 
 
 def phase3_budget(grant, scoring=None):
+    scoring = challenge_scoring.resolve(scoring)
     economics = podlib.prices()
     minutes = podlib.proposal_minutes(scoring)
     budget = Phase3Budget(
@@ -133,6 +133,7 @@ def phase3_budget(grant, scoring=None):
         hourly_usd=economics["hourly_usd"],
         pod_minutes=minutes,
         max_pods=SESSION_POD_MINUTES // minutes,
+        challenge_id=scoring.challenge_id,
     )
     if budget.max_pods < 2 or budget.token_allowance_usd <= 0:
         # A baseline and one proposal, and some tokens, must fit one run.
@@ -155,12 +156,16 @@ def admit(strategy, seed, root=REPOSITORY, scoring=None):
     """Compile `strategy` exactly as Carbon would rebuild it; return what
     Carbon would build (`ChallengeScoring.built_record`). Raises `Unrebuildable`
     (never scored) or `NotServed` (Carbon rebuilds it, these pods do not)."""
-    resolved = challenge_scoring.resolve(scoring)
     if type(strategy) is not dict:
         raise Unrebuildable("strategy_not_an_object")
+    resolved = (
+        challenge_scoring.scoring_for(strategy.get("challenge_id"))
+        if scoring is None
+        else challenge_scoring.resolve(scoring)
+    )
     if strategy.get("challenge_id") != resolved.challenge_id:
         raise Unrebuildable(resolved.wrong_challenge_code)
-    contract = recorded_contract() if scoring is None else recorded_contract(scoring)
+    contract = recorded_contract(resolved)
     return challenge_scoring.admit(resolved, strategy, seed, root, contract=contract)
 
 
@@ -1018,6 +1023,10 @@ class Experiment:
                         "important",
                     )
                 }
+                if comparison.get("interpretation") is not None:
+                    record["against_baseline"]["interpretation"] = comparison[
+                        "interpretation"
+                    ]
                 record["baseline"] = {
                     "eligible": baseline["frozen_rule"]["eligible"],
                     "score": baseline["frozen_rule"]["score"],
@@ -1382,7 +1391,14 @@ class _NoLadder:
 
 
 def failure_path_check(
-    root, *, baseline, budget, scorer=None, repository=REPOSITORY, level=0
+    root,
+    *,
+    baseline,
+    budget,
+    scoring,
+    scorer=None,
+    repository=REPOSITORY,
+    level=0,
 ):
     """Drive the R2 run-4 fixes with scripted pods: no pod, no network, no
     spend; Carbon's admission, rebuild check and frozen-rule scoring are real.
@@ -1404,6 +1420,7 @@ def failure_path_check(
 
     `root` must be new or empty. Returns a report with `status` OK or FAILED;
     it never raises for a failed check. The phase-3 dry run runs it."""
+    scoring = challenge_scoring.resolve(scoring)
     report = {
         "schema": FAILURE_CHECK_SCHEMA,
         "synthetic": True,
@@ -1446,6 +1463,7 @@ def failure_path_check(
                 ladder=_NoLadder(),
                 emit=lambda event_id, body: events.append((event_id, body)),
                 scorer=scorer,
+                scoring=scoring,
                 repository=repository,
                 clock=lambda: 0.0,
                 randomness=lambda n: b"\x03" * n,

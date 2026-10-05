@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-ruff-import-order",
+  "recorded_at": "2026-10-05T01:11:29Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-07 focused Ruff check",
+    "description": "Ran Ruff over every changed Python implementation and test module."
+  },
+  "expected": "The focused lint surface should pass after the scoring-adapter changes.",
+  "observed": "Ruff found one import-order violation in test_graphite_phase3_literature.py and no other diagnostic.",
+  "keep": [
+    "Keep the explicit SCORING fixture import used to bind the shared Graphite test to its Challenge."
+  ],
+  "change": [
+    "Order SCORING before ScriptedPods in the imported fixture names, then rerun the same check."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

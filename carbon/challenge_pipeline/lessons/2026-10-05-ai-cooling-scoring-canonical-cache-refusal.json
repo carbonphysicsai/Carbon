@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-canonical-cache-refusal",
+  "recorded_at": "2026-10-05T01:20:21Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 first canonical focused regression",
+    "description": "Started the affected Cooling and Graphite suites through the repository canonical wrapper in Ubuntu using explicit linked-worktree Git paths."
+  },
+  "expected": "The canonical wrapper should copy the checkout into its pinned Linux container and run the requested suites.",
+  "observed": "The wrapper built the pinned image but stopped before pytest because the Windows-created ignored .pytest_cache denied Linux xattr and copy access.",
+  "keep": [
+    "Keep the explicit linked-worktree Git binding; it passed the wrapper's repository checks."
+  ],
+  "change": [
+    "Remove only the ignored generated .pytest_cache from the verified worktree path and retry the same canonical command."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

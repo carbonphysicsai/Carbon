@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-post-merge-full-pass",
+  "recorded_at": "2026-10-05T03:38:35Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 final post-merge canonical matrix",
+    "description": "Ran the complete selected Cooling scoring, neutral scoring seam, Graphite Phase 3/4, pod-log and retry, miner-path, Battery compatibility and committed-lessons matrix on the repaired merged tree."
+  },
+  "expected": "The Challenge-neutral Cooling adapter and main's newer pod behavior should pass together without changing Battery behavior or weakening fail-closed Challenge selection.",
+  "observed": "All 498 selected canonical tests passed in 479.82 seconds.",
+  "keep": [
+    "Keep every shared Graphite scoring, budget and pod path bound to the exact selected ChallengeScoring.",
+    "Keep Cooling comparison descriptive, non-promoting and limited to public DEVELOPMENT evidence.",
+    "Keep main's bounded pod-log retention and registered baseline retry."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.graphite.pod_logs_retry",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

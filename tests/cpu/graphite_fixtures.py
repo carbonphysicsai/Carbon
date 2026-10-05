@@ -130,10 +130,10 @@ def register(control, campaign="c1", role=RoleName.READER, ceiling="5.00"):
     )
 
 
-def started(root, model=None, role=RoleName.READER, key="k1", **kw):
+def started(root, model=None, role=RoleName.READER, key="k1", observation=None, **kw):
     """A provider with one opened session; returns (provider, run_id)."""
     graphite = provider(root, model, **kw)
-    session_brief = brief(role)
+    session_brief = brief(role, observation=observation)
     handle = graphite.start(spec(graphite, session_brief), key)
     return graphite, handle.provider_run_id
 

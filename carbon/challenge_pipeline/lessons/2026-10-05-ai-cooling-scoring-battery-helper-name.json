@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-battery-helper-name",
+  "recorded_at": "2026-10-05T02:10:46Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 canonical pod-and-attack compatibility run",
+    "description": "Ran the repaired pod regression and Battery attack-adapter suites after making Battery's neutral scoring calls explicit."
+  },
+  "expected": "Battery's adapter should resolve its exact Challenge scorer without changing its existing scoring helper or admission semantics.",
+  "observed": "The run stopped because the new zero-argument helper reused the name of an existing later _scoring(value) function; Python bound calls to the later function. Four tests, including the repaired pod test, passed before the failure.",
+  "keep": [
+    "Keep the existing _scoring(value) oracle helper unchanged."
+  ],
+  "change": [
+    "Rename the new registry helper to _challenge_scoring and update its three callers."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

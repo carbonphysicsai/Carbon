@@ -1,7 +1,7 @@
 """Graphite phase 4: the pre-live gate. Every real code path, no spend.
 
     python -m carbon.agent_campaign.graphite.phase4 prelive --root DIR \
-        [--challenge TOKEN] [--grant PATH]
+        --challenge TOKEN [--grant PATH]
 
 Phase-3 session 3 failed on a defect no dry run could see: a scripted backend
 stood where the real code runs, so the real code's threading never ran. This
@@ -631,15 +631,19 @@ def _key_file(store, name):
     return path
 
 
-def prelive(root, adapter, atk, *, grant_path, repository=None, emit=print):
-    """Run the gate (module docstring) under `root`; returns the exit code."""
+def prelive(
+    root, adapter, atk, *, grant_path, repository=None, emit=print, scoring=None
+):
+    """Run the gate (module docstring) under `root`; returns the exit code.
+    `scoring` is the Challenge's registered ChallengeScoring, as `phase4 run`
+    resolves it; None resolves it from the adapter's Challenge."""
     from . import phase4
 
     repository = phase4.REPOSITORY if repository is None else Path(repository)
     store = _fresh(root)
     with network_guard() as network, sqlite_thread_guard() as uses:
         gate = _Gate(uses)
-        report = _run(gate, store, adapter, atk, grant_path, repository)
+        report = _run(gate, store, adapter, atk, grant_path, repository, scoring)
     blocking = [
         {
             "path": row["path"],
@@ -676,7 +680,7 @@ def prelive(root, adapter, atk, *, grant_path, repository=None, emit=print):
     return 0 if out["verdict"] == "PASS" else 4
 
 
-def _run(gate, store, adapter, atk, grant_path, repository):
+def _run(gate, store, adapter, atk, grant_path, repository, scoring=None):
     from . import phase4
     from .pods import RunPodPods, private_dir
 
@@ -733,6 +737,7 @@ def _run(gate, store, adapter, atk, grant_path, repository):
             model=model,
             adapter=adapter,
             miner_attach=fake_attach(door),
+            scoring=scoring,
         )
         state["provider"] = provider
         if type(provider.pods) is not phase4.NoVerifyPods:
@@ -876,6 +881,7 @@ def _run(gate, store, adapter, atk, grant_path, repository):
             http=fake_pod_http(),
             sleep=lambda seconds: None,
             balance_floor=lambda: Decimal(0),
+            scoring=scoring,
         )
         private = private_dir(root / "job")
         try:
@@ -917,7 +923,7 @@ def _run(gate, store, adapter, atk, grant_path, repository):
         # RunPodPods.launch through asyncio.to_thread with a fake RunPod
         # transport. Called with its private root only; its report is ours.
         def threaded():
-            return shared(root=store / "pods-shared-check")
+            return shared(root=store / "pods-shared-check", scoring=scoring)
 
         how = "pods.real_path_check (the pod layer's shared real-path check)"
     else:

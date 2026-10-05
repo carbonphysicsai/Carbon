@@ -203,6 +203,8 @@ def test_no_private_directory_ships_to_a_graphite_pod():
     import subprocess
 
     from carbon.agent_campaign.graphite import pods
+    from carbon.challenge_validator import scoring as challenge_scoring
+    from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 
     head = subprocess.run(
         ["git", "-C", str(REPOSITORY), "rev-parse", "HEAD"],
@@ -210,7 +212,10 @@ def test_no_private_directory_ships_to_a_graphite_pod():
         text=True,
         check=True,
     ).stdout.strip()
-    shipped = pods.ship_list(head)
+    # #584: the pod layer names its Challenge's scoring; battery's ships here.
+    shipped = pods.ship_list(
+        head, scoring=challenge_scoring.scoring_for(BATTERY_CHALLENGE)
+    )
     assert not [p for p in shipped if "private" in Path(p).parts[:-1]]
     assert "scripts/dev/exam_design/private/refs-b-v1.bin" not in shipped
     # A module whose file name says "private" is code, and still ships.

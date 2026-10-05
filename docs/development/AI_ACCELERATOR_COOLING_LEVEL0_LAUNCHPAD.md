@@ -2,7 +2,8 @@
 
 **Challenge:** `chip-cold-plate` version `1.0`
 
-**Ticket:** `CHALLENGE-AI-COOLING-06`
+**Tickets:** `CHALLENGE-AI-COOLING-06` (construction) and
+`CHALLENGE-AI-COOLING-07` (Graphite public-practice scoring)
 **State:** DEVELOPMENT construction integration; not scientifically,
 security, customer, production or LIVE qualified
 
@@ -56,9 +57,14 @@ lane. This ticket builds or authorizes no new image.
   dispatch.
 - Cross-Challenge recipes never fall back to battery, Burgers or another
   compiler.
-- The campaign may construct, practice and freeze a candidate, but submission
-  evaluation returns the typed refusal `cooling_validator_not_served` until
-  the separate Challenge-neutral validator/scoring ticket registers cooling.
+- Graphite can construct and score a candidate on the fixed public PRACTICE
+  cases through Cooling's named `ChallengeScoring`. Its paired baseline result
+  is descriptive only, carries no confidence interval and is never
+  promotable.
+- Launchpad's general submission evaluation still returns the typed refusal
+  `cooling_validator_not_served`. The separate Interface-v1
+  `ChallengeAdapter`, private reference ingestion and batch store are not
+  implemented by the public-practice scoring adapter.
 - The admission sheet remains `DRAFT_NOT_FROZEN`: attack budget and the fresh
   evaluator-held confirmation population are `HUMAN_INPUT`.
 - PB-ADV/Mode X, constructed Track-B controls and the fresh sealed confirmation
@@ -87,12 +93,31 @@ catalog (`list` then `describe` for `chip-cold-plate`, version `1.0`). Product
 campaign launch continues through the existing Launchpad runner with that exact
 Challenge id and version; there is no cooling-specific shared-workflow branch.
 
+The Graphite path now requires an explicit Challenge. Its no-network,
+no-provider, no-spend fixture run is:
+
+```text
+python -m carbon.agent_campaign.graphite.phase3 run \
+  --root <PRIVATE_DIR_OUTSIDE_REPOSITORY> \
+  --challenge chip-cold-plate \
+  --dry-run
+```
+
+That run uses scripted inference, synthetic predictions and an in-memory
+RunPod transport, while exercising Carbon's real admission, rebuild, public
+practice scoring, comparison, bundle and clean-rebuild paths. It is fixture
+evidence, not a scientific result. A paid Graphite run additionally needs the
+existing exact grant, credentials, pushed code ref, miner campaign and frozen
+literature snapshot; naming this Challenge does not authorize spend.
+
 ## What comes next
 
-This PR is the construction/admission adapter only. The next cooling tickets,
-in bounded order, are:
+The Level-0 construction and public Graphite scoring adapters are implemented.
+The next cooling tickets, in bounded order, are:
 
-1. the Challenge-neutral validator/scoring seam and cooling scoring adapter;
+1. the general validator's Interface-v1 Cooling `ChallengeAdapter`, including
+   reconstruction, reference ingestion, batch storage, allow-listed outcomes
+   and sealed-role reporting;
 2. PB-ADV/Mode-X attack optimizer;
 3. the five constructed Track-B cooling controls;
 4. owner/operator creation and sealing of a fresh confirmation set;

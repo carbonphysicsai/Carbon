@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-compile-pass",
+  "recorded_at": "2026-10-05T01:10:19Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-07 changed Python compile check",
+    "description": "Compiled the changed Graphite, ChallengeScoring and focused test modules with the retained CCM Python environment."
+  },
+  "expected": "Every changed Python module should parse and compile after Challenge-parametric fixture and next-level routing changes.",
+  "observed": "compileall exited 0 with no diagnostics.",
+  "keep": [
+    "Keep Challenge-owned dry-run fixture construction behind ChallengeScoring.",
+    "Keep unregistered Challenge context fail closed in the shared next-level writer."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

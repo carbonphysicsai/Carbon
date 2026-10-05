@@ -64,8 +64,8 @@ SHIP_TREES = ("carbon", "scripts/dev/exam_design")
 #: Engineering allowances per proposal, each taken from an existing record
 #: (GRAPHITE-D20): the pod's start-up allowance is the rented runner's
 #: (`RentedCompute.startup_seconds`, 900 s); the job's own allowance is the
-#: Challenge contract's worker deadline (`envelope.worker_deadline_seconds`;
-#: battery's is 600 s); the export window is pod_control's default
+#: Challenge contract's worker deadline (`envelope.worker_deadline_seconds`);
+#: the export window is pod_control's default
 #: (`--export-minutes 5`).
 STARTUP_MINUTES = 15
 EXPORT_MINUTES = 5
@@ -74,8 +74,7 @@ POLL_SECONDS = 15.0
 
 def data_paths(scoring=None):
     """The data files the pod's phase reads, beside the `carbon` package and
-    the pod tooling: the Challenge's public development material only (for
-    battery, TRAIN v1, the OCV table and the public PRACTICE records), each
+    the pod tooling: the Challenge's public development material only, each
     pinned again by its own digest when the phase loads it."""
     return challenge_scoring.resolve(scoring).ship_check()
 
@@ -334,6 +333,7 @@ class RunPodPods:
         http=None,
         transport=None,
         balance_floor=operator_balance_floor,
+        scoring=None,
     ):
         from scripts.dev.exam_design.runpod.operator_compute import (
             ComputeService,
@@ -347,6 +347,7 @@ class RunPodPods:
             raise PodFailure(
                 "ship", "a 40-hex pushed commit is required", executed=False
             )
+        self.scoring = challenge_scoring.resolve(scoring)
         self.economics = prices()
         self.repository, self.code_ref = Path(repository), code_ref
         self.clock, self.sleep = clock, sleep
@@ -366,7 +367,7 @@ class RunPodPods:
         )
         self.service = ComputeService(self.store, self.adapter, clock=clock)
         self._tokens = {}
-        paths = ship_list(code_ref, self.repository)
+        paths = ship_list(code_ref, self.repository, self.scoring)
         self.manifest = code_manifest(code_ref, paths, self.repository)
         self.boot = (
             self.repository / "scripts/dev/exam_design/runpod/bootstrap.py"
@@ -827,7 +828,7 @@ class ScriptedPods:
 _SYNTHETIC_BUILDS = {}
 
 
-def synthetic_outputs(quality, *, root=REPOSITORY, built=None):
+def synthetic_outputs(quality, *, root=REPOSITORY, built=None, scoring=None):
     """SYNTHETIC pod outputs for tests and `--dry-run`: nothing is trained.
 
     The pod "builds" honestly (`pod_phase.built_record`, unless `built`
@@ -835,15 +836,15 @@ def synthetic_outputs(quality, *, root=REPOSITORY, built=None):
     PRACTICE references with a deterministic error of size `quality` after the
     initial instant (so no gate fails): lower is better, 0 is exact. They exist
     only to drive Carbon's real scoring and comparison code."""
-    import math
-
-    cache = {}
 
     def outputs(job):
-        from carbon.battery.practice import PracticeSet
-
         from .pod_phase import built_record
 
+        selected = (
+            challenge_scoring.scoring_for(job.strategy.get("challenge_id"))
+            if scoring is None
+            else challenge_scoring.resolve(scoring)
+        )
         key = (json.dumps(job.strategy, sort_keys=True), job.contract_digest, job.seed)
         if built is not None:
             record = built
@@ -852,20 +853,7 @@ def synthetic_outputs(quality, *, root=REPOSITORY, built=None):
         else:
             record = built_record(job.strategy, job.contract_digest, job.seed, root)[0]
             _SYNTHETIC_BUILDS[key] = record
-        predictions = {}
-        records = cache.get("practice")
-        if records is None:
-            records = cache["practice"] = PracticeSet.load(root).records
-        for index, ref in enumerate(records):
-            wave = 1.0 + 0.5 * math.sin(index * 0.7)
-            out = ref["outputs"]
-            predictions[ref["case_id"]] = {
-                "voltage_v": out["voltage_v"],
-                "temperature_c": [out["temperature_c"][0]]
-                + [t + quality * 0.5 * wave for t in out["temperature_c"][1:]],
-                "plating_margin_v": out["plating_margin_v"] + quality * 0.002 * wave,
-                "capacity_ah": out["capacity_ah"],
-            }
+        predictions = selected.synthetic_predictions(quality, root)
         return {
             "built.json": json.dumps(record, sort_keys=True).encode(),
             "predictions.json": json.dumps(predictions).encode(),
@@ -1010,7 +998,9 @@ class InMemoryRunPod:
         return (200, self.FILES[name]) if name in self.FILES else (404, b"")
 
 
-def real_path_check(root, *, code_ref=None, repository=REPOSITORY, launches=2):
+def real_path_check(
+    root, *, code_ref=None, repository=REPOSITORY, launches=2, scoring=None
+):
     """Drive the live pod backend's real code path with no network and no
     spend, the way a live phase-3 session drives it (POD-STORE-THREADS-01).
 
@@ -1072,6 +1062,7 @@ def real_path_check(root, *, code_ref=None, repository=REPOSITORY, launches=2):
             http=account.http,
             sleep=lambda _seconds: None,
             balance_floor=lambda: Decimal(0),  # synthetic: the account is in memory
+            scoring=scoring,
         )
         jobs = [
             PodJob(

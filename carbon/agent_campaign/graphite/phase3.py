@@ -1,15 +1,15 @@
 """GRAPHITE-01 phase 3: the Constructor at Level 0, and its runner.
 
-    python -m carbon.agent_campaign.graphite.phase3 run --root DIR \
+    python -m carbon.agent_campaign.graphite.phase3 run --root DIR --challenge TOKEN \
         --grant docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3.json \
         (--credential-file PATH | --credential-env ENGY_API_KEY) \
         (--runpod-key-file PATH | --runpod-key-env RUNPOD_API_KEY) \
         --miner-profile PROFILE.json --miner-campaign ID --code-ref SHA \
         --literature-snapshot SNAPSHOT.json [--allow-unchecked-cards] [--session N]
-    python -m carbon.agent_campaign.graphite.phase3 run --root DIR --dry-run \
+    python -m carbon.agent_campaign.graphite.phase3 run --root DIR --challenge TOKEN --dry-run \
         [--literature-snapshot SNAPSHOT.json [--allow-unchecked-cards]]
     python -m carbon.agent_campaign.graphite.phase3 cancel --root DIR --session N
-    python -m carbon.agent_campaign.graphite.phase3 reconcile --root DIR --grant G \
+    python -m carbon.agent_campaign.graphite.phase3 reconcile --root DIR --challenge TOKEN --grant G \
         (--runpod-key-file PATH | --runpod-key-env RUNPOD_API_KEY) --code-ref SHA
     python -m carbon.agent_campaign.graphite.phase3 status --root DIR
     python -m carbon.agent_campaign.graphite.phase3 rebuild --bundle DIR
@@ -24,10 +24,11 @@ under one owner grant that covers both its model calls and its pods
    together, as the provider reports both);
 2. `Phase3Provider` drives the research loop with the Constructor's prompt and
    closed tools. Its miner tools go through the real miner path
-   (`miner_path.attach`, the standard miner MCP door) to a battery DEVELOPMENT
+   (`miner_path.attach`, the standard miner MCP door) to the named DEVELOPMENT
    campaign; its proposals go to Carbon's runner (`experiment`), which admits
    each one through the reconstruction gate, runs it on a pod, checks the
-   pod's build against Carbon's own, and scores it by the frozen rule;
+   pod's build against Carbon's own, and scores it by that Challenge's frozen
+   rule;
 3. inside the run, every model call is reserved before dispatch (the research
    ledger, capped at the run's token share) and every pod before launch (the
    pod ledger, against the run's combined cap); each settles from the
@@ -168,7 +169,7 @@ _TERMINAL = ("succeeded", "failed", "cancelled")
 #: The Engy adapter a new phase-3 session opens on (GRAPHITE-D34; owner,
 #: 2026-10-04: "perfect. I approve what comes back"). Engy's Chat Completions
 #: replies carry `x_engy.charged_micro`, which settles each call; its Messages
-#: endpoint returns no `x_engy` block (measured 2026-09-27, battery v2
+#: endpoint returns no `x_engy` block (measured 2026-09-27, the then-current
 #: finding 7), so every call of live sessions 1 and 2 on `engy-anthropic` kept
 #: its full reservation. A recorded session keeps the adapter it opened on.
 ADAPTER = "engy-chat"
@@ -458,9 +459,25 @@ class Phase3Provider(GraphiteProvider):
             clock=self.clock,
             randomness=self.randomness,
             scoring=self.scoring,
-            construction_level=recorded_level(opened),
+            construction_level=recorded_level(opened, self.scoring),
             seconds_left=self._time_gate(run_id, opened),
         )
+
+    def _next_level(self, run_id, role):
+        """The next-level writer bound to this session's exact Challenge."""
+
+        def write(arguments, identity):
+            return next_level.propose_tool(
+                arguments,
+                literature=self.literature,
+                run_dir=self._dir(run_id),
+                run_id=run_id,
+                identity=identity,
+                role=role.name.value,
+                scoring=self.scoring,
+            )
+
+        return write
 
     def _frozen_rule(self):
         """The frozen rule, loaded once per provider (its material is pinned)."""
@@ -725,7 +742,11 @@ def session_brief(
     """The Constructor's brief: the session Challenge's public development
     material only (its `ChallengeScoring`), and the session's offered
     literature (the phase-1 fixture when none is given)."""
-    scoring = challenge_scoring.resolve(scoring)
+    scoring = (
+        challenge_scoring.scoring_for(budget.challenge_id)
+        if scoring is None
+        else challenge_scoring.resolve(scoring)
+    )
     baseline = scoring.baseline_strategy() if baseline is None else baseline
     literature = lit.FIXTURE_INDEX if literature is None else literature
     contract = ex.recorded_contract(scoring)
@@ -758,24 +779,25 @@ def session_brief(
     )
 
 
-def permission_profile():
-    """Level 0: the recorded battery construction contract, widened by nothing."""
+def permission_profile(scoring):
+    """Level 0: the session Challenge's recorded contract, widened by nothing."""
+    scoring = challenge_scoring.resolve(scoring)
     document = {
         "schema": PROFILE_SCHEMA,
         "level": 0,
-        "construction_contract": ex.recorded_contract(),
+        "construction_contract": ex.recorded_contract(scoring),
         "surface": "declarative TrainingStrategy inside the recorded contract",
         "widens": [],
     }
     return document, digest(canonical(document))
 
 
-def recorded_level(opened):
+def recorded_level(opened, scoring):
     """The construction level of an opened run, from the permission profile
     its task recorded: the profile's level only when the run's recorded
     profile digest is this profile's, else None (unknown). Never read from a
     submission (`pod_outcome`)."""
-    document, profile = permission_profile()
+    document, profile = permission_profile(scoring)
     task = (opened or {}).get("task") or {}
     return document["level"] if task.get("profile_digest") == profile else None
 
@@ -847,7 +869,7 @@ def run_session(control, provider, brief, number):
     if type(number) is not int or not 1 <= number <= control.grant.permitted_runs:
         raise ValueError("session is 1 .. the grant's permitted runs")
     check_resume(provider, number)
-    _document, profile = permission_profile()
+    _document, profile = permission_profile(provider.scoring)
     ensure_campaign(
         control, checkout_digest=brief.checkout_manifest_digest, profile_digest=profile
     )
@@ -1060,8 +1082,12 @@ def _literature_from(args):
 
 
 def command_run(args):
+    try:
+        scoring = challenge_scoring.scoring_for(args.challenge)
+    except challenge_scoring.ScoringUnavailable as refused:
+        raise RunnerRefused(refused.code) from None
     if args.dry_run:
-        return dry_run(_root(args.root), literature=_literature_from(args))
+        return dry_run(_root(args.root), scoring, literature=_literature_from(args))
     root = _root(args.root)
     grant = load_grant(args.grant)
     if grant.provider != "graphite":
@@ -1095,11 +1121,19 @@ def command_run(args):
             model = LiveModel(grant=grant, credential_file=engy, provider="graphite")
         except ModelAccessRefused as refused:
             raise RunnerRefused(refused.code) from None
-        pods = RunPodPods(root=root / "pods", key_file=runpod, code_ref=args.code_ref)
+        pods = RunPodPods(
+            root=root / "pods",
+            key_file=runpod,
+            code_ref=args.code_ref,
+            scoring=scoring,
+        )
 
         def attach(*, session):
             return miner_path.attach(
-                args.miner_profile, args.miner_campaign, session=session
+                args.miner_profile,
+                args.miner_campaign,
+                session=session,
+                scoring=scoring,
             )
 
         provider = Phase3Provider(
@@ -1109,6 +1143,7 @@ def command_run(args):
             pods=pods,
             miner_attach=attach,
             literature_index=literature,
+            scoring=scoring,
         )
         try:
             check_resume(provider, args.session)
@@ -1118,7 +1153,10 @@ def command_run(args):
         try:
             budget = provider.budget
             brief = session_brief(
-                checkout_commit=args.code_ref, budget=budget, literature=literature
+                checkout_commit=args.code_ref,
+                budget=budget,
+                literature=literature,
+                scoring=scoring,
             )
             _install_cancel(provider, provider.run_id_for(session_key(args.session)))
             result = run_session(control, provider, brief, args.session)
@@ -1153,13 +1191,27 @@ def command_reconcile(args):
     from .model import ScriptedModel
     from .pods import RunPodPods
 
+    try:
+        scoring = challenge_scoring.scoring_for(args.challenge)
+    except challenge_scoring.ScoringUnavailable as refused:
+        raise RunnerRefused(refused.code) from None
+
     with secret_file(
         path=args.runpod_key_file, env=args.runpod_key_env, names=("RUNPOD_API_KEY",)
     ) as runpod:
-        pods = RunPodPods(root=root / "pods", key_file=runpod, code_ref=args.code_ref)
+        pods = RunPodPods(
+            root=root / "pods",
+            key_file=runpod,
+            code_ref=args.code_ref,
+            scoring=scoring,
+        )
         # Reconciliation makes no model call: a scripted model with no script.
         provider = Phase3Provider(
-            root=root / "graphite", grant=grant, model=ScriptedModel([]), pods=pods
+            root=root / "graphite",
+            grant=grant,
+            model=ScriptedModel([]),
+            pods=pods,
+            scoring=scoring,
         )
         report = {}
         for run in sorted((root / "graphite" / "runs").glob("graphite-*")):
@@ -1251,14 +1303,9 @@ class DryRunMiner:
         return {"status": "OK", "dry_run": True, "operation": name, "ran": False}
 
 
-def dry_run_script(baseline):
-    import copy
-
+def dry_run_script(baseline, variant, refused):
     from .model import text, tool, tools
 
-    better = copy.deepcopy(baseline)
-    better["parameters"]["width"] = 128
-    unrebuildable = {**baseline, "backbone": "transolver"}
     prefix = "carbon_research_v2__"
     return [
         # Live session 1's first turn: three tool calls at once. All three
@@ -1271,7 +1318,7 @@ def dry_run_script(baseline):
         tool(
             PROPOSE,
             {
-                "strategy_json": json.dumps(unrebuildable),
+                "strategy_json": json.dumps(refused),
                 "hypothesis": "an operator family outside the contract",
                 "expected_effect": "Carbon refuses it, typed",
             },
@@ -1279,8 +1326,8 @@ def dry_run_script(baseline):
         tool(
             PROPOSE,
             {
-                "strategy_json": json.dumps(better),
-                "hypothesis": "a wider MLP fits the trajectories better",
+                "strategy_json": json.dumps(variant),
+                "hypothesis": "a second registered construction choice",
                 "expected_effect": "a lower frozen-rule score than the baseline",
             },
         ),
@@ -1288,9 +1335,7 @@ def dry_run_script(baseline):
     ]
 
 
-def dry_run(root, literature=None):
-    from carbon.battery.research import SCAFFOLD
-
+def dry_run(root, scoring, literature=None):
     from .model import ScriptedModel
     from .pods import ScriptedPods, Step, real_path_check, synthetic_outputs
 
@@ -1298,27 +1343,35 @@ def dry_run(root, literature=None):
     if root.exists():
         shutil.rmtree(root)
     root.mkdir(mode=0o700)
+    scoring = challenge_scoring.resolve(scoring)
+    baseline = scoring.baseline_strategy()
+    variant = scoring.fixture_variant_strategy()
+    refused = scoring.fixture_refused_strategy()
     grant = SpendingGrant.from_document(DRY_RUN_GRANT)
     pods = ScriptedPods(
         steps=[
-            Step(outputs=synthetic_outputs(1.0), charge="0.20"),
-            Step(outputs=synthetic_outputs(0.4), charge="0.20"),
-            Step(outputs=synthetic_outputs(1.0), charge="0.20"),
+            Step(outputs=synthetic_outputs(1.0, scoring=scoring), charge="0.20"),
+            Step(outputs=synthetic_outputs(0.4, scoring=scoring), charge="0.20"),
+            Step(outputs=synthetic_outputs(1.0, scoring=scoring), charge="0.20"),
         ]
     )
     provider = Phase3Provider(
         root=root / "graphite",
         grant=grant,
-        model=ScriptedModel(dry_run_script(SCAFFOLD)),
+        model=ScriptedModel(dry_run_script(baseline, variant, refused)),
         pods=pods,
         miner_tools=DryRunMiner(),
         randomness=lambda n: b"\x00" * n,
+        scoring=scoring,
         **({} if literature is None else {"literature_index": literature}),
     )
     control = controller_for(root, provider, grant)
     try:
         brief = session_brief(
-            checkout_commit="0" * 40, budget=provider.budget, literature=literature
+            checkout_commit="0" * 40,
+            budget=provider.budget,
+            literature=literature,
+            scoring=scoring,
         )
         result = run_session(control, provider, brief, 1)
     finally:
@@ -1345,13 +1398,14 @@ def dry_run(root, literature=None):
         # The scripted pods above never reach the operator layer; this drives
         # the live backend's own path, threads included, with RunPod in memory
         # (POD-STORE-THREADS-01).
-        "real_pod_path": real_path_check(root / "real-pod-path"),
+        "real_pod_path": real_path_check(root / "real-pod-path", scoring=scoring),
         # A pod that exits non-zero keeps its logs, bounded; a baseline that
         # fails as infrastructure is retried once and scores (R2 run 4).
         "pod_failure_path": ex.failure_path_check(
             root / "pod-failure-path",
-            baseline=SCAFFOLD,
+            baseline=baseline,
             budget=provider.budget,
+            scoring=scoring,
             scorer=provider._frozen_rule(),
         ),
     }
@@ -1369,6 +1423,7 @@ def main(argv=None):
     sub = parser.add_subparsers(dest="command", required=True)
     run = sub.add_parser("run")
     run.add_argument("--root", required=True)
+    run.add_argument("--challenge", required=True)
     run.add_argument("--dry-run", action="store_true")
     run.add_argument("--grant")
     credential = run.add_mutually_exclusive_group()
@@ -1388,6 +1443,7 @@ def main(argv=None):
     cancel.add_argument("--session", type=int, required=True)
     reconcile = sub.add_parser("reconcile")
     reconcile.add_argument("--root", required=True)
+    reconcile.add_argument("--challenge", required=True)
     reconcile.add_argument("--grant", required=True)
     key = reconcile.add_mutually_exclusive_group(required=True)
     key.add_argument("--runpod-key-file")

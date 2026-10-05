@@ -34,6 +34,8 @@ from test_graphite_phase4 import _synthetic_adapter
 
 from carbon.agent_campaign.graphite import phase4
 from carbon.agent_campaign.graphite import phase4_prelive as prelive
+from carbon.challenge_validator import scoring as challenge_scoring
+from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 GRANT_FILE = REPOSITORY / phase4.GRANT_FILE
@@ -161,6 +163,11 @@ def _committed_by_digest(monkeypatch, copy):
     monkeypatch.setattr(phase4, "check_code_ref", lambda ref, repository=None: None)
 
 
+#: The synthetic stand-in Challenge has no registered scoring; the gate runs
+#: it under battery's, as `test_graphite_phase4` does (#584).
+SCORING = challenge_scoring.scoring_for(BATTERY_CHALLENGE)
+
+
 def _gate(tmp_path, adapter, atk):
     printed = []
     code = prelive.prelive(
@@ -169,6 +176,7 @@ def _gate(tmp_path, adapter, atk):
         atk,
         grant_path=_grant_copy(tmp_path),
         emit=printed.append,
+        scoring=SCORING,
     )
     return code, json.loads(printed[-1])
 
@@ -286,6 +294,7 @@ def test_a_refused_grant_stops_the_gate_before_anything_opens(
         engine_modules,
         grant_path=other,
         emit=printed.append,
+        scoring=SCORING,
     )
     report = json.loads(printed[-1])
     (row,) = report["paths"]
@@ -301,7 +310,15 @@ def test_the_battery_gate_through_the_cli(tmp_path, monkeypatch):
     out = io.StringIO()
     with redirect_stdout(out):
         code = phase4.main(
-            ["prelive", "--root", str(tmp_path / "root"), "--grant", str(copy)]
+            [
+                "prelive",
+                "--root",
+                str(tmp_path / "root"),
+                "--challenge",
+                BATTERY_CHALLENGE,
+                "--grant",
+                str(copy),
+            ]
         )
     report = json.loads(out.getvalue())
     rows = {row["path"]: row for row in report["paths"]}
@@ -322,7 +339,7 @@ def test_the_pod_step_calls_the_pod_layers_shared_check_when_it_exists(
     _committed_by_digest(monkeypatch, copy)
     calls = []
 
-    def shared(*, root):
+    def shared(*, root, scoring=None):
         calls.append(root)
         return {"launched": True, "terminated": True}
 
@@ -335,7 +352,7 @@ def test_the_pod_step_calls_the_pod_layers_shared_check_when_it_exists(
     assert any("pods.real_path_check" in line for line in step["exercised"])
     assert report["verdict"] == "PASS" and code == 0
 
-    def failing(*, root):
+    def failing(*, root, scoring=None):
         raise sqlite3.ProgrammingError("SQLite objects created in a thread ...")
 
     monkeypatch.setattr(pods, "real_path_check", failing, raising=False)

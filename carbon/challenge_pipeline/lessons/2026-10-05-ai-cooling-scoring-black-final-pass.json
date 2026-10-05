@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-black-final-pass",
+  "recorded_at": "2026-10-05T02:42:13Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-07 final changed-Python Black check",
+    "description": "Rechecked every changed Python file after formatting the Graphite fixture."
+  },
+  "expected": "Every changed Python file should match Black.",
+  "observed": "Black completed successfully with no requested reformatting.",
+  "keep": [
+    "Keep the formatted explicit-Challenge fixture signature."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

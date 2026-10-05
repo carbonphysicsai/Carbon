@@ -10,14 +10,11 @@ a miner's practice trial does, with Carbon's own code:
 
 1. compiles the strategy against its Challenge's recorded construction
    contract and builds the exact staged files of a practice trial, through
-   that Challenge's `ChallengeScoring.built_record` (for battery: Carbon's
-   recipe modules, public TRAIN v1, the OCV table, the public PRACTICE inputs
-   and the compiled recipe with Carbon's practice randomness);
+   that Challenge's `ChallengeScoring.built_record`;
 2. **refuses to run** unless the staged files and the program are exactly the
    ones Carbon pinned before launch (`expected`);
-3. runs the Challenge's fixed practice program (for battery,
-   `carbon.development_session.battery_gpu.GPU_PROGRAM`) in a fresh
-   directory, bounded by the contract's worker deadline;
+3. runs the Challenge's fixed practice program in a fresh directory, bounded
+   by the contract's worker deadline;
 4. writes `built.json` (what was built: the recipe document and every digest),
    the program's `predictions.json`, `fit.json` and `runtime.json`, and
    `DONE.json`.

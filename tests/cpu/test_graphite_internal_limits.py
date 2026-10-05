@@ -47,6 +47,7 @@ from graphite_fixtures import provider as harness_provider
 from graphite_phase3_fixtures import (
     LEDGER_NOW,
     PREFIX,
+    SCORING,
     ScriptedPods,
     brief,
     controller,
@@ -461,7 +462,7 @@ def _open_phase3(graphite, number=1):
     from carbon.agent_campaign.graphite.roles import ROLES
     from carbon.agent_campaign.provider import TaskSpec
 
-    _document, profile = phase3.permission_profile()
+    _document, profile = phase3.permission_profile(SCORING)
     spec = TaskSpec(
         campaign_id=phase3.CAMPAIGN,
         role=ROLES[RoleName.CONSTRUCTOR].boundary.value,
@@ -600,6 +601,7 @@ class JumpClock:
 
 
 def _timed_session(tmp_path, script, account, clock, **kw):
+    kw.setdefault("scoring", SCORING)
     graphite = phase3.Phase3Provider(
         root=tmp_path / "graphite",
         grant=grant(),
@@ -745,7 +747,19 @@ def test_a_v2_harness_role_runs_past_the_shared_48(tmp_path):
 
 
 def test_the_dry_run_shows_no_call_cap_and_the_money_cap(tmp_path, capsys):
-    assert phase3.main(["run", "--root", str(tmp_path), "--dry-run"]) == 0
+    assert (
+        phase3.main(
+            [
+                "run",
+                "--root",
+                str(tmp_path),
+                "--challenge",
+                SCORING.challenge_id,
+                "--dry-run",
+            ]
+        )
+        == 0
+    )
     output = capsys.readouterr().out
     result = json.loads(output[output.index("{\n") :])
     dry = result["dry_run"]
@@ -767,7 +781,7 @@ def test_the_dry_run_shows_no_call_cap_and_the_money_cap(tmp_path, capsys):
 def test_the_phase3_budget_split_is_unchanged():
     """Grant math is unchanged: the run cap splits into 2.96 of pods and
     1.95 of tokens, from money alone."""
-    budget = ex.phase3_budget(grant())
+    budget = ex.phase3_budget(grant(), SCORING)
     assert budget.run_cap_usd == Decimal("4.91")
     assert budget.pod_allowance_usd == Decimal("2.96")
     assert budget.token_allowance_usd == Decimal("1.95")
