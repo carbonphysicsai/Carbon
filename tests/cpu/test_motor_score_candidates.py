@@ -35,8 +35,13 @@ def test_frozen_rule_is_reproduced_exactly(result):
         ).read_text(encoding="utf-8")
     )["scores"]["practice"]
     check = result["frozen_rule_check"]
-    assert check["analytic-v1"] == registered["closed_form"]["score"]
-    assert check["learned-krr-v1"] == registered["learned"]["score"]
+    # Relative 1e-9: the reproducibility bound across environments.
+    assert check["analytic-v1"] == pytest.approx(
+        registered["closed_form"]["score"], rel=1e-9, abs=0.0
+    )
+    assert check["learned-krr-v1"] == pytest.approx(
+        registered["learned"]["score"], rel=1e-9, abs=0.0
+    )
 
 
 def test_point_estimates_match_the_committed_result(result):
