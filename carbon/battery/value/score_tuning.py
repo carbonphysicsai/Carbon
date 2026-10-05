@@ -269,8 +269,13 @@ def _top(scores, pool):
     return ranked
 
 
-def evaluate(scores, values, outcomes, recipe_of, members, one_seed, unsafe=()):
-    """One candidate's alignment with decision value."""
+def evaluate(
+    scores, values, outcomes, recipe_of, members, one_seed, unsafe=(), adversarial=()
+):
+    """One candidate's alignment with decision value. `adversarial` members
+    (EV5's top-half infeasible constructions and Mode X violators) must leave
+    the top half without the good deciders (the best quarter by decision
+    value) leaving it with them."""
     usable = [m for m in members if scores.get(m) is not None and values[m] is not None]
     panels, count, mode = b1.seed_panels(recipe_of, members)
     taus = [b1._tau(scores, values, p) for p in panels]
@@ -295,6 +300,15 @@ def evaluate(scores, values, outcomes, recipe_of, members, one_seed, unsafe=()):
     best = min((values[m] for m in one_seed if values[m] is not None), default=None)
     kinds = outcomes.get(top1, {}) if top1 else {}
     all_ranked = _top(scores, members)
+    n = len(all_ranked)
+
+    def in_top_half(m):
+        return m in all_ranked and 2 * (all_ranked.index(m) + 1) <= n
+
+    valued = sorted(
+        (m for m in members if values.get(m) is not None), key=lambda m: (values[m], m)
+    )
+    good = valued[: max(1, len(valued) // 4)] if valued else []
     return {
         "tau_one_seed": b1._tau(scores, values, one_seed),
         "tau_all": b1._tau(scores, values, members),
@@ -317,6 +331,10 @@ def evaluate(scores, values, outcomes, recipe_of, members, one_seed, unsafe=()):
         "divergence_count": len(divergent),
         "value_noise_band": band,
         "picks_unsafe": top1 in set(unsafe),
+        "adversarial_in_top_half": sorted(m for m in adversarial if in_top_half(m)),
+        "good_deciders_top_half_share": (
+            sum(1 for m in good if in_top_half(m)) / len(good) if good else None
+        ),
         "unsafe_ranks": {
             u: (all_ranked.index(u) + 1 if u in all_ranked else None, len(all_ranked))
             for u in unsafe
@@ -334,6 +352,7 @@ def evaluate_all(
     one_seed,
     *,
     unsafe=(),
+    adversarial=(),
     ids=None,
     baseline="CE",
 ):
@@ -351,7 +370,7 @@ def evaluate_all(
     for cid in ids:
         scores, verdicts = candidate_scores(candidates[cid], legs, recipe_of)
         out[cid], taus[cid] = evaluate(
-            scores, values, outcomes, recipe_of, members, one_seed, unsafe
+            scores, values, outcomes, recipe_of, members, one_seed, unsafe, adversarial
         )
         out[cid]["gate_failures"] = sorted(
             m for m, v in verdicts.items() if v == admissibility.FAIL

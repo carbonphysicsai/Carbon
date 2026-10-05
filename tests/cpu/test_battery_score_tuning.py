@@ -253,3 +253,31 @@ def test_the_public_api_is_what_candidate_scores_uses():
     )
     assert st.gate_verdict(gated, legs["rec2-s1"]) == "FAIL"
     assert st.gate_verdict(candidate, legs["rec2-s1"]) is None
+
+
+def test_adversarial_members_must_leave_the_top_half_without_good_deciders():
+    legs, values, recipe_of = _legs()
+    members = sorted(legs)
+    adversary = "rec2-s1"  # the worst decider, which -E ranks first
+    ce = st.evaluate(
+        st.candidate_scores(st.Candidate("CE", kind="deciding"), legs, recipe_of)[0],
+        values,
+        {},
+        recipe_of,
+        members,
+        members,
+        adversarial=[adversary],
+    )[0]
+    a = st.evaluate(
+        st.candidate_scores(st.Candidate("A", weights={"a": 1.0}), legs, recipe_of)[0],
+        values,
+        {},
+        recipe_of,
+        members,
+        members,
+        adversarial=[adversary],
+    )[0]
+    assert ce["adversarial_in_top_half"] == [adversary]
+    assert ce["good_deciders_top_half_share"] == 0.0
+    assert a["adversarial_in_top_half"] == []
+    assert a["good_deciders_top_half_share"] == 1.0
