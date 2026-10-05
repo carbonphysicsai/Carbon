@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -44,10 +45,12 @@ _KEYS = frozenset(
         "self_improvement_factor",
         "burn_uid",
         "cadence_blocks",
+        "baselines",
         "membership_note",
     }
 )
 _DECAY = {"full_ms": DAY_MS, "halving_ms": DAY_MS}
+DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 
 
 def _canonical(value):
@@ -64,6 +67,13 @@ class WinnerPolicy:
     self_improvement_factor: str | None
     burn_uid: int
     cadence_blocks: int
+    #: Each Challenge's registered public baseline (a construction digest), or
+    #: None while testnet keeps the validator's first-incumbent rule
+    #: (OWNER-TESTNET-WEIGHTS-01 §2b).
+    baselines: tuple = ()
+
+    def baseline(self, challenge):
+        return dict(self.baselines)[challenge]
 
     @property
     def share(self):
@@ -89,6 +99,7 @@ def load_policy(version=None, directory=None):
         raise RewardFailure("WEIGHT_POLICY_ALTERED")
     challenges = document.get("challenges") if type(document) is dict else None
     factor = document.get("self_improvement_factor") if challenges else None
+    baselines = document.get("baselines") if challenges else None
     if (
         type(document) is not dict
         or set(document) != _KEYS
@@ -105,6 +116,12 @@ def load_policy(version=None, directory=None):
         or not (factor is None or type(factor) is str)
         or document["burn_uid"] != 0
         or document["cadence_blocks"] != 360
+        or type(baselines) is not dict
+        or set(baselines) != set(challenges)
+        or not all(
+            b is None or (type(b) is str and DIGEST.fullmatch(b))
+            for b in baselines.values()
+        )
     ):
         raise RewardFailure("WEIGHT_POLICY_MALFORMED")
     return WinnerPolicy(
@@ -116,6 +133,7 @@ def load_policy(version=None, directory=None):
         self_improvement_factor=factor,
         burn_uid=document["burn_uid"],
         cadence_blocks=document["cadence_blocks"],
+        baselines=tuple(sorted(baselines.items())),
     )
 
 

@@ -1,5 +1,10 @@
 {
   "authority": "OWNER-TESTNET-WEIGHTS-01",
+  "baselines": {
+    "battery-fastcharge-ageing-development-v1": null,
+    "chip-cold-plate": null,
+    "electric-motor-magnetics": null
+  },
   "burn_uid": 0,
   "cadence_blocks": 360,
   "challenges": [
@@ -11,7 +16,7 @@
     "full_ms": 86400000,
     "halving_ms": 86400000
   },
-  "membership_note": "N is the Challenges this version lists: the three Challenges under Graphite test on testnet now. The eight launch Challenges (OWNER-LAUNCH-PORTFOLIO-02) join as their ids are registered, each as a new version. A listed Challenge with no eligible winner, or no serving validator, burns its share. self_improvement_factor stays null until measured and adopted; while null, a same-miner promotion does not reset the winner clock.",
+  "membership_note": "N is the Challenges this version lists: the three Challenges under Graphite test on testnet now. The eight launch Challenges (OWNER-LAUNCH-PORTFOLIO-02) join as their ids are registered, each as a new version. A listed Challenge with no eligible winner, or no serving validator, burns its share. self_improvement_factor stays null until measured and adopted; while null, a same-miner promotion does not reset the winner clock. baselines: each Challenge's public baseline construction digest, set with Graphite during final tests; while null, testnet keeps the validator's first-incumbent rule; once set, a first incumbent must beat it.",
   "netuid": 567,
   "network": "testnet",
   "schema": "carbon.rewards.testnet-winner-policy.v1",
