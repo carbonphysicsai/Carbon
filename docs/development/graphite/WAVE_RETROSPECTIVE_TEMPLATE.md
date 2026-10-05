@@ -17,7 +17,7 @@ says why; none stays blank.
 | Challenge | `<challenge_id>` |
 | Wave / level range | `<e.g. wave 1, levels 0 to 0>` |
 | Period | `<first Level 0 contract date>` to `<end date>` |
-| Gate reports used | digests of the first and last `readiness` run, from `readiness/<challenge>/history.jsonl` |
+| Gate reports used | digests of the first and last `readiness` run, from `docs/development/challenge_pipeline/readiness/<challenge>/history.jsonl` |
 | Author, reviewer, date | |
 
 ## 2. Metrics (register section 8)
@@ -84,7 +84,7 @@ each path on origin/main, add what this wave built, drop what did not work):
 
 | Kind | Asset | Path | A new challenge supplies |
 |---|---|---|---|
-| Tool | Readiness command: every gate item, digest-bound history | `python -m carbon.challenge_pipeline readiness` | records under `readiness/<challenge>/` |
+| Tool | Readiness command: every gate item, digest-bound history | `python -m carbon.challenge_pipeline readiness` | records and reviews under `carbon/challenge_pipeline/readiness/<challenge>/` (history and reports are written to `docs/development/challenge_pipeline/readiness/<challenge>/`) |
 | Tool | Real-path no-spend gate before any live run | `python -m carbon.agent_campaign.graphite.phase4 prelive`, `pods.real_path_check` | a registered scoring and attack adapter |
 | Pattern | One neutral scoring port, one adapter per challenge | `carbon/challenge_validator/scoring.py` (`ChallengeScoring`) | its scoring class, registered by challenge id |
 | Pattern | One attack adapter per challenge and level, held-out controls | `carbon/agent_campaign/attack/adapter.py` | families, controls, oracle |
