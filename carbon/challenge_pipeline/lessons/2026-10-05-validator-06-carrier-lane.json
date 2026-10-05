@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-validator-06-carrier-lane",
+  "recorded_at": "2026-10-05T19:30:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "design",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-06, branch claude/graphite-carrier-lane, from main 8ab444d0f. Native: the carrier lane suite (16 tests) with the carrier replaced by a contract stand-in, and the pod, phase-3 and cooling scoring suites. Canonical results are recorded in the PR.",
+    "description": "A second Graphite experiment backend runs each proposal's practice program in the isolated C-03 carrier on the operator host's CPU, with the same scoring, attribution and budget rules as RunPod pods, at no provider money."
+  },
+  "expected": "The carrier's trusted lane and the pods' protocol would fit directly, with timing the only open question.",
+  "observed": "The protocol fit, and battery's validator CarrierBackend was a close precedent. Timing was the real design question. The carrier stops a program before the contract's 600 s deadline (its trusted lane keeps a 45 s setup margin), so comparing host time with the contract deadline would read the carrier's own stop as a forged claim. The first fix, reporting no host timing, was safe but made every carrier timeout a free FAILED_INFRA retry, so the CPU and pod lanes would attribute timeouts differently. The Test Lead's fix kept host time authoritative and made the compared deadline the backend's declared effective deadline, recorded on the outcome; a carrier stop is then confirmed by the same rule as a pod's. A test pins the margin to the carrier's own source so the two cannot drift.",
+  "keep": [
+    "When two compute lanes are compared, give them the same attribution rule and make each lane declare the quantities that differ.",
+    "Pin a constant copied from another module to that module's source with a test.",
+    "Reuse an existing backend as the precedent (battery's CarrierBackend) before designing a new one."
+  ],
+  "change": [
+    "Check whether a safe default (no timing, never blame) silently gives free retries before choosing it."
+  ],
+  "protocol_elements": [
+    "every compute lane implements one backend protocol and declares its own program deadline and price",
+    "host-observed time is authoritative on every lane, compared with the lane's declared deadline"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-motor-scoring-lf-suite",
+  "recorded_at": "2026-10-05T15:34:00Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-MOTOR-05 isolated LF affected suite", "description": "Ran Motor, Cooling, shared registry and Motor attacker tests on an LF-native copy."},
+  "expected": "Affected subsystem passes with pinned material.",
+  "observed": "146 passed and one Cooling dry-run failed only because the isolated worktree copy retained a Windows .git pointer that Linux could not resolve; the actual scoring and attack tests passed.",
+  "keep": ["Run cross-Challenge regressions with pinned LF bytes."],
+  "change": ["Make the isolated copy's Git metadata pointer Linux-readable before exercising commit-aware fixtures."],
+  "protocol_elements": ["pinned public material", "cross-Challenge regression", "fixture custody"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

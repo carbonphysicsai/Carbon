@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-motor-scoring-quality-mounted",
+  "recorded_at": "2026-10-05T15:41:00Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-MOTOR-05 mounted-tree quality gate", "description": "Attempted changed-path quality check from WSL on the Windows worktree."},
+  "expected": "Quality gate classifies and checks the affected files.",
+  "observed": "The gate stopped before checks because WSL Git cannot resolve the Windows-form .git worktree pointer on the mounted checkout.",
+  "keep": ["Use the repository quality gate rather than substitute a custom lint claim."],
+  "change": ["Run it from the isolated Linux-readable test copy with its Git pointer fixed."],
+  "protocol_elements": ["canonical quality", "worktree metadata compatibility"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

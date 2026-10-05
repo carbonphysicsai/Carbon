@@ -237,6 +237,157 @@ PANELS = {
     "ev5": RECIPES + EV2_RECIPES + EV4_RECIPES,
 }
 
+#: Graphite phase-3 run 5 (R2 session 2, graphite-d90a8ccfd603cf6a, REF
+#: fa1cba64): its baseline and eight scored DeepONet proposals, each at the
+#: seed it was scored with, plus two declared extra seeds (seed + 1, seed + 2)
+#: for a recipe-level noise band. The Test Lead approved this panel on
+#: 2026-10-05 for the first Q1 score-to-value test on real Graphite
+#: constructions. Strategies are copied verbatim from each proposal's intent.
+GRAPHITE_RUN5 = (
+    (
+        "graphite-run5-baseline",
+        {
+            "backbone": "mlp",
+            "challenge_id": "battery-fastcharge-ageing-development-v1",
+            "parameters": {"depth": 3, "steps": 2000, "width": 64},
+            "schema_version": "1.0",
+        },
+        (1801172379, 1801172380, 1801172381),
+    ),
+    (
+        "graphite-run5-p-1585ecbf838a",
+        {
+            "backbone": "deeponet",
+            "challenge_id": "battery-fastcharge-ageing-development-v1",
+            "parameters": {
+                "basis_functions": 10,
+                "deeponet_depth": 3,
+                "steps": 2000,
+                "width": 64,
+            },
+            "schema_version": "1.0",
+        },
+        (475176988, 475176989, 475176990),
+    ),
+    (
+        "graphite-run5-p-87b76ad0a2fd",
+        {
+            "backbone": "deeponet",
+            "challenge_id": "battery-fastcharge-ageing-development-v1",
+            "parameters": {
+                "basis_functions": 10,
+                "deeponet_depth": 3,
+                "steps": 10000,
+                "width": 64,
+            },
+            "schema_version": "1.0",
+        },
+        (3716900652, 3716900653, 3716900654),
+    ),
+    (
+        "graphite-run5-p-c41a9a1ebb82",
+        {
+            "backbone": "deeponet",
+            "challenge_id": "battery-fastcharge-ageing-development-v1",
+            "parameters": {
+                "basis_functions": 20,
+                "deeponet_depth": 3,
+                "steps": 10000,
+                "width": 128,
+            },
+            "schema_version": "1.0",
+        },
+        (524989794, 524989795, 524989796),
+    ),
+    (
+        "graphite-run5-p-37985e699fe3",
+        {
+            "backbone": "deeponet",
+            "challenge_id": "battery-fastcharge-ageing-development-v1",
+            "parameters": {
+                "basis_functions": 30,
+                "deeponet_depth": 4,
+                "steps": 10000,
+                "width": 128,
+            },
+            "schema_version": "1.0",
+        },
+        (1919562590, 1919562591, 1919562592),
+    ),
+    (
+        "graphite-run5-p-69268f1b74ec",
+        {
+            "backbone": "deeponet",
+            "challenge_id": "battery-fastcharge-ageing-development-v1",
+            "parameters": {
+                "arrhenius_features": True,
+                "basis_functions": 20,
+                "deeponet_depth": 3,
+                "ocv_initial_voltage": True,
+                "steps": 10000,
+                "width": 128,
+            },
+            "schema_version": "1.0",
+        },
+        (1551240143, 1551240144, 1551240145),
+    ),
+    (
+        "graphite-run5-p-fa70c075f903",
+        {
+            "backbone": "deeponet",
+            "challenge_id": "battery-fastcharge-ageing-development-v1",
+            "parameters": {
+                "arrhenius_features": True,
+                "basis_functions": 20,
+                "capacity_fade_head": True,
+                "deeponet_depth": 3,
+                "ocv_initial_voltage": True,
+                "steps": 10000,
+                "width": 128,
+            },
+            "schema_version": "1.0",
+        },
+        (360154323, 360154324, 360154325),
+    ),
+    (
+        "graphite-run5-p-1d4aaff5d292",
+        {
+            "backbone": "deeponet",
+            "challenge_id": "battery-fastcharge-ageing-development-v1",
+            "parameters": {
+                "arrhenius_features": True,
+                "basis_functions": 20,
+                "capacity_fade_head": True,
+                "deeponet_depth": 3,
+                "ocv_initial_voltage": True,
+                "steps": 15000,
+                "width": 128,
+            },
+            "schema_version": "1.0",
+        },
+        (3718551111, 3718551112, 3718551113),
+    ),
+    (
+        "graphite-run5-p-4fd7fb870d2b",
+        {
+            "backbone": "deeponet",
+            "challenge_id": "battery-fastcharge-ageing-development-v1",
+            "parameters": {
+                "arrhenius_features": True,
+                "basis_functions": 30,
+                "capacity_fade_head": True,
+                "deeponet_depth": 3,
+                "ocv_initial_voltage": True,
+                "steps": 15000,
+                "width": 128,
+            },
+            "schema_version": "1.0",
+        },
+        (1132250632, 1132250633, 1132250634),
+    ),
+)
+PANELS["graphite-run5"] = GRAPHITE_RUN5
+
 #: The Track A harness families whose attempts are declarative recipes
 #: (strategy documents). The other families attack Python objects,
 #: predictions or staged bytes, so they leave nothing to rebuild.

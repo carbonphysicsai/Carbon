@@ -1,0 +1,10 @@
+{
+  "schema": "carbon.graphite.compute-lane-registry.v1",
+  "current": {
+    "c03-carrier": "carrier-lane-v1"
+  },
+  "versions": {
+    "carrier-lane-v1": "sha256:0191b084aa938d6dfcff021c3b4c76c44106a989d03c69bb81eb8c95ab784194"
+  },
+  "rule": "A compute lane's declared properties are a registered document here, pinned by digest. A change is a new version plus a registry entry, never an edit to the lane's code; every run records the version and digest."
+}

@@ -47,6 +47,7 @@ import math
 import re
 
 from carbon.development_session import research_loop
+from carbon.development_session.research_ledger import PLAIN_REFUSALS
 
 #: The provider dimensions a research share narrows.
 SHARE_DIMENSIONS = ("provider_nanodollars", "provider_attempts")
@@ -152,8 +153,9 @@ def reserve_limit(error):
     """The miner's limit that `error`, a campaign ledger's refusal of a
     reservation, reports - a ceiling's dimension, or `elapsed_seconds` - or
     None for any other refusal. Exactly a ValueError with the ledger's own
-    text; a subclass (an operation refusal, a typed stop) is never one."""
-    if type(error) is not ValueError:
+    text, or the ledger's own typed refusal of it (`LedgerRefusal`); any
+    other subclass (an operation refusal, a typed stop) is never one."""
+    if type(error) not in PLAIN_REFUSALS:
         return None
     text = str(error)
     if text.startswith(_BUDGET_PREFIX):

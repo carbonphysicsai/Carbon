@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-lessons-pass",
+  "recorded_at": "2026-10-05T12:40:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "python -m carbon.challenge_pipeline validate after schema repairs",
+    "description": "Validated the repository protocol, records and complete lesson directory after correcting the new lesson tokens."
+  },
+  "expected": "All recorded candidate-fault executions conform without awaiting an owner decision.",
+  "observed": "The protocol remained DEFINING; 7 records and 252 lessons were valid, with 0 awaiting a decision.",
+  "keep": [
+    "Use only registered lesson stages and execution-kind tokens."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

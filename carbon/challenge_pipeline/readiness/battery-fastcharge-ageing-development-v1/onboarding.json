@@ -1,0 +1,16 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-onboarding.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "status": "DRAFT",
+ "note": "DRAFT by the Graphite Testing Manager from repository paths and decision records; the Test Lead reviews and approves it as a PR.",
+ "decision_ids": [
+  "OWNER-GRAPHITE-TEST-WAVE-01",
+  "OWNER-GRAPHITE-TEST-WAVE-02",
+  "OWNER-GRAPHITE-TEST-WAVE-03",
+  "OWNER-GRAPHITE-TEST-WAVE-04",
+  "OWNER-GRAPHITE-TEST-WAVE-05",
+  "OWNER-GRAPHITE-TEST-WAVE-06",
+  "OWNER-GRAPHITE-TEST-WAVE-07",
+  "OWNER-EV5-FREEZE-01"
+ ]
+}

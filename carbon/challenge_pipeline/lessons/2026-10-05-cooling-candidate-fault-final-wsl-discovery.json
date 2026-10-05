@@ -1,0 +1,23 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-final-wsl-discovery",
+  "recorded_at": "2026-10-05T14:07:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "WSL distribution discovery for final validation",
+    "description": "Inspected the installed WSL distributions before the final canonical validation."
+  },
+  "expected": "A supported Linux distribution is available for canonical repository validation.",
+  "observed": "Ubuntu-24.04 was installed and running under WSL 2.",
+  "keep": [
+    "Resolve the live execution environment rather than assuming a stale distribution name."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge_pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

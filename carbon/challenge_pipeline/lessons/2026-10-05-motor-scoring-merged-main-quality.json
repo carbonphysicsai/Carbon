@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-motor-scoring-merged-main-quality",
+  "recorded_at": "2026-10-05T16:00:00Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-MOTOR-05 committed head 451651fc2d1664cc31746bc861a5118ca20adefe", "description": "Ran repository changed-path quality gate after main reconciliation."},
+  "expected": "No new lint or formatter debt in the eight changed Python files.",
+  "observed": "Quality gate passed: zero new Ruff diagnostics and zero new Black debt across eight changed Python files.",
+  "keep": ["Use the repository's strict changed-path quality gate."],
+  "change": ["PR CI is the remaining full acceptance on the delivered head."],
+  "protocol_elements": ["canonical quality", "main reconciliation"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

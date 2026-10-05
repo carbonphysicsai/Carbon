@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-motor-scoring-baseline-host",
+  "recorded_at": "2026-10-05T15:19:00Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-MOTOR-05 pre-edit Windows pytest baseline",
+    "description": "Attempted Motor construction and challenge-scoring CPU tests on Windows."
+  },
+  "expected": "Collect and run focused baseline tests.",
+  "observed": "Collection stopped before tests because Graphite imports POSIX fcntl, which Windows Python does not provide. Native-host output is noncanonical.",
+  "keep": ["Run repository Python tests in canonical Linux."],
+  "change": ["Use the canonical Linux runtime for subsequent focused tests."],
+  "protocol_elements": ["canonical validation", "no inference from tests not collected"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

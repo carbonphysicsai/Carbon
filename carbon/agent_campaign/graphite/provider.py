@@ -43,8 +43,9 @@ same under either rule.
 
 **Model settings** (GRAPHITE-D34, 2026-10-04). A session opens with its
 role's settings for its rung's model (`roles.MODEL_SETTINGS`): the
-Constructor gets the model's whole published context and a 600 s timeout;
-every other role keeps `DEFAULT_SETTINGS`. The session record freezes the
+Constructor and, since GRAPHITE-D35, the Attacker get the model's whole
+published context and a 600 s timeout; every other role keeps
+`DEFAULT_SETTINGS`. The session record freezes the
 selection, so a session resumes with the settings it opened with.
 
 **Cancellation.** `cancel` records the request; the worker stops at the
@@ -113,7 +114,16 @@ from .literature import (
     literature_record,
 )
 from .model import ENGY_ADAPTERS
-from .roles import MODEL_SETTINGS, PARALLEL_RULES, ROLES, RoleName
+from .roles import (
+    MODEL_SETTINGS,
+    PARALLEL_RULES,
+    ROLES,
+    TOOL_TEXT_V1,
+    TOOL_TEXT_V2,
+    TOOL_TEXTS,
+    RoleName,
+    tool_text_known,
+)
 
 PROVIDER = "graphite"
 SESSION_SCHEMA = "carbon.graphite.session-record.v1"
@@ -156,6 +166,17 @@ class RunCancelled(Exception):
     """The run's cancellation was observed at a ledger checkpoint."""
 
 
+class SessionStopped(Exception):
+    """Carbon stopped the run as infrastructure before the next reservation
+    (a repeated pod environment failure, `pod-attribution-v2`): the session
+    ends `failed` with code `failed_infra`, no agent charge. Never a
+    ValueError, so no run-limit rule reads it as a limit stop."""
+
+    def __init__(self, reason_code):
+        super().__init__("session stopped: " + reason_code)
+        self.reason_code = reason_code
+
+
 class RunCapReached(ValueError):
     """A run cap refused the next reservation."""
 
@@ -187,10 +208,14 @@ class SessionBrief:
     initial_observation: dict
     checkout_commit: str
     checkout_manifest_digest: str
+    #: The agents' tool text this session will read (`roles.TOOL_TEXTS`). A
+    #: new brief selects v2, which names no Challenge (VALIDATOR-07).
+    tool_text: str = TOOL_TEXT_V2
 
     def __post_init__(self):
         if type(self.role) is not RoleName:
             raise TypeError("exact RoleName required")
+        tool_text_known(self.tool_text)
         if type(self.initial_observation) is not dict:
             raise TypeError("the initial observation is a JSON object")
         canonical(self.initial_observation)  # JSON-serialisable, finite
@@ -204,17 +229,22 @@ class SessionBrief:
 
     def document(self):
         role = ROLES[self.role]
-        return {
+        tool_text = role.effective_tool_text(self.tool_text)
+        document = {
             "schema": BRIEF_SCHEMA,
             "role": self.role.value,
             "role_prompt_digest": role.prompt_digest,
-            "tool_manifest_digest": role.tool_manifest_digest,
+            "tool_manifest_digest": role.manifest_digest(tool_text),
             "initial_observation": self.initial_observation,
             "checkout": {
                 "commit": self.checkout_commit,
                 "manifest_digest": self.checkout_manifest_digest,
             },
         }
+        if tool_text != TOOL_TEXT_V1:
+            # A v1 brief has no key at all, exactly as before the versions.
+            document["tool_text"] = tool_text
+        return document
 
     @property
     def digest(self):
@@ -247,6 +277,14 @@ class GraphiteLedger(CampaignLedger):
             raise
 
 
+def tool_text_of(opened):
+    """The agents' tool text a session record carries: absent means v1."""
+    tool_text = opened["role"].get("tool_text", TOOL_TEXT_V1)
+    if tool_text not in TOOL_TEXTS:
+        raise SessionMismatch("tool_text_unknown")
+    return tool_text
+
+
 def _verify(opened, role, selection_record, literature, brief_digest, limits):
     """The session record still describes what would resume it: the role's
     prompt and manifest, the model selection, the literature snapshot, the
@@ -256,7 +294,8 @@ def _verify(opened, role, selection_record, literature, brief_digest, limits):
     if (
         recorded["prompt_digest"] != role.prompt_digest
         or recorded["tool_manifest"] != list(role.tools)
-        or recorded["tool_manifest_digest"] != role.tool_manifest_digest
+        or recorded["tool_manifest_digest"]
+        != role.manifest_digest(tool_text_of(opened))
         or recorded["boundary"] != role.boundary.value
     ):
         raise SessionMismatch("role_changed")
@@ -652,7 +691,7 @@ class GraphiteProvider:
     def _selection(self, model_id, role=None):
         """The selection a new session of `role` opens with on `model_id`. A
         role in `roles.MODEL_SETTINGS` gets its settings for that model
-        (GRAPHITE-D34), and a model they do not list is refused before
+        (GRAPHITE-D34, D35), and a model they do not list is refused before
         anything opens; any other role keeps `DEFAULT_SETTINGS`. A resume
         never calls this: it rebuilds the selection its record froze
         (`selection_from_record`)."""
@@ -685,10 +724,17 @@ class GraphiteProvider:
             raise ProviderUnavailable("unknown_brief")
         role = ROLES[RoleName(brief["role"])]
         _check_role(role, spec)
+        # The tool text the brief selected (absent: v1, as every brief before
+        # the versions); the session records it and every turn reads it.
+        tool_text = brief.get("tool_text", TOOL_TEXT_V1)
         if (
-            brief["role_prompt_digest"] != role.prompt_digest
-            or brief["tool_manifest_digest"] != role.tool_manifest_digest
+            tool_text not in TOOL_TEXTS
+            or role.effective_tool_text(tool_text) != tool_text
         ):
+            raise ProviderUnavailable("brief_tool_text_unknown")
+        if brief["role_prompt_digest"] != role.prompt_digest or brief[
+            "tool_manifest_digest"
+        ] != role.manifest_digest(tool_text):
             # The brief was registered against another prompt or manifest.
             raise ProviderUnavailable("brief_role_changed")
         rung = self.ladder.rung(role.name)
@@ -701,7 +747,7 @@ class GraphiteProvider:
             "run_id": run_id,
             "idempotency_key": idempotency_key,
             "task": dict(spec.__dict__),
-            "role": {**role.record(), "rung": rung, "model": model_id},
+            "role": {**role.record(tool_text), "rung": rung, "model": model_id},
             "model": selection.record(),
             "brief": {
                 "digest": spec.instructions_digest,
@@ -879,6 +925,17 @@ class GraphiteProvider:
             report = asyncio.run(self._epoch(run_id, ledger, role, brief, selection))
         except RunCancelled:
             return self._finish(run_id, "cancelled", None, None)
+        except SessionStopped as stop:
+            return self._finish(
+                run_id,
+                "failed",
+                {
+                    "code": "failed_infra",
+                    "reason_code": stop.reason_code,
+                    "candidate_charged": False,
+                },
+                None,
+            )
         except RunCapReached as error:
             return self._finish(
                 run_id,
@@ -964,7 +1021,7 @@ class GraphiteProvider:
             transport=self.model.transport_for(selection),
             provider=selection,
             instructions=role.prompt,
-            tools=role.tool_schemas(),
+            tools=role.tool_schemas(tool_text_of(self._opened(run_id))),
             parallel_calls=PARALLEL_RULES.get(role.name),
             **self._loop_limits(self._opened(run_id)),
         )

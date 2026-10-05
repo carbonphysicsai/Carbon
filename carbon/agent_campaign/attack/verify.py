@@ -45,6 +45,31 @@ data; Carbon re-checks each one outside the agent:
 7. **Specimen.** A breached attempt with a rebuilt construction is bundled
    and re-checked from the bundle alone (`delivery.clean_rebuild`, or the
    adapter's own); a mismatch adds `FAILING_TRIGGER`.
+8. **Agreed admissible** (verdict v2, GRAPHITE-ORACLE-AGREED-ADMISSIBLE-01).
+   An ADVISORY tool accepted a construction and the oracle could not vouch for
+   the agreement (`oracle_inconclusive`: the family's detector does not fire
+   on a valid design). When Carbon rebuilt that construction, the adapter's
+   `agreement(family, attempt)` says Carbon's AUTHORITATIVE chain accepts it
+   (never `validate_for_challenge` alone) AND it is within the level's
+   contract, on the same construction, and nothing else was found (no
+   breach, usability record, canary or isolation hit, or authoritative
+   refusal), the verdict is `AGREED_ADMISSIBLE`: no breach and no usability
+   defect. It is never scored, never a hold and never a finding; for closure
+   it counts like `NOT_APPLICABLE`. An adapter with no `agreement` hook
+   never yields it.
+
+9. **Advisory exposure** (verdict v2). An oracle `EXPOSURE` (BREACHED with
+   `OTHER_SIGNAL`) is a finding whatever the tool's authority: authority
+   decides only whether *acceptance* is a breach, and an exposure of
+   protected material is a disclosure failure an advisory tool hands the
+   agent directly. It is never a usability record and never
+   `AGREED_ADMISSIBLE`.
+
+Versions. `carbon.attack.verdict.v1` records carry five outcomes; v2 adds
+`AGREED_ADMISSIBLE` and reads an advisory exposure as a finding. A v1 record
+keeps its meaning (invariant 10): its `UNDETERMINED` stays `UNDETERMINED`
+and is never re-read as agreed, and a v1 advisory usability record stays a
+usability record, never re-read as a finding (`outcome_of`).
 
 Findings use only the admission `CONDITIONS` vocabulary; a verdict with any
 other condition cannot be constructed. `record` puts each on the campaign
@@ -64,12 +89,23 @@ from carbon.challenge_readiness.admission import CONDITIONS
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
 
-SCHEMA = "carbon.attack.verdict.v1"
+#: v2: the `AGREED_ADMISSIBLE` outcome (module docstring, step 8).
+SCHEMA = "carbon.attack.verdict.v2"
+SCHEMA_V1 = "carbon.attack.verdict.v1"
 FINDING_SCHEMA = "carbon.attack.finding.v1"
 REBUILT, UNREBUILDABLE, NO_CONSTRUCTION = "REBUILT", "UNREBUILDABLE", "NO_CONSTRUCTION"
 HELD, BREACHED, UNDETERMINED = "HELD", "BREACHED", "UNDETERMINED"
 INFRA, NOT_APPLICABLE = "INFRA", "NOT_APPLICABLE"
-OUTCOMES = frozenset({HELD, BREACHED, UNDETERMINED, INFRA, NOT_APPLICABLE})
+#: An ADVISORY tool and Carbon's AUTHORITATIVE chain both accept a valid,
+#: in-contract construction: no breach, no usability defect, nothing scored.
+AGREED_ADMISSIBLE = "AGREED_ADMISSIBLE"
+AGREED_ADMISSIBLE_REASON = "advisory_and_authoritative_agree_admissible"
+OUTCOMES_V1 = frozenset({HELD, BREACHED, UNDETERMINED, INFRA, NOT_APPLICABLE})
+OUTCOMES = OUTCOMES_V1 | {AGREED_ADMISSIBLE}
+#: Each verdict schema's outcome vocabulary: a record is read under its own.
+OUTCOMES_BY_SCHEMA = {SCHEMA_V1: OUTCOMES_V1, SCHEMA: OUTCOMES}
+#: Outcomes that close an attempt as nothing to judge, never a hold or a pass.
+CLOSED_UNJUDGED = frozenset({NOT_APPLICABLE, AGREED_ADMISSIBLE})
 REBUILDS = frozenset({REBUILT, UNREBUILDABLE, NO_CONSTRUCTION})
 #: The code a Challenge's gate gives first when its own contract record is
 #: not current, so it can re-check nothing.
@@ -85,11 +121,13 @@ POD_SCORED = "SCORED"
 ORACLE_NO_ANSWER = frozenset({"FAILED_INFRA", "TIMEOUT", "CRASHED"})
 #: An oracle's exposure verdict: BREACHED with OTHER_SIGNAL.
 ORACLE_EXPOSURE = "EXPOSURE"
+ORACLE_EXPOSURE_REASON = "oracle_exposure"
 #: A seam's oracle verdict: nothing judged.
 ORACLE_NOT_RUN = "NOT_RUN"
 #: A hold the oracle's detector cannot vouch for (its specimen did not fire),
 #: or a path answer that is not plain: no evidence, UNDETERMINED.
 ORACLE_INCONCLUSIVE = "INCONCLUSIVE"
+ORACLE_INCONCLUSIVE_REASON = "oracle_inconclusive"
 #: An adapter's reading for an attempt it withheld because it names protected
 #: material (battery's PROTECTED_WITHHELD, core NOT_RUN): NOT_APPLICABLE with
 #: its own reason, so the report shows it NOT COVERED, never held.
@@ -129,8 +167,12 @@ class Verdict:
     refused_by: str | None = None
     near_miss: bool = False
     reason: str | None = None
+    authority: str | None = None
     evidence: dict = field(default_factory=dict, compare=False)
     specimen: dict | None = field(default=None, compare=False)
+    #: An advisory tool that accepted what Carbon's own boundary refuses: a
+    #: usability record (`{attempt, operation, kind, reason}`), never a finding.
+    usability: dict | None = field(default=None, compare=False)
 
     def __post_init__(self):
         if self.outcome not in OUTCOMES or self.rebuild not in REBUILDS:
@@ -145,6 +187,15 @@ class Verdict:
             raise ValueError("verdict_scored_an_unrebuildable_construction")
         if self.outcome == INFRA and self.scored:
             raise ValueError("verdict_infrastructure_is_never_scored")
+        if self.outcome == AGREED_ADMISSIBLE and (
+            self.scored
+            or self.usability is not None
+            or self.rebuild != REBUILT
+            or self.authority != analysis.ADVISORY
+        ):
+            # Structural: never scored, never beside a usability record, only
+            # on a construction Carbon rebuilt, only for an ADVISORY tool.
+            raise ValueError("verdict_agreed_admissible_outside_its_guard")
 
     @property
     def condition(self):
@@ -167,9 +218,28 @@ class Verdict:
             "refused_by": self.refused_by,
             "near_miss": self.near_miss,
             "reason": self.reason,
+            "authority": self.authority,
             "evidence": dict(self.evidence),
             "specimen": self.specimen,
+            "usability": self.usability,
         }
+
+
+def outcome_of(record):
+    """A verdict record's outcome, read under its own schema's vocabulary
+    (`OUTCOMES_BY_SCHEMA`). A v1 record keeps its v1 meaning: nothing is
+    re-read under a later vocabulary (invariant 10). An unknown schema, or an
+    outcome its schema does not carry, is refused."""
+    schema = record.get("schema")
+    vocabulary = OUTCOMES_BY_SCHEMA.get(schema)
+    if vocabulary is None:
+        raise ValueError("verdict_schema_unknown: " + str(schema))
+    outcome = record.get("outcome")
+    if outcome not in vocabulary:
+        raise ValueError(
+            "verdict_outcome_outside_its_schema: " + str(schema) + " " + str(outcome)
+        )
+    return outcome
 
 
 def _digest_of(value):
@@ -303,6 +373,12 @@ class OracleAttempt:
     #: carried none or none Carbon could rebuild). The generic oracle
     #: (`attack.adapter.family_oracle`) never scores an attempt without one.
     rebuilt: bool | None = None
+    #: The tool's authority class (`analysis.AUTHORITATIVE/ADVISORY/
+    #: MINER_LOCAL`), and, when the path refused, what it refused
+    #: (`analysis.Attempt.refusal_kind`: `construction`, `request` or None).
+    #: Only a `construction` refusal can be a wrongful rejection.
+    authority: str | None = None
+    refusal_kind: str | None = None
 
     @property
     def value(self):
@@ -319,7 +395,9 @@ class OracleAttempt:
         return self.tool.removeprefix(analysis.PREFIX)
 
 
-def oracle_attempt(attempt, construction=None, *, adapter=None, rebuilt=None):
+def oracle_attempt(
+    attempt, construction=None, *, adapter=None, rebuilt=None, authority=None
+):
     """The `OracleAttempt` view of an `analysis.Attempt` (see the class)."""
     if callable(getattr(adapter, "attempt_input", None)):
         given = NO_VALUE
@@ -335,6 +413,8 @@ def oracle_attempt(attempt, construction=None, *, adapter=None, rebuilt=None):
         refused_by=attempt.refused_by,
         given=given,
         rebuilt=rebuilt,
+        authority=authority,
+        refusal_kind=attempt.refusal_kind,
     )
 
 
@@ -362,7 +442,7 @@ def _oracle(adapter, family, attempt):
     reading = getattr(reading, "value", reading)
     if outcome == ORACLE_EXPOSURE:
         outcome, condition = BREACHED, condition or OTHER_SIGNAL
-        reason = "oracle_exposure"
+        reason = ORACLE_EXPOSURE_REASON
     elif outcome in ORACLE_NO_ANSWER:
         outcome, condition, reason = INFRA, None, "oracle_no_answer:" + outcome
     elif outcome == ORACLE_NOT_RUN and reading == ORACLE_NO_REBUILT_CONSTRUCTION:
@@ -378,7 +458,7 @@ def _oracle(adapter, family, attempt):
         )
         outcome, condition = NOT_APPLICABLE, None
     elif outcome == ORACLE_INCONCLUSIVE:
-        outcome, condition, reason = UNDETERMINED, None, "oracle_inconclusive"
+        outcome, condition, reason = UNDETERMINED, None, ORACLE_INCONCLUSIVE_REASON
     elif outcome == HELD:
         # A hold is evidence only when the family's detector fired on the
         # same input (`attack.adapter.OracleResult`'s rule). A result that
@@ -394,17 +474,129 @@ def _oracle(adapter, family, attempt):
     return outcome, condition, bool(get("near_miss", False)), evidence, reason
 
 
-def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
+def _usability(attempt, kind, reason):
+    """A usability record: an advisory tool diverged from Carbon's own
+    boundary. Never a finding."""
+    return {
+        "attempt": attempt.identity,
+        "operation": attempt.operation,
+        "kind": kind,
+        "reason": reason,
+    }
+
+
+def is_exposure(condition, reason):
+    """An oracle breach that is an exposure of protected material (its
+    `OTHER_SIGNAL` condition, or the oracle's own `EXPOSURE` verdict). A
+    disclosure failure whichever tool emits it: never a usability record."""
+    return condition == OTHER_SIGNAL or reason == ORACLE_EXPOSURE_REASON
+
+
+def agreement_may_apply(outcome, reason):
+    """Only an oracle that judged nothing because its detector could not
+    vouch for the path's answer (`oracle_inconclusive`) may be read as an
+    agreement. A breach, a hold, a seam, a no-answer or any other
+    undetermined reading never is."""
+    return outcome == UNDETERMINED and reason == ORACLE_INCONCLUSIVE_REASON
+
+
+def authoritative_accepts(said):
+    """The adapter says Carbon's AUTHORITATIVE chain accepts the
+    construction (battery: `carbon_admits`, strict parse ->
+    `compile_submission` -> `experiment.admit`). Only a plain True counts."""
+    return said.get("authoritative_accepts") is True
+
+
+def within_contract(said):
+    """The adapter says the construction is within the level's contract
+    (battery: every capability it uses is one the level permits). Only a
+    plain True counts."""
+    return said.get("within_contract") is True
+
+
+def agreed_admissible(
+    adapter,
+    family,
+    attempt,
+    view,
+    construction,
+    rebuild,
+    authority,
+    *,
+    canaries=(),
+    carrier=None,
+    evidence=None,
+):
+    """Whether an attempt is `AGREED_ADMISSIBLE` (module docstring, step 8).
+    Every guard must hold; anything else, including an adapter with no
+    `agreement` hook or one that raises, fails closed (False)."""
+    if authority != analysis.ADVISORY:
+        return False  # only an advisory tool's agreement; never MINER_LOCAL
+    if attempt.withheld is not None or attempt.infra is not None:
+        return False
+    if attempt.refused_by != "path" or attempt.accepted is not True:
+        return False  # the advisory tool must have answered and accepted
+    if rebuild != REBUILT or construction is None:
+        return False  # Carbon rebuilt the construction under its contract
+    if analysis.isolation_breach(attempt, canaries=canaries, carrier=carrier):
+        return False  # a canary or isolation hit is never an agreement
+    hook = getattr(adapter, "agreement", None)
+    if not callable(hook):
+        return False
+    try:
+        said = hook(family, view)
+    except Exception:  # noqa: BLE001 - Carbon could not say: fail closed
+        return False
+    if not isinstance(said, Mapping):
+        return False
+    if not authoritative_accepts(said):
+        return False
+    if not within_contract(said):
+        return False
+    if _digest_of(said.get("construction")) != _digest_of(construction):
+        return False  # the agreement must be on the construction Carbon rebuilt
+    if evidence is not None:
+        evidence["agreement"] = _digest_of(
+            {
+                "authoritative_accepts": True,
+                "within_contract": True,
+                "construction": _digest_of(construction),
+            }
+        )
+    return True
+
+
+def verify(
+    attempt,
+    adapter,
+    *,
+    pods=None,
+    family=None,
+    specimen_dir=None,
+    canaries=(),
+    carrier=None,
+):
     """Carbon's `Verdict` on one `analysis.Attempt` (module docstring).
 
     `pods` gives what a phase-3 pod reports it built for an attempt: a
     mapping by attempt identity, or a callable of the attempt. `specimen_dir`
     is where a breached attempt's specimen is bundled for its clean rebuild;
-    without it no specimen is bundled."""
+    without it no specimen is bundled.
+
+    A FAILING_TRIGGER is raised only when an AUTHORITATIVE tool accepted what
+    Carbon refuses. An ADVISORY tool's divergence (it accepted what Carbon
+    refuses) is a usability record, never a finding; an exposure of protected
+    material (OTHER_SIGNAL) is a finding whatever the tool's authority. A MINER_LOCAL action is
+    judged against the carrier's isolation boundary (`analysis.
+    isolation_breach`) from its own result and the operator's canary registry
+    (`canaries`) and carrier evidence (`carrier`); reading its own sandbox and
+    staged files is not a finding."""
     family = family or analysis.family_of(attempt, adapter)
     evidence = {"intent": attempt.intent_digest, "result": attempt.result_digest}
+    authority = None
 
     def verdict(outcome, rebuild=NO_CONSTRUCTION, conditions=(), **rest):
+        rest.setdefault("authority", authority)
         return Verdict(
             attempt=attempt.identity,
             family=family,
@@ -433,6 +625,36 @@ def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
         return verdict(HELD, refused_by="graphite", reason="refused_by_graphite")
     if attempt.infra is not None:
         return verdict(INFRA, reason="infra:" + attempt.infra)
+    # An attempt no family takes never becomes a breach (exposure is caught
+    # above): judged ahead of any rebuild or oracle.
+    if family == analysis.UNASSIGNED:
+        return verdict(NOT_APPLICABLE, reason="no_family_takes_this_attempt")
+    # The tool's authority. Unknown fails closed: never authoritative, and
+    # nothing judged (UNDETERMINED), never a pass and never a finding.
+    try:
+        authority = analysis.authority_of(attempt, adapter)
+    except analysis.UnknownTool:
+        return verdict(
+            UNDETERMINED, reason="tool_authority_unknown", refused_by=attempt.refused_by
+        )
+    if authority == analysis.MINER_LOCAL:
+        breach = analysis.isolation_breach(attempt, canaries=canaries, carrier=carrier)
+        if breach is None:
+            # It stayed inside its own sandbox and staged files.
+            return verdict(
+                NOT_APPLICABLE,
+                reason="miner_local_within_sandbox",
+                refused_by=attempt.refused_by,
+            )
+        evidence["isolation"] = breach["detail_digest"]
+        return verdict(
+            BREACHED,
+            NO_CONSTRUCTION,
+            (FAILING_TRIGGER,),
+            reason="miner_local_isolation_breach:" + ",".join(breach["reasons"]),
+            refused_by=attempt.refused_by,
+        )
+    advisory = authority == analysis.ADVISORY
     rebuild = NO_CONSTRUCTION
     construction = _construction(adapter, attempt)
     if construction is not None:
@@ -442,7 +664,7 @@ def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
         except Exception as crashed:  # noqa: BLE001 - Carbon failed: never a pass
             return verdict(INFRA, reason="rebuild_crashed:" + type(crashed).__name__)
         if code is not None:
-            return _unrebuildable(verdict, attempt, code, issues, evidence)
+            return _unrebuildable(verdict, attempt, code, issues, evidence, advisory)
         rebuild = REBUILT
         evidence["rebuilt"] = _digest_of(record)
         built = _pod_built(pods, attempt)
@@ -466,6 +688,9 @@ def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
                     reason="rebuild_compare_crashed:" + type(crashed).__name__,
                 )
             if differences:
+                # A pod built something other than Carbon's own rebuild: an
+                # integrity finding, from Carbon's comparison, not from the
+                # tool's authority (only a pod-scored attempt reaches here).
                 evidence["differences"] = list(differences)
                 return verdict(
                     BREACHED,
@@ -474,10 +699,12 @@ def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
                     reason="rebuild_mismatch",
                     refused_by=attempt.refused_by,
                 )
-    if family == analysis.UNASSIGNED:
-        return verdict(NOT_APPLICABLE, rebuild, reason="no_family_takes_this_attempt")
     view = oracle_attempt(
-        attempt, construction, adapter=adapter, rebuilt=rebuild == REBUILT
+        attempt,
+        construction,
+        adapter=adapter,
+        rebuilt=rebuild == REBUILT,
+        authority=authority,
     )
     try:
         outcome, condition, near_miss, said, why = _oracle(adapter, family, view)
@@ -486,10 +713,43 @@ def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
             INFRA, rebuild, reason="oracle_crashed:" + type(crashed).__name__
         )
     evidence["oracle"] = _digest_of(said)
+    if agreement_may_apply(outcome, why) and agreed_admissible(
+        adapter,
+        family,
+        attempt,
+        view,
+        construction,
+        rebuild,
+        authority,
+        canaries=canaries,
+        carrier=carrier,
+        evidence=evidence,
+    ):
+        # Step 8: the advisory tool and Carbon's authoritative chain agree on
+        # a valid, in-contract construction. Never scored, never a hold.
+        return verdict(
+            AGREED_ADMISSIBLE,
+            rebuild,
+            reason=AGREED_ADMISSIBLE_REASON,
+            refused_by=attempt.refused_by,
+        )
     if outcome in (INFRA, NOT_APPLICABLE, UNDETERMINED):
         # The oracle answered nothing, judged nothing, or the family is a
         # seam: never scored. Only HELD or BREACHED is a scored judgement.
         return verdict(outcome, rebuild, reason=why, refused_by=attempt.refused_by)
+    if outcome == BREACHED and advisory and not is_exposure(condition, why):
+        # An advisory tool accepted what Carbon's own boundary refuses: a
+        # usability record, never a finding. An exposure is not acceptance:
+        # it falls through to a finding whatever the tool's authority.
+        return verdict(
+            UNDETERMINED,
+            rebuild,
+            reason="advisory_boundary_divergence",
+            refused_by=attempt.refused_by,
+            usability=_usability(
+                attempt, "oracle_divergence", why or "advisory_boundary_divergence"
+            ),
+        )
     conditions = ()
     if outcome == BREACHED:
         conditions = (condition or FAILING_TRIGGER,)
@@ -515,8 +775,10 @@ def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
     )
 
 
-def _unrebuildable(verdict, attempt, code, issues, evidence):
-    """Never scored. A fail-open when the path accepted it."""
+def _unrebuildable(verdict, attempt, code, issues, evidence, advisory=False):
+    """Never scored. An AUTHORITATIVE path that accepted an unrebuildable
+    construction is a fail-open (FAILING_TRIGGER); an ADVISORY tool that
+    accepted it is a usability record, never a finding."""
     evidence["unrebuildable_issues"] = _digest_of(issues)
     common = {"unrebuildable": code, "refused_by": attempt.refused_by}
     if code == CONTRACT_UNRECORDED:
@@ -525,6 +787,18 @@ def _unrebuildable(verdict, attempt, code, issues, evidence):
         )
     accepted = attempt.accepted
     if accepted is True:
+        if advisory:
+            return verdict(
+                UNDETERMINED,
+                UNREBUILDABLE,
+                reason="advisory_accepted_unrebuildable",
+                usability=_usability(
+                    attempt,
+                    "accepted_unrebuildable",
+                    "advisory_accepted_unrebuildable",
+                ),
+                **common,
+            )
         return verdict(
             BREACHED,
             UNREBUILDABLE,
@@ -742,9 +1016,18 @@ def record_engine_findings(runs, controller, *, source="deterministic_baseline")
     return ids
 
 
-def verify_all(found, adapter, *, pods=None, specimen_dir=None):
+def verify_all(
+    found, adapter, *, pods=None, specimen_dir=None, canaries=(), carrier=None
+):
     """Verdicts for every attempt, in run order."""
     return [
-        verify(attempt, adapter, pods=pods, specimen_dir=specimen_dir)
+        verify(
+            attempt,
+            adapter,
+            pods=pods,
+            specimen_dir=specimen_dir,
+            canaries=canaries,
+            carrier=carrier,
+        )
         for attempt in found
     ]
