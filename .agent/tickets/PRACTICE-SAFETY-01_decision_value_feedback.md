@@ -1,6 +1,6 @@
 # PRACTICE-SAFETY-01: decision-value safety metrics in practice feedback (spec)
 
-**Status:** DRAFT spec for the Test Lead's review. The Test Engineer builds it after review.
+**Status:** FINAL. The Test Lead ruled on it on 2026-10-05 (B4 set and bands). The Test Engineer builds it.
 
 **Authority:** owner decision A8, relayed by the Test Lead on 2026-10-05: show decision-value safety metrics next to the practice score in practice feedback. The Test Lead set rules 1–4 below.
 
@@ -55,14 +55,15 @@ Shared terms used throughout:
 - This is the direction signal that the average error hides. Recommended, and cheap.
 
 **B4. Feasible-choice rate on the practice decision set.**
-- **BLOCKED until the set exists.**
+- **APPROVED** by the Test Lead (2026-10-05). It is built once Data Collection commits the set. Until then the metric reports `"BLOCKED: practice decision set not committed"`.
 - **Definition:** over the registered practice decision scenarios, the share where the model's chosen protocol is reference-feasible (`decision.decide`/`evaluate` with the EV4 contract's grid, costs and tie rule). Abstentions are reported separately.
 - **Needs new public reference solves.** A practice case is one protocol at one condition; a decision needs the full 35-protocol grid at a condition.
-- **Proposed set** (Data Collection solves it on the operator host CPU, no spend):
-  - 6 conditions × 35 candidates = 210 solves, about 35 minutes;
-  - conditions drawn uniformly over the published box from a registered seed;
-  - rejected if within 1 °C or 0.02 state of charge of any EV1/2/4/5 condition or protected grid point.
-- **Owner/Test Lead go needed:** the set's size and its exclusion distance.
+- **The set (ruled):**
+  - 6 conditions × EV4's 35-candidate grid = 210 public solves, on the operator host's CPU, with no spend. They run outside the EV5 and Attacker host windows.
+  - Every condition lies inside the published box, at least **2 °C in t_amb AND 0.03 in soc0** from every EV1/EV2/EV4/EV5 condition and from EV4's protected optimizer grid.
+  - 4 conditions are representative and 2 are near-limit (low t_amb, high soc0).
+- **Selection rule:** Data Collection writes and commits it before any solve.
+- **Status after publication:** the references are committed as public practice material, and the 6 conditions become **permanently practice-only**. They can never enter Track B or a confirmation set.
 
 ### Cooling (`ai-accelerator-cooling` cold plate)
 
@@ -76,7 +77,7 @@ Shared terms used throughout:
 - **C2. Hydraulic-power false-feasible rate:** reference > limit, model ≤ limit.
 - **C3 (recommended). Signed die-peak error:** mean (model − reference) °C over cases whose reference die peak is within 10 °C of the limit.
 
-**Band:** the cold plate has no committed reference uncertainty band for these quantities. Proposal: no band, exact comparison, stated as such. Test Lead to rule.
+**Band (ruled):** an exact comparison against the limit, with no band. Every cooling metric is labelled `"no uncertainty band applied"` in the feedback, so a miner reads it as indicative.
 
 ### Motor
 
@@ -90,12 +91,15 @@ Shared terms used throughout:
 - **M2. Mean-torque false-feasible rate:** reference < 4.0 N·m, model ≥ 4.0.
 - **M3. Signed mean-torque bias at J ≥ 10 A/mm²:** mean (model − reference) `mean_nm` over practice cases with `current_density_a_mm2` ≥ 10. Positive means optimistic.
 
-**Small sample.** With 30 cases, report the counts next to every rate and say "n = 30". No band (proposal, as for cooling).
+**Small sample.** With 30 cases, report the counts next to every rate and say "n = 30".
+
+**Band (ruled):** an exact comparison with no band. Every motor metric is labelled `"no uncertainty band applied"`.
 
 ## Disjointness (the test the Test Engineer adds)
 
 `tests/cpu/test_practice_safety_disjoint.py` asserts that no practice input point coincides with any Track B or EV point, after rounding to the generator's precision (4 dp):
-- the battery practice cases and the B4 practice decision set against the EV1, EV2, EV4 and EV5 decision conditions, EV4's protected grids and EV5's optimizer grids;
+- the battery practice cases against the EV1, EV2, EV4 and EV5 decision conditions, EV4's protected grids and EV5's optimizer grids;
+- the B4 practice decision set against the same, at the ruled distance: at least 2 °C in t_amb AND 0.03 in soc0 from every listed condition;
 - the cooling practice cases against the cooling study's designs × conditions;
 - the motor practice cases against `MOTOR_SYNTHETIC_DECISION_V2.json` designs × conditions.
 
