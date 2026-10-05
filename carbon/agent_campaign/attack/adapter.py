@@ -78,6 +78,9 @@ UNREBUILDABLE_CODES = frozenset(
 #: The oracle's verdict when the boundary held but the family's specimen did
 #: not fire on the attempt: the detector is blind to it. Never a pass.
 INCONCLUSIVE = "INCONCLUSIVE"
+#: The generic oracle's reading for a session attempt Carbon rebuilt no
+#: construction for: nothing judged, never scored (`family_oracle`).
+NO_REBUILT_CONSTRUCTION = "NO_REBUILT_CONSTRUCTION"
 #: An oracle's verdicts: the engine's attack verdicts, INCONCLUSIVE for a hold
 #: the detector cannot vouch for, and NOT_RUN for a seam.
 ORACLE_VERDICTS = frozenset(
@@ -113,6 +116,36 @@ def _text(value):
 def level_profile(level):
     """The construction profile name a level's attempt records carry."""
     return f"level-{level}"
+
+
+def run_context(adapter):
+    """The engine run context an adapter's records carry."""
+    return engine.RunContext(
+        challenge=adapter.challenge_id, profile=level_profile(adapter.level)
+    )
+
+
+def held_out_scope(adapter):
+    """The engine registry scope of an adapter's held-out identities: its
+    run context's `(challenge, profile)`."""
+    return engine.held_out_scope(run_context(adapter))
+
+
+def code_run_refusal(arguments, *, seconds):
+    """The one code-run rule a Carbon Attacker session's dispatcher applies
+    before dispatch: a code run must ask for a whole number of seconds between
+    1 and `seconds`, the adapter's `code_run_seconds()`. Returns the refusal
+    code, or None when it may be dispatched. An adapter's own
+    `code_run_refusal` (battery's) calls this rule, so the family that
+    attacks it attacks the dispatcher's rule, not a copy."""
+    if type(seconds) is not int or seconds < 1:
+        raise ValueError("code_run_seconds_is_a_positive_integer")
+    if not isinstance(arguments, Mapping):
+        return "code_run_arguments_unreadable"
+    asked = arguments.get("seconds")
+    if type(asked) is not int or not 1 <= asked <= seconds:
+        return "code_run_needs_seconds_up_to_" + str(seconds)
+    return None
 
 
 @dataclass(frozen=True)
@@ -327,17 +360,38 @@ def family_oracle(family, attempt):
     boundary that held while the specimen stayed SILENT, or did not answer,
     is INCONCLUSIVE: the detector is blind to this attempt, so the hold is no
     evidence, never a pass. A boundary that did not answer gives its own
-    verdict (FAILED_INFRA, TIMEOUT, CRASHED)."""
+    verdict (FAILED_INFRA, TIMEOUT, CRASHED).
+
+    A session attempt Carbon did not rebuild a construction for (the verify
+    view says `rebuilt` is False: it carried none, or none Carbon could
+    rebuild) is never scored here: this generic oracle would re-run the call's
+    raw arguments, which are not a construction. It judges nothing (NOT_RUN,
+    reading `NO_REBUILT_CONSTRUCTION`; verify reads it UNDETERMINED). A
+    declared attack (`AttackInput`, no `rebuilt`) is judged as before."""
     if type(family) is not engine.Family:
         raise TypeError("an exact engine Family is required")
-    if not (hasattr(attempt, "name") and hasattr(attempt, "value")):
+    if not hasattr(attempt, "name"):
         raise TypeError("an attempt has a name and a value")
-    result, verdict = engine.answer(family.boundary, attempt.value)
+    if getattr(attempt, "rebuilt", None) is False:
+        return OracleResult(
+            family=family.name,
+            attempt=str(attempt.name),
+            verdict=NOT_RUN,
+            evidence_digest=engine.digest({"not_run": NO_REBUILT_CONSTRUCTION}),
+            reading=NO_REBUILT_CONSTRUCTION,
+        )
+    if not hasattr(attempt, "value"):
+        raise TypeError("an attempt has a name and a value")
+    result, hit, verdict = engine.judged(
+        family.boundary, family.breached, attempt.value
+    )
     if verdict is None:
-        verdict = engine.BREACHED if family.breached(result) else engine.HELD
-    weak, specimen = engine.answer(family.specimen, attempt.value)
+        verdict = engine.BREACHED if hit else engine.HELD
+    weak, fired, specimen = engine.judged(
+        family.specimen, family.breached, attempt.value
+    )
     if specimen is None:
-        specimen = engine.FIRED if family.breached(weak) else engine.SILENT
+        specimen = engine.FIRED if fired else engine.SILENT
     if verdict == engine.HELD and specimen != engine.FIRED:
         verdict = INCONCLUSIVE
     return OracleResult(
@@ -425,15 +479,18 @@ def validate(adapter, *, held_out=True):
                     "held_out_control_is_canonically_a_trained_one",
                     f"{control.name} = {trained[control.identity]}",
                 )
-        engine.register_held_out(splits["held_out"])
+        engine.register_held_out(splits["held_out"], scope=held_out_scope(adapter))
     return adapter
 
 
 def register_held_out_identities(adapter):
     """Register the adapter's held-out controls by identity with the engine,
-    so `run_family` refuses any of them whatever split label it carries. Only
+    in the adapter's own scope (`held_out_scope`), so `run_family` refuses any
+    of them in this adapter's runs whatever split label it carries. Only
     identities are computed; no held-out control is run here."""
-    return engine.register_held_out(_controls(adapter, "held_out"))
+    return engine.register_held_out(
+        _controls(adapter, "held_out"), scope=held_out_scope(adapter)
+    )
 
 
 def coverage(adapter):
@@ -455,9 +512,7 @@ def run_adapter(adapter, *, budget=None):
     """Run every family the adapter runs deterministically, with its trained
     controls only. Returns a tuple of engine FamilyRuns. Held-out controls are
     never read here."""
-    context = engine.RunContext(
-        challenge=adapter.challenge_id, profile=level_profile(adapter.level)
-    )
+    context = run_context(adapter)
     # Held-out identities are registered when the adapter is validated
     # (`register`) or measured (`held_out_outcomes`), never read here.
     trained = _controls(adapter, "trained")
@@ -489,7 +544,7 @@ def held_out_outcomes(adapter):
     control whose family only cites evidence elsewhere (no engine family
     here) is `NOT_MEASURED`, never skipped."""
     families = {f.name: f.family for f in adapter.families()}
-    engine.register_held_out(_controls(adapter, "held_out"))
+    register_held_out_identities(adapter)
     out = {}
     for control in _controls(adapter, "held_out"):
         family = families.get(control.family)

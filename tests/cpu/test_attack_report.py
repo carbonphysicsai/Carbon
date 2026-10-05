@@ -549,3 +549,31 @@ def test_disabling_the_protection_fails_its_test(name, monkeypatch):
     disable(monkeypatch)
     with pytest.raises((AssertionError, pytest.fail.Exception)):
         guard()
+
+
+def test_an_engine_runs_unattempted_attacks_reach_the_report():
+    """`FamilyRun.not_attempted` (attacks a budget left) is passed to the
+    report and to B2, never read as held."""
+    from carbon.agent_campaign.attack import benchmark, engine
+
+    family = engine.Family(
+        name="toy_surface",
+        check="artifact_and_dependency_attacks",
+        boundary=lambda value: {"accepted": value == "ok"},
+        attacks=lambda: (("a", "a"), ("b", "b"), ("c", "c")),
+        specimen=lambda value: {"accepted": True},
+        breached=lambda result: result["accepted"],
+        control=lambda: True,
+    )
+    run = engine.run_family(family, budget=1)
+    assert run.not_attempted == 2
+    line = report.family_report([run], controls_held_out=())["families"]["toy_surface"]
+    assert (line["attempts"], line["not_attempted"], line["held"]) == (1, 2, 1)
+    whole = engine.run_family(family)
+    b2 = benchmark.b2([], [whole], budget=1)
+    assert b2["families"]["toy_surface"]["baseline"]["not_attempted"] == 2
+    # An Attacker's verdicts carry no fixed attack set: None, not zero.
+    attacker = report.family_report(
+        report.attacker_runs([], families=()), controls_held_out=()
+    )
+    assert all(line["not_attempted"] is None for line in attacker["families"].values())

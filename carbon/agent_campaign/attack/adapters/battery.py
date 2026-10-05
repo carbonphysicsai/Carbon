@@ -807,18 +807,33 @@ def code_run_refusal(arguments):
     seconds between 1 and `code_run_seconds()`. Returns the refusal code, or
     None when it may be dispatched.
 
-    This adapter defines the rule; it binds only Carbon's Attacker sessions,
-    whose phase-4 dispatcher is meant to call it before dispatch. It is not
-    the miner lane's rule (`research_carrier`: any positive allowance or none,
-    by owner direction) nor Carbon's own worker lane's (40 to 600 seconds),
-    so attacks on it test this rule, not a Carbon dispatcher."""
-    if not isinstance(arguments, Mapping):
+    It is the core's one code-run rule (`attack.adapter.code_run_refusal`) at
+    battery's allowance, the rule the phase-4 Attacker dispatcher
+    (`graphite.phase4.AttackerTools`) calls before dispatch, so the
+    `resource_accounting` family attacks the dispatcher's rule itself. It
+    binds only Carbon's Attacker sessions. It is not the miner lane's rule
+    (`research_carrier`: any positive allowance or none, by owner direction)
+    nor Carbon's own worker lane's (40 to 600 seconds)."""
+    if _core is not None:
+        return _core.code_run_refusal(arguments, seconds=code_run_seconds())
+    if not isinstance(arguments, Mapping):  # pragma: no cover - no core
         return "code_run_arguments_unreadable"
     seconds = arguments.get("seconds")
     most = code_run_seconds()
     if type(seconds) is not int or not 1 <= seconds <= most:
         return "code_run_needs_seconds_up_to_" + str(most)
     return None
+
+
+def track_a_baseline(root="."):
+    """The battery harness's runs (`carbon.battery.track_a.run`), normalized:
+    B2's deterministic side for battery Level 0 (`attack.benchmark.
+    adapter_baseline` reaches it through `deterministic_baseline`)."""
+    from carbon.agent_campaign.attack import report
+    from carbon.battery import track_a
+
+    records, _report, _divergence = track_a.run(root)
+    return report.runs_from_records(records)
 
 
 def _scoring(value):
@@ -1622,7 +1637,12 @@ def _get(attempt, key, default=None):
 def _strategy_from(arguments):
     raw = arguments.get("strategy_json")
     if raw is None:
-        return _MISSING
+        # A `check_design` call carries its construction in its design
+        # (`attack.analysis.design_of`, the core's one reading of it).
+        from carbon.agent_campaign.attack import analysis
+
+        design = analysis.design_of(dict(arguments))
+        return _MISSING if design is None else design
     try:
         return json.loads(raw)
     except (TypeError, ValueError):
@@ -1828,6 +1848,10 @@ class BatteryLevel0Adapter:
 
     def code_run_refusal(self, arguments):
         return code_run_refusal(arguments)
+
+    def deterministic_baseline(self, root="."):
+        """B2's deterministic side: battery's Track A harness, normalized."""
+        return track_a_baseline(root)
 
     def control_passes(self, control):
         """One control against the real boundary: True when it passes."""

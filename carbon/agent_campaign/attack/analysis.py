@@ -8,10 +8,15 @@ session's research loop journalled, never from the model's prose:
   journal identity must be exactly what `research_loop.tool_identity(epoch,
   turn, position, stage)` names, so v2 turns with several calls (`-KK`) and
   staged sessions read one way; anything else is refused, never guessed.
-- **Protected material** (`graphite.tools.protected`) is checked on every
-  read. An attempt whose request or result names protected material keeps its
-  identity and digests but carries none of the content (`withheld`), so
-  nothing downstream holds it. A *result* that names it is an exposure, which
+- **Protected material** is checked on every read: a request by Graphite's
+  own request filter (`graphite.tools.protected`, the rule its harness refuses
+  requests under), a result by the narrowed exposure rule (`exposes`:
+  `attack.knowledge.protected` and the registered sealed identities, so a
+  result naming an attack target such as `.env` or `secret` is not misread
+  as an exposure). An attempt whose request or result names protected
+  material keeps its identity and digests but carries none of the content
+  (`withheld`), so nothing downstream holds it. A *result* that names it is
+  an exposure, which
   `verify` records as `OTHER_SIGNAL`; a *request* that names it was refused by
   Graphite's own harness before anything reached the path. A loop-local
   result that only echoes the agent's own protected words (a finish summary
@@ -84,6 +89,12 @@ WITHHELD_RESULT = "protected_material_in_result"
 WITHHELD_JOURNAL = "protected_material_in_journal"
 #: A loop-local result echoing the agent's own protected request.
 WITHHELD_ECHO = "protected_material_named_by_agent"
+#: A result Graphite's harness withheld because it named an attack target
+#: (`.env`, `secret`, `credential`, a repository path) and no protected
+#: material: the path answered, its content is gone, nothing is judged.
+WITHHELD_TARGET = "attack_target_in_result"
+#: `graphite.tools.ATTACK_TARGET`, the harness's record of that case.
+ATTACK_TARGET_MATERIAL = "attack_target"
 
 #: The neutral default: which shared Track A check a miner-SDK operation
 #: probes. An adapter that knows its Challenge better overrides it with
@@ -134,6 +145,8 @@ class Attempt:
         nothing; `path` when the path answered; None without a result."""
         if self.withheld == WITHHELD_REQUEST:
             return "graphite"
+        if self.withheld == WITHHELD_TARGET:
+            return "path"  # the path answered; Graphite withheld the answer
         if type(self.result) is not dict:
             return None
         return "graphite" if graphite_refusal(self.result) else "path"
@@ -294,6 +307,20 @@ def attempts(session_dir, *, epoch=None, stage=...):
     )
 
 
+def exposes(result):
+    """True when a journalled result names protected material: the
+    attack-knowledge store's narrowed rule (`attack.knowledge.protected`:
+    Graphite's protected markers and the deny fragments naming sealed or
+    confirmation material) or a registered sealed identity. Not the live
+    session's broad request filter (`graphite.tools.protected`), which also
+    refuses the attack targets `.env`, `secret`, `credential` and repository
+    paths: a result that names one of those is the path answering, not an
+    exposure."""
+    from carbon.agent_campaign.attack import knowledge
+
+    return knowledge.protected(result) or knowledge.sealed_identity(result) is not None
+
+
 def _attempt(intent_path, identity, parsed):
     epoch, stage, turn, position = parsed
     intent_bytes = intent_path.read_bytes()
@@ -309,8 +336,16 @@ def _attempt(intent_path, identity, parsed):
     if toolbox.protected(arguments) or toolbox.protected(name):
         withheld = WITHHELD_REQUEST
     if type(result) is dict and result.get("reason_code") == WITHHELD_RESULT:
-        withheld = WITHHELD_RESULT
-    elif result is not None and toolbox.protected(result):
+        # Graphite's harness withheld what the path answered. It records why
+        # (`graphite.tools.result_material`): an attack target alone is the
+        # path answering, not an exposure. A refusal that does not say is
+        # read as an exposure (fail closed).
+        withheld = (
+            WITHHELD_TARGET
+            if result.get("material") == ATTACK_TARGET_MATERIAL
+            else WITHHELD_RESULT
+        )
+    elif result is not None and exposes(result):
         # The harness withholds such results; one in the journal is itself
         # an exposure, read no further. When the request already named it,
         # Graphite dispatched nothing (it refuses such requests), so the
@@ -318,7 +353,9 @@ def _attempt(intent_path, identity, parsed):
         withheld = WITHHELD_ECHO if withheld == WITHHELD_REQUEST else WITHHELD_JOURNAL
     if result is not None and type(result) is not dict:
         result = {"status": "MALFORMED_RESULT"}
-    if withheld is not None:
+    if withheld is not None and withheld != WITHHELD_TARGET:
+        # (An attack-target refusal keeps the request: it named nothing
+        # protected, and the result is the harness's refusal alone.)
         dropped = withheld in (WITHHELD_JOURNAL, WITHHELD_ECHO)
         arguments, result = {}, (None if dropped else result)
         if withheld == WITHHELD_REQUEST and type(result) is dict:
@@ -428,11 +465,12 @@ def map_to_families(found, adapter):
 
 
 def construction(attempt):
-    """The construction an attempt carries: the parsed `strategy_json`;
-    None when it carries none; `UNPARSEABLE` when it is not a JSON object."""
+    """The construction an attempt carries: the parsed `strategy_json`, or a
+    `check_design` call's design (`design_of`); None when it carries
+    neither; `UNPARSEABLE` when it is not a JSON object."""
     raw = attempt.arguments.get("strategy_json")
     if raw is None:
-        return None
+        return design_of(attempt.arguments)
     try:
         value = json.loads(raw)
     except (TypeError, ValueError):
@@ -442,6 +480,33 @@ def construction(attempt):
 
 #: A construction that is not a JSON object: never rebuildable.
 UNPARSEABLE = "UNPARSEABLE"
+#: The workspace action that checks a design before submission.
+DESIGN_ACTION = "check_design"
+
+
+def design_of(arguments):
+    """The construction a `check_design` workspace call carries
+    (`start_research_task` kind=workspace, action=check_design,
+    arguments_json `{"design": {"strategy": {...}, "capabilities": [...]}}`):
+    a design is a construction, never NO_CONSTRUCTION. Its `strategy` when it
+    asks for no capability; the whole design when it asks for some, so Carbon
+    rebuilds (or refuses, typed) exactly what was checked. None for any other
+    call; `UNPARSEABLE` when the design or its strategy is not a JSON
+    object."""
+    if type(arguments) is not dict or arguments.get("action") != DESIGN_ACTION:
+        return None
+    raw = arguments.get("arguments_json")
+    if type(raw) is str:
+        try:
+            raw = json.loads(raw)
+        except ValueError:
+            return UNPARSEABLE
+    design = raw.get("design") if type(raw) is dict else None
+    if type(design) is not dict or type(design.get("strategy")) is not dict:
+        return UNPARSEABLE
+    if design.get("capabilities"):
+        return design
+    return design["strategy"]
 
 
 def attempts_digest(found):

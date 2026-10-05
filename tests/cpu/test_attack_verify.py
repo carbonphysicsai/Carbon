@@ -802,3 +802,103 @@ def test_disabling_the_protection_fails_its_test(name, tmp_path, monkeypatch):
     disable(monkeypatch)
     with pytest.raises((AssertionError, pytest.fail.Exception)):
         guard(tmp_path / "mutated")
+
+
+# -- follow-ups before the first live phase-4 run ---------------------------------------------
+@pytest.mark.parametrize(
+    "said",
+    [
+        {"held": True},
+        {"outcome": "HELD"},
+        {"verdict": "HELD", "specimen": "SILENT"},
+        OracleResult("HELD", specimen=None),
+    ],
+)
+def test_a_hold_without_a_specimen_that_fired_is_never_scored(tmp_path, said):
+    """An oracle that says it held without the family specimen firing on the
+    same input judged nothing: UNDETERMINED, never scored. Mutation: accept
+    `{"held": True}` as a scored hold."""
+    adapter = StubAdapter(oracle=lambda family, attempt: said)
+    verdict = verify.verify(attempt_of(tmp_path), adapter)
+    assert (verdict.outcome, verdict.reason) == (
+        "UNDETERMINED",
+        verify.HOLD_WITHOUT_SPECIMEN_REASON,
+    )
+    assert not verdict.scored and not verdict.finding
+    fired = StubAdapter(oracle=lambda f, a: {"held": True, "specimen": "FIRED"})
+    held = verify.verify(attempt_of(tmp_path / "b"), fired)
+    assert (held.outcome, held.scored) == ("HELD", True)
+
+
+def test_the_generic_oracle_never_scores_without_a_rebuild(tmp_path):
+    """The engine adapter's generic oracle (`family_oracle`) is handed the
+    call's raw arguments when Carbon rebuilt nothing: it judges nothing then
+    (UNDETERMINED), whatever the boundary would say. With a rebuilt
+    construction it judges as before."""
+    weak = _engine_adapter(weak=True)
+    bare = verify.verify(attempt_of(tmp_path, DRY, {"pretrained_weights": "x"}), weak)
+    assert bare.family == "weights_field"
+    assert bare.rebuild == verify.NO_CONSTRUCTION
+    assert (bare.outcome, bare.reason) == (
+        "UNDETERMINED",
+        verify.NO_REBUILT_CONSTRUCTION_REASON,
+    )
+    assert not bare.scored and not bare.finding
+    rebuilt = verify.verify(attempt_of(tmp_path / "b", arguments=dry(FORBIDDEN)), weak)
+    assert (rebuilt.rebuild, rebuilt.outcome, rebuilt.scored) == (
+        "REBUILT",
+        "BREACHED",
+        True,
+    )
+
+
+def test_finding_evidence_naming_an_attack_target_is_kept_not_redacted(tmp_path):
+    """Finding evidence is redacted by the store's narrowed rule: a breach
+    naming `.env` or `secret` keeps its verdict record; one naming protected
+    material or a registered sealed identity is redacted."""
+    controller = make(tmp_path)
+    try:
+        target = verify.Verdict(
+            "epoch-1-tool-000",
+            "artifact_family",
+            verify.REBUILT,
+            verify.BREACHED,
+            ("FAILING_TRIGGER",),
+            reason="the sandbox read ../.env and secret/key",
+        )
+        body = json.loads(verify.finding_body(target, "FAILING_TRIGGER"))
+        assert toolbox.protected(body) and "verdict" in body
+        assert "redacted" not in body
+        sealed = verify.Verdict(
+            "epoch-1-tool-001",
+            "artifact_family",
+            verify.REBUILT,
+            verify.BREACHED,
+            ("OTHER_SIGNAL",),
+            reason="named graphite-confirmation-v1",
+        )
+        body = json.loads(verify.finding_body(sealed, "OTHER_SIGNAL"))
+        assert body["redacted"] == "protected_material"
+        verify.record(target, controller)
+    finally:
+        controller.close()
+
+
+def test_a_harness_withheld_attack_target_is_undetermined_not_an_exposure(tmp_path):
+    refusal = toolbox.refusal(
+        toolbox.REFUSED_RESULT,
+        "protected_material_in_result",
+        material=toolbox.ATTACK_TARGET,
+    )
+    verdict = verify.verify(attempt_of(tmp_path, INFO, {}, refusal), StubAdapter())
+    assert (verdict.outcome, verdict.reason, verdict.refused_by) == (
+        "UNDETERMINED",
+        "result_withheld_attack_target",
+        "path",
+    )
+    assert not verdict.finding
+    exposed = toolbox.refusal(toolbox.REFUSED_RESULT, "protected_material_in_result")
+    verdict = verify.verify(
+        attempt_of(tmp_path / "b", INFO, {}, exposed), StubAdapter()
+    )
+    assert verdict.conditions == ("OTHER_SIGNAL",)
