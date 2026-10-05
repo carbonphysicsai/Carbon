@@ -6,7 +6,7 @@
   "stage": "test_iterate",
   "execution": {
     "kind": "coverage_run",
-    "ref": "phase-4 Attacker session graphite-5dba40abea97545a, REF f7c27d97; OWNER-GRAPHITE triage and fix",
+    "ref": ".agent/decisions/2026-10-05-GRAPHITE-ATTACKER-ORACLE-AUTHORITY-01.md (phase-4 Attacker session graphite-5dba40abea97545a, REF f7c27d97)",
     "description": "Triaged the first live phase-4 Attacker session's 35 FAILING_TRIGGER findings and repaired the battery attack oracle so a FAILING_TRIGGER rests on a tool's authority."
   },
   "expected": "The oracle would raise a FAILING_TRIGGER only when an authoritative admission path accepted a construction Carbon refuses.",
