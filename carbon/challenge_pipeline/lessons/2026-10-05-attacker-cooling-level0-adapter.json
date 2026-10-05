@@ -6,7 +6,7 @@
  "stage": "test_iterate",
  "execution": {
   "kind": "build",
-  "ref": ".agent/decisions/2026-10-04-GRAPHITE-ATTACKER-COOLING-L0.md; branch claude/attack-adapter-cooling-l0, built on #584 (codex/cooling-scoring-adapter)",
+  "ref": ".agent/decisions/2026-10-04-GRAPHITE-ATTACKER-COOLING-L0.md; branch claude/attack-adapter-cooling-l0, built on #584 (codex/cooling-scoring-adapter at 4332ad6fe, which carries #569)",
   "description": "Built cooling's Level 0 attack adapter in battery's shape: fifteen families over the eight Track A checks, the Test Lead's five cooling vectors, trained and genuinely distinct held-out controls, an oracle that runs every attempt against the real boundary and a vulnerable specimen, typed rebuild through experiment.admit with cooling's ChallengeScoring, NOT_RUN seams for every missing owner value and Levels 1 to 5, and twenty-one mutations; then ran the phase-4 dry run at cooling."
  },
  "expected": "The vectors would each map to one registered boundary that a single mutation can turn red, including the laminar-regime rule of the population screen.",
@@ -17,7 +17,7 @@
   "Patch the module the boundary reads at call time in every mutation, and print which attack breached, so a guard that goes red for the wrong reason is visible."
  ],
  "change": [
-  "Extract the per-attempt reading (assess) into the neutral core once #569 lands; cooling now carries a copy of battery's.",
+  "Extract the per-attempt reading (assess) into the neutral core after #584 lands; cooling now carries a copy of battery's.",
   "A cooling Attacker grant is proposed, not committed; phase 4 accepts only GRAPHITE-GRANT-PHASE4, so a per-Challenge grant also needs the runner to accept it."
  ],
  "protocol_elements": [

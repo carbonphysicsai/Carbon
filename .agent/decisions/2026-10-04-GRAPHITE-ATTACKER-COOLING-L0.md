@@ -14,7 +14,8 @@ weighting, grant or contract is chosen here.
 
 ### COOL-L0-D1 — Base and shape
 
-The branch is built on #584 (`codex/cooling-scoring-adapter`), which adds
+The branch is built on #584 (`codex/cooling-scoring-adapter` at 4332ad6fe,
+which already carries main with #569), which adds
 cooling's `ChallengeScoring`, makes `phase4 run` take an explicit
 `--challenge` and threads the Challenge through the attack provider and pods.
 The adapter reuses that scoring (`scoring_for("chip-cold-plate")`, its frozen
@@ -25,8 +26,7 @@ battery's adapter changes.
 The adapter has battery's shape (`FamilySpec`, `ControlSpec`, `SeamSpec`,
 `Build`, `assess`, the session surface). `assess` is a copy of battery's
 reading, kept in cooling's module so the shared modules stay untouched while
-#569 is open; extracting it into `attack.adapter` is a follow-up once #569
-lands. The oracle also answers a declared seam with `seam_oracle` (NOT_RUN).
+#584 is open; extracting it into `attack.adapter` is a follow-up. The oracle also answers a declared seam with `seam_oracle` (NOT_RUN).
 
 ### COOL-L0-D2 — Families by check
 
@@ -89,9 +89,11 @@ The oracle is battery's (AT-B-D5) unchanged in meaning. Rebuild calls
 `construction_contract_unrecorded` and `backend_not_served` being Carbon's
 side (`rebuild_failed_infra`). Note that the strategy schema refuses a
 neural-operator or pretrained family structurally (`backbone.unsupported`), so
-those read `refused_by_contract`, not `outside_level`. The code-run rule copies
-cooling's practice allowance (`research.PRACTICE_SECONDS`, 600) and binds the
-Attacker lane only, as battery's.
+those read `refused_by_contract`, not `outside_level`. The code-run rule is the
+core's one rule (`attack.adapter.code_run_refusal`, #569) at cooling's practice
+allowance (`research.PRACTICE_SECONDS`, 600, copied and checked) and binds the
+Attacker lane only, as battery's. A `check_design` call's construction is read
+through `attack.analysis.design_of`, as battery's.
 
 ### COOL-L0-D6 — What is not read
 

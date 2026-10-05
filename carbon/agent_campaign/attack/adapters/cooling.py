@@ -1093,14 +1093,10 @@ def code_run_seconds():
 def code_run_refusal(arguments):
     """Refused before dispatch: a code run must ask for a whole number of
     seconds between 1 and `code_run_seconds()`. Returns the refusal code, or
-    None. As battery's rule, it binds Carbon's Attacker lane only."""
-    if not isinstance(arguments, Mapping):
-        return "code_run_arguments_unreadable"
-    seconds = arguments.get("seconds")
-    most = code_run_seconds()
-    if type(seconds) is not int or not 1 <= seconds <= most:
-        return "code_run_needs_seconds_up_to_" + str(most)
-    return None
+    None. It is the core's one code-run rule (`attack.adapter.
+    code_run_refusal`) at cooling's allowance, the rule the phase-4 Attacker
+    dispatcher applies, and binds Carbon's Attacker lane only."""
+    return _core.code_run_refusal(arguments, seconds=code_run_seconds())
 
 
 def _scoring_accounting(value):
@@ -2254,7 +2250,12 @@ def _get(attempt, key, default=None):
 def _strategy_from(arguments):
     raw = arguments.get("strategy_json")
     if raw is None:
-        return _MISSING
+        # A `check_design` call carries its construction in its design
+        # (`attack.analysis.design_of`, the core's one reading of it).
+        from carbon.agent_campaign.attack import analysis
+
+        design = analysis.design_of(dict(arguments))
+        return _MISSING if design is None else design
     try:
         return json.loads(raw)
     except (TypeError, ValueError):

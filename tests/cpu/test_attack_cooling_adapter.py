@@ -195,11 +195,14 @@ def test_the_engine_refuses_held_out_controls_even_relabelled(name):
     family = A.family_spec(name)
     definition = next(f for f in A.families() if f.name == family.name)
     held = [x for x in A.controls("held_out") if x.family == name]
+    context = core.run_context(A)
     with pytest.raises(engine.HeldOutControlRefused):
-        engine.run_family(definition.family, budget=0, controls=held)
+        engine.run_family(definition.family, budget=0, context=context, controls=held)
     relabelled = [dataclasses.replace(x, split="trained") for x in held]
     with pytest.raises(engine.HeldOutControlRefused):
-        engine.run_family(definition.family, budget=0, controls=relabelled)
+        engine.run_family(
+            definition.family, budget=0, context=context, controls=relabelled
+        )
 
 
 @pytest.mark.parametrize("split", c.SPLITS)
