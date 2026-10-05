@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-readiness-gate-first-run",
+  "recorded_at": "2026-10-05T16:00:00Z",
+  "challenge": "protocol",
+  "stage": "protocol",
+  "execution": {
+    "kind": "build",
+    "ref": "GRAPHITE-READINESS-01 first run on battery, cooling and motor at Level 0",
+    "description": "Built the readiness command and ran it on the three registered challenges from a Windows host."
+  },
+  "expected": "Most gate items would be wired to existing tests and tools.",
+  "observed": "Of 36 items, 2 to 3 pass per challenge and 28 are NOT_BUILT, because the enforcing PRs (#606, #610, #612, #613, #615, #619, containment, oracle-fix) are not on main or no per-challenge evidence is recorded. R1 (prelive) fails closed on Windows (fcntl), and attack adapters fail on CRLF checkouts (pinned digests), so the gate must be run on the canonical Linux host.",
+  "keep": [
+    "Keep every unwired item NOT_BUILT with an owner; never stub a PASS."
+  ],
+  "change": [
+    "Run the gate on the canonical Linux host before committing any history line.",
+    "Wire each NOT_BUILT item as its enforcing PR merges (standing register job)."
+  ],
+  "protocol_elements": [
+    "challenge.pipeline.lessons",
+    "challenge.graphite.readiness_gate"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
