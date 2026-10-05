@@ -214,6 +214,31 @@ carrier. So:
 **Consequence.** The live phase-3 runner still asks for a RunPod key only for
 `--compute runpod`, which refuses this grant.
 
+**Addendum (2026-10-05): a backend that reports a charge anyway.** The Test
+Lead confirmed "no pod money" and asked that nothing can charge a tokens-only
+run a pod rate by mistake. A probe found one way: a carrier-lane backend whose
+`charge()` reports money after a USD 0 reservation (0.30 per pod). That charge
+was booked with nothing else happening. Under a tokens-only budget, a
+non-zero reported charge now:
+1. **Is booked truthfully** as the pod's `pod_settled` row, at the amount
+   reported. It is never dropped or zeroed: hiding real spend is worse than
+   the defect.
+2. **Is a typed finding,** `tokens_only_backend_reported_a_charge` (kind
+   `TOKENS_ONLY_BACKEND_REPORTED_A_CHARGE`), with the intent, the pod id and
+   the amount.
+3. **Fails closed through the existing stop** (`Experiment._stop_session`,
+   `session-stop.json`, `FAILED_INFRA`, reason
+   `tokens_only_backend_reported_a_charge`, no candidate charge):
+   - waiting and later proposals are refused;
+   - the provider ends the session typed (`_stopped_for`);
+   - `_admit_pod` now refuses any pod once the session is stopped
+     (`session_stopped:<reason>`). That also covers a retry or relaunch of the
+     proposal in flight, which the stop did not reach before.
+
+The real `CarrierPods.charge` returns 0, so none of this fires on the lane as
+built. Tests use the 0.30 probe for each of the three, plus the in-flight
+retry, with a mutation per guard.
+
 ### Not decided here
 
 - Motor's phase-4 grant: proposed with motor's scorer (WAVE-05 §2).

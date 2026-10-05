@@ -53,6 +53,7 @@ import os
 from dataclasses import dataclass
 from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from pathlib import Path
+from types import SimpleNamespace
 
 from carbon.challenge_validator import scoring as challenge_scoring
 from carbon.challenge_validator.scoring import (
@@ -77,6 +78,9 @@ FEEDBACK_SCHEMA = "carbon.graphite.phase3.feedback.v1"
 STOP_SCHEMA = "carbon.graphite.phase3.session-stop.v1"
 #: A proposal refused because Carbon stopped the session as infrastructure.
 SESSION_STOPPED = "REFUSED_SESSION_STOPPED"
+#: The typed finding and session stop when a backend reports money for a pod
+#: under a tokens-only budget (GRAPHITE-GRANT-BINDING-01 D7 addendum).
+TOKENS_ONLY_CHARGE = "tokens_only_backend_reported_a_charge"
 #: Reason prefixes when an environment relaunch cannot run.
 RELAUNCH_REFUSED = "pod_environment_relaunch_refused:"
 #: The session baseline's retry never gets a relaunch too: the baseline gets
@@ -557,6 +561,11 @@ class Experiment:
         )
 
     def _admit_pod(self):
+        stop = self.stopped()
+        if stop is not None:
+            # The session was stopped (`_stop_session`): no further pod, a
+            # retry or relaunch of the proposal in flight included.
+            raise BudgetRefused("session_stopped:" + stop["reason_code"])
         if not self.budget.pays_for_pods:
             # A paid pod under a tokens-only grant: refused before any
             # reservation or launch.
@@ -675,6 +684,27 @@ class Experiment:
             charge_usd=str(charge),
             basis="provider_reported",
         )
+        if self.budget.tokens_only and charge > 0:
+            self._tokens_only_charge(pid, handle, charge)
+
+    def _tokens_only_charge(self, pid, handle, charge):
+        """A backend reported money for a pod under a tokens-only budget, which
+        reserved none for it (GRAPHITE-GRANT-BINDING-01 D7). The charge stays
+        booked exactly as reported (`_settle`); hiding real spend is worse. A
+        typed finding names the pod and the amount, and the session stops
+        through the existing stop (`_stop_session`): no further pod, and the
+        provider ends the session typed."""
+        self._finding(
+            TOKENS_ONLY_CHARGE.upper(),
+            pid,
+            {
+                "code": TOKENS_ONLY_CHARGE,
+                "intent_id": handle.intent_id,
+                "pod_id": handle.pod_id,
+                "charge_usd": str(charge),
+            },
+        )
+        self._stop_session(pid, SimpleNamespace(reason_code=TOKENS_ONLY_CHARGE))
 
     # -- one proposal --------------------------------------------------------------------------
     def propose_tool(self, arguments, identity):

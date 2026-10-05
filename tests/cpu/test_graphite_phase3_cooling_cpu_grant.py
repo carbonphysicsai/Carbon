@@ -16,6 +16,11 @@ Claims tested:
 - on the CPU carrier lane (the real `CarrierPods`, its carrier replaced by
   the carrier suite's stand-in) a launch under the grant books exactly
   USD 0, and a non-zero rate reaching the lane is refused, not booked;
+- a carrier-lane backend that reports a charge anyway (the 0.30 probe) has
+  it booked exactly as reported, gets a typed finding
+  (`tokens_only_backend_reported_a_charge`) naming the pod and the amount,
+  and stops the session through the existing stop: no further launch, the
+  in-flight proposal's retry included;
 - `phase3 run --compute runpod` under the grant is refused
   `grant_is_tokens_only_use_the_carrier_lane` through the real CLI before
   any RunPod backend is built, reservation made or request sent;
@@ -466,13 +471,16 @@ def test_the_carrier_lane_still_runs_the_grant_s_proposals(tmp_path):
     budget = ex.phase3_budget(
         _grant(expires_at="2099-01-01T00:00:00Z"), COOLING, Decimal(0)
     )
-    run = _experiment(tmp_path, budget, pods.ScriptedPods())
+    # A rate-0 backend that also reports no charge (a reported charge stops
+    # the session; see the charge tests below).
+    free = pods.ScriptedPods(steps=[pods.Step(rate="0", charge="0")] * 2)
+    run = _experiment(tmp_path, budget, free)
     _propose(run)
     for record in run.records():
         assert record.get("reason_code") != "grant_allows_no_pods", record
     events = [row["event"] for row in run.ledger.rows()]
-    assert "pod_reserved" in events
-    assert run._retry_budget(1) is None
+    assert "pod_reserved" in events and len(free.launched) == 2
+    assert run._retry_budget(1) is None and run.stopped() is None
 
 
 def test_mutation_without_the_guard_a_paid_pod_is_reserved(tmp_path, monkeypatch):
@@ -741,3 +749,193 @@ def test_mutation_without_the_lane_check_the_runpod_run_goes_on(
     code = _refusal(capsys, lambda: phase3.main(argv))
     assert code != "grant_is_tokens_only_use_the_carrier_lane"
     assert code == "code_ref_is_not_this_checkout_head"
+
+
+# -- a backend that reports a charge anyway: booked, found, stopped -------------------------------
+CHARGE = Decimal("0.30")
+
+
+def _charging_carrier(tmp_path):
+    """The real `CarrierPods` (rate 0) whose backend reports USD 0.30 for each
+    pod anyway: the probe that found the gap."""
+    backend, runner = _carrier(tmp_path)
+    backend.charge = lambda handle: CHARGE
+    return backend, runner
+
+
+def _charged_run(tmp_path):
+    backend, runner = _charging_carrier(tmp_path)
+    run = _experiment(tmp_path, _carrier_provider(tmp_path, backend).budget, backend)
+    feedback = _propose(run)
+    return run, runner, feedback
+
+
+def _created(run):
+    return [r for r in run.ledger.rows() if r["event"] == "pod_created"]
+
+
+def test_a_reported_charge_is_booked_truthfully(tmp_path):
+    """1. The reported amount is booked as the pod's `pod_settled` row and
+    counts against the run: real spend is never hidden or zeroed."""
+    run, _runner, _feedback = _charged_run(tmp_path)
+    settled = [r for r in run.ledger.rows() if r["event"] == "pod_settled"]
+    assert [(r["charge_usd"], r["basis"]) for r in settled] == [
+        ("0.30", "provider_reported")
+    ]
+    assert run.pod_committed() == CHARGE
+
+
+def test_a_reported_charge_is_a_typed_finding_naming_the_pod_and_amount(tmp_path):
+    """2. One finding, typed, with the pod's id and the amount."""
+    run, _runner, _feedback = _charged_run(tmp_path)
+    [created] = _created(run)
+    [finding] = run.findings()
+    assert finding["id"].startswith("graphite-tokens-only-backend-reported-a-charge-")
+    evidence = finding["evidence"]
+    assert evidence["kind"] == "TOKENS_ONLY_BACKEND_REPORTED_A_CHARGE"
+    assert evidence["proposal_id"] == "baseline"
+    assert evidence["detail"] == {
+        "code": "tokens_only_backend_reported_a_charge",
+        "intent_id": created["intent_id"],
+        "pod_id": created["pod_id"],
+        "charge_usd": "0.30",
+    }
+
+
+def test_a_reported_charge_stops_the_session_with_no_further_launch(tmp_path):
+    """3. Fail closed through the existing stop: `session-stop.json`, the
+    proposal waiting behind the baseline is refused, a later proposal is
+    rejected before dispatch, and only the one pod ever ran."""
+    run, runner, feedback = _charged_run(tmp_path)
+    stop = run.stopped()
+    assert stop["status"] == "FAILED_INFRA"
+    assert stop["reason_code"] == "tokens_only_backend_reported_a_charge"
+    assert stop["proposal_id"] == "baseline" and stop["candidate_charged"] is False
+    assert feedback["status"] == ex.SESSION_STOPPED
+    later = run.propose_tool(
+        {
+            "strategy_json": json.dumps(COOLING.baseline_strategy()),
+            "hypothesis": "another try",
+            "expected_effect": "refused: the session stopped",
+        },
+        "identity-2",
+    )
+    assert later["status"] == "REJECTED_BEFORE_DISPATCH"
+    assert (
+        later["reason_code"] == "session_stopped:tokens_only_backend_reported_a_charge"
+    )
+    with pytest.raises(ex.BudgetRefused) as refused:
+        run._admit_pod()
+    assert refused.value.code == "session_stopped:tokens_only_backend_reported_a_charge"
+    assert len(runner.calls) == 1 and len(_created(run)) == 1
+
+
+def _charged_timeout_run(tmp_path):
+    """A pod that timed out and reported a charge: the proposal's retry, which
+    the timeout rule would launch, must not."""
+    from graphite_phase3_fixtures import BASELINE, SCORING, grant
+    from test_graphite_pod_timeout import CONFIRMED, timed_out
+
+    from carbon.agent_campaign.graphite.pods import Step, synthetic_outputs
+
+    backend = pods.ScriptedPods(
+        steps=[
+            timed_out(rate="0", charge="0.30"),
+            Step(
+                outputs=synthetic_outputs(0.2), timing=CONFIRMED, rate="0", charge="0"
+            ),
+        ]
+    )
+    budget = dataclasses.replace(
+        ex.phase3_budget(grant(), SCORING, Decimal(0)), tokens_only=True
+    )
+    run = ex.Experiment(
+        root=tmp_path / "experiment",
+        run_id="run-charged-timeout",
+        pods=backend,
+        budget=budget,
+        baseline=BASELINE,
+        token_committed=lambda: Decimal(0),
+        cancelled=lambda: False,
+        ladder=_Ladder(),
+        emit=lambda event_id, body: None,
+        repository=REPOSITORY,
+        clock=lambda: 1000.0,
+        randomness=lambda n: b"\x02" * n,
+        construction_level=0,
+        scoring=SCORING,
+    )
+    record = run.run("baseline", "baseline", BASELINE, why=None)
+    return run, backend, record
+
+
+def test_a_reported_charge_refuses_the_in_flight_retry(tmp_path):
+    run, backend, record = _charged_timeout_run(tmp_path)
+    assert len(backend.launched) == 1
+    assert record["status"] == "FAILED_INFRA"
+    assert record["reason_code"] == (
+        "worker_timeout_retry_refused:session_stopped:"
+        "tokens_only_backend_reported_a_charge"
+    )
+    assert run.pod_committed() == CHARGE
+
+
+# -- a mutation per guard ----------------------------------------------------------------------
+def test_mutation_zeroing_the_charge_hides_real_spend(tmp_path, monkeypatch):
+    """Guard 1. The rejected design: book 0 for a tokens-only budget. The
+    ledger then shows nothing while the backend reported USD 0.30."""
+    real = ex.Experiment._settle
+
+    def zeroing(self, pid, handle):
+        if self.budget.tokens_only:
+            self.ledger.append(
+                "pod_settled",
+                intent_id=handle.intent_id,
+                proposal=pid,
+                charge_usd="0",
+                basis="provider_reported",
+            )
+            return None
+        return real(self, pid, handle)
+
+    monkeypatch.setattr(ex.Experiment, "_settle", zeroing)
+    run, _runner, _feedback = _charged_run(tmp_path)
+    assert run.pod_committed() == 0 != CHARGE
+    assert run.findings() == [] and run.stopped() is None
+
+
+def test_mutation_without_the_finding_the_charge_goes_unreported(tmp_path, monkeypatch):
+    """Guard 2. Stop without the finding: nothing names the pod or amount."""
+
+    def stop_only(self, pid, handle, charge):
+        self._stop_session(pid, ex.SimpleNamespace(reason_code=ex.TOKENS_ONLY_CHARGE))
+
+    monkeypatch.setattr(ex.Experiment, "_tokens_only_charge", stop_only)
+    run, _runner, _feedback = _charged_run(tmp_path)
+    assert run.stopped() is not None and run.findings() == []
+
+
+def test_mutation_without_the_stop_the_run_keeps_launching(tmp_path, monkeypatch):
+    """Guard 3a. No stop: the proposal behind the baseline launches a second
+    pod and is charged again."""
+    monkeypatch.setattr(ex.Experiment, "_stop_session", lambda self, pid, v: None)
+    run, runner, _feedback = _charged_run(tmp_path)
+    assert len(runner.calls) == 2 and run.pod_committed() == 2 * CHARGE
+
+
+def test_mutation_without_the_admission_stop_the_retry_launches(tmp_path, monkeypatch):
+    """Guard 3b. `_admit_pod` without its stop check: the in-flight
+    proposal's timeout retry launches a second pod after the stop."""
+    real = ex.Experiment._admit_pod
+
+    def unstoppable(self):
+        stopped = self.stopped
+        self.stopped = lambda: None
+        try:
+            return real(self)
+        finally:
+            self.stopped = stopped
+
+    monkeypatch.setattr(ex.Experiment, "_admit_pod", unstoppable)
+    run, backend, _record = _charged_timeout_run(tmp_path)
+    assert run.stopped() is not None and len(backend.launched) == 2
