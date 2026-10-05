@@ -106,9 +106,11 @@ def _alignment_of(members):
     fixed = {
         name: {
             **row,
-            "value": tuple(row["value"])
-            if isinstance(row.get("value"), list)
-            else row.get("value"),
+            "value": (
+                tuple(row["value"])
+                if isinstance(row.get("value"), list)
+                else row.get("value")
+            ),
         }
         for name, row in members.items()
     }
