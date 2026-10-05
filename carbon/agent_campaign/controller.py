@@ -32,9 +32,14 @@ and it holds every limit outside the agent:
   (`record_development_expansion`) proceeds into its own ledger, and every
   result recorded while a finding is open (events, artifacts, terminal
   states and development expansions) is tagged with the open findings under
-  `conditional-evidence.v1` (`carbon.challenge_readiness.conditional_evidence`).
-  A finding is open until an operator records its repair (`record_repair`).
-  It is never removed, and it keeps the LOCK path closed.
+  `conditional-evidence.v2` (`carbon.challenge_readiness.conditional_evidence`).
+  A canary finding is recorded before the entry that exposed it, so that entry
+  carries it. Stored evidence bytes cannot carry a tag; the ledger entry is
+  their tag of record (`conditional_ledger`). A finding is open until an
+  operator records its repair with the re-run's identities (`record_repair`,
+  `repair-attestation.v1`); results recorded while it stands carry
+  `repaired_by_attestation`. A finding is never removed, and it keeps the
+  LOCK path closed.
 - **Development is registered, never declared** (GRAPHITE-DEV-VARIANTS-01).
   A development expansion's permissions digest must be a development-only
   contract variant registered and pinned in
@@ -59,6 +64,7 @@ import datetime
 import fcntl
 import hashlib
 import json
+import re
 import sqlite3
 from contextlib import contextmanager
 from decimal import Decimal
@@ -80,12 +86,19 @@ from .provider import (
     money,
 )
 
-#: v2: result entries (`RESULT_KINDS`) also carry `conditional_on` and
-#: `conditional_policy` (conditional-evidence.v1); every other key is v1's.
+#: Every entry that is not a result keeps v1, its keys unchanged, so a
+#: replay of a v1 store's control entries reads the same bytes and schema.
+ATTEMPT_SCHEMA_V1 = "carbon.agent-campaign.attempt.v1"
+#: v2: a result entry (`RESULT_KINDS`) is v1 plus the conditional tag, whose
+#: keys the policy it names defines (`conditional_on` and `conditional_policy`;
+#: under conditional-evidence.v2 also `repaired_by_attestation` while a
+#: finding is released by an attestation). A store therefore mixes v1 and v2
+#: entries by kind, and each entry's schema names exactly its keys.
 ATTEMPT_SCHEMA = "carbon.agent-campaign.attempt.v2"
 #: The ledger entries that are results of a run: what the agent returned and
 #: how the run ended. Each is tagged with the findings open when it is recorded.
 RESULT_KINDS = frozenset({"event", "artifact", "terminal"})
+_COMMIT = re.compile(r"[0-9a-f]{40}\Z")
 CRASH_POINTS = (
     "after_intent",
     "after_dispatch",
@@ -254,8 +267,9 @@ class CampaignController:
     def _append(self, db, **entry):
         row = db.execute("SELECT seq, hash FROM ledger ORDER BY seq DESC").fetchone()
         seq, previous = (0, "sha256:" + "0" * 64) if row is None else row
+        result = entry.get("kind") in RESULT_KINDS
         body = {
-            "schema": ATTEMPT_SCHEMA,
+            "schema": ATTEMPT_SCHEMA if result else ATTEMPT_SCHEMA_V1,
             "sequence": seq + 1,
             "recorded_at": _stamp(self.clock()),
             "previous": previous,
@@ -274,13 +288,17 @@ class CampaignController:
         if unknown:
             raise ValueError("unknown ledger fields: " + ", ".join(sorted(unknown)))
         body.update(entry)
-        if body["kind"] in RESULT_KINDS:
-            body.update(conditional_evidence.tag(self._open_findings(db)))
+        if result:
+            body.update(self._conditional_tag(db))
         text = _canonical(body)
         digest = "sha256:" + hashlib.sha256(text.encode()).hexdigest()
         db.execute("INSERT INTO ledger VALUES(?,?,?)", (seq + 1, text, digest))
 
     def _store_evidence(self, body: bytes):
+        """Store bytes by digest. The bytes are what the agent returned and
+        cannot carry a tag without changing their digest: the ledger entry
+        that cites them is their tag of record, and every citation check
+        given this controller's `conditional_ledger()` consults it."""
         digest = "sha256:" + hashlib.sha256(body).hexdigest()
         path = self.evidence / (digest.removeprefix("sha256:") + ".bin")
         if not path.exists():
@@ -850,16 +868,17 @@ class CampaignController:
                 body = _canonical(event).encode()
                 ref = self._store_evidence(body)
                 hits = boundaries.exposed(body, campaign["canaries"])
-                self._append(
+                self._result_entry(
                     db,
+                    row,
+                    ref,
+                    hits,
                     campaign_id=row["campaign"],
                     run_key=row["key"],
                     kind="event",
                     evidence=[ref],
                     disposition="CANARY_EXPOSED" if hits else "RECORDED_AS_DATA",
                 )
-                if hits:
-                    self._exposure(db, row, ref)
             submitted = db.execute(
                 "SELECT COUNT(*) FROM ledger WHERE json_extract(body,'$.kind')='artifact' "
                 "AND json_extract(body,'$.disposition')='SUBMITTED'"
@@ -877,8 +896,11 @@ class CampaignController:
                 else:
                     disposition = "SUBMITTED"
                     submitted += 1
-                self._append(
+                self._result_entry(
                     db,
+                    row,
+                    ref,
+                    hits,
                     campaign_id=row["campaign"],
                     run_key=row["key"],
                     kind="artifact",
@@ -888,8 +910,6 @@ class CampaignController:
                     evidence=[ref],
                     disposition=disposition,
                 )
-                if hits:
-                    self._exposure(db, row, ref)
             db.execute(
                 "UPDATE runs SET events_seen=?, artifacts_seen=? WHERE key=?",
                 (
@@ -898,6 +918,14 @@ class CampaignController:
                     row["key"],
                 ),
             )
+
+    def _result_entry(self, db, row, ref, hits, **entry):
+        """Append one result entry. A canary it exposed is recorded as a
+        finding first, so the entry carries that finding in its tag
+        (conditional-evidence.v2 "ordering")."""
+        if hits:
+            self._exposure(db, row, ref)
+        self._append(db, **entry)
 
     def _exposure(self, db, row, ref):
         ordinal = db.execute("SELECT COUNT(*) FROM findings").fetchone()[0]
@@ -1084,23 +1112,95 @@ class CampaignController:
         ]
 
     def open_findings(self):
-        """Every open finding as `{id, digest}` (conditional-evidence.v1):
+        """Every open finding as `{id, digest}` (conditional-evidence.v2):
         recorded and not repaired since."""
         with self._db() as db:
             return conditional_evidence.tag(self._open_findings(db))["conditional_on"]
 
-    def record_repair(self, finding_id, *, operator, note, evidence: bytes):
+    @staticmethod
+    def _repair_id(body):
+        """A repair's id: the digest of its record without the id."""
+        rest = {k: v for k, v in body.items() if k != "repair_id"}
+        digest = hashlib.sha256(_canonical(rest).encode()).hexdigest()
+        return "repair-" + digest[:16]
+
+    def _attested_repairs(self, db):
+        """The repair ids of every finding whose latest state is a repair:
+        released by an operator's attestation (repair-attestation.v1)."""
+        out = []
+        for (finding_id,) in db.execute("SELECT id FROM findings ORDER BY ordinal"):
+            row = db.execute(
+                "SELECT state, body FROM finding_states WHERE finding=? "
+                "ORDER BY seq DESC",
+                (finding_id,),
+            ).fetchone()
+            if row is not None and row[0] == "REPAIRED":
+                body = json.loads(row[1])
+                out.append(body.get("repair_id") or self._repair_id(body))
+        return out
+
+    def _conditional_tag(self, db):
+        return conditional_evidence.tag(
+            self._open_findings(db), attested_repairs=self._attested_repairs(db)
+        )
+
+    def conditional_tag(self):
+        """The tag a result recorded now carries (conditional-evidence.v2):
+        the open findings, the policy identity and, while any finding is
+        released by an attested repair, `repaired_by_attestation`. A caller
+        that writes a result outside this controller tags it with this."""
+        with self._db() as db:
+            return self._conditional_tag(db)
+
+    def conditional_ledger(self):
+        """This controller's attempt ledger as a `ConditionalLedger`: every
+        stored digest it recorded on a result while a finding was open or
+        released only by an attestation. The citation checks consult it."""
+        return conditional_evidence.ConditionalLedger.from_entries(self.ledger())
+
+    @staticmethod
+    def _check_attestation(rerun, code_ref):
+        """repair-attestation.v1's re-run identities, none empty: at least one
+        re-run attempt id or report digest, each once, and the 40-hex commit
+        the re-run ran at. Checked for form only; nothing here can verify
+        them."""
+        if (
+            type(rerun) not in (list, tuple)
+            or not rerun
+            or any(
+                type(item) is not str or not item.strip() or len(item) > 200
+                for item in rerun
+            )
+            or len(set(rerun)) != len(rerun)
+        ):
+            raise ControllerError("repair_rerun_identities_required")
+        if type(code_ref) is not str or not _COMMIT.fullmatch(code_ref):
+            raise ControllerError("repair_code_ref_required")
+
+    def record_repair(
+        self, finding_id, *, operator, note, evidence: bytes, rerun, code_ref
+    ):
         """An operator records that a finding is repaired and its affected
-        attacks re-run (OWNER-GRAPHITE-TEST-WAVE-03 §2), with the re-run's
-        evidence. Later results are no longer conditional on it. The finding
-        stays in the findings ledger and still blocks every LOCK-path
-        expansion; one that is recorded again is open again."""
+        attacks re-run (OWNER-GRAPHITE-TEST-WAVE-03 §2), under
+        `repair-attestation.v1`: the re-run's identities (`rerun`, the re-run
+        attempt ids or report digests, at least one; `code_ref`, the 40-hex
+        commit the re-run ran at; the operator) and its evidence bytes. An
+        empty field is refused; the code cannot verify them, so the record is
+        the operator's attestation.
+
+        Later results are no longer conditional on the finding, and carry
+        `repaired_by_attestation` with this repair's id while it stands. The
+        finding stays in the findings ledger and still blocks every LOCK-path
+        expansion; a LOCK, FROZEN level evidence and a frozen run refuse a
+        result released only by an attestation. One that is recorded again is
+        open again."""
         if operator != self.operator:
             raise ControllerError("operator_required")
         if type(note) is not str or len(note.strip()) < 20:
             raise ControllerError("say what was repaired and which attacks were re-run")
         if type(evidence) is not bytes or not evidence:
             raise ControllerError("repair_evidence_required")
+        self._check_attestation(rerun, code_ref)
         with self._db() as db:
             finding = self._finding_body(db, finding_id)
             if finding is None:
@@ -1112,10 +1212,14 @@ class CampaignController:
                 "finding": conditional_evidence.reference(finding),
                 "operator": operator,
                 "note": note.strip(),
+                "rerun": list(rerun),
+                "code_ref": code_ref,
                 "rerun_evidence": ref,
                 "recorded_at": _stamp(self.clock()),
                 "policy": conditional_evidence.identity(),
+                "attestation": conditional_evidence.repair_identity(),
             }
+            body["repair_id"] = self._repair_id(body)
             db.execute(
                 "INSERT INTO finding_states(finding, state, body) VALUES(?,?,?)",
                 (finding_id, "REPAIRED", _canonical(body)),
@@ -1253,7 +1357,7 @@ class CampaignController:
         other digest is refused `development_variant_unregistered`.
 
         It proceeds while findings are open and is tagged with them
-        (conditional-evidence.v1). It is recorded in the development ledger,
+        (conditional-evidence.v2). It is recorded in the development ledger,
         never in Track A's `expansions`: it never counts toward or enters a
         LOCK, never changes `current_profile` and never reaches a miner."""
         version = self._bound_development_version(challenge, permissions, operator)
@@ -1272,7 +1376,7 @@ class CampaignController:
                 "version": version,
                 "widened": widened,
                 "permissions": permissions,
-                **conditional_evidence.tag(self._open_findings(db)),
+                **self._conditional_tag(db),
             }
             conditional_evidence.validate_development_ledger([*existing, entry])
             db.execute(
@@ -1320,8 +1424,16 @@ class CampaignController:
         - a finding this controller recorded that the study's findings ledger
           omits, or records differently, is refused
           (`admission_lock_finding_omitted`).
-        Returns the block."""
-        admission.validate(block, challenge_id, repository=repository)
+        Every citation check also consults this controller's attempt ledger
+        (`conditional_ledger`, conditional-evidence.v2), so evidence whose
+        digest it recorded on a conditional result is refused whatever its
+        bytes say. Returns the block."""
+        admission.validate(
+            block,
+            challenge_id,
+            repository=repository,
+            ledgers=(self.conditional_ledger(),),
+        )
         study = block["tracks"][admission.LEDGER_TRACK]
         with self._db() as db:
             development = {

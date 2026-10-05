@@ -105,7 +105,6 @@ import sys
 from decimal import Decimal
 from pathlib import Path
 
-from carbon.challenge_readiness import conditional_evidence
 from carbon.challenge_readiness.admission import CHECKS, LEDGER_TRACK
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
@@ -156,7 +155,9 @@ ATTACK_BUDGET = 8
 #: The strategy label the knowledge store records for the Attacker's attempts:
 #: `graphite-attacker:<operation>` ("which strategy found what").
 STRATEGY = "graphite-attacker"
-#: v3 adds `conditional_on` and `conditional_policy` (conditional-evidence.v1).
+#: v3 adds `conditional_on` and `conditional_policy` (conditional-evidence.v1;
+#: under v2 the tag also carries `repaired_by_attestation` while a finding is
+#: released by an attested repair, as the policy it names defines).
 LOG_SCHEMA = "carbon.graphite.attacker-iteration-log.v3"
 #: v3 adds the per-check view (`check_view`): every Track A check, the run
 #: families and NOT_RUN seams the adapter declares for it, and any report row
@@ -165,7 +166,7 @@ LOG_SCHEMA = "carbon.graphite.attacker-iteration-log.v3"
 #: controller), the held-out wrongful-rejection rate per family and the
 #: store's suite pin. v5 adds `conditional_on` and `conditional_policy`: the
 #: findings open once Carbon's side recorded every finding, the session's own
-#: included (conditional-evidence.v1).
+#: included (conditional-evidence.v1; the tag's keys are the named policy's).
 COVERAGE_SCHEMA = "carbon.graphite.attacker-coverage.v5"
 #: The eight Track A checks every coverage report accounts for.
 TRACK_A_CHECKS = tuple(sorted(CHECKS[LEDGER_TRACK]))
@@ -998,6 +999,14 @@ def record_report_findings(family_report, control, verify):
     return ids
 
 
+def retag(result, control):
+    """Re-tag `result` with the controller's tag now: a result built before
+    the findings it raises were recorded carries them too
+    (conditional-evidence.v2 "ordering")."""
+    result.update(control.conditional_tag())
+    return result
+
+
 def carbon_side(
     store,
     control,
@@ -1059,6 +1068,10 @@ def carbon_side(
         "held_out_controls": record_report_findings(family_report, control, verify),
         "deterministic_baseline": verify.record_engine_findings(baseline, control),
     }
+    # Re-tagged once the findings it raises and the baseline's are recorded,
+    # so it carries every finding open after Carbon's side recorded them
+    # (conditional-evidence.v2 "ordering"), as the coverage report does.
+    retag(family_report, control)
     findings = [*by_source["attacker"]]
     for source in ("held_out_controls", "deterministic_baseline"):
         findings.extend(i for i in by_source[source] if i not in findings)
@@ -1094,7 +1107,7 @@ def carbon_side(
         },
         "seams": [dict(POD_REBUILD_SEAM)],
         "claims": {"security_acceptance": False, "graded": False},
-        **conditional_evidence.tag(control.open_findings()),
+        **control.conditional_tag(),
     }
     return coverage, b2, findings, after
 
@@ -1189,7 +1202,7 @@ def run_session(
         "findings": findings,
         "store_pinned": view.digest,
         "store_after": coverage["attack_knowledge"]["after"] if coverage else None,
-        **conditional_evidence.tag(control.open_findings()),
+        **control.conditional_tag(),
     }
     if final in _TERMINAL:
         _log(store, entry)
