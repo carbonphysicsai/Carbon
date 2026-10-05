@@ -224,7 +224,8 @@ ENGY_CONTEXT_SOURCE = ENGY_MODELS_URL
 ENGY_CONTEXT_OBSERVED = "2026-10-04"
 #: The most input tokens `model_provider.select` accepts.
 SELECT_MAX_INPUT_TOKENS = 1048576
-#: The Constructor's provider timeout: `select`'s maximum, the level
+#: The provider timeout of a whole-context session (the Constructor's, and
+#: the Attacker's since GRAPHITE-D35): `select`'s maximum, the level
 #: planner's value. A request near a million tokens may take minutes to
 #: prefill, and a call that times out has an unknown outcome, which stops the
 #: session for reconciliation (GRAPHITE-D34).
@@ -232,8 +233,8 @@ CONSTRUCTOR_TIMEOUT_SECONDS = 600
 
 
 def _whole_context(model_id):
-    """The Constructor's settings on `model_id`: the model's whole published
-    context, up to what `select` accepts, and the Constructor's timeout.
+    """A whole-context role's settings on `model_id`: the model's whole
+    published context, up to what `select` accepts, and the 600 s timeout.
     Output (2,048 tokens) and reasoning effort stay `DEFAULT_SETTINGS`'.
 
     The loop admits a request only under `max_input_tokens` minus
@@ -247,18 +248,22 @@ def _whole_context(model_id):
     }
 
 
+#: The roles whose sessions open with their model's whole context: the
+#: Constructor (GRAPHITE-D34) and the phase-4 Attacker (GRAPHITE-D35; owner,
+#: 2026-10-05: "yes for attacker budget").
+WHOLE_CONTEXT_ROLES = (RoleName.CONSTRUCTOR, RoleName.ATTACKER)
+
 #: The model settings a role's new session opens with, by model: what
 #: `GraphiteProvider._selection` passes to `select` (GRAPHITE-D34; owner,
 #: 2026-10-04: "yeah we need to allow for as much context as possible.
-#: whatever that value is, max it out"). The Constructor, the one role with
-#: live sessions, gets its model's whole context on every rung; a model with
-#: no recorded context is refused before a session opens. A role not named
-#: keeps `DEFAULT_SETTINGS`. A recorded session resumes with the selection its
+#: whatever that value is, max it out"). Each role in `WHOLE_CONTEXT_ROLES`
+#: gets its model's whole context on every rung; a model with no recorded
+#: context is refused before a session opens. A role not named keeps
+#: `DEFAULT_SETTINGS`. A recorded session resumes with the selection its
 #: record froze, whatever this says now.
 MODEL_SETTINGS = {
-    RoleName.CONSTRUCTOR: {
-        model: _whole_context(model) for model in ENGY_CONTEXT_TOKENS
-    }
+    role: {model: _whole_context(model) for model in ENGY_CONTEXT_TOKENS}
+    for role in WHOLE_CONTEXT_ROLES
 }
 
 

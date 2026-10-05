@@ -46,6 +46,13 @@ Nothing else caps the session; money and time bind (OWNER-GRAPHITE-ATTACKER-01
 §5). An Attacker proposes no construction, so its session has no baseline and
 launches no pod; its frozen session record says so.
 
+**Model settings** (GRAPHITE-D35). A new Attacker session opens on
+`engy-chat` with its model's whole published context and a 600 s timeout
+(`roles.MODEL_SETTINGS`, the Constructor's GRAPHITE-D34 mechanism); a model
+with no recorded context is refused before anything opens. A recorded
+session resumes with the selection it recorded. The dry run and `prelive`
+print the session's `attacker_model` block.
+
 **Carbon's side** reads the session's journal, never the model's prose
 (`attack.analysis.attempts`), maps each attempt to a family through the
 adapter (`map_to_families`) and verifies every one (`attack.verify.verify`):
@@ -1428,6 +1435,26 @@ def live_model(grant, credential_file, *, opener=None):
         raise RunnerRefused(refused.code) from None
 
 
+def attacker_model(provider, run_id):
+    """The Attacker session's model as its record froze it (GRAPHITE-D35):
+    phase 3's `model_window` (adapter, model, input window, admission
+    ceiling, output cap, timeout and reservation per call), with the run's
+    token allowance (`attacker_budget`) and how many calls it holds when each
+    keeps its full reservation. The dry run and `prelive` print it."""
+    from .phase3 import model_window
+
+    window = model_window(provider, run_id)
+    allowance = provider.budget.token_allowance_usd
+    reservation = window["reservation_usd"]
+    calls = None if reservation is None else int(allowance // Decimal(reservation))
+    return {
+        **window,
+        "token_allowance_usd": str(allowance),
+        "calls_at_full_reservation": calls,
+        "reservation_fits_token_allowance": calls is not None and calls >= 1,
+    }
+
+
 def live_provider(store, *, grant, model, adapter, miner_attach, scoring=None):
     """The provider a live Attacker run drives: `AttackerProvider` on the
     store's `graphite/` root with `NoVerifyPods` (Carbon's verify-pod rebuild
@@ -1650,6 +1677,9 @@ def dry_run(root, adapter, atk, *, miner_tools=None, scoring=None, variant=None)
             "path; Carbon's analysis, verification and the report are the engine's "
             "own. It sends nothing and spends nothing.",
             "money_cap_usd": str(provider.budget.token_allowance_usd),
+            # The Attacker's selection, as the session record froze it
+            # (GRAPHITE-D35): window, admission ceiling, timeout, reservation.
+            "attacker_model": attacker_model(provider, entry["run_id"]),
             "settled_usd": entry["settled_usd"],
             "settled_is_zero": settled_zero,
             "network_attempts": list(attempts),

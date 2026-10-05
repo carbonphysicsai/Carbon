@@ -101,6 +101,11 @@ class Problem:
     objective: Callable
     #: where models infer and the harness measures CPU
     host_route: str
+    #: optional: quantities -> a per-condition tie value (lower is better,
+    #: worst case over conditions), naming a Challenge's own tie rule. It is
+    #: reported beside Track B's neutral lower-design rule, never used to pick.
+    tie_break: Callable | None = None
+    tie_break_rule: str | None = None
 
     def __post_init__(self):
         ids = [d.design_id for d in self.designs]
@@ -366,6 +371,11 @@ class _Oracle:
                     "predicted_objective": (
                         None if q is None else float(self.problem.objective(q))
                     ),
+                    "tie_value": (
+                        None
+                        if q is None or self.problem.tie_break is None
+                        else float(self.problem.tie_break(q))
+                    ),
                 }
             )
         return results
@@ -383,6 +393,51 @@ def _write_once(path, document):
         handle.write(text)
 
 
+def _tie(problem, oracle, design):
+    """TIE_DETERMINED when the selected design's predicted worst objective
+    ties with another fully queried, predicted-feasible design: the
+    selection then carries no model information (Test Lead, 2026-10-05)."""
+
+    if design is None:
+        return None
+    width = len(problem.conditions)
+    by_design = {}
+    for entry in oracle.log:
+        by_design.setdefault(entry["design_id"], {})[entry["condition_id"]] = entry
+    complete = {
+        d: list(rows.values())
+        for d, rows in by_design.items()
+        if len(rows) == width and all(r["predicted_pass"] for r in rows.values())
+    }
+    worst = {
+        d: max(r["predicted_objective"] for r in rows) for d, rows in complete.items()
+    }
+    if design.design_id not in worst:
+        return None
+    order = {d.design_id: i for i, d in enumerate(problem.designs)}
+    tied = sorted(
+        (d for d, w in worst.items() if w == worst[design.design_id]),
+        key=order.get,
+    )
+    if len(tied) < 2:
+        return None
+    alternative = None
+    if problem.tie_break is not None:
+        alternative = min(
+            tied,
+            key=lambda d: (max(r["tie_value"] for r in complete[d]), order[d]),
+        )
+    return {
+        "status": "TIE_DETERMINED",
+        "tied_candidates": len(tied),
+        "tied_designs": tied,
+        "rule_used": "Track B neutral: lower design",
+        "selected": design.design_id,
+        "alternative_rule": problem.tie_break_rule,
+        "alternative_selection": alternative,
+    }
+
+
 def _commit(problem, arm, selection, oracle, directory, label):
     by_values = {d.values: d for d in problem.designs}
     design = None if selection is None else by_values[tuple(selection["design"])]
@@ -398,6 +453,7 @@ def _commit(problem, arm, selection, oracle, directory, label):
         "status": "ABSTAIN" if design is None else "PROPOSAL",
         "design_id": None if design is None else design.design_id,
         "predicted_worst_objective": None if design is None else selection["worst"],
+        "tie": _tie(problem, oracle, design),
         "queries": [
             {k: v for k, v in entry.items() if k != "point"} for entry in oracle.log
         ],
@@ -536,8 +592,14 @@ def _arm_metrics(problem, commitment, rows, comparators):
             and bool(feasible_ids),
             "unresolved": outcome == "UNRESOLVED",
             "regret": regret,
-            "correct_decision": regret["status"] == "DEFINED_FINITE_SET"
-            and regret["regret"] <= 0,
+            # A TIE_DETERMINED selection still counts for the false-feasible
+            # rate, but never as evidence that the model chose well.
+            "tie_determined": commitment.get("tie") is not None,
+            "correct_decision": (
+                None
+                if commitment.get("tie") is not None
+                else regret["status"] == "DEFINED_FINITE_SET" and regret["regret"] <= 0
+            ),
         }
     return out
 
@@ -929,10 +991,16 @@ def decision_value(scope_metrics):
     The order is a declared working policy: a correct-or-defined regret
     (class 0, by regret) beats abstaining (1), which beats an unsafe,
     reference-infeasible selection (2). Unresolved evidence ranks nothing
-    (None). The Test Lead may supersede this order.
+    (None). A TIE_DETERMINED selection earns no credit for choosing well, so a
+    safe one ranks nothing (None), but an unsafe one still ranks as unsafe.
+    The Test Lead may supersede this order.
     """
 
     regret = scope_metrics["regret"]
+    if scope_metrics.get("tie_determined"):
+        if scope_metrics["proposal_outcome"] == "CONFIRMED_INFEASIBLE":
+            return (2, 0.0)
+        return None
     if regret["status"] == "DEFINED_FINITE_SET":
         return (0, float(regret["regret"]))
     if scope_metrics["proposal_outcome"] == "ABSTAIN":

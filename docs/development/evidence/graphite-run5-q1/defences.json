@@ -1,0 +1,193 @@
+{
+  "gate": {
+    "bundled_first_seed": {
+      "near_optimism_bands": 1.02014235096252,
+      "verdict": "PASS"
+    },
+    "cutoff_bands": 2.0,
+    "fails": [
+      "graphite-run5-p-1585ecbf838a-s475176989",
+      "graphite-run5-p-1585ecbf838a-s475176990"
+    ],
+    "infeasible_pickers": [
+      "graphite-run5-p-1585ecbf838a-s475176988",
+      "graphite-run5-p-1585ecbf838a-s475176989",
+      "graphite-run5-p-1585ecbf838a-s475176990",
+      "graphite-run5-p-1d4aaff5d292-s3718551111",
+      "graphite-run5-p-1d4aaff5d292-s3718551112",
+      "graphite-run5-p-1d4aaff5d292-s3718551113",
+      "graphite-run5-p-37985e699fe3-s1919562590",
+      "graphite-run5-p-37985e699fe3-s1919562591",
+      "graphite-run5-p-37985e699fe3-s1919562592",
+      "graphite-run5-p-4fd7fb870d2b-s1132250632",
+      "graphite-run5-p-4fd7fb870d2b-s1132250633",
+      "graphite-run5-p-4fd7fb870d2b-s1132250634",
+      "graphite-run5-p-69268f1b74ec-s1551240144",
+      "graphite-run5-p-69268f1b74ec-s1551240145",
+      "graphite-run5-p-87b76ad0a2fd-s3716900652",
+      "graphite-run5-p-87b76ad0a2fd-s3716900653",
+      "graphite-run5-p-87b76ad0a2fd-s3716900654",
+      "graphite-run5-p-c41a9a1ebb82-s524989794",
+      "graphite-run5-p-c41a9a1ebb82-s524989795",
+      "graphite-run5-p-c41a9a1ebb82-s524989796",
+      "graphite-run5-p-fa70c075f903-s360154323",
+      "graphite-run5-p-fa70c075f903-s360154324",
+      "graphite-run5-p-fa70c075f903-s360154325"
+    ],
+    "infeasible_pickers_failing": [
+      "graphite-run5-p-1585ecbf838a-s475176989",
+      "graphite-run5-p-1585ecbf838a-s475176990"
+    ],
+    "members": {
+      "graphite-run5-baseline-s1801172379": {
+        "near_optimism_bands": 1.1196048220981225,
+        "verdict": "PASS"
+      },
+      "graphite-run5-baseline-s1801172380": {
+        "near_optimism_bands": 1.0239227217296059,
+        "verdict": "PASS"
+      },
+      "graphite-run5-baseline-s1801172381": {
+        "near_optimism_bands": 1.1879379715874687,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-1585ecbf838a-s475176988": {
+        "near_optimism_bands": 1.9217844897441416,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-1585ecbf838a-s475176989": {
+        "near_optimism_bands": 2.1870424695556645,
+        "verdict": "FAIL"
+      },
+      "graphite-run5-p-1585ecbf838a-s475176990": {
+        "near_optimism_bands": 2.8683993201691598,
+        "verdict": "FAIL"
+      },
+      "graphite-run5-p-1d4aaff5d292-s3718551111": {
+        "near_optimism_bands": 1.02014235096252,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-1d4aaff5d292-s3718551112": {
+        "near_optimism_bands": 1.0118080900865318,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-1d4aaff5d292-s3718551113": {
+        "near_optimism_bands": 1.0734023142901952,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-37985e699fe3-s1919562590": {
+        "near_optimism_bands": 0.9316901752405979,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-37985e699fe3-s1919562591": {
+        "near_optimism_bands": 0.9879243109546888,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-37985e699fe3-s1919562592": {
+        "near_optimism_bands": 1.1017516242694503,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-4fd7fb870d2b-s1132250632": {
+        "near_optimism_bands": 1.029700390886278,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-4fd7fb870d2b-s1132250633": {
+        "near_optimism_bands": 0.9829874346710117,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-4fd7fb870d2b-s1132250634": {
+        "near_optimism_bands": 0.9500669510898777,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-69268f1b74ec-s1551240143": {
+        "near_optimism_bands": 1.0806648318739231,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-69268f1b74ec-s1551240144": {
+        "near_optimism_bands": 1.0257728208200065,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-69268f1b74ec-s1551240145": {
+        "near_optimism_bands": 1.2448122010583782,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-87b76ad0a2fd-s3716900652": {
+        "near_optimism_bands": 1.332876790033845,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-87b76ad0a2fd-s3716900653": {
+        "near_optimism_bands": 1.2477902783595696,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-87b76ad0a2fd-s3716900654": {
+        "near_optimism_bands": 1.499158919334304,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-c41a9a1ebb82-s524989794": {
+        "near_optimism_bands": 1.2025719118895732,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-c41a9a1ebb82-s524989795": {
+        "near_optimism_bands": 1.083320160030932,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-c41a9a1ebb82-s524989796": {
+        "near_optimism_bands": 1.0622307008009384,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-fa70c075f903-s360154323": {
+        "near_optimism_bands": 1.0867331372458586,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-fa70c075f903-s360154324": {
+        "near_optimism_bands": 1.3541314770464061,
+        "verdict": "PASS"
+      },
+      "graphite-run5-p-fa70c075f903-s360154325": {
+        "near_optimism_bands": 1.0750903554656421,
+        "verdict": "PASS"
+      }
+    },
+    "module": "carbon.battery.value.admissibility"
+  },
+  "scope": "development computation on EV4 development conditions (previously used); EV5 modules imported read-only; not EV5 and not a substitute for it",
+  "sr2_rule": {
+    "rule": "sr2-a0-r0.3-g0.6-m0.1",
+    "weights": [
+      0.0,
+      0.3,
+      0.6,
+      0.1
+    ]
+  },
+  "tau_by_rule": {
+    "control-exam-v1/gated": {
+      "all_seeds": -0.4268800779905543,
+      "one_seed": -0.5455447255899809,
+      "top1_one_seed": [
+        "graphite-run5-p-1d4aaff5d292-s3718551111"
+      ]
+    },
+    "control-exam-v1/ungated": {
+      "all_seeds": -0.11283658755348897,
+      "one_seed": -0.5455447255899809,
+      "top1_one_seed": [
+        "graphite-run5-p-1d4aaff5d292-s3718551111"
+      ]
+    },
+    "sr2-a0-r0.3-g0.6-m0.1/gated": {
+      "all_seeds": -0.15694120514358612,
+      "one_seed": -0.181848241863327,
+      "top1_one_seed": [
+        "graphite-run5-p-4fd7fb870d2b-s1132250632"
+      ]
+    },
+    "sr2-a0-r0.3-g0.6-m0.1/ungated": {
+      "all_seeds": -0.15671748271317912,
+      "one_seed": -0.181848241863327,
+      "top1_one_seed": [
+        "graphite-run5-p-4fd7fb870d2b-s1132250632"
+      ]
+    }
+  }
+}

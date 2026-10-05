@@ -1,0 +1,947 @@
+{
+  "graphite-run5-baseline-s1801172379": {
+    "recipe_digest": "sha256:79fbc4875ba6006b7f1a6c9a88879d0fa535281cfea54be51dc956403d7498f9",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 1801172379,
+    "summary": {
+      "components": {
+        "capacity": 0.07467031063273638,
+        "plating": 0.05181218802710555,
+        "temperature": 0.08529185979729186,
+        "voltage": 0.08440591250973015
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.06696750786955101,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.07404506774171599
+    }
+  },
+  "graphite-run5-baseline-s1801172380": {
+    "recipe_digest": "sha256:79fbc4875ba6006b7f1a6c9a88879d0fa535281cfea54be51dc956403d7498f9",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 1801172380,
+    "summary": {
+      "components": {
+        "capacity": 0.08248038498764418,
+        "plating": 0.0559868939934762,
+        "temperature": 0.08632055084831199,
+        "voltage": 0.08172001619737827
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.06781019655497147,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.07662696150670266
+    }
+  },
+  "graphite-run5-baseline-s1801172381": {
+    "recipe_digest": "sha256:79fbc4875ba6006b7f1a6c9a88879d0fa535281cfea54be51dc956403d7498f9",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 1801172381,
+    "summary": {
+      "components": {
+        "capacity": 0.07671657751977143,
+        "plating": 0.061261191317648366,
+        "temperature": 0.080153618444433,
+        "voltage": 0.0824081354449887
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.06827402109971198,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.07513488068171037
+    }
+  },
+  "graphite-run5-p-1585ecbf838a-s475176988": {
+    "recipe_digest": "sha256:63433dc6b67e97ca851b97ab910adb1aefc4a46e2aaab8eab792042285e0efda",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 475176988,
+    "summary": {
+      "components": {
+        "capacity": 0.07401997678429213,
+        "plating": 0.05760244787428492,
+        "temperature": 0.09899793640752282,
+        "voltage": 0.09286715495861805
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.07089307870198201,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.08087187900617948
+    }
+  },
+  "graphite-run5-p-1585ecbf838a-s475176989": {
+    "recipe_digest": "sha256:63433dc6b67e97ca851b97ab910adb1aefc4a46e2aaab8eab792042285e0efda",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 475176989,
+    "summary": {
+      "components": {
+        "capacity": 0.07892716325090567,
+        "plating": 0.06229563316036792,
+        "temperature": 0.10488578974917438,
+        "voltage": 0.10257139911089301
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.07998617293506846,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.08716999631783524
+    }
+  },
+  "graphite-run5-p-1585ecbf838a-s475176990": {
+    "recipe_digest": "sha256:63433dc6b67e97ca851b97ab910adb1aefc4a46e2aaab8eab792042285e0efda",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 475176990,
+    "summary": {
+      "components": {
+        "capacity": 0.08465661308106266,
+        "plating": 0.08115349555133779,
+        "temperature": 0.15495466338584082,
+        "voltage": 0.11832929091346728
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.10305281684372179,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.10977351573292714
+    }
+  },
+  "graphite-run5-p-1d4aaff5d292-s3718551111": {
+    "recipe_digest": "sha256:06f5dd2ff5541a22b7a681ca9bc53a46f10189f150abcfab39dd8b9eb54de998",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 3718551111,
+    "summary": {
+      "components": {
+        "capacity": 0.07425136963775696,
+        "plating": 0.05042151926129943,
+        "temperature": 0.043542532335171205,
+        "voltage": 0.05658321361451289
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.051902057368267404,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.05619965871218511
+    }
+  },
+  "graphite-run5-p-1d4aaff5d292-s3718551112": {
+    "recipe_digest": "sha256:06f5dd2ff5541a22b7a681ca9bc53a46f10189f150abcfab39dd8b9eb54de998",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 3718551112,
+    "summary": {
+      "components": {
+        "capacity": 0.08507611185578512,
+        "plating": 0.054544359170273365,
+        "temperature": 0.04582356630840164,
+        "voltage": 0.056728312611515015
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.057071057267302404,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.0605430874864938
+    }
+  },
+  "graphite-run5-p-1d4aaff5d292-s3718551113": {
+    "recipe_digest": "sha256:06f5dd2ff5541a22b7a681ca9bc53a46f10189f150abcfab39dd8b9eb54de998",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 3718551113,
+    "summary": {
+      "components": {
+        "capacity": 0.09119678138784941,
+        "plating": 0.04715478927096326,
+        "temperature": 0.04691188035233706,
+        "voltage": 0.05872242103065083
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.05654880444069924,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.06099646801045015
+    }
+  },
+  "graphite-run5-p-37985e699fe3-s1919562590": {
+    "recipe_digest": "sha256:36130135f70df94ce186e205338768f8037cbf50d4f6a215e9ec7839b19f39fb",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 1919562590,
+    "summary": {
+      "components": {
+        "capacity": 0.08889970064079422,
+        "plating": 0.052449123818567374,
+        "temperature": 0.04893043786734525,
+        "voltage": 0.0619155329613922
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.0548036792189094,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.06304869882202477
+    }
+  },
+  "graphite-run5-p-37985e699fe3-s1919562591": {
+    "recipe_digest": "sha256:36130135f70df94ce186e205338768f8037cbf50d4f6a215e9ec7839b19f39fb",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 1919562591,
+    "summary": {
+      "components": {
+        "capacity": 0.07534052404488825,
+        "plating": 0.05312769215055242,
+        "temperature": 0.04907317421400477,
+        "voltage": 0.06006435091548128
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.05089348793865156,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.059401435331231676
+    }
+  },
+  "graphite-run5-p-37985e699fe3-s1919562592": {
+    "recipe_digest": "sha256:36130135f70df94ce186e205338768f8037cbf50d4f6a215e9ec7839b19f39fb",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 1919562592,
+    "summary": {
+      "components": {
+        "capacity": 0.09573912103235979,
+        "plating": 0.05872059096383585,
+        "temperature": 0.05136690571420443,
+        "voltage": 0.06070820144791928
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.060778063808200805,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.06663370478957983
+    }
+  },
+  "graphite-run5-p-4fd7fb870d2b-s1132250632": {
+    "recipe_digest": "sha256:0fc19adb5852b71d0116439336ebf8a029312a09c0708b3273cd2e2effa91d9c",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 1132250632,
+    "summary": {
+      "components": {
+        "capacity": 0.08290662714195135,
+        "plating": 0.05432740805498531,
+        "temperature": 0.04561371814077688,
+        "voltage": 0.059186348893786
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.057357167082705884,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.06050852555787488
+    }
+  },
+  "graphite-run5-p-4fd7fb870d2b-s1132250633": {
+    "recipe_digest": "sha256:0fc19adb5852b71d0116439336ebf8a029312a09c0708b3273cd2e2effa91d9c",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 1132250633,
+    "summary": {
+      "components": {
+        "capacity": 0.08526138621599247,
+        "plating": 0.04714191757021013,
+        "temperature": 0.043076517331828684,
+        "voltage": 0.05583257207891336
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.05856496654637775,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.05782809829923616
+    }
+  },
+  "graphite-run5-p-4fd7fb870d2b-s1132250634": {
+    "recipe_digest": "sha256:0fc19adb5852b71d0116439336ebf8a029312a09c0708b3273cd2e2effa91d9c",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 1132250634,
+    "summary": {
+      "components": {
+        "capacity": 0.08510747791392886,
+        "plating": 0.05117836062268635,
+        "temperature": 0.04199123888508101,
+        "voltage": 0.05667865203805164
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.05193760245563057,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.05873893236493697
+    }
+  },
+  "graphite-run5-p-69268f1b74ec-s1551240143": {
+    "recipe_digest": "sha256:34c7cbb6ca9be0158836d110947547e9d0ed0a9e5568f90c98f6381885dc1de2",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 1551240143,
+    "summary": {
+      "components": {
+        "capacity": 0.08336124246947026,
+        "plating": 0.044993006071743336,
+        "temperature": 0.04776343215353302,
+        "voltage": 0.061642921107008426
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.054825278724528755,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.05944015045043877
+    }
+  },
+  "graphite-run5-p-69268f1b74ec-s1551240144": {
+    "recipe_digest": "sha256:34c7cbb6ca9be0158836d110947547e9d0ed0a9e5568f90c98f6381885dc1de2",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 1551240144,
+    "summary": {
+      "components": {
+        "capacity": 0.07995876894668065,
+        "plating": 0.045095555587388834,
+        "temperature": 0.04680726967329703,
+        "voltage": 0.055610568624155386
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.051500474218665125,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.05686804070788048
+    }
+  },
+  "graphite-run5-p-69268f1b74ec-s1551240145": {
+    "recipe_digest": "sha256:34c7cbb6ca9be0158836d110947547e9d0ed0a9e5568f90c98f6381885dc1de2",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 1551240145,
+    "summary": {
+      "components": {
+        "capacity": 0.07694592402933427,
+        "plating": 0.04682457797336033,
+        "temperature": 0.053132574012949296,
+        "voltage": 0.06153020133361551
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.05359716121219327,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.059608319337314856
+    }
+  },
+  "graphite-run5-p-87b76ad0a2fd-s3716900652": {
+    "recipe_digest": "sha256:798de6a9d369658c46611b9cea8bce0885d51f757a06a265d52626add1ae5e9c",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 3716900652,
+    "summary": {
+      "components": {
+        "capacity": 0.07409699101122535,
+        "plating": 0.052843115011703856,
+        "temperature": 0.06277999585451564,
+        "voltage": 0.07108707398511747
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.05763454185690083,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.06520179396564059
+    }
+  },
+  "graphite-run5-p-87b76ad0a2fd-s3716900653": {
+    "recipe_digest": "sha256:798de6a9d369658c46611b9cea8bce0885d51f757a06a265d52626add1ae5e9c",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 3716900653,
+    "summary": {
+      "components": {
+        "capacity": 0.0820084031324936,
+        "plating": 0.040034964567501524,
+        "temperature": 0.06264561775383162,
+        "voltage": 0.06771646850247204
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.05508429614840901,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.0631013634890747
+    }
+  },
+  "graphite-run5-p-87b76ad0a2fd-s3716900654": {
+    "recipe_digest": "sha256:798de6a9d369658c46611b9cea8bce0885d51f757a06a265d52626add1ae5e9c",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 3716900654,
+    "summary": {
+      "components": {
+        "capacity": 0.08185306616703478,
+        "plating": 0.04376183250520107,
+        "temperature": 0.07036302605673794,
+        "voltage": 0.07128362867757546
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.05495254464558274,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.06681538835163732
+    }
+  },
+  "graphite-run5-p-c41a9a1ebb82-s524989794": {
+    "recipe_digest": "sha256:228098c56ee02250ee789362772b7ca2d6b3ad7256faf3f19673cb8767cd0577",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 524989794,
+    "summary": {
+      "components": {
+        "capacity": 0.07809682017129903,
+        "plating": 0.05057832159243479,
+        "temperature": 0.05403311735392668,
+        "voltage": 0.06273809707552629
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.0529612990717861,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.06136158904829669
+    }
+  },
+  "graphite-run5-p-c41a9a1ebb82-s524989795": {
+    "recipe_digest": "sha256:228098c56ee02250ee789362772b7ca2d6b3ad7256faf3f19673cb8767cd0577",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 524989795,
+    "summary": {
+      "components": {
+        "capacity": 0.08598264157714819,
+        "plating": 0.04873264178493837,
+        "temperature": 0.04967709512301779,
+        "voltage": 0.06268769788626685
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.057270190975322224,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.061770019092842805
+    }
+  },
+  "graphite-run5-p-c41a9a1ebb82-s524989796": {
+    "recipe_digest": "sha256:228098c56ee02250ee789362772b7ca2d6b3ad7256faf3f19673cb8767cd0577",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 524989796,
+    "summary": {
+      "components": {
+        "capacity": 0.07866059000596691,
+        "plating": 0.04505818542532469,
+        "temperature": 0.05080927908962633,
+        "voltage": 0.06159278472761308
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.05204214958346983,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.05903020981213276
+    }
+  },
+  "graphite-run5-p-fa70c075f903-s360154323": {
+    "recipe_digest": "sha256:af5cae8d45b2a3e80331ec7d6e3f82499c4b8e9ef8830c32eca8b6d4d7d130f7",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 360154323,
+    "summary": {
+      "components": {
+        "capacity": 0.08173480280433834,
+        "plating": 0.0398070029803859,
+        "temperature": 0.048903641219979255,
+        "voltage": 0.05891367196202719
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.051301912652091206,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.057339779741682674
+    }
+  },
+  "graphite-run5-p-fa70c075f903-s360154324": {
+    "recipe_digest": "sha256:af5cae8d45b2a3e80331ec7d6e3f82499c4b8e9ef8830c32eca8b6d4d7d130f7",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 360154324,
+    "summary": {
+      "components": {
+        "capacity": 0.07593551769965884,
+        "plating": 0.044458541817840695,
+        "temperature": 0.05156203407184469,
+        "voltage": 0.061362944543733526
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.05630022602866992,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.05832975953326943
+    }
+  },
+  "graphite-run5-p-fa70c075f903-s360154325": {
+    "recipe_digest": "sha256:af5cae8d45b2a3e80331ec7d6e3f82499c4b8e9ef8830c32eca8b6d4d7d130f7",
+    "rule": {
+      "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+      "cases": "public PRACTICE, 200, adaptively seen",
+      "comparison": {
+        "alpha": 0.05,
+        "important_min": 10,
+        "n_boot": 4000,
+        "n_min": 30
+      },
+      "equivalence_margin_rel": 0.056993107446249414,
+      "rule": "v2",
+      "status": "PROVISIONAL_DEVELOPMENT_NON_PAYING"
+    },
+    "seed": 360154325,
+    "summary": {
+      "components": {
+        "capacity": 0.07675097416565507,
+        "plating": 0.04338872599378062,
+        "temperature": 0.04703735629697452,
+        "voltage": 0.05762820616639397
+      },
+      "eligible": true,
+      "gate_failures": {},
+      "important_score": 0.05090512396223831,
+      "n_cases": 200,
+      "n_failed_infra": 0,
+      "n_gate_failed": 0,
+      "n_important": 39,
+      "n_reference_invalid": 0,
+      "n_scored": 200,
+      "score": 0.056201315655701044
+    }
+  }
+}
