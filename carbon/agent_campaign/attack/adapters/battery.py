@@ -1595,13 +1595,9 @@ SEAMS = (
         "practice_disclosure checks practice.feedback and the intake's rule facts "
         "at function level only",
     ),
-    SeamSpec(
-        "level_1_loss_expressions",
-        "artifact_and_dependency_attacks",
-        1,
-        "the Level 1 surface is an engineering draft, not open: its attacks run "
-        "only after the owner accepts the proposal and an expansion record exists",
-    ),
+    # Level 1 is no longer a seam here: it runs in its own adapter,
+    # `adapters.battery_level1`, registered at (battery, 1) against the
+    # registered variant battery-l1-loss-expressions-v1 (GRAPHITE-L1-BUILD-01).
     SeamSpec(
         "level_2_schedules_and_sampling",
         "adaptive_feedback_and_state_attacks",
