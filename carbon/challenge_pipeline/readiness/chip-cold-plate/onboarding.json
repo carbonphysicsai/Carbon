@@ -1,0 +1,25 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-onboarding.v1",
+ "challenge": "chip-cold-plate",
+ "status": "DRAFT",
+ "note": "DRAFT by the Graphite Testing Manager from repository paths and decision records; the Test Lead reviews and approves it as a PR.",
+ "decision_ids": [
+  "OWNER-GRAPHITE-TEST-WAVE-01",
+  "OWNER-GRAPHITE-TEST-WAVE-02",
+  "OWNER-GRAPHITE-TEST-WAVE-03",
+  "OWNER-GRAPHITE-TEST-WAVE-04",
+  "OWNER-GRAPHITE-TEST-WAVE-05",
+  "OWNER-GRAPHITE-TEST-WAVE-06",
+  "OWNER-GRAPHITE-TEST-WAVE-07",
+  "CHALLENGE-AI-COOLING-STUDY-02",
+  "CHALLENGE-AI-COOLING-REPAIR-03",
+  "CHALLENGE-AI-COOLING-DOCKER-04",
+  "CHALLENGE-AI-COOLING-CLOSEOUT-05",
+  "CHALLENGE-AI-COOLING-L0-06",
+  "CHALLENGE-AI-COOLING-SCORING-07",
+  "CHALLENGE-AI-COOLING-VALIDATOR-08",
+  "CHALLENGE-AI-COOLING-PB-ADV-09",
+  "GRAPHITE-ATTACKER-COOLING-L0",
+  "GRAPHITE-ATTACKER-COOLING-SF-01"
+ ]
+}

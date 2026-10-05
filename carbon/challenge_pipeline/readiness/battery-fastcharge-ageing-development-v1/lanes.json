@@ -1,0 +1,14 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-lanes.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "status": "DRAFT",
+ "note": "DRAFT by the Graphite Testing Manager from repository paths and decision records; the Test Lead reviews and approves it as a PR.",
+ "lanes": [
+  {
+   "lane": "pod",
+   "state": "DECLARED",
+   "probe": "pod_phase.probe_environment (Carbon-owned GPU probe, GRAPHITE-POD-GPU-PROBE-01)",
+   "policy": "pod-attribution-v2"
+  }
+ ]
+}

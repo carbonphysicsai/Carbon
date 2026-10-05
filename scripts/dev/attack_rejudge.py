@@ -6,7 +6,9 @@ session's run directory and prints, per attempt, Carbon's verdict and its
 evidence digests, plus a summary by outcome and the list of findings. The
 executor uses it to close the 35 FAILING_TRIGGER findings of session 1 through
 `record_repair`, citing the fix commit and these per-finding verdicts and
-digests.
+digests. An `AGREED_ADMISSIBLE` attempt (an advisory tool and Carbon's
+authoritative chain both accept a valid, in-contract construction) closes like
+NOT_APPLICABLE; it is counted per family and listed apart.
 
 It never writes to the run root and launches nothing: `analysis.attempts` only
 reads the journal, and `verify.verify` is called with no `specimen_dir`, so no
@@ -34,6 +36,16 @@ from pathlib import Path
 from carbon.agent_campaign.attack import analysis, verify
 from carbon.agent_campaign.attack.adapter import ADAPTERS
 from carbon.agent_campaign.graphite.phase4 import FINISH_TOOL_NAME
+from carbon.development_session.profile import canonical, digest
+
+#: v2: verdict v2 records (`AGREED_ADMISSIBLE`), per-family outcome counts,
+#: the agreed-admissible list, closure counts and a `report_digest`. Output
+#: from before v2 carried no `schema`; read it as v1 (verdict v1 records, five
+#: outcomes): its UNDETERMINED verdicts keep their meaning.
+SCHEMA = "carbon.attack.rejudge.v2"
+#: Outcomes that close an attempt without a finding for triage: a hold, and
+#: what judged nothing (NOT_APPLICABLE; AGREED_ADMISSIBLE counts the same).
+CLOSES = frozenset({verify.HELD, *verify.CLOSED_UNJUDGED})
 
 
 def rejudge(session_dir, adapter, *, canaries=(), carrier=None):
@@ -44,21 +56,44 @@ def rejudge(session_dir, adapter, *, canaries=(), carrier=None):
         verify.verify(attempt, adapter, canaries=canaries, carrier=carrier)
         for attempt in found
     ]
-    summary = {}
+    summary, per_family = {}, {}
     for verdict in verdicts:
         key = verdict.outcome + ("/finding" if verdict.finding else "")
         summary[key] = summary.get(key, 0) + 1
-    return {
+        counts = per_family.setdefault(verdict.family, {})
+        counts[key] = counts.get(key, 0) + 1
+    report = {
+        "schema": SCHEMA,
+        "verdict_schema": verify.SCHEMA,
         "session_dir": str(session_dir),
         "challenge": adapter.challenge_id,
         "level": adapter.level,
         "attempts": len(found),
         "summary": summary,
+        "per_family": per_family,
+        "closure": {
+            "closed_without_finding": sum(
+                1 for v in verdicts if v.outcome in CLOSES and not v.finding
+            ),
+            "agreed_admissible": sum(
+                1 for v in verdicts if v.outcome == verify.AGREED_ADMISSIBLE
+            ),
+            "open_undetermined": sum(
+                1 for v in verdicts if v.outcome == verify.UNDETERMINED
+            ),
+        },
         "finding_count": sum(1 for v in verdicts if v.finding),
         "findings": [v.record() for v in verdicts if v.finding],
         "usability": [v.usability for v in verdicts if v.usability],
+        "agreed_admissible": [
+            {"attempt": v.attempt, "family": v.family, "reason": v.reason}
+            for v in verdicts
+            if v.outcome == verify.AGREED_ADMISSIBLE
+        ],
         "verdicts": [v.record() for v in verdicts],
     }
+    report["report_digest"] = digest(canonical(report))
+    return report
 
 
 def main(argv=None):

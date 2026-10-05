@@ -1,0 +1,15 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-conditions.v1",
+ "rule": "A per-challenge condition on a gate item, evaluated with that item. A condition that is not met fails the item.",
+ "conditions": [
+  {
+   "challenge": "chip-cold-plate",
+   "item": "A5",
+   "id": "cooling-candidate-fault-v2-current",
+   "type": "policy_registered",
+   "registry": "carbon/agent_campaign/graphite/attribution_policies/registry.json",
+   "name": "cooling-candidate-fault-v2",
+   "note": "Version 1 (no charge to the candidate) is the replay baseline only (Codex, #620). The version that charges the candidate is a follow-up and a condition for any live cooling Graphite or Attacker run."
+  }
+ ]
+}

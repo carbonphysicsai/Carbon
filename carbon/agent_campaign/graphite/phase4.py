@@ -139,7 +139,7 @@ from .phase3 import (
     load_grant,
 )
 from .pods import PodFailure
-from .provider import EPOCH, OWNER, GraphiteProvider, SessionBrief
+from .provider import EPOCH, OWNER, GraphiteProvider, SessionBrief, tool_text_of
 from .roles import PARALLEL_RULES, ROLES, RoleName
 
 REPOSITORY = Path(__file__).resolve().parents[3]
@@ -180,7 +180,12 @@ LOG_SCHEMA = "carbon.graphite.attacker-iteration-log.v3"
 #: store's suite pin. v5 adds `conditional_on` and `conditional_policy`: the
 #: findings open once Carbon's side recorded every finding, the session's own
 #: included (conditional-evidence.v1; the tag's keys are the named policy's).
-COVERAGE_SCHEMA = "carbon.graphite.attacker-coverage.v5"
+#: v6 carries verdict v2 records and family report v4, and adds
+#: `agreed_admissible`: the attempts an advisory tool and Carbon's
+#: authoritative chain both accept as valid and in contract (no breach, no
+#: usability defect; counted like NOT_APPLICABLE). A v5 report keeps its
+#: meaning: its UNDETERMINED verdicts are never re-read as agreed.
+COVERAGE_SCHEMA = "carbon.graphite.attacker-coverage.v6"
 #: The eight Track A checks every coverage report accounts for.
 TRACK_A_CHECKS = tuple(sorted(CHECKS[LEDGER_TRACK]))
 PIN_SCHEMA = "carbon.graphite.attacker-store-pin.v1"
@@ -605,7 +610,7 @@ class AttackerProvider(Phase3Provider):
                 transport=self.model.transport_for(selection),
                 provider=selection,
                 instructions=role.prompt,
-                tools=role.tool_schemas(),
+                tools=role.tool_schemas(tool_text_of(opened)),
                 parallel_calls=PARALLEL_RULES.get(role.name),
                 # The Attacker's run ledger meters no research trials (its
                 # budget is 0); never tell the agent "0 of 0 trials left".
@@ -1133,7 +1138,8 @@ def store_outcome(verdict, verify):
         if any(code in reason for code in INFRA_FAILURE_REASONS):
             return "FAILED_INFRA"
         return "CRASH"
-    return "NOT_RUN"  # UNDETERMINED or NOT_APPLICABLE: nothing judged
+    # UNDETERMINED, NOT_APPLICABLE or AGREED_ADMISSIBLE: nothing judged.
+    return "NOT_RUN"
 
 
 def _specimen_value(attempt, analysis):
@@ -1445,6 +1451,13 @@ def carbon_side(
         # Advisory tools that diverged from Carbon's own boundary: usability
         # records, never findings (an advisory tool is not an authority).
         "usability": [v.usability for v in verdicts if v.usability],
+        # Advisory and authoritative agreement on a valid, in-contract
+        # construction: closed like NOT_APPLICABLE, never a hold.
+        "agreed_admissible": [
+            {"attempt": v.attempt, "family": v.family, "reason": v.reason}
+            for v in verdicts
+            if v.outcome == verify.AGREED_ADMISSIBLE
+        ],
         **control.conditional_tag(),
     }
     return coverage, b2, findings, after

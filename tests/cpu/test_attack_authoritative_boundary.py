@@ -517,6 +517,130 @@ def test_the_phase4_attacker_opts_out_of_the_unmetered_trial_line():
     assert "omit_unmetered_trials=True" in inspect.getsource(phase4.AttackerProvider)
 
 
+# -- the adapters read a workspace "null" strategy as no strategy (decision 4) ----------------
+KNN_SHORT = {
+    "schema_version": "1.0",
+    "challenge_id": CHALLENGE,
+    "backbone": "knn",
+    "parameters": {"neighbours": 5, "train_fraction": 1.0},
+}
+MLP_SHORT = {
+    "schema_version": "1.0",
+    "challenge_id": CHALLENGE,
+    "backbone": "mlp",
+    "parameters": {
+        "width": 64,
+        "depth": 3,
+        "steps": 1000,
+        "batch_size": 400,
+        "optimizer_family": "adam",
+        "learning_rate": 0.001,
+        "learning_rate_curve": "cosine",
+        "train_fraction": 1.0,
+    },
+}
+#: Session 1's three check_design shapes: 007-01 (valid kNN), 014-01 (valid
+#: MLP) and 012-03 (a design that also requests an excluded capability).
+DESIGNS = {
+    "007-01": {"design": {"strategy": KNN_SHORT}},
+    "014-01": {"design": {"strategy": MLP_SHORT}},
+    "012-03": {
+        "design": {
+            "strategy": KNN_SHORT,
+            "capabilities": ["model_family.knn", "model_family.pretrained_weights"],
+        }
+    },
+}
+#: The three encodings of "no strategy": the string "null", JSON null, absent.
+ENCODINGS = {"string_null": "null", "json_null": None, "absent": "<absent>"}
+
+
+def _design_arguments(shape, encoding):
+    arguments = {
+        "kind": "workspace",
+        "action": "check_design",
+        "arguments_json": json.dumps(DESIGNS[shape]),
+        "hypothesis": "h",
+        "expected_effect": "e",
+    }
+    if ENCODINGS[encoding] != "<absent>":
+        arguments["strategy_json"] = ENCODINGS[encoding]
+    return arguments
+
+
+@pytest.mark.parametrize("adapter_name", ["battery", "cooling", "motor"])
+@pytest.mark.parametrize("encoding", sorted(ENCODINGS))
+@pytest.mark.parametrize("shape", sorted(DESIGNS))
+def test_every_adapter_reads_a_null_workspace_strategy_as_the_design(
+    adapter_name, encoding, shape
+):
+    import importlib
+
+    module = importlib.import_module(
+        "carbon.agent_campaign.attack.adapters." + adapter_name
+    )
+    arguments = _design_arguments(shape, encoding)
+    read = module._strategy_from(arguments)
+    # The check_design design (its strategy, or the whole design when it asks
+    # for capabilities), exactly as the core reads it: never None.
+    assert read is not None
+    assert read == analysis.design_of(arguments)
+    assert read == analysis.construction(_attempt(START, arguments, None))
+
+
+def _design_attempt(shape, verdict):
+    return _attempt(
+        START,
+        _design_arguments(shape, "string_null"),
+        _public_result({"schema": "carbon.design-check.v1", "verdict": verdict}),
+        identity="epoch-1-tool-" + shape,
+    )
+
+
+@pytest.mark.parametrize("shape", ["007-01", "014-01"])
+def test_a_valid_submittable_design_is_never_a_usability_record(shape):
+    # Session 1's findings 1 and 10: before the adapter fix the oracle judged
+    # None and recorded a spurious advisory divergence. The path accepted a
+    # design Carbon admits: no breach and no usability record. The family's
+    # detector does not fire on a valid design, so the agreement is no
+    # evidence of a hold; since verdict v2 it closes as AGREED_ADMISSIBLE
+    # (GRAPHITE-ORACLE-AGREED-ADMISSIBLE-01), never HELD and never scored.
+    verdict = verify.verify(_design_attempt(shape, "submittable"), ADAPTER)
+    assert not verdict.finding and verdict.usability is None
+    assert (verdict.outcome, verdict.reason) == (
+        verify.AGREED_ADMISSIBLE,
+        verify.AGREED_ADMISSIBLE_REASON,
+    )
+    assert not verdict.scored
+
+
+def test_a_design_requesting_an_excluded_capability_is_held_on_the_design():
+    # Session 1's finding 9 (012-03): judged on the design itself, not None.
+    item = ADAPTER.attempt_input(
+        "permission_ablation", {"arguments": _design_arguments("012-03", "string_null")}
+    )
+    assert item["strategy"] == DESIGNS["012-03"]["design"]
+    verdict = verify.verify(_design_attempt("012-03", "excluded"), ADAPTER)
+    assert verdict.outcome == verify.HELD and not verdict.finding
+
+
+def test_mutation_reading_a_null_strategy_as_none_restores_the_spurious_record(
+    monkeypatch,
+):
+    # The old adapter reading: "null" parsed to None, never the design. The
+    # valid submittable design then reads as a divergence again.
+    def old_reading(arguments, missing=None):
+        raw = arguments.get("strategy_json")
+        if raw is None:
+            design = analysis.design_of(dict(arguments))
+            return missing if design is None else design
+        return json.loads(raw)
+
+    monkeypatch.setattr(analysis, "strategy_argument", old_reading)
+    verdict = verify.verify(_design_attempt("007-01", "submittable"), ADAPTER)
+    assert verdict.usability is not None  # the defect is back
+
+
 def test_mutation_without_the_authority_gate_the_advisory_case_becomes_a_finding(
     monkeypatch,
 ):

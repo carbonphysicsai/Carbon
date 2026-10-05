@@ -1,0 +1,23 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-final-native-command-missing",
+  "recorded_at": "2026-10-05T14:04:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "final challenge-pipeline validation attempt on Windows host",
+    "description": "Attempted the final challenge-pipeline validation with the unqualified python command."
+  },
+  "expected": "The challenge-pipeline validator runs with a supported Python interpreter.",
+  "observed": "The Windows host did not expose a python command, so no repository validation ran.",
+  "keep": [],
+  "change": [
+    "Discover an available interpreter and retain canonical Linux validation as the controlling result."
+  ],
+  "protocol_elements": [
+    "challenge_pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

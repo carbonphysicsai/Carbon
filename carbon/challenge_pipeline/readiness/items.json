@@ -1,0 +1,391 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-items.v1",
+ "items": [
+  {
+   "id": "O1",
+   "kind": "review",
+   "lesson": "C4",
+   "title": "An ownership map exists for the challenge: contract, scorer, validator adapter, attack adapter, decision study, references, gates, literature, grants. Each line names one owner session, and the map is committed.",
+   "check": "ownership_map"
+  },
+  {
+   "id": "O2",
+   "kind": "auto",
+   "lesson": "C1",
+   "title": "No open branch on origin uses a name the onboarding plans to use.",
+   "check": "branch_plan",
+   "pending": {
+    "reason": "no onboarding branch plan is recorded for the challenge (readiness/<challenge>/branches.json); lesson C1's branch-name check is OPEN",
+    "owner": "PR Head",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "O3",
+   "kind": "auto",
+   "lesson": "C1, C5",
+   "title": "Every owner question raised during onboarding has a decision file.",
+   "check": "onboarding_decisions",
+   "pending": {
+    "reason": "no onboarding record is committed for the challenge (readiness/<challenge>/onboarding.json)",
+    "owner": "Test Lead",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "P1",
+   "kind": "auto",
+   "lesson": "N1",
+   "title": "Registered in the challenge registry, with a Level 0 construction contract reachable in the Launchpad.",
+   "check": "registered_l0"
+  },
+  {
+   "id": "P2",
+   "kind": "auto",
+   "lesson": "N1",
+   "title": "`ChallengeScoring` and an Interface v1 validator adapter are registered, and an unnamed scoring call refuses.",
+   "check": "scoring_registered"
+  },
+  {
+   "id": "P3",
+   "kind": "auto",
+   "lesson": "N1",
+   "title": "A fixture dry run of phase 3 for this challenge passes end to end: brief, published material, bundle writeup, clean rebuild.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "fixture phase-3 dry run per challenge: VALIDATOR-05 (#606) not on main",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "P4",
+   "kind": "auto",
+   "lesson": "N1",
+   "title": "No battery-specific literal is reached on this challenge's path: tool text v2, literature snapshot, writeup.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "neutrality grep and tool text v2: #606 and #610 not on main",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "P5",
+   "kind": "auto",
+   "lesson": "I1",
+   "title": "The no-op audit passes for every rebuildable capability. Known no-ops are listed.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "no-op capability audit (#619) not on main",
+    "owner": "Test Engineer",
+    "neutral_tests": [
+     "tests/cpu/test_construction_noop_audit.py"
+    ]
+   }
+  },
+  {
+   "id": "P6",
+   "kind": "auto",
+   "lesson": "I1",
+   "title": "Identity is by rebuilt artifact: no count, dedup or limit keyed on recipe text.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "identity-by-rebuilt-artifact audit (#619) not on main",
+    "owner": "Test Engineer",
+    "neutral_tests": [
+     "tests/cpu/test_construction_noop_audit.py"
+    ]
+   }
+  },
+  {
+   "id": "R1",
+   "kind": "auto",
+   "lesson": "E1",
+   "title": "The real-path no-spend gate passes for this challenge: the provider with a fake transport, the controller, ledger, pods and carrier under live threading.",
+   "check": "prelive"
+  },
+  {
+   "id": "R2",
+   "kind": "auto",
+   "lesson": "A3",
+   "title": "A deterministic containment check with a host canary passes on the lane this challenge uses (pod, CPU carrier or miner lane).",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "deterministic containment check with host canary: Test Engineer's containment PR not on main",
+    "owner": "Test Engineer",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "R3",
+   "kind": "auto",
+   "lesson": "E2",
+   "title": "An environment probe and its attribution policy are registered for every compute lane used.",
+   "check": "compute_lanes",
+   "pending": {
+    "reason": "no compute-lane declaration is committed for the challenge (readiness/<challenge>/lanes.json)",
+    "owner": "Test Lead",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "R4",
+   "kind": "auto",
+   "lesson": "E3, E4",
+   "title": "Model settings: full context for each role's model, an output cap sized from use, and an endpoint that reports charges.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "prelive reports only attacker_model; per-role *_model blocks and the output cap (lesson E3 OPEN) are not reported",
+    "owner": "Test Engineer",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "R5",
+   "kind": "auto",
+   "lesson": "I2",
+   "title": "Grants: a per-challenge grant bound to main's blob, priced with lost-run headroom, tokens-only where no pods run.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "per-challenge grant binding (#612) not on main; the committed grants carry no challenge field",
+    "owner": "Test Engineer",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "R6",
+   "kind": "auto+review",
+   "lesson": "E5, E6",
+   "title": "Host: free disk at least the threshold, and a host window agreed in writing between the executor and Data Collection.",
+   "check": "disk_free"
+  },
+  {
+   "id": "R7",
+   "kind": "auto",
+   "lesson": "E9",
+   "title": "Agent-facing budget text matches the real ledger; no \"0 of 0\".",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "agent-facing budget text test (lesson E9 OPEN, oracle-fix PR) not on main",
+    "owner": "Test Engineer",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "A1",
+   "kind": "auto",
+   "lesson": "A1",
+   "title": "Every research tool has an authority class (authoritative, advisory, miner-local) and a family mapping; no UNASSIGNED.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "tool authority classes (lesson A1 OPEN, oracle-fix PR) not on main",
+    "owner": "Test Engineer",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "A2",
+   "kind": "auto",
+   "lesson": "A2",
+   "title": "Each family has an attack example that fires, a trained control, a held-out control, and a route the Attacker can reach.",
+   "check": "attack_families"
+  },
+  {
+   "id": "A3",
+   "kind": "auto",
+   "lesson": "A2",
+   "title": "The coverage stop rule is configured: k attempts per family before the finish tool is available.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "coverage stop rule (lesson A2 OPEN) not on main",
+    "owner": "Test Engineer",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "A4",
+   "kind": "auto",
+   "lesson": "I3",
+   "title": "A designated admission controller is recorded for (challenge, level).",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "designated admission controller (#615) not on main",
+    "owner": "Test Engineer",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "A5",
+   "kind": "review",
+   "lesson": "G1",
+   "title": "Every attribution or grading assumption is a registered, versioned policy, and the Attacker has a family that probes it.",
+   "check": "review_only"
+  },
+  {
+   "id": "S1",
+   "kind": "auto",
+   "lesson": "S6",
+   "title": "The promotion rule exists: comparison settings plus an equivalence margin measured from the challenge's noise source.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "no promotion-rule / equivalence-margin evidence is recorded for the challenge",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "auto",
+   "lesson": "G4",
+   "title": "Gate failures rank last (admissibility before ranking), tested with a known-answer case.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "known-answer test that gate failures rank last (#617 follow-up) is not recorded for the challenge",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "auto",
+   "lesson": "G5",
+   "title": "A margin study for every gate: the minimum reference margin and 1st percentile, with fragile gates flagged.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "gate margin study (VALIDATOR-09) is not recorded for the challenge",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "review",
+   "lesson": "S6",
+   "title": "The noise source is declared per construction family: seed, bootstrap, or both.",
+   "check": "review_only"
+  },
+  {
+   "id": "S5",
+   "kind": "auto",
+   "lesson": "G3",
+   "title": "Incomplete prediction sets are refused on every host.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "incomplete prediction sets refused on every host: #613 not on main",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "D1",
+   "kind": "auto",
+   "lesson": "n/a",
+   "title": "A frozen decision study exists, with a finite comparator, commitment before reference access, and representative and boundary groups.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "no frozen decision-study check is recorded for the challenge",
+    "owner": "Data Collection",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "D2",
+   "kind": "auto",
+   "lesson": "n/a",
+   "title": "The equal-cost harness adapter is registered, with a B ladder confirmed by the Test Lead.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "no equal-cost harness adapter check is recorded for the challenge",
+    "owner": "Data Collection",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "D3",
+   "kind": "auto",
+   "lesson": "E8",
+   "title": "A timing calibration on the target hardware has run, and counted-plan timeouts are at least 2× p95.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "no timing calibration check is recorded for the challenge",
+    "owner": "Data Collection",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "D4",
+   "kind": "auto",
+   "lesson": "E7",
+   "title": "The importer has run on at least one real solver output.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "no real-solver-output importer check is recorded for the challenge",
+    "owner": "Data Collection",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "D5",
+   "kind": "auto+review",
+   "lesson": "S4",
+   "title": "Reference coverage of the decision set is reported, and the refinement policy for unresolved cases is decided.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "no reference-coverage report is recorded for the challenge",
+    "owner": "Data Collection",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "D6",
+   "kind": "auto",
+   "lesson": "S5, N3",
+   "title": "Any confirmation study's analysis code is built, merged and pinned with every imported module before freeze.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "no pinned analysis-code check is recorded for the challenge",
+    "owner": "Data Collection",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "D7",
+   "kind": "auto",
+   "lesson": "n/a",
+   "title": "A fresh confirmation-set role is registered, with size, law and strata set (VALIDATOR-03).",
+   "check": "confirmation_role"
+  },
+  {
+   "id": "V1",
+   "kind": "auto+review",
+   "lesson": "S1",
+   "title": "A Q1 score-to-value check on the available panel (baselines plus constructed controls): τ/ρ with a band, and divergences listed. A negative or within-noise τ is NOT a blocker, but it is recorded, and the first Graphite runs are then framed as alignment measurements, never as improvement hunting.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "no Q1 score-to-value check is recorded for the challenge",
+    "owner": "Test Lead",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "V2",
+   "kind": "auto",
+   "lesson": "S3",
+   "title": "Panel discrimination: at least two distinct decision outcomes among panel members on the decision study. If not, widen the construction families first (development variant).",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "no panel-discrimination check is recorded for the challenge",
+    "owner": "Test Lead",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "V3",
+   "kind": "review",
+   "lesson": "S2",
+   "title": "Promotion claims require multi-seed evidence.",
+   "check": "review_only"
+  }
+ ]
+}

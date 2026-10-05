@@ -106,6 +106,9 @@ EVALUATION_FEEDBACK_FIELDS = (
     "nominated",
     "waiting",
     "finals",
+    # The coverage rule that typed the outcome (GRAPHITE-COVERAGE-PARITY-01),
+    # on outcomes recorded from that ruling on; absent on older ones.
+    "coverage_rule",
 )
 SCREENING_FEEDBACK_FIELDS = (
     "pool_version",

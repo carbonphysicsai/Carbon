@@ -554,6 +554,25 @@ def design_of(arguments):
     return design["strategy"]
 
 
+def strategy_argument(arguments, missing=None):
+    """The strategy a tool call's arguments carry, as an adapter's oracle
+    reads it (the same reading as `construction`): `strategy_json` absent,
+    JSON null or the string `"null"` is no strategy, so the call's
+    `check_design` design (`design_of`) is read instead, or `missing` when it
+    has none. Unparseable text is returned as given, for Carbon's gate to
+    refuse as not an object."""
+    raw = arguments.get("strategy_json")
+    if raw is not None and raw != "null":
+        try:
+            value = json.loads(raw)
+        except (TypeError, ValueError):
+            return raw
+        if value is not None:
+            return value
+    design = design_of(dict(arguments))
+    return missing if design is None else design
+
+
 #: A `check_design` result schema and its submittable verdict.
 DESIGN_CHECK_SCHEMA = "carbon.design-check.v1"
 DESIGN_SUBMITTABLE = "submittable"

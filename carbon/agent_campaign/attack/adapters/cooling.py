@@ -41,7 +41,12 @@ adapter (`adapters/battery.py`):
   reference), declared NOT_RUN with the missing value named. No threshold is
   invented here;
 - **the session surface** a Graphite session needs (`attack.adapter.
-  SessionSurface`).
+  SessionSurface`);
+- **the vector API** (`VECTOR_NAMES`, `apply_vector`, `faulted_cases`): six
+  cooling vectors, pure functions of a reference set the caller passes in, so
+  the Carbon Validator's gate-audit harness (VALIDATOR-09) reuses them by
+  import. The families run the same transforms on the public PRACTICE
+  references.
 
 What it is not. Nothing here executes participant code, or reads counted CFD,
 the decision study's own cases, a pool other than the public TRAIN and
@@ -64,12 +69,13 @@ import functools
 import hashlib
 import json
 import math
+import numbers
 import shutil
 import struct
 import tempfile
 import threading
 import time
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
@@ -84,7 +90,13 @@ LEVEL = 0
 PROFILE = "level-0"
 #: v2 adds the `selective_fault` family, its controls and the
 #: `missing_prediction_attribution` seam (GRAPHITE-ATTACKER-COOLING-SF-01).
-ADAPTER_VERSION = "carbon.attack.adapter.cooling-l0.v2"
+#: v3 makes `group_sacrifice`'s attack example a real sacrifice (the hot group
+#: low, the rest compensating so the mean signed peak bias stays near zero),
+#: distinct from `cooling_optimism`'s (GRAPHITE-ATTACKER-COOLING-API-01). It
+#: also covers #620's `candidate_fault_*` attacks in `resource_accounting`,
+#: added without a version change. The controls are unchanged, so
+#: `CONTROLS_VERSION` stays v2.
+ADAPTER_VERSION = "carbon.attack.adapter.cooling-l0.v3"
 CONTROLS_VERSION = "carbon.attack.controls.cooling-l0.v2"
 TRACK = LEDGER_TRACK
 SPLITS = _core.SPLITS
@@ -281,7 +293,7 @@ COOLING_VECTORS = {
     "group_sacrifice": {
         "check": "score_exploitation_and_tail_failures",
         "families": ("group_sacrifice",),
-        "attack": "hot_group_rise_twenty_percent_low_rest_exact",
+        "attack": "hot_group_rise_twenty_percent_low_rest_compensating",
         "control": "group_sacrifice_trained_exact_predictions",
         "seam": "group_weighting",
         "expected": VECTOR_EXPECTED,
@@ -390,6 +402,14 @@ def _scoring():
     from carbon.challenge_validator.scoring import scoring_for
 
     return scoring_for(CHALLENGE_ID)
+
+
+@functools.cache
+def _candidate_fault_policy():
+    """The exact policy the Cooling validator uses for candidate faults."""
+    from carbon.challenge_validator.candidate_fault import load_policy
+
+    return load_policy(CHALLENGE_ID)
 
 
 @functools.cache
@@ -520,74 +540,133 @@ def _rounded(value, places=6):
     return _floats(value, lambda x: round(x, places))
 
 
-# -- predictions built from the public PRACTICE references -------------------------------------
-def _oracle_predictions():
-    """The public PRACTICE references as predictions (exact: score 0)."""
+# -- predictions built from a reference set ----------------------------------------------------
+# Every transform below is pure: it reads a reference set (case id to a record
+# shaped like a public PRACTICE record, `{"inputs": {"inlet_c": ...},
+# "outputs": {"peak_c", "profile_c", "pressure_drop_pa"}}`), never a file, and
+# returns a fresh prediction set without changing the references. The adapter
+# passes its own public PRACTICE references (`_references()`); the vector API
+# (`apply_vector`) passes a caller's.
+def _references():
+    """The public PRACTICE references by case id, in record order."""
+    return {r["case_id"]: r for r in _records()}
+
+
+def _exact(references):
+    """The references as predictions (exact: score 0)."""
     return {
-        r["case_id"]: {
+        case: {
             "peak_c": r["outputs"]["peak_c"],
             "profile_c": list(r["outputs"]["profile_c"]),
             "pressure_drop_pa": r["outputs"]["pressure_drop_pa"],
         }
-        for r in _records()
+        for case, r in references.items()
     }
 
 
-def _inlets():
-    return {r["case_id"]: r["inputs"]["inlet_c"] for r in _records()}
+def _oracle_predictions():
+    """The public PRACTICE references as predictions (exact: score 0)."""
+    return _exact(_references())
 
 
-def _important_ids():
-    """Cases whose reference peak is in the important group (`T_IMPORTANT_C`)."""
+def _inlet(references, case):
+    return references[case]["inputs"]["inlet_c"]
+
+
+def _hot(references):
+    """Cases whose reference peak is in the important group (`T_IMPORTANT_C`),
+    the frozen rule's own definition."""
     return frozenset(
-        r["case_id"] for r in _records() if r["outputs"]["peak_c"] >= T_IMPORTANT_C
+        case
+        for case, r in references.items()
+        if r["outputs"]["peak_c"] >= T_IMPORTANT_C
     )
 
 
-def _chosen(where):
-    """The case ids an attack edits: `all`, `important` or `representative`."""
-    every = {r["case_id"] for r in _records()}
-    hot = _important_ids()
+def _important_ids():
+    """The important group of the public PRACTICE references."""
+    return _hot(_references())
+
+
+def _chosen(references, where, important=None):
+    """The case ids an attack edits: `all`, `important` or `representative`.
+    `important` is the hot group, by default `_hot(references)`."""
+    every = set(references)
+    hot = _hot(references) if important is None else frozenset(important) & every
     return {"all": every, "important": hot, "representative": every - hot}[where]
 
 
-def _rise_scaled(factor, where="all"):
+def _rise_scaled(references, factor, where="all", important=None):
     """Every temperature's rise above the inlet multiplied by `factor` on the
     chosen cases: below 1 is optimism (a cooler plate than the reference),
     above 1 conservatism. Gates still pass (the face stays above the inlet and
     the peak bounds the profile)."""
-    out, inlets, ids = _oracle_predictions(), _inlets(), _chosen(where)
-    for case in ids:
-        t_in, p = inlets[case], out[case]
+    out = _exact(references)
+    for case in _chosen(references, where, important):
+        t_in, p = _inlet(references, case), out[case]
         p["peak_c"] = t_in + factor * (p["peak_c"] - t_in)
         p["profile_c"] = [t_in + factor * (t - t_in) for t in p["profile_c"]]
     return out
 
 
-def _shifted(kelvin, where="all"):
-    out, ids = _oracle_predictions(), _chosen(where)
-    for case in ids:
+def _sacrificed(references, factor, important=None):
+    """The hot group sacrificed with the overall bias hidden: every hot case's
+    rise above the inlet multiplied by `factor`, every other case's by the
+    compensating `1 + f`, with `f` computed from `references` so the signed
+    peak errors over all cases sum to zero (the mean signed peak bias is held
+    at zero, up to round-off). Gates still pass, as for `_rise_scaled`."""
+    hot = _chosen(references, "important", important)
+    rest = _chosen(references, "representative", important)
+
+    def rise(case):
+        return references[case]["outputs"]["peak_c"] - _inlet(references, case)
+
+    if not hot:
+        raise VectorError(
+            "group_sacrifice needs an important case; the group is empty",
+            code="no_important_case",
+        )
+    lost = (1 - factor) * math.fsum(rise(case) for case in hot)
+    spare = math.fsum(rise(case) for case in rest)
+    if not rest or spare <= 0:
+        raise VectorError(
+            "group_sacrifice needs representative cases with a positive rise "
+            "to compensate the hot group",
+            code="no_representative_case",
+        )
+    out = _rise_scaled(references, factor, "important", important)
+    compensated = _rise_scaled(
+        references, 1 + lost / spare, "representative", important
+    )
+    for case in rest:
+        out[case] = compensated[case]
+    return out
+
+
+def _shifted(references, kelvin, where="all", important=None):
+    out = _exact(references)
+    for case in _chosen(references, where, important):
         p = out[case]
         p["peak_c"] += kelvin
         p["profile_c"] = [t + kelvin for t in p["profile_c"]]
     return out
 
 
-def _pressure_scaled(factor, where="all", base=None):
-    out, ids = base or _oracle_predictions(), _chosen(where)
-    for case in ids:
+def _pressure_scaled(references, factor, where="all", important=None):
+    out = _exact(references)
+    for case in _chosen(references, where, important):
         out[case]["pressure_drop_pa"] *= factor
     return out
 
 
-def _redistributed(fraction, where="all"):
+def _redistributed(references, fraction, where="all", important=None):
     """Each chosen profile tilted along the flow with its segment mean kept:
     the inlet end cooler, the outlet end hotter by `fraction` of the smallest
     rise. A mean-preserving redistribution, as a flow imbalance would move
     heat between regions without changing the plate's total."""
-    out, inlets, ids = _oracle_predictions(), _inlets(), _chosen(where)
-    for case in ids:
-        p, t_in = out[case], inlets[case]
+    out = _exact(references)
+    for case in _chosen(references, where, important):
+        p, t_in = out[case], _inlet(references, case)
         n = len(p["profile_c"])
         middle = (n - 1) / 2
         amplitude = fraction * (min(p["profile_c"]) - t_in)
@@ -598,21 +677,38 @@ def _redistributed(fraction, where="all"):
     return out
 
 
-def _reversed_profiles(where="all"):
+def _reversed_profiles(references, where="all", important=None):
     """Each chosen profile mirrored along the flow: the same values and mean,
     the hot end moved to the other side."""
-    out, ids = _oracle_predictions(), _chosen(where)
-    for case in ids:
+    out = _exact(references)
+    for case in _chosen(references, where, important):
         out[case]["profile_c"] = list(reversed(out[case]["profile_c"]))
     return out
 
 
-def _corrupt(case_index, edit):
+def _corrupt(references, case_index, edit):
     """The exact references with one case's prediction changed by `edit`."""
-    out = _oracle_predictions()
+    out = _exact(references)
     case = sorted(out)[case_index]
-    out[case] = edit(copy.deepcopy(out[case]), _inlets()[case])
+    out[case] = edit(copy.deepcopy(out[case]), _inlet(references, case))
     return out
+
+
+def _face_at_inlet(p, t_in):
+    # Total cooling optimism: the heated face no warmer than the coolant.
+    return {**p, "profile_c": [t_in] * len(p["profile_c"]), "peak_c": t_in}
+
+
+def _face_at_inlet_on_a_hot_case(references, important):
+    """The exact references with the first hot case (by case id) given a
+    heated face no warmer than its inlet: one mandatory gate failure."""
+    hot = sorted(important)
+    if not hot:
+        raise VectorError(
+            "mandatory_failure needs an important case; the group is empty",
+            code="no_important_case",
+        )
+    return _corrupt(references, sorted(references).index(hot[0]), _face_at_inlet)
 
 
 # -- the frozen rule as each scoring family reads it -------------------------------------------
@@ -649,8 +745,10 @@ def _eligible_control(value):
 
 # mandatory failure: a gate failure is never compensated by score ----------------------------
 def _mandatory_inputs():
+    references = _references()
+
     def at(index, edit):
-        return _corrupt(index, edit)
+        return _corrupt(references, index, edit)
 
     def nan_peak(p, _t):
         return {**p, "peak_c": math.nan}
@@ -660,10 +758,6 @@ def _mandatory_inputs():
 
     def short_profile(p, _t):
         return {**p, "profile_c": p["profile_c"][:-1]}
-
-    def face_at_inlet(p, t_in):
-        # Total cooling optimism: the heated face no warmer than the coolant.
-        return {**p, "profile_c": [t_in] * len(p["profile_c"]), "peak_c": t_in}
 
     def peak_below_profile(p, _t):
         return {**p, "peak_c": max(p["profile_c"]) - 1.0}
@@ -689,13 +783,12 @@ def _mandatory_inputs():
     def list_peak(p, _t):
         return {**p, "peak_c": [p["peak_c"]]}
 
-    hot = sorted(_important_ids())
-    hot_index = sorted(_oracle_predictions()).index(hot[0])
+    hot_face = _face_at_inlet_on_a_hot_case(references, _hot(references))
     return (
         ("nan_peak", at(0, nan_peak)),
         ("infinite_pressure_drop", at(1, inf_pressure)),
         ("short_profile", at(2, short_profile)),
-        ("face_at_inlet_on_a_hot_case", at(hot_index, face_at_inlet)),
+        ("face_at_inlet_on_a_hot_case", hot_face),
         ("peak_below_profile", at(3, peak_below_profile)),
         ("zero_pressure_drop", at(4, zero_pressure)),
         ("negative_pressure_drop", at(5, negative_pressure)),
@@ -721,25 +814,26 @@ def averaging_scorer(value):
 
 # false cooling optimism ----------------------------------------------------------------------
 def _optimism_attacks():
+    refs = _references()
     return (
         (
             "every_rise_ten_percent_low",
-            {"predictions": _rise_scaled(0.9), "where": "all"},
+            {"predictions": _rise_scaled(refs, 0.9), "where": "all"},
         ),
         (
             "hot_group_rise_twenty_percent_low",
-            {"predictions": _rise_scaled(0.8, "important"), "where": "important"},
+            {"predictions": _rise_scaled(refs, 0.8, "important"), "where": "important"},
         ),
         (
             "representative_rise_ten_percent_low",
             {
-                "predictions": _rise_scaled(0.9, "representative"),
+                "predictions": _rise_scaled(refs, 0.9, "representative"),
                 "where": "representative",
             },
         ),
         (
             "every_case_one_kelvin_cool",
-            {"predictions": _shifted(-1.0), "where": "all"},
+            {"predictions": _shifted(refs, -1.0), "where": "all"},
         ),
     )
 
@@ -784,18 +878,22 @@ def _optimism_control(value):
 
 # a flow imbalance masked behind a correct mean -----------------------------------------------
 def _imbalance_attacks():
+    refs = _references()
     return (
         (
             "profile_tilted_mean_kept",
-            {"predictions": _redistributed(0.3), "where": "all"},
+            {"predictions": _redistributed(refs, 0.3), "where": "all"},
         ),
         (
             "hot_group_profile_tilted_mean_kept",
-            {"predictions": _redistributed(0.5, "important"), "where": "important"},
+            {
+                "predictions": _redistributed(refs, 0.5, "important"),
+                "where": "important",
+            },
         ),
         (
             "profile_mirrored_along_the_flow",
-            {"predictions": _reversed_profiles(), "where": "all"},
+            {"predictions": _reversed_profiles(refs), "where": "all"},
         ),
     )
 
@@ -837,18 +935,22 @@ def mean_only_profile_scorer(value):
 
 # an under-predicted pressure drop ------------------------------------------------------------
 def _pressure_attacks():
+    refs = _references()
     return (
         (
             "every_pressure_drop_halved",
-            {"predictions": _pressure_scaled(0.5), "where": "all"},
+            {"predictions": _pressure_scaled(refs, 0.5), "where": "all"},
         ),
         (
             "hot_group_pressure_drop_ten_percent_low",
-            {"predictions": _pressure_scaled(0.9, "important"), "where": "important"},
+            {
+                "predictions": _pressure_scaled(refs, 0.9, "important"),
+                "where": "important",
+            },
         ),
         (
             "every_pressure_drop_a_tenth",
-            {"predictions": _pressure_scaled(0.1), "where": "all"},
+            {"predictions": _pressure_scaled(refs, 0.1), "where": "all"},
         ),
     )
 
@@ -875,30 +977,40 @@ def temperature_only_scorer(value):
 
 # sacrificing the hot group to favour the representative one ---------------------------------
 def _group_attacks():
+    refs = _references()
     return (
         (
-            "hot_group_rise_twenty_percent_low_rest_exact",
-            {"predictions": _rise_scaled(0.8, "important"), "where": "important"},
+            "hot_group_rise_twenty_percent_low_rest_compensating",
+            {"predictions": _sacrificed(refs, 0.8), "where": "important"},
         ),
         (
             "hot_group_rise_quarter_high_rest_exact",
-            {"predictions": _rise_scaled(1.25, "important"), "where": "important"},
+            {
+                "predictions": _rise_scaled(refs, 1.25, "important"),
+                "where": "important",
+            },
         ),
         (
             "hot_group_pressure_tripled_rest_exact",
-            {"predictions": _pressure_scaled(3.0, "important"), "where": "important"},
+            {
+                "predictions": _pressure_scaled(refs, 3.0, "important"),
+                "where": "important",
+            },
         ),
         (
             "hot_group_profile_mirrored_rest_exact",
-            {"predictions": _reversed_profiles("important"), "where": "important"},
+            {
+                "predictions": _reversed_profiles(refs, "important"),
+                "where": "important",
+            },
         ),
     )
 
 
 def group_breached(result):
-    """With the representative cases exact and the hot group degraded (every
-    gate passed), the frozen rule must report the hot group apart and worse
-    than the diluted overall score."""
+    """With the hot group degraded and the representative cases exact or only
+    mildly off (every gate passed), the frozen rule must report the hot group
+    apart and worse than the diluted overall score."""
     if not result["eligible"]:
         return False
     hot = result["important_score"]
@@ -1136,6 +1248,11 @@ def resource_boundary(value):
     if value["kind"] == "code_run":
         refusal = code_run_refusal(value["arguments"])
         return {"kind": "code_run", "dispatched": refusal is None, "refusal": refusal}
+    if value["kind"] == "candidate_fault":
+        return {
+            "kind": "candidate_fault",
+            **_candidate_fault_policy().record(value["fault"]),
+        }
     return _scoring_accounting(value)
 
 
@@ -1144,6 +1261,17 @@ def resource_specimen(value):
     an infrastructure failure as a pass."""
     if value["kind"] == "code_run":
         return {"kind": "code_run", "dispatched": True, "refusal": None}
+    if value["kind"] == "candidate_fault":
+        result = resource_boundary(value)
+        return {
+            **result,
+            "classification": {
+                "kind": "CANDIDATE_FAILED",
+                "code": "program",
+                "scientific_result": False,
+                "candidate_penalty": True,
+            },
+        }
     result = _scoring_accounting(value)
     return {**result, "eligible": result["n_gate_failed"] == 0}
 
@@ -1151,6 +1279,12 @@ def resource_specimen(value):
 def resource_breached(result):
     if result["kind"] == "code_run":
         return result["dispatched"]
+    if result["kind"] == "candidate_fault":
+        expected = {
+            "kind": "candidate_fault",
+            **_candidate_fault_policy().record(result.get("fault")),
+        }
+        return result != expected
     if not result["partial"]:
         return False
     missing = result["n_cases"] - result["n_scored"]
@@ -1191,6 +1325,13 @@ def _resource_attacks():
         (
             "no_predictions_scored",
             {"kind": "scoring", "predictions": {}, "partial": True},
+        ),
+        *(
+            (
+                "candidate_fault_" + fault,
+                {"kind": "candidate_fault", "fault": fault},
+            )
+            for fault in sorted(_candidate_fault_policy().faults)
         ),
     )
 
@@ -1233,6 +1374,8 @@ FAULT_SELECTIONS = (
     "above_own_mean",
     "worse_half",
 )
+#: The selections that read no per-case score.
+_SCORE_FREE_SELECTIONS = frozenset({"none", "all", "hot_group"})
 _SCORED, _FAILED_WHOLE, _INELIGIBLE = "scored_complete", "failed_whole", "ineligible"
 #: The batch role the probe's private validator store prepares: public
 #: PRACTICE only (`cooling.PUBLIC_BATCH_KIND`), never a reserved role.
@@ -1342,20 +1485,12 @@ def _faulted_cases(strategy, select):
     if select not in FAULT_SELECTIONS:
         raise ValueError("unknown fault selection: " + str(select))
     every = sorted(r["case_id"] for r in _records())
-    if select == "none":
-        return []
-    if select == "all":
-        return every
-    if select == "hot_group":
-        return sorted(_important_ids())
-    errors = _honest(strategy)["errors"]
-    worst_first = sorted(every, key=lambda case: (-errors[case], case))
-    if select == "worst_k":
-        return sorted(worst_first[: max(1, len(every) // 10)])
-    if select == "worse_half":
-        return sorted(worst_first[: len(every) // 2])
-    mean = fmean(errors.values())
-    return sorted(case for case in every if errors[case] > mean)
+    if select in _SCORE_FREE_SELECTIONS:
+        scores = dict.fromkeys(every, 0.0)  # the selection reads no score
+    else:
+        errors = _honest(strategy)["errors"]
+        scores = {case: errors[case] for case in every}
+    return faulted_cases(select, scores, important=_important_ids())
 
 
 def _fault_of(value):
@@ -1414,6 +1549,7 @@ def _interface_v1(strategy, fault):
         return {
             "kind": result["kind"],
             "code": result.get("code"),
+            "candidate_fault_policy": result.get("candidate_fault_policy"),
             "state": outcome.get("state"),
             "eligible": outcome.get("eligible"),
             "score": outcome.get("score"),
@@ -1725,6 +1861,207 @@ def _selective_attacks():
             {"mode": "infinite_pressure", "select": "worst_k"},
         ),
     )
+
+
+# -- the vector API: cooling's vectors on a caller's reference set -----------------------------
+#: The cooling vectors a caller (the Carbon Validator's gate-audit harness,
+#: VALIDATOR-09) may apply to its own reference set, each the attack example
+#: of the family of the same name. Part of `ADAPTER_VERSION`: a name added or
+#: removed, or a transform changed, moves the version. `selective_fault` is a
+#: fault pattern, not a prediction transform: `faulted_cases` names the cases
+#: to fault and `apply_vector` refuses it.
+VECTOR_NAMES = (
+    "cooling_optimism",
+    "flow_imbalance_masking",
+    "pressure_underprediction",
+    "group_sacrifice",
+    "selective_fault",
+    "mandatory_failure",
+)
+
+
+class VectorError(ValueError):
+    """A vector request the API refuses, typed by `code`."""
+
+    code = "vector_refused"
+
+    def __init__(self, detail, *, code=None):
+        super().__init__(detail)
+        if code is not None:
+            self.code = code
+
+
+class UnknownVector(VectorError):
+    """A vector or fault-selection name this adapter version does not define."""
+
+    code = "unknown_vector"
+
+
+#: Each prediction vector's transform: the family's attack example, applied to
+#: the caller's references with `important` as the hot group.
+_VECTOR_TRANSFORMS = {
+    # hot_group_rise_twenty_percent_low
+    "cooling_optimism": lambda refs, hot: _rise_scaled(refs, 0.8, "important", hot),
+    # profile_tilted_mean_kept
+    "flow_imbalance_masking": lambda refs, hot: _redistributed(refs, 0.3),
+    # every_pressure_drop_halved
+    "pressure_underprediction": lambda refs, hot: _pressure_scaled(refs, 0.5),
+    # hot_group_rise_twenty_percent_low_rest_compensating
+    "group_sacrifice": lambda refs, hot: _sacrificed(refs, 0.8, hot),
+    # face_at_inlet_on_a_hot_case
+    "mandatory_failure": lambda refs, hot: _face_at_inlet_on_a_hot_case(refs, hot),
+}
+
+
+def _finite(value):
+    return (
+        isinstance(value, numbers.Real)
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+    )
+
+
+def _reference_record(record):
+    """A record shaped like a public PRACTICE record, with finite numbers and
+    a profile of at least two segments along the flow."""
+    if not isinstance(record, Mapping):
+        return False
+    inputs, outputs = record.get("inputs"), record.get("outputs")
+    if not (isinstance(inputs, Mapping) and isinstance(outputs, Mapping)):
+        return False
+    profile = outputs.get("profile_c")
+    return bool(
+        _finite(inputs.get("inlet_c"))
+        and _finite(outputs.get("peak_c"))
+        and _finite(outputs.get("pressure_drop_pa"))
+        and isinstance(profile, list | tuple)
+        and len(profile) >= 2
+        and all(_finite(t) for t in profile)
+    )
+
+
+def _checked_cases(mapping, what, valid):
+    if not isinstance(mapping, Mapping) or not mapping:
+        raise VectorError(
+            f"{what} must be a non-empty mapping by case id", code=f"malformed_{what}"
+        )
+    for case, item in mapping.items():
+        if not isinstance(case, str) or not valid(item):
+            raise VectorError(f"{what} {case!r} is malformed", code=f"malformed_{what}")
+    return mapping
+
+
+def _checked_important(important, cases):
+    """The caller's hot group: case ids, every one among `cases`."""
+    if isinstance(important, str | bytes) or not isinstance(important, Iterable):
+        raise VectorError(
+            "important must be a set of case ids", code="malformed_important"
+        )
+    try:
+        ids = frozenset(important)
+    except TypeError:
+        ids = None
+    if ids is None or not all(isinstance(case, str) for case in ids):
+        raise VectorError(
+            "important must be a set of case ids", code="malformed_important"
+        )
+    unknown = ids - frozenset(cases)
+    if unknown:
+        raise VectorError(
+            "important names cases that are not given: " + ", ".join(sorted(unknown)),
+            code="malformed_important",
+        )
+    return ids
+
+
+def apply_vector(name, references, *, important=None):
+    """The prediction set `name` makes of `references` (case id to a record
+    shaped like a public PRACTICE record: `inputs.inlet_c`, `outputs.peak_c`,
+    `outputs.profile_c` and `outputs.pressure_drop_pa`).
+
+    Pure: it opens no file, reads no store and makes no call; the references
+    are not changed and the result shares no list with them. `important` is
+    the hot group; by default the frozen rule's own definition, every case
+    whose reference peak is at least `T_IMPORTANT_C`, computed from
+    `references`. Each vector is its family's attack example:
+
+    - `cooling_optimism`: the hot group's rise above the inlet 20% low, the
+      rest exact;
+    - `group_sacrifice`: the hot group's rise 20% low and every other case's
+      rise raised by the fraction, computed from `references`, that brings the
+      summed signed peak error over all cases back to zero;
+    - `flow_imbalance_masking`: every profile tilted along the flow (the inlet
+      end cooler, the outlet end hotter by 30% of its smallest rise) with its
+      mean kept, the peak raised to the profile's maximum if it is exceeded;
+    - `pressure_underprediction`: every pressure drop halved;
+    - `mandatory_failure`: the first hot case (by case id) given a heated face
+      no warmer than its inlet, the rest exact.
+
+    Raises `UnknownVector` for a name outside `VECTOR_NAMES`, and
+    `VectorError` (typed by `code`) for `selective_fault` (a fault pattern:
+    use `faulted_cases`), malformed references or `important`,
+    `mandatory_failure` or `group_sacrifice` with an empty hot group, and
+    `group_sacrifice` with no representative case to compensate it."""
+    if not isinstance(name, str) or name not in VECTOR_NAMES:
+        raise UnknownVector(
+            f"unknown cooling vector {name!r}; known: {', '.join(VECTOR_NAMES)}"
+        )
+    if name not in _VECTOR_TRANSFORMS:
+        raise VectorError(
+            f"{name} is a fault pattern, not a prediction transform: "
+            "use faulted_cases",
+            code="fault_pattern",
+        )
+    refs = _checked_cases(references, "reference", _reference_record)
+    if important is None:
+        hot = _hot(refs)
+    else:
+        hot = _checked_important(important, refs)
+    return _VECTOR_TRANSFORMS[name](refs, hot)
+
+
+def faulted_cases(name, case_scores, *, k=None, important=None):
+    """The case ids a selective fault faults on (`FAULT_SELECTIONS`), by the
+    selection logic the `selective_fault` family uses, from `case_scores`
+    (case id to the construction's own error on that case; higher is worse).
+    Pure, like `apply_vector`. Sorted by case id:
+
+    - `none`, `all`: no case, every case;
+    - `hot_group`: the cases in `important` (required here);
+    - `worst_k`: the `k` worst cases (by default a tenth, at least one), ties
+      broken by case id;
+    - `above_own_mean`: every case worse than the mean of `case_scores`;
+    - `worse_half`: the worse half (rounded down).
+
+    Raises `UnknownVector` for a name outside `FAULT_SELECTIONS` and
+    `VectorError` for malformed scores, `k` or `important`."""
+    if not isinstance(name, str) or name not in FAULT_SELECTIONS:
+        raise UnknownVector(
+            f"unknown fault selection {name!r}; known: {', '.join(FAULT_SELECTIONS)}"
+        )
+    scores = _checked_cases(case_scores, "case_score", _finite)
+    if k is not None:
+        if name != "worst_k":
+            raise VectorError("k applies to worst_k only", code="k_not_applicable")
+        if not isinstance(k, int) or isinstance(k, bool) or k < 1:
+            raise VectorError("k must be a whole number of cases", code="malformed_k")
+    every = sorted(scores)
+    if name == "none":
+        return []
+    if name == "all":
+        return every
+    if name == "hot_group":
+        if important is None:
+            raise VectorError("hot_group needs important", code="important_required")
+        hot = _checked_important(important, scores)
+        return sorted(case for case in every if case in hot)
+    worst_first = sorted(every, key=lambda case: (-scores[case], case))
+    if name == "worst_k":
+        return sorted(worst_first[: max(1, len(every) // 10) if k is None else k])
+    if name == "worse_half":
+        return sorted(worst_first[: len(every) // 2])
+    mean = fmean(scores.values())
+    return sorted(case for case in every if scores[case] > mean)
 
 
 # construction-evaluation isolation: staged bytes ---------------------------------------------
@@ -2361,7 +2698,7 @@ def _families():
             breached=group_breached,
             control_check=_group_control,
             admissible=None,
-            attack_example="hot_group_rise_twenty_percent_low_rest_exact",
+            attack_example="hot_group_rise_twenty_percent_low_rest_compensating",
             reads="public PRACTICE references",
         ),
         FamilySpec(
@@ -2387,7 +2724,9 @@ def _families():
             "wall allowance above code_run_seconds is refused before dispatch; "
             "and the frozen rule types every case a partial prediction set "
             "leaves out as FAILED_INFRA, never a gate failure, and a set with "
-            "nothing scored is never eligible",
+            "nothing scored is never eligible; rebuild, prediction and "
+            "non-finite-score faults use the registered candidate-fault "
+            "classification and lifecycle implications",
             attacks=_resource_attacks,
             boundary=resource_boundary,
             specimen=resource_specimen,
@@ -2395,7 +2734,7 @@ def _families():
             control_check=_resource_control,
             admissible=_resource_admissible,
             attack_example="seconds_just_over_the_allowance",
-            reads="public PRACTICE references",
+            reads="public PRACTICE references and registered attribution policy",
         ),
         FamilySpec(
             name="selective_fault",
@@ -2406,7 +2745,8 @@ def _families():
             "those cases dropped from its score on either real path, the "
             "Interface v1 validator or Graphite's pod path: the whole attempt is "
             "failed or charged, or the set is ineligible, and a FAILED_INFRA "
-            "never re-rolls to a different result",
+            "never re-rolls to a different result; Interface v1's candidate "
+            "fault binds the registered policy version and digest",
             attacks=_selective_attacks,
             boundary=selective_fault_boundary,
             specimen=dropping_accounting,
@@ -2561,13 +2901,13 @@ def _controls():
         "cooling_optimism",
         "held_out",
         "conservative_half_kelvin",
-        lambda: {"predictions": _shifted(0.5)},
+        lambda: {"predictions": _shifted(_references(), 0.5)},
     )
     add(
         "cooling_optimism",
         "held_out",
         "conservative_two_percent_rise",
-        lambda: {"predictions": _rise_scaled(1.02)},
+        lambda: {"predictions": _rise_scaled(_references(), 1.02)},
     )
     add(
         "pressure_underprediction",
@@ -2579,7 +2919,7 @@ def _controls():
         "pressure_underprediction",
         "held_out",
         "conservative_pressure_five_percent_high",
-        lambda: {"predictions": _pressure_scaled(1.05)},
+        lambda: {"predictions": _pressure_scaled(_references(), 1.05)},
     )
     add(
         "pressure_underprediction",
@@ -2865,18 +3205,10 @@ def _get(attempt, key, default=None):
 
 
 def _strategy_from(arguments):
-    raw = arguments.get("strategy_json")
-    if raw is None:
-        # A `check_design` call carries its construction in its design
-        # (`attack.analysis.design_of`, the core's one reading of it).
-        from carbon.agent_campaign.attack import analysis
+    # The core's one reading (`attack.analysis.strategy_argument`).
+    from carbon.agent_campaign.attack import analysis
 
-        design = analysis.design_of(dict(arguments))
-        return _MISSING if design is None else design
-    try:
-        return json.loads(raw)
-    except (TypeError, ValueError):
-        return raw
+    return analysis.strategy_argument(arguments, _MISSING)
 
 
 def _inner_arguments(arguments):
@@ -3022,6 +3354,7 @@ class CoolingLevel0Adapter:
             "permitted": len(inventory["permitted"]),
             "not_permitted": len(inventory["not_permitted"]),
             "adapter_version": ADAPTER_VERSION,
+            "candidate_fault_policy": _candidate_fault_policy().record(),
         }
 
     def vectors(self):

@@ -38,14 +38,11 @@ at that level, in the shape of cooling's adapter (`adapters/cooling.py`):
   design), declared NOT_RUN with the missing value named. No threshold is
   invented here.
 
-What motor does not have yet. No `ChallengeScoring` is registered for motor
-(`challenge_validator.scoring.scoring_for` refuses it with
-`challenge_scoring_not_registered`), so Graphite's pods do not serve it and
-the phase-4 runner refuses a motor run before anything starts. The adapter
-therefore scores with motor's own public PRACTICE rule, the rule the motor
-practice provider uses, and its rebuild record is Carbon's alone: there is no
-pod build to compare (`pod_scoring_not_registered`, a seam). Official
-evaluation stays the typed `motor_validator_not_served` refusal.
+Motor's public `ChallengeScoring` now serves Graphite Level 0 practice. The
+adapter continues to score with motor's own public PRACTICE rule. Its attack
+rebuild record is Carbon's own; phase 4's verify-pod rebuild remains a
+declared seam. Official evaluation stays the typed
+`motor_validator_not_served` refusal.
 
 What it is not. Nothing here executes participant code, or reads counted
 GetDP material, the decision study or its references, the private 60-case
@@ -1406,8 +1403,8 @@ def carbon_build_record(strategy, seed):
     compiler (`challenge_contracts.compile_submission`), motor's worker
     staging and practice program, under the newest expansion record. It
     carries every field the shared rebuild comparison reads
-    (`challenge_validator.scoring.REBUILT_FIELDS`). It is not a pod record:
-    no `ChallengeScoring` serves motor's pods."""
+    (`challenge_validator.scoring.REBUILT_FIELDS`). This attack-side record
+    does not itself launch a verification pod."""
     from carbon.development_session.research_catalog import RecipeRejected
     from carbon.motor.contracts import digest
     from carbon.motor.practice import PROGRAM, staged_files
@@ -1811,8 +1808,7 @@ def _ablation_admissible(item):
 
 
 def pod_scoring_code():
-    """Why Graphite's pods do not serve motor: the scoring registry's own
-    refusal code, or None once a motor `ChallengeScoring` is registered."""
+    """Registry refusal code, or None when Graphite serves motor practice."""
     from carbon.challenge_validator import scoring
 
     try:
@@ -2274,19 +2270,6 @@ SEAMS = (
         "set, and the attack budget",
     ),
     SeamSpec(
-        "pod_scoring_not_registered",
-        "reconstruction_and_recipient_rebuild",
-        0,
-        "no ChallengeScoring is registered for motor "
-        "(challenge_validator.scoring refuses it as "
-        "challenge_scoring_not_registered), so Graphite's pods do not serve it, "
-        "the phase-4 runner refuses a motor run, and there is no pod build to "
-        "compare with Carbon's own build record; official evaluation stays "
-        "motor_validator_not_served",
-        "owner: a registered motor ChallengeScoring (the separate motor "
-        "validator and scoring ticket)",
-    ),
-    SeamSpec(
         "ripple_amplitude_bias_tolerance",
         SCORE_CHECK,
         0,
@@ -2399,18 +2382,10 @@ def _get(attempt, key, default=None):
 
 
 def _strategy_from(arguments):
-    raw = arguments.get("strategy_json")
-    if raw is None:
-        # A `check_design` call carries its construction in its design
-        # (`attack.analysis.design_of`, the core's one reading of it).
-        from carbon.agent_campaign.attack import analysis
+    # The core's one reading (`attack.analysis.strategy_argument`).
+    from carbon.agent_campaign.attack import analysis
 
-        design = analysis.design_of(dict(arguments))
-        return _MISSING if design is None else design
-    try:
-        return json.loads(raw)
-    except (TypeError, ValueError):
-        return raw
+    return analysis.strategy_argument(arguments, _MISSING)
 
 
 def _inner_arguments(arguments):
@@ -2487,9 +2462,8 @@ class MotorLevel0Adapter:
     def rebuild(self, construction):
         """Carbon's rebuild (`build`), as the core's `Rebuilt` or
         `Unrebuildable`. An unrebuildable construction is never scored. A
-        rebuilt one is not served by Graphite's pods while no motor
-        `ChallengeScoring` is registered (`served` False, with the registry's
-        refusal code)."""
+        rebuilt one's `served` field reflects the current scoring registry;
+        this attack-side rebuild itself launches no pod."""
         made = build(construction)
         if not made.rebuilt:
             core = REFUSAL_CODES.get(made.code, "refused_by_contract")

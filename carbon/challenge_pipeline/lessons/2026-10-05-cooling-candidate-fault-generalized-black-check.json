@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-generalized-black-check",
+  "recorded_at": "2026-10-05T12:45:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "focused quality check after generalizing fault names",
+    "description": "Checked the generic policy loader and Cooling-specific policy test after removing Cooling fault literals from shared code."
+  },
+  "expected": "Ruff and Black accept both files.",
+  "observed": "Ruff passed. Black requested formatting of the generic loader only.",
+  "keep": [
+    "Keep Cooling's exact fault inventory in its registered document and Cooling-specific tests, not the shared loader."
+  ],
+  "change": [
+    "Apply Black to the loader and rerun focused quality."
+  ],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_neutrality"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
