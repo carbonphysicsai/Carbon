@@ -90,7 +90,11 @@ LEVEL = 0
 PROFILE = "level-0"
 #: v2 adds the `selective_fault` family, its controls and the
 #: `missing_prediction_attribution` seam (GRAPHITE-ATTACKER-COOLING-SF-01).
-ADAPTER_VERSION = "carbon.attack.adapter.cooling-l0.v2"
+#: v3 makes `group_sacrifice`'s attack example a real sacrifice (the hot group
+#: low, the rest compensating so the mean signed peak bias stays near zero),
+#: distinct from `cooling_optimism`'s (GRAPHITE-ATTACKER-COOLING-API-01).
+#: The controls are unchanged, so `CONTROLS_VERSION` stays v2.
+ADAPTER_VERSION = "carbon.attack.adapter.cooling-l0.v3"
 CONTROLS_VERSION = "carbon.attack.controls.cooling-l0.v2"
 TRACK = LEDGER_TRACK
 SPLITS = _core.SPLITS
@@ -282,7 +286,7 @@ COOLING_VECTORS = {
     "group_sacrifice": {
         "check": "score_exploitation_and_tail_failures",
         "families": ("group_sacrifice",),
-        "attack": "hot_group_rise_twenty_percent_low_rest_exact",
+        "attack": "hot_group_rise_twenty_percent_low_rest_compensating",
         "control": "group_sacrifice_trained_exact_predictions",
         "seam": "group_weighting",
         "expected": VECTOR_EXPECTED,
@@ -587,6 +591,40 @@ def _rise_scaled(references, factor, where="all", important=None):
         t_in, p = _inlet(references, case), out[case]
         p["peak_c"] = t_in + factor * (p["peak_c"] - t_in)
         p["profile_c"] = [t_in + factor * (t - t_in) for t in p["profile_c"]]
+    return out
+
+
+def _sacrificed(references, factor, important=None):
+    """The hot group sacrificed with the overall bias hidden: every hot case's
+    rise above the inlet multiplied by `factor`, every other case's by the
+    compensating `1 + f`, with `f` computed from `references` so the signed
+    peak errors over all cases sum to zero (the mean signed peak bias is held
+    at zero, up to round-off). Gates still pass, as for `_rise_scaled`."""
+    hot = _chosen(references, "important", important)
+    rest = _chosen(references, "representative", important)
+
+    def rise(case):
+        return references[case]["outputs"]["peak_c"] - _inlet(references, case)
+
+    if not hot:
+        raise VectorError(
+            "group_sacrifice needs an important case; the group is empty",
+            code="no_important_case",
+        )
+    lost = (1 - factor) * math.fsum(rise(case) for case in hot)
+    spare = math.fsum(rise(case) for case in rest)
+    if not rest or spare <= 0:
+        raise VectorError(
+            "group_sacrifice needs representative cases with a positive rise "
+            "to compensate the hot group",
+            code="no_representative_case",
+        )
+    out = _rise_scaled(references, factor, "important", important)
+    compensated = _rise_scaled(
+        references, 1 + lost / spare, "representative", important
+    )
+    for case in rest:
+        out[case] = compensated[case]
     return out
 
 
@@ -927,8 +965,8 @@ def _group_attacks():
     refs = _references()
     return (
         (
-            "hot_group_rise_twenty_percent_low_rest_exact",
-            {"predictions": _rise_scaled(refs, 0.8, "important"), "where": "important"},
+            "hot_group_rise_twenty_percent_low_rest_compensating",
+            {"predictions": _sacrificed(refs, 0.8), "where": "important"},
         ),
         (
             "hot_group_rise_quarter_high_rest_exact",
@@ -955,9 +993,9 @@ def _group_attacks():
 
 
 def group_breached(result):
-    """With the representative cases exact and the hot group degraded (every
-    gate passed), the frozen rule must report the hot group apart and worse
-    than the diluted overall score."""
+    """With the hot group degraded and the representative cases exact or only
+    mildly off (every gate passed), the frozen rule must report the hot group
+    apart and worse than the diluted overall score."""
     if not result["eligible"]:
         return False
     hot = result["important_score"]
@@ -1823,8 +1861,8 @@ _VECTOR_TRANSFORMS = {
     "flow_imbalance_masking": lambda refs, hot: _redistributed(refs, 0.3),
     # every_pressure_drop_halved
     "pressure_underprediction": lambda refs, hot: _pressure_scaled(refs, 0.5),
-    # hot_group_rise_twenty_percent_low_rest_exact
-    "group_sacrifice": lambda refs, hot: _rise_scaled(refs, 0.8, "important", hot),
+    # hot_group_rise_twenty_percent_low_rest_compensating
+    "group_sacrifice": lambda refs, hot: _sacrificed(refs, 0.8, hot),
     # face_at_inlet_on_a_hot_case
     "mandatory_failure": lambda refs, hot: _face_at_inlet_on_a_hot_case(refs, hot),
 }
@@ -1902,8 +1940,11 @@ def apply_vector(name, references, *, important=None):
     whose reference peak is at least `T_IMPORTANT_C`, computed from
     `references`. Each vector is its family's attack example:
 
-    - `cooling_optimism` and `group_sacrifice`: the hot group's rise above the
-      inlet 20% low, the rest exact;
+    - `cooling_optimism`: the hot group's rise above the inlet 20% low, the
+      rest exact;
+    - `group_sacrifice`: the hot group's rise 20% low and every other case's
+      rise raised by the fraction, computed from `references`, that brings the
+      summed signed peak error over all cases back to zero;
     - `flow_imbalance_masking`: every profile tilted along the flow (the inlet
       end cooler, the outlet end hotter by 30% of its smallest rise) with its
       mean kept, the peak raised to the profile's maximum if it is exceeded;
@@ -1913,8 +1954,9 @@ def apply_vector(name, references, *, important=None):
 
     Raises `UnknownVector` for a name outside `VECTOR_NAMES`, and
     `VectorError` (typed by `code`) for `selective_fault` (a fault pattern:
-    use `faulted_cases`), malformed references or `important`, and
-    `mandatory_failure` with an empty hot group."""
+    use `faulted_cases`), malformed references or `important`,
+    `mandatory_failure` or `group_sacrifice` with an empty hot group, and
+    `group_sacrifice` with no representative case to compensate it."""
     if not isinstance(name, str) or name not in VECTOR_NAMES:
         raise UnknownVector(
             f"unknown cooling vector {name!r}; known: {', '.join(VECTOR_NAMES)}"
@@ -2611,7 +2653,7 @@ def _families():
             breached=group_breached,
             control_check=_group_control,
             admissible=None,
-            attack_example="hot_group_rise_twenty_percent_low_rest_exact",
+            attack_example="hot_group_rise_twenty_percent_low_rest_compensating",
             reads="public PRACTICE references",
         ),
         FamilySpec(

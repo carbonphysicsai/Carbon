@@ -6,21 +6,27 @@ The claims tested:
 - the pin: every prediction family's attacks, its oracle evidence and specimen
   digests, both control splits and each selective-fault selection on the
   scaffold are byte-identical to `cooling-l0.v2` as merged before the API
-  (recorded before the transforms were refactored);
+  (recorded before the transforms were refactored), except `group_sacrifice`'s
+  attack and evidence digests, which `cooling-l0.v3` moved deliberately (its
+  attack example became a real sacrifice, after the Validator's review);
 - `VECTOR_NAMES` holds the six vectors, each its family's attack example: on
-  the adapter's own references `apply_vector` returns exactly that attack;
+  the adapter's own references `apply_vector` returns exactly that attack, and
+  no two vectors give the same predictions, on the real references or a
+  synthetic set;
 - on a synthetic reference set each vector changes its predictions in its own
-  direction (optimism lowers the hot group's rise by 20%, the tilt keeps each
-  profile's mean, the pressure drop is halved, one hot face is set to the
-  inlet), the hot group defaults to the frozen rule's own definition and a
-  caller's group is honoured;
+  direction (optimism lowers the hot group's rise by 20%, the sacrifice does
+  so while the rest compensates the summed signed peak error to zero, the tilt
+  keeps each profile's mean, the pressure drop is halved, one hot face is set
+  to the inlet), the hot group defaults to the frozen rule's own definition
+  and a caller's group is honoured;
 - `faulted_cases` selects as the `selective_fault` family does;
 - purity: no file is opened and no network or process call is made (an audit
   hook), and the references are never changed;
 - an unknown name, `selective_fault` as a transform and malformed input are
   typed refusals;
-- mutations: a transform turned the wrong way, or `apply_vector` opening a
-  file, turns its guard red.
+- mutations: a transform turned the wrong way, `group_sacrifice` made equal to
+  `cooling_optimism` again, or `apply_vector` opening a file, turns its guard
+  red.
 """
 
 from __future__ import annotations
@@ -35,7 +41,7 @@ from carbon.agent_campaign.attack.adapters import cooling as c
 
 A = c.ADAPTER
 
-# -- the byte pin: the adapter's output at cooling-l0.v2 --------------------------------------------
+# -- the byte pin: the adapter's output at cooling-l0.v2, and what v3 moved -------------------------
 #: The families whose attacks or controls are built from the PRACTICE
 #: references by the transforms the vector API shares.
 PREDICTION_FAMILIES = (
@@ -48,8 +54,7 @@ PREDICTION_FAMILIES = (
     "resource_accounting",
 )
 #: Recorded at origin/main b327ac12d (`cooling-l0.v2`) before the refactor.
-PINNED_VERSION = "carbon.attack.adapter.cooling-l0.v2"
-PINNED = {
+PINNED_V2 = {
     "attacks": {
         "cooling_optimism": "sha256:ea1b5804650b121bbd698bae7f121fb886588f13888a9484259dc6e77f7a3691",
         "flow_imbalance_masking": "sha256:dcf797c9ccba52bae9af0b91f7abf2cd94d68fb59f6fcc2f079c4deee9331718",
@@ -82,6 +87,26 @@ PINNED = {
         "worst_k": "sha256:8d59e55e3ca620eaaf35e055103225ecf760d918fd718f7ef890f480be478046",
     },
 }
+#: `cooling-l0.v3`: `group_sacrifice`'s attack example became a real
+#: sacrifice (the Validator's review of #621 found it identical to
+#: `cooling_optimism`'s). These are the only digests that moved from v2.
+PINNED_VERSION = "carbon.attack.adapter.cooling-l0.v3"
+CHANGED_IN_V3 = {
+    ("attacks", "group_sacrifice"): (
+        "sha256:3b2ffd7f8080290ff50212bdaa0d4cb1ec862dce2eee8011f47effe6a0ee3c52"
+    ),
+    ("evidence", "group_sacrifice"): (
+        "sha256:b1b906b24bbbf089b0dcc3f706d2f5e049cca75c6f59c2950284557f7e1a8fb1"
+    ),
+}
+
+
+def _pinned():
+    """The v3 pin: the v2 pin with only `CHANGED_IN_V3` moved."""
+    pin = copy.deepcopy(PINNED_V2)
+    for (section, name), digest in CHANGED_IN_V3.items():
+        pin[section][name] = digest
+    return pin
 
 
 def _adapter_output():
@@ -108,8 +133,38 @@ def test_the_adapters_output_is_byte_identical_to_the_pin():
     are unchanged; a change here is a change to the emitted output and moves
     `ADAPTER_VERSION`."""
     assert c.ADAPTER_VERSION == PINNED_VERSION
+    assert c.CONTROLS_VERSION == "carbon.attack.controls.cooling-l0.v2"
     c.clear_caches()
-    assert _adapter_output() == PINNED
+    assert _adapter_output() == _pinned()
+
+
+def test_v3_moved_only_group_sacrifices_attack_and_evidence():
+    """Against the v2 pin, the only digests that differ are
+    `group_sacrifice`'s attack and its oracle evidence and specimen readings;
+    every other family, both control splits and every fault selection are
+    unchanged."""
+    c.clear_caches()
+    now = _adapter_output()
+    moved = {
+        (section, name)
+        for section, digests in PINNED_V2.items()
+        for name, digest in digests.items()
+        if now[section][name] != digest
+    }
+    assert moved == set(CHANGED_IN_V3)
+    assert {section: set(d) for section, d in now.items()} == {
+        section: set(d) for section, d in PINNED_V2.items()
+    }
+
+
+def test_group_sacrifice_still_holds_and_its_specimen_still_fires():
+    spec = A.family_spec("group_sacrifice")
+    example = dict(spec.attacks())[spec.attack_example]
+    reading = A.assess(spec, (spec.attack_example, example))
+    assert (reading.reading, reading.oracle.verdict) == (c.HELD, c.HELD)
+    assert reading.oracle.specimen == c.FIRED
+    view = c.score_view(example)
+    assert view["eligible"] and view["important_score"] > view["score"]
 
 
 # -- the vector API ---------------------------------------------------------------------------------
@@ -171,6 +226,35 @@ def _check_optimism(name, references, hot):
             assert t - inlet == pytest.approx(0.8 * (w - inlet), rel=1e-12)
 
 
+def _check_sacrifice(references, hot, important=None):
+    """The hot group's rise 20% low and every other case's rise raised by the
+    compensating fraction, so the signed peak errors sum to zero."""
+    out = c.apply_vector("group_sacrifice", references, important=important)
+    exact = _exact(references)
+
+    def rise(case):
+        return exact[case]["peak_c"] - references[case]["inputs"]["inlet_c"]
+
+    rest = set(references) - hot
+    raised = 1 + 0.2 * sum(rise(k) for k in hot) / sum(rise(k) for k in rest)
+    assert raised > 1
+    signed = []
+    for case, r in references.items():
+        inlet, want, got = r["inputs"]["inlet_c"], exact[case], out[case]
+        assert got["pressure_drop_pa"] == want["pressure_drop_pa"], case
+        scale = 0.8 if case in hot else raised
+        assert got["peak_c"] - inlet == pytest.approx(scale * rise(case), rel=1e-12)
+        for t, w in zip(got["profile_c"], want["profile_c"], strict=True):
+            assert t - inlet == pytest.approx(scale * (w - inlet), rel=1e-12)
+        if case in hot:
+            assert got["peak_c"] < want["peak_c"], case
+        else:
+            assert got["peak_c"] > want["peak_c"], case
+        signed.append(got["peak_c"] - want["peak_c"])
+    # The mean signed peak bias is held at zero, up to round-off.
+    assert abs(math.fsum(signed)) <= 1e-9 * math.fsum(abs(e) for e in signed)
+
+
 def _check_tilt(references):
     """Every profile tilted along the flow with its mean kept: the inlet end
     cooler, the outlet end hotter; the peak still bounds the profile."""
@@ -217,8 +301,8 @@ def _check_mandatory(references, hot):
 
 def _directions_hold():
     references = _synthetic()
-    for name in ("cooling_optimism", "group_sacrifice"):
-        _check_optimism(name, references, HOT_CASES)
+    _check_optimism("cooling_optimism", references, HOT_CASES)
+    _check_sacrifice(references, HOT_CASES)
     _check_tilt(references)
     _check_pressure(references)
     _check_mandatory(references, HOT_CASES)
@@ -248,6 +332,26 @@ def test_each_vector_is_its_familys_attack_example(name):
     assert c.apply_vector(name, c._references()) == expected
 
 
+def _vectors_distinct():
+    """No two vectors give the same predictions, on the adapter's own public
+    PRACTICE references or on a synthetic set (a per-vector catch count never
+    counts one attack twice)."""
+    for references in (c._references(), _synthetic()):
+        made = {name: c.apply_vector(name, references) for name in PREDICTION_VECTORS}
+        digests = {name: c._digest(out) for name, out in made.items()}
+        same = [
+            (a, b)
+            for i, a in enumerate(PREDICTION_VECTORS)
+            for b in PREDICTION_VECTORS[i + 1 :]
+            if made[a] == made[b] or digests[a] == digests[b]
+        ]
+        assert not same, same
+
+
+def test_no_two_vectors_give_the_same_predictions():
+    _vectors_distinct()
+
+
 def test_the_hot_group_defaults_to_the_frozen_rules_definition():
     references = _synthetic()
     assert c._hot(references) == HOT_CASES
@@ -264,9 +368,9 @@ def test_a_callers_important_group_is_honoured():
     references = _synthetic()
     exact = _exact(references)
     chosen = {"case-01", "case-03"}
-    for name in ("cooling_optimism", "group_sacrifice"):
-        out = c.apply_vector(name, references, important=chosen)
-        assert {case for case in out if out[case] != exact[case]} == chosen, name
+    out = c.apply_vector("cooling_optimism", references, important=chosen)
+    assert {case for case in out if out[case] != exact[case]} == chosen
+    _check_sacrifice(references, chosen, important=chosen)
     out = c.apply_vector("mandatory_failure", references, important=chosen)
     assert {case for case in out if out[case] != exact[case]} == {"case-01"}
     assert out["case-01"]["peak_c"] == references["case-01"]["inputs"]["inlet_c"]
@@ -441,9 +545,16 @@ def test_unknown_names_and_malformed_input_are_typed_refusals():
             ),
             "malformed_important",
         )
+    for name in ("mandatory_failure", "group_sacrifice"):
+        _refused(
+            lambda n=name: c.apply_vector(n, references, important=set()),
+            "no_important_case",
+        )
     _refused(
-        lambda: c.apply_vector("mandatory_failure", references, important=set()),
-        "no_important_case",
+        lambda: c.apply_vector(
+            "group_sacrifice", references, important=set(references)
+        ),
+        "no_representative_case",
     )
     for k in (0, -1, True, 1.5, "2"):
         _refused(lambda k=k: c.faulted_cases("worst_k", SCORES, k=k), "malformed_k")
@@ -473,6 +584,17 @@ def _pressure_raised(m):
 
 def _tilt_reversed(m):
     _scaled_the_other_way(m, "_redistributed", lambda f: -f)
+
+
+def _sacrifice_made_optimism_again(m):
+    """`group_sacrifice` mapped back to `cooling_optimism`'s transform (the
+    rest exact), as before the Validator's review."""
+    rise_scaled = c._rise_scaled
+    m.setattr(
+        c,
+        "_sacrificed",
+        lambda refs, f, important=None: rise_scaled(refs, f, "important", important),
+    )
 
 
 def _hot_face_left_warm(m):
@@ -507,6 +629,11 @@ MUTATIONS = {
     "pressure_raised": (_pressure_raised, _directions_hold),
     "tilt_reversed": (_tilt_reversed, _directions_hold),
     "hot_face_left_warm": (_hot_face_left_warm, _directions_hold),
+    "sacrifice_made_optimism_again": (
+        _sacrifice_made_optimism_again,
+        _vectors_distinct,
+    ),
+    "sacrifice_left_uncompensated": (_sacrifice_made_optimism_again, _directions_hold),
     "apply_vector_opens_a_file": (_apply_vector_opens_a_file, _pure),
     "faulted_cases_lists_a_directory": (_faulted_cases_lists_a_directory, _pure),
 }

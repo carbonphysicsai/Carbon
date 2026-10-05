@@ -10,10 +10,11 @@
   "description": "Exposed cooling's Level 0 attack vectors as a pure public API (VECTOR_NAMES, apply_vector, faulted_cases, typed VectorError) so the Validator's gate-audit harness can import them, and refactored the adapter's private transforms to take the reference set as an argument."
  },
  "expected": "The adapter's emitted attacks, evidence and controls stay byte-identical, and the vectors run on a caller's references without touching a file.",
- "observed": "The digest pin recorded before the refactor held afterwards, so ADAPTER_VERSION stayed cooling-l0.v2. On a synthetic reference set each vector moved predictions in its own direction, the audit hook saw no file, directory, network or process event, and the mutations (a transform turned the wrong way, apply_vector opening a file) turned their guards red. The transforms need each case's inlet, so the API takes PRACTICE-shaped records rather than bare predictions.",
+ "observed": "The digest pin recorded before the refactor held afterwards. The Validator's review then found cooling_optimism and group_sacrifice byte-identical (the same transform), so group_sacrifice became a real sacrifice: the hot group 20% low and the rest compensating so the summed signed peak error is zero. That moved only its attack and evidence digests, and ADAPTER_VERSION became cooling-l0.v3; the family still holds and its specimen still fires. On a synthetic reference set each vector moved predictions in its own direction, the audit hook saw no file, directory, network or process event, and the mutations (a transform turned the wrong way, apply_vector opening a file) turned their guards red. The transforms need each case's inlet, so the API takes PRACTICE-shaped records rather than bare predictions.",
  "keep": [
   "Pin the existing output's digests in a committed test before refactoring shared code, then refactor against the pin.",
-  "Expose a reusable attack as a pure function of the caller's data, and bind purity with an audit hook plus a mutation that breaks it."
+  "Expose a reusable attack as a pure function of the caller's data, and bind purity with an audit hook plus a mutation that breaks it.",
+  "Test that no two named vectors produce identical outputs, so a per-vector count never counts one attack twice."
  ],
  "change": [
   "faulted_cases needs the caller's important group for hot_group because case scores carry no reference peak; a caller has to pass it."

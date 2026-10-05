@@ -53,8 +53,8 @@ module level, so `mandatory_failure` and the family share it. Before the
 refactor, a test pinned the digests of seven families' attacks and oracle
 evidence and specimen readings, `selective_fault`'s attacks, both control
 splits and every fault selection on the scaffold, as recorded at `b327ac12d`.
-The pin still holds, so the emitted output is unchanged and `ADAPTER_VERSION`
-stays `cooling-l0.v2`.
+The pin held after the refactor, so the refactor left the emitted output
+unchanged. COOL-API-D4 then moves `group_sacrifice` on purpose.
 
 ### COOL-API-D3 — What it is not
 
@@ -62,3 +62,38 @@ A vector applied to a caller's references is a transform, not a verdict. Only
 the caller's harness grades it. The API reads no file, so it cannot reach
 counted, study, confirmation, private or sealed material. An audit-hook test
 binds this, and the adapter's own audit-hook test still passes.
+
+### COOL-API-D4 — `group_sacrifice` made a real sacrifice (v3)
+
+The Carbon Validator's read-only review of #621 found that `cooling_optimism`
+and `group_sacrifice` used the same transform. Both set the hot group 20% low
+and left the rest exact, so their predictions were byte-identical, and a
+per-vector catch count would count one attack twice. The Validator's review is
+credited with the finding.
+
+`group_sacrifice`'s attack example is now
+`hot_group_rise_twenty_percent_low_rest_compensating` (`_sacrificed`, pure).
+The hot group's rise above the inlet is still 20% low. Every other case's rise
+goes up by `1 + f`, where `f = 0.2 * sum(hot rises) / sum(other rises)` is
+computed from the reference set passed in. The signed peak errors therefore
+sum to zero, and the mean signed peak bias is held at zero up to round-off:
+about 2e-15 K on the public PRACTICE references, with 30 hot cases out of 100.
+The old `rest_exact` attack was the optimism attack again, so it was replaced
+rather than kept. `group_sacrifice` also refuses an empty hot group
+(`no_important_case`) and a set with no representative rise to compensate
+(`no_representative_case`).
+
+- **Verdict:** the family still HOLDS at the real boundary, and its specimen
+  (`pooled_group_scorer`) still FIRES. The set is eligible, its overall score
+  is 0.341 and the hot group's score is 0.564, reported apart.
+- **Versions:** the attack is emitted output, so `ADAPTER_VERSION` moves to
+  `cooling-l0.v3`. The controls are unchanged, so `CONTROLS_VERSION` stays
+  `cooling-l0.v2`.
+- **Byte pin:** the v2 pin is kept, and the test asserts that the only digests
+  to move from it are `group_sacrifice`'s attack and its evidence and specimen
+  readings. Every other family, both control splits and every fault selection
+  are unchanged.
+- **New tests:** no two vectors give the same predictions, on the real
+  references or on a synthetic set. A mutation that maps `group_sacrifice`
+  back to optimism's transform turns that guard red, and the direction guard
+  as well.
