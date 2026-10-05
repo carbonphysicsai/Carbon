@@ -2,9 +2,17 @@
  "schema": "carbon.challenge-pipeline.readiness-branches.v1",
  "challenge": "electric-motor-magnetics",
  "status": "DRAFT",
- "note": "PROPOSED names for the next unbuilt onboarding work, taken from the open gaps in the gate report; none is created yet. O2 fails if any exists on origin before its owner starts it, so the Test Lead edits this list to the names the owners will really use.",
+ "note": "PROPOSED names for the next unbuilt onboarding work, from the open gaps in the gate report; none is started. expected_owner is the session that should open it. O2 fails when a name exists on origin and is not STARTED here. PR Head tracks new branches: set state to STARTED when the expected owner opens one. The Test Lead edits the list to the names owners will really use.",
  "planned_branches": [
-  "codex/motor-scoring-adapter",
-  "claude/motor-phase4-grant"
+  {
+   "name": "codex/motor-scoring-adapter",
+   "expected_owner": "Codex",
+   "state": "PROPOSED"
+  },
+  {
+   "name": "claude/motor-phase4-grant",
+   "expected_owner": "Test Engineer",
+   "state": "PROPOSED"
+  }
  ]
 }

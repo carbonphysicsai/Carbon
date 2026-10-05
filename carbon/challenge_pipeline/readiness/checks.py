@@ -223,13 +223,27 @@ def _record(ctx, name):
 
 
 def branch_plan(item, ctx):
+    """O2: no planned branch name exists on origin under a different owner.
+    Each planned entry is `{name, expected_owner, state}`. A name that exists
+    on origin passes only when its entry is STARTED, which records that its
+    expected owner opened it (PR Head tracks new branches and updates the file);
+    otherwise it exists under an owner this record does not vouch for."""
     plan, path = _record(ctx, "branches.json")
     if plan is None:
         return recorded_tests(item, ctx)
-    names = plan.get("planned_branches") if plan else None
-    if not (
-        isinstance(names, list) and names and all(isinstance(n, str) for n in names)
-    ):
+    entries = plan.get("planned_branches") if plan else None
+    valid = isinstance(entries, list) and bool(entries)
+    if valid:
+        for entry in entries:
+            valid = valid and (
+                isinstance(entry, dict)
+                and isinstance(entry.get("name"), str)
+                and bool(entry["name"])
+                and isinstance(entry.get("expected_owner"), str)
+                and bool(entry["expected_owner"].strip())
+                and entry.get("state") in ("PROPOSED", "STARTED")
+            )
+    if not valid:
         return Result(FAIL, "branches.json is malformed", (path.name,))
     try:
         done = subprocess.run(
@@ -249,12 +263,21 @@ def branch_plan(item, ctx):
         for line in done.stdout.splitlines()
         if "refs/heads/" in line
     }
-    taken = sorted(set(names) & heads)
-    if taken:
+    foreign = sorted(
+        e["name"] for e in entries if e["name"] in heads and e["state"] != "STARTED"
+    )
+    if foreign:
         return Result(
-            FAIL, "planned branch names already exist on origin", tuple(taken)
+            FAIL,
+            "planned branch names exist on origin and are not recorded as started "
+            "by their expected owner",
+            tuple(foreign),
         )
-    return Result(PASS, "no planned branch name exists on origin", (file_digest(path),))
+    return Result(
+        PASS,
+        "no planned branch name exists on origin under another owner",
+        (file_digest(path),),
+    )
 
 
 def onboarding_decisions(item, ctx):
@@ -276,48 +299,60 @@ def onboarding_decisions(item, ctx):
 
 
 def compute_lanes(item, ctx):
-    """Every compute lane the challenge uses declares an environment probe and
-    a current registered attribution policy. A lane marked TBD, or naming a
-    policy that is not the registry's current one, fails: the gate never
-    assumes a lane is covered."""
+    """Every compute lane the challenge uses names its own environment check
+    (`probe`) and a registered, current attribution policy in the registry the
+    lane names. A lane marked TBD, with no policy, or with a policy its
+    registry does not hold or no longer calls current, fails: the gate never
+    assumes a lane is covered. A lane's policy is never borrowed from another
+    lane (a GPU probe's rules do not apply to a CPU carrier)."""
     record, path = _record(ctx, "lanes.json")
     if record is None:
         return recorded_tests(item, ctx)
     lanes = record.get("lanes") if record else None
     if not (isinstance(lanes, list) and lanes):
         return Result(FAIL, "lanes.json is malformed", (path.name,))
-    try:
-        registry = json.loads((REPOSITORY / ATTRIBUTION_REGISTRY).read_bytes())
-        current = registry["current"]
-        digest = registry["versions"][current]
-    except (OSError, ValueError, KeyError):
-        return Result(FAIL, "the attribution policy registry is unreadable")
     evidence, problems = [], []
     for lane in lanes:
         name = lane.get("lane") if isinstance(lane, dict) else None
         if not (isinstance(name, str) and name):
             problems.append("a lane entry has no name")
-        elif lane.get("state") != "DECLARED":
+            continue
+        if lane.get("state") != "DECLARED":
             problems.append(f"{name}: lane is {lane.get('state')!r}, not DECLARED")
-        elif not (lane.get("probe") and lane.get("policy")):
-            problems.append(f"{name}: no environment probe or policy named")
-        elif lane["policy"] != current:
+            continue
+        if not lane.get("probe"):
+            problems.append(f"{name}: no environment check named")
+            continue
+        policy = lane.get("policy")
+        if not policy:
             problems.append(
-                f"{name}: policy {lane['policy']} is not current ({current})"
+                f"{name}: no attribution policy is registered for this lane"
             )
-        else:
-            evidence.append(f"{name}:{lane['probe']}:{current}:{digest}")
+            continue
+        try:
+            registry = json.loads(
+                (REPOSITORY / lane.get("registry", ATTRIBUTION_REGISTRY)).read_bytes()
+            )
+            digest = registry["versions"][policy]
+        except (OSError, ValueError, KeyError):
+            problems.append(f"{name}: policy {policy} is not in its registry")
+            continue
+        if registry.get("current") != policy:
+            problems.append(f"{name}: policy {policy} is not the current version")
+            continue
+        evidence.append(f"{name}:{lane['probe']}:{policy}:{digest}")
     if problems:
         return Result(FAIL, "; ".join(problems), tuple(evidence))
     return Result(
         PASS,
-        "each declared lane names a probe and the current registered attribution policy",
+        "each lane names its own environment check and a current registered policy",
         tuple(evidence),
     )
 
 
 def ownership_map(item, ctx):
-    """O1's committed map: every component has one named owner, and an artifact
+    """O1's committed map: every component names an engineering `owner` and an
+    `acceptance` authority, and an artifact
     that exists when its state is EXISTS. The Test Lead's review decides
     whether the map is right; this check only refuses a malformed one."""
     record, path = _record(ctx, "ownership.json")
@@ -332,9 +367,10 @@ def ownership_map(item, ctx):
         if not isinstance(entry, dict):
             problems.append(f"{name}: no entry")
             continue
-        owner = entry.get("owner")
-        if not (isinstance(owner, str) and owner.strip()) or owner == "UNASSIGNED":
-            problems.append(f"{name}: no single owner named")
+        for field_name in ("owner", "acceptance"):
+            who = entry.get(field_name)
+            if not (isinstance(who, str) and who.strip()) or who == "UNASSIGNED":
+                problems.append(f"{name}: no {field_name} named")
         state = entry.get("state")
         if state not in ("EXISTS", "NOT_BUILT"):
             problems.append(f"{name}: state is not EXISTS or NOT_BUILT")
@@ -348,7 +384,7 @@ def ownership_map(item, ctx):
         return Result(FAIL, "; ".join(problems), (path.name,))
     return Result(
         PASS,
-        "every component has one named owner (the review decides the map is right)",
+        "every component names an engineering owner and an acceptance owner (the review decides the map is right)",
         (file_digest(path),),
     )
 

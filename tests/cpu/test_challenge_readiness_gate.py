@@ -338,14 +338,24 @@ def test_onboarding_records_are_drafts_the_checks_can_read(challenge):
     assert checks.branch_plan.__name__  # O2 needs origin; the shape is tested below
     names = json.loads((base / "branches.json").read_text(encoding="utf-8"))
     assert names["planned_branches"] and all(
-        isinstance(n, str) for n in names["planned_branches"]
+        isinstance(e["name"], str)
+        and e["expected_owner"]
+        and e["state"] in ("PROPOSED", "STARTED")
+        for e in names["planned_branches"]
     )
 
 
 def test_motor_pod_lane_stays_tbd_and_fails_closed():
     result = checks.compute_lanes({}, _ctx("electric-motor-magnetics"))
     assert result.status == model.FAIL and "TBD" in result.detail
-    assert checks.compute_lanes({}, _ctx("chip-cold-plate")).status == model.PASS
+    cooling = checks.compute_lanes({}, _ctx("chip-cold-plate"))
+    assert cooling.status == model.FAIL and "cpu-carrier" in cooling.detail
+    assert (
+        checks.compute_lanes(
+            {}, _ctx("battery-fastcharge-ageing-development-v1")
+        ).status
+        == model.PASS
+    )
 
 
 def test_a_lane_with_a_stale_policy_fails(monkeypatch, tmp_path):
@@ -366,7 +376,13 @@ def test_ownership_map_refuses_unassigned_missing_and_phantom_artifacts(
     directory.mkdir()
     monkeypatch.setattr(checks, "PACKAGE", tmp_path)
     good = {
-        name: {"owner": "Codex", "state": "NOT_BUILT", "artifact": None, "basis": "b"}
+        name: {
+            "owner": "Codex",
+            "acceptance": "Ryan",
+            "state": "NOT_BUILT",
+            "artifact": None,
+            "basis": "b",
+        }
         for name in checks.OWNERSHIP_COMPONENTS
     }
 
@@ -398,7 +414,67 @@ def test_ownership_map_refuses_unassigned_missing_and_phantom_artifacts(
 def test_committed_ownership_maps_name_every_component(challenge):
     ctx = _ctx(challenge)
     result = checks.ownership_map({}, ctx)
-    if challenge.startswith("battery"):
-        assert result.status == model.FAIL and "contract" in result.detail
-    else:
-        assert result.status == model.PASS, result.detail
+    assert result.status == model.PASS, result.detail
+    record = json.loads(
+        (model.PACKAGE / challenge / "ownership.json").read_text(encoding="utf-8")
+    )
+    for entry in record["components"].values():
+        assert entry["acceptance"] == "Ryan (technical owner)"
+        assert entry["owner"] != "UNASSIGNED"
+
+
+def test_ownership_map_needs_an_acceptance_owner(monkeypatch, tmp_path):
+    directory = tmp_path / CHALLENGE
+    directory.mkdir()
+    monkeypatch.setattr(checks, "PACKAGE", tmp_path)
+    components = {
+        name: {"owner": "Codex", "state": "NOT_BUILT", "basis": "b"}
+        for name in checks.OWNERSHIP_COMPONENTS
+    }
+    (directory / "ownership.json").write_text(
+        json.dumps({"components": components}), encoding="utf-8"
+    )
+    result = checks.ownership_map({}, _ctx())
+    assert result.status == model.FAIL and "acceptance" in result.detail
+
+
+def _branches(monkeypatch, tmp_path, entries, heads):
+    directory = tmp_path / CHALLENGE
+    directory.mkdir()
+    monkeypatch.setattr(checks, "PACKAGE", tmp_path)
+    (directory / "branches.json").write_text(
+        json.dumps({"planned_branches": entries}), encoding="utf-8"
+    )
+
+    class Done:
+        returncode = 0
+        stdout = "".join("abc" + chr(9) + "refs/heads/" + h + chr(10) for h in heads)
+
+    monkeypatch.setattr(checks.subprocess, "run", lambda *a, **k: Done())
+
+
+def test_o2_flags_only_a_name_on_origin_under_another_owner(monkeypatch, tmp_path):
+    entry = {"name": "x/y", "expected_owner": "Codex", "state": "PROPOSED"}
+    _branches(monkeypatch, tmp_path, [entry], ["x/y"])
+    assert checks.branch_plan({}, _ctx()).status == model.FAIL
+    tmp2 = tmp_path / "two"
+    tmp2.mkdir()
+    _branches(monkeypatch, tmp2, [{**entry, "state": "STARTED"}], ["x/y"])
+    assert checks.branch_plan({}, _ctx()).status == model.PASS
+    tmp3 = tmp_path / "three"
+    tmp3.mkdir()
+    _branches(monkeypatch, tmp3, [entry], ["other"])
+    assert checks.branch_plan({}, _ctx()).status == model.PASS
+    tmp4 = tmp_path / "four"
+    tmp4.mkdir()
+    _branches(monkeypatch, tmp4, [{"name": "x/y"}], [])
+    assert checks.branch_plan({}, _ctx()).status == model.FAIL
+
+
+def test_carrier_lane_never_borrows_the_gpu_probe_policy():
+    for challenge in ("chip-cold-plate", "electric-motor-magnetics"):
+        lanes = json.loads(
+            (model.PACKAGE / challenge / "lanes.json").read_text(encoding="utf-8")
+        )["lanes"]
+        carrier = next(x for x in lanes if x["lane"] == "cpu-carrier")
+        assert carrier["policy"] is None

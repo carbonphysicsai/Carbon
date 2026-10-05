@@ -2,63 +2,72 @@
  "schema": "carbon.challenge-pipeline.readiness-ownership.v1",
  "challenge": "chip-cold-plate",
  "status": "DRAFT",
- "note": "DRAFT by the Graphite Testing Manager from repository paths and decision records; the Test Lead reviews and approves it as a PR.",
+ "note": "DRAFT by the Graphite Testing Manager. Two fields per component: owner = engineering, acceptance = who accepts it (Test Lead ruling 2026-10-05). The Test Lead reviews and approves it as a PR.",
  "components": {
   "contract": {
    "owner": "Codex",
    "state": "EXISTS",
    "artifact": "carbon/cold_plate/contracts.py",
-   "basis": "Test Lead ownership brief, 2026-10-05"
+   "basis": "Test Lead ownership brief, 2026-10-05",
+   "acceptance": "Ryan (technical owner)"
   },
   "scorer": {
    "owner": "Codex",
    "state": "EXISTS",
    "artifact": "carbon/challenge_validator/cooling_scoring.py",
-   "basis": "OWNER-GRAPHITE-TEST-WAVE-06 section 5"
+   "basis": "OWNER-GRAPHITE-TEST-WAVE-06 section 5",
+   "acceptance": "Ryan (technical owner)"
   },
   "validator_adapter": {
    "owner": "Codex",
    "state": "EXISTS",
    "artifact": "carbon/challenge_validator/cooling.py",
-   "basis": "OWNER-GRAPHITE-TEST-WAVE-06 section 5"
+   "basis": "OWNER-GRAPHITE-TEST-WAVE-06 section 5",
+   "acceptance": "Ryan (technical owner)"
   },
   "attack_adapter": {
    "owner": "Test Engineer",
    "state": "EXISTS",
    "artifact": "carbon/agent_campaign/attack/adapters/cooling.py",
-   "basis": "Test Lead ownership brief, 2026-10-05"
+   "basis": "Test Lead ownership brief, 2026-10-05",
+   "acceptance": "Ryan (technical owner)"
   },
   "decision_study": {
    "owner": "Data Collection",
    "state": "EXISTS",
    "artifact": "carbon/cold_plate/decision_study.py",
-   "basis": "Test Lead ownership brief, 2026-10-05"
+   "basis": "Test Lead ownership brief, 2026-10-05",
+   "acceptance": "Ryan (technical owner)"
   },
   "references": {
    "owner": "Data Collection",
    "state": "EXISTS",
    "artifact": "carbon/cold_plate/reference_campaign.py",
-   "basis": "Test Lead ownership brief, 2026-10-05"
+   "basis": "Test Lead ownership brief, 2026-10-05",
+   "acceptance": "Ryan (technical owner)"
   },
   "gates": {
    "owner": "Carbon Validator",
    "state": "EXISTS",
    "artifact": "carbon/cold_plate/exam.py",
-   "basis": "Test Lead ownership brief, 2026-10-05"
+   "basis": "Test Lead ownership brief, 2026-10-05",
+   "acceptance": "Ryan (technical owner)"
   },
   "literature": {
    "owner": "Carbon Validator",
    "state": "NOT_BUILT",
    "artifact": null,
    "basis": "Test Lead ownership brief, 2026-10-05",
-   "note": "Challenge-named literature is VALIDATOR-08 (#614), open."
+   "note": "Challenge-named literature is VALIDATOR-08 (#614), open.",
+   "acceptance": "Ryan (technical owner)"
   },
   "grants": {
    "owner": "Test Engineer",
    "state": "NOT_BUILT",
    "artifact": null,
    "basis": "OWNER-GRAPHITE-TEST-WAVE-05 section 2; OWNER-GRAPHITE-TEST-WAVE-06 section 3",
-   "note": "Cooling phase-4 and Constructor grants are approved; their files are in #612, open."
+   "note": "Cooling phase-4 and Constructor grants are approved; their files are in #612, open.",
+   "acceptance": "Ryan (technical owner)"
   }
  }
 }

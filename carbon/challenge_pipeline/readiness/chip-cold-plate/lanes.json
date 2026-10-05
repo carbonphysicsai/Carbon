@@ -2,14 +2,14 @@
  "schema": "carbon.challenge-pipeline.readiness-lanes.v1",
  "challenge": "chip-cold-plate",
  "status": "DRAFT",
- "note": "DRAFT by the Graphite Testing Manager from repository paths and decision records; the Test Lead reviews and approves it as a PR.",
+ "note": "DRAFT; the carrier lane carries its own environment check and no policy until the Carbon Validator registers one (Test Lead ruling 2026-10-05).",
  "lanes": [
   {
    "lane": "cpu-carrier",
    "state": "DECLARED",
-   "probe": "carrier_pods.inspect_effective_controls",
-   "policy": "pod-attribution-v2",
-   "note": "The carrier is a PodBackend typed by pod_phase claims as on pods (carrier_pods.py). Whether pod-attribution-v2's GPU probe rules apply to a CPU lane is for the Test Lead to confirm."
+   "probe": "carrier_pods.inspect_effective_controls (docker inspect: network none, private pid and ipc, read-only root, caps dropped, two mounts) plus pinned-image presence",
+   "policy": null,
+   "note": "A failed carrier environment check types the run environment -> FAILED_INFRA, with host timing authoritative against the carrier's effective deadline. pod-attribution-v2's GPU probe does NOT apply to a CPU lane. No carrier attribution policy is registered in this tree; the Carbon Validator (VALIDATOR-06) was asked for its id. Until it is registered here, R3 fails for this lane."
   },
   {
    "lane": "pod",
