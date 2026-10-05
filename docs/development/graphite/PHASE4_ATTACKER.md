@@ -25,6 +25,7 @@ python -m carbon.agent_campaign.graphite.phase4 run --root DIR \
     --grant docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json \
     --credential-file PATH \
     --miner-profile PROFILE.json --miner-campaign ID [--session N] [--challenge TOKEN]
+python -m carbon.agent_campaign.graphite.phase4 prelive --root DIR --challenge TOKEN [--grant PATH]
 python -m carbon.agent_campaign.graphite.phase4 cancel --root DIR --session N
 python -m carbon.agent_campaign.graphite.phase4 status --root DIR [--dry-run]
 python -m carbon.agent_campaign.graphite.phase4 log --root DIR [--dry-run]
@@ -58,8 +59,13 @@ It differs from a Constructor session where an Attacker does something else:
   none of the Constructor's pod, delivery or stall fields;
 - `AttackerTools` enforces one resource rule before dispatch: a sandbox code
   run must ask for a wall allowance of at most the adapter's
-  `code_run_seconds` (family `resource_and_failure_accounting`). A timeout at
-  that allowance is `FAILED_INFRA`, never a pass.
+  `code_run_seconds` (family `resource_and_failure_accounting`). The rule is
+  the adapter's own `code_run_refusal` (else the core's
+  `attack.adapter.code_run_refusal`), the same function that family attacks.
+  A run that reaches its own allowance ends `DEADLINE`
+  (`OWN_ALLOWANCE_ELAPSED`, `research_carrier`), its own outcome and never a
+  pass; only a failure Carbon cannot attribute to the run is an
+  infrastructure failure.
 
 SIGINT or SIGTERM, or `cancel`, asks a running session to stop at its next
 checkpoint. Since no pod is launched there is nothing to reconcile after it.
@@ -80,7 +86,8 @@ From the session's journal, never the model's prose:
    `controller.record_finding`, after which every expansion is refused
    (`admission_expansion_after_finding`).
 4. Every verdict is written to the attack-knowledge store with its own
-   outcome. A timeout or crash, an unrebuildable construction and Graphite's
+   outcome. A timeout, an infrastructure failure (stored `FAILED_INFRA`,
+   never folded into a crash) or a crash, an unrebuildable construction and Graphite's
    own refusal are never stored as a hold; a near miss is stored only when the
    oracle reports one. A record the store refuses is listed with its typed
    code.
@@ -126,8 +133,45 @@ adds belong to the next snapshot.
 `DIR/attacker-dry-run`, with a synthetic copy of the grant and no miner path,
 then Carbon's side with the real engine, producing the coverage report and B2.
 With no miner path nothing reaches the path: every attempt is Graphite's own
-refusal and no finding is invented. It makes no network call and spends
-nothing.
+refusal and no finding is invented. It makes no network call (the whole run is
+under a network guard that refuses and records any socket connect or name
+lookup) and spends nothing: the scripted model reports a zero charge, and a
+run whose settled amount is not exactly zero exits 4.
+
+### The pre-live gate
+
+The dry run's scripted model and pods stand where the real code runs, so a
+defect in the real code's threading cannot show there (phase-3 session 3).
+`prelive` (`phase4_prelive`) must pass before the first live run. It runs the
+live run's own parts (`phase4.live_checks`, `live_model`, `live_provider`,
+`run_live`) up to the network boundary, with a fake only at that boundary:
+
+- the grant and code checks (L1, below) on the real checkout, and a copy with
+  its ceiling raised refused;
+- the session: the real `AttackerProvider`, campaign controller, research
+  loop and ledger (`asyncio.run` on the main thread, each model call through
+  `asyncio.to_thread`), the real model client (`LiveModel` ->
+  `SelectionTransport`, `engy-chat`, its key read from a file and posted from
+  its own worker thread) answered by a fake opener in Engy's Chat Completions
+  shape with a zero charge, and the real miner-path translation over a fake
+  miner door;
+- Carbon's side: analysis, verify, the report and B2, the attack-knowledge
+  store's hash-chained journal, the session pin, a resume reusing it and a
+  view under another digest refused, and the controller's findings;
+- the pod and compute-store path (`RunPodPods` over `operator_compute` and
+  its sqlite `ComputeStore`) with a fake RunPod transport, driven the way
+  phase 3 drives it (`asyncio.to_thread`) and, as a control, on the thread
+  that built it. Phase 4 launches no pod, but this step still blocks the
+  gate until the pod store is thread-safe. When the pod layer provides its
+  own real-path check (`pods.real_path_check`) the gate calls it.
+
+A sqlite thread guard records any use of a connection from a thread other
+than the one that opened it, even one a caller catches, and a network guard
+refuses every connect. The gate prints one JSON report (each path, what it
+exercised, its status and detail, `blocking_findings`, and
+`phase4_live_path` for the phase-4 paths alone) and exits 0 only when every
+path passed with no network use. Run it from the repository
+root, exactly as the live run will be started.
 
 ## The grant
 
@@ -136,6 +180,12 @@ USD 10.50, cleanup USD 0.25, worst-case run cost USD 3.41 (six verify pods at
 USD 0.246369864 ≈ 1.48, the token share 1.93 ≈ 40 glm-5.2 calls), three
 permitted runs, one session at a time, 15,600 s runtime, expiring 2026-12-31.
 Money and time bind, never a call count.
+
+A live run reads the grant from git, never from the working tree
+(`check_committed_grant`): the file passed must equal the committed blob at
+HEAD (`git show HEAD:docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json`),
+HEAD must be on a remote branch, and the grants directory must match HEAD.
+An operator who edits the working-tree grant and passes it is refused.
 
 **A live run is not executed in this work.** Under OWNER-GRAPHITE-ATTACKER-01
 §5 a live run happens only after the engine merges and the scripted dry run

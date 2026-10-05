@@ -40,9 +40,17 @@ from . import literature
 
 # The protected-material check lives in a leaf module, because `literature`
 # runs it when it builds its fixture index at import and this module imports
-# `literature` (an import cycle when this module is imported first). Both
-# names stay importable from here (`tools.protected`, `tools.PROTECTED_MARKERS`).
-from .protected_material import PROTECTED_MARKERS, protected  # noqa: F401
+# `literature` (an import cycle when this module is imported first). Its
+# names stay importable from here (`tools.protected`, `tools.PROTECTED_MARKERS`,
+# `tools.result_material` and its answers).
+from .protected_material import (  # noqa: F401
+    ATTACK_TARGET,
+    MATERIAL_FRAGMENTS,
+    PROTECTED_MARKERS,
+    PROTECTED_MATERIAL,
+    protected,
+    result_material,
+)
 
 #: The next-level proposal tool (`roles.NEXT_LEVEL`; the name is repeated
 #: here rather than imported, and `roles` asserts the two agree).
@@ -134,7 +142,11 @@ class GraphiteToolbox:
                 identity,
                 name,
                 arguments,
-                refusal(REFUSED_RESULT, "protected_material_in_result"),
+                refusal(
+                    REFUSED_RESULT,
+                    "protected_material_in_result",
+                    material=result_material(result),
+                ),
             )
         self.emit(
             "tool-" + identity,

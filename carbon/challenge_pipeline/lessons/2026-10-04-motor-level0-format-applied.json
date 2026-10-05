@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-level0-format-applied",
+  "recorded_at": "2026-10-04T23:14:14.8802363+00:00",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-MOTOR-02 scoped formatting",
+    "description": "Applied Ruff formatting only to newly authored Motor implementation, discovery and test files."
+  },
+  "expected": "Mechanical formatting should update only new Motor files and preserve unrelated repository text.",
+  "observed": "Eight new files were reformatted and three were already formatted; no shared or unrelated file was rewritten by the formatter.",
+  "keep": [
+    "Use the formatter on a scope-limited explicit file list."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.motor.level0",
+    "delivery.static-checks",
+    "delivery.scope-discipline"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
