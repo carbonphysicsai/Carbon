@@ -177,6 +177,15 @@ def _door_notes(op):
             "retry idempotent; without one, a retry after a lost response "
             "launches a second campaign."
         )
+    if op.name == "launch":
+        notes.append(
+            "The campaign is carried out by the campaigns' supervisor, not "
+            "this session, so this session may end. If carbon_observe shows "
+            "in_flight.state QUEUED with supervisor_running false, nothing is "
+            "carrying it out yet: carbon_observe starts a supervisor for it, "
+            "so observe again after a few seconds; if it stays so, open the "
+            "Control Center, which supervises while it runs."
+        )
     if takes_owner_lock(op.name, {}):
         notes.append(
             "While this session is attached to the campaign "
