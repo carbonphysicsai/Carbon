@@ -1005,10 +1005,19 @@ def submit_through_intake(
     validator that received it. Returns `(status, answer, submission_id)`;
     raises `IntakeRefusal` with the intake's or the transport's code.
     """
+    from carbon.reconstruction.capability_registry import (
+        DEVELOPMENT_VARIANT_NOT_SERVED,
+        is_development_variant,
+    )
+
     from . import intake_client
     from . import remote_submission as rs
     from .intake import RECEIVED_AGAIN
 
+    if is_development_variant(contract_digest):
+        # A development-only contract variant is never served to a miner, so
+        # the Launchpad sends nothing (OWNER-GRAPHITE-TEST-WAVE-03 §1).
+        raise rs.IntakeRefusal(DEVELOPMENT_VARIANT_NOT_SERVED)
     passed = {} if read is None else {"read": read, "post": post}
     io = {
         "read": read or intake_client.read_intake,

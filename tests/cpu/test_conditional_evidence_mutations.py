@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import pytest
 import test_conditional_evidence as t
+from test_development_variants import install
 
 from carbon.agent_campaign import controller as ctl
 from carbon.agent_campaign.controller import CampaignController
@@ -21,10 +22,25 @@ _TAG = ce.tag
 _EXPANSIONS = admission._expansions
 
 
+@pytest.fixture(autouse=True)
+def fixture_variants(tmp_path_factory, monkeypatch):
+    """The guarding tests' synthetic development variants (they are called
+    directly here, so their own module's fixture does not run)."""
+    install(tmp_path_factory.mktemp("variants"), monkeypatch)
+
+
 def _lenient_expansions(entries):
     """Accept development keys on a LOCK entry by dropping them first."""
     drop = {"kind", *ce.TAG_KEYS}
     return _EXPANSIONS([{k: v for k, v in e.items() if k not in drop} for e in entries])
+
+
+def _lenient_lock_ledger(m):
+    """Every LOCK-ledger refusal of a development entry switched off: its keys
+    (GRAPHITE-CONDITIONAL-EXPLORATION-01) and its variant permissions
+    (GRAPHITE-DEV-VARIANTS-01)."""
+    m.setattr(admission, "_expansions", _lenient_expansions)
+    m.setattr(admission, "_development_permissions", lambda entry: False)
 
 
 def _let_tagged_pass(m):
@@ -45,7 +61,7 @@ MUTATIONS = {
         t.test_lock_is_still_refused_with_an_open_finding_on_the_admission_path,
     ),
     "lock_ledger_refuses_development_entries": (
-        lambda m: m.setattr(admission, "_expansions", _lenient_expansions),
+        _lenient_lock_ledger,
         t.test_a_development_entry_never_enters_a_lock,
     ),
     "development_expansion_is_tagged": (

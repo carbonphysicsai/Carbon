@@ -764,6 +764,9 @@ class BatteryIntake:
             return _refused(401, failure.code.value)
         hotkey = received.receipt.hotkey
         if received.call.tool == SUBMIT_TOOL:
+            # The neutral screen refuses a development-only variant's digest
+            # (`development_variant_not_served`, OWNER-GRAPHITE-TEST-WAVE-03
+            # §1), so it is never queued for admission.
             screened = self._screen(received, gateway)
             if type(screened) is Answer:
                 return screened

@@ -5,9 +5,10 @@
         (--credential-file PATH | --credential-env ENGY_API_KEY) \
         (--runpod-key-file PATH | --runpod-key-env RUNPOD_API_KEY) \
         --miner-profile PROFILE.json --miner-campaign ID --code-ref SHA \
-        --literature-snapshot SNAPSHOT.json [--allow-unchecked-cards] [--session N]
+        --literature-snapshot SNAPSHOT.json [--allow-unchecked-cards] [--session N] \
+        [--level N]
     python -m carbon.agent_campaign.graphite.phase3 run --root DIR --challenge TOKEN --dry-run \
-        [--literature-snapshot SNAPSHOT.json [--allow-unchecked-cards]]
+        [--literature-snapshot SNAPSHOT.json [--allow-unchecked-cards]] [--level N]
     python -m carbon.agent_campaign.graphite.phase3 cancel --root DIR --session N
     python -m carbon.agent_campaign.graphite.phase3 reconcile --root DIR --challenge TOKEN --grant G \
         (--runpod-key-file PATH | --runpod-key-env RUNPOD_API_KEY) --code-ref SHA
@@ -37,6 +38,15 @@ under one owner grant that covers both its model calls and its pods
    ablations, as a PR-ready directory, and rebuilds it from the bundle alone;
 5. findings (an unrebuildable proposal, a rebuild mismatch) are recorded on
    the controller, where they stop any later expansion.
+
+**Construction level** (`--level`, GRAPHITE-DEV-VARIANTS-01). Level 0, the
+default, constructs inside the recorded miner-facing contract exactly as
+before. A level above 0 runs the development-only contract variant
+`development_variants.DEV_VARIANTS` registers for the Challenge and level
+(OWNER-GRAPHITE-TEST-WAVE-03 §1): the session's permission profile is the
+variant itself, the controller records it as a development expansion, and
+every proposal compiles through the variant's own path. An unregistered or
+unrecorded level is refused before anything runs.
 
 **Literature** (GRAPHITE-D28, D29). A live run reads a frozen phase-2 snapshot
 (`phase2 snapshot`), named by `--literature-snapshot`; it refuses to start
@@ -462,6 +472,7 @@ class Phase3Provider(GraphiteProvider):
             scoring=self.scoring,
             construction_level=recorded_level(opened, self.scoring),
             seconds_left=self._time_gate(run_id, opened),
+            development_variant=recorded_variant(opened, self.scoring),
         )
 
     def _next_level(self, run_id, role):
@@ -675,8 +686,25 @@ def check_observation(observation, scoring=None):
         raise ProviderUnavailable(refused.code) from None
     if not scoring.check_challenge(observation.get("challenge") or {}):
         raise ProviderUnavailable("phase3_challenge_not_served")
+    variant = None
+    if observation.get("level") != 0:
+        # A development level's brief names its registered variant.
+        from carbon.reconstruction import development_variants
+
+        named = (observation.get("construction_contract") or {}).get(
+            "development_variant"
+        )
+        try:
+            variant = development_variants.registered(named, scoring.challenge_id)
+        except development_variants.VariantRefused as refused:
+            raise ProviderUnavailable(refused.code) from None
+        if variant.level != observation.get("level"):
+            raise ProviderUnavailable("development_variant_is_another_level")
+    # Level 0 calls admission exactly as before; only a development level
+    # names its variant.
+    level = {} if variant is None else {"variant": variant}
     try:
-        ex.admit(observation.get("baseline_strategy"), 0, scoring=scoring)
+        ex.admit(observation.get("baseline_strategy"), 0, scoring=scoring, **level)
     except (ex.Unrebuildable, ex.NotServed):
         raise ProviderUnavailable("baseline_not_rebuildable") from None
 
@@ -731,6 +759,46 @@ def open_literature(path, *, allow_unchecked):
 
 
 # -- briefs, profile and the controller ------------------------------------------------------
+def development_variant_for(level, scoring):
+    """The construction level's development-only variant for the session's
+    named Challenge (`scoring`): None at Level 0 (the recorded miner-facing
+    contract, unchanged); at a level above 0 the variant `DEV_VARIANTS`
+    registers for that Challenge and level, or a typed refusal
+    (`development_variant_unregistered`, OWNER-GRAPHITE-TEST-WAVE-03 §1).
+    Only Carbon's development runners read a variant."""
+    if level == 0 and type(level) is int:
+        return None
+    if type(level) is not int or level < 0:
+        raise RunnerRefused("level_is_a_ladder_level")
+    from carbon.reconstruction import development_variants
+
+    try:
+        challenge = challenge_scoring.resolve(scoring).challenge_id
+    except (challenge_scoring.ScoringUnavailable, TypeError):
+        raise RunnerRefused("challenge_scoring_must_be_named") from None
+    try:
+        return development_variants.variant(challenge, level)
+    except development_variants.VariantRefused as refused:
+        raise RunnerRefused(refused.code) from None
+
+
+def _variant_of(scoring, variant):
+    """A development level's variant, only for the session's own Challenge."""
+    if variant is not None and variant.challenge != scoring.challenge_id:
+        raise RunnerRefused("development_variant_is_another_challenges")
+    return variant
+
+
+def _variant_contract(variant):
+    """What a development-level run constructs under: the variant's record."""
+    from carbon.reconstruction import development_variants
+
+    try:
+        return development_variants.recorded_variant(variant)
+    except development_variants.VariantRefused as refused:
+        raise RunnerRefused(refused.code) from None
+
+
 def session_brief(
     *,
     checkout_commit,
@@ -739,22 +807,29 @@ def session_brief(
     literature=None,
     repository=REPOSITORY,
     scoring=None,
+    variant=None,
 ):
     """The Constructor's brief: the session Challenge's public development
     material only (its `ChallengeScoring`), and the session's offered
-    literature (the phase-1 fixture when none is given)."""
+    literature (the phase-1 fixture when none is given). `variant` is the
+    development level's registered variant (`development_variant_for`) for
+    the same Challenge, or None at Level 0."""
     scoring = (
         challenge_scoring.scoring_for(budget.challenge_id)
         if scoring is None
         else challenge_scoring.resolve(scoring)
     )
+    variant = _variant_of(scoring, variant)
     baseline = scoring.baseline_strategy() if baseline is None else baseline
     literature = lit.FIXTURE_INDEX if literature is None else literature
-    contract = ex.recorded_contract(scoring)
+    if variant is None:
+        level, contract = 0, ex.recorded_contract(scoring)
+    else:
+        level, contract = variant.level, _variant_contract(variant)
     manifest = boundaries.checkout_manifest(repository, boundaries.Role.CONSTRUCTION)
     observation = {
         "challenge": scoring.challenge(),
-        "level": 0,
+        "level": level,
         "construction_contract": contract,
         "baseline_strategy": baseline,
         "objective": scoring.construction_objective,
@@ -780,9 +855,14 @@ def session_brief(
     )
 
 
-def permission_profile(scoring):
-    """Level 0: the session Challenge's recorded contract, widened by nothing."""
+def permission_profile(scoring, variant=None):
+    """Level 0: the session Challenge's recorded contract, widened by nothing.
+    At a development level the profile is the registered variant itself: its
+    document, pinned by its digest, which is what the campaign controller's
+    development ledger records (GRAPHITE-DEV-VARIANTS-01)."""
     scoring = challenge_scoring.resolve(scoring)
+    if _variant_of(scoring, variant) is not None:
+        return variant.document(), variant.digest
     document = {
         "schema": PROFILE_SCHEMA,
         "level": 0,
@@ -793,14 +873,32 @@ def permission_profile(scoring):
     return document, digest(canonical(document))
 
 
+def recorded_variant(opened, scoring):
+    """The registered development variant of the session's Challenge that an
+    opened run's task recorded as its profile, or None (Level 0, or
+    unknown)."""
+    from carbon.reconstruction import development_variants
+
+    challenge = challenge_scoring.resolve(scoring).challenge_id
+    task = (opened or {}).get("task") or {}
+    try:
+        return development_variants.registered(task.get("profile_digest"), challenge)
+    except development_variants.VariantRefused:
+        return None
+
+
 def recorded_level(opened, scoring):
     """The construction level of an opened run, from the permission profile
     its task recorded: the profile's level only when the run's recorded
-    profile digest is this profile's, else None (unknown). Never read from a
+    profile digest is this profile's (Level 0's, or a registered development
+    variant's of the same Challenge), else None (unknown). Never read from a
     submission (`pod_outcome`)."""
     document, profile = permission_profile(scoring)
     task = (opened or {}).get("task") or {}
-    return document["level"] if task.get("profile_digest") == profile else None
+    if task.get("profile_digest") == profile:
+        return document["level"]
+    found = recorded_variant(opened, scoring)
+    return None if found is None else found.level
 
 
 def controller_for(root, provider, grant, clock=None):
@@ -865,15 +963,38 @@ def check_resume(provider, number):
         raise ResumeRefused("literature_snapshot_changed_since_the_session_opened")
 
 
-def run_session(control, provider, brief, number):
-    """Launch (or resume) session `number` under the controller and run it."""
+def ensure_development_expansion(control, variant, operator=OPERATOR):
+    """At a development level, the controller's newest development expansion
+    is the variant (recorded once, tagged with any open finding); the
+    controller refuses any digest `DEV_VARIANTS` does not register."""
+    if control.development_profile() == variant.digest:
+        return
+    control.record_development_expansion(
+        challenge=variant.challenge,
+        profile=f"level-{variant.level}",
+        widened=", ".join(variant.permissions()),
+        permissions=variant.digest,
+        operator=operator,
+    )
+
+
+def run_session(control, provider, brief, number, variant=None):
+    """Launch (or resume) session `number` under the controller and run it.
+    `variant` is the development level's registered variant, or None at
+    Level 0; it must be the one the brief names."""
     if type(number) is not int or not 1 <= number <= control.grant.permitted_runs:
         raise ValueError("session is 1 .. the grant's permitted runs")
+    observation = getattr(brief, "initial_observation", None) or {}
+    named = (observation.get("construction_contract") or {}).get("development_variant")
+    if named != (None if variant is None else variant.digest):
+        raise ValueError("the brief names another construction level")
     check_resume(provider, number)
-    _document, profile = permission_profile(provider.scoring)
+    _document, profile = permission_profile(provider.scoring, variant)
     ensure_campaign(
         control, checkout_digest=brief.checkout_manifest_digest, profile_digest=profile
     )
+    if variant is not None:
+        ensure_development_expansion(control, variant)
     spec = TaskSpec(
         campaign_id=CAMPAIGN,
         role=ROLES[RoleName.CONSTRUCTOR].boundary.value,
@@ -1091,8 +1212,14 @@ def command_run(args):
         scoring = challenge_scoring.scoring_for(args.challenge)
     except challenge_scoring.ScoringUnavailable as refused:
         raise RunnerRefused(refused.code) from None
+    # A development level resolves the named Challenge's registered variant
+    # before anything is read or spent; an unregistered one is refused here.
+    variant = development_variant_for(getattr(args, "level", 0), scoring)
+    level = {} if variant is None else {"development_variant": variant}
     if args.dry_run:
-        return dry_run(_root(args.root), scoring, literature=_literature_from(args))
+        return dry_run(
+            _root(args.root), scoring, literature=_literature_from(args), **level
+        )
     root = _root(args.root)
     grant = load_grant(args.grant)
     if grant.provider != "graphite":
@@ -1162,9 +1289,10 @@ def command_run(args):
                 budget=budget,
                 literature=literature,
                 scoring=scoring,
+                variant=variant,
             )
             _install_cancel(provider, provider.run_id_for(session_key(args.session)))
-            result = run_session(control, provider, brief, args.session)
+            result = run_session(control, provider, brief, args.session, variant)
         finally:
             control.close()
     print(json.dumps(result, indent=1, default=str))
@@ -1340,7 +1468,9 @@ def dry_run_script(baseline, variant, refused):
     ]
 
 
-def dry_run(root, scoring, literature=None):
+def dry_run(root, scoring, literature=None, development_variant=None):
+    """`development_variant`: a development level's registered variant for the
+    same Challenge (`development_variant_for`), or None at Level 0."""
     from .model import ScriptedModel
     from .pods import ScriptedPods, Step, real_path_check, synthetic_outputs
 
@@ -1377,8 +1507,9 @@ def dry_run(root, scoring, literature=None):
             budget=provider.budget,
             literature=literature,
             scoring=scoring,
+            variant=development_variant,
         )
-        result = run_session(control, provider, brief, 1)
+        result = run_session(control, provider, brief, 1, development_variant)
     finally:
         control.close()
     limits = result["session_limits"]
@@ -1431,6 +1562,15 @@ def main(argv=None):
     run.add_argument("--challenge", required=True)
     run.add_argument("--dry-run", action="store_true")
     run.add_argument("--grant")
+    run.add_argument(
+        "--level",
+        type=int,
+        default=0,
+        help=(
+            "construction level (default 0, the recorded contract); a level "
+            "above 0 runs its registered development-only variant, or is refused"
+        ),
+    )
     credential = run.add_mutually_exclusive_group()
     credential.add_argument("--credential-file")
     credential.add_argument("--credential-env")

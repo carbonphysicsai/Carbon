@@ -1,17 +1,26 @@
 """Graphite phase 4: the Attacker session driver for the general attack engine.
 
     python -m carbon.agent_campaign.graphite.phase4 run --root DIR --dry-run \
-        --challenge TOKEN
+        --challenge TOKEN [--level N]
     python -m carbon.agent_campaign.graphite.phase4 run --root DIR \
         --grant docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json \
         --credential-file PATH \
         --miner-profile PROFILE.json --miner-campaign ID [--session N] \
-        --challenge TOKEN
+        --challenge TOKEN [--level N]
     python -m carbon.agent_campaign.graphite.phase4 prelive --root DIR \
         --challenge TOKEN [--grant PATH]
     python -m carbon.agent_campaign.graphite.phase4 cancel --root DIR --session N
     python -m carbon.agent_campaign.graphite.phase4 status --root DIR [--dry-run]
     python -m carbon.agent_campaign.graphite.phase4 log --root DIR [--dry-run]
+
+`--level` (default 0) names the construction level of the named Challenge. A
+level above 0 attacks the development-only contract variant
+`development_variants.DEV_VARIANTS` registers for (challenge, level), with the
+attack adapter registered under (challenge, level); either missing is a typed
+refusal (`development_variant_unregistered`,
+`no_attack_adapter_for_challenge_level`). The session's profile is then the
+variant itself, recorded on the controller as a development expansion
+(GRAPHITE-DEV-VARIANTS-01). `prelive` checks Level 0.
 
 **The engine.** The attack engine is challenge-neutral and lives in
 `carbon.agent_campaign.attack` (the neutral core, its per-Challenge adapters,
@@ -114,6 +123,7 @@ from .phase3 import (
     _install_cancel,
     _root,
     check_code_ref,
+    ensure_development_expansion,
     load_grant,
 )
 from .pods import PodFailure
@@ -202,6 +212,35 @@ def get_adapter(atk, challenge_id, level):
         return atk["adapter"].ADAPTERS[(challenge_id, level)]
     except KeyError:
         raise RunnerRefused("no_attack_adapter_for_challenge_level") from None
+
+
+def development_variant_for(challenge_id, level):
+    """None at Level 0; at a level above 0 the development-only variant
+    `DEV_VARIANTS` registers for (challenge, level), or a typed refusal
+    (`development_variant_unregistered`, OWNER-GRAPHITE-TEST-WAVE-03 §1)."""
+    if level == 0 and type(level) is int:
+        return None
+    if type(level) is not int or level < 0:
+        raise RunnerRefused("level_is_a_ladder_level")
+    from carbon.reconstruction import development_variants
+
+    try:
+        return development_variants.variant(challenge_id, level)
+    except development_variants.VariantRefused as refused:
+        raise RunnerRefused(refused.code) from None
+
+
+def adapter_for(atk, challenge_id, level):
+    """`(adapter, variant)` for one Challenge and construction level: the
+    registered variant first (a level above 0), then the attack adapter
+    registered under (challenge, level), which at a development level must
+    attack that variant (its contract digest is the variant's). Each missing
+    piece is a typed refusal."""
+    variant = development_variant_for(challenge_id, level)
+    adapter = get_adapter(atk, challenge_id, level)
+    if variant is not None and adapter.contract_digest != variant.digest:
+        raise RunnerRefused("attack_adapter_is_not_for_this_variant")
+    return adapter, variant
 
 
 def surface_value(adapter, name):
@@ -611,7 +650,12 @@ def session_brief(adapter, *, checkout_commit, knowledge=None, repository=REPOSI
     )
 
 
-def attacker_profile(adapter):
+def attacker_profile(adapter, variant=None):
+    """Level 0: the adapter's recorded contract, widened by nothing. At a
+    development level the profile is the registered variant itself, pinned by
+    its digest (GRAPHITE-DEV-VARIANTS-01)."""
+    if variant is not None:
+        return variant.document(), variant.digest
     document = {
         "schema": PROFILE_SCHEMA,
         "challenge": adapter.challenge_id,
@@ -1068,19 +1112,37 @@ def _log(store, entry):
 
 
 def run_session(
-    store, control, provider, adapter, brief, number, atk, *, budget, kstore, view
+    store,
+    control,
+    provider,
+    adapter,
+    brief,
+    number,
+    atk,
+    *,
+    budget,
+    kstore,
+    view,
+    variant=None,
 ):
     """Launch (or resume) Attacker session `number`, run it, and do Carbon's
     side through the engine. Returns the iteration-log entry and the coverage
-    report."""
+    report. `variant` is the development level's registered variant
+    (`adapter_for`), or None at Level 0."""
     if type(number) is not int or not 1 <= number <= control.grant.permitted_runs:
         raise ValueError("session is 1 .. the grant's permitted runs")
-    _document, profile = attacker_profile(adapter)
+    if variant is not None and (
+        adapter.contract_digest != variant.digest or adapter.level != variant.level
+    ):
+        raise ValueError("the adapter does not attack this variant")
+    _document, profile = attacker_profile(adapter, variant)
     ensure_campaign(
         control,
         checkout_digest=brief.checkout_manifest_digest,
         profile_digest=profile,
     )
+    if variant is not None:
+        ensure_development_expansion(control, variant, OPERATOR)
     spec = TaskSpec(
         campaign_id=CAMPAIGN,
         role=ROLES[RoleName.ATTACKER].boundary.value,
@@ -1247,19 +1309,26 @@ def _store(root, dry_run):
 def command_run(args):
     atk = attack_modules()
     challenge = args.challenge
-    adapter = get_adapter(atk, challenge, CONSTRUCTION_LEVEL)
+    level = getattr(args, "level", None)
+    # The named Challenge's development variant first (a level above 0), then
+    # the attack adapter registered under (challenge, level); Level 0 is the
+    # adapter at CONSTRUCTION_LEVEL, as before.
+    adapter, variant = adapter_for(
+        atk, challenge, CONSTRUCTION_LEVEL if level is None else level
+    )
     from carbon.challenge_validator import scoring as challenge_scoring
 
     try:
         scoring = challenge_scoring.scoring_for(challenge)
     except challenge_scoring.ScoringUnavailable as refused:
         raise RunnerRefused(refused.code) from None
+    development = {} if variant is None else {"variant": variant}
     if args.dry_run:
         if any(
             (args.grant, args.credential_file, args.miner_profile, args.miner_campaign)
         ):
             raise RunnerRefused("dry_run_takes_no_grant_credential_or_miner_campaign")
-        return dry_run(_root(args.root), adapter, atk, scoring=scoring)
+        return dry_run(_root(args.root), adapter, atk, scoring=scoring, **development)
     missing = [
         name
         for name, value in (
@@ -1297,7 +1366,14 @@ def command_run(args):
         scoring=scoring,
     )
     entry, coverage = run_live(
-        store, grant, provider, adapter, atk, session=args.session, head=head
+        store,
+        grant,
+        provider,
+        adapter,
+        atk,
+        session=args.session,
+        head=head,
+        **development,
     )
     print(
         json.dumps({"session": entry, "coverage": coverage}, indent=1, sort_keys=True)
@@ -1354,12 +1430,15 @@ def live_provider(store, *, grant, model, adapter, miner_attach, scoring=None):
     )
 
 
-def run_live(store, grant, provider, adapter, atk, *, session, head, signals=True):
+def run_live(
+    store, grant, provider, adapter, atk, *, session, head, signals=True, variant=None
+):
     """One live session from its controller to Carbon's side: the
     controller, the attack-knowledge store, the session's pin (reused on a
     resume, never re-snapshotted), the brief under that pin, the SIGINT and
-    SIGTERM cancel handlers (`signals`), and `run_session`. Returns (log
-    entry, coverage report)."""
+    SIGTERM cancel handlers (`signals`), and `run_session`. `variant` is a
+    development level's registered variant (`adapter_for`), or None at Level
+    0. Returns (log entry, coverage report)."""
     control = controller_for(store, provider, grant)
     try:
         kstore = open_store(store, atk)
@@ -1381,6 +1460,7 @@ def run_live(store, grant, provider, adapter, atk, *, session, head, signals=Tru
             budget=ATTACK_BUDGET,
             kstore=kstore,
             view=view,
+            variant=variant,
         )
     finally:
         control.close()
@@ -1494,12 +1574,13 @@ def dry_run_script(adapter):
     ]
 
 
-def dry_run(root, adapter, atk, *, miner_tools=None, scoring=None):
+def dry_run(root, adapter, atk, *, miner_tools=None, scoring=None, variant=None):
     """One scripted session and Carbon's side, sending nothing and spending
     nothing: the scripted model reports a zero charge, the whole run is under
     the network guard (`phase4_prelive.network_guard`: any socket connect or
     name lookup raises), and a run that settles anything other than zero
-    fails (exit 4)."""
+    fails (exit 4). `variant` is a development level's registered variant
+    (`adapter_for`), or None at Level 0."""
     from .model import ScriptedModel
     from .phase4_prelive import network_guard
     from .pods import ScriptedPods
@@ -1540,6 +1621,7 @@ def dry_run(root, adapter, atk, *, miner_tools=None, scoring=None):
                 budget=ATTACK_BUDGET,
                 kstore=kstore,
                 view=view,
+                variant=variant,
             )
         finally:
             control.close()
@@ -1572,6 +1654,16 @@ def main(argv=None):
     run = sub.add_parser("run")
     run.add_argument("--root", required=True)
     run.add_argument("--challenge", required=True, help=challenge_help)
+    run.add_argument(
+        "--level",
+        type=int,
+        default=CONSTRUCTION_LEVEL,
+        help=(
+            "construction level (default 0); a level above 0 attacks the named "
+            "Challenge's registered development-only variant with the adapter "
+            "registered for (challenge, level), or is refused"
+        ),
+    )
     run.add_argument("--dry-run", action="store_true")
     run.add_argument("--grant")
     run.add_argument(

@@ -1,0 +1,32 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-05-graphite-development-variants",
+ "recorded_at": "2026-10-05T04:00:00Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "claude/dev-contract-variants from claude/conditional-exploration e2b47479d (GRAPHITE-DEV-VARIANTS-01, W1 of OWNER-GRAPHITE-TEST-WAVE-03)",
+  "description": "Built the development-only construction-contract variant mechanism: a registered, digest-pinned variant policy held outside CONTRACTS with an empty shipped registry, development expansion records under expansions/<token>/dev, a development-only compile path, --level for Graphite phases 3 and 4, a typed refusal on every miner-facing door, and the Test Lead's W2 review items 2 and 6 and the climb nit."
+ },
+ "expected": "A development level runs only Carbon's own campaigns, under a variant the registry pins, and every miner-facing door refuses that variant by name without importing the variant module. Level 0 behaves exactly as before.",
+ "observed": "The doors need to recognise a variant without importing the variant module, so they read the variant registry as data: one reader in the capability registry. That reader is now a runtime dependency of every miner door, so the registry ships as package data and a missing one fails closed. A behavioural test per door was not enough on its own: behind most doors the compiler or the adapter lookup would still refuse a variant under a generic code, so only switching each door's own check off showed it was there. W2's 'development' was a caller's say-so; once only registered variant digests are accepted, a development entry stripped of its kind and tags still names a variant, which is what lets the LOCK ledger refuse it statically. The bundle's clean rebuild and the synthetic pods also compiled through Level 0, which would have hidden a development-level mismatch, so they now go through the variant too.",
+ "keep": [
+  "Variants as registered, versioned, digest-pinned policy documents that are re-read at every lookup, so an altered document is refused where it is used.",
+  "Miner doors refuse by reading registry data only; an import-closure invariant with planted specimens proves the variant module stays unreachable.",
+  "One mutation per door's own check, because a deeper generic refusal hides a missing check.",
+  "No variant compiles without Carbon's registered reconstruction of every capability it widens."
+ ],
+ "change": [
+  "Before adding a refusal, list every path that rebuilds a construction (host admission, pod, synthetic pod, bundle rebuild); each must take the same compile path or the rebuild check compares the wrong thing.",
+  "The first real Level 1-3 surfaces, their bounds and reconstructions go to the Test Lead for review before registration; Level 3 is a choice menu only until the Test Lead revises that rule."
+ ],
+ "protocol_elements": [
+  "construction.ladder",
+  "admission.lock",
+  "graphite.controller",
+  "graphite.attacker"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

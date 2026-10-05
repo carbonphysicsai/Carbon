@@ -11,7 +11,9 @@ references, status and the attempt ledger. It is never handed to a transport.
 
 Both are built over one `Adapters` registry. A submission's contract digest
 selects its adapter. A digest the registry doesn't hold is refused by name
-(`contract_not_served`) and recorded, never scored.
+(`contract_not_served`) and recorded, never scored. A development-only
+contract variant's digest (OWNER-GRAPHITE-TEST-WAVE-03 §1) is refused by its
+own name (`development_variant_not_served`), and no adapter may serve one.
 """
 
 from __future__ import annotations
@@ -36,11 +38,14 @@ SCORE_RECORD_SCHEMA = "carbon.challenge-validator.score-record.v1"
 #: Engineering limits on the identity fields a transport passes through.
 MAX_FIELD = 128
 MAX_RECEIPT_KEYS = 16
+#: A development-only contract variant's digest (OWNER-GRAPHITE-TEST-WAVE-03 §1).
+_VARIANT_NOT_SERVED = "development_variant_not_served"
 #: Every code `Validator.screen` refuses with: a closed set, so a transport's
 #: client can explain each one.
 SCREEN_REFUSALS = (
     "malformed_submission",
     "contract_digest_malformed",
+    _VARIANT_NOT_SERVED,
     "contract_not_served",
     "challenge_mismatch",
     "oversized_submission",
@@ -79,12 +84,17 @@ class Adapters:
     @staticmethod
     def _registered(adapter):
         """The digest must be the one the capability registry holds for the
-        adapter's Challenge: an adapter cannot invent a contract."""
+        adapter's Challenge: an adapter cannot invent a contract, and never
+        serves a development-only variant."""
         from carbon.reconstruction.capability_registry import (
+            DEVELOPMENT_VARIANT_NOT_SERVED,
             UnknownChallenge,
             contract,
+            is_development_variant,
         )
 
+        if is_development_variant(adapter.contract_digest):
+            raise ValueError(DEVELOPMENT_VARIANT_NOT_SERVED)
         try:
             registered = contract(adapter.challenge_id)
         except UnknownChallenge:
@@ -118,6 +128,14 @@ def _result(kind, *, code=None, adapter=None, outcome=None, retry=None):
     if retry:
         out["retry"] = dict(retry)
     return out
+
+
+def _development_variant(digest):
+    """Whether a digest names a development-only contract variant, read from
+    the variant registry's data (never the variant module)."""
+    from carbon.reconstruction.capability_registry import is_development_variant
+
+    return is_development_variant(digest)
 
 
 @dataclass(frozen=True)
@@ -192,6 +210,8 @@ class Validator:
             return refuse("malformed_submission")
         if not is_digest(submission.contract_digest):
             return refuse("contract_digest_malformed")
+        if _development_variant(submission.contract_digest):
+            return refuse(_VARIANT_NOT_SERVED)
         adapter = self._adapters.get(submission.contract_digest)
         if adapter is None:
             return refuse("contract_not_served")
@@ -271,6 +291,8 @@ class Validator:
         """
         if not is_digest(contract_digest):
             return _result("REFUSED", code="contract_digest_malformed")
+        if _development_variant(contract_digest):
+            return _result("REFUSED", code=_VARIANT_NOT_SERVED)
         adapter = self._adapters.get(contract_digest)
         if adapter is None:
             return _result("REFUSED", code="contract_not_served")

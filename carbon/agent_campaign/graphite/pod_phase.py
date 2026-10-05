@@ -10,7 +10,10 @@ a miner's practice trial does, with Carbon's own code:
 
 1. compiles the strategy against its Challenge's recorded construction
    contract and builds the exact staged files of a practice trial, through
-   that Challenge's `ChallengeScoring.built_record`;
+   that Challenge's `ChallengeScoring.built_record`. At a development level
+   the job names a registered development-only variant
+   (`development_variant`), and the strategy compiles through that variant's
+   own path (`development_variants.compile_development`) instead;
 2. **refuses to run** unless the staged files and the program are exactly the
    ones Carbon pinned before launch (`expected`);
 3. runs the Challenge's fixed practice program in a fresh directory, bounded
@@ -58,6 +61,21 @@ def built_record(strategy, contract_digest, seed, root=".", scoring=None):
     return scoring.built_record(strategy, contract_digest, seed, root)
 
 
+def development_built_record(strategy, contract_digest, variant_digest, seed, root="."):
+    """What Carbon builds for `strategy` under a registered development-only
+    variant (a development level, Graphite only): the variant's own compile
+    path, never `compile_submission`. The job's contract digest must be the
+    variant's base."""
+    from carbon.reconstruction import development_variants
+
+    found = development_variants.registered(variant_digest)
+    if contract_digest != found.base_contract_digest:
+        raise development_variants.VariantRefused(
+            development_variants.BASE_STALE, "the job names another base contract"
+        )
+    return development_variants.built_record(strategy, variant_digest, seed, root)
+
+
 def pinned(record, expected):
     """The staged files and program are exactly the ones Carbon pinned."""
     return (
@@ -70,9 +88,18 @@ def run(cfg, out, *, root="."):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     try:
-        record, files, program = built_record(
-            cfg["strategy"], cfg["contract_digest"], cfg["seed"], root
-        )
+        if "development_variant" in cfg:
+            record, files, program = development_built_record(
+                cfg["strategy"],
+                cfg["contract_digest"],
+                cfg["development_variant"],
+                cfg["seed"],
+                root,
+            )
+        else:
+            record, files, program = built_record(
+                cfg["strategy"], cfg["contract_digest"], cfg["seed"], root
+            )
     except Exception as failure:  # noqa: BLE001 -- typed, never echoed
         _write(
             out / "failure.json", {"stage": "compile", "error": type(failure).__name__}

@@ -30,6 +30,8 @@ import shutil
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from carbon.reconstruction.capability_registry import is_development_variant
+
 CATALOG_SCHEMA = "carbon.challenge-catalog.v1"
 DESCRIPTION_SCHEMA = "carbon.challenge-description.v1"
 
@@ -94,6 +96,15 @@ class ChallengeRetired(ResolutionError):
         "Retired from the research path; its code is kept for reference only. "
         "Select an implemented Challenge from the catalog."
     )
+
+
+class DevelopmentVariantNotServed(ResolutionError):
+    """A development-only contract variant (OWNER-GRAPHITE-TEST-WAVE-03 §1),
+    named as a Challenge or a version. Only Carbon's development runners read
+    one; it is never listed, described or selected here."""
+
+    code = "development_variant_not_served"
+    next_action = "Select an implemented Challenge from the catalog."
 
 
 class ProfileUnavailable(ResolutionError):
@@ -372,6 +383,8 @@ def compiler_for(challenge_id):
 def _find(challenge_id, version):
     if type(challenge_id) is not str:
         raise UnknownChallenge("a challenge id string is required")
+    if is_development_variant(challenge_id) or is_development_variant(version):
+        raise DevelopmentVariantNotServed("a development-only variant is never served")
     matches = [e for e in _entries() if e.challenge_id == challenge_id]
     if not matches:
         raise UnknownChallenge(f"no Challenge {challenge_id!r} is registered")

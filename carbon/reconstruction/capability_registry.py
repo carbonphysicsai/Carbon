@@ -26,8 +26,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 
 REGISTRY_SCHEMA = "carbon.construction-capability-registry.v1"
 CONTRACT_SCHEMA = "carbon.challenge-construction-contract.v1"
@@ -1466,12 +1468,83 @@ class UnknownChallenge(KeyError):
     """A Challenge with no registered construction contract."""
 
 
+# -- development-only variants: never served -----------------------------------------
+# OWNER-GRAPHITE-TEST-WAVE-03 §1: a level above a Challenge's miner-facing
+# contract may be served to Carbon's own Graphite campaigns through a
+# development-only contract variant, held outside `CONTRACTS` and pinned by its
+# own digest (`carbon.reconstruction.development_variants`, which no
+# miner-facing module imports). Every miner-facing door refuses a variant by
+# name. To do that without the variant module, this reads the variant
+# registry as data only: the registered versions' names and digests.
+DEVELOPMENT_VARIANT_DIR = Path(__file__).with_name("development_variant_policies")
+DEVELOPMENT_VARIANT_REGISTRY_SCHEMA = (
+    "carbon.construction-development-variant-registry.v1"
+)
+DEVELOPMENT_VARIANT_NOT_SERVED = "development_variant_not_served"
+_SHA256 = re.compile(r"sha256:[0-9a-f]{64}\Z")
+
+
+class DevelopmentVariantNotServed(UnknownChallenge):
+    """A development-only contract variant named where a miner-facing contract
+    is resolved. It is never served to a miner."""
+
+    code = DEVELOPMENT_VARIANT_NOT_SERVED
+
+
+def development_variant_registry(directory=None):
+    """The variant registry (`registry.json`) as checked data: its schema, every
+    registered version's pinned digest (`versions`, append-only) and the
+    current variant of each (challenge, level) (`current`). A missing or
+    malformed registry raises: every door that consults it fails closed."""
+    path = Path(DEVELOPMENT_VARIANT_DIR if directory is None else directory)
+    try:
+        value = json.loads((path / "registry.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        raise RuntimeError("development variant registry unreadable") from None
+    versions = value.get("versions") if type(value) is dict else None
+    current = value.get("current") if type(value) is dict else None
+    if (
+        value.get("schema") != DEVELOPMENT_VARIANT_REGISTRY_SCHEMA
+        or type(versions) is not dict
+        or not all(
+            type(k) is str and k and type(v) is str and _SHA256.fullmatch(v)
+            for k, v in versions.items()
+        )
+        or len(set(versions.values())) != len(versions)
+        or type(current) is not list
+        or not all(
+            type(c) is dict
+            and set(c) == {"challenge", "level", "version"}
+            and c["version"] in versions
+            for c in current
+        )
+    ):
+        raise RuntimeError("development variant registry malformed")
+    return value
+
+
+def development_variant_names(directory=None):
+    """Every registered development variant's version name and digest."""
+    versions = development_variant_registry(directory)["versions"]
+    return frozenset(versions) | frozenset(versions.values())
+
+
+def is_development_variant(value, directory=None):
+    """Whether `value` names a registered development-only variant (its digest
+    or its version name). Such a value is never served to a miner."""
+    return type(value) is str and value in development_variant_names(directory)
+
+
 def contract(challenge=BURGERS_CHALLENGE):
-    """The construction contract for exactly this Challenge token."""
+    """The construction contract for exactly this Challenge token. A
+    development-only variant is refused by name, never resolved."""
     try:
         return CONTRACTS[challenge]
     except (KeyError, TypeError):
-        raise UnknownChallenge("no construction contract for this challenge") from None
+        pass
+    if is_development_variant(challenge):
+        raise DevelopmentVariantNotServed(DEVELOPMENT_VARIANT_NOT_SERVED)
+    raise UnknownChallenge("no construction contract for this challenge")
 
 
 def contract_digest(challenge=BURGERS_CHALLENGE):

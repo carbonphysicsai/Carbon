@@ -33,6 +33,7 @@ import test_agent_campaign_climb as tclimb
 import test_agent_campaign_controller as tc
 import test_challenge_admission as tca
 import test_challenge_pipeline as tcp
+from test_development_variants import FIXTURE_DIGESTS, install
 
 from carbon.agent_campaign import climb
 from carbon.agent_campaign import controller as ctl
@@ -53,6 +54,20 @@ WIDER = "sha256:" + "f" * 64
 WIDEST = "sha256:" + "d" * 64
 OPERATOR = "carbon-operator"
 NOTE = "repaired the boundary and re-ran the affected attacks"
+#: A development expansion names a registered development variant's digest
+#: (GRAPHITE-DEV-VARIANTS-01): the synthetic fixture variants stand in for the
+#: three development widenings these tests record.
+DEVELOPMENT = {
+    WIDE: FIXTURE_DIGESTS[1],
+    WIDER: FIXTURE_DIGESTS[2],
+    WIDEST: FIXTURE_DIGESTS[3],
+}
+
+
+@pytest.fixture(autouse=True)
+def fixture_variants(tmp_path_factory, monkeypatch):
+    """A temporary registry of synthetic development variants."""
+    install(tmp_path_factory.mktemp("variants"), monkeypatch)
 
 
 def expand(controller, permissions=WIDE, *, development=False):
@@ -65,7 +80,9 @@ def expand(controller, permissions=WIDE, *, development=False):
         challenge=BATTERY,
         profile="level-1",
         widened="bounded loss expressions",
-        permissions=permissions,
+        permissions=(
+            DEVELOPMENT.get(permissions, permissions) if development else permissions
+        ),
         operator=OPERATOR,
     )
 
@@ -190,7 +207,7 @@ def test_a_development_expansion_proceeds_and_is_tagged(tmp_path):
     # Track A sees none of it; the development profile is the newest widening.
     assert controller.admission_ledgers()["expansions"] == []
     assert controller.current_profile() is None
-    assert controller.development_profile() == WIDER
+    assert controller.development_profile() == DEVELOPMENT[WIDER]
     with pytest.raises(ctl.ControllerError, match="operator_required"):
         controller.record_development_expansion(
             challenge=BATTERY,
@@ -212,11 +229,14 @@ def test_a_development_run_launches_under_its_profile_and_its_results_are_tagged
     expand(controller, WIDE, development=True)
     with pytest.raises(ctl.ControllerError, match="profile_not_in_force"):
         controller.launch(tc.spec(profile_digest=WIDER), "k0")
-    assert controller.launch(tc.spec(profile_digest=WIDE), "k1") == "dispatched"
+    with pytest.raises(ctl.ControllerError, match="profile_not_in_force"):
+        controller.launch(tc.spec(profile_digest=DEVELOPMENT[WIDER]), "k0")
+    development = DEVELOPMENT[WIDE]
+    assert controller.launch(tc.spec(profile_digest=development), "k1") == "dispatched"
     provider.export("fake-run-0001", "out.json", b"{}")
     controller.poll("k1")
     (artifact,) = [e for e in controller.ledger() if e["kind"] == "artifact"]
-    assert artifact["profile_digest"] == WIDE
+    assert artifact["profile_digest"] == development
     assert artifact["conditional_on"] == [ref(controller, "f1")]
     controller.close()
 

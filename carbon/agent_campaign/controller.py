@@ -35,6 +35,14 @@ and it holds every limit outside the agent:
   `conditional-evidence.v1` (`carbon.challenge_readiness.conditional_evidence`).
   A finding is open until an operator records its repair (`record_repair`).
   It is never removed, and it keeps the LOCK path closed.
+- **Development is registered, never declared** (GRAPHITE-DEV-VARIANTS-01).
+  A development expansion's permissions digest must be a development-only
+  contract variant registered and pinned in
+  `carbon.reconstruction.development_variants.DEV_VARIANTS`, with a
+  development record; a launch under a development profile is checked the
+  same way. `check_lock` cross-checks a LOCK against this controller's own
+  ledgers: a study expansion the controller recorded as development, or a
+  finding the study omits, is refused.
 - **Everything the agent returns is data.** Events and artifacts are stored by
   digest and scanned for canaries; nothing in them is interpreted as a command.
 
@@ -143,6 +151,14 @@ def _stamp(moment):
 
 def _canonical(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
+
+
+def _names_development_variant(digest):
+    """Whether a profile digest names a development-only variant, registered
+    now or at any earlier version (read from the variant registry's data)."""
+    from carbon.reconstruction.capability_registry import is_development_variant
+
+    return is_development_variant(digest)
 
 
 class CampaignController:
@@ -549,10 +565,20 @@ class CampaignController:
             campaign = self._campaign(db, spec.campaign_id)
             self._check_session(spec, campaign)
             profile = self.current_profile(db) or campaign["profile"]
+            development = self.development_profile(db)
             # Exploration may also run under the newest development profile
             # (OWNER-GRAPHITE-TEST-WAVE-03 §2); only Carbon's own campaigns
-            # are ever dispatched here.
-            if spec.profile_digest not in (profile, self.development_profile(db)):
+            # are ever dispatched here. A development profile is a registered
+            # variant's digest (GRAPHITE-DEV-VARIANTS-01): it runs only as the
+            # newest development expansion, and only while DEV_VARIANTS
+            # registers it, whatever profile the campaign was registered with.
+            if _names_development_variant(spec.profile_digest) or (
+                spec.profile_digest != profile and spec.profile_digest == development
+            ):
+                if spec.profile_digest != development:
+                    raise ControllerError("profile_not_in_force")
+                self._registered_variant(spec.profile_digest)
+            elif spec.profile_digest != profile:
                 raise ControllerError("profile_not_in_force")
             halts = self._halts(db)
             if halts:
@@ -1189,17 +1215,48 @@ class CampaignController:
             )
         return entry
 
+    @staticmethod
+    def _registered_variant(permissions, challenge=None):
+        """The registered development variant whose pinned digest is
+        `permissions` (GRAPHITE-DEV-VARIANTS-01): "development" is never the
+        caller's say-so. Refused `development_variant_unregistered` (or its
+        base or record refusal) otherwise."""
+        from carbon.reconstruction import development_variants
+
+        try:
+            found = development_variants.registered(permissions, challenge)
+            return found, development_variants.recorded_variant(found)
+        except development_variants.VariantRefused as refused:
+            raise ControllerError(refused.code) from None
+
+    def _bound_development_version(self, challenge, permissions, operator):
+        """`_bound_version`, then the registered variant `permissions` names and
+        the development record that pins it, appended to the entry's
+        `version`."""
+        version = self._bound_version(challenge, permissions, operator)
+        found, recorded = self._registered_variant(permissions, challenge)
+        return "{} dev/{:04d} {} level {}".format(
+            version,
+            recorded["development_record_sequence"],
+            found.digest,
+            found.level,
+        )
+
     def record_development_expansion(
         self, *, challenge, profile, widened, permissions, operator
     ):
         """Append a widening for a development-only contract variant, which
         only Carbon's own campaigns run (OWNER-GRAPHITE-TEST-WAVE-03 §1-2).
 
+        `permissions` is the variant's digest, registered and pinned in
+        `development_variants.DEV_VARIANTS` with a development record; any
+        other digest is refused `development_variant_unregistered`.
+
         It proceeds while findings are open and is tagged with them
         (conditional-evidence.v1). It is recorded in the development ledger,
         never in Track A's `expansions`: it never counts toward or enters a
         LOCK, never changes `current_profile` and never reaches a miner."""
-        version = self._bound_version(challenge, permissions, operator)
+        version = self._bound_development_version(challenge, permissions, operator)
         with self._db() as db:
             existing = [
                 json.loads(r[0])
@@ -1251,6 +1308,53 @@ class CampaignController:
             "open_findings": conditional_evidence.tag(open_now)["conditional_on"],
             "policy": conditional_evidence.identity(),
         }
+
+    def check_lock(self, block, challenge_id, *, repository):
+        """An admission block validated (`admission.validate`), then
+        cross-checked against this controller's own ledgers, so a LOCK binds
+        more than the study's ledgers (GRAPHITE-DEV-VARIANTS-01):
+        - a study expansion whose permissions digest this controller recorded
+          as a development expansion is refused
+          (`admission_development_expansion_refused`), however its keys were
+          rewritten;
+        - a finding this controller recorded that the study's findings ledger
+          omits, or records differently, is refused
+          (`admission_lock_finding_omitted`).
+        Returns the block."""
+        admission.validate(block, challenge_id, repository=repository)
+        study = block["tracks"][admission.LEDGER_TRACK]
+        with self._db() as db:
+            development = {
+                json.loads(r[0])["permissions"]
+                for r in db.execute("SELECT body FROM development_expansions")
+            }
+            findings = [
+                json.loads(r[0])
+                for r in db.execute("SELECT body FROM findings ORDER BY ordinal")
+            ]
+        self._lock_development_check(study, development)
+        self._lock_findings_check(study, findings)
+        return block
+
+    @staticmethod
+    def _lock_development_check(study, development):
+        """No study expansion widens into what this controller recorded as a
+        development expansion."""
+        if any(entry["permissions"] in development for entry in study["expansions"]):
+            raise admission.AdmissionError("admission_development_expansion_refused")
+
+    @staticmethod
+    def _lock_findings_check(study, findings):
+        """Every finding this controller recorded is in the study's findings
+        ledger, with the same condition and evidence."""
+        recorded = {
+            f["id"]: (f["condition"], f["evidence"]["sha256"])
+            for f in study["findings"]
+        }
+        for finding in findings:
+            expected = (finding["condition"], finding["evidence"]["sha256"])
+            if recorded.get(finding["id"]) != expected:
+                raise admission.AdmissionError("admission_lock_finding_omitted")
 
     def admission_ledgers(self):
         """Track A's `expansions` and `findings`, validated exactly as

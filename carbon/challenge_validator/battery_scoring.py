@@ -112,12 +112,16 @@ class BatteryScoring(ChallengeScoring):
         self.challenge_version = CHALLENGE.version
 
     def built_record(self, strategy, contract_digest, seed, root):
-        from carbon.battery.practice import PracticeSet, staged_files
-        from carbon.development_session.battery_gpu import GPU_PROGRAM
-        from carbon.development_session.profile import digest
         from carbon.reconstruction.challenge_contracts import compile_submission
 
         admitted = compile_submission(strategy, contract_digest=contract_digest)
+        return self.built_from(admitted, seed, root)
+
+    def built_from(self, admitted, seed, root):
+        from carbon.battery.practice import PracticeSet, staged_files
+        from carbon.development_session.battery_gpu import GPU_PROGRAM
+        from carbon.development_session.profile import digest
+
         recipe = admitted.construction
         plan = admitted.compiled.construction_plan
         files = staged_files(root, PracticeSet.load(root), recipe, seed)
@@ -133,6 +137,11 @@ class BatteryScoring(ChallengeScoring):
             "program": digest(GPU_PROGRAM.encode()),
             "seed": seed,
         }
+        development = getattr(admitted, "development", None)
+        if development is not None:
+            # A development construction (Graphite only) carries its variant
+            # binding beside the base fields; a Level 0 record never does.
+            record["development"] = development
         return record, files, GPU_PROGRAM
 
     def refusal(self, error):

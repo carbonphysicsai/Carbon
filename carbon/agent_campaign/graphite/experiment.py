@@ -152,10 +152,16 @@ def recorded_contract(scoring=None):
     return challenge_scoring.resolve(scoring).recorded_contract()
 
 
-def admit(strategy, seed, root=REPOSITORY, scoring=None):
+def admit(strategy, seed, root=REPOSITORY, scoring=None, variant=None):
     """Compile `strategy` exactly as Carbon would rebuild it; return what
     Carbon would build (`ChallengeScoring.built_record`). Raises `Unrebuildable`
-    (never scored) or `NotServed` (Carbon rebuilds it, these pods do not)."""
+    (never scored) or `NotServed` (Carbon rebuilds it, these pods do not).
+
+    `variant` is the registered development-only variant of a development
+    level (OWNER-GRAPHITE-TEST-WAVE-03 §1), or None at Level 0. With one, the
+    strategy compiles through the variant's own path
+    (`development_variants.compile_development`) for the same explicit
+    Challenge; Level 0 is unchanged."""
     if type(strategy) is not dict:
         raise Unrebuildable("strategy_not_an_object")
     resolved = (
@@ -165,8 +171,21 @@ def admit(strategy, seed, root=REPOSITORY, scoring=None):
     )
     if strategy.get("challenge_id") != resolved.challenge_id:
         raise Unrebuildable(resolved.wrong_challenge_code)
+    if variant is not None:
+        from carbon.reconstruction import development_variants
+
+        return development_variants.admit(resolved, strategy, seed, root, variant)
     contract = recorded_contract(resolved)
     return challenge_scoring.admit(resolved, strategy, seed, root, contract=contract)
+
+
+def development_differences(expected, built):
+    """At a development level, the variant binding must match too."""
+    if "development" not in expected:
+        return []
+    if type(built) is not dict or built.get("development") != expected["development"]:
+        return ["development"]
+    return []
 
 
 # -- the frozen rule -----------------------------------------------------------------------
@@ -316,7 +335,10 @@ class Experiment:
     submission's; it decides whose claims a pod's files carry
     (`pod_outcome`). None means unknown, and then no pod claim blames the
     candidate. `attribution_policy` names a registered attribution policy
-    version; None is the registry's current one.
+    version; None is the registry's current one. `development_variant` is the
+    registered development-only variant (`DevContractVariant`) of a
+    development level, or None at Level 0; with one, every proposal compiles
+    through the variant's own path and its pod job names the variant.
 
     The session's baseline (Carbon's own recipe and seed), when it closes
     `FAILED_INFRA` or with its program crashed, is run once more under the
@@ -349,6 +371,7 @@ class Experiment:
         attribution_policy=None,
         retry_policy=None,
         seconds_left=None,
+        development_variant=None,
     ):
         from .provider import RunCancelled
 
@@ -364,6 +387,11 @@ class Experiment:
         self._cancel = RunCancelled
         self.scoring = challenge_scoring.resolve(scoring)
         self.construction_level = construction_level
+        self.development_variant = development_variant
+        if development_variant is not None and (
+            construction_level != development_variant.level
+        ):
+            raise ValueError("a development variant runs at its own level")
         # The registered attribution policy (`pod_outcome`): the registry's
         # current version unless one is named.
         self.attribution = (
@@ -810,7 +838,14 @@ class Experiment:
         }
         seed = self._seed(pid)
         try:
-            expected = admit(strategy, seed, self.repository, self.scoring)
+            # Level 0 calls admission exactly as before; only a development
+            # level names its variant.
+            level = (
+                {}
+                if self.development_variant is None
+                else {"variant": self.development_variant}
+            )
+            expected = admit(strategy, seed, self.repository, self.scoring, **level)
         except Unrebuildable as refused:
             finding = self._finding(
                 "UNREBUILDABLE",
@@ -916,6 +951,8 @@ class Experiment:
             built = _json(files.get("built.json"))
             failure = _object(files.get("failure.json"))
             differences = rebuild_differences(expected, built)
+            if not differences:
+                differences = development_differences(expected, built)
             if (failure or {}).get("stage") == "verification" and not differences:
                 differences = ["pod_refused_pinned_digests"]
             if differences:
@@ -1055,6 +1092,11 @@ class Experiment:
             expected={"files": expected["staged"], "program": expected["program"]},
             minutes=self.budget.pod_minutes,
             seconds=podlib.contract_work_seconds(self.scoring),
+            development_variant=(
+                None
+                if self.development_variant is None
+                else self.development_variant.digest
+            ),
         )
         return self._pod(pid, job)
 

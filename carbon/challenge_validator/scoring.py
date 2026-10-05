@@ -170,6 +170,13 @@ class ChallengeScoring(abc.ABC):
         record carries every `REBUILT_FIELDS` entry; `files` are the staged
         files; `program` is the fixed program the pod runs."""
 
+    def built_from(self, admitted, seed, root):
+        """`(record, files, program)` from a construction already compiled
+        (`compile_submission`'s result, or Graphite's development compile).
+        `built_record` is compile then this. A Challenge that has no
+        development path does not provide it."""
+        raise NotImplementedError("this Challenge builds only from built_record")
+
     @abc.abstractmethod
     def refusal(self, error):
         """`(code, issues)` for a compile refusal `built_record` raised, or
