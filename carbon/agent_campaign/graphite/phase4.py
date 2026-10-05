@@ -552,6 +552,9 @@ class AttackerProvider(Phase3Provider):
                 instructions=role.prompt,
                 tools=role.tool_schemas(),
                 parallel_calls=PARALLEL_RULES.get(role.name),
+                # The Attacker's run ledger meters no research trials (its
+                # budget is 0); never tell the agent "0 of 0 trials left".
+                omit_unmetered_trials=True,
                 **self._loop_limits(opened),
             )
 

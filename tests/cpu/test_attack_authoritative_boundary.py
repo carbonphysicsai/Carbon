@@ -471,6 +471,52 @@ def test_the_rejudge_tool_reports_zero_findings_on_a_synthetic_journal(tmp_path)
     assert report["summary"] == {"HELD": 1, "NOT_APPLICABLE": 1}
 
 
+# -- the "0 of 0 research trials left" line ---------------------------------------------------
+def _status(tmp_path, *, budget, omit):
+    import types
+
+    from carbon.development_session import research_loop
+
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    message = research_loop.budget_status(
+        tmp_path,
+        "epoch-1-provider-000",
+        calls_left=None,
+        call_limit=None,
+        slots_left=None,
+        trial_limit=None,
+        ledger_status={
+            "budget": {"research_trials": budget},
+            "used": {"research_trials": 0, "provider_attempts": 0},
+        },
+        provider=types.SimpleNamespace(reservation_nano=None),
+        unit="session",
+        offered=[START],
+        omit_unmetered_trials=omit,
+    )
+    return message["content"]
+
+
+def test_the_unmetered_trial_line_is_dropped_only_when_the_caller_opts_in(tmp_path):
+    # Default (every miner session and every earlier session): unchanged.
+    default = _status(tmp_path / "default", budget=0, omit=False)
+    assert "0 of 0 research trials left" in default
+    # The Graphite Attacker opts in: no misleading "0 of 0" line.
+    attacker = _status(tmp_path / "attacker", budget=0, omit=True)
+    assert "research trials left" not in attacker
+    # A ledger that does meter trials keeps its line either way.
+    metered = _status(tmp_path / "metered", budget=3, omit=True)
+    assert "3 of 3 research trials left" in metered
+
+
+def test_the_phase4_attacker_opts_out_of_the_unmetered_trial_line():
+    import inspect
+
+    from carbon.agent_campaign.graphite import phase4
+
+    assert "omit_unmetered_trials=True" in inspect.getsource(phase4.AttackerProvider)
+
+
 def test_mutation_without_the_authority_gate_the_advisory_case_becomes_a_finding(
     monkeypatch,
 ):
