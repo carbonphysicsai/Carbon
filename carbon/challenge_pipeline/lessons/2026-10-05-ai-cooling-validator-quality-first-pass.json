@@ -1,0 +1,29 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-validator-quality-first-pass",
+  "recorded_at": "2026-10-05T04:03:35Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-08 first canonical quality pass",
+    "description": "Ran the exact-main changed-path quality gate in the pinned canonical Linux environment."
+  },
+  "expected": "The new adapter should introduce no Ruff or Black debt on changed Python files.",
+  "observed": "The gate found one unsorted __all__ list, two Black formatting changes, and two executable-bit diagnostics caused by the disposable WSL copy; no pre-existing debt was reintroduced.",
+  "keep": [
+    "Keep strict changed-file Ruff and Black enforcement before delivery.",
+    "Keep the disposable Linux checkout isolated from the review branch."
+  ],
+  "change": [
+    "Sort the exported interface names and apply canonical Black formatting.",
+    "Normalize copied file modes in the disposable checkout before rerunning quality."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.validator_adapter",
+    "challenge.validator.interface_v1",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
