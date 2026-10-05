@@ -67,6 +67,20 @@ DOORS = {
 }
 
 
+def _assert_labels(rows):
+    """The Test Lead's four labels are present exactly, and every other
+    unreachable family carries the generic label: an adapter may gain
+    families (main added selective_fault and prediction_omission), and each
+    one is labelled, never left as a silent NOT_RUN."""
+    labelled = {row["family"]: row["label"] for row in rows}
+    assert {name: labelled.get(name) for name in LABELS} == LABELS
+    assert all(
+        label == phase4.UNREACHABLE_LABEL
+        for name, label in labelled.items()
+        if name not in LABELS
+    )
+
+
 def _adapter(challenge=CID):
     adapter = ADAPTERS[(challenge, 0)]
     return adapter() if isinstance(adapter, type) else adapter
@@ -139,10 +153,10 @@ def test_every_adapter_family_is_reachable_or_labelled(challenge):
     assert table["b2_scope"] == phase4.B2_SCOPE_NOTE
 
 
-def test_battery_level0_reaches_five_families_and_labels_the_four_others():
+def test_battery_level0_reaches_five_families_and_labels_every_other():
     table = phase4.stop_rule_coverage(_adapter(), TOOLS)
     assert [row["family"] for row in table["families"]] == REACHABLE
-    assert {row["family"]: row["label"] for row in table["unreachable"]} == LABELS
+    _assert_labels(table["unreachable"])
     doors = {row["family"]: row["doors"] for row in table["families"]}
     assert "start_research_task[workspace/read_file]" in doors["staged_bytes"]
 
@@ -244,7 +258,7 @@ def test_the_brief_carries_the_coverage_table_and_the_labels():
     assert observation["stop_rule"]["finish_tool"] == phase4.FINISH_TOOL_NAME
     assert [row["family"] for row in coverage["families"]] == REACHABLE
     assert all(row["attempts"] == 0 for row in coverage["families"])
-    assert {row["family"]: row["label"] for row in coverage["unreachable"]} == LABELS
+    _assert_labels(coverage["unreachable"])
     assert "stop_rule" not in phase4.brief_observation(_adapter())
 
 
@@ -291,7 +305,7 @@ MUTATIONS = {
     "labels_dropped": (
         "FAMILY_LABELS",
         {},
-        test_battery_level0_reaches_five_families_and_labels_the_four_others,
+        test_battery_level0_reaches_five_families_and_labels_every_other,
     ),
 }
 
