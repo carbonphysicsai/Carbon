@@ -4,7 +4,9 @@ V1 is a measurement gate, not a threshold: it passes when a score-to-value
 alignment report for the challenge's registered panel EXISTS, is internally
 consistent and is current against the scoring rule in force. V2 is a real
 threshold: the panel's members must reach at least `MIN_DISTINCT_OUTCOMES`
-distinct decision outcomes on the decision study.
+distinct decision outcomes on the decision study. Members the report lists as
+`aliases` (`[{alias, target}]`, identical predictions) are skipped, not counted
+as distinct evidence.
 
 The report is `readiness/<challenge>/q1_report.json`. It is built from the
 panel Data Collection's Track B harness produced (`carbon.design_search.
@@ -124,6 +126,7 @@ def build_report(challenge, level, panel, rule_digest):
         "reference": panel["reference"],
         "member_kinds": member_kinds(members),
         "decision_study": panel["decision_study"],
+        "aliases": panel.get("aliases", []),
         "members": members,
         "alignment": _alignment_of(members),
     }
@@ -210,6 +213,30 @@ def v1_alignment_report(item, ctx):
     )
 
 
+def _alias_map(report):
+    """`({alias: target}, problem)`. An alias has identical predictions to its
+    target (an aliasing record), so its outcome vector is identical by
+    construction and is not distinct evidence: V2 skips it. Each alias and target
+    must be a panel member; otherwise the report is unusable (fail closed)."""
+    aliases = report.get("aliases", [])
+    members = report["members"]
+    mapping = {}
+    if not isinstance(aliases, list):
+        return {}, "aliases is not a list"
+    for entry in aliases:
+        if not (
+            isinstance(entry, dict)
+            and entry.get("alias") in members
+            and entry.get("target") in members
+            and entry["alias"] != entry["target"]
+        ):
+            return {}, "an alias entry does not name two distinct panel members"
+        mapping[entry["alias"]] = entry["target"]
+    if any(target in mapping for target in mapping.values()):
+        return {}, "an alias targets another alias"
+    return mapping, None
+
+
 def _outcome_key(outcome):
     """A member's decision outcome as a comparable key, or None if unrecorded.
     A scalar (a design id, or ABSTAIN) is itself. A per-scenario mapping
@@ -236,9 +263,12 @@ def v2_panel_discrimination(item, ctx):
     problem = _problem(report, ctx.challenge, ctx.level) if report else "unreadable"
     if problem:
         return Result(FAIL, f"q1_report.json is unusable: {problem}", (path.name,))
+    aliased, alias_problem = _alias_map(report)
+    if alias_problem:
+        return Result(FAIL, alias_problem, (path.name,))
     outcomes = {}
     for name, row in sorted(report["members"].items()):
-        if row.get("eligible") is not True:
+        if row.get("eligible") is not True or name in aliased:
             continue
         outcome = row.get("decision_outcome")
         key = _outcome_key(outcome)

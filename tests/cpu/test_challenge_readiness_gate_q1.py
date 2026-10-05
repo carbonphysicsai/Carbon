@@ -229,3 +229,32 @@ def test_v2_counts_distinct_whole_vector_outcomes_for_per_scenario_decisions(rec
     assert (
         _status(q1.v2_panel_discrimination) == model.FAIL
     ), "an empty vector is unrecorded"
+
+
+def test_v2_does_not_count_aliased_members_as_distinct(recorded):
+    members = _members(("d03", "d03", "d07"))
+    # m2 chose differently but is an alias of m0 (identical predictions): its
+    # outcome is not distinct evidence, so only one outcome remains.
+    panel = _panel(members)
+    panel["aliases"] = [{"alias": "m2", "target": "m0"}]
+    recorded(panel)
+    assert _status(q1.v2_panel_discrimination) == model.FAIL
+    panel["aliases"] = []
+    recorded(panel)
+    assert _status(q1.v2_panel_discrimination) == model.PASS
+
+
+@pytest.mark.parametrize(
+    "aliases",
+    [
+        [{"alias": "m2", "target": "nobody"}],
+        [{"alias": "m2", "target": "m2"}],
+        [{"alias": "m1", "target": "m2"}, {"alias": "m2", "target": "m0"}],
+        "m2",
+    ],
+)
+def test_malformed_aliases_fail_closed(recorded, aliases):
+    panel = _panel(_members(("d03", "d07", "d09")))
+    panel["aliases"] = aliases
+    recorded(panel)
+    assert _status(q1.v2_panel_discrimination) == model.FAIL

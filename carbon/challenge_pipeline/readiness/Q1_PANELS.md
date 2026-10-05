@@ -24,12 +24,31 @@ whole outcome vectors differ (key order ignored; an empty vector is unrecorded).
 - `reference` = `COUNTED_CAMPAIGN`, ref = the counted-study evidence directory.
 
 ## Battery: `docs/development/evidence/graphite-run5-q1/q1-report.json` and `results.json`
-- `score` = `members[m].cpu_practice_score` (primary rule), `value` =
-  `members[m].development_decision_loss`, plus `eligible`, `recipe`, `kind`.
-- `decision_outcome` = `{scenario: results.json decisions[m][scenario].outcome.selected}`,
-  or `ABSTAIN` where `outcome.kind` is an abstention (`CORRECT_ABSTENTION`...).
-  Only development-split scenarios on the common resolved mask (`q1-report` `mask`).
-- `reference` = the EV4 / refined references the decisions were judged on; Data
-  Collection names which kind applies.
+(corrected by Data Collection; matches `scripts/dev/battery/graphite_run5_analysis.py`)
+- `score` = `-members[m].cpu_practice_score` (NEGATED: the practice score is
+  lower-is-better; unnegated, tau flips sign). `value` =
+  `members[m].development_decision_loss` (plain number).
+- `eligible` = `members[m].eligible` AND `cpu_practice_score is not None`
+  (the results' exam eligibility, not `cpu_practice_eligible`).
+- `recipe` = `members[m].recipe`; `kind` = `GRAPHITE_RECONSTRUCTED` (q1-report
+  members carry no `kind`; the analysis used this constant).
+- `decision_outcome` = `{scenario: ...}` over the development scenarios on the
+  common resolved mask (`q1-report` `mask.common_resolved`, 6 scenarios;
+  `mask.excluded` lists the rest), from `results.json`
+  `decisions[m][scenario].outcome`:
+  - `selected` when it is not None (this includes `SELECTED_UNRESOLVED`, which keeps its design);
+  - `ABSTAIN` when `selected` is None and `kind` is `CORRECT_ABSTENTION`,
+    `MISSED_OPPORTUNITY` or `ABSTENTION_UNRESOLVED`;
+  - `MODEL_OUTPUT_MISSING` is NOT an abstention: record the token
+    `MISSING_OUTPUT` for that scenario (5 cases in run 5). Do not turn every
+    `selected is None` into `ABSTAIN`.
+- `reference` = `{"provenance": "EV4_REFERENCE", "ref":
+  "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz"}`,
+  checked against `references.sha256` in that directory (run 5 made no new solves).
+- `aliases` = the pairs in `graphite-run5-q1/aliasing.json` (`{alias, target}`;
+  e.g. `p-fa70c075f903` aliases `p-69268f1b74ec`, identical predictions). V2 skips
+  an alias, so identical outcome vectors are not counted as distinct evidence (the
+  analysis uses n = 8 recipes). V1's alignment is recomputed over the members as
+  given, so list the analysis's one-seed-per-recipe panel.
 
 Cooling's fixture smoke uses an analytical pseudo-reference and is refused by V1.
