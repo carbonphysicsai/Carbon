@@ -162,7 +162,7 @@
   },
   "tau_by_rule": {
     "control-exam-v1/gated": {
-      "all_seeds": -0.4268800779905543,
+      "all_seeds": -0.11299766770338202,
       "one_seed": -0.5455447255899809,
       "top1_one_seed": [
         "graphite-run5-p-1d4aaff5d292-s3718551111"
