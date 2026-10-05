@@ -21,9 +21,31 @@ def result(tmp_path_factory):
     return q1_panel.run(REPOSITORY, tmp_path_factory.mktemp("q1"))
 
 
+#: Floats recompute to this relative tolerance across environments (BLAS and
+#: CPU differences move practice scores by about 1e-13). Everything that is
+#: not a float must match exactly.
+FLOAT_REL_TOL = 1e-9
+
+
+def _same(a, b, path="result"):
+    if isinstance(a, float) or isinstance(b, float):
+        assert isinstance(a, (int, float)) and isinstance(b, (int, float)), path
+        assert a == pytest.approx(b, rel=FLOAT_REL_TOL, abs=0.0), path
+    elif isinstance(a, dict):
+        assert isinstance(b, dict) and set(a) == set(b), path
+        for key in a:
+            _same(a[key], b[key], f"{path}.{key}")
+    elif isinstance(a, list):
+        assert isinstance(b, list) and len(a) == len(b), path
+        for i, (x, y) in enumerate(zip(a, b)):
+            _same(x, y, f"{path}[{i}]")
+    else:
+        assert a == b, path
+
+
 def test_the_committed_result_recomputes(result):
     committed = json.loads(COMMITTED.read_text(encoding="utf-8"))
-    assert json.loads(json.dumps(result, sort_keys=True)) == committed
+    _same(json.loads(json.dumps(result, sort_keys=True)), committed)
 
 
 def test_controls_behave_as_constructed(result):

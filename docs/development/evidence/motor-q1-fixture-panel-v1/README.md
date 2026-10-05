@@ -2,7 +2,7 @@
 
 Does the motor score rank models by the quality of the design decisions they lead to? This is TRACK-B-HARNESS-01's Q1 test on motor, approved by the Test Lead on 2026-10-05.
 
-Reproduce with `python -m scripts.dev.motor.q1_panel --out result.json`. It runs in seconds and uses public data plus the counted replay; nothing is solved or spent. `tests/cpu/test_motor_q1_panel.py` recomputes the whole result and compares it with `result.json`.
+Reproduce with `python -m scripts.dev.motor.q1_panel --out result.json`. It runs in seconds and uses public data plus the counted replay; nothing is solved or spent. `tests/cpu/test_motor_q1_panel.py` recomputes the whole result and compares it with `result.json`. The reproducibility bound is relative 1e-9 on floating-point values: BLAS and CPU differences between environments move practice scores by about 1e-13. Everything else must match exactly.
 
 ## Members
 
