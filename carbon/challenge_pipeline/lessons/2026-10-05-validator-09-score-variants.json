@@ -7,16 +7,16 @@
   "execution": {
     "kind": "build",
     "ref": "VALIDATOR-09 slice 1, branch claude/validator-09-score-variants. Canonical: score-variant tests and both unreachability invariants passed; the results are recorded in the PR.",
-    "description": "Development score variants are registered before they are computed and re-scored from stored per-case tuning rows, with a [0, 1] transform where 1 is best, and no miner surface can reach them."
+    "description": "Development score variants are registered before they are served, carry the score-tuning registry's candidate entry verbatim and score only through its functions, and no miner surface can reach them."
   },
-  "expected": "Score development could be a data registry plus a pure re-scorer over stored rows, kept out of every miner surface.",
-  "observed": "It could, because battery's rows already carry per-case components. The registry had to live outside carbon/challenge_validator, which is itself a walked miner surface, so the Challenge declares its components as data only.",
+  "expected": "A score variant could have its own weighting format and re-scorer over stored rows.",
+  "observed": "Two formats would drift: the Test Lead required one candidate definition, so a variant wraps the score-tuning entry (#650) and a parity test proves byte-identical rescoring. The registry lives outside carbon/challenge_validator, itself a walked miner surface, so the Challenge declares its legs as data only.",
   "keep": [
-    "Register a weighting before computing it; re-score from stored rows instead of retraining.",
+    "One definition per concept: a promoted candidate is the same entry, scored by the same code, under both registries.",
     "Prove a development-only module is unreachable with both the static import walk and a fresh-interpreter import of every door."
   ],
   "change": [
-    "Store per-case components with every score, so later weightings never need a re-run."
+    "Agree a shared shape with the other registry's owner before either registry grows."
   ],
   "protocol_elements": [
     "every Challenge's score development registers candidate weightings before computing them and keeps them unreachable from miners"
