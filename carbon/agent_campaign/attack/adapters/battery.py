@@ -48,14 +48,17 @@ never a bound; and no verdict here is security acceptance.
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import functools
 import hashlib
 import json
 import math
 import struct
+import threading
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from statistics import fmean
 from types import SimpleNamespace
 
 from carbon.challenge_readiness.admission import CHECKS, CONDITIONS
@@ -63,11 +66,14 @@ from carbon.challenge_readiness.admission import CHECKS, CONDITIONS
 CHALLENGE_ID = "battery-fastcharge-ageing-development-v1"
 LEVEL = 0
 PROFILE = "level-0"
-ADAPTER_VERSION = "carbon.attack.adapter.battery-l0.v1"
+#: v2 adds `selective_fault` and `prediction_omission` and reads a partial
+#: prediction set as never eligible (GRAPHITE-COVERAGE-PARITY-01).
+ADAPTER_VERSION = "carbon.attack.adapter.battery-l0.v2"
 #: v2: the practice_disclosure and mandatory_failure held-out controls are
 #: genuinely different valid inputs (v1's were key-reordered or JSON
 #: round-tripped copies of the trained values, canonically identical).
-CONTROLS_VERSION = "carbon.attack.controls.battery-l0.v2"
+#: v3: the selective-fault and omission controls (GRAPHITE-COVERAGE-PARITY-01).
+CONTROLS_VERSION = "carbon.attack.controls.battery-l0.v3"
 ORACLE_SCHEMA = "carbon.attack.oracle-result.battery-l0.v1"
 TRACK = "construction_integrity"
 SPLITS = ("trained", "held_out")
@@ -851,14 +857,15 @@ def track_a_baseline(root="."):
 
 def _scoring(value):
     """A prediction set scored by the frozen rule (`FrozenRule.score`). For a
-    partial set (`partial`), every case left without a prediction must be
-    FAILED_INFRA, never a gate failure; a set with nothing scored is never
-    eligible.
+    partial set (`partial`), every case left without a prediction must be a
+    schema-gate failure, never FAILED_INFRA and never excluded, so the set is
+    never eligible (GRAPHITE-COVERAGE-PARITY-01; before it, the rule typed a
+    missing case FAILED_INFRA and excluded it).
 
     This is the frozen rule's typing of a missing prediction only. How a pod
     run that timed out is typed is a different path (`experiment`'s pod
-    outcome: stage `timeout` is CANDIDATE_FAILED, never scored); that question
-    is the NOT_RUN seam `pod_timeout_typing`, not judged here."""
+    outcome); that question is the NOT_RUN seam `pod_timeout_typing`, not
+    judged here."""
     _rows, summary = _frozen_rule().score(value["predictions"])
     return {
         "kind": "scoring",
@@ -889,15 +896,22 @@ def resource_boundary(value):
 
 
 def resource_specimen(value):
-    """Vulnerable specimen: a lifted allowance, an aggregate that counts an
-    infrastructure failure as a pass, and a pod-outcome classifier that
-    trusts a candidate-written `environment` claim."""
+    """Vulnerable specimen: a lifted allowance; the accounting before
+    GRAPHITE-COVERAGE-PARITY-01 counted as a pass: every missing case typed
+    FAILED_INFRA, excluded, and the set eligible; and a pod-outcome
+    classifier that trusts a candidate-written `environment` claim."""
     if value["kind"] == "code_run":
         return {"kind": "code_run", "dispatched": True, "refusal": None}
     if value["kind"] == _pod_attribution().KIND:
         return _pod_attribution().specimen(value)
     result = _scoring(value)
-    return {**result, "eligible": result["n_gate_failed"] == 0}
+    missing = result["n_cases"] - len(value["predictions"])
+    return {
+        **result,
+        "eligible": True,
+        "n_failed_infra": missing,
+        "n_gate_failed": 0,
+    }
 
 
 def resource_breached(result):
@@ -908,15 +922,13 @@ def resource_breached(result):
         return _pod_attribution().breached(result)
     if not result["partial"]:
         return False  # a complete set: its eligibility is the frozen rule's
+    # A partial set is never eligible: each missing case is a schema-gate
+    # failure, never FAILED_INFRA (GRAPHITE-COVERAGE-PARITY-01).
     missing = result["n_cases"] - result["n_scored"]
-    # Whether a set that omits some cases may still be eligible is not judged
-    # here: `exam.aggregate` excludes a FAILED_INFRA case by design, a
-    # scientific question recorded with the Level 5 seam. Only a set with
-    # nothing scored is held to "never eligible".
     return (
-        (result["n_scored"] == 0 and result["eligible"])
-        or result["n_gate_failed"] > 0
-        or result["n_failed_infra"] != missing
+        result["eligible"]
+        or result["n_failed_infra"] > 0
+        or result["n_gate_failed"] != missing
     )
 
 
@@ -972,6 +984,646 @@ def _resource_admissible(value):
     if value.get("lane") not in CODE_RUN_RULE_LANES:
         return None
     return code_run_refusal(value.get("arguments")) is None
+
+
+# selective fault and omission: a construction that faults or omits where it scores worst ---
+#: The two real paths a battery construction is scored on: the Interface v1
+#: validator (`challenge_validator.dispatch` over `challenge_validator.battery`,
+#: battery's own daemon and `DirectBackend.infer`) and Graphite's pod path
+#: (`graphite.experiment` with battery's `ChallengeScoring`).
+FAULT_PATHS = ("interface_v1", "graphite")
+#: Faults at the construction's predict step (raise, a non-finite output) and
+#: omissions in what reaches the host (a case absent, or given null).
+FAULT_MODES = (
+    "none",
+    "raise",
+    "nonfinite_temperature",
+    "infinite_capacity",
+    "absent",
+    "null",
+)
+OMISSION_MODES = frozenset({"absent", "null"})
+#: Which cases are hit, chosen by the construction's own error (its error
+#: grows with `_wave`): none, all, the important region, its worst tenth,
+#: every case worse than its own mean, its worse half, or a single case.
+#: Only the attack's choice of cases; no tolerance or weight.
+FAULT_SELECTIONS = (
+    "none",
+    "all",
+    "important",
+    "worst_k",
+    "above_own_mean",
+    "worse_half",
+    "worst_one",
+)
+_SCORED, _FAILED_WHOLE, _INELIGIBLE = "scored_complete", "failed_whole", "ineligible"
+PROBE_HOTKEY = "battery-attack-probe"
+PROBE_PROPOSAL = "selective-fault"
+#: The published development examples battery's validator tests also use
+#: (`allow_published_cases`), as the probe's private pool. Public evidence.
+PROBE_REFERENCES = (
+    "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/"
+    "records.jsonl"
+)
+_PROBE_STATE = b"battery-attack-probe-construction"
+_FAULT_LOCK = threading.Lock()
+
+
+class ConstructionFault(RuntimeError):
+    """A synthetic fault the probe's construction raises at its predict step."""
+
+
+def _inputs_key(inputs):
+    from carbon.battery.challenge import INPUTS
+
+    return tuple(float(inputs[k]) for k in INPUTS)
+
+
+def _wave(inputs):
+    """The probe construction's error size for one case: a fixed function of
+    the case's inputs, so a hidden duplicate is predicted identically."""
+    return 1.0 + 0.5 * math.sin(sum(_inputs_key(inputs)))
+
+
+def _honest(reference):
+    """The probe construction's prediction of one case: the public reference
+    with a small deterministic error in temperature after the initial instant
+    and in the plating margin (every gate passes), the shape of
+    `BatteryScoring.synthetic_predictions`, sized by `_wave`."""
+    out, wave = reference["outputs"], _wave(reference["inputs"])
+    return {
+        "voltage_v": list(out["voltage_v"]),
+        "temperature_c": [out["temperature_c"][0]]
+        + [t + 0.5 * wave for t in out["temperature_c"][1:]],
+        "plating_margin_v": out["plating_margin_v"] + 0.002 * wave,
+        "capacity_ah": list(out["capacity_ah"]),
+    }
+
+
+def _select(references, select):
+    """The case ids hit, among `references` ({case_id: reference})."""
+    from carbon.battery import exam
+
+    if select not in FAULT_SELECTIONS:
+        raise ValueError("unknown fault selection: " + str(select))
+    every = sorted(references)
+    if select == "none":
+        return []
+    if select == "all":
+        return every
+    if select == "important":
+        return [c for c in every if exam.is_important(references[c])]
+    waves = {c: _wave(references[c]["inputs"]) for c in every}
+    worst = sorted(every, key=lambda c: (-waves[c], c))
+    if select == "worst_one":
+        return worst[:1]
+    if select == "worst_k":
+        return sorted(worst[: max(1, len(every) // 10)])
+    if select == "worse_half":
+        return sorted(worst[: len(every) // 2])
+    mean = fmean(waves.values())
+    return [c for c in every if waves[c] > mean]
+
+
+class _ProbeModel:
+    """The probe's construction as a batched model (`predict(x)` with
+    battery's input order, returning `recipes.to_predictions`'s arrays): its
+    honest prediction of each case, faulting on the hit cases."""
+
+    def __init__(self, by_key, hit, mode):
+        self.by_key, self.hit, self.mode = by_key, frozenset(hit), mode
+
+    def predict(self, x):
+        import numpy as np
+
+        keys = [tuple(float(v) for v in row) for row in x]
+        hit = [key in self.hit for key in keys]
+        if self.mode == "raise" and any(hit):
+            raise ConstructionFault("synthetic construction fault at predict")
+        rows = [copy.deepcopy(self.by_key[key]) for key in keys]
+        for row, faulted in zip(rows, hit, strict=True):
+            if faulted and self.mode == "nonfinite_temperature":
+                row["temperature_c"][-1] = math.nan
+            if faulted and self.mode == "infinite_capacity":
+                row["capacity_ah"][-1] = math.inf
+        return {
+            "v": np.asarray([r["voltage_v"] for r in rows], float),
+            "t": np.asarray([r["temperature_c"] for r in rows], float),
+            "eta": np.asarray([r["plating_margin_v"] for r in rows], float),
+            "q": np.asarray([r["capacity_ah"] for r in rows], float),
+        }
+
+
+def _omitted(predictions, hit, mode):
+    """What reaches the host when the hit cases are omitted: absent, or null."""
+    out = dict(predictions)
+    for case in hit:
+        if mode == "absent":
+            out.pop(case, None)
+        elif mode == "null" and case in out:
+            out[case] = None
+    return out
+
+
+def _fault_of(value):
+    mode = value.get("mode", "none")
+    if mode not in FAULT_MODES:
+        raise ValueError("unknown fault mode: " + str(mode))
+    return mode, value.get("select", "none")
+
+
+# -- the Graphite pod path ----------------------------------------------------------------------
+@functools.cache
+def _program_tail(program):
+    """Battery's practice program (`practice.PROGRAM`; the pod's
+    `GPU_PROGRAM` is it plus a runtime record) from just after it fits its
+    model: the prediction step and the writes of `predictions.json` and
+    `fit.json`, compiled exactly as written."""
+    import ast
+
+    tree = ast.parse(program)
+    for index, node in enumerate(tree.body):
+        if isinstance(node, ast.Assign) and [
+            getattr(t, "id", None) for t in node.targets
+        ] == ["stats"]:
+            body = tree.body[index + 1 :]
+            break
+    else:
+        raise ValueError("the practice program fits no model")
+    return compile(ast.Module(body=body, type_ignores=[]), "<practice-program>", "exec")
+
+
+@contextlib.contextmanager
+def _scratch(prefix):
+    """A temporary directory removed bottom-up by name (opens no file)."""
+    import os
+    import tempfile
+
+    directory = tempfile.mkdtemp(prefix=prefix)
+    try:
+        yield directory
+    finally:
+        for parent, folders, files in os.walk(directory, topdown=False):
+            for name in files:
+                os.unlink(os.path.join(parent, name))
+            for name in folders:
+                os.rmdir(os.path.join(parent, name))
+        os.rmdir(directory)
+
+
+def _practice_references():
+    practice_set, _material = _track_a()._Practice.get()
+    return {r["case_id"]: r for r in practice_set.records}
+
+
+def _pod_outputs(mode, select):
+    """What a pod's program exports for the probe construction on public
+    PRACTICE, `(files, crashed, hit)`: battery's practice program from its
+    fitted model onward, run on the construction exactly as written and
+    exported as `pod_phase.run` exports it (`failure.json` at stage
+    `program` on a non-zero exit). An omission edits the exported
+    predictions, as a harness or a participant's own inference would."""
+    from pathlib import Path
+
+    import numpy as np
+
+    from carbon.agent_campaign.graphite import pod_phase
+    from carbon.battery import practice, recipes
+    from carbon.battery.challenge import INPUTS
+
+    references = _practice_references()
+    hit = _select(references, select)
+    by_key = {_inputs_key(r["inputs"]): _honest(r) for r in references.values()}
+    keys = {_inputs_key(references[c]["inputs"]) for c in hit}
+    model = _ProbeModel(by_key, keys if mode not in OMISSION_MODES else (), mode)
+    crashed = False
+    with _scratch("battery-attack-program-") as directory:
+        work, out = Path(directory) / "work", Path(directory) / "output"
+        work.mkdir()
+        out.mkdir()
+        cases = [
+            {"case_id": c, "inputs": references[c]["inputs"]}
+            for c in sorted(references)
+        ]
+        (work / "practice-inputs.json").write_text(json.dumps({"cases": cases}))
+        namespace = {
+            "json": json,
+            "np": np,
+            "work": work,
+            "out": out,
+            "INPUTS": INPUTS,
+            "recipes": recipes,
+            "model": model,
+            "stats": {},
+        }
+        try:
+            # Carbon's own pinned practice program, never participant code.
+            exec(_program_tail(practice.PROGRAM), namespace)  # noqa: S102
+        except Exception:  # noqa: BLE001 - the program exits non-zero
+            crashed = True
+        files = {
+            name: (out / name).read_bytes()
+            for name in pod_phase.OUTPUTS
+            if (out / name).is_file()
+        }
+    if mode in OMISSION_MODES and "predictions.json" in files:
+        edited = _omitted(json.loads(files["predictions.json"]), hit, mode)
+        files["predictions.json"] = json.dumps(edited).encode()
+    if crashed:
+        files["failure.json"] = json.dumps(
+            {"error": "exit 1", "stage": "program"}, sort_keys=True
+        ).encode()
+    else:
+        files["DONE.json"] = json.dumps(
+            {"exit": 0, "phase": "graphite_practice"}, sort_keys=True
+        ).encode()
+    return files, crashed, hit
+
+
+_BUILT = {}
+
+
+def _scripted_outputs(files):
+    def outputs(job):
+        from carbon.agent_campaign.graphite import pod_phase
+
+        key = (_canonical(job.strategy), job.contract_digest, job.seed)
+        built = _BUILT.get(key)
+        if built is None:
+            built = _BUILT[key] = pod_phase.built_record(
+                job.strategy, job.contract_digest, job.seed, ".", _challenge_scoring()
+            )[0]
+        return {"built.json": json.dumps(built, sort_keys=True).encode(), **files}
+
+    return outputs
+
+
+class _NoLadder:
+    def record_failure(self, *args, **kwargs):
+        raise AssertionError("one probe proposal never stalls")
+
+
+def _graphite(mode, select):
+    """One proposal through Graphite's real pod path (`experiment.Experiment.
+    run` at Level 0, battery's `ChallengeScoring`, the registered attribution
+    policy) on a scripted pod account that runs no pod and spends nothing."""
+    from decimal import Decimal
+    from pathlib import Path
+
+    from carbon.agent_campaign.graphite import experiment
+    from carbon.agent_campaign.graphite import pods as podlib
+
+    scoring = _challenge_scoring()
+    strategy = scoring.baseline_strategy()
+    baseline_files, _, _ = _pod_outputs("none", "none")
+    files, crashed, hit = _pod_outputs(mode, select)
+    account = podlib.ScriptedPods(
+        steps=[
+            podlib.Step(
+                outputs=_scripted_outputs(baseline_files), rate="0", charge="0"
+            ),
+            podlib.Step(
+                outcome="failed" if crashed else "done",
+                outputs=_scripted_outputs(files),
+                rate="0",
+                charge="0",
+            ),
+        ]
+    )
+    budget = experiment.Phase3Budget(
+        run_cap_usd=Decimal(0),
+        hourly_usd=Decimal(0),
+        pod_minutes=podlib.proposal_minutes(scoring),
+        max_pods=len(account.steps),
+        challenge_id=CHALLENGE_ID,
+    )
+    with _scratch("battery-attack-graphite-") as directory:
+        run = experiment.Experiment(
+            root=Path(directory) / "run",
+            run_id="battery-attack-selective-fault",
+            pods=account,
+            budget=budget,
+            baseline=strategy,
+            token_committed=lambda: Decimal(0),
+            cancelled=lambda: False,
+            ladder=_NoLadder(),
+            emit=lambda _event, _body: None,
+            scorer=_frozen_rule(),
+            scoring=scoring,
+            repository=Path.cwd(),
+            clock=lambda: 0.0,
+            randomness=lambda n: b"\x03" * n,
+            construction_level=LEVEL,
+        )
+        why = {"hypothesis": "selective fault probe", "expected_effect": "typed"}
+        record = run.run(PROBE_PROPOSAL, "proposal", strategy, why=why)
+        rows = run.rows(PROBE_PROPOSAL)
+    frozen = record.get("frozen_rule") or {}
+    scored = record["status"] == "SCORED"
+    return {
+        "outcome": record["status"]
+        + ("" if scored else ":" + str(record.get("reason_code"))),
+        "scored": scored,
+        "eligible": frozen.get("eligible"),
+        "score": frozen.get("score"),
+        "n_scored": frozen.get("n_scored"),
+        "n_cases": None if rows is None else len(rows),
+        "n_gate_failed": frozen.get("n_gate_failed"),
+        "hit": hit,
+        "against_baseline": (record.get("against_baseline") or {}).get("outcome"),
+        "pods_launched": len(account.launched),
+        "retried": any(a.get("attempt", 0) > 0 for a in record.get("attempts", [])),
+    }
+
+
+# -- the Interface v1 path ----------------------------------------------------------------------
+@functools.cache
+def _probe_references():
+    from pathlib import Path
+
+    found = {}
+    for line in Path(PROBE_REFERENCES).read_text().splitlines():
+        record = json.loads(line)
+        if not record.get("refined"):
+            found[record["case_id"]] = record
+    return found
+
+
+def _probe_batch(references, role, n):
+    from carbon.battery import seeds
+    from carbon.battery.challenge import INPUTS
+
+    ids = sorted(c for c in references if c.startswith(role + "-"))[:n]
+    cases = [
+        (c, tuple(sorted((k, references[c]["inputs"][k]) for k in INPUTS))) for c in ids
+    ]
+    repeats = [(f"{role}-r{j}", ids[j * 40]) for j in range(2)]
+    inputs = dict(cases)
+    cases += [(d, inputs[o]) for d, o in repeats]
+    return seeds.PrivateBatch(role, tuple(cases), tuple(repeats))
+
+
+def _probe_backend(mode, select):
+    """A `DirectBackend` whose construction is the probe's: `reconstruct`
+    returns the probe's state, and `infer` is `DirectBackend.infer` itself
+    (its batching, its typing of a predict fault as the candidate's, its JSON
+    round trip) on the probe model; an omission edits what it returns."""
+    from carbon.battery.worker import DirectBackend
+
+    class ProbeBackend(DirectBackend):
+        def __init__(self):
+            self.backends = ("jax",)
+            self.calls = {"reconstruct": 0, "infer": 0}
+            self.hit = []
+
+        def reconstruct(self, identity, recipe, seed):
+            self.calls["reconstruct"] += 1
+            return _PROBE_STATE, {"probe": True}
+
+        def infer(self, identity, state, inputs):
+            by_ref = {_inputs_key(r["inputs"]): r for r in _probe_references().values()}
+            asked = {
+                c: {"inputs": inputs[c], **by_ref[_inputs_key(inputs[c])]}
+                for c in inputs
+            }
+            # The duplicate of a case is hit with it (same inputs).
+            hit = _select(asked, select)
+            self.hit = sorted(set(self.hit) | set(hit))
+            by_key = {_inputs_key(r["inputs"]): _honest(r) for r in asked.values()}
+            keys = {_inputs_key(asked[c]["inputs"]) for c in hit}
+            model = _ProbeModel(
+                by_key, keys if mode not in OMISSION_MODES else (), mode
+            )
+            from carbon.battery import recipes
+
+            original = recipes.model_from_bytes
+            recipes.model_from_bytes = lambda body: model
+            try:
+                predictions = DirectBackend.infer(self, identity, state, inputs)
+            finally:
+                recipes.model_from_bytes = original
+            if mode in OMISSION_MODES:
+                predictions = _omitted(predictions, hit, mode)
+            return predictions
+
+    return ProbeBackend()
+
+
+def _interface_v1(mode, select):
+    """One submission through the real Interface v1 validator over battery's
+    own daemon (`Validator.evaluate`, `BatteryAdapter`, `deployment.evaluate`,
+    `BatteryValidator.process`, `_infer` and `exam.evaluate`), on a private
+    temporary pool of published development examples, then the same
+    submission again (does a failure re-roll?)."""
+    from pathlib import Path
+
+    from carbon.battery import seeds
+    from carbon.battery.daemon import BatteryValidator, rule_digest
+    from carbon.battery.pool_store import PoolStore
+    from carbon.challenge_validator.battery import BatteryAdapter
+    from carbon.challenge_validator.dispatch import Adapters, Validator
+    from carbon.challenge_validator.interface import Submission
+    from carbon.challenge_validator.ledger import AttemptLedger
+
+    references = _probe_references()
+    backend = _probe_backend(mode, select)
+    with _scratch("battery-attack-v1-") as directory:
+        root_dir = Path(directory)
+        root = seeds.PrivateRoot.create(root_dir / "root.bin")
+        journal = seeds.SeedJournal(root_dir / "journal.jsonl")
+        journal.commit_root(root, seeds.seed_pin("sha256:" + "1" * 64, rule_digest()))
+        target = BatteryValidator(
+            store=PoolStore(root_dir / "state.sqlite3"),
+            backend=backend,
+            root=root,
+            journal=journal,
+            repository=Path.cwd(),
+            require_commitment=False,
+            allow_published_cases=True,
+        )
+        target.lock_path = str(root_dir / "state.sqlite3.lock")
+        target.readonly = False
+        target.start()
+        for role, n, kind in (
+            *((f"pscreen-B0{index}", 98, "screening") for index in range(4)),
+            ("pfinal", 198, "finalist"),
+        ):
+            batch = _probe_batch(references, role, n)
+            fingerprint = target.import_batch(batch, kind=kind)
+            target.ingest_references(
+                fingerprint,
+                [references[c] for c, _inputs in batch.cases if c in references],
+            )
+        target.open_pool()
+        (root_dir / "ledger").mkdir(mode=0o700)
+        ledger = AttemptLedger(root_dir / "ledger" / "attempts.sqlite3")
+        adapter = BatteryAdapter(target)
+        validator = Validator(Adapters([adapter]), ledger)
+        submission = Submission(
+            hotkey=PROBE_HOTKEY,
+            receipt={"sequence": 1, "digest": "1" * 64},
+            challenge_id=adapter.challenge_id,
+            challenge_version=adapter.challenge_version,
+            strategy_json=json.dumps(_challenge_scoring().baseline_strategy()),
+            contract_digest=adapter.contract_digest,
+        )
+        first = validator.evaluate(submission)
+        again = validator.evaluate(submission)
+        outcome = first.get("outcome") or {}
+        sid = outcome.get("submission_id")
+        score = None if sid is None else target.store.score(sid)
+        aggregate = (score or {}).get("record") or {}
+        row = target.store.submission(sid) if sid else None
+        totals = ledger.totals()
+    state = outcome.get("state")
+    scored = first["kind"] == "OUTCOME" and state == "SCORED"
+    failure = (row or {}).get("failure") or {}
+    return {
+        "outcome": (
+            "SCORED"
+            if scored
+            else f"{first['kind']}:{state or first.get('code')}"
+            + (":" + str(failure.get("code")) if failure.get("code") else "")
+        ),
+        "scored": scored,
+        "eligible": aggregate.get("eligible") if scored else None,
+        "score": aggregate.get("score") if scored else None,
+        "n_scored": aggregate.get("n_scored") if scored else None,
+        "n_cases": aggregate.get("n_cases") if scored else None,
+        "n_failed_infra": aggregate.get("n_failed_infra") if scored else None,
+        "hit": backend.hit,
+        "ledger": {k: v for k, v in totals.items() if v},
+        "retry_same": (again.get("outcome") or {}).get("state") == state
+        and again["kind"] == first["kind"],
+    }
+
+
+def _dodged(path):
+    """A path dodged hit cases: it scored the attempt, eligible, over fewer
+    cases than it was given."""
+    return bool(
+        path.get("scored")
+        and path.get("eligible")
+        and path.get("n_cases") is not None
+        and path.get("n_scored") is not None
+        and path["n_scored"] < path["n_cases"]
+    )
+
+
+_COMPILED = {}
+
+
+@contextlib.contextmanager
+def _memoised_compile():
+    """While open, battery's contract compile (`BatteryContracts.compile`, a
+    deterministic function of the strategy and the contract) answers a
+    strategy it has already compiled from memory. It is the slowest step of
+    both paths and is not what these families probe; every other step runs
+    as written."""
+    from carbon.battery.contracts import BatteryContracts
+
+    original = BatteryContracts.compile
+
+    def compile_once(self, strategy):
+        key = (id(self), _canonical(strategy))
+        found = _COMPILED.get(key)
+        if found is None:
+            found = _COMPILED[key] = (self, original(self, strategy))
+        return found[1]
+
+    BatteryContracts.compile = compile_once
+    try:
+        yield
+    finally:
+        BatteryContracts.compile = original
+
+
+def fault_boundary(value):
+    """The probe construction faults or omits on the chosen cases; each real
+    path takes it. The evidence binds the cases hit and each path's result."""
+    mode, select = _fault_of(value)
+    with _FAULT_LOCK, _memoised_compile():
+        return {
+            "mode": mode,
+            "select": select,
+            "interface_v1": _interface_v1(mode, select),
+            "graphite": _graphite(mode, select),
+        }
+
+
+def dropping_accounting(value):
+    """Vulnerable specimen: an accounting that drops every hit case from the
+    aggregate and scores the rest, on both paths (the frozen rule over the
+    public PRACTICE references)."""
+    mode, select = _fault_of(value)
+    references = _practice_references()
+    hit = _select(references, select)
+    kept = {c: _honest(r) for c, r in references.items() if c not in hit}
+    _rows, summary = _frozen_rule().score(kept)
+    path = {
+        "outcome": "SCORED",
+        "scored": True,
+        "eligible": True,
+        "score": summary["score"],
+        "n_scored": len(kept),
+        "n_cases": len(references),
+        "hit": hit,
+    }
+    return {
+        "mode": mode,
+        "select": select,
+        "interface_v1": dict(path),
+        "graphite": dict(path),
+    }
+
+
+def fault_breached(result):
+    """Hit cases were dodged on some path."""
+    return any(_dodged(result[path]) for path in FAULT_PATHS)
+
+
+def _path_reads(path):
+    if path.get("scored") and path.get("eligible"):
+        return _SCORED if path.get("n_scored") == path.get("n_cases") else "dodged"
+    if path.get("scored"):
+        return _INELIGIBLE
+    return _FAILED_WHOLE
+
+
+def _fault_control(value):
+    """A construction with the outcome its control names on every path."""
+    result = fault_boundary(value)
+    return not fault_breached(result) and all(
+        _path_reads(result[path]) == value["expect"][path] for path in FAULT_PATHS
+    )
+
+
+def _selective_attacks():
+    return (
+        (
+            "fault_on_the_important_region_only",
+            {"mode": "raise", "select": "important"},
+        ),
+        ("fault_on_the_worst_k_cases", {"mode": "raise", "select": "worst_k"}),
+        (
+            "nonfinite_only_on_the_hard_cases",
+            {"mode": "nonfinite_temperature", "select": "above_own_mean"},
+        ),
+        ("raise_at_predict_for_a_subset", {"mode": "raise", "select": "worse_half"}),
+        (
+            "infinite_capacity_on_the_worst_k_cases",
+            {"mode": "infinite_capacity", "select": "worst_k"},
+        ),
+    )
+
+
+def _omission_attacks():
+    return (
+        ("omit_the_worst_k_cases", {"mode": "absent", "select": "worst_k"}),
+        ("null_the_important_region", {"mode": "null", "select": "important"}),
+        ("omit_the_worst_case_only", {"mode": "absent", "select": "worst_one"}),
+        ("null_the_worse_half", {"mode": "null", "select": "worse_half"}),
+    )
 
 
 def _probe(predictions, feedback=None):
@@ -1146,6 +1798,9 @@ def clear_caches():
     _expected_build_cached.cache_clear()
     _frozen_rule.cache_clear()
     _control_recipe.cache_clear()
+    _probe_references.cache_clear()
+    _BUILT.clear()
+    _COMPILED.clear()
 
 
 def _tampered(expected, field):
@@ -1445,9 +2100,9 @@ def _families():
             check="resource_and_failure_accounting",
             protocol_family="the Attacker code-run rule this adapter defines: a wall "
             "allowance above code_run_seconds is refused before dispatch; and the "
-            "frozen rule types every case a partial prediction set leaves out as "
-            "FAILED_INFRA, never a gate failure, and a set with nothing scored is "
-            "never eligible; and a construction's own failure never buys the GPU "
+            "frozen rule types every case a partial prediction set leaves out as a "
+            "schema-gate failure, never FAILED_INFRA, so a partial set is never "
+            "eligible; and a construction's own failure never buys the GPU "
             "probe's environment relaunch under the registered pod attribution "
             "policy",
             attacks=_resource_attacks,
@@ -1458,6 +2113,43 @@ def _families():
             admissible=_resource_admissible,
             attack_example="seconds_just_over_the_allowance",
             reads="public PRACTICE references",
+        ),
+        FamilySpec(
+            name="selective_fault",
+            check="resource_and_failure_accounting",
+            protocol_family="a selective crash: a construction that raises, or "
+            "returns a non-finite output, only on the cases where it scores worst "
+            "(its important region, its worst cases, its worse half) must not get "
+            "those cases dropped from its score on either real path, the Interface "
+            "v1 validator over battery's daemon or Graphite's pod path: the whole "
+            "attempt is failed or charged, or the set is ineligible",
+            attacks=_selective_attacks,
+            boundary=fault_boundary,
+            specimen=dropping_accounting,
+            breached=fault_breached,
+            control_check=_fault_control,
+            admissible=None,
+            attack_example="fault_on_the_worst_k_cases",
+            reads="public TRAIN, PRACTICE and published development examples, a "
+            "temporary validator pool and a scripted pod account",
+        ),
+        FamilySpec(
+            name="prediction_omission",
+            check="resource_and_failure_accounting",
+            protocol_family="an omission: a prediction set that leaves out, or "
+            "gives null for, the cases where the construction scores worst is "
+            "charged to the candidate on both real paths (a schema-gate failure "
+            "on Graphite's frozen rule; an incomplete set refused by battery's "
+            "validator), never typed FAILED_INFRA and never excluded",
+            attacks=_omission_attacks,
+            boundary=fault_boundary,
+            specimen=dropping_accounting,
+            breached=fault_breached,
+            control_check=_fault_control,
+            admissible=None,
+            attack_example="omit_the_worst_k_cases",
+            reads="public TRAIN, PRACTICE and published development examples, a "
+            "temporary validator pool and a scripted pod account",
         ),
         FamilySpec(
             name="staged_bytes",
@@ -1592,6 +2284,50 @@ def _controls():
         "code_run_half_the_allowance",
         lambda: {"kind": "code_run", "arguments": {"seconds": CODE_RUN_SECONDS // 2}},
     )
+    complete = {"interface_v1": _SCORED, "graphite": _SCORED}
+    for family in ("selective_fault", "prediction_omission"):
+        add(
+            family,
+            "trained",
+            "legitimate_construction",
+            lambda: {"mode": "none", "select": "none", "expect": dict(complete)},
+        )
+    add(
+        "selective_fault",
+        "held_out",
+        "uniform_raise_on_every_case",
+        lambda: {
+            "mode": "raise",
+            "select": "all",
+            "expect": {"interface_v1": _FAILED_WHOLE, "graphite": _FAILED_WHOLE},
+        },
+    )
+    add(
+        "selective_fault",
+        "held_out",
+        "uniform_nonfinite_temperature_on_every_case",
+        lambda: {
+            "mode": "nonfinite_temperature",
+            "select": "all",
+            "expect": {"interface_v1": _INELIGIBLE, "graphite": _INELIGIBLE},
+        },
+    )
+    add(
+        "prediction_omission",
+        "held_out",
+        "uniform_null_on_every_case",
+        lambda: {
+            "mode": "null",
+            "select": "all",
+            "expect": {"interface_v1": _FAILED_WHOLE, "graphite": _INELIGIBLE},
+        },
+    )
+    add(
+        "prediction_omission",
+        "held_out",
+        "nothing_omitted_absent_mode",
+        lambda: {"mode": "absent", "select": "none", "expect": dict(complete)},
+    )
     add(
         "staged_bytes",
         "trained",
@@ -1638,10 +2374,11 @@ SEAMS = (
         "pod_timeout_typing",
         "resource_and_failure_accounting",
         0,
-        "a pod run that times out is typed CANDIDATE_FAILED and never scored by "
-        "experiment's pod outcome, while the frozen rule types a missing "
-        "prediction FAILED_INFRA; whether a pod timeout is FAILED_INFRA or "
-        "CANDIDATE_FAILED is open, so this adapter judges neither",
+        "a pod run that times out is typed by experiment's pod outcome under "
+        "the registered attribution policy, never scored, while a missing "
+        "prediction is a schema-gate failure (GRAPHITE-COVERAGE-PARITY-01); "
+        "whether a pod timeout is FAILED_INFRA or CANDIDATE_FAILED is open, so "
+        "this adapter judges neither",
         "owner: whether a pod timeout is FAILED_INFRA or CANDIDATE_FAILED",
     ),
     SeamSpec(
@@ -1681,8 +2418,10 @@ SEAMS = (
         "score_exploitation_and_tail_failures",
         5,
         "child processes, inference/solver hybrids and custom inference; a case a "
-        "participant's own inference omits would be typed FAILED_INFRA and excluded "
-        "by exam.aggregate, so it becomes a surface only here. " + _PARTICIPANT_CODE,
+        "participant's own inference omits is a schema-gate failure on every "
+        "host (prediction_omission runs it at Level 0), and who is charged at "
+        "this level waits for the uid-separated attribution path (VALIDATOR-04). "
+        + _PARTICIPANT_CODE,
         "security owner: isolation for executing participant code",
     ),
 )
