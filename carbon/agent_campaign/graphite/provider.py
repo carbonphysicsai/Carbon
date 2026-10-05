@@ -612,7 +612,8 @@ class GraphiteProvider:
         return literature_record(self.literature)
 
     def _next_level(self, run_id, role):
-        """The next-level writer for one run (GRAPHITE-D30)."""
+        """The next-level writer for one run (GRAPHITE-D30). Each proposal
+        carries `conditional_tag()` as of when it is written."""
 
         def write(arguments, identity):
             from carbon.challenge_validator import scoring as challenge_scoring
@@ -638,9 +639,16 @@ class GraphiteProvider:
                 identity=identity,
                 role=role.name.value,
                 scoring=scoring,
+                conditional=self.conditional_tag(),
             )
 
         return write
+
+    def conditional_tag(self):
+        """The conditional tag a result written now carries
+        (conditional-evidence.v2), or None when no campaign controller is
+        bound to this provider. Phase 3 binds one (`bind_findings`)."""
+        return
 
     def _selection(self, model_id, role=None):
         """The selection a new session of `role` opens with on `model_id`. A

@@ -17,6 +17,15 @@ with Carbon's reconstruction of it, in the same phase.
 
 The proposal's text fields are the agent's words, stored as data. Nothing
 reads them back as instructions.
+
+**A proposal made while a finding is open says so** (conditional-evidence.v2,
+GRAPHITE-CONDITIONAL-EXPLORATION-01 amendment). When the writer is given the
+controller's tag (`conditional`), the record is `SCHEMA_V2`: v1 plus
+`conditional_on`, `conditional_policy` and, while a finding is released by an
+attested repair, `repaired_by_attestation`, as of when the proposal was first
+written. A level proposal transcribed from it carries that tag, and is never
+ACCEPTED while the tag lists a finding (`challenge_pipeline.proposals`). A
+writer given no tag (no controller) writes v1, as before.
 """
 
 from __future__ import annotations
@@ -25,12 +34,16 @@ import json
 import re
 from pathlib import Path
 
+from carbon.challenge_readiness import conditional_evidence
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
 
 from .roles import CONTRACT_DIMENSIONS, NEXT_LEVEL
 
 SCHEMA = "carbon.graphite.next-level-proposal.v1"
+#: v2: v1 plus the conditional tag (conditional-evidence.v2).
+SCHEMA_V2 = "carbon.graphite.next-level-proposal.v2"
+TAG_KEYS = (*conditional_evidence.TAG_KEYS, conditional_evidence.ATTESTED)
 PROPOSED = "PROPOSED"
 DIRECTORY = "next-level"
 #: The most proposals one run may write.
@@ -105,8 +118,21 @@ def _cited(capability_id, dimension, live):
     raise ProposalRefused("contract_capability_id_not_in_the_contract")
 
 
-def build(arguments, *, literature, run_id, identity, role, scoring):
-    """A validated proposal record; `ProposalRefused` otherwise."""
+def _tag(conditional):
+    """The controller's tag, checked: `conditional_on` and
+    `conditional_policy`, and `repaired_by_attestation` only with them."""
+    if type(conditional) is not dict or not (
+        set(conditional_evidence.TAG_KEYS) <= set(conditional) <= set(TAG_KEYS)
+    ):
+        raise ValueError("a next-level proposal's tag is the controller's tag")
+    conditional_evidence.conditional_on(conditional)
+    return {key: conditional[key] for key in TAG_KEYS if key in conditional}
+
+
+def build(arguments, *, literature, run_id, identity, role, scoring, conditional=None):
+    """A validated proposal record; `ProposalRefused` otherwise. With
+    `conditional` (the controller's tag when the proposal is made) the record
+    is v2 and carries it."""
     if type(arguments) is not dict or set(arguments) != set(_FIELDS):
         raise ProposalRefused("arguments_are_exactly_the_proposal_fields")
     capability = _text(arguments["capability"], "capability", MAX_CAPABILITY)
@@ -154,8 +180,9 @@ def build(arguments, *, literature, run_id, identity, role, scoring):
         ),
     }
     proposal_id = "nlp-" + digest(canonical([run_id, identity, body]))[7:23]
+    tag = {} if conditional is None else _tag(conditional)
     return {
-        "schema": SCHEMA,
+        "schema": SCHEMA_V2 if tag else SCHEMA,
         "proposal_id": proposal_id,
         "run_id": run_id,
         "identity": identity,
@@ -164,6 +191,7 @@ def build(arguments, *, literature, run_id, identity, role, scoring):
         **body,
         "status": PROPOSED,
         "authority": dict(AUTHORITY),
+        **tag,
     }
 
 
@@ -183,20 +211,47 @@ class ProposalStore:
         ]
 
     def write(self, record):
-        if record.get("status") != PROPOSED or record.get("schema") != SCHEMA:
+        if record.get("status") != PROPOSED or record.get("schema") not in (
+            SCHEMA,
+            SCHEMA_V2,
+        ):
             raise ValueError("a next-level proposal is written PROPOSED")
+        if (record["schema"] == SCHEMA_V2) != any(k in record for k in TAG_KEYS):
+            raise ValueError("a v2 proposal, and only one, carries the tag")
         if not _ID.fullmatch(record["proposal_id"]):
             raise ValueError("not a proposal id")
         path = self.root / (record["proposal_id"] + ".json")
-        if not path.exists() and len(self.proposals()) >= MAX_PER_RUN:
+        if path.exists():
+            # The same proposal again: the record first written stands, with
+            # the tag of when it was first made (a tag never leaves its result).
+            existing = json.loads(path.read_bytes())
+            drop = {"schema", *TAG_KEYS}
+            if {k: v for k, v in existing.items() if k not in drop} != {
+                k: v for k, v in record.items() if k not in drop
+            }:
+                raise ValueError("immutable session artifact conflict")
+            return path
+        if len(self.proposals()) >= MAX_PER_RUN:
             raise ProposalRefused("run_proposal_limit_reached")
         self.root.mkdir(mode=0o700, parents=True, exist_ok=True)
         write_once(path, canonical(record))
         return path
 
 
-def propose_tool(arguments, *, literature, run_dir, run_id, identity, role, scoring):
-    """The tool's answer: the stored record as data, or a typed refusal."""
+def propose_tool(
+    arguments,
+    *,
+    literature,
+    run_dir,
+    run_id,
+    identity,
+    role,
+    scoring,
+    conditional=None,
+):
+    """The tool's answer: the stored record as data, or a typed refusal.
+    `conditional` is the controller's tag when the proposal is made, or None
+    when no controller is bound (the record is then v1, untagged)."""
     try:
         record = build(
             arguments,
@@ -205,6 +260,7 @@ def propose_tool(arguments, *, literature, run_dir, run_id, identity, role, scor
             identity=identity,
             role=role,
             scoring=scoring,
+            conditional=conditional,
         )
         ProposalStore(run_dir).write(record)
     except ProposalRefused as refused:

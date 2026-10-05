@@ -11,7 +11,8 @@ copy is the versioned one. Each file is validated against the roadmap's rules
   the sign-off of the owner the roadmap names for the gate before it.
 - **Results come from the frozen run.** Track A and B results need the frozen
   evidence record they came from, and that evidence carries no result tagged
-  with open findings (OWNER-GRAPHITE-TEST-WAVE-03 §2, `conditional-evidence.v1`).
+  with open findings, or released only by an attested repair
+  (OWNER-GRAPHITE-TEST-WAVE-03 §2, `conditional-evidence.v2`).
 - **Solve time is measured on the reference hardware.** A measured p50 needs
   the protocol's reference hardware, which the technical owner approves, and
   the timing evidence.
@@ -167,7 +168,7 @@ def validate_rubric(rubric, protocol):
     return rubric
 
 
-def validate_record(record, protocol, families, *, root=REPOSITORY):
+def validate_record(record, protocol, families, *, root=REPOSITORY, ledgers=()):
     fid = record.get("family")
     where = f"record {fid}"
     if set(record) != RECORD_KEYS:
@@ -207,12 +208,15 @@ def validate_record(record, protocol, families, *, root=REPOSITORY):
     if evidence["frozen"] is not None:
         try:
             conditional_evidence.require_unconditional_path(
-                Path(root) / evidence["frozen"], site=f"{where} frozen run"
+                Path(root) / evidence["frozen"],
+                site=f"{where} frozen run",
+                lock=True,
+                ledgers=ledgers,
             )
         except conditional_evidence.ConditionalEvidenceError as error:
             raise PipelineError(
                 f"{where}: {error}; a frozen run cites only unconditional evidence "
-                "(conditional-evidence.v1)"
+                "(conditional-evidence.v2)"
             ) from error
     if record["p50s"] is not None:
         if not protocol.get("reference_hardware"):
@@ -249,7 +253,7 @@ def validate_record(record, protocol, families, *, root=REPOSITORY):
     ):
         raise PipelineError(f"{where}: a text field is longer than the page allows")
     try:
-        construction = ladder.validate(record["construction"], where, root)
+        construction = ladder.validate(record["construction"], where, root, ledgers)
     except ladder.LadderError as error:
         raise PipelineError(str(error)) from error
     if stage in ("test", "ready", "deployed") and construction["level"] is None:
@@ -277,16 +281,23 @@ def validate_record(record, protocol, families, *, root=REPOSITORY):
 
 
 def load_state(
-    *, root=REPOSITORY, protocol_path=PROTOCOL, rubric_path=RUBRIC, records=RECORDS
+    *,
+    root=REPOSITORY,
+    protocol_path=PROTOCOL,
+    rubric_path=RUBRIC,
+    records=RECORDS,
+    ledgers=(),
 ):
-    """The validated protocol, rubric and records, keyed by family id."""
+    """The validated protocol, rubric and records, keyed by family id.
+    `ledgers` are campaign controllers' `ConditionalLedger`s that the citation
+    checks also consult (conditional-evidence.v2)."""
     families = load_families()
     ids = {f["id"] for f in families["families"]}
     protocol = validate_protocol(_load(protocol_path))
     rubric = validate_rubric(_load(rubric_path), protocol)
     out = {}
     for path in sorted(Path(records).glob("*.json")):
-        record = validate_record(_load(path), protocol, ids, root=root)
+        record = validate_record(_load(path), protocol, ids, root=root, ledgers=ledgers)
         if path.stem != record["family"]:
             raise PipelineError(f"{path.name}: named for {record['family']}")
         out[record["family"]] = record

@@ -5,9 +5,13 @@
         --solver-image IMAGE@sha256:DIGEST --out PLAN.json
     python -m scripts.dev.motor.decision_study evaluate-fixture \
         --construction DIR --out EVALUATION_DIR
+    python -m scripts.dev.motor.decision_study adopt-counted \
+        --construction V2_DIR --predecessor-config V1.json \
+        --predecessor-construction V1_DIR --reference ATTEMPT_DIR --out DIR
 
-No command in this module launches GetDP. The separate batch runner executes a
-registered plan only after durable ledger reservation.
+The default config is study V2 (OWNER-MOTOR-COUNTED-ADOPT-01); V1 stays the
+historical record. No command in this module launches GetDP. The separate
+batch runner executes a registered plan only after durable ledger reservation.
 """
 
 from __future__ import annotations
@@ -24,7 +28,7 @@ if str(ROOT) not in sys.path:
 from carbon.motor import decision_study
 
 DEFAULT_CONFIG = (
-    ROOT / "docs" / "development" / "studies" / "MOTOR_SYNTHETIC_DECISION_V1.json"
+    ROOT / "docs" / "development" / "studies" / "MOTOR_SYNTHETIC_DECISION_V2.json"
 )
 
 
@@ -48,6 +52,12 @@ def main(argv=None):
     counted.add_argument("--construction", type=Path, required=True)
     counted.add_argument("--reference", type=Path, action="append", required=True)
     counted.add_argument("--out", type=Path, required=True)
+    adopted = subparsers.add_parser("adopt-counted")
+    adopted.add_argument("--construction", type=Path, required=True)
+    adopted.add_argument("--predecessor-config", type=Path, required=True)
+    adopted.add_argument("--predecessor-construction", type=Path, required=True)
+    adopted.add_argument("--reference", type=Path, action="append", required=True)
+    adopted.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
     config = decision_study.load_config(args.config, repository=ROOT)
     if args.command == "construct":
@@ -95,7 +105,7 @@ def main(argv=None):
             "result": str(args.out / "result.json"),
             "schema": document["schema"],
         }
-    else:
+    elif args.command == "evaluate-counted":
         reference = decision_study.import_counted_getdp(config, args.reference)
         document = decision_study.evaluate(
             config,
@@ -107,6 +117,35 @@ def main(argv=None):
         )
         summary = {
             "result": str(args.out / "result.json"),
+            "schema": document["schema"],
+        }
+    else:
+        predecessor = decision_study.load_config(
+            args.predecessor_config, repository=ROOT
+        )
+        reference, adoption = decision_study.adopt_counted_campaign(
+            config,
+            repository=ROOT,
+            construction_directory=args.construction,
+            predecessor_config=predecessor,
+            predecessor_construction_directory=args.predecessor_construction,
+            reference_directories=args.reference,
+        )
+        document = decision_study.evaluate(
+            config,
+            repository=ROOT,
+            construction_directory=args.construction,
+            reference=reference,
+            output=args.out,
+            evidence_label="COUNTED_GETDP_ADOPTED_FROM_PREDECESSOR_CAMPAIGN",
+        )
+        (args.out / "adoption.json").write_text(
+            json.dumps(adoption, indent=2, sort_keys=True) + "\n"
+        )
+        summary = {
+            "result": str(args.out / "result.json"),
+            "adoption": str(args.out / "adoption.json"),
+            "adoption_digest": adoption["adoption_digest"],
             "schema": document["schema"],
         }
     print(json.dumps(summary, sort_keys=True))

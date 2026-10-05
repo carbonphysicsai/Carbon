@@ -1,0 +1,26 @@
+{
+  "adoption_digest": "sha256:1121334036ce5923e10fbc6acb2c3bfe4334f139a1ec2041c163668ba3355062",
+  "campaign_id": "sha256:a414f6b18881ea491d4aab04c860777cef4126a5eafc5d371accf755568c9334",
+  "construction_identity_digest": "sha256:959fb6ba790d9ae3e9b8381aacbe046028aa0f9d8a9b2d1938c3c9e28df2d7d9",
+  "custody": "The predecessor's campaign plan binds its construction identity, which digests every proposal commitment, and the campaign ledger reserved that plan before any solver ran. This version's construction reads no reference and made identical decisions.",
+  "identical_decision_fields": [
+    "arm_id",
+    "model",
+    "method",
+    "declared_query_budget",
+    "queries_attempted",
+    "queries_successful",
+    "selections",
+    "selection",
+    "predicted_conditions"
+  ],
+  "plan_sha256": "sha256:0998bab608348cb3ab77e9ca0357a6ce3c8809f36a6ef382613ed2d7d2c60036",
+  "predecessor_construction_identity_digest": "sha256:81e76d3997d47be89abf3c1c63da4415cc492cfb24c921238df6f1c1c78ac0fc",
+  "predecessor_study_id": "motor-synthetic-decision-v1",
+  "reason": "The predecessor's importer refused every successful case because the pinned solver writes empty logs on success (OWNER-MOTOR-COUNTED-ADOPT-01).",
+  "records_sha256": [
+    "sha256:d87c0e384d1b35aab54307a533edd96fcdc949699a610a86d4a79a311ac12438"
+  ],
+  "schema": "carbon.motor.counted-campaign-adoption.v1",
+  "study_id": "motor-synthetic-decision-v2"
+}

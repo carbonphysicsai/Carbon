@@ -1,0 +1,44 @@
+{
+  "schema": "carbon.challenge-validator.confirmation-set.v1",
+  "role": "motor-graphite-confirmation-v1",
+  "challenge_id": "electric-motor-magnetics",
+  "sealable": true,
+  "cases": 60,
+  "hidden_duplicates": 2,
+  "sampling_law": {
+    "id": "carbon.motor.development-population.v1",
+    "description": "the motor DEVELOPMENT population: uniform over the box, kept if buildable (carbon.motor.population)"
+  },
+  "strata": [
+    {
+      "id": "important-current-density",
+      "description": "peak current density at least 10 A/mm^2, the motor exam's important region (carbon.motor.exam.J_IMPORTANT)",
+      "lower_bounds": {
+        "current_density_a_mm2": 10.0
+      },
+      "min_fraction": {
+        "numerator": 1,
+        "denominator": 3
+      }
+    }
+  ],
+  "subgroups": [
+    "the important-current-density stratum reported separately"
+  ],
+  "custody": {
+    "kind": "confirmation_journal",
+    "made_on": "the operator host only: drawn from an owner-only custody root and committed to its journal before any use; never in the repository, never in a pool",
+    "solved_on": "the operator host only: never in a pod plan, rented compute, the attack knowledge store or a Graphite session"
+  },
+  "required_prior_roles": [],
+  "required_private_priors": [
+    "motor-pools-v1-private"
+  ],
+  "authority": {
+    "decisions": [
+      "VALIDATOR-03: role reserved",
+      "OWNER-GRAPHITE-TEST-WAVE-05 \u00a74 (PR #593): 60 cases plus 2 hidden duplicates from the DEVELOPMENT population law; at least one third at a current density of at least 10 A/mm^2"
+    ],
+    "human_input": []
+  }
+}
