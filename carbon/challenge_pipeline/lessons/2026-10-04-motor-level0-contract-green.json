@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-level0-contract-green",
+  "recorded_at": "2026-10-04T23:03:33.2699009+00:00",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-MOTOR-02 focused contract regression",
+    "description": "Ran the Motor Level-0 contract, compiler, public-material, worker-staging and admission-study tests after correcting canonical material digests."
+  },
+  "expected": "The bounded Motor construction surface should pass locally, with only the POSIX campaign-controller case skipped on Windows.",
+  "observed": "10 tests passed and the one POSIX-only campaign-controller test was skipped. Digest pinning, deterministic reconstruction, public-only worker staging, strict compilation and the unfreezable admission sheet all passed.",
+  "keep": [
+    "Use canonical LF digests for repository-controlled public material.",
+    "Keep private and decision-study evidence absent from construction staging."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.motor.level0",
+    "challenge.public-material.digest-pinning",
+    "challenge.construction-evaluation-isolation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

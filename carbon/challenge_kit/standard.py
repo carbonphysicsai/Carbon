@@ -323,6 +323,85 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
             "cold-plate campaign is the acceptance and needs the miner's keys.",
         ),
     },
+    # CHALLENGE-MOTOR-02: Level-0 DEVELOPMENT construction only. Official
+    # evaluation stays fail closed (`motor_validator_not_served`).
+    "electric-motor-magnetics": {
+        "research": Provided(
+            (
+                "carbon.motor.research:challenge_parts",
+                "carbon.motor.research:MotorPublicMaterial",
+            ),
+            "Public material: the objective (task, inputs, outputs, sampling "
+            "law, gates, score), the capability registry, the 150 public TRAIN "
+            "and 30 public PRACTICE GetDP records, and the reference-method "
+            "description. The private pool, decision-study evidence and future "
+            "confirmation material are absent by structure.",
+        ),
+        "hypothesize": Provided((REGISTRY_EVIDENCE,)),
+        "train": Provided(
+            (
+                "carbon.motor.research:implementation_files",
+                "carbon.motor.practice:staged_files",
+            ),
+            "The Gaussian kernel-ridge reconstruction (learned_baseline.py, "
+            "domain.py, recipes.py) is published and staged byte-identical in "
+            "practice, with the pinned public TRAIN bytes, in the pinned NumPy "
+            "CPU isolated carrier. It is a closed-form fit; there is no JAX or "
+            "PyTorch trainer for this Challenge.",
+        ),
+        "generate": Gap(
+            reason=(
+                "No miner-runnable Motor kit draws and labels new cases. The "
+                "population draw and buildability screen are repository code, "
+                "but the pinned Gmsh/GetDP reference runs only on an operator "
+                "host. Research uses the fixed public TRAIN and PRACTICE records."
+            ),
+            next_step=(
+                "A separately reviewed Motor challenge-kit ticket to run the "
+                "public draw and pinned Gmsh/GetDP labelling on the miner's own "
+                "machine."
+            ),
+        ),
+        "evaluate": Provided(
+            ("carbon.motor.practice:score_practice",),
+            "Exam gates and components (carbon.motor.exam) on the 30 public "
+            "PRACTICE cases; labels stay host-side. Scoring miner-generated "
+            "cases is not wired.",
+        ),
+        "compute": Gap(
+            reason=(
+                "Level-0 practice is CPU only in the pinned isolated carrier "
+                "(MOTOR-L0-D4): the Motor campaign refuses a GPU image or "
+                "remote setup, and the miner's code cell is CPU only."
+            ),
+            next_step=(
+                "A Motor GPU or remote practice lane needs its own ticket with "
+                "a pinned worker declaration and the hardware to accept it."
+            ),
+        ),
+        "model": Provided(
+            (
+                "carbon.development_session.model_provider:select",
+                "carbon.challenge_registry.agent_plan:provider_plan",
+                "carbon.motor.campaign:prepare_motor",
+            ),
+            "The Challenge-neutral setup freezes the miner's model selection "
+            "and ceilings in its run plan and calls with the miner's own key. "
+            "A live Motor campaign with miner-held keys remains the acceptance.",
+        ),
+        "agent": Provided(
+            (
+                "carbon.challenge_registry.agent_plan:graphite_plan",
+                "carbon.agent_campaign.graphite.miner.edition:offered",
+                "scripts.dev.miner_launchpad.hermes_setup:config_document",
+                "carbon.miner_mcp.standard_cli:main",
+            ),
+            "Graphite is offered on every Challenge with a registered research "
+            "campaign, so it runs Motor under the registered policy. Carbon's "
+            "MCP server attaches through that campaign; execution still needs "
+            "the miner's keys and downstream admission authority.",
+        ),
+    },
 }
 
 

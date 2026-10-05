@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-level0-post-main-green",
+  "recorded_at": "2026-10-04T23:26:46.5899852+00:00",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "stage_gate",
+    "ref": "CHALLENGE-MOTOR-02 post-main focused acceptance",
+    "description": "Reran the focused Motor contract, campaign, expansion, lessons, discovery and research-declaration suite after merging origin/main at 17babfc03."
+  },
+  "expected": "The Motor ticket should remain green when combined with merged cooling and Validator slice 3.",
+  "observed": "40 tests passed and the one POSIX-only campaign-controller test was skipped; there were no merge conflicts or new failures.",
+  "keep": [
+    "Re-run identity-sensitive focused checks after reconciling current main."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.motor.level0",
+    "delivery.base-reconciliation",
+    "construction.expansion-record"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

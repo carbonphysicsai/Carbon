@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-level0-staged-diff-check",
+  "recorded_at": "2026-10-04T23:24:12.1559801+00:00",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "stage_gate",
+    "ref": "CHALLENGE-MOTOR-02 staged diff check",
+    "description": "Checked the complete staged ticket, including newly added files, for whitespace errors."
+  },
+  "expected": "The exact commit candidate should contain no whitespace errors.",
+  "observed": "git diff --cached --check completed cleanly; the only output was a host permission warning for the user's global ignore file.",
+  "keep": [
+    "Check the staged tree so new files are included in diff hygiene."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.motor.level0",
+    "delivery.diff-hygiene"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

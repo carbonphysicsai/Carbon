@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-level0-study-artifacts",
+  "recorded_at": "2026-10-04T23:05:09.8141450+00:00",
+  "challenge": "electric-motor-magnetics",
+  "stage": "design",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-MOTOR-02 admission study artifacts",
+    "description": "Generated the Motor Level-0 permission inventory and admission study sheet from the registered adapter."
+  },
+  "expected": "The generated sheet should place every registered dimension while remaining unfreezable because budget and fresh confirmation population are human-owned.",
+  "observed": "The generator wrote the Motor permission inventory and study sheet; budget and population remain unpinned, so the sheet is DRAFT_NOT_FROZEN and unexecuted.",
+  "keep": [
+    "Derive admission artifacts from the registered Challenge adapter.",
+    "Keep missing human-owned security and evidence pins explicit and fail closed."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.motor.level0",
+    "graphite.admission.track-a",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

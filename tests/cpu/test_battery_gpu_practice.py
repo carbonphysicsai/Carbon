@@ -526,10 +526,7 @@ def test_setup_on_this_machine_s_gpu_carries_the_scope_to_the_profile(tmp_path):
             {"id": "battery-fastcharge-ageing-development-v1"},
             "challenge_id_and_version_required",
         ),
-        (
-            {"id": "electric-motor-magnetics", "version": "1.0"},
-            "challenge_not_implemented",
-        ),
+        ({"id": "photonic-coupler", "version": "1.0"}, "challenge_not_implemented"),
         ({"id": "nowhere", "version": "1.0"}, "challenge_unknown"),
     ],
 )
