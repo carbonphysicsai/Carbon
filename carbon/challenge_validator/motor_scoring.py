@@ -1,10 +1,7 @@
-"""Cooling construction scoring on Carbon's pods (CHALLENGE-AI-COOLING-07).
+"""Motor public DEVELOPMENT scoring for Graphite Level 0 constructions.
 
-This adapter reuses the existing public cold-plate DEVELOPMENT practice rule
-without changing its cases, gates, components, scales or aggregate.  The
-baseline comparison is descriptive only: the public cases are shared and
-adaptively visible, and no scientific promotion or uncertainty rule is
-registered for Cooling.
+Only the registered public TRAIN and PRACTICE rule are used. This adapter
+grants neither private validator access nor scientific qualification.
 """
 
 from __future__ import annotations
@@ -16,33 +13,30 @@ from .scoring import ChallengeScoring, PracticeRule, clean, paired_error_differe
 BUILT_SCHEMA = "carbon.graphite.pod-built.v1"
 
 
-class CoolingPracticeRule(PracticeRule):
-    """The existing cold-plate rule on public PRACTICE, plus a deliberately
-    non-promoting descriptive baseline comparison."""
-
+class MotorPracticeRule(PracticeRule):
     def __init__(self, root):
-        from carbon.cold_plate.challenge import PublicMaterial
-        from carbon.cold_plate.practice import PracticeSet
+        from carbon.motor.challenge import PublicMaterial
+        from carbon.motor.practice import PracticeSet
 
         self.root = Path(root)
         self.practice = PracticeSet.load(root)
         self.material = PublicMaterial.load(root)
         self.identity = {
-            "rule": "cold-plate-public-practice-v1",
+            "rule": "motor-public-practice-v1",
             "authority": "OWNER-CHALLENGE-DESIGN-01",
             "status": "PROVISIONAL_DEVELOPMENT_NON_QUALIFYING",
-            "score": "mean TRAIN-normalized peak, profile and pressure error",
+            "score": "existing TRAIN-normalized mean-torque and ripple errors",
             "comparison": {
                 "kind": "DESCRIPTIVE_PAIRED_MEAN_DIFFERENCE",
                 "confidence_interval": None,
                 "promotable": False,
-                "reason": "no approved cooling promotion or sampling rule",
+                "reason": "no approved motor promotion or sampling rule",
             },
-            "cases": "public PRACTICE, 100, fixed and adaptively seen",
+            "cases": "public PRACTICE, 30, fixed and adaptively seen",
         }
 
     def score(self, predictions):
-        from carbon.cold_plate.practice import score_practice
+        from carbon.motor.practice import score_practice
 
         asked = {case: predictions.get(case) for case in self.practice.case_ids}
         rows, summary = score_practice(asked, self.practice, self.material)
@@ -52,20 +46,30 @@ class CoolingPracticeRule(PracticeRule):
         overall = paired_error_difference(baseline_rows, rows)
         important = paired_error_difference(baseline_rows, rows, important=True)
         if not eligible:
-            outcome = "REGRESSION"
-            reason = "the candidate failed the existing public-practice rule"
+            outcome, reason = (
+                "REGRESSION",
+                "the candidate failed the existing public-practice rule",
+            )
         elif overall["n"] == 0:
-            outcome = "INSUFFICIENT_EVIDENCE"
-            reason = "no common scorable public-practice cases"
+            outcome, reason = (
+                "INSUFFICIENT_EVIDENCE",
+                "no common scorable public-practice cases",
+            )
         elif overall["mean_delta"] < 0:
-            outcome = "IMPROVEMENT"
-            reason = "lower mean error on the shared public cases"
+            outcome, reason = (
+                "IMPROVEMENT",
+                "lower mean error on the shared public cases",
+            )
         elif overall["mean_delta"] > 0:
-            outcome = "REGRESSION"
-            reason = "higher mean error on the shared public cases"
+            outcome, reason = (
+                "REGRESSION",
+                "higher mean error on the shared public cases",
+            )
         else:
-            outcome = "NO_IMPROVEMENT"
-            reason = "equal mean error on the shared public cases"
+            outcome, reason = (
+                "NO_IMPROVEMENT",
+                "equal mean error on the shared public cases",
+            )
         return clean(
             {
                 "outcome": outcome,
@@ -81,20 +85,18 @@ class CoolingPracticeRule(PracticeRule):
         )
 
 
-class CoolingScoring(ChallengeScoring):
-    """The periodic-cell Cooling Challenge's public DEVELOPMENT scoring."""
-
+class MotorScoring(ChallengeScoring):
     served_backends = ("numpy",)
-    wrong_challenge_code = "not_the_cold_plate_development_challenge"
+    wrong_challenge_code = "not_the_motor_development_challenge"
     construction_objective = (
         "Propose bounded kernel-ridge recipes that reduce the existing public "
-        "cold-plate PRACTICE error while passing its prediction-validity gates. "
+        "motor PRACTICE error while passing its prediction-validity gates. "
         "Carbon runs, scores and rebuilds each proposal; the comparison is "
         "descriptive DEVELOPMENT feedback only."
     )
 
     def __init__(self):
-        from carbon.cold_plate.challenge import (
+        from carbon.motor.challenge import (
             CALIBRATION_PATH,
             CHALLENGE,
             PRACTICE_PATH,
@@ -106,8 +108,8 @@ class CoolingScoring(ChallengeScoring):
         self.data_paths = (TRAIN_PATH, PRACTICE_PATH, CALIBRATION_PATH)
 
     def built_record(self, strategy, contract_digest, seed, root):
-        from carbon.cold_plate.practice import PROGRAM, PracticeSet, staged_files
         from carbon.development_session.profile import digest
+        from carbon.motor.practice import PROGRAM, PracticeSet, staged_files
         from carbon.reconstruction.challenge_contracts import compile_submission
 
         admitted = compile_submission(strategy, contract_digest=contract_digest)
@@ -142,10 +144,10 @@ class CoolingScoring(ChallengeScoring):
         return "numpy"
 
     def frozen_rule(self, root):
-        return CoolingPracticeRule(root)
+        return MotorPracticeRule(root)
 
     def baseline_strategy(self):
-        from carbon.cold_plate.research import SCAFFOLD
+        from carbon.motor.research import SCAFFOLD
 
         return SCAFFOLD
 
@@ -153,7 +155,7 @@ class CoolingScoring(ChallengeScoring):
         import copy
 
         strategy = copy.deepcopy(self.baseline_strategy())
-        strategy["parameters"]["length"] = "length_4"
+        strategy["parameters"]["length"] = "length_8"
         return strategy
 
     def fixture_refused_strategy(self):
@@ -165,15 +167,12 @@ class CoolingScoring(ChallengeScoring):
         predictions = {}
         for index, ref in enumerate(self.frozen_rule(root).practice.records):
             wave = 1.0 + 0.5 * math.sin(index * 0.7)
-            out = ref["outputs"]
-            temperature_error = quality * 0.5 * wave
             predictions[ref["case_id"]] = {
-                "peak_c": out["peak_c"] + temperature_error,
-                "profile_c": [t + temperature_error for t in out["profile_c"]],
-                "pressure_drop_pa": out["pressure_drop_pa"]
-                * math.exp(quality * 0.02 * wave),
+                "torque_nm": [
+                    t + quality * 0.05 * wave for t in ref["outputs"]["torque_nm"]
+                ]
             }
         return predictions
 
 
-__all__ = ["BUILT_SCHEMA", "CoolingPracticeRule", "CoolingScoring"]
+__all__ = ["BUILT_SCHEMA", "MotorPracticeRule", "MotorScoring"]
