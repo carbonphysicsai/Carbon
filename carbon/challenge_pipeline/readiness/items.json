@@ -63,7 +63,7 @@
    "kind": "auto",
    "lesson": "N1",
    "title": "No battery-specific literal is reached on this challenge's path: tool text v2, literature snapshot, writeup.",
-   "check": "recorded_tests",
+   "check": "neutral_path",
    "pending": {
     "reason": "neutrality grep and tool text v2: #606 and #610 not on main",
     "owner": "Carbon Validator",
@@ -80,7 +80,7 @@
     "reason": "no-op capability audit (#619) not on main",
     "owner": "Test Engineer",
     "neutral_tests": [
-     "tests/cpu/test_construction_noop_audit.py"
+     "tests/cpu/test_construction_noop_audit.py::test_no_rebuildable_capability_is_a_no_op[{challenge}]"
     ]
    }
   },
@@ -94,7 +94,7 @@
     "reason": "identity-by-rebuilt-artifact audit (#619) not on main",
     "owner": "Test Engineer",
     "neutral_tests": [
-     "tests/cpu/test_construction_noop_audit.py"
+     "tests/cpu/test_construction_noop_audit.py::test_no_rebuildable_capability_is_a_no_op[{challenge}]"
     ]
    }
   },
