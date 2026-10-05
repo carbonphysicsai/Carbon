@@ -1884,7 +1884,14 @@ def test_the_runner_refuses_without_an_exact_grant_and_credentials(
     assert "fixture-engy" not in capsys.readouterr().out
 
 
-def test_the_dry_run_exercises_the_whole_session_without_spend(tmp_path, capsys):
+def test_the_dry_run_exercises_the_whole_session_without_spend(
+    tmp_path, capsys, monkeypatch
+):
+    import containment_double
+
+    # The dry run's carrier containment check: a synthetic passing double
+    # here; the check's own tests are test_carrier_containment.py.
+    containment_double.install(monkeypatch)
     assert (
         phase3.main(
             [

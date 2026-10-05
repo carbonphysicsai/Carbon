@@ -29,6 +29,7 @@ import sqlite3
 from contextlib import redirect_stdout
 from pathlib import Path
 
+import containment_double
 import pytest
 from test_graphite_phase4 import _synthetic_adapter
 
@@ -40,6 +41,9 @@ from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 REPOSITORY = Path(__file__).resolve().parents[2]
 GRANT_FILE = REPOSITORY / phase4.GRANT_FILE
 PHASE4_PATHS = (
+    # A passing double here; the step's own tests are
+    # test_carrier_containment.py (GRAPHITE-CARRIER-CONTAINMENT-01).
+    prelive.CONTAINMENT_STEP,
     "grant_and_code_checks",
     "session_model_ledger_controller",
     "carbon_side_store_pin_replay",
@@ -210,6 +214,12 @@ def engine_modules():
     return phase4.attack_modules()
 
 
+@pytest.fixture(autouse=True)
+def _containment_passes(monkeypatch):
+    """The carrier containment step's passing double (synthetic)."""
+    containment_double.install(monkeypatch)
+
+
 def test_the_gate_runs_every_phase4_path_and_spends_nothing(
     tmp_path, monkeypatch, engine_modules
 ):
@@ -297,7 +307,8 @@ def test_a_refused_grant_stops_the_gate_before_anything_opens(
         scoring=SCORING,
     )
     report = json.loads(printed[-1])
-    (row,) = report["paths"]
+    containment, row = report["paths"]
+    assert containment["path"] == prelive.CONTAINMENT_STEP
     assert row["path"] == "grant_and_code_checks" and row["status"] == "FAIL"
     assert row["detail"]["refusal"] == "grant_differs_from_the_committed_phase4_grant"
     assert code == 4

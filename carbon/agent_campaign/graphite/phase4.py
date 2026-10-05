@@ -1731,6 +1731,11 @@ def main(argv=None):
         default=str(REPOSITORY / GRANT_FILE),
         help="the grant file a live run would pass (default: the committed one)",
     )
+    prelive.add_argument(
+        "--analysis-image-manifest",
+        help="the campaign's pinned analysis image, for the carrier containment "
+        "step (without it the step fails closed)",
+    )
     args = parser.parse_args(argv)
     return {
         "run": command_run,
@@ -1754,7 +1759,12 @@ def command_prelive(args):
     except challenge_scoring.ScoringUnavailable as refused:
         raise RunnerRefused(refused.code) from None
     return prelive(
-        _root(args.root), adapter, atk, grant_path=args.grant, scoring=scoring
+        _root(args.root),
+        adapter,
+        atk,
+        grant_path=args.grant,
+        scoring=scoring,
+        analysis_image_manifest=args.analysis_image_manifest,
     )
 
 

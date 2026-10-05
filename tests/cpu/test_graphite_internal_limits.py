@@ -746,7 +746,11 @@ def test_a_v2_harness_role_runs_past_the_shared_48(tmp_path):
     assert json.loads(outcome.read_bytes())["reason"] == "epoch provider-call ceiling"
 
 
-def test_the_dry_run_shows_no_call_cap_and_the_money_cap(tmp_path, capsys):
+def test_the_dry_run_shows_no_call_cap_and_the_money_cap(tmp_path, capsys, monkeypatch):
+    import containment_double
+
+    # The dry run's carrier containment check (synthetic passing double).
+    containment_double.install(monkeypatch)
     assert (
         phase3.main(
             [

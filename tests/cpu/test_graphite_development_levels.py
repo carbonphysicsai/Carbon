@@ -301,7 +301,11 @@ def test_a_development_pod_job_names_its_variant(variants):
     assert job.config(None)["development_variant"] == FIXTURE_DIGESTS[1]
 
 
-def test_a_development_dry_run_runs_end_to_end(variants, tmp_path, capsys):
+def test_a_development_dry_run_runs_end_to_end(variants, tmp_path, capsys, monkeypatch):
+    import containment_double
+
+    # The dry run's carrier containment check (synthetic passing double).
+    containment_double.install(monkeypatch)
     root = tmp_path / "root"
     root.mkdir()
     assert phase3.dry_run(root, SCORING, development_variant=variants[1]) == 0
