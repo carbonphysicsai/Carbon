@@ -42,7 +42,9 @@ def test_the_output_cap_is_the_runners_bounds_and_defaults():
     assert cap["launch_field"] == "model_settings.max_output_tokens"
     assert cap["bounds"] == list(OUTPUT_TOKEN_BOUNDS)
     offered = [
-        (row["id"], entry["id"]) for row in model["providers"] for entry in row["models"]
+        (row["id"], entry["id"])
+        for row in model["providers"]
+        for entry in row["models"]
     ]
     assert offered, "the specimen offers models"
     for provider_id, model_id in offered:
