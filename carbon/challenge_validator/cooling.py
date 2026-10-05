@@ -61,9 +61,7 @@ class CoolingAdapterError(ValueError):
 
 
 def _canonical(value):
-    return json.dumps(
-        value, sort_keys=True, separators=(",", ":"), allow_nan=False
-    )
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
 
 
 def _copy(value):
@@ -284,9 +282,7 @@ class CoolingStore:
             ).fetchone()
             if current is not None and current["fingerprint"] != fingerprint:
                 raise CoolingAdapterError("cooling_pool_identity_changed")
-            database.execute(
-                "INSERT OR IGNORE INTO pool VALUES (1, ?)", (fingerprint,)
-            )
+            database.execute("INSERT OR IGNORE INTO pool VALUES (1, ?)", (fingerprint,))
             database.execute(
                 "UPDATE batches SET state = 'OPEN' WHERE fingerprint = ?",
                 (fingerprint,),

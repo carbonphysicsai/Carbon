@@ -294,8 +294,8 @@ def check_outcome(outcome, adapter):
 
 
 __all__ = [
-    "OUTCOME_REQUIRED",
     "COOLING_CONFIRMATION_ROLE",
+    "OUTCOME_REQUIRED",
     "RESERVED_SEED_ROLES",
     "STATES",
     "TERMINAL_STATES",

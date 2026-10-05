@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-validator-matrix-first-pass",
+  "recorded_at": "2026-10-05T04:11:21Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-08 first canonical acceptance matrix",
+    "description": "Ran Cooling adapter, neutral Interface v1, Battery compatibility, Cooling contract/exam, and lessons protocol tests together."
+  },
+  "expected": "The combined matrix should pass while preserving Battery behavior and validating every recorded execution lesson.",
+  "observed": "253 tests passed and three lessons-protocol tests failed because five new quality/format lessons used the unsupported kind build_run instead of the schema's build token.",
+  "keep": [
+    "Keep the combined challenge-pipeline suite in the acceptance matrix so lesson-schema drift fails closed."
+  ],
+  "change": [
+    "Use the registered build execution kind for every quality and formatting lesson."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.validator_adapter",
+    "challenge.validator.interface_v1",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

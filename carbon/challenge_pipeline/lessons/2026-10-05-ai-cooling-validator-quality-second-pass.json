@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-validator-quality-second-pass",
+  "recorded_at": "2026-10-05T04:08:04Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-08 second canonical quality pass",
+    "description": "Reran the exact-main changed-path quality gate after formatting in the canonical validation-copy mode."
+  },
+  "expected": "The quality gate should be clean after the formatter run.",
+  "observed": "Ruff was clean, but Black still reported the two files because canonical validation-copy mode intentionally discarded formatter writes outside its isolated copy.",
+  "keep": [
+    "Keep ordinary canonical checks isolated and read-only with respect to the source checkout."
+  ],
+  "change": [
+    "Use the repository's guarded canonical interactive mode when a formatter must persist changes."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.validator_adapter",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

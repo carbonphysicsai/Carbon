@@ -86,7 +86,9 @@ def test_adapter_is_registered_to_the_exact_contract_and_pins_its_rule(adapter):
         "practice_sha256": "sha256:a541d43e4a8b59f9704aa642e1c19f1c6725f59d5d60f804d5c20660e50111be",
         "calibration_sha256": "sha256:52236abadb40913e638a8ff5c5d0ff76728b52d27a76b4d6ecadf590852e1aa6",
     }
-    assert all(adapter.pinned()[name].startswith("sha256:") for name in adapter.pinned())
+    assert all(
+        adapter.pinned()[name].startswith("sha256:") for name in adapter.pinned()
+    )
     assert adapter.disclosure_budget() is None
 
 
@@ -96,12 +98,15 @@ def test_public_batch_is_explicit_durable_and_complete_only_after_exact_ingestio
     fingerprint = adapter.prepare_batch(
         "cooling-public-practice-v1", kind=PUBLIC_BATCH_KIND
     )
-    assert adapter.prepare_batch(
-        "cooling-public-practice-v1", kind=PUBLIC_BATCH_KIND
-    ) == fingerprint
+    assert (
+        adapter.prepare_batch("cooling-public-practice-v1", kind=PUBLIC_BATCH_KIND)
+        == fingerprint
+    )
     jobs = adapter.reference_jobs(fingerprint)
     assert len(jobs) == 100
-    assert all(set(job) == {"case_id", "inputs", "reference", "solver_image"} for job in jobs)
+    assert all(
+        set(job) == {"case_id", "inputs", "reference", "solver_image"} for job in jobs
+    )
     assert all(job["solver_image"] == IMAGE for job in jobs)
     assert not any("outputs" in job for job in jobs)
     with pytest.raises(CoolingAdapterError) as incomplete:

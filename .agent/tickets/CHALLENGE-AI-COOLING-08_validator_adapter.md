@@ -1,6 +1,7 @@
 # CHALLENGE-AI-COOLING-08 — Interface-v1 validator adapter
 
-**Status:** active engineering implementation
+**Status:** implementation and canonical validation complete; exact-head
+delivery gates pending
 
 **Authority:** `VALIDATOR-01_challenge_neutral_validator.md` Interface v1,
 OWNER-GRAPHITE-TEST-WAVE-01 section 3, OWNER-CHALLENGE-FOUNDATION-01,
@@ -79,24 +80,39 @@ Out of scope:
 
 ## Acceptance
 
-- [ ] The adapter registers against the exact Cooling contract/version and
+- [x] The adapter registers against the exact Cooling contract/version and
       publishes pinned contract, rule and implementation identities.
-- [ ] The neutral validator evaluates a valid Cooling submission only after
+- [x] The neutral validator evaluates a valid Cooling submission only after
       the public batch is complete and open.
-- [ ] Invalid Cooling recipes are recorded as `INVALID_CONSTRUCTION` and no
+- [x] Invalid Cooling recipes are recorded as `INVALID_CONSTRUCTION` and no
       cross-Challenge fallback exists.
-- [ ] Reference ingestion refuses altered inputs, outputs, checks, image or
+- [x] Reference ingestion refuses altered inputs, outputs, checks, image or
       other record fields.
-- [ ] The miner outcome is allow-listed and contains no case id, prediction,
+- [x] The miner outcome is allow-listed and contains no case id, prediction,
       reference, private path or confirmation identity.
-- [ ] The operator score record reproduces the existing exam rows and
+- [x] The operator score record reproduces the existing exam rows and
       aggregate under the pinned rule.
-- [ ] The store is owner-only, survives adapter restart and keeps owner reads
+- [x] The store is owner-only, survives adapter restart and keeps owner reads
       separate from operator records.
-- [ ] The Cooling confirmation role is reserved without creating a set.
-- [ ] Battery adapter and neutral Interface-v1 behavior remain covered.
-- [ ] Focused tests, applicable subsystem checks, lint and canonical
+- [x] The Cooling confirmation role is reserved without creating a set.
+- [x] Battery adapter and neutral Interface-v1 behavior remain covered.
+- [x] Focused tests, applicable subsystem checks, lint and canonical
       acceptance pass at the delivered head.
+
+## Validation evidence
+
+- Baseline before implementation: 214 selected canonical tests passed.
+- First adapter pass: 115 selected canonical tests passed.
+- Exact-main quality gate: Ruff 0/776; Black 0/68; all four changed Python
+  files clean.
+- Final bounded subsystem matrix: 256 selected canonical tests passed in
+  55.74 seconds.
+- Shared ChallengeScoring compatibility plus final lessons validation: 36
+  selected canonical tests passed in 6.60 seconds.
+
+Every test/build execution, including failed iterations caused by invalid
+lesson tokens or a missing dependency group, has a corresponding record under
+`carbon/challenge_pipeline/lessons/`.
 
 ## Maturity ceiling
 
