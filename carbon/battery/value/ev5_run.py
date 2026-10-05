@@ -256,13 +256,16 @@ def literal_zero(scores, verdicts):
     }
 
 
-def rank_in(score, pool):
+def rank_in(score, pool, *, last=False):
     """Competition rank (1 = best) of `score` among `pool`'s numeric scores
-    plus itself, and that count. None when unscored (ranked last)."""
+    plus itself, and that count n. Strictly last (rank n) when unscored, or
+    when `last` (a gate FAIL, ruling 1): `ranked_last` gives every FAIL the
+    same floor, so competition rank alone would tie a failing member with
+    the failing pool members above position n."""
     others = [s for s in pool if _numeric(s)]
     n = len(others) + 1
-    if not _numeric(score):
-        return None, n
+    if last or not _numeric(score):
+        return n, n
     return 1 + sum(1 for s in others if s > score), n
 
 
@@ -432,7 +435,9 @@ def h3(report, results, verdicts):
     rates = {m: rate(report["members"][m]["measurement"]) for m in real}
     unmeasured = sorted(m for m, r in rates.items() if r is None)
     measured = [r for r in rates.values() if r is not None]
-    if control is None:
+    if control is None or unmeasured:
+        # Choice 8 as ruled (C1): an unmeasured eligible real member is never
+        # clean, so separation cannot hold over it.
         separation = UNDEFINED
     else:
         separation = HOLDS if all(control > r for r in measured) else NOT_HOLD
@@ -444,11 +449,12 @@ def h3(report, results, verdicts):
             ("ungated", scores),
             ("gated_failures_last", ranked_last(scores, status)),
         ):
-            rank, n = rank_in(view[SIGN_ERROR], [view[m] for m in real])
+            failed = label != "ungated" and status.get(SIGN_ERROR) == FAIL
+            rank, n = rank_in(view[SIGN_ERROR], [view[m] for m in real], last=failed)
             ranks[f"{rule}/{label}"] = {
                 "rank": rank,
                 "of": n,
-                "below_every_eligible_real_member": rank is None or rank == n,
+                "below_every_eligible_real_member": rank == n,
             }
     return {
         "report": report,
@@ -511,7 +517,8 @@ def adversarial(results, verdicts, findings):
         member = row["member"]
         for view, scores in views.items():
             pool = [scores[m] for m in real if m != member]
-            rank, n = rank_in(scores.get(member), pool)
+            failed = view == "verdict" and status.get(member) == FAIL
+            rank, n = rank_in(scores.get(member), pool, last=failed)
             row[view] = {"rank": rank, "of": n, "top_half": top_half(rank, n)}
             if row[view]["top_half"]:
                 top[view].append(member)
@@ -816,8 +823,32 @@ def analyse(experiment_root, out_dir, *, pod_failures=(), worker_boundary=None):
 # --- the sealed confirmation batch (operator host only) --------------------------------
 
 
+def _outside_repository(path):
+    """Refuse a work directory inside the repository: owner-only modes do not
+    stop `git add` (review C3). Private cases never live in a checkout."""
+    resolved = Path(path).resolve()
+    roots = {Path(REPOSITORY).resolve()}
+    try:
+        import subprocess
+
+        top = subprocess.run(
+            ["git", "-C", str(REPOSITORY), "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        if top:
+            roots.add(Path(top).resolve())
+    except (OSError, subprocess.CalledProcessError):
+        pass
+    for root in roots:
+        if resolved == root or root in resolved.parents:
+            raise RunError("work_inside_repository", str(resolved))
+    return Path(path)
+
+
 def _owner_only_dir(path):
-    path = Path(path)
+    path = _outside_repository(path)
     path.mkdir(mode=0o700, parents=True, exist_ok=True)
     info = os.lstat(path)
     if not stat.S_ISDIR(info.st_mode) or info.st_mode & 0o077:
@@ -1019,7 +1050,9 @@ def confirmation_report(contract, batch, refs, predictions, kinds, verdict_of):
     for member, row in rows.items():
         if row["kind"] == "ATTACK_CONSTRUCTION":
             rank, n = rank_in(
-                view[member], [view[m] for m in eligible_real if m != member]
+                view[member],
+                [view[m] for m in eligible_real if m != member],
+                last=status.get(member) == FAIL,
             )
             attacks[member] = {"rank": rank, "of": n, "top_half": top_half(rank, n)}
     return {

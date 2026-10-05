@@ -481,3 +481,136 @@ def test_the_confirmation_batch_is_recalled_only_as_frozen(tmp_path):
     with pytest.raises(run.RunError, match="confirmation_sequence_mismatch"):
         run.recall_confirmation(root, pin, journal, {**good, "journal_sequence": 14})
     assert len(journal.public()) == 2  # recall never commits
+
+
+# --- independent review of #631 (B1, C1, C3, C4) ----------------------------------------
+
+
+def test_a_gate_failing_construction_ranks_strictly_last_among_mixed_verdicts():
+    """B1: with real members 2 PASS / 3 FAIL, every FAIL shares the floor
+    score, so competition rank alone put a failing construction at 3 of 6
+    (top half). Ruling 1: it ranks strictly last."""
+    rows = {
+        f"{FAMILIES[i % 3]}_r{i}-s0": {"loss": float(i), "dec": -float(i) - 1.0}
+        for i in range(5)
+    }
+    attack = "attack_rebuild_identity_width_a-s0"
+    rows[attack] = {
+        "kind": "ATTACK_CONSTRUCTION",
+        "loss": 9.0,
+        "dec": -0.1,
+        "infeasible": ("V1",),
+    }
+    results = _results(rows)
+    real = sorted(m for m in rows if m != attack)
+    verdicts = {m: {"verdict": "PASS"} for m in real[:2]}
+    verdicts |= {m: {"verdict": "FAIL"} for m in real[2:]}
+    verdicts[attack] = {"verdict": "FAIL"}
+    result = run.adversarial(results, verdicts, {})
+    row = result["constructions"][0]
+    assert row["verdict"] == {"rank": 6, "of": 6, "top_half": False}
+    assert result["verdict"] == run.PASS
+    # A Mode X finding on a gate-failing real member ranks last too.
+    found = run.adversarial(results, verdicts, {"in_band": [{"member": real[4]}]})
+    mode_x = next(r for r in found["constructions"] if r["source"] == "mode_x/in_band")
+    assert mode_x["verdict"]["rank"] == mode_x["verdict"]["of"]
+    assert found["verdict"] == run.PASS
+
+
+def test_h3_a_gate_failing_control_is_below_every_member_with_mixed_verdicts():
+    rows = _real(aligned=True)
+    rows[run.SIGN_ERROR] = {
+        "kind": "SYNTHETIC_CONTROL",
+        "loss": 3.0,
+        "cand": 50.0,
+        "dec": -0.1,
+    }
+    results = _results(rows)
+    real = sorted(m for m in rows if m != run.SIGN_ERROR)
+    report = {
+        "members": {
+            m: {"measurement": {"worst_false_acceptance_rate": 0.1}} for m in real
+        },
+        "controls": {run.SIGN_ERROR: {"worst_false_acceptance_rate": 0.9}},
+    }
+    verdicts = {m: {"verdict": "FAIL" if i % 2 else "PASS"} for i, m in enumerate(real)}
+    verdicts[run.SIGN_ERROR] = {"verdict": "FAIL"}
+    ranks = run.h3(report, results, verdicts)["sign_error_rank"]
+    for rule in (run.DECIDING, run.CANDIDATE):
+        gated = ranks[f"{rule}/gated_failures_last"]
+        assert gated["rank"] == gated["of"]
+        assert gated["below_every_eligible_real_member"]
+
+
+def test_h3_separation_is_undefined_while_any_real_member_is_unmeasured():
+    """C1: an unmeasured member is never clean."""
+    rows = _real(aligned=True)
+    rows[run.SIGN_ERROR] = {"kind": "SYNTHETIC_CONTROL", "loss": 3.0, "dec": -0.1}
+    real = sorted(m for m in rows if m != run.SIGN_ERROR)
+    report = {
+        "members": {
+            m: {
+                "measurement": (
+                    None if m == real[0] else {"worst_false_acceptance_rate": 0.1}
+                )
+            }
+            for m in real
+        },
+        "controls": {run.SIGN_ERROR: {"worst_false_acceptance_rate": 0.9}},
+    }
+    verdicts = {m: {"verdict": "PASS"} for m in rows}
+    result = run.h3(report, _results(rows), verdicts)
+    assert result["separation"] == run.UNDEFINED
+    assert result["eligible_real_unmeasured"] == [real[0]]
+
+
+def test_confirmation_work_inside_the_repository_is_refused(tmp_path):
+    """C3: owner-only modes do not stop `git add`."""
+    inside = run.REPOSITORY / "ev5-confirmation-work-test"
+    with pytest.raises(run.RunError, match="work_inside_repository"):
+        run.confirm_predict(inside)
+    assert not inside.exists()
+    with pytest.raises(run.RunError, match="work_inside_repository"):
+        run._owner_only_dir(run.REPOSITORY / "docs")
+    assert run._owner_only_dir(tmp_path / "work").is_dir()
+
+
+def test_the_optimizer_edit_replays_ev4_exactly():
+    """C4: EV4's committed optimizer evidence is reproduced by the edited
+    code: the member selection, the verification jobs, and the report."""
+    import gzip
+
+    from carbon.battery.value import optimizer as op
+    from carbon.battery.value.contract import load
+
+    evidence = run.REPOSITORY / "docs/development/evidence/ev4-2026-10-01"
+    contract, _ = load(
+        run.REPOSITORY
+        / "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json"
+    )
+    assert op.spec_for(contract) is op.EV4_SPEC
+    results = json.loads((evidence / "results.json").read_bytes())
+    selection = json.loads((evidence / "optimizer/selection.json").read_bytes())
+    from carbon.battery.value import panel as pn
+
+    backbones = {m: s["backbone"] for m, _l, s, _seed in pn.members("ev4")}
+    assert (
+        op.select_members(results, backbones, op.spec_for(contract))
+        == selection["members"]
+    )
+    plan = op.verification_plan(contract, selection["mode_d"], selection["mode_x"])
+    assert plan["jobs"] == selection["jobs"]
+    assert plan["mode_d_solves"] == selection["mode_d_solves"]
+    assert plan["mode_x_solves"] == selection["mode_x_solves"]
+    references = {}
+    body = gzip.decompress(
+        (evidence / "optimizer/verification-references.jsonl.gz").read_bytes()
+    )
+    for line in body.decode().splitlines():
+        if line.strip():
+            record = json.loads(line)
+            references[record["case_id"]] = record
+    committed = json.loads((evidence / "optimizer/results.json").read_bytes())
+    replayed = op.report(contract, results, selection, references)
+    # `missing_references` is added by run_report, not report.
+    assert replayed == {k: v for k, v in committed.items() if k != "missing_references"}
