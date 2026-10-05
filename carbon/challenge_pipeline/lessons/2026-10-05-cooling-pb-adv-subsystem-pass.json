@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-subsystem-pass",
+  "recorded_at": "2026-10-05T08:55:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 affected-subsystem host matrix final pass",
+    "description": "Re-ran customer-decision, decision-study, Cooling and neutral Track-B, and Battery design-search commitment regressions against the LF-portable refreshed fixture; excluded only the known Windows raw-byte closeout assertion."
+  },
+  "expected": "PB-ADV behavior, PB-INV regression, cross-Challenge search conformance, Track-B reuse and the refreshed fixture's current-code binding would all pass."
+  ,
+  "observed": "All 79 selected tests passed in 13.26 seconds; one Windows-only raw-byte closeout hash test was deselected because canonical Linux CI is its authoritative environment."
+  ,
+  "keep": [
+    "Keep the cross-Challenge design-search conformance and current-code fixture binding in the bounded acceptance matrix."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.design-search",
+    "challenge.ai-cooling.decision-study",
+    "challenge.track-b"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-black-single-worker-interrupted",
+  "recorded_at": "2026-10-05T09:04:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 final Black check single-worker attempt",
+    "description": "Repeated Black --check with one worker after the default-worker invocation stalled."
+  },
+  "expected": "A single worker would avoid the host multiprocessing stall and return the formatting verdict."
+  ,
+  "observed": "The single-worker command also produced no output or completion for 30 seconds and was terminated; its two orphaned launcher processes were then stopped by exact PID. No formatting verdict was claimed."
+  ,
+  "keep": [
+    "Terminate only the exact tool processes launched by this ticket when a bounded host check stalls."
+  ],
+  "change": [
+    "Use Black's Python API in-process for the final host check and rely on canonical CI for authoritative quality acceptance."
+  ],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

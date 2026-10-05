@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-subsystem-numpy-absent",
+  "recorded_at": "2026-10-05T08:46:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 first affected-subsystem host matrix",
+    "description": "Attempted Cooling decision-study and Track-B regressions together with Battery's shared design-search commitment conformance file."
+  },
+  "expected": "The retained host virtual environment would collect the cross-Challenge design-search conformance matrix.",
+  "observed": "Collection stopped before tests because the retained virtual environment lacks NumPy required by Battery's challenge module. No test failure was observed.",
+  "keep": [
+    "Keep Battery's conformance file in the canonical Linux acceptance matrix; do not weaken or rewrite it for this host."
+  ],
+  "change": [
+    "Run the available Cooling-only subsystem files separately, and require canonical CI for the cross-Challenge matrix."
+  ],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.design-search"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

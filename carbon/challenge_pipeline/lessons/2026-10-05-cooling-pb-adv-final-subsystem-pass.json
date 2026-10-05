@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-final-subsystem-pass",
+  "recorded_at": "2026-10-05T09:08:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 final affected-subsystem host matrix",
+    "description": "Ran the final formatted implementation and final refreshed fixture through customer-decision, decision-study, Cooling and neutral Track-B, and Battery design-search commitment regressions."
+  },
+  "expected": "All PB-ADV, PB-INV, fixture-binding, Track-B and cross-Challenge conformance regressions would pass together."
+  ,
+  "observed": "All 79 selected tests passed in 13.43 seconds. One Windows-only raw-byte closeout assertion was deselected; it remains part of canonical Linux CI."
+  ,
+  "keep": [
+    "Use this bounded matrix as the local diagnostic for Mode X and require the canonical lanes before handoff."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.design-search",
+    "challenge.ai-cooling.decision-study",
+    "challenge.track-b"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

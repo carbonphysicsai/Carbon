@@ -2,8 +2,10 @@
 
 **Challenge:** `chip-cold-plate` version `1.0`
 
-**Tickets:** `CHALLENGE-AI-COOLING-06` (construction) and
-`CHALLENGE-AI-COOLING-07` (Graphite public-practice scoring)
+**Tickets:** `CHALLENGE-AI-COOLING-06` (construction),
+`CHALLENGE-AI-COOLING-07` (Graphite public-practice scoring),
+`CHALLENGE-AI-COOLING-08` (Interface-v1 validator) and
+`CHALLENGE-AI-COOLING-09` (PB-ADV / Mode X)
 **State:** DEVELOPMENT construction integration; not scientifically,
 security, customer, production or LIVE qualified
 
@@ -61,14 +63,18 @@ lane. This ticket builds or authorizes no new image.
   cases through Cooling's named `ChallengeScoring`. Its paired baseline result
   is descriptive only, carries no confidence interval and is never
   promotable.
-- Launchpad's general submission evaluation still returns the typed refusal
-  `cooling_validator_not_served`. The separate Interface-v1
-  `ChallengeAdapter`, private reference ingestion and batch store are not
-  implemented by the public-practice scoring adapter.
+- Launchpad's product-campaign `evaluate_frozen` path still returns the typed
+  refusal `cooling_validator_not_served`; it has not been wired to a private or
+  official evaluator. The separate Interface-v1 `ChallengeAdapter` now serves
+  only the exact digest-pinned public PRACTICE batch through an owner-only
+  DEVELOPMENT store. It creates no private or official exam.
 - The admission sheet remains `DRAFT_NOT_FROZEN`: attack budget and the fresh
   evaluator-held confirmation population are `HUMAN_INPUT`.
-- PB-ADV/Mode X, constructed Track-B controls and the fresh sealed confirmation
-  set remain separate tickets.
+- PB-ADV/Mode X is served by the existing Challenge-neutral design-search
+  methods with an explicit request-bound K and write-once point commitments.
+  No default K, attack grid, acceptance threshold or reference campaign is
+  supplied. Constructed Track-B decision-value controls and the fresh sealed
+  confirmation set remain separate tickets.
 
 ## Inspect and reproduce the engineering path
 
@@ -112,16 +118,14 @@ literature snapshot; naming this Challenge does not authorize spend.
 
 ## What comes next
 
-The Level-0 construction and public Graphite scoring adapters are implemented.
-The next cooling tickets, in bounded order, are:
+Level-0 construction, public Graphite scoring, the public-practice
+Interface-v1 validator, the Graphite attack adapter and PB-ADV/Mode X are now
+implemented in bounded DEVELOPMENT scope. The next cooling tickets, in order,
+are:
 
-1. the general validator's Interface-v1 Cooling `ChallengeAdapter`, including
-   reconstruction, reference ingestion, batch storage, allow-listed outcomes
-   and sealed-role reporting;
-2. PB-ADV/Mode-X attack optimizer;
-3. the five constructed Track-B cooling controls;
-4. owner/operator creation and sealing of a fresh confirmation set;
-5. completion and owner freeze of the attack budget and confirmation-population
+1. the five constructed Track-B cooling decision-value controls;
+2. owner/operator creation and sealing of a fresh confirmation set;
+3. completion and owner freeze of the attack budget and confirmation-population
    pins, followed by dry run, smoke test, pod scoring and rebuild/refusal entry
    checks.
 

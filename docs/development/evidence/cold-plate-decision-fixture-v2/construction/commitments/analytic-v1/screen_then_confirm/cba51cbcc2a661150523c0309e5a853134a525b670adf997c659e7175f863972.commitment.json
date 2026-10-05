@@ -1,9 +1,9 @@
 {
- "commitment_digest": "sha256:2cdaf166b1c8f0b4f5169d1366b89ef1d42d79170ec40f97fcb579a931edaa61",
+ "commitment_digest": "sha256:d9b1c39a698d81f84722a636992a018fb091e0a5abbe815764aa8825ccc37389",
  "query_accounting_unit": "ATTEMPTED_MODEL_POINT",
- "query_attempts": 48,
- "query_log_digest": "sha256:64b53d7237a3afc08487a4bf63957663654d3da65b660daa3da080ce003a475a",
- "query_successes": 48,
+ "query_attempts": 13,
+ "query_log_digest": "sha256:88718c3f8b32488847fb7b67f1c3f0fb409143a0959aeb1d1c00f0bcf49b5f7c",
+ "query_successes": 13,
  "request": {
   "candidate_space_digest": "sha256:7bdaa03b033261557675c70ee1713fca595a68af3640ca797a84d34a39334de3",
   "challenge": "chip-cold-plate",
@@ -105,14 +105,14 @@
   ],
   "material": "DEVELOPMENT",
   "method": {
-   "code_digest": "sha256:9d7e4fbe32c9674ba09fb1d568f47806607db68d01df6db7b8d346642861bb94",
-   "configuration_digest": "sha256:4b1fa1bccdd7c385c93ab9392f3f14efddb15d81ddbcca4f0342007a0d47f709",
-   "name": "fixed_grid"
+   "code_digest": "sha256:b70d2b0dfcdd93eb7e82ef581b5f707672de63b1db83bebd1d5ece407e5f16e5",
+   "configuration_digest": "sha256:93756f110bf1471e3fb8f1a526f3a955a83abb4f0b387fdfd7675796d5c0f21c",
+   "name": "screen_then_confirm"
   },
   "mode": "PB-INV",
   "model": {
-   "member": "learned-krr-v1",
-   "recipe_digest": "sha256:e48b053989d08c9b2ade07d92f13c1efee188e9bad01d899c169c8f2e0cf92fb",
+   "member": "analytic-v1",
+   "recipe_digest": "sha256:0c4271a20efd1ad23fe33ae5114e4cf48a98461f789e395a037a946d3aac9783",
    "seed": 0
   },
   "query_budget": 48,
@@ -125,7 +125,7 @@
     "new_oracle_required": true
    }
   },
-  "request_digest": "sha256:839017e07dda298703a629a3e1f326d2786cc10f421fa5df23dd9a95909f9dfe",
+  "request_digest": "sha256:cba51cbcc2a661150523c0309e5a853134a525b670adf997c659e7175f863972",
   "schema": "carbon.cold-plate.design-search-request.v2",
   "scope": "periodic-straight-channel-cell-v1",
   "seed_policy": "deterministic frozen DEVELOPMENT models; no random draw",
@@ -143,7 +143,7 @@
    "channel_width_mm": 0.25,
    "fin_width_mm": 0.3,
    "flow_lpm_per_kw": 1.25,
-   "predicted_worst_hydraulic_w": 0.1297953455389026
+   "predicted_worst_hydraulic_w": 0.12466262629494432
   }
  ],
  "status": "PROPOSAL"

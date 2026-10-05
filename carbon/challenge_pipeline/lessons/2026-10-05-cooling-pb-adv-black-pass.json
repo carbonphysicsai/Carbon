@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-black-pass",
+  "recorded_at": "2026-10-05T09:06:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 in-process Black final check",
+    "description": "Compared both changed Python files with Black format_str in process, avoiding the stalled executable launcher."
+  },
+  "expected": "Both final files would already equal Black's formatted output."
+  ,
+  "observed": "Black's API reported an exact match for both changed Python files. Canonical CI remains the authoritative repository quality gate."
+  ,
+  "keep": [
+    "Use a deterministic in-process check when the host tool launcher stalls, without weakening the canonical CI requirement."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

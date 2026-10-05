@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-fixture-artifact-refresh",
+  "recorded_at": "2026-10-05T08:50:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "docs/development/evidence/cold-plate-decision-fixture-v2",
+    "description": "Replaced the nine tracked analytical fixture construction/evaluation artifacts with the newly generated PB-INV fixture tree and removed the four superseded content-addressed commitment files."
+  },
+  "expected": "The tracked fixture would contain exactly one current commitment per unchanged arm and pin the additive PB-ADV-capable implementation, without changing counted CFD evidence."
+  ,
+  "observed": "The tracked fixture contains nine files: three construction records, four current content-addressed commitments, one result and one report. The counted evidence and campaign closeout directories were not modified."
+  ,
+  "keep": [
+    "Keep content-addressed fixture commitments one-per-arm and remove superseded fixture objects when refreshing the complete fixture tree."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.decision-study",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

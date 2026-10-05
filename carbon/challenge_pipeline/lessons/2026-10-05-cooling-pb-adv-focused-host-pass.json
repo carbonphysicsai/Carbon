@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-focused-host-pass",
+  "recorded_at": "2026-10-05T08:45:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 focused host regression",
+    "description": "Ran tests/cpu/test_cold_plate_customer_decision.py with the retained Windows pytest environment after separating the POSIX-only Graphite pilot file."
+  },
+  "expected": "Existing PB-INV behavior and the new PB-ADV request, ranking, commitment, reference-job and generic-method regressions would pass together.",
+  "observed": "All 22 focused tests passed in 0.79 seconds. The result is useful host diagnostic evidence; canonical Linux CI remains required for delivery.",
+  "keep": [
+    "Keep PB-INV and PB-ADV coverage in one customer-decision regression file so the additive mode cannot silently change the frozen design path."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.design-search",
+    "challenge.reference-custody"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

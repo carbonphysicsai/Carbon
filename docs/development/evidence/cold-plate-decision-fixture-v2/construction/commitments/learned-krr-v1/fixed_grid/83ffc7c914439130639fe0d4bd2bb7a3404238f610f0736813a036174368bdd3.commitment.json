@@ -1,8 +1,8 @@
 {
- "commitment_digest": "sha256:d33f025f2347086b39d7e82be75406bc6a5528979a9c5ea26928bea03558d03a",
+ "commitment_digest": "sha256:21bb56bb3d681b79fcf070a3d5ba3cf821b7505de80930e22eaa2c6a03659b10",
  "query_accounting_unit": "ATTEMPTED_MODEL_POINT",
  "query_attempts": 48,
- "query_log_digest": "sha256:95e13882c38e0d38cfe2c284f6632eb8b030063cded09c4532d29e6ae82fc701",
+ "query_log_digest": "sha256:64b53d7237a3afc08487a4bf63957663654d3da65b660daa3da080ce003a475a",
  "query_successes": 48,
  "request": {
   "candidate_space_digest": "sha256:7bdaa03b033261557675c70ee1713fca595a68af3640ca797a84d34a39334de3",
@@ -105,14 +105,14 @@
   ],
   "material": "DEVELOPMENT",
   "method": {
-   "code_digest": "sha256:9d7e4fbe32c9674ba09fb1d568f47806607db68d01df6db7b8d346642861bb94",
+   "code_digest": "sha256:b70d2b0dfcdd93eb7e82ef581b5f707672de63b1db83bebd1d5ece407e5f16e5",
    "configuration_digest": "sha256:4b1fa1bccdd7c385c93ab9392f3f14efddb15d81ddbcca4f0342007a0d47f709",
    "name": "fixed_grid"
   },
   "mode": "PB-INV",
   "model": {
-   "member": "analytic-v1",
-   "recipe_digest": "sha256:0c4271a20efd1ad23fe33ae5114e4cf48a98461f789e395a037a946d3aac9783",
+   "member": "learned-krr-v1",
+   "recipe_digest": "sha256:e48b053989d08c9b2ade07d92f13c1efee188e9bad01d899c169c8f2e0cf92fb",
    "seed": 0
   },
   "query_budget": 48,
@@ -125,7 +125,7 @@
     "new_oracle_required": true
    }
   },
-  "request_digest": "sha256:5fb23ae3a3b81d41399697ee8c5ccf29bd4c7912a6e6459602c2803372e1877c",
+  "request_digest": "sha256:83ffc7c914439130639fe0d4bd2bb7a3404238f610f0736813a036174368bdd3",
   "schema": "carbon.cold-plate.design-search-request.v2",
   "scope": "periodic-straight-channel-cell-v1",
   "seed_policy": "deterministic frozen DEVELOPMENT models; no random draw",
@@ -143,7 +143,7 @@
    "channel_width_mm": 0.25,
    "fin_width_mm": 0.3,
    "flow_lpm_per_kw": 1.25,
-   "predicted_worst_hydraulic_w": 0.12466262629494432
+   "predicted_worst_hydraulic_w": 0.1297953455389026
   }
  ],
  "status": "PROPOSAL"

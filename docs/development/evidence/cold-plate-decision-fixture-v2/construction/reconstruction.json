@@ -3,11 +3,11 @@
     "kind": "ANALYTICAL_BASELINE"
   },
   "learned-krr-v1": {
-    "cpu_s": 8.640625,
+    "cpu_s": 15.640625,
     "historical_cost_status": "NOT_RECORDED_IN_PINNED_BASELINE_ARTIFACT",
     "historical_training_and_tuning_cost": null,
     "kind": "LEARNED_RECONSTRUCTION",
     "training_records": 400,
-    "wall_s": 0.6181663000024855
+    "wall_s": 1.1632293000002392
   }
 }

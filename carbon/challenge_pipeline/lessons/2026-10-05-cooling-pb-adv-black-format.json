@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-black-format",
+  "recorded_at": "2026-10-05T08:59:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-09 Black formatting",
+    "description": "Applied the repository Black formatter to the changed Cooling customer-decision implementation and focused regression module."
+  },
+  "expected": "Black would make only mechanical formatting changes to the two selected files."
+  ,
+  "observed": "Black reformatted exactly the two selected Python files. Because customer_decision.py is freeze-pinned, the analytical fixture requires one final identity refresh after formatting."
+  ,
+  "keep": [
+    "Finish executable formatting before generating the final implementation-bound fixture."
+  ],
+  "change": [
+    "Refresh the analytical fixture once from the final formatted source and rerun the bounded matrix."
+  ],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.ai-cooling.decision-study"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-final-fixture-evaluation",
+  "recorded_at": "2026-10-05T09:01:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "optimizer_pilot",
+    "ref": "CHALLENGE-AI-COOLING-09 final formatted-source fixture evaluation",
+    "description": "Evaluated the final already committed fixture construction against the analytical pseudo-reference and generated its result and report."
+  },
+  "expected": "The final refresh would preserve four fixture arms and explicit ANALYTICAL_FIXTURE classification without counted evidence access."
+  ,
+  "observed": "Four arms evaluated under ANALYTICAL_FIXTURE. The execution accessed no counted CFD and makes no reliability, safety, qualification or learned-model-advantage claim."
+  ,
+  "keep": [
+    "Keep the analytical fixture's role limited to executable workflow regression."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.decision-study",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

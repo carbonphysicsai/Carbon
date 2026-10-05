@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-final-fixture-adoption",
+  "recorded_at": "2026-10-05T09:02:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "docs/development/evidence/cold-plate-decision-fixture-v2 final refresh",
+    "description": "Adopted the nine final formatted-source analytical fixture artifacts and removed every superseded content-addressed fixture commitment."
+  },
+  "expected": "The tracked fixture would contain exactly one final commitment per unchanged arm and bind the final PB-ADV-capable source tree."
+  ,
+  "observed": "The fixture contains exactly nine files. Counted CFD artifacts, campaign ledger records and the durable counted closeout were unchanged."
+  ,
+  "keep": [
+    "Keep fixture refreshes bounded to analytical evidence and retain counted evidence immutably."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.decision-study",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

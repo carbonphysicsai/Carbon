@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-lf-fixture-evaluation",
+  "recorded_at": "2026-10-05T08:53:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "optimizer_pilot",
+    "ref": "CHALLENGE-AI-COOLING-09 LF analytical fixture evaluation",
+    "description": "Evaluated the already committed LF-source fixture construction against the analytical pseudo-reference and rendered its result and report."
+  },
+  "expected": "The portable fixture refresh would retain four arms and the ANALYTICAL_FIXTURE evidence class with no counted campaign access."
+  ,
+  "observed": "Four arms evaluated under ANALYTICAL_FIXTURE. The run neither imported nor dispatched CFD and cannot support a population, safety, qualification or learned-model-advantage claim."
+  ,
+  "keep": [
+    "Keep the fixture's evidence class and claim ceiling explicit after every implementation-bound refresh."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.decision-study",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

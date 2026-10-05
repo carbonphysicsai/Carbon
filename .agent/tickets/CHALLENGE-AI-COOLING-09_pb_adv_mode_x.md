@@ -1,6 +1,7 @@
 # CHALLENGE-AI-COOLING-09 — PB-ADV / Mode X for the periodic-cell Cooling model
 
-**Status:** active; working contract written; implementation pending
+**Status:** implementation and bounded host validation complete; canonical
+repository CI and delivery handoff pending
 
 **Authority:** OWNER-GRAPHITE-TEST-WAVE-01 section 4, the Test Lead's Cooling
 item 4, `Design_Specs/Challenge_Admission.md`, and
@@ -89,19 +90,19 @@ Out of scope:
 
 ## Acceptance
 
-- [ ] Cooling advertises both `PB-INV` and `PB-ADV`; an unknown mode fails
+- [x] Cooling advertises both `PB-INV` and `PB-ADV`; an unknown mode fails
       closed.
-- [ ] The registered fixed-grid baseline and `coarse_to_fine` method both serve
+- [x] The registered fixed-grid baseline and `coarse_to_fine` method both serve
       Cooling PB-ADV without a Challenge-specific branch in shared code.
-- [ ] Selection order is deterministic and matches the documented margin,
+- [x] Selection order is deterministic and matches the documented margin,
       design, condition and binding-constraint tie policy.
-- [ ] A PB-ADV request may use any positive K; selections above K, duplicate or
+- [x] A PB-ADV request may use any positive K; selections above K, duplicate or
       unqueried points, infeasible points and altered prediction evidence are
       refused before persistence.
-- [ ] PB-ADV reference jobs are exactly the committed point set; PB-INV keeps
+- [x] PB-ADV reference jobs are exactly the committed point set; PB-INV keeps
       all-condition verification unchanged.
-- [ ] Reference access cannot occur before a valid write-once commitment.
-- [ ] Existing PB-INV behavior and frozen study configuration remain covered.
+- [x] Reference access cannot occur before a valid write-once commitment.
+- [x] Existing PB-INV behavior and frozen study configuration remain covered.
 - [ ] Focused tests, applicable design-search/customer-decision regressions,
       lessons validation, quality and repository CI pass at the delivered head.
 
@@ -114,6 +115,26 @@ used different path forms. Available host Python interpreters lacked pytest.
 Each attempt has its own lessons entry. No test failure was observed because no
 test was collected. The normal pinned GitHub canonical lanes remain required
 for delivery.
+
+## Current validation evidence
+
+- The noncanonical analytical PB-ADV smoke served both fixed grid and the
+  registered `coarse_to_fine` method at K=2, then persisted and reference-
+  evaluated exactly two committed points.
+- The focused customer-decision regression passed all 22 tests.
+- The final affected-subsystem matrix passed 79 tests across Cooling PB-INV and
+  PB-ADV, the decision study, Cooling and neutral Track B, and Battery's shared
+  design-search commitment conformance. One Windows raw-byte closeout hash test
+  was deselected; canonical Linux CI retains it.
+- Focused Ruff passed. Black's in-process API confirmed both changed Python
+  files exactly formatted after two host launcher stalls.
+- The analytical fixture was regenerated from the unchanged study
+  configuration and final LF-normalized code. All four arms still select d03;
+  it remains explicitly `ANALYTICAL_FIXTURE` and makes no learned-model
+  advantage or population claim. Counted CFD evidence was untouched.
+- The lessons validator passed before the final pass records were appended;
+  every subsequent execution also has one schema-shaped record. Canonical CI
+  must validate the complete final lessons set.
 
 ## Maturity ceiling
 

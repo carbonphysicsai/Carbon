@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-black-check-interrupted",
+  "recorded_at": "2026-10-05T09:03:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 final Black check first attempt",
+    "description": "Ran Black --check on the two formatted Python files using its default worker behavior."
+  },
+  "expected": "The final formatting check would return promptly with both files unchanged."
+  ,
+  "observed": "The command produced no output or completion for more than 45 seconds and was interrupted. This host-process stall provides no formatting verdict."
+  ,
+  "keep": [
+    "Treat a stalled tool as infrastructure, not a pass."
+  ],
+  "change": [
+    "Repeat the bounded check with one Black worker to avoid the host multiprocessing stall."
+  ],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

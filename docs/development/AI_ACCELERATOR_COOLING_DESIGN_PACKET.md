@@ -382,12 +382,12 @@ Evaluation restores and validates every commitment before it can receive a
 reference session. The counted plan and campaign bind the construction
 identity, so proposals cannot be regenerated after CFD is observed.
 
-This is a **prospective Level 0 foundation**, not a pipeline entry or a signed
-construction contract. The challenge protocol is still defining, battery must
-finish the worked protocol, and f04 remains queued. When the family is admitted,
-the construction owner must map the actual model recipe and capabilities onto
-Levels 0-5, pin supported JAX/PyTorch reconstruction, resources, data, seeds,
-dependencies and artifact identity, and file the required expansion record.
+The declarative kernel-ridge recipe is now the registered **Level 0
+DEVELOPMENT construction surface**. Its expansion record, compiler,
+reconstruction capabilities, public TRAIN/PRACTICE material and CPU worker are
+implemented. That engineering state does not make the model scientifically
+qualified, open Levels 1-5, create an official exam or grant broader
+construction freedom.
 
 Future construction freedom may improve the surrogate or search policy. It may
 not change customer constraints, reference outputs, evidence accounting or the
@@ -402,7 +402,8 @@ The reusable kit now consists of:
 - public TRAIN and PRACTICE pools plus aggregate private-pool evidence;
 - the cold-plate exam, physical gates and feasibility calculation;
 - `carbon/cold_plate/customer_decision.py`, which adapts the challenge to the
-  existing equal-budget design-search harness; and
+  existing equal-budget design-search harness for both PB-INV design choice and
+  PB-ADV/Mode-X point search; and
 - `carbon/cold_plate/decision_study.py`, the configuration validator, model
   reconstruction, finite comparator, artifact importer, analysis and report;
 - `carbon/cold_plate/reference_campaign.py`, durable pre-dispatch execution and
@@ -413,6 +414,16 @@ The reusable kit now consists of:
   access, physical-gate refusal, selection, write-once commitment, reference
   separation, provenance, verification accounting, finite regret, false-
   feasible reporting and generic search reuse.
+
+PB-ADV reuses the registered Challenge-neutral methods. It ranks only queried
+points predicted feasible by the existing gates, using the smaller of the die
+and hydraulic margins normalized by the corresponding supplied limit, with a
+deterministic design-and-condition tie rule. K is the request's required
+positive `verification_budget`; there is no default. The committed evidence is
+the exact point set, and each point receives one classified reference evidence
+evaluation after commitment. This mechanism supplies no attack grid,
+acceptance tolerance, population claim or compute authority. The completed
+eight-design by six-condition study remains PB-INV and is unchanged.
 
 No protected cases, private root, official seed, customer data or reference
 answers are added to the research surface. A future research kit may add a

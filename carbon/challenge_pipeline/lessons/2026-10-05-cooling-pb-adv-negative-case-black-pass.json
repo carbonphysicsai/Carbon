@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-negative-case-black-pass",
+  "recorded_at": "2026-10-05T09:09:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 negative-case formatting check",
+    "description": "Rechecked both changed Python files with Black's in-process API after adding explicit refusal coverage for a queried but predicted-infeasible PB-ADV point."
+  },
+  "expected": "The focused negative-case regression would preserve exact Black formatting."
+  ,
+  "observed": "Both files exactly matched Black's formatted output."
+  ,
+  "keep": [
+    "Keep the predicted-infeasible commitment refusal explicit in focused coverage."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

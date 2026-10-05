@@ -59,16 +59,23 @@ def decision_contract(**changes):
 
 
 def neutral(
-    adapter, *, designs=DESIGNS, conditions=CONDITIONS, budget=None, model=MODEL
+    adapter,
+    *,
+    designs=DESIGNS,
+    conditions=CONDITIONS,
+    budget=None,
+    verification_budget=None,
+    mode=cd.MODE,
+    model=MODEL,
 ):
     return ex.neutral_request(
         adapter,
-        mode=cd.MODE,
+        mode=mode,
         model=model,
         designs=designs,
         conditions=conditions,
         query_budget=budget or len(designs) * len(conditions),
-        verification_budget=len(conditions),
+        verification_budget=verification_budget or len(conditions),
         method=METHOD,
         seed_policy="deterministic analytic fixture",
     )
@@ -155,6 +162,19 @@ def test_request_binds_the_contract_model_space_and_conditions():
     assert req["condition_space_digest"].startswith("sha256:")
     assert len(space) == len(DESIGNS)
     assert req["request_digest"].startswith("sha256:")
+
+
+def test_request_serves_both_modes_and_mode_x_k_need_not_cover_all_conditions():
+    contract = decision_contract()
+    adapter = cd.adapter(contract)
+    assert adapter.modes == ("PB-INV", "PB-ADV")
+    req, _space = adapter.request(
+        neutral(adapter, mode=cd.PB_ADV_MODE, verification_budget=1)
+    )
+    assert req["mode"] == "PB-ADV"
+    assert req["verification_budget"] == 1
+    with pytest.raises(cd.DecisionError, match="unknown_mode"):
+        adapter.request({**neutral(adapter), "mode": "PB-OTHER"})
 
 
 def test_request_refuses_partial_grids_duplicates_and_out_of_scope_cases():
@@ -263,6 +283,121 @@ def test_fixed_grid_selects_the_least_pumping_design_feasible_everywhere(tmp_pat
     assert selected["predicted_worst_hydraulic_w"] == max(
         row["hydraulic_w"] for row in selected_rows
     )
+
+
+def test_mode_x_fixed_grid_commits_the_smallest_margin_exact_points(tmp_path):
+    contract = decision_contract()
+    adapter = cd.adapter(contract)
+    req, space = adapter.request(
+        neutral(adapter, mode=cd.PB_ADV_MODE, verification_budget=3)
+    )
+    oracle = adapter.oracle(req, space, infer)
+    selections = adapter.baseline(oracle, req, space)
+    assert len(selections) == 3
+    keys = []
+    for selection in selections:
+        point = tuple(
+            selection[name] for name in (*cd.DESIGN_VARIABLES, *cd.CONDITION_VARIABLES)
+        )
+        row = next(
+            row["quantities"] for row in oracle.log if tuple(row["point"]) == point
+        )
+        binding, margin = cd._binding_margin(contract, row)
+        assert selection["binding_constraint"] == binding
+        assert selection["predicted_margin_fraction"] == margin
+        keys.append(
+            (
+                margin,
+                point[: len(cd.DESIGN_VARIABLES)],
+                point[len(cd.DESIGN_VARIABLES) :],
+                binding,
+            )
+        )
+    assert keys == sorted(keys)
+
+    commitment = adapter.commit(req, selections, oracle, tmp_path)
+    seen = []
+
+    def watching(jobs):
+        assert commitment.path.is_file()
+        seen.extend(jobs)
+        return sound_reference(jobs)
+
+    result = adapter.verify(commitment, fixture_reference(watching, budget=3))
+    assert len(seen) == result["reference_jobs"] == 3
+    assert [job["inputs"] for job in seen] == [
+        {
+            name: selection[name]
+            for name in (*cd.DESIGN_VARIABLES, *cd.CONDITION_VARIABLES)
+        }
+        for selection in selections
+    ]
+    assert result["verification_accounting"]["condition_evaluations"] == 3
+
+
+def test_mode_x_commitment_refuses_over_budget_repeated_unqueried_or_altered_points(
+    tmp_path,
+):
+    contract = decision_contract()
+    adapter = cd.adapter(contract)
+    req, space = adapter.request(
+        neutral(adapter, mode=cd.PB_ADV_MODE, verification_budget=2)
+    )
+    oracle = adapter.oracle(req, space, infer)
+    selections = adapter.baseline(oracle, req, space)
+
+    with pytest.raises(cd.DecisionError, match="verification_budget_exceeded"):
+        adapter.commit(req, [*selections, dict(selections[0])], oracle, tmp_path / "a")
+    with pytest.raises(cd.DecisionError, match="selection_points_repeated"):
+        adapter.commit(
+            req, [selections[0], dict(selections[0])], oracle, tmp_path / "b"
+        )
+    with pytest.raises(cd.DecisionError, match="selection_not_successfully_queried"):
+        adapter.commit(
+            req,
+            [{**selections[0], "inlet_c": 36.0}],
+            oracle,
+            tmp_path / "c",
+        )
+    with pytest.raises(cd.DecisionError, match="selection_margin_mismatch"):
+        adapter.commit(
+            req,
+            [
+                {
+                    **selections[0],
+                    "predicted_margin_fraction": selections[0][
+                        "predicted_margin_fraction"
+                    ]
+                    + 1.0,
+                }
+            ],
+            oracle,
+            tmp_path / "d",
+        )
+
+    tight_contract = decision_contract(die_limit_c=0.0, hydraulic_limit_w=0.0)
+    tight_adapter = cd.adapter(tight_contract)
+    tight_req, tight_space = tight_adapter.request(
+        neutral(tight_adapter, mode=cd.PB_ADV_MODE, verification_budget=1)
+    )
+    tight_oracle = tight_adapter.oracle(tight_req, tight_space, infer)
+    assert tight_adapter.baseline(tight_oracle, tight_req, tight_space) == []
+    attempted = tight_oracle.log[0]
+    assert attempted["quantities"]["feasible"] is False
+    width = len(cd.DESIGN_VARIABLES)
+    hostile = cd._point_selection(
+        tight_contract,
+        tuple(attempted["point"][:width]),
+        tuple(attempted["point"][width:]),
+        attempted["quantities"],
+    )
+    with pytest.raises(cd.DecisionError, match="selection_not_predicted_feasible"):
+        tight_adapter.commit(
+            tight_req,
+            [hostile],
+            tight_oracle,
+            tmp_path / "e",
+        )
 
 
 def test_commitment_exists_before_reference_access_and_cannot_be_rewritten(tmp_path):
@@ -411,6 +546,25 @@ def test_generic_search_can_screen_then_confirm_the_cold_plate(tmp_path):
     assert proposed_oracle.used <= baseline_oracle.used
     commitment = adapter.commit(req, proposed, proposed_oracle, tmp_path)
     assert adapter.verify(commitment, fixture_reference())["status"] == "PROPOSAL"
+
+
+def test_generic_coarse_to_fine_serves_cooling_mode_x(tmp_path):
+    contract = decision_contract()
+    adapter = cd.adapter(contract)
+    req, space = adapter.request(
+        neutral(adapter, mode=cd.PB_ADV_MODE, verification_budget=2)
+    )
+    oracle = adapter.oracle(req, space, infer)
+    selections = methods.run(
+        "coarse_to_fine",
+        {"stride": 2, "radius": 1, "top_k": 2},
+        adapter.view(req, space),
+        oracle,
+    )
+    assert 0 < len(selections) <= 2
+    commitment = adapter.commit(req, selections, oracle, tmp_path)
+    result = adapter.verify(commitment, fixture_reference(budget=2))
+    assert result["reference_jobs"] == len(selections)
 
 
 def test_design_packet_keeps_all_ten_sections_and_open_owner_values_explicit():

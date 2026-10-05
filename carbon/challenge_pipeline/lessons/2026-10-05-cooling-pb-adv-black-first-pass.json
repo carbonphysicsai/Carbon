@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-black-first-pass",
+  "recorded_at": "2026-10-05T08:58:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 focused Black check first pass",
+    "description": "Checked Black formatting on the changed implementation and focused test module."
+  },
+  "expected": "The manually formatted patch would match the repository's Black rules."
+  ,
+  "observed": "Black reported that both changed Python files would be reformatted; this is formatting debt, not a behavioral test failure."
+  ,
+  "keep": [
+    "Keep Black as the mechanical formatter for changed Python."
+  ],
+  "change": [
+    "Apply Black to both changed files, then refresh the implementation-bound fixture and rerun checks because formatting changes the frozen code digest."
+  ],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

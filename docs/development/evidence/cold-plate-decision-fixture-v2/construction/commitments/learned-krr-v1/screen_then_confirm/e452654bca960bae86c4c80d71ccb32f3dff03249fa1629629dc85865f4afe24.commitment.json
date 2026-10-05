@@ -1,5 +1,5 @@
 {
- "commitment_digest": "sha256:3442cff19178e0c081ced664862d966679f0a3913162a4f8b78ff1ce6adddb48",
+ "commitment_digest": "sha256:5e9e5ba27f2a8f8794e7aaa9fa30af6f969b9552d88c39875cd8f52a3250a99b",
  "query_accounting_unit": "ATTEMPTED_MODEL_POINT",
  "query_attempts": 18,
  "query_log_digest": "sha256:fa1dd1f3a0ff16b1314cddd9f6aa839d6452705ea3945d60ddd6a7ea968a2982",
@@ -105,7 +105,7 @@
   ],
   "material": "DEVELOPMENT",
   "method": {
-   "code_digest": "sha256:9d7e4fbe32c9674ba09fb1d568f47806607db68d01df6db7b8d346642861bb94",
+   "code_digest": "sha256:b70d2b0dfcdd93eb7e82ef581b5f707672de63b1db83bebd1d5ece407e5f16e5",
    "configuration_digest": "sha256:93756f110bf1471e3fb8f1a526f3a955a83abb4f0b387fdfd7675796d5c0f21c",
    "name": "screen_then_confirm"
   },
@@ -125,7 +125,7 @@
     "new_oracle_required": true
    }
   },
-  "request_digest": "sha256:935ec0693c46e40ce333053aac68c8b00e3fd31fdca6d238339acb639bc51aa2",
+  "request_digest": "sha256:e452654bca960bae86c4c80d71ccb32f3dff03249fa1629629dc85865f4afe24",
   "schema": "carbon.cold-plate.design-search-request.v2",
   "scope": "periodic-straight-channel-cell-v1",
   "seed_policy": "deterministic frozen DEVELOPMENT models; no random draw",

@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-final-ruff-pass",
+  "recorded_at": "2026-10-05T09:07:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 final focused Ruff check",
+    "description": "Re-ran Ruff on both changed Python files after final Black formatting and fixture refresh."
+  },
+  "expected": "Final formatting would retain zero focused Ruff diagnostics."
+  ,
+  "observed": "Ruff reported All checks passed for both changed files."
+  ,
+  "keep": [
+    "Retain focused lint evidence alongside canonical CI."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

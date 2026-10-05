@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-lf-fixture-adoption",
+  "recorded_at": "2026-10-05T08:54:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "docs/development/evidence/cold-plate-decision-fixture-v2 LF refresh",
+    "description": "Replaced the interim CRLF-generated fixture tree with the nine LF-source artifacts, including exactly four current content-addressed commitments."
+  },
+  "expected": "The tracked analytical fixture would now match source digests computed from repository-normalized bytes on every checkout."
+  ,
+  "observed": "The tracked fixture contains exactly nine refreshed files and no superseded commitment object. Counted CFD evidence and its durable closeout were not touched."
+  ,
+  "keep": [
+    "Keep normalized source identity portable and keep counted evidence outside fixture refreshes."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.decision-study",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

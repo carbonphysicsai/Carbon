@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-negative-case-ruff-pass",
+  "recorded_at": "2026-10-05T09:11:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 final Ruff check with infeasible-point refusal",
+    "description": "Re-ran focused Ruff after the last negative-case test change."
+  },
+  "expected": "The final implementation and test modules would remain free of focused Ruff diagnostics."
+  ,
+  "observed": "Ruff reported All checks passed."
+  ,
+  "keep": [
+    "Keep the final source and focused regression clean before canonical CI."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

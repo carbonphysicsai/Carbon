@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-final-fixture-construction",
+  "recorded_at": "2026-10-05T09:00:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "optimizer_pilot",
+    "ref": "CHALLENGE-AI-COOLING-09 final formatted-source fixture construction",
+    "description": "Reconstructed and committed the unchanged four PB-INV fixture arms from the final Black-formatted PB-ADV implementation in an LF-normalized source tree."
+  },
+  "expected": "The final fixture construction would bind the reviewable source identity and complete all commitments before reference access."
+  ,
+  "observed": "Construction completed as ALL_ARMS_COMMITTED_BEFORE_REFERENCE with identity sha256:7b7913372af32b0d6d64be140f9f5dd6f2ad388b8fdb86129e2d0a680b2df9ea. No reference or counted evidence was available to construction."
+  ,
+  "keep": [
+    "Generate evidence only after the executable source is formatted and stable."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.reference-custody"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
