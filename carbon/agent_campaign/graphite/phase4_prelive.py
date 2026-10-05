@@ -10,10 +10,12 @@ under the threading the live run uses, and puts a fake only *at* that
 boundary, where it answers the way the real service does. Nothing behind the
 boundary is synthetic:
 
-- **grant and code (L1)**: `phase4.live_checks`, the live run's own checks:
-  the grant file is GRAPHITE-GRANT-PHASE4, equal to the committed blob at a
-  pushed HEAD with the grants directory clean, and HEAD is pushed with its
-  shipped code clean; a copy with its ceiling raised is refused;
+- **grant and code (L1)**: `phase4.live_checks`, the live run's own checks,
+  for the Challenge `--challenge` names: the grant file is the phase-4 grant
+  registered for that Challenge (`phase4.PHASE4_GRANTS`), equal to its
+  committed blob on main at a pushed HEAD with the grants directory clean,
+  and HEAD is pushed with its shipped code clean; a copy with its ceiling
+  raised is refused, and so is a copy naming each other Challenge's grant;
 - **the session**: `phase4.live_provider` and `phase4.run_live`, exactly as
   `phase4 run` builds and drives them: the real `AttackerProvider` and
   campaign controller, the real research ledger and loop (`asyncio.run` on
@@ -48,8 +50,11 @@ It writes only under `DIR/attacker-prelive`, sends nothing, spends nothing,
 and prints one JSON report. Every failed path is listed under
 `blocking_findings` (with whether a phase-4 live run itself uses it) and
 fails the gate: exit 0 only when every path passed with no network use, 4
-otherwise. `phase4_live_path` reports the phase-4 paths alone. Not security
-acceptance.
+otherwise. `phase4_live_path` reports the phase-4 paths alone. The report is
+a live run's release evidence (OWNER-GRAPHITE-TEST-WAVE-05 §3), so it names
+the Challenge the gate ran for and, under `grant`, the grant it accepted: its
+id, file and canonical digest and the Challenge it is bound to (null when the
+grant was refused). Not security acceptance.
 """
 
 from __future__ import annotations
@@ -72,7 +77,10 @@ from pathlib import Path
 
 from carbon.development_session.research_tools import PREFIX
 
-SCHEMA = "carbon.graphite.phase4-prelive.v1"
+#: v2 adds `challenge` and `grant` (the accepted grant's id, file, digest and
+#: bound Challenge): the report is release evidence (OWNER-GRAPHITE-TEST-WAVE-05
+#: §3).
+SCHEMA = "carbon.graphite.phase4-prelive.v2"
 #: The pod and compute-store step under phase 3's threading: a blocking gate
 #: failure until the pod store is thread-safe (claude/fix-pod-store-threads).
 POD_STEP = "pods_compute_store_phase3_threading"
@@ -632,18 +640,30 @@ def _key_file(store, name):
 
 
 def prelive(
-    root, adapter, atk, *, grant_path, repository=None, emit=print, scoring=None
+    root,
+    adapter,
+    atk,
+    *,
+    grant_path,
+    challenge,
+    repository=None,
+    emit=print,
+    scoring=None,
 ):
     """Run the gate (module docstring) under `root`; returns the exit code.
-    `scoring` is the Challenge's registered ChallengeScoring, as `phase4 run`
-    resolves it; None resolves it from the adapter's Challenge."""
+    `challenge` is the Challenge `--challenge` names, whose registered grant
+    the grant check binds to. `scoring` is the Challenge's registered
+    ChallengeScoring, as `phase4 run` resolves it; None resolves it from the
+    adapter's Challenge."""
     from . import phase4
 
     repository = phase4.REPOSITORY if repository is None else Path(repository)
     store = _fresh(root)
     with network_guard() as network, sqlite_thread_guard() as uses:
         gate = _Gate(uses)
-        report = _run(gate, store, adapter, atk, grant_path, repository, scoring)
+        report = _run(
+            gate, store, adapter, atk, grant_path, repository, scoring, challenge
+        )
     blocking = [
         {
             "path": row["path"],
@@ -668,6 +688,8 @@ def prelive(
     out = {
         "schema": SCHEMA,
         "root": str(store),
+        "challenge": challenge,
+        "grant": report.get("grant"),
         "verdict": "PASS" if not blocking and not network else "FAIL",
         "phase4_live_path": "PASS" if phase4_ok else "FAIL",
         "paths": gate.paths,
@@ -680,50 +702,91 @@ def prelive(
     return 0 if out["verdict"] == "PASS" else 4
 
 
-def _run(gate, store, adapter, atk, grant_path, repository, scoring=None):
+def _refused_copy(phase4, store, name, document, repository, challenge):
+    """The refusal code `check_committed_grant` gives a copy of the grant
+    with `document`'s fields, or None when it accepts it."""
+    copy = store / name
+    copy.write_text(json.dumps(document))
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        try:
+            phase4.check_committed_grant(copy, repository, challenge=challenge)
+        except SystemExit:
+            return _refusal_code(out.getvalue())
+    return None
+
+
+def _run(gate, store, adapter, atk, grant_path, repository, scoring, challenge):
     from . import phase4
     from .pods import RunPodPods, private_dir
 
     state = {}
 
     def grant_and_code():
-        grant, head = phase4.live_checks(grant_path, repository)
+        grant, head = phase4.live_checks(grant_path, repository, challenge=challenge)
         state["grant"], state["head"] = grant, head
-        tampered = store / "grant-ceiling-raised.json"
+        entry = phase4.phase4_grant(challenge)
         document = json.loads(Path(grant_path).read_bytes())
-        tampered.write_text(json.dumps({**document, "monetary_ceiling": "100.00"}))
-        out = io.StringIO()
-        with contextlib.redirect_stdout(out):
-            try:
-                phase4.check_committed_grant(tampered, repository)
-            except SystemExit:
-                refused = _refusal_code(out.getvalue())
-            else:
-                refused = None
-        if refused != "grant_differs_from_the_committed_phase4_grant":
+        tampered = _refused_copy(
+            phase4,
+            store,
+            "grant-ceiling-raised.json",
+            {**document, "monetary_ceiling": "100.00"},
+            repository,
+            challenge,
+        )
+        if tampered != "grant_differs_from_the_committed_phase4_grant":
             raise AssertionError("a copy with its ceiling raised was not refused")
+        # A copy naming each other Challenge's grant is refused for this one.
+        others = {}
+        for other in phase4.PHASE4_GRANTS.values():
+            if other.challenge == challenge:
+                continue
+            others[other.grant_id] = _refused_copy(
+                phase4,
+                store,
+                "grant-named-" + other.grant_id + ".json",
+                {**document, "grant_id": other.grant_id},
+                repository,
+                challenge,
+            )
+            if others[other.grant_id] != "grant_is_for_another_challenge":
+                raise AssertionError(
+                    "a copy naming " + other.grant_id + " was not refused"
+                )
+        state["evidence"] = {
+            "challenge": entry.challenge,
+            "grant_id": entry.grant_id,
+            "grant_file": entry.grant_file,
+            "grant_digest": phase4.grant_digest(document),
+        }
         return {
-            "grant_id": grant.grant_id,
-            "grant_digest": phase4.grant_digest(grant.document()),
+            **state["evidence"],
             "head": head,
-            "tampered_copy": refused,
+            "tampered_copy": tampered,
+            "other_challenges_grants": others,
         }
 
     gate.check(
         "grant_and_code_checks",
         (
-            "phase4.live_checks: load_grant, the phase-4 grant id and provider",
             (
-                "phase4.check_committed_grant: git show HEAD blob, HEAD on a "
-                "remote branch, grants directory clean (L1)"
+                "phase4.live_checks: load_grant and the provider, for the "
+                "Challenge --challenge names"
+            ),
+            (
+                "phase4.check_committed_grant: the grant registered for the "
+                "Challenge, git show HEAD blob, HEAD on a remote branch, the "
+                "blob on main, grants directory clean (L1)"
             ),
             "phase3.check_code_ref: HEAD pushed, shipped code clean",
             "negative: a copy with its ceiling raised is refused",
+            "negative: a copy naming another Challenge's grant is refused",
         ),
         grant_and_code,
     )
-    if "grant" not in state:
-        return {"spent_usd": "0"}
+    if "grant" not in state or "evidence" not in state:
+        return {"spent_usd": "0", "grant": None}
 
     engy = FakeEngy(session_script(adapter))
     door = FakeMinerDoor()
@@ -946,4 +1009,4 @@ def _run(gate, store, adapter, atk, grant_path, repository, scoring=None):
         phase4=False,
     )
     entry = state.get("entry") or {}
-    return {"spent_usd": entry.get("settled_usd")}
+    return {"spent_usd": entry.get("settled_usd"), "grant": state["evidence"]}

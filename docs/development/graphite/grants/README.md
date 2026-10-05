@@ -611,3 +611,84 @@ run. The grant's `max_runtime_s` is the run's elapsed limit.
 **Expected spend.** Each call and each pod settles from the provider's
 reported charge, not from its reservation. The first live session measures the
 real figures and replaces these numbers.
+
+## GRAPHITE-GRANT-PHASE4-COOLING (Graphite's Attacker on cooling, `chip-cold-plate`)
+
+**Authority.** OWNER-GRAPHITE-TEST-WAVE-05 §2
+(`.agent/decisions/2026-10-05-OWNER-GRAPHITE-TEST-WAVE-05.md`,
+carbonphysicsai/Carbon#593). Asked to approve a phase-4 Attacker grant for
+cooling with the amounts proposed in #587, identical to GRAPHITE-GRANT-PHASE4,
+the owner answered "approve". The record says the grant is a new file, and
+that the runner accepts a grant only when it is the committed blob on main for
+the Challenge named by `--challenge`. A motor grant is proposed the same way
+once motor's scorer exists; none is added here.
+
+**State.** Approved. The grant validates. No live session has run. The
+engineering choices for the per-Challenge binding are
+GRAPHITE-GRANT-BINDING-01
+(`.agent/decisions/2026-10-05-GRAPHITE-GRANT-BINDING-01.md`).
+
+**Binding to the Challenge.** The grant format
+(`carbon.agent-campaign.spending-grant.v1`) has an exact field set and no
+Challenge field, so the binding lives in the runner:
+`phase4.PHASE4_GRANTS` maps `battery-fastcharge-ageing-development-v1` to
+GRAPHITE-GRANT-PHASE4 and `chip-cold-plate` to this grant.
+- A live run and `phase4 prelive` accept only the grant registered for the
+  Challenge `--challenge` names. Another Challenge's grant is
+  `grant_is_for_another_challenge`. A Challenge with no registered grant
+  (motor today) is `no_phase4_grant_for_challenge`.
+- The grant must be the committed blob at a pushed HEAD and equal the blob on
+  main, with the grants directory clean, exactly as for battery
+  (`check_committed_grant`). Until this file is on main, the cooling checks
+  refuse with `main_grant_unavailable`.
+- `phase4 prelive --challenge chip-cold-plate` defaults `--grant` to this
+  file, and its report names the grant id, file, digest and Challenge it
+  accepted.
+
+| Field | Value | Basis |
+|---|---|---|
+| `monetary_ceiling` | `10.50` USD | OWNER-GRAPHITE-TEST-WAVE-05 §2, as GRAPHITE-GRANT-PHASE4 |
+| `cleanup_allowance` | `0.25` USD | OWNER-GRAPHITE-TEST-WAVE-05 §2; pod_control's `CLEANUP_RESERVE_USD`, as GRAPHITE-GRANT-PHASE4 |
+| `worst_case_run_cost` | `3.41` USD | OWNER-GRAPHITE-TEST-WAVE-05 §2, as GRAPHITE-GRANT-PHASE4 (derivation below) |
+| `permitted_runs` | `3` | OWNER-GRAPHITE-TEST-WAVE-05 §2 |
+| `max_concurrency` | `1` | "one at a time", OWNER-GRAPHITE-TEST-WAVE-05 §2 |
+| `max_runtime_s` | `15600` | OWNER-GRAPHITE-TEST-WAVE-05 §2 |
+| `max_submissions` | `3` | One session export per permitted run, as GRAPHITE-GRANT-PHASE4 |
+| `account` | `Carbon-Account` | The same paying account label as GRAPHITE-GRANT-PHASE4 (a label, not a credential) |
+| `expires_at` | `2026-12-31T23:59:59Z` | As GRAPHITE-GRANT-PHASE4 |
+| `provider` | `graphite` | The provider a Graphite grant binds |
+| `granted_by` | `owner` | OWNER-GRAPHITE-TEST-WAVE-05 §2 |
+
+### Arithmetic
+
+This is engineering arithmetic from recorded prices, not a new price. It is
+GRAPHITE-GRANT-PHASE4's, checked against cooling's own registered scoring.
+
+**Pods per run.** Cooling's `ChallengeScoring` gives the same 30-minute verify
+pod as battery (`graphite.pods.proposal_minutes`), at the same price
+(`graphite.pods.prices()`, read from the EV4 pod tooling): USD 0.246369864 per
+pod. `phase4.attacker_budget` reserves `ATTACKER_VERIFY_PODS` = 6 of them:
+
+    6 × USD 0.246369864 = 1.478219184  →  USD 1.48 (rounded up to the cent)
+
+**Tokens per run.** The token share is what the run cost leaves after the
+pods:
+
+    3.41 − 1.48 = USD 1.93
+
+At `glm-5.2` and `DEFAULT_SETTINGS` one call reserves USD 0.04763648, so the
+token share covers about 40 calls. The count only explains the figure: money
+binds, not the count. The verify-pod rebuild is still the declared NOT_RUN
+seam (`phase4.POD_REBUILD_SEAM`), so the pods' share stays reserved but
+unspent.
+
+**Runs.**
+
+    3 × 3.41 + 0.25 = 10.48 ≤ 10.50        ⌊ (10.50 − 0.25) / 3.41 ⌋ = 3 runs
+
+`tests/cpu/test_graphite_phase4_grant.py` holds this arithmetic for both
+phase-4 grants.
+
+**Expected spend.** Each call settles from the provider's reported charge, not
+from its reservation. The first live cooling session measures the real
+figures.

@@ -1,0 +1,28 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-05-phase4-cooling-grant",
+ "recorded_at": "2026-10-05T18:00:00Z",
+ "challenge": "chip-cold-plate",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": ".agent/decisions/2026-10-05-GRAPHITE-GRANT-BINDING-01.md; branch claude/phase4-cooling-grant",
+  "description": "Added GRAPHITE-GRANT-PHASE4-COOLING (OWNER-GRAPHITE-TEST-WAVE-05 §2) and made the phase-4 grant binding per Challenge: a registry from Challenge to grant id and file, typed refusals for another Challenge's grant and for a Challenge with no grant, the existing committed, pushed, main-blob, clean-directory and tamper checks per grant, a prelive grant default that follows --challenge, and a prelive report that names the grant id, file, digest and Challenge it accepted."
+ },
+ "expected": "Battery's grant would keep passing every check unchanged. Cooling's would be refused at this branch's head with main_grant_unavailable, because the main-blob check reads origin/main, and would pass once main carries the same blob.",
+ "observed": "Both grants pass the per-Challenge checks in temporary repositories with a bare remote. Each is refused for the other Challenge with grant_is_for_another_challenge, and motor is refused with no_phase4_grant_for_challenge on every grant path. A branch-only cooling grant is refused with main_grant_unavailable and passes once it is pushed to main. The grant format has an exact field set and no Challenge field, so the binding had to live in the runner rather than in the grant file.",
+ "keep": [
+  "Bind a grant to its Challenge in the runner's registry and check the grant id before reading git, so a wrong pairing gets a typed refusal instead of a digest difference.",
+  "Make the Challenge a required keyword on every grant path, so no caller can fall back to the first Challenge's grant."
+ ],
+ "change": [
+  "Propose motor's phase-4 grant the same way once motor's scorer exists, as a new registry entry and a new file.",
+  "The grant format still cannot name a Challenge. If more per-Challenge grants follow, consider a grant schema version with a Challenge field, as an owner-visible format change."
+ ],
+ "protocol_elements": [
+  "graphite.attacker",
+  "graphite.grant"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
