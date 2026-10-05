@@ -13,6 +13,12 @@ Claims tested:
   `pods.RunPodPods`, RunPod in memory) every paid pod is refused
   `grant_allows_no_pods` before any reservation, and no create request is
   ever sent, while the CPU carrier lane (rate 0) still runs its proposals;
+- on the CPU carrier lane (the real `CarrierPods`, its carrier replaced by
+  the carrier suite's stand-in) a launch under the grant books exactly
+  USD 0, and a non-zero rate reaching the lane is refused, not booked;
+- `phase3 run --compute runpod` under the grant is refused
+  `grant_is_tokens_only_use_the_carrier_lane` through the real CLI before
+  any RunPod backend is built, reservation made or request sent;
 - battery's phase-3 grants keep working unchanged;
 - each guard, disabled, lets the wrong thing through (mutations).
 
@@ -23,6 +29,7 @@ from __future__ import annotations
 
 import copy
 import dataclasses
+import functools
 import json
 import os
 import subprocess
@@ -558,3 +565,179 @@ def test_mutation_without_the_bound_challenge_any_grant_runs_cooling(
         )
         is None
     )
+
+
+# -- the carrier lane: USD 0 booked, any rate refused -------------------------------------------
+def _carrier(tmp_path, rate=None):
+    """The real `CarrierPods`, its carrier replaced by the carrier suite's
+    stand-in (the carrier's own contract, run in a local subprocess)."""
+    from test_graphite_carrier_lane import StandIn, carrier
+
+    runner = StandIn()
+    backend = carrier(tmp_path, runner)
+    if rate is not None:
+        # A paid-pod rate reaching the lane by mistake.
+        backend.hourly_usd = rate
+    return backend, runner
+
+
+def _carrier_provider(tmp_path, backend):
+    """The budget the live run uses: `Phase3Provider` takes the backend's own
+    rate (`hourly_usd`)."""
+    from carbon.agent_campaign.graphite.model import ScriptedModel, text
+
+    return phase3.Phase3Provider(
+        root=tmp_path / "graphite",
+        grant=_grant(expires_at="2099-01-01T00:00:00Z"),
+        model=ScriptedModel([text("done")]),
+        pods=backend,
+        scoring=COOLING,
+    )
+
+
+def _booked(run):
+    rows = run.ledger.rows()
+    reserved = [
+        Decimal(r["reserved_usd"]) for r in rows if r["event"] == "pod_reserved"
+    ]
+    settled = [Decimal(r["charge_usd"]) for r in rows if r["event"] == "pod_settled"]
+    return reserved, settled
+
+
+def test_a_carrier_launch_under_the_grant_books_exactly_zero(tmp_path):
+    backend, runner = _carrier(tmp_path)
+    budget = _carrier_provider(tmp_path, backend).budget
+    assert budget.tokens_only and budget.pays_for_pods
+    assert budget.pod_reservation_usd == 0 and budget.pod_allowance_usd == 0
+    assert budget.token_allowance_usd == Decimal("1.95")
+    run = _experiment(tmp_path, budget, backend)
+    _propose(run)
+    assert [r["status"] for r in run.records()] == ["SCORED", "SCORED"]
+    reserved, settled = _booked(run)
+    assert len(reserved) == len(settled) == len(runner.calls) == 2
+    assert all(amount == 0 for amount in reserved + settled)
+    assert run.pod_committed() == 0
+
+
+@pytest.mark.parametrize("rate", [Decimal("0.49"), Decimal("0.000001")])
+def test_a_non_zero_rate_on_the_carrier_is_refused_not_booked(tmp_path, rate):
+    """However small, a rate reaching the lane under the tokens-only grant is
+    refused `grant_allows_no_pods`: no reservation, no carrier run."""
+    backend, runner = _carrier(tmp_path, rate)
+    budget = _carrier_provider(tmp_path, backend).budget
+    assert budget.tokens_only and not budget.pays_for_pods
+    run = _experiment(tmp_path, budget, backend)
+    _propose(run)
+    for record in run.records():
+        assert record["status"] == "REFUSED_BUDGET", record
+        assert record["reason_code"] == "grant_allows_no_pods"
+    assert _booked(run) == ([], [])
+    assert runner.calls == [] and run.pod_committed() == 0
+
+
+def test_a_runpod_rate_budget_on_the_carrier_is_refused(tmp_path):
+    """A budget built without the backend's rate (RunPod's) and handed to the
+    carrier is refused the same way."""
+    backend, runner = _carrier(tmp_path)
+    run = _experiment(tmp_path, _no_pods_budget(), backend)
+    _propose(run)
+    assert run.record("baseline")["reason_code"] == "grant_allows_no_pods"
+    assert runner.calls == [] and _booked(run) == ([], [])
+
+
+def test_mutation_without_the_guard_a_carrier_rate_is_booked(tmp_path, monkeypatch):
+    def unguarded(self):
+        # `_admit_pod` without the tokens-only guard.
+        if self.pods_left() <= 0:
+            raise ex.BudgetRefused("session_pod_limit_reached")
+        reservation = self.budget.pod_reservation_usd
+        committed = self.token_committed() + self.pod_committed()
+        if committed + reservation > self.budget.run_cap_usd:
+            raise ex.BudgetRefused("run_cap_reached_tokens_plus_pods")
+        return reservation
+
+    monkeypatch.setattr(ex.Experiment, "_admit_pod", unguarded)
+    backend, runner = _carrier(tmp_path, Decimal("0.49"))
+    run = _experiment(tmp_path, _carrier_provider(tmp_path, backend).budget, backend)
+    _propose(run)
+    reserved, _settled = _booked(run)
+    assert reserved and all(amount > 0 for amount in reserved)
+    assert runner.calls
+
+
+# -- `--compute runpod` through the real CLI ----------------------------------------------------
+class _NeverBuiltRunPod:
+    """`pods.RunPodPods` with RunPod in memory, recording whether the run
+    ever built it: a refused run must not."""
+
+    def __init__(self):
+        self.recording = _Recording()
+        self.built = []
+
+    def __call__(self, **kwargs):
+        self.built.append(kwargs)
+        return pods.RunPodPods(
+            **{
+                **kwargs,
+                "transport": self.recording.transport,
+                "http": self.recording.http,
+                "sleep": lambda _seconds: None,
+                "balance_floor": lambda: Decimal(0),
+            }
+        )
+
+
+def _runpod_cli(tmp_path, monkeypatch):
+    """`phase3 run --compute runpod` under the grant committed on main (a
+    temporary repository with a bare remote), every other input present."""
+    from graphite_phase3_fixtures import snapshot_file
+
+    repo, grant = _repo(tmp_path)
+    monkeypatch.setattr(
+        grant_binding,
+        "check_phase3_grant",
+        functools.partial(grant_binding.check_phase3_grant, repository=repo),
+    )
+    fake = _NeverBuiltRunPod()
+    monkeypatch.setattr(pods, "RunPodPods", fake)
+    monkeypatch.setenv("ENGY_API_KEY", "fixture-engy")
+    monkeypatch.setenv("RUNPOD_API_KEY", "fixture-runpod-key")
+    root = tmp_path / "root"
+    argv = [
+        *_live_argv(root, COLD_PLATE_CHALLENGE, grant),
+        "--compute",
+        "runpod",
+        "--miner-profile",
+        "p.json",
+        "--miner-campaign",
+        "c",
+        "--literature-snapshot",
+        str(snapshot_file(tmp_path / "lit", count=1, verdicts={1: "CORRECT"})),
+    ]
+    return argv, fake, root
+
+
+def test_a_runpod_run_under_the_grant_is_refused_through_the_cli(
+    tmp_path, capsys, monkeypatch
+):
+    argv, fake, root = _runpod_cli(tmp_path, monkeypatch)
+    code = _refusal(capsys, lambda: phase3.main(argv))
+    assert code == "grant_is_tokens_only_use_the_carrier_lane"
+    # Nothing was built, reserved or sent: no RunPod backend, no request, no
+    # create, and nothing under the run's root.
+    assert fake.built == [] and fake.recording.requests == []
+    assert fake.recording.account.creates == []
+    assert not any(root.rglob("*"))
+    assert "fixture-engy" not in capsys.readouterr().out
+
+
+def test_mutation_without_the_lane_check_the_runpod_run_goes_on(
+    tmp_path, capsys, monkeypatch
+):
+    """Remove the grant from `TOKENS_ONLY_GRANTS` and the same run passes the
+    lane check and goes on to the next one (the code ref)."""
+    argv, _fake, _root = _runpod_cli(tmp_path, monkeypatch)
+    monkeypatch.setattr(phase3, "TOKENS_ONLY_GRANTS", frozenset())
+    code = _refusal(capsys, lambda: phase3.main(argv))
+    assert code != "grant_is_tokens_only_use_the_carrier_lane"
+    assert code == "code_ref_is_not_this_checkout_head"
