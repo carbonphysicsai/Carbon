@@ -323,10 +323,29 @@ class BatteryValidator:
         The plaintext is generated from the private root, committed to the
         journal before any use, and kept only in the validator state.
         """
+        from carbon.challenge_validator.interface import role_reserved
+
+        if role_reserved(role):
+            raise StateError("seed_role_reserved")
+        if role_reserved(role, self.sealed_roles()):
+            # The role's batch was sealed outside the pool (a study's
+            # confirmation set, `seal_batch`): preparing it would recall that
+            # batch into scoring. Refused in any spelling.
+            raise StateError("seed_role_sealed")
         count = self.rule["screening_batch_size"] if count is None else count
         committed = self.seal_batch(role, count=count, duplicates=duplicates)
         self.store.add_batch(committed, kind=kind)
         return committed.fingerprint
+
+    def sealed_roles(self):
+        """Roles committed in the journal for a batch the pool does not hold:
+        sealed outside it by `seal_batch`. Public journal metadata only."""
+        pooled = {batch["fingerprint"] for batch in self.store.batches()}
+        return {
+            entry["role"]
+            for entry in self.journal.public()
+            if entry["kind"] == "batch" and entry["fingerprint"] not in pooled
+        }
 
     def seal_batch(self, role, *, count, duplicates):
         """Generate and commit one private batch, outside the pool (idempotent
@@ -354,6 +373,11 @@ class BatteryValidator:
         """
         if type(batch) is not PrivateBatch:
             raise TypeError("a PrivateBatch is required")
+        from carbon.challenge_validator.interface import role_reserved
+
+        if role_reserved(batch.role):
+            # Refused before the journal commits anything.
+            raise StateError("seed_role_reserved")
         self._refuse_published(batch)
         try:
             committed = self.journal.recall(batch)

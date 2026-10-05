@@ -153,6 +153,10 @@ REFUSALS = {
     "capacity": "The intake is busy. Retry in a few seconds.",
     "inbox_full": "The validator's queue is full. Retry in a few minutes.",
     "body": "The request is larger than the intake accepts (64 KiB).",
+    "body_timeout": (
+        "The request's body did not arrive in time. Check your connection, "
+        "then send it again."
+    ),
     "headers": "A request header is repeated; send each header once.",
     "not_found": "No submission with that id belongs to your hotkey.",
     "tool": "The intake only accepts battery_submit and battery_status.",

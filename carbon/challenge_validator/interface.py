@@ -67,6 +67,23 @@ RESERVED_SEED_ROLES = frozenset({"ev5-confirmation", "graphite-confirmation-v1"}
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 
 
+def canonical_role(role):
+    """A seed role as its draws are keyed: lower-cased, since battery derives a
+    batch's inputs from `RoleKey(role.lower())`. Two spellings with one
+    canonical form draw the same cases, so every reserved or sealed check
+    compares canonical forms. None for a non-string."""
+    return role.lower() if type(role) is str else None
+
+
+def role_reserved(role, sealed=()):
+    """Whether `role` is reserved, or sealed outside the pool (`sealed`), in
+    any spelling."""
+    canonical = canonical_role(role)
+    return canonical in RESERVED_SEED_ROLES or canonical in {
+        canonical_role(r) for r in sealed
+    }
+
+
 def digest(value):
     """`sha256:` over the canonical JSON of `value`."""
     body = json.dumps(
@@ -217,9 +234,9 @@ class ChallengeAdapter(abc.ABC):
         """Prepare one private batch, refusing reserved and sealed roles."""
         if type(role) is not str or not role:
             raise ReservedRole("seed_role_malformed")
-        if role in RESERVED_SEED_ROLES:
+        if role_reserved(role):
             raise ReservedRole("seed_role_reserved")
-        if role in self.sealed_roles():
+        if role_reserved(role, self.sealed_roles()):
             raise ReservedRole("seed_role_sealed")
         return self._prepare_batch(role, kind=kind, **options)
 
@@ -298,7 +315,9 @@ __all__ = [
     "ReservedRole",
     "Submission",
     "Unavailable",
+    "canonical_role",
     "check_outcome",
     "digest",
     "is_digest",
+    "role_reserved",
 ]
