@@ -1,0 +1,31 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-validator-01-security-hardening",
+  "recorded_at": "2026-10-05T01:55:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-01 hardening, branch claude/validator-hardening at cc2d122b6, from main 17babfc03. Canonical (groups chain archive science-jax science-torch mcp): 636 passed, pytest exit 0, over the hardening, contract, battery-adapter, scoring and pod-timeout suites, the battery intake, service, daemon, deployment, carry-over, rule v2 and EV5 suites, Graphite phase 3 and RunPod, the Attacker battery adapter and the Launchpad production journey. The first canonical attempt never ran a test: Docker reported 'No such image' for the image it had just built, while another session's containers were running. It was retried, not counted. scripts/check_quality.py passed.",
+    "description": "Fixes for the reachable findings of the 2026-10-04 read-only security review of VALIDATOR-01 slices 1-3: seed-role spelling and the battery pool path, the intake's slow-body DoS, private/ never shipped to pods, hostile pod files and listing caps, and bounded ledger growth."
+  },
+  "expected": "Every reachable finding gets a fix with a regression test, and the Level 4-5 findings are recorded as blockers, not hidden.",
+  "observed": "The most important finding was in the validator's own guard. It compared reserved roles as exact strings, but battery's draw lower-cases the role first, so a different spelling regenerated a sealed study's inputs. A guard must compare what the protected mechanism actually keys on. Writing the regression test exposed a second path: import_batch committed to the journal before the pool guard fired. The guard belongs before the first irreversible write, not where the batch is finally stored. The DoS fix moved the body read ahead of the in-flight slot and added an absolute deadline; a per-recv socket timeout bounds nothing per request. The ship-list fix had to tell data from code: excluding every forbidden fragment would have dropped modules the pod imports, so only private/ directories are excluded.",
+  "keep": [
+    "Compare protected identifiers in the canonical form the protected mechanism derives from.",
+    "Put a guard before the first irreversible write (a journal commit), not only at the final store.",
+    "Bound a request by an absolute deadline before it takes any shared slot.",
+    "Record findings not fixed now as named blockers with the condition that lifts them."
+  ],
+  "change": [
+    "When a review finding names one path, search for every other path into the same store before calling it fixed.",
+    "Retry a canonical run that fails before any test executes, and report it as infrastructure."
+  ],
+  "protocol_elements": [
+    "sealed confirmation roles are refused in any spelling and on every path into a scoring pool",
+    "a public intake bounds each request in time before taking shared capacity",
+    "nothing under a private directory ships to a rented pod"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

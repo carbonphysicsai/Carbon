@@ -515,6 +515,30 @@ registration. For slice 2 it covers:
 The tests are not an audit. Not NETWORK_QUALIFIED. No LIVE, weights or
 reward.
 
+## Security review, 2026-10-04 (agent review: input to the owner's acceptance, not an acceptance)
+
+A read-only review of slices 1-3 at main `17babfc03` found no critical or
+high finding. The branch `claude/validator-hardening` addresses the findings
+that are reachable today.
+
+| # | Finding | Severity | Resolution |
+| --- | --- | --- | --- |
+| 1 | The reserved/sealed seed-role guard compared exact strings, but battery draws from `role.lower()`, so `EV5-Confirmation` drew EV5's sealed inputs; `operate prepare` had no guard | Medium | Fixed. Every spelling is matched (`canonical_role`, `role_reserved`) and the guard sits on battery's own pool path: `prepare_batch`, `import_batch` before any journal commit, and `add_batch`. `operate` answers a refusal by name |
+| 2 | Intake slow-body DoS: a trickled body held an in-flight slot, threads were unbounded, and peer buckets were cleared at 4,096 | Medium (exposed intake) | Fixed. The body is read under an absolute deadline before a slot is taken; connections are capped overall and per address; least-recent peer buckets are evicted. A proxy in front would share one peer's limits (operator note) |
+| 3 | At Levels 4-5 participant code could forge the pod's `/status` and timing; a self-chosen crash is FAILED_INFRA | Medium (Levels 4-5) | Open. A blocker before any Level 4-5 pod work: provider-API lifecycle, a separated supervisor image, and no reference outputs in the pod |
+| 4 | `RUNPOD_API_KEY` and `PROBE_TOKEN` are readable via `/proc` by the program | Medium (Levels 4-5) | Open. A blocker before Level 4-5; the owner should confirm the key's RunPod scope |
+| 5 | `FORBIDDEN_DATA` filtered only declared data paths, so an encrypted `private/` blob shipped | Low | Fixed. No `private/` directory ships (`pods.UNSHIPPED_DIRECTORIES`) |
+| 6 | Non-object pod files crashed the loop, and sizes were unbounded | Low | Fixed. Pod files are type-checked, claimed stages are bounded, and fetch listings are capped (`fetch_limits`) |
+| 7 | The attempt ledger grew without bound | Low | Fixed for growth: at most `MAX_REFUSED_ROWS_PER_HOUR` refused rows per hotkey, with the rest counted exactly in `overflow`. Retention is the owner's decision |
+
+Still for a human reviewer:
+- host and service configuration (uid, ownership, umask, systemd sandboxing);
+- TLS and any proxy;
+- the RunPod key's scope;
+- Docker isolation;
+- the NET-2 gateway and receipt journal;
+- custody of the real `PRIVATE_KEY`.
+
 ## Human input required
 
 - Before any Level 4-5 pod work, two security-review items:
