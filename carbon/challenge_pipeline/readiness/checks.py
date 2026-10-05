@@ -491,6 +491,16 @@ def prelive(item, ctx):
             "prelive needs a POSIX host (it uses fcntl); run the gate on the "
             "canonical Linux host. Failing closed.",
         )
+    grant = (ctx.data.get("grants") or {}).get("phase4")
+    if not grant:
+        return Result(
+            FAIL,
+            f"no grant for {ctx.challenge}: the pre-live gate must run on the "
+            "challenge's own committed grant (challenges.json `grants.phase4`); it "
+            "never passes on another challenge's grant (per-challenge binding is #612)",
+        )
+    if not _is_file(ctx, grant):
+        return Result(FAIL, f"the recorded grant {grant} is not a committed file")
     with tempfile.TemporaryDirectory(prefix="readiness-prelive-") as root:
         command = [
             sys.executable,
@@ -501,6 +511,8 @@ def prelive(item, ctx):
             root,
             "--challenge",
             ctx.challenge,
+            "--grant",
+            str(ctx.repository / grant),
         ]
         try:
             done = subprocess.run(

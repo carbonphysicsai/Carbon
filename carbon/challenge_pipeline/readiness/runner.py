@@ -26,6 +26,7 @@ from .model import (
     PACKAGE,
     PASS,
     REPOSITORY,
+    RUNTIME,
     REVIEW_REQUIRED,
     Result,
     digest,
@@ -275,21 +276,34 @@ def run_record(report):
     }
 
 
-def append_history(report, root=PACKAGE):
-    """Append the run to `<challenge>/history.jsonl` (append-only, one line)."""
-    directory = challenge_directory(report["challenge"], root)
+def append_history(report, root=None):
+    """Append the run to `<challenge>/history.jsonl` (append-only, one line)
+    and write its digest-named report beside it, both under RUNTIME (outside
+    `carbon/`)."""
+    directory = challenge_directory(
+        report["challenge"], RUNTIME if root is None else root
+    )
     directory.mkdir(parents=True, exist_ok=True)
     line = json.dumps(run_record(report), sort_keys=True, separators=(",", ":")) + "\n"
     with open(directory / "history.jsonl", "a", encoding="utf-8", newline="\n") as out:
         out.write(line)
+    name = report["report_digest"].split(":", 1)[1][:16]
+    reports = directory / "reports"
+    reports.mkdir(exist_ok=True)
+    with open(reports / f"{name}.json", "w", encoding="utf-8", newline="\n") as out:
+        json.dump(report, out, indent=1, sort_keys=True)
+        out.write("\n")
     return directory / "history.jsonl"
 
 
-def history_metrics(challenge, root=PACKAGE):
+def history_metrics(challenge, root=None):
     """The register's section 8 gate metrics, from the history file: items that
     failed (not PASS) on the first full run, and the date of the first green
     full run."""
-    path = challenge_directory(challenge, root) / "history.jsonl"
+    path = (
+        challenge_directory(challenge, RUNTIME if root is None else root)
+        / "history.jsonl"
+    )
     if not path.is_file():
         return {"runs": 0, "first_run_not_passing": None, "first_green_utc": None}
     runs = [

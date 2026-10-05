@@ -1,10 +1,13 @@
 {
  "schema": "carbon.challenge-pipeline.readiness-challenges.v1",
- "rule": "Per-challenge component wiring for the readiness runner. The runner names no challenge; a component a challenge lacks is absent here and its item reports the gap. `tests` maps an item id to repository-relative pytest targets that really cover that item for this challenge.",
+ "rule": "Per-challenge component wiring for the readiness runner. The runner names no challenge; a component a challenge lacks is absent here and its item reports the gap. `tests` maps an item id to repository-relative pytest targets that really cover that item for this challenge. `grants.phase4` names the challenge's OWN committed phase-4 grant; a challenge with none fails R1 (no borrowing another challenge's grant).",
  "challenges": {
   "battery-fastcharge-ageing-development-v1": {
    "validator_adapter": "carbon.challenge_validator.battery:BatteryAdapter",
-   "tests": {}
+   "tests": {},
+   "grants": {
+    "phase4": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json"
+   }
   },
   "chip-cold-plate": {
    "validator_adapter": "carbon.challenge_validator.cooling:CoolingAdapter",
