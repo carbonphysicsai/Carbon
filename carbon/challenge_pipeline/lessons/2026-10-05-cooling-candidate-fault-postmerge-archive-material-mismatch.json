@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-postmerge-archive-material-mismatch",
+  "recorded_at": "2026-10-05T14:31:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "current-main focused regression attempt in archived Ubuntu tree",
+    "description": "Ran the focused suite from the exact Git archive using the existing offline ticket environment."
+  },
+  "expected": "The isolated tree preserves the pinned public material bytes and runs the focused suite.",
+  "observed": "Collection again refused Battery PRACTICE because the Windows-authored blob carries CRLF while the registered digest pins LF bytes.",
+  "keep": [
+    "Preserve the registered digest and the fail-closed exact-byte check."
+  ],
+  "change": [
+    "Normalize the isolated test copy to the registered LF bytes before validation."
+  ],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "pinned_public_material"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

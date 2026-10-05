@@ -18,7 +18,7 @@ from carbon.agent_campaign.grant import SpendingGrant
 from carbon.agent_campaign.graphite import phase3
 from carbon.agent_campaign.graphite.model import ScriptedModel, text, tool
 from carbon.agent_campaign.graphite.pods import ScriptedPods, Step, synthetic_outputs
-from carbon.agent_campaign.graphite.roles import PROPOSE
+from carbon.agent_campaign.graphite.roles import PROPOSE, TOOL_TEXT_V2
 from carbon.battery.research import SCAFFOLD
 from carbon.challenge_validator import scoring as challenge_scoring
 from carbon.development_session.research_tools import PREFIX
@@ -89,18 +89,24 @@ def controller(root, graphite):
     return phase3.controller_for(root, graphite, graphite.grant, clock=Clock())
 
 
-def brief(graphite):
+def brief(graphite, tool_text=TOOL_TEXT_V2):
     return phase3.session_brief(
-        checkout_commit="1" * 40, budget=graphite.budget, literature=graphite.literature
+        checkout_commit="1" * 40,
+        budget=graphite.budget,
+        literature=graphite.literature,
+        tool_text=tool_text,
     )
 
 
-def session(root, script, pods, number=1, **kw):
-    """Run one session behind the controller; returns (result, provider, control)."""
+def session(root, script, pods, number=1, tool_text=TOOL_TEXT_V2, **kw):
+    """Run one session behind the controller; returns (result, provider, control).
+    `tool_text`: the agents' tool text the session opens with (VALIDATOR-07)."""
     graphite = provider(root, script, pods, **kw)
     control = controller(root, graphite)
     try:
-        result = phase3.run_session(control, graphite, brief(graphite), number)
+        result = phase3.run_session(
+            control, graphite, brief(graphite, tool_text), number
+        )
     finally:
         control.close()
     return result, graphite, control

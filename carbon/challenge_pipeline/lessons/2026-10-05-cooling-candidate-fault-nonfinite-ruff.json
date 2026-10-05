@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-nonfinite-ruff",
+  "recorded_at": "2026-10-05T13:33:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "non-finite score-evidence repair focused quality check",
+    "description": "Ran Ruff before Black on the repaired Cooling validator and selective-fault test."
+  },
+  "expected": "Both files pass lint and formatting checks.",
+  "observed": "Ruff stopped on an unused exception variable in the new finite-JSON check; Black did not run after the failed first command.",
+  "keep": [
+    "Catch only ValueError from finite JSON validation and return no exception text."
+  ],
+  "change": [
+    "Remove the unused exception binding and rerun focused quality."
+  ],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_validator.cooling",
+    "quality_gate"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

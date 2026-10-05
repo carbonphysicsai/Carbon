@@ -1,0 +1,23 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-final-python39-incompatible",
+  "recorded_at": "2026-10-05T14:05:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "final challenge-pipeline validation attempt with py -3",
+    "description": "Attempted the final challenge-pipeline validation with the Windows Python launcher."
+  },
+  "expected": "The available interpreter accepts the repository's ISO-Z timestamps.",
+  "observed": "The launcher selected Python 3.9, whose datetime.fromisoformat rejected an existing ISO-Z proposal timestamp before lesson validation.",
+  "keep": [],
+  "change": [
+    "Use the repository's supported Linux interpreter instead of treating this host-version failure as a data defect."
+  ],
+  "protocol_elements": [
+    "challenge_pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

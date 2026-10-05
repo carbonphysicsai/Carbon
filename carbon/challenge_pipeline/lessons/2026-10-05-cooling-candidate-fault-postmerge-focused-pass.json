@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-postmerge-focused-pass",
+  "recorded_at": "2026-10-05T14:38:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "current-main exact-source LF-native focused regression",
+    "description": "Ran the policy, Cooling validator and merged Cooling attacker suite after current-main reconciliation."
+  },
+  "expected": "The registered policy and both raise and non-finite selective-fault paths pass with the merged attacker surface.",
+  "observed": "All 167 focused tests passed in 327.97 seconds.",
+  "keep": [
+    "Bind the real selective-fault evidence to the registered policy record without replacing the merged probe."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "graphite.selective_fault"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

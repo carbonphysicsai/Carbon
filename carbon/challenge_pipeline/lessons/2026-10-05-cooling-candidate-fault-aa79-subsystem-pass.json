@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-aa79-subsystem-pass",
+  "recorded_at": "2026-10-05T13:52:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "aa79adba validator, Battery, confirmation and attribution subsystem suite",
+    "description": "Ran neutral validator contracts, Battery compatibility, Cooling validator and policy, pod attribution and current-main confirmation-set tests."
+  },
+  "expected": "The candidate-fault extension remains additive across current-main validator and attribution behavior.",
+  "observed": "All 214 subsystem tests passed in 159.19 seconds.",
+  "keep": [
+    "Include current-main confirmation-set regressions whenever the shared Interface-v1 contract changes."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_validator.interface_v1",
+    "challenge_validator.confirmation_sets",
+    "graphite.pod_attribution",
+    "battery.compatibility"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
