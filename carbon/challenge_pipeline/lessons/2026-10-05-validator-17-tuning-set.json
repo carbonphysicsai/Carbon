@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-validator-17-tuning-set",
+  "recorded_at": "2026-10-06T00:30:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-17, branch claude/validator-17-tuning-set. Canonical: tuning, confirmation, validator and Graphite suites passed; the results are recorded in the PR.",
+    "description": "Battery's sealed tuning set is registered, reserved and protected, with operator tools to export the hidden pool as a prior, recall, solve, predict and score it, all host-only."
+  },
+  "expected": "A tuning set could reuse the confirmation-set registry and EV5's host-only solve pattern unchanged.",
+  "observed": "It could. Sealing it in the testnet deployment lets EV5 and the Graphite confirmation set be checked by regeneration; the rotating pool and the practice decision set must be supplied as private priors, and the seal fails closed until they are.",
+  "keep": [
+    "Give every hidden set one job: rotating pool for operation, tuning set for development, confirmation set once.",
+    "Keep per-case rows of the tuning set so weightings re-score without retraining."
+  ],
+  "change": [
+    "Name a new sealed set in Graphite's protected markers in the same change that registers it."
+  ],
+  "protocol_elements": [
+    "every Challenge's score development runs on a sealed tuning set no agent or miner sees"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
