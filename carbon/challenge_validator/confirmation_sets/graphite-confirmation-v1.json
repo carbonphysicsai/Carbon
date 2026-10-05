@@ -1,0 +1,32 @@
+{
+  "schema": "carbon.challenge-validator.confirmation-set.v1",
+  "role": "graphite-confirmation-v1",
+  "challenge_id": "battery-fastcharge-ageing-development-v1",
+  "sealable": true,
+  "cases": 120,
+  "hidden_duplicates": 4,
+  "sampling_law": {
+    "id": "battery-published-box-uniform-v1",
+    "description": "uniform over the published input box (the exam's existing population), drawn by carbon.battery.seeds.make_batch"
+  },
+  "strata": [],
+  "subgroups": [
+    "the published important region reported separately"
+  ],
+  "custody": {
+    "kind": "battery_deployment",
+    "made_on": "the validator host only: seeds.make_batch from the deployment's committed root, committed to its seed journal under the writer lock before any use; never in the repository, never in the pool",
+    "solved_on": "the operator host only: never in a pod plan, rented compute, the attack knowledge store or a Graphite session"
+  },
+  "required_prior_roles": [
+    "ev5-confirmation"
+  ],
+  "required_private_priors": [],
+  "authority": {
+    "decisions": [
+      "OWNER-GRAPHITE-TEST-WAVE-05 \u00a74 (PR #593): 120 cases plus 4 hidden duplicates from the Level 0 study sheet's population, as EV5",
+      "OWNER-GRAPHITE-TEST-WAVE-01 \u00a77 (item 6): role, 120 cases plus 4 hidden duplicates, the L0 study-sheet population as EV5's, sealed in the testnet validator deployment's seed journal, no case equal to an EV5 case"
+    ],
+    "human_input": []
+  }
+}

@@ -1,4 +1,10 @@
-"""python -m carbon.challenge_pipeline {validate,queue,lessons,render} [--check]"""
+"""python -m carbon.challenge_pipeline {validate,queue,lessons,render} [--check]
+
+`validate --conditional-ledger STORE` (repeatable) also consults a campaign
+controller's attempt ledger, read-only, at every citation check
+(conditional-evidence.v2): bytes it recorded on a result while a finding was
+open are refused as TESTED or FROZEN evidence or a frozen run.
+"""
 
 from __future__ import annotations
 
@@ -9,18 +15,31 @@ from carbon.challenge_pipeline import render
 from carbon.challenge_pipeline.lessons import load_lessons, open_revisions
 from carbon.challenge_pipeline.roadmap import rank_all
 from carbon.challenge_pipeline.state import load_state, measured_times, stage_of
+from carbon.challenge_readiness.conditional_evidence import ConditionalLedger
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m carbon.challenge_pipeline")
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("validate", help="check the protocol, rubric, records and lessons")
+    v = sub.add_parser(
+        "validate", help="check the protocol, rubric, records and lessons"
+    )
+    v.add_argument(
+        "--conditional-ledger",
+        action="append",
+        default=[],
+        metavar="STORE",
+        help="a campaign controller root (or its campaign.sqlite3) to consult",
+    )
     sub.add_parser("queue", help="print the priority queue")
     sub.add_parser("lessons", help="print the lessons log, oldest first")
     r = sub.add_parser("render", help="write docs/development/CHALLENGE_PIPELINE.md")
     r.add_argument("--check", action="store_true", help="fail if the view is stale")
     args = parser.parse_args(argv)
-    families, protocol, _, records = load_state()
+    ledgers = tuple(
+        ConditionalLedger.load(path) for path in getattr(args, "conditional_ledger", [])
+    )
+    families, protocol, _, records = load_state(ledgers=ledgers)
     if args.command == "validate":
         entries = load_lessons(protocol)
         print(
