@@ -157,9 +157,8 @@ def assert_holds(report):
     assert all(s["state"] == "RUN" for s in steps.values())
     # Every valid construction is refused at Level 0 and admitted at Level 1.
     for run in steps["valid"]["runs"]:
-        assert run["status"] == ("REFUSED" if run["profile"] == "level-0" else "OK"), (
-            run
-        )
+        expected = "REFUSED" if run["profile"] == "level-0" else "OK"
+        assert run["status"] == expected, run
     # Each ablation refuses exactly the valid constructions that use it.
     for run in steps["ablation"]["runs"]:
         if run["kind"] == "construction":
