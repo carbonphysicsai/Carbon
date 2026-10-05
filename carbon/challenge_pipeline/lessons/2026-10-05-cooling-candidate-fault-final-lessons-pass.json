@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-final-lessons-pass",
+  "recorded_at": "2026-10-05T13:10:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "complete worktree challenge-pipeline validation before handoff",
+    "description": "Revalidated the full lessons directory after appending the exact-tree test, subsystem and quality records."
+  },
+  "expected": "Every committed ticket lesson is schema-valid and no decision is pending.",
+  "observed": "The protocol remained DEFINING; 7 records and 261 lessons were valid, with 0 awaiting a decision.",
+  "keep": [
+    "Canonical CI validates the final appended pass record with the rest of the delivered tree."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

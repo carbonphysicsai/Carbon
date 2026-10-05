@@ -88,18 +88,20 @@ Out of scope:
 - [x] Cooling's attacker surface exposes the policy and tests all three fault
       kinds through resource/failure accounting.
 - [x] Existing generic adapter-failure behavior and Battery remain unchanged.
-- [ ] Focused tests, applicable subsystem checks, lessons validation, quality
-      and repository CI pass at the delivered head.
+- [x] Focused tests, applicable subsystem checks, lessons validation and
+      quality pass on the exact implementation tree.
+- [ ] Repository CI passes on the delivered PR head.
 
 ## Local validation evidence
 
 - The exact LF-native implementation tree passed 150 focused policy, Cooling
   validator and Cooling attacker tests in 68.09 seconds.
-- After removing Cooling fault literals from the shared loader, the policy and
-  validator subset passed 27 tests in 27.07 seconds; the exact delivered tree
-  receives the same full 150-test pass before handoff.
-- Focused Ruff passed and Black left the changed Python set unchanged.
-- The challenge-pipeline validator accepted 7 records and 252 lessons with no
+- After removing Cooling fault literals from the shared loader, the exact
+  implementation tree passed the full 150-test focused suite in 47.12 seconds.
+- The affected validator, Battery compatibility, Cooling attacker and existing
+  pod-attribution subsystem matrix passed 317 tests in 146.66 seconds.
+- Focused Ruff passed and Black left all eight changed Python files unchanged.
+- The challenge-pipeline validator accepted 7 records and 257 lessons with no
   pending decision before the final pass records were appended; canonical CI
   validates the delivered complete set.
 

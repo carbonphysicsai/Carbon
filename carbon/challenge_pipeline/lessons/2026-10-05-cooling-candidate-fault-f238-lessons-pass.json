@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-f238-lessons-pass",
+  "recorded_at": "2026-10-05T13:04:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "exact commit f238b23e challenge-pipeline validation",
+    "description": "Validated the protocol, records and complete lesson set in the LF-native exact tree."
+  },
+  "expected": "All committed lessons conform and none awaits an owner decision.",
+  "observed": "The protocol remained DEFINING; 7 records and 257 lessons were valid, with 0 awaiting a decision.",
+  "keep": [
+    "Keep failed environment attempts as valid lessons rather than hiding them."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
