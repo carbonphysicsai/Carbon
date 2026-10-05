@@ -83,17 +83,19 @@ burn the testnet pool.
 
 The tuning set is sealed in the **testnet** deployment, which holds EV5 and
 `graphite-confirmation-v1`. That lets the seal check both by regeneration. It
-is checked against the rotating pool and the practice decision set as private
-priors.
+is also checked against:
+- every published case (TRAIN and PRACTICE included);
+- every committed engineering-value study's decision cases;
+- the rotating pool, as an operator-supplied private prior.
 
 6. **Export the rotating pool's case inputs**, as an owner-only prior file:
 
    ```bash
    python -m carbon.challenge_validator.tuning export-pool --config graphite-hidden-battery-v1.json --out <PRIVATE>/hidden-pool.json
    ```
-7. **The practice decision set's inputs** go in an owner-only file of the
-   same shape (`{"cases": [{"inputs": {...}}]}`). Its source is pending the
-   Test Lead's answer; until that file exists the seal refuses (fail closed).
+7. **The practice decision set** (PRACTICE-SAFETY-01's B4) is public and is
+   not committed yet, so it does not block the seal. Step 10 re-checks it
+   once it exists.
 8. **Seal.** This prints only the public commitment: save it as
    `<PRIVATE>/tuning-commitment.json`, with keys `fingerprint` and
    `journal_sequence`.
@@ -101,8 +103,7 @@ priors.
    ```bash
    python -m carbon.challenge_validator.confirmation seal --role graphite-tuning-v1 \
      --config <TESTNET_DEPLOYMENT>.json \
-     --prior graphite-hidden-battery-v1-pool=<PRIVATE>/hidden-pool.json \
-     --prior practice-decision-set=<PRIVATE>/practice-decision-set.json
+     --prior graphite-hidden-battery-v1-pool=<PRIVATE>/hidden-pool.json
    ```
 9. **Solve, predict and score**, on the operator host only:
 
@@ -118,6 +119,16 @@ priors.
      scorer adds the synthetic controls itself.
    - `scores.json` and `rows/<member>.json` stay in `<TUNING_WORK>`, owner-only.
      Weightings are re-scored from `rows/` without retraining.
+10. **When B4 is committed, re-check it** against the sealed set:
+
+    ```bash
+    python -m carbon.challenge_validator.tuning recheck --config <TESTNET_DEPLOYMENT>.json --commitment <PRIVATE>/tuning-commitment.json --public <B4 FILE> --work <TUNING_WORK>
+    ```
+
+    - The command prints only a verdict and a count, never which cases.
+    - On `OVERLAP_RESELECT_PUBLIC_SET`, B4 is reselected, never the tuning set.
+    - Record the verdict, the B4 file's SHA-256 and the date in the tuning
+      set's record (`.agent/tickets/VALIDATOR-17_battery_tuning_set.md`).
 
 ## C. Graphite Level 0 runs through the real validator
 

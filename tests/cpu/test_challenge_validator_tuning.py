@@ -61,10 +61,9 @@ def test_the_tuning_set_is_registered_reserved_and_sized_as_decided():
         "ev5-confirmation",
         "graphite-confirmation-v1",
     }
-    assert set(item.required_private_priors) == {
-        "graphite-hidden-battery-v1-pool",
-        "practice-decision-set",
-    }
+    # The practice decision set (B4) is public and does not exist yet: it is
+    # re-checked after it is committed, never a prior that blocks the seal.
+    assert item.required_private_priors == ("graphite-hidden-battery-v1-pool",)
     assert BATTERY_TUNING_ROLE in RESERVED_SEED_ROLES
     assert role_reserved("GRAPHITE-TUNING-V1")
 
@@ -209,3 +208,73 @@ def test_graphite_withholds_anything_naming_the_tuning_set():
         assert pm.protected(text)
         assert pm.marker_classes(text) == ["exam_material"]
     assert not pm.protected("hyperparameter tuning of the ridge")
+
+
+def test_the_seal_checks_every_committed_decision_case():
+    from carbon.battery.value import contract as ev
+    from carbon.challenge_validator.confirmation_sources import source_for
+
+    source = source_for("battery-fastcharge-ageing-development-v1")
+    keys = source.public_decision(REPOSITORY)
+    contracts = REPOSITORY / "carbon/battery/value/contracts"
+    document, _ = ev.load(contracts / "ev1-charge-protocol-selection.v1.json")
+    assert source.key(ev.decision_cases(document)[0]) in keys
+
+
+def _sealed_deployment(tmp_path, refs, backend):  # noqa: F811
+    deployment_dir = tmp_path / "deployment"
+    deployment_dir.mkdir()
+    target = make(deployment_dir, refs, backend)
+    item = confirmation_set(BATTERY_TUNING_ROLE)
+    sealed = target.seal_batch(
+        BATTERY_TUNING_ROLE, count=item.batch_size, duplicates=item.hidden_duplicates
+    )
+    commitment = tmp_path / "commitment.json"
+    commitment.write_text(
+        json.dumps(
+            {"fingerprint": sealed.fingerprint, "journal_sequence": sealed.sequence}
+        )
+    )
+    return deployment_dir, commitment, sealed
+
+
+def test_recheck_reports_only_a_verdict_and_a_count(
+    tmp_path,
+    refs,  # noqa: F811
+    backend,  # noqa: F811
+):
+    deployment_dir, commitment, sealed = _sealed_deployment(tmp_path, refs, backend)
+    clear = tmp_path / "b4-clear.json"
+    far = {"c1": 1.0, "c2": 1.0, "t_amb_c": 25.0, "soc0": 0.1}
+    clear.write_text(json.dumps({"cases": [{"inputs": far}]}))
+    work = tmp_path / "w"
+    record = tuning.recheck(config_for(deployment_dir), commitment, clear, work)
+    assert (record["verdict"], record["overlapping_cases"]) == ("CLEAR", 0)
+    # A public set that repeats one tuning case: the public side is reselected.
+    case = dict(sealed.batch.cases[0][1])
+    hit = tmp_path / "b4-hit.json"
+    hit.write_text(json.dumps({"cases": [{"case_id": "pub-1", "inputs": case}]}))
+    record = tuning.recheck(config_for(deployment_dir), commitment, hit, work)
+    assert (record["verdict"], record["overlapping_cases"]) == (
+        "OVERLAP_RESELECT_PUBLIC_SET",
+        1,
+    )
+    # Nothing in the record names a case.
+    text = json.dumps(record)
+    assert "pub-1" not in text and repr(case["c1"]) not in text
+    stored = list(work.glob("recheck-*.json"))
+    assert stored and all(p.stat().st_mode & 0o077 == 0 for p in stored)
+
+
+def test_recheck_reads_an_engineering_value_contract_too(
+    tmp_path,
+    refs,  # noqa: F811
+    backend,  # noqa: F811
+):
+    deployment_dir, commitment, _ = _sealed_deployment(tmp_path, refs, backend)
+    contracts = REPOSITORY / "carbon/battery/value/contracts"
+    contract = contracts / "ev4-charge-protocol-selection.v1.json"
+    work = tmp_path / "w"
+    record = tuning.recheck(config_for(deployment_dir), commitment, contract, work)
+    assert record["public_cases"] > 0
+    assert record["verdict"] == "CLEAR"

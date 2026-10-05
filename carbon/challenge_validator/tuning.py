@@ -11,13 +11,14 @@ Operator steps, all on the operator host:
 
     python -m carbon.challenge_validator.tuning export-pool --config HIDDEN.json --out FILE
     python -m carbon.challenge_validator.confirmation seal --role graphite-tuning-v1 \\
-        --config TESTNET.json --prior graphite-hidden-battery-v1-pool=FILE \\
-        --prior practice-decision-set=FILE
+        --config TESTNET.json --prior graphite-hidden-battery-v1-pool=FILE
     python -m carbon.challenge_validator.tuning jobs --config TESTNET.json \\
         --commitment COMMITMENT.json --work DIR
     python -m carbon.challenge_validator.tuning solve --work DIR --overlay DIR
     python -m carbon.challenge_validator.tuning predict --work DIR --panel PANEL.json
     python -m carbon.challenge_validator.tuning score --work DIR
+    python -m carbon.challenge_validator.tuning recheck --config TESTNET.json \\
+        --commitment COMMITMENT.json --public FILE --work DIR
 
 - **`export-pool`** writes the rotating hidden pool's case inputs, the
   `graphite-hidden-battery-v1` deployment's every pooled batch, as the
@@ -30,6 +31,12 @@ Operator steps, all on the operator host:
 - **`score`** scores each member's stored predictions: the exam's components
   per member, plus per-case rows kept for re-scoring candidate weightings
   without retraining.
+- **`recheck`** compares the sealed set against a public case set committed
+  after the seal, such as PRACTICE-SAFETY-01's B4 decision set. It reports
+  only a verdict and a count, never which cases overlap: that would reveal
+  tuning cases. On any overlap the public set is reselected, never the sealed
+  tuning set (the Test Lead, 2026-10-05). The re-check is recorded owner-only
+  in the work directory, and its public summary in the tuning set's record.
 
 Every file is owner-only and lives outside the repository. DEVELOPMENT only:
 no qualification, weight, reward or LIVE authority.
@@ -48,6 +55,7 @@ from .interface import BATTERY_TUNING_ROLE
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 SCORES_SCHEMA = "carbon.challenge-validator.tuning-scores.v1"
+RECHECK_SCHEMA = "carbon.challenge-validator.tuning-recheck.v1"
 PANEL_SCHEMA = "carbon.challenge-validator.tuning-panel.v1"
 
 
@@ -344,6 +352,65 @@ def score(work, repository=REPOSITORY):
     return {"members": len(summary), "cases_with_reference": len(refs)}
 
 
+# --- recheck --------------------------------------------------------------------------
+
+
+def public_keys(path, source):
+    """A committed public set's case keys: an engineering-value contract (its
+    decision cases) or `{"cases": [{"inputs": {...}}, ...]}`."""
+    from carbon.battery.value import contract as ev
+
+    document = json.loads(Path(path).read_bytes())
+    if type(document) is dict and "scenarios" in document:
+        cases = ev.decision_cases(ev.validate(document))
+        return {source.key(case) for case in cases}
+    try:
+        return {source.key(case["inputs"]) for case in document["cases"]}
+    except (KeyError, TypeError, ValueError):
+        raise TuningRefused("tuning_public_set_malformed") from None
+
+
+def recheck(config_path, commitment_path, public_path, work):
+    """Re-check the sealed tuning set against a public set committed after the
+    seal. Returns, and records owner-only, only a verdict and a count."""
+    import hashlib
+
+    from carbon.battery import deployment, seeds
+
+    from .confirmation import sealed
+    from .confirmation_sources import source_for
+
+    commitment = sealed(json.loads(Path(commitment_path).read_bytes()))
+    if commitment is None:
+        raise TuningRefused("tuning_commitment_malformed")
+    item = _tuning_set()
+    source = source_for(item.challenge_id)
+    config = deployment.load_config(config_path)
+    root = seeds.PrivateRoot.load(deployment._private(config["private_root"]))
+    journal = seeds.SeedJournal(config["journal"])
+    committed = recall(root, journal.root_pin(root), journal, commitment, item)
+    tuning_keys = {source.key(dict(x)) for _c, x in committed.batch.cases}
+    public = public_keys(public_path, source)
+    overlaps = len(tuning_keys & public)
+    record = {
+        "schema": RECHECK_SCHEMA,
+        "role": BATTERY_TUNING_ROLE,
+        "tuning_fingerprint": committed.fingerprint,
+        "public_file_sha256": hashlib.sha256(
+            Path(public_path).read_bytes()
+        ).hexdigest(),
+        "public_cases": len(public),
+        "overlapping_cases": overlaps,
+        "verdict": "CLEAR" if overlaps == 0 else "OVERLAP_RESELECT_PUBLIC_SET",
+    }
+    work = _owner_only_dir(work)
+    path = work / f"recheck-{record['public_file_sha256'][:12]}.json"
+    if path.exists():
+        path.unlink()
+    _write_private(path, record)
+    return record
+
+
 # --- CLI -------------------------------------------------------------------------------
 
 
@@ -364,6 +431,9 @@ def main(argv=None):
     predicted.add_argument("--panel", required=True)
     scored = sub.add_parser("score")
     scored.add_argument("--work", required=True)
+    rechecked = sub.add_parser("recheck")
+    for name in ("config", "commitment", "public", "work"):
+        rechecked.add_argument("--" + name, required=True)
     args = parser.parse_args(argv)
     try:
         if args.command == "export-pool":
@@ -374,6 +444,8 @@ def main(argv=None):
             result = solve(args.work, args.overlay)
         elif args.command == "predict":
             result = predict(args.work, args.panel)
+        elif args.command == "recheck":
+            result = recheck(args.config, args.commitment, args.public, args.work)
         else:
             result = score(args.work)
     except TuningRefused as refused:

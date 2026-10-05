@@ -22,8 +22,9 @@
 - **Overlap.** The seal refuses any overlap with:
   - EV5 and `graphite-confirmation-v1` (required prior roles);
   - published cases, which include TRAIN and PRACTICE;
-  - the rotating pool and the practice decision set (required private
-    priors). The seal fails closed until both files are supplied.
+  - every committed engineering-value study's decision cases
+    (`public_decision`);
+  - the rotating pool (a required private prior).
 - **The operator module.** `challenge_validator/tuning.py`:
   - `export-pool`: the hidden pool's inputs, as the prior file;
   - `jobs`: regenerate and recall the batch, never commit;
@@ -39,10 +40,19 @@
 - **The operator runbook:**
   `docs/development/graphite/HIDDEN_POOL_AND_TUNING_RUNBOOK.md`.
 
+## The practice decision set (B4)
+
+The Test Lead, 2026-10-05: B4 is PRACTICE-SAFETY-01's practice decision set,
+which is public and not yet committed.
+- It is not a prior, so it does not block the seal.
+- When it is committed, `tuning recheck` compares the sealed set against it.
+  On any overlap B4 is reselected, never the sealed set.
+
+**Re-check record:** none yet. Each entry gives the date, the B4 file's
+SHA-256, the verdict and the count.
+
 ## Open
 
-- **The practice decision set.** Its source and keying are pending the Test
-  Lead's answer.
 - **Rotating-pool batches prepared after the seal** are drawn from an
   independent root. A check that each new pool batch avoids the tuning set's
   cases is a follow-up.
