@@ -1,0 +1,20 @@
+{
+  "authority": "OWNER-TESTNET-WEIGHTS-01",
+  "burn_uid": 0,
+  "cadence_blocks": 360,
+  "challenges": [
+    "battery-fastcharge-ageing-development-v1",
+    "chip-cold-plate",
+    "electric-motor-magnetics"
+  ],
+  "decay": {
+    "full_ms": 86400000,
+    "halving_ms": 86400000
+  },
+  "membership_note": "N is the Challenges this version lists: the three Challenges under Graphite test on testnet now. The eight launch Challenges (OWNER-LAUNCH-PORTFOLIO-02) join as their ids are registered, each as a new version. A listed Challenge with no eligible winner, or no serving validator, burns its share. self_improvement_factor stays null until measured and adopted; while null, a same-miner promotion does not reset the winner clock.",
+  "netuid": 567,
+  "network": "testnet",
+  "schema": "carbon.rewards.testnet-winner-policy.v1",
+  "self_improvement_factor": null,
+  "version": "testnet-winner-v1"
+}
