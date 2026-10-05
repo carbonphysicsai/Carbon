@@ -88,23 +88,45 @@ no spend.
    - **Registration.** `development_variants` registers battery's entries at
      import.
 
-6. **Trainer and pod wiring, Level 0 unchanged.**
-   - **`training.train`** takes an optional `case_loss`. Without it the
-     trainer traces exactly what it traced before.
-   - **`recipes.build` and `MLP`** take an optional `loss` factory. With one,
-     the classic written-out loop is never used, and the PyTorch backend and
-     the knn family refuse it.
+6. **Trainer and pod wiring: Level 0 byte for byte main's.**
+   - **The modules Level 1 must not touch.** `recipes.py` and `training.py`
+     are battery's implementation modules
+     (`contracts.IMPLEMENTATION_MODULES`). Their bytes enter every Level-0
+     recipe digest, staged file and rebuild digest. They are left exactly as
+     on main.
+   - **What happened.** A first version edited them to take an optional loss.
+     That moved every Level-0 recipe digest, and Data Collection's run-5 pin
+     caught it (#611 CI shard 1). Invariant 10 forbids silently
+     reinterpreting past evidence.
+   - **The Level-1 trainer is its own module, `carbon/battery/level1_training.py`.**
+     - Its `train` is `training.train` line for line, except for the
+       signature, the docstring and the per-case loss. A test rebuilds it
+       from `training.train`'s source with that one edit and compares, so it
+       cannot drift.
+     - `LossMLP` and `LossEnsemble` subclass `recipes.MLP` and
+       `recipes.Ensemble`. They never use the classic loop, and they refuse
+       the PyTorch backend.
+     - `build` refuses the knn and fno families.
+   - **The pin test.** `tests/cpu/test_battery_level1.py::test_level0_rebuild_artifacts_are_mains`
+     pins Level 0's identities as computed on main 74ef52882:
+     - the implementation digest;
+     - the scaffold and run-5 baseline recipe digest;
+     - a Level-0 built record's digest;
+     - the program digest.
+
+     It also checks that no Level-1 field or file appears at Level 0, not
+     even as null.
    - **`BatteryScoring.built_from`:** for a development construction whose
-     reconstruction carries an expression, it stages the expression's
-     canonical bytes, the operation set's document, `loss_expressions.py` and
-     `loss_terms.py`. It also selects the Level-1 program and labels the
-     record.
+     reconstruction carries an expression, it stages:
+     - the expression's canonical bytes;
+     - the operation set's document;
+     - `loss_expressions.py`, `loss_terms.py` and `level1_training.py`.
+
+     It also selects the Level-1 program and labels the record.
    - **The Level-1 program** is the Level-0 GPU program with its build line
      replaced (`carbon.battery.level1_worker`). The worker recompiles the
-     expression from bytes and evaluates it in JAX only (R2).
-   - **What stays the same.** A Level-0 trial's program and files are
-     unchanged. The staged recipes and trainer modules changed bytes, but a
-     Level-0 recipe traces the same program.
+     expression from bytes and trains with `level1_training` in JAX only
+     (R2).
    - **No other changes.** `pod_phase.py` and `experiment.py` are untouched.
 
 7. **The attack adapter (battery, 1).**

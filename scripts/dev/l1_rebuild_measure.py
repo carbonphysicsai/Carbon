@@ -3,8 +3,8 @@
 GRAPHITE-L1-BUILD-01, Test Lead Q1. The shipped code end to end: random
 expressions over battery's full valid operation set (`carbon.battery.level1`)
 at a node limit, compiled, staged as canonical bytes, recompiled with
-`loss_terms.load` and trained by Carbon's own recipe (`recipes.build(...,
-loss=)`) on public TRAIN v1, in a fresh process. Two fresh processes must
+`loss_terms.load` and trained by Carbon's Level-1 trainer
+(`level1_training.build`) on public TRAIN v1, in a fresh process. Two fresh processes must
 give the same parameter digest. The fit's seconds are compared with the
 practice worker's deadline.
 
@@ -120,7 +120,7 @@ def fit(nodes, index, steps):
     """One fresh-process fit: the parameter digest and the seconds."""
     import numpy as np
 
-    from carbon.battery import loss_terms, recipes
+    from carbon.battery import level1_training, loss_terms, recipes
     from carbon.battery.challenge import PublicMaterial
     from carbon.battery.compile import compile_recipe
     from carbon.battery.research import SCAFFOLD
@@ -135,8 +135,8 @@ def fit(nodes, index, steps):
     strategy["parameters"]["steps"] = steps
     _, recipe = compile_recipe(strategy)
     material = PublicMaterial.load(REPOSITORY)
-    model = recipes.build(
-        recipe.family, recipe.settings, loss=loss_terms.factory(le, rebuilt)
+    model = level1_training.build(
+        recipe.family, recipe.settings, loss_terms.factory(le, rebuilt)
     )
     started = time.perf_counter()
     stats = model.fit(

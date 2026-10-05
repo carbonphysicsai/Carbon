@@ -263,10 +263,16 @@ def test_only_jax_mlp_and_deeponet_take_an_expression():
         gate = atk.l1_gate(atk.strategy(expression, backbone=backbone, **parameters))
         assert gate["status"] == "REFUSED" and code in gate["codes"], (parameters, gate)
     assert atk.l1_gate(atk.strategy(expression, backbone="deeponet"))["status"] == "OK"
-    from carbon.battery import recipes
+    from carbon.battery import level1_training
+    from carbon.battery.compile import compile_recipe
 
+    for family in ("knn", "fno"):
+        with pytest.raises(ValueError):
+            level1_training.build(family, {"ensemble_members": 1}, object())
+    _, recipe = compile_recipe(atk.strategy(backend="pytorch"))
+    model = level1_training.build(recipe.family, recipe.settings, object())
     with pytest.raises(ValueError):
-        recipes.build("knn", {"neighbours": 3, "train_fraction": 1.0}, loss=object())
+        model.fit(None, None, 7)
 
 
 def test_every_level1_record_says_its_rebuild_is_cpu_verified_only():
@@ -363,6 +369,100 @@ def test_two_fresh_processes_rebuild_the_same_parameters():
             json.loads(done.stdout.strip().splitlines()[-1])["params_sha256"]
         )
     assert digests[0] == digests[1]
+
+
+# --- Level 0 is byte for byte main's --------------------------------------------------------
+#: Level-0 identities computed on origin/main (74ef52882) before Level 1 was
+#: wired. `recipes.py` and `training.py` are battery's implementation modules:
+#: their bytes enter every Level-0 recipe digest, so Level 1 must not touch
+#: them (invariant 10: past evidence is never silently reinterpreted).
+LEVEL0_PINS = {
+    "implementation": "sha256:e4c4f12958ba4cbbe5e088190eaeba19cc4a8e23378c8b119ca2bbaae96cc417",
+    "scaffold_recipe": "sha256:79fbc4875ba6006b7f1a6c9a88879d0fa535281cfea54be51dc956403d7498f9",
+    "scaffold_built_record": "sha256:4fec51cd8a27ea005361602067c86af4625e1c9b037ef56a9eeec00b4637f6e1",
+    "program": "sha256:264413438e3456605279d89aa3f066386bbf0dfaa497198a0957bdf912a9746a",
+}
+
+
+def _canonical_digest(value):
+    import hashlib
+
+    body = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    return "sha256:" + hashlib.sha256(body).hexdigest()
+
+
+def test_level0_rebuild_artifacts_are_mains():
+    from carbon.battery import contracts
+    from carbon.battery.compile import compile_recipe
+    from carbon.battery.research import SCAFFOLD
+    from carbon.battery.value import panel
+
+    assert contracts.implementation_digest() == LEVEL0_PINS["implementation"]
+    assert compile_recipe(SCAFFOLD)[1].recipe_digest == LEVEL0_PINS["scaffold_recipe"]
+    run5 = {label: s for label, s, _ in panel.PANELS["graphite-run5"]}
+    baseline = compile_recipe(run5["graphite-run5-baseline"])[1]
+    assert baseline.recipe_digest == LEVEL0_PINS["scaffold_recipe"]
+    record, files, _program = SCORING.built_record(
+        SCAFFOLD, cr.contract(BATTERY).digest, 7, str(REPOSITORY)
+    )
+    assert _canonical_digest(record) == LEVEL0_PINS["scaffold_built_record"]
+    assert record["program"] == LEVEL0_PINS["program"]
+    # No Level-1 field or file appears at Level 0, not even as null.
+    assert not {"development", "rebuild"} & set(record)
+    assert not set(level1_worker.STAGED_MODULES) & set(files)
+    assert level1_worker.EXPRESSION_FILE not in files
+
+
+def _level1_train_source(train_source):
+    """`training.train`'s source with the one Level-1 edit applied: the
+    signature takes `case_loss`, and the per-case loss is the expression's."""
+    signature = (
+        "def train(*, init, apply, f, z, sw, gw, trajectory, settings, seed, order):\n"
+    )
+    assert train_source.count(signature) == 1
+    source = train_source.replace(
+        signature,
+        "def train(*, init, apply, f, z, sw, gw, trajectory, settings, seed, order, "
+        "case_loss):\n",
+    )
+    doc_end = (
+        "    cases for the curriculum. All arrays are in the requested precision.\n"
+    )
+    source = source.replace(
+        doc_end,
+        doc_end + "\n"
+        "    Level 1: `case_loss(zhat, zt, gw)` is the compiled loss expression's\n"
+        "    per-case loss, which replaces the objective menu's. Everything else is\n"
+        "    `training.train`, line for line.\n",
+    )
+    start = source.index("    def ramp(length):\n")
+    end = source.index("        return base + extra\n") + len(
+        "        return base + extra\n"
+    )
+    return (
+        source[:start]
+        + "    expression = case_loss\n\n"
+        + "    def case_loss(p, idx):\n"
+        + "        # The Level-1 loss replaces the objective menu's per-case loss.\n"
+        + "        return expression(apply(p, f[idx]), z[idx], gw)\n"
+        + source[end:]
+    )
+
+
+def test_the_level1_trainer_is_the_general_trainer_with_one_edit():
+    import inspect
+
+    from carbon.battery import level1_training, training
+
+    expected = _level1_train_source(inspect.getsource(training.train))
+    assert inspect.getsource(level1_training.train) == expected
+    # The model classes override only what reads the loss.
+    from carbon.battery import recipes
+
+    assert issubclass(level1_training.LossMLP, recipes.MLP)
+    assert issubclass(level1_training.LossEnsemble, recipes.Ensemble)
+    own = set(vars(level1_training.LossMLP)) - {"__module__", "__doc__", "__init__"}
+    assert own == {"_classic", "_groups", "fit", "_fit_general"}
 
 
 # --- WAVE-04 §1 ----------------------------------------------------------------------------

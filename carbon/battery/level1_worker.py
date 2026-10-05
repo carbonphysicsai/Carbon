@@ -6,17 +6,22 @@ practice worker gets, beside a Level-0 trial's files:
 - `loss-expression.json`: the expression's canonical bytes;
 - `loss-operation-set.json`: the canonical document of the operation set it
   was compiled against;
-- `battery-loss-expressions.py` and `battery-loss-terms.py`: Carbon's
-  loss-expression module and battery's terms, staged as the trainer is.
+- `battery-loss-expressions.py`, `battery-loss-terms.py` and
+  `battery-level1-training.py`: Carbon's loss-expression module, battery's
+  terms and the Level-1 trainer (`carbon.battery.level1_training`), staged as
+  the trainer is.
 
 The worker recompiles the expression from those bytes (the reconstruction
-rule) and builds the loss with Carbon's code, in JAX. Nothing the strategy
-supplied is executed.
+rule) and trains with Carbon's code, in JAX. Nothing the strategy supplied is
+executed.
 
-The program is Level 0's GPU practice program with one line replaced, so a
-Level-0 trial's program and files are unchanged. This module does not import
-the development-variant module (the validator package imports it through
-`battery_scoring`).
+**Level 0 is untouched.** The program is Level 0's GPU practice program with
+its one build line replaced. A Level-0 trial's program, staged files and
+recipe digest are byte for byte what they were: `recipes.py` and
+`training.py` (battery's implementation modules, whose bytes enter every
+Level-0 recipe digest) are not changed, and the Level-1 trainer is a module
+of its own. This module does not import the development-variant module (the
+validator package imports it through `battery_scoring`).
 """
 
 from __future__ import annotations
@@ -34,24 +39,26 @@ OPERATION_SET_FILE = "loss-operation-set.json"
 STAGED_MODULES = {
     "battery-loss-expressions.py": ("reconstruction", "loss_expressions.py"),
     "battery-loss-terms.py": ("battery", "loss_terms.py"),
+    "battery-level1-training.py": ("battery", "level1_training.py"),
 }
 _BUILD = 'model = recipes.build(recipe["family"], recipe["settings"])\n'
 _LEVEL1_BUILD = r"""for staged, module in (
     ("battery-loss-expressions.py", "loss_expressions.py"),
     ("battery-loss-terms.py", "loss_terms.py"),
+    ("battery-level1-training.py", "level1_training.py"),
 ):
     shutil.copyfile(work / staged, lab / module)
-from carbon_battery_lab import loss_expressions, loss_terms  # noqa: E402
+from carbon_battery_lab import level1_training, loss_expressions, loss_terms  # noqa: E402
 
 compiled = loss_terms.load(
     loss_expressions,
     (work / "loss-expression.json").read_bytes(),
     json.loads((work / "loss-operation-set.json").read_text()),
 )
-model = recipes.build(
+model = level1_training.build(
     recipe["family"],
     recipe["settings"],
-    loss=loss_terms.factory(loss_expressions, compiled),
+    loss_terms.factory(loss_expressions, compiled),
 )
 """
 

@@ -196,14 +196,9 @@ class MLP:
     the research recipe; any other setting trains through `training.train`.
     """
 
-    def __init__(self, family, settings, loss=None):
+    def __init__(self, family, settings):
         s = dict(settings)
         self.family, self.settings = family, s
-        # A Level-1 development loss (Graphite only): a factory
-        # `loss(jnp, trajectory, groups) -> (zhat, zt, gw) -> per-case loss`
-        # that replaces the objective menu. None (every Level-0 recipe) leaves
-        # the trainer exactly as it was.
-        self.loss = loss
         self.width, self.steps = s["width"], s["steps"]
         self.depth = s["deeponet_depth"] if family == "deeponet" else s["depth"]
         # Recipes recorded before the backend existed are JAX recipes.
@@ -222,21 +217,8 @@ class MLP:
         return (
             self.family == "mlp"
             and self.backend == "jax"
-            and self.loss is None
             and all(s[k] == v for k, v in CLASSIC.items())
             and s["batch_size"] >= cases
-        )
-
-    def _groups(self):
-        """The output groups' columns in the network's output space, in the
-        order `_group_weights` weights them."""
-        nv = self.pca if self.pca else self.layout.nv
-        nt = self.pca if self.pca else self.layout.nt
-        return (
-            ("voltage", 0, nv),
-            ("temperature", nv, nv + nt),
-            ("plating", nv + nt, nv + nt + 1),
-            ("capacity", nv + nt + 1, None),
         )
 
     def _encode(self, y):
@@ -296,8 +278,6 @@ class MLP:
             self.zmu, self.zsd = z.mean(0), z.std(0) + 1e-9
         self.classic = self._classic(len(d.case_ids))
         if self.backend == "pytorch":
-            if self.loss is not None:
-                raise ValueError("a loss expression trains on the JAX backend only")
             from . import torch_training
 
             return torch_training.fit(self, d, y, seed)
@@ -487,18 +467,7 @@ class MLP:
             order = np.argsort(np.argsort(d.x[:, 0] + d.x[:, 1], kind="stable"))
             if self.settings["curriculum"] == "high_rate_first":
                 order = len(order) - 1 - order
-            # A Level-1 loss replaces the objective menu; Level 0 passes nothing.
-            extra = (
-                {}
-                if self.loss is None
-                else {
-                    "case_loss": self.loss(
-                        jax.numpy, self._trajectory(jax.numpy), self._groups()
-                    )
-                }
-            )
             params = train(
-                **extra,
                 init=init,
                 apply=apply,
                 f=f,
@@ -562,16 +531,15 @@ class MLP:
 class Ensemble:
     """Members splitting the step budget equally; predictions averaged."""
 
-    def __init__(self, members, family, settings, loss=None):
+    def __init__(self, members, family, settings):
         self.k, self.family, self.settings = members, family, dict(settings)
-        self.loss = loss
 
     def fit(self, d, structure, seed):
         self.members, stats = [], []
         for i in range(self.k):
             member = dict(self.settings)
             member["steps"] = member["steps"] // self.k
-            m = MLP(self.family, member, loss=self.loss)
+            m = MLP(self.family, member)
             stats.append(m.fit(d, structure, seed=seed * 1000 + i))
             self.members.append(m)
         blob = "".join(s["params_sha256"] for s in stats).encode()
@@ -599,19 +567,14 @@ def _with_history(stats, history):
     return stats
 
 
-def build(family, settings, loss=None):
+def build(family, settings):
     """The untrained model a compiled recipe names. `compile.build_model` and
-    the isolated practice worker both construct through this one function.
-
-    `loss` is a Level-1 development loss factory (see `MLP`); only the MLP
-    and DeepONet families read one."""
+    the isolated practice worker both construct through this one function."""
     if family == "knn":
-        if loss is not None:
-            raise ValueError("the knn family has no training loss")
         return KNN(settings["neighbours"], settings["train_fraction"])
     if settings["ensemble_members"] == 1:
-        return MLP(family, settings, loss=loss)
-    return Ensemble(settings["ensemble_members"], family, settings, loss=loss)
+        return MLP(family, settings)
+    return Ensemble(settings["ensemble_members"], family, settings)
 
 
 # --- Trained state: inference on new cases without retraining ---------------
