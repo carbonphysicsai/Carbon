@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-validator-matrix-second-pass",
+  "recorded_at": "2026-10-05T04:13:17Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-08 second canonical acceptance matrix",
+    "description": "Reran the unchanged combined acceptance matrix after correcting the lesson execution-kind tokens."
+  },
+  "expected": "All lesson records and functional suites should pass after the schema-token repair.",
+  "observed": "253 tests passed and three lessons-protocol tests identified one remaining unsupported stage token, verify, in the quality acceptance lesson.",
+  "keep": [
+    "Keep schema validation in the acceptance matrix and repair only the invalid record."
+  ],
+  "change": [
+    "Record the quality acceptance execution at the registered test_iterate stage."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.validator_adapter",
+    "challenge.validator.interface_v1",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

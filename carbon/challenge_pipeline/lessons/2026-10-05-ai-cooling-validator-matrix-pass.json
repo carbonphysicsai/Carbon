@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-validator-matrix-pass",
+  "recorded_at": "2026-10-05T04:16:12Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-08 canonical acceptance matrix",
+    "description": "Ran the final combined Cooling adapter, neutral Interface v1, Battery compatibility, Cooling contract/exam, and lessons protocol matrix."
+  },
+  "expected": "The full bounded subsystem matrix should pass without altering Battery or weakening the neutral contract.",
+  "observed": "All 256 selected canonical tests passed in 55.74 seconds.",
+  "keep": [
+    "Keep exact public PRACTICE reference matching, operator-only full records, aggregate-only miner outcomes, and the absent reserved confirmation set.",
+    "Keep Battery compatibility in every Cooling validator acceptance matrix."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.validator_adapter",
+    "challenge.validator.interface_v1",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

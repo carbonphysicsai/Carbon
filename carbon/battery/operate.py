@@ -558,8 +558,16 @@ def main(argv=None):
     elif args.command == "jobs":
         result = _jobs(target, args.batch, args.out)
     else:
-        with writer(target):
-            result = _mutate(target, args)
+        from .pool_store import StateError
+
+        try:
+            with writer(target):
+                result = _mutate(target, args)
+        except StateError as refused:
+            # A refused operator step (a reserved or sealed seed role, for
+            # one) is named, never a traceback, and changes nothing.
+            print(json.dumps({"refused": refused.code}))
+            return 2
     print(json.dumps(result, sort_keys=True, indent=2, default=str))
     return 0
 

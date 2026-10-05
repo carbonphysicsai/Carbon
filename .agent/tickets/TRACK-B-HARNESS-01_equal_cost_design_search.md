@@ -1,6 +1,9 @@
 # TRACK-B-HARNESS-01 — challenge-neutral equal-cost design-search harness
 
-**Status:** PR 1 (harness) implemented and fixture-tested; PR 2 (motor and cooling adapters) next.
+**Status:**
+- PR 1, the harness, merged as #582.
+- PR 2 is the AI cooling adapter with its counted-CFD replay.
+- The motor adapter follows in its own PR. It waits on the owner's decision about the counted motor import: the registered importer rejects successful runs whose solver logs are empty.
 
 **Authority:**
 - OWNER-GRAPHITE-TEST-WAVE-01 §5 (the equal-budget rule) and §1 (test suite v1).
@@ -149,3 +152,15 @@ SPECIFIED, IMPLEMENTED and fixture/replay-TESTED. This is not scientific, securi
 - `pytest tests/cpu/test_design_search_track_b.py tests/cpu/test_design_search_pilot.py tests/cpu/test_admission_divergence.py tests/cpu/test_motor_decision_study.py`: 71 passed.
 - `scripts/check_quality.py --base origin/main`: passed.
 - No file pinned by any study freeze changed. Only new modules were added.
+
+## PR 2: AI cooling adapter (replay of the counted CFD)
+
+- `carbon/cold_plate/track_b.py` (new) wraps the registered cooling study.
+  - Predictors: the analytical model, the KRR reconstruction, a nearest-neighbour TRAIN baseline, and the solver through the replay.
+  - The registered B ladder is proposed as k × the median measured solve, k ∈ {6, 12, 24, 48}. k = 48 is the full-set anchor.
+- `docs/development/evidence/track-b-replay/ai-cooling-counted-v1.json` is a compact table derived from the 48 counted records, which stay outside Git. It carries the source records' SHA-256.
+- Replay tests reproduce the counted comparator from `completion.json`: complete finite set, 2 feasible and 6 infeasible designs, best d03, with worst hydraulic power matching.
+
+Open decisions for the Test Lead:
+1. **Mixed-hardware one-time cost.** The TRAIN pools ran on the operator host and on RunPod CPU pods whose flavor was not recorded. A host-only unit therefore reports the learned and interpolation arms as UNPRICED_MIXED_HARDWARE in Q2, and their break-even is NOT_COMPUTABLE. A rate for both routes, or a cited paired-timing conversion, resolves this.
+2. **The planning charge for stopping.** The solver arm stops by the median solve cost. At B = 12 × median, its actual cost on the replay ran about 21% over B, and that run is flagged `actual_cost_exceeds_budget`. Should the planning charge be the median, the p95 or the timeout?

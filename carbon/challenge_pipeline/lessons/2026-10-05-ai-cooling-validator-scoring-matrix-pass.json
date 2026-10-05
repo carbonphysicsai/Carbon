@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-validator-scoring-matrix-pass",
+  "recorded_at": "2026-10-05T04:18:35Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-08 scoring compatibility acceptance",
+    "description": "Ran shared ChallengeScoring compatibility and lessons validation with the registered science-jax and archive groups."
+  },
+  "expected": "The Cooling validator additions should leave the challenge-neutral scoring seam and lessons renderer green.",
+  "observed": "All 36 selected canonical tests passed in 6.60 seconds.",
+  "keep": [
+    "Keep validator-adapter work compatible with the separate ChallengeScoring seam."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.validator_adapter",
+    "challenge.validator.interface_v1",
+    "challenge.scoring.interface",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

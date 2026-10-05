@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-validator-quality-pass",
+  "recorded_at": "2026-10-05T04:09:34Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-08 canonical quality acceptance",
+    "description": "Ran the exact-main changed-path quality gate after the focused repairs."
+  },
+  "expected": "The Cooling validator diff should add no Ruff or Black debt and every changed Python file should pass strict checks.",
+  "observed": "The quality gate passed with Ruff 0/776, Black 0/68, and all four changed Python files clean.",
+  "keep": [
+    "Keep strict exact-main changed-path quality as delivery evidence."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.validator_adapter",
+    "challenge.validator.interface_v1",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
