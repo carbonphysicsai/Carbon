@@ -1,63 +1,90 @@
-"""Development score variants (VALIDATOR-09): registered before computed,
-re-scored from stored per-case rows, never served to miners.
+"""Development score variants (VALIDATOR-09): one candidate definition with
+the score-tuning registry (#650), never served to miners.
 
-Fixture variants live in a test directory; the shipped registry is empty and
-refuses a fixture.
+The parity test is the Test Lead's requirement: a score-tuning candidate
+promoted to a variant scores byte-identically under both paths. Fixture
+variants live in a test directory; the shipped registry is empty and refuses
+a fixture.
 """
 
 import json
 
 import pytest
 
+from carbon.battery.value import score_tuning as st
 from carbon.challenge_validator.scoring import scoring_for
 from carbon.scoring import development_score_variants as dsv
 
 BATTERY = "battery-fastcharge-ageing-development-v1"
-COMPONENTS = ("voltage", "temperature", "plating", "capacity")
+ORIGIN = {"sha256": "a" * 64, "commit": "b" * 40}
+ENTRY = {
+    "id": "near-limit-weighted",
+    "kind": "geometric",
+    "weights": {"a": 0.4, "g": 0.2, "m": 0.2, "p": 0.2},
+    "gate": {"measure": "near", "cutoff": 1.0},
+    "stable": True,
+    "basis": "diagnosis: near-limit optimism",
+}
 
 
-def document(version="battery-w-test-v1", **changes):
+def document(version="battery-v-test-v1", **changes):
     value = {
         "schema": dsv.SCHEMA,
         "version": version,
         "challenge_id": BATTERY,
-        "base_rule": "battery-practice-v1",
-        "weights": {
-            "voltage": "0.4",
-            "temperature": "0.2",
-            "plating": "0.3",
-            "capacity": "0.1",
-        },
-        "aggregate_terms": [],
-        "gates": {},
-        "comparison": None,
-        "important_region": None,
-        "transform": None,
+        "base_rule": "battery-practice-v2",
+        "candidate": dict(ENTRY),
+        "candidate_registry": dict(ORIGIN),
         "scope": dsv.SCOPE,
-        "status": "CANDIDATE",
-        "authority": {"registered_by": "test"},
+        "status": "SURVIVOR",
+        "authority": {"promoted_from": "score-tuning registry"},
         "fixture": True,
     }
     value.update(changes)
     return value
 
 
-def register(tmp_path, *documents, pin=None):
+def register(tmp_path, *documents):
     tmp_path.mkdir(parents=True, exist_ok=True)
     variants = {}
     for item in documents:
         (tmp_path / f"{item['version']}.json").write_text(json.dumps(item))
-        variants[item["version"]] = pin or dsv.digest(item)
+        variants[item["version"]] = dsv.digest(item)
     (tmp_path / "registry.json").write_text(
         json.dumps({"schema": dsv.REGISTRY_SCHEMA, "variants": variants})
     )
     return tmp_path
 
 
-def test_battery_declares_the_components_its_rows_carry():
-    from carbon.battery import exam
+def load(tmp_path, **changes):
+    item = document(**changes)
+    return dsv.load_variant(item["version"], directory=register(tmp_path, item))
 
-    assert scoring_for(BATTERY).declared_score_components == exam.COMPONENTS
+
+def panel(n=6):
+    """The score-tuning tests' panel shape: two seeds of three recipes."""
+    legs, recipe_of = {}, {}
+    for i in range(n):
+        member = f"rec{i // 2}-s{i % 2}"
+        legs[member] = {
+            "eligible": i != 3,
+            "E": 0.1 * (n - i),
+            "legs": {
+                "a": 1.0 - i / (2 * n),
+                "r": 0.5,
+                "g": 0.4 + 0.05 * i,
+                "m": 0.6,
+                "n": 0.5,
+                "p": 0.3 + 0.1 * (i % 3),
+            },
+            "gates": {"near": 0.5 if i < n - 1 else 3.0, "envelope": 0.5},
+        }
+        recipe_of[member] = f"rec{i // 2}"
+    return legs, recipe_of
+
+
+def test_battery_declares_exactly_the_score_tuning_legs():
+    assert scoring_for(BATTERY).declared_score_components == st.LEGS
 
 
 def test_the_shipped_registry_is_empty_and_refuses_an_unregistered_version():
@@ -67,60 +94,82 @@ def test_the_shipped_registry_is_empty_and_refuses_an_unregistered_version():
     assert refused.value.code == "score_variant_unregistered"
 
 
-def test_a_registered_variant_loads_with_its_identity(tmp_path):
-    item = document()
-    variant = dsv.load_variant(item["version"], directory=register(tmp_path, item))
-    assert variant.weights == (
-        ("voltage", 0.4),
-        ("temperature", 0.2),
-        ("plating", 0.3),
-        ("capacity", 0.1),
-    )
+def test_a_variant_carries_the_tuning_entry_verbatim(tmp_path):
+    variant = load(tmp_path)
+    assert variant.entry == ENTRY
+    assert variant.candidate == st.parse_candidate(ENTRY)
     identity = variant.identity()
-    assert identity["score_variant_digest"] == dsv.digest(item)
-    assert identity["label"] == "development_score_result:battery-w-test-v1"
+    assert identity["candidate"] == "near-limit-weighted"
+    assert identity["candidate_registry"] == ORIGIN
+    assert identity["label"] == "development_score_result:battery-v-test-v1"
+
+
+def test_a_promoted_candidate_scores_byte_identically_under_both_paths(tmp_path):
+    """The parity the Test Lead requires: panel and single-member scores from
+    the variant equal the tuning loop's own, byte for byte."""
+    variant = load(tmp_path)
+    legs, recipe_of = panel()
+    tuning = st.candidate_scores(st.parse_candidate(ENTRY), legs, recipe_of)
+    mine = dsv.panel_scores(variant, legs, recipe_of)
+    assert json.dumps(mine, sort_keys=True) == json.dumps(tuning, sort_keys=True)
+    for row in legs.values():
+        single = dsv.score_member(variant, row)
+        theirs = (
+            st.score_member(st.parse_candidate(ENTRY), row),
+            st.gate_verdict(st.parse_candidate(ENTRY), row),
+        )
+        assert json.dumps((single["score"], single["gate"])) == json.dumps(theirs)
 
 
 @pytest.mark.parametrize(
     ("changes", "code"),
     [
         (
-            {"weights": {"voltage": "0.5", "humidity": "0.5"}},
-            "score_variant_component_not_declared",
+            {"candidate": {**ENTRY, "kind": "deciding"}},
+            "score_variant_deciding_is_the_base_rule",
         ),
         (
-            {"weights": {"voltage": "0.5", "plating": "0.4"}},
-            "score_variant_weights_not_unit_sum",
+            {"candidate": {**ENTRY, "weights": {"a": 0.5, "z": 0.5}}},
+            "score_variant_candidate_refused:candidate_legs",
         ),
         (
-            {"weights": {"voltage": "1.2", "plating": "-0.2"}},
-            "score_variant_weights_not_unit_sum",
+            {"candidate": {**ENTRY, "weights": {"a": 0.5, "m": 0.4}}},
+            "score_variant_candidate_refused:candidate_weights_sum",
         ),
-        ({"weights": {"voltage": "nan"}}, "score_variant_malformed"),
-        ({"aggregate_terms": ["bias_B"]}, "score_variant_aggregate_terms_not_served"),
         (
-            {"gates": {"overrides": {"capacity_bound": "0.1"}}},
-            "score_variant_gate_overrides_not_served",
+            {"candidate": {**ENTRY, "extra": 1}},
+            "score_variant_candidate_refused:candidate_fields",
         ),
-        ({"comparison": {"alpha": 0.1}}, "score_variant_comparison_not_served"),
+        (
+            {"candidate_registry": {"sha256": "a" * 64, "commit": None}},
+            "score_variant_candidate_registry_malformed",
+        ),
+        ({"challenge_id": "chip-cold-plate"}, "score_variant_challenge_not_served"),
         ({"scope": "SERVED"}, "score_variant_malformed"),
         ({"status": "ADOPTED"}, "score_variant_malformed"),
-        ({"transform": {"kind": "linear"}}, "score_variant_transform_malformed"),
     ],
 )
 def test_every_malformed_or_unserved_variant_is_refused_by_name(
     tmp_path, changes, code
 ):
-    item = document(**changes)
     with pytest.raises(dsv.ScoreVariantRefused) as refused:
-        dsv.load_variant(item["version"], directory=register(tmp_path, item))
+        load(tmp_path, **changes)
     assert refused.value.code == code
+
+
+def test_an_undeclared_leg_is_refused(tmp_path):
+    item = document()
+    with pytest.raises(dsv.ScoreVariantRefused) as refused:
+        dsv.load_variant(
+            item["version"], directory=register(tmp_path, item), declared=("a", "r")
+        )
+    assert refused.value.code == "score_variant_component_not_declared"
 
 
 def test_an_altered_document_is_refused(tmp_path):
     item = document()
     directory = register(tmp_path, item)
-    item["weights"]["voltage"], item["weights"]["capacity"] = "0.1", "0.4"
+    item["candidate"]["weights"] = {"a": 1.0}
     (directory / f"{item['version']}.json").write_text(json.dumps(item))
     with pytest.raises(dsv.ScoreVariantRefused) as refused:
         dsv.load_variant(item["version"], directory=directory)
@@ -129,62 +178,7 @@ def test_an_altered_document_is_refused(tmp_path):
 
 def test_a_fixture_is_refused_in_the_shipped_registry(monkeypatch, tmp_path):
     item = document()
-    directory = register(tmp_path, item)
-    monkeypatch.setattr(dsv, "POLICY_DIR", directory)
+    monkeypatch.setattr(dsv, "POLICY_DIR", register(tmp_path, item))
     with pytest.raises(dsv.ScoreVariantRefused) as refused:
         dsv.load_variant(item["version"])
     assert refused.value.code == "score_variant_fixture_in_shipped_registry"
-
-
-def rows():
-    def case(state, important=False, **components):
-        return {"state": state, "important": important, "components": components}
-
-    return [
-        case("SCORABLE", True, voltage=1.0, temperature=0.0, plating=0.0, capacity=0.0),
-        case(
-            "SCORABLE", False, voltage=0.0, temperature=1.0, plating=1.0, capacity=1.0
-        ),
-        case("REFERENCE_INVALID"),
-    ]
-
-
-def test_rescore_reweights_the_stored_rows_without_retraining(tmp_path):
-    item = document()
-    variant = dsv.load_variant(item["version"], directory=register(tmp_path, item))
-    result = dsv.rescore(variant, rows())
-    # case 1: 0.4; case 2: 0.2 + 0.3 + 0.1 = 0.6; the mean is 0.5.
-    assert result["error"] == pytest.approx(0.5)
-    assert result["important_error"] == pytest.approx(0.4)
-    assert (result["eligible"], result["n_scored"]) == (True, 2)
-    assert result["score"] is None
-    failed = rows() + [{"state": "GATE_FAILED", "components": {}}]
-    assert dsv.rescore(variant, failed)["eligible"] is False
-
-
-def test_the_transform_maps_error_onto_a_score_where_1_is_best(tmp_path):
-    item = document(
-        transform={"kind": "tail_logistic", "threshold": "0.5", "sharpness": "4"}
-    )
-    variant = dsv.load_variant(item["version"], directory=register(tmp_path, item))
-    assert dsv.rescore(variant, rows())["score"] == pytest.approx(0.5)
-    assert dsv.tail_logistic(0.0, 0.5, 4.0) > dsv.tail_logistic(1.0, 0.5, 4.0)
-    assert 0.0 <= dsv.tail_logistic(1e6, 0.5, 4.0) < 1e-6  # no overflow
-    assert dsv.tail_logistic(-1e6, 0.5, 4.0) == pytest.approx(1.0)
-
-
-def test_rescore_directory_reads_owner_only_rows(tmp_path):
-    item = document()
-    variant = dsv.load_variant(
-        item["version"], directory=register(tmp_path / "p", item)
-    )
-    folder = tmp_path / "rows"
-    folder.mkdir()
-    path = folder / "member-a.json"
-    path.write_text(json.dumps(rows()))
-    path.chmod(0o600)
-    found = dsv.rescore_directory(variant, folder)
-    assert found["members"]["member-a"]["error"] == pytest.approx(0.5)
-    path.chmod(0o644)
-    with pytest.raises(dsv.ScoreVariantRefused):
-        dsv.rescore_directory(variant, folder)
