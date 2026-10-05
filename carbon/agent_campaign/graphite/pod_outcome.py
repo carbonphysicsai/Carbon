@@ -39,6 +39,26 @@ the program.
 
 The construction level comes from the session's recorded permission profile,
 never from a submission.
+
+**The environment stage (`pod-attribution-v2`, GRAPHITE-POD-GPU-PROBE-01).**
+Before any candidate code, Carbon's pod phase runs a GPU probe in the
+program's own interpreter and environment (`pod_phase.probe_environment`)
+and writes its result into the supervisor report (`SUPERVISOR_SCHEMA`). A
+failed probe claims stage `environment` and the program never runs. Under a
+v2 policy, in this order:
+1. host timing first: a pod the host saw run its whole worker allowance did
+   not fail before the program, so its `environment` claim is contradicted
+   (OTHER_SIGNAL, `FAILED_INFRA`, no retry);
+2. admissible only where Carbon writes the claim (trusted levels, or a
+   separated image's supervisor report); otherwise evidence only;
+3. consistent only when the export shows the program never started and the
+   probe record says it failed before the program (`environment_export`);
+   otherwise OTHER_SIGNAL, `FAILED_INFRA`, never a free retry;
+4. one relaunch on a fresh pod, within one cap on every infrastructure retry
+   of a proposal (timeouts and relaunches together; the counter never resets
+   across them); a second environment failure stops the session
+   (`Verdict.stop`), `FAILED_INFRA`, no agent charge.
+A v1 policy reads `environment` as no claim, exactly as it always did.
 """
 
 from __future__ import annotations
@@ -58,11 +78,21 @@ CANDIDATE_FAILED = "CANDIDATE_FAILED"
 CANDIDATE_RESOURCE_EXCEEDED = "CANDIDATE_RESOURCE_EXCEEDED"
 #: Statuses a policy may assign to an unfinished pod run. Never `SCORED`.
 STATUSES = frozenset({FAILED_INFRA, CANDIDATE_FAILED, CANDIDATE_RESOURCE_EXCEEDED})
-STAGES = ("timeout", "program", "compile")
+ENVIRONMENT = "environment"
+#: The stages a v1 policy names.
+V1_STAGES = ("timeout", "program", "compile")
+#: Every stage any registered policy may name (a supervisor report's stage is
+#: read against it; each policy then reads only its own `stages`).
+STAGES = (*V1_STAGES, ENVIRONMENT)
 
 POLICY_DIR = Path(__file__).with_name("attribution_policies")
 POLICY_SCHEMA = "carbon.graphite.pod-attribution-policy.v1"
+POLICY_SCHEMA_V2 = "carbon.graphite.pod-attribution-policy.v2"
 REGISTRY_SCHEMA = "carbon.graphite.pod-attribution-registry.v1"
+#: The report Carbon's pod phase (supervisor code) writes: the probe's result
+#: and the stage it failed at, if any (`pod_phase._report`). Admissible only
+#: from an image with a SEPARATED_IMAGES record; otherwise evidence.
+SUPERVISOR_SCHEMA = "carbon.graphite.pod-supervisor-report.v1"
 _KEYS = {
     "schema",
     "version",
@@ -88,6 +118,29 @@ _TIMEOUT_KEYS = {
 #: is refused rather than reinterpreted.
 CONFIRM = "host_phase_min_at_least_work_seconds"
 CONTRADICT = "host_phase_max_below_work_seconds"
+#: A v2 document's further fields, closed sets like v1's.
+_KEYS_V2 = _KEYS | {"infra_retries", "environment"}
+_INFRA_KEYS = {"max", "cap_reached"}
+_ENVIRONMENT_KEYS = {
+    "relaunches",
+    "confirm",
+    "contradict",
+    "inconsistent",
+    "contradicted",
+    "repeated",
+    "on_repeated",
+}
+#: The environment tests this module implements (`environment_consistent`;
+#: `host_ran_full_allowance`), and what a repeated environment failure does.
+ENV_CONFIRM = "program_never_started_and_probe_failed_before_program"
+ENV_CONTRADICT = CONFIRM
+STOP_SESSION = "stop_session"
+#: The most infrastructure retries (timeout retries and environment relaunches
+#: together) any policy may give one proposal: a relaunch never loops.
+MAX_INFRA_RETRIES = 1
+#: Exported files that show the pod went past the probe (the program started
+#: or Carbon built the recipe). An honest environment failure exports none.
+PAST_PROBE_FILES = ("program.log", "predictions.json", "built.json", "DONE.json")
 
 
 class PolicyRefused(ValueError):
@@ -144,6 +197,11 @@ class Verdict:
     retry: bool = False
     #: Whether the host timing contradicts the pod's claim (an OTHER_SIGNAL).
     signal: bool = False
+    #: Whether the retry is an environment relaunch (else a timeout retry).
+    relaunch: bool = False
+    #: Whether this outcome stops the session (a repeated environment
+    #: failure): FAILED_INFRA, no agent charge.
+    stop: bool = False
 
 
 def _digest(document):
@@ -175,13 +233,27 @@ class AttributionPolicy:
     admissible: dict
     evidence_only: dict
     no_claim: tuple
+    #: The stages this policy reads; any other claim is no claim.
+    stages: tuple = V1_STAGES
+    #: Infrastructure retries one proposal may get, all kinds together (v1:
+    #: its timeout retries, the only kind it has).
+    infra_retry_cap: int = 0
+    #: A v2 policy's environment rules, None under v1.
+    environment: dict | None = None
+    #: A v2 policy's outcome when the cap leaves no retry.
+    cap_reached: tuple | None = None
 
     @staticmethod
     def from_document(document, digest):
-        if type(document) is not dict or set(document) != _KEYS:
+        if type(document) is not dict:
             raise PolicyRefused("policy fields")
-        if document["schema"] != POLICY_SCHEMA:
+        schema = document.get("schema")
+        if schema not in (POLICY_SCHEMA, POLICY_SCHEMA_V2):
             raise PolicyRefused("policy schema")
+        v2 = schema == POLICY_SCHEMA_V2
+        if set(document) != (_KEYS_V2 if v2 else _KEYS):
+            raise PolicyRefused("policy fields")
+        stages = STAGES if v2 else V1_STAGES
         levels = document["trusted_writer_levels"]
         if type(levels) is not list or not all(
             type(level) is int and level >= 0 for level in levels
@@ -200,12 +272,13 @@ class AttributionPolicy:
             for name in ("repeated_confirmed", "retried", "unconfirmed", "contradicted")
         }
         admissible, evidence_only = {}, {}
+        claimed = set(stages) - {"timeout"}
         for table, target, name in (
             (document["admissible"], admissible, "admissible"),
             (document["evidence_only"], evidence_only, "evidence_only"),
         ):
-            if type(table) is not dict or set(table) != {"program", "compile"}:
-                raise PolicyRefused(name + " covers program and compile")
+            if type(table) is not dict or set(table) != claimed:
+                raise PolicyRefused(name + " covers " + ", ".join(sorted(claimed)))
             for stage, value in table.items():
                 target[stage] = _outcome(value, f"{name}.{stage}")
         no_claim = _outcome(document["no_claim"], "no_claim")
@@ -217,7 +290,19 @@ class AttributionPolicy:
             no_claim,
             *evidence_only.values(),
         ]
-        if any(status != FAILED_INFRA for status, _ in never_blamed):
+        environment, cap_reached, cap = None, None, retries
+        if v2:
+            environment, cap_reached, cap = _v2_rules(document, retries)
+            # An environment failure is never the candidate's, whoever wrote
+            # the claim and whatever the export shows.
+            never_blamed += [
+                admissible[ENVIRONMENT],
+                cap_reached,
+                environment["inconsistent"],
+                environment["contradicted"],
+                environment["repeated"],
+            ]
+        if not never_the_candidates(never_blamed):
             raise PolicyRefused("ambiguous or evidence-only outcomes are FAILED_INFRA")
         return AttributionPolicy(
             version=document["version"],
@@ -228,10 +313,58 @@ class AttributionPolicy:
             admissible=admissible,
             evidence_only=evidence_only,
             no_claim=no_claim,
+            stages=stages,
+            infra_retry_cap=cap,
+            environment=environment,
+            cap_reached=cap_reached,
         )
 
     def record(self):
         return {"version": self.version, "digest": self.digest}
+
+
+def never_the_candidates(outcomes):
+    """Every `(status, reason_code)` in `outcomes` is FAILED_INFRA: what no
+    policy may type as the candidate's (ambiguity, evidence-only claims and,
+    under v2, every environment outcome)."""
+    return all(status == FAILED_INFRA for status, _ in outcomes)
+
+
+def _small(value, where, most):
+    if type(value) is not int or not 0 <= value <= most:
+        raise PolicyRefused(f"{where} is an integer from 0 to {most}")
+    return value
+
+
+def _v2_rules(document, timeout_retries):
+    """A v2 document's retry cap and environment rules, checked: one cap on
+    every infrastructure retry of a proposal (never more than
+    MAX_INFRA_RETRIES), the tests this module implements and a repeated
+    environment failure that stops the session."""
+    infra = document["infra_retries"]
+    if type(infra) is not dict or set(infra) != _INFRA_KEYS:
+        raise PolicyRefused("infra_retries fields")
+    cap = _small(infra["max"], "infra_retries.max", MAX_INFRA_RETRIES)
+    if timeout_retries > cap:
+        raise PolicyRefused("timeout retries exceed the infrastructure retry cap")
+    cap_reached = _outcome(infra["cap_reached"], "infra_retries.cap_reached")
+    environment = document["environment"]
+    if type(environment) is not dict or set(environment) != _ENVIRONMENT_KEYS:
+        raise PolicyRefused("environment fields")
+    relaunches = _small(environment["relaunches"], "environment.relaunches", cap)
+    if (environment["confirm"], environment["contradict"]) != (
+        ENV_CONFIRM,
+        ENV_CONTRADICT,
+    ):
+        raise PolicyRefused("environment tests this module does not implement")
+    if environment["on_repeated"] != STOP_SESSION:
+        raise PolicyRefused("a repeated environment failure stops the session")
+    rules = {
+        name: _outcome(environment[name], "environment." + name)
+        for name in ("inconsistent", "contradicted", "repeated")
+    }
+    rules["relaunches"] = relaunches
+    return rules, cap_reached, cap
 
 
 def _registry(directory):
@@ -293,31 +426,138 @@ def trusted_writer(level, policy):
     return type(level) is int and level in policy.trusted_writer_levels
 
 
-def classify(*, claim, admissible, timing, work_seconds, attempt, level, policy):
-    """Type one ended-but-not-done pod run under `policy`.
+def classify(
+    *,
+    claim,
+    admissible,
+    timing,
+    work_seconds,
+    attempt,
+    level,
+    policy,
+    export=None,
+    earlier=(),
+):
+    """Type one ended-but-not-done pod run under `policy`. Pure.
 
     `claim` is the failure stage the pod reported; `admissible` is a stage
-    from a separated supervisor report, or None; `attempt` counts from 0;
-    `level` is the session's recorded construction level, or None.
+    from a separated supervisor report, or None; `attempt` counts this
+    proposal's pod attempts from 0, so it is also the number of
+    infrastructure retries already used; `level` is the session's recorded
+    construction level, or None. A v2 policy also reads `export`, what the
+    pod's export shows (`environment_export`), and `earlier`, the reason codes
+    of this proposal's earlier attempts in order.
     """
     if type(policy) is not AttributionPolicy:
         raise TypeError("a registered AttributionPolicy is required")
+    if admissible not in policy.stages:
+        admissible = None
     if admissible is None and trusted_writer(level, policy):
-        admissible = claim if claim in STAGES else None
+        admissible = claim if claim in policy.stages else None
     stage = admissible if admissible is not None else claim
     if stage == "timeout":
         check = timeout_check(timing, work_seconds)
         if check == "contradicted":
             return Verdict(*policy.timeout["contradicted"], signal=True)
-        if attempt < policy.retries:
-            return Verdict(*policy.timeout["retried"], retry=True)
+        if policy.environment is None:
+            # v1, unchanged: its only retries are timeout retries.
+            if attempt < policy.retries:
+                return Verdict(*policy.timeout["retried"], retry=True)
+        else:
+            prior = tuple(earlier).count(policy.timeout["retried"][1])
+            if prior < policy.retries:
+                # A first timeout is never the candidate's: retried while the
+                # proposal's one infrastructure retry is left, else typed
+                # infrastructure with no retry.
+                if retry_left(attempt, policy):
+                    return Verdict(*policy.timeout["retried"], retry=True)
+                return Verdict(*policy.cap_reached)
         if check == "confirmed":
             return Verdict(*policy.timeout["repeated_confirmed"])
         return Verdict(*policy.timeout["unconfirmed"])
+    if stage == ENVIRONMENT and policy.environment is not None:
+        return _environment(
+            admissible, timing, work_seconds, attempt, policy, export, earlier
+        )
     if stage in ("program", "compile"):
         table = policy.admissible if admissible == stage else policy.evidence_only
         return Verdict(*table[stage])
     return Verdict(*policy.no_claim)
+
+
+def _environment(admissible, timing, work_seconds, attempt, policy, export, earlier):
+    """An `environment` claim under a v2 policy, in its order of authority."""
+    rules = policy.environment
+    if host_ran_full_allowance(timing, work_seconds):
+        # The host saw the phase run the whole worker allowance: the program
+        # ran, so it did not fail before the program.
+        return Verdict(*rules["contradicted"], signal=True)
+    if admissible != ENVIRONMENT:
+        # Written where participant code runs: evidence only.
+        return Verdict(*policy.evidence_only[ENVIRONMENT])
+    if not environment_consistent(export):
+        return Verdict(*rules["inconsistent"], signal=True)
+    relaunch = policy.admissible[ENVIRONMENT]
+    if relaunch[1] in tuple(earlier):
+        return Verdict(*rules["repeated"], stop=True)
+    if retry_left(attempt, policy) and relaunch_left(earlier, policy):
+        return Verdict(*relaunch, retry=True, relaunch=True)
+    return Verdict(*policy.cap_reached)
+
+
+def retry_left(attempt, policy):
+    """Whether the proposal has an infrastructure retry left: one counter for
+    timeout retries and environment relaunches together."""
+    return attempt < policy.infra_retry_cap
+
+
+def relaunch_left(earlier, policy):
+    """Whether the policy's environment relaunches are not yet used."""
+    used = tuple(earlier).count(policy.admissible[ENVIRONMENT][1])
+    return used < policy.environment["relaunches"]
+
+
+def host_ran_full_allowance(timing, work_seconds):
+    """The host's own readings show the phase running at least the worker
+    allowance (`timeout_check`'s confirmation)."""
+    return timeout_check(timing, work_seconds) == "confirmed"
+
+
+def environment_export(names, report):
+    """What a pod's export shows about an `environment` claim, from the names
+    of the files it exported and its supervisor report (parsed, or None):
+
+    - `program_started`: a file only a run past the probe writes
+      (`PAST_PROBE_FILES`), or a report that does not say the program never
+      started;
+    - `probe_failed_before_program`: the report is the supervisor schema,
+      names stage `environment`, and its probe record failed before the
+      program.
+    """
+    names = frozenset(names)
+    report = report if type(report) is dict else None
+    probe = None if report is None else report.get("probe")
+    return {
+        "program_started": bool(names & set(PAST_PROBE_FILES))
+        or report is None
+        or report.get("program_started") is not False,
+        "probe_failed_before_program": report is not None
+        and report.get("schema") == SUPERVISOR_SCHEMA
+        and report.get("stage") == ENVIRONMENT
+        and type(probe) is dict
+        and probe.get("ok") is False
+        and probe.get("before_program") is True,
+    }
+
+
+def environment_consistent(export):
+    """An `environment` claim is accepted only when the export shows the
+    program never started and the probe failed before it."""
+    return (
+        type(export) is dict
+        and export.get("program_started") is False
+        and export.get("probe_failed_before_program") is True
+    )
 
 
 def admissible_stage(report, image):
@@ -332,17 +572,25 @@ def admissible_stage(report, image):
 __all__ = [
     "CANDIDATE_FAILED",
     "CANDIDATE_RESOURCE_EXCEEDED",
+    "ENVIRONMENT",
     "FAILED_INFRA",
+    "MAX_INFRA_RETRIES",
     "POLICY_DIR",
     "SEPARATED_IMAGES",
+    "SUPERVISOR_SCHEMA",
     "AttributionPolicy",
     "HostTiming",
     "PolicyRefused",
     "Verdict",
     "admissible_stage",
     "classify",
+    "environment_consistent",
+    "environment_export",
+    "host_ran_full_allowance",
     "load_policy",
     "registered_policies",
+    "relaunch_left",
+    "retry_left",
     "timeout_check",
     "trusted_writer",
 ]

@@ -20,8 +20,12 @@ from pathlib import Path
 
 from carbon.battery.value import panel as value_panel
 from carbon.design_search import score_value
-
-from .graphite_run5_alignment import CONTRACT, EV4_REFERENCES, PANEL, ROOT
+from scripts.dev.battery.graphite_run5_alignment import (
+    CONTRACT,
+    EV4_REFERENCES,
+    PANEL,
+    ROOT,
+)
 
 POD_SCORES = "pod-scores.json"
 
