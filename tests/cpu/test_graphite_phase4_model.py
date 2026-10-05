@@ -65,12 +65,13 @@ WINDOWS = {
 }
 WHOLE = {
     "max_input_tokens": 262144,
-    "max_output_tokens": 2048,
+    "max_output_tokens": 4096,
     "reasoning_effort": "low",
     "timeout_seconds": 600,
 }
-#: One glm-5.2 call at its whole window: 262,144 x 680 + 2,048 x 1,500 nano.
-GLM_RESERVATION_NANO = 262144 * 680 + 2048 * 1500
+#: One glm-5.2 call at its whole window and the Attacker's 4,096-token output
+#: cap (GRAPHITE-ATTACKER-STOP-RULE-01): 262,144 x 680 + 4,096 x 1,500 nano.
+GLM_RESERVATION_NANO = 262144 * 680 + 4096 * 1500
 PROBE = tool(PREFIX + "get_challenge_info", {})
 
 
@@ -150,8 +151,9 @@ def test_every_rung_gives_the_attacker_its_own_whole_window(tmp_path):
     for model_id, window in WINDOWS.items():
         settings = provider._selection(model_id, RoleName.ATTACKER).settings
         assert (settings.max_input_tokens, settings.timeout_seconds) == (window, 600)
-        assert settings.max_output_tokens == DEFAULT_SETTINGS.max_output_tokens
-        assert window - CONTEXT_RESERVE_TOKENS + 2048 < (
+        assert settings.max_output_tokens == roles.ATTACKER_MAX_OUTPUT_TOKENS
+        assert roles.ATTACKER_MAX_OUTPUT_TOKENS == CONTEXT_RESERVE_TOKENS
+        assert window - CONTEXT_RESERVE_TOKENS + settings.max_output_tokens <= (
             roles.ENGY_CONTEXT_TOKENS[model_id]
         )
 
@@ -260,7 +262,7 @@ def test_the_token_allowance_still_binds_at_the_whole_window(tmp_path):
     model = ScriptedModel([PROBE] * 12 + [text("never sent")], charged_micro=None)
     provider = _provider(tmp_path, model)
     reservation = provider._selection("glm-5.2", RoleName.ATTACKER).reservation_nano
-    assert reservation == GLM_RESERVATION_NANO == 181329920
+    assert reservation == GLM_RESERVATION_NANO == 184401920
     allowance = provider.budget.token_allowance_usd
     assert str(allowance) == "1.93"
     fits = int(allowance * 10**9) // reservation
@@ -282,7 +284,7 @@ def test_a_kimi_k3_attacker_session_stops_typed_before_its_first_call(tmp_path):
     model = ScriptedModel([text("never sent")])
     provider = _on_rung(_provider(tmp_path, model), "kimi-k3")
     reservation = provider._selection("kimi-k3", RoleName.ATTACKER).reservation_nano
-    assert reservation == 1048576 * 1950 + 2048 * 9750 == 2064691200
+    assert reservation == 1048576 * 1950 + 4096 * 9750 == 2084659200
     assert reservation > 1930000000 == provider.caps()["provider_nanodollars"]
     run_id = _open(provider)
     assert provider.run(run_id) == "failed"
@@ -300,9 +302,9 @@ ATTACKER_MODEL = {
     "model": "glm-5.2",
     "max_input_tokens": 262144,
     "admission_ceiling_tokens": 258048,
-    "max_output_tokens": 2048,
+    "max_output_tokens": 4096,
     "timeout_seconds": 600,
-    "reservation_usd": "0.18132992",
+    "reservation_usd": "0.18440192",
     "token_allowance_usd": "1.93",
     "calls_at_full_reservation": 10,
     "reservation_fits_token_allowance": True,

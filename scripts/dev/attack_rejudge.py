@@ -33,11 +33,13 @@ from pathlib import Path
 
 from carbon.agent_campaign.attack import analysis, verify
 from carbon.agent_campaign.attack.adapter import ADAPTERS
+from carbon.agent_campaign.graphite.phase4 import FINISH_TOOL_NAME
 
 
 def rejudge(session_dir, adapter, *, canaries=(), carrier=None):
     """Every attempt's verdict record, in run order (read-only)."""
-    found = analysis.attempts(session_dir)
+    # The phase-4 stop rule's finish call ends a session and probes nothing.
+    found = [a for a in analysis.attempts(session_dir) if a.tool != FINISH_TOOL_NAME]
     verdicts = [
         verify.verify(attempt, adapter, canaries=canaries, carrier=carrier)
         for attempt in found

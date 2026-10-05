@@ -29,6 +29,7 @@ from dataclasses import dataclass
 
 from carbon.development_session.model_provider import ENGY_LADDER, ENGY_MODELS_URL
 from carbon.development_session.profile import canonical, digest
+from carbon.development_session.research_agent import CONTEXT_RESERVE_TOKENS
 from carbon.development_session.research_agent_policy import (
     PARALLEL_CALLS_V2,
     every_call_per_turn,
@@ -235,7 +236,9 @@ CONSTRUCTOR_TIMEOUT_SECONDS = 600
 def _whole_context(model_id):
     """A whole-context role's settings on `model_id`: the model's whole
     published context, up to what `select` accepts, and the 600 s timeout.
-    Output (2,048 tokens) and reasoning effort stay `DEFAULT_SETTINGS`'.
+    Output (2,048 tokens by default) and reasoning effort stay `DEFAULT_SETTINGS`',
+    unless the role's own extra settings raise the output (the Attacker's
+    `ATTACKER_MAX_OUTPUT_TOKENS`, at most `CONTEXT_RESERVE_TOKENS`).
 
     The loop admits a request only under `max_input_tokens` minus
     `CONTEXT_RESERVE_TOKENS` (4,096), by a bound that never undercounts
@@ -261,8 +264,22 @@ WHOLE_CONTEXT_ROLES = (RoleName.CONSTRUCTOR, RoleName.ATTACKER)
 #: context is refused before a session opens. A role not named keeps
 #: `DEFAULT_SETTINGS`. A recorded session resumes with the selection its
 #: record froze, whatever this says now.
+#: The phase-4 Attacker's output cap (GRAPHITE-ATTACKER-STOP-RULE-01, tied to
+#: GRAPHITE-D35): two of phase-4 session 1's turns were cut at 2,048 tokens.
+#: 4,096 is the largest cap that keeps D35's whole input window unchanged: the
+#: loop admits a request only under `max_input_tokens` minus
+#: `CONTEXT_RESERVE_TOKENS` (4,096), and `max_input_tokens` is at most the
+#: model's context, so a request plus 4,096 output tokens still fits its
+#: `max_model_len`. A larger cap would need a smaller input window, which D35
+#: forbids. The Constructor keeps D34's table.
+ATTACKER_MAX_OUTPUT_TOKENS = CONTEXT_RESERVE_TOKENS
+#: Each role's extra settings on top of its whole context.
+_ROLE_EXTRA = {RoleName.ATTACKER: {"max_output_tokens": ATTACKER_MAX_OUTPUT_TOKENS}}
 MODEL_SETTINGS = {
-    role: {model: _whole_context(model) for model in ENGY_CONTEXT_TOKENS}
+    role: {
+        model: {**_whole_context(model), **_ROLE_EXTRA.get(role, {})}
+        for model in ENGY_CONTEXT_TOKENS
+    }
     for role in WHOLE_CONTEXT_ROLES
 }
 
