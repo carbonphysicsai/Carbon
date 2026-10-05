@@ -1,0 +1,31 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-operator-usability",
+  "recorded_at": "2026-10-05T22:00:00Z",
+  "challenge": "protocol",
+  "stage": "protocol",
+  "execution": {
+    "kind": "build",
+    "ref": "OPERATOR-USABILITY-01 (.agent/decisions/2026-10-05-OPERATOR-USABILITY-01.md), branch claude/operator-usability; findings B2, B3, B8, B10 and C1 from the Graphite Test executor's Launchpad usability findings, 2026-10-05.",
+    "description": "Operator and agent usability fixes: the owner report carries the campaign controller's settled state and time, the halt operation's text names stop and pause, phase 3 reconcile says when an uncertain pod create settles, and phase 4 ends typed errors as typed refusals."
+  },
+  "expected": "An operator or agent can tell from Carbon's own outputs when a campaign has stopped running, how to stop it, when a reconcile can succeed, and why a phase-4 command refused.",
+  "observed": "The report's completed_unix is written only for a finished finite campaign, so a READY campaign's report looked like it was still running; an existing stop tool was missed because it is called halt; reconcile exited 4 for up to 600 s with no time to retry; phase 4 ended controller and knowledge refusals in tracebacks; a short-lived MCP launch was left QUEUED for a reason the code alone could not show.",
+  "keep": [
+    "One operation table generates both doors: make an existing operation easier to find instead of adding a second name for it.",
+    "A field that means 'finished' keeps one meaning; a different state such as settled or waiting for the miner gets its own field.",
+    "A refusal that will clear with time states the time, rounded up, not just the exit code."
+  ],
+  "change": [
+    "Every derived report is rewritten when the state it summarizes changes, not only when the process that wrote it closes.",
+    "A stuck-state finding needs the run's records attached (dispatch rows, last_refusal, interruptions, process list) before the fix is chosen; without them the root cause stays open."
+  ],
+  "protocol_elements": [
+    "research_report.control",
+    "miner_operations.halt",
+    "graphite.phase3.reconcile",
+    "graphite.phase4.cli_refusals"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
