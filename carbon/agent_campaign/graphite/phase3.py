@@ -76,7 +76,10 @@ parallel-call rule runs before any spend: under `PARALLEL_CALLS_V2`
 several-call turns ran and how many did not. It also reports the session's
 limits: no model-call cap, the run's money cap and its elapsed limit; and the
 Constructor's model selection (GRAPHITE-D34): adapter, model, input window,
-admission ceiling, output cap, timeout and per-call reservation.
+admission ceiling, output cap, timeout and per-call reservation. It also runs
+`experiment.failure_path_check` (GRAPHITE-POD-LOGS-RETRY-01), which must be OK:
+a pod exiting non-zero keeps its logs, bounded, and a baseline failing as
+infrastructure is retried once and scores.
 
 **Model access** (GRAPHITE-D34, 2026-10-04). A new session opens on
 `engy-chat` (`ADAPTER`): Engy's Chat Completions replies report each call's
@@ -224,7 +227,7 @@ class Phase3Tools:
         if self.seconds_left is None:
             return None
         left = self.seconds_left()
-        pods = 1 if self.experiment.baseline_record() is not None else 2
+        pods = 1 + self.experiment.pods_before_proposal()
         needed = pods * pod_seconds(self.experiment.budget)
         if left is None or needed <= left:
             return None
@@ -456,6 +459,7 @@ class Phase3Provider(GraphiteProvider):
             randomness=self.randomness,
             scoring=self.scoring,
             construction_level=recorded_level(opened),
+            seconds_left=self._time_gate(run_id, opened),
         )
 
     def _frozen_rule(self):
@@ -1342,11 +1346,20 @@ def dry_run(root, literature=None):
         # the live backend's own path, threads included, with RunPod in memory
         # (POD-STORE-THREADS-01).
         "real_pod_path": real_path_check(root / "real-pod-path"),
+        # A pod that exits non-zero keeps its logs, bounded; a baseline that
+        # fails as infrastructure is retried once and scores (R2 run 4).
+        "pod_failure_path": ex.failure_path_check(
+            root / "pod-failure-path",
+            baseline=SCAFFOLD,
+            budget=provider.budget,
+            scorer=provider._frozen_rule(),
+        ),
     }
     print(json.dumps(result, indent=1, default=str))
     ok = (
         result["provider_state"] == "succeeded"
         and result["dry_run"]["real_pod_path"]["status"] == "OK"
+        and result["dry_run"]["pod_failure_path"]["status"] == "OK"
     )
     return 0 if ok else 4
 
