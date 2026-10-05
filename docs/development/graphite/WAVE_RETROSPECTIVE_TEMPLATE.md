@@ -75,13 +75,36 @@ cleaner. List, in order of cost:
    found, with the gate item that would have caught it (existing or proposed);
 3. each owner interruption that a decision file could have answered earlier.
 
-## 6. Proposals
+## 6. What worked: assets to reuse
+
+The efficiency half of the owner's request: list what the next challenge should
+copy rather than rebuild. For each asset give its path, what it saved this
+wave, and what a new challenge supplies to use it. Start from this list (check
+each path on origin/main, add what this wave built, drop what did not work):
+
+| Kind | Asset | Path | A new challenge supplies |
+|---|---|---|---|
+| Tool | Readiness command: every gate item, digest-bound history | `python -m carbon.challenge_pipeline readiness` | records under `readiness/<challenge>/` |
+| Tool | Real-path no-spend gate before any live run | `python -m carbon.agent_campaign.graphite.phase4 prelive`, `pods.real_path_check` | a registered scoring and attack adapter |
+| Pattern | One neutral scoring port, one adapter per challenge | `carbon/challenge_validator/scoring.py` (`ChallengeScoring`) | its scoring class, registered by challenge id |
+| Pattern | One attack adapter per challenge and level, held-out controls | `carbon/agent_campaign/attack/adapter.py` | families, controls, oracle |
+| Pattern | Versioned, digest-pinned policies, never edited in place | `attribution_policies/`, `baseline_policies/`, `confirmation_sets/` | a new document and a registry entry |
+| Pattern | Identity by rebuilt artifact | OWNER-GRAPHITE-TEST-WAVE-04 section 1 | nothing |
+| Tool | Q1 score-to-value alignment and equal-cost harness | `carbon/design_search/` (`score_value`, `track_b`) | a challenge Track B adapter |
+| Record | Decision files per owner answer, one routing point | `.agent/decisions/` | the decision ids |
+| Record | Lessons entry after every execution, one file each | `carbon/challenge_pipeline/lessons/` | nothing |
+
+Also list, per challenge, any adapter, importer or study driver that another
+challenge could reuse with only data changes, and any pattern that cost time
+because it was rebuilt instead.
+
+## 7. Proposals
 
 | Proposal | Kind (gate item / register lesson / policy / tooling) | Owner | Needs the Test Lead's approval |
 |---|---|---|---|
 | | | | yes |
 
-## 7. Sign-off
+## 8. Sign-off
 
 The Test Lead approves or amends this retrospective in a normal PR. Approval
 confirms the review is complete; it confers no scientific qualification, launch
