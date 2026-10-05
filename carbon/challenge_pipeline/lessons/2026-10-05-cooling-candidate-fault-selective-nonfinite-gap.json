@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-selective-nonfinite-gap",
+  "recorded_at": "2026-10-05T13:30:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "integrated head 6f503527 focused policy, validator and selective-fault suite",
+    "description": "Ran the three focused modules after merging current main and binding PR #602's selective-fault evidence to the policy."
+  },
+  "expected": "Every raise and non-finite Interface-v1 attack returns the exact registered candidate-fault record.",
+  "observed": "166 tests passed and one failed after 445.18 seconds. Raise attacks carried predict_exception, but a non-finite prediction produced a finite aggregate over the remaining scorable cases and reached score-record JSON persistence; that persistence failure was still generic adapter_failure and therefore carried no policy record.",
+  "keep": [
+    "Preserve PR #602's real-path probe and its exact failure evidence."
+  ],
+  "change": [
+    "Validate the complete predictions, case rows and aggregate as finite JSON before persistence; classify a ValueError there as registered non_finite_score."
+  ],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "graphite.attacker.cooling.selective_fault",
+    "challenge_validator.cooling"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

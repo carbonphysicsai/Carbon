@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import contextlib
 import json
-import math
 import os
 import sqlite3
 import stat
@@ -484,12 +483,11 @@ class CoolingAdapter(ChallengeAdapter):
             for case_id in sorted(references)
         ]
         summary = exam.aggregate(rows)
-        score = summary.get("score")
-        if (
-            type(score) not in (int, float)
-            or isinstance(score, bool)
-            or not math.isfinite(score)
-        ):
+        try:
+            _canonical(
+                {"predictions": predictions, "cases": rows, "aggregate": summary}
+            )
+        except ValueError:
             raise self._candidate_fault("non_finite_score")
         outcome = self._outcome(submission_id, "SCORED", summary=summary)
         score_record = {

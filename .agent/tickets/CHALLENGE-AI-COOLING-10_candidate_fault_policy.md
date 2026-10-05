@@ -21,7 +21,7 @@ pushes the reviewable head.
 
 Register and digest-pin the DEVELOPMENT policy that classifies a
 candidate-triggered Cooling rebuild exception, prediction exception, or
-non-finite aggregate score. The existing classification remains
+non-finite score evidence. The existing classification remains
 `FAILED_INFRA / adapter_failure`; every result names the exact policy version,
 digest and fault kind so Track A can test the selective-crash/retry surface.
 
@@ -83,7 +83,7 @@ Out of scope:
 - [x] The exact current Cooling policy is registered and digest-pinned.
 - [x] Missing, altered, unregistered, cross-Challenge or unsafe policies fail
       closed at load.
-- [x] Rebuild exceptions, prediction exceptions and non-finite scores produce
+- [x] Rebuild exceptions, prediction exceptions and non-finite score evidence produce
       `FAILED_INFRA / adapter_failure` with the exact policy record and no
       exception text or score.
 - [x] The policy states the retry/refund implications and the validator's
