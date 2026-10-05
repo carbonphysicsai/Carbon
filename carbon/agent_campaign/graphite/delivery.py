@@ -317,6 +317,17 @@ def _number(value):
     return "not stated" if value is None else f"{value:.6g}"
 
 
+def _result_line(label, rule):
+    """An eligible set's score, or INELIGIBLE with its gate reasons: an
+    ineligible set's soft score over its scorable cases is never written as
+    its result (GRAPHITE-COVERAGE-PARITY-01). Reads v1 and v2 records."""
+    from .experiment import frozen_headline
+
+    if rule.get("eligible"):
+        return f"- {label}: eligible {rule['eligible']}; score {_number(rule['score'])}"
+    return f"- {label}: {frozen_headline(rule)}"
+
+
 def writeup(record, baseline, ablated, undefined, selection):
     rule = record["frozen_rule"]
     against = record["against_baseline"]
@@ -342,10 +353,7 @@ def writeup(record, baseline, ablated, undefined, selection):
             f"- eligible: {rule['eligible']}; score {_number(rule['score'])};"
             f" important-region score {_number(rule['important_score'])}"
         ),
-        (
-            f"- baseline: eligible {baseline['frozen_rule']['eligible']}; score"
-            f" {_number(baseline['frozen_rule']['score'])}"
-        ),
+        _result_line("baseline", baseline["frozen_rule"]),
         (
             "- paired comparison with the baseline (rule v2):"
             f" {against['outcome']}, {against['reason']}"

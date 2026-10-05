@@ -196,7 +196,7 @@ def predictors(config, *, repository, contract, reference):
         "solver": track_b.Predictor(
             name="solver",
             kind=track_b.SOLVER,
-            planning_core_seconds=median_solve_core_seconds(reference),
+            planning_core_seconds=planning_solve_core_seconds(reference),
             planning_route=HOST_ROUTE,
             reference=reference,
         ),
@@ -288,12 +288,60 @@ def median_solve_core_seconds(reference):
     )
 
 
+def planning_solve_core_seconds(reference, quantile=0.95):
+    """The solver arm's planning charge: the p95 of the measured solve cost on
+    its route, by linear interpolation. The median under-plans and the timeout
+    wastes budget (Test Lead, 2026-10-05). Actual cost always decides."""
+
+    values = sorted(case.core_seconds for case in reference._cases.values())
+    k = (len(values) - 1) * quantile
+    low = int(k)
+    high = min(low + 1, len(values) - 1)
+    return float(values[low] + (values[high] - values[low]) * (k - low))
+
+
 def proposed_budget_ladder(reference, ks=(6, 12, 24, 48)):
-    """B = k x the median measured solve, in host core-seconds. k = 48 is the
-    anchor where the solver arm can plan the full 8 x 6 finite set."""
+    """B = k x the median measured solve, in host core-seconds, as the Test
+    Lead confirmed for cooling. Planning at p95 means k = 48 no longer buys
+    the full set, so ``anchor_full_set`` is added: 48 x the planning charge,
+    where the solver arm can plan the whole 8 x 6 finite set."""
 
     median = median_solve_core_seconds(reference)
-    return {f"k{k}": k * median for k in ks}
+    ladder = {f"k{k}": k * median for k in ks}
+    ladder["anchor_full_set"] = 48 * planning_solve_core_seconds(reference)
+    return ladder
+
+
+#: Paired host/cpu5c wall-time ratio, maximum over the 12 cases of the motor
+#: timing calibration (docs/development/evidence/motor-timing-2026-10-04).
+MOTOR_PAIRED_HOST_PER_POD = 1.63
+
+
+def bracket_conversions():
+    """The two declared conversions of unrecorded-flavor pod core-seconds into
+    host core-seconds (Test Lead, 2026-10-05). Both are assumptions. For
+    cooling, the upper one is a proxy borrowed from motor's paired timing."""
+
+    return {
+        "lower": (
+            cost.Conversion(
+                POOL_POD_ROUTE,
+                HOST_ROUTE,
+                1.0,
+                "ASSUMPTION: one pool-pod core-second equals one host core-second",
+            ),
+        ),
+        "upper": (
+            cost.Conversion(
+                POOL_POD_ROUTE,
+                HOST_ROUTE,
+                MOTOR_PAIRED_HOST_PER_POD,
+                "PROXY ASSUMPTION: motor host/cpu5c paired wall ratio 1.63 "
+                "(motor-timing-2026-10-04) applied to cooling; the pool pods' "
+                "flavor was not recorded",
+            ),
+        ),
+    }
 
 
 UNIT = cost.Unit("core_seconds", HOST_ROUTE)

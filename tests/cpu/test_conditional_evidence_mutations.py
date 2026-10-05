@@ -66,7 +66,7 @@ MUTATIONS = {
     ),
     "development_expansion_is_tagged": (
         lambda m: m.setattr(
-            ce, "tag", lambda found, policy=ce.POLICY: _TAG([], policy)
+            ce, "tag", lambda found, policy=ce.POLICY, **kw: _TAG([], policy)
         ),
         t.test_a_development_expansion_proceeds_and_is_tagged,
     ),
@@ -76,7 +76,7 @@ MUTATIONS = {
     ),
     "climb_report_is_tagged": (
         lambda m: m.setattr(
-            ce, "tag", lambda found, policy=ce.POLICY: _TAG([], policy)
+            ce, "tag", lambda found, policy=ce.POLICY, **kw: _TAG([], policy)
         ),
         lambda tmp: t.test_a_climb_report_carries_the_tag(),
     ),

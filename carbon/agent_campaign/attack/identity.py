@@ -381,41 +381,46 @@ def _probe_attempt(name, position, text):
     )
 
 
-def _as_finding(verdict, artifact):
-    """A probe verdict as the finding a session would report for it: both
+def _as_finding(attempt, built, artifact):
+    """A probe attempt as the finding a session would report for it: both
     the incumbent and the copy breached, so every mechanism that could
-    reward the copy sees it."""
+    reward the copy sees it. `built` is Carbon's own rebuild
+    (`verify.rebuild_artifact`), never a session verdict."""
     from carbon.agent_campaign.attack import verify
 
     return verify.Verdict(
-        attempt=verdict.attempt,
+        attempt=attempt.identity,
         family=COPY_FAMILY,
-        rebuild=verdict.rebuild,
+        rebuild=built["rebuild"],
         outcome=verify.BREACHED,
         conditions=(verify.FAILING_TRIGGER,),
-        scored=verdict.rebuild == verify.REBUILT,
-        unrebuildable=verdict.unrebuildable,
-        refused_by=verdict.refused_by,
+        scored=built["rebuild"] == verify.REBUILT,
+        unrebuildable=built["unrebuildable"],
+        refused_by=built["refused_by"],
         reason="copy_probe",
-        evidence=dict(verdict.evidence),
+        evidence=dict(built["evidence"]),
         artifact=artifact,
     )
 
 
 def counts(adapter, texts, *, by_text=False):
     """Every mechanism's count of distinct constructions over the attempts
-    `texts` (strategy_json text, in order), each first verified by Carbon
-    (`verify.verify`) and reported as a breach. `by_text=True` is the
-    vulnerable specimen: identity assigned from the text as written."""
-    from carbon.agent_campaign.attack import analysis, benchmark, knowledge, report
+    `texts` (strategy_json text, in order), each first rebuilt by Carbon
+    (`verify.rebuild_artifact`) and reported as a breach. `by_text=True` is
+    the vulnerable specimen: identity assigned from the text as written.
+
+    The artifact comes from Carbon's rebuild directly, never from a session
+    verdict: `verify.verify` judges an attempt no family takes NOT_APPLICABLE
+    before any rebuild (GRAPHITE-ATTACKER-ORACLE-AUTHORITY-01 §6)."""
+    from carbon.agent_campaign.attack import benchmark, knowledge, report
     from carbon.agent_campaign.attack import verify as verifier
 
     findings = []
     for position, text in enumerate(texts, start=1):
         attempt = _probe_attempt(COPY_FAMILY, position, text)
-        verdict = verifier.verify(attempt, adapter, family=analysis.UNASSIGNED)
-        artifact = text_identity(text) if by_text else verdict.artifact
-        findings.append(_as_finding(verdict, artifact))
+        built = verifier.rebuild_artifact(attempt, adapter)
+        artifact = text_identity(text) if by_text else built["artifact"]
+        findings.append(_as_finding(attempt, built, artifact))
     submitted = dict(zip((v.attempt for v in findings), texts, strict=True))
     runs = report.attacker_runs(findings)
     line = report.family_report(runs, controls_held_out=())["families"][COPY_FAMILY]

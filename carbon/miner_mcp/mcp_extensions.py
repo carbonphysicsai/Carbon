@@ -252,11 +252,13 @@ def make_tasks_extension(adapter, *, guard, validate_start, fields=frozenset()):
                 )
             except AdapterFailure as failure:
                 # The adapter's own code - SIGNER_NOT_RUNNING, NO_CAMPAIGN,
-                # OPERATION_ID_REUSED ... - and its honest dispatch flag.
+                # OPERATION_ID_REUSED ... - and its honest dispatch flag; a
+                # refusal carrying a registered correction names its field.
                 return refused(
                     serving.refusal(
                         failure.code.value,
                         dispatch_may_have_occurred=failure.dispatch_may_have_occurred,
+                        field=failure.field,
                     )
                 )
             try:

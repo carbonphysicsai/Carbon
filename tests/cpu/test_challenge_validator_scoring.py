@@ -52,7 +52,11 @@ class Second(BatteryScoring):
 
 def test_two_registered_scorings_remove_every_silent_default(battery, cooling):
     assert cs.registered() == sorted(
-        [registry.BATTERY_CHALLENGE, registry.COLD_PLATE_CHALLENGE]
+        [
+            registry.BATTERY_CHALLENGE,
+            registry.COLD_PLATE_CHALLENGE,
+            registry.MOTOR_CHALLENGE,
+        ]
     )
     with pytest.raises(cs.ScoringUnavailable, match="challenge_scoring_must_be_named"):
         cs.scoring_for(None)

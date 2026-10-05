@@ -1,0 +1,244 @@
+{
+  "alignment": {
+    "conditions": [
+      {
+        "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+        "condition": "SCORE_VALUE_DIVERGENCE",
+        "kind": "REGISTERED_BASELINE",
+        "member": "analytic-v1",
+        "schema": "carbon.admission-condition.v1",
+        "scored_at_or_above": [
+          "phase-shifted"
+        ],
+        "value": [
+          2,
+          0.0
+        ],
+        "value_noise_band": null
+      },
+      {
+        "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+        "condition": "SCORE_VALUE_DIVERGENCE",
+        "kind": "CONTROL",
+        "member": "flat",
+        "schema": "carbon.admission-condition.v1",
+        "scored_at_or_above": [
+          "phase-shifted"
+        ],
+        "value": [
+          2,
+          0.0
+        ],
+        "value_noise_band": null
+      },
+      {
+        "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+        "condition": "SCORE_VALUE_DIVERGENCE",
+        "kind": "CONTROL",
+        "member": "saturation-blind",
+        "schema": "carbon.admission-condition.v1",
+        "scored_at_or_above": [
+          "phase-shifted"
+        ],
+        "value": [
+          2,
+          0.0
+        ],
+        "value_noise_band": null
+      }
+    ],
+    "excluded_unresolved_or_ineligible": [],
+    "kendall_tau_b": 0.0,
+    "members_ranked": [
+      "analytic-v1",
+      "flat",
+      "learned-krr-v1",
+      "phase-shifted",
+      "saturation-blind"
+    ],
+    "schema": "carbon.design-search.score-value-alignment.v1",
+    "spearman_rho": 0.0,
+    "tau_noise_band": {
+      "band": 0.0,
+      "panels": 1,
+      "tau_max": 0.0,
+      "tau_min": 0.0
+    },
+    "top_k": {
+      "by_score": [
+        "learned-krr-v1",
+        "saturation-blind"
+      ],
+      "by_value": [
+        "learned-krr-v1",
+        "phase-shifted"
+      ],
+      "k": 2,
+      "overlap": 1
+    },
+    "value_noise_band": null
+  },
+  "comparator": {
+    "best": {
+      "design_id": "d04",
+      "worst_objective": 0.245102140586187
+    },
+    "coverage": {
+      "condition_evidence": 48,
+      "conditions_per_design": 6,
+      "confirmed_feasible_designs": 4,
+      "confirmed_infeasible_designs": 4,
+      "designs": 8,
+      "fully_resolved_designs": 8,
+      "resolved_condition_evidence": 48,
+      "sufficiently_resolved_for_exact_finite_set_comparator": true,
+      "unresolved_designs": 0
+    },
+    "status": "COMPLETE_FINITE_SET"
+  },
+  "decision_source": "Track B Q1 on the counted motor replay (study V2), fixed grid, 48 queries, one-time costs excluded",
+  "members": {
+    "analytic-v1": {
+      "decision": {
+        "correct_decision": null,
+        "false_feasible": true,
+        "missed_feasible_designs": [],
+        "proposal_outcome": "CONFIRMED_INFEASIBLE",
+        "tie_determined": true
+      },
+      "decision_value": [
+        2,
+        0.0
+      ],
+      "groups": {
+        "BOUNDARY_STRESS": "CONFIRMED_INFEASIBLE",
+        "REPRESENTATIVE": "CONFIRMED_INFEASIBLE"
+      },
+      "kind": "REGISTERED_BASELINE",
+      "practice_eligible": true,
+      "practice_score": 0.5002085857247547,
+      "regret": {
+        "regret": null,
+        "status": "INFEASIBLE_SELECTION"
+      },
+      "selection": "d01"
+    },
+    "flat": {
+      "decision": {
+        "correct_decision": null,
+        "false_feasible": true,
+        "missed_feasible_designs": [],
+        "proposal_outcome": "CONFIRMED_INFEASIBLE",
+        "tie_determined": true
+      },
+      "decision_value": [
+        2,
+        0.0
+      ],
+      "groups": {
+        "BOUNDARY_STRESS": "CONFIRMED_INFEASIBLE",
+        "REPRESENTATIVE": "CONFIRMED_INFEASIBLE"
+      },
+      "kind": "CONTROL",
+      "practice_eligible": true,
+      "practice_score": 0.41646068146313653,
+      "regret": {
+        "regret": null,
+        "status": "INFEASIBLE_SELECTION"
+      },
+      "selection": "d01"
+    },
+    "learned-krr-v1": {
+      "decision": {
+        "correct_decision": false,
+        "false_feasible": false,
+        "missed_feasible_designs": [],
+        "proposal_outcome": "CONFIRMED_FEASIBLE",
+        "tie_determined": false
+      },
+      "decision_value": [
+        0,
+        0.019246665311291544
+      ],
+      "groups": {
+        "BOUNDARY_STRESS": "CONFIRMED_FEASIBLE",
+        "REPRESENTATIVE": "CONFIRMED_FEASIBLE"
+      },
+      "kind": "REGISTERED_BASELINE",
+      "practice_eligible": true,
+      "practice_score": 0.17300702981329621,
+      "regret": {
+        "comparator_design_id": "d04",
+        "comparator_worst_objective": 0.245102140586187,
+        "regret": 0.019246665311291544,
+        "selected_worst_objective": 0.26434880589747856,
+        "status": "DEFINED_FINITE_SET"
+      },
+      "selection": "d06"
+    },
+    "phase-shifted": {
+      "decision": {
+        "correct_decision": false,
+        "false_feasible": false,
+        "missed_feasible_designs": [],
+        "proposal_outcome": "CONFIRMED_FEASIBLE",
+        "tie_determined": false
+      },
+      "decision_value": [
+        0,
+        0.019246665311291544
+      ],
+      "groups": {
+        "BOUNDARY_STRESS": "CONFIRMED_FEASIBLE",
+        "REPRESENTATIVE": "CONFIRMED_FEASIBLE"
+      },
+      "kind": "CONTROL",
+      "practice_eligible": true,
+      "practice_score": 0.5824656989394562,
+      "regret": {
+        "comparator_design_id": "d04",
+        "comparator_worst_objective": 0.245102140586187,
+        "regret": 0.019246665311291544,
+        "selected_worst_objective": 0.26434880589747856,
+        "status": "DEFINED_FINITE_SET"
+      },
+      "selection": "d06"
+    },
+    "saturation-blind": {
+      "decision": {
+        "correct_decision": false,
+        "false_feasible": true,
+        "missed_feasible_designs": [],
+        "proposal_outcome": "CONFIRMED_INFEASIBLE",
+        "tie_determined": false
+      },
+      "decision_value": [
+        2,
+        0.0
+      ],
+      "groups": {
+        "BOUNDARY_STRESS": "CONFIRMED_FEASIBLE",
+        "REPRESENTATIVE": "CONFIRMED_INFEASIBLE"
+      },
+      "kind": "CONTROL",
+      "practice_eligible": true,
+      "practice_score": 0.24814578060703357,
+      "regret": {
+        "regret": null,
+        "status": "INFEASIBLE_SELECTION"
+      },
+      "selection": "d03"
+    }
+  },
+  "notes": {
+    "saturation_blind_train_cases": 100
+  },
+  "private_scores_descriptive_only": {
+    "analytic-v1": 0.46304197127772023,
+    "learned-krr-v1": 0.2143946555683757,
+    "note": "operator-held private pool; not in the ranking"
+  },
+  "schema": "carbon.motor.q1-fixture-panel.v1",
+  "score_source": "public PRACTICE pool, registered TRAIN scales; mean normalised error, lower is better",
+  "statistics": "n = 5 deterministic members: tau and rho descriptive, no band"
+}

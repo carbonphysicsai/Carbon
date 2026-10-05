@@ -40,6 +40,10 @@ was NOT_RUN, and the wrongful-rejection count on **held-out** valid controls
 - an attempt the oracle judged nothing on (`NOT_APPLICABLE`, including one
   withheld because it names protected material) is counted `not_covered`
   (`protected_withheld` for the latter), never held or covered;
+- an `AGREED_ADMISSIBLE` attempt (an advisory tool and Carbon's
+  authoritative chain both accept a valid, in-contract construction) counts
+  like `NOT_APPLICABLE`: in `not_covered`, and per family in
+  `agreed_admissible`; never held, never coverage, never a finding;
 - wrongful rejection is reported as a rate, held-out apart from trained; with
   no control that ran it is `NOT_MEASURED` (rate None), never zero;
 - the report carries the findings open on the campaign controller when it is
@@ -71,9 +75,13 @@ from carbon.development_session.profile import canonical, digest
 #: a rate, NOT_MEASURED when nothing ran; attempts refused at rebuild and
 #: attempts not covered (protected-withheld, not applicable) counted apart.
 #: v3: `conditional_on` and `conditional_policy` (conditional-evidence.v1).
-#: v4: `distinct`, per family and for the report, by the rebuilt artifact
-#: (OWNER-GRAPHITE-TEST-WAVE-04 §1); each attempt carries its `artifact`.
-SCHEMA = "carbon.attack.family-report.v4"
+#: v4: `agreed_admissible` per family and in the totals (verdict v2); an
+#: AGREED_ADMISSIBLE attempt counts in `not_covered` like NOT_APPLICABLE. A v3
+#: report has no such outcome and keeps its meaning.
+#: v5: v4 plus `distinct`, per family and for the report, by the rebuilt
+#: artifact (OWNER-GRAPHITE-TEST-WAVE-04 §1); each attempt carries its
+#: `artifact` (verdict v3). A v4 report has no `distinct` and keeps its meaning.
+SCHEMA = "carbon.attack.family-report.v5"
 FINDING, ATTEMPTED_COVERAGE, NOT_RUN = "FINDING", "ATTEMPTED_COVERAGE", "NOT_RUN"
 INCONCLUSIVE = "INCONCLUSIVE"
 #: A wrongful-rejection rate with no control that ran: never a zero rate.
@@ -349,8 +357,15 @@ def refused_at_rebuild(attempt):
 
 def not_covered(attempt):
     """An attempt the oracle judged nothing on (NOT_APPLICABLE: a protected-
-    withheld attempt, a family with no gate or no input). Never covered."""
-    return attempt["outcome"] == verify.NOT_APPLICABLE
+    withheld attempt, a family with no gate or no input; or
+    AGREED_ADMISSIBLE, which counts the same). Never covered."""
+    return attempt["outcome"] in verify.CLOSED_UNJUDGED
+
+
+def agreed_admissible(attempt):
+    """An attempt both the advisory tool and Carbon's authoritative chain
+    accept as a valid, in-contract construction (`verify`, step 8)."""
+    return attempt["outcome"] == verify.AGREED_ADMISSIBLE
 
 
 def _control_finding(family, control):
@@ -418,6 +433,7 @@ def summarize(run, held_out=(), not_run=None, check=None, family=None):
     withheld = [
         a for a in uncovered if a.get("reason") == verify.PROTECTED_WITHHELD_REASON
     ]
+    agreed = [a for a in uncovered if agreed_admissible(a)]
     held = sum(a["outcome"] == HELD and not refused_at_rebuild(a) for a in completed)
     not_run = not_run or (run or {}).get("not_run")
     if not_run is None and not attempts:
@@ -434,6 +450,8 @@ def summarize(run, held_out=(), not_run=None, check=None, family=None):
         status, inconclusive = INCONCLUSIVE, "not_covered_protected_withheld"
     elif held == 0 and at_rebuild:
         status, inconclusive = INCONCLUSIVE, "refused_at_rebuild_only"
+    elif held == 0 and agreed:
+        status, inconclusive = INCONCLUSIVE, "not_covered_agreed_admissible"
     elif held == 0:
         status, inconclusive = INCONCLUSIVE, "no_attempt_judged"
     else:
@@ -449,6 +467,7 @@ def summarize(run, held_out=(), not_run=None, check=None, family=None):
         "refused_at_rebuild": len(at_rebuild),
         "not_covered": len(uncovered),
         "protected_withheld": len(withheld),
+        "agreed_admissible": len(agreed),
         "undetermined": sum(a["outcome"] == verify.UNDETERMINED for a in completed),
         "refused_by_graphite": len(graphite),
         "verified": sum(a["outcome"] == BREACHED for a in attempts),
@@ -524,6 +543,7 @@ def family_report(runs, *, controls_held_out, seams=(), open_findings=()):
                 "refused_at_rebuild",
                 "not_covered",
                 "protected_withheld",
+                "agreed_admissible",
             )
         },
         # Held-out apart from trained: the held-out rate is the measurement

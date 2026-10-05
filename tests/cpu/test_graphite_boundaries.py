@@ -437,10 +437,12 @@ def test_a_constructor_opens_with_its_models_whole_context_and_a_reader_does_not
     assert reader.session_record(run_id)["model"]["settings"] == (
         DEFAULT_SETTINGS.record()
     )
-    assert set(MODEL_SETTINGS) == {RoleName.CONSTRUCTOR}
+    # The Attacker joined under GRAPHITE-D35; every other role is unnamed.
+    assert set(MODEL_SETTINGS) == {RoleName.CONSTRUCTOR, RoleName.ATTACKER}
     # The context table is Engy's published list for exactly the ladder.
     assert tuple(ENGY_CONTEXT_TOKENS) == ENGY_LADDER
     assert set(MODEL_SETTINGS[RoleName.CONSTRUCTOR]) == set(ENGY_LADDER)
+    assert MODEL_SETTINGS[RoleName.ATTACKER] == MODEL_SETTINGS[RoleName.CONSTRUCTOR]
     assert (ENGY_CONTEXT_SOURCE, ENGY_CONTEXT_OBSERVED) == (
         "https://api.engy.ai/v1/models",
         "2026-10-04",

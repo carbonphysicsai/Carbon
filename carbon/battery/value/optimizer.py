@@ -842,9 +842,11 @@ def _json_bytes(value, indent=2):
 
 
 def _ev4_contract(experiment):
+    """The experiment's contract, if it is a study the optimizer runs: EV4's,
+    or EV5's (`spec_for` then selects EV5's grids, roles and gate)."""
     contract = experiment.contract()
-    if contract.get("case_prefix") != "ev4":
-        raise OptimizerError("not_ev4", "the optimizer runs under the EV4 contract")
+    if contract.get("case_prefix") not in ("ev4", "ev5"):
+        raise OptimizerError("not_ev4", "the optimizer runs under EV4 or EV5")
     return contract
 
 
@@ -867,7 +869,7 @@ def import_grids(experiment, source):
         if member not in expected:
             raise OptimizerError("grid_not_in_panel", member)
         body = path.read_bytes()
-        grid = load_grid(path)
+        grid = load_grid(path, spec_for(contract))
         if (
             grid["member"] != member
             or (grid["recipe_digest"], grid["seed"]) != expected[member]
@@ -895,10 +897,12 @@ def _results(experiment):
     return results
 
 
-def run_select(experiment):
-    """Apply the pre-registered member rule to EV4's results and write the
-    selection and the verification jobs, once. A second call returns the
-    recorded selection and never re-selects."""
+def run_select(experiment, *, scores=None, admissible=None):
+    """Apply the pre-registered member rule to the study's results and write
+    the selection and the verification jobs, once. A second call returns the
+    recorded selection and never re-selects. `scores` and `admissible` are
+    `select_members`' (EV5: the SR-2 candidate's scores and the members the
+    gate passes; `carbon.battery.value.ev5_run` supplies them)."""
     from carbon.development_session.data import write_once
 
     contract = _ev4_contract(experiment)
@@ -911,9 +915,24 @@ def run_select(experiment):
         row["member"]: row["strategy"]["backbone"]
         for row in experiment.manifest()["panel"]
     }
-    chosen = {r["member"] for r in select_members(results, backbones) if r["member"]}
-    grids = {m: load_grid(_dir(experiment, "grid") / f"{m}.json.gz") for m in chosen}
-    selection = select(contract, results, backbones, grids)
+    chosen = {
+        r["member"]
+        for r in select_members(
+            results,
+            backbones,
+            spec_for(contract),
+            scores=scores,
+            admissible=admissible,
+        )
+        if r["member"]
+    }
+    grids = {
+        m: load_grid(_dir(experiment, "grid") / f"{m}.json.gz", spec_for(contract))
+        for m in chosen
+    }
+    selection = select(
+        contract, results, backbones, grids, scores=scores, admissible=admissible
+    )
     write_once(path, _json_bytes(selection))
     write_once(out / "jobs.json", _json_bytes({"jobs": selection["jobs"]}, indent=1))
     return selection

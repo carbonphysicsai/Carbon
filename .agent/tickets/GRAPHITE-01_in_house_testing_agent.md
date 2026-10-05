@@ -782,6 +782,22 @@ Other changes:
     grants README.
   - Files: `graphite/roles.py`, `graphite/provider.py`, `graphite/phase3.py`,
     the phase-3 grant README.
+- **GRAPHITE-D35, the phase-4 Attacker's whole context window** (owner,
+  2026-10-05, relayed by the Test Lead: "yes for attacker budget"; recorded
+  in `.agent/decisions/2026-10-05-GRAPHITE-D35.md`).
+  - D34's mechanism, reused: `roles.WHOLE_CONTEXT_ROLES` names the
+    Constructor and the Attacker, and both get the same per-model table in
+    `roles.MODEL_SETTINGS`. On `glm-5.2` an Attacker session opens with
+    262,144 input tokens and a 600 s timeout on `engy-chat`. Other roles keep
+    `DEFAULT_SETTINGS`; a recorded session resumes with its recorded
+    selection.
+  - The grant is unchanged: at full reservation the Attacker's 1.93 token
+    allowance holds 10 `glm-5.2` calls (40 before); a `kimi-k3` call (USD
+    2.0647) cannot be admitted.
+  - `phase4 run --dry-run` and `phase4 prelive` print the `attacker_model`
+    block.
+  - Files: `graphite/roles.py`, `graphite/provider.py`, `graphite/phase4.py`,
+    `graphite/phase4_prelive.py`.
 
 **Running phase 3 live** (the later session; the grant expires 2026-12-31):
 

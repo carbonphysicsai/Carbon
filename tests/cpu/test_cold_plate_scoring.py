@@ -41,9 +41,13 @@ def test_cooling_reuses_only_the_registered_public_practice_surface():
     assert cooling.work_seconds() == 600
 
 
-def test_two_registered_scorings_have_no_unnamed_default():
+def test_registered_scorings_have_no_unnamed_default():
     assert cs.registered() == sorted(
-        ["battery-fastcharge-ageing-development-v1", CHALLENGE.challenge_id]
+        [
+            "battery-fastcharge-ageing-development-v1",
+            CHALLENGE.challenge_id,
+            "electric-motor-magnetics",
+        ]
     )
     with pytest.raises(cs.ScoringUnavailable) as refused:
         cs.scoring_for(None)

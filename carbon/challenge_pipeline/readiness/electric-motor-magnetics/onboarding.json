@@ -1,0 +1,20 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-onboarding.v1",
+ "challenge": "electric-motor-magnetics",
+ "status": "DRAFT",
+ "note": "DRAFT by the Graphite Testing Manager from repository paths and decision records; the Test Lead reviews and approves it as a PR.",
+ "decision_ids": [
+  "OWNER-GRAPHITE-TEST-WAVE-01",
+  "OWNER-GRAPHITE-TEST-WAVE-02",
+  "OWNER-GRAPHITE-TEST-WAVE-03",
+  "OWNER-GRAPHITE-TEST-WAVE-04",
+  "OWNER-GRAPHITE-TEST-WAVE-05",
+  "OWNER-GRAPHITE-TEST-WAVE-06",
+  "OWNER-GRAPHITE-TEST-WAVE-07",
+  "CHALLENGE-MOTOR-DECISION-FOUNDATION-01",
+  "CHALLENGE-MOTOR-L0-02",
+  "OWNER-DATA-MOTOR-01",
+  "OWNER-MOTOR-COUNTED-ADOPT-01",
+  "GRAPHITE-ATTACKER-MOTOR-L0"
+ ]
+}

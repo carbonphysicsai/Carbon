@@ -1,0 +1,227 @@
+{
+  "schema": "carbon.motor.decision-study-config.v1",
+  "study_id": "motor-synthetic-decision-v2",
+  "material": "DEVELOPMENT",
+  "scope": "2d-8-pole-24-slot-periodic-cross-section-v1",
+  "scenario": {
+    "requirement_ref": "OWNER_GRAPHITE_TEST_WAVE_01_SECTION_6",
+    "min_mean_torque_nm": 4.0,
+    "max_ripple_fraction": 0.3,
+    "approval_status": "APPROVED_SYNTHETIC_DEVELOPMENT_ASSUMPTIONS_OWNER_GRAPHITE_TEST_WAVE_01",
+    "operating_control": "A fixed geometry is evaluated at six commanded peak-current-density and current-angle pairs. The command is assumed settled before each magnetostatic sweep; controller dynamics, voltage limits, speed, thermal limits and inverter feasibility are outside this study."
+  },
+  "designs": [
+    {
+      "design_id": "d01",
+      "values": {
+        "magnet_mm": 2.0,
+        "embrace": 0.65,
+        "airgap_mm": 0.4,
+        "slot_open_deg": 3.7,
+        "tooth_mm": 3.5,
+        "slot_bottom_mm": 38.16
+      }
+    },
+    {
+      "design_id": "d02",
+      "values": {
+        "magnet_mm": 2.0,
+        "embrace": 0.65,
+        "airgap_mm": 0.8,
+        "slot_open_deg": 3.7,
+        "tooth_mm": 3.5,
+        "slot_bottom_mm": 38.16
+      }
+    },
+    {
+      "design_id": "d03",
+      "values": {
+        "magnet_mm": 2.0,
+        "embrace": 0.85,
+        "airgap_mm": 0.4,
+        "slot_open_deg": 3.7,
+        "tooth_mm": 3.5,
+        "slot_bottom_mm": 38.16
+      }
+    },
+    {
+      "design_id": "d04",
+      "values": {
+        "magnet_mm": 2.0,
+        "embrace": 0.85,
+        "airgap_mm": 0.8,
+        "slot_open_deg": 3.7,
+        "tooth_mm": 3.5,
+        "slot_bottom_mm": 38.16
+      }
+    },
+    {
+      "design_id": "d05",
+      "values": {
+        "magnet_mm": 3.5,
+        "embrace": 0.65,
+        "airgap_mm": 0.4,
+        "slot_open_deg": 3.7,
+        "tooth_mm": 3.5,
+        "slot_bottom_mm": 38.16
+      }
+    },
+    {
+      "design_id": "d06",
+      "values": {
+        "magnet_mm": 3.5,
+        "embrace": 0.65,
+        "airgap_mm": 0.8,
+        "slot_open_deg": 3.7,
+        "tooth_mm": 3.5,
+        "slot_bottom_mm": 38.16
+      }
+    },
+    {
+      "design_id": "d07",
+      "values": {
+        "magnet_mm": 3.5,
+        "embrace": 0.85,
+        "airgap_mm": 0.4,
+        "slot_open_deg": 3.7,
+        "tooth_mm": 3.5,
+        "slot_bottom_mm": 38.16
+      }
+    },
+    {
+      "design_id": "d08",
+      "values": {
+        "magnet_mm": 3.5,
+        "embrace": 0.85,
+        "airgap_mm": 0.8,
+        "slot_open_deg": 3.7,
+        "tooth_mm": 3.5,
+        "slot_bottom_mm": 38.16
+      }
+    }
+  ],
+  "conditions": [
+    {
+      "condition_id": "r01",
+      "group": "REPRESENTATIVE",
+      "values": {
+        "current_density_a_mm2": 8.0,
+        "current_angle_deg": 0.0
+      }
+    },
+    {
+      "condition_id": "r02",
+      "group": "REPRESENTATIVE",
+      "values": {
+        "current_density_a_mm2": 10.0,
+        "current_angle_deg": 0.0
+      }
+    },
+    {
+      "condition_id": "r03",
+      "group": "REPRESENTATIVE",
+      "values": {
+        "current_density_a_mm2": 12.0,
+        "current_angle_deg": 0.0
+      }
+    },
+    {
+      "condition_id": "r04",
+      "group": "REPRESENTATIVE",
+      "values": {
+        "current_density_a_mm2": 10.0,
+        "current_angle_deg": 15.0
+      }
+    },
+    {
+      "condition_id": "b01",
+      "group": "BOUNDARY_STRESS",
+      "values": {
+        "current_density_a_mm2": 15.0,
+        "current_angle_deg": 0.0
+      }
+    },
+    {
+      "condition_id": "b02",
+      "group": "BOUNDARY_STRESS",
+      "values": {
+        "current_density_a_mm2": 12.0,
+        "current_angle_deg": 30.0
+      }
+    }
+  ],
+  "models": {
+    "analytic-v1": {
+      "kind": "TEXTBOOK_SURFACE_PM_ANALYTICAL_BASELINE",
+      "seed": 0
+    },
+    "learned-krr-v1": {
+      "kind": "GAUSSIAN_KERNEL_RIDGE",
+      "training_records": "docs/development/evidence/motor-pools-v1/train.jsonl",
+      "calibration_report": "docs/development/evidence/motor-pools-v1/baselines.json",
+      "length": 4.0,
+      "ridge": 0.0001,
+      "seed": 0
+    }
+  },
+  "methods": {
+    "fixed_grid": {
+      "method": "fixed_grid",
+      "parameters": {}
+    },
+    "screen_then_confirm": {
+      "method": "screen_then_confirm",
+      "parameters": {
+        "screen_condition": 5
+      }
+    }
+  },
+  "budgets": {
+    "model_query_points_per_arm": 48,
+    "verification_condition_evaluations_per_arm": 6,
+    "reference_session_condition_evaluations": 72,
+    "comparator_condition_evaluations": 48,
+    "initial_solver_executions": 48,
+    "retry_reserve": 12,
+    "hard_solver_execution_cap": 60,
+    "max_retries_per_case": 1,
+    "retry_eligible_statuses": [
+      "FAILED_INFRA",
+      "REFERENCE_SOLVER_FAILED",
+      "REFERENCE_TIMEOUT"
+    ],
+    "cpus_per_solver_execution": 2,
+    "parallel_solver_executions": 6,
+    "solver_timeout_seconds": 3600,
+    "artifact_retention": "all",
+    "planning_initial_core_hours": 96.0,
+    "planning_hard_cap_core_hours": 120.0,
+    "configured_initial_allocated_core_hour_ceiling": 96.0,
+    "configured_hard_cap_allocated_core_hour_ceiling": 120.0
+  },
+  "analysis": {
+    "proposal_classification": [
+      "CONFIRMED_INFEASIBLE",
+      "CONFIRMED_FEASIBLE",
+      "UNRESOLVED",
+      "ABSTAIN"
+    ],
+    "missing_evidence_policy": "A confirmed violation remains CONFIRMED_INFEASIBLE even if another required condition is unavailable; no violation plus missing evidence is UNRESOLVED.",
+    "comparator_policy": "Exact finite-set regret is allowed only after all potentially competitive designs are sufficiently resolved; otherwise report only a difference from the best observed feasible design.",
+    "group_reporting": "REPRESENTATIVE and BOUNDARY_STRESS are reported separately; no combined weighting is approved.",
+    "reliability_policy": "Descriptive fixed-pilot counts only; no population reliability or generalisation interval.",
+    "budget_views": {
+      "deciding": "equal measured compute cost priced on recorded hardware",
+      "diagnostic": "equal attempted model-query count",
+      "amortised": "measured break-even decision count including one-time training cost"
+    }
+  },
+  "claims": {
+    "customer_acceptance": false,
+    "global_optimum": false,
+    "population_reliability": false,
+    "scientific_qualification": false,
+    "production_qualification": false,
+    "launch_readiness": false
+  }
+}

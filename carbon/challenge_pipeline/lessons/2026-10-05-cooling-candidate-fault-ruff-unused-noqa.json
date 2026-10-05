@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-ruff-unused-noqa",
+  "recorded_at": "2026-10-05T12:10:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "focused Ruff and Black checks",
+    "description": "Ran Ruff before Black on the eight changed Python source and test modules in the verified Linux tree."
+  },
+  "expected": "The focused lint and format checks pass.",
+  "observed": "Ruff stopped on two unused BLE001 noqa directives because this repository configuration does not flag the broad exception clauses themselves; Black did not run after the failed first command.",
+  "keep": [
+    "Keep the broad catches localized to the two registered candidate-fault boundaries."
+  ],
+  "change": [
+    "Remove only the unused noqa directives and rerun both checks."
+  ],
+  "protocol_elements": [
+    "challenge_validator.cooling",
+    "quality_gate"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

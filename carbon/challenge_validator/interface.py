@@ -64,10 +64,19 @@ OUTCOME_REQUIRED = (
 #:   (OWNER-GRAPHITE-TEST-WAVE-01 item 6);
 #: - `cooling-graphite-confirmation-v1`: Cooling's future operator-held
 #:   confirmation set. The role is reserved before a set exists; reserving it
-#:   creates no cases, seed or batch (CHALLENGE-AI-COOLING-08).
+#:   creates no cases, seed or batch (CHALLENGE-AI-COOLING-08);
+#: - `motor-graphite-confirmation-v1`: the motor's future operator-held
+#:   confirmation set, reserved the same way (VALIDATOR-03).
+#: Each is registered in `confirmation_sets/` (`confirmation.load_sets`).
 COOLING_CONFIRMATION_ROLE = "cooling-graphite-confirmation-v1"
+MOTOR_CONFIRMATION_ROLE = "motor-graphite-confirmation-v1"
 RESERVED_SEED_ROLES = frozenset(
-    {"ev5-confirmation", "graphite-confirmation-v1", COOLING_CONFIRMATION_ROLE}
+    {
+        "ev5-confirmation",
+        "graphite-confirmation-v1",
+        COOLING_CONFIRMATION_ROLE,
+        MOTOR_CONFIRMATION_ROLE,
+    }
 )
 
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
@@ -155,6 +164,19 @@ class ReservedRole(PermissionError):
 
 class OutcomeContractViolation(RuntimeError):
     """An adapter returned a miner outcome outside the outcome contract."""
+
+
+class CandidateFault(RuntimeError):
+    """A registered candidate-triggered adapter fault.
+
+    The adapter supplies the already checked policy object. Dispatch never
+    interprets exception text or invents a classification.
+    """
+
+    def __init__(self, fault, policy):
+        super().__init__(fault)
+        self.fault = fault
+        self.policy = policy
 
 
 class ChallengeAdapter(abc.ABC):
@@ -312,11 +334,13 @@ def check_outcome(outcome, adapter):
 
 __all__ = [
     "COOLING_CONFIRMATION_ROLE",
+    "MOTOR_CONFIRMATION_ROLE",
     "OUTCOME_REQUIRED",
     "RESERVED_SEED_ROLES",
     "STATES",
     "TERMINAL_STATES",
     "Admitted",
+    "CandidateFault",
     "ChallengeAdapter",
     "OutcomeContractViolation",
     "ReservedRole",

@@ -46,6 +46,13 @@ Nothing else caps the session; money and time bind (OWNER-GRAPHITE-ATTACKER-01
 §5). An Attacker proposes no construction, so its session has no baseline and
 launches no pod; its frozen session record says so.
 
+**Model settings** (GRAPHITE-D35). A new Attacker session opens on
+`engy-chat` with its model's whole published context and a 600 s timeout
+(`roles.MODEL_SETTINGS`, the Constructor's GRAPHITE-D34 mechanism); a model
+with no recorded context is refused before anything opens. A recorded
+session resumes with the selection it recorded. The dry run and `prelive`
+print the session's `attacker_model` block.
+
 **Carbon's side** reads the session's journal, never the model's prose
 (`attack.analysis.attempts`), maps each attempt to a family through the
 adapter (`map_to_families`) and verifies every one (`attack.verify.verify`):
@@ -105,7 +112,6 @@ import sys
 from decimal import Decimal
 from pathlib import Path
 
-from carbon.challenge_readiness import conditional_evidence
 from carbon.challenge_readiness.admission import CHECKS, LEDGER_TRACK
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
@@ -127,7 +133,7 @@ from .phase3 import (
     load_grant,
 )
 from .pods import PodFailure
-from .provider import EPOCH, OWNER, GraphiteProvider, SessionBrief
+from .provider import EPOCH, OWNER, GraphiteProvider, SessionBrief, tool_text_of
 from .roles import PARALLEL_RULES, ROLES, RoleName
 
 REPOSITORY = Path(__file__).resolve().parents[3]
@@ -156,7 +162,9 @@ ATTACK_BUDGET = 8
 #: The strategy label the knowledge store records for the Attacker's attempts:
 #: `graphite-attacker:<operation>` ("which strategy found what").
 STRATEGY = "graphite-attacker"
-#: v3 adds `conditional_on` and `conditional_policy` (conditional-evidence.v1).
+#: v3 adds `conditional_on` and `conditional_policy` (conditional-evidence.v1;
+#: under v2 the tag also carries `repaired_by_attestation` while a finding is
+#: released by an attested repair, as the policy it names defines).
 LOG_SCHEMA = "carbon.graphite.attacker-iteration-log.v3"
 #: v3 adds the per-check view (`check_view`): every Track A check, the run
 #: families and NOT_RUN seams the adapter declares for it, and any report row
@@ -165,10 +173,17 @@ LOG_SCHEMA = "carbon.graphite.attacker-iteration-log.v3"
 #: controller), the held-out wrongful-rejection rate per family and the
 #: store's suite pin. v5 adds `conditional_on` and `conditional_policy`: the
 #: findings open once Carbon's side recorded every finding, the session's own
-#: included (conditional-evidence.v1). v6 adds `construction_identity`: the
-#: shared copy probe's run (OWNER-GRAPHITE-TEST-WAVE-04 §1), its findings
-#: under `findings_by_source["copy_probe"]`.
-COVERAGE_SCHEMA = "carbon.graphite.attacker-coverage.v6"
+#: included (conditional-evidence.v1; the tag's keys are the named policy's).
+#: v6 carries verdict v2 records and family report v4, and adds
+#: `agreed_admissible`: the attempts an advisory tool and Carbon's
+#: authoritative chain both accept as valid and in contract (no breach, no
+#: usability defect; counted like NOT_APPLICABLE). A v5 report keeps its
+#: meaning: its UNDETERMINED verdicts are never re-read as agreed.
+#: v7 carries verdict v3 records (`artifact`) and family report v5
+#: (`distinct`), and adds `construction_identity`: the shared copy probe's
+#: run (OWNER-GRAPHITE-TEST-WAVE-04 §1), its findings under
+#: `findings_by_source["copy_probe"]`. A v6 report keeps its meaning.
+COVERAGE_SCHEMA = "carbon.graphite.attacker-coverage.v7"
 #: The eight Track A checks every coverage report accounts for.
 TRACK_A_CHECKS = tuple(sorted(CHECKS[LEDGER_TRACK]))
 PIN_SCHEMA = "carbon.graphite.attacker-store-pin.v1"
@@ -553,8 +568,11 @@ class AttackerProvider(Phase3Provider):
                 transport=self.model.transport_for(selection),
                 provider=selection,
                 instructions=role.prompt,
-                tools=role.tool_schemas(),
+                tools=role.tool_schemas(tool_text_of(opened)),
                 parallel_calls=PARALLEL_RULES.get(role.name),
+                # The Attacker's run ledger meters no research trials (its
+                # budget is 0); never tell the agent "0 of 0 trials left".
+                omit_unmetered_trials=True,
                 **self._loop_limits(opened),
             )
 
@@ -822,7 +840,8 @@ def store_outcome(verdict, verify):
         if any(code in reason for code in INFRA_FAILURE_REASONS):
             return "FAILED_INFRA"
         return "CRASH"
-    return "NOT_RUN"  # UNDETERMINED or NOT_APPLICABLE: nothing judged
+    # UNDETERMINED, NOT_APPLICABLE or AGREED_ADMISSIBLE: nothing judged.
+    return "NOT_RUN"
 
 
 def _specimen_value(attempt, analysis):
@@ -1020,6 +1039,14 @@ def record_report_findings(family_report, control, verify):
     return ids
 
 
+def retag(result, control):
+    """Re-tag `result` with the controller's tag now: a result built before
+    the findings it raises were recorded carries them too
+    (conditional-evidence.v2 "ordering")."""
+    result.update(control.conditional_tag())
+    return result
+
+
 def carbon_side(
     store,
     control,
@@ -1032,9 +1059,17 @@ def carbon_side(
     kstore,
     view,
     session=1,
+    canaries=(),
+    carrier=None,
 ):
     """Carbon's own side of a finished session, through the engine (module
     docstring). Returns (coverage report, B2, finding ids, store digest).
+
+    `canaries` and `carrier` are the operator-side hooks the miner-local
+    isolation judgement reads (`analysis.isolation_breach`): the registered
+    canary tokens, and the carrier's own per-attempt evidence. Both default to
+    empty, so a run with no planted canaries judges a miner-local action by its
+    own result alone.
 
     Every finding reaches the controller through one record path, whatever
     raised it: the Attacker's verdicts (`verify.record`), held-out controls
@@ -1057,7 +1092,13 @@ def carbon_side(
     for family, attempts in mapped.items():
         for attempt in attempts:
             verdict = verify.verify(
-                attempt, adapter, pods=None, family=family, specimen_dir=specimen_dir
+                attempt,
+                adapter,
+                pods=None,
+                family=family,
+                specimen_dir=specimen_dir,
+                canaries=canaries,
+                carrier=carrier,
             )
             if is_finding(verdict, verify):
                 findings.extend(verify.record(verdict, control))
@@ -1090,6 +1131,11 @@ def carbon_side(
         by_source["copy_probe"] = verify.record_engine_findings(
             [probe["run"]], control, source="copy_probe"
         )
+    # Re-tagged once the findings it raises, the baseline's and the copy
+    # probe's are recorded, so it carries every finding open after Carbon's
+    # side recorded them (conditional-evidence.v2 "ordering"), as the
+    # coverage report does.
+    retag(family_report, control)
     findings = [*by_source["attacker"]]
     for source in ("held_out_controls", "deterministic_baseline", "copy_probe"):
         findings.extend(i for i in by_source.get(source, ()) if i not in findings)
@@ -1128,7 +1174,17 @@ def carbon_side(
         },
         "seams": [dict(POD_REBUILD_SEAM)],
         "claims": {"security_acceptance": False, "graded": False},
-        **conditional_evidence.tag(control.open_findings()),
+        # Advisory tools that diverged from Carbon's own boundary: usability
+        # records, never findings (an advisory tool is not an authority).
+        "usability": [v.usability for v in verdicts if v.usability],
+        # Advisory and authoritative agreement on a valid, in-contract
+        # construction: closed like NOT_APPLICABLE, never a hold.
+        "agreed_admissible": [
+            {"attempt": v.attempt, "family": v.family, "reason": v.reason}
+            for v in verdicts
+            if v.outcome == verify.AGREED_ADMISSIBLE
+        ],
+        **control.conditional_tag(),
     }
     return coverage, b2, findings, after
 
@@ -1223,7 +1279,7 @@ def run_session(
         "findings": findings,
         "store_pinned": view.digest,
         "store_after": coverage["attack_knowledge"]["after"] if coverage else None,
-        **conditional_evidence.tag(control.open_findings()),
+        **control.conditional_tag(),
     }
     if final in _TERMINAL:
         _log(store, entry)
@@ -1449,6 +1505,26 @@ def live_model(grant, credential_file, *, opener=None):
         raise RunnerRefused(refused.code) from None
 
 
+def attacker_model(provider, run_id):
+    """The Attacker session's model as its record froze it (GRAPHITE-D35):
+    phase 3's `model_window` (adapter, model, input window, admission
+    ceiling, output cap, timeout and reservation per call), with the run's
+    token allowance (`attacker_budget`) and how many calls it holds when each
+    keeps its full reservation. The dry run and `prelive` print it."""
+    from .phase3 import model_window
+
+    window = model_window(provider, run_id)
+    allowance = provider.budget.token_allowance_usd
+    reservation = window["reservation_usd"]
+    calls = None if reservation is None else int(allowance // Decimal(reservation))
+    return {
+        **window,
+        "token_allowance_usd": str(allowance),
+        "calls_at_full_reservation": calls,
+        "reservation_fits_token_allowance": calls is not None and calls >= 1,
+    }
+
+
 def live_provider(store, *, grant, model, adapter, miner_attach, scoring=None):
     """The provider a live Attacker run drives: `AttackerProvider` on the
     store's `graphite/` root with `NoVerifyPods` (Carbon's verify-pod rebuild
@@ -1671,6 +1747,9 @@ def dry_run(root, adapter, atk, *, miner_tools=None, scoring=None, variant=None)
             "path; Carbon's analysis, verification and the report are the engine's "
             "own. It sends nothing and spends nothing.",
             "money_cap_usd": str(provider.budget.token_allowance_usd),
+            # The Attacker's selection, as the session record froze it
+            # (GRAPHITE-D35): window, admission ceiling, timeout, reservation.
+            "attacker_model": attacker_model(provider, entry["run_id"]),
             "settled_usd": entry["settled_usd"],
             "settled_is_zero": settled_zero,
             "network_attempts": list(attempts),

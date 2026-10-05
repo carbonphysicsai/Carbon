@@ -22,7 +22,10 @@ A log is never stored when:
   `withheld_protected_material`);
 - it is too large to scan whole (`withheld_too_large_to_scan`);
 - the proposal's total log allowance is spent (`withheld_total_cap`).
-Its size and digest are recorded in every case.
+Its size and digest are recorded in every case. A log withheld for protected
+material also records which class of marker tripped (`marker_classes`, the
+class names of `protected_material.MARKER_CLASSES`): never a marker, never
+the matched text (GRAPHITE-POD-GPU-PROBE-01).
 
 **Isolation.** These files are operator evidence only. Nothing here is read
 back into a tool result, a feedback document, an event, the session record or
@@ -41,7 +44,7 @@ from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
 
 from . import pods as podlib
-from .protected_material import protected
+from .protected_material import marker_classes, protected
 
 #: The pod's log files Carbon keeps for a run that did not score.
 LOG_NAMES = ("program.log", "phase.log")
@@ -129,8 +132,25 @@ def names_protected(text):
     return protected(text)
 
 
+def withheld_classes(text):
+    """Which class of protected-material marker a withheld log tripped
+    (`protected_material.MARKER_CLASSES`): class names only, never a marker or
+    the matched text (GRAPHITE-POD-GPU-PROBE-01)."""
+    return marker_classes(text)
+
+
 def allowance_left(allowance):
     return allowance > 0
+
+
+def _withheld(entry, text):
+    """A log withheld for protected material: its size and digest, and the
+    classes of marker it tripped, never what matched."""
+    return {
+        **entry,
+        "status": WITHHELD_PROTECTED,
+        "marker_classes": withheld_classes(text),
+    }
 
 
 def _one(name, body, listed, allowance):
@@ -147,14 +167,14 @@ def _one(name, body, listed, allowance):
         return {**entry, "status": WITHHELD_TOO_LARGE}, None
     text = body.decode("utf-8", errors="replace")
     if names_protected(text):
-        return {**entry, "status": WITHHELD_PROTECTED}, None
+        return _withheld(entry, text), None
     if not allowance_left(allowance):
         return {**entry, "status": WITHHELD_TOTAL_CAP}, None
     head, tail, truncated = _bounded(body, allowance)
     stored = _stored(name, body, head, tail, truncated)
     if names_protected(stored.decode("utf-8", errors="replace")):
         # What would be stored must itself be clean (fail closed).
-        return {**entry, "status": WITHHELD_PROTECTED}, None
+        return _withheld(entry, stored.decode("utf-8", errors="replace")), None
     return {
         **entry,
         "status": KEPT,
@@ -244,4 +264,5 @@ __all__ = [
     "names_protected",
     "read_index",
     "scannable",
+    "withheld_classes",
 ]

@@ -1,0 +1,13 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-branches.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "status": "DRAFT",
+ "note": "PROPOSED names for the next unbuilt onboarding work, from the open gaps in the gate report; none is started. expected_owner is the session that should open it. O2 fails when a name exists on origin and is not STARTED here. PR Head tracks new branches: set state to STARTED when the expected owner opens one. The Test Lead edits the list to the names owners will really use.",
+ "planned_branches": [
+  {
+   "name": "claude/battery-confirmation-strata-none-uniform",
+   "expected_owner": "Carbon Validator",
+   "state": "PROPOSED"
+  }
+ ]
+}

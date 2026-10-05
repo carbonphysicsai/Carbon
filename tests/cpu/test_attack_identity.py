@@ -28,6 +28,7 @@ No network, pod, model, chain or spend.
 from __future__ import annotations
 
 import copy
+import dataclasses
 import json
 from pathlib import Path
 
@@ -175,7 +176,7 @@ def test_a_verdict_carries_an_artifact_only_for_a_rebuilt_construction():
             outcome=verify.HELD,
             artifact=ART_A,
         )
-    assert verify.SCHEMA == "carbon.attack.verdict.v2"
+    assert verify.SCHEMA == "carbon.attack.verdict.v3"
 
 
 # -- the build identity ----------------------------------------------------------------------
@@ -204,24 +205,39 @@ def test_battery_record_digest_aliases_a_default_made_explicit_the_artifact_does
     )
 
 
-def test_verify_binds_the_artifact_and_none_without_a_rebuild(tmp_path):
+def _authoritative_attempt(position, text):
+    """A probe attempt on an AUTHORITATIVE tool (`compile_strategy`), so its
+    breach is a finding (GRAPHITE-ATTACKER-ORACLE-AUTHORITY-01 §2)."""
+    return dataclasses.replace(
+        identity._probe_attempt("p", position, text),
+        tool=analysis.PREFIX + "compile_strategy",
+    )
+
+
+def test_the_probe_rebuild_binds_the_artifact_and_none_without_a_rebuild(tmp_path):
+    """The probe's artifact is Carbon's own rebuild (`verify.rebuild_artifact`).
+    `verify.verify` still judges an unassigned attempt NOT_APPLICABLE before
+    any rebuild, with no artifact (GRAPHITE-ATTACKER-ORACLE-AUTHORITY-01 §6)."""
     cooling = adapter_for(COOLING)
     base = scaffold(COOLING)
     texts = (json.dumps(base), json.dumps(base, indent=2))
-    found = [
-        verify.verify(
-            identity._probe_attempt("p", n, text), cooling, family=analysis.UNASSIGNED
-        )
+    built = [
+        verify.rebuild_artifact(identity._probe_attempt("p", n, text), cooling)
         for n, text in enumerate(texts, start=1)
     ]
-    assert found[0].artifact and found[0].artifact == found[1].artifact
-    assert found[0].record()["artifact"] == found[0].artifact
-    refused = verify.verify(
+    assert built[0]["rebuild"] == verify.REBUILT
+    assert built[0]["artifact"] and built[0]["artifact"] == built[1]["artifact"]
+    refused = verify.rebuild_artifact(
         identity._probe_attempt("p", 3, json.dumps(cooling.recipe_outside_contract())),
         cooling,
-        family=analysis.UNASSIGNED,
     )
-    assert refused.rebuild == verify.UNREBUILDABLE and refused.artifact is None
+    assert refused["rebuild"] == verify.UNREBUILDABLE and refused["artifact"] is None
+    unassigned = verify.verify(
+        identity._probe_attempt("p", 1, texts[0]), cooling, family=analysis.UNASSIGNED
+    )
+    assert unassigned.outcome == verify.NOT_APPLICABLE
+    assert unassigned.rebuild == verify.NO_CONSTRUCTION and unassigned.artifact is None
+    assert unassigned.record()["artifact"] is None
 
 
 # -- the copy probe ---------------------------------------------------------------------------
@@ -261,15 +277,30 @@ def test_the_copy_probe_holds_on_cooling():
     held_and_fired(identity.copy_probe(adapter_for(COOLING)))
 
 
-def test_the_copy_probe_on_motor_is_not_run_without_an_incumbent_never_a_pass():
-    """Motor registers no scoring yet (OWNER-GRAPHITE-TEST-WAVE-05 §1), so
-    the shared layer finds no incumbent: NOT_RUN. With its scaffold as the
-    incumbent, motor's real rebuild holds."""
+class NoIncumbent:
+    """A real adapter whose Challenge offers no incumbent construction."""
+
+    def __init__(self, real):
+        self.real = real
+
+    def __getattr__(self, name):
+        return getattr(self.real, name)
+
+    def incumbent_constructions(self):
+        return ()
+
+
+def test_the_copy_probe_on_motor_holds_and_is_not_run_without_an_incumbent():
+    """Motor now registers public practice scoring (MOTOR-GRAPHITE-SCORE-01),
+    so the shared layer finds its baseline as the incumbent and motor's real
+    rebuild holds, as it does with its scaffold. With no incumbent the probe
+    is NOT_RUN, never a pass."""
     motor = adapter_for(MOTOR)
-    probe = identity.copy_probe(motor)
+    held_and_fired(identity.copy_probe(motor))
+    held_and_fired(identity.copy_probe(motor, (motor_scaffold(),)))
+    probe = identity.copy_probe(NoIncumbent(motor))
     assert probe["state"] == "NOT_RUN" and probe["reason"] == identity.NO_INCUMBENT
     assert probe["run"] is None
-    held_and_fired(identity.copy_probe(motor, (motor_scaffold(),)))
 
 
 def test_counts_on_the_real_boundary_and_the_text_specimen():
@@ -456,7 +487,7 @@ def test_two_sessions_reusing_a_journal_identity_keep_two_specimens(tmp_path):
     shared = tmp_path / "specimens"
     found = [
         verify.verify(
-            identity._probe_attempt("p", 1, json.dumps(strategy)),
+            _authoritative_attempt(1, json.dumps(strategy)),
             Breaching(),
             family="recipe_surface",
             specimen_dir=shared,
@@ -471,7 +502,7 @@ def test_two_sessions_reusing_a_journal_identity_keep_two_specimens(tmp_path):
     assert found[0].specimen["folder"] != found[1].specimen["folder"]
     # A reworded copy of the first finds its specimen: one per artifact.
     again = verify.verify(
-        identity._probe_attempt("p", 2, json.dumps(base, indent=2)),
+        _authoritative_attempt(2, json.dumps(base, indent=2)),
         Breaching(),
         family="recipe_surface",
         specimen_dir=shared,

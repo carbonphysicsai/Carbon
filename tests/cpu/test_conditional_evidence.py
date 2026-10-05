@@ -8,14 +8,15 @@ Claims tested, on the fake provider and synthetic fixtures (no spend):
   ledger, a LOCK or the profile in force;
 - a development expansion proceeds with an open finding and is tagged with
   that finding's id and the canonical digest of its body, under the
-  registered policy `conditional-evidence.v1`;
+  registered policy `conditional-evidence.v2` (v1 stays registered);
 - every result recorded while a finding is open carries the tag: the
   controller's event, artifact and terminal entries and climb reports (attack
   family reports and phase 3 and phase 4 records, which need numpy:
   `test_conditional_evidence_graphite.py`);
 - a tagged result is refused as unconditional evidence at each citation site:
-  ladder TESTED and FROZEN evidence, an ACCEPTED level proposal, admission
-  report evidence and its LOCK, and a pipeline record's frozen run;
+  ladder TESTED and FROZEN evidence, an ACCEPTED level proposal, the evidence
+  of a PASS admission check and its LOCK, and a pipeline record's frozen run;
+  a FAIL check may cite it (`test_conditional_evidence_followup.py`);
 - a repaired finding leaves later development expansions untagged; one that
   recurs is open again, and LOCK stays refused throughout.
 
@@ -54,6 +55,8 @@ WIDER = "sha256:" + "f" * 64
 WIDEST = "sha256:" + "d" * 64
 OPERATOR = "carbon-operator"
 NOTE = "repaired the boundary and re-ran the affected attacks"
+#: repair-attestation.v1's re-run identities (synthetic).
+RERUN = {"rerun": ["attempt-0001"], "code_ref": "a" * 40}
 #: A development expansion names a registered development variant's digest
 #: (GRAPHITE-DEV-VARIANTS-01): the synthetic fixture variants stand in for the
 #: three development widenings these tests record.
@@ -120,7 +123,9 @@ def test_lock_is_still_refused_with_an_open_finding_on_the_controller(tmp_path):
     expand(controller, WIDER, development=True)  # exploration continues
     with pytest.raises(ctl.ControllerError, match="admission_expansion_after_finding"):
         expand(controller, WIDEST)
-    controller.record_repair("f1", operator=OPERATOR, note=NOTE, evidence=b"rerun")
+    controller.record_repair(
+        "f1", operator=OPERATOR, note=NOTE, evidence=b"rerun", **RERUN
+    )
     with pytest.raises(ctl.ControllerError, match="admission_expansion_after_finding"):
         expand(controller, WIDEST)  # a repair never reopens the LOCK path
     ledgers = controller.admission_ledgers()
@@ -198,7 +203,7 @@ def test_a_development_expansion_proceeds_and_is_tagged(tmp_path):
     assert entry["kind"] == "development"
     assert entry["conditional_on"] == [ref(controller, "f1")]
     assert entry["conditional_policy"] == ce.identity()
-    assert entry["conditional_policy"]["policy"] == "conditional-evidence.v1"
+    assert entry["conditional_policy"]["policy"] == "conditional-evidence.v2"
     ledger = controller.development_ledger()
     assert ledger["expansions"] == [clean, entry]
     assert ledger["open_findings"] == [ref(controller, "f1")]
@@ -290,10 +295,10 @@ def test_a_climb_report_carries_the_tag():
 
 
 def test_the_tagging_rule_is_a_registered_versioned_policy():
-    rules = ce.POLICIES["conditional-evidence.v1"]
+    rules = ce.POLICIES["conditional-evidence.v2"]
     identity = ce.identity()
     assert identity == {
-        "policy": "conditional-evidence.v1",
+        "policy": "conditional-evidence.v2",
         "status": rules["status"],
         "authority": rules["authority"],
         "digest": "sha256:"
@@ -316,6 +321,10 @@ def test_the_tagging_rule_is_a_registered_versioned_policy():
     ce.require_unconditional(
         {"conditional_on": [], "conditional_policy": identity}, site="test"
     )
+    # A result tagged under v1 keeps that identity, which stays registered.
+    v1 = ce.identity("conditional-evidence.v1")
+    assert v1["digest"] != identity["digest"]
+    ce.require_unconditional({"conditional_on": [], "conditional_policy": v1}, site="t")
 
 
 # --- a tagged result is never cited as unconditional ---------------------------------
@@ -390,16 +399,18 @@ def test_admission_evidence_and_the_lock_refuse_a_conditional_result(tmp_path, t
     tca.alter_report(tmp_path, block, cite, track)
     with pytest.raises(admission.AdmissionError, match=ce.CITED):
         admission.validate(block, "fixture", repository=tmp_path)
-    # Not only at acceptance: a FAILED report cites its evidence as observed.
+    # Not only at acceptance: a FAILED report whose checks PASS relies on its
+    # evidence too. (A FAIL check does not rely on it, and may cite it:
+    # `test_conditional_evidence_followup.py`, conditional-evidence.v2.)
     failed = tca.accepted(tmp_path, "fixture")
     study = failed["tracks"][track]
 
-    def fail(document):
+    def one_fail(document):
         cite(document)
-        for check in document["checks"].values():
-            check["result"] = "FAIL"
+        first = min(document["checks"])
+        document["checks"][first]["result"] = "FAIL"
 
-    tca.alter_report(tmp_path, failed, fail, track)
+    tca.alter_report(tmp_path, failed, one_fail, track)
     study.update(state="FAILED", acceptance=None)
     with pytest.raises(admission.AdmissionError, match=ce.CITED):
         admission.validate(failed, "fixture", repository=tmp_path)
@@ -417,7 +428,7 @@ def test_the_lock_refuses_conditional_evidence_it_binds(tmp_path):
 
     tca.alter_report(tmp_path, block, cite, admission.LEDGER_TRACK)
     with pytest.MonkeyPatch.context() as patch:
-        patch.setattr(admission, "_cited", lambda body, site: None)
+        patch.setattr(admission, "_cited", lambda body, site, **kw: None)
         admission.validate(block, "fixture", repository=tmp_path)  # specimen
     with pytest.raises(admission.AdmissionError, match=ce.CITED):
         admission._lock(
@@ -451,21 +462,33 @@ def test_a_repaired_finding_leaves_later_development_expansions_untagged(tmp_pat
     first = expand(controller, WIDE, development=True)
     assert [r["id"] for r in first["conditional_on"]] == sorted(["f1", *consumed])
     with pytest.raises(ctl.ControllerError, match="operator_required"):
-        controller.record_repair("f1", operator="agent", note=NOTE, evidence=b"rerun")
+        controller.record_repair(
+            "f1", operator="agent", note=NOTE, evidence=b"rerun", **RERUN
+        )
     with pytest.raises(ctl.ControllerError, match="say what was repaired"):
-        controller.record_repair("f1", operator=OPERATOR, note="fixed", evidence=b"x")
+        controller.record_repair(
+            "f1", operator=OPERATOR, note="fixed", evidence=b"x", **RERUN
+        )
     with pytest.raises(ctl.ControllerError, match="repair_evidence_required"):
-        controller.record_repair("f1", operator=OPERATOR, note=NOTE, evidence=b"")
+        controller.record_repair(
+            "f1", operator=OPERATOR, note=NOTE, evidence=b"", **RERUN
+        )
     with pytest.raises(ctl.ControllerError, match="no_such_finding"):
-        controller.record_repair("nope", operator=OPERATOR, note=NOTE, evidence=b"x")
-    controller.record_repair("f1", operator=OPERATOR, note=NOTE, evidence=b"rerun")
+        controller.record_repair(
+            "nope", operator=OPERATOR, note=NOTE, evidence=b"x", **RERUN
+        )
+    controller.record_repair(
+        "f1", operator=OPERATOR, note=NOTE, evidence=b"rerun", **RERUN
+    )
     with pytest.raises(ctl.ControllerError, match="finding_already_repaired"):
-        controller.record_repair("f1", operator=OPERATOR, note=NOTE, evidence=b"x")
+        controller.record_repair(
+            "f1", operator=OPERATOR, note=NOTE, evidence=b"x", **RERUN
+        )
     second = expand(controller, WIDER, development=True)
     assert [r["id"] for r in second["conditional_on"]] == sorted(consumed)
     for finding_id in consumed:
         controller.record_repair(
-            finding_id, operator=OPERATOR, note=NOTE, evidence=b"rerun"
+            finding_id, operator=OPERATOR, note=NOTE, evidence=b"rerun", **RERUN
         )
     third = expand(controller, WIDEST, development=True)
     assert third["conditional_on"] == []
@@ -478,7 +501,9 @@ def test_a_repaired_finding_leaves_later_development_expansions_untagged(tmp_pat
 def test_a_repaired_finding_that_recurs_is_open_again(tmp_path):
     controller = tc.make(tmp_path)
     controller.record_finding("f1", "FAILING_TRIGGER", b"one")
-    controller.record_repair("f1", operator=OPERATOR, note=NOTE, evidence=b"rerun")
+    controller.record_repair(
+        "f1", operator=OPERATOR, note=NOTE, evidence=b"rerun", **RERUN
+    )
     assert controller.open_findings() == []
     controller.record_finding("f1", "FAILING_TRIGGER", b"one")  # it recurred
     assert controller.open_findings() == [ref(controller, "f1")]

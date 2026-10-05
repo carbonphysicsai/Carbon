@@ -183,6 +183,29 @@ not participant constructions). The byte pin
 (`tests/cpu/test_attack_engine.py::test_battery_track_a_output_is_byte_identical_after_the_extraction`)
 passes unchanged. No pin update.
 
+### 8. Merge with the oracle-authority rules (#637, #644)
+
+- **The probe's artifact comes from Carbon's rebuild, not a verdict.**
+  GRAPHITE-ATTACKER-ORACLE-AUTHORITY-01 §6 judges an attempt no family takes
+  NOT_APPLICABLE before any rebuild, so `verify.verify(...,
+  family=UNASSIGNED)` no longer rebuilds or carries an artifact. The probe
+  (`identity.counts`) now reads Carbon's rebuild directly through
+  `verify.rebuild_artifact` (`verify._rebuild` + `identity.artifact_of`),
+  which judges nothing and is never a session verdict. §6 is unchanged.
+- **The specimen test uses an AUTHORITATIVE tool.** The probe attempt's tool
+  (`dry_validate`) is ADVISORY; under §2 an advisory acceptance is a
+  usability record, never a finding, so it gets no specimen. The
+  two-sessions specimen test uses `compile_strategy`. §2 is unchanged.
+- **Motor's incumbent.** MOTOR-GRAPHITE-SCORE-01 (#638) registers motor's
+  scoring, so motor's probe now runs on the registered baseline and holds;
+  NOT_RUN is tested on an adapter offering no incumbent.
+- **Versions** (invariant 10; main had released verdict v2, family report
+  v4, coverage v6 and re-judge v2 with other meanings): verdict v3 (v2's
+  outcomes plus `artifact`), family report v5 (`distinct`), coverage v7
+  (`construction_identity`) and re-judge v3 (verdict v3 records). Each
+  earlier version keeps its meaning. §1's "verdict schema v2", §2's
+  "report schema v4" and §5's "coverage report, schema v6" read as these.
+
 **Not done here.** Graphite's own phase-3 session metrics outside the
 modules above were not audited. A Level 1 adapter must supply an artifact
 identity that is the trained result (or an equivalent canonical build), not
