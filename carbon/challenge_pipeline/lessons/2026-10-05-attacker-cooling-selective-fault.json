@@ -1,0 +1,29 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-05-attacker-cooling-selective-fault",
+ "recorded_at": "2026-10-05T12:00:00Z",
+ "challenge": "chip-cold-plate",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": ".agent/decisions/2026-10-05-GRAPHITE-ATTACKER-COOLING-SF-01.md; branch claude/cooling-selective-crash",
+  "description": "Added the Test Lead's selective-crash probe to cooling's Level 0 attack adapter: a construction that raises or returns a non-finite output only on the cases where it scores worst, run through the real Interface v1 validator (a temporary store, Validator.evaluate, then the same submission again) and Graphite's real pod path (Experiment.run at Level 0 on a scripted pod account, Carbon's own practice program from its model onward), against a specimen that drops faulted cases; three mutations make an accounting drop them."
+ },
+ "expected": "Either the faulted cases are dropped from the score (a dodge) or the whole attempt is failed or charged.",
+ "observed": "No case was dodged on either path. Interface v1 types both a raise and a non-finite output FAILED_INFRA (adapter_failure): the raise ends the evaluation, and a NaN or infinity makes the operator score record unserialisable; nothing is stored and a resubmission fails the same way. Graphite types a raise CANDIDATE_FAILED at stage program, never retried, and a non-finite set ineligible (a regression). The hold rests on the harnesses having no per-case fault handling: both accountings exclude a case that arrives with no prediction and keep the set eligible with a better score (0.0769 against 0.0988 when the worst tenth is omitted), and Graphite's host does not check a predictions file is complete; no Level 0 construction can omit a case, so this is recorded as an owner seam, not a breach.",
+ "keep": [
+  "Run a failure-accounting probe through the real path end to end (validator dispatch, the pod experiment and its attribution policy), with the construction faulting at its own predict step, rather than through the scoring function alone.",
+  "Bind the evidence to which cases faulted and the score with and without them, so a hold shows what a dodge would have been worth.",
+  "Give each path its own mutation at the name it reads, and assert which attacks breach on which path."
+ ],
+ "change": [
+  "Owner decisions are named, not taken: whether a candidate's numerical fault on Interface v1 should be charged rather than typed FAILED_INFRA, and whether a case without a prediction from the construction's side is excluded or charged (the missing_prediction_attribution seam).",
+  "Battery's adapter has no equivalent probe; adding one is a separate change."
+ ],
+ "protocol_elements": [
+  "graphite.attacker",
+  "challenge.ai_cooling.level0"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
