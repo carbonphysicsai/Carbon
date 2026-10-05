@@ -1,0 +1,28 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-05-attacker-motor-level0-adapter",
+ "recorded_at": "2026-10-05T05:25:00Z",
+ "challenge": "electric-motor-magnetics",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": ".agent/decisions/2026-10-05-GRAPHITE-ATTACKER-MOTOR-L0.md; branch claude/attack-adapter-motor-l0, stacked on claude/attack-adapter-cooling-l0 (#587 on #584)",
+  "description": "Built motor's Level 0 attack adapter in cooling's shape: fifteen families over the eight Track A checks, the Test Lead's five motor vectors, trained and genuinely distinct held-out controls, an oracle that runs every attempt against the real boundary and a vulnerable specimen, Carbon's own typed rebuild record, NOT_RUN seams for every missing owner value and Levels 1 to 5, and twenty-four mutations; then ran the phase-4 dry run and pre-live gate at motor."
+ },
+ "expected": "With no motor ChallengeScoring registered, the phase-4 runner would refuse motor with a typed code, and every vector would still map to a boundary motor already registers: the public PRACTICE rule's gates and its separate mean and ripple components.",
+ "observed": "Every family held with its specimen firing, every control passed in both splits, all twenty-four mutations turned their guard red, and only the public TRAIN, PRACTICE and calibration files were opened. phase4 run --dry-run and phase4 prelive at electric-motor-magnetics each exited 2 with REFUSED challenge_scoring_not_registered before writing anything. The flipped-orientation vector is covered whole by registered rules (the motoring-mean gate, the angle-by-angle ripple and the input box), so it needs no seam. Three vectors (flat curve, rescaled ripple, saturation-blind iron) and the phase shift have a registered score effect but no registered tolerance; their refusal side is a NOT_RUN seam naming the owner value. One planned attack was wrong, not the boundary: the motor scaffold under cooling's Challenge id is a valid cooling recipe (the same grid tokens), so the cross-Challenge attack now names battery, which registers no kernel-ridge family.",
+ "keep": [
+  "When a Challenge has no ChallengeScoring yet, attack the registered practice rule its own provider uses, build Carbon's rebuild record from the same public pieces, and declare the missing pod scoring as a seam with a tripwire test that fails when one is registered.",
+  "Check a cross-Challenge attack against every registered contract: a recipe valid under the Challenge it names is no breach."
+ ],
+ "change": [
+  "Register a motor ChallengeScoring (the separate validator and scoring ticket); then move the adapter's rebuild to experiment.admit, as cooling's does, and rerun the phase-4 dry run and pre-live gate.",
+  "Extract the per-attempt reading (assess) into the neutral core; battery, cooling and motor now carry three copies."
+ ],
+ "protocol_elements": [
+  "graphite.attacker",
+  "challenge.motor.level0"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
