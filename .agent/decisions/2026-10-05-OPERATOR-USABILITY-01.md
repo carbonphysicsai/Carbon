@@ -100,31 +100,50 @@ knowledge refusal is `attack_knowledge_<code>` as `replay_guard` names it, a
 grant refusal is `grant_refused`. Any other exception - a pod or provider
 failure, a bug - keeps its traceback: it is not a refusal.
 
-### D5. A short-lived MCP launch left QUEUED: root cause not established (C1)
+### D5. A short-lived MCP launch left QUEUED: the launch ran in the MCP process (C1)
 
-**Observed.** The design already makes a launch independent of its client
-(LP-PROD-C): an MCP door is a CLIENT that records the launch, queues it and
-starts a detached supervisor in its own session; a supervisor that takes the
-lock re-queues a launch left QUEUED with nothing queued
-(`_redispatch_stranded`); a client start and every `carbon_observe` of a
-QUEUED item with no supervisor start one. Ruled out here: (a) a child in its
-own session dying with its `wsl.exe` client - probed on this host, it
-survives both a normal exit and a forced kill of `wsl.exe`; (b) the MCP
-SDK's stdio teardown (`killpg` of the server's process group, which the
-supervisor is not in); (c) an INLINE host on any MCP path (every door
-constructs a CLIENT). Still possible, and not distinguishable without the
-session-1 records: the client killing the server between recording the
-launch and starting the supervisor, or a detached supervisor exiting at
-start (it exits 2 silently on an unusable profile).
+**Evidence.** Campaign `4f59532a796a1c491f0c5d43893f3b84` (session 1,
+2026-10-03 12:24 local; the coordinator's shared evidence bundle
+`c1-queued`): the
+launch returned QUEUED; its directory was created before the return and held
+only `owner.lock` and `campaign.sqlite3`; the ledger has no `campaign` row
+and there is no `campaign-manifest.json`, so it was never frozen.
 
-**Decision.** No change to launch or supervision without the evidence. The
-launch tool's door note now says the supervisor, not the session, carries
-the campaign out, and what to do when `in_flight` stays QUEUED with
-`supervisor_running` false: observe again (which starts a supervisor), then
-open the Control Center. The smallest evidence to settle it: for the
-stranded campaign, its `launchpad_dispatch` rows, `last_refusal`,
-`interruptions.jsonl`, and whether a `scripts.dev.miner_launchpad.supervisor`
-process started after the launch.
+**Root cause (confirmed).** Session 1 ran main as of `6cffd988b` (merged
+12:22 that day). There `RunnerAdapter.launch_admitted` called
+`self._start(...)` (`scripts/dev/miner_launchpad/runner.py:1174` at
+`6cffd988b`), and `_start` ran the whole launch on a daemon thread of the
+receiving process (`runner.py:1641-1648`): it took the campaign's
+`owner.lock`, opened the ledger and `CampaignControl.acquire()`
+(`runner.py:1674-1676`) - the two files the evidence shows - and only later
+froze the manifest. A stdio MCP server is that process, so when the
+short-lived client exited the daemon thread died before the freeze. The
+evidence matches this step exactly, and nothing else wrote to the directory
+until the miner's Reconcile.
+
+**Already fixed on main before this PR.** `70d987c31` (LP-PROD-C,
+2026-10-03 15:52, on main) made an MCP door a CLIENT: `launch_admitted`
+records the launch with its request (`launch_request`), `_dispatch_run`
+queues it in `launchpad_dispatch` and starts a detached supervisor in its own
+session (`supervisor.spawn_detached`); a client never runs a campaign thread
+(`_delegating`). A supervisor that takes the lock re-queues a launch left
+QUEUED with no manifest and nothing queued (`_redispatch_stranded`), once,
+from its record; a legacy row with no recorded request is refused
+`launch_choices_unrecorded` with its next step. The launch contract is
+unchanged: it still returns QUEUED at once. Probed here as well: a child in
+its own session survives both a normal exit and a forced kill of its
+`wsl.exe` client, and the MCP SDK's stdio teardown signals only the server's
+own process group.
+
+**Decision.** No change to the launch path; this PR pins it with two
+regression tests against the real campaign host: a client that dies right
+after `carbon_launch` returns (never closed) has run nothing - no thread, no
+campaign lock, no ledger - and a detached supervisor carries the campaign to
+READY with its manifest; and a client killed between recording the launch
+and queueing it leaves a QUEUED row that the next client start wakes a
+supervisor for, which re-queues and prepares it. The launch tool's door note
+says the supervisor, not the session, carries the campaign out, and what to
+do when `in_flight` stays QUEUED with `supervisor_running` false.
 
 ### Public interfaces
 

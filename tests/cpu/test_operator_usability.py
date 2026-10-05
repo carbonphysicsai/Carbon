@@ -12,6 +12,12 @@ import json
 from types import SimpleNamespace
 
 import pytest
+from test_launchpad_supervisor import (
+    campaign_root,
+    dispatches,
+    journey,  # noqa: F401 - the fixture, read by name (getfixturevalue)
+    launch,
+)
 
 from carbon.agent_campaign.controller import ControllerError
 from carbon.agent_campaign.grant import GrantError
@@ -24,6 +30,8 @@ from carbon.development_session.research_control import (
 )
 from carbon.development_session.research_ledger import CampaignLedger
 from carbon.development_session.research_report import render_status
+from scripts.dev.miner_launchpad import supervisor as supervision
+from scripts.dev.miner_launchpad.runner import RunnerAdapter
 
 
 def _campaign(tmp_path, now):
@@ -233,6 +241,86 @@ def test_phase4_knowledge_errors_keep_the_stores_prefix(capsys, monkeypatch, tmp
         "status": "REFUSED",
         "reason_code": "attack_knowledge_entry_unknown",
     }
+
+
+# -- D5: a launch outlives the MCP client that received it --------------------------
+# Session 1 (2026-10-03, main 6cffd988b) ran the launch on a daemon thread of
+# the MCP process (`launch_admitted` -> `_start`), which died with it after
+# creating the campaign's lock and ledger and before the freeze. Since
+# LP-PROD-C a client only records and queues; these pin that against a client
+# that dies without closing.
+def _detached_runs_until_idle(launchpad):
+    detached = launchpad.peer(supervision.DETACHED)
+    detached.supervisor.poll, detached.supervisor.idle_exit = 0.02, 0.1
+    assert detached.supervisor.run_until_idle() is True
+    for thread in list(detached.threads.values()):
+        thread.join(timeout=30)
+        assert not thread.is_alive()
+    return detached
+
+
+def test_a_client_that_dies_right_after_launch_returns_loses_nothing(request):
+    launchpad = request.getfixturevalue("journey")
+    client = launchpad.peer(supervision.CLIENT)
+    launched = launch(client)
+    identity = launched["id"]
+    root = campaign_root(client, identity)
+    # Nothing of the launch runs in the client: no thread, no campaign lock
+    # or ledger (session 1's directory held both), a queued item and a
+    # detached supervisor started for it.
+    assert client.threads == {}
+    assert not (root / "campaign.sqlite3").exists()
+    assert not (root / "owner.lock").exists()
+    assert launched["state"] == "QUEUED"
+    assert launched["in_flight"]["state"] == "QUEUED"
+    assert launchpad.spawned == [1]
+    # The client dies here: never closed, nothing more from it.
+    detached = _detached_runs_until_idle(launchpad)
+    view = detached.get(identity)
+    assert view["state"] == "READY"
+    assert view["last_refusal"] is None
+    assert (root / "campaign-manifest.json").exists()
+    assert [d["state"] for d in dispatches(detached)] == ["DONE"]
+
+
+class _Died(BaseException):
+    """The client process killed mid-call (SIGTERM): no cleanup runs."""
+
+
+def test_a_client_killed_between_recording_and_queueing_is_recovered(
+    request, monkeypatch
+):
+    launchpad = request.getfixturevalue("journey")
+    client = launchpad.peer(supervision.CLIENT)
+
+    def killed(*args, **kwargs):
+        raise _Died
+
+    monkeypatch.setattr(client, "_dispatch_run", killed)
+    with pytest.raises(_Died):
+        launch(client)
+    with client.db() as db:
+        (identity,) = db.execute("SELECT id FROM launchpad_campaigns").fetchone()
+        assert tuple(
+            db.execute("SELECT COUNT(*) FROM launchpad_dispatch").fetchone()
+        ) == (0,)
+    assert launchpad.spawned == []
+    # The next client to start wakes a supervisor for the stranded launch,
+    # which re-queues it from its record and carries it out.
+    later = RunnerAdapter(
+        launchpad.host.database, principal="alice", role=supervision.CLIENT
+    )
+    later.configured = launchpad.host.configured
+    try:
+        later.wake_if_stranded()
+    finally:
+        later.close()
+    assert launchpad.spawned == [1]
+    detached = _detached_runs_until_idle(launchpad)
+    view = detached.get(identity)
+    assert view["state"] == "READY"
+    root = campaign_root(detached, identity)
+    assert (root / "campaign-manifest.json").exists()
 
 
 def test_phase4_other_errors_keep_their_traceback(monkeypatch, tmp_path):

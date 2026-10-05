@@ -10,7 +10,7 @@
     "description": "Operator and agent usability fixes: the owner report carries the campaign controller's settled state and time, the halt operation's text names stop and pause, phase 3 reconcile says when an uncertain pod create settles, and phase 4 ends typed errors as typed refusals."
   },
   "expected": "An operator or agent can tell from Carbon's own outputs when a campaign has stopped running, how to stop it, when a reconcile can succeed, and why a phase-4 command refused.",
-  "observed": "The report's completed_unix is written only for a finished finite campaign, so a READY campaign's report looked like it was still running; an existing stop tool was missed because it is called halt; reconcile exited 4 for up to 600 s with no time to retry; phase 4 ended controller and knowledge refusals in tracebacks; a short-lived MCP launch was left QUEUED for a reason the code alone could not show.",
+  "observed": "The report's completed_unix is written only for a finished finite campaign, so a READY campaign's report looked like it was still running; an existing stop tool was missed because it is called halt; reconcile exited 4 for up to 600 s with no time to retry; phase 4 ended controller and knowledge refusals in tracebacks; a short-lived MCP launch on 2026-10-03 was left QUEUED with no manifest because the launch then ran on a daemon thread of the MCP process (fixed the same day by LP-PROD-C's client and supervisor split; now pinned by a dying-client regression test).",
   "keep": [
     "One operation table generates both doors: make an existing operation easier to find instead of adding a second name for it.",
     "A field that means 'finished' keeps one meaning; a different state such as settled or waiting for the miner gets its own field.",
@@ -18,7 +18,7 @@
   ],
   "change": [
     "Every derived report is rewritten when the state it summarizes changes, not only when the process that wrote it closes.",
-    "A stuck-state finding needs the run's records attached (dispatch rows, last_refusal, interruptions, process list) before the fix is chosen; without them the root cause stays open."
+    "A stuck-state finding records the commit it ran at and the run's records (ledger rows, files and times, dispatch rows, process list); with them, C1 traced in minutes to a launch path already replaced."
   ],
   "protocol_elements": [
     "research_report.control",
