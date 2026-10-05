@@ -780,9 +780,7 @@ def cmd_dispatch(a) -> None:
     # `carbon` tree's manifest grew past what the create request accepts
     # (OWNER-EV5-GPU-01, 2026-10-05).
     if a.ship_only:
-        listed = [
-            line.strip() for line in Path(a.ship_only).read_text().splitlines()
-        ]
+        listed = [line.strip() for line in Path(a.ship_only).read_text().splitlines()]
         listed = [p for p in listed if p]
         missing = sorted(set(listed) - set(ship_paths(ref, listed)))
         if missing:
