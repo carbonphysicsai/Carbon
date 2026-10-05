@@ -101,6 +101,8 @@ class BatteryScoring(ChallengeScoring):
         EVIDENCE + "/refs-a-part2/out/records.jsonl",
     )
     wrong_challenge_code = "not_the_battery_development_challenge"
+    #: `exam.COMPONENTS`: the per-case components every scored row carries.
+    declared_score_components = ("voltage", "temperature", "plating", "capacity")
     construction_objective = (
         "Propose battery TrainingStrategy recipes that beat the baseline under "
         "Carbon's frozen rule on public PRACTICE. Carbon runs, scores and "

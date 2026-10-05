@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-validator-09-score-variants",
+  "recorded_at": "2026-10-05T23:58:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-09 slice 1, branch claude/validator-09-score-variants. Canonical: score-variant tests and both unreachability invariants passed; the results are recorded in the PR.",
+    "description": "Development score variants are registered before they are computed and re-scored from stored per-case tuning rows, with a [0, 1] transform where 1 is best, and no miner surface can reach them."
+  },
+  "expected": "Score development could be a data registry plus a pure re-scorer over stored rows, kept out of every miner surface.",
+  "observed": "It could, because battery's rows already carry per-case components. The registry had to live outside carbon/challenge_validator, which is itself a walked miner surface, so the Challenge declares its components as data only.",
+  "keep": [
+    "Register a weighting before computing it; re-score from stored rows instead of retraining.",
+    "Prove a development-only module is unreachable with both the static import walk and a fresh-interpreter import of every door."
+  ],
+  "change": [
+    "Store per-case components with every score, so later weightings never need a re-run."
+  ],
+  "protocol_elements": [
+    "every Challenge's score development registers candidate weightings before computing them and keeps them unreachable from miners"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

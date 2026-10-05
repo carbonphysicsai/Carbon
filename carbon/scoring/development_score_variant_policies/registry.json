@@ -1,0 +1,5 @@
+{
+  "schema": "carbon.development-score-variant-registry.v1",
+  "variants": {},
+  "rule": "A development score variant is registered here, by digest, before it is computed (OWNER-GRAPHITE-TEST-WAVE-08 §3). It is never served to miners. A change is a new version, never an edit."
+}
