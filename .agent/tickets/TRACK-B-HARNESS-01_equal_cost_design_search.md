@@ -1,6 +1,6 @@
 # TRACK-B-HARNESS-01 — challenge-neutral equal-cost design-search harness
 
-**Status:** working contract; implementation in progress.
+**Status:** PR 1 (harness) implemented and fixture-tested; PR 2 (motor and cooling adapters) next.
 
 **Authority:**
 - OWNER-GRAPHITE-TEST-WAVE-01 §5 (the equal-budget rule) and §1 (test suite v1).
@@ -137,3 +137,15 @@ SPECIFIED, IMPLEMENTED and fixture/replay-TESTED. This is not scientific, securi
 
 - **The USD rate** for each hardware route used in a deciding view. Until then, core-seconds by route.
 - **Each challenge's registered decision budget B and its ladder.** The adapters PR proposes values derived from measured solve costs, and the Test Lead confirms them.
+
+## Findings during PR 1
+
+- On a two-level grid such as the motor and cooling 2×2×2 design sets, the registered `coarse_to_fine` with its smallest stride (2) samples only the first design. If that design is infeasible, the method abstains. This is method behaviour, not a harness defect. The adapters PR reports it rather than registering a new stride.
+- The solver arm's case-keyed cache serves repeat queries. A repeat is charged its lookup and still counts as an evaluation. Model arms may not repeat a point, as in the motor and cooling oracles.
+- `decision_value` orders outcomes as a declared working policy: a defined regret, then abstention, then an unsafe (reference-infeasible) selection. Unresolved evidence ranks nothing. The Test Lead may supersede this order.
+
+## PR 1 validation (WSL native)
+
+- `pytest tests/cpu/test_design_search_track_b.py tests/cpu/test_design_search_pilot.py tests/cpu/test_admission_divergence.py tests/cpu/test_motor_decision_study.py`: 71 passed.
+- `scripts/check_quality.py --base origin/main`: passed.
+- No file pinned by any study freeze changed. Only new modules were added.
