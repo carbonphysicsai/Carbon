@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-baseline-windows-bytes",
+  "recorded_at": "2026-10-05T10:35:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_baseline",
+  "execution": {
+    "kind": "test",
+    "ref": "tests/cpu/test_challenge_validator_cooling.py tests/cpu/test_attack_cooling_adapter.py",
+    "description": "Collected the focused pre-change tests under WSL from the Windows worktree."
+  },
+  "expected": "The existing focused tests collect and establish the pre-change baseline.",
+  "observed": "Collection stopped after 151.19 seconds because battery practice material did not match its pinned raw-byte digest; Windows checkout line endings changed the bytes seen by the Linux process. No candidate-fault test ran.",
+  "keep": [
+    "Pinned public material continues to fail closed on a raw-byte mismatch."
+  ],
+  "change": [
+    "Use an LF-native temporary Linux checkout for the ticket's final local evidence instead of weakening digest validation."
+  ],
+  "protocol_elements": [
+    "challenge_validator.cooling",
+    "graphite.attacker.cooling",
+    "material.digest_pin"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

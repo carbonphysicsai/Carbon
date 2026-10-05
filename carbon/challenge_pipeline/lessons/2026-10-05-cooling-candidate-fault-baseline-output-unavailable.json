@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-baseline-output-unavailable",
+  "recorded_at": "2026-10-05T10:30:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_baseline",
+  "execution": {
+    "kind": "test",
+    "ref": "candidate-fault-policy focused baseline, first invocation",
+    "description": "Invoked the focused Cooling validator and attack tests through WSL before implementation."
+  },
+  "expected": "The focused baseline reports a complete pass or a concrete failure before implementation.",
+  "observed": "The wrapper returned without a usable buffered result and no surviving process could be attributed to this invocation, so the run provides no test evidence.",
+  "keep": [
+    "Treat a missing runner result as unavailable evidence, never as a pass."
+  ],
+  "change": [
+    "Run final validation from an LF-native Linux checkout and capture the process exit status directly."
+  ],
+  "protocol_elements": [
+    "challenge_validator.cooling",
+    "graphite.attacker.cooling"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
