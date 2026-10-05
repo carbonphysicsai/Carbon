@@ -165,8 +165,10 @@ LOG_SCHEMA = "carbon.graphite.attacker-iteration-log.v3"
 #: controller), the held-out wrongful-rejection rate per family and the
 #: store's suite pin. v5 adds `conditional_on` and `conditional_policy`: the
 #: findings open once Carbon's side recorded every finding, the session's own
-#: included (conditional-evidence.v1).
-COVERAGE_SCHEMA = "carbon.graphite.attacker-coverage.v5"
+#: included (conditional-evidence.v1). v6 adds `construction_identity`: the
+#: shared copy probe's run (OWNER-GRAPHITE-TEST-WAVE-04 §1), its findings
+#: under `findings_by_source["copy_probe"]`.
+COVERAGE_SCHEMA = "carbon.graphite.attacker-coverage.v6"
 #: The eight Track A checks every coverage report accounts for.
 TRACK_A_CHECKS = tuple(sorted(CHECKS[LEDGER_TRACK]))
 PIN_SCHEMA = "carbon.graphite.attacker-store-pin.v1"
@@ -193,9 +195,11 @@ def attack_modules():
     """The neutral attack engine (`carbon.agent_campaign.attack`). Imported
     here, not at module load, so the driver imports before the engine slices
     merge; a test injects fakes by replacing this function."""
-    from ..attack import adapter, analysis, benchmark, knowledge, report, verify
+    from ..attack import adapter, analysis, benchmark, identity, knowledge, report
+    from ..attack import verify
 
     return {
+        "identity": identity,
         "adapter": adapter,
         "analysis": analysis,
         "benchmark": benchmark,
@@ -874,19 +878,29 @@ def remember(kstore, atk, adapter, definition, attempt, verdict, rows):
         return True
 
     outcome = store_outcome(verdict, verify)
+    # Distinct constructions are keyed by the rebuilt artifact, never by the
+    # attempt's text (OWNER-GRAPHITE-TEST-WAVE-04 §1).
+    artifact = getattr(verdict, "artifact", None)
+    keyed = {} if artifact is None else {"artifact": artifact}
     payload = {**attempt.record(), "arguments": dict(attempt.arguments)}
-    if not write("attempt", kstore.add_attempt, attempt=payload, outcome=outcome):
+    if not write(
+        "attempt", kstore.add_attempt, attempt=payload, outcome=outcome, **keyed
+    ):
         # Its arguments named material the store refuses: keep the attempt's
         # identity and digests alone.
         payload = attempt.record()
-        write("attempt", kstore.add_attempt, attempt=payload, outcome=outcome)
+        write("attempt", kstore.add_attempt, attempt=payload, outcome=outcome, **keyed)
     if verdict.near_miss and outcome != "BREACHED":
         write(
             "near_miss",
             kstore.add_near_miss,
             attempt=payload,
             note=verdict.reason or "the oracle reported a near miss",
+            **keyed,
         )
+    if artifact is None and hasattr(knowledge, "behaviour_label"):
+        # No artifact: the finding counts once per behaviour, never per wording.
+        keyed = {"behaviour": knowledge.behaviour_label(verdict.reason)}
     if outcome == "BREACHED":
         for condition in verdict.conditions:
             write(
@@ -898,6 +912,7 @@ def remember(kstore, atk, adapter, definition, attempt, verdict, rows):
                 # Carbon scores only what it rebuilt; an attempt that carried no
                 # construction was re-run by Carbon's own oracle as given.
                 rebuilt=verdict.rebuild != verify.UNREBUILDABLE,
+                **keyed,
             )
 
 
@@ -1059,9 +1074,18 @@ def carbon_side(
         "held_out_controls": record_report_findings(family_report, control, verify),
         "deterministic_baseline": verify.record_engine_findings(baseline, control),
     }
+    # The shared copy probe (OWNER-GRAPHITE-TEST-WAVE-04 §1): a reworded copy
+    # of the incumbent never counts as a new construction. Its findings take
+    # the same record path; NOT_RUN without an incumbent, never a pass.
+    identity = atk.get("identity")
+    probe = None if identity is None else identity.copy_probe(adapter)
+    if probe is not None and probe["run"] is not None:
+        by_source["copy_probe"] = verify.record_engine_findings(
+            [probe["run"]], control, source="copy_probe"
+        )
     findings = [*by_source["attacker"]]
-    for source in ("held_out_controls", "deterministic_baseline"):
-        findings.extend(i for i in by_source[source] if i not in findings)
+    for source in ("held_out_controls", "deterministic_baseline", "copy_probe"):
+        findings.extend(i for i in by_source.get(source, ()) if i not in findings)
     b2 = benchmark.b2(
         attacker,
         baseline,
@@ -1086,6 +1110,9 @@ def carbon_side(
             outcomes, families
         ),
         "benchmark_b2": b2,
+        "construction_identity": (
+            None if probe is None else identity.probe_record(probe)
+        ),
         "attack_knowledge": {
             "pinned": view.digest,
             "suite_pin": view.suite_pin(),
