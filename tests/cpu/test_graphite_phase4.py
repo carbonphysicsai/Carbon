@@ -672,8 +672,11 @@ def _assert_every_check_named(coverage):
 
 
 def _validate_script(construction):
+    # compile_strategy is an AUTHORITATIVE tool: a breach the oracle finds on
+    # its boundary is recorded as a finding (dry_validate is advisory, so its
+    # divergence would be a usability record, not a finding).
     return [
-        tool(PREFIX + "dry_validate", {"strategy_json": json.dumps(construction)}),
+        tool(PREFIX + "compile_strategy", {"strategy_json": json.dumps(construction)}),
         text("done"),
     ]
 
@@ -719,7 +722,7 @@ def test_a_verified_breach_is_recorded_and_stops_expansion(tmp_path):
         [finding] = kstore.findings(SYNTHETIC, 0)
         assert finding["condition"] == "FAILING_TRIGGER"
         assert finding["specimen"] == ATTACK
-        assert finding["strategy"] == "graphite-attacker:dry_validate"
+        assert finding["strategy"] == "graphite-attacker:compile_strategy"
         assert [a["outcome"] for a in kstore.attempts(SYNTHETIC, 0)] == ["BREACHED"]
     finally:
         control.close()
