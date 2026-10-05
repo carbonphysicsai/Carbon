@@ -10,7 +10,18 @@ policy) is Codex's #586 and goes through PR Head; the cooling validator's
 fault typing is not changed here. No scientific value, tolerance or weighting
 is chosen.
 
+WAVE-02 §3 covers the Graphite-host part (records, Graphite's frozen rule,
+the battery adapter). The miner-facing battery validator part (`daemon.py`,
+its outcomes and records, COV-D2a) is approved by the owner and recorded by the
+Test Lead as OWNER-GRAPHITE-TEST-WAVE-07 §1 (#616), under the owner's
+delegation for the blockers.
+
 **Base:** stacked on `claude/cooling-selective-crash` at 345d4606 (#602).
+
+**Merge condition:** this change must not merge while a live battery R3
+Graphite session is open: battery's Graphite rule identity
+(`BatteryPracticeRule.identity`) gains a `coverage` key, so a session's
+records would change rule identity part-way.
 
 ### COV-D1 — Item 2: an ineligible record never headlines a score
 
@@ -60,7 +71,7 @@ keep their own path. Hosts:
 | Host | Change | State |
 |---|---|---|
 | Graphite host, battery (`experiment` -> `BatteryPracticeRule.score`) | `cover`; summary `n_missing`; identity `coverage` | done |
-| Battery validator / Interface v1 battery (`daemon._infer`) | `daemon.incomplete`: an absent, extra or null case is `prediction_cases_differ`, candidate-charged (RECONSTRUCTION_FAILED). Absent and extra cases were already refused; null was the hole | done |
+| Battery validator / Interface v1 battery (`daemon._infer`) | `daemon.incomplete`: an absent, extra or null case is `prediction_cases_differ`, candidate-charged (RECONSTRUCTION_FAILED). Absent and extra cases were already refused; null was the hole. Each record names `COVERAGE_RULE` (COV-D2a) | done |
 | Battery intake (`battery/intake.py`) | none needed: it screens and queues; scoring is the daemon's | checked |
 | Graphite host, cooling (`CoolingPracticeRule.score`) | the same `cover` change | **blocked**: the edit to `challenge_validator/cooling_scoring.py` was refused by the session's permission classifier as a shared-resource change; reverted, not pursued another way |
 | Interface v1 cooling (`challenge_validator/cooling.py`, Codex #586) | `cover` before scoring, and the rule document naming `COVERAGE_RULE` | **not attempted**, same reason and owner (Codex) |
@@ -76,6 +87,23 @@ mutation is retired for `missing_prediction_typed_failed_infra`).
 Battery's `track_a` byte pin holds: `track_a` scores through
 `battery.practice.score_practice` directly, which is unchanged; only the
 Graphite `PracticeRule` wrapper applies `cover`.
+
+### COV-D2a — The miner-facing battery validator's change is identified on each record
+
+Authority: OWNER-GRAPHITE-TEST-WAVE-07 §1 (#616). Carbon Validator review
+of #613 (blocking): charging a null prediction to the
+candidate changes the deployed battery validator's outcomes under an unchanged
+`RULE` and `rule_digest`, which the deployment's seed pin fixes and which
+cannot be bumped. So the change is identified by `COVERAGE_RULE` on each
+record instead. `daemon.COVERAGE_IDENTITY` (`{"name": COVERAGE_RULE,
+"digest": ...}`) is recorded on every submission binding, refusal and score
+record the daemon writes from this ruling on, and every miner outcome derived
+from them carries it as `coverage_rule` (added to battery's outcome allow-list,
+`research.EVALUATION_FEEDBACK_FIELDS`). Old records stay exactly as written: a
+row without the field was typed before the ruling, and `coverage_rule_of` and
+`outcome` read it with the field absent. `RULE` and `rule_digest` are
+unchanged. Tested in `test_challenge_validator_battery.py`, with a mutation
+that drops the field (`daemon.coverage_rule_of`).
 
 ### COV-D3 — Item 4: battery parity
 

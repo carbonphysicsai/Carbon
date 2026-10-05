@@ -63,6 +63,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from carbon.challenge_registry import ResolutionError, resolve
+from carbon.challenge_validator.scoring import COVERAGE_RULE
 from carbon.reconstruction.capability_registry import (
     DEVELOPMENT_VARIANT_NOT_SERVED,
     is_development_variant,
@@ -117,6 +118,27 @@ def incomplete(predictions, asked):
     if type(predictions) is not dict or set(predictions) != set(asked):
         return True
     return any(predictions[case] is None for case in asked)
+
+
+#: The coverage rule's identity, recorded on every submission binding, refusal
+#: and score record this validator writes from GRAPHITE-COVERAGE-PARITY-01 on,
+#: and so on every miner outcome derived from them (`coverage_rule`). It
+#: changes outcomes (`incomplete`) without changing `RULE` or `rule_digest`,
+#: which the deployment's seed pin fixes, so each record says which typing
+#: made it. A record without it was typed before the ruling: read as written.
+COVERAGE_IDENTITY = {
+    "name": COVERAGE_RULE,
+    "digest": _digest({"coverage_rule": COVERAGE_RULE, "check": "daemon.incomplete"}),
+}
+
+
+def coverage_rule_of(row):
+    """The coverage rule a stored submission row was typed under, or None
+    for a row written before it (absent field)."""
+    for part in (row.get("binding"), row.get("failure")):
+        if isinstance(part, dict) and part.get("coverage_rule") is not None:
+            return part["coverage_rule"]
+    return None
 
 
 def commitment_digest(challenge, contract_digest, strategy_hash):
@@ -468,7 +490,11 @@ class BatteryValidator:
         def refuse(code, issues=()):
             row = self.store.refuse(
                 submission_id,
-                failure={"code": code, "issues": list(issues)},
+                failure={
+                    "code": code,
+                    "issues": list(issues),
+                    "coverage_rule": dict(COVERAGE_IDENTITY),
+                },
                 **base,
             )
             return self.outcome(row["submission_id"])
@@ -549,6 +575,7 @@ class BatteryValidator:
             "commitment": commitment,
             "receipt": submission.receipt,
             "attempt": 0,
+            "coverage_rule": dict(COVERAGE_IDENTITY),
         }
         window = None
         block = (submission.receipt or {}).get("block")
@@ -768,6 +795,7 @@ class BatteryValidator:
             "active_batches": list(pool["active"]),
             "references": self._reference_identity(pool["active"]),
             "rule_digest": rule_digest(self.rule),
+            "coverage_rule": dict(COVERAGE_IDENTITY),
             **agg,
         }
         if inc_rec is not None and inc_rec["score"] is None:
@@ -1098,6 +1126,10 @@ class BatteryValidator:
                 }
                 for f in finals
             ]
+        coverage = coverage_rule_of(row)
+        if coverage is not None:
+            # Absent on a row typed before GRAPHITE-COVERAGE-PARITY-01.
+            out["coverage_rule"] = coverage
         if set(out) - set(EVALUATION_FEEDBACK_FIELDS) or set(
             out.get("screening", {})
         ) - set(SCREENING_FEEDBACK_FIELDS):
