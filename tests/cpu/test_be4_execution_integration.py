@@ -184,7 +184,9 @@ def _extended_resource_fixture(root: Path) -> ResourcePolicyFixture:
     )
 
 
-def _published_prior(root: Path, domain: ResourcePolicyFixture) -> tuple[
+def _published_prior(
+    root: Path, domain: ResourcePolicyFixture
+) -> tuple[
     research.PriorPackStore,
     research.StaticTestOnlyPriorProvider,
     research.PriorLookupResult,

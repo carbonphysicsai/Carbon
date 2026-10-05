@@ -350,9 +350,9 @@ esac
         (fake_bin / command).symlink_to(identity)
     environment = os.environ.copy()
     environment["PATH"] = f"{fake_bin}:{environment['PATH']}"
-    environment["CARBON_CANONICAL_DEV_ENV"] = (
-        "ubuntu-24.04-glibc-cpython-3.11.16-uv-0.12.7-amd64"
-    )
+    environment[
+        "CARBON_CANONICAL_DEV_ENV"
+    ] = "ubuntu-24.04-glibc-cpython-3.11.16-uv-0.12.7-amd64"
     environment["CARBON_CANONICAL_IDENTITY_DIAGNOSTICS"] = "1"
     process = subprocess.run(
         [str(WRAPPER), "--dry-run", "/usr/bin/true"],

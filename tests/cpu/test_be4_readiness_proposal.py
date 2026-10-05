@@ -275,9 +275,7 @@ def test_v3_proposal_is_content_bound_but_never_authoritative() -> None:
     changed = _payload()
     changed["design_inputs"]["matched_time_compute_budgets"][  # type: ignore[index]
         "recommended_value"
-    ][
-        "profile_caps"
-    ][0]["normalized_compute_units"] = 36
+    ]["profile_caps"][0]["normalized_compute_units"] = 36
     _bind_preregistration_digest(changed)
     assert (
         parse_execution_readiness_proposal(_document(changed)).design_digest

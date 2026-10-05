@@ -3174,7 +3174,8 @@ def test_a8_science_source_guard_detects_direct_alias_and_attribute_calls(
 
 
 def test_a8_science_source_guard_allows_the_ratified_a5_delegation() -> None:
-    source = textwrap.dedent("""
+    source = textwrap.dedent(
+        """
         from carbon.scoring.model import InternalResult
 
         def allowed(value, pack, score_input):
@@ -3184,7 +3185,8 @@ def test_a8_science_source_guard_allows_the_ratified_a5_delegation() -> None:
             validated = pack.fixture_score_input(numeric_inputs=(), boolean_inputs=())
             result = ScoreEngine.score(score_input, pack)
             return completed, validated, result
-        """)
+        """
+    )
     assert _a8_science_call_violations(source) == ()
 
 
@@ -3366,7 +3368,8 @@ def test_fresh_no_dependency_wheel_imports_a8_outside_tree(
     )
     assert install_result.returncode == 0, install_result.stderr
 
-    script = textwrap.dedent(f"""
+    script = textwrap.dedent(
+        f"""
         import importlib.abc
         import importlib.metadata
         import json
@@ -3417,7 +3420,8 @@ def test_fresh_no_dependency_wheel_imports_a8_outside_tree(
             "module_file": str(pathlib.Path(traineval.__file__).resolve()),
             "profile": profile.profile_id,
         }}))
-        """)
+        """
+    )
     execution = subprocess.run(
         [str(environment_python), "-I", "-c", script],
         cwd=outside,

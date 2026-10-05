@@ -23,9 +23,15 @@ def _members(outcomes=("d03", "d07", "d03")):
     }
 
 
-def _panel(members=None, provenance="REGISTERED_PANEL"):
+REAL = {
+    "provenance": "COUNTED_CAMPAIGN",
+    "ref": "docs/development/evidence/motor-decision-counted-v2",
+}
+
+
+def _panel(members=None, reference=REAL):
     return {
-        "provenance": provenance,
+        "reference": reference,
         "decision_study": "decision-study-ref",
         "members": members or _members(),
     }
@@ -90,10 +96,41 @@ def test_tampered_alignment_fails_v1(recorded):
     assert result.status == model.FAIL and "does not follow" in result.detail
 
 
-def test_fixture_panel_is_never_evidence(recorded):
-    recorded(_panel(provenance="FIXTURE"))
+@pytest.mark.parametrize(
+    "reference",
+    [
+        {"provenance": "ANALYTICAL_FIXTURE", "ref": REAL["ref"]},
+        {"provenance": "SYNTHETIC", "ref": REAL["ref"]},
+        {"provenance": "MADE_UP", "ref": REAL["ref"]},
+        {"provenance": "COUNTED_CAMPAIGN", "ref": "no/such/path"},
+        {"provenance": "COUNTED_CAMPAIGN"},
+        {"ref": REAL["ref"]},
+        None,
+    ],
+)
+def test_fixture_or_undetermined_references_fail_both_items(recorded, reference):
+    recorded(_panel(reference=reference))
     assert _status(q1.v1_alignment_report) == model.FAIL
     assert _status(q1.v2_panel_discrimination) == model.FAIL
+
+
+@pytest.mark.parametrize("kind", q1.REAL_REFERENCE_KINDS)
+def test_constructed_members_judged_on_real_references_pass(recorded, kind):
+    members = _members()
+    members["m0"]["kind"] = "REGISTERED_BASELINE"
+    members["m1"]["kind"] = "CONTROL"
+    recorded(_panel(members, {"provenance": kind, "ref": REAL["ref"]}))
+    result = q1.v1_alignment_report({}, _ctx())
+    assert result.status == model.PASS, result.detail
+    assert _status(q1.v2_panel_discrimination) == model.PASS
+    report = json.loads(
+        (q1.PACKAGE / CHALLENGE / "q1_report.json").read_text(encoding="utf-8")
+    )
+    assert report["member_kinds"] == {
+        "CONTROL": 1,
+        "MODEL": 1,
+        "REGISTERED_BASELINE": 1,
+    }
 
 
 def test_no_registered_scoring_fails_v1(recorded, monkeypatch):
@@ -170,3 +207,25 @@ def test_build_cli_binds_the_rule_digest_and_recomputes(tmp_path):
         )
         == 2
     )
+
+
+def test_v2_counts_distinct_whole_vector_outcomes_for_per_scenario_decisions(recorded):
+    members = _members(("x", "x", "x"))
+    vector = {"s1": "c1=1", "s2": "ABSTAIN"}
+    for row in members.values():
+        row["decision_outcome"] = dict(vector)
+    recorded(_panel(members))
+    assert _status(q1.v2_panel_discrimination) == model.FAIL
+    members["m1"]["decision_outcome"] = {"s2": "ABSTAIN", "s1": "c1=2"}
+    recorded(_panel(members))
+    assert _status(q1.v2_panel_discrimination) == model.PASS
+    members["m1"]["decision_outcome"] = {"s2": "ABSTAIN", "s1": "c1=1"}
+    recorded(_panel(members))
+    assert (
+        _status(q1.v2_panel_discrimination) == model.FAIL
+    ), "key order is not a difference"
+    members["m1"]["decision_outcome"] = {}
+    recorded(_panel(members))
+    assert (
+        _status(q1.v2_panel_discrimination) == model.FAIL
+    ), "an empty vector is unrecorded"

@@ -13,16 +13,26 @@ track_b.alignment` and `score_value.alignment`):
     python -m carbon.challenge_pipeline.readiness.q1 build \
         --challenge ID --level 0 --panel PANEL.json --out REPORT.json
 
-`PANEL.json` is `{"provenance": "REGISTERED_PANEL", "decision_study": REF,
-"members": {name: {score, value, eligible, recipe, kind, decision_outcome}}}`,
+`PANEL.json` is `{"reference": {"provenance": KIND, "ref": PATH},
+"decision_study": REF, "members": {name: {score, value, eligible, recipe, kind, decision_outcome}}}`,
 exactly the `members` shape `score_value.alignment` takes plus each member's
 `decision_outcome` (the design it chose, or ABSTAIN). The build recomputes the
 alignment, so a recorded report cannot disagree with its members, and binds the
 report to the digest of the scoring rule in force.
 
 Nothing here chooses a value: no threshold other than the two-outcome floor the
-gate document names, and no panel is produced. A FIXTURE panel is never
-evidence (invariant 9) and fails V1.
+gate document names, and no panel is produced.
+
+Reference provenance (Test Lead ruling, 2026-10-05). The gate refuses a panel
+whose DECISION VALUES rest on synthetic or fixture references; it does not
+refuse constructed MEMBERS (controls built from public TRAIN, such as a
+fixture panel's flat, phase-shifted and saturation-blind members) when their
+decisions are judged against real reference evidence. `reference.provenance`
+must be one of `REAL_REFERENCE_KINDS` and `reference.ref` must be a committed
+repository path; an analytical-fixture or synthetic reference, an unknown kind,
+a missing or non-existent path all FAIL (provenance that cannot be determined
+fails closed). The member kinds are recorded in the report so constructed
+controls stay visible.
 """
 
 from __future__ import annotations
@@ -37,7 +47,41 @@ from .model import FAIL, PACKAGE, PASS, REPOSITORY, Result, digest
 REPORT_SCHEMA = "carbon.challenge-pipeline.readiness-q1-report.v1"
 #: The gate document's V2 floor: "at least two distinct decision outcomes".
 MIN_DISTINCT_OUTCOMES = 2
-PANEL_PROVENANCES = ("REGISTERED_PANEL", "FIXTURE")
+#: The only reference kinds that count as real (Test Lead, 2026-10-05): committed
+#: real-solver references. Nothing else is inferred to be real.
+REAL_REFERENCE_KINDS = (
+    "COUNTED_CAMPAIGN",
+    "EV4_REFERENCE",
+    "REFINED_REFERENCE_WAVE07",
+)
+#: Named so a report that says so is refused with the reason, not as "unknown".
+FIXTURE_REFERENCE_KINDS = ("ANALYTICAL_FIXTURE", "SYNTHETIC")
+
+
+def reference_problem(report, repository=REPOSITORY):
+    """Why the report's decision references do not count as real, or None."""
+    reference = report.get("reference")
+    if not isinstance(reference, dict):
+        return "no reference provenance is recorded"
+    kind = reference.get("provenance")
+    if kind in FIXTURE_REFERENCE_KINDS:
+        return (
+            f"decisions rest on a {kind} reference, not committed real-solver evidence"
+        )
+    if kind not in REAL_REFERENCE_KINDS:
+        return f"reference provenance {kind!r} cannot be determined to be real"
+    ref = reference.get("ref")
+    if not (isinstance(ref, str) and ref and (Path(repository) / ref).exists()):
+        return f"the {kind} reference path {ref!r} is not a committed path"
+    return None
+
+
+def member_kinds(members):
+    counts = {}
+    for row in members.values():
+        kind = str(row.get("kind"))
+        counts[kind] = counts.get(kind, 0) + 1
+    return dict(sorted(counts.items()))
 
 
 def current_rule_digest(challenge, repository=REPOSITORY):
@@ -77,7 +121,8 @@ def build_report(challenge, level, panel, rule_digest):
         "challenge": challenge,
         "level": level,
         "scoring_rule_digest": rule_digest,
-        "provenance": panel["provenance"],
+        "reference": panel["reference"],
+        "member_kinds": member_kinds(members),
         "decision_study": panel["decision_study"],
         "members": members,
         "alignment": _alignment_of(members),
@@ -99,8 +144,6 @@ def _problem(report, challenge, level):
         return "not a readiness Q1 report"
     if report.get("challenge") != challenge or report.get("level") != level:
         return "names another challenge or level"
-    if report.get("provenance") not in PANEL_PROVENANCES:
-        return "provenance is not recorded"
     members = report.get("members")
     if not (isinstance(members, dict) and members):
         return "no panel members"
@@ -121,12 +164,9 @@ def v1_alignment_report(item, ctx):
     problem = _problem(report, ctx.challenge, ctx.level) if report else "unreadable"
     if problem:
         return Result(FAIL, f"q1_report.json is unusable: {problem}", (path.name,))
-    if report["provenance"] != "REGISTERED_PANEL":
-        return Result(
-            FAIL,
-            "the recorded panel is a FIXTURE; fixture panels are never evidence",
-            (path.name,),
-        )
+    refused = reference_problem(report, ctx.repository)
+    if refused:
+        return Result(FAIL, refused, (path.name,))
     current = current_rule_digest(ctx.challenge, ctx.repository)
     if current is None:
         return Result(
@@ -170,6 +210,23 @@ def v1_alignment_report(item, ctx):
     )
 
 
+def _outcome_key(outcome):
+    """A member's decision outcome as a comparable key, or None if unrecorded.
+    A scalar (a design id, or ABSTAIN) is itself. A per-scenario mapping
+    `{scenario: selected-or-ABSTAIN}` is its whole vector: two members differ
+    when they differ in any scenario; key order is irrelevant; an empty mapping
+    is unrecorded."""
+    if isinstance(outcome, str):
+        return outcome or None
+    if isinstance(outcome, dict) and outcome:
+        if not all(
+            isinstance(k, str) and isinstance(v, str) and v for k, v in outcome.items()
+        ):
+            return None
+        return json.dumps(outcome, sort_keys=True, separators=(",", ":"))
+    return None
+
+
 def v2_panel_discrimination(item, ctx):
     report, path = load_report(ctx.challenge)
     if report is None:
@@ -184,14 +241,16 @@ def v2_panel_discrimination(item, ctx):
         if row.get("eligible") is not True:
             continue
         outcome = row.get("decision_outcome")
-        if not (isinstance(outcome, str) and outcome):
+        key = _outcome_key(outcome)
+        if key is None:
             return Result(
                 FAIL, f"member {name} records no decision outcome", (path.name,)
             )
-        outcomes.setdefault(outcome, []).append(name)
+        outcomes.setdefault(key, []).append(name)
     evidence = tuple(f"{o}:{','.join(m)}" for o, m in sorted(outcomes.items()))
-    if report["provenance"] != "REGISTERED_PANEL":
-        return Result(FAIL, "the recorded panel is a FIXTURE; not evidence", evidence)
+    refused = reference_problem(report, ctx.repository)
+    if refused:
+        return Result(FAIL, refused, evidence)
     if len(outcomes) >= MIN_DISTINCT_OUTCOMES:
         return Result(
             PASS,
@@ -218,7 +277,7 @@ def main(argv=None):
     b.add_argument("--out", required=True)
     args = parser.parse_args(argv)
     panel = json.loads(Path(args.panel).read_bytes())
-    for key in ("provenance", "decision_study", "members"):
+    for key in ("reference", "decision_study", "members"):
         if key not in panel:
             print(f"panel is missing {key}")
             return 2
