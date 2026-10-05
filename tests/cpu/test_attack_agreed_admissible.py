@@ -19,9 +19,13 @@ Claims tested:
   verdict record keeps its v1 meaning;
 - the per-family count is reported, and AGREED_ADMISSIBLE counts like
   NOT_APPLICABLE for closure;
+- an ADVISORY tool's oracle EXPOSURE (OTHER_SIGNAL) is a finding, never a
+  usability record or AGREED_ADMISSIBLE; MINER_LOCAL and AUTHORITATIVE
+  exposure behave as before; a v1 advisory usability record keeps its
+  meaning (the Test Lead's ruling, same date);
 - mutations: dropping the authoritative-accept guard, dropping the
-  in-contract guard, or letting the outcome override a breach each turn a
-  guard red.
+  in-contract guard, letting the outcome override a breach, or turning an
+  advisory exposure back into a usability record each turn a guard red.
 """
 
 from __future__ import annotations
@@ -476,6 +480,65 @@ def test_a_different_construction_is_never_agreed_admissible():
     assert verdict.outcome == verify.UNDETERMINED
 
 
+# -- exposure is a finding whatever the tool's authority ---------------------------------------
+EXPOSURES = {
+    "oracle_exposure": {"verdict": "EXPOSURE"},
+    "breached_other_signal": {"verdict": "BREACHED", "condition": "OTHER_SIGNAL"},
+}
+
+
+@pytest.mark.parametrize("shape", sorted(EXPOSURES))
+def test_an_advisory_exposure_is_a_finding_never_a_usability_record(shape):
+    from carbon.agent_campaign.graphite import phase4
+
+    verdict = _stub_verdict(oracle=EXPOSURES[shape])
+    assert verdict.authority == analysis.ADVISORY
+    assert verdict.outcome == verify.BREACHED
+    assert verdict.conditions == ("OTHER_SIGNAL",)
+    assert verdict.finding and verdict.scored and verdict.usability is None
+    assert verdict.outcome != verify.AGREED_ADMISSIBLE
+    assert phase4.is_finding(verdict, verify)
+    assert verdict.record()["schema"] == "carbon.attack.verdict.v2"
+
+
+def test_an_advisory_non_exposure_breach_is_still_a_usability_record():
+    verdict = _stub_verdict(
+        oracle={"verdict": "BREACHED", "condition": "FAILING_TRIGGER"}
+    )
+    assert verdict.outcome == verify.UNDETERMINED and not verdict.finding
+    assert verdict.usability["kind"] == "oracle_divergence"
+
+
+@pytest.mark.parametrize("shape", sorted(EXPOSURES))
+def test_an_authoritative_exposure_is_a_finding_as_before(shape):
+    verdict = _stub_verdict(authority=analysis.AUTHORITATIVE, oracle=EXPOSURES[shape])
+    assert verdict.outcome == verify.BREACHED
+    assert verdict.conditions == ("OTHER_SIGNAL",)
+    assert verdict.usability is None
+
+
+@pytest.mark.parametrize("shape", sorted(EXPOSURES))
+def test_a_miner_local_action_is_judged_for_isolation_as_before(shape):
+    # The oracle is never consulted for a MINER_LOCAL action: its isolation
+    # boundary decides, exactly as before.
+    verdict = _stub_verdict(authority=analysis.MINER_LOCAL, oracle=EXPOSURES[shape])
+    assert verdict.outcome == verify.NOT_APPLICABLE
+    assert verdict.reason == "miner_local_within_sandbox"
+
+
+def test_a_v1_advisory_usability_record_keeps_its_meaning():
+    old = {
+        "schema": verify.SCHEMA_V1,
+        "outcome": verify.UNDETERMINED,
+        "conditions": [],
+        "reason": "advisory_boundary_divergence",
+        "usability": {"kind": "oracle_divergence", "reason": "oracle_exposure"},
+    }
+    # Read under v1: still UNDETERMINED with its usability record, never a
+    # finding re-derived under the v2 rule.
+    assert verify.outcome_of(old) == verify.UNDETERMINED
+
+
 def _guard_authoritative_refusal():
     """Carbon's authoritative chain refuses: never agreed."""
     verdict = _stub_verdict(agreement={"authoritative_accepts": False})
@@ -501,6 +564,21 @@ def _guard_breach():
     )
 
 
+def _guard_advisory_exposure():
+    """An advisory tool's exposure is an OTHER_SIGNAL finding, never a
+    usability record."""
+    verdict = _stub_verdict(oracle={"verdict": "EXPOSURE"})
+    return (
+        verdict.outcome == verify.BREACHED
+        and verdict.conditions == ("OTHER_SIGNAL",)
+        and verdict.usability is None
+    )
+
+
+def _exposure_as_usability(monkeypatch):
+    monkeypatch.setattr(verify, "is_exposure", lambda condition, reason: False)
+
+
 def _drop_authoritative(monkeypatch):
     monkeypatch.setattr(verify, "authoritative_accepts", lambda said: True)
 
@@ -517,6 +595,10 @@ MUTATIONS = {
     "drop_authoritative_accept": (_drop_authoritative, _guard_authoritative_refusal),
     "drop_in_contract": (_drop_contract, _guard_outside_contract),
     "override_a_breach": (_override_breach, _guard_breach),
+    "advisory_exposure_as_usability": (
+        _exposure_as_usability,
+        _guard_advisory_exposure,
+    ),
 }
 
 

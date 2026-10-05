@@ -17,7 +17,8 @@
     "Bump the verdict and report schema versions when the outcome vocabulary grows, and read each record under its own version so earlier re-judge reports keep their meaning."
   ],
   "change": [
-    "Each guard of a new oracle outcome needs its own mutation test against a stub adapter, because the real adapter's oracle already refuses most failing cases and would mask a missing guard."
+    "Each guard of a new oracle outcome needs its own mutation test against a stub adapter, because the real adapter's oracle already refuses most failing cases and would mask a missing guard.",
+    "A tool's authority class decides only whether its acceptance is a breach: an exposure of protected material from an advisory tool is an OTHER_SIGNAL finding, never a usability record (Test Lead ruling, matching AT-C 3/14)."
   ],
   "protocol_elements": [
     "attack.verify.agreed-admissible",

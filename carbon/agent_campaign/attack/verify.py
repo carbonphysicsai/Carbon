@@ -58,10 +58,18 @@ data; Carbon re-checks each one outside the agent:
    it counts like `NOT_APPLICABLE`. An adapter with no `agreement` hook
    never yields it.
 
+9. **Advisory exposure** (verdict v2). An oracle `EXPOSURE` (BREACHED with
+   `OTHER_SIGNAL`) is a finding whatever the tool's authority: authority
+   decides only whether *acceptance* is a breach, and an exposure of
+   protected material is a disclosure failure an advisory tool hands the
+   agent directly. It is never a usability record and never
+   `AGREED_ADMISSIBLE`.
+
 Versions. `carbon.attack.verdict.v1` records carry five outcomes; v2 adds
-`AGREED_ADMISSIBLE`. A v1 record keeps its meaning (invariant 10): its
-`UNDETERMINED` stays `UNDETERMINED` and is never re-read as agreed
-(`outcome_of`).
+`AGREED_ADMISSIBLE` and reads an advisory exposure as a finding. A v1 record
+keeps its meaning (invariant 10): its `UNDETERMINED` stays `UNDETERMINED`
+and is never re-read as agreed, and a v1 advisory usability record stays a
+usability record, never re-read as a finding (`outcome_of`).
 
 Findings use only the admission `CONDITIONS` vocabulary; a verdict with any
 other condition cannot be constructed. `record` puts each on the campaign
@@ -113,6 +121,7 @@ POD_SCORED = "SCORED"
 ORACLE_NO_ANSWER = frozenset({"FAILED_INFRA", "TIMEOUT", "CRASHED"})
 #: An oracle's exposure verdict: BREACHED with OTHER_SIGNAL.
 ORACLE_EXPOSURE = "EXPOSURE"
+ORACLE_EXPOSURE_REASON = "oracle_exposure"
 #: A seam's oracle verdict: nothing judged.
 ORACLE_NOT_RUN = "NOT_RUN"
 #: A hold the oracle's detector cannot vouch for (its specimen did not fire),
@@ -433,7 +442,7 @@ def _oracle(adapter, family, attempt):
     reading = getattr(reading, "value", reading)
     if outcome == ORACLE_EXPOSURE:
         outcome, condition = BREACHED, condition or OTHER_SIGNAL
-        reason = "oracle_exposure"
+        reason = ORACLE_EXPOSURE_REASON
     elif outcome in ORACLE_NO_ANSWER:
         outcome, condition, reason = INFRA, None, "oracle_no_answer:" + outcome
     elif outcome == ORACLE_NOT_RUN and reading == ORACLE_NO_REBUILT_CONSTRUCTION:
@@ -474,6 +483,13 @@ def _usability(attempt, kind, reason):
         "kind": kind,
         "reason": reason,
     }
+
+
+def is_exposure(condition, reason):
+    """An oracle breach that is an exposure of protected material (its
+    `OTHER_SIGNAL` condition, or the oracle's own `EXPOSURE` verdict). A
+    disclosure failure whichever tool emits it: never a usability record."""
+    return condition == OTHER_SIGNAL or reason == ORACLE_EXPOSURE_REASON
 
 
 def agreement_may_apply(outcome, reason):
@@ -569,7 +585,8 @@ def verify(
 
     A FAILING_TRIGGER is raised only when an AUTHORITATIVE tool accepted what
     Carbon refuses. An ADVISORY tool's divergence (it accepted what Carbon
-    refuses) is a usability record, never a finding. A MINER_LOCAL action is
+    refuses) is a usability record, never a finding; an exposure of protected
+    material (OTHER_SIGNAL) is a finding whatever the tool's authority. A MINER_LOCAL action is
     judged against the carrier's isolation boundary (`analysis.
     isolation_breach`) from its own result and the operator's canary registry
     (`canaries`) and carrier evidence (`carrier`); reading its own sandbox and
@@ -720,9 +737,10 @@ def verify(
         # The oracle answered nothing, judged nothing, or the family is a
         # seam: never scored. Only HELD or BREACHED is a scored judgement.
         return verdict(outcome, rebuild, reason=why, refused_by=attempt.refused_by)
-    if outcome == BREACHED and advisory:
+    if outcome == BREACHED and advisory and not is_exposure(condition, why):
         # An advisory tool accepted what Carbon's own boundary refuses: a
-        # usability record, never a finding.
+        # usability record, never a finding. An exposure is not acceptance:
+        # it falls through to a finding whatever the tool's authority.
         return verdict(
             UNDETERMINED,
             rebuild,

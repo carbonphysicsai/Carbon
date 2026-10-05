@@ -50,6 +50,19 @@ a clean agreement could never close. Real cases: phase-4 session 1 attempts
    re-judge output carried no `schema`; read it as v1). `verify.outcome_of`
    reads a record under its own schema's vocabulary: a v1 `UNDETERMINED` stays
    `UNDETERMINED` and is never re-read as agreed.
+5. **Advisory exposure is a finding** (the Test Lead's further ruling of
+   2026-10-05, in the same unreleased verdict v2). An ADVISORY tool whose
+   oracle returns EXPOSURE (BREACHED with `OTHER_SIGNAL`) is an `OTHER_SIGNAL`
+   finding, never a usability record and never `AGREED_ADMISSIBLE`
+   (`verify.is_exposure`). Authority classes decide only whether acceptance
+   counts as a breach; an exposure of protected material is a disclosure
+   failure whichever tool emits it, and advisory tools talk directly to the
+   agent. This matches the owner's accepted AT-C 3/14: exposure is
+   `OTHER_SIGNAL`, fail closed, and blocks expansion until graded.
+   AUTHORITATIVE exposure is unchanged (a finding); MINER_LOCAL is unchanged
+   (judged by its isolation boundary). A v1 advisory usability record stays a
+   usability record. Re-judging session 1 changes nothing for this rule:
+   analysis withholds exposures before the oracle.
 
 **Scope.** Battery Level 0 implements the hook for `recipe_surface` and
 `permission_ablation`. Cooling and motor have no hook, so their readings are
@@ -64,7 +77,8 @@ advisory tool only.
 
 **Tests.** `tests/cpu/test_attack_agreed_admissible.py`, with mutations
 (dropping the authoritative-accept guard, dropping the in-contract guard,
-letting the outcome override a breach), each killed.
+letting the outcome override a breach, turning an advisory exposure back
+into a usability record), each killed.
 
 **Unchanged.** Scientific, security and launch qualification stay
 human-reserved.
