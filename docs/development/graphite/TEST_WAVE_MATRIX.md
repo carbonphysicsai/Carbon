@@ -58,6 +58,14 @@ participants may try.
   - baseline-retry-v1;
   - conditional-evidence-v1;
   - repair-attestation-v1.
+- Anything that counts, limits, deduplicates or rewards distinct constructions
+  identifies a construction by its **rebuilt artifact**, never by its recipe or
+  expression text (OWNER-GRAPHITE-TEST-WAVE-04 §1). Participant-keyed limits
+  are unaffected.
+- For this wave, the frozen rule's gates and tail metrics are the instrument
+  that detects metric-aimed training and tail sacrifice. This is accepted for
+  testing only, not as scientific qualification (OWNER-GRAPHITE-TEST-WAVE-04
+  §2).
 
 ## 3. Readiness by component
 
