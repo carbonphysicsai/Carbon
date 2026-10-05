@@ -99,12 +99,12 @@ Out of scope:
 
 - After current-main reconciliation, the exact LF-native implementation tree
   passed 167 policy, Cooling validator and merged selective-fault attacker
-  tests in 397.34 seconds.
+  tests in 327.97 seconds.
 - The non-attacker validator, Battery compatibility, confirmation-set and
-  existing pod-attribution subsystem matrix passed 214 tests in 159.19
-  seconds.
+  existing pod-attribution subsystem matrix passed 209 tests in 139.54
+  seconds on the reconciled head.
 - Focused Ruff passed and Black left all eight changed Python files unchanged.
-- The challenge-pipeline validator accepted 7 records and 276 lessons with no
+- The challenge-pipeline validator accepted 7 records and 288 lessons with no
   pending decision before the final pass records were appended; canonical CI
   validates the delivered complete set.
 
