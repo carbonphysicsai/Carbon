@@ -609,6 +609,12 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
             "module_name",
         ),
         (
+            "tests/cpu/test_attack_authoritative_boundary.py",
+            "test_every_adapter_reads_a_null_workspace_strategy_as_the_design",
+            "importlib.import_module",
+            "'carbon.agent_campaign.attack.adapters.' + adapter_name",
+        ),
+        (
             "tests/cpu/test_package_installation.py",
             "test_import_a0_role_package",
             "importlib.import_module",

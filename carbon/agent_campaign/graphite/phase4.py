@@ -552,6 +552,9 @@ class AttackerProvider(Phase3Provider):
                 instructions=role.prompt,
                 tools=role.tool_schemas(tool_text_of(opened)),
                 parallel_calls=PARALLEL_RULES.get(role.name),
+                # The Attacker's run ledger meters no research trials (its
+                # budget is 0); never tell the agent "0 of 0 trials left".
+                omit_unmetered_trials=True,
                 **self._loop_limits(opened),
             )
 
@@ -1026,9 +1029,17 @@ def carbon_side(
     kstore,
     view,
     session=1,
+    canaries=(),
+    carrier=None,
 ):
     """Carbon's own side of a finished session, through the engine (module
     docstring). Returns (coverage report, B2, finding ids, store digest).
+
+    `canaries` and `carrier` are the operator-side hooks the miner-local
+    isolation judgement reads (`analysis.isolation_breach`): the registered
+    canary tokens, and the carrier's own per-attempt evidence. Both default to
+    empty, so a run with no planted canaries judges a miner-local action by its
+    own result alone.
 
     Every finding reaches the controller through one record path, whatever
     raised it: the Attacker's verdicts (`verify.record`), held-out controls
@@ -1051,7 +1062,13 @@ def carbon_side(
     for family, attempts in mapped.items():
         for attempt in attempts:
             verdict = verify.verify(
-                attempt, adapter, pods=None, family=family, specimen_dir=specimen_dir
+                attempt,
+                adapter,
+                pods=None,
+                family=family,
+                specimen_dir=specimen_dir,
+                canaries=canaries,
+                carrier=carrier,
             )
             if is_finding(verdict, verify):
                 findings.extend(verify.record(verdict, control))
@@ -1114,6 +1131,9 @@ def carbon_side(
         },
         "seams": [dict(POD_REBUILD_SEAM)],
         "claims": {"security_acceptance": False, "graded": False},
+        # Advisory tools that diverged from Carbon's own boundary: usability
+        # records, never findings (an advisory tool is not an authority).
+        "usability": [v.usability for v in verdicts if v.usability],
         **control.conditional_tag(),
     }
     return coverage, b2, findings, after

@@ -203,6 +203,11 @@ TOOL_FAMILIES = {
     "cancel_research_task": "resource_accounting",
 }
 CODE_ACTIONS = ("run_python", "run_julia")
+#: Workspace actions that read or write the session's own sandbox store and so
+#: are judged against the carrier's isolation boundary, not left UNASSIGNED.
+WORKSPACE_ISOLATION_ACTIONS = frozenset(
+    {"read_file", "write_file", "inventory", "public_material", "notebook"}
+)
 #: The lanes whose code runs the code-run rule (`code_run_refusal`) binds: the
 #: phase-4 Attacker dispatcher only. An observed attempt names its lane in a
 #: `lane` field; without one, the rule does not judge it.
@@ -1267,17 +1272,47 @@ def build(construction, seed=0):
     return Build(strategy, seed, record, served=True)
 
 
-def _recipe_admissible(strategy):
-    """Carbon's own admission of a recipe, independent of the path: the
-    reconstruction gate (`experiment.admit`)."""
+def carbon_admits(strategy):
+    """Would Carbon accept this construction? Exactly the authoritative chain,
+    on the same input: the validator door's strict parse
+    (`strict_json.parse_strategy`), the contract compile
+    (`compile_submission`), then Graphite's admission (`experiment.admit`,
+    through `build`). Nothing weaker: `validate_for_challenge` alone accepts
+    out-of-domain values such as a kNN `neighbours: -5` that the compiler and
+    admission both refuse (OWNER-GRAPHITE triage; independently confirmed by
+    the Carbon Validator on main 83839718). A FAILING_TRIGGER for an
+    AUTHORITATIVE path rests on this judgement."""
+    from carbon.agent_campaign.graphite import experiment
+    from carbon.challenge_validator import strict_json
+    from carbon.reconstruction.challenge_contracts import compile_submission
+
+    try:
+        strict_json.parse_strategy(
+            json.dumps(strategy, allow_nan=True),
+            max_bytes=experiment.MAX_STRATEGY_BYTES,
+        )
+    except Exception:  # noqa: BLE001 - any door refusal means Carbon would not accept
+        return False
+    try:
+        compile_submission(strategy)
+    except Exception:  # noqa: BLE001 - any contract/compiler refusal: not accepted
+        return False
     return build(strategy).rebuilt
 
 
+def _recipe_admissible(strategy):
+    """Carbon's own admission of a recipe, independent of the path: the full
+    authoritative chain (`carbon_admits`)."""
+    return carbon_admits(strategy)
+
+
 def _recipe_runnable(strategy):
-    """Carbon admits the recipe and the phase-3 pods serve its backend: a
-    path that refused it refused a construction Carbon would have run."""
-    made = build(strategy)
-    return made.rebuilt and made.served
+    """Carbon admits the recipe (the full chain) and the phase-3 pods serve
+    its backend: a path that refused it refused a construction Carbon would
+    have run."""
+    if not carbon_admits(strategy):
+        return False
+    return build(strategy).served
 
 
 def _ablation_admissible(item):
@@ -1664,18 +1699,13 @@ def _get(attempt, key, default=None):
 
 
 def _strategy_from(arguments):
-    raw = arguments.get("strategy_json")
-    if raw is None:
-        # A `check_design` call carries its construction in its design
-        # (`attack.analysis.design_of`, the core's one reading of it).
-        from carbon.agent_campaign.attack import analysis
+    # The core's one reading (`attack.analysis.strategy_argument`): a
+    # `strategy_json` absent, null or "null" is no strategy, so a
+    # `check_design` call's design is read; unparseable text is kept for
+    # Carbon's gate to refuse.
+    from carbon.agent_campaign.attack import analysis
 
-        design = analysis.design_of(dict(arguments))
-        return _MISSING if design is None else design
-    try:
-        return json.loads(raw)
-    except (TypeError, ValueError):
-        return raw  # unparseable text: Carbon's gate refuses it as not an object
+    return analysis.strategy_argument(arguments, _MISSING)
 
 
 def _inner_arguments(arguments):
@@ -1898,10 +1928,18 @@ class BatteryLevel0Adapter:
         if name == "start_research_task":
             if arguments.get("kind") == "practice":
                 return "recipe_surface"
-            if arguments.get("action") in CODE_ACTIONS:
+            action = arguments.get("action")
+            if action in CODE_ACTIONS:
                 return "resource_accounting"
-            if arguments.get("action") == "check_design":
+            if action == "check_design":
                 return "permission_ablation"
+            if action in WORKSPACE_ISOLATION_ACTIONS:
+                # Miner-local workspace actions (reads, writes, inventory,
+                # public material, notebook): judged against the carrier's
+                # isolation boundary, never left UNASSIGNED.
+                return "staged_bytes"
+            if action == "roadmap":
+                return "practice_disclosure"  # an advisory public read
             return None
         return TOOL_FAMILIES.get(name)
 
@@ -2146,12 +2184,26 @@ class BatteryLevel0Adapter:
             )
         evidence = {**evidence, "carbon_runs": bool(runnable)}
         verdict, weak = specimen_on(value)
-        if runnable:
+        if runnable and _get(attempt, "refusal_kind") == "construction":
+            # A wrongful rejection only when the path refused the construction
+            # itself (a contract or compiler refusal). A refusal of the request
+            # (an invalid argument, a missing field, a rejected wrapper) is not
+            # the family's concern: nothing judged.
             return done(
                 WRONGFUL_REFUSAL,
-                "the path refused what Carbon would admit and run",
+                "the path refused the construction Carbon would admit and run",
                 BREACHED,
                 evidence,
+                verdict,
+                weak,
+            )
+        if runnable:
+            return done(
+                UNDETERMINED,
+                "the path refused what Carbon admits, but for a request-level "
+                "reason, not a refusal of the construction",
+                INCONCLUSIVE,
+                {**evidence, "refusal_kind": _get(attempt, "refusal_kind")},
                 verdict,
                 weak,
             )

@@ -773,6 +773,7 @@ def budget_status(
     unit,
     offered,
     finish=None,
+    omit_unmetered_trials=False,
 ):
     """The budget a session under `LIMITS_V2` sees before each turn: the
     optional per-session caps where set, and what the campaign ledger's own
@@ -820,7 +821,16 @@ def budget_status(
                 f"{slots_left} of {trial_limit} research-trial slots left in this "
                 + unit
             )
-        if type(trials_budget) is int:
+        if type(trials_budget) is int and not (
+            omit_unmetered_trials and trials_budget == 0
+        ):
+            # A caller whose ledger does not meter research trials (the
+            # Graphite Attacker's, whose budget hard-codes 0: workspace actions
+            # charge no slot and practice trials belong to the attached miner
+            # campaign) opts out of a misleading "0 of 0 research trials left",
+            # which an agent reads as "no trials available" (OWNER-GRAPHITE
+            # phase-4 triage). Off by default, so every earlier session's
+            # status bytes are unchanged.
             parts.append(
                 f"{max(0, trials_budget - used['research_trials'])} of "
                 f"{trials_budget} research trials left in the campaign budget"
@@ -1539,8 +1549,15 @@ async def run_epoch(
     finish=None,
     limits=None,
     compaction=None,
+    omit_unmetered_trials=False,
 ):
     """Run once or resume completed provider/tool observations without resends.
+
+    `omit_unmetered_trials` (default False, every earlier session unchanged)
+    drops the campaign research-trial line from the `LIMITS_V2` budget status
+    when the ledger's research-trial budget is 0: a caller whose ledger meters
+    no trials (the Graphite Attacker) sets it, so its agent is not told
+    "0 of 0 research trials left".
 
     `provider` is the campaign's model selection (`model_provider`); the
     historical pinned selection produces the same plan and requests as before
@@ -2324,6 +2341,7 @@ async def run_epoch(
                     unit=unit,
                     offered=offered,
                     finish=finish_name,
+                    omit_unmetered_trials=omit_unmetered_trials,
                 )
             )
         request = request_for(history)
