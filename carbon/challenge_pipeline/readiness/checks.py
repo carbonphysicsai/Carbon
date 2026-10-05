@@ -20,6 +20,7 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from . import q1
 from .model import (
     FAIL,
     NOT_BUILT,
@@ -562,6 +563,8 @@ def confirmation_role(item, ctx):
 
 
 CHECKS = {
+    "q1_alignment": q1.v1_alignment_report,
+    "q1_discrimination": q1.v2_panel_discrimination,
     "ownership_map": ownership_map,
     "disk_free": disk_free,
     "review_only": review_only,
