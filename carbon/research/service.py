@@ -423,6 +423,37 @@ RESERVED_OPERATION = OperationContract(
 )
 
 
+def dry_validation_result(
+    request: DryValidateRequest, errors: tuple[object, ...]
+) -> DryValidationResult:
+    """The public dry_validate result for `request` with `errors`: issues that
+    each carry a code, a "/"-separated path and a message (A2's own, the
+    Challenge contract's or the compiler's). Valid exactly when there are
+    none; the result reference digests the request and its issues."""
+    issues = tuple(
+        ValidationIssue(
+            item.code,
+            tuple(part for part in item.path.split("/") if part),
+            item.message,
+        )
+        for item in errors
+    )
+    digest = (
+        "sha256:"
+        + hashlib.sha256(
+            _VALIDATION_DOMAIN
+            + _canonical_tuple_payload(
+                (request.challenge_key, request.strategy, issues)
+            )
+        ).hexdigest()
+    )
+    return DryValidationResult(
+        not issues,
+        issues,
+        ValidationResultRef(request.challenge_key, content_digest=digest),
+    )
+
+
 class A2ValidationProvider:
     """Thin public projection over A2's existing validation function."""
 
@@ -431,29 +462,7 @@ class A2ValidationProvider:
     def dry_validate(self, request: DryValidateRequest) -> DryValidationResult:
         if type(request) is not DryValidateRequest:
             raise TypeError("exact DryValidateRequest required")
-        result = dry_validate(request.strategy)
-        issues = tuple(
-            ValidationIssue(
-                item.code,
-                tuple(part for part in item.path.split("/") if part),
-                item.message,
-            )
-            for item in result.errors
-        )
-        digest = (
-            "sha256:"
-            + hashlib.sha256(
-                _VALIDATION_DOMAIN
-                + _canonical_tuple_payload(
-                    (request.challenge_key, request.strategy, issues)
-                )
-            ).hexdigest()
-        )
-        return DryValidationResult(
-            result.ok,
-            issues,
-            ValidationResultRef(request.challenge_key, content_digest=digest),
-        )
+        return dry_validation_result(request, dry_validate(request.strategy).errors)
 
 
 class B02BCompilationProvider:
