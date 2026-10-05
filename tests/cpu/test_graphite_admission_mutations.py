@@ -8,6 +8,8 @@ protection.
 
 from __future__ import annotations
 
+import math
+
 import pytest
 import test_agent_campaign_climb as tclimb
 import test_agent_campaign_study as tstudy
@@ -78,6 +80,36 @@ MUTATIONS = {
         lambda tmp: tle.test_an_expression_outside_the_set_is_refused_by_code(
             {"term": "score"}, "term_not_registered"
         ),
+    ),
+    # B1: every loss-expression refusal is typed (a missing guard lets an
+    # untyped exception, a refund path, or an aliased digest through).
+    "loss_expression_large_integers_are_refused": (
+        lambda m: m.setattr(
+            le,
+            "_number",
+            lambda value: type(value) in (int, float) and math.isfinite(value),
+        ),
+        lambda tmp: tle.test_an_oversized_integer_constant_is_refused_by_code(),
+    ),
+    "loss_expression_negative_zero_is_canonical": (
+        lambda m: m.setattr(le, "_constant", float),
+        lambda tmp: tle.test_negative_zero_has_the_digest_of_zero(),
+    ),
+    "loss_expression_document_size_is_bounded": (
+        lambda m: m.setattr(le, "_byte_limit", lambda opset: 10**9),
+        lambda tmp: tle.test_an_oversized_document_is_refused_before_parsing(),
+    ),
+    "loss_expression_document_nesting_is_bounded": (
+        lambda m: m.setattr(le, "_too_deep", lambda text, limit: False),
+        lambda tmp: tle.test_a_deeply_nested_document_is_refused_before_parsing(),
+    ),
+    "loss_expression_repeated_keys_are_refused": (
+        lambda m: m.setattr(le, "_unique_pairs", dict),
+        lambda tmp: tle.test_a_repeated_key_is_refused(),
+    ),
+    "loss_expression_bytes_are_canonical": (
+        lambda m: m.setattr(le, "_require_canonical", lambda body, compiled: None),
+        lambda tmp: tle.test_non_canonical_or_non_json_bytes_are_refused(),
     ),
     "climb_budgets_are_matched": (
         lambda m: m.setattr(climb.ClimbPlan, "__post_init__", lambda self: None),
