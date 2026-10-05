@@ -692,3 +692,88 @@ phase-4 grants.
 **Expected spend.** Each call settles from the provider's reported charge, not
 from its reservation. The first live cooling session measures the real
 figures.
+
+## GRAPHITE-GRANT-PHASE3-COOLING-CPU (Graphite's Constructor on cooling, CPU lane)
+
+**Authority.** OWNER-GRAPHITE-TEST-WAVE-06 §3
+(`.agent/decisions/2026-10-05-OWNER-GRAPHITE-TEST-WAVE-06.md`,
+carbonphysicsai/Carbon#595). Asked to approve a cooling Constructor grant for
+the CPU lane, the owner answered "approve". The approved terms:
+
+- 3 runs, one at a time;
+- a worst case of USD 1.95 per run, tokens only, because the CPU lane has no
+  pods;
+- a cleanup allowance of USD 0.25;
+- a ceiling of USD 6.10.
+
+The record also says the grant file is bound by the runner to
+`chip-cold-plate` and to main's committed blob. A GPU-lane cooling grant
+includes pod time, and is proposed with a price once the GPU lane exists.
+
+**State.** Approved. The grant validates. No live session has run. The
+engineering choices are GRAPHITE-GRANT-BINDING-01
+(`.agent/decisions/2026-10-05-GRAPHITE-GRANT-BINDING-01.md`).
+
+**Binding.** `grant_binding.PHASE3_GRANTS` registers every phase-3 grant with
+its Challenge:
+- GRAPHITE-GRANT-PHASE3 and GRAPHITE-GRANT-PHASE3-R2 are battery's, and are
+  accepted for battery exactly as before;
+- this grant is cooling's.
+
+`phase3 run` (`grant_binding.check_phase3_grant`) refuses:
+- a registered grant named for another Challenge:
+  `grant_is_for_another_challenge`;
+- any grant on `chip-cold-plate` that is not registered for it:
+  `grant_is_not_a_phase3_grant_for_challenge`.
+
+It accepts this grant only as the committed blob at a pushed HEAD, equal to
+the blob on main, with the grants directory clean. Those are the phase-4
+checks (`grant_binding.check_committed_blob`), with phase-3 codes. Until the
+file is on main, a cooling run refuses `main_grant_unavailable`.
+
+**No pods.** The grant's pod budget is 0 (`grant_binding.tokens_only`;
+`experiment.phase3_budget` gives `max_pods` 0). Every pod launch, the
+baseline's, a proposal's, an ablation's and a retry's, is refused
+`grant_allows_no_pods` by `Experiment._admit_pod`. That happens before any
+pod is reserved in the run's pod ledger and before any create request reaches
+RunPod.
+
+| Field | Value | Basis |
+|---|---|---|
+| `monetary_ceiling` | `6.10` USD | OWNER-GRAPHITE-TEST-WAVE-06 §3 |
+| `worst_case_run_cost` | `1.95` USD | OWNER-GRAPHITE-TEST-WAVE-06 §3, tokens only. It equals the phase-3 grants' token share (below) |
+| `cleanup_allowance` | `0.25` USD | OWNER-GRAPHITE-TEST-WAVE-06 §3 |
+| `permitted_runs` | `3` | OWNER-GRAPHITE-TEST-WAVE-06 §3 |
+| `max_concurrency` | `1` | "one at a time", OWNER-GRAPHITE-TEST-WAVE-06 §3 |
+| `max_runtime_s` | `39600` | Not stated in the approval. It is kept as GRAPHITE-GRANT-PHASE3's and R2's elapsed limit for a Constructor session. It bounds time only, never money |
+| `max_submissions` | `3` | One session export per permitted run, as GRAPHITE-GRANT-PHASE3 |
+| `account` | `Carbon-Account` | The same paying account label as the other Graphite grants (a label, not a credential) |
+| `expires_at` | `2026-12-31T23:59:59Z` | As the other Graphite grants |
+| `provider` | `graphite` | The provider a Graphite grant binds |
+| `granted_by` | `owner` | OWNER-GRAPHITE-TEST-WAVE-06 §3 |
+
+### Arithmetic
+
+This is engineering arithmetic, not a new price.
+
+**The run's split.** With no pods, the pod allowance is 0 and the whole run
+cost is the token share:
+
+    pods:   0 × USD 0.246369864 = USD 0.00
+    tokens: 1.95 − 0.00         = USD 1.95
+
+The run's research ledger is frozen with USD 1.95 as its money cap. That is
+the same token share each GRAPHITE-GRANT-PHASE3 run has (4.91 − 2.96), so a
+Constructor session's model calls are bounded exactly as on battery. See
+"Since 2026-10-04" above for how many calls each rung's reservation allows.
+
+**Runs.**
+
+    3 × 1.95 + 0.25 = 6.10 ≤ 6.10        ⌊ (6.10 − 0.25) / 1.95 ⌋ = 3 runs
+
+Every launch gate passes: run 3 needs 2 × 1.95 + 1.95 + 0.25 = 6.10.
+
+`tests/cpu/test_graphite_phase3_cooling_cpu_grant.py` holds this arithmetic.
+
+**Expected spend.** Each call settles from Engy's reported charge, not from
+its reservation. The first live cooling session measures the real figures.

@@ -399,6 +399,27 @@ def test_mutation_an_unbound_grant_check_fails_the_gate(
     assert report["grant"] is None and code == 4
 
 
+def test_mutation_a_grant_check_that_takes_a_raised_ceiling_fails_the_gate(
+    tmp_path, monkeypatch, engine_modules
+):
+    """The gate's tamper negative: a grant check that accepts a copy with
+    its ceiling raised fails the gate, and names no accepted grant."""
+    copy = _grant_copy(tmp_path)
+    _committed_by_digest(monkeypatch, copy)
+
+    def lax(path, repository=phase4.REPOSITORY, *, challenge):
+        document = json.loads(Path(path).read_bytes())
+        phase4.bind_grant_to_challenge(document, phase4.phase4_grant(challenge))
+        return phase4.grant_digest(document)
+
+    monkeypatch.setattr(phase4, "check_committed_grant", lax)
+    code, report = _gate(tmp_path, _synthetic_adapter(weak=False), engine_modules)
+    row = report["paths"][0]
+    assert row["path"] == "grant_and_code_checks" and row["status"] == "FAIL"
+    assert "ceiling raised was not refused" in row["detail"]["message"]
+    assert report["grant"] is None and code == 4
+
+
 def test_the_pod_step_calls_the_pod_layers_shared_check_when_it_exists(
     tmp_path, monkeypatch, engine_modules
 ):

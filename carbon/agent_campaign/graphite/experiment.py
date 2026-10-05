@@ -52,7 +52,7 @@ from carbon.challenge_validator.scoring import (
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
 
-from . import baseline_retry, pod_logs, pod_outcome
+from . import baseline_retry, grant_binding, pod_logs, pod_outcome
 from . import pods as podlib
 from .roles import (
     CONSTRUCTOR_STALL_ATTEMPTS,
@@ -97,6 +97,12 @@ class Phase3Budget:
         return podlib.pod_reservation(self.pod_minutes, self.hourly_usd)
 
     @property
+    def tokens_only(self):
+        """A pod budget of 0: every pod launch is refused
+        `grant_allows_no_pods` (`grant_binding.tokens_only`)."""
+        return self.max_pods == 0
+
+    @property
     def pod_allowance_usd(self):
         return podlib.cents_up(self.max_pods * self.pod_reservation_usd)
 
@@ -128,14 +134,17 @@ def phase3_budget(grant, scoring=None):
     scoring = challenge_scoring.resolve(scoring)
     economics = podlib.prices()
     minutes = podlib.proposal_minutes(scoring)
+    # A tokens-only grant (`grant_binding.tokens_only`) has a pod budget of
+    # 0: the whole run cost is its token share, and every pod is refused.
+    pods = not grant_binding.tokens_only(grant)
     budget = Phase3Budget(
         run_cap_usd=grant.worst_case_run_cost,
         hourly_usd=economics["hourly_usd"],
         pod_minutes=minutes,
-        max_pods=SESSION_POD_MINUTES // minutes,
+        max_pods=SESSION_POD_MINUTES // minutes if pods else 0,
         challenge_id=scoring.challenge_id,
     )
-    if budget.max_pods < 2 or budget.token_allowance_usd <= 0:
+    if pods and (budget.max_pods < 2 or budget.token_allowance_usd <= 0):
         # A baseline and one proposal, and some tokens, must fit one run.
         raise BudgetRefused("grant_run_cost_cannot_cover_pods_and_tokens")
     return budget
@@ -505,6 +514,9 @@ class Experiment:
         )
 
     def _admit_pod(self):
+        if self.budget.tokens_only:
+            # A tokens-only grant: refused before any reservation or launch.
+            raise BudgetRefused(grant_binding.NO_PODS)
         if self.pods_left() <= 0:
             raise BudgetRefused("session_pod_limit_reached")
         reservation = self.budget.pod_reservation_usd
@@ -700,6 +712,8 @@ class Experiment:
     def _retry_budget(self, pods):
         """None when the session's pod limit and the run's money cap (tokens
         and pods together) hold `pods` more pods, else the refusal code."""
+        if self.budget.tokens_only:
+            return grant_binding.NO_PODS
         if self.pods_left() < pods:
             return "session_pod_limit_reached"
         committed = self.token_committed() + self.pod_committed()

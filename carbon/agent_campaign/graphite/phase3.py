@@ -1224,6 +1224,11 @@ def command_run(args):
     grant = load_grant(args.grant)
     if grant.provider != "graphite":
         raise RunnerRefused("grant_provider_must_be_graphite")
+    # The grant bound to the named Challenge, and to main's committed blob
+    # where its registration says so (`grant_binding`).
+    from .grant_binding import check_phase3_grant
+
+    check_phase3_grant(args.grant, grant, challenge=args.challenge)
     if args.miner_profile is None or args.miner_campaign is None:
         raise RunnerRefused("the_real_miner_path_needs_a_miner_profile_and_campaign")
     if args.literature_snapshot is None:

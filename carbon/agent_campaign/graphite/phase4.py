@@ -128,6 +128,7 @@ from .. import boundaries
 from ..grant import SpendingGrant
 from ..provider import ProviderUnavailable, TaskSpec
 from . import experiment as ex
+from . import grant_binding
 from . import tools as toolbox
 from .phase3 import (
     Phase3Provider,
@@ -148,9 +149,8 @@ OPERATOR = "graphite-phase4-runner"
 WORKSPACE = "graphite-phase4-workspace"
 CREDENTIAL_REF = "graphite-phase4-engy"
 PROFILE_SCHEMA = "carbon.graphite.phase4.attacker-profile.v1"
-#: The directory the owner's grants are committed under; a live run refuses
-#: when anything in it differs from HEAD.
-GRANTS_DIR = "docs/development/graphite/grants"
+#: The directory the owner's grants are committed under (`grant_binding`).
+GRANTS_DIR = grant_binding.GRANTS_DIR
 
 
 @dataclasses.dataclass(frozen=True)
@@ -1290,14 +1290,6 @@ def bind_grant_to_challenge(document, entry):
     raise RunnerRefused("grant_is_not_the_phase4_grant")
 
 
-def _git(repository, *args):
-    return subprocess.run(
-        ["git", "-C", str(repository), *args],
-        capture_output=True,
-        check=False,
-    )
-
-
 def check_committed_grant(path, repository=REPOSITORY, *, challenge):
     """A live run's grant must be the committed phase-4 grant registered for
     `challenge` (`phase4_grant`), field for field, as HEAD holds it: never the
@@ -1309,21 +1301,12 @@ def check_committed_grant(path, repository=REPOSITORY, *, challenge):
     - The given copy must name that grant's id
       (`bind_grant_to_challenge`): `grant_is_for_another_challenge` or
       `grant_is_not_the_phase4_grant`.
-    - The committed blob is read from git (`git show HEAD:<grant file>`);
-      none is `phase4_grant_not_committed`.
-    - The given copy's canonical digest must equal the committed blob's: any
-      amount, run count, runtime or identity changed, in the copy or in the
-      working tree it was taken from, is
-      `grant_differs_from_the_committed_phase4_grant`.
-    - HEAD must already be on a remote branch (`git branch -r --contains
-      HEAD`): `grant_commit_not_pushed`.
-    - The committed blob must be the one on main, which is what the owner
-      approved: a pushed feature branch carrying an edited grant is not.
-      `origin main` is fetched and the two blob ids compared; a fetch or a
-      main without the grant is `main_grant_unavailable`, a different blob
-      `grant_differs_from_main`.
-    - The grants directory must match HEAD (no change, staged or not, and no
-      untracked file): `grants_directory_has_uncommitted_changes`.
+    - Then `grant_binding.check_committed_blob` on that Challenge's file: the
+      committed blob at HEAD (`phase4_grant_not_committed`), equal to the
+      given copy (`grant_differs_from_the_committed_phase4_grant`), at a
+      pushed HEAD (`grant_commit_not_pushed`), and the blob on main
+      (`main_grant_unavailable`, `grant_differs_from_main`), with the grants
+      directory clean (`grants_directory_has_uncommitted_changes`).
 
     Returns the committed grant's canonical digest."""
     entry = phase4_grant(challenge)
@@ -1332,33 +1315,9 @@ def check_committed_grant(path, repository=REPOSITORY, *, challenge):
     except (OSError, ValueError):
         raise RunnerRefused("phase4_grant_file_unreadable") from None
     bind_grant_to_challenge(given, entry)
-    shown = _git(repository, "show", "HEAD:" + entry.grant_file)
-    if shown.returncode != 0:
-        raise RunnerRefused("phase4_grant_not_committed")
-    try:
-        committed = json.loads(shown.stdout)
-    except ValueError:
-        raise RunnerRefused("phase4_grant_file_unreadable") from None
-    if grant_digest(given) != grant_digest(committed):
-        raise RunnerRefused("grant_differs_from_the_committed_phase4_grant")
-    pushed = _git(repository, "branch", "-r", "--contains", "HEAD")
-    if pushed.returncode != 0 or not pushed.stdout.strip():
-        raise RunnerRefused("grant_commit_not_pushed")
-    fetched = _git(repository, "fetch", "--quiet", "origin", "main")
-    on_main = _git(
-        repository, "rev-parse", "--verify", "origin/main:" + entry.grant_file
+    return grant_binding.check_committed_blob(
+        given, repository, entry.grant_file, phase="phase4"
     )
-    if fetched.returncode != 0 or on_main.returncode != 0:
-        raise RunnerRefused("main_grant_unavailable")
-    at_head = _git(repository, "rev-parse", "--verify", "HEAD:" + entry.grant_file)
-    if at_head.returncode != 0 or at_head.stdout.strip() != on_main.stdout.strip():
-        raise RunnerRefused("grant_differs_from_main")
-    status = _git(
-        repository, "status", "--porcelain", "--untracked-files=all", "--", GRANTS_DIR
-    )
-    if status.returncode != 0 or status.stdout.strip():
-        raise RunnerRefused("grants_directory_has_uncommitted_changes")
-    return grant_digest(committed)
 
 
 def _head(repository=REPOSITORY):
