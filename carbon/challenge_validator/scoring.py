@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import abc
 import math
+from statistics import fmean
 
 #: Never shipped to a pod, whatever a Challenge declares (lower-case
 #: fragments). Kept from Graphite's pods (`FORBIDDEN_DATA`).
@@ -81,6 +82,33 @@ def clean(value):
     if isinstance(value, (list, tuple)):
         return [clean(v) for v in value]
     return value
+
+
+def paired_error_difference(baseline_rows, rows, *, important=None):
+    """Descriptive paired error difference on common, scorable public cases.
+
+    This is deliberately not an uncertainty estimate or promotion rule.
+    """
+
+    def by_case(items):
+        return {
+            row["case_id"]: row
+            for row in items
+            if row.get("case_id") is not None and row.get("error") is not None
+        }
+
+    baseline, candidate = by_case(baseline_rows), by_case(rows)
+    common = sorted(set(baseline) & set(candidate))
+    if important is not None:
+        common = [case for case in common if bool(candidate[case].get("important"))]
+    if not common:
+        return {"n": 0, "mean_delta": None}
+    return {
+        "n": len(common),
+        "mean_delta": fmean(
+            candidate[case]["error"] - baseline[case]["error"] for case in common
+        ),
+    }
 
 
 class PracticeRule(abc.ABC):
@@ -264,11 +292,18 @@ def _cooling():
     return CoolingScoring()
 
 
+def _motor():
+    from .motor_scoring import MotorScoring
+
+    return MotorScoring()
+
+
 #: Registered scorings by Challenge token. A Challenge joins by record, with
 #: its own construction contract registered first.
 _FACTORIES = {
     "battery-fastcharge-ageing-development-v1": _battery,
     "chip-cold-plate": _cooling,
+    "electric-motor-magnetics": _motor,
 }
 _CACHE = {}
 
@@ -311,6 +346,7 @@ __all__ = [
     "Unrebuildable",
     "admit",
     "clean",
+    "paired_error_difference",
     "rebuild_differences",
     "registered",
     "resolve",
