@@ -1273,8 +1273,10 @@ def _install_cancel(provider, run_id):
         signal.signal(getattr(signal, name), handler)
 
 
-def _literature_from(args):
-    """The session's literature, or None for the dry run's fixture."""
+def _literature_from(args, *, check_challenge=True):
+    """The session's literature, or None for the dry run's fixture. A live run
+    checks its Challenge later (`check_challenge=False`), after the spend and
+    code checks: authority first, then input content."""
     if args.literature_snapshot is None:
         if args.allow_unchecked_cards:
             raise RunnerRefused("allow_unchecked_cards_needs_a_literature_snapshot")
@@ -1282,7 +1284,8 @@ def _literature_from(args):
     offered = open_literature(
         args.literature_snapshot, allow_unchecked=args.allow_unchecked_cards
     )
-    check_literature_challenge(offered, args.challenge, RunnerRefused)
+    if check_challenge:
+        check_literature_challenge(offered, args.challenge, RunnerRefused)
     return offered
 
 
@@ -1366,7 +1369,10 @@ def command_run(args):
     if args.literature_snapshot is None:
         # GRAPHITE-D28: a paid session never runs on the synthetic fixture.
         raise RunnerRefused("live_run_needs_a_literature_snapshot")
-    literature = _literature_from(args)
+    # Refusal precedence: the grant and compute lane (spend authority), then
+    # the code ref (code integrity), then the literature's Challenge (input
+    # content). Every one refuses before a model call or a pod.
+    literature = _literature_from(args, check_challenge=False)
     compute = compute_lane(args, grant)
     from . import miner_path
     from .model import LiveModel, ModelAccessRefused
@@ -1388,6 +1394,7 @@ def command_run(args):
             if not runpod_key_status(runpod):
                 raise RunnerRefused("runpod_key_file_must_be_owner_only")
         check_code_ref(args.code_ref)
+        check_literature_challenge(literature, args.challenge, RunnerRefused)
         try:
             model = LiveModel(grant=grant, credential_file=engy, provider="graphite")
         except ModelAccessRefused as refused:
