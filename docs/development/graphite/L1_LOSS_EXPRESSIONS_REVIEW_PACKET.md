@@ -1,10 +1,21 @@
 # Battery Level 1, loss expressions: drafted-surface review packet
 
-**Status: DRAFT FOR THE TEST LEAD'S REVIEW.** Nothing here is registered,
-wired or opened. `development_variant_policies/registry.json` is unchanged,
-`training.py` and the pod phase read no expression, and battery's
-miner-facing contract keeps `objective.loss_expressions` excluded. The build
-PR follows the review.
+**Status: REVIEWED AND BUILT.**
+- **The review.** The Test Lead approved this packet to build, with answers.
+  The review is recorded at
+  `docs/development/graphite/reviews/L1_LOSS_EXPRESSIONS_TEST_LEAD_REVIEW.md`.
+- **The build.** It is GRAPHITE-L1-BUILD-01
+  (`.agent/decisions/2026-10-05-GRAPHITE-L1-BUILD-01.md`).
+- **What the build changed from this packet:**
+  - the limits are depth 32 / 512 nodes (Q1);
+  - each operation family is its own ablatable permission (Q2);
+  - JAX only (Q5);
+  - a signed attack arm was added.
+- **Where the policy lives.** The draft document named below is superseded
+  by the registered documents in
+  `carbon/reconstruction/development_variant_policies/`.
+- **What follows is the packet as reviewed.** Battery's miner-facing
+  contract still excludes `objective.loss_expressions`.
 
 **Authority.**
 - OWNER-GRAPHITE-TEST-WAVE-03 (`.agent/decisions/2026-10-04-OWNER-GRAPHITE-TEST-WAVE-03.md`)

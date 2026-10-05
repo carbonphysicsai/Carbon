@@ -234,12 +234,18 @@ def optimizer(jax, optax, settings, steps):
     return tx
 
 
-def train(*, init, apply, f, z, sw, gw, trajectory, settings, seed, order):
+def train(
+    *, init, apply, f, z, sw, gw, trajectory, settings, seed, order, case_loss=None
+):
     """Train from `init(key)`; returns the parameters Carbon predicts from.
 
     `trajectory(z)` maps network outputs to normalized voltage and temperature
     trajectories (cases x times) for the trajectory losses. `order` ranks TRAIN
     cases for the curriculum. All arrays are in the requested precision.
+
+    `case_loss(zhat, zt, gw)`, when given, is a Level-1 development loss
+    (Graphite only) that replaces the objective menu's per-case loss. Without
+    it the trainer traces exactly what it traced before.
     """
     import jax
     import jax.numpy as jnp
@@ -261,9 +267,13 @@ def train(*, init, apply, f, z, sw, gw, trajectory, settings, seed, order):
             return jnp.linspace(2.0, 0.0, length)
         return jnp.linspace(0.0, 2.0, length)
 
+    expression = case_loss
+
     def case_loss(p, idx):
         zhat = apply(p, f[idx])
         zt = z[idx]
+        if expression is not None:
+            return expression(zhat, zt, gw)
         base = jnp.sum((zhat - zt) ** 2 * gw[None, :], axis=1)
         if s["relative_loss"]:
             base = base / (jnp.sum(zt**2 * gw[None, :], axis=1) + 1e-6)
