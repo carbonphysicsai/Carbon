@@ -110,3 +110,23 @@ Design only.
      The 600 s deadline and the envelope stay the contract's.
   4. **Refuse any scored rebuild** that is not on an A40 with the pinned
      configuration (`NOT_SCORED_UNPINNED_DEVICE`).
+
+## Admission and distribution (OWNER-SHARED-ANSWER-KEY-01, the standard-Bittensor addendum)
+
+These replace §2's per-validator encryption and the two open decisions above.
+
+- **Admission:** a hotkey with a validator permit in the latest finalized
+  metagraph. It is read with the existing read-only chain adapter, extended
+  with the permit field. No registration step exists.
+- **Distribution:** the answer-key service (HTTPS, Carbon-hosted).
+  - **`GET` of the active batch** with a `btauth/1`-signed request
+    (`carbon/chain/auth.py`). The service checks:
+    - the signature, freshness and replay;
+    - that the hotkey holds a validator permit at the finalized block.
+  - **The response** is the batch and its signed manifest.
+  - **Every fetch** is logged per hotkey, with the batch fingerprint.
+- **Validator side:** one command fetches, verifies the manifest's digests
+  and imports the batch, using the validator's hotkey and nothing else.
+  Activation follows the manifest's block window.
+- **Still owner-reserved:** security acceptance (AGENTS.md §13), and where the
+  service is hosted.

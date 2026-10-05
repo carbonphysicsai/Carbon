@@ -59,3 +59,22 @@ These are designed in VALIDATOR-18, and acceptance stays the owner's.
 - **PyTorch recipes rebuild on GPU too.** Today they are CPU-only
   (`torch_profile.py`). A PyTorch GPU build, with its own pinned determinism
   configuration, is in scope.
+
+### Validator admission and the distribution channel (the owner, the same day)
+
+> do it whatever the most standard bittensor way is. I want to make it easy
+> for validators
+
+- **Admission is the chain's own rule.** A validator is any hotkey that holds
+  a validator permit on the subnet in the latest finalized metagraph. There
+  is no separate registration or manual approval: permits come from stake,
+  as on every Bittensor subnet.
+- **The channel is the common subnet-owner pattern.** A Carbon-hosted HTTPS
+  answer-key service.
+  - A validator fetches the active batch with a hotkey-signed request,
+    Bittensor's standard `btauth/1`, already in `carbon/chain/auth.py`.
+  - The service serves only a hotkey holding a validator permit at the
+    current finalized block.
+  - TLS protects the transfer.
+  - Every fetch is logged per hotkey, so each copy is attributable.
+- **No extra keys.** The validator's own hotkey is its only identity.
