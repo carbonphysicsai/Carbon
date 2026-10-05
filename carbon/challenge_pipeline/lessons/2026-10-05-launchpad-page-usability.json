@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-launchpad-page-usability",
+  "recorded_at": "2026-10-05T23:00:00Z",
+  "challenge": "protocol",
+  "stage": "protocol",
+  "execution": {
+    "kind": "build",
+    "ref": "LAUNCHPAD-PAGE-USABILITY-01 (.agent/decisions/2026-10-05-LAUNCHPAD-PAGE-USABILITY-01.md), branch claude/launchpad-page-usability; findings C3 and C10 from the Graphite Test executor's Launchpad usability findings, 2026-10-05.",
+    "description": "The Launch page's Model step offers the existing launch field model_settings.max_output_tokens with the chosen model's default, and the page and MCP text say what a miner can do while no validator intake is configured for a Challenge."
+  },
+  "expected": "A person can set the same output cap on the page that an agent can set over MCP, and a miner whose submit cannot be evaluated is told why and what to do before and after submitting.",
+  "observed": "The cap was already in the public launch schema and validated by the runner (256 to 131,072), but the page never offered it, so only MCP callers could set it. With no published intake, the HTTP submit refusal reached the page as the code alone, because the page dropped the controller's next_step, and that next step told the miner to add an intake under setup when none had been published to add. The prelaunch review already said NONE_PUBLISHED for each Challenge; the page did not show it next to Submit.",
+  "keep": [
+    "Before adding a page control, check whether the launch operation already takes the field; offer it there, with the bounds and default the server serves, rather than a page-side copy.",
+    "A refusal's next step names what still works as well as what is blocked, and it is true when the blocking item does not exist yet."
+  ],
+  "change": [
+    "Every page path that shows a refusal also shows the controller's next_step, not only the code."
+  ],
+  "protocol_elements": [
+    "control_center.launch.model_settings",
+    "miner_operations.submit",
+    "supervisor.next_actions.evaluation_unavailable"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -74,6 +74,15 @@ submission is not an operation on either door. A campaign an MCP session
 launched with Graphite is carried out by the campaigns' supervisor, not the
 session; closing the Control Center pauses it, and resume continues it.
 
+What a miner can and cannot do today: a campaign can be launched,
+practised, observed, and stopped or paused on any Challenge.
+`carbon_submit` needs a validator deployment or intake for the campaign's
+Challenge in the runner profile. Until a validator intake is published for
+a Challenge (`carbon_setup_status`'s `evaluation` says which have one), a
+submit is refused `evaluation_unavailable` before anything is sent, and the
+frozen candidate is kept; review setup again once one is published, or name
+an intake you run yourself, then submit again.
+
 ## Starting without a campaign
 
 A miner who has not registered yet has no profile and no campaign, so

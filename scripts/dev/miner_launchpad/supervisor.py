@@ -331,10 +331,16 @@ NEXT_ACTIONS = {
         "The validator queued your submission. Observe later; the frozen "
         "candidate is kept, and submitting again replays the same admission."
     ),
+    # LAUNCHPAD-PAGE-USABILITY-01: says what still works and what to do,
+    # since a miner usually cannot add an intake until one is published.
     "evaluation_unavailable": (
-        "No validator deployment or intake is configured for this Challenge "
-        "in your runner profile. Add one under Set up your environment; the "
-        "frozen candidate is kept, so submit again once it is."
+        "Your frozen candidate is kept, but it cannot be evaluated yet: no "
+        "validator deployment or intake is configured for this Challenge in "
+        "your runner profile. When a validator intake is published for it, "
+        "update Carbon and review again under Set up your environment "
+        "(carbon_setup_review), which writes it into your profile, or name a "
+        "validator intake you run yourself; then submit again. Until then you "
+        "can still launch, practise, observe, and stop or pause your campaign."
     ),
     "evaluation_failed_infra": (
         "The validator's infrastructure failed. That is not a scientific "
