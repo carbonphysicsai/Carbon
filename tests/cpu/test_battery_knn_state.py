@@ -69,7 +69,9 @@ def test_records_without_the_digest_keep_their_identity():
     new = {**old, "state_schema": knn_state.SCHEMA, "state_sha256": "b" * 64}
     assert knn_state.trained_identity(new) == (knn_state.SCHEMA, "b" * 64)
     with pytest.raises(ValueError):
-        knn_state.trained_identity({**new, "state_schema": "carbon.battery.knn-state.v9"})
+        knn_state.trained_identity(
+            {**new, "state_schema": "carbon.battery.knn-state.v9"}
+        )
     with pytest.raises(ValueError):
         knn_state.trained_identity({**old, "state_sha256": "b" * 64})
 
