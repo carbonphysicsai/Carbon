@@ -54,6 +54,10 @@ def test_the_registry_holds_the_recorded_decisions_and_every_role_is_reserved():
         assert item.skeleton()["set_digest"] == item.digest
     battery = sets[BATTERY_ROLE]
     assert (battery.cases, battery.hidden_duplicates, battery.strata) == (120, 4, ())
+    # "No strata" is stated explicitly, never an empty list (the readiness
+    # gate, D7).
+    assert battery.skeleton()["strata"] == cf.STRATA_NONE
+    assert sets["ev5-confirmation"].skeleton()["strata"] == cf.STRATA_NONE
     assert battery.required_prior_roles == ("ev5-confirmation",)
     assert sets["ev5-confirmation"].sealable is False
     motor = sets[MOTOR_ROLE]
@@ -137,6 +141,17 @@ def test_an_altered_or_malformed_document_is_refused(tmp_path):
     refused(
         lambda: cf.load_sets(directory),
         "confirmation_set_malformed:strata_exceed_cases",
+    )
+
+
+def test_an_empty_strata_list_is_refused(tmp_path):
+    def empty(documents):
+        documents[BATTERY_ROLE]["strata"] = []
+
+    directory = _registry_copy(tmp_path, empty)
+    refused(
+        lambda: cf.load_sets(directory),
+        "confirmation_set_malformed:strata_empty_state_NONE_UNIFORM_LAW",
     )
 
 
@@ -332,7 +347,7 @@ def _prior_document():
         "role": "motor-test-prior-v1",
         "cases": 6,
         "hidden_duplicates": 1,
-        "strata": [],
+        "strata": "NONE_UNIFORM_LAW",
         "required_private_priors": [],
     }
 
