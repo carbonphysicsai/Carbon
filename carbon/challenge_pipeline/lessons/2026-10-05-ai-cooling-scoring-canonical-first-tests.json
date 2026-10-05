@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-canonical-first-tests",
+  "recorded_at": "2026-10-05T01:43:47Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 first canonical pytest execution",
+    "description": "Ran the full affected Cooling, Graphite Phase 3/4, pod and miner-path slice from a native-Linux disposable checkout, then stopped at 59 percent to isolate the repeated failures fail-fast."
+  },
+  "expected": "The complete affected slice should pass in the pinned Linux environment.",
+  "observed": "Pytest reached 59 percent with multiple failures before the diagnostic stop. The subsequent fail-fast run identified the shared environmental root: the disposable clone's Git object alternates path was outside the canonical container, so in-memory real-pod checks could not read the pinned commit.",
+  "keep": [
+    "Keep the native-Linux disposable checkout approach; bootstrap, dependency lock and pytest execution all worked."
+  ],
+  "change": [
+    "Make the disposable clone's Git object store self-contained, then rerun the same canonical slice."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

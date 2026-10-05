@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-focused-pass",
+  "recorded_at": "2026-10-05T01:01:02Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 focused adapter and contract regression",
+    "description": "Ran the Cooling scoring-adapter suite together with the existing Cooling Level-0 construction-contract suite in the retained CCM Windows environment after moving shared Graphite fixture behavior behind ChallengeScoring."
+  },
+  "expected": "The Cooling public-practice adapter and existing Level-0 contract should remain compatible after the challenge-neutral fixture routing change.",
+  "observed": "16 tests passed and the POSIX-only campaign-controller test skipped in 5.54 seconds. This is useful host development evidence but not canonical Linux acceptance.",
+  "keep": [
+    "Keep Battery- and Cooling-specific fixture predictions behind their named ChallengeScoring implementations.",
+    "Keep Launchpad private evaluation fail closed; this slice serves Graphite public-practice pods only."
+  ],
+  "change": [
+    "Run the affected Graphite path under canonical Linux in PR CI because this Windows host cannot import its POSIX fcntl dependency."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

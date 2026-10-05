@@ -33,6 +33,7 @@ sys.path[:0] = [
 
 from graphite_phase3_fixtures import (
     BASELINE,
+    SCORING,
     ScriptedPods,
     controller,
     propose,
@@ -56,7 +57,7 @@ def test_a_constructor_session_reaches_battery_through_the_miner_path(
     path, ledger, owner, connection, manifest = battery_campaign(
         tmp_path / "miner", monkeypatch
     )
-    miner_path.check_challenge(manifest)
+    miner_path.check_challenge(manifest, SCORING)
     composition, _wrapper, adapter = adapter_for(path, ledger, owner, connection)
     better = variant(width=128)
     script = [

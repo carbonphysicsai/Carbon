@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-scoring-baseline-cooling-env",
+  "recorded_at": "2026-10-04T00:03:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 pre-change Windows diagnostic, retained cooling environment",
+    "description": "Collected the focused challenge-neutral scoring and cold-plate contract suites with the retained ai-cooling test environment."
+  },
+  "expected": "The retained cooling environment should contain the numerical dependencies needed by the cold-plate suites.",
+  "observed": "Collection stopped because the retained environment also lacks numpy. No tests ran and no scientific, construction, or evaluation artifact was created.",
+  "keep": [
+    "Do not mistake the name of a retained environment for evidence that it satisfies the current dependency set.",
+    "Keep canonical CI as acceptance authority."
+  ],
+  "change": [
+    "Try the retained CCM pytest environment, which was created for broader repository diagnostics."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.pipeline.lessons",
+    "host-versus-canonical-validation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

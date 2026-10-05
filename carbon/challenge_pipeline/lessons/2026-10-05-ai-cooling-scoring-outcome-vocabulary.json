@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-outcome-vocabulary",
+  "recorded_at": "2026-10-05T01:48:39Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 outcome-vocabulary regression",
+    "description": "Reran the Cooling scoring-adapter and Level-0 contract suites after aligning the adapter with Graphite's standard comparison outcome vocabulary while preserving descriptive non-promotion."
+  },
+  "expected": "Cooling's descriptive result should remain non-promoting while a lower public-practice mean remains selectable for a development bundle.",
+  "observed": "16 tests passed and 2 POSIX-only tests skipped in 12.27 seconds. The comparison now carries standard Graphite outcomes plus an explicit DESCRIPTIVE_PAIRED_MEAN_DIFFERENCE interpretation and promotable false.",
+  "keep": [
+    "Keep standard outcome tokens for shared Graphite orchestration.",
+    "Keep Cooling's interpretation explicit, interval absent and promotion disabled."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

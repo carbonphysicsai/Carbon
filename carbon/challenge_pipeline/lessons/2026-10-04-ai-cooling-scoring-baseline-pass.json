@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-scoring-baseline-pass",
+  "recorded_at": "2026-10-04T00:05:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 pre-change cold-plate contract diagnostic",
+    "description": "Ran `tests/cpu/test_cold_plate_construction_contract.py` in the retained CCM Windows environment before changing the scoring adapter."
+  },
+  "expected": "The existing Cooling Level-0 contract should remain green before the scoring adapter changes its deliberately fail-closed evaluation boundary.",
+  "observed": "10 tests passed and the POSIX-only campaign-controller test skipped. The existing contract, compiler, public-material, study and fail-closed evaluation behavior are green on the usable Windows diagnostic surface.",
+  "keep": [
+    "Preserve the registered Level-0 KRR surface and public material pins.",
+    "Change only the separately owned scoring boundary and its focused expectations."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.ai_cooling.level0",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

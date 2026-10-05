@@ -32,11 +32,13 @@ from carbon.agent_campaign.graphite.pods import PodFailure, ScriptedPods
 from carbon.agent_campaign.graphite.provider import SESSION_LIMITS_V2, SessionBrief
 from carbon.agent_campaign.graphite.roles import ROLES, RoleName
 from carbon.agent_campaign.provider import ProviderUnavailable, TaskSpec
+from carbon.challenge_validator import scoring as challenge_scoring
 from carbon.development_session.research_tools import PREFIX
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 GRANT_FILE = REPOSITORY / phase4.GRANT_FILE
 CID = phase4.BATTERY_CHALLENGE
+SCORING = challenge_scoring.scoring_for(CID)
 ENGINE = importlib.util.find_spec("carbon.agent_campaign.attack") is not None
 needs_engine = pytest.mark.skipif(
     not ENGINE, reason="the attack engine slices (AT-A..AT-D) are not merged here"
@@ -133,6 +135,7 @@ def _provider(tmp_path, script, *, adapter, miner_tools=None, pods=None):
         pods=pods or ScriptedPods(),
         adapter=adapter,
         miner_tools=miner_tools,
+        scoring=SCORING,
     )
     return provider, grant
 

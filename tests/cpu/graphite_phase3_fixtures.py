@@ -20,12 +20,15 @@ from carbon.agent_campaign.graphite.model import ScriptedModel, text, tool
 from carbon.agent_campaign.graphite.pods import ScriptedPods, Step, synthetic_outputs
 from carbon.agent_campaign.graphite.roles import PROPOSE
 from carbon.battery.research import SCAFFOLD
+from carbon.challenge_validator import scoring as challenge_scoring
 from carbon.development_session.research_tools import PREFIX
+from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 GRANT_FILE = REPOSITORY / "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3.json"
 LEDGER_NOW = 1000.0
 BASELINE = SCAFFOLD
+SCORING = challenge_scoring.scoring_for(BATTERY_CHALLENGE)
 
 
 def grant_document(**changes):
@@ -69,6 +72,7 @@ def steps(*qualities, **extra):
 
 
 def provider(root, script, pods, *, grant_changes=None, miner=None, **kw):
+    kw.setdefault("scoring", SCORING)
     return phase3.Phase3Provider(
         root=Path(root) / "graphite",
         grant=grant(**(grant_changes or {})),

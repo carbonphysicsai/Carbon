@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-scoring-baseline-py-launcher",
+  "recorded_at": "2026-10-04T00:01:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 pre-change Windows diagnostic, py launcher",
+    "description": "Retried the focused challenge-neutral scoring and cold-plate contract baseline with the Windows `py` launcher."
+  },
+  "expected": "The selected interpreter should collect and execute both focused suites.",
+  "observed": "No tests executed because the Visual Studio Python 3.9 selected by `py` does not have pytest installed. The failure occurred before collection and changed no scientific, construction, or evaluation state.",
+  "keep": [
+    "Do not install dependencies into an unrelated system interpreter for a repository diagnostic.",
+    "Reuse an existing dependency-complete Carbon environment when one is available."
+  ],
+  "change": [
+    "Run the next diagnostic with the existing Carbon diagnostic virtual environment."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.pipeline.lessons",
+    "host-versus-canonical-validation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

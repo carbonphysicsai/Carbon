@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-implicit-clusters-pass",
+  "recorded_at": "2026-10-05T02:38:33Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 canonical four-cluster compatibility rerun",
+    "description": "Ran the repaired direct miner-path, Planner next-level, complete Phase 4, complete pod-timeout and miner-path service tests with fail-fast canonical validation."
+  },
+  "expected": "Each formerly implicit Battery caller should name its exact scorer, and Phase 4 should thread the CLI-selected scorer through every provider and Experiment boundary.",
+  "observed": "All selected checks passed. The four legacy single-Challenge clusters now work with Cooling registered while unnamed shared resolution remains fail closed.",
+  "keep": [
+    "Keep Challenge selection explicit at shared construction, scoring and miner-path boundaries.",
+    "Keep the general registry free of a hidden Battery fallback."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

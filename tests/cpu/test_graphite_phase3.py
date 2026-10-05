@@ -46,6 +46,7 @@ from graphite_phase3_fixtures import (
     BASELINE,
     GRANT_FILE,
     PREFIX,
+    SCORING,
     UNREBUILDABLE,
     ScriptedPods,
     Step,
@@ -133,8 +134,8 @@ def test_the_phase3_grant_is_complete_and_one_ceiling_covers_tokens_and_pods():
         "0.10"
     ) / Decimal(730)
     assert granted.cleanup_allowance == economics["cleanup_reserve_usd"]
-    budget = ex.phase3_budget(granted)
-    assert budget.pod_minutes == 30 == pods.proposal_minutes()
+    budget = ex.phase3_budget(granted, SCORING)
+    assert budget.pod_minutes == 30 == pods.proposal_minutes(SCORING)
     assert budget.max_pods == 12
     assert budget.pod_reservation_usd == Decimal("0.246369864")
     assert budget.pod_allowance_usd == Decimal("2.96")
@@ -191,7 +192,7 @@ def test_an_end_to_end_session_proposes_runs_scores_bundles_and_rebuilds(tmp_pat
     ]
     built = ex.admit(better, job.seed)
     assert job.expected == {"files": built["staged"], "program": built["program"]}
-    assert job.contract_digest == ex.recorded_contract()["contract_digest"]
+    assert job.contract_digest == ex.recorded_contract(SCORING)["contract_digest"]
     # The agent saw development feedback as data, without authority.
     [feedback] = [
         o for o in tool_outputs(graphite.model) if o.get("kind") == "proposal"
@@ -327,7 +328,7 @@ def test_an_unrebuildable_proposal_is_refused_recorded_and_never_run(
 def test_an_unrecorded_contract_refuses_every_proposal(tmp_path, monkeypatch):
     from carbon.reconstruction import expansion_record
 
-    history = expansion_record.records(ex.recorded_contract()["challenge"])
+    history = expansion_record.records(ex.recorded_contract(SCORING)["challenge"])
     monkeypatch.setattr(expansion_record, "records", lambda challenge: history[:-1])
     with pytest.raises(ex.Unrebuildable, match="construction_contract_unrecorded"):
         ex.admit(BASELINE, 0)
@@ -656,7 +657,7 @@ def _session_open(graphite, number=1):
 
 def _open(graphite, number=1):
     """Open (not run) a Constructor session; returns its run id."""
-    _document, profile = phase3.permission_profile()
+    _document, profile = phase3.permission_profile(SCORING)
     spec = TaskSpec(
         campaign_id=phase3.CAMPAIGN,
         role=ROLES[RoleName.CONSTRUCTOR].boundary.value,
@@ -1055,7 +1056,7 @@ def _opened(root, graphite, number=1):
     from carbon.agent_campaign.provider import TaskSpec
 
     brief = phase3.session_brief(checkout_commit="1" * 40, budget=graphite.budget)
-    _doc, profile = phase3.permission_profile()
+    _doc, profile = phase3.permission_profile(SCORING)
     spec = TaskSpec(
         campaign_id=phase3.CAMPAIGN,
         role=ROLES[RoleName.CONSTRUCTOR].boundary.value,
@@ -1318,10 +1319,10 @@ def test_a_brief_for_other_or_protected_material_is_refused(tmp_path):
     other = json.loads(json.dumps(brief.initial_observation))
     other["challenge"] = {"id": "burgers-dynamics-v1", "version": "1.0"}
     with pytest.raises(ProviderUnavailable, match="phase3_challenge_not_served"):
-        phase3.check_observation(other)
+        phase3.check_observation(other, graphite.scoring)
     unrebuildable = {**brief.initial_observation, "baseline_strategy": UNREBUILDABLE}
     with pytest.raises(ProviderUnavailable, match="baseline_not_rebuildable"):
-        phase3.check_observation(unrebuildable)
+        phase3.check_observation(unrebuildable, graphite.scoring)
     # Phase 3 runs the Constructor only.
     from graphite_fixtures import brief as reader_brief
 
@@ -1342,14 +1343,14 @@ def test_a_brief_for_other_or_protected_material_is_refused(tmp_path):
 
 
 def test_the_pods_receive_public_development_material_only():
-    data = pods.data_paths()
+    data = pods.data_paths(SCORING)
     assert all(not any(f in path.lower() for f in pods.FORBIDDEN_DATA) for path in data)
     from carbon.battery.challenge import OCV_TABLE_PATH, TRAIN_V1_PATH
     from carbon.battery.practice import PRACTICE_SOURCE_PATH
 
     assert set(data) == {TRAIN_V1_PATH, OCV_TABLE_PATH, PRACTICE_SOURCE_PATH}
     head = _head()
-    shipped = pods.ship_list(head)
+    shipped = pods.ship_list(head, scoring=SCORING)
     assert {p for p in shipped if p.startswith("docs/")} == set(data)
     assert not [p for p in shipped if p.startswith((".agent/", "tests/"))]
 
@@ -1402,7 +1403,7 @@ KNN = {**BASELINE, "backbone": "knn", "parameters": {"neighbours": 6}}
 
 
 def test_the_pod_phase_runs_the_pinned_build_and_refuses_another(tmp_path):
-    contract = ex.recorded_contract()["contract_digest"]
+    contract = ex.recorded_contract(SCORING)["contract_digest"]
     built, _files, _program = pod_phase.built_record(KNN, contract, 7, REPOSITORY)
     config = {
         "strategy": KNN,
@@ -1417,7 +1418,7 @@ def test_the_pod_phase_runs_the_pinned_build_and_refuses_another(tmp_path):
     predictions = json.loads((out / "predictions.json").read_text())
     assert len(predictions) == 200
     # Carbon scores what the pod returned with the frozen rule.
-    _rows, summary = ex.FrozenRule(REPOSITORY).score(predictions)
+    _rows, summary = ex.FrozenRule(REPOSITORY, SCORING).score(predictions)
     assert summary["n_scored"] + summary["n_gate_failed"] == 200
     tampered = json.loads(json.dumps(config))
     tampered["expected"]["files"]["recipe.json"] = "sha256:" + "0" * 64
@@ -1450,7 +1451,7 @@ def test_the_code_ship_is_pod_controls_manifest():
     paths = [
         "carbon/battery/practice.py",
         "scripts/dev/exam_design/runpod/bootstrap.py",
-        pods.data_paths()[1],
+        pods.data_paths(SCORING)[1],
     ]
     assert pods.code_manifest(head, paths) == pod_control.code_manifest(head, paths)
 
@@ -1556,6 +1557,7 @@ def test_the_live_runpod_backend_drives_the_compute_layer(tmp_path):
         http=fake.http,
         sleep=lambda seconds: None,
         balance_floor=lambda: Decimal("2.00"),  # synthetic; the operator's is private
+        scoring=SCORING,
     )
     described = backend.describe()
     assert described["image"] == pods.prices()["image"]
@@ -1563,7 +1565,7 @@ def test_the_live_runpod_backend_drives_the_compute_layer(tmp_path):
     job = pods.PodJob(
         intent_id="graphite-test-p1",
         strategy=KNN,
-        contract_digest=ex.recorded_contract()["contract_digest"],
+        contract_digest=ex.recorded_contract(SCORING)["contract_digest"],
         seed=7,
         expected={"files": {}, "program": "sha256:" + "0" * 64},
         minutes=30,
@@ -1627,6 +1629,7 @@ def test_the_live_backend_refuses_a_rate_above_the_ceiling(tmp_path):
         transport=dear,
         http=fake.http,
         balance_floor=lambda: Decimal("2.00"),  # synthetic; the operator's is private
+        scoring=SCORING,
     )
     job = pods.PodJob(
         "graphite-test-p2",
@@ -1715,14 +1718,14 @@ def test_the_miner_path_attaches_only_to_battery_development():
     from carbon.battery.challenge import CHALLENGE
 
     good = {"challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version}}
-    assert miner_path.check_challenge(good) == good["challenge"]
+    assert miner_path.check_challenge(good, SCORING) == good["challenge"]
     for manifest in (
         {"challenge": {"id": "burgers-dynamics-v1", "version": "1.0"}},
         {"challenge": {"id": CHALLENGE.challenge_id, "version": "9.9"}},
         {},
     ):
         with pytest.raises(miner_path.MinerPathRefused):
-            miner_path.check_challenge(manifest)
+            miner_path.check_challenge(manifest, SCORING)
 
 
 # -- the runner ------------------------------------------------------------------------------
@@ -1743,13 +1746,15 @@ def test_the_runner_refuses_without_an_exact_grant_and_credentials(
 ):
     root = str(tmp_path / "root")
     with pytest.raises(SystemExit):
-        phase3.main(["run", "--root", root])
+        phase3.main(["run", "--root", root, "--challenge", SCORING.challenge_id])
     assert "--grant" in _refusal(capsys)
     snapshot = snapshot_file(tmp_path / "lit", count=1, verdicts={1: "CORRECT"})
     base = [
         "run",
         "--root",
         root,
+        "--challenge",
+        SCORING.challenge_id,
         "--code-ref",
         "0" * 40,
         "--miner-profile",
@@ -1849,6 +1854,8 @@ def test_the_runner_refuses_without_an_exact_grant_and_credentials(
         "run",
         "--root",
         root,
+        "--challenge",
+        SCORING.challenge_id,
         "--code-ref",
         "0" * 40,
         "--grant",
@@ -1862,14 +1869,35 @@ def test_the_runner_refuses_without_an_exact_grant_and_credentials(
         phase3.main(no_miner)
     assert _refusal(capsys) == "the_real_miner_path_needs_a_miner_profile_and_campaign"
     with pytest.raises(SystemExit):
-        phase3.main(["run", "--root", str(REPOSITORY / "x"), "--dry-run"])
+        phase3.main(
+            [
+                "run",
+                "--root",
+                str(REPOSITORY / "x"),
+                "--challenge",
+                SCORING.challenge_id,
+                "--dry-run",
+            ]
+        )
     assert _refusal(capsys) == "root_must_be_outside_the_repository"
     # No key value was ever printed.
     assert "fixture-engy" not in capsys.readouterr().out
 
 
 def test_the_dry_run_exercises_the_whole_session_without_spend(tmp_path, capsys):
-    assert phase3.main(["run", "--root", str(tmp_path), "--dry-run"]) == 0
+    assert (
+        phase3.main(
+            [
+                "run",
+                "--root",
+                str(tmp_path),
+                "--challenge",
+                SCORING.challenge_id,
+                "--dry-run",
+            ]
+        )
+        == 0
+    )
     output = capsys.readouterr().out
     result = json.loads(output[output.index("{\n") :])
     assert result["provider_state"] == "succeeded"

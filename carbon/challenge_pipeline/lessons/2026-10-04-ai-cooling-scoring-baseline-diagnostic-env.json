@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-scoring-baseline-diagnostic-env",
+  "recorded_at": "2026-10-04T00:02:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 pre-change Windows diagnostic, existing virtual environment",
+    "description": "Collected the focused challenge-neutral scoring and cold-plate contract suites with an existing Carbon diagnostic virtual environment."
+  },
+  "expected": "The dependency-complete environment should collect and execute both focused suites.",
+  "observed": "Collection stopped for both suites because that narrow diagnostic environment lacks numpy. This is an environment failure before test execution, not a test or implementation failure.",
+  "keep": [
+    "Treat collection dependency failures as host diagnostics, not repository regressions.",
+    "Require a dependency-complete environment before interpreting test results."
+  ],
+  "change": [
+    "Use the repository canonical wrapper or locate the existing dependency-complete Carbon environment."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.pipeline.lessons",
+    "host-versus-canonical-validation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

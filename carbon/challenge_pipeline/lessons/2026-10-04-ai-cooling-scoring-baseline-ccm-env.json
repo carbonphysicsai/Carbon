@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-scoring-baseline-ccm-env",
+  "recorded_at": "2026-10-04T00:04:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 pre-change Windows diagnostic, CCM environment",
+    "description": "Collected the focused challenge-neutral scoring and cold-plate contract suites with the retained dependency-complete CCM pytest environment."
+  },
+  "expected": "Both focused suites should execute, subject only to known noncanonical-host limitations.",
+  "observed": "Numerical dependencies loaded, but collection of the Graphite scoring suite stopped at the POSIX-only `fcntl` import on Windows. Pytest aborted collection before running either target. This is a known host-boundary failure; canonical Linux remains required.",
+  "keep": [
+    "Use this environment for Windows diagnostics that do not cross POSIX-only Graphite imports.",
+    "Use canonical Linux for the Graphite scoring acceptance."
+  ],
+  "change": [
+    "Run the cold-plate contract suite separately for a usable pre-change Windows diagnostic."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.pipeline.lessons",
+    "host-versus-canonical-validation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

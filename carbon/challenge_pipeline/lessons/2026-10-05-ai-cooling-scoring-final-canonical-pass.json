@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-final-canonical-pass",
+  "recorded_at": "2026-10-05T03:01:31Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 final combined canonical matrix",
+    "description": "Ran the complete selected Cooling scoring, neutral validator seam, Graphite Phase 3/4, historical replay, pod lifecycle, miner-path, Battery compatibility and committed-lessons matrix on the final implementation tree."
+  },
+  "expected": "The Cooling adapter should work end to end while shared scoring stays Challenge-explicit, historical bytes remain stable, and Battery behavior remains unchanged.",
+  "observed": "The full canonical matrix reached 100% with no failures.",
+  "keep": [
+    "Keep unnamed shared scoring fail closed and keep every Challenge-specific caller explicit.",
+    "Keep Cooling comparison descriptive and non-promoting."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

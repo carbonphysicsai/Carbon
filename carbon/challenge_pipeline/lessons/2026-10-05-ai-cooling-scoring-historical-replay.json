@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-historical-replay",
+  "recorded_at": "2026-10-05T01:54:40Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 canonical remaining-slice fail-fast run",
+    "description": "Ran the neutral scoring, Graphite Phase 3/4, pod and miner-path suites in canonical Linux after the Cooling suite passed."
+  },
+  "expected": "The challenge-neutral routing should preserve historical Graphite replay bytes while serving named Challenges prospectively.",
+  "observed": "The run reached the historical D34 replay test and stopped on its pinned session-open digest. The new internal budget Challenge id had leaked into the serialized budget record, and a wording-only permission-profile edit changed its digest; neither change was required for Challenge routing.",
+  "keep": [
+    "Keep challenge_id on the in-memory Phase3Budget so session_brief can bind its Challenge."
+  ],
+  "change": [
+    "Exclude challenge_id from the historical budget record and preserve the existing permission-profile surface text, keeping old bytes stable."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

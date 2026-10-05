@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-ruff-final-pass",
+  "recorded_at": "2026-10-05T02:42:13Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-07 final changed-Python Ruff check",
+    "description": "Ran Ruff over every changed Python file after all compatibility repairs."
+  },
+  "expected": "The final changed Python set should pass repository lint rules.",
+  "observed": "All checks passed.",
+  "keep": [
+    "Keep explicit Challenge selection at every repaired call site."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
