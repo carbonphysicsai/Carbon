@@ -80,6 +80,24 @@ This supersedes OWNER-C0-REWARD-01's bounded-linear credit for these weights.
   - Promotion is unchanged: it stays each Challenge's own comparison.
   - The self-improvement factor (§3) is expressed on this score.
 
+### 2b. N and the public baseline (the owner, the same day)
+
+> yes for N, and we will launch with a public baseline that we set with
+> Graphite during final tests
+
+- **N.** The policy lists the Challenges under test now: battery, cooling and
+  motor, so N = 3. Each launch Challenge is added as its id is registered,
+  and each addition is a new policy version.
+- **The public baseline.**
+  - At launch, every Challenge has a public baseline construction that
+    Graphite sets during final tests.
+  - The first winner must beat that baseline under the Challenge's own
+    promotion rule (a paired comparison on fresh cases), not merely be the
+    first eligible submission.
+  - Until a Challenge's baseline is registered, testnet keeps the validator's
+    current first-incumbent rule, so that weight-setting can be tested now.
+    The policy records which of the two applies to each Challenge.
+
 ### 3. Values this record leaves for the build to measure and the owner to adopt
 
 - **The self-improvement factor.** It is to be measured, never guessed:
