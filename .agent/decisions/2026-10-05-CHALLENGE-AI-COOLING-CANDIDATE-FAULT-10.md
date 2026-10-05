@@ -27,6 +27,14 @@ record, preserves the existing ledger classification, and returns no exception
 text. The attack adapter reads the same registered policy; it does not copy the
 classification into attack code.
 
+After this ticket began, #602 merged the real-path `selective_fault` family.
+That family is retained. Its Interface-v1 result now carries the same policy
+record, so its evidence digest binds the policy version, digest and actual
+`predict_exception` or `non_finite_score` classification. The small
+resource-accounting probes continue to cover the registered policy's complete
+fault inventory, including `rebuild_exception`, without duplicating #602's
+real construction probe.
+
 ## Implementation location
 
 - `carbon/agent_campaign/graphite/attribution_policies/`

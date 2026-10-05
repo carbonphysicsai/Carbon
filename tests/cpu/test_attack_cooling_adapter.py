@@ -540,6 +540,12 @@ def test_a_selective_fault_dodges_no_case_on_either_real_path():
         assert v1["outcome"] == "FAILED_INFRA:adapter_failure", name
         assert v1["recorded_submissions"] == 0 and v1["retry_same"], name
         assert v1["ledger"] == {"FAILED_INFRA": 2}, name
+        expected_fault = (
+            "predict_exception" if value["mode"] == "raise" else "non_finite_score"
+        )
+        assert v1["candidate_fault_policy"] == c._candidate_fault_policy().record(
+            expected_fault
+        ), name
         graphite = result["graphite"]
         assert graphite["pods_launched"] == 2 and not graphite["retried"], name
         if value["mode"] == "raise":

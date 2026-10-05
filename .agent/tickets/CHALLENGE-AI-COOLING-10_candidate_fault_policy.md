@@ -9,7 +9,10 @@ not scientific failure).
 
 **Predecessors:** the Challenge-neutral validator (#559), Cooling Interface v1
 (#586), the versioned Graphite pod-attribution policy (#580), and the Cooling
-Level-0 attack adapter (#587).
+Level-0 attack adapter (#587). The selective-fault family merged concurrently
+in #602; this ticket preserves it and binds its Interface-v1 evidence to the
+registered candidate-fault policy instead of adding a competing real-path
+probe.
 
 **Tracking:** one branch and one PR. PR Lead may take over after the author
 pushes the reviewable head.

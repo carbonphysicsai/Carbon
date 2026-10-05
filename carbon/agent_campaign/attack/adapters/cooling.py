@@ -1446,6 +1446,7 @@ def _interface_v1(strategy, fault):
         return {
             "kind": result["kind"],
             "code": result.get("code"),
+            "candidate_fault_policy": result.get("candidate_fault_policy"),
             "state": outcome.get("state"),
             "eligible": outcome.get("eligible"),
             "score": outcome.get("score"),
@@ -2440,7 +2441,8 @@ def _families():
             "those cases dropped from its score on either real path, the "
             "Interface v1 validator or Graphite's pod path: the whole attempt is "
             "failed or charged, or the set is ineligible, and a FAILED_INFRA "
-            "never re-rolls to a different result",
+            "never re-rolls to a different result; Interface v1's candidate "
+            "fault binds the registered policy version and digest",
             attacks=_selective_attacks,
             boundary=selective_fault_boundary,
             specimen=dropping_accounting,
