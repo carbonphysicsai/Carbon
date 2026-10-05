@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-validator-03-explicit-no-strata",
+  "recorded_at": "2026-10-05T17:00:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-03 amendment, branch claude/confirmation-strata-explicit, from main 61c63925e. Native: the confirmation and contract suites, 113 passed. Canonical results are recorded in the PR.",
+    "description": "Confirmation-set documents now state 'no strata' as NONE_UNIFORM_LAW, and the registry refuses an empty strata list, so a readiness gate can tell a decided absence from a missing value."
+  },
+  "expected": "An empty list was a clear way to say a set has no strata.",
+  "observed": "The readiness gate could not tell an intentional empty list from a value someone forgot to fill. A decided absence needs its own explicit value with a citation, distinct from both null (undecided) and a list (decided strata).",
+  "keep": [
+    "Give every decided absence an explicit value and a citation, never an empty container."
+  ],
+  "change": [
+    "When a registry admits empty collections, ask whether 'empty' and 'missing' mean the same thing to every reader."
+  ],
+  "protocol_elements": [
+    "a registered scientific value is either unset (null, for the owner), decided present, or decided absent, and each is distinguishable"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

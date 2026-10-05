@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-pycompile-pass",
+  "recorded_at": "2026-10-05T11:30:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "candidate-fault changed Python modules and focused tests",
+    "description": "Compiled the new policy loader, validator changes, Cooling attack adapter and focused tests with the host Python bytecode compiler."
+  },
+  "expected": "Every changed Python source parses before the focused test run.",
+  "observed": "All eight named source and test modules compiled without a syntax error.",
+  "keep": [
+    "Use a fast syntax pass before running the broader policy and adapter tests."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_validator.cooling",
+    "graphite.attacker.cooling"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

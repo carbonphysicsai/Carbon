@@ -90,7 +90,7 @@ class MinerPathTools:
         try:
             result = await self.adapter.call(request)
         except AdapterFailure as failure:
-            return {
+            refused = {
                 "status": "MINER_PATH_REFUSED",
                 "reason_code": failure.code.value,
                 "dispatch_may_have_occurred": failure.dispatch_may_have_occurred,
@@ -98,6 +98,11 @@ class MinerPathTools:
                 "requires_reconciliation": bool(failure.dispatch_may_have_occurred),
                 "authority_granted": False,
             }
+            # The door's registered correction, when it gave one: its code,
+            # the field and how to fix it (RESEARCH-TOOL-USABILITY-01).
+            if failure.correction is not None:
+                refused.update(failure.correction)
+            return refused
         payload = dict(result.payload)
         if result.requires_reconciliation:
             payload["requires_reconciliation"] = True

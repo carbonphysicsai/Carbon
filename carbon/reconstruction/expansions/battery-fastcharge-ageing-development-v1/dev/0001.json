@@ -1,0 +1,121 @@
+{
+ "arm": "signed",
+ "authority": "OWNER-GRAPHITE-TEST-WAVE-03 section 1; OWNER-GRAPHITE-DEV-LEVELS-01; engineering choices GRAPHITE-DEV-VARIANTS-01",
+ "base_contract": {
+  "contract_digest": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e",
+  "sequence": 1
+ },
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": 1,
+ "recorded_on": "2026-10-05",
+ "schema": "carbon.construction-development-expansion-record.v1",
+ "scope": "DEVELOPMENT_ONLY_NEVER_SERVED_TO_MINERS",
+ "sequence": 1,
+ "variant_digest": "sha256:53c630f41388907d2c57875dd98af2b26998ca791f2e9e3ebfbe4114a91a16a9",
+ "variant_document": {
+  "authority": "OWNER-GRAPHITE-TEST-WAVE-03 section 1; OWNER-GRAPHITE-DEV-LEVELS-01 F1; OWNER-GRAPHITE-TEST-WAVE-04 sections 1 and 2; the Test Lead's review of the Level-1 packet; engineering choices GRAPHITE-L1-BUILD-01",
+  "base_contract": {
+   "digest": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e",
+   "record_sequence": 1
+  },
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "level": 1,
+  "participant_code": false,
+  "review": {
+   "record": "docs/development/graphite/reviews/L1_LOSS_EXPRESSIONS_TEST_LEAD_REVIEW.md (2026-10-05)",
+   "reviewer": "Test Lead"
+  },
+  "schema": "carbon.construction-development-variant.v1",
+  "scope": "DEVELOPMENT_ONLY_NEVER_SERVED_TO_MINERS",
+  "status": "REGISTERED_DEVELOPMENT_POLICY",
+  "version": "battery-l1-loss-expressions-signed-v1",
+  "widened": [
+   {
+    "applies_to": [
+     "deeponet",
+     "mlp"
+    ],
+    "bounds": {
+     "backends": [
+      "jax"
+     ],
+     "degenerate_losses": "run; statically detectable no-ops are a diagnostic",
+     "epsilon": 1e-06,
+     "exponent": [
+      0.5,
+      2.0
+     ],
+     "expression_schema": "carbon.loss-expression.v2",
+     "field": "loss_expressions",
+     "identity": "OWNER-GRAPHITE-TEST-WAVE-04 section 1: distinct constructions are identified by the rebuilt artifact's digest; the expression digest is a diagnostic only and nothing counts, limits, deduplicates or rewards by it",
+     "limits": {
+      "max_arity": 16,
+      "max_depth": 32,
+      "max_nodes": 512
+     },
+     "operation_set_all_granted": "sha256:4cb93f717c7141698fdc3a2f3da8413b15d3ebc5f3ae450b5502fa2afdf5a21b",
+     "operations": [
+      "add",
+      "mul",
+      "div",
+      "scale",
+      "pow",
+      "log1p",
+      "sqrt"
+     ],
+     "rebuild": "rebuild: CPU-verified only",
+     "reconstruction": "Carbon recompiles the expression from its canonical bytes against the operation set its profile grants and evaluates it with its own code in its JAX trainer (carbon.battery.level1, carbon.battery.loss_terms); nothing the strategy supplies is executed",
+     "replaces": [
+      "objective.h1_weight",
+      "objective.h2_weight",
+      "objective.relative_loss",
+      "objective.spectral_weight",
+      "objective.time_weighting"
+     ],
+     "scale": [
+      0.0,
+      10.0
+     ],
+     "terms": [
+      "sq_error",
+      "target_energy",
+      "traj_ramp_early",
+      "traj_ramp_late",
+      "traj_d1",
+      "traj_d2",
+      "traj_spectral"
+     ]
+    },
+    "id": "objective.loss_expressions",
+    "summary": "The per-case training loss as a bounded, declarative expression over battery's registered loss terms, in place of the fixed objective menu (the GA-D6 core). Carbon validates, canonicalizes and pins it, and builds the loss with its own code.",
+    "surface": null
+   },
+   {
+    "applies_to": [
+     "deeponet",
+     "mlp"
+    ],
+    "bounds": {
+     "adds_operations": [
+      "sub",
+      "neg",
+      "exp",
+      "const"
+     ],
+     "const": [
+      -100.0,
+      100.0
+     ],
+     "field": null,
+     "permission_only": true,
+     "use": "attack panel only"
+    },
+    "id": "objective.loss_signed_operations",
+    "summary": "Adds sub, neg, exp and constant leaves, which can make a loss negative or non-finite. Attack panel only, never a valid surface.",
+    "surface": null
+   }
+  ]
+ },
+ "variant_version": "battery-l1-loss-expressions-signed-v1",
+ "what": "Battery Level 1 signed attack arm (Test Lead review 2026-10-05): the core plus sub, neg, exp and constant leaves, for the attack panel only, to prove that non-finite training is the candidate's own failure (R1)."
+}

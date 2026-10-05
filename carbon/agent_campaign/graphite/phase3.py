@@ -169,6 +169,7 @@ from .provider import (
     SessionBrief,
     SessionStopped,
     limit_dimension,
+    tool_text_of,
 )
 from .roles import (
     CONSTRUCTOR_SESSION_TURNS,
@@ -176,6 +177,7 @@ from .roles import (
     PARALLEL_RULES,
     PROPOSE,
     ROLES,
+    TOOL_TEXT_V2,
     RoleName,
 )
 
@@ -653,7 +655,7 @@ class Phase3Provider(GraphiteProvider):
                     transport=self.model.transport_for(selection),
                     provider=selection,
                     instructions=role.prompt,
-                    tools=role.tool_schemas(),
+                    tools=role.tool_schemas(tool_text_of(opened)),
                     # Every tool call of a turn runs, in the model's order
                     # (LP-PROD-A, superseding GRAPHITE-D33's first-call rule).
                     parallel_calls=PARALLEL_RULES.get(role.name),
@@ -860,6 +862,7 @@ def session_brief(
     repository=REPOSITORY,
     scoring=None,
     variant=None,
+    tool_text=TOOL_TEXT_V2,
 ):
     """The Constructor's brief: the session Challenge's public development
     material only (its `ChallengeScoring`), and the session's offered
@@ -904,6 +907,8 @@ def session_brief(
         initial_observation=observation,
         checkout_commit=checkout_commit,
         checkout_manifest_digest=boundaries.manifest_digest(manifest),
+        # A new session reads challenge-neutral tool text (VALIDATOR-07).
+        tool_text=tool_text,
     )
 
 

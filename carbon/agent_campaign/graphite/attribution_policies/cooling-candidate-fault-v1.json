@@ -1,0 +1,39 @@
+{
+  "schema": "carbon.graphite.candidate-fault-policy.v1",
+  "version": "cooling-candidate-fault-v1",
+  "authority": "Test Lead follow-up after Cooling Interface v1 PR #586; CHALLENGE-AI-COOLING-10 records the bounded implementation decision",
+  "status": "DEVELOPMENT_WORKING_POLICY",
+  "challenge": {
+    "id": "chip-cold-plate",
+    "version": "1.0"
+  },
+  "faults": [
+    "rebuild_exception",
+    "predict_exception",
+    "non_finite_score"
+  ],
+  "classification": {
+    "kind": "FAILED_INFRA",
+    "code": "adapter_failure",
+    "scientific_result": false,
+    "candidate_penalty": false
+  },
+  "retry": {
+    "owner": "registered_submission_lifecycle",
+    "validator_performs": false,
+    "eligibility": "subject_to_registered_attempt_budget",
+    "new_charge": false,
+    "retry_credit": false
+  },
+  "refund": {
+    "owner": "registered_fee_service",
+    "validator_performs": false,
+    "charged_terminal": "full_remaining_balance_refund",
+    "uncharged_terminal": "no_fee_event"
+  },
+  "notes": [
+    "This policy preserves the existing Cooling Interface v1 dispatch behavior; it does not declare a candidate or scientific failure.",
+    "The standalone DEVELOPMENT validator records the classification only. A surrounding registered A7 lifecycle owns retry, charge and terminal refund actions.",
+    "Selective candidate-triggered faults and any retry they obtain are Track A evidence. A policy change ships as a new registered version, never an edit to this document."
+  ]
+}

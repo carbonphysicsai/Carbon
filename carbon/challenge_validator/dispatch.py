@@ -20,8 +20,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .candidate_fault import CandidateFaultPolicy
 from .interface import (
     Admitted,
+    CandidateFault,
     ChallengeAdapter,
     OutcomeContractViolation,
     ReservedRole,
@@ -114,7 +116,15 @@ class Adapters:
         return sorted(self._by_digest)
 
 
-def _result(kind, *, code=None, adapter=None, outcome=None, retry=None):
+def _result(
+    kind,
+    *,
+    code=None,
+    adapter=None,
+    outcome=None,
+    retry=None,
+    candidate_fault_policy=None,
+):
     out = {
         "schema": RESULT_SCHEMA,
         "kind": kind,
@@ -127,6 +137,8 @@ def _result(kind, *, code=None, adapter=None, outcome=None, retry=None):
     }
     if retry:
         out["retry"] = dict(retry)
+    if candidate_fault_policy is not None:
+        out["candidate_fault_policy"] = dict(candidate_fault_policy)
     return out
 
 
@@ -265,6 +277,22 @@ class Validator:
                 adapter=adapter,
                 retry=unavailable.retry,
             )
+        except CandidateFault as fault:
+            policy = fault.policy
+            if (
+                type(policy) is not CandidateFaultPolicy
+                or policy.challenge_id != adapter.challenge_id
+                or policy.challenge_version != adapter.challenge_version
+            ):
+                return self._infra(submission, adapter, "adapter_failure")
+            record = policy.record(fault.fault)
+            classification = record["classification"]
+            return self._infra(
+                submission,
+                adapter,
+                classification["code"],
+                candidate_fault_policy=record,
+            )
         except OutcomeContractViolation:
             return self._infra(submission, adapter, "outcome_contract_violation")
         except Exception:  # noqa: BLE001 - any adapter fault is infrastructure
@@ -277,11 +305,16 @@ class Validator:
         )
         return _result("OUTCOME", adapter=adapter, outcome=outcome)
 
-    def _infra(self, submission, adapter, code):
+    def _infra(self, submission, adapter, code, *, candidate_fault_policy=None):
         # Infrastructure, never a score (invariant 7). Only the code is kept:
         # an exception's text may carry private state.
         self._ledger.record(submission, kind="FAILED_INFRA", code=code)
-        return _result("FAILED_INFRA", code=code, adapter=adapter)
+        return _result(
+            "FAILED_INFRA",
+            code=code,
+            adapter=adapter,
+            candidate_fault_policy=candidate_fault_policy,
+        )
 
     def outcome(self, contract_digest, submission_id, hotkey):
         """A submission's outcome, for the hotkey that submitted it only.

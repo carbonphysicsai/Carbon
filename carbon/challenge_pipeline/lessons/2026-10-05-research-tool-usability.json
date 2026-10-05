@@ -1,0 +1,30 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-research-tool-usability",
+  "recorded_at": "2026-10-05T21:00:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "RESEARCH-TOOL-USABILITY-01 (.agent/decisions/2026-10-05-RESEARCH-TOOL-USABILITY-01.md), branch claude/research-tool-usability; found in Graphite phase-4 session 1 triage under OWNER-GRAPHITE-TEST-WAVE-03.",
+    "description": "Two miner research tool fixes from the phase-4 session 1 triage: dry_validate answers with the named Challenge's submission compile, and a practice call's action and arguments sent as the string \"null\" are read as JSON null under a new frozen argument normalisation rule (v2), with a registered correction on every remaining practice refusal at the miner door."
+  },
+  "expected": "dry_validate tells an agent whether the submission path would accept a recipe, and a model that sends the string \"null\" for a null field is either understood or told how to fix it.",
+  "observed": "dry_validate ran only A2's structural check, so it answered valid for kNN neighbours -5, for family settings nested under the family name and for excluded or not-yet-rebuildable fields, all of which the real compile refuses. On practice, the miner door refused action \"null\" with a bare INVALID_ARGUMENT and no correction text, while the SDK behind it would have named the field and the fix; Graphite's miner path passes action through unchanged, so the model saw no guidance.",
+  "keep": [
+    "A validation tool answers with the same compile the authoritative path runs, with the same typed codes, never a weaker check under the same name.",
+    "Tolerance for a model's habit is a new frozen rule version that new plans freeze; the earlier version stays registered so its campaigns replay byte for byte.",
+    "A dry run is proved dispatch-free with a spy and an untouched ledger and task store, not by reading the code."
+  ],
+  "change": [
+    "Every refusal a miner door raises before the SDK carries the SDK's registered correction for the same request, not a bare code.",
+    "Test gap closed: dry_validate was only tested on structurally broken strategies, never against the submission compile's verdict on the same strategy."
+  ],
+  "protocol_elements": [
+    "research_tools.dry_validate",
+    "research_tools.arguments",
+    "miner_mcp.refusal_corrections"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

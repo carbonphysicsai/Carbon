@@ -1,0 +1,30 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-05-noop-capability-audit",
+ "recorded_at": "2026-10-05T18:00:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "claude/noop-capability-audit from origin/main 2f1862bed (NOOP-CAPABILITY-AUDIT-01, approved by the Test Lead)",
+  "description": "Investigated why two run-5 battery DeepONet recipes that differed only by \"capacity_fade_head\": true rebuilt the same parameters and byte-identical predictions, then added a standing CPU audit: every rebuildable capability of every registered construction contract must change the rebuild identity and the trained-parameter digest of a small fit, or be refused with a typed code."
+ },
+ "expected": "A supplied construction field changes what Carbon rebuilds, so two recipes that differ by a field are two models.",
+ "observed": "capacity_fade_head was never dropped: its registered default is true, so the second recipe restated the default and both compiled to the same settings. The two run-5 DeepONet variants were the same model, and any comparison between them compared a model with itself. Their recipe digests still differed, through the strategy hash, so only identity by rebuilt artifact (OWNER-GRAPHITE-TEST-WAVE-04 section 1) counted them as one construction. The new audit found one real no-op: KNN's params_sha256 digests only the stored TRAIN targets, so the neighbour count changes predictions but not the trained-parameter digest. Every other battery, cold-plate and motor capability changed the trained artifact; Burgers (retired) changed its compiled profile for every field.",
+ "keep": [
+  "Before reading two recipes as two variants, compare their compiled settings, not their text: a field restated at its default is the same recipe.",
+  "Count and deduplicate constructions by the rebuilt artifact, never by the recipe digest, which changes with any restatement.",
+  "Hold the no-op rule with a registry-driven audit that fails when a new contract or capability lands without an effect on the trained parameters."
+ ],
+ "change": [
+  "When a session proposes a variant, show the miner or agent which supplied fields equal their defaults, so a restated default is not mistaken for a design change.",
+  "Give non-parametric families a trained-state digest that binds their hyperparameters (KNN's neighbour count), versioned so recorded params_sha256 values keep their meaning."
+ ],
+ "protocol_elements": [
+  "construction.ladder",
+  "graphite.constructor",
+  "identity.rebuilt_artifact"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

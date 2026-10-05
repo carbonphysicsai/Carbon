@@ -1,8 +1,8 @@
 {
   "schema": "carbon.challenge-validator.confirmation-registry.v1",
   "sets": {
-    "ev5-confirmation": "sha256:08518dd398973734befd695b3dd09fd605c6e03f5dd97e98b8e8dfd18f097225",
-    "graphite-confirmation-v1": "sha256:65978801814e259b344727c3df3ce2ec66c0dec498b758dbdab453204836f6e3",
+    "ev5-confirmation": "sha256:076d76990c4f0fd63ae3687ba65108129a3549c2377667e15750c0945c3309fd",
+    "graphite-confirmation-v1": "sha256:a88427f428ca2bb65c955da5aa74d4549b9ab4aa2f717e3285b0248b8dd5189e",
     "cooling-graphite-confirmation-v1": "sha256:de25ce75bf451d56190de5a6895a49bac62ba473f8605b71fdf94d2a788aa617",
     "motor-graphite-confirmation-v1": "sha256:137881997726b5e0589b50c302ddaee0ecc2b82eb6e64be746cb739afab84609"
   },

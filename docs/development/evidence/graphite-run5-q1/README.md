@@ -71,3 +71,11 @@ Every candidate is inside EV4's grid. None is missing.
   Closing the mask therefore needs a decision on refined references, not more compute.
 
 Nothing was run for coverage.
+
+## Correction (after #609)
+
+In `defences.json`, the "control-exam-v1/gated" τ was computed with `admissibility.gated`. That function returns 0.0 for a gate FAIL, which ranks a failed member *first* under the deciding rule, whose scores are −E < 0.
+- Gate failures now rank below every passing member.
+- Only one value changes: the all-seeds τ, from −0.43 to −0.11.
+- All gate verdicts, every other τ, the conditions report and every finding above are unchanged.
+- The pre-fix file is kept outside Git for audit.
