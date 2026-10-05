@@ -126,7 +126,7 @@ from .phase3 import (
     load_grant,
 )
 from .pods import PodFailure
-from .provider import EPOCH, OWNER, GraphiteProvider, SessionBrief
+from .provider import EPOCH, OWNER, GraphiteProvider, SessionBrief, tool_text_of
 from .roles import PARALLEL_RULES, ROLES, RoleName
 
 REPOSITORY = Path(__file__).resolve().parents[3]
@@ -543,7 +543,7 @@ class AttackerProvider(Phase3Provider):
                 transport=self.model.transport_for(selection),
                 provider=selection,
                 instructions=role.prompt,
-                tools=role.tool_schemas(),
+                tools=role.tool_schemas(tool_text_of(opened)),
                 parallel_calls=PARALLEL_RULES.get(role.name),
                 **self._loop_limits(opened),
             )

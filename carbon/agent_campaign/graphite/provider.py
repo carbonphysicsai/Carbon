@@ -113,7 +113,16 @@ from .literature import (
     literature_record,
 )
 from .model import ENGY_ADAPTERS
-from .roles import MODEL_SETTINGS, PARALLEL_RULES, ROLES, RoleName
+from .roles import (
+    MODEL_SETTINGS,
+    PARALLEL_RULES,
+    ROLES,
+    TOOL_TEXT_V1,
+    TOOL_TEXT_V2,
+    TOOL_TEXTS,
+    RoleName,
+    tool_text_known,
+)
 
 PROVIDER = "graphite"
 SESSION_SCHEMA = "carbon.graphite.session-record.v1"
@@ -187,10 +196,14 @@ class SessionBrief:
     initial_observation: dict
     checkout_commit: str
     checkout_manifest_digest: str
+    #: The agents' tool text this session will read (`roles.TOOL_TEXTS`). A
+    #: new brief selects v2, which names no Challenge (VALIDATOR-07).
+    tool_text: str = TOOL_TEXT_V2
 
     def __post_init__(self):
         if type(self.role) is not RoleName:
             raise TypeError("exact RoleName required")
+        tool_text_known(self.tool_text)
         if type(self.initial_observation) is not dict:
             raise TypeError("the initial observation is a JSON object")
         canonical(self.initial_observation)  # JSON-serialisable, finite
@@ -204,17 +217,22 @@ class SessionBrief:
 
     def document(self):
         role = ROLES[self.role]
-        return {
+        tool_text = role.effective_tool_text(self.tool_text)
+        document = {
             "schema": BRIEF_SCHEMA,
             "role": self.role.value,
             "role_prompt_digest": role.prompt_digest,
-            "tool_manifest_digest": role.tool_manifest_digest,
+            "tool_manifest_digest": role.manifest_digest(tool_text),
             "initial_observation": self.initial_observation,
             "checkout": {
                 "commit": self.checkout_commit,
                 "manifest_digest": self.checkout_manifest_digest,
             },
         }
+        if tool_text != TOOL_TEXT_V1:
+            # A v1 brief has no key at all, exactly as before the versions.
+            document["tool_text"] = tool_text
+        return document
 
     @property
     def digest(self):
@@ -247,6 +265,14 @@ class GraphiteLedger(CampaignLedger):
             raise
 
 
+def tool_text_of(opened):
+    """The agents' tool text a session record carries: absent means v1."""
+    tool_text = opened["role"].get("tool_text", TOOL_TEXT_V1)
+    if tool_text not in TOOL_TEXTS:
+        raise SessionMismatch("tool_text_unknown")
+    return tool_text
+
+
 def _verify(opened, role, selection_record, literature, brief_digest, limits):
     """The session record still describes what would resume it: the role's
     prompt and manifest, the model selection, the literature snapshot, the
@@ -256,7 +282,8 @@ def _verify(opened, role, selection_record, literature, brief_digest, limits):
     if (
         recorded["prompt_digest"] != role.prompt_digest
         or recorded["tool_manifest"] != list(role.tools)
-        or recorded["tool_manifest_digest"] != role.tool_manifest_digest
+        or recorded["tool_manifest_digest"]
+        != role.manifest_digest(tool_text_of(opened))
         or recorded["boundary"] != role.boundary.value
     ):
         raise SessionMismatch("role_changed")
@@ -685,10 +712,17 @@ class GraphiteProvider:
             raise ProviderUnavailable("unknown_brief")
         role = ROLES[RoleName(brief["role"])]
         _check_role(role, spec)
+        # The tool text the brief selected (absent: v1, as every brief before
+        # the versions); the session records it and every turn reads it.
+        tool_text = brief.get("tool_text", TOOL_TEXT_V1)
         if (
-            brief["role_prompt_digest"] != role.prompt_digest
-            or brief["tool_manifest_digest"] != role.tool_manifest_digest
+            tool_text not in TOOL_TEXTS
+            or role.effective_tool_text(tool_text) != tool_text
         ):
+            raise ProviderUnavailable("brief_tool_text_unknown")
+        if brief["role_prompt_digest"] != role.prompt_digest or brief[
+            "tool_manifest_digest"
+        ] != role.manifest_digest(tool_text):
             # The brief was registered against another prompt or manifest.
             raise ProviderUnavailable("brief_role_changed")
         rung = self.ladder.rung(role.name)
@@ -701,7 +735,7 @@ class GraphiteProvider:
             "run_id": run_id,
             "idempotency_key": idempotency_key,
             "task": dict(spec.__dict__),
-            "role": {**role.record(), "rung": rung, "model": model_id},
+            "role": {**role.record(tool_text), "rung": rung, "model": model_id},
             "model": selection.record(),
             "brief": {
                 "digest": spec.instructions_digest,
@@ -964,7 +998,7 @@ class GraphiteProvider:
             transport=self.model.transport_for(selection),
             provider=selection,
             instructions=role.prompt,
-            tools=role.tool_schemas(),
+            tools=role.tool_schemas(tool_text_of(self._opened(run_id))),
             parallel_calls=PARALLEL_RULES.get(role.name),
             **self._loop_limits(self._opened(run_id)),
         )
