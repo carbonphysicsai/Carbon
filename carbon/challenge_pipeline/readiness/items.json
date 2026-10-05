@@ -99,6 +99,18 @@
    }
   },
   {
+   "id": "P7",
+   "kind": "auto",
+   "lesson": "X1",
+   "title": "The construction boundary is consistent across the validator door, the contract compile and Graphite's admission: the boundary-consistency test (the VALIDATOR-10 pattern) exists and passes for this challenge.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "the boundary-consistency test (VALIDATOR-10, #624) exists only for battery; a per-challenge version for this challenge is not built",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
+   }
+  },
+  {
    "id": "R1",
    "kind": "auto",
    "lesson": "E1",

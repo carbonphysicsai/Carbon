@@ -4,7 +4,11 @@
  "challenges": {
   "battery-fastcharge-ageing-development-v1": {
    "validator_adapter": "carbon.challenge_validator.battery:BatteryAdapter",
-   "tests": {},
+   "tests": {
+    "P7": [
+     "tests/cpu/test_challenge_validator_boundary_consistency.py"
+    ]
+   },
    "grants": {
     "phase4": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json"
    }
