@@ -61,7 +61,13 @@ from .roles import (
 )
 
 REPOSITORY = Path(__file__).resolve().parents[3]
-PROPOSAL_SCHEMA = "carbon.graphite.phase3.proposal-result.v1"
+#: v2 (GRAPHITE-COVERAGE-PARITY-01): a scored record's `frozen_rule` is
+#: `frozen_rule_view` (an ineligible set is headlined INELIGIBLE with its gate
+#: reasons, and any soft score over its scorable cases sits apart, labelled as
+#: partial coverage). v1 records are read as they were written, never
+#: rewritten (`frozen_headline` and `headline_score` read both).
+PROPOSAL_SCHEMA = "carbon.graphite.phase3.proposal-result.v2"
+PROPOSAL_SCHEMAS = ("carbon.graphite.phase3.proposal-result.v1", PROPOSAL_SCHEMA)
 FEEDBACK_SCHEMA = "carbon.graphite.phase3.feedback.v1"
 NANO = Decimal(10) ** 9
 MAX_STRATEGY_BYTES = 16384
@@ -1013,18 +1019,7 @@ class Experiment:
             "scored": True,
             "rule": scorer.identity,
             "built_digest": digest(canonical(built)),
-            "frozen_rule": {
-                key: summary.get(key)
-                for key in (
-                    "eligible",
-                    "score",
-                    "important_score",
-                    "n_scored",
-                    "n_gate_failed",
-                    "gate_failures",
-                    "components",
-                )
-            },
+            "frozen_rule": frozen_rule_view(summary, len(rows)),
             "fit": {
                 key: _clean(fit[key])
                 for key in ("final_loss", "train_s", "compile_s", "n_params")
@@ -1064,9 +1059,12 @@ class Experiment:
                     record["against_baseline"]["interpretation"] = comparison[
                         "interpretation"
                     ]
+                # Read as written (v1 or v2); an ineligible baseline's score
+                # is never shown as one.
                 record["baseline"] = {
                     "eligible": baseline["frozen_rule"]["eligible"],
-                    "score": baseline["frozen_rule"]["score"],
+                    "score": headline_score(baseline["frozen_rule"]),
+                    "headline": frozen_headline(baseline["frozen_rule"]),
                 }
                 if baseline_id != "baseline":
                     # The session's baseline is its retry (`baseline_retry`).
@@ -1402,6 +1400,65 @@ def _raw_claim(body):
     if parsed is not None and len(body) <= MAX_RAW_CLAIM:
         return {"parsed": parsed}
     return {"bytes": len(body), "digest": digest(body)}
+
+
+#: The frozen rule's aggregate as a v1 record kept it.
+FROZEN_RULE_KEYS = (
+    "eligible",
+    "score",
+    "important_score",
+    "n_scored",
+    "n_gate_failed",
+    "gate_failures",
+    "components",
+)
+#: What an eligible set's score column holds; an ineligible set never fills it.
+_SCORE_COLUMN = ("score", "important_score", "components")
+SCORED, INELIGIBLE = "SCORED", "INELIGIBLE"
+
+
+def frozen_rule_view(summary, n_cases):
+    """A v2 record's frozen-rule result. An eligible set is headlined SCORED
+    with its score. An ineligible set is headlined INELIGIBLE with its gate
+    reasons; its score column is empty, and any soft score over its scorable
+    cases sits under `partial_coverage`, labelled "partial coverage, k of n
+    cases", where nothing comparable with an eligible score reads it."""
+    view = {key: summary.get(key) for key in FROZEN_RULE_KEYS}
+    k = summary.get("n_scored")
+    view["n_cases"] = n_cases
+    if view["eligible"]:
+        view["headline"] = SCORED
+        return view
+    view["headline"] = INELIGIBLE
+    partial = {key: view[key] for key in _SCORE_COLUMN}
+    for key in _SCORE_COLUMN:
+        view[key] = None
+    if partial["score"] is not None:
+        view["partial_coverage"] = {
+            "label": f"partial coverage, {k} of {n_cases} cases",
+            "k": k,
+            "n": n_cases,
+            **partial,
+        }
+    return view
+
+
+def headline_score(rule):
+    """A record's score as a score column may show it: an eligible set's,
+    else None. Reads v1 and v2 records as written."""
+    return rule.get("score") if rule.get("eligible") else None
+
+
+def frozen_headline(rule):
+    """One line for a record's frozen-rule result, v1 or v2: the score of an
+    eligible set, else INELIGIBLE with its gate reasons (a v1 record's soft
+    score over its scorable cases is never shown as its result)."""
+    if rule.get("eligible"):
+        score = rule.get("score")
+        return SCORED + ("" if score is None else f" {score:.6g}")
+    failures = rule.get("gate_failures") or {}
+    reasons = ", ".join(f"{gate} x{count}" for gate, count in sorted(failures.items()))
+    return f"{INELIGIBLE} ({reasons or 'no gate reason recorded'})"
 
 
 def _json(body):

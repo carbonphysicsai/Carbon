@@ -106,6 +106,19 @@ def rule_digest(rule=RULE):
     return _digest(rule)
 
 
+def incomplete(predictions, asked):
+    """Whether a worker's predictions fail to cover the cases it was asked
+    for: a case absent, an extra case, or a case given no prediction (None).
+    Each is the candidate's (`prediction_cases_differ`, candidate-charged),
+    never FAILED_INFRA and never excluded from the score
+    (GRAPHITE-COVERAGE-PARITY-01; Track A: a partial artifact is never graded
+    as valid). Before that ruling a case given None passed this check and was
+    typed FAILED_INFRA by `exam.evaluate`, so it was excluded."""
+    if type(predictions) is not dict or set(predictions) != set(asked):
+        return True
+    return any(predictions[case] is None for case in asked)
+
+
 def commitment_digest(challenge, contract_digest, strategy_hash):
     """What a miner commits on chain for a battery submission (OD-7)."""
     return _digest(
@@ -619,7 +632,7 @@ class BatteryValidator:
             predictions = self.backend.infer(
                 f"inf-{model_id}-{tag}", state["state"], {c: inputs[c] for c in missing}
             )
-            if set(predictions) != set(missing):
+            if incomplete(predictions, missing):
                 raise WorkerFailure("prediction_cases_differ", candidate=True)
             self.store.store_predictions(model_id, predictions)
             have.update(predictions)

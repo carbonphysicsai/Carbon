@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .scoring import ChallengeScoring, PracticeRule, clean
+from .scoring import COVERAGE_RULE, ChallengeScoring, PracticeRule, clean, cover
 
 BUILT_SCHEMA = "carbon.graphite.pod-built.v1"
 EVIDENCE = "docs/development/evidence/exam-design-2026-09-24"
@@ -47,14 +47,16 @@ class BatteryPracticeRule(PracticeRule):
             "equivalence_margin_rel": rule["equivalence_margin_rel"],
             "comparison": rule["comparison"],
             "cases": "public PRACTICE, 200, adaptively seen",
+            "coverage": COVERAGE_RULE,
         }
 
     def score(self, predictions):
         from carbon.battery.practice import score_practice
 
-        asked = {case: predictions.get(case) for case in self.practice.case_ids}
+        # A case without a prediction fails the schema gate (`cover`).
+        asked, missing = cover(predictions, self.practice.case_ids)
         rows, summary = score_practice(asked, self.practice, self.material, self.root)
-        return [_row(r) for r in rows], clean(summary)
+        return [_row(r) for r in rows], {**clean(summary), "n_missing": len(missing)}
 
     def compare(self, baseline_rows, rows, eligible):
         from carbon.battery import exam
