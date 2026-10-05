@@ -512,12 +512,13 @@ def builtin_adapter_modules(path=ROOT / ADAPTERS_FILE):
 
 
 def test_every_builtin_adapter_lives_inside_the_checked_attack_package(tmp_path):
-    """Each Challenge's attack adapter (battery's, cooling's) is a module of
-    the attack package, so every check above covers it; and a miner path
-    that imports one, here cooling's, is reached and fails the check."""
+    """Each Challenge's attack adapter (battery's, cooling's, motor's) is a
+    module of the attack package, so every check above covers it; and a miner
+    path that imports one, here cooling's, is reached and fails the check."""
     builtin = builtin_adapter_modules()
     assert ("battery-fastcharge-ageing-development-v1", 0) in builtin
     assert ("chip-cold-plate", 0) in builtin
+    assert ("electric-motor-magnetics", 0) in builtin
     for key, module in builtin.items():
         assert _attack_import(module), key
         path = SCAN._module_path(module, ROOT)
