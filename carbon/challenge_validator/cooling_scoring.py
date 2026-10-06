@@ -116,6 +116,7 @@ class CoolingPracticeRule(PracticeRule):
     def score(self, predictions):
         from carbon.cold_plate.practice import score_practice
 
+        # A case without a prediction fails the schema gate (`cover`).
         asked, missing = cover(predictions, self.practice.case_ids)
         rows, summary = score_practice(asked, self.practice, self.material)
         return [clean(row) for row in rows], {
