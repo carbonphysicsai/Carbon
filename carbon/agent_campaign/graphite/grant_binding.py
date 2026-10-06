@@ -65,6 +65,7 @@ from carbon.development_session.profile import canonical, digest
 from carbon.reconstruction.capability_registry import (
     BATTERY_CHALLENGE,
     COLD_PLATE_CHALLENGE,
+    MOTOR_CHALLENGE,
 )
 
 REPOSITORY = Path(__file__).resolve().parents[3]
@@ -290,6 +291,35 @@ def run_conditions(grant):
     }
 
 
+# -- the model provider a grant pays ------------------------------------------------------
+#: The model provider each grant's token spend is bound to
+#: (GRAPHITE-SPUR-PROVIDER-01). The grant format names its campaign provider
+#: (`graphite`), not the inference provider it pays, so the binding is
+#: registered here, as the Challenge binding is. A grant not listed pays
+#: `DEFAULT_MODEL_PROVIDER`, Engy: every grant approved so far. No grant is
+#: bound to SPUR: the owner approves its amounts later, by committing a grant
+#: and listing it here, so until then every SPUR run is refused.
+MODEL_PROVIDER_GRANTS = types.MappingProxyType({})
+DEFAULT_MODEL_PROVIDER = "engy"
+MODEL_PROVIDER_REFUSED = "grant_does_not_name_the_model_provider"
+
+
+def model_provider_of(grant):
+    """The model provider `grant` names (`MODEL_PROVIDER_GRANTS`)."""
+    return MODEL_PROVIDER_GRANTS.get(
+        getattr(grant, "grant_id", None), DEFAULT_MODEL_PROVIDER
+    )
+
+
+def model_provider_refusal(grant, model_provider):
+    """`MODEL_PROVIDER_REFUSED` unless `grant` names `model_provider`, else
+    None: a SPUR run refuses any grant that does not name SPUR, and an Engy
+    run any grant bound to another provider."""
+    if type(model_provider) is not str or model_provider_of(grant) != model_provider:
+        return MODEL_PROVIDER_REFUSED
+    return None
+
+
 def tokens_only(grant):
     """True for a grant in `phase3.TOKENS_ONLY_GRANTS` (VALIDATOR-06): its
     runs have a pod money budget of 0 (`experiment.phase3_budget`), so a
@@ -322,3 +352,43 @@ def check_phase3_grant(path, grant, *, challenge, level=0, repository=REPOSITORY
             raise _refused("phase3_grant_file_unreadable") from None
         check_committed_blob(given, repository, entry.grant_file, phase="phase3")
     return entry
+
+
+# -- dedicated admission controllers (A4-DEDICATED-ADMISSION-CONTROLLERS-01) ---------------
+#: Each Challenge's owner-approved zero-spend admission-controller grant, by
+#: Challenge token. The grant binds only the dedicated controller's identity;
+#: it authorizes no spend (`SpendingGrant.zero_spend`).
+ADMISSION_CONTROLLER_GRANTS = types.MappingProxyType(
+    {
+        BATTERY_CHALLENGE: GRANTS_DIR
+        + "/GRAPHITE-GRANT-ADMISSION-CONTROLLER-BATTERY.json",
+        COLD_PLATE_CHALLENGE: GRANTS_DIR
+        + "/GRAPHITE-GRANT-ADMISSION-CONTROLLER-COOLING.json",
+        MOTOR_CHALLENGE: GRANTS_DIR + "/GRAPHITE-GRANT-ADMISSION-CONTROLLER-MOTOR.json",
+    }
+)
+
+
+def admission_grant_refusal(grant, challenge, repository=None):
+    """The typed refusal of `grant` as `challenge`'s dedicated admission
+    controller's grant, or None. It must be zero-spend, and field for field
+    the committed file registered for `challenge`:
+
+    - `admission_grant_must_be_zero_spend`;
+    - `admission_grant_not_registered_for_challenge`: no file is registered;
+    - `admission_grant_file_unreadable`;
+    - `admission_grant_differs_from_the_committed_grant`: another grant, or
+      an edited copy."""
+    if not grant.zero_spend:
+        return "admission_grant_must_be_zero_spend"
+    relative = ADMISSION_CONTROLLER_GRANTS.get(challenge)
+    if relative is None:
+        return "admission_grant_not_registered_for_challenge"
+    repository = REPOSITORY if repository is None else repository
+    try:
+        committed = json.loads((Path(repository) / relative).read_bytes())
+    except (OSError, ValueError):
+        return "admission_grant_file_unreadable"
+    if grant_digest(grant.document()) != grant_digest(committed):
+        return "admission_grant_differs_from_the_committed_grant"
+    return None

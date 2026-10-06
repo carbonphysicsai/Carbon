@@ -187,6 +187,12 @@ class ChallengeScoring(abc.ABC):
     #: the Challenge's score-tuning legs. Data only: this module never reads a
     #: variant. Empty means no variant can be registered for this Challenge.
     declared_score_components: tuple = ()
+    #: The value contract a development score variant's legs are computed
+    #: under on the practice predictions (VALIDATOR-09), as data: its
+    #: `"sha256:…"` digest and its committed file name. None: no variant is
+    #: served.
+    practice_value_contract: str | None = None
+    practice_value_contract_file: str | None = None
 
     def challenge(self):
         return {"id": self.challenge_id, "version": self.challenge_version}

@@ -126,7 +126,7 @@ def recorded_tests(item, ctx):
         for p in pending.get("neutral_tests", [])
         if _is_file(ctx, p.split("::")[0])
     ]
-    paths += list(ctx.data.get("tests", {}).get(item["id"], []))
+    paths += list(ctx.data.get("tests", {}).get(item.get("id", "P4"), []))
     if paths:
         return run_tests(ctx, list(dict.fromkeys(paths)))
     reason = pending.get("reason", "no check is wired")
@@ -486,12 +486,79 @@ def neutral_path(item, ctx):
             "tool text v2 names a challenge",
             tuple(f"names:{t}" for t in v2_names),
         )
+    evidence = (f"v1_names:{','.join(v1_names)}", "v2_names:none")
+    paths = list(ctx.data.get("tests", {}).get(item.get("id", "P4"), []))
+    if not paths:
+        return Result(
+            NOT_BUILT,
+            "tool text v2 names no challenge (detector proven on v1); the named-challenge "
+            "plumbing and literature tests are not recorded for this challenge "
+            "(owner: Carbon Validator)",
+            evidence,
+        )
+    plumbing = run_tests(ctx, paths)
+    if plumbing.status != PASS:
+        return Result(
+            FAIL,
+            "named-challenge plumbing: " + plumbing.detail,
+            evidence + plumbing.evidence,
+        )
+    return Result(
+        PASS,
+        "tool text v2 names no challenge and the named-challenge plumbing and "
+        "literature tests pass",
+        evidence + plumbing.evidence,
+    )
+
+
+def admission_controller(item, ctx):
+    """A4: a designated admission controller is recorded for (challenge, level)
+    (#615). A missing entry, a PENDING identity, or a malformed file all FAIL:
+    a LOCK is refused until the operator's identity is recorded."""
+    from carbon.challenge_pipeline import admission_controllers as ac
+
+    try:
+        entry = ac.designation(ctx.challenge, ctx.level)
+    except ac.DesignationRefused as refused:
+        return Result(FAIL, f"the designation file is refused ({refused})")
+    if entry is None:
+        return Result(
+            FAIL,
+            f"no admission controller is designated for ({ctx.challenge}, level "
+            f"{ctx.level}); owner: Test Engineer",
+        )
+    if ac.pending(entry):
+        return Result(
+            FAIL,
+            f"the controller {entry['name']} is designated but its identity is still "
+            "pending: an operator must record it (a LOCK is refused until then)",
+            (f"controller:{entry['name']}", "status:PENDING_OPERATOR_IDENTITY"),
+        )
+    return Result(
+        PASS,
+        "a designated admission controller with a recorded identity",
+        (f"controller:{entry['name']}", f"identity:{entry['identity']}"),
+    )
+
+
+def grant_binding(item, ctx):
+    """R5: the challenge's phase-4 grant is bound by the runner's registry, is
+    a committed file, and the grant-binding tests pass. Pricing with lost-run
+    headroom is a review of the owner's amounts, not a check this gate can make
+    without inventing a rule, so the item stays NOT_BUILT even when the binding
+    holds (evidence says what was verified)."""
+    grant, refused = _phase4_grant(ctx)
+    if refused:
+        return Result(FAIL, refused)
+    tested = run_tests(ctx, ["tests/cpu/test_graphite_phase4_grant.py"])
+    if tested.status != PASS:
+        return Result(FAIL, "grant-binding tests: " + tested.detail, tested.evidence)
     return Result(
         NOT_BUILT,
-        "tool text v2 names no challenge (checked against every registered "
-        "challenge name, detector proven on v1); the literature snapshot and "
-        "writeup parts need #614 and #606 (owner: Carbon Validator)",
-        (f"v1_names:{','.join(v1_names)}", "v2_names:none"),
+        f"the bound grant {grant} is committed and the binding tests pass; pricing with "
+        "lost-run headroom and tokens-only where no pods run are not machine-checked "
+        "(needs a recorded review of the owner's amounts; owner: Test Lead)",
+        (f"grant:{grant}", *tested.evidence),
     )
 
 
@@ -558,6 +625,35 @@ def disk_free(item, ctx):
 
 
 # -- runtime ------------------------------------------------------------------------------------
+def _phase4_grant(ctx):
+    """`(grant file, refusal)` for the challenge's OWN phase-4 grant. The
+    authority is the runner's per-challenge binding (`phase4.PHASE4_GRANTS`,
+    #612): the grant format has no challenge field, so the binding lives there.
+    A challenge with no entry has no grant. A grant recorded in challenges.json
+    is only a cross-check: if it names a different file than the binding, R1
+    fails, so it can never pass on another challenge's grant."""
+    try:
+        from carbon.agent_campaign.graphite import phase4
+
+        entry = phase4.PHASE4_GRANTS.get(ctx.challenge)
+    except Exception as error:  # noqa: BLE001
+        return None, f"the phase-4 grant binding could not load: {type(error).__name__}"
+    if entry is None:
+        return None, (
+            f"no grant for {ctx.challenge}: the runner's per-challenge binding "
+            "registers none (it never falls back to another challenge's grant)"
+        )
+    recorded = (ctx.data.get("grants") or {}).get("phase4")
+    if recorded and recorded != entry.grant_file:
+        return None, (
+            f"challenges.json records {recorded} for {ctx.challenge} but the runner "
+            f"binds {entry.grant_file}: refusing another grant"
+        )
+    if not _is_file(ctx, entry.grant_file):
+        return None, f"the bound grant {entry.grant_file} is not a committed file"
+    return entry.grant_file, None
+
+
 def prelive(item, ctx):
     """`phase4 prelive` for the challenge under a scratch root. It needs the
     committed grant on a pushed HEAD and a main to compare, so a host without
@@ -568,16 +664,9 @@ def prelive(item, ctx):
             "prelive needs a POSIX host (it uses fcntl); run the gate on the "
             "canonical Linux host. Failing closed.",
         )
-    grant = (ctx.data.get("grants") or {}).get("phase4")
-    if not grant:
-        return Result(
-            FAIL,
-            f"no grant for {ctx.challenge}: the pre-live gate must run on the "
-            "challenge's own committed grant (challenges.json `grants.phase4`); it "
-            "never passes on another challenge's grant (per-challenge binding is #612)",
-        )
-    if not _is_file(ctx, grant):
-        return Result(FAIL, f"the recorded grant {grant} is not a committed file")
+    grant, refused = _phase4_grant(ctx)
+    if refused:
+        return Result(FAIL, refused)
     with tempfile.TemporaryDirectory(prefix="readiness-prelive-") as root:
         command = [
             sys.executable,
@@ -720,6 +809,8 @@ def confirmation_role(item, ctx):
 
 CHECKS = {
     "neutral_path": neutral_path,
+    "admission_controller": admission_controller,
+    "grant_binding": grant_binding,
     "q1_alignment": q1.v1_alignment_report,
     "q1_discrimination": q1.v2_panel_discrimination,
     "ownership_map": ownership_map,

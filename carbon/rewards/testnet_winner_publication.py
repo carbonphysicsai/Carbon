@@ -423,6 +423,12 @@ async def _run(args):
     auth = load_standing(args.standing, config.context)
     sources = {}
     if args.battery_deployment:
+        try:
+            deployment.require_live(
+                deployment.load_config(Path(args.battery_deployment))
+            )
+        except deployment.EvaluationUnavailable:
+            _refuse("WEIGHT_SOURCE_ARCHIVED")
         target = deployment.validator(
             Path(args.battery_deployment), repository=args.repository, readonly=True
         )

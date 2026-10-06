@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-motor-validator-impl-focused-pass",
+  "recorded_at": "2026-10-06T17:39:16Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "canonical Motor/Cooling/neutral regression at a6ef52520",
+    "description": "canonical Motor/Cooling/neutral regression at a6ef52520"
+  },
+  "expected": "Motor and existing adapter behavior pass together",
+  "observed": "143 focused tests passed in 37.99 seconds in the pinned canonical environment.",
+  "keep": [
+    "Keep exact-head focused regression before broader acceptance."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.validator.interface-v1",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

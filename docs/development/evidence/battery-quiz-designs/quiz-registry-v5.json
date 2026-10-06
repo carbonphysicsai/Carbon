@@ -1,0 +1,16 @@
+{
+ "schema": "carbon.battery.quiz-design-registry.v1",
+ "registered": "2026-10-06, before any v5 computation (Test Lead ruling: known-bad by behaviour, defined before data)",
+ "extends": "quiz-registry-v3.json (Q0-Q2) and quiz-registry-v4.json (Q3); designs, sizes, k grid, draws and RNG unchanged",
+ "supersedes_label": "v3/v4's known-bad set (EV5's 8 Track A constructions plus the run-5 winner): the constructions' EV5 FAIL was condition-specific, so they are not known-bad by behaviour",
+ "known_bad": {
+  "Q2_and_Q3": ["control-boundary_optimist (constructed: optimistic at every limit)", "control-localized_sign_error (constructed: sign error near the limits)", "graphite-run5-p-1d4aaff5d292-s3718551111 (run 5's winner: decision false-feasible 0.20 off-tuning)"],
+  "Q3_only": ["mode-x-aggressive: a synthetic decider that, in each scenario, picks the fastest protocol on the grid by the reference, ignoring every constraint (the per-scenario Mode X pick)"]
+ },
+ "known_good": "unchanged: control-oracle, control-conservative, control-rank_preserving_delay and the best quarter of EV4's real members by development decision value",
+ "q3_rules": {
+  "all_infeasible": "a scenario whose reference grid has no feasible design has the correct answer 'none feasible' (abstain); a pick there is a decision false-feasible only if the model called it safe (SELECTED_INFEASIBLE)",
+  "pool": "quiz scenarios are drawn only from scenarios with at least one reference-feasible design; the number of all-infeasible scenarios in the pool is reported"
+ },
+ "status": "DEVELOPMENT"
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-motor-validator-host-quality-check",
+  "recorded_at": "2026-10-06T17:46:14Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "host pinned Ruff and Black path checks",
+    "description": "host pinned Ruff and Black path checks"
+  },
+  "expected": "Changed files format and lint under the current local command",
+  "observed": "Black reported four files unchanged and path-based Ruff reported all checks passed, but the canonical quality gate later found I001 in its repository-relative check.",
+  "keep": [
+    "Prefer canonical repository-relative quality as authoritative evidence."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.validator.interface-v1",
+    "quality_gate",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

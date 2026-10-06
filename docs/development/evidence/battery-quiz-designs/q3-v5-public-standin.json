@@ -1,0 +1,103 @@
+{
+ "all_12_false_feasible": {
+  "bad": {
+   "control-boundary_optimist": 0.625,
+   "control-localized_sign_error": 0.2857142857142857,
+   "graphite-run5-p-1d4aaff5d292-s3718551111": 0.14285714285714285,
+   "mode-x-aggressive": 0.6666666666666666
+  },
+  "good_max": 0.16666666666666666
+ },
+ "all_infeasible_scenarios_excluded": [
+  "V-T38-S0.06",
+  "V-T9-S0.06",
+  "V-T9-S0.22"
+ ],
+ "known_bad": [
+  "control-boundary_optimist",
+  "control-localized_sign_error",
+  "graphite-run5-p-1d4aaff5d292-s3718551111",
+  "mode-x-aggressive"
+ ],
+ "known_bad_version": "v5",
+ "known_good": {
+  "best_quarter": 25,
+  "controls": [
+   "control-oracle",
+   "control-conservative",
+   "control-rank_preserving_delay"
+  ]
+ },
+ "producer_cost_per_scenario": {
+  "basis": "the B4 practice set's 210 host solves (pinned truth image)",
+  "cpu_hours_per_scenario": 0.7961569081861106,
+  "cpu_seconds_per_solve_median": 81.89042484199996,
+  "reference_solves": 35
+ },
+ "registry_commit": "fa865e57",
+ "results": {
+  "Q3/k1": {
+   "auc_decision_false_feasible": {
+    "mean": 0.7710357142857144,
+    "p05": 0.5
+   },
+   "k": 1,
+   "over_caution_good_mean": 0.019430714163967956,
+   "regret_bad_mean": 4.782148057040238,
+   "regret_good_mean": 0.2724786756669684
+  },
+  "Q3/k2": {
+   "auc_decision_false_feasible": {
+    "mean": 0.8048258928571429,
+    "p05": 0.5
+   },
+   "k": 2,
+   "over_caution_good_mean": 0.020332281350890557,
+   "regret_bad_mean": 4.557147469366281,
+   "regret_good_mean": 0.255991736799113
+  },
+  "Q3/k3": {
+   "auc_decision_false_feasible": {
+    "mean": 0.8502544642857143,
+    "p05": 0.625
+   },
+   "k": 3,
+   "over_caution_good_mean": 0.020158503158145633,
+   "regret_bad_mean": 4.298462661790358,
+   "regret_good_mean": 0.2460035446186311
+  },
+  "Q3/k4": {
+   "auc_decision_false_feasible": {
+    "mean": 0.8885625,
+    "p05": 0.7410714285714286
+   },
+   "k": 4,
+   "over_caution_good_mean": 0.019491071428571427,
+   "regret_bad_mean": 4.355524368776719,
+   "regret_good_mean": 0.2539929459004709
+  },
+  "Q3/k6": {
+   "auc_decision_false_feasible": {
+    "mean": 0.94253125,
+    "p05": 0.7410714285714286
+   },
+   "k": 6,
+   "over_caution_good_mean": 0.019760119047619047,
+   "regret_bad_mean": 4.379438405643165,
+   "regret_good_mean": 0.25462047835239116
+  },
+  "Q3/k8": {
+   "auc_decision_false_feasible": {
+    "mean": 0.9760089285714286,
+    "p05": 0.8616071428571429
+   },
+   "k": 8,
+   "over_caution_good_mean": 0.019761011904761906,
+   "regret_bad_mean": 4.402461521134805,
+   "regret_good_mean": 0.25702115498521527
+  }
+ },
+ "scenarios": 9,
+ "schema": "carbon.battery.quiz-q3-comparison.v1",
+ "source": "PUBLIC_STANDIN: EV4 verification scenarios; not a hidden batch"
+}

@@ -53,7 +53,7 @@
    "title": "A fixture dry run of phase 3 for this challenge passes end to end: brief, published material, bundle writeup, clean rebuild.",
    "check": "recorded_tests",
    "pending": {
-    "reason": "fixture phase-3 dry run per challenge: VALIDATOR-05 (#606) not on main",
+    "reason": "no fixture phase-3 dry-run test is recorded for this challenge (VALIDATOR-05, #606, covers cooling's bundle only)",
     "owner": "Carbon Validator",
     "neutral_tests": []
    }
@@ -158,12 +158,7 @@
    "kind": "auto",
    "lesson": "I2",
    "title": "Grants: a per-challenge grant bound to main's blob, priced with lost-run headroom, tokens-only where no pods run.",
-   "check": "recorded_tests",
-   "pending": {
-    "reason": "per-challenge grant binding (#612) not on main; the committed grants carry no challenge field",
-    "owner": "Test Engineer",
-    "neutral_tests": []
-   }
+   "check": "grant_binding"
   },
   {
    "id": "R6",
@@ -191,9 +186,11 @@
    "title": "Every research tool has an authority class (authoritative, advisory, miner-local) and a family mapping; no UNASSIGNED.",
    "check": "recorded_tests",
    "pending": {
-    "reason": "tool authority classes (lesson A1 OPEN, oracle-fix PR) not on main",
+    "reason": "tool authority classes: the oracle-authority test (#637) is not recorded",
     "owner": "Test Engineer",
-    "neutral_tests": []
+    "neutral_tests": [
+     "tests/cpu/test_attack_authoritative_boundary.py"
+    ]
    }
   },
   {
@@ -220,12 +217,7 @@
    "kind": "auto",
    "lesson": "I3",
    "title": "A designated admission controller is recorded for (challenge, level).",
-   "check": "recorded_tests",
-   "pending": {
-    "reason": "designated admission controller (#615) not on main",
-    "owner": "Test Engineer",
-    "neutral_tests": []
-   }
+   "check": "admission_controller"
   },
   {
    "id": "A5",
@@ -284,7 +276,7 @@
    "title": "Incomplete prediction sets are refused on every host.",
    "check": "recorded_tests",
    "pending": {
-    "reason": "incomplete prediction sets refused on every host: #613 not on main",
+    "reason": "incomplete prediction sets are charged on every host (#613): no per-challenge test is recorded for this challenge",
     "owner": "Carbon Validator",
     "neutral_tests": []
    }
@@ -388,6 +380,54 @@
    "lesson": "S2",
    "title": "Promotion claims require multi-seed evidence.",
    "check": "review_only"
+  },
+  {
+   "id": "H1",
+   "kind": "auto",
+   "lesson": "S9",
+   "title": "A rotating hidden pool exists for the challenge, and Graphite scores through the real validator.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "no hidden-pool scoring exists for this challenge: VALIDATOR-13 (#642) serves battery at Level 0 only",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "H2",
+   "kind": "auto",
+   "lesson": "S9",
+   "title": "Tuning and confirmation sets are registered and disjoint (overlap-checked) against the other sealed roles, the rotating pool, TRAIN, PRACTICE and the practice decision set.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "the tuning role (graphite-tuning-v1) and an overlap checker are not on main",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "H3",
+   "kind": "auto",
+   "lesson": "S9",
+   "title": "No agent-visible output carries hidden-derived data (the VALIDATOR-13 non-leak test).",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "the VALIDATOR-13 non-leak tests cover battery only",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "H4",
+   "kind": "auto+review",
+   "lesson": "S9",
+   "title": "Gates are tested on hidden and tuning data, not practice alone.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "the gate audit on hidden and tuning predictions does not exist yet (VALIDATOR-09)",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
+   }
   }
  ]
 }

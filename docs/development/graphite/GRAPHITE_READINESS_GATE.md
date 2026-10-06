@@ -93,6 +93,18 @@ fails the gate gets no live Graphite run, at any level.
 | V2 | Panel discrimination: at least two distinct decision outcomes among panel members on the decision study. If not, widen the construction families first (development variant). | [auto] | S3 |
 | V3 | Promotion claims require multi-seed evidence. | [review] | S2 |
 
+## H. Hidden path: operational evidence (OWNER-GRAPHITE-TEST-WAVE-08)
+
+Practice-score evidence is a proxy: the rule's form on cases the agent had seen.
+Operational scoring evidence comes only from the hidden path.
+
+| Item | Check | Kind | Lesson |
+|---|---|---|---|
+| H1 | A rotating hidden pool exists for the challenge, and Graphite scores through the real validator. | [auto] `test_graphite_hidden_score.py` (VALIDATOR-13) | S9 |
+| H2 | Tuning and confirmation sets are registered and disjoint (overlap-checked) against the other sealed roles, the rotating pool, TRAIN, PRACTICE and the practice decision set. | [auto] | S9 |
+| H3 | No agent-visible output carries hidden-derived data (the VALIDATOR-13 non-leak test). | [auto] | S9 |
+| H4 | Gates are tested on hidden and tuning data, not practice alone. | [auto] report; [review] framing | S9 |
+
 ## How the gate stays current
 
 1. **New lessons feed the gate.** When a lesson in `LESSONS_REGISTER.md` is

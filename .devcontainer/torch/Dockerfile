@@ -9,6 +9,7 @@ FROM ${WORKER_IMAGE_REF}
 ARG WORKER_IMAGE
 ARG TORCH_RECIPE_DIGEST
 ARG TORCH_LOCK_DIGEST
+ARG TORCH_DETERMINISM_DIGEST
 USER root
 COPY --from=uv /uv /tmp/uv
 COPY .devcontainer/torch/torch-cpu-py311.txt /opt/carbon/torch-requirements.txt
@@ -44,15 +45,21 @@ LABEL org.opencontainers.image.title="Carbon PyTorch DEVELOPMENT reconstruction 
       org.opencontainers.image.description="Pinned CPU-only PyTorch worker on the C-03 image; no scientific or security qualification" \
       org.opencontainers.image.carbon.c03.base-image="${WORKER_IMAGE}" \
       org.opencontainers.image.carbon.c03.build-recipe="${TORCH_RECIPE_DIGEST}" \
-      org.opencontainers.image.carbon.c03.lock="${TORCH_LOCK_DIGEST}"
+      org.opencontainers.image.carbon.c03.lock="${TORCH_LOCK_DIGEST}" \
+      org.opencontainers.image.carbon.torch.determinism="${TORCH_DETERMINISM_DIGEST}"
 USER 65532:65532
-RUN /opt/carbon-worker/bin/python -I - <<'PY'
+# The determinism configuration is part of the image identity (IMAGE-RELEASE-01):
+# the label must be the installed source's own `CPU_DETERMINISM_DIGEST`.
+RUN TORCH_DETERMINISM_DIGEST="${TORCH_DETERMINISM_DIGEST}" /opt/carbon-worker/bin/python -I - <<'PY'
 import importlib.metadata as metadata
+import os
 
-from carbon.reconstruction.torch_profile import PINS
+from carbon.reconstruction.torch_profile import CPU_DETERMINISM_DIGEST, PINS
 
 for name, version, _ in PINS:
     installed = metadata.version(name).split("+")[0]
     if installed != version:
         raise SystemExit(f"{name} {installed} is not the pinned {version}")
+if os.environ["TORCH_DETERMINISM_DIGEST"] != CPU_DETERMINISM_DIGEST:
+    raise SystemExit("the determinism label is not the installed source's configuration")
 PY

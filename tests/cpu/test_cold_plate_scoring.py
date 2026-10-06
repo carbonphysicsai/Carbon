@@ -4,6 +4,7 @@ The tests use only registered public TRAIN/PRACTICE material. They execute no
 pod, solver, private reference, model-provider call or spend.
 """
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -11,6 +12,7 @@ from pathlib import Path
 import pytest
 
 from carbon.agent_campaign.graphite import pod_phase, pods
+from carbon.challenge_validator import cooling_scoring
 from carbon.challenge_validator import scoring as cs
 from carbon.challenge_validator.cooling_scoring import CoolingScoring
 from carbon.cold_plate.challenge import (
@@ -68,7 +70,7 @@ def test_cooling_build_is_identical_on_the_host_and_pod_routes():
     assert admitted == {**direct, "record_sequence": admitted["record_sequence"]}
 
 
-def test_cooling_rule_scores_existing_public_references_without_new_claims():
+def test_cooling_rule_scores_existing_public_references_with_testing_only_comparison():
     rule = scoring().frozen_rule(REPOSITORY)
     exact = {record["case_id"]: record["outputs"] for record in rule.practice.records}
     rows, summary = rule.score(exact)
@@ -76,22 +78,139 @@ def test_cooling_rule_scores_existing_public_references_without_new_claims():
     assert summary["eligible"] is True
     assert summary["score"] == 0.0
     comparison = rule.compare(rows, rows, True)
-    assert comparison == {
-        "outcome": "NO_IMPROVEMENT",
-        "reason": "equal mean error on the shared public cases; no approved promotion rule",
-        "interpretation": "DESCRIPTIVE_PAIRED_MEAN_DIFFERENCE",
-        "promotable": False,
-        "n": 100,
-        "mean_delta": 0.0,
-        "ci": None,
-        "overall": {"n": 100, "mean_delta": 0.0},
-        "important": {"n": summary["n_important"], "mean_delta": 0.0},
-    }
-    assert rule.identity["comparison"]["confidence_interval"] is None
-    assert rule.identity["comparison"]["promotable"] is False
+    assert comparison["outcome"] == "NO_IMPROVEMENT"
+    assert comparison["promotable"] is False
+    assert comparison["n"] == 100
+    assert comparison["n_important"] == summary["n_important"] == 30
+    assert comparison["mean_delta"] == 0.0
+    assert comparison["ci"] == [0.0, 0.0]
+    assert comparison["interpretation"].endswith("PUBLIC_PRACTICE_TESTING_ONLY")
+    assert comparison["reference_available"] is True
+    assert comparison["evidence_complete"] is True
+    assert rule.identity["rule"] == "cold-plate-public-practice-v2"
+    policy = rule.identity["comparison"]
+    assert policy["margin_rel"] == 0.13157222884271824
+    assert (
+        policy["n_min"],
+        policy["n_boot"],
+        policy["alpha"],
+        policy["important_min"],
+    ) == (30, 4000, 0.05, 10)
+    assert policy["fresh_confirmation"] is False
+    assert rule.identity["coverage"] == cs.COVERAGE_RULE
 
 
-def test_cooling_descriptive_comparison_preserves_ineligibility():
+def _test_rows(rule, ordinary=1.0, important=1.0):
+    from carbon.cold_plate.exam import important as is_important
+
+    return [
+        {
+            "case_id": ref["case_id"],
+            "state": "SCORABLE",
+            "important": is_important(ref),
+            "error": important if is_important(ref) else ordinary,
+            "components": {
+                name: important if is_important(ref) else ordinary
+                for name in ("peak", "profile", "pressure")
+            },
+            "gates": {},
+        }
+        for ref in rule.practice.records
+    ]
+
+
+def test_cooling_testing_comparison_improves_only_on_complete_paired_evidence():
+    rule = scoring().frozen_rule(REPOSITORY)
+    baseline = _test_rows(rule)
+    improved = _test_rows(rule, 0.5, 0.5)
+    result = rule.compare(baseline, improved, True)
+    assert result == rule.compare(baseline, improved, True)
+    assert result["outcome"] == "IMPROVEMENT"
+    assert result["promotable"] is True
+    assert result["n"] == 100 and result["n_important"] == 30
+    assert result["mean_delta"] == pytest.approx(-0.5)
+    assert result["ci"][1] < 0
+    assert result["reference_available"] is True and result["evidence_complete"] is True
+
+
+def test_cooling_important_region_regression_blocks_testing_promotion():
+    rule = scoring().frozen_rule(REPOSITORY)
+    result = rule.compare(_test_rows(rule), _test_rows(rule, 0.1, 1.5), True)
+    assert result["overall"] == "better"
+    assert result["important"] == "worse"
+    assert result["outcome"] == "TRADE_OFF"
+    assert result["regional_block"] is True and result["promotable"] is False
+
+
+def test_cooling_component_tradeoff_is_not_a_testing_improvement():
+    rule = scoring().frozen_rule(REPOSITORY)
+    baseline = _test_rows(rule)
+    candidate = _test_rows(rule)
+    for row in candidate:
+        row["components"] = {"peak": 0.5, "profile": 1.5, "pressure": 1.0}
+    result = rule.compare(baseline, candidate, True)
+    assert result["overall"] == "equivalent"
+    assert result["components"]["peak"] == "better"
+    assert result["components"]["profile"] == "worse"
+    assert result["outcome"] == "TRADE_OFF" and result["promotable"] is False
+
+
+def test_cooling_missing_prediction_is_candidate_gate_failure():
+    rule = scoring().frozen_rule(REPOSITORY)
+    exact = {record["case_id"]: record["outputs"] for record in rule.practice.records}
+    exact.pop(rule.practice.case_ids[0])
+    rows, summary = rule.score(exact)
+    assert summary["n_missing"] == 1
+    assert summary["n_gate_failed"] == 1
+    assert summary["eligible"] is False
+    assert rows[0]["state"] == "GATE_FAILED"
+
+
+def test_cooling_comparison_preserves_violation_with_unavailable_case():
+    rule = scoring().frozen_rule(REPOSITORY)
+    baseline = _test_rows(rule)
+    candidate = _test_rows(rule, 0.5, 0.5)
+    candidate[0] = {"case_id": candidate[0]["case_id"], "state": "GATE_FAILED"}
+    candidate[1] = {"case_id": candidate[1]["case_id"], "state": "FAILED_INFRA"}
+    result = rule.compare(baseline, candidate, False)
+    assert result["outcome"] == "REGRESSION"
+    assert result["known_gate_failure"] is True
+    assert result["reference_available"] is True
+    assert result["evidence_complete"] is False
+    assert result["promotable"] is False
+    assert result["mean_delta"] is None and result["ci"] is None
+
+
+@pytest.mark.parametrize("damage", ["missing", "duplicate", "infra", "reference"])
+def test_cooling_comparison_refuses_incomplete_or_unavailable_evidence(damage):
+    rule = scoring().frozen_rule(REPOSITORY)
+    baseline = _test_rows(rule)
+    candidate = _test_rows(rule, 0.5, 0.5)
+    if damage == "missing":
+        candidate.pop()
+    elif damage == "duplicate":
+        candidate[-1] = dict(candidate[0])
+    elif damage == "infra":
+        candidate[0] = {"case_id": candidate[0]["case_id"], "state": "FAILED_INFRA"}
+    else:
+        baseline[0] = {"case_id": baseline[0]["case_id"], "state": "REFERENCE_INVALID"}
+    result = rule.compare(baseline, candidate, True)
+    assert result["outcome"] == "INSUFFICIENT_EVIDENCE"
+    assert result["promotable"] is False and result["evidence_complete"] is False
+    assert result["reference_available"] is (damage != "reference")
+    assert result["mean_delta"] is None and result["ci"] is None
+
+
+def test_cooling_margin_record_is_digest_pinned(monkeypatch):
+    path = REPOSITORY / cooling_scoring.MARGIN_RECORD
+    body = path.read_bytes().replace(b"\r\n", b"\n")
+    assert hashlib.sha256(body).hexdigest() == cooling_scoring.MARGIN_SHA256
+    monkeypatch.setattr(cooling_scoring, "MARGIN_SHA256", "0" * 64)
+    with pytest.raises(ValueError, match="digest mismatch"):
+        scoring().frozen_rule(REPOSITORY)
+
+
+def test_cooling_testing_comparison_preserves_ineligibility():
     rule = scoring().frozen_rule(REPOSITORY)
     exact = {record["case_id"]: record["outputs"] for record in rule.practice.records}
     rows, _summary = rule.score(exact)

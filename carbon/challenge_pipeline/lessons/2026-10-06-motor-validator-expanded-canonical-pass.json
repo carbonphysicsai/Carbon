@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-motor-validator-expanded-canonical-pass",
+  "recorded_at": "2026-10-06T17:46:14Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "canonical affected matrix at 0f1a76256",
+    "description": "canonical affected matrix at 0f1a76256"
+  },
+  "expected": "Motor, Cooling, Battery, attack and lessons regressions pass together",
+  "observed": "315 tests passed in 96.44 seconds in the pinned canonical container.",
+  "keep": [
+    "Retain the cross-Challenge regression matrix for shared custody and policy work."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.validator.interface-v1",
+    "quality_gate",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

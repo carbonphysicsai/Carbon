@@ -1172,7 +1172,9 @@ def settled_charge(usage, report, selection):
 
     The provider's own reported charge settles it where the adapter reports
     one; a missing report keeps the whole reservation (unknown, not the
-    headline rate). Otherwise the metered usage at the selection's price. The
+    headline rate), and so does an adapter that books unreported calls at
+    their reservation (`ProviderAdapter.unreported_charge`). Otherwise the
+    metered usage at the selection's price. The
     token-price estimate is always kept beside it, never substituted for it.
     """
     estimate = usage["nanodollars"]
@@ -1189,6 +1191,16 @@ def settled_charge(usage, report, selection):
             "nanodollars": micro * 1000,
             "basis": "provider-reported " + selection.adapter.reported_charge,
             "provider_reported_micro": micro,
+            "estimated_nanodollars": estimate,
+        }
+    if selection.adapter.unreported_charge == "reservation":
+        # No charge report is documented for this adapter: keep the whole
+        # reservation, exactly as for a reporting adapter whose report is
+        # missing, never the headline-rate estimate.
+        return {
+            "nanodollars": selection.reservation_nano,
+            "basis": "provider charge not reported; full reservation retained",
+            "provider_reported_micro": None,
             "estimated_nanodollars": estimate,
         }
     return {

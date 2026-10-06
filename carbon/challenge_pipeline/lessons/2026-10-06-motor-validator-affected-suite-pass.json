@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-motor-validator-affected-suite-pass",
+  "recorded_at": "2026-10-06T17:52:14Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "canonical affected validator regression at 94bb3927b",
+    "description": "canonical affected validator regression at 94bb3927b"
+  },
+  "expected": "Motor, Cooling, Battery, shared-store, boundary and attack adapter checks pass together",
+  "observed": "364 tests passed in 123.70 seconds in the pinned Ubuntu-24.04 runtime.",
+  "keep": ["Check shared custody changes against existing Challenge adapters and attack boundaries."],
+  "change": [],
+  "protocol_elements": ["challenge.validator.interface-v1", "challenge.pipeline.lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

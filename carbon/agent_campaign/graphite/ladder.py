@@ -59,17 +59,27 @@ def _stalled(attempts):
 
 
 class Ladder:
-    def __init__(self, root, *, start_rungs=None):
+    def __init__(self, root, *, start_rungs=None, models=LADDER):
         """`start_rungs` (`{RoleName: rung}`) raises a role's start rung for
         this ladder: a grant's registered start model
         (`grant_binding.start_rungs`, OWNER-GRAPHITE-PHASE3-R4-01). A role
         never sits below it, and escalation from it follows the same rule
-        (one rung, never above the top). None: every role's own start rung."""
+        (one rung, never above the top). None: every role's own start rung.
+
+        `models` is the model provider's ladder, cheapest first: Engy's
+        (`LADDER`) unless a run picked another provider
+        (`model_providers`, GRAPHITE-SPUR-PROVIDER-01). A role starts on the
+        rung holding its own start model; a ladder that does not hold it has
+        no start rung for that role (`start_model_not_on_the_ladder`). On
+        Engy's ladder that rung is exactly `RoleSpec.start_rung`."""
+        if type(models) is not tuple or any(type(m) is not str for m in models):
+            raise LadderError("ladder_models_malformed")
+        self.models = models
         starts = dict(start_rungs or {})
         for role, rung in starts.items():
             if type(role) is not RoleName:
                 raise TypeError("exact RoleName required")
-            if type(rung) is not int or not 0 <= rung <= TOP:
+            if type(rung) is not int or not 0 <= rung <= self.top:
                 raise LadderError("start_rung_not_on_the_ladder")
         self.start_rungs = starts
         root = Path(root)
@@ -86,6 +96,11 @@ class Ladder:
         finally:
             schema.close()
         self.path.chmod(0o600)
+
+    @property
+    def top(self):
+        """The top rung of this ladder; nothing escalates above it."""
+        return len(self.models) - 1
 
     @contextmanager
     def _db(self):
@@ -113,8 +128,14 @@ class Ladder:
             "SELECT to_rung FROM escalations WHERE role=? ORDER BY sequence DESC",
             (role.value,),
         ).fetchone()
-        rung = self._role(role).start_rung if row is None else row[0]
+        rung = self._start(role) if row is None else row[0]
         return max(rung, self.start_rungs.get(role, rung))
+
+    def _start(self, role):
+        start_model = self._role(role).start_model
+        if start_model not in self.models:
+            raise LadderError("start_model_not_on_the_ladder")
+        return self.models.index(start_model)
 
     def rung(self, role):
         with self._db() as db:
@@ -122,7 +143,7 @@ class Ladder:
 
     def model(self, role):
         """The model the next session of `role` starts on."""
-        return LADDER[self.rung(role)]
+        return self.models[self.rung(role)]
 
     def record_failure(self, role, kind, evidence, *, attempts=None):
         """Record one typed research-failure observation; returns its id.
@@ -178,7 +199,7 @@ class Ladder:
         with self._db() as db:
             self._consumable(db, role, failure_id)
             current = self._rung(db, role)
-            if current >= TOP:
+            if current >= self.top:
                 raise LadderError("ladder_top")
             target = _next_rung(current)
             sequence = db.execute("SELECT COUNT(*) FROM escalations").fetchone()[0] + 1
@@ -190,8 +211,8 @@ class Ladder:
             "sequence": sequence,
             "role": role.value,
             "failure": failure_id,
-            "from_model": LADDER[current],
-            "to_model": LADDER[target],
+            "from_model": self.models[current],
+            "to_model": self.models[target],
         }
 
     def history(self):
@@ -209,8 +230,8 @@ class Ladder:
                 "failure": failure,
                 "kind": kind,
                 "evidence": evidence,
-                "from_model": LADDER[low],
-                "to_model": LADDER[high],
+                "from_model": self.models[low],
+                "to_model": self.models[high],
             }
             for sequence, role, failure, kind, evidence, low, high in rows
         ]
