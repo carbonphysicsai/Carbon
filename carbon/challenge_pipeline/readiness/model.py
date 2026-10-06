@@ -22,6 +22,11 @@ STATUSES = (PASS, FAIL, NOT_BUILT, REVIEW_REQUIRED)
 KINDS = ("auto", "review", "auto+review")
 PACKAGE = Path(__file__).resolve().parent
 REPOSITORY = PACKAGE.parents[2]
+#: Where a gate run writes its history and reports: committed evidence, kept
+#: OUT of `carbon/` so a run never dirties shipped code (the pre-live check
+#: refuses uncommitted changes under `carbon/`). Static gate config (items,
+#: challenges, policies, records, reviews) stays under `PACKAGE`.
+RUNTIME = REPOSITORY / "docs/development/challenge_pipeline/readiness"
 GATE_DOCUMENT = REPOSITORY / "docs/development/graphite/GRAPHITE_READINESS_GATE.md"
 ITEMS_SCHEMA = "carbon.challenge-pipeline.readiness-items.v1"
 CHALLENGE_TOKEN = re.compile(r"^[a-z0-9][a-z0-9-]*\Z")

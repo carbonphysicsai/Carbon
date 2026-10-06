@@ -1,0 +1,48 @@
+{
+ "conditions": [
+  {
+   "id": "P-T37.6-S0.344",
+   "kind": "representative",
+   "soc0": 0.344,
+   "t_amb_c": 37.6
+  },
+  {
+   "id": "P-T10.5-S0.13",
+   "kind": "representative",
+   "soc0": 0.13,
+   "t_amb_c": 10.5
+  },
+  {
+   "id": "P-T8.8-S0.444",
+   "kind": "near_limit",
+   "soc0": 0.444,
+   "t_amb_c": 8.8
+  },
+  {
+   "id": "P-T5.5-S0.423",
+   "kind": "near_limit",
+   "soc0": 0.423,
+   "t_amb_c": 5.5
+  },
+  {
+   "id": "P-T20.8-S0.13",
+   "kind": "representative",
+   "replaces": "P-T23.9-S0.244",
+   "soc0": 0.13,
+   "t_amb_c": 20.8
+  },
+  {
+   "id": "P-T28.8-S0.115",
+   "kind": "representative",
+   "replaces": "P-T34.4-S0.238",
+   "soc0": 0.115,
+   "t_amb_c": 28.8
+  }
+ ],
+ "excluded_points": 327,
+ "rule": "v1's rule (scripts/dev/battery/practice_decision_set.py) against the wider exclusion list (excluded_v2); v1 conditions that stay clear are kept, the rest redrawn with seed label PRACTICE-SAFETY-01-B4-v2",
+ "schema": "carbon.battery.practice-decision-set.v2",
+ "seed_label": "PRACTICE-SAFETY-01-B4-v2",
+ "status": "PRACTICE_ONLY: never Track B, never a confirmation set",
+ "supersedes": "practice-decision-set-v1 (two conditions within both bounds of EV5 protected grid points; Test Lead ruling 2026-10-06)"
+}

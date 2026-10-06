@@ -1,0 +1,12 @@
+{
+ "schema": "carbon.admission-controllers.v1",
+ "controllers": [
+  {
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "level": 0,
+   "name": "graphite-phase3-r2-controller",
+   "identity": null,
+   "status": "PENDING_OPERATOR_IDENTITY"
+  }
+ ]
+}

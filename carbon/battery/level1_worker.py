@@ -76,6 +76,27 @@ def program():
     return _program()
 
 
+def build_in_process(recipe, record):
+    """The untrained Level-1 model for a compiled recipe and its pinned
+    loss-expression record, built in this process the way the staged program
+    builds it: the expression recompiled from its canonical bytes against its
+    operation set, then Carbon's Level-1 trainer. Nothing the strategy
+    supplied is executed."""
+    from carbon.battery import level1_training, loss_terms
+    from carbon.reconstruction import loss_expressions
+
+    compiled = loss_terms.load(
+        loss_expressions,
+        record["canonical"].encode("utf-8"),
+        record["operation_set_document"],
+    )
+    return level1_training.build(
+        recipe.family,
+        recipe.settings,
+        loss_terms.factory(loss_expressions, compiled),
+    )
+
+
 def expression_record(reconstruction):
     """The loss-expression reconstruction record of a development
     construction, or None (Level 0, or a variant without it)."""
@@ -106,6 +127,7 @@ __all__ = [
     "EXPRESSION_FILE",
     "OPERATION_SET_FILE",
     "REBUILD_LABEL",
+    "build_in_process",
     "expression_record",
     "program",
     "staged",

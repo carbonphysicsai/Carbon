@@ -33,6 +33,12 @@ operator's; none is reachable from a miner surface:
   `commitment_reader_unavailable`: infrastructure, never the miner's;
 - `service_key` (optional): the Carbon service key (OD-6) results are signed
   with. Named by path; never read into a log or an outcome.
+- `development_only` (optional, default false; VALIDATOR-13, the owner's
+  opt-in): a Graphite development deployment that may admit a registered
+  development variant from a `graphite-dev:` identity. It requires
+  `require_commitment: false` and no `commitment_reader`, and the winner-weight
+  publisher refuses it: a development deployment never sets weights and never
+  serves miners.
 
 Loading fails closed: a missing, group-readable or linked file, an unknown
 field or a changed identity binding is `EvaluationUnavailable`, never a score.
@@ -58,6 +64,7 @@ OPTIONAL = {
     "seconds",
     "rule",
     "commitment_reader",
+    "development_only",
 }
 READER_FIELDS = {"network", "endpoint", "provider", "genesis_hash", "netuid"}
 BACKENDS = ("carrier", "direct")
@@ -114,6 +121,14 @@ def load_config(path):
         raise EvaluationUnavailable("evaluation_config_fields")
     if "commitment_reader" in config:
         _commitment_reader(config)  # refuses a malformed chain context now
+    if type(config.get("development_only", False)) is not bool:
+        raise EvaluationUnavailable("evaluation_config_fields")
+    if config.get("development_only") and (
+        config.get("require_commitment", True) is not False
+        or "commitment_reader" in config
+    ):
+        # A development deployment serves no miner and sets no weights.
+        raise EvaluationUnavailable("evaluation_config_development_only")
     return config
 
 
@@ -226,6 +241,7 @@ def build(config, *, repository, readonly=False):
             commitments=_commitment_reader(config),
             require_commitment=config.get("require_commitment", True),
             service_key=None if key is None else ServiceKey.load(key),
+            development_only=config.get("development_only", False),
         )
     except StateError as mismatch:
         raise EvaluationUnavailable("evaluation_" + mismatch.code) from None
