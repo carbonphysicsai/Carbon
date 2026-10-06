@@ -257,6 +257,29 @@ def make_batch(root, pin, role, count, duplicates=2):
     )
 
 
+def reconstruction_salt(root, fingerprint):
+    """The producer's secret salt for one batch (VALIDATOR-19 slice 4),
+    derived from its private root and shipped only inside the signed
+    answer-key package. Import-only validators derive every reconstruction
+    seed from the salts of their active batches, so validators holding the
+    same batches seed a submission alike, and no miner can predict it."""
+    if type(root) is not PrivateRoot:
+        raise TypeError("an operator-held PrivateRoot is required")
+    return hmac.new(
+        root._bytes, b"salt/" + fingerprint.encode(), hashlib.sha256
+    ).hexdigest()
+
+
+def shared_seed(salts, label):
+    """A seed from the active batches' shared salts: the same for every
+    validator with the same active batches, whatever their order."""
+    if not salts or any(type(s) is not str or len(s) != 64 for s in salts):
+        raise ValueError("the active batches' salts are required")
+    key = hashlib.sha256("".join(sorted(salts)).encode()).digest()
+    tag = hmac.new(key, label.encode(), hashlib.sha256).digest()
+    return int.from_bytes(tag[:4], "big")
+
+
 def reconstruction_seed(root, submission_id):
     """Carbon's reconstruction seed for one submission: derived from the
     private root, so no miner can choose or predict it."""
