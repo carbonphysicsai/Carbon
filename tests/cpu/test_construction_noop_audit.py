@@ -56,15 +56,10 @@ from carbon.reconstruction.challenge_contracts import (
 
 #: (contract token, capability id, base label) -> why it is not fixed here.
 #: Each is a reported finding of NOOP-CAPABILITY-AUDIT-01
-#: (`.agent/decisions/2026-10-05-NOOP-CAPABILITY-AUDIT-01.md`).
-KNOWN_NO_OPS = {
-    (r.BATTERY_CHALLENGE, "architecture.neighbours", "knn"): (
-        "KNN's params_sha256 digests only the stored TRAIN targets, held "
-        "bit-identical to the exam-design campaign's research recipe; the "
-        "neighbour count changes predictions but not that digest. Binding k "
-        "is a versioned fit-statistic change, reported as a finding."
-    ),
-}
+#: (`.agent/decisions/2026-10-05-NOOP-CAPABILITY-AUDIT-01.md`). Battery KNN's
+#: `architecture.neighbours` left this set with its versioned state digest
+#: (`.agent/decisions/2026-10-05-KNN-STATE-DIGEST-01.md`).
+KNOWN_NO_OPS: dict = {}
 
 
 def _digest(value):
@@ -175,10 +170,13 @@ class BatteryAdapter:
         return construction.settings.get("backend") != "pytorch" or _torch_available()
 
     def fit(self, construction):
+        """The trained-artifact identity: a KNN's versioned state digest,
+        every other family's parameter digest (`knn_state.trained_identity`)."""
         from carbon.battery.compile import rebuild
+        from carbon.battery.knn_state import trained_identity
 
         _, stats = rebuild(construction, self.material, 0, train=self.train)
-        return stats["params_sha256"]
+        return trained_identity(stats)
 
 
 class KernelRidgeAdapter:

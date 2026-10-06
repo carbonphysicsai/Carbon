@@ -182,10 +182,13 @@ def test_smallest_complete_profile_by_arm_lifecycle_matrix_is_nonqualifying(
     domain = _extended_resource_fixture(tmp_path / "domain")
     store, prior_provider, lookup = _published_prior(tmp_path / "prior", domain)
     prior_pack = store.read_pack(lookup.prior_pack_ref)
-    research_service, provider, scaffold_ref, practice_pack_ref = (
-        _lifecycle_research_graph(
-            tmp_path / "research", domain, store, prior_provider, lookup
-        )
+    (
+        research_service,
+        provider,
+        scaffold_ref,
+        practice_pack_ref,
+    ) = _lifecycle_research_graph(
+        tmp_path / "research", domain, store, prior_provider, lookup
     )
     research_bridge = ResearchLifecycleBridge(research_service, provider)
     strategy_domain = fixture_strategy_domain(

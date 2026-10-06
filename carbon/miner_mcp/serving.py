@@ -217,17 +217,30 @@ def observation_action(code: str) -> str:
     )
 
 
-def refusal(code: str, *, dispatch_may_have_occurred: bool, field=None) -> str:
+def refusal(
+    code: str, *, dispatch_may_have_occurred: bool, field=None, correction=None
+) -> str:
     """The one refusal line every research door sends: a stable code, whether
     anything may have started, the field when one is to blame, and the fixed
     next action for the code. Never a provider message or a caller's value;
-    `field` is only ever a name from a server-side schema."""
+    `field` is only ever a name from a server-side schema.
+
+    `correction`, when given, is `(correction_code, text)`: a registered
+    correction Carbon wrote (AGENT-DOOR-USABILITY-01 A2), placed after the
+    field and before the next action. The next action stays the line's last
+    part, the fixed text the catalogue declares for the code, so a client
+    reads it to the end of the line as before. Only the door's own schema
+    refusal passes one (`standard_server.validation_refusal`)."""
     parts = [
         code,
         "dispatch_may_have_occurred=" + str(dispatch_may_have_occurred).lower(),
     ]
     if field is not None:
         parts.append("field=" + field)
+    if correction is not None:
+        correction_code, text = correction
+        parts.append("correction_code=" + correction_code)
+        parts.append("correction=" + text)
     parts.append("next_action=" + NEXT_ACTION[code])
     return "; ".join(parts)
 

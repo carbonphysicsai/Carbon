@@ -1,0 +1,16 @@
+{
+ "schema": "carbon.agent-campaign.spending-grant.v1",
+ "grant_id": "GRAPHITE-GRANT-PHASE4-COOLING",
+ "provider": "graphite",
+ "account": "Carbon-Account",
+ "granted_by": "owner",
+ "expires_at": "2026-12-31T23:59:59Z",
+ "currency": "USD",
+ "monetary_ceiling": "10.50",
+ "cleanup_allowance": "0.25",
+ "worst_case_run_cost": "3.41",
+ "permitted_runs": 3,
+ "max_concurrency": 1,
+ "max_runtime_s": 15600,
+ "max_submissions": 3
+}

@@ -1,0 +1,31 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-05-attack-artifact-identity",
+ "recorded_at": "2026-10-05T12:00:00Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "claude/attack-artifact-identity from origin/main 56187e74f (GRAPHITE-ATTACK-IDENTITY-01; OWNER-GRAPHITE-TEST-WAVE-04 section 1, WAVE-05 section 4)",
+  "description": "Applied the owner's identity rule to the attack engine: verdicts carry the rebuilt artifact, the report and B2 count distinct constructions by it, the knowledge store keys priors and regression specimens by it under versioned record and snapshot schemas, a shared copy probe attacks the counting mechanisms with reworded copies of each Challenge's incumbent, cross-run identity no longer leans on run-local proposal ids, and cooling's and motor's confirmation roles are sealed identities."
+ },
+ "expected": "The rebuilt record's digest would serve as the artifact identity, and no mechanism in the attack engine would count by recipe text.",
+ "observed": "Battery's built record binds digests of the strategy as written (strategy_hash, plan_digest, recipe_digest and the staged recipe.json), so making a default setting explicit changes the record digest while the settings, data, program and seed the trainer reads are identical. Counting by that digest would still let a reworded copy look new; the identity had to be the build identity, the record less those provenance fields. No mechanism rewarded by text on purpose, but B2's verified difference, the report's verified count, the store's found list and its regression specimens all counted per attempt or per record, which a reworded copy multiplies. Separately, specimen bundles shared across sessions were keyed by the journal identity, which every session reuses, so a second session's different recipe collided with the first bundle; proposal ids have the same run-local shape.",
+ "keep": [
+  "One shared identity function used by every count, and the text digest kept only as a labelled diagnostic.",
+  "A probe that runs the real counting mechanisms on an incumbent and its reworded copy, with a vulnerable specimen that counts by text and a control that must count two.",
+  "Versioning the store's record and snapshot schemas so a frozen run's snapshot is read under the rule it was frozen under."
+ ],
+ "change": [
+  "Before trusting a digest as an identity, check what it binds: a record digest that includes provenance of the submission's wording is not an artifact identity.",
+  "Treat any id derived from a journal or tool-call position as run-local; anything that leaves a run binds the run id or the rebuilt artifact.",
+  "A Level 1 adapter must supply an artifact identity that is the trained result or an equivalent canonical build; the copy probe flags an expression digest."
+ ],
+ "protocol_elements": [
+  "graphite.attacker",
+  "construction.ladder",
+  "admission.lock"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

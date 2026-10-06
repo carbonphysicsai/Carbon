@@ -3,7 +3,7 @@
     python -m carbon.agent_campaign.graphite.phase4 run --root DIR --dry-run \
         --challenge TOKEN [--level N]
     python -m carbon.agent_campaign.graphite.phase4 run --root DIR \
-        --grant docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json \
+        --grant docs/development/graphite/grants/<the Challenge's grant>.json \
         --credential-file PATH \
         --miner-profile PROFILE.json --miner-campaign ID [--session N] \
         --challenge TOKEN [--level N]
@@ -84,10 +84,16 @@ under `DIR/attacker-dry-run`, with a synthetic copy of the grant and no miner
 path, then Carbon's side with the same engine, producing the coverage report
 and B2. It sends nothing and spends nothing.
 
-**Grant.** A live run reads `GRAPHITE-GRANT-PHASE4`
-(OWNER-GRAPHITE-ATTACKER-01 §5), and only a copy whose canonical digest equals
-the committed blob at a pushed HEAD, with the grants directory clean
-(`check_committed_grant`); the working-tree file is never trusted.
+**Grant.** Each Challenge has its own phase-4 grant (`PHASE4_GRANTS`):
+battery runs under `GRAPHITE-GRANT-PHASE4` (OWNER-GRAPHITE-ATTACKER-01 §5) and
+cooling under `GRAPHITE-GRANT-PHASE4-COOLING` (OWNER-GRAPHITE-TEST-WAVE-05 §2).
+A live run accepts only the grant registered for the Challenge named by
+`--challenge`, and only a copy whose canonical digest equals the committed
+blob at a pushed HEAD, that blob being the one on main, with the grants
+directory clean (`check_committed_grant`); the working-tree file is never
+trusted. Another Challenge's grant is `grant_is_for_another_challenge`; a
+Challenge with no registered grant, such as motor, is
+`no_phase4_grant_for_challenge`.
 
 **`prelive`** (`phase4_prelive`) runs every real code path of a live run up
 to the network boundary, with fake transports at that boundary and nothing
@@ -101,6 +107,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import dataclasses
 import functools
 import json
 import os
@@ -109,19 +116,31 @@ import shutil
 import stat
 import subprocess
 import sys
+import types
 from decimal import Decimal
 from pathlib import Path
 
 from carbon.challenge_readiness.admission import CHECKS, LEDGER_TRACK
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
-from carbon.development_session.research_loop import run_epoch
+from carbon.development_session.research_agent_policy import FINISH_NOTICE_CALLS
+from carbon.development_session.research_loop import (
+    CONTINUE_REMINDER_SCHEMA,
+    REFUSAL_CODES,
+    STOPPED_NO_TOOL_USE,
+    run_epoch,
+)
 from carbon.development_session.research_tools import PREFIX
+from carbon.reconstruction.capability_registry import (
+    BATTERY_CHALLENGE,
+    COLD_PLATE_CHALLENGE,
+)
 
 from .. import boundaries
 from ..grant import SpendingGrant
 from ..provider import ProviderUnavailable, TaskSpec
 from . import experiment as ex
+from . import grant_binding
 from . import tools as toolbox
 from .phase3 import (
     Phase3Provider,
@@ -142,10 +161,43 @@ OPERATOR = "graphite-phase4-runner"
 WORKSPACE = "graphite-phase4-workspace"
 CREDENTIAL_REF = "graphite-phase4-engy"
 PROFILE_SCHEMA = "carbon.graphite.phase4.attacker-profile.v1"
-#: The owner-approved grant the Attacker runs under (OWNER-GRAPHITE-ATTACKER-01
-#: §5). The dry run copies it under a synthetic identity.
-GRANT_ID = "GRAPHITE-GRANT-PHASE4"
-GRANT_FILE = "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json"
+#: The directory the owner's grants are committed under (`grant_binding`).
+GRANTS_DIR = grant_binding.GRANTS_DIR
+
+
+@dataclasses.dataclass(frozen=True)
+class Phase4Grant:
+    """One Challenge's owner-approved phase-4 grant: its id and its file."""
+
+    challenge: str
+    grant_id: str
+    grant_file: str
+
+
+#: The owner-approved grant each Challenge's Attacker runs under, keyed by
+#: the Challenge `--challenge` names: battery's (OWNER-GRAPHITE-ATTACKER-01
+#: §5) and cooling's (OWNER-GRAPHITE-TEST-WAVE-05 §2). The grant format has no
+#: Challenge field, so the binding lives here. A Challenge with no entry has
+#: no phase-4 grant (`phase4_grant`); motor's is proposed once its scorer
+#: exists. The dry run copies the named Challenge's grant under a synthetic
+#: identity.
+PHASE4_GRANTS = types.MappingProxyType(
+    {
+        entry.challenge: entry
+        for entry in (
+            Phase4Grant(
+                challenge=BATTERY_CHALLENGE,
+                grant_id="GRAPHITE-GRANT-PHASE4",
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-PHASE4.json",
+            ),
+            Phase4Grant(
+                challenge=COLD_PLATE_CHALLENGE,
+                grant_id="GRAPHITE-GRANT-PHASE4-COOLING",
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-PHASE4-COOLING.json",
+            ),
+        )
+    }
+)
 #: The pipeline stage an Attacker campaign runs at.
 STAGE = "test_iterate"
 #: Graphite's current attack wave exercises registered Level 0 adapters. The
@@ -179,7 +231,11 @@ LOG_SCHEMA = "carbon.graphite.attacker-iteration-log.v3"
 #: authoritative chain both accept as valid and in contract (no breach, no
 #: usability defect; counted like NOT_APPLICABLE). A v5 report keeps its
 #: meaning: its UNDETERMINED verdicts are never re-read as agreed.
-COVERAGE_SCHEMA = "carbon.graphite.attacker-coverage.v6"
+#: v7 carries verdict v3 records (`artifact`) and family report v5
+#: (`distinct`), and adds `construction_identity`: the shared copy probe's
+#: run (OWNER-GRAPHITE-TEST-WAVE-04 §1), its findings under
+#: `findings_by_source["copy_probe"]`. A v6 report keeps its meaning.
+COVERAGE_SCHEMA = "carbon.graphite.attacker-coverage.v7"
 #: The eight Track A checks every coverage report accounts for.
 TRACK_A_CHECKS = tuple(sorted(CHECKS[LEDGER_TRACK]))
 PIN_SCHEMA = "carbon.graphite.attacker-store-pin.v1"
@@ -206,9 +262,18 @@ def attack_modules():
     """The neutral attack engine (`carbon.agent_campaign.attack`). Imported
     here, not at module load, so the driver imports before the engine slices
     merge; a test injects fakes by replacing this function."""
-    from ..attack import adapter, analysis, benchmark, knowledge, report, verify
+    from ..attack import (
+        adapter,
+        analysis,
+        benchmark,
+        identity,
+        knowledge,
+        report,
+        verify,
+    )
 
     return {
+        "identity": identity,
         "adapter": adapter,
         "analysis": analysis,
         "benchmark": benchmark,
@@ -426,6 +491,10 @@ class AttackerProvider(Phase3Provider):
     Attacker proposes no construction: its experiment has no baseline and runs
     no pod, and its session bundles and scores nothing itself."""
 
+    #: An Attacker session records no budget-status rule: it always omits the
+    #: unmetered trial line (`_epoch`), so its records stay as they were.
+    NEW_SESSION_BUDGET_STATUS = None
+
     def __init__(
         self,
         *,
@@ -437,10 +506,16 @@ class AttackerProvider(Phase3Provider):
         miner_attach=None,
         miner_tools=None,
         scoring=None,
+        stop_rule=None,
         **kwargs,
     ):
         from carbon.challenge_validator import scoring as challenge_scoring
 
+        if stop_rule is not None and stop_rule not in STOP_RULES:
+            raise ValueError("an Attacker stop rule is a registered rule or None")
+        # A new session freezes the rule; a recorded one resumes under its own
+        # record whatever this says (`_expected_limits`, `offered_tools`).
+        self.stop_rule = stop_rule
         self.adapter = adapter
         self._code_run_seconds = adapter_code_run_seconds(adapter)
         self._code_run_rule = code_run_rule(adapter, self._code_run_seconds)
@@ -474,7 +549,43 @@ class AttackerProvider(Phase3Provider):
             "verify_pod_rebuild": POD_REBUILD_SEAM["state"],
             "code_run_seconds_at_most": self._code_run_seconds,
             "on_limit_stop": "record_attempts_only",
+            **(
+                {}
+                if self.stop_rule is None
+                else {"stop_rule": stop_rule_record(self.stop_rule)}
+            ),
         }
+
+    def _expected_limits(self, opened):
+        """The base check, following the session's own record for the stop
+        rule: a session opened without it resumes without it, and one opened
+        with it resumes only under the registered record of its own version
+        (an unregistered version never matches)."""
+        expected = super()._expected_limits(opened)
+        block = expected.get("session_limits")
+        if block is not None:
+            block = {k: v for k, v in block.items() if k != "stop_rule"}
+            recorded = (opened.get("session_limits") or {}).get("stop_rule", ...)
+            if recorded is not ...:
+                schema = recorded.get("schema") if type(recorded) is dict else None
+                block["stop_rule"] = (
+                    stop_rule_record(schema)
+                    if schema in STOP_RULES
+                    else {"schema": "unregistered"}
+                )
+            expected = {**expected, "session_limits": block}
+        return expected
+
+    @classmethod
+    def offered_tools(cls, opened):
+        """The base order, with the stop rule's finish tool after the role's
+        manifest and before the engine's tools, as `session_tools` sends it."""
+        names = super().offered_tools(opened)
+        rule = (opened.get("session_limits") or {}).get("stop_rule")
+        if rule is None:
+            return names
+        manifest = list(opened["role"]["tool_manifest"])
+        return manifest + [rule["finish_tool"]] + names[len(manifest) :]
 
     def start(self, spec, idempotency_key):
         # #504's `Phase3Provider.start` enforces the Constructor and battery's
@@ -490,6 +601,13 @@ class AttackerProvider(Phase3Provider):
                     self.adapter,
                     code_run_seconds=self._code_run_seconds,
                 )
+                carried = brief["initial_observation"].get("stop_rule")
+                if self.stop_rule is not None and carried is None:
+                    raise ProviderUnavailable("attacker_brief_lacks_the_stop_rule")
+                if self.stop_rule is None and carried is not None:
+                    raise ProviderUnavailable(
+                        "attacker_brief_has_an_unfrozen_stop_rule"
+                    )
         return GraphiteProvider.start(self, spec, idempotency_key)
 
     def experiment(self, run_id):
@@ -529,6 +647,19 @@ class AttackerProvider(Phase3Provider):
         compaction, and the parallel-call rule. No delivery, no bundle and no
         stall escalation: an Attacker proposes no construction."""
         opened = self._opened(run_id)
+        rule = (opened.get("session_limits") or {}).get("stop_rule")
+        stop = {}
+        if rule is not None:
+            stop = {
+                "finish": {
+                    "tool": FINISH_TOOL,
+                    "validate": self._finish_check(
+                        run_id, ledger, role, selection, rule["schema"]
+                    ),
+                    "status": FINISH_STATUS,
+                },
+                "continue_reminder": dict(CONTINUE_REMINDER),
+            }
 
         def emit(event_id, body):
             self._emit(run_id, event_id, body)
@@ -561,7 +692,297 @@ class AttackerProvider(Phase3Provider):
                 # budget is 0); never tell the agent "0 of 0 trials left".
                 omit_unmetered_trials=True,
                 **self._loop_limits(opened),
+                **stop,
             )
+
+    def _finish_check(self, run_id, ledger, role, selection, schema=None):
+        """The stop rule's finish validator: the session may finish once every
+        reachable family has `STOP_RULE_K` counted attempts, or once the money
+        ledger can be sure of no more than `FINISH_NOTICE_CALLS` model calls.
+        Money only, never the clock, so a replay recomputes the same answer."""
+        from ..attack import analysis
+
+        tools = role.tool_schemas()
+
+        def validate(arguments):
+            table = stop_rule_coverage(
+                self.adapter,
+                tools,
+                analysis.attempts(self._dir(run_id)),
+                schema=schema or STOP_RULE_V1,
+            )
+            return finish_verdict(
+                table, sure_model_calls(ledger.status(owner=OWNER), selection)
+            )
+
+        return validate
+
+
+# -- the stop rule (GRAPHITE-ATTACKER-STOP-RULE-01) ----------------------------------------
+#: The Attacker's stop rule, opt-in per provider and frozen in the session's
+#: `session_limits` record: the session ends through the finish tool once every
+#: reachable family has `STOP_RULE_K` counted attempts (or money can be sure of
+#: no more than `FINISH_NOTICE_CALLS` model calls); a text-only turn gets the
+#: continue reminder, at most twice in a row. Older sessions carry no rule and
+#: resume exactly as recorded.
+STOP_RULE_V1 = "carbon.graphite.attacker-stop-rule.v1"
+#: v2 (2026-10-05, the Test Lead under the owner's delegation): a family whose
+#: risk a deterministic boundary test covers is labelled "covered
+#: deterministically" with that test, and the table lists the deterministic
+#: coverage of subjects that are not adapter families. v1 records keep their
+#: labels and resume exactly as recorded.
+STOP_RULE_V2 = "carbon.graphite.attacker-stop-rule.v2"
+STOP_RULES = (STOP_RULE_V1, STOP_RULE_V2)
+STOP_RULE_K = 2
+FINISH_STATUS = "ATTACK_FINISHED"
+FINISH_TOOL_NAME = "finish_attack_session"
+FINISH_REFUSED = "finish_coverage_incomplete"
+FINISH_TOOL = {
+    "type": "function",
+    "name": FINISH_TOOL_NAME,
+    "description": (
+        "End this attack session. Accepted once every reachable family in the "
+        "brief's coverage table has at least the required number of attempts, "
+        "or once the budget can be sure of no more than two model calls; "
+        "otherwise refused with the current coverage table."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "summary": {
+                "type": "string",
+                "description": "What you tried per family and what the path did.",
+            }
+        },
+        "required": ["summary"],
+        "additionalProperties": False,
+    },
+}
+CONTINUE_REMINDER = {
+    "schema": CONTINUE_REMINDER_SCHEMA,
+    "message": (
+        "Carbon: a reply with no tool call does not end this session. Continue "
+        "with a tool call, or call " + FINISH_TOOL_NAME + " when the coverage "
+        "table allows it."
+    ),
+    "max_consecutive": 2,
+    "stop_code": STOPPED_NO_TOOL_USE,
+}
+#: The label a family with no participant route at this level carries (Test
+#: Lead, 2026-10-05): never a silent NOT_RUN. Named families carry their own
+#: registered label instead.
+UNREACHABLE_LABEL = "not participant-reachable at this level"
+FAMILY_LABELS_V1 = {
+    "rebuild_identity": "queued: cross-attempt identity oracle (WAVE-04 \u00a71)",
+    "rebuild_report": "deferred: POD_REBUILD_SEAM not run",
+}
+FAMILY_LABELS = {
+    "rebuild_identity": (
+        "covered deterministically: the no-op capability audit (#619) and the "
+        "WAVE-04 artifact-identity tests (#607)"
+    ),
+    "rebuild_report": "deferred: POD_REBUILD_SEAM not run",
+}
+#: Subjects covered by deterministic boundary-side tests rather than by the
+#: Attacker (v2): never a silent NOT_RUN.
+DETERMINISTIC_COVERAGE = (
+    {
+        "subject": "hidden_outcome_channel",
+        "covered_by": "VALIDATOR-13 non-leak differential test (#642)",
+    },
+    {
+        "subject": "rotation_exhaustion",
+        "covered_by": "VALIDATOR-13 tempo-cap and rotation tests (#642)",
+    },
+    {
+        "subject": "practice_safety_feedback_v2",
+        "covered_by": "PRACTICE-SAFETY-01 allow-list tests (#652)",
+    },
+)
+_FAMILY_LABELS_BY_RULE = {STOP_RULE_V1: FAMILY_LABELS_V1, STOP_RULE_V2: FAMILY_LABELS}
+B2_SCOPE_NOTE = (
+    "B2 compares the Attacker only on reachable families; an unreachable "
+    "family is covered by the deterministic harness (track_a) as a "
+    "Carbon-internal check."
+)
+
+
+def stop_rule_record(schema=STOP_RULE_V2):
+    """The stop rule of version `schema` as a session record freezes it."""
+    if schema not in STOP_RULES:
+        raise ValueError("unregistered Attacker stop rule")
+    return {
+        "schema": schema,
+        "authority": "GRAPHITE-ATTACKER-STOP-RULE-01",
+        "k": STOP_RULE_K,
+        "finish_tool": FINISH_TOOL_NAME,
+        "finish_status": FINISH_STATUS,
+        "finish_money_floor_calls": FINISH_NOTICE_CALLS,
+        "continue_reminder": dict(CONTINUE_REMINDER),
+        "unreachable_label": UNREACHABLE_LABEL,
+        "family_labels": dict(_FAMILY_LABELS_BY_RULE[schema]),
+        **(
+            {"deterministic_coverage": [dict(row) for row in DETERMINISTIC_COVERAGE]}
+            if schema == STOP_RULE_V2
+            else {}
+        ),
+    }
+
+
+def _probe_arguments(tool):
+    """Every argument shape the tool's own enums allow for `kind` and
+    `action` (one empty shape for a tool with neither)."""
+    properties = (tool.get("parameters") or {}).get("properties") or {}
+    kinds = (properties.get("kind") or {}).get("enum") or [None]
+    actions = (properties.get("action") or {}).get("enum") or [None]
+    return [
+        {key: value for key, value in (("kind", k), ("action", a)) if value is not None}
+        for k in kinds
+        for a in actions
+    ]
+
+
+def reachable_families(adapter, tools):
+    """`{family: [door, ...]}` for each adapter family some offered tool call
+    maps to (`analysis.family_of` over every shape the tools' enums allow); a
+    door is `tool` or `tool[kind/action]`. Deterministic: sorted."""
+    from ..attack import analysis
+
+    names = {analysis.family_name(f) for f in adapter.families()}
+    doors = {}
+    for tool in tools:
+        name = tool["name"]
+        for arguments in _probe_arguments(tool):
+            probe = analysis.Attempt(
+                identity="stop-rule-probe",
+                epoch=0,
+                stage=None,
+                turn=0,
+                position=0,
+                tool=name,
+                arguments=arguments,
+                result=None,
+                withheld=None,
+                intent_digest="",
+                result_digest=None,
+            )
+            family = analysis.family_of(probe, adapter)
+            if family not in names:
+                continue
+            door = name.removeprefix(PREFIX)
+            if arguments:
+                door += "[" + "/".join(str(v) for v in arguments.values()) + "]"
+            doors.setdefault(family, set()).add(door)
+    return {family: sorted(found) for family, found in sorted(doors.items())}
+
+
+def attack_attempts(session_dir):
+    """The session's attack attempts: every journalled tool call but the stop
+    rule's finish call, which ends the session and probes nothing."""
+    from ..attack import analysis
+
+    return [a for a in analysis.attempts(session_dir) if a.tool != FINISH_TOOL_NAME]
+
+
+def _counted(attempt):
+    """An attempt the stop rule counts: anything but the loop's own answer to
+    a malformed call (REJECTED_BEFORE_DISPATCH with a loop refusal code)."""
+    result = attempt.result or {}
+    return not (
+        result.get("status") == "REJECTED_BEFORE_DISPATCH"
+        and result.get("code") in REFUSAL_CODES
+    )
+
+
+def stop_rule_coverage(adapter, tools, found=(), schema=STOP_RULE_V2):
+    """The stop rule's coverage table: each reachable family with its doors
+    and counted attempts against `STOP_RULE_K`, every other adapter family
+    with its label under rule `schema`, and (v2) the deterministic coverage."""
+    labels = _FAMILY_LABELS_BY_RULE[schema]
+    from ..attack import analysis
+
+    reachable = reachable_families(adapter, tools)
+    counts = dict.fromkeys(reachable, 0)
+    for attempt in found:
+        if _counted(attempt):
+            family = analysis.family_of(attempt, adapter)
+            if family in counts:
+                counts[family] += 1
+    names = sorted(analysis.family_name(f) for f in adapter.families())
+    return {
+        "schema": schema,
+        "k": STOP_RULE_K,
+        "families": [
+            {
+                "family": family,
+                "doors": doors,
+                "attempts": counts[family],
+                "covered": counts[family] >= STOP_RULE_K,
+            }
+            for family, doors in reachable.items()
+        ],
+        "unreachable": [
+            {"family": name, "label": labels.get(name, UNREACHABLE_LABEL)}
+            for name in names
+            if name not in reachable
+        ],
+        "b2_scope": B2_SCOPE_NOTE,
+        **(
+            {"covered_deterministically": [dict(r) for r in DETERMINISTIC_COVERAGE]}
+            if schema == STOP_RULE_V2
+            else {}
+        ),
+    }
+
+
+def sure_model_calls(ledger_status, selection):
+    """The model calls the campaign ledger can still be sure of, from its
+    provider-call and money ceilings (as `research_loop.budget_status` counts
+    them), or None when neither is set."""
+    budget = ledger_status.get("budget") or {}
+    used = ledger_status["used"]
+    sure = []
+    attempts = budget.get("provider_attempts")
+    if type(attempts) is int:
+        sure.append(max(0, attempts - used["provider_attempts"]))
+    money = budget.get("provider_nanodollars")
+    reservation = getattr(selection, "reservation_nano", None)
+    if type(money) is int and type(reservation) is int and reservation > 0:
+        sure.append(max(0, money - used["provider_nanodollars"]) // reservation)
+    return min(sure) if sure else None
+
+
+def finish_verdict(table, sure):
+    """`(ok, refusal)` for a finish call: accepted once every reachable family
+    is covered, or once money can be sure of no more than
+    `FINISH_NOTICE_CALLS` model calls (`sure`, None when unbounded)."""
+    short = [row for row in table["families"] if not row["covered"]]
+    if not short:
+        return True, None
+    if sure is not None and sure <= FINISH_NOTICE_CALLS:
+        return True, None
+    return False, finish_refusal(table, short)
+
+
+def finish_refusal(table, short):
+    """The finish tool's refusal while a reachable family is under `k`: the
+    families still short and the whole table."""
+    names = ", ".join(
+        row["family"] + " (" + str(row["attempts"]) + "/" + str(table["k"]) + ")"
+        for row in short
+    )
+    return {
+        "status": "REJECTED_BEFORE_DISPATCH",
+        "code": FINISH_REFUSED,
+        "field": "name",
+        "reason": "the session cannot finish yet; these families are under the "
+        "required attempts: " + names,
+        "fix": "make attempts in those families through the doors the table "
+        "names, then call " + FINISH_TOOL_NAME + " again",
+        "coverage": table,
+        "authority_granted": False,
+        "final_evidence": False,
+    }
 
 
 # -- brief, controller and one session -------------------------------------------------------
@@ -598,7 +1019,7 @@ def knowledge_brief(view, adapter):
     return {"snapshot": view.digest, "by_family": by_family}
 
 
-def brief_observation(adapter, *, knowledge=None):
+def brief_observation(adapter, *, knowledge=None, stop_rule=False):
     """The Attacker's starting observation: the Challenge's public development
     identity and contract token, the construction level, the adapter's
     families and seams, the attack-knowledge snapshot it runs under, and the
@@ -627,6 +1048,17 @@ def brief_observation(adapter, *, knowledge=None):
             "code_run_seconds_at_most": adapter_code_run_seconds(adapter),
         },
     }
+    if stop_rule:
+        # The stop rule's coverage table at the start: every reachable family
+        # at 0 attempts, and every other family with its label. `stop_rule`
+        # is the rule's version (True means the current one).
+        schema = STOP_RULE_V2 if stop_rule is True else stop_rule
+        observation["stop_rule"] = {
+            "finish_tool": FINISH_TOOL_NAME,
+            "coverage": stop_rule_coverage(
+                adapter, ROLES[RoleName.ATTACKER].tool_schemas(), schema=schema
+            ),
+        }
     if toolbox.protected(observation):
         raise ValueError("refused: the attacker brief names protected material")
     return observation
@@ -655,12 +1087,23 @@ def check_attacker_observation(observation, adapter, *, code_run_seconds):
         raise ProviderUnavailable("attacker_brief_carries_no_baseline")
 
 
-def session_brief(adapter, *, checkout_commit, knowledge=None, repository=REPOSITORY):
+def session_brief(
+    adapter, *, checkout_commit, knowledge=None, repository=REPOSITORY, stop_rule=False
+):
+    from carbon.challenge_validator import scoring as challenge_scoring
+
     role = ROLES[RoleName.ATTACKER]
-    manifest = boundaries.checkout_manifest(repository, role.boundary)
+    # The attacked Challenge's published material, never another's.
+    manifest = boundaries.checkout_manifest(
+        repository,
+        role.boundary,
+        challenge_scoring.published_material(adapter.challenge_id),
+    )
     return SessionBrief(
         role=RoleName.ATTACKER,
-        initial_observation=brief_observation(adapter, knowledge=knowledge),
+        initial_observation=brief_observation(
+            adapter, knowledge=knowledge, stop_rule=stop_rule
+        ),
         checkout_commit=checkout_commit,
         checkout_manifest_digest=boundaries.manifest_digest(manifest),
     )
@@ -891,19 +1334,29 @@ def remember(kstore, atk, adapter, definition, attempt, verdict, rows):
         return True
 
     outcome = store_outcome(verdict, verify)
+    # Distinct constructions are keyed by the rebuilt artifact, never by the
+    # attempt's text (OWNER-GRAPHITE-TEST-WAVE-04 §1).
+    artifact = getattr(verdict, "artifact", None)
+    keyed = {} if artifact is None else {"artifact": artifact}
     payload = {**attempt.record(), "arguments": dict(attempt.arguments)}
-    if not write("attempt", kstore.add_attempt, attempt=payload, outcome=outcome):
+    if not write(
+        "attempt", kstore.add_attempt, attempt=payload, outcome=outcome, **keyed
+    ):
         # Its arguments named material the store refuses: keep the attempt's
         # identity and digests alone.
         payload = attempt.record()
-        write("attempt", kstore.add_attempt, attempt=payload, outcome=outcome)
+        write("attempt", kstore.add_attempt, attempt=payload, outcome=outcome, **keyed)
     if verdict.near_miss and outcome != "BREACHED":
         write(
             "near_miss",
             kstore.add_near_miss,
             attempt=payload,
             note=verdict.reason or "the oracle reported a near miss",
+            **keyed,
         )
+    if artifact is None and hasattr(knowledge, "behaviour_label"):
+        # No artifact: the finding counts once per behaviour, never per wording.
+        keyed = {"behaviour": knowledge.behaviour_label(verdict.reason)}
     if outcome == "BREACHED":
         for condition in verdict.conditions:
             write(
@@ -915,6 +1368,7 @@ def remember(kstore, atk, adapter, definition, attempt, verdict, rows):
                 # Carbon scores only what it rebuilt; an attempt that carried no
                 # construction was re-run by Carbon's own oracle as given.
                 rebuilt=verdict.rebuild != verify.UNREBUILDABLE,
+                **keyed,
             )
 
 
@@ -1057,7 +1511,7 @@ def carbon_side(
     # The snapshot the brief named, checked against the recorded pin.
     replay_guard(store, session, view, atk)
 
-    found = analysis.attempts(provider._dir(run_id))
+    found = attack_attempts(provider._dir(run_id))
     mapped = analysis.map_to_families(found, adapter)
     families = tuple(adapter.families())
     seams = tuple(adapter.level_families())
@@ -1098,13 +1552,23 @@ def carbon_side(
         "held_out_controls": record_report_findings(family_report, control, verify),
         "deterministic_baseline": verify.record_engine_findings(baseline, control),
     }
-    # Re-tagged once the findings it raises and the baseline's are recorded,
-    # so it carries every finding open after Carbon's side recorded them
-    # (conditional-evidence.v2 "ordering"), as the coverage report does.
+    # The shared copy probe (OWNER-GRAPHITE-TEST-WAVE-04 §1): a reworded copy
+    # of the incumbent never counts as a new construction. Its findings take
+    # the same record path; NOT_RUN without an incumbent, never a pass.
+    identity = atk.get("identity")
+    probe = None if identity is None else identity.copy_probe(adapter)
+    if probe is not None and probe["run"] is not None:
+        by_source["copy_probe"] = verify.record_engine_findings(
+            [probe["run"]], control, source="copy_probe"
+        )
+    # Re-tagged once the findings it raises, the baseline's and the copy
+    # probe's are recorded, so it carries every finding open after Carbon's
+    # side recorded them (conditional-evidence.v2 "ordering"), as the
+    # coverage report does.
     retag(family_report, control)
     findings = [*by_source["attacker"]]
-    for source in ("held_out_controls", "deterministic_baseline"):
-        findings.extend(i for i in by_source[source] if i not in findings)
+    for source in ("held_out_controls", "deterministic_baseline", "copy_probe"):
+        findings.extend(i for i in by_source.get(source, ()) if i not in findings)
     b2 = benchmark.b2(
         attacker,
         baseline,
@@ -1129,6 +1593,9 @@ def carbon_side(
             outcomes, families
         ),
         "benchmark_b2": b2,
+        "construction_identity": (
+            None if probe is None else identity.probe_record(probe)
+        ),
         "attack_knowledge": {
             "pinned": view.digest,
             "suite_pin": view.suite_pin(),
@@ -1275,70 +1742,56 @@ def grant_digest(document):
     return digest(canonical(document))
 
 
-#: The directory the owner's grants are committed under; a live run refuses
-#: when anything in it differs from HEAD.
-GRANTS_DIR = str(Path(GRANT_FILE).parent)
+def phase4_grant(challenge):
+    """The phase-4 grant registered for `challenge` (`PHASE4_GRANTS`), or
+    `no_phase4_grant_for_challenge`: a Challenge without an owner-approved
+    phase-4 grant, such as motor, never borrows another's."""
+    entry = PHASE4_GRANTS.get(challenge) if isinstance(challenge, str) else None
+    if entry is None:
+        raise RunnerRefused("no_phase4_grant_for_challenge")
+    return entry
 
 
-def _git(repository, *args):
-    return subprocess.run(
-        ["git", "-C", str(repository), *args],
-        capture_output=True,
-        check=False,
-    )
+def bind_grant_to_challenge(document, entry):
+    """The grant document must name `entry`'s grant id: a grant registered
+    for another Challenge is `grant_is_for_another_challenge`, any other id
+    `grant_is_not_the_phase4_grant`."""
+    grant_id = document.get("grant_id") if isinstance(document, dict) else None
+    if grant_id == entry.grant_id:
+        return entry
+    if any(other.grant_id == grant_id for other in PHASE4_GRANTS.values()):
+        raise RunnerRefused("grant_is_for_another_challenge")
+    raise RunnerRefused("grant_is_not_the_phase4_grant")
 
 
-def check_committed_grant(path, repository=REPOSITORY):
-    """A live run's grant must be the committed GRAPHITE-GRANT-PHASE4, field
-    for field, as HEAD holds it: never the working tree, which an operator
-    could edit together with the copy passed in.
+def check_committed_grant(path, repository=REPOSITORY, *, challenge):
+    """A live run's grant must be the committed phase-4 grant registered for
+    `challenge` (`phase4_grant`), field for field, as HEAD holds it: never the
+    working tree, which an operator could edit together with the copy passed
+    in.
 
-    - The committed blob is read from git (`git show HEAD:<GRANT_FILE>`);
-      none is `phase4_grant_not_committed`.
-    - The given copy's canonical digest must equal the committed blob's: any
-      amount, run count, runtime or identity changed, in the copy or in the
-      working tree it was taken from, is
-      `grant_differs_from_the_committed_phase4_grant`.
-    - HEAD must already be on a remote branch (`git branch -r --contains
-      HEAD`): `grant_commit_not_pushed`.
-    - The committed blob must be the one on main, which is what the owner
-      approved: a pushed feature branch carrying an edited grant is not.
-      `origin main` is fetched and the two blob ids compared; a fetch or a
-      main without the grant is `main_grant_unavailable`, a different blob
-      `grant_differs_from_main`.
-    - The grants directory must match HEAD (no change, staged or not, and no
-      untracked file): `grants_directory_has_uncommitted_changes`.
+    - The Challenge must have a registered grant:
+      `no_phase4_grant_for_challenge`.
+    - The given copy must name that grant's id
+      (`bind_grant_to_challenge`): `grant_is_for_another_challenge` or
+      `grant_is_not_the_phase4_grant`.
+    - Then `grant_binding.check_committed_blob` on that Challenge's file: the
+      committed blob at HEAD (`phase4_grant_not_committed`), equal to the
+      given copy (`grant_differs_from_the_committed_phase4_grant`), at a
+      pushed HEAD (`grant_commit_not_pushed`), and the blob on main
+      (`main_grant_unavailable`, `grant_differs_from_main`), with the grants
+      directory clean (`grants_directory_has_uncommitted_changes`).
 
     Returns the committed grant's canonical digest."""
+    entry = phase4_grant(challenge)
     try:
         given = json.loads(Path(path).read_bytes())
     except (OSError, ValueError):
         raise RunnerRefused("phase4_grant_file_unreadable") from None
-    shown = _git(repository, "show", "HEAD:" + GRANT_FILE)
-    if shown.returncode != 0:
-        raise RunnerRefused("phase4_grant_not_committed")
-    try:
-        committed = json.loads(shown.stdout)
-    except ValueError:
-        raise RunnerRefused("phase4_grant_file_unreadable") from None
-    if grant_digest(given) != grant_digest(committed):
-        raise RunnerRefused("grant_differs_from_the_committed_phase4_grant")
-    pushed = _git(repository, "branch", "-r", "--contains", "HEAD")
-    if pushed.returncode != 0 or not pushed.stdout.strip():
-        raise RunnerRefused("grant_commit_not_pushed")
-    fetched = _git(repository, "fetch", "--quiet", "origin", "main")
-    on_main = _git(repository, "rev-parse", "--verify", "origin/main:" + GRANT_FILE)
-    if fetched.returncode != 0 or on_main.returncode != 0:
-        raise RunnerRefused("main_grant_unavailable")
-    at_head = _git(repository, "rev-parse", "--verify", "HEAD:" + GRANT_FILE)
-    if at_head.returncode != 0 or at_head.stdout.strip() != on_main.stdout.strip():
-        raise RunnerRefused("grant_differs_from_main")
-    status = _git(
-        repository, "status", "--porcelain", "--untracked-files=all", "--", GRANTS_DIR
+    bind_grant_to_challenge(given, entry)
+    return grant_binding.check_committed_blob(
+        given, repository, entry.grant_file, phase="phase4"
     )
-    if status.returncode != 0 or status.stdout.strip():
-        raise RunnerRefused("grants_directory_has_uncommitted_changes")
-    return grant_digest(committed)
 
 
 def _head(repository=REPOSITORY):
@@ -1381,7 +1834,14 @@ def command_run(args):
             (args.grant, args.credential_file, args.miner_profile, args.miner_campaign)
         ):
             raise RunnerRefused("dry_run_takes_no_grant_credential_or_miner_campaign")
-        return dry_run(_root(args.root), adapter, atk, scoring=scoring, **development)
+        return dry_run(
+            _root(args.root),
+            adapter,
+            atk,
+            challenge=challenge,
+            scoring=scoring,
+            **development,
+        )
     missing = [
         name
         for name, value in (
@@ -1395,7 +1855,7 @@ def command_run(args):
     if missing:
         raise RunnerRefused("required: " + ", ".join(missing))
     root = _root(args.root)
-    grant, head = live_checks(args.grant)
+    grant, head = live_checks(args.grant, challenge=challenge)
     engy = owner_only_file(args.credential_file)
     store = _store(root, False)
     from . import miner_path
@@ -1435,18 +1895,17 @@ def command_run(args):
 
 
 # -- the live run's parts, shared with the pre-live gate (`phase4_prelive`) -------------------
-def live_checks(grant_path, repository=REPOSITORY):
-    """What a live run checks before anything opens: the grant file is the
-    phase-4 grant for Graphite and equals the committed blob at a pushed HEAD
-    with the grants directory clean (`check_committed_grant`), and HEAD, the
-    checkout the brief records and Carbon's side runs from, is pushed and
-    its shipped code clean (#504's `check_code_ref`). Returns (grant, head)."""
+def live_checks(grant_path, repository=REPOSITORY, *, challenge):
+    """What a live run checks before anything opens: the grant file is a
+    valid Graphite grant, it is the phase-4 grant registered for `challenge`
+    and equals that grant's committed blob on main at a pushed HEAD with the
+    grants directory clean (`check_committed_grant`), and HEAD, the checkout
+    the brief records and Carbon's side runs from, is pushed and its shipped
+    code clean (#504's `check_code_ref`). Returns (grant, head)."""
     grant = load_grant(grant_path)
-    if grant.grant_id != GRANT_ID:
-        raise RunnerRefused("grant_is_not_the_phase4_grant")
     if grant.provider != "graphite":
         raise RunnerRefused("grant_provider_must_be_graphite")
-    check_committed_grant(grant_path, repository)
+    check_committed_grant(grant_path, repository, challenge=challenge)
     head = _head(repository)
     check_code_ref(head, repository)
     return grant, head
@@ -1500,6 +1959,7 @@ def live_provider(store, *, grant, model, adapter, miner_attach, scoring=None):
         adapter=adapter,
         miner_attach=miner_attach,
         scoring=scoring,
+        stop_rule=STOP_RULE_V2,
     )
 
 
@@ -1518,7 +1978,10 @@ def run_live(
         resume = provider.find(session_key(session)) is not None
         view = pin_session(store, session, kstore, resume=resume)
         brief = session_brief(
-            adapter, checkout_commit=head, knowledge=knowledge_brief(view, adapter)
+            adapter,
+            checkout_commit=head,
+            knowledge=knowledge_brief(view, adapter),
+            stop_rule=provider.stop_rule or False,
         )
         if signals:
             _install_cancel(provider, provider.run_id_for(session_key(session)))
@@ -1608,14 +2071,16 @@ DRY_RUN_IDENTITY = {
 }
 
 
-def dry_run_grant(repository=REPOSITORY):
-    """A synthetic copy of GRAPHITE-GRANT-PHASE4: the same amounts, runs and
-    runtime, under a synthetic identity."""
+def dry_run_grant(challenge, repository=REPOSITORY):
+    """A synthetic copy of the phase-4 grant registered for `challenge`
+    (`phase4_grant`): the same amounts, runs and runtime, under a synthetic
+    identity."""
+    entry = phase4_grant(challenge)
     try:
-        document = json.loads((Path(repository) / GRANT_FILE).read_bytes())
+        document = json.loads((Path(repository) / entry.grant_file).read_bytes())
     except (OSError, ValueError):
         raise RunnerRefused("phase4_grant_file_unreadable") from None
-    if document.get("grant_id") != GRANT_ID:
+    if document.get("grant_id") != entry.grant_id:
         raise RunnerRefused("phase4_grant_file_names_another_grant")
     return SpendingGrant.from_document({**document, **DRY_RUN_IDENTITY})
 
@@ -1623,7 +2088,9 @@ def dry_run_grant(repository=REPOSITORY):
 def dry_run_script(adapter):
     """The scripted Attacker: read the Challenge, validate a recipe the
     adapter's contract refuses, ask for a code run with no wall allowance
-    (refused before dispatch), and stop."""
+    (refused before dispatch), ask to finish (refused: the stop rule's
+    coverage is short), then reply with text until the continue reminders run
+    out and the session stops typed (`stopped_no_tool_use`)."""
     from .model import text, tool
 
     for name in DRY_RUN_SURFACE:
@@ -1643,17 +2110,24 @@ def dry_run_script(adapter):
                 "expected_effect": "refused before dispatch",
             },
         ),
+        tool(FINISH_TOOL_NAME, {"summary": "dry run: coverage is short"}),
+        text("DRY RUN: the scripted Attacker replies without a tool call."),
+        text("DRY RUN: again, without a tool call."),
         text("DRY RUN: the scripted Attacker stops here."),
     ]
 
 
-def dry_run(root, adapter, atk, *, miner_tools=None, scoring=None, variant=None):
+def dry_run(
+    root, adapter, atk, *, challenge, miner_tools=None, scoring=None, variant=None
+):
     """One scripted session and Carbon's side, sending nothing and spending
     nothing: the scripted model reports a zero charge, the whole run is under
     the network guard (`phase4_prelive.network_guard`: any socket connect or
     name lookup raises), and a run that settles anything other than zero
-    fails (exit 4). `variant` is a development level's registered variant
-    (`adapter_for`), or None at Level 0."""
+    fails (exit 4). The grant is a synthetic copy of the one registered for
+    `challenge`, the Challenge `--challenge` names (`dry_run_grant`).
+    `variant` is a development level's registered variant (`adapter_for`),
+    or None at Level 0."""
     from .model import ScriptedModel
     from .phase4_prelive import network_guard
     from .pods import ScriptedPods
@@ -1662,7 +2136,7 @@ def dry_run(root, adapter, atk, *, miner_tools=None, scoring=None, variant=None)
     if store.exists():
         shutil.rmtree(store)
     store.mkdir(mode=0o700)
-    grant = dry_run_grant()
+    grant = dry_run_grant(challenge)
     with network_guard() as attempts:
         provider = AttackerProvider(
             root=store / "graphite",
@@ -1673,6 +2147,7 @@ def dry_run(root, adapter, atk, *, miner_tools=None, scoring=None, variant=None)
             miner_tools=miner_tools,
             randomness=lambda n: b"\x00" * n,
             scoring=scoring,
+            stop_rule=STOP_RULE_V2,
         )
         control = controller_for(store, provider, grant)
         try:
@@ -1682,6 +2157,7 @@ def dry_run(root, adapter, atk, *, miner_tools=None, scoring=None, variant=None)
                 adapter,
                 checkout_commit="0" * 40,
                 knowledge=knowledge_brief(view, adapter),
+                stop_rule=STOP_RULE_V2,
             )
             entry, coverage = run_session(
                 store,
@@ -1709,6 +2185,7 @@ def dry_run(root, adapter, atk, *, miner_tools=None, scoring=None, variant=None)
             "note": "scripted model, scripted pods, synthetic grant and no miner "
             "path; Carbon's analysis, verification and the report are the engine's "
             "own. It sends nothing and spends nothing.",
+            "grant_copied_from": phase4_grant(challenge).grant_id,
             "money_cap_usd": str(provider.budget.token_allowance_usd),
             # The Attacker's selection, as the session record froze it
             # (GRAPHITE-D35): window, admission ceiling, timeout, reservation.
@@ -1761,17 +2238,58 @@ def main(argv=None):
     prelive.add_argument("--challenge", required=True, help=challenge_help)
     prelive.add_argument(
         "--grant",
-        default=str(REPOSITORY / GRANT_FILE),
-        help="the grant file a live run would pass (default: the committed one)",
+        help=(
+            "the grant file a live run would pass (default: the committed grant "
+            "registered for --challenge)"
+        ),
     )
     args = parser.parse_args(argv)
-    return {
+    command = {
         "run": command_run,
         "cancel": command_cancel,
         "status": command_status,
         "log": command_log,
         "prelive": command_prelive,
-    }[args.command](args)
+    }[args.command]
+    try:
+        return command(args)
+    except Exception as error:  # re-raised unless it is a typed refusal
+        code = cli_refusal_code(error)
+        if code is None:
+            raise
+        raise RunnerRefused(code) from None
+
+
+def cli_refusal_code(error):
+    """The typed refusal a command ended in, as phase 3 prints its own, or
+    None for anything else (OPERATOR-USABILITY-01 D4). Only the error's
+    closed code is printed, never its text: a controller or knowledge-store
+    refusal (`ControllerError`, `KnowledgeError`), a pod budget
+    (`BudgetRefused`), an unavailable Challenge scoring
+    (`ScoringUnavailable`), or a grant that cannot authorize dispatch
+    (`GrantError`, as phase 3's `grant_refused`). Anything else - a pod or
+    provider failure, a bug - keeps its traceback: it is not a refusal."""
+    from carbon.challenge_validator.scoring import ScoringUnavailable
+
+    from ..attack.knowledge import KnowledgeError
+    from ..controller import ControllerError
+    from ..grant import GrantError
+
+    # The engine's store as this run used it: a test injects its own
+    # (`attack_modules`), whose refusals are typed the same way.
+    stores = {KnowledgeError}
+    with contextlib.suppress(Exception):
+        injected = attack_modules()["knowledge"].KnowledgeError
+        if isinstance(injected, type):
+            stores.add(injected)
+    if isinstance(error, tuple(stores)):
+        # As `replay_guard` names the same store's refusals.
+        return "attack_knowledge_" + str(error.code)
+    if isinstance(error, ControllerError | ex.BudgetRefused | ScoringUnavailable):
+        return str(error.code)
+    if isinstance(error, GrantError):
+        return "grant_refused"
+    return None
 
 
 def command_prelive(args):
@@ -1786,8 +2304,17 @@ def command_prelive(args):
         scoring = challenge_scoring.scoring_for(args.challenge)
     except challenge_scoring.ScoringUnavailable as refused:
         raise RunnerRefused(refused.code) from None
+    # The default grant follows --challenge: the file registered for it.
+    grant_path = args.grant
+    if grant_path is None:
+        grant_path = str(REPOSITORY / phase4_grant(args.challenge).grant_file)
     return prelive(
-        _root(args.root), adapter, atk, grant_path=args.grant, scoring=scoring
+        _root(args.root),
+        adapter,
+        atk,
+        grant_path=grant_path,
+        challenge=args.challenge,
+        scoring=scoring,
     )
 
 

@@ -48,9 +48,11 @@ none of them changes the rule):
   incumbent, as in the approved campaign replay.
 - Each finalist comparison uses one prepared fresh set, which is consumed.
 
-Scientific results never become chain actions here. The only weight intent is
-Phase A all-burn (OD-4a), signed with the Carbon service key and handed to the
-owner publisher. Winner weights (OD-4b) are not authorized.
+Scientific results never become chain actions here. Weights are published
+elsewhere: Phase A all-burn (OD-4a) through the owner publisher, and winner
+weights (OWNER-WEIGHTS-AUTHORITY-01) through
+`carbon.rewards.testnet_winner_publication`, which reads this validator's
+incumbent and its promotions read-only.
 """
 
 from __future__ import annotations

@@ -154,7 +154,7 @@ def test_a_valid_in_contract_design_both_layers_accept_is_agreed_admissible(shap
     assert verdict.rebuild == verify.REBUILT
     assert not verdict.finding and not verdict.scored and verdict.usability is None
     assert verdict.evidence["agreement"].startswith("sha256:")
-    assert verdict.record()["schema"] == "carbon.attack.verdict.v2"
+    assert verdict.record()["schema"] == "carbon.attack.verdict.v3"
 
 
 def test_a_design_carbon_refuses_is_never_agreed_admissible():
@@ -332,8 +332,8 @@ def test_the_verdict_cannot_be_built_outside_its_guard():
 
 # -- versions -----------------------------------------------------------------------------------
 def test_the_versions_are_recorded_and_a_v1_record_keeps_its_meaning():
-    assert verify.SCHEMA == "carbon.attack.verdict.v2"
-    assert report.SCHEMA == "carbon.attack.family-report.v4"
+    assert verify.SCHEMA == "carbon.attack.verdict.v3"
+    assert report.SCHEMA == "carbon.attack.family-report.v5"
     assert verify.OUTCOMES_BY_SCHEMA[verify.SCHEMA_V1] == verify.OUTCOMES_V1
     assert verify.AGREED_ADMISSIBLE not in verify.OUTCOMES_V1
     old = {
@@ -359,7 +359,7 @@ def test_the_family_report_counts_it_per_family_like_not_applicable():
     runs = report.attacker_runs(verdicts, families=ADAPTER.families())
     built = report.family_report(runs, controls_held_out=())
     line = built["families"]["permission_ablation"]
-    assert built["schema"] == "carbon.attack.family-report.v4"
+    assert built["schema"] == "carbon.attack.family-report.v5"
     assert line["agreed_admissible"] == 2
     assert line["not_covered"] == 2  # counted like NOT_APPLICABLE
     assert line["held"] == 0 and line["findings"] == []
@@ -405,8 +405,8 @@ def test_the_rejudge_tool_reports_it_per_family_with_its_version(tmp_path):
         ],
     )
     out = attack_rejudge.rejudge(tmp_path, ADAPTER)
-    assert out["schema"] == "carbon.attack.rejudge.v2"
-    assert out["verdict_schema"] == "carbon.attack.verdict.v2"
+    assert out["schema"] == "carbon.attack.rejudge.v3"
+    assert out["verdict_schema"] == "carbon.attack.verdict.v3"
     assert out["summary"] == {"AGREED_ADMISSIBLE": 2, "HELD": 1}
     assert out["per_family"]["permission_ablation"] == {"AGREED_ADMISSIBLE": 2}
     assert out["per_family"]["recipe_surface"] == {"HELD": 1}
@@ -498,7 +498,7 @@ def test_an_advisory_exposure_is_a_finding_never_a_usability_record(shape):
     assert verdict.finding and verdict.scored and verdict.usability is None
     assert verdict.outcome != verify.AGREED_ADMISSIBLE
     assert phase4.is_finding(verdict, verify)
-    assert verdict.record()["schema"] == "carbon.attack.verdict.v2"
+    assert verdict.record()["schema"] == "carbon.attack.verdict.v3"
 
 
 def test_an_advisory_non_exposure_breach_is_still_a_usability_record():

@@ -2,7 +2,8 @@
 
 The rule, per role (plan §3; OWNER-GRAPHITE-01 item 2):
 
-- a role starts on its starting rung;
+- a role starts on its starting rung, or on the higher rung a grant
+  registers for it (`start_rungs`, OWNER-GRAPHITE-PHASE3-R4-01);
 - it moves up **exactly one rung**, and only by consuming one **recorded,
   typed research-failure observation** of a kind that role escalates on;
 - each observation escalates at most once;
@@ -58,7 +59,19 @@ def _stalled(attempts):
 
 
 class Ladder:
-    def __init__(self, root):
+    def __init__(self, root, *, start_rungs=None):
+        """`start_rungs` (`{RoleName: rung}`) raises a role's start rung for
+        this ladder: a grant's registered start model
+        (`grant_binding.start_rungs`, OWNER-GRAPHITE-PHASE3-R4-01). A role
+        never sits below it, and escalation from it follows the same rule
+        (one rung, never above the top). None: every role's own start rung."""
+        starts = dict(start_rungs or {})
+        for role, rung in starts.items():
+            if type(role) is not RoleName:
+                raise TypeError("exact RoleName required")
+            if type(rung) is not int or not 0 <= rung <= TOP:
+                raise LadderError("start_rung_not_on_the_ladder")
+        self.start_rungs = starts
         root = Path(root)
         if not root.is_absolute() or root.is_symlink():
             raise LadderError("ladder_root_must_be_private_absolute")
@@ -100,7 +113,8 @@ class Ladder:
             "SELECT to_rung FROM escalations WHERE role=? ORDER BY sequence DESC",
             (role.value,),
         ).fetchone()
-        return self._role(role).start_rung if row is None else row[0]
+        rung = self._role(role).start_rung if row is None else row[0]
+        return max(rung, self.start_rungs.get(role, rung))
 
     def rung(self, role):
         with self._db() as db:
