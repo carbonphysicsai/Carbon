@@ -40,9 +40,9 @@ Nothing is LIVE.
    - Why separate: torch cu130 needs cuDNN 9.20 and the JAX CUDA 13 lock pins
      9.12, so the two do not resolve together. JAX's lock and accelerator
      image are untouched.
-   - The image sets `CUBLAS_WORKSPACE_CONFIG=:4096:8` and
-     `CARBON_TORCH_DEVICE=cuda`, and carries the `carbon.torch.gpu-determinism`
-     label.
+   - The image is labelled as the JAX accelerator worker is
+     (`carbon.accelerator.profile`, `.environment`). Like JAX's, it sets
+     nothing the overlay sets (see "One mechanism with JAX").
    - The build refuses on any of these:
      - a changed C-03 distribution;
      - a pin that is off the lock;
@@ -63,8 +63,8 @@ Nothing is LIVE.
    - **2.0 moves forward:** `LEVEL0_PINS_V2` sit beside the 1.0 set. Strategy
      hashes are unchanged, and only the two PyTorch modules changed.
 4. **The CUDA rebuild path** (`torch_training.py`, `torch_families.py`, 2.0).
-   - The device comes from the worker's `CARBON_TORCH_DEVICE`, never from the
-     recipe.
+   - The device comes from the accelerator overlay's `JAX_PLATFORMS`, as
+     JAX's does, never from the recipe.
    - Initialization, minibatch order and the stored state stay on the CPU.
    - CUDA rebuilds run in `torch_gpu.deterministic_cuda`.
    - A missing or unknown device, or an unpinned cuBLAS workspace, raises
@@ -139,6 +139,56 @@ OWNER-SHARED-ANSWER-KEY-01's "a CPU rebuild is not a scored result" true:
   - the mutation that drops the device class reads as CPU, so it is refused
     against a GPU incumbent and never silently compared.
 
+## One mechanism with JAX (the owner, 2026-10-06)
+
+The owner: "I want it to work the same way JAX does. Consistency is key. Other
+than that, test and make best decision."
+
+What JAX GPU does today, and what PyTorch GPU now does:
+
+| | JAX GPU (existing) | PyTorch GPU (now) |
+|---|---|---|
+| Device selection | `accelerators.worker_environment` sets `JAX_PLATFORMS=cuda` | Same overlay, same variable (`torch_gpu.platform`); `CARBON_TORCH_DEVICE` removed |
+| Bound device kind | `CARBON_ACCELERATOR_DEVICE_KIND` from the host record; the worker refuses another kind | Same variable; `deterministic_cuda` refuses none or another kind |
+| CUDA library controls | `GPU_DETERMINISM_ENVIRONMENT` via the overlay | The same pin via the same overlay; the image no longer sets it |
+| Framework controls | `GPU_DETERMINISM_XLA_FLAGS` (env flags) | `GPU_DETERMINISM_TORCH`, beside the XLA flags, applied in process |
+| Image identity | labels `carbon.accelerator.profile` + `.environment` | the same two labels; the profile is `torch_profile.GPU_PROFILE_DIGEST` (its document pins the determinism settings) |
+| Missing device | `environment_ineligible`, never the candidate's | `DeviceUnavailable` (ImportError: `stage: environment`), never the candidate's |
+| Score | GPU practice is speed only; validator dispatch disabled | the same; the validator GPU rebuild stays UNVERIFIED |
+| Device class | `device_kind` in backend records | the same field; one rule (`rebuild_identity`) for both |
+
+Engineering decisions (delegated, recorded):
+- **J1.** PyTorch reads JAX's `JAX_PLATFORMS`, not a new variable. One
+  overlay chooses both, so no setting can make the two backends disagree.
+- **J2.** The PyTorch GPU profile is a new document,
+  `carbon.accelerator-profile.pytorch.v1`, not JAX's `AcceleratorProfile`.
+  That document is JAX's (it names jax and jaxlib), and reusing it would move
+  `GPU_PROFILE.digest`. JAX's identities are unchanged; a test holds
+  `e1d8aefd…`.
+- **J3.** The separate `carbon.torch.gpu-determinism` label is replaced by
+  JAX's accelerator label pair. The determinism settings live inside the
+  profile, so a changed setting still changes the identity.
+- **J4.** Implementation 2.0's pins moved again: the device code changed.
+  `LEVEL0_PINS_V2` is updated. 1.0, run 5 and JAX's identities are unchanged.
+- **J5.** An EV experiment's retained bundle verifies under any registered
+  implementation version. Run-5 bundles made under 1.0 are therefore not
+  refused under 2.0.
+
+## Score surfaces (the Test Lead's inventory)
+
+Every surface that ranks, compares or shows battery scores is tabled in
+#692's description. Ranking surfaces refuse or split a mixed device-class set,
+each with a test and a mutation. Display surfaces are labelled.
+
+Two surfaces are owner-reserved (HUMAN_INPUT) and unchanged:
+- **The weights source.** Which device class may earn weight is the owner's.
+  The winner is the incumbent, not a ranking.
+- **The miner outcome and Launchpad projection.** Adding the class is a
+  change to the disclosure allow-list (OWNER-BATTERY-3B-AND-EXPOSURE-01).
+
+A Graphite record made before the field existed reads as `unrecorded`, since
+it may have run on a GPU pod, and is compared with nothing.
+
 ## Operator note
 
 The implementation digest is a deployment carry-over key. After merge, each
@@ -150,6 +200,8 @@ under 2.0, and each recompilation is recorded. Nothing is deleted.
 
 - The PyTorch GPU reproducibility tolerance, to be set during testing.
 - Security acceptance of the released digests before mainnet.
+- Which device class may earn weight (the weights source), and adding the
+  device class to the miner disclosure allow-list.
 - Reward and LIVE authority. Agents never flip LIVE. The owner intends this
   path for reward once tolerance and security acceptance are settled.
 - Enabling validator accelerator dispatch (JAX and PyTorch).

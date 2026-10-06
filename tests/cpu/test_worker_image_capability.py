@@ -155,7 +155,13 @@ def test_on_a_gpu_host_the_pytorch_gpu_profile_is_checked_and_rebuild_stays_open
 
 
 @pytest.mark.parametrize(
-    "setting", ["cudnn_deterministic", "cudnn_benchmark", "cublas_workspace_config"]
+    "setting",
+    [
+        "cudnn_deterministic",
+        "cudnn_benchmark",
+        "environment:CUBLAS_WORKSPACE_CONFIG",
+        "environment:NVIDIA_TF32_OVERRIDE",
+    ],
 )
 def test_a_gpu_profile_setting_not_in_force_is_failed(fakes, monkeypatch, setting):
     from carbon.reconstruction.torch_profile import GPU_DETERMINISM
@@ -206,7 +212,7 @@ def test_a_determinism_setting_not_in_force_is_failed(fakes, monkeypatch):
     # The CUDA-only settings are the PyTorch GPU cell's, never passed on CPU.
     gpu = capability.matrix(RECORDS, {}, pins=fakes)["pytorch_gpu"]["checks"]
     assert gpu["determinism_config"]["status"] == "UNVERIFIED"
-    assert "carbon.torch.gpu-determinism" in gpu["determinism_config"]["detail"]
+    assert "carbon.accelerator.profile" in gpu["determinism_config"]["detail"]
 
 
 def test_the_report_names_the_owner_reserved_items_and_exits_on_failure(

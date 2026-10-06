@@ -6,14 +6,16 @@ in a GPU-only profile with its own identity, never in a way that moves a CPU
 or Level-0 pin. These tests hold:
 - the CPU torch environment (`ENVIRONMENT_DIGEST`, `DEPENDENCY_SPECS`) and
   every Level-0 pin are byte-identical to what they were;
-- the CPU and GPU profiles are exactly the pinned settings, each with its own
-  digest and label, and the GPU profile's cuBLAS workspace is the NVIDIA
-  worker overlay's own value;
-- dropping, changing or adding any setting changes the profile identity;
+- the CPU and GPU profiles are exactly the pinned settings; the GPU one is
+  JAX's mechanism (the owner, 2026-10-06: "work the same way JAX does"): the
+  CUDA library controls are `accelerators.GPU_DETERMINISM_ENVIRONMENT`, the
+  in-process ones sit beside the XLA flags, and the whole is pinned inside the
+  PyTorch GPU accelerator profile's identity;
+- dropping, changing or adding any setting changes that identity;
 - the PyTorch CPU image builds the CPU profile into its identity;
-- the GPU-only module applies every GPU setting on CUDA, refuses without CUDA
-  or the pinned workspace, and restores the previous state (a fake torch, so
-  no device is needed);
+- the GPU module applies every GPU setting on the bound CUDA device, refuses a
+  missing device, another device kind or a missing control, and restores the
+  previous state (a fake torch, so no device is needed);
 - the CPU rebuild path is the CPU profile.
 
 The reproducibility tolerance stays HUMAN_INPUT (OWNER-PYTORCH-BACKEND-01):
@@ -32,7 +34,10 @@ from types import SimpleNamespace
 import pytest
 
 from carbon.reconstruction import torch_gpu, torch_profile
-from carbon.reconstruction.accelerators import GPU_DETERMINISM_ENVIRONMENT
+from carbon.reconstruction.accelerators import (
+    GPU_DETERMINISM_ENVIRONMENT,
+    GPU_DETERMINISM_TORCH,
+)
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPOSITORY / "tests" / "cpu"))
@@ -53,8 +58,10 @@ GPU_SETTINGS = {
     "seed_source": "reconstruction_seed_explicit_generator",
     "cudnn_deterministic": True,
     "cudnn_benchmark": False,
-    "cublas_workspace_config": ":4096:8",
+    "environment:CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+    "environment:NVIDIA_TF32_OVERRIDE": "0",
 }
+A40 = "NVIDIA A40"
 
 needs_torch = pytest.mark.skipif(
     os.environ.get("CARBON_REQUIRE_TORCH") != "1"
@@ -84,21 +91,19 @@ def test_the_profiles_are_exactly_the_pinned_settings_with_their_own_identities(
     gpu = dict(torch_profile.GPU_DETERMINISM)
     assert gpu == GPU_SETTINGS
     assert cpu == {k: GPU_SETTINGS[k] for k in cpu}
-    assert set(gpu) - set(cpu) == {
-        "cudnn_deterministic",
-        "cudnn_benchmark",
-        "cublas_workspace_config",
+    # The CUDA library controls are JAX's own, key for key.
+    assert {
+        k.split(":", 1)[1]: v for k, v in gpu.items() if k.startswith("environment:")
+    } == GPU_DETERMINISM_ENVIRONMENT
+    assert {k: gpu[k] for k in ("cudnn_deterministic", "cudnn_benchmark")} == {
+        k: v for k, v in GPU_DETERMINISM_TORCH if k != "use_deterministic_algorithms"
     }
-    assert gpu["cublas_workspace_config"] == (
-        GPU_DETERMINISM_ENVIRONMENT["CUBLAS_WORKSPACE_CONFIG"]
-    )
     assert torch_profile.CPU_DETERMINISM_DIGEST == CPU_PROFILE_DIGEST
-    assert torch_profile.GPU_DETERMINISM_DIGEST != CPU_PROFILE_DIGEST
-    assert torch_profile.CPU_DETERMINISM_LABEL != torch_profile.GPU_DETERMINISM_LABEL
-    # The same settings under the other schema are another identity.
-    assert torch_profile.determinism_digest(
-        torch_profile.CPU_DETERMINISM, torch_profile.GPU_DETERMINISM_SCHEMA
-    ) != (CPU_PROFILE_DIGEST)
+    document = torch_profile.gpu_profile_document()
+    assert document["determinism"] == [list(s) for s in torch_profile.GPU_DETERMINISM]
+    assert torch_profile.GPU_PROFILE_DIGEST == torch_profile.gpu_profile_digest()
+    # Labelled as JAX's accelerator worker is, never the CPU label.
+    assert torch_profile.CPU_DETERMINISM_LABEL not in torch_profile.ACCELERATOR_LABELS
 
 
 def _mutations(settings):
@@ -116,11 +121,10 @@ def _mutations(settings):
     yield "added", (), (*settings, ("extra", True))
 
 
-@pytest.mark.parametrize("profile", ["CPU", "GPU"])
-def test_dropping_changing_or_adding_a_setting_changes_the_identity(profile):
-    settings = getattr(torch_profile, profile + "_DETERMINISM")
-    schema = getattr(torch_profile, profile + "_DETERMINISM_SCHEMA")
-    pinned = getattr(torch_profile, profile + "_DETERMINISM_DIGEST")
+def test_dropping_changing_or_adding_a_cpu_setting_changes_the_cpu_identity():
+    settings = torch_profile.CPU_DETERMINISM
+    schema = torch_profile.CPU_DETERMINISM_SCHEMA
+    pinned = torch_profile.CPU_DETERMINISM_DIGEST
     assert torch_profile.determinism_digest(settings, schema) == pinned
     for name, dropped, mutated in _mutations(settings):
         if dropped:
@@ -128,16 +132,12 @@ def test_dropping_changing_or_adding_a_setting_changes_the_identity(profile):
         assert torch_profile.determinism_digest(mutated, schema) != pinned, name
 
 
-def test_dropping_any_gpu_pin_changes_the_gpu_identity_not_the_cpu_one():
-    gpu_only = ("cudnn_deterministic", "cudnn_benchmark", "cublas_workspace_config")
-    for name in gpu_only:
-        dropped = tuple(s for s in torch_profile.GPU_DETERMINISM if s[0] != name)
-        assert (
-            torch_profile.determinism_digest(
-                dropped, torch_profile.GPU_DETERMINISM_SCHEMA
-            )
-            != torch_profile.GPU_DETERMINISM_DIGEST
-        ), name
+def test_any_changed_gpu_setting_changes_the_gpu_profile_not_the_cpu_one():
+    pinned = torch_profile.GPU_PROFILE_DIGEST
+    for name, dropped, mutated in _mutations(torch_profile.GPU_DETERMINISM):
+        if dropped:
+            assert torch_profile.gpu_profile_digest(determinism=dropped) != pinned, name
+        assert torch_profile.gpu_profile_digest(determinism=mutated) != pinned, name
     assert torch_profile.CPU_DETERMINISM_DIGEST == CPU_PROFILE_DIGEST
 
 
@@ -161,12 +161,14 @@ def test_the_pytorch_cpu_image_builds_the_cpu_profile_into_its_identity():
 class FakeTorch:
     """Just the surface `torch_gpu` touches."""
 
-    def __init__(self, cuda=True):
+    def __init__(self, cuda=True, name=A40):
         self.deterministic, self.threads = False, 8
         self.backends = SimpleNamespace(
             cudnn=SimpleNamespace(deterministic=False, benchmark=True)
         )
-        self.cuda = SimpleNamespace(is_available=lambda: cuda)
+        self.cuda = SimpleNamespace(
+            is_available=lambda: cuda, get_device_name=lambda index: name
+        )
 
     def are_deterministic_algorithms_enabled(self):
         return self.deterministic
@@ -181,29 +183,49 @@ class FakeTorch:
         self.threads = value
 
 
+def overlay(monkeypatch, **changes):
+    """The accelerator overlay's values a GPU worker starts with."""
+    values = {
+        **GPU_DETERMINISM_ENVIRONMENT,
+        "JAX_PLATFORMS": "cuda",
+        "CARBON_ACCELERATOR_DEVICE_KIND": A40,
+        **changes,
+    }
+    for key, value in values.items():
+        if value is None:
+            monkeypatch.delenv(key, raising=False)
+        else:
+            monkeypatch.setenv(key, value)
+
+
 def test_the_gpu_module_applies_every_gpu_setting_and_restores_them(monkeypatch):
-    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    overlay(monkeypatch)
     torch = FakeTorch()
     before = torch_gpu.state(torch)
     with torch_gpu.deterministic_cuda(torch) as active:
         assert active == GPU_SETTINGS
         assert torch_gpu.state(torch) == GPU_SETTINGS
     assert torch_gpu.state(torch) == before
-    assert torch_gpu.worker_environment() == {"CUBLAS_WORKSPACE_CONFIG": ":4096:8"}
+    assert torch_gpu.worker_environment() == GPU_DETERMINISM_ENVIRONMENT
 
 
-def test_the_gpu_module_refuses_without_cuda_or_the_pinned_workspace(monkeypatch):
-    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
-    torch = FakeTorch(cuda=False)
+@pytest.mark.parametrize(
+    "torch_kwargs, changes, match",
+    [
+        ({"cuda": False}, {}, "CUDA device"),
+        ({}, {"CUBLAS_WORKSPACE_CONFIG": ":16:8"}, "library controls"),
+        ({}, {"NVIDIA_TF32_OVERRIDE": None}, "library controls"),
+        ({}, {"CARBON_ACCELERATOR_DEVICE_KIND": None}, "no device kind"),
+        ({"name": "NVIDIA H100"}, {}, "not the kind"),
+    ],
+)
+def test_the_gpu_module_refuses_what_jaxs_worker_refuses(
+    monkeypatch, torch_kwargs, changes, match
+):
+    overlay(monkeypatch, **changes)
+    torch = FakeTorch(**torch_kwargs)
     with (
-        pytest.raises(RuntimeError, match="CUDA device"),
-        torch_gpu.deterministic_cuda(torch),
-    ):
-        pass
-    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":16:8")
-    torch = FakeTorch()
-    with (
-        pytest.raises(RuntimeError, match="CUBLAS_WORKSPACE_CONFIG"),
+        pytest.raises(torch_gpu.EnvironmentIneligible, match=match),
         torch_gpu.deterministic_cuda(torch),
     ):
         pass

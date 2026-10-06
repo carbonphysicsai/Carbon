@@ -197,18 +197,37 @@ def test_a_device_failure_is_the_environments_never_the_candidates():
     assert "except ImportError" in RECONSTRUCT_PROGRAM
     assert '"stage": "environment"' in RECONSTRUCT_PROGRAM
     source = TORCH_TRAINING.read_text()
-    assert 'DEVICE_ENV = "CARBON_TORCH_DEVICE"' in source
-    assert 'os.environ.get(DEVICE_ENV, "cpu")' in source
+    # The platform is the accelerator overlay's, JAX's own variable.
+    assert 'PLATFORM_ENV = "JAX_PLATFORMS"' in source
+    assert 'os.environ.get(PLATFORM_ENV, "cpu")' in source
+    assert "CARBON_TORCH_DEVICE" not in source
     # The recipe never names a device: no recipe setting reaches it.
     selector = ast.unparse(_function("rebuild_device"))
     assert "settings" not in selector and "model" not in selector
 
 
-def test_the_gpu_image_is_the_one_that_chooses_cuda():
-    recipe = (REPOSITORY / ".devcontainer" / "torch" / "Dockerfile.gpu").read_text()
-    cpu = (REPOSITORY / ".devcontainer" / "torch" / "Dockerfile").read_text()
-    assert "ENV CARBON_TORCH_DEVICE=cuda" in recipe
-    assert "CARBON_TORCH_DEVICE" not in cpu
+def test_the_overlay_that_chooses_jaxs_platform_chooses_pytorchs():
+    import accelerator_host
+
+    from carbon.development_session.profile import canonical
+    from carbon.reconstruction import torch_gpu
+    from carbon.reconstruction.accelerators import (
+        GPU_PROFILE,
+        AcceleratorRole,
+        worker_environment,
+    )
+    from carbon.reconstruction.host_inventory import HostDeviceRecord
+    from carbon.reconstruction.worker.model import tagged_sha256
+
+    document = accelerator_host.document("workstation_linux")
+    record = HostDeviceRecord(document, tagged_sha256(canonical(document)))
+    overlay = worker_environment(
+        GPU_PROFILE, AcceleratorRole.VALIDATOR_RECONSTRUCTION, host_device=record
+    )
+    assert torch_gpu.platform(overlay) == "cuda"
+    assert torch_gpu.expected_device_kind(overlay) == record.device_kind
+    assert all(overlay[k] == v for k, v in torch_gpu.worker_environment().items())
+    assert torch_gpu.platform({}) == "cpu"
 
 
 @needs_torch
@@ -217,12 +236,12 @@ def test_device_selection_refuses_what_it_cannot_use(monkeypatch):
 
     from carbon.battery import torch_training
 
-    monkeypatch.delenv("CARBON_TORCH_DEVICE", raising=False)
+    monkeypatch.delenv("JAX_PLATFORMS", raising=False)
     assert torch_training.rebuild_device() == torch.device("cpu")
-    monkeypatch.setenv("CARBON_TORCH_DEVICE", "tpu")
+    monkeypatch.setenv("JAX_PLATFORMS", "tpu")
     with pytest.raises(torch_training.DeviceUnavailable):
         torch_training.rebuild_device()
-    monkeypatch.setenv("CARBON_TORCH_DEVICE", "cuda")
+    monkeypatch.setenv("JAX_PLATFORMS", "cuda")
     if not torch.cuda.is_available():
         with pytest.raises(torch_training.DeviceUnavailable):
             torch_training.rebuild_device()
@@ -244,7 +263,7 @@ def _rebuild_on_cpu(tmp_path, version, recipe):
     ).items():
         (work / name).write_bytes(body)
     (work / "program.py").write_text(RECONSTRUCT_PROGRAM)
-    env = {k: v for k, v in os.environ.items() if k != "CARBON_TORCH_DEVICE"}
+    env = {**os.environ, "JAX_PLATFORMS": "cpu"}
     subprocess.run(
         [sys.executable, "program.py"],
         cwd=work,

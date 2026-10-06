@@ -1344,10 +1344,14 @@ class Experiment:
         rows, summary = scorer.score(predictions)
         write_once(folder / "rows.json", canonical(rows))
         fit = _object(files.get("fit.json")) or {}
+        from carbon.battery import rebuild_identity as ri
+
         record = {
             **common,
             "status": "SCORED",
             "scored": True,
+            # The device class the pod rebuilt on (TORCH-GPU-01).
+            "rebuild": ri.from_runtime(_object(files.get("runtime.json"))),
             "rule": scorer.identity,
             "built_digest": digest(canonical(built)),
             "frozen_rule": frozen_rule_view(summary, len(rows)),
@@ -1367,6 +1371,14 @@ class Experiment:
                 record["against_baseline"] = {
                     "outcome": "NO_BASELINE",
                     "reason": "the session's baseline was not scored",
+                    "promotable": False,
+                }
+            elif not ri.comparable(_rebuilt(baseline), record):
+                # Rebuilt on another device class (or one never recorded):
+                # never compared, never promoted (TORCH-GPU-01).
+                record["against_baseline"] = {
+                    "outcome": "DEVICE_CLASS_DIFFERS",
+                    "reason": "the baseline was rebuilt on another device class",
                     "promotable": False,
                 }
             else:
@@ -1766,6 +1778,23 @@ def retry_intent(intent_id, attempt=1):
 #: only through the raw claim's digest (a pod's own text, hostile at Levels
 #: 4-5; VALIDATOR-01 security review, finding 6).
 MAX_STAGE = 32
+
+
+def _rebuilt(record):
+    """A scored record's rebuild identity; a record made before the field
+    existed reads as unrecorded (a pod may have rebuilt it on a GPU)."""
+    from carbon.battery import rebuild_identity as ri
+
+    if "rebuild" in record:
+        return record
+    return {
+        **record,
+        "rebuild": {
+            "schema": ri.SCHEMA,
+            "worker_image": None,
+            "device_class": ri.UNRECORDED,
+        },
+    }
 
 
 def _object(body):

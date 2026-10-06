@@ -54,13 +54,11 @@ GUARDS = {
     "hashes_only": "--require-hashes --only-binary=:all: --no-deps",
     "c03_unchanged": "the cu130 lock changed the C-03 environment",
     "pins": "is not the pinned {expected}",
-    "determinism_label": "the GPU determinism label is not the installed source's profile",
-    "cublas_workspace": "the image's CUBLAS_WORKSPACE_CONFIG is not the GPU profile's",
-    "cublas_env": "ENV CUBLAS_WORKSPACE_CONFIG=:4096:8",
-    "label": 'org.opencontainers.image.carbon.torch.gpu-determinism="${TORCH_GPU_DETERMINISM_DIGEST}"',
+    "profile_check": "the accelerator profile label is not the installed source's profile",
+    "lock_check": "the environment lock is not the profile's",
+    "profile_label": 'org.opencontainers.image.carbon.accelerator.profile="${TORCH_GPU_PROFILE_DIGEST}"',
+    "environment_label": 'org.opencontainers.image.carbon.accelerator.environment="${TORCH_GPU_LOCK_DIGEST}"',
     "numeric_user": "USER 65532:65532",
-    "cuda_device_env": "ENV CARBON_TORCH_DEVICE=cuda",
-    "cuda_device_check": "the image does not rebuild on the CUDA device",
 }
 
 
@@ -161,13 +159,32 @@ def test_the_build_script_passes_every_identity_the_recipe_checks():
         "WORKER_IMAGE",
         "TORCH_GPU_RECIPE_DIGEST",
         "TORCH_GPU_LOCK_DIGEST",
-        "TORCH_GPU_DETERMINISM_DIGEST",
+        "TORCH_GPU_PROFILE_DIGEST",
     ):
         assert f"ARG {arg}" in recipe
         assert f'--build-arg "{arg}=' in script
-    assert "GPU_DETERMINISM_DIGEST" in script
+    assert "GPU_PROFILE_DIGEST" in script
     assert ".devcontainer/torch/torch-cu130-py311.txt" in script
     assert SCRIPT.stat().st_mode & 0o111
+
+
+def test_the_image_never_sets_what_the_overlay_sets_as_jaxs_does_not():
+    """The platform, the device kind and the CUDA library controls reach a GPU
+    worker through the controller's overlay at run time, for JAX's
+    accelerator image and this one alike, never from the image."""
+    jax = (REPOSITORY / ".devcontainer/accelerators/Dockerfile").read_text()
+    for key in (
+        "JAX_PLATFORMS",
+        "CARBON_ACCELERATOR_DEVICE_KIND",
+        "CUBLAS_WORKSPACE_CONFIG",
+        "NVIDIA_TF32_OVERRIDE",
+        "CARBON_TORCH_DEVICE",
+    ):
+        assert "ENV " + key not in jax
+        assert "ENV " + key not in RECIPE.read_text(), key
+    assert torch_profile.GPU_LOCK_DIGEST == torch_profile.gpu_requirements_digest(
+        REPOSITORY
+    )
 
 
 def shared_version_drift(cpu, cuda):

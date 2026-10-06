@@ -67,14 +67,22 @@ def test_the_identity_is_what_the_rebuild_recorded():
     assert ri.from_reconstruction({**carrier, "fit": {"params_sha256": "x"}}) == (
         identity("cpu", IMAGE)
     )
-    torch_gpu = {"backend": "pytorch", "device": "cuda", "device_class": A40}
+    torch_gpu = {"backend": "pytorch", "device": "cuda", "device_kind": "NVIDIA A40"}
     assert ri.from_reconstruction({**carrier, "fit": torch_gpu}) == identity(A40, TORCH)
+    # A GPU carrier names the device in its identity, as JAX's GPU backend
+    # records do; the same field, the same class, whichever backend rebuilt.
+    jax_gpu = {**carrier, "device_kind": "NVIDIA A40", "fit": {}}
+    assert ri.from_reconstruction(jax_gpu) == identity(A40, IMAGE)
+    with pytest.raises(ValueError, match="different devices"):
+        ri.from_reconstruction(
+            {**jax_gpu, "fit": {"backend": "pytorch", "device_kind": "NVIDIA H100"}}
+        )
     # A direct (in-process, development) rebuild has no worker image.
     assert (
         ri.from_reconstruction({"backend": "DIRECT", "fit": {}})["worker_image"] is None
     )
     with pytest.raises(ValueError):
-        ri.from_reconstruction({"fit": {"device_class": "tpu-ish"}})
+        ri.from_reconstruction({"fit": {"device_kind": ""}})
 
 
 def test_a_record_without_the_field_keeps_its_meaning():

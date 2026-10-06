@@ -73,8 +73,8 @@ NO_TORCH_GPU_REBUILD = (
     "granted A40 run (#681) establishes it"
 )
 NO_TORCH_GPU_DETERMINISM = (
-    "the GPU profile (torch_profile.GPU_DETERMINISM, the image's "
-    "carbon.torch.gpu-determinism label) is applied by "
+    "the GPU determinism (torch_profile.GPU_DETERMINISM, inside the image's "
+    "carbon.accelerator.profile) is applied by "
     "carbon.reconstruction.torch_gpu only on a CUDA device"
 )
 #: The CPU profile settings the probe can observe inside the rebuild path
@@ -104,9 +104,12 @@ elif mode == "torch_gpu":
         "cuda:" + torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())
     ]
     if out["cuda_available"]:
-        from carbon.reconstruction.torch_gpu import deterministic_cuda
-        with deterministic_cuda() as active:
-            out["determinism"] = active
+        from carbon.reconstruction import torch_gpu
+        try:
+            with torch_gpu.deterministic_cuda() as active:
+                out["determinism"] = active
+        except torch_gpu.EnvironmentIneligible as refused:
+            out["determinism_refused"] = str(refused)
 else:
     import neuralop, torch
     from carbon.battery.torch_training import deterministic
@@ -298,6 +301,27 @@ def jax_cpu(references, manifests, pins):
     }
 
 
+def gpu_environment(*, gpus, expect_kind):
+    """The accelerator overlay both GPU cells run under - the controller's
+    `accelerators.worker_environment` values that do not name one host: the
+    platform, the bound device kind (when given), the XLA flags and the CUDA
+    library controls. One overlay, so JAX and PyTorch are probed alike."""
+    from carbon.reconstruction.accelerators import (
+        GPU_DETERMINISM_ENVIRONMENT,
+        GPU_DETERMINISM_XLA_FLAGS,
+    )
+
+    env = {
+        **GPU_DETERMINISM_ENVIRONMENT,
+        "XLA_FLAGS": " ".join(GPU_DETERMINISM_XLA_FLAGS),
+        "JAX_PLATFORMS": "cuda" if gpus else "cpu",
+        "JAX_DEFAULT_MATMUL_PRECISION": "highest",
+    }
+    if expect_kind:
+        env["CARBON_ACCELERATOR_DEVICE_KIND"] = expect_kind
+    return env
+
+
 def jax_gpu(references, pins, *, gpus, expect_kind):
     from carbon.reconstruction.accelerators import (
         GPU_DETERMINISM_ENVIRONMENT,
@@ -305,12 +329,7 @@ def jax_gpu(references, pins, *, gpus, expect_kind):
     )
 
     flags = " ".join(GPU_DETERMINISM_XLA_FLAGS)
-    env = {
-        **GPU_DETERMINISM_ENVIRONMENT,
-        "XLA_FLAGS": flags,
-        "JAX_PLATFORMS": "cuda" if gpus else "cpu",
-        "JAX_DEFAULT_MATMUL_PRECISION": "highest",
-    }
+    env = gpu_environment(gpus=gpus, expect_kind=expect_kind)
     probe = {}
     names = (*JAX_NAMES, *CUDA_NAMES)
 
@@ -402,7 +421,10 @@ def pytorch_gpu(references, pins, *, gpus, expect_kind):
     names = (*JAX_NAMES, *TORCH_GPU_NAMES)
 
     def imports():
-        probe.update(run_probe(references["torch-gpu"], "torch_gpu", names, gpus=gpus))
+        env = gpu_environment(gpus=gpus, expect_kind=expect_kind)
+        probe.update(
+            run_probe(references["torch-gpu"], "torch_gpu", names, env=env, gpus=gpus)
+        )
         if probe.get("torch_cuda") is None:
             return check(FAILED, "torch is not a CUDA build")
         return check(
@@ -422,6 +444,8 @@ def pytorch_gpu(references, pins, *, gpus, expect_kind):
     def determinism():
         if not gpus:
             return check(UNVERIFIED, NO_TORCH_GPU_DETERMINISM + "; " + NO_GPU)
+        if "determinism_refused" in probe:
+            return check(FAILED, probe["determinism_refused"])
         active = probe.get("determinism") or {}
         differs = {k: active.get(k) for k, v in GPU_DETERMINISM if active.get(k) != v}
         if differs:

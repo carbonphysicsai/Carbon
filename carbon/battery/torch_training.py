@@ -20,9 +20,11 @@ the JAX backend defines it. The learning-rate curves are exact ports of the
 optax schedules the JAX backend uses, with the same fixed constants (see
 `training`).
 
-Device (implementation 2.0, TORCH-GPU-01): a recipe rebuilds on the CPU, or
-on a CUDA device when the validator's PyTorch GPU worker says so
-(`CARBON_TORCH_DEVICE=cuda`); the recipe never chooses. Initialization, the
+Device (implementation 2.0, TORCH-GPU-01): a recipe rebuilds where JAX's
+would - the platform the controller's accelerator overlay sets in
+`JAX_PLATFORMS` (`cpu` by default, `cuda` on the NVIDIA lane), on the device
+kind the run is bound to (`carbon.reconstruction.torch_gpu`). The recipe
+never chooses. Initialization, the
 minibatch order and the stored state stay on the CPU, so a recipe starts from
 the same weights and visits cases in the same order on either device. A CUDA
 rebuild runs under the pinned GPU determinism profile
@@ -57,39 +59,47 @@ from .training import ACTIVATIONS, SAM_RHO
 #: A declared engineering constant; reduction order depends on it.
 THREADS = 2
 TORCH_BACKEND = "pytorch"
-#: The environment variable the validator's worker sets to choose the device.
-DEVICE_ENV = "CARBON_TORCH_DEVICE"
-DEVICES = ("cpu", "cuda")
+#: The accelerator overlay's platform variable, JAX's own.
+PLATFORM_ENV = "JAX_PLATFORMS"
 
 
 class DeviceUnavailable(ImportError):
-    """The rebuild device this worker was given is absent: Carbon's own
-    environment, never the candidate's (the fixed worker programs report an
-    ImportError as `stage: environment`)."""
+    """The accelerator environment this worker was given is not usable:
+    Carbon's own, never the candidate's (the fixed worker programs report an
+    ImportError as `stage: environment`, as JAX's worker reports
+    `reconstruction.runtime.environment_ineligible`)."""
 
 
 def rebuild_device():
-    """The device this process rebuilds on, from the worker environment."""
-    name = os.environ.get(DEVICE_ENV, "cpu")
-    if name not in DEVICES:
-        raise DeviceUnavailable("unknown PyTorch rebuild device " + name)
-    if name == "cuda" and not torch.cuda.is_available():
+    """The device this process rebuilds on: the overlay's platform."""
+    name = os.environ.get(PLATFORM_ENV, "cpu") or "cpu"
+    if name == "cpu":
+        return torch.device("cpu")
+    if name != "cuda":
+        raise DeviceUnavailable("PyTorch does not rebuild on platform " + name)
+    if not torch.cuda.is_available():
         raise DeviceUnavailable("the PyTorch GPU rebuild needs a CUDA device")
-    return torch.device(name)
+    return torch.device("cuda", 0)
 
 
+@contextlib.contextmanager
 def _determinism(device):
     """The pinned determinism configuration for `device`."""
-    if device.type == "cuda":
-        from carbon.reconstruction import torch_gpu
+    if device.type != "cuda":
+        with deterministic():
+            yield
+        return
+    from carbon.reconstruction import torch_gpu
 
-        # The worker's environment, checked before anything changes: a
-        # missing or different pinned value is Carbon's, never the candidate's.
-        required = torch_gpu.worker_environment()
-        if any(os.environ.get(k) != v for k, v in required.items()):
-            raise DeviceUnavailable("the GPU determinism environment is not pinned")
-        return torch_gpu.deterministic_cuda(torch)
-    return deterministic()
+    try:
+        context = torch_gpu.deterministic_cuda(torch)
+        context.__enter__()
+    except torch_gpu.EnvironmentIneligible as refused:
+        raise DeviceUnavailable(str(refused)) from None
+    try:
+        yield
+    finally:
+        context.__exit__(None, None, None)
 
 
 @contextlib.contextmanager
@@ -878,10 +888,14 @@ def fit(model, d, y, seed):
     }
     if device.type != "cpu":
         # A CPU rebuild's statistics are implementation 1.0's, key for key. A
-        # GPU rebuild names its device class: its scores are never compared
-        # with another class's (`carbon.battery.rebuild_identity`).
+        # GPU rebuild records the device kind it was bound to and verified
+        # (`torch_gpu.deterministic_cuda`), as JAX's GPU records name theirs:
+        # its scores are never compared with another device class's
+        # (`carbon.battery.rebuild_identity`).
+        from carbon.reconstruction.torch_gpu import expected_device_kind
+
         stats["device"] = device.type
-        stats["device_class"] = "gpu:" + torch.cuda.get_device_name(device)
+        stats["device_kind"] = expected_device_kind()
     history = take_history()
     if history is not None:
         stats["loss_history"] = history

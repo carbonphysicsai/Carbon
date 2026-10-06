@@ -321,13 +321,22 @@ def score(work, repository=REPOSITORY):
 
     work = _owner_only_dir(work)
     batch, refs = references(work)
-    predictions, kinds = {}, {}
+    from carbon.battery import rebuild_identity as ri
+
+    predictions, kinds, bundles = {}, {}, []
     for path in sorted((work / "predictions").glob("*.json")):
         if path.name.endswith(".failure.json"):
             continue
         bundle = _read_private(path)
         predictions[bundle["member"]] = bundle["predictions"]
         kinds[bundle["member"]] = bundle.get("kind", "RECONSTRUCTED")
+        bundles.append(bundle)
+    # The members are ranked against each other downstream (score tuning):
+    # one device class, or nothing is scored (TORCH-GPU-01).
+    try:
+        device_class = ri.bundles_class(bundles)
+    except ri.DeviceClassMixed:
+        raise TuningRefused("tuning_device_classes_mixed") from None
     summary, rows = score_members(batch, refs, predictions, kinds, repository)
     out = _owner_only_dir(work / "rows")
     for member, member_rows in rows.items():
@@ -342,6 +351,7 @@ def score(work, repository=REPOSITORY):
         "cases": len(batch["cases"]),
         "cases_with_reference": len(refs),
         "members": summary,
+        "device_class": device_class,
         "state": "DEVELOPMENT_TUNING",
         "audience": "operator only; never an agent or miner",
     }

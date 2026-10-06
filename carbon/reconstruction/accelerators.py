@@ -430,6 +430,26 @@ GPU_DETERMINISM_ENVIRONMENT = {
     "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
 }
 
+# The PyTorch counterpart of `GPU_DETERMINISM_XLA_FLAGS` (TORCH-GPU-01). XLA
+# takes its determinism controls as flags in the environment; PyTorch takes
+# them as in-process settings, so they are pinned here beside the XLA flags and
+# applied inside the worker (`carbon.reconstruction.torch_gpu`). The controls
+# above that live outside the framework (`GPU_DETERMINISM_ENVIRONMENT`) are the
+# same for both and reach the worker the same way, through `worker_environment`.
+#
+#   use_deterministic_algorithms   refuses an op with no deterministic
+#                                  implementation (the analogue of
+#                                  xla_gpu_exclude_nondeterministic_ops).
+#   cudnn_deterministic            deterministic cuDNN algorithms (the analogue
+#                                  of xla_gpu_deterministic_ops).
+#   cudnn_benchmark=False          no timing-dependent kernel choice (the
+#                                  analogue of xla_gpu_autotune_level=0).
+GPU_DETERMINISM_TORCH = (
+    ("use_deterministic_algorithms", True),
+    ("cudnn_deterministic", True),
+    ("cudnn_benchmark", False),
+)
+
 
 def worker_environment(
     profile: AcceleratorProfile, role: AcceleratorRole, *, host_device=None

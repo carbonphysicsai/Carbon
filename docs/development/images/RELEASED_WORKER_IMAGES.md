@@ -18,21 +18,26 @@ The PyTorch GPU worker (TORCH-GPU-01) installs the exact-hashed
 worker. It does not share the JAX accelerator image: torch 2.13.0+cu130 needs
 cuDNN 9.20.0.48 and the JAX CUDA 13 lock pins 9.12.0.46, so the two do not
 resolve together. JAX's lock is unchanged. The image build refuses if the
-cu130 install changes any C-03 distribution's version. The image sets
-`CARBON_TORCH_DEVICE=cuda`: battery implementation 2.0 rebuilds a PyTorch
-recipe on that device under the GPU determinism profile (the recipe never
-chooses the device). The validator path's accelerator dispatch stays disabled
-in the repository, so the image is not yet a scored rebuild path.
+cu130 install changes any C-03 distribution's version. It runs the way the
+JAX accelerator worker runs: the controller's accelerator overlay sets the
+platform (`JAX_PLATFORMS=cuda`), the bound device kind and the CUDA library
+controls at run time, and battery implementation 2.0 rebuilds a PyTorch
+recipe there under the GPU determinism settings (the recipe never chooses the
+device). The validator path's accelerator dispatch stays disabled in the
+repository, for JAX and PyTorch alike, so neither image is yet a scored
+rebuild path.
 
 PyTorch determinism is pinned as two profiles with separate identities
 (`carbon/reconstruction/torch_profile.py`):
 - `CPU_DETERMINISM`: deterministic algorithms, 2 threads, explicit-generator
   seeds. The PyTorch CPU image carries its digest as the
   `carbon.torch.determinism` label.
-- `GPU_DETERMINISM`: the CPU settings plus cuDNN deterministic, no cuDNN
-  benchmark and `CUBLAS_WORKSPACE_CONFIG=:4096:8`. It has its own digest and
-  `carbon.torch.gpu-determinism` label, and is applied by the GPU-only module
-  `carbon/reconstruction/torch_gpu.py`.
+- `GPU_DETERMINISM`: the CPU settings, PyTorch's in-process CUDA settings
+  (`accelerators.GPU_DETERMINISM_TORCH`, beside JAX's XLA flags) and JAX's
+  CUDA library controls (`accelerators.GPU_DETERMINISM_ENVIRONMENT`). It is
+  pinned inside the PyTorch GPU accelerator profile, which the image carries
+  under JAX's labels (`carbon.accelerator.profile`, `.environment`), and is
+  applied by `carbon/reconstruction/torch_gpu.py`.
 
 The CPU torch environment and every Level-0 pin are unchanged.
 

@@ -823,6 +823,16 @@ class BatteryValidator:
         }
         return record
 
+    def _labelled_incumbent(self):
+        """The incumbent, labelled with its rebuild device class."""
+        incumbent = self.store.incumbent()
+        if incumbent is None:
+            return None
+        return {
+            **incumbent,
+            "device_class": self._rebuild(incumbent["model_id"])["device_class"],
+        }
+
     def _rebuild(self, model_id):
         """The rebuild identity of a retained model (`rebuild_identity`)."""
         from .rebuild_identity import from_reconstruction
@@ -1272,7 +1282,7 @@ class BatteryValidator:
                     "active": len(pool["active"]),
                 }
             ),
-            "incumbent": self.store.incumbent(),
+            "incumbent": self._labelled_incumbent(),
             "batches": {
                 kind: {
                     state: len(self.store.batches(kind=kind, state=state))
