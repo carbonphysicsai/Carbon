@@ -228,3 +228,13 @@ apply to every hidden batch and to `graphite-tuning-v2`.
 - **Still open:** these sizes come from the public stand-in, and the tuning
   set confirms them before any rule v3 adoption (the owner's). The margin
   stays HUMAN_INPUT and swept.
+
+**Tuning output for Q3** (Data Collection, 2026-10-06): `tuning score` also
+writes `q3-regret.json` in the tuning work directory. It holds, for each
+member, the mean Q3 decision regret over the quiz's feasible scenarios.
+- It is owner-only and aggregates only, with no scenario or case.
+- Ryan passes it to `tuning_rescore --q3-regret` (leg `q` of
+  `score_tuning.LEGS`, registry v3, #686).
+- `score_tuning.near_limit_cautious` (the constructed over-caution control
+  on #686) joins the known-bad-for-value set.
+- It is built with slice Q, once #686 merges.
