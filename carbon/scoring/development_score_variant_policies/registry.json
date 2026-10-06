@@ -1,5 +1,16 @@
 {
   "schema": "carbon.development-score-variant-registry.v1",
-  "variants": {},
-  "rule": "A development score variant is registered here, by digest, before it is computed (OWNER-GRAPHITE-TEST-WAVE-08 §3). It is never served to miners. A change is a new version, never an edit."
+  "variants": {
+    "battery-g-feas-ce-v1": "sha256:96fb6a410438fb98350c5ccfc08c9c65ef05241bf1a53bbea73706bd0c4e1f0a",
+    "battery-g-feas-sr2-v1": "sha256:294e05b26325fa7fa6f9d6eeb115b8704bbf517d1d954e32ecdc08de9c118593",
+    "battery-g-feas-g-n-v1": "sha256:81868a802da1c6382fe8ee949d54f2d57cd0c6b2d853bbe1833de6328aecd50e",
+    "battery-g-feas-r-g-n-v1": "sha256:c7c8aaa3640f8fd8d0000d450a31911dc794b1308b34557f0b20af009069589d",
+    "battery-g-feas-n-heavy-v1": "sha256:055a4205159582904397d71225542f6829c033310552b5996f7a7a5e5c50c3a5",
+    "battery-g-plate-ce-v1": "sha256:28885d2496cbfee1f72e9949f0c6a198cf2b304936aa23a4190e1be339135640",
+    "battery-g-plate-sr2-v1": "sha256:3e632176fe0d1fb1d67ba2c0aac2f3c353da299c7b509e0eabe59797b94fdf67",
+    "battery-g-plate-g-n-v1": "sha256:3450780b387e7be4ea278d5a8f7daca2ad927bb7d7be0b88ff7795eb06e16d02",
+    "battery-g-plate-r-g-n-v1": "sha256:35e685d77c8c01a2a8223b0b9a75bfb965d94dddc8dcc2771150e670e02ee887",
+    "battery-g-plate-n-heavy-v1": "sha256:df5ffd359a51f334b4a54c4f32325e7db4c626ca9d67e3537e67a4f009e4102c"
+  },
+  "rule": "A development score variant is registered here, by digest, before it is computed (OWNER-GRAPHITE-TEST-WAVE-08 \u00a73). It is never served to miners. A change is a new version, never an edit."
 }
