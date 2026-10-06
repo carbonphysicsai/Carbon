@@ -29,7 +29,8 @@ def _readiness(args):
     except runner.ReadinessRefused as refused:
         print(f"readiness refused: {refused}")
         return 2
-    runner.append_history(report)
+    if not args.no_history:
+        runner.append_history(report)
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     print(runner.render_text(report))
@@ -63,6 +64,11 @@ def main(argv=None):
     g.add_argument("--challenge", required=True)
     g.add_argument("--level", type=int, default=0)
     g.add_argument("--json", metavar="OUT", help="also write the digest-bound report")
+    g.add_argument(
+        "--no-history",
+        action="store_true",
+        help="scratch or rerun: print the report and append nothing",
+    )
     g.add_argument(
         "--only", help="comma-separated item ids (a partial run is never green)"
     )
