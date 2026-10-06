@@ -118,10 +118,11 @@ sudo -u carbon-producer python -m carbon.battery.operate init --config /var/lib/
    ```
 
    This prints the public key.
-2. **Choose how the PC reaches the door.** It is the owner's call. Option A
-   is recommended.
+2. **How the PC reaches the door.** The owner chose option A on 2026-10-06
+   (relayed by the Test Lead), for a Hetzner AX42 host. Option B stays only
+   as the documented alternative.
 
-### Option A (recommended): no public door, an SSH local forward
+### Option A (chosen): no public door, an SSH local forward
 
 The door binds to `127.0.0.1:8468` on the VM, and nothing new listens on
 the internet. Graphite reaches the door through a forwarding-only SSH
@@ -232,7 +233,7 @@ while true; do
 done
 ```
 
-### Option B: a public TLS door with a pinned certificate
+### Option B (not chosen): a public TLS door with a pinned certificate
 
 The firewall also allows TCP 8468 from the PC's IP.
 
