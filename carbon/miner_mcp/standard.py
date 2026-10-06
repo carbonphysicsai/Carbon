@@ -701,6 +701,19 @@ class ResearchToolAdapter:
         ledger; None without one."""
         return campaign_argument_normalisation(self._sdk.ledger)
 
+    @property
+    def argument_normalisation(self):
+        """The argument normalisation rule the bound campaign froze, for the
+        door's published schema (AGENT-DOOR-USABILITY-01 A2): None without
+        one, before a manifest is frozen, or for a rule this code does not
+        know - so an unknown rule is described as no rule, and refused as
+        none would be. Discovery; execution rereads it per call."""
+        self._check_binding()
+        try:
+            return self._normalisation()
+        except ValueError:
+            return None
+
     def _check_binding(self):
         sdk = self._sdk
         if (

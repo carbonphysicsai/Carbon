@@ -48,7 +48,12 @@ def fake_solver(job):
 
 
 def service(tmp_path, **kw):
-    kw = {"solver": fake_solver, "timeout_s": 2.0, "memory_bytes": 256 * 1024**2, **kw}
+    kw = {
+        "solver": fake_solver,
+        "timeout_s": 2.0,
+        "memory_bytes": 256 * 1024**2,
+        **kw,
+    }
     return truth.TruthService(tmp_path / "records.jsonl", **kw)
 
 

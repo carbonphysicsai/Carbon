@@ -120,8 +120,6 @@ def test_runtime_or_unmapped_change_keeps_full_acceptance(path: str) -> None:
         ".github/workflows/ci.yml",
         ".github/workflows/gpt-review.yml",
         ".github/workflows/main-smoke.yml",
-        "docs/development/carbon_hub/tools/validate_hub.py",
-        "docs/development/carbon_hub/tools/test_validator.py",
         *TOOLING_TESTS,
     ),
 )

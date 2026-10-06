@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-validator-09-score-variants",
+  "recorded_at": "2026-10-05T23:58:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-09 slice 1, branch claude/validator-09-score-variants. Canonical: score-variant tests and both unreachability invariants passed; the results are recorded in the PR.",
+    "description": "Development score variants are registered before they are served, carry the score-tuning registry's candidate entry verbatim and score only through its functions, and no miner surface can reach them."
+  },
+  "expected": "A score variant could have its own weighting format and re-scorer over stored rows.",
+  "observed": "Two formats would drift: the Test Lead required one candidate definition, so a variant wraps the score-tuning entry (#650) and a parity test proves byte-identical rescoring. The registry lives outside carbon/challenge_validator, itself a walked miner surface, so the Challenge declares its legs as data only.",
+  "keep": [
+    "One definition per concept: a promoted candidate is the same entry, scored by the same code, under both registries.",
+    "Prove a development-only module is unreachable with both the static import walk and a fresh-interpreter import of every door."
+  ],
+  "change": [
+    "Agree a shared shape with the other registry's owner before either registry grows."
+  ],
+  "protocol_elements": [
+    "every Challenge's score development registers candidate weightings before computing them and keeps them unreachable from miners"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

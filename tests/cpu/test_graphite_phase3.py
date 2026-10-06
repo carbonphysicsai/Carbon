@@ -815,7 +815,9 @@ def test_a_kimi_k3_session_stops_typed_before_its_first_call(tmp_path):
 
 def _recorded_checkout(repository, role, paths=None):
     """The checkout `BEFORE_D34_CHECKOUT` recorded, in place of the live files."""
-    assert role is boundaries.Role.CONSTRUCTION and paths is None
+    # Battery's published material, now named by the session's Challenge.
+    assert role is boundaries.Role.CONSTRUCTION
+    assert paths == boundaries.published_material(SCORING.challenge_id)
     return BEFORE_D34_CHECKOUT
 
 
@@ -829,6 +831,9 @@ def _before_d34(root, model, **kw):
         patch.setattr(gp, "MODEL_SETTINGS", {})
         patch.setattr(boundaries, "checkout_manifest", _recorded_checkout)
         # Recorded before the tool-text versions: v1 (VALIDATOR-07).
+        # Recorded before the budget-status rule (AGENT-DOOR-USABILITY-01):
+        # no rule, so its status keeps the v1 bytes.
+        patch.setattr(phase3.Phase3Provider, "NEW_SESSION_BUDGET_STATUS", None)
         return graphite, _open(graphite, tool_text=TOOL_TEXT_V1)
 
 

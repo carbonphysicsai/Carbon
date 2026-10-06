@@ -137,6 +137,19 @@ class BatterySource:
 
         return set(published_inputs(repository))
 
+    def public_decision(self, repository):
+        """Every committed engineering-value study's decision cases (each
+        scenario condition times each candidate), as case keys. They are
+        public, so a sealed set must not repeat one (VALIDATOR-17)."""
+        from carbon.battery.value import contract as ev
+
+        found = set()
+        folder = Path(repository) / "carbon/battery/value/contracts"
+        for path in sorted(folder.glob("*.json")):
+            document, _digest = ev.load(path)
+            found.update(self.key(case) for case in ev.decision_cases(document))
+        return found
+
     def implementation(self):
         from carbon.battery import daemon, seeds
 
@@ -158,7 +171,11 @@ class BatterySource:
             committed = [e for e in target.journal.public() if e["kind"] == "batch"]
             again = _same_role_refusal(item.role, committed, batch.fingerprint)
             pooled = {b["fingerprint"]: b for b in target.store.batches()}
-            priors = {"published": self.published(repository), **private}
+            priors = {
+                "published": self.published(repository),
+                "public_decision": self.public_decision(repository),
+                **private,
+            }
             present = set()
             for entry in committed:
                 role = canonical_role(entry["role"])

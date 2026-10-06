@@ -247,6 +247,36 @@ _SELECTION_FIELDS = ("strategy_json", "reason", "used_feedback")
 #: never raised; nothing was dropped.
 COMPACTION_FAILED = "compaction_failed"
 CONTEXT_CEILING = "context_ceiling"
+#: A caller's continue-reminder rule (`continue_reminder`, opt-in; the
+#: Graphite phase-4 Attacker's stop rule, GRAPHITE-ATTACKER-STOP-RULE-01): a
+#: free-text turn with no tool call does not end the session; it is answered
+#: with the rule's registered message, journalled, at most `max_consecutive`
+#: times in a row (any tool call renews them). The next free-text turn after
+#: that ends the session STOPPED with the rule's `stop_code`.
+CONTINUE_REMINDER_SCHEMA = "carbon.autoresearch.continue-reminder.v1"
+STOPPED_NO_TOOL_USE = "stopped_no_tool_use"
+_CONTINUE_REMINDER_FIELDS = frozenset(
+    {"schema", "message", "max_consecutive", "stop_code"}
+)
+
+
+def check_continue_reminder(rule):
+    """A continue-reminder rule exactly as `CONTINUE_REMINDER_SCHEMA` defines
+    it: a non-empty message, a cap from 1 to 8 and the closed stop code.
+    Returns it in canonical form; anything else is a ValueError."""
+    if (
+        type(rule) is not dict
+        or set(rule) != _CONTINUE_REMINDER_FIELDS
+        or rule["schema"] != CONTINUE_REMINDER_SCHEMA
+        or type(rule["message"]) is not str
+        or not rule["message"].strip()
+        or len(rule["message"]) > 2048
+        or type(rule["max_consecutive"]) is not int
+        or not 1 <= rule["max_consecutive"] <= 8
+        or rule["stop_code"] != STOPPED_NO_TOOL_USE
+    ):
+        raise ValueError("a continue-reminder rule is the registered v1 record")
+    return json.loads(canonical(rule))
 
 
 class CeilingReached(ValueError):
@@ -1551,8 +1581,16 @@ async def run_epoch(
     limits=None,
     compaction=None,
     omit_unmetered_trials=False,
+    continue_reminder=None,
 ):
     """Run once or resume completed provider/tool observations without resends.
+
+    `continue_reminder` (default None, every earlier plan and journal
+    unchanged) is a caller's `CONTINUE_REMINDER_SCHEMA` rule, for a role's
+    session under a policy that has no reminder of its own: a free-text turn
+    gets the rule's message instead of ending the session, up to its cap in a
+    row, then the session stops typed (`stopped_no_tool_use`). The plan
+    records the rule; each reminder is journalled like the policies' own.
 
     `omit_unmetered_trials` (default False, every earlier session unchanged)
     drops the campaign research-trial line from the `LIMITS_V2` budget status
@@ -1696,9 +1734,15 @@ async def run_epoch(
         ("limits", limits),
         ("compaction", compaction),
         ("finish", finish),
+        ("continue_reminder", continue_reminder),
     ):
         if value is not None and instructions is None:
             raise ValueError(f"only a role's session takes {name}")
+    if continue_reminder is not None:
+        continue_reminder = check_continue_reminder(continue_reminder)
+        if agent_policy in (AUTONOMOUS, GRAPHITE_MINER):
+            # Those policies keep their own one free-text reminder.
+            raise ValueError("a continue-reminder rule runs under the legacy policy")
     if limits is not None:
         check_limits(limits)
     if compaction is not None:
@@ -1805,6 +1849,8 @@ async def run_epoch(
         plan["compaction"] = compaction
     if finish_tool is not None:
         plan["finish"] = {"tool": finish_tool["name"], "status": finish_status}
+    if continue_reminder is not None:
+        plan["continue_reminder"] = continue_reminder
     if "research_guidance" in initial_observation:
         plan["effective_input_digest"] = effective_digest(policy, initial_observation)
     write_once(root / "plan.json", canonical(plan))
@@ -2519,6 +2565,37 @@ async def run_epoch(
                 )
                 history.append(correction)
                 continue
+            if continue_reminder is not None:
+                if reminders < continue_reminder["max_consecutive"]:
+                    reminders += 1
+                    correction = {
+                        "role": "user",
+                        "content": continue_reminder["message"],
+                    }
+                    write_once(
+                        root / (call_id + "-continuation.json"),
+                        canonical(
+                            {
+                                "rule": continue_reminder,
+                                "reminder": reminders,
+                                "response_digest": digest(canonical(response)),
+                                "message": correction,
+                            }
+                        ),
+                    )
+                    history.append(correction)
+                    continue
+                outcome = {
+                    "status": "STOPPED",
+                    "code": continue_reminder["stop_code"],
+                    "reason": (
+                        f"{reminders + 1} free-text turns in a row with no tool "
+                        f"call after {reminders} continue reminders; retained and "
+                        "stopped"
+                    ),
+                    "agent_output": output,
+                }
+                break
             outcome = {
                 "status": "STOPPED",
                 "reason": (
@@ -2614,8 +2691,9 @@ async def run_epoch(
                     ran=any(p not in cut for p in range(len(running))),
                 )
             )
-        if every_call:
-            # Any tool call renews the one free-text reminder (LP-PROD-A).
+        if every_call or continue_reminder is not None:
+            # Any tool call renews the one free-text reminder (LP-PROD-A), and
+            # a continue-reminder rule's consecutive count.
             reminders = 0
     if outcome is None:
         outcome = {"status": "STOPPED", "reason": "epoch provider-call ceiling"}

@@ -53,6 +53,7 @@ import os
 from dataclasses import dataclass
 from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from pathlib import Path
+from types import SimpleNamespace
 
 from carbon.challenge_validator import scoring as challenge_scoring
 from carbon.challenge_validator.scoring import (
@@ -63,7 +64,13 @@ from carbon.challenge_validator.scoring import (
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
 
-from . import baseline_retry, hidden_score, pod_logs, pod_outcome
+from . import (
+    baseline_retry,
+    grant_binding,
+    hidden_score,
+    pod_logs,
+    pod_outcome,
+)
 from . import pods as podlib
 from .roles import (
     CONSTRUCTOR_STALL_ATTEMPTS,
@@ -83,6 +90,9 @@ FEEDBACK_SCHEMA = "carbon.graphite.phase3.feedback.v1"
 STOP_SCHEMA = "carbon.graphite.phase3.session-stop.v1"
 #: A proposal refused because Carbon stopped the session as infrastructure.
 SESSION_STOPPED = "REFUSED_SESSION_STOPPED"
+#: The typed finding and session stop when a backend reports money for a pod
+#: under a tokens-only budget (GRAPHITE-GRANT-BINDING-01 D7 addendum).
+TOKENS_ONLY_CHARGE = "tokens_only_backend_reported_a_charge"
 #: Reason prefixes when an environment relaunch cannot run.
 RELAUNCH_REFUSED = "pod_environment_relaunch_refused:"
 #: The session baseline's retry never gets a relaunch too: the baseline gets
@@ -110,6 +120,11 @@ class Phase3Budget:
     pod is admitted only while tokens committed plus pods committed plus the
     new pod's reservation stay within it, and the run's model calls are capped
     at the token remainder by the research ledger.
+
+    `tokens_only` (a grant in `phase3.TOKENS_ONLY_GRANTS`): the pod money
+    budget is 0, the whole run cap is the token share, and a launch that
+    would reserve pod money is refused `grant_allows_no_pods`. A backend that
+    costs no provider money (the CPU carrier lane, rate 0) still runs.
     """
 
     run_cap_usd: Decimal
@@ -117,21 +132,49 @@ class Phase3Budget:
     pod_minutes: int
     max_pods: int
     challenge_id: str
+    tokens_only: bool = False
+    #: A grant's registered token share (`grant_binding.Phase3Grant`,
+    #: OWNER-GRAPHITE-PHASE3-R4-01): the run's model calls get exactly it and
+    #: its pods the rest of the run cap. None: the run cap less the pods.
+    token_share_usd: Decimal | None = None
 
     @property
     def pod_reservation_usd(self):
         return podlib.pod_reservation(self.pod_minutes, self.hourly_usd)
 
     @property
-    def pod_allowance_usd(self):
+    def pods_need_usd(self):
+        """What `max_pods` pods reserve, in whole cents (rounded up)."""
         return podlib.cents_up(self.max_pods * self.pod_reservation_usd)
 
     @property
+    def pays_for_pods(self):
+        """False when a pod would reserve money this budget has none for: a
+        tokens-only budget at a non-zero pod rate (`grant_allows_no_pods`)."""
+        return not (self.tokens_only and self.pod_reservation_usd > 0)
+
+    @property
+    def pod_allowance_usd(self):
+        if self.tokens_only:
+            return Decimal("0.00")
+        if self.token_share_usd is not None:
+            return self.run_cap_usd - self.token_share_usd
+        return self.pods_need_usd
+
+    @property
     def token_allowance_usd(self):
+        if self.token_share_usd is not None and not self.tokens_only:
+            return self.token_share_usd
         return self.run_cap_usd - self.pod_allowance_usd
 
     def record(self):
+        # `tokens_only` and `token_share_usd` are recorded only when set, so
+        # every other run's record is unchanged.
+        extra = {"tokens_only": True} if self.tokens_only else {}
+        if self.token_share_usd is not None:
+            extra["token_share_usd"] = str(self.token_share_usd)
         return {
+            **extra,
             "run_cap_usd": str(self.run_cap_usd),
             "pod_minutes": self.pod_minutes,
             "max_pods": self.max_pods,
@@ -158,16 +201,30 @@ def phase3_budget(grant, scoring=None, hourly_usd=None):
     if hourly_usd is None:
         hourly_usd = podlib.prices()["hourly_usd"]
     minutes = podlib.proposal_minutes(scoring)
+    # A tokens-only grant (`grant_binding.tokens_only`) has a pod money
+    # budget of 0: the whole run cost is its token share, and a pod that
+    # would reserve money is refused (`Phase3Budget.pays_for_pods`).
     budget = Phase3Budget(
         run_cap_usd=grant.worst_case_run_cost,
         hourly_usd=hourly_usd,
         pod_minutes=minutes,
         max_pods=SESSION_POD_MINUTES // minutes,
         challenge_id=scoring.challenge_id,
+        tokens_only=grant_binding.tokens_only(grant),
+        # A registered token share (OWNER-GRAPHITE-PHASE3-R4-01); None for
+        # every other grant, whose budget is exactly as before.
+        token_share_usd=getattr(grant_binding.entry_of(grant), "token_share_usd", None),
     )
     if budget.max_pods < 2 or budget.token_allowance_usd <= 0:
         # A baseline and one proposal, and some tokens, must fit one run.
         raise BudgetRefused("grant_run_cost_cannot_cover_pods_and_tokens")
+    if (
+        budget.token_share_usd is not None
+        and not budget.tokens_only
+        and budget.pod_allowance_usd < budget.pods_need_usd
+    ):
+        # The registered share leaves the session's pods too little.
+        raise BudgetRefused("grant_token_share_leaves_too_little_for_pods")
     return budget
 
 
@@ -340,6 +397,7 @@ def _feedback_view(record):
     for key in (
         "reason_code",
         "issues",
+        "served_backends",
         "recipe_digest",
         "frozen_rule",
         "against_baseline",
@@ -603,6 +661,15 @@ class Experiment:
         )
 
     def _admit_pod(self):
+        stop = self.stopped()
+        if stop is not None:
+            # The session was stopped (`_stop_session`): no further pod, a
+            # retry or relaunch of the proposal in flight included.
+            raise BudgetRefused("session_stopped:" + stop["reason_code"])
+        if not self.budget.pays_for_pods:
+            # A paid pod under a tokens-only grant: refused before any
+            # reservation or launch.
+            raise BudgetRefused(grant_binding.NO_PODS)
         if self.pods_left() <= 0:
             raise BudgetRefused("session_pod_limit_reached")
         reservation = self.budget.pod_reservation_usd
@@ -637,7 +704,13 @@ class Experiment:
                     report.append({"intent_id": pod["intent_id"], "terminated": True})
                     continue
                 if handle == "unknown":
-                    report.append({"intent_id": pod["intent_id"], "terminated": None})
+                    report.append(
+                        {
+                            "intent_id": pod["intent_id"],
+                            "terminated": None,
+                            **self._settles(pod["intent_id"]),
+                        }
+                    )
                     continue
                 self.ledger.append(
                     "pod_created",
@@ -650,6 +723,20 @@ class Experiment:
             verified = self._terminate(pod["proposal"], handle)
             report.append({"intent_id": pod["intent_id"], "terminated": verified})
         return report
+
+    def _settles(self, intent_id):
+        """For an uncertain create the provider cannot settle yet: the
+        intent's age and when a reconcile can settle it (OPERATOR-USABILITY-01
+        D3), from the backend's `recover_settles`. Empty when the backend
+        cannot say; a reconcile row is never refused for want of it."""
+        settles = getattr(self.pods, "recover_settles", None)
+        if settles is None:
+            return {}
+        try:
+            value = settles(intent_id)
+        except Exception:  # noqa: BLE001 - a hint, never a reconcile failure
+            return {}
+        return dict(value) if type(value) is dict else {}
 
     def _recover(self, pid, intent_id):
         """A pod an uncertain create may have made. None when none exists (its
@@ -717,6 +804,27 @@ class Experiment:
             charge_usd=str(charge),
             basis="provider_reported",
         )
+        if self.budget.tokens_only and charge > 0:
+            self._tokens_only_charge(pid, handle, charge)
+
+    def _tokens_only_charge(self, pid, handle, charge):
+        """A backend reported money for a pod under a tokens-only budget, which
+        reserved none for it (GRAPHITE-GRANT-BINDING-01 D7). The charge stays
+        booked exactly as reported (`_settle`); hiding real spend is worse. A
+        typed finding names the pod and the amount, and the session stops
+        through the existing stop (`_stop_session`): no further pod, and the
+        provider ends the session typed."""
+        self._finding(
+            TOKENS_ONLY_CHARGE.upper(),
+            pid,
+            {
+                "code": TOKENS_ONLY_CHARGE,
+                "intent_id": handle.intent_id,
+                "pod_id": handle.pod_id,
+                "charge_usd": str(charge),
+            },
+        )
+        self._stop_session(pid, SimpleNamespace(reason_code=TOKENS_ONLY_CHARGE))
 
     # -- one proposal --------------------------------------------------------------------------
     def propose_tool(self, arguments, identity):
@@ -807,6 +915,8 @@ class Experiment:
     def _retry_budget(self, pods):
         """None when the session's pod limit and the run's money cap (tokens
         and pods together) hold `pods` more pods, else the refusal code."""
+        if not self.budget.pays_for_pods:
+            return grant_binding.NO_PODS
         if self.pods_left() < pods:
             return "session_pod_limit_reached"
         committed = self.token_committed() + self.pod_committed()
@@ -1034,6 +1144,11 @@ class Experiment:
                     **base,
                     "status": "REFUSED_BACKEND_NOT_SERVED",
                     "reason_code": str(refused),
+                    # The backends these pods serve, from the Challenge's
+                    # public scoring record, so the refusal says what would
+                    # be accepted (AGENT-DOOR-USABILITY-01 A7). A result
+                    # recorded before has none and is read as it was.
+                    "served_backends": list(self.scoring.served_backends),
                     "scored": False,
                 },
             )
@@ -1537,10 +1652,19 @@ class Experiment:
         stalled = count >= CONSTRUCTOR_STALL_ATTEMPTS
         observation = self.root / "stall-observation.json"
         if stalled and not observation.exists():
+            # A proposal id is a run-local label (it is derived from the tool
+            # call's journal identity, so every run reuses it): the evidence
+            # binds the run and what each proposal built, never the bare ids
+            # (OWNER-GRAPHITE-TEST-WAVE-04 §1).
             evidence = digest(
                 canonical(
-                    [r["proposal_id"] for r in self.records("proposal")]
-                    + [record["proposal_id"]]
+                    {
+                        "run_id": self.run_id,
+                        "proposals": [
+                            [r["proposal_id"], r.get("recipe_digest")]
+                            for r in [*self.records("proposal"), record]
+                        ],
+                    }
                 )
             )
             failure_id = self.ladder.record_failure(
