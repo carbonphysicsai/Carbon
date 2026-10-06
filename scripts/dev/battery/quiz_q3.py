@@ -39,6 +39,53 @@ def _auc(bad, good):
     )
 
 
+def _aggressive(scenarios):
+    """mode-x-aggressive: in each scenario, the fastest protocol on the grid
+    by the reference, every constraint ignored, as an outcome record."""
+    import gzip
+
+    from carbon.battery.value import contract as ev
+    from carbon.battery.value import decision as d
+
+    contract, _ = ev.load(
+        ROOT / "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json"
+    )
+    bands = contract["reference"]["uncertainty"]["bands"]
+    refs = {}
+    path = (
+        ROOT / "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz"
+    )
+    for line in gzip.decompress(path.read_bytes()).decode().splitlines():
+        if line.strip():
+            record = json.loads(line)
+            refs[record["case_id"]] = record
+    out = {}
+    for scenario in scenarios:
+        best = None
+        for job in ev.decision_cases(contract, "verification"):
+            if job["scenario"] != scenario:
+                continue
+            record = refs.get(job["case_id"])
+            if not record or record.get("status") != "OK":
+                continue
+            measured = d.measure(contract, record["outputs"])
+            t = measured.get("time_to_cv_onset_s")
+            if t is not None and (best is None or t < best[0]):
+                best = (t, d.check(contract, measured, bands))
+        if best is None:
+            out[scenario] = {"outcome": {"kind": "ABSTENTION", "decision_loss": None}}
+            continue
+        verdicts = best[1].values()
+        if any(v == d.FAIL for v in verdicts):
+            kind, loss = "SELECTED_INFEASIBLE", 10.0
+        elif any(v == d.UNRESOLVED for v in verdicts):
+            kind, loss = "SELECTED_UNRESOLVED", None
+        else:
+            kind, loss = "SELECTED_FEASIBLE", 0.0
+        out[scenario] = {"outcome": {"kind": kind, "decision_loss": loss}}
+    return out
+
+
 def main(argv=None):
     from scripts.dev.battery import quiz_designs as qd
 
@@ -46,6 +93,7 @@ def main(argv=None):
     parser.add_argument("--dev-results", type=Path, required=True)
     parser.add_argument("--b4-records", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--known-bad", choices=("v4", "v5"), default="v4")
     args = parser.parse_args(argv)
     registry = json.loads(REGISTRY.read_text())
     design = registry["designs"][0]
@@ -73,7 +121,21 @@ def main(argv=None):
     best_quarter = sorted(values, key=lambda m: (values[m], m))[
         : max(1, len(values) // 4)
     ]
-    bad = [m for m in (*qd.TRACK_A_BAD, qd.WINNER) if m in decisions]
+    if args.known_bad == "v5":
+        # v5 (25dc2f1e): behaviour-defined known-bad; the pool keeps only
+        # scenarios with at least one reference-feasible design.
+        anyone = next(iter(decisions))
+        all_infeasible = sorted(
+            s
+            for s in scenarios
+            if decisions[anyone][s]["outcome"].get("best_in_tested_set") is None
+        )
+        scenarios = [s for s in scenarios if s not in all_infeasible]
+        bad = [m for m in qd.BAD_V5 if m in decisions] + ["mode-x-aggressive"]
+        decisions = {**decisions, "mode-x-aggressive": _aggressive(scenarios)}
+    else:
+        all_infeasible = None
+        bad = [m for m in (*qd.TRACK_A_BAD, qd.WINNER) if m in decisions]
     good = [m for m in (*qd.GOOD_CONTROLS, *best_quarter) if m in decisions]
     outcome = {
         m: {s: decisions[m][s]["outcome"] for s in scenarios} for m in (*bad, *good)
@@ -96,7 +158,7 @@ def main(argv=None):
 
     rng = np.random.default_rng(20261006)
     rows = {}
-    for k in design["k"]:
+    for k in [k for k in design["k"] if k <= len(scenarios)]:
         aucs, regret_bad, regret_good, caution_good = [], [], [], []
         for _ in range(registry["metric"]["draws"]):
             chosen = [
@@ -137,6 +199,8 @@ def main(argv=None):
         "registry_commit": "fa865e57",
         "source": "PUBLIC_STANDIN: EV4 verification scenarios; not a hidden batch",
         "scenarios": len(scenarios),
+        "all_infeasible_scenarios_excluded": all_infeasible,
+        "known_bad_version": args.known_bad,
         "known_bad": bad,
         "known_good": {
             "controls": list(qd.GOOD_CONTROLS),

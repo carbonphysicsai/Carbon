@@ -36,3 +36,37 @@ The designs and the metric were registered in `quiz-registry-v3.json` (commit 18
 **Reading.**
 - A decision-level quiz catches a model whose decisions are bad (the run-5 winner). It cannot "catch" constructions whose decisions are only bad in particular conditions, because nothing about them is intrinsically unsafe.
 - The detection metric needs a known-bad set defined by behaviour across conditions, not by one study's verdict. Candidates: the boundary-optimist and localized-sign-error controls, the run-5 winner, and constructions selected adversarially per scenario (Mode X).
+
+## v5: behaviour-defined known-bad (quiz-registry-v5, commit 25dc2f1e)
+
+**Known-bad:** the boundary-optimist and localized-sign-error controls and the run-5 winner, plus the synthetic `mode-x-aggressive` decider for Q3 (the fastest protocol on each grid, ignoring constraints). Known-good is unchanged.
+
+**Q2 and Q1 on the public stand-in** (`comparison-v5-public-standin.json`). AUC is mean / 5th percentile.
+
+| Design | n | G-FEAS | G-PLATE | False-infeasible |
+|---|---|---|---|---|
+| Q0 random | 160 | 0.82 / 0.55 | 0.90 / 0.80 | 0.036 |
+| Q1 ≤ 4 bands | 160 | 0.97 / 0.87 | 0.97 / 0.88 | 0.063 |
+| **Q2 panel disagreement** | **80** | **0.97 / 0.90** | **0.98 / 0.95** | 0.086 |
+| Q2 | 40 | 0.84 / 0.51 | 0.95 / 0.80 | 0.106 |
+
+**Q3 on the 9 pool scenarios with a feasible design** (`q3-v5-public-standin.json`). Three of EV4's 12 verification scenarios are all-infeasible and are excluded under v5's rule.
+
+| k | Decision false-feasible AUC |
+|---|---|
+| 1 | 0.77 / 0.50 |
+| 4 | 0.89 / 0.74 |
+| 8 | 0.98 / 0.86 |
+
+**Per-member decision false-feasible** over the 9 scenarios:
+- boundary optimist: 0.63;
+- mode-x-aggressive: 0.67;
+- sign error: 0.29;
+- run-5 winner: 0.14 (its 12-scenario 0.20 includes the excluded scenarios);
+- good set: at most 0.17.
+
+**Reading.**
+- With a behaviour-defined known-bad set, both strata work.
+- Q2 reaches the registered bar at about 80 near-limit cases, at a false-infeasible rate of 0.086.
+- Q3 approaches it at k = 8 scenarios, costing 35 solves, about 0.8 CPU-hours, per scenario.
+- The run-5 winner's decision errors are only partly visible on feasible scenarios. Its per-case plating behaviour (Q2, G-PLATE) is the stronger signal.

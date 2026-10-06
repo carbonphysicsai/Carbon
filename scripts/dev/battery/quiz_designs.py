@@ -52,6 +52,8 @@ GOOD_CONTROLS = (
     "control-conservative",
     "control-rank_preserving_delay",
 )
+#: quiz-registry-v5 (25dc2f1e): known-bad by behaviour.
+BAD_V5 = ("control-boundary_optimist", "control-localized_sign_error", WINNER)
 
 
 def _bundles(dirs):
@@ -219,6 +221,7 @@ def main(argv=None):
     parser.add_argument("--attack", type=Path, required=True)
     parser.add_argument("--dev-results", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--known-bad", choices=("v3", "v5"), default="v3")
     args = parser.parse_args(argv)
     registry = json.loads(REGISTRY.read_text())
     contract, _ = load(CONTRACT)
@@ -246,14 +249,15 @@ def main(argv=None):
     best_quarter = sorted(values, key=lambda m: (values[m], m))[
         : max(1, len(values) // 4)
     ]
-    bad = [m for m in (*TRACK_A_BAD, WINNER) if m in member]
+    bad_set = BAD_V5 if args.known_bad == "v5" else (*TRACK_A_BAD, WINNER)
+    bad = [m for m in bad_set if m in member]
     good = [m for m in (*GOOD_CONTROLS, *best_quarter) if m in member]
     rows = evaluate(
         registry, ref_fail, ref_pass, ref_plate_fail, near, member, panel, bad, good
     )
     document = {
         "schema": "carbon.battery.quiz-design-comparison.v1",
-        "registry_commit": "1871cbd0",
+        "registry_commit": "1871cbd0" if args.known_bad == "v3" else "v5 25dc2f1e",
         "source": "PUBLIC_STANDIN: the public scoring set; not the tuning set",
         "cases": len(ids),
         "near_limit_cases": {
