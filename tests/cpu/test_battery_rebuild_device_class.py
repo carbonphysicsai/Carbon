@@ -67,22 +67,42 @@ def test_the_identity_is_what_the_rebuild_recorded():
     assert ri.from_reconstruction({**carrier, "fit": {"params_sha256": "x"}}) == (
         identity("cpu", IMAGE)
     )
-    torch_gpu = {"backend": "pytorch", "device": "cuda", "device_kind": "NVIDIA A40"}
-    assert ri.from_reconstruction({**carrier, "fit": torch_gpu}) == identity(A40, TORCH)
     # A GPU carrier names the device in its identity, as JAX's GPU backend
     # records do; the same field, the same class, whichever backend rebuilt.
-    jax_gpu = {**carrier, "device_kind": "NVIDIA A40", "fit": {}}
+    gpu_carrier = {**carrier, "device_kind": "NVIDIA A40"}
+    jax_gpu = {**gpu_carrier, "fit": {}}
     assert ri.from_reconstruction(jax_gpu) == identity(A40, IMAGE)
+    torch_gpu = {"backend": "pytorch", "device": "cuda", "device_kind": "NVIDIA A40"}
+    assert ri.from_reconstruction({**gpu_carrier, "fit": torch_gpu}) == identity(
+        A40, TORCH
+    )
     with pytest.raises(ValueError, match="different devices"):
         ri.from_reconstruction(
             {**jax_gpu, "fit": {"backend": "pytorch", "device_kind": "NVIDIA H100"}}
         )
+
+
+def test_nothing_the_rebuild_returns_can_set_the_device_class():
+    """The class is the validator backend's identity alone. A fit (what the
+    worker returns, the only output a candidate's construction shapes) that
+    names a device the backend did not is refused, never read as a class."""
+    carrier = {"backend": "ISOLATED_CARRIER", "image": IMAGE}
+    for fit in (
+        {"device_kind": "NVIDIA A40"},
+        {"backend": "pytorch", "device": "cuda", "device_kind": "NVIDIA A40"},
+    ):
+        with pytest.raises(ValueError, match="different devices"):
+            ri.from_reconstruction({**carrier, "fit": fit})
+    # Other fit keys never move it.
+    assert ri.from_reconstruction(
+        {**carrier, "fit": {"device_class": A40, "device": "cuda"}}
+    ) == identity("cpu", IMAGE)
     # A direct (in-process, development) rebuild has no worker image.
     assert (
         ri.from_reconstruction({"backend": "DIRECT", "fit": {}})["worker_image"] is None
     )
     with pytest.raises(ValueError):
-        ri.from_reconstruction({"fit": {"device_kind": ""}})
+        ri.from_reconstruction({"device_kind": "", "fit": {}})
 
 
 def test_a_record_without_the_field_keeps_its_meaning():

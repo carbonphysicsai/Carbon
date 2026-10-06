@@ -83,13 +83,9 @@ def state(torch) -> dict[str, object]:
     }
 
 
-@contextlib.contextmanager
-def deterministic_cuda(torch=None):
-    """The pinned GPU determinism in force on the bound CUDA device, restored
-    on exit. Refuses, before anything changes, a missing device, a device of
-    another kind than the run is bound to, or a missing pinned control."""
-    if torch is None:
-        import torch
+def require_ready(torch):
+    """Refuse, typed, a missing device, a device of another kind than the run
+    is bound to, or a missing pinned control. Nothing is changed."""
     if not torch.cuda.is_available():
         raise EnvironmentIneligible("the run needs a CUDA device")
     if any(os.environ.get(k) != v for k, v in GPU_DETERMINISM_ENVIRONMENT.items()):
@@ -97,6 +93,15 @@ def deterministic_cuda(torch=None):
     kind = expected_device_kind()
     if torch.cuda.get_device_name(0) != kind:
         raise EnvironmentIneligible("the device is not the kind the run is bound to")
+
+
+@contextlib.contextmanager
+def deterministic_cuda(torch=None):
+    """The pinned GPU determinism in force on the bound CUDA device, restored
+    on exit, after `require_ready`."""
+    if torch is None:
+        import torch
+    require_ready(torch)
     cudnn = torch.backends.cudnn
     saved = (
         torch.are_deterministic_algorithms_enabled(),
