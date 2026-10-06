@@ -37,7 +37,9 @@ JAX_PLATFORMS = "cuda"
 #: The practice program with one addition: the worker records what JAX
 #: actually ran on, so the feedback states the backend observed, not assumed.
 #: The CPU program is unchanged, so no existing practice identity moves.
-GPU_PROGRAM = PROGRAM + r"""
+GPU_PROGRAM = (
+    PROGRAM
+    + r"""
 import os
 
 import jax
@@ -54,6 +56,55 @@ import jax
     )
 )
 """
+)
+
+#: KNN-STATE-GPU-01: the GPU program's versions. v1 is `GPU_PROGRAM`, byte for
+#: byte as before: every non-KNN recipe (so every Level-0 pin), every Level-1
+#: trial and the miner's GPU practice scope keep it. v2 is v1 plus the
+#: versioned KNN state digest (`carbon.battery.knn_state`), staged as the
+#: other battery modules are; Carbon's pods build a KNN recipe with it.
+PROGRAM_V1 = "carbon.battery.gpu-practice.program.v1"
+PROGRAM_V2 = "carbon.battery.gpu-practice.program.v2-knn-state"
+KNN_STATE_STAGED = {"battery-knn-state.py": "knn_state.py"}
+_FIT = 'stats = model.fit(train, structure, recipe["seed"])\n'
+_KNN_STATE = r"""shutil.copyfile(work / "battery-knn-state.py", lab / "knn_state.py")
+from carbon_battery_lab.knn_state import with_state  # noqa: E402
+
+stats = with_state(model, stats)
+"""
+if GPU_PROGRAM.count(_FIT) != 1:
+    raise RuntimeError("the practice program's fit line moved")
+KNN_GPU_PROGRAM = GPU_PROGRAM.replace(_FIT, _FIT + _KNN_STATE)
+#: Every GPU program version, by program digest, so a record pinned under
+#: either version resolves to the exact program it names.
+PROGRAMS = {
+    digest(GPU_PROGRAM.encode()): (PROGRAM_V1, GPU_PROGRAM),
+    digest(KNN_GPU_PROGRAM.encode()): (PROGRAM_V2, KNN_GPU_PROGRAM),
+}
+
+
+def pod_program(family):
+    """(program, extra staged files) a Level-0 pod build runs for `family`:
+    v2 and the staged `knn_state.py` for a KNN, v1 and nothing else otherwise."""
+    if family != "knn":
+        return GPU_PROGRAM, {}
+    from pathlib import Path
+
+    from carbon import battery
+
+    here = Path(battery.__file__).parent
+    return KNN_GPU_PROGRAM, {
+        staged: (here / module).read_bytes()
+        for staged, module in KNN_STATE_STAGED.items()
+    }
+
+
+def program_version(program_digest):
+    """The GPU program version a record's `program` digest names; an unknown
+    digest is refused, never read as another version."""
+    if program_digest not in PROGRAMS:
+        raise ValueError("unknown battery GPU program")
+    return PROGRAMS[program_digest][0]
 
 
 def gpu_scope(image):

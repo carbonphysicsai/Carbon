@@ -121,13 +121,16 @@ class BatteryScoring(ChallengeScoring):
 
     def built_from(self, admitted, seed, root):
         from carbon.battery.practice import PracticeSet, staged_files
-        from carbon.development_session.battery_gpu import GPU_PROGRAM
+        from carbon.development_session.battery_gpu import pod_program
         from carbon.development_session.profile import digest
 
         recipe = admitted.construction
         plan = admitted.compiled.construction_plan
-        files = staged_files(root, PracticeSet.load(root), recipe, seed)
-        program = GPU_PROGRAM
+        # KNN-STATE-GPU-01: a KNN builds with GPU program v2, which stages the
+        # versioned state digest; every other recipe keeps v1 byte for byte.
+        program, extra = pod_program(recipe.family)
+        base = staged_files(root, PracticeSet.load(root), recipe, seed)
+        files = {**base, **extra}
         development = getattr(admitted, "development", None)
         loss = None
         if development is not None:
@@ -139,7 +142,7 @@ class BatteryScoring(ChallengeScoring):
                 getattr(admitted, "reconstruction", None)
             )
             if loss is not None:
-                files = {**files, **level1_worker.staged(loss)}
+                files = {**base, **level1_worker.staged(loss)}
                 program = level1_worker.program()
         record = {
             "schema": BUILT_SCHEMA,
