@@ -256,7 +256,7 @@ def request_commitment(signer: ExternalSigner, request: dict) -> dict:
         or type(call) is not str
         or not _CALL.fullmatch(call)
         or type(ceiling) is not int
-        or ceiling <= 0
+        or ceiling < 0
         or type(tempo) is not int
         or tempo < 0
     ):

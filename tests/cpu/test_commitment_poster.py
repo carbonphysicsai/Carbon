@@ -19,9 +19,12 @@ sys.path.insert(0, str(REPOSITORY / "tests" / "cpu"))
 from test_battery_validator_daemon import submission
 from test_miner_signer_commit import (
     DIGEST,
+    POLICY,
+    ZERO_FEE,
     _Asked,
     _call,
     _parts,
+    _record,
     _request,
     _server,
     short_dir,  # noqa: F401 - fixture
@@ -38,6 +41,7 @@ from carbon.chain.external_signer import (
     request_commitment,
     signatures_obtained,
 )
+from carbon_miner_signer import commitment as cm
 
 OTHER = "sha256:" + "f" * 64
 
@@ -88,10 +92,9 @@ class FakeChain:
         return self.head
 
 
-@pytest.fixture
-def signer(short_dir):  # noqa: F811
+def _serve(directory, policy):
     asked = _Asked()
-    server = _server(short_dir, confirm=asked).bind()
+    server = _server(directory, policy=policy, confirm=asked).bind()
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     client = connect_signer(server.hotkey, socket_path=server.socket_path)
@@ -105,6 +108,20 @@ def signer(short_dir):  # noqa: F811
     yield held
     server.close()
     thread.join(timeout=0.1)  # a daemon thread blocked in accept
+
+
+@pytest.fixture
+def signer(short_dir):  # noqa: F811
+    yield from _serve(short_dir, POLICY)
+
+
+@pytest.fixture
+def zero_signer(short_dir):  # noqa: F811
+    """The real signer pinned to the measured record: set_commitment pays no
+    fee and no deposit (localnet and testnet 567), so D3's ceiling is 0."""
+    policy, missing = cm.load_policy(_record(fee={**ZERO_FEE, "ceiling_rao": 0}))
+    assert missing == [] and policy.fee_ceiling_rao == 0
+    yield from _serve(short_dir, policy)
 
 
 def _with(signer, tmp_path, chain):
@@ -435,3 +452,22 @@ def test_the_fee_querys_public_account_decodes_the_ss58_address():
     account = cp._PublicAccount(BOB_SS58)
     assert account.public_key == BOB_PUBLIC
     assert account.ss58_address == BOB_SS58
+
+
+# A free call (the measured record) -------------------------------------------
+
+
+def test_a_free_call_posts_under_a_zero_ceiling(zero_signer, tmp_path):
+    chain = FakeChain(fees=[(0, 0)])
+    result = _with(zero_signer, tmp_path, chain).post(DIGEST)
+    assert result["code"] == "commitment_committed"
+    assert len(zero_signer.asked.prompts) == 1 and len(chain.broadcasts) == 1
+
+
+def test_any_fee_after_a_zero_ceiling_confirmation_is_not_broadcast(
+    zero_signer, tmp_path
+):
+    chain = FakeChain(fees=[(0, 0), (1, 0)])
+    result = _with(zero_signer, tmp_path, chain).post(DIGEST)
+    assert result["code"] == "commitment_fee_over_ceiling"
+    assert len(zero_signer.asked.prompts) == 1 and chain.broadcasts == []
