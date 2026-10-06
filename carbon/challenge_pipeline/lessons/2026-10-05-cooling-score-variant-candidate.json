@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-score-variant-candidate",
+  "recorded_at": "2026-10-05T20:19:14Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-11; canonical temporary Linux checkout of the exact changed source; 127 focused/affected tests passed, Ruff and Black passed",
+    "description": "Measured an unregistered reciprocal transform on the two pinned public Cooling PRACTICE baseline summaries; no new reference or hidden evaluation was run."
+  },
+  "expected": "A proposed unit-interval score would preserve the existing ordering, remain nonpromotable, and refuse positive numeric output for incomplete or non-scientific evidence.",
+  "observed": "The learned and closed-form public baselines map to 0.5031141352516869 and 0.454439115477784. Ordering is unchanged. Focused tests cover complete gates, missing evidence, mixed gate failure plus unavailability, malformed aggregates, and non-authority. An initial test invocation lacked the science-jax dependency group and failed collection; the registered group corrected that environment issue.",
+  "keep": [
+    "Separate a monotone presentation transform from the three-leg Score Pack and from a fresh-case promotion decision.",
+    "Pin the base exam and candidate source bytes so a prospective candidate cannot silently change while retaining the same identity."
+  ],
+  "change": [
+    "Before variant adoption, measure a broader preregistered DEVELOPMENT construction panel; two adaptively visible baselines do not establish decision alignment or score resolution."
+  ],
+  "protocol_elements": [
+    "Challenge-owned score transforms remain non-authoritative until science-owner adoption and validator-owned prospective registration"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
