@@ -38,6 +38,7 @@ from test_development_variants import (
     fixture_document,
     install,
 )
+from test_graphite_admission_controller import designate_controller
 
 from carbon.agent_campaign import climb
 from carbon.agent_campaign import controller as ctl
@@ -198,6 +199,7 @@ def check_lock_cross_checks_development(tmp_path, monkeypatch):
         assert not cr.is_development_variant(DEV1)
         block = _study_with(tmp_path, stripped)
         admission.validate(block, "fixture", repository=tmp_path)
+        designate_controller(monkeypatch, tmp_path, controller, "fixture")
         with pytest.raises(admission.AdmissionError) as refused:
             controller.check_lock(block, "fixture", repository=tmp_path)
         assert refused.value.args[0] == "admission_development_expansion_refused"
@@ -216,6 +218,7 @@ def check_lock_cross_checks_findings(tmp_path, monkeypatch):
     controller = tc.make(tmp_path)
     try:
         block = tca.accepted(tmp_path, "fixture")
+        designate_controller(monkeypatch, tmp_path, controller, "fixture")
         assert controller.check_lock(block, "fixture", repository=tmp_path) is block
         controller.record_finding("f1", "FAILING_TRIGGER", b"evidence")
         with pytest.raises(admission.AdmissionError) as refused:
