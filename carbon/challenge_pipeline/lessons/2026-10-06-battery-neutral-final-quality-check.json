@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-battery-neutral-final-quality-check",
+  "recorded_at": "2026-10-06T19:14:44Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "canonical quality at reconciled report head 03125bb58",
+    "description": "quality check against Validator-19 main base 74efce7be"
+  },
+  "expected": "Documentation-only verification creates no Python quality debt",
+  "observed": "Quality passed: Ruff 0/776, Black 0/68, changed Python files 0.",
+  "keep": ["Keep scoring and live-contract files untouched in verification-only work."],
+  "change": [],
+  "protocol_elements": ["challenge.pipeline.lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

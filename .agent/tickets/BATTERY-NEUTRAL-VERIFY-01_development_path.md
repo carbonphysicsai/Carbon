@@ -53,7 +53,9 @@ At evidence commit `ebb2e0d14`, `tests/cpu/test_challenge_pipeline.py` passed
 Black 0/68 and no changed Python files. After reconciliation, 188 tests passed
 on source head `5116d8812` with required `science-jax archive` groups. The
 initial missing-`archive` run and the corrected run are both recorded. Final
-PR CI will check the delivered head.
+documentation/lesson head `03125bb58` passed 28/28 lesson tests and canonical
+quality (Ruff 0/776, Black 0/68; no changed Python files). PR CI will check
+the delivered head, including the final validation lessons.
 
 ## Maturity ceiling
 
