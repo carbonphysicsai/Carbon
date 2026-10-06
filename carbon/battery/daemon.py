@@ -290,6 +290,7 @@ class BatteryValidator:
         service_key=None,
         allow_published_cases=False,
         development_only=False,
+        import_only=False,
     ):
         if type(store) is not PoolStore:
             raise TypeError("a PoolStore is required")
@@ -310,6 +311,10 @@ class BatteryValidator:
         #: `development_compiler` the Graphite side supplies. This module never
         #: names the variant module. Off by default; never sets weights.
         self.development_only = development_only is True
+        #: Import-only (VALIDATOR-19 slice 2): every batch comes from Carbon's
+        #: shared answer key (`challenge_validator.answer_key`); this
+        #: validator never draws or seals one itself.
+        self.import_only = import_only is True
         self.development_compiler = None
         self.material = PublicMaterial.load(repository)
         self.tol, self.scales = frozen_calibration(repository)
@@ -410,6 +415,8 @@ class BatteryValidator:
         uses it (EV5's confirmation set) regenerates it from the root and
         recalls it by fingerprint.
         """
+        if self.import_only:
+            raise StateError("batch_import_only")
         batch = make_batch(self.root, self.pin, role, count, duplicates)
         self._refuse_published(batch)
         try:
