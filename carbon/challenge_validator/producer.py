@@ -11,6 +11,8 @@ per Challenge:
         --challenge ID --fingerprint FP
     python -m carbon.challenge_validator.producer seal --config PRODUCER.json \\
         --challenge ID --fingerprint FP
+    python -m carbon.challenge_validator.producer publish --config PRODUCER.json \\
+        --challenge ID --fingerprint FP
     python -m carbon.challenge_validator.producer status --config PRODUCER.json
 
 - **`draw`** draws one batch from the registered population with the source's
@@ -27,8 +29,13 @@ per Challenge:
 
 Every file is owner-only and lives outside the repository; the producer runs
 only under its configured service account. Its journal and commitments hold
-public values only: no case id, input, reference or score. Serving batches to
-validators is slice 2, and the commitment is signed when it is published there.
+public values only: no case id, input, reference or score.
+
+- **`publish`** (slice 2) signs a sealed batch's package with Carbon's
+  producer key (`answer_key.package`) and writes it to the owner-only outbox.
+  The operator pushes the outbox to the distribution host over a
+  key-restricted channel; the producer host itself is never
+  internet-facing.
 DEVELOPMENT only: no qualification, weight, reward or LIVE authority.
 """
 
@@ -105,6 +112,11 @@ class BatchSource(abc.ABC):
         None while any reference is pending."""
 
     @abc.abstractmethod
+    def export(self, fingerprint):
+        """A sealed batch's payload for its answer-key package: the batch
+        document and its reference records. Private."""
+
+    @abc.abstractmethod
     def check(self, fingerprint):
         """Refuse unless the stored batch still matches its seed-journal
         commitment. Raises `ProducerRefused`."""
@@ -173,7 +185,8 @@ def load_config(path, *, account=None):
     keys = {"schema", "service_account", "producer_dir", "sources"}
     if (
         type(config) is not dict
-        or set(config) != keys
+        or not keys <= set(config)
+        or set(config) - keys - {"signing_key"}
         or config["schema"] != CONFIG_SCHEMA
         or type(config["sources"]) is not dict
         or any(
@@ -237,20 +250,25 @@ class ProducerJournal:
 class Producer:
     """Draw, solve once, and seal batches for the configured Challenges."""
 
-    def __init__(self, directory, sources):
+    def __init__(self, directory, sources, *, signing_key=None):
         self.directory = _owner_only_dir(directory)
         self.sources = {source.challenge_id: source for source in sources}
         self.journal = ProducerJournal(self.directory / "journal.jsonl")
+        self.signing_key = signing_key
 
     @classmethod
     def from_config(cls, path, *, repository=REPOSITORY):
+        from .answer_key import ProducerKey
+
         config = load_config(path)
+        key = config.get("signing_key")
         return cls(
             config["producer_dir"],
             [
                 source_for(challenge_id, spec, repository=repository)
                 for challenge_id, spec in sorted(config["sources"].items())
             ],
+            signing_key=None if key is None else ProducerKey.load(key),
         )
 
     def _source(self, challenge_id):
@@ -355,11 +373,52 @@ class Producer:
             "window": None,
         }
 
+    def publish(self, challenge_id, fingerprint):
+        """Sign a sealed batch's answer-key package into the outbox, for the
+        operator to push to the distribution host. Idempotent: the signature
+        is deterministic, so a second publish writes the same bytes."""
+        from .answer_key import AnswerKeyRefused, package, write_private
+
+        if self.signing_key is None:
+            raise ProducerRefused("producer_no_signing_key")
+        sealed = self.journal.find("sealed", challenge_id, fingerprint)
+        if sealed is None:
+            raise ProducerRefused("producer_not_sealed")
+        source = self._source(challenge_id)
+        # Re-checked, so a batch changed after its seal is never published.
+        source.check(fingerprint)
+        if (
+            source.sealed(fingerprint) is None
+            or self._commitment(source, fingerprint) != sealed["commitment"]
+        ):
+            raise ProducerRefused("producer_commitment_changed")
+        try:
+            value = package(
+                self.signing_key, sealed["commitment"], source.export(fingerprint)
+            )
+        except AnswerKeyRefused as refused:
+            raise ProducerRefused(refused.code) from None
+        name = fingerprint.removeprefix("sha256:") + ".json"
+        try:
+            write_private(self._private_dir("outbox", challenge_id) / name, value)
+        except AnswerKeyRefused as refused:
+            raise ProducerRefused(refused.code) from None
+        if self.journal.find("published", challenge_id, fingerprint) is None:
+            self.journal.append(
+                "published",
+                challenge_id=challenge_id,
+                fingerprint=fingerprint,
+                key_id=value["key_id"],
+            )
+        return {"fingerprint": fingerprint, "key_id": value["key_id"], "file": name}
+
     def status(self):
         """Counts per Challenge; public values only."""
         counts = {}
         for entry in self.journal.entries():
-            row = counts.setdefault(entry["challenge_id"], {"drawn": 0, "sealed": 0})
+            row = counts.setdefault(
+                entry["challenge_id"], {"drawn": 0, "sealed": 0, "published": 0}
+            )
             row[entry["event"]] += 1
         return {"challenges": counts}
 
@@ -367,7 +426,7 @@ class Producer:
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="carbon.challenge_validator.producer")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("draw", "solve", "seal", "status"):
+    for name in ("draw", "solve", "seal", "publish", "status"):
         command = sub.add_parser(name)
         command.add_argument("--config", required=True)
         if name == "status":
@@ -394,6 +453,8 @@ def main(argv=None):
             )
         elif args.command == "seal":
             result = producer.seal(args.challenge, args.fingerprint)
+        elif args.command == "publish":
+            result = producer.publish(args.challenge, args.fingerprint)
         else:
             result = producer.status()
     except ProducerRefused as refused:

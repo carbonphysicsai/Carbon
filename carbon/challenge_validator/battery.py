@@ -186,6 +186,80 @@ class BatteryAdapter(ChallengeAdapter):
     def status(self):
         return _plain(self.target.status())
 
+    # --- the shared answer key ----------------------------------------------
+
+    def holds_answer_key(self, commitment):
+        from carbon.battery.pool_store import StateError
+
+        try:
+            row = self.target.store.batch(commitment["fingerprint"])
+        except StateError:
+            return False
+        return (
+            row["references_state"] == "COMPLETE"
+            and row["references_digest"] == commitment["references_digest"]
+        )
+
+    def import_answer_key(self, commitment, payload):
+        """Import a producer batch, verified in full first:
+        - the commitment's contract and rule are this validator's;
+        - the document reproduces the committed fingerprint and case count;
+        - the references are exactly the batch's distinct cases, and digest
+          to the committed references digest, computed as `PoolStore` does.
+        Only then is the batch committed to this validator's own seed journal
+        (which also refuses a published case) and its references stored."""
+        import hashlib
+
+        from carbon.battery.daemon import PublishedCaseRefused
+        from carbon.battery.pool_store import StateError, canonical
+        from carbon.battery.seeds import PrivateBatch
+
+        from .answer_key import AnswerKeyRefused
+
+        identities = self.identities()
+        if (
+            commitment["contract_digest"] != identities["contract_digest"]
+            or commitment["rule_digest"] != identities["rule_digest"]
+        ):
+            raise AnswerKeyRefused("answer_key_identity_mismatch")
+        try:
+            batch = PrivateBatch.from_document(payload["document"])
+            references = payload["references"]
+            if set(payload) != {"document", "references"}:
+                raise ValueError
+        except (KeyError, TypeError, ValueError):
+            raise AnswerKeyRefused("answer_key_malformed") from None
+        if (
+            batch.fingerprint != commitment["fingerprint"]
+            or len(batch.cases) != commitment["cases"]
+            or batch.role != commitment["role"]
+        ):
+            raise AnswerKeyRefused("answer_key_fingerprint_mismatch")
+        duplicates = {dup for dup, _ in batch.duplicates}
+        needed = sorted(c for c, _ in batch.cases if c not in duplicates)
+        if type(references) is not dict or sorted(references) != needed:
+            raise AnswerKeyRefused("answer_key_references_mismatch")
+        rows = [[c, references[c]] for c in needed]
+        if any(type(r) is not dict or r.get("case_id") != c for c, r in rows):
+            raise AnswerKeyRefused("answer_key_references_mismatch")
+        digest = "sha256:" + hashlib.sha256(canonical(rows).encode()).hexdigest()
+        if digest != commitment["references_digest"]:
+            raise AnswerKeyRefused("answer_key_references_mismatch")
+        try:
+            with self._writer():
+                fingerprint = self.target.import_batch(batch, kind=commitment["kind"])
+                complete = self.target.ingest_references(
+                    fingerprint, [references[c] for c in needed]
+                )
+        except StateError as refused:
+            raise AnswerKeyRefused("answer_key_" + refused.code) from None
+        except PublishedCaseRefused:
+            # A published campaign case can never be a hidden case.
+            raise AnswerKeyRefused("answer_key_published_case") from None
+        if not complete or not self.holds_answer_key(commitment):
+            raise AnswerKeyRefused("answer_key_references_mismatch")
+        return fingerprint
+
 
 class BatteryBatchSource(BatchSource):
     """Battery's batches for the producer (VALIDATOR-19 slice 1, WRAP).
@@ -272,6 +346,17 @@ class BatteryBatchSource(BatchSource):
             if refused.code == "reference_records_changed":
                 raise ProducerRefused("producer_references_changed") from None
             raise ProducerRefused(refused.code) from None
+
+    def export(self, fingerprint):
+        row = self._row(fingerprint)
+        if row["references_state"] != "COMPLETE":
+            raise ProducerRefused("producer_references_pending")
+        store = self.adapter.target.store
+        stored = store.references([fingerprint])
+        return {
+            "document": row["document"],
+            "references": {c: stored[c] for c in store.needed_cases(fingerprint)},
+        }
 
     def sealed(self, fingerprint):
         row = self._row(fingerprint)

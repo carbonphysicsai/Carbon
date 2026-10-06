@@ -108,6 +108,19 @@ Carbon draws and solves.
   - producer-only roles refused;
   - the daemon's import-only mode, with `FAILED_INFRA` on a missing or
     mismatched batch.
+  - **Built** (VALIDATOR-18's two-host design):
+    - `producer publish` signs packages with Carbon's producer key;
+    - `answer_key.py` handles packages, verification, the validator `sync`,
+      and `keygen`;
+    - `distribution.py` is the public host: `btauth/1`, the permit read
+      from `chain/permits.py`, the fetch log, and an inbox that serves only
+      verified packages;
+    - deployments get `batch_source: "answer_key"` (import-only).
+  - **The validator verifies every package itself:** the signature, the
+    payload digest, the re-derived fingerprint and references digest, and
+    the commitment's contract and rule against its own.
+  - **Left to S3:** windows, retirement removal from the distribution host,
+    and the push channel's operator steps.
 - **S3: rotation and retirement.** A finalized-block tick, the cadence gate,
   the release-queue hook, and the new-Challenge owner-approval argument.
 - **S4: service accounts and the testnet acceptance test.**
