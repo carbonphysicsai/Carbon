@@ -388,6 +388,7 @@ class Phase3Provider(GraphiteProvider):
         randomness=os.urandom,
         adapter_id=None,
         scoring=None,
+        hidden=None,
         **kwargs,
     ):
         if type(grant) is not SpendingGrant:
@@ -428,6 +429,9 @@ class Phase3Provider(GraphiteProvider):
         if start_rungs:
             self.ladder = Ladder(Path(root) / "ladder", start_rungs=start_rungs)
         self.pods, self.miner_attach = pods, miner_attach
+        #: `run_id -> HiddenPool`, or None: each run's hidden-pool scoring
+        #: through the real validator (VALIDATOR-13, `hidden_score`).
+        self.hidden = hidden
         self.scorer, self.repository, self.randomness = scorer, repository, randomness
         #: The campaign controller this provider's runs record findings on as
         #: they are found, and tag next-level proposals from (`bind_findings`).
@@ -580,6 +584,7 @@ class Phase3Provider(GraphiteProvider):
             seconds_left=self._time_gate(run_id, opened),
             development_variant=recorded_variant(opened, self.scoring),
             on_finding=self._record_finding,
+            hidden=None if self.hidden is None else self.hidden(run_id),
         )
 
     def _next_level(self, run_id, role):
@@ -1403,6 +1408,66 @@ def carrier_pods(root, manifest):
     return CarrierPods(root, image=image)
 
 
+def finalized_block_clock(context):
+    """`() -> int | None`: the chain's finalized block, read-only; None when
+    the chain cannot be read (the hidden result is then `UNAVAILABLE`)."""
+    import asyncio
+
+    from carbon.chain.models import ChainFailure
+    from carbon.chain.sdk import BittensorReader
+
+    def clock():
+        try:
+            return asyncio.run(BittensorReader().capture(context)).finalized_block
+        except (ChainFailure, OSError):
+            return None
+
+    return clock
+
+
+def hidden_pool_factory(
+    config_path, scoring, variant, *, clock=None, repository=REPOSITORY
+):
+    """`run_id -> HiddenPool` over the battery deployment at `config_path`
+    (VALIDATOR-13). Checked before anything is spent: Level 0 only, the
+    deployment loads writable, and its rule seals hidden results."""
+    from pathlib import Path
+
+    from carbon.battery import deployment
+
+    from .hidden_score import HiddenPool, HiddenPoolRefused
+
+    if variant is not None:
+        raise RunnerRefused("hidden_pool_is_level_0_only")
+    if clock is None:
+        from carbon.chain.models import ChainContext
+        from carbon.development_testnet.operator import (
+            DEFAULT_ENDPOINT,
+            TESTNET_GENESIS,
+        )
+
+        clock = finalized_block_clock(
+            ChainContext(
+                "testnet",
+                DEFAULT_ENDPOINT,
+                "bittensor-official-test",
+                TESTNET_GENESIS,
+                567,
+            )
+        )
+    try:
+        target = deployment.validator(Path(config_path), repository=repository)
+    except deployment.EvaluationUnavailable as refused:
+        raise RunnerRefused("hidden_" + refused.code) from None
+    try:
+        probe = HiddenPool(target, run_id="probe", clock=clock)
+    except HiddenPoolRefused as refused:
+        raise RunnerRefused(refused.code) from None
+    if probe.challenge_id != scoring.challenge_id:
+        raise RunnerRefused("hidden_pool_is_another_challenges")
+    return lambda run_id: HiddenPool(target, run_id=run_id, clock=clock)
+
+
 def command_run(args):
     try:
         scoring = challenge_scoring.scoring_for(args.challenge)
@@ -1463,6 +1528,11 @@ def command_run(args):
                 raise RunnerRefused("runpod_key_file_must_be_owner_only")
         check_code_ref(args.code_ref)
         check_literature_challenge(literature, args.challenge, RunnerRefused)
+        hidden = (
+            None
+            if getattr(args, "hidden_deployment", None) is None
+            else hidden_pool_factory(args.hidden_deployment, scoring, variant)
+        )
         try:
             model = LiveModel(grant=grant, credential_file=engy, provider="graphite")
         except ModelAccessRefused as refused:
@@ -1493,6 +1563,7 @@ def command_run(args):
             miner_attach=attach,
             literature_index=literature,
             scoring=scoring,
+            hidden=hidden,
         )
         try:
             check_resume(provider, args.session)
@@ -1885,6 +1956,11 @@ def main(argv=None):
     run.add_argument("--miner-profile")
     run.add_argument("--miner-campaign")
     run.add_argument("--code-ref")
+    run.add_argument(
+        "--hidden-deployment",
+        help="also score each construction on this battery deployment's hidden "
+        "pool through the real validator (VALIDATOR-13; Level 0)",
+    )
     run.add_argument("--session", type=int, default=1)
     run.add_argument("--literature-snapshot")
     run.add_argument("--allow-unchecked-cards", action="store_true")
