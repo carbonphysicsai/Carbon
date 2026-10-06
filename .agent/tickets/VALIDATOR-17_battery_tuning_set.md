@@ -76,3 +76,21 @@ The owner, 2026-10-06: "Yes make the quiz questions maximally effective."
 - The tuning set's accuracy rows exclude quiz cases. The quiz feeds G-FEAS,
   G-PLATE and false-infeasible only.
 - v1 is never sealed.
+
+**Data Collection's size proposal (2026-10-06; proposed, not adopted).**
+- **Selection:** 40 quiz cases, selected by Q2 from a near-limit pool of 160
+  (4x oversample).
+  - Q2 means the cases within 4 bands where the public panel splits most
+    evenly on feasibility.
+  - **Bounds:** below n=20 the false-infeasible rate exceeds 0.13; above 40,
+    detection dilutes.
+- **Draw size:** about 25% of cases fall within 4 bands, so about 640 drawn
+  cases yield 160 near-limit cases. Near-limit oversampling at draw time is
+  the alternative.
+- **Definitions** are in #686: `score_tuning.near_limit` (the minimum
+  |margin| on plating and peak temperature, in contract bands) and
+  `false_infeasible_rate`.
+- **Caveat:** no design reached the registered bar (p05 AUC >= 0.9). The
+  quiz helps, but alone it does not expose decision-level failures.
+- **Still HUMAN_INPUT:** the margin (swept) and the sizes, until the owner
+  adopts them.
