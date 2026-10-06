@@ -51,6 +51,7 @@ _KEYS = frozenset(
         "base_rule",
         "candidate",
         "candidate_registry",
+        "practice_value_contract",
         "scope",
         "status",
         "authority",
@@ -96,6 +97,9 @@ class ScoreVariant:
     entry: dict  # the score-tuning registry entry, verbatim
     candidate: object  # that entry, parsed by the Challenge's own module
     candidate_registry: dict
+    #: The Challenge's practice value contract (decision data) this variant
+    #: was registered against, by digest (the Test Lead's ruling, 2026-10-05).
+    practice_value_contract: str
     status: str
 
     def identity(self):
@@ -106,6 +110,7 @@ class ScoreVariant:
             "base_rule": self.base_rule,
             "candidate": self.entry["id"],
             "candidate_registry": dict(self.candidate_registry),
+            "practice_value_contract": self.practice_value_contract,
             "label": "development_score_result:" + self.version,
         }
 
@@ -129,10 +134,17 @@ def registered(directory=None):
     return dict(_registry(POLICY_DIR if directory is None else directory)["variants"])
 
 
-def _declared(challenge_id):
-    from carbon.challenge_validator.scoring import scoring_for
+def _scoring(challenge_id):
+    from carbon.challenge_validator.scoring import ScoringUnavailable, scoring_for
 
-    return tuple(scoring_for(challenge_id).declared_score_components)
+    try:
+        return scoring_for(challenge_id)
+    except ScoringUnavailable:
+        raise ScoreVariantRefused("score_variant_challenge_not_served") from None
+
+
+def _declared(challenge_id):
+    return tuple(_scoring(challenge_id).declared_score_components)
 
 
 def load_variant(version, *, directory=None, declared=None):
@@ -177,6 +189,17 @@ def load_variant(version, *, directory=None, declared=None):
     ):
         # Promotion is from a committed tuning registry (registration first).
         raise ScoreVariantRefused("score_variant_candidate_registry_malformed")
+    contract = document["practice_value_contract"]
+    if type(contract) is not str or not (
+        contract.startswith("sha256:") and _HEX64.fullmatch(contract[7:])
+    ):
+        raise ScoreVariantRefused("score_variant_practice_value_contract_malformed")
+    pinned_contract = getattr(
+        _scoring(document["challenge_id"]), "practice_value_contract", None
+    )
+    if pinned_contract is not None and contract != pinned_contract:
+        # Registered against other decision data than the Challenge pins.
+        raise ScoreVariantRefused("score_variant_practice_value_contract_not_pinned")
     module = tuning_module(document["challenge_id"])
     try:
         candidate = module.parse_candidate(document["candidate"])
@@ -199,6 +222,7 @@ def load_variant(version, *, directory=None, declared=None):
         entry=dict(document["candidate"]),
         candidate=candidate,
         candidate_registry=dict(origin),
+        practice_value_contract=contract,
         status=document["status"],
     )
 

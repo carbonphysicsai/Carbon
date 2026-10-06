@@ -17,6 +17,7 @@ from carbon.scoring import development_score_variants as dsv
 
 BATTERY = "battery-fastcharge-ageing-development-v1"
 ORIGIN = {"sha256": "a" * 64, "commit": "b" * 40}
+CONTRACT = "sha256:" + "c" * 64
 ENTRY = {
     "id": "near-limit-weighted",
     "kind": "geometric",
@@ -35,6 +36,7 @@ def document(version="battery-v-test-v1", **changes):
         "base_rule": "battery-practice-v2",
         "candidate": dict(ENTRY),
         "candidate_registry": dict(ORIGIN),
+        "practice_value_contract": CONTRACT,
         "scope": dsv.SCOPE,
         "status": "SURVIVOR",
         "authority": {"promoted_from": "score-tuning registry"},
@@ -101,6 +103,7 @@ def test_a_variant_carries_the_tuning_entry_verbatim(tmp_path):
     identity = variant.identity()
     assert identity["candidate"] == "near-limit-weighted"
     assert identity["candidate_registry"] == ORIGIN
+    assert identity["practice_value_contract"] == CONTRACT
     assert identity["label"] == "development_score_result:battery-v-test-v1"
 
 
@@ -146,6 +149,10 @@ def test_a_promoted_candidate_scores_byte_identically_under_both_paths(tmp_path)
         ),
         ({"challenge_id": "chip-cold-plate"}, "score_variant_challenge_not_served"),
         ({"scope": "SERVED"}, "score_variant_malformed"),
+        (
+            {"practice_value_contract": "c" * 64},
+            "score_variant_practice_value_contract_malformed",
+        ),
         ({"status": "ADOPTED"}, "score_variant_malformed"),
     ],
 )
@@ -182,3 +189,17 @@ def test_a_fixture_is_refused_in_the_shipped_registry(monkeypatch, tmp_path):
     with pytest.raises(dsv.ScoreVariantRefused) as refused:
         dsv.load_variant(item["version"])
     assert refused.value.code == "score_variant_fixture_in_shipped_registry"
+
+
+def test_a_contract_other_than_the_challenges_pinned_one_is_refused(
+    tmp_path, monkeypatch
+):
+    scoring = scoring_for(BATTERY)
+    monkeypatch.setattr(
+        type(scoring), "practice_value_contract", "sha256:" + "d" * 64, raising=False
+    )
+    with pytest.raises(dsv.ScoreVariantRefused) as refused:
+        load(tmp_path)
+    assert refused.value.code == "score_variant_practice_value_contract_not_pinned"
+    monkeypatch.setattr(type(scoring), "practice_value_contract", CONTRACT)
+    assert load(tmp_path).practice_value_contract == CONTRACT
