@@ -22,7 +22,7 @@ no chain writes, no live runs and no spend.
    - #654's own codes (unregistered, altered, malformed and the rest);
    - `score_variant_is_another_challenges`;
    - `score_variant_runs_at_level_0_only`;
-   - `score_variant_practice_contract_unpinned` (decision 6).
+   - the practice-contract codes of decision 6.
 2. **Pinned in the brief and the profile.** The variant's `identity()` goes in
    the brief's `initial_observation.score_variant` and in the Level-0
    permission profile (`score_variant`). The campaign controller records the
@@ -39,7 +39,14 @@ no chain writes, no live runs and no spend.
    - a gate FAIL ranks last (the EV5 ruling);
    - no margin, and `promotable: false`.
 
-   Any margin or adoption is the science owner's.
+   Any margin or adoption is the science owner's. The Test Lead confirmed
+   this design on #668, with one requirement: the agent's practice feedback
+   shows the VARIANT's score as its `score`, labelled with the variant
+   identity (`score_label`, `score_gate`), so Graphite optimises the variant.
+   The feedback keeps the base rule's eligibility and gate failures and its
+   `promotable` (`promotion_rule: base`). It withholds the base score, its
+   components, deltas and interval. The baseline is shown by its variant
+   score.
 4. **Labelled everywhere.** Every result gets `label` (`identity()["label"]`),
    and every scored result gets its `score_variant` result. The rule identity,
    the agent's feedback, the session summary and `delivery.json` carry it too.
@@ -50,12 +57,25 @@ no chain writes, no live runs and no spend.
    another variant. A run whose brief pins another variant never scores
    (`score_variant_is_not_the_sessions`), but cancellation and reconciliation
    still run.
-6. **The legs' value contract is HUMAN_INPUT.** `member_legs` needs a battery
-   value contract, and five are committed (ev1, ev2, ev4, ev5, graphite-run5).
-   Neither #650 nor #654 names one for practice predictions. The choice changes
-   the m, n and p legs and both gates, so the shipped entry is `None`, and a
-   variant is refused before spend until the owner pins it. Tests pin ev1 as a
-   test-only fixture.
+6. **The legs' value contract is EV4's development decision contract.** The
+   Test Lead ruled this on #668, under the owner's delegation: it is
+   `ev4-charge-protocol-selection.v1`, never EV5's frozen confirmation or the
+   graphite-run5 panel copy.
+   - **Declared once, as Challenge data.** It is
+     `ChallengeScoring.practice_value_contract`, a (file, digest) pair, next
+     to `declared_score_components`. Battery declares EV4 by digest
+     `sha256:fedd753c…38d1`. Resolution checks the committed file still has
+     that digest (`score_variant_practice_contract_altered`).
+   - **Recorded by each variant.** A variant document records the digest it
+     was registered against. #654's schema has no field for it yet, so it is
+     read from the top-level `practice_value_contract` when present, and
+     until then from `authority.practice_value_contract`.
+   - **Refusals.** An absent digest is refused
+     `score_variant_practice_contract_unrecorded`, and a different one
+     `score_variant_practice_contract_mismatch`. A Challenge with no declared
+     contract (cooling) still refuses
+     `score_variant_practice_contract_unpinned`.
+   - **In every result.** The rule identity carries the declared digest.
 7. **Level 0 only.** At a development level the permission profile is the
    contract variant's own registered digest, so a score variant cannot be
    pinned there without a controller change. A higher level is refused, typed.
@@ -81,7 +101,10 @@ no chain writes, no live runs and no spend.
     the profile, a result, a feedback, the summary or the delivery. The
     pinned phase-3 replays are unchanged.
 
-**Owner input required.** Decision 6: which battery value contract a
-development score variant's legs are computed under on the practice
-predictions, and where it is pinned (a variant document field in #654's
-schema, or Challenge data).
+**Needed from #654.** A top-level `practice_value_contract` field in
+`carbon.development-score-variant.v1`, added to `_KEYS`:
+- a `"sha256:<64 hex>"` string, required;
+- exposed on `ScoreVariant`;
+- included in `identity()`.
+
+Until it lands, the `authority` entry stands in for it.

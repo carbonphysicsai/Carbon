@@ -7,7 +7,9 @@ frozen practice rule. The variant is:
 
 1. **resolved before spend** (`resolve`): an unregistered, altered, unknown
    or other Challenge's variant is refused, typed, before any grant, pod or
-   model call;
+   model call, as is one registered against another practice value contract
+   than the one the Challenge declares (`practice_value_contract`, battery:
+   EV4's development decision contract, the Test Lead on #668);
 2. **pinned** in the session brief (`initial_observation.score_variant`) and
    in the Level-0 permission profile, whose digest the campaign controller
    records;
@@ -21,7 +23,9 @@ The base rule still scores, compares and decides promotion, exactly as
 without a variant. The variant's result is development evidence beside it: an
 order against the baseline under the variant's own score (closest to 1 is
 best; a gate FAIL ranks last, the EV5 ruling), with no margin and never
-promotable. A variant runs at Level 0 only in this slice.
+promotable. The agent's practice feedback shows the VARIANT's score as its
+score (the Test Lead, #668), so Graphite optimises the variant, never the
+base rule. A variant runs at Level 0 only in this slice.
 
 **Never a miner door.** Only this development runner imports the variant
 module. Every miner door refuses a registered variant by name
@@ -32,15 +36,17 @@ DEVELOPMENT only: no qualification, weight, reward or LIVE authority.
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from carbon.challenge_validator import scoring as challenge_scoring
 
 BATTERY = "battery-fastcharge-ageing-development-v1"
-#: How a variant reads a member's legs on the practice predictions, per
-#: Challenge. `value_contract` names the value contract the legs are computed
-#: under. HUMAN_INPUT: no owner has pinned one, so None refuses before any
-#: spend (`score_variant_practice_contract_unpinned`).
-PRACTICE_LEGS = {BATTERY: {"value_contract": None}}
 LEVEL0_ONLY = "score_variant_runs_at_level_0_only"
+#: The variant document's record of the practice value contract digest it was
+#: registered against. #654's schema has no such field yet, so it is read from
+#: the document's `authority` until it does; absent, the variant is refused.
+CONTRACT_FIELD = "practice_value_contract"
 
 
 class ScoreVariantRefused(ValueError):
@@ -57,43 +63,80 @@ def _module():
     return development_score_variants
 
 
+def _directory():
+    """The variant registry read: None is the shipped one (tests point
+    elsewhere)."""
+    return
+
+
 def _load(version):
-    """The shipped registry's variant `version` (tests read their own)."""
-    return _module().load_variant(version)
+    """The registered variant `version` and its verified document."""
+    dsv = _module()
+    directory = _directory()
+    variant = dsv.load_variant(version, directory=directory)
+    folder = dsv.POLICY_DIR if directory is None else Path(directory)
+    try:
+        document = json.loads((folder / f"{version}.json").read_text())
+    except (OSError, ValueError):
+        raise dsv.ScoreVariantRefused("score_variant_unreadable") from None
+    if dsv.digest(document) != variant.digest:
+        raise dsv.ScoreVariantRefused("score_variant_altered")
+    return variant, document
+
+
+def recorded_contract(document):
+    """The practice value contract digest a variant document was registered
+    against: #654's top-level field once it has one, until then its
+    `authority` entry; None when absent."""
+    if CONTRACT_FIELD in document:
+        return document[CONTRACT_FIELD]
+    authority = document.get("authority")
+    return authority.get(CONTRACT_FIELD) if type(authority) is dict else None
 
 
 def resolve(version, scoring, *, level=0):
     """The registered development score variant `version` for the session's
     Challenge, verified; None without one. Refused, typed, before anything is
-    read or spent."""
+    read or spent: an unregistered or altered variant, another Challenge's, a
+    Challenge that declares no practice value contract, and a variant
+    registered against another contract than the one the Challenge declares
+    (or recording none)."""
     if version is None:
         return None
     if level != 0:
         raise ScoreVariantRefused(LEVEL0_ONLY)
     dsv = _module()
     try:
-        challenge = challenge_scoring.resolve(scoring).challenge_id
+        scoring = challenge_scoring.resolve(scoring)
     except (challenge_scoring.ScoringUnavailable, TypeError):
         raise ScoreVariantRefused("challenge_scoring_must_be_named") from None
     try:
-        variant = _load(version)
+        variant, document = _load(version)
     except dsv.ScoreVariantRefused as refused:
         raise ScoreVariantRefused(refused.code) from None
-    if variant.challenge_id != challenge:
+    if variant.challenge_id != scoring.challenge_id:
         raise ScoreVariantRefused("score_variant_is_another_challenges")
-    practice_legs(variant.challenge_id)
+    _file, declared = practice_contract(scoring)
+    recorded = recorded_contract(document)
+    if recorded is None:
+        raise ScoreVariantRefused("score_variant_practice_contract_unrecorded")
+    if recorded != declared:
+        raise ScoreVariantRefused("score_variant_practice_contract_mismatch")
     return variant
 
 
-def practice_legs(challenge):
-    """The Challenge's practice-legs entry; refused when none is served or its
-    value contract is not pinned."""
-    entry = PRACTICE_LEGS.get(challenge)
-    if entry is None:
-        raise ScoreVariantRefused("score_variant_practice_legs_not_served")
-    if entry["value_contract"] is None:
+def practice_contract(scoring):
+    """The Challenge's declared practice value contract, `(file, digest)`,
+    checked against the committed file. Refused when the Challenge declares
+    none (`score_variant_practice_contract_unpinned`) or the file no longer
+    has the declared digest."""
+    declared = challenge_scoring.resolve(scoring).practice_value_contract
+    if declared is None or scoring.challenge_id not in _LEGS:
         raise ScoreVariantRefused("score_variant_practice_contract_unpinned")
-    return entry
+    file, pinned = declared
+    if _LEGS[scoring.challenge_id][1](file) != pinned:
+        raise ScoreVariantRefused("score_variant_practice_contract_altered")
+    return file, pinned
 
 
 def identity_of(variant):
@@ -101,15 +144,28 @@ def identity_of(variant):
     return None if variant is None else variant.identity()
 
 
-def _battery_legs(base, value_contract):
-    """A member's `member_legs` row on battery's public PRACTICE references:
-    the practice store `score_practice` scores on, every practice case, a
-    missing case asked empty exactly as the base rule asks it (`cover`)."""
-    from carbon.battery.practice import practice_store
+def _battery_contract(file):
     from carbon.battery.value import contract
 
+    return contract.load(contract.CONTRACTS / file)
+
+
+def _battery_digest(file):
+    try:
+        return _battery_contract(file)[1]
+    except (OSError, ValueError):
+        return None
+
+
+def _battery_legs(base, file):
+    """A member's `member_legs` row on battery's public PRACTICE references:
+    the practice store `score_practice` scores on, every practice case, a
+    missing case asked empty exactly as the base rule asks it (`cover`),
+    under the declared practice value contract."""
+    from carbon.battery.practice import practice_store
+
     store = practice_store(base.practice, base.material, base.root)
-    document, _digest = contract.load(contract.CONTRACTS / value_contract)
+    document, _digest = _battery_contract(file)
     case_ids = list(base.practice.case_ids)
     tuning = _module().tuning_module(BATTERY)
 
@@ -120,7 +176,8 @@ def _battery_legs(base, value_contract):
     return legs
 
 
-_LEGS = {BATTERY: _battery_legs}
+#: Per Challenge: (its legs reader, its value contract digest reader).
+_LEGS = {BATTERY: (_battery_legs, _battery_digest)}
 
 
 class VariantRule:
@@ -134,8 +191,10 @@ class VariantRule:
         self.variant_identity = variant.identity()
         self.identity = {**base.identity, "score_variant": self.variant_identity}
         if legs is None:
-            entry = practice_legs(variant.challenge_id)
-            legs = _LEGS[variant.challenge_id](base, entry["value_contract"])
+            scoring = challenge_scoring.scoring_for(variant.challenge_id)
+            file, pinned = practice_contract(scoring)
+            self.identity["practice_value_contract"] = pinned
+            legs = _LEGS[variant.challenge_id][0](base, file)
         self._legs = legs
 
     def __getattr__(self, name):
@@ -199,12 +258,13 @@ def rule_for(base, variant):
 
 
 __all__ = [
+    "CONTRACT_FIELD",
     "LEVEL0_ONLY",
-    "PRACTICE_LEGS",
     "ScoreVariantRefused",
     "VariantRule",
     "identity_of",
-    "practice_legs",
+    "practice_contract",
+    "recorded_contract",
     "resolve",
     "rule_for",
 ]

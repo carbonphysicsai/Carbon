@@ -66,9 +66,10 @@ The phase-3 part is implemented on branch `claude/validator-09-phase3-variant`
 `.agent/decisions/2026-10-05-VALIDATOR-09-PHASE3-VARIANT-01.md`:
 - Level 0 only;
 - the variant's result sits beside the base rule's and is never promotable;
+- the agent's feedback shows the variant's score (#668);
 - every miner door refuses through the shared data-only name check;
-- the value contract for the legs is HUMAN_INPUT, so the flag refuses until
-  the owner pins it.
+- the legs' value contract is EV4's, declared as battery Challenge data by
+  digest (#668). Each variant must record that digest.
 
 - **Graphite `--score-variant` in phase 3:**
   - a variant practice rule computes `member_legs` on the practice

@@ -7,9 +7,9 @@ and delivery, and checked on resume. Phase 4 refuses one. Without the flag
 nothing changes (the pinned replays in `test_graphite_phase3.py` hold too).
 
 The variants here are FIXTURE documents in a test registry, scored through
-the Challenge's own score-tuning module (#650). The value contract their legs
-are computed under is a test-only pin: the shipped entry is HUMAN_INPUT and
-refuses. Synthetic predictions; nothing here is scientific evidence.
+the Challenge's own score-tuning module (#650), under battery's declared
+practice value contract (EV4's development decision contract, the Test Lead
+on #668). Synthetic predictions; nothing here is scientific evidence.
 """
 
 from __future__ import annotations
@@ -40,8 +40,9 @@ from carbon.scoring import development_score_variants as dsv
 BATTERY = "battery-fastcharge-ageing-development-v1"
 VERSION = "fixture-battery-score-variant-v1"
 OTHER = "fixture-battery-score-variant-v2"
-#: Test-only pin of the value contract a variant's legs are computed under.
-FIXTURE_CONTRACT = "ev1-charge-protocol-selection.v1.json"
+#: Battery's declared practice value contract (#668): EV4's.
+EV4_FILE = "ev4-charge-protocol-selection.v1.json"
+EV4 = "sha256:fedd753c0e7aa69d2fd4d6efbf3d877ac8eeb211859d9f32d76a61f38bbe38d1"
 ENTRY = {
     "id": "fixture-near-weighted",
     "kind": "geometric",
@@ -62,7 +63,9 @@ def document(version=VERSION, **changes):
         "candidate_registry": {"sha256": "a" * 64, "commit": "b" * 40},
         "scope": dsv.SCOPE,
         "status": "SURVIVOR",
-        "authority": {"promoted_from": "FIXTURE"},
+        # The contract it was registered against: in `authority` until #654's
+        # schema has a top-level field.
+        "authority": {"promoted_from": "FIXTURE", sv.CONTRACT_FIELD: EV4},
         "fixture": True,
     }
     value.update(changes)
@@ -84,18 +87,22 @@ def write_registry(directory, *documents):
 @pytest.fixture
 def registry(tmp_path, monkeypatch):
     """Two fixture variants in a test registry, read by the runner and by
-    every miner door's name check; the legs' value contract pinned for tests."""
+    every miner door's name check."""
     directory = write_registry(
         tmp_path / "score-variants",
         document(),
         document(OTHER, candidate={**ENTRY, "id": "fixture-accuracy"}),
     )
-    monkeypatch.setattr(sv, "_load", lambda v: dsv.load_variant(v, directory=directory))
+    monkeypatch.setattr(sv, "_directory", lambda: directory)
     monkeypatch.setattr(cr, "DEVELOPMENT_SCORE_VARIANT_DIR", directory)
-    monkeypatch.setattr(
-        sv, "PRACTICE_LEGS", {BATTERY: {"value_contract": FIXTURE_CONTRACT}}
-    )
     return directory
+
+
+def reregister(directory, *documents):
+    """Register `documents` (replacing the fixture registry)."""
+    for path in directory.glob("*.json"):
+        path.unlink()
+    write_registry(directory, *documents)
 
 
 def resolved(version=VERSION):
@@ -165,15 +172,72 @@ def test_a_development_level_refuses_a_score_variant(registry, capsys):
     assert refused_code(capsys) == sv.LEVEL0_ONLY
 
 
-def test_the_shipped_legs_contract_is_unpinned_and_refuses(registry, monkeypatch):
-    """HUMAN_INPUT: no owner has pinned the value contract a variant's legs
-    are computed under, so a variant is refused before spend."""
-    monkeypatch.undo()
-    assert sv.PRACTICE_LEGS == {BATTERY: {"value_contract": None}}
-    monkeypatch.setattr(sv, "_load", lambda v: dsv.load_variant(v, directory=registry))
+def test_battery_declares_ev4s_practice_contract_by_its_digest():
+    """The Test Lead on #668: EV4's development decision contract, pinned once
+    as battery Challenge data, never EV5's frozen confirmation or a panel
+    copy. The declared digest is the committed file's."""
+    from carbon.battery.value import contract
+
+    assert SCORING.practice_value_contract == (EV4_FILE, EV4)
+    assert contract.load(contract.CONTRACTS / EV4_FILE)[1] == EV4
+    assert sv.practice_contract(SCORING) == (EV4_FILE, EV4)
+
+
+@pytest.mark.parametrize(
+    ("recorded", "code"),
+    [
+        (None, "score_variant_practice_contract_unrecorded"),
+        ("sha256:" + "0" * 64, "score_variant_practice_contract_mismatch"),
+    ],
+)
+def test_a_variant_registered_against_another_contract_is_refused(
+    registry, recorded, code
+):
+    authority = {"promoted_from": "FIXTURE"}
+    if recorded is not None:
+        authority[sv.CONTRACT_FIELD] = recorded
+    reregister(registry, document(authority=authority))
     with pytest.raises(sv.ScoreVariantRefused) as refused:
         resolved()
+    assert refused.value.code == code
+
+
+def test_ev5s_digest_is_not_battery_practice_contract(registry):
+    from carbon.battery.value import contract
+
+    ev5 = contract.load(contract.CONTRACTS / "ev5-charge-protocol-selection.v1.json")
+    reregister(
+        registry,
+        document(authority={"promoted_from": "FIXTURE", sv.CONTRACT_FIELD: ev5[1]}),
+    )
+    with pytest.raises(sv.ScoreVariantRefused) as refused:
+        resolved()
+    assert refused.value.code == "score_variant_practice_contract_mismatch"
+
+
+def test_a_top_level_contract_field_is_read_first():
+    """Once #654's schema carries the field, the top-level value governs."""
+    top = document(**{sv.CONTRACT_FIELD: EV4})
+    top["authority"] = {"promoted_from": "FIXTURE", sv.CONTRACT_FIELD: "other"}
+    assert sv.recorded_contract(top) == EV4
+    assert sv.recorded_contract(document(authority={})) is None
+
+
+def test_a_challenge_without_a_declared_contract_is_unpinned():
+    cooling = challenge_scoring.scoring_for("chip-cold-plate")
+    assert cooling.practice_value_contract is None
+    with pytest.raises(sv.ScoreVariantRefused) as refused:
+        sv.practice_contract(cooling)
     assert refused.value.code == "score_variant_practice_contract_unpinned"
+
+
+def test_a_declared_digest_the_file_does_not_have_is_refused(monkeypatch):
+    monkeypatch.setattr(
+        type(SCORING), "practice_value_contract", (EV4_FILE, "sha256:" + "1" * 64)
+    )
+    with pytest.raises(sv.ScoreVariantRefused) as refused:
+        sv.practice_contract(SCORING)
+    assert refused.value.code == "score_variant_practice_contract_altered"
 
 
 def test_the_shipped_registry_resolves_nothing(capsys):
@@ -277,7 +341,7 @@ def test_the_variant_result_is_the_registered_scorers_own(registry, tmp_path):
     _rows, summary = rule.score(predictions)
     base = rule.base
     row = st.member_legs(
-        contract.load(contract.CONTRACTS / FIXTURE_CONTRACT)[0],
+        contract.load(contract.CONTRACTS / EV4_FILE)[0],
         predictions,
         practice_store(base.practice, base.material, base.root),
         list(base.practice.case_ids),
@@ -285,6 +349,7 @@ def test_the_variant_result_is_the_registered_scorers_own(registry, tmp_path):
     assert summary["score_variant"] == challenge_scoring.clean(
         dsv.score_member(score, row)
     )
+    assert rule.identity["practice_value_contract"] == EV4
 
 
 def test_feedback_shows_the_variant_result_and_label(registry, tmp_path):
@@ -298,6 +363,75 @@ def test_feedback_shows_the_variant_result_and_label(registry, tmp_path):
         assert view["label"] == record["label"]
         if record["status"] == "SCORED":
             assert view["score_variant"] == record["score_variant"]
+
+
+def test_the_agent_is_fed_the_variant_score_while_promotion_stays_on_base(
+    registry, tmp_path, monkeypatch
+):
+    """The Test Lead on #668: during a variant session the agent's practice
+    feedback is the VARIANT's score, labelled with its identity, so Graphite
+    optimises the variant; promotion and the comparison stay on the base
+    rule. The feedback captured is exactly what the propose tool returned."""
+    from carbon.agent_campaign.graphite import experiment as ex
+
+    returned = []
+    real = ex._feedback_view
+
+    def captured(record):
+        view = real(record)
+        returned.append((record["proposal_id"], view))
+        return view
+
+    monkeypatch.setattr(ex, "_feedback_view", captured)
+    score = resolved()
+    label = score.identity()["label"]
+    _result, graphite, _brief, _campaign = scored_session(tmp_path, score)
+    experiment = graphite.experiment(run_id())
+    proposal_id, view = next((pid, v) for pid, v in returned if v["kind"] == "proposal")
+    record = experiment.record(proposal_id)
+    assert record["status"] == "SCORED"
+    variant_score = record["score_variant"]["score"]
+    base_score = record["frozen_rule"]["score"]
+    # The variant's score differs from the base rule's, and the agent sees
+    # the variant's as its score, labelled; the base score is withheld.
+    assert variant_score is not None and base_score is not None
+    assert variant_score != base_score
+    assert view["score"] == variant_score
+    assert view["score_label"] == label and view["label"] == label
+    assert view["score_gate"] == record["score_variant"]["gate"]
+    assert "score" not in view["frozen_rule"]
+    assert "components" not in view["frozen_rule"]
+    assert view["frozen_rule"]["eligible"] == record["frozen_rule"]["eligible"]
+    against = view["against_baseline"]
+    assert set(against) == {"promotable", "promotion_rule", "score_variant"}
+    assert "mean_delta" not in against and "ci" not in against
+    assert view["baseline"]["score"] == against["score_variant"]["baseline_score"]
+    # Promotion stays on the base rule: the record's and the agent's
+    # `promotable` are the base rule's own comparison.
+    baseline_id = experiment.baseline_id()
+    base = graphite._frozen_rule().base
+    expected = base.compare(
+        experiment.rows(baseline_id),
+        experiment.rows(proposal_id),
+        bool(record["frozen_rule"]["eligible"]),
+    )
+    assert record["against_baseline"]["promotable"] == expected["promotable"]
+    assert record["against_baseline"]["outcome"] == expected["outcome"]
+    assert against["promotable"] == expected["promotable"]
+    assert against["promotion_rule"] == "base"
+
+
+def test_without_a_variant_the_agent_feedback_is_unchanged(tmp_path):
+    from carbon.agent_campaign.graphite import experiment as ex
+
+    _result, graphite, _brief, _campaign = scored_session(tmp_path)
+    for record in results(graphite):
+        view = ex._feedback_view(record)
+        assert "score" not in view and "score_label" not in view
+        if record["status"] == "SCORED":
+            assert view["frozen_rule"] == record["frozen_rule"]
+            if "against_baseline" in record:
+                assert view["against_baseline"] == record["against_baseline"]
 
 
 # --- 4. resume -----------------------------------------------------------------------

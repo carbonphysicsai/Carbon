@@ -354,6 +354,47 @@ def _feedback_view(record):
     ):
         if key in record:
             view[key] = record[key]
+    if "score_variant" in record:
+        view = _variant_feedback(view, record)
+    return view
+
+
+#: The base rule's score columns, which a variant session's agent never sees.
+_BASE_SCORE_KEYS = ("score", "important_score", "components", "partial_coverage")
+
+
+def _variant_feedback(view, record):
+    """A development score variant session's feedback (the Test Lead, #668):
+    the agent's score is the VARIANT's, labelled with its identity, so the
+    session optimises the variant. The base rule still decides promotion
+    (`promotable`) and its gates (`frozen_rule` eligibility and failures),
+    but its score, deltas and interval are withheld."""
+    scored = record["score_variant"]
+    view = {
+        **view,
+        "score": scored.get("score"),
+        "score_gate": scored.get("gate"),
+        "score_label": scored.get("label"),
+    }
+    rule = view.get("frozen_rule")
+    if type(rule) is dict:
+        view["frozen_rule"] = {
+            k: v for k, v in rule.items() if k not in _BASE_SCORE_KEYS
+        }
+    against = record.get("against_baseline")
+    if type(against) is dict:
+        variant = against.get("score_variant") or {}
+        view["against_baseline"] = {
+            "promotable": against.get("promotable"),
+            "promotion_rule": "base",
+            "score_variant": variant,
+        }
+        baseline = record.get("baseline") or {}
+        view["baseline"] = {
+            "eligible": baseline.get("eligible"),
+            "score": variant.get("baseline_score"),
+            "score_label": scored.get("label"),
+        }
     return view
 
 
