@@ -254,7 +254,7 @@ acceptance, which stays the owner's, and tests are not an audit.
   confirm; a request carrying one is malformed.
 - **Network.** None. The Launchpad reads the chain and broadcasts (S-offline).
 - **Bounds.** Netuid and genesis fixed at start; tip 0; a mortal era of at
-  most the recorded cap; a fee ceiling (HUMAN_INPUT until measured); one
+  most the recorded cap; a fee ceiling (measured 0 on 2026-10-06: the call is free, so any quoted fee is refused); one
   commitment per tempo in an append-only ledger beside the socket; one
   request at a time.
 - **Start.** A key file that is a symlink, another user's, or readable or

@@ -11,13 +11,32 @@
     "function": "set_commitment",
     "pallet_index": 18,
     "pallet_index_source": "bittensor/_generated/errors.py:243 (module errors (18, n) are the Commitments pallet's); re-checked by the localnet round trip",
-    "call_index": null,
+    "call_index": 0,
     "data_variant": "Raw71",
-    "data_tag": null,
-    "unpinned_reason": "call_index and data_tag come from runtime metadata, not the SDK source; the localnet round trip measures them"
+    "data_tag": 72,
+    "measured": "localnet round trip at 1dc22a3c1 (2026-10-06); testnet 567 composes the same call prefix 0x1200"
   },
-  "extensions": null,
-  "zero_sized_extensions": null,
+  "extensions": [
+    "CheckNonZeroSender",
+    "CheckSpecVersion",
+    "CheckTxVersion",
+    "CheckGenesis",
+    "CheckMortality",
+    "CheckNonce",
+    "CheckWeight",
+    "ChargeTransactionPayment",
+    "SudoTransactionExtension",
+    "CheckShieldedTxValidity",
+    "SubtensorTransactionExtension",
+    "DrandPriority",
+    "CheckMetadataHash"
+  ],
+  "zero_sized_extensions": [
+    "SudoTransactionExtension",
+    "CheckShieldedTxValidity",
+    "SubtensorTransactionExtension",
+    "DrandPriority"
+  ],
   "network": {
     "name": "testnet",
     "genesis_hash": "0x8f9cf856bf558a14440e75569c9e58594757048d7b3a84b5d25f6bd978263105",
@@ -32,12 +51,20 @@
     "rule": "D9: the SDK's default mortal era (bittensor/settings.py:22), capped at one tempo"
   },
   "fee": {
-    "status": "HUMAN_INPUT",
+    "status": "MEASURED",
     "rule": "D3: ceiling = multiplier x (measured partial fee + measured deposit) from a localnet round trip; paid by the hotkey's owning coldkey (bittensor/fee_filters.py:30)",
     "multiplier": 2,
-    "measured_fee_rao": null,
-    "measured_deposit_rao": null,
-    "ceiling_rao": null,
-    "measurement": null
+    "measured_fee_rao": 0,
+    "measured_deposit_rao": 0,
+    "ceiling_rao": 0,
+    "measurement": {
+      "block": 290,
+      "deposit_rao": 0,
+      "estimated_partial_fee_rao": 0,
+      "genesis_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+      "network": "localnet",
+      "paid_fee_rao": 0,
+      "testnet_567_read": "2026-10-06, read-only: estimated fee 0, Commitments InitialDeposit 0 and FieldDeposit 0, the same 13 signed extensions in the same order"
+    }
   }
 }

@@ -157,18 +157,45 @@ def _refusal(response):
 # Pins and encodings ---------------------------------------------------------
 
 
-def test_committed_record_is_unpinned_so_every_commit_is_refused(short_dir):
+#: The localnet round trip's measurement (2026-10-06), checked read-only
+#: against testnet 567: same extensions, free call, no deposit.
+MEASURED_EXTENSIONS = [
+    "CheckNonZeroSender",
+    "CheckSpecVersion",
+    "CheckTxVersion",
+    "CheckGenesis",
+    "CheckMortality",
+    "CheckNonce",
+    "CheckWeight",
+    "ChargeTransactionPayment",
+    "SudoTransactionExtension",
+    "CheckShieldedTxValidity",
+    "SubtensorTransactionExtension",
+    "DrandPriority",
+    "CheckMetadataHash",
+]
+
+
+def test_committed_record_holds_the_measured_pins_and_a_zero_ceiling():
     policy, missing = cm.load_policy()
-    assert policy is None
-    assert {"call.call_index", "call.data_tag", "fee.ceiling_rao"} <= set(missing)
+    assert missing == [] and policy is not None
+    assert policy.fee_ceiling_rao == 0
     record = json.loads(cm.RECORD_PATH.read_text())
-    assert record["fee"]["status"] == "HUMAN_INPUT"
+    assert record["fee"]["status"] == "MEASURED"
+    assert (record["call"]["call_index"], record["call"]["data_tag"]) == (0, 72)
+    assert record["extensions"] == MEASURED_EXTENSIONS
+    assert record["zero_sized_extensions"] == [
+        name for name in MEASURED_EXTENSIONS if name not in cm.STANDARD_EXTENSIONS
+    ]
     assert record["network"] == {
         **record["network"],
         "name": "testnet",
         "netuid": 567,
         "genesis_hash": GENESIS,
     }
+
+
+def test_a_signer_without_a_policy_refuses_every_commit(short_dir):
     asked = _Asked()
     server = _server(short_dir, policy=None, confirm=asked)
     assert _refusal(server.answer(_request())) == "COMMITMENT_NOT_PINNED"

@@ -1,0 +1,28 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-06-commitment-localnet-round-trip",
+ "recorded_at": "2026-10-06T21:00:00Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "test_run",
+  "ref": "claude/commitment-poster at 1dc22a3c1 (COMMITMENT-POSTER-01, #717), standard localnet",
+  "description": "The miner-signed commitment round trip: Carbon prepares set_commitment, the miner's signer asks on its own terminal and signs, Carbon broadcasts once and reads the digest back; a replay and a second post in the same tempo are refused. It measured the record's call, extension and fee pins."
+ },
+ "expected": "One round trip measures a positive fee and deposit, and D3's ceiling becomes twice that.",
+ "observed": "Three heads were needed. The fee account decode read the SDK's raw ss58 bytes as hex (b797bb97). Then set_commitment turned out to be free: fee 0 and both Commitments deposits 0, on the localnet and, read-only, on testnet 567. The signer's record check and the client's answer check both treated a ceiling of 0 as broken (52ba01e5e, 16d41394a). At 1dc22a3c1 it passed: read-back, replay refused, second post refused by the ledger. Testnet 567 composes the same call prefix and the same 13 signed extensions as the localnet.",
+ "keep": [
+  "A measured 0 is a measurement, not a missing value; only null means unmeasured. A ceiling of 0 is the strictest valid ceiling, so it refuses any fee that appears later.",
+  "When one guard turns out wrong, grep every boundary that carries the same value (record, signer, client, poster) before handing back a head.",
+  "Pins measured on a localnet are checked read-only against the target network before they are committed."
+ ],
+ "change": [
+  "If a later runtime starts charging for set_commitment, the zero ceiling refuses every post (FEE_OVER_CEILING) until a new measurement is recorded; that is the intended fail-closed behaviour, not a fault."
+ ],
+ "protocol_elements": [
+  "commitment.signer",
+  "commitment.record"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
