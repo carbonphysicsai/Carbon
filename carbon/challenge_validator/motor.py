@@ -59,15 +59,23 @@ def _copy(value):
 def implementation_digest():
     """Pin the adapter and executable Motor pieces used during evaluation."""
 
+    from carbon.challenge_validator import (
+        candidate_fault,
+        public_practice_store,
+        scoring,
+    )
     from carbon.motor import compile as compiler
     from carbon.motor import recipes
 
     files = {
         "adapter": Path(__file__),
+        "candidate_fault": Path(candidate_fault.__file__),
         "compiler": Path(compiler.__file__),
         "exam": Path(exam.__file__),
         "learned_baseline": Path(learned_baseline.__file__),
+        "public_practice_store": Path(public_practice_store.__file__),
         "recipes": Path(recipes.__file__),
+        "scoring": Path(scoring.__file__),
     }
     return digest(
         {
@@ -109,7 +117,9 @@ class MotorStore(PublicPracticeStore):
     """Motor-specific identity on the shared owner-only public store."""
 
     def __init__(self, root):
-        super().__init__(root, name="motor", schema=STORE_SCHEMA, error_type=MotorAdapterError)
+        super().__init__(
+            root, name="motor", schema=STORE_SCHEMA, error_type=MotorAdapterError
+        )
 
 
 class MotorAdapter(ChallengeAdapter):
@@ -137,6 +147,7 @@ class MotorAdapter(ChallengeAdapter):
             "rule_digest": digest(rule),
             "implementation_digest": implementation_digest(),
             "public_material": rule["public_material"],
+            "candidate_fault_policy_digest": self.candidate_fault_policy.digest,
             "evidence": EVIDENCE,
         }
         self._practice = {
@@ -220,7 +231,9 @@ class MotorAdapter(ChallengeAdapter):
         try:
             model = rebuild(recipe, self.material)
         except Exception as fault:
-            raise CandidateFault("rebuild_exception", self.candidate_fault_policy) from fault
+            raise CandidateFault(
+                "rebuild_exception", self.candidate_fault_policy
+            ) from fault
         references = self.store.references(fingerprint)
         try:
             predictions = {
@@ -228,7 +241,9 @@ class MotorAdapter(ChallengeAdapter):
                 for case_id, record in references.items()
             }
         except Exception as fault:
-            raise CandidateFault("predict_exception", self.candidate_fault_policy) from fault
+            raise CandidateFault(
+                "predict_exception", self.candidate_fault_policy
+            ) from fault
         scales = exam.scales_from_train(self.material.train)
         asked, missing = cover(predictions, sorted(references))
         rows = [
@@ -237,9 +252,13 @@ class MotorAdapter(ChallengeAdapter):
         ]
         summary = {**exam.aggregate(rows), "n_missing": len(missing)}
         try:
-            _canonical({"predictions": predictions, "cases": rows, "aggregate": summary})
+            _canonical(
+                {"predictions": predictions, "cases": rows, "aggregate": summary}
+            )
         except (TypeError, ValueError) as fault:
-            raise CandidateFault("non_finite_score", self.candidate_fault_policy) from fault
+            raise CandidateFault(
+                "non_finite_score", self.candidate_fault_policy
+            ) from fault
         outcome = self._outcome(submission_id, "SCORED", summary=summary)
         score_record = {
             "schema": SCORE_RECORD_SCHEMA,

@@ -3,7 +3,8 @@
 One validator scores any registered Challenge's submissions against that
 Challenge's frozen rule, through one `ChallengeAdapter` per construction
 contract. Battery is the first adapter (`battery.BatteryAdapter`); Cooling's
-public-development adapter is `cooling.CoolingAdapter`.
+public-development adapter is `cooling.CoolingAdapter`, and Motor's is
+`motor.MotorAdapter`.
 
 - `interface`: the adapter contract, the outcome contract and the reserved
   seed roles;

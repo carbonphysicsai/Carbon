@@ -80,6 +80,7 @@ def implementation_digest():
     """Pin the adapter and every executable Cooling component it invokes."""
 
     from carbon import learned_baseline
+    from carbon.challenge_validator import public_practice_store
     from carbon.cold_plate import compile as compiler
     from carbon.cold_plate import recipes
 
@@ -88,6 +89,7 @@ def implementation_digest():
         "compiler": Path(compiler.__file__),
         "exam": Path(exam.__file__),
         "learned_baseline": Path(learned_baseline.__file__),
+        "public_practice_store": Path(public_practice_store.__file__),
         "recipes": Path(recipes.__file__),
     }
     return digest(

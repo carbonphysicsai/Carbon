@@ -264,5 +264,3 @@ class PublicPracticeStore:
             "submissions": submissions,
             "scored": scored,
         }
-
-
