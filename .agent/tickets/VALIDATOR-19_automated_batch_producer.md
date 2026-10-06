@@ -144,3 +144,18 @@ and `-2`, each with its own deployment directory and hotkey path.
 ## Maturity
 
 Design only.
+
+## Protect first (the owner, 2026-10-05, relayed by the Test Lead)
+
+> Build on protection instead of backing down.
+
+When an attack finding hits a construction freedom, the default fix keeps the
+freedom and adds a protection in the rebuild path. The kinds of protection:
+- an isolation or resource profile;
+- a determinism pin (A40 plus the pinned configuration, VALIDATOR-18);
+- a verifier;
+- a provenance check (digest-bound recipes and batch commitments).
+
+Narrowing a freedom is the last resort. If it is needed, it is a versioned,
+temporary policy that names the protection which will lift it. This applies
+to this ticket's rebuild path and to the Level 4–5 isolation work.
