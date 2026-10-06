@@ -62,7 +62,8 @@
     "S5": [
      "tests/cpu/test_graphite_coverage_parity.py::test_cooling_and_motor_frozen_rules_charge_a_missing_case[motor]"
     ]
-   }
+   },
+   "validator_adapter": "carbon.challenge_validator.motor:MotorAdapter"
   }
  }
 }
