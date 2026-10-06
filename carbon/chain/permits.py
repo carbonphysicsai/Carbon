@@ -92,7 +92,10 @@ async def _fetch(context, hotkey):
         if member is None:
             return (False, False, block)
         permits = await substrate.query(
-            "SubtensorModule", "ValidatorPermit", [context.netuid], block_hash=block_hash
+            "SubtensorModule",
+            "ValidatorPermit",
+            [context.netuid],
+            block_hash=block_hash,
         )
         if type(permits) is not list or member.uid >= len(permits):
             raise ChainFailure(FailureCode.INCOMPLETE)
@@ -108,9 +111,7 @@ def finalized_block(context, *, fetch=None):
         raise TypeError("a ChainContext is required")
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            block = pool.submit(
-                asyncio.run, (fetch or _fetch_head)(context)
-            ).result()
+            block = pool.submit(asyncio.run, (fetch or _fetch_head)(context)).result()
     except ChainFailure as failure:
         raise PermitUnavailable(str(failure)) from None
     except Exception:  # noqa: BLE001 -- any provider error is infrastructure

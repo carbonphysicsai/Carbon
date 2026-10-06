@@ -133,7 +133,7 @@ class BatchSource(abc.ABC):
         """`{"every_blocks", "active"}` from the Challenge's own registered
         rule, or None: then no batch is scheduled (the cadence is
         HUMAN_INPUT until the rule names one)."""
-        return None
+        return
 
     @abc.abstractmethod
     def export(self, fingerprint):
@@ -442,9 +442,10 @@ class Producer:
         source = self._source(challenge_id)
         # Re-checked, so a batch changed after its seal is never published.
         source.check(fingerprint)
-        if source.sealed(fingerprint) is None or self._commitment(
-            source, fingerprint
-        ) != sealed["commitment"]:
+        if (
+            source.sealed(fingerprint) is None
+            or self._commitment(source, fingerprint) != sealed["commitment"]
+        ):
             raise ProducerRefused("producer_commitment_changed")
         scheduled = self.journal.find("scheduled", challenge_id, fingerprint)
         if scheduled is None:

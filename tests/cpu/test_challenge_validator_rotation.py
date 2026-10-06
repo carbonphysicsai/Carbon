@@ -113,7 +113,9 @@ def sealed(producer, challenge, role):
 
 def test_a_slot_is_never_scheduled_late_twice_or_unsealed(made):
     producer, challenge = made["producer"], made["source"].challenge_id
-    a, b = sealed(producer, challenge, "pscreen-A"), sealed(producer, challenge, "pscreen-B")
+    a, b = sealed(producer, challenge, "pscreen-A"), sealed(
+        producer, challenge, "pscreen-B"
+    )
     cases = [
         ((a, 1, EVERY), "producer_slot_started"),
         ((a, 1, 0), None),
@@ -230,7 +232,10 @@ def importer(made, name, values):
 
 def test_import_only_validators_rotate_by_the_windows_and_agree(made):
     one, two, three = published(made, (1, 2, 4))
-    fp = [ak.verify(v, made["key"].public_key)[0]["fingerprint"] for v in (one, two, three)]
+    fp = [
+        ak.verify(v, made["key"].public_key)[0]["fingerprint"]
+        for v in (one, two, three)
+    ]
     first = importer(made, "v1", [one, two, three])
     second = importer(made, "v2", [three, one, two])  # another import order
     assert first.target.store.pool()["status"] == "ROTATION_PENDING"

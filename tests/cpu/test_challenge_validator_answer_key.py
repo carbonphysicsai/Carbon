@@ -272,9 +272,7 @@ def test_an_unverifiable_inbox_file_is_never_served(host, published):
     path = host["inbox"] / "forged.json"
     path.write_text(json.dumps(forged))
     path.chmod(0o600)
-    packages, skipped = host["service"].inbox.packages(
-        published["source"].challenge_id
-    )
+    packages, skipped = host["service"].inbox.packages(published["source"].challenge_id)
     assert skipped == 1 and list(packages.values()) == [published["value"]]
 
 

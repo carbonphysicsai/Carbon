@@ -617,10 +617,13 @@ class PoolStore:
         if active == pool["active"]:
             return None
         if not active:
-            if pool["active"] and not db.execute(
-                "SELECT 1 FROM events WHERE kind='rotation_overdue' AND body=?",
-                (_json({"version": pool["version"]}),),
-            ).fetchone():
+            if (
+                pool["active"]
+                and not db.execute(
+                    "SELECT 1 FROM events WHERE kind='rotation_overdue' AND body=?",
+                    (_json({"version": pool["version"]}),),
+                ).fetchone()
+            ):
                 self._event(db, "rotation_overdue", {"version": pool["version"]})
             return None
         version = pool["version"] + 1

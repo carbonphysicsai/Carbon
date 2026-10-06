@@ -102,7 +102,9 @@ def write_private(path, value):
 
 
 def key_id(public_key):
-    return "carbon-producer-" + hashlib.sha256(bytes.fromhex(public_key)).hexdigest()[:16]
+    return (
+        "carbon-producer-" + hashlib.sha256(bytes.fromhex(public_key)).hexdigest()[:16]
+    )
 
 
 class ProducerKey:
@@ -190,9 +192,8 @@ def verify_manifest(value, producer_public_key):
 
     try:
         manifest = value["manifest"]
-        if (
-            value["public_key"] != producer_public_key
-            or value["key_id"] != key_id(producer_public_key)
+        if value["public_key"] != producer_public_key or value["key_id"] != key_id(
+            producer_public_key
         ):
             raise AnswerKeyRefused("answer_key_wrong_producer")
         Ed25519PublicKey.from_public_bytes(bytes.fromhex(producer_public_key)).verify(
@@ -289,7 +290,9 @@ class Fetcher:
         import urllib.error
         import urllib.request
 
-        context = None if self.ca is None else ssl.create_default_context(cafile=self.ca)
+        context = (
+            None if self.ca is None else ssl.create_default_context(cafile=self.ca)
+        )
         request = urllib.request.Request(
             url,
             data=body,
@@ -297,7 +300,9 @@ class Fetcher:
             headers={"Content-Type": "application/json", **headers},
         )
         try:
-            with urllib.request.urlopen(request, timeout=120, context=context) as answer:
+            with urllib.request.urlopen(
+                request, timeout=120, context=context
+            ) as answer:
                 return answer.status, json.loads(answer.read(MAX_PACKAGE))
         except urllib.error.HTTPError as failure:
             return failure.code, json.loads(failure.read(MAX_PACKAGE) or b"{}")
