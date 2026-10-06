@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-motor-scoring-baseline-linux",
+  "recorded_at": "2026-10-05T15:20:00Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-MOTOR-05 pre-edit WSL Motor construction tests",
+    "description": "Ran Motor construction contract tests in an existing Linux virtual environment."
+  },
+  "expected": "All focused baseline tests pass.",
+  "observed": "Ten tests passed; one failed because the reused virtual environment lacked the cryptography dependency required by the guarded compiler. No source change caused the failure.",
+  "keep": ["Separate missing test dependencies from implementation defects."],
+  "change": ["Locate a complete canonical environment before final validation."],
+  "protocol_elements": ["canonical validation", "typed build environment"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

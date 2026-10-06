@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-motor-scoring-focused-mounted",
+  "recorded_at": "2026-10-05T15:29:00Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-MOTOR-05 mounted-tree focused WSL scoring suite",
+    "description": "Ran Motor, Cooling and shared scoring tests on the Windows-mounted checkout."
+  },
+  "expected": "All focused scoring tests pass.",
+  "observed": "Fourteen passed and five failed. The failures enter Battery's pinned PRACTICE material through shared or Cooling's full dry-run paths; the mounted checkout's CRLF bytes violate Battery's registered LF digest. Motor-specific tests passed. The result does not support changing Battery's bytes or contract.",
+  "keep": ["Check both challenge-local and shared routes.", "Preserve the Battery evidence pin."],
+  "change": ["Run the affected suite from an isolated LF-native checkout before claiming regression status."],
+  "protocol_elements": ["pinned material", "cross-Challenge regression", "no Battery contract mutation"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

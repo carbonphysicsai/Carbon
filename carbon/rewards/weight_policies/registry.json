@@ -1,0 +1,7 @@
+{
+  "current": "testnet-winner-v1",
+  "schema": "carbon.rewards.weight-policy-registry.v1",
+  "versions": {
+    "testnet-winner-v1": "sha256:7a80942605b7895374dd45a24494d465dd77e7395cb794be2b9343c11e7a89ae"
+  }
+}

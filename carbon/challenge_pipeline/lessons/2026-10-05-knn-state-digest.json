@@ -1,0 +1,28 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-05-knn-state-digest",
+ "recorded_at": "2026-10-05T22:00:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "claude/knn-state-digest from origin/main c690f6f70 (KNN-STATE-DIGEST-01, approved by the Test Lead)",
+  "description": "Added a versioned battery KNN state digest (state_sha256, carbon.battery.knn-state.v1) that binds k, train_fraction, the unit inputs and the targets, emitted by compile.rebuild beside the unchanged params_sha256, and moved the no-op audit's battery identity onto it."
+ },
+ "expected": "Fixing a fit statistic that misses a hyperparameter would mean editing recipes.py, which moves the Level-0 implementation, recipe, built-record and program pins and the run-5 baseline.",
+ "observed": "A separate module outside contracts.IMPLEMENTATION_MODULES and the practice worker's staged files carried the fix with every Level-0 pin and the run-5 baseline unchanged. The audit's KNN neighbours no-op is gone. The cost is that the GPU practice worker, which does not stage the module, still reports only params_sha256.",
+ "keep": [
+  "When a recorded statistic binds too little, add a new versioned field beside it and leave the old field's meaning alone.",
+  "Before editing a module, check whether its bytes feed a pinned identity (IMPLEMENTATION_MODULES, staged worker files); new logic can often live beside it instead.",
+  "Make identity readers tag the scheme they used, so old records without the new field keep their meaning and an unknown schema is refused."
+ ],
+ "change": [
+  "If GPU-side KNN fits ever need the state digest, stage the module through a versioned program re-pin rather than editing recipes.py."
+ ],
+ "protocol_elements": [
+  "construction.ladder",
+  "identity.rebuilt_artifact"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
