@@ -511,8 +511,8 @@ class AttackerProvider(Phase3Provider):
     ):
         from carbon.challenge_validator import scoring as challenge_scoring
 
-        if stop_rule not in (None, STOP_RULE_V1):
-            raise ValueError("an Attacker stop rule is the registered v1 rule or None")
+        if stop_rule is not None and stop_rule not in STOP_RULES:
+            raise ValueError("an Attacker stop rule is a registered rule or None")
         # A new session freezes the rule; a recorded one resumes under its own
         # record whatever this says (`_expected_limits`, `offered_tools`).
         self.stop_rule = stop_rule
@@ -549,19 +549,30 @@ class AttackerProvider(Phase3Provider):
             "verify_pod_rebuild": POD_REBUILD_SEAM["state"],
             "code_run_seconds_at_most": self._code_run_seconds,
             "on_limit_stop": "record_attempts_only",
-            **({} if self.stop_rule is None else {"stop_rule": stop_rule_record()}),
+            **(
+                {}
+                if self.stop_rule is None
+                else {"stop_rule": stop_rule_record(self.stop_rule)}
+            ),
         }
 
     def _expected_limits(self, opened):
         """The base check, following the session's own record for the stop
         rule: a session opened without it resumes without it, and one opened
-        with it resumes only under the registered v1 record."""
+        with it resumes only under the registered record of its own version
+        (an unregistered version never matches)."""
         expected = super()._expected_limits(opened)
         block = expected.get("session_limits")
         if block is not None:
             block = {k: v for k, v in block.items() if k != "stop_rule"}
-            if "stop_rule" in (opened.get("session_limits") or {}):
-                block["stop_rule"] = stop_rule_record()
+            recorded = (opened.get("session_limits") or {}).get("stop_rule", ...)
+            if recorded is not ...:
+                schema = recorded.get("schema") if type(recorded) is dict else None
+                block["stop_rule"] = (
+                    stop_rule_record(schema)
+                    if schema in STOP_RULES
+                    else {"schema": "unregistered"}
+                )
             expected = {**expected, "session_limits": block}
         return expected
 
@@ -642,7 +653,9 @@ class AttackerProvider(Phase3Provider):
             stop = {
                 "finish": {
                     "tool": FINISH_TOOL,
-                    "validate": self._finish_check(run_id, ledger, role, selection),
+                    "validate": self._finish_check(
+                        run_id, ledger, role, selection, rule["schema"]
+                    ),
                     "status": FINISH_STATUS,
                 },
                 "continue_reminder": dict(CONTINUE_REMINDER),
@@ -682,7 +695,7 @@ class AttackerProvider(Phase3Provider):
                 **stop,
             )
 
-    def _finish_check(self, run_id, ledger, role, selection):
+    def _finish_check(self, run_id, ledger, role, selection, schema=None):
         """The stop rule's finish validator: the session may finish once every
         reachable family has `STOP_RULE_K` counted attempts, or once the money
         ledger can be sure of no more than `FINISH_NOTICE_CALLS` model calls.
@@ -693,7 +706,10 @@ class AttackerProvider(Phase3Provider):
 
         def validate(arguments):
             table = stop_rule_coverage(
-                self.adapter, tools, analysis.attempts(self._dir(run_id))
+                self.adapter,
+                tools,
+                analysis.attempts(self._dir(run_id)),
+                schema=schema or STOP_RULE_V1,
             )
             return finish_verdict(
                 table, sure_model_calls(ledger.status(owner=OWNER), selection)
@@ -710,6 +726,13 @@ class AttackerProvider(Phase3Provider):
 #: continue reminder, at most twice in a row. Older sessions carry no rule and
 #: resume exactly as recorded.
 STOP_RULE_V1 = "carbon.graphite.attacker-stop-rule.v1"
+#: v2 (2026-10-05, the Test Lead under the owner's delegation): a family whose
+#: risk a deterministic boundary test covers is labelled "covered
+#: deterministically" with that test, and the table lists the deterministic
+#: coverage of subjects that are not adapter families. v1 records keep their
+#: labels and resume exactly as recorded.
+STOP_RULE_V2 = "carbon.graphite.attacker-stop-rule.v2"
+STOP_RULES = (STOP_RULE_V1, STOP_RULE_V2)
 STOP_RULE_K = 2
 FINISH_STATUS = "ATTACK_FINISHED"
 FINISH_TOOL_NAME = "finish_attack_session"
@@ -749,10 +772,34 @@ CONTINUE_REMINDER = {
 #: Lead, 2026-10-05): never a silent NOT_RUN. Named families carry their own
 #: registered label instead.
 UNREACHABLE_LABEL = "not participant-reachable at this level"
-FAMILY_LABELS = {
+FAMILY_LABELS_V1 = {
     "rebuild_identity": "queued: cross-attempt identity oracle (WAVE-04 \u00a71)",
     "rebuild_report": "deferred: POD_REBUILD_SEAM not run",
 }
+FAMILY_LABELS = {
+    "rebuild_identity": (
+        "covered deterministically: the no-op capability audit (#619) and the "
+        "WAVE-04 artifact-identity tests (#607)"
+    ),
+    "rebuild_report": "deferred: POD_REBUILD_SEAM not run",
+}
+#: Subjects covered by deterministic boundary-side tests rather than by the
+#: Attacker (v2): never a silent NOT_RUN.
+DETERMINISTIC_COVERAGE = (
+    {
+        "subject": "hidden_outcome_channel",
+        "covered_by": "VALIDATOR-13 non-leak differential test (#642)",
+    },
+    {
+        "subject": "rotation_exhaustion",
+        "covered_by": "VALIDATOR-13 tempo-cap and rotation tests (#642)",
+    },
+    {
+        "subject": "practice_safety_feedback_v2",
+        "covered_by": "PRACTICE-SAFETY-01 allow-list tests (#652)",
+    },
+)
+_FAMILY_LABELS_BY_RULE = {STOP_RULE_V1: FAMILY_LABELS_V1, STOP_RULE_V2: FAMILY_LABELS}
 B2_SCOPE_NOTE = (
     "B2 compares the Attacker only on reachable families; an unreachable "
     "family is covered by the deterministic harness (track_a) as a "
@@ -760,10 +807,12 @@ B2_SCOPE_NOTE = (
 )
 
 
-def stop_rule_record():
-    """The v1 stop rule as a session record freezes it."""
+def stop_rule_record(schema=STOP_RULE_V2):
+    """The stop rule of version `schema` as a session record freezes it."""
+    if schema not in STOP_RULES:
+        raise ValueError("unregistered Attacker stop rule")
     return {
-        "schema": STOP_RULE_V1,
+        "schema": schema,
         "authority": "GRAPHITE-ATTACKER-STOP-RULE-01",
         "k": STOP_RULE_K,
         "finish_tool": FINISH_TOOL_NAME,
@@ -771,7 +820,12 @@ def stop_rule_record():
         "finish_money_floor_calls": FINISH_NOTICE_CALLS,
         "continue_reminder": dict(CONTINUE_REMINDER),
         "unreachable_label": UNREACHABLE_LABEL,
-        "family_labels": dict(FAMILY_LABELS),
+        "family_labels": dict(_FAMILY_LABELS_BY_RULE[schema]),
+        **(
+            {"deterministic_coverage": [dict(row) for row in DETERMINISTIC_COVERAGE]}
+            if schema == STOP_RULE_V2
+            else {}
+        ),
     }
 
 
@@ -840,10 +894,11 @@ def _counted(attempt):
     )
 
 
-def stop_rule_coverage(adapter, tools, found=()):
+def stop_rule_coverage(adapter, tools, found=(), schema=STOP_RULE_V2):
     """The stop rule's coverage table: each reachable family with its doors
-    and counted attempts against `STOP_RULE_K`, and every other adapter family
-    with its label."""
+    and counted attempts against `STOP_RULE_K`, every other adapter family
+    with its label under rule `schema`, and (v2) the deterministic coverage."""
+    labels = _FAMILY_LABELS_BY_RULE[schema]
     from ..attack import analysis
 
     reachable = reachable_families(adapter, tools)
@@ -855,7 +910,7 @@ def stop_rule_coverage(adapter, tools, found=()):
                 counts[family] += 1
     names = sorted(analysis.family_name(f) for f in adapter.families())
     return {
-        "schema": STOP_RULE_V1,
+        "schema": schema,
         "k": STOP_RULE_K,
         "families": [
             {
@@ -867,11 +922,16 @@ def stop_rule_coverage(adapter, tools, found=()):
             for family, doors in reachable.items()
         ],
         "unreachable": [
-            {"family": name, "label": FAMILY_LABELS.get(name, UNREACHABLE_LABEL)}
+            {"family": name, "label": labels.get(name, UNREACHABLE_LABEL)}
             for name in names
             if name not in reachable
         ],
         "b2_scope": B2_SCOPE_NOTE,
+        **(
+            {"covered_deterministically": [dict(r) for r in DETERMINISTIC_COVERAGE]}
+            if schema == STOP_RULE_V2
+            else {}
+        ),
     }
 
 
@@ -990,11 +1050,13 @@ def brief_observation(adapter, *, knowledge=None, stop_rule=False):
     }
     if stop_rule:
         # The stop rule's coverage table at the start: every reachable family
-        # at 0 attempts, and every other family with its label.
+        # at 0 attempts, and every other family with its label. `stop_rule`
+        # is the rule's version (True means the current one).
+        schema = STOP_RULE_V2 if stop_rule is True else stop_rule
         observation["stop_rule"] = {
             "finish_tool": FINISH_TOOL_NAME,
             "coverage": stop_rule_coverage(
-                adapter, ROLES[RoleName.ATTACKER].tool_schemas()
+                adapter, ROLES[RoleName.ATTACKER].tool_schemas(), schema=schema
             ),
         }
     if toolbox.protected(observation):
@@ -1028,8 +1090,15 @@ def check_attacker_observation(observation, adapter, *, code_run_seconds):
 def session_brief(
     adapter, *, checkout_commit, knowledge=None, repository=REPOSITORY, stop_rule=False
 ):
+    from carbon.challenge_validator import scoring as challenge_scoring
+
     role = ROLES[RoleName.ATTACKER]
-    manifest = boundaries.checkout_manifest(repository, role.boundary)
+    # The attacked Challenge's published material, never another's.
+    manifest = boundaries.checkout_manifest(
+        repository,
+        role.boundary,
+        challenge_scoring.published_material(adapter.challenge_id),
+    )
     return SessionBrief(
         role=RoleName.ATTACKER,
         initial_observation=brief_observation(
@@ -1890,7 +1959,7 @@ def live_provider(store, *, grant, model, adapter, miner_attach, scoring=None):
         adapter=adapter,
         miner_attach=miner_attach,
         scoring=scoring,
-        stop_rule=STOP_RULE_V1,
+        stop_rule=STOP_RULE_V2,
     )
 
 
@@ -1912,7 +1981,7 @@ def run_live(
             adapter,
             checkout_commit=head,
             knowledge=knowledge_brief(view, adapter),
-            stop_rule=provider.stop_rule is not None,
+            stop_rule=provider.stop_rule or False,
         )
         if signals:
             _install_cancel(provider, provider.run_id_for(session_key(session)))
@@ -2078,7 +2147,7 @@ def dry_run(
             miner_tools=miner_tools,
             randomness=lambda n: b"\x00" * n,
             scoring=scoring,
-            stop_rule=STOP_RULE_V1,
+            stop_rule=STOP_RULE_V2,
         )
         control = controller_for(store, provider, grant)
         try:
@@ -2088,7 +2157,7 @@ def dry_run(
                 adapter,
                 checkout_commit="0" * 40,
                 knowledge=knowledge_brief(view, adapter),
-                stop_rule=True,
+                stop_rule=STOP_RULE_V2,
             )
             entry, coverage = run_session(
                 store,
