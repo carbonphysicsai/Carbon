@@ -186,6 +186,18 @@ Not run on any chain. Not SECURITY_QUALIFIED. Nothing here is LIVE.
 
 ## Follow-ups
 
+- **Validator-side D6 (before the rehearsal).** Freshness, a commitment
+  posted after the hotkey's previous admission, is #715 (Carbon Validator).
+  D6's cross-hotkey clause, the earliest commitment block wins when two
+  hotkeys commit the same digest, is not in #715 and needs its own
+  validator change before the rehearsal.
+- **Chain runtime upgrade.** If an upgrade changes the 13 pinned
+  extensions, the call index or the data tag, the signer's rebuilt bytes no
+  longer match and every commit is refused (`PAYLOAD_MISMATCH`, fail closed).
+  The same applies to a non-zero fee (`FEE_OVER_CEILING`). The Test
+  Engineer re-pins: rerun the localnet round trip on the upgraded runtime,
+  check testnet 567 read-only, and commit the new record. The owner accepts
+  it in review.
 - Wire `CommitmentPoster.plan/start/status` into the Launchpad's browser
   route and MCP tool table (`scripts/dev/miner_launchpad/`), and the
   frozen-candidate submit path (`campaign.submit_through_intake`) through
