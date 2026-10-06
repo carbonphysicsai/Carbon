@@ -41,12 +41,27 @@ REACHABLE = [
     "resource_accounting",
     "staged_bytes",
 ]
-#: The Test Lead's labels for battery Level 0's unreachable families.
+#: The Test Lead's labels for battery Level 0's unreachable families (rule
+#: v2: rebuild_identity is covered deterministically).
 LABELS = {
     "mandatory_failure": "not participant-reachable at this level",
     "recipe_forgery": "not participant-reachable at this level",
+    "rebuild_identity": (
+        "covered deterministically: the no-op capability audit (#619) and the "
+        "WAVE-04 artifact-identity tests (#607)"
+    ),
+    "rebuild_report": "deferred: POD_REBUILD_SEAM not run",
+}
+#: The v1 labels, which v1 records keep.
+LABELS_V1 = {
     "rebuild_identity": "queued: cross-attempt identity oracle (WAVE-04 §1)",
     "rebuild_report": "deferred: POD_REBUILD_SEAM not run",
+}
+#: Subjects covered by deterministic boundary-side tests (rule v2).
+DETERMINISTIC = {
+    "hidden_outcome_channel",
+    "rotation_exhaustion",
+    "practice_safety_feedback_v2",
 }
 #: One door per reachable family, as the Attacker's tools call it.
 DOORS = {
@@ -113,9 +128,9 @@ def _attempts(per_family):
 
 
 # -- the rule as recorded ----------------------------------------------------------------------
-def test_the_rule_record_and_its_reminder_are_the_registered_v1():
+def test_the_rule_record_and_its_reminder_are_the_registered_v2():
     record = phase4.stop_rule_record()
-    assert record["schema"] == phase4.STOP_RULE_V1
+    assert record["schema"] == phase4.STOP_RULE_V2
     assert record["k"] == phase4.STOP_RULE_K == 2
     assert record["finish_tool"] == phase4.FINISH_TOOL["name"]
     assert record["finish_money_floor_calls"] == FINISH_NOTICE_CALLS
@@ -125,6 +140,50 @@ def test_the_rule_record_and_its_reminder_are_the_registered_v1():
     assert record["family_labels"] == {
         k: v for k, v in LABELS.items() if k.startswith("rebuild")
     }
+    assert {row["subject"] for row in record["deterministic_coverage"]} == DETERMINISTIC
+
+
+def test_a_v1_record_keeps_its_own_labels_and_nothing_new():
+    """Invariant 10: a session recorded under v1 resumes exactly as recorded."""
+    record = phase4.stop_rule_record(phase4.STOP_RULE_V1)
+    assert record["schema"] == phase4.STOP_RULE_V1
+    assert record["family_labels"] == LABELS_V1
+    assert "deterministic_coverage" not in record
+    with pytest.raises(ValueError):
+        phase4.stop_rule_record("carbon.graphite.attacker-stop-rule.v0")
+
+
+def test_a_session_resumes_under_its_own_rule_version(monkeypatch):
+    base = {"session_limits": {"schema": SESSION_LIMITS_V2, "stop_rule": "current"}}
+    monkeypatch.setattr(
+        phase4.Phase3Provider, "_expected_limits", lambda self, opened: dict(base)
+    )
+    provider = object.__new__(phase4.AttackerProvider)
+    for schema in phase4.STOP_RULES:
+        opened = {"session_limits": {"stop_rule": phase4.stop_rule_record(schema)}}
+        expected = provider._expected_limits(opened)["session_limits"]["stop_rule"]
+        assert expected == phase4.stop_rule_record(schema)
+    unregistered = {"session_limits": {"stop_rule": {"schema": "v0"}}}
+    assert provider._expected_limits(unregistered)["session_limits"][
+        "stop_rule"
+    ] not in [phase4.stop_rule_record(schema) for schema in phase4.STOP_RULES]
+    assert (
+        "stop_rule"
+        not in provider._expected_limits({"session_limits": {}})["session_limits"]
+    )
+
+
+def test_the_v2_table_lists_the_deterministic_coverage():
+    table = phase4.stop_rule_coverage(_adapter(), TOOLS)
+    assert table["schema"] == phase4.STOP_RULE_V2
+    assert {row["subject"] for row in table["covered_deterministically"]} == (
+        DETERMINISTIC
+    )
+    assert all(row["covered_by"] for row in table["covered_deterministically"])
+    v1 = phase4.stop_rule_coverage(_adapter(), TOOLS, schema=phase4.STOP_RULE_V1)
+    assert "covered_deterministically" not in v1
+    labelled = {row["family"]: row["label"] for row in v1["unreachable"]}
+    assert labelled["rebuild_identity"] == LABELS_V1["rebuild_identity"]
 
 
 def test_the_provider_takes_only_the_registered_rule():
@@ -303,8 +362,8 @@ MUTATIONS = {
         test_finish_is_refused_while_a_reachable_family_is_under_k,
     ),
     "labels_dropped": (
-        "FAMILY_LABELS",
-        {},
+        "_FAMILY_LABELS_BY_RULE",
+        {phase4.STOP_RULE_V1: {}, phase4.STOP_RULE_V2: {}},
         test_battery_level0_reaches_five_families_and_labels_every_other,
     ),
 }
