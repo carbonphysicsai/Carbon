@@ -2,7 +2,7 @@
 
     python -m carbon.agent_campaign.graphite.phase3 run --root DIR --challenge TOKEN \
         --grant docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3.json \
-        (--credential-file PATH | --credential-env ENGY_API_KEY) \
+        --credential-file PATH \
         (--runpod-key-file PATH | --runpod-key-env RUNPOD_API_KEY) \
         --miner-profile PROFILE.json --miner-campaign ID --code-ref SHA \
         --literature-snapshot SNAPSHOT.json [--allow-unchecked-cards] [--session N] \
@@ -76,12 +76,22 @@ run's bundle carries its own. A proposal widens nothing and is never scored.
 `DIR` is a private directory outside the repository. Nothing here opens a
 pull request, writes under `docs/`, or touches chain state.
 
-**Credentials.** The Engy key as phase 2 takes it (`--credential-env
-ENGY_API_KEY` copies it into a 0600 file in a fresh 0700 directory, removed on
-exit). The RunPod key as the pod tooling keeps it: an owner-only file
-(`~/.runpod/api_key` for `pod_control`); `--runpod-key-env RUNPOD_API_KEY`
-copies the variable the same way. Neither key is printed, logged or given to
-the agent.
+**Credentials.** Keys by file path, as phase 4 takes them: `--credential-file`
+names an owner-only file holding the Engy key, checked by its metadata alone
+with phase 4's rule (`phase4.owner_only_file`). `--credential-env ENGY_API_KEY`
+is kept for older launchers: it copies the variable into a 0600 file in a fresh
+0700 directory, removed on exit. The RunPod key as the pod tooling keeps it: an
+owner-only file (`~/.runpod/api_key` for `pod_control`); `--runpod-key-env
+RUNPOD_API_KEY` copies the variable the same way. Neither key is printed,
+logged or given to the agent. `python -m carbon.agent_campaign.graphite
+run-checked` (`run_checked`) takes key files only.
+
+**Ends and next steps.** A session that ended (`succeeded`, `failed`,
+`cancelled`) is terminal: running the same `run` again prints its recorded
+end. `run` and `status` carry `next_step`; a `failed` session with code
+`reconciliation_required` names `reconcile`, then a new `--session N`.
+`run` and `status` also carry `pod_charges`: each pod's booked amount beside
+its provider charge or estimate, with the basis (`experiment.CHARGE_BASES`).
 
 `--dry-run` runs the whole session with a scripted model, a scripted pod
 account and a recording miner tool, under a synthetic grant, writing only
@@ -127,7 +137,6 @@ session recorded under the old cap resumes under it, byte-identically.
 
 from __future__ import annotations
 
-import argparse
 import asyncio
 import contextlib
 import json
@@ -161,6 +170,7 @@ from . import experiment as ex
 from . import grant_binding, next_level
 from . import literature as lit
 from . import tools as toolbox
+from .cli_usage import ChallengeParser, challenge_help, next_step
 from .ladder import Ladder, LadderError
 from .provider import (
     EPOCH,
@@ -1513,6 +1523,11 @@ def command_run(args):
     from .pods import RunPodPods
 
     with contextlib.ExitStack() as stack:
+        if args.credential_file is not None:
+            # The same owner-only rule as phase 4's --credential-file.
+            from .phase4 import owner_only_file
+
+            owner_only_file(args.credential_file)
         engy = stack.enter_context(
             credential_file(path=args.credential_file, env=args.credential_env)
         )
@@ -1583,8 +1598,22 @@ def command_run(args):
             result = run_session(control, provider, brief, args.session, variant)
         finally:
             control.close()
+    run_dir = provider._dir(result["run_id"])
+    result["pod_charges"] = ex.pod_charge_report(
+        ex.PodLedger(run_dir / "experiment" / "pod-ledger.jsonl", time.time)
+    )
+    result["next_step"] = _next_step(_read(run_dir / "state.json"))
     print(json.dumps(result, indent=1, default=str))
     return 0 if result["provider_state"] == "succeeded" else 4
+
+
+def _next_step(state):
+    """The typed next step for a run's recorded state (`cli_usage.next_step`):
+    a terminal `reconciliation_required` session names `reconcile`, never a
+    rerun."""
+    if not isinstance(state, dict):
+        return None
+    return next_step(state.get("state"), state.get("failure"))
 
 
 def command_cancel(args):
@@ -1712,6 +1741,8 @@ def command_status(args):
             "pods_settled_usd": str(settled),
             "pods_pending_usd": str(pending),
             "pods_live": [p["intent_id"] for p in ledger.live()],
+            "pod_charges": ex.pod_charge_report(ledger),
+            "next_step": _next_step(state),
             "delivery": _read(run / "delivery.json"),
             "escalation": _read(run / "escalation.json"),
             "literature": _literature_of(run),
@@ -1916,11 +1947,11 @@ def dry_run(
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(prog="graphite.phase3")
+    parser = ChallengeParser(prog="graphite.phase3")
     sub = parser.add_subparsers(dest="command", required=True)
     run = sub.add_parser("run")
     run.add_argument("--root", required=True)
-    run.add_argument("--challenge", required=True)
+    run.add_argument("--challenge", required=True, help=challenge_help())
     run.add_argument("--dry-run", action="store_true")
     run.add_argument("--grant")
     run.add_argument(
@@ -1933,8 +1964,16 @@ def main(argv=None):
         ),
     )
     credential = run.add_mutually_exclusive_group()
-    credential.add_argument("--credential-file")
-    credential.add_argument("--credential-env")
+    credential.add_argument(
+        "--credential-file",
+        help="path of an owner-only file holding the Engy key, as phase 4 takes "
+        "it; checked by its metadata, never printed",
+    )
+    credential.add_argument(
+        "--credential-env",
+        help="kept for older launchers: ENGY_API_KEY, copied to a 0600 file "
+        "removed on exit; prefer --credential-file",
+    )
     runpod = run.add_mutually_exclusive_group()
     runpod.add_argument("--runpod-key-file")
     runpod.add_argument("--runpod-key-env")
@@ -1969,7 +2008,7 @@ def main(argv=None):
     cancel.add_argument("--session", type=int, required=True)
     reconcile = sub.add_parser("reconcile")
     reconcile.add_argument("--root", required=True)
-    reconcile.add_argument("--challenge", required=True)
+    reconcile.add_argument("--challenge", required=True, help=challenge_help())
     reconcile.add_argument("--grant", required=True)
     key = reconcile.add_mutually_exclusive_group(required=True)
     key.add_argument("--runpod-key-file")
