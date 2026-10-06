@@ -121,7 +121,8 @@ def load_config(path):
     if type(config.get("require_commitment", True)) is not bool:
         raise EvaluationUnavailable("evaluation_config_fields")
     if "archived" in config and (
-        type(config["archived"]) is not str or not config["archived"].startswith("OWNER-")
+        type(config["archived"]) is not str
+        or not config["archived"].startswith("OWNER-")
     ):
         raise EvaluationUnavailable("evaluation_config_fields")
     if "commitment_reader" in config:
