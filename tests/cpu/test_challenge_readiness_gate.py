@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from carbon.challenge_pipeline import __main__ as pipeline_cli
-from carbon.challenge_pipeline.readiness import checks, model, runner
+from carbon.challenge_pipeline.readiness import checks, model, q1, runner
 
 CHALLENGE = "example-challenge"
 REVIEW_IDS = [i["id"] for i in model.load_items() if i["kind"] != "auto"]
@@ -58,7 +58,7 @@ def test_every_item_has_a_registered_check_and_a_reason_when_unwired():
 
 
 def test_runner_and_checks_name_no_challenge():
-    for module in (runner, checks, model):
+    for module in (runner, checks, model, q1):
         text = Path(module.__file__).read_text(encoding="utf-8").lower()
         for token in ("battery", "chip-cold-plate", "cooling", "motor"):
             assert token not in text, (module.__name__, token)

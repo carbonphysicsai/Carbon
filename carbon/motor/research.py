@@ -29,7 +29,7 @@ from carbon.reconstruction.capability_registry import (
     public_registry,
 )
 
-from . import exam, population
+from . import exam, population, practice_safety
 from .challenge import (
     CHALLENGE,
     IDENTITY,
@@ -449,6 +449,8 @@ class MotorPractice:
                 "output_digest": worker.get("output_digest"),
                 "provenance": worker.get("provenance"),
             },
+            # PRACTICE-SAFETY-01: feedback only, on the same public cases.
+            safety=practice_safety.safety(predictions, self.practice),
         )
         result["recipe"] = strategy
         ResearchWorkspace(self.ledger, self.owner).put(
@@ -469,11 +471,16 @@ def implementation_files():
             "domain.py",
             "exam.py",
             "practice.py",
+            "practice_safety.py",
             "recipes.py",
             "research.py",
         )
     )
-    return (*challenge_files, here.parent / "learned_baseline.py")
+    return (
+        *challenge_files,
+        here.parent / "learned_baseline.py",
+        here.parent / "practice_safety_feedback.py",
+    )
 
 
 def challenge_parts():

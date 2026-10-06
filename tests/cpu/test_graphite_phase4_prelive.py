@@ -30,7 +30,10 @@ from contextlib import redirect_stdout
 from pathlib import Path
 
 import pytest
-from test_graphite_phase4 import _synthetic_adapter
+from test_graphite_phase4 import (  # the stand-in's material: an autouse fixture
+    _stand_in_material,  # noqa: F401
+    _synthetic_adapter,
+)
 
 from carbon.agent_campaign.graphite import phase4
 from carbon.agent_campaign.graphite import phase4_prelive as prelive

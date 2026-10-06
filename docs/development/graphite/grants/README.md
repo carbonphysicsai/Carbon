@@ -438,6 +438,64 @@ USD 2.96 for 12 pods at USD 0.246 each, because RunPod reports no charge.
 **Runs** in a fresh controller root, under the OWNER-GRAPHITE-TEST-WAVE-05 §3
 checklist, with pod-attribution-v2 on main.
 
+## GRAPHITE-GRANT-PHASE3-R4 (GRAPHITE-01 phase 3, battery Level 1+ on the top rung)
+
+**Authority.** OWNER-GRAPHITE-PHASE3-R4-01
+(`.agent/decisions/2026-10-05-OWNER-GRAPHITE-PHASE3-R4-01.md`). The owner,
+2026-10-05: "Level 0 probably not needed. But 1 and up I want to see
+creativity. So I approve." and "For 1 and up." USD 10 per run for model calls
+plus USD 5 per run for compute, USD 45 over 3 runs.
+
+| Field | Value | Basis |
+|---|---|---|
+| `monetary_ceiling` | `45.00` USD | the approval; at least 3 × 14.91 + 0.25 = 44.98 |
+| `worst_case_run_cost` | `14.91` USD | R3's compute-inclusive 4.91 plus 10.00 for the model |
+| `permitted_runs` | `3` | the approval |
+| `max_submissions` | `3` | one per run |
+| everything else | as GRAPHITE-GRANT-PHASE3-R3 | unchanged |
+
+**Run conditions** (`grant_binding.PHASE3_GRANTS`; recorded in each new
+session's `run_conditions`):
+
+- construction Level 1 and above only: a Level 0 run under it is refused
+  `grant_requires_construction_level_1_or_above`, at the CLI and again before a
+  session opens;
+- the Constructor (and the Planner, when used) starts on `kimi-k3`, the top
+  Engy rung; a session that would open below it is refused
+  `start_model_below_the_grants_start_rung`. The escalation rule is unchanged;
+  a stall at the top records `ladder_top`;
+- the run's token share is fixed at USD 11.93 (the Test Lead's figure, 14.91
+  less 2.98 of compute); its pods get the remaining 2.98, which covers the 12
+  pods' 2.96 at today's rate ceiling, or the budget is refused
+  `grant_token_share_leaves_too_little_for_pods`. Without the fixed share the
+  split would follow the rate ceiling (today 11.95);
+- bound to battery and to main's committed blob.
+
+### Arithmetic
+
+    validator:   cleanup + worst case                 = 0.25 + 14.91  = 15.16  ≤ 45.00
+    run 3 gate:  runs 1-2 (≤ 2 × 14.91) + 14.91 + 0.25                = 44.98  ≤ 45.00
+    split:       14.91 = 11.93 tokens + 2.98 pods     (12 pods need 12 × 0.246369864 → 2.96)
+
+kimi-k3's per-call reservation at the Constructor's settings
+(`roles.MODEL_SETTINGS`: 1,048,576 input tokens, 2,048 output tokens; Engy list
+USD 1.95 / 9.75 per million):
+
+    1,048,576 × 0.00000195 + 2,048 × 0.00000975 = 2.044723200 + 0.019968000 = USD 2.0646912
+    ⌊ 11.93 / 2.0646912 ⌋ = 5 full reservations   (5 × 2.0646912 = 10.323456 ≤ 11.93)
+    ⌊ 10.00 / 2.0646912 ⌋ = 4 within the approved USD 10 model allowance
+
+Those counts bound calls in flight, not calls per run: each call is admitted
+with its full reservation and settles at Engy's reported charge, which then
+replaces the reservation in the research ledger (`CampaignLedger._usage`). At
+a conservative USD 0.078468 per call (30,000 input tokens plus the whole
+2,048-token output at kimi-k3's prices), run 5's 23 calls fit the 11.93 share
+(`test_23_settled_kimi_k3_calls_are_admitted_under_the_r4_share`). Under R3's token share
+(USD 1.95) not one full-window kimi-k3 call is admitted.
+
+**Runs** in a fresh controller root, under the OWNER-GRAPHITE-TEST-WAVE-05 §3
+checklist, and only once OWNER-GRAPHITE-PHASE3-R4-01's entry conditions hold.
+
 ## GRAPHITE-GRANT-PLANNER-01 (GRAPHITE-ADMISSION-01: Graphite's level planner)
 
 **Authority: OWNER-GRAPHITE-05** (`.agent/DECISIONS.md`, 2026-10-02). It is

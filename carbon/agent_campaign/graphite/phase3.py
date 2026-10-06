@@ -158,10 +158,10 @@ from ..provider import (
 )
 from . import delivery as deliver_
 from . import experiment as ex
+from . import grant_binding, next_level
 from . import literature as lit
-from . import next_level
 from . import tools as toolbox
-from .ladder import LadderError
+from .ladder import Ladder, LadderError
 from .provider import (
     EPOCH,
     NANO_PER_USD,
@@ -172,6 +172,7 @@ from .provider import (
     GraphiteProvider,
     RunCapReached,
     SessionBrief,
+    SessionMismatch,
     SessionStopped,
     limit_dimension,
     tool_text_of,
@@ -328,6 +329,27 @@ class Phase3Ledger(GraphiteLedger):
         return super()._reserve(identity, **kwargs)
 
 
+#: The budget-status rule a new phase-3 session records (AGENT-DOOR-USABILITY-01
+#: A5, approved by the Test Lead): its turn status drops the campaign
+#: research-trial line when the run ledger meters no research trials (its
+#: budget is 0: a phase-3 experiment runs on pods, metered by the run's money
+#: cap and pod limit), instead of telling the agent "0 of 0 research trials
+#: left" (`research_loop.budget_status`, `omit_unmetered_trials`). A session
+#: whose record names no rule - every one opened before - keeps the v1 status
+#: bytes on replay and resume.
+BUDGET_STATUS_V2 = "carbon.graphite.budget-status.v2"
+BUDGET_STATUSES = (BUDGET_STATUS_V2,)
+
+
+def budget_status_of(opened):
+    """The budget-status rule a session record carries: None (v1, the
+    historical status) when it names none; an unknown rule resumes nothing."""
+    rule = opened.get("budget_status")
+    if rule is not None and rule not in BUDGET_STATUSES:
+        raise SessionMismatch("budget_status_unknown")
+    return rule
+
+
 class Phase3Provider(GraphiteProvider):
     """`GraphiteProvider` for the Constructor's Level-0 sessions.
 
@@ -349,6 +371,8 @@ class Phase3Provider(GraphiteProvider):
 
     #: A v1 Constructor session's call cap (GRAPHITE-D26); see `roles`.
     HISTORICAL_SESSION_TURNS = CONSTRUCTOR_SESSION_TURNS
+    #: The budget-status rule a new session records (`BUDGET_STATUS_V2`).
+    NEW_SESSION_BUDGET_STATUS = BUDGET_STATUS_V2
 
     def __init__(
         self,
@@ -397,6 +421,12 @@ class Phase3Provider(GraphiteProvider):
             adapter_id=ADAPTER if adapter_id is None else adapter_id,
             **kwargs,
         )
+        # A grant registering a start model (OWNER-GRAPHITE-PHASE3-R4-01)
+        # raises its start roles' ladder to that rung; every other grant
+        # keeps the base ladder, exactly as before.
+        start_rungs = grant_binding.start_rungs(grant)
+        if start_rungs:
+            self.ladder = Ladder(Path(root) / "ladder", start_rungs=start_rungs)
         self.pods, self.miner_attach = pods, miner_attach
         self.scorer, self.repository, self.randomness = scorer, repository, randomness
         #: The campaign controller this provider's runs record findings on as
@@ -480,6 +510,18 @@ class Phase3Provider(GraphiteProvider):
     def _manifest(self, opened):
         return {**super()._manifest(opened), "implementation": "graphite-phase3"}
 
+    def opening_rules(self):
+        """A new session records the budget-status rule it runs under
+        (`BUDGET_STATUS_V2`); none when this provider records none."""
+        rule = self.NEW_SESSION_BUDGET_STATUS
+        rules = {} if rule is None else {"budget_status": rule}
+        # The grant's run conditions (start model, lowest level, token share),
+        # only for a grant that registers them: every other record unchanged.
+        conditions = grant_binding.run_conditions(self.grant)
+        if conditions is not None:
+            rules["run_conditions"] = conditions
+        return rules
+
     def _literature_record(self):
         """A phase-3 session records where its literature came from; the
         phase-1 fixture says it is one (GRAPHITE-D28)."""
@@ -502,6 +544,17 @@ class Phase3Provider(GraphiteProvider):
                 check_observation(observation, self.scoring)
                 if observation.get("literature") != literature_brief(self.literature):
                     raise ProviderUnavailable("brief_literature_is_not_the_sessions")
+                # OWNER-GRAPHITE-PHASE3-R4-01: a grant's lowest construction
+                # level and its start rung, checked before a session opens.
+                refused = grant_binding.level_refusal(
+                    self.grant, observation.get("level")
+                ) or grant_binding.start_model_refusal(
+                    self.grant,
+                    RoleName.CONSTRUCTOR,
+                    self.ladder.model(RoleName.CONSTRUCTOR),
+                )
+                if refused is not None:
+                    raise ProviderUnavailable(refused)
         return super().start(spec, idempotency_key)
 
     # -- the run's experiment ----------------------------------------------------------------
@@ -673,6 +726,11 @@ class Phase3Provider(GraphiteProvider):
                     # v2: no call cap, count-free limits and compaction; v1:
                     # the historical 150-call cap (`_loop_limits`).
                     **self._loop_limits(opened),
+                    # The status rule the record names: v2 drops the unmetered
+                    # "0 of 0 research trials" line; none keeps v1's bytes.
+                    omit_unmetered_trials=(
+                        budget_status_of(opened) == BUDGET_STATUS_V2
+                    ),
                 )
         except ValueError as error:
             if (
@@ -895,7 +953,10 @@ def session_brief(
         level, contract = 0, ex.recorded_contract(scoring)
     else:
         level, contract = variant.level, _variant_contract(variant)
-    manifest = boundaries.checkout_manifest(repository, boundaries.Role.CONSTRUCTION)
+    # The session Challenge's published material, never another's.
+    manifest = boundaries.checkout_manifest(
+        repository, boundaries.Role.CONSTRUCTION, scoring.published_material()
+    )
     observation = {
         "challenge": scoring.challenge(),
         "level": level,
@@ -1360,10 +1421,13 @@ def command_run(args):
     if grant.provider != "graphite":
         raise RunnerRefused("grant_provider_must_be_graphite")
     # The grant bound to the named Challenge, and to main's committed blob
-    # where its registration says so (`grant_binding`).
+    # where its registration says so, and to the construction level where it
+    # registers a lowest one (`grant_binding`).
     from .grant_binding import check_phase3_grant
 
-    check_phase3_grant(args.grant, grant, challenge=args.challenge)
+    check_phase3_grant(
+        args.grant, grant, challenge=args.challenge, level=getattr(args, "level", 0)
+    )
     if args.miner_profile is None or args.miner_campaign is None:
         raise RunnerRefused("the_real_miner_path_needs_a_miner_profile_and_campaign")
     if args.literature_snapshot is None:

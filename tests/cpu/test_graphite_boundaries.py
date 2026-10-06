@@ -442,7 +442,12 @@ def test_a_constructor_opens_with_its_models_whole_context_and_a_reader_does_not
     # The context table is Engy's published list for exactly the ladder.
     assert tuple(ENGY_CONTEXT_TOKENS) == ENGY_LADDER
     assert set(MODEL_SETTINGS[RoleName.CONSTRUCTOR]) == set(ENGY_LADDER)
-    assert MODEL_SETTINGS[RoleName.ATTACKER] == MODEL_SETTINGS[RoleName.CONSTRUCTOR]
+    # The Attacker's table is the Constructor's plus its own output cap
+    # (GRAPHITE-ATTACKER-STOP-RULE-01).
+    assert MODEL_SETTINGS[RoleName.ATTACKER] == {
+        model: {**settings, "max_output_tokens": 4096}
+        for model, settings in MODEL_SETTINGS[RoleName.CONSTRUCTOR].items()
+    }
     assert (ENGY_CONTEXT_SOURCE, ENGY_CONTEXT_OBSERVED) == (
         "https://api.engy.ai/v1/models",
         "2026-10-04",

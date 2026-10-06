@@ -12,9 +12,11 @@ targets. `compile.rebuild` emits it beside `params_sha256`.
 
 This module is outside `contracts.IMPLEMENTATION_MODULES` and outside the
 practice worker's staged modules, so it moves no Level-0 implementation,
-recipe, built-record or program digest. A worker that does not stage it emits
-no `state_sha256`, and a record without the field keeps its meaning:
-`trained_identity` falls back to `params_sha256`.
+recipe, built-record or program digest. Carbon's pods stage it for a KNN only,
+under GPU program v2 (`battery_gpu.KNN_GPU_PROGRAM`, KNN-STATE-GPU-01). A
+worker that does not stage it (GPU program v1) emits no `state_sha256`, and a
+record without the field keeps its meaning: `trained_identity` falls back to
+`params_sha256`.
 """
 
 from __future__ import annotations

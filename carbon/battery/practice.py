@@ -50,7 +50,10 @@ PRACTICE_SOURCE_SHA256 = (
     "7d3955b278b0aab08fe0abc530eded6511531d086e7f0cd94f6c09dc3e98fb8d"
 )
 PRACTICE_CASES = 200
-FEEDBACK_SCHEMA = "carbon.battery.practice-feedback.v1"
+#: v2 (PRACTICE-SAFETY-01) adds the feedback-only `safety` block; nothing
+#: else changes. A v1 result keeps its meaning: it never carried the block.
+FEEDBACK_SCHEMA = "carbon.battery.practice-feedback.v2"
+FEEDBACK_SCHEMA_V1 = "carbon.battery.practice-feedback.v1"
 PROVENANCE = "BATTERY_PUBLIC_PRACTICE"
 #: The files the worker receives, by staged name. Nothing else is staged.
 STAGED_MODULES = {
@@ -237,11 +240,15 @@ def score_practice(predictions, practice, material, root="."):
     return rows, summary
 
 
-def feedback(summary, fit, *, recipe, backend, worker):
+def feedback(summary, fit, *, recipe, backend, worker, safety=None):
     """The public practice feedback: the exam aggregate on public PRACTICE,
-    with fit statistics and the backend that actually ran."""
-    return {
-        "schema": FEEDBACK_SCHEMA,
+    with fit statistics and the backend that actually ran.
+
+    With `safety` (`practice_safety.safety`), the v2 shape: the same fields
+    plus the feedback-only safety block. Without it, exactly the v1 shape.
+    """
+    out = {
+        "schema": FEEDBACK_SCHEMA if safety is not None else FEEDBACK_SCHEMA_V1,
         "provenance": PROVENANCE,
         "challenge": recipe.document()["challenge"],
         "recipe_digest": recipe.recipe_digest,
@@ -276,6 +283,9 @@ def feedback(summary, fit, *, recipe, backend, worker):
         "official_eligible": False,
         "scientific_qualification": False,
     }
+    if safety is not None:
+        out["safety"] = safety
+    return out
 
 
 def _history(value):
