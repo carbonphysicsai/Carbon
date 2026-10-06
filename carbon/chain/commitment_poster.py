@@ -457,7 +457,12 @@ class _PublicAccount:
         from bittensor.sp_core import ss58_decode
 
         self.ss58_address = address
-        self.public_key = bytes.fromhex(str(ss58_decode(address)).removeprefix("0x"))
+        # The pinned SDK's ss58_decode returns the raw public key bytes (as
+        # external_signer reads it), never a hex string.
+        public_key = bytes(ss58_decode(address))
+        if len(public_key) != 32:
+            raise ValueError("an sr25519 public key is 32 bytes")
+        self.public_key = public_key
 
 
 def _info(digest):

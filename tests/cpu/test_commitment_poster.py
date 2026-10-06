@@ -418,3 +418,20 @@ def test_timing_holds_at_twelve_second_blocks():
     script = (REPOSITORY / "scripts/dev/commitment_localnet_roundtrip.py").read_text()
     assert 'PROFILE = "standard"' in script and '"fast"' not in script
     assert 'profile["expected_genesis"]' in script
+
+
+# -- the fee query's public account (localnet round trip, 2026-10-06) ------------------------
+#: //Bob's sr25519 public key and its SS58 (prefix 42) address.
+BOB_PUBLIC = bytes.fromhex(
+    "8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48"
+)
+BOB_SS58 = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+
+
+def test_the_fee_querys_public_account_decodes_the_ss58_address():
+    """The pinned SDK's ss58_decode returns raw bytes. Reading them as a hex
+    string crashed the localnet round trip before the signer prompt."""
+    pytest.importorskip("bittensor.sp_core")
+    account = cp._PublicAccount(BOB_SS58)
+    assert account.public_key == BOB_PUBLIC
+    assert account.ss58_address == BOB_SS58
