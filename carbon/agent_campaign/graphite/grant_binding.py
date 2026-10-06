@@ -26,6 +26,24 @@ committed blob:
   carrier lane, which costs no provider money (`carrier_pods`, rate 0), is
   where its proposals run.
 
+- GRAPHITE-GRANT-PHASE3-R4 is battery's top-rung grant
+  (OWNER-GRAPHITE-PHASE3-R4-01): bound to battery and to main's committed
+  blob, for construction Level 1 and above only. Its entry registers three
+  run conditions, which no other grant has, so every other grant behaves
+  exactly as before:
+  - `min_level` 1: a Level 0 run under it is refused
+    `grant_requires_construction_level_1_or_above` (`level_refusal`), so
+    Level 0 keeps today's start rungs and stays the cheap-model baseline;
+  - `start_model` kimi-k3, the top Engy rung: the Constructor's (and the
+    Planner's) ladder starts there (`start_rungs`), and a session that would
+    open below it is refused `start_model_below_the_grants_start_rung`
+    (`start_model_refusal`). The escalation rule is unchanged; there is no
+    rung above the top (`ladder_top`);
+  - `token_share_usd` 11.93: the run's token share is that amount, and its
+    pods get the rest of the run cost (`experiment.phase3_budget`), so a
+    full-window kimi-k3 call (USD 2.0646912 reserved) is admitted.
+  A new session records them as its `run_conditions` (`run_conditions`).
+
 A registered grant named for another Challenge is
 `grant_is_for_another_challenge`. A Challenge in `PHASE3_BOUND_CHALLENGES`
 accepts only a grant registered for it
@@ -40,6 +58,7 @@ import dataclasses
 import json
 import subprocess
 import types
+from decimal import Decimal
 from pathlib import Path
 
 from carbon.development_session.profile import canonical, digest
@@ -129,13 +148,20 @@ def check_committed_blob(given, repository, grant_file, *, phase):
 # -- phase 3 ------------------------------------------------------------------------------
 @dataclasses.dataclass(frozen=True)
 class Phase3Grant:
-    """One owner-approved phase-3 grant: its Challenge, its file, and whether
-    a run accepts it only as main's committed blob."""
+    """One owner-approved phase-3 grant: its Challenge, its file, whether a
+    run accepts it only as main's committed blob, and its run conditions (the
+    defaults: none, every grant as before)."""
 
     grant_id: str
     challenge: str
     grant_file: str
     main_blob: bool
+    #: The lowest construction level a run under this grant may run at.
+    min_level: int = 0
+    #: The rung the grant's start roles open on; None: each role's own.
+    start_model: str | None = None
+    #: The run's token share in USD; None: the run cost less the pods.
+    token_share_usd: Decimal | None = None
 
 
 PHASE3_GRANTS = types.MappingProxyType(
@@ -166,12 +192,102 @@ PHASE3_GRANTS = types.MappingProxyType(
                 grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-PHASE3-COOLING-CPU.json",
                 main_blob=True,
             ),
+            Phase3Grant(
+                grant_id="GRAPHITE-GRANT-PHASE3-R4",
+                challenge=BATTERY_CHALLENGE,
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-PHASE3-R4.json",
+                main_blob=True,
+                min_level=1,
+                start_model="kimi-k3",
+                token_share_usd=Decimal("11.93"),
+            ),
         )
     }
 )
 #: Challenges whose phase-3 runs accept only a grant registered for them.
 #: Battery's runs keep accepting any valid Graphite grant, as before.
 PHASE3_BOUND_CHALLENGES = frozenset({COLD_PLATE_CHALLENGE})
+#: The roles a grant's `start_model` applies to (OWNER-GRAPHITE-PHASE3-R4-01:
+#: the Constructor, and the Planner when used), by `roles.RoleName` value.
+START_ROLES = ("constructor", "planner")
+#: The run-conditions record a new session freezes (`run_conditions`).
+RUN_CONDITIONS_SCHEMA = "carbon.graphite.phase3.run-conditions.v1"
+RUN_CONDITIONS_AUTHORITY = "OWNER-GRAPHITE-PHASE3-R4-01"
+LEVEL_REFUSED = "grant_requires_construction_level_1_or_above"
+START_MODEL_REFUSED = "start_model_below_the_grants_start_rung"
+
+
+def entry_of(grant):
+    """The `Phase3Grant` registered for `grant`, or None."""
+    return PHASE3_GRANTS.get(getattr(grant, "grant_id", None))
+
+
+def level_refusal(grant, level):
+    """The typed refusal of a run at construction `level` under `grant`, or
+    None. Only a grant registering a `min_level` refuses anything; a level
+    that is not a whole number refuses under one (fail closed)."""
+    entry = entry_of(grant)
+    if entry is None or entry.min_level == 0:
+        return None
+    if type(level) is not int or level < entry.min_level:
+        return LEVEL_REFUSED
+    return None
+
+
+def start_rungs(grant):
+    """`{RoleName: rung}`: the ladder rung each start role opens on under
+    `grant` (`ladder.Ladder(start_rungs=...)`); empty for a grant that
+    registers no start model."""
+    from carbon.development_session.model_provider import ENGY_LADDER
+
+    from .roles import RoleName
+
+    entry = entry_of(grant)
+    if entry is None or entry.start_model is None:
+        return {}
+    rung = ENGY_LADDER.index(entry.start_model)
+    return {RoleName(name): rung for name in START_ROLES}
+
+
+def start_model_refusal(grant, role, model_id):
+    """The typed refusal of a session of `role` opening on `model_id` under
+    `grant`, or None: a start role may never open below the grant's start
+    rung, whatever the ladder says. Read from the registry itself, not from
+    `start_rungs`, so the two guards stand independently."""
+    from carbon.development_session.model_provider import ENGY_LADDER
+
+    entry = entry_of(grant)
+    if entry is None or entry.start_model is None:
+        return None
+    if getattr(role, "value", None) not in START_ROLES:
+        return None
+    floor = ENGY_LADDER.index(entry.start_model)
+    if model_id not in ENGY_LADDER or ENGY_LADDER.index(model_id) < floor:
+        return START_MODEL_REFUSED
+    return None
+
+
+def run_conditions(grant):
+    """The run conditions a new session under `grant` records, or None for
+    a grant that registers none (its records stay exactly as before)."""
+    entry = entry_of(grant)
+    if entry is None or (
+        entry.start_model is None
+        and entry.min_level == 0
+        and entry.token_share_usd is None
+    ):
+        return None
+    return {
+        "schema": RUN_CONDITIONS_SCHEMA,
+        "authority": RUN_CONDITIONS_AUTHORITY,
+        "grant_id": entry.grant_id,
+        "min_construction_level": entry.min_level,
+        "start_model": entry.start_model,
+        "start_roles": list(START_ROLES),
+        "token_share_usd": (
+            None if entry.token_share_usd is None else str(entry.token_share_usd)
+        ),
+    }
 
 
 def tokens_only(grant):
@@ -183,10 +299,11 @@ def tokens_only(grant):
     return getattr(grant, "grant_id", None) in phase3.TOKENS_ONLY_GRANTS
 
 
-def check_phase3_grant(path, grant, *, challenge, repository=REPOSITORY):
+def check_phase3_grant(path, grant, *, challenge, level=0, repository=REPOSITORY):
     """A live phase-3 run's grant, bound to the Challenge `--challenge`
-    names (module docstring). `grant` is the `SpendingGrant` loaded from
-    `path`. Returns its `Phase3Grant`, or None for an unregistered grant on a
+    names (module docstring) and to the construction level `--level` names
+    (`level_refusal`). `grant` is the `SpendingGrant` loaded from `path`.
+    Returns its `Phase3Grant`, or None for an unregistered grant on a
     Challenge that is not bound."""
     entry = PHASE3_GRANTS.get(grant.grant_id)
     if entry is None:
@@ -195,6 +312,9 @@ def check_phase3_grant(path, grant, *, challenge, repository=REPOSITORY):
         return None
     if entry.challenge != challenge:
         raise _refused("grant_is_for_another_challenge")
+    refused = level_refusal(grant, level)
+    if refused is not None:
+        raise _refused(refused)
     if entry.main_blob:
         try:
             given = json.loads(Path(path).read_bytes())

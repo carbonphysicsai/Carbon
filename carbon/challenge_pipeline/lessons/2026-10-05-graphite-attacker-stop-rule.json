@@ -1,0 +1,29 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-graphite-attacker-stop-rule",
+  "recorded_at": "2026-10-05T00:00:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "coverage_run",
+    "ref": ".agent/decisions/2026-10-05-GRAPHITE-ATTACKER-STOP-RULE-01.md (phase-4 Attacker session graphite-5dba40abea97545a)",
+    "description": "Added a versioned stop rule to the phase-4 Attacker session: a finish tool gated on per-family coverage, a capped continue reminder, a coverage table with labels for unreachable families, and a 4,096-token output cap."
+  },
+  "expected": "An Attacker session would keep probing until every family it can reach had been tried.",
+  "observed": "Session 1 ended on a free-text turn after reaching three families, left five families with no route named in its brief, and had two turns cut at 2,048 output tokens.",
+  "keep": [
+    "End an Attacker session through a finish tool gated on coverage (k attempts per reachable family) or on the money ledger's own floor, never on a free-text turn.",
+    "Compute reachable families from the offered tools themselves and label every other family in the brief; never leave a family as a silent NOT_RUN.",
+    "Version a session-lifecycle rule and freeze it in the session record, so sessions recorded without it resume byte-identically."
+  ],
+  "change": [
+    "A free-text turn gets at most two continue reminders, then the session stops typed (stopped_no_tool_use).",
+    "The Attacker's output cap is 4,096 tokens, the largest that keeps D35's whole input window unchanged."
+  ],
+  "protocol_elements": [
+    "attack.verify.authority-gate",
+    "attack.analysis.tool-authority"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

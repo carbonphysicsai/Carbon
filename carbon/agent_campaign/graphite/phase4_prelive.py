@@ -394,8 +394,9 @@ def session_script(adapter):
     """The fake model's replies for one Attacker session: read the
     Challenge, validate a recipe the contract refuses, ask for a code run
     with no wall allowance (refused before dispatch) and one within it
-    (dispatched), two calls in one turn (the parallel-call rule), then
-    stop."""
+    (dispatched), two calls in one turn (the parallel-call rule), a finish
+    the stop rule refuses (coverage short), then text until the continue
+    reminders run out and the session stops typed."""
     from . import phase4
 
     outside = phase4.surface_value(adapter, "recipe_outside_contract")
@@ -430,6 +431,9 @@ def session_script(adapter):
             (PREFIX + "get_interaction_manifest", {}),
             (PREFIX + "get_research_result", {"task_id": "prelive-task-1"}),
         ],
+        [(phase4.FINISH_TOOL_NAME, {"summary": "prelive: coverage is short"})],
+        "PRELIVE: the scripted Attacker replies without a tool call.",
+        "PRELIVE: again, without a tool call.",
         "PRELIVE: the scripted Attacker stops here.",
     ]
 

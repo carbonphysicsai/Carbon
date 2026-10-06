@@ -1,0 +1,44 @@
+{
+  "schema": "carbon.development-score-variant.v1",
+  "version": "battery-g-plate-n-heavy-v1",
+  "challenge_id": "battery-fastcharge-ageing-development-v1",
+  "base_rule": "battery-practice-v2",
+  "candidate": {
+    "id": "G-PLATE/N-heavy",
+    "kind": "gate_sweep",
+    "measure": "plating_fa",
+    "grid": [
+      0.005,
+      0.01,
+      0.02,
+      0.05,
+      0.1,
+      0.2,
+      0.5,
+      1.01
+    ],
+    "base": "N-heavy",
+    "basis": "run 5: the winner's near-limit plating false acceptance (9.5 % on one seed)"
+  },
+  "base_candidate": {
+    "id": "N-heavy",
+    "weights": {
+      "g": 0.3,
+      "n": 0.7
+    },
+    "basis": "run-5 diagnosis: the failure is a near-limit thermal sign error; push weight onto the near-limit margin"
+  },
+  "candidate_registry": {
+    "sha256": "0574c4be8ca1195d7a0c15ed45525286020b5edfef846eaffdf97efb3b1adb07",
+    "commit": "ae3983d6811d9e51eb61540e035e3d3eafcd0cde"
+  },
+  "practice_value_contract": "sha256:fedd753c0e7aa69d2fd4d6efbf3d877ac8eeb211859d9f32d76a61f38bbe38d1",
+  "scope": "DEVELOPMENT_ONLY_NEVER_SERVED_TO_MINERS",
+  "status": "CANDIDATE",
+  "authority": {
+    "decision": "The owner, 2026-10-05, relayed by the Test Lead: \"Send my approval. I think this is the right direction toward being active toward our goals. Max value alignment and max freedom.\" Evidence-driven gate candidates; the threshold stays HUMAN_INPUT until the owner picks it from the curve.",
+    "registered": "before any score is computed",
+    "tuning_registry": "docs/development/evidence/battery-score-tuning/registry-v2.json"
+  },
+  "fixture": false
+}

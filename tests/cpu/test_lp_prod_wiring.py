@@ -278,6 +278,7 @@ def test_a_new_battery_plan_freezes_the_tools_rule_and_an_old_one_replays(tmp_pa
     from carbon.battery import campaign
     from carbon.development_session.profile import canonical, digest
     from carbon.development_session.research_tools import (
+        ARGUMENT_NORMALISATION_V2,
         TOOLS,
         TOOLS_RULE,
         TOOLS_V2,
@@ -293,7 +294,12 @@ def test_a_new_battery_plan_freezes_the_tools_rule_and_an_old_one_replays(tmp_pa
     old = {key: value for key, value in plan.items() if key != "research_tools"}
     assert frozen_tools_rule({"provider": old}) is None
     # A miner-driven plan is unchanged: Carbon's agent does not run there.
-    assert campaign.provider_plan("none", None) == {"agent": "none", "model_calls": 0}
+    # Since AGENT-DOOR-USABILITY-01 it freezes argument-normalisation.v2.
+    assert campaign.provider_plan("none", None) == {
+        "agent": "none",
+        "model_calls": 0,
+        "argument_normalisation": ARGUMENT_NORMALISATION_V2,
+    }
 
     body = b"loss = 0.25\nstep = 42\n" * 8
     for name, frozen in (("new", plan), ("old", old)):

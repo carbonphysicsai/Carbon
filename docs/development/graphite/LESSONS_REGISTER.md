@@ -78,7 +78,7 @@ before, and that none is as messy as this first wave.
 | # | Lesson | Cost | Prevention | Disposition |
 |---|---|---|---|---|
 | I1 | Proposal ids repeat across runs; a "no-op" recipe flag was really a default; a KNN digest ignored k | Wrong cross-run identity; aliased and merged constructions | Identity by rebuilt artifact (OWNER-GRAPHITE-TEST-WAVE-04 §1), plus a standing no-op audit | ENFORCED: `test_construction_noop_audit.py` (#619); OPEN: KNN versioned digest (Test Engineer) |
-| I2 | The controller counts every run and binds one grant document | Refund grants needed (R2, R3) | Price runs with lost-run headroom, use per-challenge grants, and bind grants to main's blob and the named challenge | ENFORCED: grant bound to main's blob (#569); IN PR: per-challenge binding (#612); DOCUMENTED: headroom |
+| I2 | The controller counts every run and binds one grant document | Refund grants needed (R2, R3) | Price runs with lost-run headroom, use per-challenge grants, and bind grants to main's blob and the named challenge | ENFORCED: grant bound to main's blob (#569); per-challenge binding (#612); DOCUMENTED: headroom |
 | I3 | Admission findings lived in per-run controllers, so no record was canonical | The LOCK check could look at the wrong root | One designated admission controller per (challenge, level) | IN PR (#615) |
 
 ## 5. Attribution and grading integrity
@@ -87,7 +87,7 @@ before, and that none is as messy as this first wave.
 |---|---|---|---|---|
 | G1 | Hard-coded attribution assumptions (crash = candidate, timeout = candidate) | Mis-typed outcomes; dodge vectors | Every attribution rule is a **registered, versioned policy** with its raw evidence kept, and the Attacker tests it | ENFORCED: pod-attribution v1/v2, baseline-retry, cooling candidate-fault v1 (#620, no charge to the candidate; replay baseline). OPEN: cooling candidate-fault v2, which charges the candidate, is a follow-up and a condition for any live cooling Graphite or Attacker run (readiness A5 condition) |
 | G2 | Failure-stage claims were written where the candidate could write | A forgery vector at Levels 4–5 | Host-observed timing is the authority; candidate-writable files are evidence only | ENFORCED (#573) |
-| G3 | Missing predictions were excluded instead of charged | An omission dodge | Every host refuses incomplete prediction sets | IN PR (#613, WAVE-07 §1) |
+| G3 | Missing predictions were excluded instead of charged | An omission dodge | Every host refuses incomplete prediction sets | ENFORCED (#613, WAVE-07 §1) |
 | G4 | A gate helper returned 0.0 on FAIL, so a failure ranked first under a negative-error score | A wrong τ in #609 | Admissibility before ranking: gate failures rank last, tested | ENFORCED (#617); EV5-RUN-01 ruling |
 | G5 | A gate tolerance sat 0.0006 K inside the references | Live false-rejection risk | A **margin study for every gate** at onboarding | GATED (S3); cooling v2 at 0.1 K |
 | G6 | A case-insensitive role guard could be bypassed | Possible recall of a sealed batch | Security review of every guard; case-folded comparison | ENFORCED (#583) |

@@ -387,6 +387,10 @@ GRAPHITE_RUN5 = (
     ),
 )
 PANELS["graphite-run5"] = GRAPHITE_RUN5
+#: ev4-dev-tuning-v1 (the battery score-tuning loop, Test Lead GO 2026-10-05):
+#: EV4's 100 members, Graphite run 5's rebuilds, and (ATTACK_PANELS) the Track
+#: A constructions, decided on EV4's development conditions. DEVELOPMENT only.
+PANELS["ev4-dev-tuning"] = PANELS["ev4"] + GRAPHITE_RUN5
 
 #: The Track A harness families whose attempts are declarative recipes
 #: (strategy documents). The other families attack Python objects,
@@ -394,7 +398,7 @@ PANELS["graphite-run5"] = GRAPHITE_RUN5
 ATTACK_FAMILIES = ("recipe_surface", "rebuild_identity")
 ATTACK_ORIGIN = "track_a_harness"
 #: Panels that carry the harness's attack constructions.
-ATTACK_PANELS = ("ev5",)
+ATTACK_PANELS = ("ev5", "ev4-dev-tuning")
 
 
 def family(strategy):
