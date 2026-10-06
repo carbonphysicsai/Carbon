@@ -37,7 +37,9 @@ hidden duplicates and the reference records.
 
   It is signed by Carbon's service key. A validator refuses any batch whose
   decrypted contents do not reproduce the manifest's digests.
-- Each copy is recorded per recipient, so a leak is attributable to a copy.
+- Each fetch is recorded per recipient. Fetches are attributable. A leaked key
+  is byte-identical across validators, so it only narrows the leak to the set
+  of fetchers in that window.
 
 **3. Validator side** (it replaces drawing its own batches).
 - `import_batch` (it exists) takes the answer-key batch.

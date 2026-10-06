@@ -26,8 +26,12 @@ standard-Bittensor addendum) replaces both:
   `btauth/1` hotkey-signed request, over TLS, with every fetch logged per
   hotkey.
 
-Each copy is attributable through that log, so per-validator encryption is
-not built. If the owner wants it as an extra layer, that is one added step.
+Fetches are attributable through that log. A leaked key is byte-identical
+across validators, so it narrows only to the set of fetchers in that window,
+and per-validator encryption would not change that. It is not built.
+
+The Test Lead accepted this, and it settles the sole-producer question:
+Carbon draws and solves.
 
 ## Design
 
@@ -81,8 +85,7 @@ not built. If the owner wants it as an extra layer, that is one added step.
 - **Steering where new cases are drawn,** Q(x) against P(x) (item 5 of the
   parity record): uniform draws only until it is recorded.
 - **The release decision for retired batches.**
-- **Whether Carbon is mainnet's sole producer:** the Test Lead is asking the
-  owner.
+- *(Settled: Carbon is the sole producer; it draws and solves.)*
 
 ## Slices
 
@@ -104,9 +107,13 @@ not built. If the owner wants it as an extra layer, that is one added step.
     accounts.
   - Acceptance requires identical batches and identical scores for the same
     submissions (with A40 rebuilds, per VALIDATOR-18).
-  - **The single-validator leak attack:** UID 2's batch is handed to a test
-    miner. Measure the miner's score advantage and whether the fetch log and
-    an anomaly check attribute the leak to UID 2.
+  - **The leak family**, measured, with fixing either left to the owner:
+    1. **A single validator leaks.** UID 2's batch is handed to a test miner.
+       Measure the miner's score advantage, and how far the fetch log
+       narrows the leak: to the set of fetchers in that window, never to one
+       validator, because the key is identical.
+    2. **A miner gets a validator permit** (by staking) and fetches the active
+       key itself. Measure the expected exposure for each rotation window.
 
 ## Operator setup (Ryan; exact steps, run once per host)
 

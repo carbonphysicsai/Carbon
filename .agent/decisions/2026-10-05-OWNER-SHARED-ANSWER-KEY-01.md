@@ -76,5 +76,6 @@ These are designed in VALIDATOR-18, and acceptance stays the owner's.
   - The service serves only a hotkey holding a validator permit at the
     current finalized block.
   - TLS protects the transfer.
-  - Every fetch is logged per hotkey, so each copy is attributable.
+  - Every fetch is logged per hotkey. Fetches are attributable, and a leaked
+    key narrows to the set of fetchers in that window.
 - **No extra keys.** The validator's own hotkey is its only identity.
