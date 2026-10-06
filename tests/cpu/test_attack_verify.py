@@ -543,9 +543,12 @@ def test_a_battery_specimen_rebuilds_from_its_bundle_alone(tmp_path):
     verdict = verify.verify(found, Battery(forged), specimen_dir=tmp_path / "bad")
     assert verdict.specimen["status"] == "REBUILD_MISMATCH"
     assert verdict.specimen["differences"] == ["program"]
-    # Re-verifying writes the same bundle: idempotent.
+    # Re-verifying finds this artifact's bundle and re-checks it: idempotent
+    # (the folder is keyed by the rebuilt artifact, OWNER-GRAPHITE-TEST-WAVE-04
+    # §1, so it is reused, never rewritten).
     again = verify.verify(found, Battery(forged), specimen_dir=tmp_path / "bad")
-    assert again.specimen == verdict.specimen
+    assert verdict.specimen["reused"] is False and again.specimen["reused"] is True
+    assert {**again.specimen, "reused": False} == verdict.specimen
 
 
 def test_a_specimen_that_names_protected_material_is_never_written(tmp_path):

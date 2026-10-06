@@ -194,6 +194,10 @@ class OfferedLiterature:
     policy: str
     source: dict
     withheld: int
+    #: A Challenge's ranked snapshot (VALIDATOR-08): `{challenge_id, rule,
+    #: rule_digest, grades}`, `grades` being `(card_id, grade)` pairs best
+    #: first for every offered card. None for an unranked (battery) snapshot.
+    ranking: dict | None = None
 
     def __post_init__(self):
         if type(self.cards) is not tuple:
@@ -225,6 +229,30 @@ class OfferedLiterature:
             raise LiteratureError("an offered index names its source snapshot")
         if type(self.withheld) is not int or self.withheld < 0:
             raise LiteratureError("withheld is a count")
+        if self.ranking is not None:
+            ranking = self.ranking
+            if (
+                type(ranking) is not dict
+                or set(ranking) != {"challenge_id", "rule", "rule_digest", "grades"}
+                or type(ranking["grades"]) is not tuple
+                or sorted(cid for cid, _ in ranking["grades"])
+                != sorted(card["card_id"] for card in self.cards)
+                or any(
+                    type(g) is not int or not 1 <= g <= 3 for _, g in ranking["grades"]
+                )
+            ):
+                raise LiteratureError("a ranking grades every offered card")
+
+    @property
+    def challenge_id(self):
+        """The Challenge a ranked snapshot is for, or None (battery's)."""
+        return None if self.ranking is None else self.ranking["challenge_id"]
+
+    def _ordered(self):
+        if self.ranking is None:
+            return sorted(self.cards, key=lambda card: card["card_id"])
+        by_id = {card["card_id"]: card for card in self.cards}
+        return [by_id[cid] for cid, _ in self.ranking["grades"]]
 
     @property
     def empty(self):
@@ -235,7 +263,7 @@ class OfferedLiterature:
 
     def document(self):
         status = dict(self.statuses)
-        return {
+        document = {
             "schema": OFFERED_SCHEMA,
             "label": self.label,
             "policy": self.policy,
@@ -246,6 +274,13 @@ class OfferedLiterature:
                 for card in sorted(self.cards, key=lambda card: card["card_id"])
             ],
         }
+        if self.ranking is not None:
+            # An unranked document has no key at all, exactly as before.
+            document["ranking"] = {
+                **self.ranking,
+                "grades": [list(pair) for pair in self.ranking["grades"]],
+            }
+        return document
 
     @property
     def snapshot_digest(self):
@@ -281,7 +316,7 @@ class OfferedLiterature:
                 "title": card["title"],
                 "check_status": self.status(card["card_id"]),
             }
-            for card in sorted(self.cards, key=lambda card: card["card_id"])
+            for card in self._ordered()
         ]
 
     def record(self):
@@ -300,6 +335,23 @@ class OfferedLiterature:
             "withheld_by_policy": self.withheld,
             "empty": self.empty,
             "note": EMPTY_NOTE if self.empty else None,
+            **self._ranked_record(unchecked),
+        }
+
+    def _ranked_record(self, unchecked):
+        """A ranked offer also pins its Challenge, its ranking rule and the
+        share of offered cards no person has checked; an unranked record has
+        none of these keys, exactly as before."""
+        if self.ranking is None:
+            return {}
+        offered = len(self.cards)
+        return {
+            "challenge_id": self.ranking["challenge_id"],
+            "ranking_rule": self.ranking["rule"],
+            "ranking_rule_digest": self.ranking["rule_digest"],
+            "unchecked_fraction": (
+                "0" if not offered else f"{len(unchecked)}/{offered}"
+            ),
         }
 
 

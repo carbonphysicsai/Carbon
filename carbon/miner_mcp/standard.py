@@ -31,6 +31,7 @@ from carbon import research
 from carbon.chain.external_signer import SignerFailure
 from carbon.development_session.profile import canonical
 from carbon.development_session.research_control import DispatchStopped
+from carbon.development_session.research_ledger import PLAIN_REFUSALS
 from carbon.development_session.research_tools import (
     FIELDS,
     PREFIX,
@@ -209,7 +210,8 @@ def _pre_dispatch_stop(exc):
     while trace is not None:
         codes.append(trace.tb_frame.f_code)
         trace = trace.tb_next
-    message = str(exc) if type(exc) is ValueError else None
+    # The ledger's typed refusal (`LedgerRefusal`) keeps its historical text.
+    message = str(exc) if type(exc) in PLAIN_REFUSALS else None
     for outer, inner in itertools.pairwise(codes):
         if outer is _SDK_BODY and inner.co_name in _ADMISSION_CHECKS:
             return _ADMISSION_STOPS.get(message, AdapterCode.OPERATIONAL_STOP)

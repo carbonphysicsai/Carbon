@@ -53,6 +53,7 @@ import os
 from dataclasses import dataclass
 from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from pathlib import Path
+from types import SimpleNamespace
 
 from carbon.challenge_validator import scoring as challenge_scoring
 from carbon.challenge_validator.scoring import (
@@ -63,7 +64,13 @@ from carbon.challenge_validator.scoring import (
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
 
-from . import baseline_retry, pod_logs, pod_outcome
+from . import (
+    baseline_retry,
+    grant_binding,
+    hidden_score,
+    pod_logs,
+    pod_outcome,
+)
 from . import pods as podlib
 from .roles import (
     CONSTRUCTOR_STALL_ATTEMPTS,
@@ -83,6 +90,9 @@ FEEDBACK_SCHEMA = "carbon.graphite.phase3.feedback.v1"
 STOP_SCHEMA = "carbon.graphite.phase3.session-stop.v1"
 #: A proposal refused because Carbon stopped the session as infrastructure.
 SESSION_STOPPED = "REFUSED_SESSION_STOPPED"
+#: The typed finding and session stop when a backend reports money for a pod
+#: under a tokens-only budget (GRAPHITE-GRANT-BINDING-01 D7 addendum).
+TOKENS_ONLY_CHARGE = "tokens_only_backend_reported_a_charge"
 #: Reason prefixes when an environment relaunch cannot run.
 RELAUNCH_REFUSED = "pod_environment_relaunch_refused:"
 #: The session baseline's retry never gets a relaunch too: the baseline gets
@@ -110,6 +120,11 @@ class Phase3Budget:
     pod is admitted only while tokens committed plus pods committed plus the
     new pod's reservation stay within it, and the run's model calls are capped
     at the token remainder by the research ledger.
+
+    `tokens_only` (a grant in `phase3.TOKENS_ONLY_GRANTS`): the pod money
+    budget is 0, the whole run cap is the token share, and a launch that
+    would reserve pod money is refused `grant_allows_no_pods`. A backend that
+    costs no provider money (the CPU carrier lane, rate 0) still runs.
     """
 
     run_cap_usd: Decimal
@@ -117,13 +132,22 @@ class Phase3Budget:
     pod_minutes: int
     max_pods: int
     challenge_id: str
+    tokens_only: bool = False
 
     @property
     def pod_reservation_usd(self):
         return podlib.pod_reservation(self.pod_minutes, self.hourly_usd)
 
     @property
+    def pays_for_pods(self):
+        """False when a pod would reserve money this budget has none for: a
+        tokens-only budget at a non-zero pod rate (`grant_allows_no_pods`)."""
+        return not (self.tokens_only and self.pod_reservation_usd > 0)
+
+    @property
     def pod_allowance_usd(self):
+        if self.tokens_only:
+            return Decimal("0.00")
         return podlib.cents_up(self.max_pods * self.pod_reservation_usd)
 
     @property
@@ -131,7 +155,11 @@ class Phase3Budget:
         return self.run_cap_usd - self.pod_allowance_usd
 
     def record(self):
+        # `tokens_only` is recorded only when set, so every other run's
+        # record is unchanged.
+        extra = {"tokens_only": True} if self.tokens_only else {}
         return {
+            **extra,
             "run_cap_usd": str(self.run_cap_usd),
             "pod_minutes": self.pod_minutes,
             "max_pods": self.max_pods,
@@ -158,12 +186,16 @@ def phase3_budget(grant, scoring=None, hourly_usd=None):
     if hourly_usd is None:
         hourly_usd = podlib.prices()["hourly_usd"]
     minutes = podlib.proposal_minutes(scoring)
+    # A tokens-only grant (`grant_binding.tokens_only`) has a pod money
+    # budget of 0: the whole run cost is its token share, and a pod that
+    # would reserve money is refused (`Phase3Budget.pays_for_pods`).
     budget = Phase3Budget(
         run_cap_usd=grant.worst_case_run_cost,
         hourly_usd=hourly_usd,
         pod_minutes=minutes,
         max_pods=SESSION_POD_MINUTES // minutes,
         challenge_id=scoring.challenge_id,
+        tokens_only=grant_binding.tokens_only(grant),
     )
     if budget.max_pods < 2 or budget.token_allowance_usd <= 0:
         # A baseline and one proposal, and some tokens, must fit one run.
@@ -348,6 +380,8 @@ def _feedback_view(record):
         "differences",
         "stall",
         "pods_left",
+        # The hidden-pool view (`hidden_score`): only what a mainnet miner sees.
+        "hidden",
     ):
         if key in record:
             view[key] = record[key]
@@ -378,6 +412,13 @@ class Experiment:
     when it and the waiting proposal's pod can finish within it. The logs of
     a pod run that does not score are kept, bounded, in its proposal's record
     directory (`pod_logs`), as operator evidence only.
+
+    `hidden` is a `hidden_score.HiddenPool` (VALIDATOR-13) or None. With one,
+    every scored proposal is also submitted to the battery validator's hidden
+    pool. Its record and feedback carry only the miner-visible `hidden` view;
+    the operator record is written beside them (`hidden-operator.json`) and
+    nowhere else. With None, nothing changes. Level 0 only: the validator
+    never serves a development variant.
     """
 
     def __init__(
@@ -403,6 +444,7 @@ class Experiment:
         seconds_left=None,
         development_variant=None,
         on_finding=None,
+        hidden=None,
     ):
         from .provider import RunCancelled
 
@@ -427,6 +469,12 @@ class Experiment:
             construction_level != development_variant.level
         ):
             raise ValueError("a development variant runs at its own level")
+        if hidden is not None and (
+            development_variant is not None
+            or hidden.challenge_id != self.scoring.challenge_id
+        ):
+            raise ValueError("hidden scoring serves its own Challenge at Level 0")
+        self.hidden = hidden
         # The registered attribution policy (`pod_outcome`): the registry's
         # current version unless one is named.
         self.attribution = (
@@ -470,6 +518,52 @@ class Experiment:
     def rows(self, pid):
         path = self.root / "proposals" / pid / "rows.json"
         return json.loads(path.read_bytes()) if path.exists() else None
+
+    def hidden_records(self):
+        """The run's hidden-pool operator records, by proposal (operator
+        evidence; `DEVELOPMENT_HIDDEN_POOL`). Scores are comparable only within
+        one pool version; the validator's own leader is `hidden.standing()`."""
+        found = []
+        for record in self.records():
+            path = self.root / "proposals" / record["proposal_id"]
+            path = path / "hidden-operator.json"
+            if path.exists():
+                found.append(
+                    {
+                        "proposal_id": record["proposal_id"],
+                        "kind": record["kind"],
+                        **json.loads(path.read_bytes()),
+                    }
+                )
+        return found
+
+    def hidden_report(self):
+        """The run's hidden-pool report (`hidden_score.report`): a primary
+        ranking per pool version, with overdue-pool scores kept apart as
+        descriptive evidence only."""
+        return hidden_score.report(self.hidden_records())
+
+    def hidden_rerun(self, pid):
+        """Re-score proposal `pid`, the run's winner as the operator names it,
+        once on a fresh hidden batch (VALIDATOR-13 §6, `fresh_cases_rerun`).
+        Operator evidence only. It is written once to `hidden-rerun.json` when
+        final (`hidden_score.RERUN_FINAL`); waiting and infrastructure states
+        are returned and can be retried."""
+        if self.hidden is None:
+            raise ValueError("no hidden pool")
+        folder = self.root / "proposals" / pid
+        done = folder / "hidden-rerun.json"
+        if done.exists():
+            return json.loads(done.read_bytes())
+        scored = folder / "hidden-operator.json"
+        if not scored.exists():
+            raise ValueError("proposal_not_hidden_scored")
+        operator = json.loads(scored.read_bytes())
+        result = self.hidden.fresh_rerun(operator["submission_id"])
+        if result["state"] in hidden_score.RERUN_FINAL:
+            write_once(done, canonical({"proposal_id": pid, **result}))
+            return json.loads(done.read_bytes())
+        return result
 
     def findings(self):
         path = self.root / "findings.jsonl"
@@ -541,6 +635,15 @@ class Experiment:
         )
 
     def _admit_pod(self):
+        stop = self.stopped()
+        if stop is not None:
+            # The session was stopped (`_stop_session`): no further pod, a
+            # retry or relaunch of the proposal in flight included.
+            raise BudgetRefused("session_stopped:" + stop["reason_code"])
+        if not self.budget.pays_for_pods:
+            # A paid pod under a tokens-only grant: refused before any
+            # reservation or launch.
+            raise BudgetRefused(grant_binding.NO_PODS)
         if self.pods_left() <= 0:
             raise BudgetRefused("session_pod_limit_reached")
         reservation = self.budget.pod_reservation_usd
@@ -575,7 +678,13 @@ class Experiment:
                     report.append({"intent_id": pod["intent_id"], "terminated": True})
                     continue
                 if handle == "unknown":
-                    report.append({"intent_id": pod["intent_id"], "terminated": None})
+                    report.append(
+                        {
+                            "intent_id": pod["intent_id"],
+                            "terminated": None,
+                            **self._settles(pod["intent_id"]),
+                        }
+                    )
                     continue
                 self.ledger.append(
                     "pod_created",
@@ -588,6 +697,20 @@ class Experiment:
             verified = self._terminate(pod["proposal"], handle)
             report.append({"intent_id": pod["intent_id"], "terminated": verified})
         return report
+
+    def _settles(self, intent_id):
+        """For an uncertain create the provider cannot settle yet: the
+        intent's age and when a reconcile can settle it (OPERATOR-USABILITY-01
+        D3), from the backend's `recover_settles`. Empty when the backend
+        cannot say; a reconcile row is never refused for want of it."""
+        settles = getattr(self.pods, "recover_settles", None)
+        if settles is None:
+            return {}
+        try:
+            value = settles(intent_id)
+        except Exception:  # noqa: BLE001 - a hint, never a reconcile failure
+            return {}
+        return dict(value) if type(value) is dict else {}
 
     def _recover(self, pid, intent_id):
         """A pod an uncertain create may have made. None when none exists (its
@@ -655,6 +778,27 @@ class Experiment:
             charge_usd=str(charge),
             basis="provider_reported",
         )
+        if self.budget.tokens_only and charge > 0:
+            self._tokens_only_charge(pid, handle, charge)
+
+    def _tokens_only_charge(self, pid, handle, charge):
+        """A backend reported money for a pod under a tokens-only budget, which
+        reserved none for it (GRAPHITE-GRANT-BINDING-01 D7). The charge stays
+        booked exactly as reported (`_settle`); hiding real spend is worse. A
+        typed finding names the pod and the amount, and the session stops
+        through the existing stop (`_stop_session`): no further pod, and the
+        provider ends the session typed."""
+        self._finding(
+            TOKENS_ONLY_CHARGE.upper(),
+            pid,
+            {
+                "code": TOKENS_ONLY_CHARGE,
+                "intent_id": handle.intent_id,
+                "pod_id": handle.pod_id,
+                "charge_usd": str(charge),
+            },
+        )
+        self._stop_session(pid, SimpleNamespace(reason_code=TOKENS_ONLY_CHARGE))
 
     # -- one proposal --------------------------------------------------------------------------
     def propose_tool(self, arguments, identity):
@@ -745,6 +889,8 @@ class Experiment:
     def _retry_budget(self, pods):
         """None when the session's pod limit and the run's money cap (tokens
         and pods together) hold `pods` more pods, else the refusal code."""
+        if not self.budget.pays_for_pods:
+            return grant_binding.NO_PODS
         if self.pods_left() < pods:
             return "session_pod_limit_reached"
         committed = self.token_committed() + self.pod_committed()
@@ -1225,7 +1371,19 @@ class Experiment:
                     record["baseline"]["proposal_id"] = baseline_id
         if kind == "proposal":
             record["stall"] = self._stall(record)
+        if self.hidden is not None:
+            record["hidden"] = self._hidden_score(pid, kind, strategy)
         return self._close(pid, record)
+
+    def _hidden_score(self, pid, kind, strategy):
+        """Submit a scored proposal to the hidden pool (`hidden_score`). The
+        record keeps only the miner-visible view; the operator record is
+        written once beside it and is never in a record, feedback, event or
+        bundle."""
+        view, operator = self.hidden.submit(kind, strategy)
+        if operator is not None:
+            write_once(self._dir(pid) / "hidden-operator.json", canonical(operator))
+        return view
 
     def _attempt(self, pid, intent_id, reservation, strategy, expected, seed):
         """Reserve and run one pod for a proposal; `(outcome, files, timing)`."""
@@ -1463,10 +1621,19 @@ class Experiment:
         stalled = count >= CONSTRUCTOR_STALL_ATTEMPTS
         observation = self.root / "stall-observation.json"
         if stalled and not observation.exists():
+            # A proposal id is a run-local label (it is derived from the tool
+            # call's journal identity, so every run reuses it): the evidence
+            # binds the run and what each proposal built, never the bare ids
+            # (OWNER-GRAPHITE-TEST-WAVE-04 §1).
             evidence = digest(
                 canonical(
-                    [r["proposal_id"] for r in self.records("proposal")]
-                    + [record["proposal_id"]]
+                    {
+                        "run_id": self.run_id,
+                        "proposals": [
+                            [r["proposal_id"], r.get("recipe_digest")]
+                            for r in [*self.records("proposal"), record]
+                        ],
+                    }
                 )
             )
             failure_id = self.ladder.record_failure(

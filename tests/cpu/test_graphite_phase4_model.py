@@ -75,7 +75,9 @@ PROBE = tool(PREFIX + "get_challenge_info", {})
 
 
 def _grant():
-    document = json.loads((phase4.REPOSITORY / phase4.GRANT_FILE).read_bytes())
+    # Battery's phase-4 grant, as the per-Challenge registry names it.
+    entry = phase4.PHASE4_GRANTS[BATTERY_CHALLENGE]
+    document = json.loads((phase4.REPOSITORY / entry.grant_file).read_bytes())
     return SpendingGrant.from_document(
         {**document, "expires_at": "2099-01-01T00:00:00Z"}
     )
@@ -350,6 +352,12 @@ def test_prelive_prints_the_attacker_model_block(tmp_path, monkeypatch):
     assert Decimal(report["attacker_model"]["reservation_usd"]) == Decimal(
         GLM_RESERVATION_NANO
     ) / Decimal(10**9)
+    # The same v2 report also names the accepted grant and its Challenge
+    # (OWNER-GRAPHITE-TEST-WAVE-05 §3), beside the model block.
+    assert report["schema"] == "carbon.graphite.phase4-prelive.v2"
+    assert report["challenge"] == BATTERY_CHALLENGE
+    assert report["grant"]["grant_id"] == "GRAPHITE-GRANT-PHASE4"
+    assert report["grant"]["challenge"] == BATTERY_CHALLENGE
 
 
 # -- a mutation per guard --------------------------------------------------------------------
