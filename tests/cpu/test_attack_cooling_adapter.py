@@ -20,9 +20,10 @@ The claims tested:
 - the phase-4 dry run runs end to end at cooling with nothing spent;
 - a selective crash (a construction that faults only where it would score
   badly) is run through both real paths, the Interface v1 validator and
-  Graphite's pod path, and dodges no case on either; the missing-prediction
-  seam's premise (an omitted case is excluded, so the set stays eligible with a
-  better score) is pinned with its numbers;
+  Graphite's pod path, and dodges no case on either; an omitted or null
+  prediction is a schema-gate failure charged to the construction on both
+  paths, never FAILED_INFRA and never excluded, so a partial set is never
+  eligible (GRAPHITE-COVERAGE-PARITY-02);
 - mutations: disabling each boundary turns its guard red. Each mutation
   patches the module the check actually reads, never a re-export.
 """
@@ -492,15 +493,28 @@ def test_vectors_that_need_an_owner_value_invent_none():
     }
 
 
-def test_a_partial_prediction_set_is_failed_infra_never_a_pass():
+def test_a_partial_prediction_set_is_a_gate_failure_never_a_pass():
+    """GRAPHITE-COVERAGE-PARITY-02: every case a set leaves out, or gives
+    null, is a schema-gate failure, never FAILED_INFRA and never excluded, so
+    a partial set is never eligible (before it, an omitted case was
+    FAILED_INFRA and excluded)."""
+    value = {"kind": "scoring", "predictions": {}, "partial": True}
+    result = c.resource_boundary(value)
+    assert not result["eligible"]
+    assert result["n_failed_infra"] == 0
+    assert result["n_gate_failed"] == result["n_cases"] == 100
     half = c._half_predictions()
-    result = c.resource_boundary({"kind": "scoring", "predictions": half})
-    assert result["n_failed_infra"] == result["n_cases"] - len(half) == 50
-    assert result["n_gate_failed"] == 0
-    nothing = c.resource_boundary(
-        {"kind": "scoring", "predictions": {}, "partial": True}
-    )
-    assert not nothing["eligible"] and not c.resource_breached(nothing)
+    for predictions in (
+        half,
+        {**{case: None for case in c._oracle_predictions()}, **half},
+    ):
+        read = c.resource_boundary(
+            {"kind": "scoring", "predictions": predictions, "partial": True}
+        )
+        assert not read["eligible"] and read["n_failed_infra"] == 0
+        assert read["n_gate_failed"] == read["n_cases"] - read["n_scored"] == 50
+        assert not c.resource_breached(read)
+    assert c.resource_breached(c.resource_specimen(value))
 
 
 def test_a_code_run_is_refused_before_dispatch_above_the_wall_allowance():
@@ -657,28 +671,59 @@ def _omitting(monkeypatch):
     monkeypatch.setattr(c, "_faulting", faulting)
 
 
-def test_the_missing_prediction_seam_premise_holds(monkeypatch):
-    """The `missing_prediction_attribution` seam's premise, pinned with its
-    numbers: a case that arrives with no prediction is typed FAILED_INFRA and
-    excluded on both paths, so a set that omits its worst cases stays eligible
-    with a better score (Graphite's host scores the partial file with no
-    completeness check). No Level 0 construction can omit a case; if that
-    changes, or an owner decides otherwise, this test names the seam to
-    revisit."""
-    seams = {s.name: s for s in c.SEAMS}
-    assert seams["missing_prediction_attribution"].reserved_decision.startswith("owner")
-    _omitting(monkeypatch)
+def _omission_charged():
+    """A construction that omits its ten worst cases (a predict that returns
+    no prediction) is charged for them on both real paths: the Interface v1
+    validator and Graphite's host each ask every case (`scoring.cover`), so
+    each omitted case is a schema-gate failure, the set is ineligible and no
+    case is dropped from the count (GRAPHITE-COVERAGE-PARITY-02)."""
     value = dict(SELECTIVE.attacks())["fault_on_the_worst_k_cases"]
     strategy, fault = c._fault_of({**value, "mode": "nonfinite_peak"})
-    honest = c._honest(strategy)
+    assert len(fault["cases"]) == 10
     v1 = c._interface_v1(strategy, fault)
     graphite = c._graphite(strategy, fault)
     for path in (v1, graphite):
-        assert c.dodged(path)
+        assert not c.dodged(path)
+        assert path["scored"] and path["eligible"] is False
         assert (path["n_scored"], path["n_cases"]) == (90, 100)
-        assert path["score"] < honest["score"]
     assert v1["outcome"] == "SCORED" and v1["recorded_submissions"] == 1
     assert graphite["outcome"] == "SCORED"
+    assert graphite["n_gate_failed"] == 10 and graphite["score"] is None
+    assert graphite["against_baseline"] == "REGRESSION"
+
+
+def _guard_omission():
+    with pytest.MonkeyPatch.context() as m:
+        _omitting(m)
+        _omission_charged()
+
+
+def test_an_omitted_prediction_is_a_gate_failure_on_both_paths():
+    """The `missing_prediction_attribution` seam's premise now: no Level 0
+    construction can omit a case, so the omitting construction is a test
+    harness and the seam stays NOT_RUN, with no owner decision left open."""
+    seams = {s.name: s for s in c.SEAMS}
+    seam = seams["missing_prediction_attribution"]
+    assert seam.reserved_decision is None
+    assert "GRAPHITE-COVERAGE-PARITY-02" in seam.reason
+    _guard_omission()
+
+
+def test_a_dropping_harness_alone_is_gate_failed_not_dodged(monkeypatch):
+    """A per-case catch in either harness (the validator's or the pod's
+    practice program) writes no prediction for a faulted case; `cover` charges
+    that case, so selective_fault still holds. The drop is a red mutation only
+    with the old typing restored (`missing_prediction_typed_failed_infra`)."""
+    value = dict(SELECTIVE.attacks())[SELECTIVE.attack_example]
+    for drop in (_validator_drops_only, _program_drops_only):
+        c.clear_caches()
+        try:
+            drop(monkeypatch)
+            result = c.selective_fault_boundary(value)
+            assert not c.selective_fault_breached(result), drop.__name__
+        finally:
+            monkeypatch.undo()
+            c.clear_caches()
 
 
 # -- rebuild ------------------------------------------------------------------------------------
@@ -971,12 +1016,19 @@ def _averaging_scorer(m):
     m.setattr(exam, "aggregate", _aggregate(lambda o: {"eligible": o["n_scored"] > 0}))
 
 
-def _failed_infra_counts_as_pass(m):
-    from carbon.cold_plate import exam
+def _missing_prediction_typed_failed_infra(m):
+    """Both cooling hosts exclude a missing case again, the typing before
+    GRAPHITE-COVERAGE-PARITY-02: Graphite's frozen rule and the Interface v1
+    validator each read `cover` from their own module."""
+    from carbon.challenge_validator import cooling as validator_cooling
+    from carbon.challenge_validator import cooling_scoring
 
-    m.setattr(
-        exam, "aggregate", _aggregate(lambda o: {"eligible": o["n_gate_failed"] == 0})
-    )
+    def excluding(predictions, case_ids):
+        source = predictions if isinstance(predictions, dict) else {}
+        return {case: source.get(case) for case in case_ids}, []
+
+    m.setattr(cooling_scoring, "cover", excluding)
+    m.setattr(validator_cooling, "cover", excluding)
 
 
 def _optimism_bias_dropped(m):
@@ -1045,8 +1097,17 @@ def _faulted_case_typed_failed_infra(m):
 
 def _validator_harness_drops_a_faulted_case(m):
     """The Interface v1 validator catches a case's predict fault and records
-    no prediction for it. `CoolingAdapter.evaluate` reads `rebuild` from the
-    validator's own cooling module."""
+    no prediction for it, and the hosts exclude a missing case again (the
+    typing before GRAPHITE-COVERAGE-PARITY-02; the drop alone is gate-failed,
+    `test_a_dropping_harness_alone_is_gate_failed_not_dodged`)."""
+    _validator_drops_only(m)
+    _missing_prediction_typed_failed_infra(m)
+
+
+def _validator_drops_only(m):
+    """The Interface v1 validator's harness alone catches a case's predict
+    fault and records no prediction for it. `CoolingAdapter.evaluate` reads
+    `rebuild` from the validator's own cooling module."""
     from carbon.challenge_validator import cooling as validator_cooling
 
     original = validator_cooling.rebuild
@@ -1075,8 +1136,16 @@ _PROGRAM_PREDICTS = (
 
 def _practice_program_drops_a_faulted_case(m):
     """The pod's practice program catches a case's predict fault and writes no
-    prediction for it (`practice.PROGRAM`, which the pod path stages and the
-    probe runs)."""
+    prediction for it, and the hosts exclude a missing case again (the typing
+    before GRAPHITE-COVERAGE-PARITY-02; the drop alone is gate-failed)."""
+    _program_drops_only(m)
+    _missing_prediction_typed_failed_infra(m)
+
+
+def _program_drops_only(m):
+    """The pod's practice program alone catches a case's predict fault and
+    writes no prediction for it (`practice.PROGRAM`, which the pod path stages
+    and the probe runs)."""
     from carbon.cold_plate import practice
 
     assert _PROGRAM_PREDICTS in practice.PROGRAM
@@ -1255,9 +1324,20 @@ MUTATIONS = {
         _code_run_seconds_lifted,
         lambda: _held_and_fired("resource_accounting"),
     ),
-    "failed_infra_counted_as_a_pass": (
-        _failed_infra_counts_as_pass,
+    # GRAPHITE-COVERAGE-PARITY-02 retired `failed_infra_counted_as_a_pass`: a
+    # partial set no longer has FAILED_INFRA cases to count. Its successor
+    # restores the old typing itself, on both hosts.
+    "missing_prediction_typed_failed_infra": (
+        _missing_prediction_typed_failed_infra,
+        test_a_partial_prediction_set_is_a_gate_failure_never_a_pass,
+    ),
+    "missing_prediction_excluded_from_resource_accounting": (
+        _missing_prediction_typed_failed_infra,
         lambda: _held_and_fired("resource_accounting"),
+    ),
+    "missing_prediction_excluded_on_both_paths": (
+        _missing_prediction_typed_failed_infra,
+        _guard_omission,
     ),
     "faulted_case_typed_failed_infra": (
         _faulted_case_typed_failed_infra,
