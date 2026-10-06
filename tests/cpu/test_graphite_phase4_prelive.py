@@ -471,3 +471,38 @@ def test_the_pod_step_calls_the_pod_layers_shared_check_when_it_exists(
     assert rows[prelive.POD_STEP]["detail"]["error"] == "ProgrammingError"
     assert report["verdict"] == "FAIL" and code == 4
     assert report["phase4_live_path"] == "PASS"
+
+
+def test_the_gate_helper_refuses_a_positional_call(tmp_path):
+    """Every `_run` parameter after `gate` is keyword-only, so `challenge`,
+    `grant_path` and `analysis_image_manifest` cannot shift into each
+    other's places: a positional call is refused before any step runs."""
+    import inspect
+
+    parameters = list(inspect.signature(prelive._run).parameters.values())
+    assert parameters[0].name == "gate"
+    assert parameters[0].kind is inspect.Parameter.POSITIONAL_OR_KEYWORD
+    assert {p.name for p in parameters[1:]} >= {
+        "store",
+        "grant_path",
+        "challenge",
+        "analysis_image_manifest",
+    }
+    assert all(p.kind is inspect.Parameter.KEYWORD_ONLY for p in parameters[1:])
+
+    class Untouched:
+        def __getattr__(self, name):
+            raise AssertionError("a positional call reached the gate")
+
+    with pytest.raises(TypeError, match="positional argument"):
+        prelive._run(
+            Untouched(),
+            tmp_path,
+            None,
+            None,
+            "grant.json",
+            tmp_path,
+            SCORING,
+            BATTERY_CHALLENGE,
+            None,
+        )
