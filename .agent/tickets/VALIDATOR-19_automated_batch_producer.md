@@ -238,3 +238,8 @@ member, the mean Q3 decision regret over the quiz's feasible scenarios.
 - `score_tuning.near_limit_cautious` (the constructed over-caution control
   on #686) joins the known-bad-for-value set.
 - It is built with slice Q, once #686 merges.
+
+**Longer term** (the Test Lead, 2026-10-06): testnet's own batch production
+also moves behind this producer on the VM (S1 onward), so the PC holds no
+root that draws hidden cases. S2's validator import replaces the testnet
+deployment's own draws.

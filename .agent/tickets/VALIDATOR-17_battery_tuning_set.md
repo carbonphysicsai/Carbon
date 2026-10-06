@@ -94,3 +94,13 @@ The owner, 2026-10-06: "Yes make the quiz questions maximally effective."
   quiz helps, but alone it does not expose decision-level failures.
 - **Still HUMAN_INPUT:** the margin (swept) and the sizes, until the owner
   adopts them.
+
+**Confirmation sets after S0** (the Test Lead, 2026-10-06; no new decision
+record):
+- `graphite-confirmation-v1` is superseded and was never used. It is sealed
+  under the testnet root on the PC, which agents can reach.
+- `graphite-confirmation-v2` is sealed on the hidden VM before any use.
+- Cooling's and motor's confirmation sets (60 + 2 each) are sealed only on
+  the VM.
+- No confirmation or tuning set is sealed on the PC again
+  (`HIDDEN_HOST_SETUP.md` §6).
