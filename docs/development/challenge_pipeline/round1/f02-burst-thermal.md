@@ -1,0 +1,104 @@
+# f02 — burst-power thermal envelope, customer round 1
+
+Authority and numeric source: [round-one index](README.md),
+[requirements.json](requirements.json). New transient scope; the original
+Cooling periodic-cell CFD evidence is not its reference.
+
+## 1. Engineering job
+
+Hypothetical accelerator thermal architect: choose one of nine peak-power /
+on-time actions for a known cooling regime, initial temperature, spatial split
+and waveform family. Maximize extra delivered joules above the 20-W base while
+the top-die spatial maximum stays at or below **95 °C over 120 s**. A wrong
+choice causes throttling or breaches the buyer's development limit. No chip
+reliability, controller, workload throughput, fluid solve or autonomous actuation.
+
+## 2. Physical system
+
+Fixed silicon-surrogate 20×20×0.5 mm, TIM-surrogate 20×20×0.2 mm and copper-surrogate
+30×30×2 mm, centered in x/y and stacked in z. Constant isotropic k/rho/cp are
+selected synthetic values in the sheet, not empirical package characterization.
+Perfect layer continuity; remaining exposed surfaces insulated; whole underside
+Robin cooling. Two 8×8-mm top patches centered at x=−5/+5 mm, y=0. Total power
+split 50/50 or 80/20, with the left patch taking the larger share.
+
+Cooling pairs are (30 °C, 2,500 W/m²K) and (40 °C, 1,500 W/m²K); uniform initial
+T is 40 or 55 °C. Base 20 W throughout. Burst starts at 20 s. Rectangular: peak
+for D seconds; ramp: rise linearly from base to peak over D seconds then return
+to base; two-pulse: two rectangles of D/2 separated by 10 s. Peak={80,110,140} W,
+D={5,10,20} s. No causal future observation is available to the construction.
+
+## 3. Population P, Q and w
+
+`P_dev,decision` is uniform over 24 exogenous strata (2 cooling×2 initial×2
+split×3 families); nine schedules are actions, not random customer states.
+`P_dev,reference` is uniform over all 216 condition/action pairs. This is an
+experiment law, not deployment frequency. Q is 24 cases, one per stratum using
+110 W/10 s, plus six warm/55 °C/80:20 boundary cases: every family at 80 W/5 s
+and 140 W/20 s. Uniform stratum weights apply only to a later complete decision
+comparison; Q diagnostic rows are reported individually without a P estimate.
+
+## 4. Case contract
+
+Canonical case includes complete stack, SI dimensions/materials, patch source,
+cooling pair, T0 and waveform events. Reject malformed/negative parameters,
+patch overlap/out-of-die patches and events beyond horizon. Bind case/deck,
+solver and extractor digests. Public own-seed cases are separate from any later
+protected draw; no protected ID is encoded in a public digest.
+
+## 5. Reference policy
+
+Use Elmer solid transient heat conduction, not CFD. The
+[official model manual](https://www.nic.funet.fi/index/elmer/doc/ElmerModelsManual.pdf)
+and [source](https://github.com/ElmerCSC/elmerfem) support this candidate route;
+they do not establish Carbon adequacy. Build/image/license, mesher, time scheme
+and verified flux/continuity implementation must be pinned before dispatch.
+
+Four control launches: zero-source equilibrium at coolant temperature, two
+analytical 1D slab step/pulse controls and uniform-source energy accounting.
+Require equilibrium drift≤0.05 °C; slab error≤max(0.25 °C, 1% of temperature
+rise); energy residual≤1%. Six boundary cases receive independent mesh- and
+time-halving launches (12 refinements). Require peak shift≤0.5 °C and crossing
+shift≤0.5 s; resolved peak within 1 °C of the limit is decision-unresolved.
+If a crossing exists at one rung but not the other, it is unresolved. Allowance:
+30 primary+4 controls+12 refinements, zero retry; all caps in the sheet apply.
+
+## 6. Output and measurement contract
+
+Both patch-center temperatures and top-die spatial maximum at t=0:0.5:120 s,
+plus every source event. Retain internal peak/crossing search, not just sampled
+maxima; report peak and its time, first 95 °C crossing or NOT_REACHED, and
+recovery after the last burst to within 1 °C of the separately computed 20-W
+steady baseline or NOT_RECOVERED. Recovery needs its own steady reference work,
+charged within the attempt cap; omit it as UNRESOLVED if that work cannot fit.
+Energy is the integral of the declared waveform minus base, not peak×D for
+the ramp. Missing reference rows never become favorable feasibility.
+
+## 7. Construction contract
+
+Prepared Level-0 target: declarative deterministic thermal ROM/interpolation
+recipes from allowed public TRAIN only, complete rebuild identity and bounded
+runtime. Exact vocabulary/data pins/training limits are not registered here.
+No access to future test responses or hidden state; no arbitrary evaluator code.
+
+## 8. Research kit
+
+Provide geometry/waveform docs, own-seed generator/reference, public incomplete
+practice, and RC one-node/three-node and POD baselines. Reuse custody, authoring
+and reconstruction machinery; build new transient outputs and public kit.
+No hidden EVAL/STRESS, seeds or labels in the kit/pods.
+
+## 9. Evidence plan
+
+Run controls before volume. Later comparisons hold out whole waveform families,
+not timesteps, and commit schedules before independent reference access. Compare
+RC/ROM/learned arms with identical permitted-data/query budgets, including setup
+and failure costs. Fresh confirmation, experimental heater/plate observations
+and training-budget study are separate, not covered by this feasibility grant.
+
+## 10. Readiness and claim record
+
+Requirements selected under owner delegation; offline thermal screen only.
+Transient reference, numerical adequacy, reconstruction and kit are NOT_DEMONSTRATED.
+Next: exact f02 case/deck/observer packaging and controls in an authorized ticket.
+No real-chip safety, physical qualification, customer acceptance or launch claim.

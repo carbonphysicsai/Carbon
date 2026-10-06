@@ -1,5 +1,14 @@
 # Carbon Eight Challenge Foundation Plan
 
+> **First DEVELOPMENT round (2026-10-06).**
+> [OWNER-PORTFOLIO-DEV-ROUND-01](../.agent/decisions/2026-10-06-OWNER-PORTFOLIO-DEV-ROUND-01.md)
+> prospectively supplies owner-delegated customer-shaped requirements and
+> finite reference-feasibility allowances for the five new briefs in the
+> [round-one packets](../docs/development/challenge_pipeline/round1/README.md).
+> This fills those first-round values, not reference adequacy by declaration,
+> production qualification, protocol lock or launch. The original plan below
+> remains the design basis and historical statement of what its adoption left open.
+
 **Status.** Adopted 2026-10-04 by
 [OWNER-LAUNCH-PORTFOLIO-02](../.agent/decisions/2026-10-04-OWNER-LAUNCH-PORTFOLIO-02.md):
 the eight challenges in §4 are Carbon's launch portfolio, and §4's bounded
