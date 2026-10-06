@@ -91,7 +91,9 @@ class Inbox:
         self.directory = Path(directory)
         self.producer_public_key = producer_public_key
 
-    def packages(self, challenge_id):
+    def packages(self, challenge_id, *, block=None):
+        """Verified packages for `challenge_id`. With `block`, only those a
+        validator may still use: windowed, and not retired at `block`."""
         info = os.lstat(self.directory)
         if not stat.S_ISDIR(info.st_mode) or info.st_mode & 0o077:
             raise AnswerKeyRefused("answer_key_inbox_not_owner_only")
@@ -103,8 +105,15 @@ class Inbox:
             except (AnswerKeyRefused, OSError, ValueError):
                 skipped += 1
                 continue
-            if commitment["challenge_id"] == challenge_id:
-                found[commitment["fingerprint"]] = value
+            if commitment["challenge_id"] != challenge_id:
+                continue
+            window = commitment.get("window")
+            if block is not None and (
+                type(window) is not dict or window.get("retire_block", 0) <= block
+            ):
+                # Retired, or never scheduled: never served (slice 3).
+                continue
+            found[commitment["fingerprint"]] = value
         return found, skipped
 
 
@@ -193,7 +202,7 @@ class DistributionService:
             return refuse(403, "answer_key_no_validator_permit", block)
         block = permit["block"]
         try:
-            packages, _ = self.inbox.packages(request["challenge_id"])
+            packages, _ = self.inbox.packages(request["challenge_id"], block=block)
         except (AnswerKeyRefused, OSError):
             return refuse(503, "answer_key_inbox_unavailable", block)
         if fingerprint is None:
@@ -209,6 +218,29 @@ class DistributionService:
             hotkey=hotkey, block=block, fingerprint=fingerprint, verdict="SERVED"
         )
         return 200, {"package": packages[fingerprint]}
+
+
+def fetchers(log_path, fingerprint, *, from_block=None, to_block=None):
+    """The hotkeys this host served `fingerprint` to, optionally only at
+    finalized blocks in `[from_block, to_block)`. This is how far a leaked
+    batch narrows: to these hotkeys, never to one of them, because every
+    validator receives the same bytes (VALIDATOR-19 S4, the leak family)."""
+    found = set()
+    path = Path(log_path)
+    if not path.exists():
+        return []
+    for line in path.read_text().splitlines():
+        entry = json.loads(line)
+        block = entry.get("block")
+        if (
+            entry.get("verdict") != "SERVED"
+            or entry.get("fingerprint") != fingerprint
+            or (from_block is not None and (block is None or block < from_block))
+            or (to_block is not None and (block is None or block >= to_block))
+        ):
+            continue
+        found.add(entry["hotkey"])
+    return sorted(found)
 
 
 def load_config(path, *, repository=REPOSITORY):
@@ -299,7 +331,26 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog="carbon.challenge_validator.distribution")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("serve").add_argument("--config", required=True)
+    narrow = sub.add_parser("leak-narrowing")
+    narrow.add_argument("--config", required=True)
+    narrow.add_argument("--fingerprint", required=True)
+    narrow.add_argument("--from-block", type=int)
+    narrow.add_argument("--to-block", type=int)
     args = parser.parse_args(argv)
+    if args.command == "leak-narrowing":
+        try:
+            config = read_private(args.config)
+        except AnswerKeyRefused as refused:
+            print(json.dumps({"refused": refused.code}))
+            return 2
+        hotkeys = fetchers(
+            config["fetch_log"],
+            args.fingerprint,
+            from_block=args.from_block,
+            to_block=args.to_block,
+        )
+        print(json.dumps({"fetchers": len(hotkeys), "hotkeys": hotkeys}))
+        return 0
     try:
         config = load_config(args.config)
         server = make_server(build(config), config)

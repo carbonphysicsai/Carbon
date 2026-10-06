@@ -198,6 +198,8 @@ class BatteryAdapter(ChallengeAdapter):
         return (
             row["references_state"] == "COMPLETE"
             and row["references_digest"] == commitment["references_digest"]
+            and self.target.store.window(commitment["fingerprint"])
+            == commitment.get("window")
         )
 
     def import_answer_key(self, commitment, payload):
@@ -222,10 +224,22 @@ class BatteryAdapter(ChallengeAdapter):
             or commitment["rule_digest"] != identities["rule_digest"]
         ):
             raise AnswerKeyRefused("answer_key_identity_mismatch")
+        window = commitment.get("window")
+        if (
+            type(window) is not dict
+            or set(window) != {"slot", "activate_block", "retire_block"}
+            or any(type(v) is not int or v < 0 for v in window.values())
+            or window["activate_block"] >= window["retire_block"]
+        ):
+            # Activation is by the producer's window only (slice 3).
+            raise AnswerKeyRefused("answer_key_no_window")
         try:
             batch = PrivateBatch.from_document(payload["document"])
             references = payload["references"]
-            if set(payload) != {"document", "references"}:
+            salt = payload["reconstruction_salt"]
+            if set(payload) != {"document", "references", "reconstruction_salt"} or (
+                type(salt) is not str or len(salt) != 64
+            ):
                 raise ValueError
         except (KeyError, TypeError, ValueError):
             raise AnswerKeyRefused("answer_key_malformed") from None
@@ -251,6 +265,8 @@ class BatteryAdapter(ChallengeAdapter):
                 complete = self.target.ingest_references(
                     fingerprint, [references[c] for c in needed]
                 )
+                self.target.store.set_window(fingerprint, window)
+                self.target.store.set_salt(fingerprint, salt)
         except StateError as refused:
             raise AnswerKeyRefused("answer_key_" + refused.code) from None
         except PublishedCaseRefused:
@@ -347,7 +363,23 @@ class BatteryBatchSource(BatchSource):
                 raise ProducerRefused("producer_references_changed") from None
             raise ProducerRefused(refused.code) from None
 
+    def cadence(self):
+        """Rule v2's own rotation (OWNER-BATTERY-SCORING-WINDOW-01): a fresh
+        screening batch every `rotation.every_blocks` finalized blocks, with
+        `active_batches` live at once. Rule v1 rotates by admissions, not
+        blocks: None, so nothing is scheduled."""
+        rule = self.adapter.target.rule
+        rotation = rule.get("rotation")
+        if not rotation or rotation.get("basis") != "finalized_block":
+            return None
+        return {
+            "every_blocks": rotation["every_blocks"],
+            "active": rule["active_batches"],
+        }
+
     def export(self, fingerprint):
+        from carbon.battery.seeds import reconstruction_salt
+
         row = self._row(fingerprint)
         if row["references_state"] != "COMPLETE":
             raise ProducerRefused("producer_references_pending")
@@ -356,6 +388,10 @@ class BatteryBatchSource(BatchSource):
         return {
             "document": row["document"],
             "references": {c: stored[c] for c in store.needed_cases(fingerprint)},
+            # Shared with validators only: they seed reconstructions from it.
+            "reconstruction_salt": reconstruction_salt(
+                self.adapter.target.root, fingerprint
+            ),
         }
 
     def sealed(self, fingerprint):
