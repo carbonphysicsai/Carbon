@@ -17,8 +17,9 @@ from carbon.scoring import development_score_variants as dsv
 
 BATTERY = "battery-fastcharge-ageing-development-v1"
 ORIGIN = {"sha256": "a" * 64, "commit": "b" * 40}
-#: Battery's pinned practice value contract (EV4's, the Test Lead on #668).
-CONTRACT = "sha256:fedd753c0e7aa69d2fd4d6efbf3d877ac8eeb211859d9f32d76a61f38bbe38d1"
+#: Battery's pinned practice value contract (EV4's, the Test Lead on #668),
+#: read from the pin itself so a re-pin never leaves this fixture stale.
+CONTRACT = scoring_for(BATTERY).practice_value_contract
 ENTRY = {
     "id": "near-limit-weighted",
     "kind": "geometric",
