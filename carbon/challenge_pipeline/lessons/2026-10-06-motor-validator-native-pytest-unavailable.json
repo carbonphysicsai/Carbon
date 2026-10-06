@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-motor-validator-native-pytest-unavailable",
+  "recorded_at": "2026-10-06T17:35:06Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "Windows-host pytest baseline",
+    "description": "Windows-host pytest baseline"
+  },
+  "expected": "pytest runnable on native Windows",
+  "observed": "The available Python launcher had no pytest; no tests ran. Canonical Linux was required.",
+  "keep": [
+    "Use canonical Linux for validation; do not treat this host failure as a code failure."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.validator.interface-v1",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

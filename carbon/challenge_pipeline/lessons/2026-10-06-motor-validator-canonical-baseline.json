@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-motor-validator-canonical-baseline",
+  "recorded_at": "2026-10-06T17:35:06Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "Current-main Cooling/Motor/neutral focused baseline",
+    "description": "Current-main Cooling/Motor/neutral focused baseline"
+  },
+  "expected": "Existing suites pass before Motor adapter changes",
+  "observed": "117 tests passed in 48.25 seconds in the pinned canonical container at main 8da206b02.",
+  "keep": [
+    "Retain exact-main baseline evidence for the adapter integration."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.validator.interface-v1",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
