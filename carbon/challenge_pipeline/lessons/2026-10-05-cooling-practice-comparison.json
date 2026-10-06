@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-practice-comparison",
+  "recorded_at": "2026-10-05T20:53:12Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-12 canonical subsystem pass",
+    "description": "Ran the Cooling, challenge-neutral scoring, Validator boundary, Motor compatibility and lesson tests against the testing-only comparison wiring in an isolated canonical Linux checkout."
+  },
+  "expected": "The Test Lead's already committed public practice margin should be bound to the Cooling comparison while incomplete evidence and mandatory gates remain non-promoting.",
+  "observed": "The first 24-test run failed because a Windows checkout CRLF digest was mistaken for canonical Git bytes; after pinning the canonical LF digest, the final affected subsystem run passed 103 tests. Canonical Ruff and Black passed. No protected cases or reference solver ran.",
+  "keep": [
+    "Pin scientific input records by canonical source bytes, not host-specific checkout line endings.",
+    "Distinguish a known candidate gate failure from reference and infrastructure availability."
+  ],
+  "change": [
+    "Verify downstream Graphite report fields and quality checks before PR handoff."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.practice_comparison",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
