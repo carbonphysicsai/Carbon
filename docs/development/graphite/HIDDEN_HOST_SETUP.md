@@ -30,9 +30,11 @@ So:
   profile or browser and sign out after use.
 - **Cloud CLI credentials** (for example gcloud, aws or doctl) never live
   on the PC user's account.
-- **What the PC may hold:** the Graphite submitter key
-  (`~/.config/carbon/graphite-submitter.key`, which can only submit) and the
-  VM's public TLS certificate.
+- **What the PC may hold:**
+  - the Graphite submitter key (`~/.config/carbon/graphite-submitter.key`),
+    which can only submit;
+  - option A's tunnel key, which reaches only the door;
+  - the VM's pinned host key, or option B's public certificate.
 
 ## 0. Discard the `carbon`-owned pool on the PC
 
@@ -51,8 +53,9 @@ A small Linux VM (Ubuntu 24.04) with Docker. Choosing the provider and
 spending money are the owner's decision. Only Ryan's own SSH key goes on it
 (see Credential custody).
 
-**Cloud firewall:** allow inbound TCP 22 and 8468 only from the PC's public
-IP. Deny everything else inbound.
+**Firewall** (the provider's firewall, or `ufw`): allow inbound TCP 22
+only from the PC's public IP, and deny everything else inbound. Option B in
+§5 also opens TCP 8468 to that IP.
 
 ## 2. Create the service account and its state
 
@@ -115,8 +118,123 @@ sudo -u carbon-producer python -m carbon.battery.operate init --config /var/lib/
    ```
 
    This prints the public key.
-2. **On the VM, create the door's TLS certificate.** It is self-signed, and
-   the PC pins it. Replace `<VM_IP>` with the VM's public IP:
+2. **Choose how the PC reaches the door.** It is the owner's call. Option A
+   is recommended.
+
+### Option A (recommended): no public door, an SSH local forward
+
+The door binds to `127.0.0.1:8468` on the VM, and nothing new listens on
+the internet. Graphite reaches the door through a forwarding-only SSH
+account.
+
+**Why A is better than B:**
+- **No new public listener.** The door is a Python standard-library HTTP
+  server, which in B parses unauthenticated traffic from the network. Under
+  A, the only pre-auth surface is sshd, which is already exposed for admin
+  logins.
+- **Two locks instead of one.** Reaching the door needs the tunnel key, and
+  submitting needs the submitter key.
+- **No certificate, IP SAN, renewal or exposure record.** The door stays on
+  loopback, so `require_exposure` passes.
+- **Host authentication is the same strength.** The VM's host key is pinned
+  in a dedicated `known_hosts` file, which plays the role of B's pinned
+  certificate.
+- **A stolen tunnel key gives** only a TCP path to the door, which still
+  needs the submitter key. Both live on the PC, so the thief can do no more
+  than Graphite already can. It never reaches a shell, a file, another port
+  or the admin login, which keeps its own hardware or passphrase key.
+- **Drops behave the same as B:** a lost connection is
+  `UNAVAILABLE` / `dev_submit_unreachable`, never a score.
+
+**On the VM:**
+
+```bash
+sudo useradd --system --create-home --home-dir /var/lib/carbon-tunnel --shell /usr/sbin/nologin carbon-tunnel
+sudo install -d -m 0700 -o carbon-tunnel -g carbon-tunnel /var/lib/carbon-tunnel/.ssh
+```
+
+Add the following to `/etc/ssh/sshd_config.d/50-carbon.conf`, then run
+`sudo sshd -t && sudo systemctl reload ssh`. It keeps the tunnel account to
+one local forward even if its `authorized_keys` line is wrong:
+
+```text
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin no
+AllowUsers <your admin user> carbon-tunnel
+Match User carbon-tunnel
+    AllowTcpForwarding local
+    PermitOpen 127.0.0.1:8468
+    PermitListen none
+    AllowStreamLocalForwarding no
+    AllowAgentForwarding no
+    X11Forwarding no
+    PermitTTY no
+    ForceCommand /bin/false
+```
+
+`AllowTcpForwarding local` also blocks remote forwards (`-R`). The
+authorized_keys option `port-forwarding` alone would allow those.
+
+**On the PC, as `carbon`:**
+1. Create the tunnel key. It has no passphrase, because Graphite runs
+   unattended, and it can reach only the door:
+
+   ```bash
+   ssh-keygen -t ed25519 -N "" -C carbon-tunnel -f ~/.config/carbon/hidden-tunnel.key
+   ```
+
+2. Pin the VM's host key. Check the printed fingerprint against
+   `sudo ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`, run on the VM in
+   your own session:
+
+   ```bash
+   ssh-keyscan -t ed25519 <VM_IP> > ~/.config/carbon/hidden-known-hosts && ssh-keygen -lf ~/.config/carbon/hidden-known-hosts
+   ```
+
+**On the VM,** put the tunnel key's public line into
+`/var/lib/carbon-tunnel/.ssh/authorized_keys` (owner `carbon-tunnel`, mode
+0600), prefixed with:
+
+```text
+restrict,port-forwarding,permitopen="127.0.0.1:8468",command="/bin/false" ssh-ed25519 AAAA… carbon-tunnel
+```
+
+**The door's config** (`/var/lib/carbon-producer/etc/dev-submit.json`, mode
+0600):
+
+```json
+{
+  "schema": "carbon.battery.dev-submit-config.v1",
+  "deployment": "/var/lib/carbon-producer/etc/graphite-hidden-battery-v1.json",
+  "submitter_public_key": "<printed public key>",
+  "nonce_file": "/var/lib/carbon-producer/operator/nonces",
+  "operator_dir": "/var/lib/carbon-producer/operator",
+  "host": "127.0.0.1",
+  "port": 8468
+}
+```
+
+**The tunnel** runs outside Graphite, as its own supervised process: a
+Graphite run never starts or holds an SSH connection. In a WSL shell as
+`carbon`, keep this running (for example in a `tmux` window, or as a
+`systemd --user` service with `Restart=always`):
+
+```bash
+while true; do
+  ssh -N -i ~/.config/carbon/hidden-tunnel.key -o IdentitiesOnly=yes \
+    -o UserKnownHostsFile=~/.config/carbon/hidden-known-hosts -o StrictHostKeyChecking=yes \
+    -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
+    -L 127.0.0.1:18468:127.0.0.1:8468 carbon-tunnel@<VM_IP>
+  sleep 5
+done
+```
+
+### Option B: a public TLS door with a pinned certificate
+
+The firewall also allows TCP 8468 from the PC's IP.
+
+1. **Create a self-signed certificate on the VM,** replacing `<VM_IP>`:
 
    ```bash
    E=/var/lib/carbon-producer/etc
@@ -125,43 +243,30 @@ sudo -u carbon-producer python -m carbon.battery.operate init --config /var/lib/
    sudo -u carbon-producer chmod 0600 $E/tls.key
    ```
 
-   Copy **`tls.crt` only** (public) to the PC. From a WSL shell on the PC,
-   as `carbon`, with your own SSH session:
+2. **Copy only `tls.crt` (public) to the PC,** from a WSL shell as `carbon`
+   with your own SSH session:
 
    ```bash
    ssh <VM_IP> sudo cat /var/lib/carbon-producer/etc/tls.crt > ~/.config/carbon/hidden-host.crt
    ```
 
-   Graphite trusts that certificate and nothing else (`--hidden-ca`). Any other certificate, including one from a
-   public authority, is refused, and so is a mismatched IP. A new IP or an
-   expired certificate means repeating this step and the copy.
-3. **On the VM, write the door's config.**
-   `/var/lib/carbon-producer/etc/dev-submit.json` (mode 0600):
+   Graphite trusts that certificate and nothing else (`--hidden-ca`). Any
+   other certificate, including one from a public authority, is refused, and
+   so is a mismatched IP. A new IP or an expired certificate means repeating
+   both steps.
 
-   ```json
-   {
-     "schema": "carbon.battery.dev-submit-config.v1",
-     "deployment": "/var/lib/carbon-producer/etc/graphite-hidden-battery-v1.json",
-     "submitter_public_key": "<printed public key>",
-     "nonce_file": "/var/lib/carbon-producer/operator/nonces",
-     "operator_dir": "/var/lib/carbon-producer/operator",
-     "host": "0.0.0.0",
-     "port": 8468,
-     "exposure_record": "<the owner's OWNER-…INTAKE-EXPOSURE-NN record for this door>",
-     "tls_cert": "/var/lib/carbon-producer/etc/tls.crt",
-     "tls_key": "/var/lib/carbon-producer/etc/tls.key"
-   }
-   ```
+The door's config is as in A, but with `"host": "0.0.0.0"`,
+`"exposure_record"`, `"tls_cert"` and `"tls_key"` added. A public bind
+refuses without a recorded owner exposure decision and TLS:
+- that record is the owner's security call (AGENTS.md §13);
+- it is a `## OWNER-…INTAKE-EXPOSURE-NN` heading under `.agent/decisions/`;
+- it must be in the release tag the VM runs.
 
-   A public bind refuses without a recorded owner exposure decision and TLS.
-   That record is the owner's security call (AGENTS.md §13). It is a
-   `## OWNER-…INTAKE-EXPOSURE-NN` heading under `.agent/decisions/`, and it
-   must be in the release tag the VM runs.
-4. **Run the door as a service** under `carbon-producer`:
+### Then, either option: run the door as a service under `carbon-producer`
 
-   ```bash
-   sudo -u carbon-producer python -m carbon.battery.dev_submit serve --config /var/lib/carbon-producer/etc/dev-submit.json
-   ```
+```bash
+sudo -u carbon-producer python -m carbon.battery.dev_submit serve --config /var/lib/carbon-producer/etc/dev-submit.json
+```
 
 ## 6. Batches and the tuning set: all on the VM, as `carbon-producer`
 
@@ -190,12 +295,14 @@ agent-readable. That section stays on HOLD.
 
 ## 7. Graphite runs
 
-On the PC:
+On the PC, with option A's tunnel up:
 
 ```bash
-python -m carbon.agent_campaign.graphite.phase3 run ... --hidden-endpoint https://<VM_IP>:8468 \
-  --hidden-submitter-key ~/.config/carbon/graphite-submitter.key --hidden-ca ~/.config/carbon/hidden-host.crt
+python -m carbon.agent_campaign.graphite.phase3 run ... --hidden-endpoint http://127.0.0.1:18468   --hidden-submitter-key ~/.config/carbon/graphite-submitter.key
 ```
+
+With option B: `--hidden-endpoint https://<VM_IP>:8468 --hidden-ca
+~/.config/carbon/hidden-host.crt` instead.
 
 The run's hidden report is read on the VM only:
 
