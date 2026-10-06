@@ -124,8 +124,12 @@ class SubmitterKey:
         return self._key.sign(DOMAIN + _canonical(body)).hex()
 
 
-def request(key, *, run_id, role, strategy, contract_digest, now=None):
-    """One signed request, ready to POST."""
+def request(
+    key, *, run_id, role, strategy, contract_digest, now=None, score_variant=None
+):
+    """One signed request, ready to POST. `score_variant` names the run's
+    registered development score variant, which the host applies to the
+    hidden score operator-side; it is left out without one."""
     body = {
         "schema": SCHEMA,
         "run_id": run_id,
@@ -135,6 +139,8 @@ def request(key, *, run_id, role, strategy, contract_digest, now=None):
         "issued_at": int(time.time() if now is None else now),
         "nonce": os.urandom(16).hex(),
     }
+    if score_variant is not None:
+        body["score_variant"] = score_variant
     return {"body": body, "signature": key.sign(body)}
 
 
@@ -147,7 +153,7 @@ def verify(signed, public_key_hex, *, now=None):
     if type(signed) is not dict or set(signed) != {"body", "signature"}:
         raise DevSubmitRefused("dev_submit_malformed")
     body = signed["body"]
-    if type(body) is not dict or set(body) != _REQUEST_KEYS:
+    if type(body) is not dict or set(body) - {"score_variant"} != _REQUEST_KEYS:
         raise DevSubmitRefused("dev_submit_malformed")
     try:
         Ed25519PublicKey.from_public_bytes(bytes.fromhex(public_key_hex)).verify(
@@ -165,6 +171,7 @@ def verify(signed, public_key_hex, *, now=None):
         or type(body["issued_at"]) is not int
         or type(body["nonce"]) is not str
         or not re.fullmatch(r"[0-9a-f]{32}", body["nonce"])
+        or type(body.get("score_variant", "")) is not str
     ):
         raise DevSubmitRefused("dev_submit_malformed")
     if abs((time.time() if now is None else now) - body["issued_at"]) > MAX_SKEW_S:
@@ -233,6 +240,21 @@ class DevSubmitService:
         except dv.VariantRefused:
             raise DevSubmitRefused("dev_submit_variant_unregistered") from None
 
+    def _score_variant(self, version):
+        """The run's development score variant, resolved from this host's own
+        registry (`score_variant.resolve`), or None."""
+        if version is None:
+            return None
+        from carbon.agent_campaign.graphite import score_variant as sv
+        from carbon.challenge_validator.scoring import scoring_for
+
+        try:
+            return sv.resolve(
+                version, scoring_for(self.target.identities()["challenge"]["id"])
+            )
+        except sv.ScoreVariantRefused as refused:
+            raise DevSubmitRefused(refused.code) from None
+
     def handle(self, signed):
         """The sealed view for one signed request. Never an operator record."""
         from carbon.agent_campaign.graphite.hidden_score import (
@@ -249,6 +271,7 @@ class DevSubmitService:
                 run_id=body["run_id"],
                 clock=self.clock,
                 variant=self._variant(body["contract_digest"]),
+                score_variant=self._score_variant(body.get("score_variant")),
             )
         except HiddenPoolRefused as refused:
             raise DevSubmitRefused(refused.code) from None
@@ -296,6 +319,7 @@ class RemoteHiddenPool:
         variant=None,
         ca=None,
         post=None,
+        score_variant=None,
     ):
         """`ca` pins the host's own certificate (a public file, copied from
         the host): only that certificate is trusted, and its subject
@@ -308,6 +332,7 @@ class RemoteHiddenPool:
         self.url, self.key, self.run_id = url.rstrip("/") + PATH, key, run_id
         self.challenge_id, self.contract_digest = challenge_id, contract_digest
         self.variant = variant
+        self.score_variant = score_variant
         if post is None:
             context = None
             if ca is not None:
@@ -332,6 +357,7 @@ class RemoteHiddenPool:
             contract_digest=(
                 self.contract_digest if self.variant is None else self.variant.digest
             ),
+            score_variant=self.score_variant,
         )
         try:
             answer = self._post(self.url, _canonical(signed))

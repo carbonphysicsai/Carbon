@@ -1549,7 +1549,13 @@ def finalized_block_clock(context):
 
 
 def hidden_pool_factory(
-    config_path, scoring, variant, *, clock=None, repository=REPOSITORY
+    config_path,
+    scoring,
+    variant,
+    *,
+    clock=None,
+    repository=REPOSITORY,
+    score_variant=None,
 ):
     """`run_id -> HiddenPool` over the battery deployment at `config_path`
     (VALIDATOR-13). Checked before anything is spent: the deployment loads
@@ -1583,17 +1589,29 @@ def hidden_pool_factory(
     except deployment.EvaluationUnavailable as refused:
         raise RunnerRefused("hidden_" + refused.code) from None
     try:
-        probe = HiddenPool(target, run_id="probe", clock=clock, variant=variant)
+        probe = HiddenPool(
+            target,
+            run_id="probe",
+            clock=clock,
+            variant=variant,
+            score_variant=score_variant,
+        )
     except HiddenPoolRefused as refused:
         raise RunnerRefused(refused.code) from None
     if probe.challenge_id != scoring.challenge_id:
         raise RunnerRefused("hidden_pool_is_another_challenges")
     return lambda run_id: HiddenPool(
-        target, run_id=run_id, clock=clock, variant=variant
+        target,
+        run_id=run_id,
+        clock=clock,
+        variant=variant,
+        score_variant=score_variant,
     )
 
 
-def hidden_remote_factory(url, key_path, scoring, variant, *, ca=None, post=None):
+def hidden_remote_factory(
+    url, key_path, scoring, variant, *, ca=None, post=None, score_variant=None
+):
     """`run_id -> RemoteHiddenPool`: the hidden pool on its own host, reached
     through the signed door (VALIDATOR-19 slice 0). Graphite holds only the
     submitter key and receives only sealed views."""
@@ -1621,6 +1639,7 @@ def hidden_remote_factory(url, key_path, scoring, variant, *, ca=None, post=None
             variant=variant,
             ca=ca,
             post=post,
+            score_variant=None if score_variant is None else score_variant.version,
         )
 
     try:
@@ -1722,9 +1741,12 @@ def command_run(args):
                 scoring,
                 variant,
                 ca=getattr(args, "hidden_ca", None),
+                score_variant=scored,
             )
         elif getattr(args, "hidden_deployment", None):
-            hidden = hidden_pool_factory(args.hidden_deployment, scoring, variant)
+            hidden = hidden_pool_factory(
+                args.hidden_deployment, scoring, variant, score_variant=scored
+            )
         else:
             hidden = None
         try:
