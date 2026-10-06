@@ -144,3 +144,87 @@ and `-2`, each with its own deployment directory and hotkey path.
 ## Maturity
 
 Design only.
+
+## Slice Q: the near-limit quiz (the owner, 2026-10-06)
+
+**Authority.** The owner approved the Test Lead's proposal:
+
+> Yes make the quiz questions maximally effective.
+
+**What.** Every hidden batch carries a hidden, rotating quiz, and the gate
+runs in screening.
+
+**The quiz type is open** (the Test Lead, 2026-10-06). Data Collection is
+comparing two registered types:
+- **Q2, per case:** near-limit cases scored by G-FEAS and G-PLATE.
+- **Q3, decision level:** hidden design scenarios. The validator runs a fixed,
+  registered optimizer and checks its pick against each scenario's pre-solved
+  reference grid, which every validator shares. This would catch EV5's
+  Track A constructions, which fail only at the decision level (#686).
+
+The producer is built to emit both near-limit cases and pre-solved scenario
+grids. The type is chosen from that comparison, and the text below names Q2
+only as one instance.
+
+1. **The quiz stratum** (producer, after S1; Q2 shown, and Q3's
+   scenario grids are produced the same way: drawn, solved once, sealed,
+   shared).
+   - The producer oversamples from the registered population and solves once.
+   - It keeps the cases whose reference lies within a margin of a
+     feasibility or plating limit, on both sides, so false-feasible and
+     false-infeasible are both measurable.
+   - "Near the limit" uses the one definition in `score_tuning`: the decision
+     contract's constraint measure and its bands. Data Collection adds a
+     public `near_limit` selector and `false_infeasible_rate` there.
+   - **The margin is HUMAN_INPUT,** registered as a sweep.
+   - Quiz membership is private, inside the sealed batch document, and
+     committed with its fingerprint. The quiz rotates, retires and publishes
+     with its batch.
+2. **Kept apart from accuracy** (invariant 7.2).
+   - Quiz cases are excluded from the accuracy score, so the population P(x)
+     that score claims is unchanged.
+   - The gates are computed on the quiz only.
+   - In screening, a gate failure ranks last and never reaches the finals.
+   - **This is an exam rule change:** a new battery rule version (v3), which
+     the owner adopts once the margin and threshold are picked from the
+     curves. Until then the quiz is drawn and reported, and gates nothing
+     (fail closed).
+3. **Tuning set.** `graphite-tuning-v1` is not sealed yet. It is superseded,
+   before any seal, by `graphite-tuning-v2`, which adds a near-limit quiz
+   stratum sized with Data Collection (VALIDATOR-17, prospective). v1 is
+   never sealed.
+4. **Over-caution is measured.** Every quiz report gives false-infeasible
+   beside false-feasible, so a model that calls everything near the limit
+   unsafe shows up as a value loss.
+
+**HUMAN_INPUT, fail closed:**
+- the quiz margin (swept);
+- each gate threshold (swept; the owner picks);
+- the quiz share of a batch;
+- adopting rule v3.
+
+**Build order:** S0 (#683), then S1 (the producer core), then Q.
+
+**The agreed quiz** (Data Collection, approved by the Test Lead under the
+owner's "maximally effective", 2026-10-06; evidence on #686). Both types
+apply to every hidden batch and to `graphite-tuning-v2`.
+- **Q2:**
+  - 80 cases selected by panel disagreement, from a pool of about 320
+    near-limit cases (`score_tuning.near_limit`, within 4 bands).
+  - The disagreement panel is versioned:
+    `docs/development/evidence/battery-quiz-designs/disagreement-panel-v1.json`,
+    80 EV4 first-seed recipes. Later versions add retired top submissions.
+  - Each batch records the panel version it used.
+- **Q3:**
+  - k = 8 decision scenarios, each a pre-solved 35-candidate grid, judged by
+    EV4's fixed decision rules.
+  - All-infeasible scenarios are excluded (quiz-registry-v5).
+- **Producer cost per batch:**
+  - Q3: about 0.8 CPU-h per scenario, about 6.4 CPU-h in all (accepted for
+    the VM).
+  - Q2: its 320-case pool needs about 1,280 draws solved at the ~25%
+    near-limit rate. That is to be measured on the VM, unless the producer
+    oversamples near the limit at draw time.
+- **Still open:** these sizes come from the public stand-in, and the tuning
+  set confirms them before any rule v3 adoption (the owner's). The margin
+  stays HUMAN_INPUT and swept.
