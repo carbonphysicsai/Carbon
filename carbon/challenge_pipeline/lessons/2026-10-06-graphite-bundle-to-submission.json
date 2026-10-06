@@ -1,0 +1,29 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-graphite-bundle-to-submission",
+  "recorded_at": "2026-10-06T20:00:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "BUNDLE-TO-SUBMISSION-01 (.agent/decisions/2026-10-06-BUNDLE-TO-SUBMISSION-01.md), branch claude/bundle-to-submission.",
+    "description": "A command that turns a Graphite phase-3 winning bundle into the frozen-candidate record the Launchpad's freeze writes, through the Launchpad's own check-design, admission and record builder, with typed refusals and a byte-parity test against the Launchpad's freeze and submit."
+  },
+  "expected": "A Level-1 bundle could be refused by its contract digest, since development variants are refused by digest at every miner door.",
+  "observed": "A Level-1 bundle names the base contract digest; the variant appears only in the recipe's development binding. A digest-only check would have let it through, so the converter refuses the development binding itself and scans the whole bundle for any registered variant name or digest.",
+  "keep": [
+    "Reuse the miner door's own builders and prove parity by running the door on the same input, not by re-deriving the shape.",
+    "Every refusal check runs before the first write, so a refused bundle produces nothing."
+  ],
+  "change": [
+    "Check a development level by its binding, not by the digest it names: the base contract digest is shared by every level.",
+    "Plan the phase-3 to mainnet path at the start of a test wave, not after the first bundle exists."
+  ],
+  "protocol_elements": [
+    "graphite.bundle_submission",
+    "delivery.verified_files",
+    "research_loop.candidate_record"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
