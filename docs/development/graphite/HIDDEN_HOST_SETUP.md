@@ -155,7 +155,9 @@ sudo install -d -m 0700 -o carbon-tunnel -g carbon-tunnel /var/lib/carbon-tunnel
 
 Add the following to `/etc/ssh/sshd_config.d/50-carbon.conf`, then run
 `sudo sshd -t && sudo systemctl reload ssh`. It keeps the tunnel account to
-one local forward even if its `authorized_keys` line is wrong:
+one local forward even if its `authorized_keys` line is wrong. **Keep your
+current SSH session open** until a fresh admin login works: `AllowUsers`
+with a mistyped admin name locks you out, and `sshd -t` does not catch it.
 
 ```text
 PasswordAuthentication no
@@ -298,7 +300,8 @@ agent-readable. That section stays on HOLD.
 On the PC, with option A's tunnel up:
 
 ```bash
-python -m carbon.agent_campaign.graphite.phase3 run ... --hidden-endpoint http://127.0.0.1:18468   --hidden-submitter-key ~/.config/carbon/graphite-submitter.key
+python -m carbon.agent_campaign.graphite.phase3 run ... --hidden-endpoint http://127.0.0.1:18468 \
+  --hidden-submitter-key ~/.config/carbon/graphite-submitter.key
 ```
 
 With option B: `--hidden-endpoint https://<VM_IP>:8468 --hidden-ca
