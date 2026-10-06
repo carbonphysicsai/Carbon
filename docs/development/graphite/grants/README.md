@@ -937,3 +937,23 @@ most USD 1.41 together.
     the third run. Past that, it needs a ceiling amendment from the owner.
 
 The first live run measures the real figures and replaces these numbers.
+
+## GRAPHITE-GRANT-ADMISSION-CONTROLLER-{BATTERY,COOLING,MOTOR} (zero spend)
+
+**Authority.**
+- The owner approved these grants on 2026-10-06, directly in the Test Engineer
+  session: "Approve" three zero-spend admission-controller grants, one per
+  Challenge.
+- The Test Lead's A4 ruling uses #615's dedicated zero-spend admission
+  controller for all three Challenges
+  (A4-DEDICATED-ADMISSION-CONTROLLERS-01).
+
+**What they authorize: nothing.**
+- Every amount is 0.00, `permitted_runs` is 0 and `max_submissions` is 0.
+- Each grant only binds one dedicated admission controller's identity, which
+  is created once with `phase3 admission-controller init`.
+- Campaign registration, launch, the live model and the phase-3 provider all
+  refuse a zero-spend grant (`grant_is_zero_spend`) before anything is
+  reserved.
+- `max_concurrency` and `max_runtime_s` are 1, because the grant schema
+  requires positive values. They bound nothing, since no run is permitted.

@@ -16,6 +16,8 @@
     python -m carbon.agent_campaign.graphite.phase3 status --root DIR
     python -m carbon.agent_campaign.graphite.phase3 rebuild --bundle DIR
     python -m carbon.agent_campaign.graphite.phase3 proposals --root DIR
+    python -m carbon.agent_campaign.graphite.phase3 admission-controller init \
+        --root DIR --challenge TOKEN --grant ZERO_SPEND_ADMISSION_GRANT
 
 `reconcile` prints its report and exits 0 when every pod is settled, or 4
 when one is not; then stderr carries one typed line
@@ -169,13 +171,15 @@ from carbon.development_session.research_loop import parallel_call_counts, run_e
 from .. import boundaries
 from ..grant import SpendingGrant
 from ..provider import (
+    Capabilities,
+    IntegrationMode,
     ProviderUnavailable,
     RunStatus,
     TaskSpec,
 )
 from . import delivery as deliver_
 from . import experiment as ex
-from . import grant_binding, next_level
+from . import grant_binding, model_providers, next_level
 from . import literature as lit
 from . import score_variant as sv
 from . import tools as toolbox
@@ -185,6 +189,7 @@ from .provider import (
     EPOCH,
     NANO_PER_USD,
     OWNER,
+    PROVIDER,
     SESSION_LIMITS_V1,
     SESSION_LIMITS_V2,
     GraphiteLedger,
@@ -413,6 +418,9 @@ class Phase3Provider(GraphiteProvider):
     ):
         if type(grant) is not SpendingGrant:
             raise ProviderUnavailable("spending_grant_required")
+        if grant.zero_spend:
+            # An admission controller's grant runs no session.
+            raise ProviderUnavailable("grant_is_zero_spend")
         #: The session's development score variant (VALIDATOR-09), resolved
         #: before spend (`score_variant.resolve`), or None. It wraps the
         #: Challenge's own frozen rule, never an injected scorer.
@@ -439,21 +447,35 @@ class Phase3Provider(GraphiteProvider):
             )
         except ex.BudgetRefused as refused:
             raise ProviderUnavailable(refused.code) from None
+        try:
+            on_engy = model_providers.resolve(
+                kwargs.get("model_provider", model_providers.DEFAULT_MODEL_PROVIDER)
+            ).is_default
+        except ValueError:
+            on_engy = False  # refused, typed, by `GraphiteProvider`
+        if adapter_id is None and on_engy:
+            # New Engy sessions open on engy-chat (GRAPHITE-D34); another
+            # provider opens on its own default adapter.
+            adapter_id = ADAPTER
         super().__init__(
             root=root,
             grant=grant,
             model=model,
             miner_tools=miner_tools,
-            # New sessions open on engy-chat (GRAPHITE-D34).
-            adapter_id=ADAPTER if adapter_id is None else adapter_id,
+            adapter_id=adapter_id,
             **kwargs,
         )
         # A grant registering a start model (OWNER-GRAPHITE-PHASE3-R4-01)
         # raises its start roles' ladder to that rung; every other grant
-        # keeps the base ladder, exactly as before.
+        # keeps the base ladder, exactly as before. Only an Engy grant
+        # registers one (its rung is on Engy's ladder).
         start_rungs = grant_binding.start_rungs(grant)
         if start_rungs:
-            self.ladder = Ladder(Path(root) / "ladder", start_rungs=start_rungs)
+            self.ladder = Ladder(
+                Path(root) / self.model_provider.ladder_directory,
+                start_rungs=start_rungs,
+                models=self.model_provider.ladder,
+            )
         self.pods, self.miner_attach = pods, miner_attach
         #: `run_id -> HiddenPool`, or None: each run's hidden-pool scoring
         #: through the real validator (VALIDATOR-13, `hidden_score`).
@@ -1527,7 +1549,13 @@ def finalized_block_clock(context):
 
 
 def hidden_pool_factory(
-    config_path, scoring, variant, *, clock=None, repository=REPOSITORY
+    config_path,
+    scoring,
+    variant,
+    *,
+    clock=None,
+    repository=REPOSITORY,
+    score_variant=None,
 ):
     """`run_id -> HiddenPool` over the battery deployment at `config_path`
     (VALIDATOR-13). Checked before anything is spent: the deployment loads
@@ -1561,17 +1589,29 @@ def hidden_pool_factory(
     except deployment.EvaluationUnavailable as refused:
         raise RunnerRefused("hidden_" + refused.code) from None
     try:
-        probe = HiddenPool(target, run_id="probe", clock=clock, variant=variant)
+        probe = HiddenPool(
+            target,
+            run_id="probe",
+            clock=clock,
+            variant=variant,
+            score_variant=score_variant,
+        )
     except HiddenPoolRefused as refused:
         raise RunnerRefused(refused.code) from None
     if probe.challenge_id != scoring.challenge_id:
         raise RunnerRefused("hidden_pool_is_another_challenges")
     return lambda run_id: HiddenPool(
-        target, run_id=run_id, clock=clock, variant=variant
+        target,
+        run_id=run_id,
+        clock=clock,
+        variant=variant,
+        score_variant=score_variant,
     )
 
 
-def hidden_remote_factory(url, key_path, scoring, variant, *, ca=None, post=None):
+def hidden_remote_factory(
+    url, key_path, scoring, variant, *, ca=None, post=None, score_variant=None
+):
     """`run_id -> RemoteHiddenPool`: the hidden pool on its own host, reached
     through the signed door (VALIDATOR-19 slice 0). Graphite holds only the
     submitter key and receives only sealed views."""
@@ -1599,6 +1639,7 @@ def hidden_remote_factory(url, key_path, scoring, variant, *, ca=None, post=None
             variant=variant,
             ca=ca,
             post=post,
+            score_variant=None if score_variant is None else score_variant.version,
         )
 
     try:
@@ -1642,6 +1683,17 @@ def command_run(args):
     check_phase3_grant(
         args.grant, grant, challenge=args.challenge, level=getattr(args, "level", 0)
     )
+    # The inference provider this run picked (GRAPHITE-SPUR-PROVIDER-01; Engy
+    # unless named). The grant must name it, and another provider's key is
+    # taken by owner-only file only; both refuse before any key or pod.
+    model_provider = getattr(args, "model_provider", None) or "engy"
+    if model_provider not in model_providers.MODEL_PROVIDERS:
+        raise RunnerRefused(model_providers.UNKNOWN_MODEL_PROVIDER)
+    refused = grant_binding.model_provider_refusal(grant, model_provider)
+    if refused is not None:
+        raise RunnerRefused(refused)
+    if model_provider != "engy" and args.credential_file is None:
+        raise RunnerRefused("model_provider_key_by_file_only")
     if args.miner_profile is None or args.miner_campaign is None:
         raise RunnerRefused("the_real_miner_path_needs_a_miner_profile_and_campaign")
     if args.literature_snapshot is None:
@@ -1689,13 +1741,21 @@ def command_run(args):
                 scoring,
                 variant,
                 ca=getattr(args, "hidden_ca", None),
+                score_variant=scored,
             )
         elif getattr(args, "hidden_deployment", None):
-            hidden = hidden_pool_factory(args.hidden_deployment, scoring, variant)
+            hidden = hidden_pool_factory(
+                args.hidden_deployment, scoring, variant, score_variant=scored
+            )
         else:
             hidden = None
         try:
-            model = LiveModel(grant=grant, credential_file=engy, provider="graphite")
+            model = LiveModel(
+                grant=grant,
+                credential_file=engy,
+                provider="graphite",
+                model_provider=model_provider,
+            )
         except ModelAccessRefused as refused:
             raise RunnerRefused(refused.code) from None
         if compute == "runpod":
@@ -1726,6 +1786,7 @@ def command_run(args):
             scoring=scoring,
             score_variant=scored,
             hidden=hidden,
+            model_provider=model_provider,
         )
         try:
             check_resume(provider, args.session)
@@ -1954,6 +2015,26 @@ CONDITIONS_MESSAGES = {
         "This root has no campaign controller store (ROOT/controller/"
         "campaign.sqlite3). Nothing was created; check the root."
     ),
+    "controller_store_exists": (
+        "ROOT/controller already exists; an admission controller is created "
+        "once. Nothing was changed; use conditions --identity to read it."
+    ),
+    "admission_grant_must_be_zero_spend": (
+        "An admission controller is bound only to a zero-spend grant (every "
+        "amount 0, 0 runs, 0 submissions); nothing was created."
+    ),
+    "admission_grant_not_registered_for_challenge": (
+        "No admission-controller grant is registered for this Challenge "
+        "(grant_binding.ADMISSION_CONTROLLER_GRANTS); nothing was created."
+    ),
+    "admission_grant_file_unreadable": (
+        "The Challenge's committed admission-controller grant could not be "
+        "read; nothing was created."
+    ),
+    "admission_grant_differs_from_the_committed_grant": (
+        "The grant is not the Challenge's committed admission-controller grant, "
+        "field for field; nothing was created."
+    ),
     "conditions_report_unreadable": "The report could not be read.",
     "conditions_report_malformed": (
         "The report is not a well-formed carbon.admission-conditions.v1 "
@@ -2057,6 +2138,9 @@ def conditions_controller(root, grant, scoring):
 
     if not (root / "controller" / "campaign.sqlite3").is_file():
         raise ConditionsRefused("controller_store_missing")
+    if grant.zero_spend:
+        # A dedicated admission controller (`admission-controller init`).
+        return admission_controller(root, grant, scoring.challenge_id)
     try:
         provider = Phase3Provider(
             root=root / "graphite",
@@ -2070,6 +2154,101 @@ def conditions_controller(root, grant, scoring):
         raise ConditionsRefused(str(refused)) from None
     except ControllerError as refused:
         raise ConditionsRefused(refused.code) from None
+
+
+# -- dedicated admission controllers (A4-DEDICATED-ADMISSION-CONTROLLERS-01) ---------------
+class NoDispatch:
+    """The provider of a dedicated admission controller: never dispatchable,
+    and every run call refused. It holds no model, pod or key."""
+
+    def capabilities(self):
+        return Capabilities(
+            provider=PROVIDER,
+            mode=IntegrationMode.UNAVAILABLE,
+            verified=False,
+            supports_idempotent_start=False,
+            supports_cancel=False,
+            reports_worker_termination=False,
+            reports_usage=False,
+            basis="dedicated admission controller: zero-spend grant, no dispatch",
+        )
+
+    def _refuse(self, *_args, **_kwargs):
+        raise ProviderUnavailable("admission_controller_never_dispatches")
+
+    start = find = status = usage = events = artifacts = cancel = _refuse
+
+
+def admission_controller(root, grant, challenge):
+    """`challenge`'s dedicated admission controller at `root`, opened with
+    `NoDispatch` under its committed zero-spend grant
+    (`grant_binding.admission_grant_refusal`)."""
+    from ..controller import ControllerError
+
+    refused = grant_binding.admission_grant_refusal(grant, challenge)
+    if refused is not None:
+        raise ConditionsRefused(refused)
+    try:
+        return controller_for(root, NoDispatch(), grant)
+    except ControllerError as refused:
+        raise ConditionsRefused(refused.code) from None
+
+
+def admission_store_exists(root):
+    """Whether ROOT/controller exists in any form (an admission controller is
+    created once; a link counts)."""
+    store = root / "controller"
+    return store.exists() or store.is_symlink()
+
+
+def command_admission_controller(args):
+    """Create `challenge`'s dedicated admission controller, offline:
+
+        admission-controller init --root ROOT --challenge TOKEN --grant GRANT
+
+    The grant must be the Challenge's committed zero-spend admission grant.
+    The store is created empty under ROOT/controller (an existing one is
+    refused), nothing is spent or dispatched, and the controller's identity
+    is printed for the designation (`admission_controllers.json`).
+    `conditions --identity` on the same root prints the same identity."""
+    from carbon.challenge_pipeline import admission_controllers as designations
+
+    root = Path(args.root).expanduser().resolve()
+    if root == REPOSITORY or REPOSITORY in root.parents:
+        raise ConditionsRefused("root_must_be_outside_the_repository")
+    grant = load_grant(args.grant)
+    try:
+        challenge_scoring.scoring_for(args.challenge)
+    except challenge_scoring.ScoringUnavailable as refused:
+        raise ConditionsRefused(refused.code) from None
+    refused = grant_binding.admission_grant_refusal(grant, args.challenge)
+    if refused is not None:
+        raise ConditionsRefused(refused)
+    if admission_store_exists(root):
+        raise ConditionsRefused("controller_store_exists")
+    root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    control = admission_controller(root, grant, args.challenge)
+    try:
+        identity = control.identity()
+    finally:
+        control.close()
+    try:
+        entry = designations.designation(args.challenge, 0)
+    except designations.DesignationRefused as refused:
+        raise ConditionsRefused(refused.code, str(refused)) from None
+    print(
+        json.dumps(
+            {
+                "status": "CREATED",
+                "challenge": args.challenge,
+                "level": 0,
+                "controller": identity,
+                "designation": entry,
+            },
+            indent=1,
+        )
+    )
+    return 0
 
 
 def _designation(challenge, level, identity, record_also):
@@ -2410,6 +2589,14 @@ def main(argv=None):
         help="kept for older launchers: ENGY_API_KEY, copied to a 0600 file "
         "removed on exit; prefer --credential-file",
     )
+    run.add_argument(
+        "--model-provider",
+        choices=tuple(model_providers.MODEL_PROVIDERS),
+        default=model_providers.DEFAULT_MODEL_PROVIDER,
+        help="the inference provider this run pays (default engy); the grant "
+        "must name it, and spur takes its key by --credential-file only "
+        "(expected ~/.config/carbon/spur-api-key, mode 0600)",
+    )
     runpod = run.add_mutually_exclusive_group()
     runpod.add_argument("--runpod-key-file")
     runpod.add_argument("--runpod-key-env")
@@ -2493,6 +2680,14 @@ def main(argv=None):
         action="store_true",
         help="record into a controller that is not the designated LOCK authority",
     )
+    admission = sub.add_parser("admission-controller")
+    actions = admission.add_subparsers(dest="action", required=True)
+    init = actions.add_parser(
+        "init", help="create a dedicated zero-spend admission controller"
+    )
+    init.add_argument("--root", required=True)
+    init.add_argument("--challenge", required=True)
+    init.add_argument("--grant", required=True)
     args = parser.parse_args(argv)
     if args.command == "run" and not args.dry_run:
         missing = [
@@ -2527,6 +2722,7 @@ def main(argv=None):
         "rebuild": command_rebuild,
         "proposals": command_proposals,
         "conditions": command_conditions,
+        "admission-controller": command_admission_controller,
     }[args.command](args)
 
 

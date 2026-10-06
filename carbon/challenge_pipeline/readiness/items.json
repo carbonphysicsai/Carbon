@@ -53,7 +53,7 @@
    "title": "A fixture dry run of phase 3 for this challenge passes end to end: brief, published material, bundle writeup, clean rebuild.",
    "check": "recorded_tests",
    "pending": {
-    "reason": "fixture phase-3 dry run per challenge: VALIDATOR-05 (#606) not on main",
+    "reason": "no fixture phase-3 dry-run test is recorded for this challenge (VALIDATOR-05, #606, covers cooling's bundle only)",
     "owner": "Carbon Validator",
     "neutral_tests": []
    }
@@ -158,12 +158,7 @@
    "kind": "auto",
    "lesson": "I2",
    "title": "Grants: a per-challenge grant bound to main's blob, priced with lost-run headroom, tokens-only where no pods run.",
-   "check": "recorded_tests",
-   "pending": {
-    "reason": "per-challenge grant binding (#612) not on main; the committed grants carry no challenge field",
-    "owner": "Test Engineer",
-    "neutral_tests": []
-   }
+   "check": "grant_binding"
   },
   {
    "id": "R6",
@@ -191,9 +186,11 @@
    "title": "Every research tool has an authority class (authoritative, advisory, miner-local) and a family mapping; no UNASSIGNED.",
    "check": "recorded_tests",
    "pending": {
-    "reason": "tool authority classes (lesson A1 OPEN, oracle-fix PR) not on main",
+    "reason": "tool authority classes: the oracle-authority test (#637) is not recorded",
     "owner": "Test Engineer",
-    "neutral_tests": []
+    "neutral_tests": [
+     "tests/cpu/test_attack_authoritative_boundary.py"
+    ]
    }
   },
   {
@@ -220,12 +217,7 @@
    "kind": "auto",
    "lesson": "I3",
    "title": "A designated admission controller is recorded for (challenge, level).",
-   "check": "recorded_tests",
-   "pending": {
-    "reason": "designated admission controller (#615) not on main",
-    "owner": "Test Engineer",
-    "neutral_tests": []
-   }
+   "check": "admission_controller"
   },
   {
    "id": "A5",
@@ -284,7 +276,7 @@
    "title": "Incomplete prediction sets are refused on every host.",
    "check": "recorded_tests",
    "pending": {
-    "reason": "incomplete prediction sets refused on every host: #613 not on main",
+    "reason": "incomplete prediction sets are charged on every host (#613): no per-challenge test is recorded for this challenge",
     "owner": "Carbon Validator",
     "neutral_tests": []
    }

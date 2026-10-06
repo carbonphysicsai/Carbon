@@ -55,6 +55,7 @@ import socket
 import threading
 import urllib.error
 import urllib.request
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -261,6 +262,12 @@ class ProviderAdapter:
     auth: str = "bearer"
     #: Where the provider reports what it charged, if it does.
     reported_charge: str | None = None
+    #: How a call is settled when the adapter has no `reported_charge`:
+    #: "metered" (usage at the selection's price, every miner adapter) or
+    #: "reservation" (the full reservation is kept, as for an Engy call whose
+    #: report is missing). A provider whose charge report is undocumented
+    #: books its reservation rather than a headline-rate estimate.
+    unreported_charge: str = "metered"
     #: Anthropic prompt-cache breakpoints on the stable prefix.
     cache_breakpoints: bool = False
     #: The public model list, readable without a key.
@@ -552,7 +559,11 @@ class ModelSelection:
                     + self.adapter.reported_charge
                     + ")"
                     if self.adapter.reported_charge
-                    else "metered usage at that price"
+                    else (
+                        "the full reservation (no charge report is documented)"
+                        if self.adapter.unreported_charge == "reservation"
+                        else "metered usage at that price"
+                    )
                 )
             ),
             "credential": self.credential.record(),
@@ -746,7 +757,21 @@ OUTPUT_FROM_PROVIDER = "provider_documented_maximum"
 OUTPUT_CONSERVATIVE = "no_documented_maximum"
 
 
-def output_maximum(provider_id, model_id):
+def _registry(adapters):
+    """The adapter registry a selection is validated against: `ADAPTERS`, the
+    miner-facing list every Launchpad surface reads, unless a caller passes
+    its own (Graphite's, which adds providers no miner is offered)."""
+    if adapters is None:
+        return ADAPTERS
+    if not isinstance(adapters, Mapping) or any(
+        type(adapter) is not ProviderAdapter or adapter.adapter_id != key
+        for key, adapter in adapters.items()
+    ):
+        raise ModelSelectionRefused("adapter registry malformed")
+    return adapters
+
+
+def output_maximum(provider_id, model_id, *, adapters=None):
     """The selected model's own maximum output, as Carbon records it:
     `{"max_output_tokens", "basis", "source"}`.
 
@@ -761,7 +786,7 @@ def output_maximum(provider_id, model_id):
 
     Never outside `OUTPUT_TOKEN_BOUNDS`.
     """
-    adapter = ADAPTERS.get(provider_id)
+    adapter = _registry(adapters).get(provider_id)
     if adapter is None:
         raise ModelSelectionRefused("unknown provider adapter")
     documented = adapter.output_maxima.get(model_id)
@@ -792,6 +817,7 @@ def select(
     declared_pricing=None,
     published_pricing=None,
     output_default=None,
+    adapters=None,
 ):
     """Validate a miner's choice into a `ModelSelection`.
 
@@ -805,9 +831,12 @@ def select(
     `output_default` is how an unset max_output_tokens is chosen: None, the
     historical 2,048, or `OUTPUT_DEFAULT_V2` for a new plan, the model's own
     maximum (`output_maximum`). A max_output_tokens in `settings` binds
-    either way.
+    either way. `adapters` is the registry `provider_id` must be in:
+    `ADAPTERS` (every miner-facing caller) unless Carbon's own Graphite
+    passes its own (`graphite.model_providers.GRAPHITE_ADAPTERS`).
     """
-    adapter = ADAPTERS.get(provider_id)
+    registry = _registry(adapters)
+    adapter = registry.get(provider_id)
     if adapter is None:
         raise ModelSelectionRefused("unknown provider adapter")
     if output_default not in OUTPUT_DEFAULTS:
@@ -820,9 +849,9 @@ def select(
         raise ModelSelectionRefused("model id not allowed for this provider")
     chosen = dict(DEFAULT_SETTINGS.record())
     if output_default == OUTPUT_DEFAULT_V2:
-        chosen["max_output_tokens"] = output_maximum(provider_id, model_id)[
-            "max_output_tokens"
-        ]
+        chosen["max_output_tokens"] = output_maximum(
+            provider_id, model_id, adapters=registry
+        )["max_output_tokens"]
     if settings is not None:
         if type(settings) is not dict or not set(settings) <= set(chosen):
             raise ModelSelectionRefused("unknown model setting")
@@ -863,14 +892,16 @@ def select(
         _TICKETS.discard(ticket)
 
 
-def selection_from_record(record, *, credential_file=None):
+def selection_from_record(record, *, credential_file=None, adapters=None):
     """The selection a manifest's `provider` block records.
 
     The historical block (every campaign pinned before selection existed)
     resolves to the pinned default and must match it exactly. A newer block is
-    re-validated through `select()`; the credential file's path is not
-    recorded, so it is supplied again at run time.
+    re-validated through `select()`, against `adapters` (`select`'s); the
+    credential file's path is not recorded, so it is supplied again at run
+    time.
     """
+    registry = _registry(adapters)
     if type(record) is not dict:
         raise ModelSelectionRefused("provider record required")
     if "schema" not in record:
@@ -882,7 +913,7 @@ def selection_from_record(record, *, credential_file=None):
     pricing = record.get("pricing")
     declared = published = None
     if pricing is not None and pricing.get("source") == "provider_published":
-        adapter = ADAPTERS.get(record.get("provider_id"))
+        adapter = registry.get(record.get("provider_id"))
         if adapter is not None and adapter.live_pricing:
             published = pricing
     if pricing is not None and pricing.get("source") == "miner_declared":
@@ -895,7 +926,7 @@ def selection_from_record(record, *, credential_file=None):
         }
     if credential_file is None:
         raise ModelSelectionRefused("the credential file must be supplied again")
-    adapter = ADAPTERS.get(record.get("provider_id"))
+    adapter = registry.get(record.get("provider_id"))
     selection = select(
         provider_id=record.get("provider_id"),
         model_id=record.get("model"),
@@ -904,6 +935,7 @@ def selection_from_record(record, *, credential_file=None):
         settings=record.get("settings"),
         declared_pricing=declared,
         published_pricing=published,
+        adapters=adapters,
     )
     if selection.record() != record:
         raise ModelSelectionRefused("provider record does not re-validate exactly")

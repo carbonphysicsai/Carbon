@@ -11,6 +11,11 @@ matches its adapter.
 controller dispatches only while settled + reserved + the next reservation +
 the cleanup allowance stays within the ceiling.
 
+A zero-spend grant (every amount 0, 0 runs, 0 submissions; `zero_spend`) binds
+only a dedicated admission controller's identity
+(A4-DEDICATED-ADMISSION-CONTROLLERS-01). Everything that could spend refuses it
+first (`grant_is_zero_spend`).
+
 A grant is a maintainer-held file. This module checks its shape and binding; it
 does not authenticate who wrote it.
 """
@@ -91,7 +96,17 @@ class SpendingGrant:
             }
         except ValueError as error:
             raise GrantError(str(error)) from None
-        if amounts["worst_case_run_cost"] <= 0:
+        # A zero-spend grant (A4-DEDICATED-ADMISSION-CONTROLLERS-01) is whole
+        # or refused: every amount 0, 0 runs and 0 submissions. It authorizes
+        # nothing; it only binds a controller that never dispatches.
+        zero = not any(amounts.values())
+        if zero:
+            for name in ("permitted_runs", "max_submissions"):
+                if type(document[name]) is not int or document[name] != 0:
+                    raise GrantError(
+                        "a zero-spend grant permits 0 runs and 0 submissions"
+                    )
+        elif amounts["worst_case_run_cost"] <= 0:
             raise GrantError("worst_case_run_cost must be positive")
         if (
             amounts["cleanup_allowance"] + amounts["worst_case_run_cost"]
@@ -112,11 +127,30 @@ class SpendingGrant:
             granted_by=document["granted_by"],
             expires_at=expires,
             currency=document["currency"],
-            permitted_runs=_positive(document["permitted_runs"], "permitted_runs"),
+            permitted_runs=(
+                0 if zero else _positive(document["permitted_runs"], "permitted_runs")
+            ),
             max_concurrency=_positive(document["max_concurrency"], "max_concurrency"),
             max_runtime_s=_positive(document["max_runtime_s"], "max_runtime_s"),
-            max_submissions=_positive(document["max_submissions"], "max_submissions"),
+            max_submissions=(
+                0 if zero else _positive(document["max_submissions"], "max_submissions")
+            ),
             **amounts,
+        )
+
+    @property
+    def zero_spend(self):
+        """Whether this grant authorizes no spend at all: every amount 0, 0 runs
+        and 0 submissions. The controller, the live model and the phase-3
+        provider each refuse it before anything is reserved."""
+        return (
+            not (
+                self.monetary_ceiling
+                or self.cleanup_allowance
+                or self.worst_case_run_cost
+            )
+            and self.permitted_runs == 0
+            and self.max_submissions == 0
         )
 
     def document(self):

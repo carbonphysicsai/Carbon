@@ -4,7 +4,21 @@
   {
    "challenge": "battery-fastcharge-ageing-development-v1",
    "level": 0,
-   "name": "graphite-phase3-r2-controller",
+   "name": "admission-controller-battery-l0",
+   "identity": null,
+   "status": "PENDING_OPERATOR_IDENTITY"
+  },
+  {
+   "challenge": "chip-cold-plate",
+   "level": 0,
+   "name": "admission-controller-cooling-l0",
+   "identity": null,
+   "status": "PENDING_OPERATOR_IDENTITY"
+  },
+  {
+   "challenge": "electric-motor-magnetics",
+   "level": 0,
+   "name": "admission-controller-motor-l0",
    "identity": null,
    "status": "PENDING_OPERATOR_IDENTITY"
   }

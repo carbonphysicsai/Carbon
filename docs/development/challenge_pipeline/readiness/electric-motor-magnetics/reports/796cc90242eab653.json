@@ -1,0 +1,489 @@
+{
+ "challenge": "electric-motor-magnetics",
+ "claims": {
+  "authority_to_run": false,
+  "live_run": false,
+  "spend": false
+ },
+ "counts": {
+  "FAIL": 5,
+  "NOT_BUILT": 25,
+  "PASS": 6,
+  "REVIEW_REQUIRED": 5
+ },
+ "git": {
+  "dirty": false,
+  "sha": "30a6230b9fb4e7c5205d2407b9934259b88e0071"
+ },
+ "green": false,
+ "items": [
+  {
+   "detail": "no recorded review (expected O1.json)",
+   "evidence": [
+    "sha256:c1fe8e07604fd117198a8f52659855f1a0139129c08a243a47e1c8b3831012b3"
+   ],
+   "evidence_digest": "sha256:f7c48fd4d4f4c5284e32346d81e6f5776ded2af8c3d0d679ca511f9236748c06",
+   "id": "O1",
+   "kind": "review",
+   "lesson": "C4",
+   "status": "REVIEW_REQUIRED",
+   "title": "An ownership map exists for the challenge: contract, scorer, validator adapter, attack adapter, decision study, references, gates, literature, grants. Each line names one owner session, and the map is committed."
+  },
+  {
+   "detail": "no planned branch name exists on origin under another owner",
+   "evidence": [
+    "sha256:d08da13c7f2cb7bea096c7929e2c5e9698162cb9a375a30d320e402bebdf44ed"
+   ],
+   "evidence_digest": "sha256:4e4131e585f71311e45e503f0281741eb1c43199d75ee3f717c2088a888c6991",
+   "id": "O2",
+   "kind": "auto",
+   "lesson": "C1",
+   "status": "PASS",
+   "title": "No open branch on origin uses a name the onboarding plans to use."
+  },
+  {
+   "detail": "every cited decision id resolves to a decision file",
+   "evidence": [
+    "OWNER-GRAPHITE-TEST-WAVE-01",
+    "OWNER-GRAPHITE-TEST-WAVE-02",
+    "OWNER-GRAPHITE-TEST-WAVE-03",
+    "OWNER-GRAPHITE-TEST-WAVE-04",
+    "OWNER-GRAPHITE-TEST-WAVE-05",
+    "OWNER-GRAPHITE-TEST-WAVE-06",
+    "OWNER-GRAPHITE-TEST-WAVE-07",
+    "CHALLENGE-MOTOR-DECISION-FOUNDATION-01",
+    "CHALLENGE-MOTOR-L0-02",
+    "OWNER-DATA-MOTOR-01",
+    "OWNER-MOTOR-COUNTED-ADOPT-01",
+    "GRAPHITE-ATTACKER-MOTOR-L0"
+   ],
+   "evidence_digest": "sha256:a5f400a50ee1e75f6bc55d1f5f4144dd1a68dfd4bde1327c03f4be37fb755f9b",
+   "id": "O3",
+   "kind": "auto",
+   "lesson": "C1, C5",
+   "status": "PASS",
+   "title": "Every owner question raised during onboarding has a decision file."
+  },
+  {
+   "detail": "registered, campaign composed, Level 0 contract resolves (Launchpad reachability itself is not separately exercised)",
+   "evidence": [
+    "registry:electric-motor-magnetics@1.0",
+    "contract:sha256:72a5d668fdbc3bb5a6f39332b7f9a2b38ef3568ddfd4fcc2b72f2507ae91af84"
+   ],
+   "evidence_digest": "sha256:ad162d3ad3bfc650204e14d4b817e2cc364baa0cb9bae63f306a05d9226b21de",
+   "id": "P1",
+   "kind": "auto",
+   "lesson": "N1",
+   "status": "PASS",
+   "title": "Registered in the challenge registry, with a Level 0 construction contract reachable in the Launchpad."
+  },
+  {
+   "detail": "no Interface v1 validator adapter is recorded for the challenge",
+   "evidence": [
+    "scoring_for(named) resolves",
+    "unnamed call refuses (challenge_scoring_must_be_named)"
+   ],
+   "evidence_digest": "sha256:dd537676b2caf02dfdd9b240c6a0883959e9482794c61ce0db0b358503c95d06",
+   "id": "P2",
+   "kind": "auto",
+   "lesson": "N1",
+   "status": "FAIL",
+   "title": "`ChallengeScoring` and an Interface v1 validator adapter are registered, and an unnamed scoring call refuses."
+  },
+  {
+   "detail": "fixture phase-3 dry run per challenge: VALIDATOR-05 (#606) not on main; owner: Carbon Validator",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "P3",
+   "kind": "auto",
+   "lesson": "N1",
+   "status": "NOT_BUILT",
+   "title": "A fixture dry run of phase 3 for this challenge passes end to end: brief, published material, bundle writeup, clean rebuild."
+  },
+  {
+   "detail": "tool text v2 names no challenge (checked against every registered challenge name, detector proven on v1); the literature snapshot and writeup parts need #614 and #606 (owner: Carbon Validator)",
+   "evidence": [
+    "v1_names:battery",
+    "v2_names:none"
+   ],
+   "evidence_digest": "sha256:97cbd63ff1f972a2307d7352e6f3994b76329d2d0e60810d524492dce9c8a5f6",
+   "id": "P4",
+   "kind": "auto",
+   "lesson": "N1",
+   "status": "NOT_BUILT",
+   "title": "No battery-specific literal is reached on this challenge's path: tool text v2, literature snapshot, writeup."
+  },
+  {
+   "detail": "recorded tests passed",
+   "evidence": [
+    "tests/cpu/test_construction_noop_audit.py::test_no_rebuildable_capability_is_a_no_op[electric-motor-magnetics]",
+    "1 passed in 1.40s"
+   ],
+   "evidence_digest": "sha256:904a835e75b1698a04d25542ce575c42f4079efed0daad19745f32662faf9c63",
+   "id": "P5",
+   "kind": "auto",
+   "lesson": "I1",
+   "status": "PASS",
+   "title": "The no-op audit passes for every rebuildable capability. Known no-ops are listed."
+  },
+  {
+   "detail": "recorded tests passed",
+   "evidence": [
+    "tests/cpu/test_construction_noop_audit.py::test_no_rebuildable_capability_is_a_no_op[electric-motor-magnetics]",
+    "1 passed in 1.28s"
+   ],
+   "evidence_digest": "sha256:ee76bbda6027deea8bb4151776f58da3dcc38b6840bb5351dd00cb67a0642535",
+   "id": "P6",
+   "kind": "auto",
+   "lesson": "I1",
+   "status": "PASS",
+   "title": "Identity is by rebuilt artifact: no count, dedup or limit keyed on recipe text."
+  },
+  {
+   "detail": "the boundary-consistency test (VALIDATOR-10, #624) exists only for battery; a per-challenge version for this challenge is not built; owner: Carbon Validator",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "P7",
+   "kind": "auto",
+   "lesson": "X1",
+   "status": "NOT_BUILT",
+   "title": "The construction boundary is consistent across the validator door, the contract compile and Graphite's admission: the boundary-consistency test (the VALIDATOR-10 pattern) exists and passes for this challenge."
+  },
+  {
+   "detail": "no grant for electric-motor-magnetics: the runner's per-challenge binding registers none (it never falls back to another challenge's grant)",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "R1",
+   "kind": "auto",
+   "lesson": "E1",
+   "status": "FAIL",
+   "title": "The real-path no-spend gate passes for this challenge: the provider with a fake transport, the controller, ledger, pods and carrier under live threading."
+  },
+  {
+   "detail": "deterministic containment check with host canary: Test Engineer's containment PR not on main; owner: Test Engineer",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "R2",
+   "kind": "auto",
+   "lesson": "A3",
+   "status": "NOT_BUILT",
+   "title": "A deterministic containment check with a host canary passes on the lane this challenge uses (pod, CPU carrier or miner lane)."
+  },
+  {
+   "detail": "cpu-carrier: probe input not supplied (set CARBON_READINESS_CARRIER_IMAGE_MANIFEST to the host's pinned image manifest); cannot verify the environment; pod: lane is 'TBD', not DECLARED",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "R3",
+   "kind": "auto",
+   "lesson": "E2",
+   "status": "FAIL",
+   "title": "An environment probe and its attribution policy are registered for every compute lane used."
+  },
+  {
+   "detail": "prelive reports only attacker_model; per-role *_model blocks and the output cap (lesson E3 OPEN) are not reported; owner: Test Engineer",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "R4",
+   "kind": "auto",
+   "lesson": "E3, E4",
+   "status": "NOT_BUILT",
+   "title": "Model settings: full context for each role's model, an output cap sized from use, and an endpoint that reports charges."
+  },
+  {
+   "detail": "per-challenge grant binding (#612) not on main; the committed grants carry no challenge field; owner: Test Engineer",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "R5",
+   "kind": "auto",
+   "lesson": "I2",
+   "status": "NOT_BUILT",
+   "title": "Grants: a per-challenge grant bound to main's blob, priced with lost-run headroom, tokens-only where no pods run."
+  },
+  {
+   "detail": "no recorded review (expected R6.json)",
+   "evidence": [
+    "/mnt/c: 294.3 GB free",
+    "threshold 30 GB (Test Lead decision, 2026-10-05: at least 30 GB free on the WSL host's C: drive, the threshold the owner used for the first install on 2026-10-03)"
+   ],
+   "evidence_digest": "sha256:e80861efc428f9214446f908eb1b0c4f26a0f7c3d085190f6942d08a3e8f3f00",
+   "id": "R6",
+   "kind": "auto+review",
+   "lesson": "E5, E6",
+   "status": "REVIEW_REQUIRED",
+   "title": "Host: free disk at least the threshold, and a host window agreed in writing between the executor and Data Collection."
+  },
+  {
+   "detail": "agent-facing budget text test (lesson E9 OPEN, oracle-fix PR) not on main; owner: Test Engineer",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "R7",
+   "kind": "auto",
+   "lesson": "E9",
+   "status": "NOT_BUILT",
+   "title": "Agent-facing budget text matches the real ledger; no \"0 of 0\"."
+  },
+  {
+   "detail": "tool authority classes (lesson A1 OPEN, oracle-fix PR) not on main; owner: Test Engineer",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "A1",
+   "kind": "auto",
+   "lesson": "A1",
+   "status": "NOT_BUILT",
+   "title": "Every research tool has an authority class (authoritative, advisory, miner-local) and a family mapping; no UNASSIGNED."
+  },
+  {
+   "detail": "every family has an attack example, a control and trained and held-out controls; the Attacker's route to each family is not machine-checked (lesson A2 OPEN); owner: Test Engineer",
+   "evidence": [
+    "family:permission_ablation",
+    "family:recipe_surface",
+    "family:recipe_forgery",
+    "family:practice_disclosure",
+    "family:mandatory_failure",
+    "family:ripple_omission",
+    "family:ripple_phase",
+    "family:ripple_scaling",
+    "family:saturation_optimism",
+    "family:population_screen",
+    "family:resource_accounting",
+    "family:staged_bytes",
+    "family:rebuild_identity",
+    "family:rebuild_report",
+    "family:package_integrity"
+   ],
+   "evidence_digest": "sha256:397b054b2794df14716e8c49744089c29bec17f12be0d042cfd7946d9c2d4d15",
+   "id": "A2",
+   "kind": "auto",
+   "lesson": "A2",
+   "status": "NOT_BUILT",
+   "title": "Each family has an attack example that fires, a trained control, a held-out control, and a route the Attacker can reach."
+  },
+  {
+   "detail": "coverage stop rule (lesson A2 OPEN) not on main; owner: Test Engineer",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "A3",
+   "kind": "auto",
+   "lesson": "A2",
+   "status": "NOT_BUILT",
+   "title": "The coverage stop rule is configured: k attempts per family before the finish tool is available."
+  },
+  {
+   "detail": "designated admission controller (#615) not on main; owner: Test Engineer",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "A4",
+   "kind": "auto",
+   "lesson": "I3",
+   "status": "NOT_BUILT",
+   "title": "A designated admission controller is recorded for (challenge, level)."
+  },
+  {
+   "detail": "no recorded review (expected A5.json)",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "A5",
+   "kind": "review",
+   "lesson": "G1",
+   "status": "REVIEW_REQUIRED",
+   "title": "Every attribution or grading assumption is a registered, versioned policy, and the Attacker has a family that probes it."
+  },
+  {
+   "detail": "no promotion-rule / equivalence-margin evidence is recorded for the challenge; owner: Carbon Validator",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "S1",
+   "kind": "auto",
+   "lesson": "S6",
+   "status": "NOT_BUILT",
+   "title": "The promotion rule exists: comparison settings plus an equivalence margin measured from the challenge's noise source."
+  },
+  {
+   "detail": "known-answer test that gate failures rank last (#617 follow-up) is not recorded for the challenge; owner: Carbon Validator",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "S2",
+   "kind": "auto",
+   "lesson": "G4",
+   "status": "NOT_BUILT",
+   "title": "Gate failures rank last (admissibility before ranking), tested with a known-answer case."
+  },
+  {
+   "detail": "gate margin study (VALIDATOR-09) is not recorded for the challenge; owner: Carbon Validator",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "S3",
+   "kind": "auto",
+   "lesson": "G5",
+   "status": "NOT_BUILT",
+   "title": "A margin study for every gate: the minimum reference margin and 1st percentile, with fragile gates flagged."
+  },
+  {
+   "detail": "no recorded review (expected S4.json)",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "S4",
+   "kind": "review",
+   "lesson": "S6",
+   "status": "REVIEW_REQUIRED",
+   "title": "The noise source is declared per construction family: seed, bootstrap, or both."
+  },
+  {
+   "detail": "incomplete prediction sets refused on every host: #613 not on main; owner: Carbon Validator",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "S5",
+   "kind": "auto",
+   "lesson": "G3",
+   "status": "NOT_BUILT",
+   "title": "Incomplete prediction sets are refused on every host."
+  },
+  {
+   "detail": "no frozen decision-study check is recorded for the challenge; owner: Data Collection",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "D1",
+   "kind": "auto",
+   "lesson": "n/a",
+   "status": "NOT_BUILT",
+   "title": "A frozen decision study exists, with a finite comparator, commitment before reference access, and representative and boundary groups."
+  },
+  {
+   "detail": "no equal-cost harness adapter check is recorded for the challenge; owner: Data Collection",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "D2",
+   "kind": "auto",
+   "lesson": "n/a",
+   "status": "NOT_BUILT",
+   "title": "The equal-cost harness adapter is registered, with a B ladder confirmed by the Test Lead."
+  },
+  {
+   "detail": "no timing calibration check is recorded for the challenge; owner: Data Collection",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "D3",
+   "kind": "auto",
+   "lesson": "E8",
+   "status": "NOT_BUILT",
+   "title": "A timing calibration on the target hardware has run, and counted-plan timeouts are at least 2\u00d7 p95."
+  },
+  {
+   "detail": "no real-solver-output importer check is recorded for the challenge; owner: Data Collection",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "D4",
+   "kind": "auto",
+   "lesson": "E7",
+   "status": "NOT_BUILT",
+   "title": "The importer has run on at least one real solver output."
+  },
+  {
+   "detail": "no reference-coverage report is recorded for the challenge; owner: Data Collection | no recorded review (expected D5.json)",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "D5",
+   "kind": "auto+review",
+   "lesson": "S4",
+   "status": "NOT_BUILT",
+   "title": "Reference coverage of the decision set is reported, and the refinement policy for unresolved cases is decided."
+  },
+  {
+   "detail": "no pinned analysis-code check is recorded for the challenge; owner: Data Collection",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "D6",
+   "kind": "auto",
+   "lesson": "S5, N3",
+   "status": "NOT_BUILT",
+   "title": "Any confirmation study's analysis code is built, merged and pinned with every imported module before freeze."
+  },
+  {
+   "detail": "a registered sealable confirmation-set role has size, law and strata",
+   "evidence": [
+    "motor-graphite-confirmation-v1"
+   ],
+   "evidence_digest": "sha256:f6aaf8306e7a56488e22126e128e8669b478596b73f48629d6a066c46d498c91",
+   "id": "D7",
+   "kind": "auto",
+   "lesson": "n/a",
+   "status": "PASS",
+   "title": "A fresh confirmation-set role is registered, with size, law and strata set (VALIDATOR-03)."
+  },
+  {
+   "detail": "no Q1 alignment report is recorded (readiness/<challenge>/q1_report.json); run the Track B alignment on the registered panel and build one with `readiness.q1 build` | no recorded review (expected V1.json)",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "V1",
+   "kind": "auto+review",
+   "lesson": "S1",
+   "status": "FAIL",
+   "title": "A Q1 score-to-value check on the available panel (baselines plus constructed controls): \u03c4/\u03c1 with a band, and divergences listed. A negative or within-noise \u03c4 is NOT a blocker, but it is recorded, and the first Graphite runs are then framed as alignment measurements, never as improvement hunting."
+  },
+  {
+   "detail": "no Q1 report is recorded, so panel discrimination is unmeasured",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "V2",
+   "kind": "auto",
+   "lesson": "S3",
+   "status": "FAIL",
+   "title": "Panel discrimination: at least two distinct decision outcomes among panel members on the decision study. If not, widen the construction families first (development variant)."
+  },
+  {
+   "detail": "no recorded review (expected V3.json)",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "V3",
+   "kind": "review",
+   "lesson": "S2",
+   "status": "REVIEW_REQUIRED",
+   "title": "Promotion claims require multi-seed evidence."
+  },
+  {
+   "detail": "no hidden-pool scoring exists for this challenge: VALIDATOR-13 (#642) serves battery at Level 0 only; owner: Carbon Validator",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "H1",
+   "kind": "auto",
+   "lesson": "S9",
+   "status": "NOT_BUILT",
+   "title": "A rotating hidden pool exists for the challenge, and Graphite scores through the real validator."
+  },
+  {
+   "detail": "the tuning role (graphite-tuning-v1) and an overlap checker are not on main; owner: Carbon Validator",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "H2",
+   "kind": "auto",
+   "lesson": "S9",
+   "status": "NOT_BUILT",
+   "title": "Tuning and confirmation sets are registered and disjoint (overlap-checked) against the other sealed roles, the rotating pool, TRAIN, PRACTICE and the practice decision set."
+  },
+  {
+   "detail": "the VALIDATOR-13 non-leak tests cover battery only; owner: Carbon Validator",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "H3",
+   "kind": "auto",
+   "lesson": "S9",
+   "status": "NOT_BUILT",
+   "title": "No agent-visible output carries hidden-derived data (the VALIDATOR-13 non-leak test)."
+  },
+  {
+   "detail": "the gate audit on hidden and tuning predictions does not exist yet (VALIDATOR-09); owner: Carbon Validator | no recorded review (expected H4.json)",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "H4",
+   "kind": "auto+review",
+   "lesson": "S9",
+   "status": "NOT_BUILT",
+   "title": "Gates are tested on hidden and tuning data, not practice alone."
+  }
+ ],
+ "level": 0,
+ "partial": false,
+ "report_digest": "sha256:796cc90242eab6530f0d1770bab2c309f2f6cd20d9283da1cfe5a84721b80703",
+ "schema": "carbon.challenge-pipeline.readiness-report.v1",
+ "utc": "2026-10-06T16:12:24Z"
+}

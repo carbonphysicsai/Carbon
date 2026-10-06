@@ -150,6 +150,37 @@ def _battery_legs(base, file):
     return legs
 
 
+def hidden_result(variant, target, full):
+    """The variant's result on one hidden-pool score record, operator-side
+    only (the hidden-pool variant gate the Test Lead approved).
+
+    The legs are the practice variant's (`member_legs` under the pinned
+    practice value contract), over the hidden pool's own case store and
+    every active case, with a missing case asked empty (`cover`). `full` is
+    the adapter's operator score record (`BatteryAdapter.score_record`). The
+    result never reaches the agent, a miner, weights, the allow-list,
+    settlement or rule v2's own record."""
+    if variant.challenge_id != BATTERY:
+        raise ScoreVariantRefused("score_variant_hidden_unserved")
+    file, _pinned = practice_contract(
+        challenge_scoring.scoring_for(variant.challenge_id)
+    )
+    document, _digest = _battery_contract(file)
+    batches = list(full["active_batches"])
+    case_ids = [
+        case["case_id"]
+        for fingerprint in batches
+        for case in target.store.batch(fingerprint)["document"]["cases"]
+    ]
+    asked, _missing = challenge_scoring.cover(full["predictions"], case_ids)
+    row = (
+        _module()
+        .tuning_module(BATTERY)
+        .member_legs(document, asked, target._case_store(batches), case_ids)
+    )
+    return challenge_scoring.clean(_module().score_member(variant, row))
+
+
 #: Per Challenge: (its legs reader, its value contract digest reader).
 _LEGS = {BATTERY: (_battery_legs, _battery_digest)}
 
