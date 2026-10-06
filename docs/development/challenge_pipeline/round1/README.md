@@ -93,14 +93,20 @@ Its output names what it checked and what it cannot establish. Runtime remains
 fail closed (`dispatch_ready:false`); this field is descriptive, not a runner
 authorization token. No code reads this sheet to grant execution authority.
 
-The first screen found a plain structural beam compliance of0.0352 mm/N
-(above the0.03-mm/N target), so ribs must demonstrate their value rather than
-receiving a pass by assumption. Duct mode cutoff is about4.02 kHz, but chamber
-cutoffs lie at1.44–1.83 kHz inside the acoustic band: a1D transfer model cannot
-be presumed adequate. Mixer Re is0.083–0.416 while Pe is833–16667; the principal
+The first screen found a plain structural beam compliance of 0.0352 mm/N
+(above the 0.03-mm/N target), so ribs must demonstrate their value rather than
+receiving a pass by assumption. Duct mode cutoff is about 4.02 kHz, but chamber
+cutoffs lie at 1.44–1.83 kHz inside the acoustic band: a 1D transfer model cannot
+be presumed adequate. Mixer Re is 0.083–0.416 while Pe is 833–16667; the principal
 numerical risk is scalar smearing, not turbulent flow. Optical geometry remains
-above180-nm line/space after declared offsets, but10-nm full3D memory feasibility
+above 180-nm line/space after declared offsets, but 10-nm full-3D memory feasibility
 is unresolved. These are model-form screens, not results on a physical device.
+
+Thermal RC probes deliberately bracket the 95 °C decision boundary: about
+99.41 °C for the rectangular probe, 94.14 °C for the ramp and 97.39 °C for the
+two-pulse probe. Even the below-limit screen is not an admissibility result:
+the spatial hotspot and numerical error have not been measured. These actions
+are frozen diagnostics, not a list of approved safe bursts.
 
 Read-only review repairs before dispatch: f02 reserves four steady baselines
 and freezes RC-selected near-limit probes; f08 places its second observation
