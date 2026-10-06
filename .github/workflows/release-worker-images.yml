@@ -1,0 +1,234 @@
+name: Release worker images
+
+# IMAGE-RELEASE-01. Builds the released worker images once, from an exact
+# release tag cut from main, and pushes them to ghcr.io/carbonphysicsai by
+# digest, so every host pulls instead of rebuilding. Manual dispatch only: it
+# never runs on a pull request or a push. Nothing it releases is qualified;
+# security acceptance before mainnet is the owner's (HUMAN_INPUT).
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag cut from main (worker-images-vN); its GitHub release must exist"
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: release-worker-images-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build, push and record the released worker images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      c03_record: ${{ steps.records.outputs.c03_record }}
+      accelerator_record: ${{ steps.records.outputs.accelerator_record }}
+      torch_record: ${{ steps.records.outputs.torch_record }}
+    steps:
+      - name: Require a worker-images release tag
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: '[[ "${RELEASE_TAG}" =~ ^worker-images-v[0-9]+(\.[0-9]+)*$ ]]'
+      - name: Check out the exact release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require the tag to be cut from main
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          commit="$(git rev-parse HEAD)"
+          [[ "$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")" == "${commit}" ]]
+          git merge-base --is-ancestor "${commit}" origin/main
+      - name: Free runner disk for the CUDA image
+        # An estimate, not a measurement: the NVIDIA worker is about 6 GB
+        # unpacked (the operator host's last local build), the C-03 worker
+        # about 1 GB and the PyTorch worker an estimated 2-3 GB. The containerd
+        # image store keeps compressed layers beside unpacked snapshots, so the
+        # peak is an estimated 15-20 GB with build cache. Removing toolchains
+        # this job never uses frees an estimated 25-30 GB on a standard runner;
+        # if it still does not fit, run this job on a larger runner instead.
+        run: |
+          set -euo pipefail
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL /usr/share/swift /usr/local/share/powershell
+          df -h /
+      - name: Use the containerd image store
+        # A released image is named by its registry digest, which is the
+        # image ID only under the containerd image store (as on the operator
+        # host). This changes this ephemeral runner's Docker daemon only.
+        run: |
+          set -euo pipefail
+          sudo python3 - <<'PY'
+          import json
+          import pathlib
+
+          path = pathlib.Path("/etc/docker/daemon.json")
+          config = json.loads(path.read_text()) if path.exists() else {}
+          config.setdefault("features", {})["containerd-snapshotter"] = True
+          path.write_text(json.dumps(config, indent=2))
+          PY
+          sudo systemctl restart docker
+          docker info --format '{{json .DriverStatus}}' | grep -q io.containerd.snapshotter
+      - name: Log in to GitHub Container Registry
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY_USER: ${{ github.actor }}
+        run: printf '%s' "${REGISTRY_TOKEN}" | docker login ghcr.io --username "${REGISTRY_USER}" --password-stdin
+      - name: Build, push and record
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: ./scripts/dev/release_worker_images.sh --registry ghcr.io/carbonphysicsai --tag "${RELEASE_TAG}" --out "${RUNNER_TEMP}/release"
+      - name: Log out of GitHub Container Registry
+        if: always()
+        run: docker logout ghcr.io
+      - name: Hand the release records to the next jobs
+        id: records
+        run: |
+          set -euo pipefail
+          for kind in c03 accelerator torch; do
+            printf '%s_record=%s\n' "${kind}" "$(cat "${RUNNER_TEMP}/release/${kind}-worker-image.release.json")" >> "${GITHUB_OUTPUT}"
+          done
+      - name: Upload the manifests and release records
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: released-worker-images
+          path: ${{ runner.temp }}/release
+          if-no-files-found: error
+
+  capability:
+    name: Capability matrix on the released digests
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      report: ${{ steps.matrix.outputs.report }}
+    steps:
+      - name: Check out the exact release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Free runner disk for the CUDA image
+        run: |
+          set -euo pipefail
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL /usr/share/swift /usr/local/share/powershell
+          df -h /
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.7"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Bootstrap locked controller environment
+        env:
+          CARBON_UV_GROUPS: "chain archive science-jax mcp"
+        run: ./scripts/dev/bootstrap.sh
+      - name: Use the containerd image store
+        # A released image is named by its registry digest, which is the
+        # image ID only under the containerd image store (as on the operator
+        # host). This changes this ephemeral runner's Docker daemon only.
+        run: |
+          set -euo pipefail
+          sudo python3 - <<'PY'
+          import json
+          import pathlib
+
+          path = pathlib.Path("/etc/docker/daemon.json")
+          config = json.loads(path.read_text()) if path.exists() else {}
+          config.setdefault("features", {})["containerd-snapshotter"] = True
+          path.write_text(json.dumps(config, indent=2))
+          PY
+          sudo systemctl restart docker
+          docker info --format '{{json .DriverStatus}}' | grep -q io.containerd.snapshotter
+      - name: Log in to GitHub Container Registry (read)
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY_USER: ${{ github.actor }}
+        run: printf '%s' "${REGISTRY_TOKEN}" | docker login ghcr.io --username "${REGISTRY_USER}" --password-stdin
+      - name: Pull and verify every released digest
+        env:
+          C03_RECORD: ${{ needs.build.outputs.c03_record }}
+          ACCELERATOR_RECORD: ${{ needs.build.outputs.accelerator_record }}
+          TORCH_RECORD: ${{ needs.build.outputs.torch_record }}
+        run: |
+          set -euo pipefail
+          records="${RUNNER_TEMP}/records"
+          mkdir -p "${records}"
+          printf '%s\n' "${C03_RECORD}" > "${records}/c03-worker-image.release.json"
+          printf '%s\n' "${ACCELERATOR_RECORD}" > "${records}/accelerator-worker-image.release.json"
+          printf '%s\n' "${TORCH_RECORD}" > "${records}/torch-worker-image.release.json"
+          for kind in c03 accelerator torch; do
+            .venv/bin/python scripts/dev/worker_image_release.py pull \
+              --record "${records}/${kind}-worker-image.release.json" \
+              --out "${RUNNER_TEMP}/manifests/${kind}-worker-image.json"
+          done
+      - name: Log out of GitHub Container Registry
+        if: always()
+        run: docker logout ghcr.io
+      - name: Run the capability matrix
+        id: matrix
+        run: |
+          set -euo pipefail
+          status=0
+          .venv/bin/python scripts/dev/worker_image_capability.py \
+            --records "${RUNNER_TEMP}/records" \
+            --manifests "${RUNNER_TEMP}/manifests" \
+            --out "${RUNNER_TEMP}/capability/capability-report.json" || status=$?
+          printf 'report=%s\n' "$(python3 -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1])), sort_keys=True, separators=(",", ":")))' "${RUNNER_TEMP}/capability/capability-report.json")" >> "${GITHUB_OUTPUT}"
+          exit "${status}"
+      - name: Upload the capability report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: worker-image-capability-report
+          path: ${{ runner.temp }}/capability
+          if-no-files-found: error
+
+  publish:
+    name: Attach manifests, records and the capability report to the release
+    needs: [build, capability]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Attach to the existing release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          C03_RECORD: ${{ needs.build.outputs.c03_record }}
+          ACCELERATOR_RECORD: ${{ needs.build.outputs.accelerator_record }}
+          TORCH_RECORD: ${{ needs.build.outputs.torch_record }}
+          REPORT: ${{ needs.capability.outputs.report }}
+        run: |
+          set -euo pipefail
+          assets="${RUNNER_TEMP}/assets"
+          mkdir -p "${assets}"
+          printf '%s\n' "${C03_RECORD}" > "${assets}/c03-worker-image.release.json"
+          printf '%s\n' "${ACCELERATOR_RECORD}" > "${assets}/accelerator-worker-image.release.json"
+          printf '%s\n' "${TORCH_RECORD}" > "${assets}/torch-worker-image.release.json"
+          printf '%s\n' "${REPORT}" > "${assets}/capability-report.json"
+          for kind in c03 accelerator torch; do
+            python3 -c 'import json,sys; m=json.load(open(sys.argv[1]))["manifest"]; open(sys.argv[2],"w").write(json.dumps(m, sort_keys=True, separators=(",", ":")) + "\n")' \
+              "${assets}/${kind}-worker-image.release.json" "${assets}/${kind}-worker-image.json"
+          done
+          gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null \
+            || { echo "Cut the GitHub release for ${RELEASE_TAG} first." >&2; exit 2; }
+          gh release upload "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" "${assets}"/*
