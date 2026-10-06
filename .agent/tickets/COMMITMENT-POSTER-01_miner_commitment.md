@@ -186,11 +186,12 @@ Not run on any chain. Not SECURITY_QUALIFIED. Nothing here is LIVE.
 
 ## Follow-ups
 
-- **Validator-side D6 (before the rehearsal).** Freshness, a commitment
-  posted after the hotkey's previous admission, is #715 (Carbon Validator).
-  D6's cross-hotkey clause, the earliest commitment block wins when two
-  hotkeys commit the same digest, is not in #715 and needs its own
-  validator change before the rehearsal.
+- **Validator-side D6 (before the rehearsal).** Both clauses are in #715
+  (Carbon Validator): freshness (`commitment_stale`), and the cross-hotkey
+  clause, which refuses a submission when another hotkey committed the same
+  digest at an earlier or the same block (`commitment_contested`).
+  **Owner decision:** D6 doesn't settle a same-block tie, so a tie refuses
+  both hotkeys (fail closed) until the owner rules.
 - **Chain runtime upgrade.** If an upgrade changes the 13 pinned
   extensions, the call index or the data tag, the signer's rebuilt bytes no
   longer match and every commit is refused (`PAYLOAD_MISMATCH`, fail closed).
