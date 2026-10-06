@@ -96,7 +96,11 @@ PROFILE = "level-0"
 #: also covers #620's `candidate_fault_*` attacks in `resource_accounting`,
 #: added without a version change. The controls are unchanged, so
 #: `CONTROLS_VERSION` stays v2.
-ADAPTER_VERSION = "carbon.attack.adapter.cooling-l0.v3"
+#: v4 reads a partial prediction set as never eligible, every missing case a
+#: schema-gate failure (GRAPHITE-COVERAGE-PARITY-02, battery's v2 reading):
+#: both cooling hosts now apply `scoring.cover`. It moves only
+#: `resource_accounting`'s evidence; the controls are unchanged.
+ADAPTER_VERSION = "carbon.attack.adapter.cooling-l0.v4"
 CONTROLS_VERSION = "carbon.attack.controls.cooling-l0.v2"
 TRACK = LEDGER_TRACK
 SPLITS = _core.SPLITS
@@ -1229,9 +1233,16 @@ def code_run_refusal(arguments):
 
 
 def _scoring_accounting(value):
-    """A prediction set scored by the frozen rule. For a partial set, every
-    case left without a prediction must be FAILED_INFRA, never a gate
-    failure; a set with nothing scored is never eligible."""
+    """A prediction set scored by the frozen rule (`FrozenRule.score`). For a
+    partial set (`partial`), every case left without a prediction must be a
+    schema-gate failure, never FAILED_INFRA and never excluded, so the set is
+    never eligible (GRAPHITE-COVERAGE-PARITY-02, as battery's under -01;
+    before it, the rule typed a missing case FAILED_INFRA and excluded it).
+
+    This is the frozen rule's typing of a missing prediction only. How a pod
+    run that timed out is typed is a different path (`experiment`'s pod
+    outcome); that question is the NOT_RUN seam `pod_timeout_typing`, not
+    judged here."""
     view = score_view(value["predictions"])
     return {
         "kind": "scoring",
@@ -1257,8 +1268,10 @@ def resource_boundary(value):
 
 
 def resource_specimen(value):
-    """Vulnerable specimen: a lifted allowance, and an aggregate that counts
-    an infrastructure failure as a pass."""
+    """Vulnerable specimen: a lifted allowance; a candidate fault given a
+    classification other than the registered policy's; and the accounting before
+    GRAPHITE-COVERAGE-PARITY-02 counted as a pass: every missing case typed
+    FAILED_INFRA, excluded, and the set eligible."""
     if value["kind"] == "code_run":
         return {"kind": "code_run", "dispatched": True, "refusal": None}
     if value["kind"] == "candidate_fault":
@@ -1273,7 +1286,13 @@ def resource_specimen(value):
             },
         }
     result = _scoring_accounting(value)
-    return {**result, "eligible": result["n_gate_failed"] == 0}
+    missing = result["n_cases"] - len(value["predictions"])
+    return {
+        **result,
+        "eligible": True,
+        "n_failed_infra": missing,
+        "n_gate_failed": 0,
+    }
 
 
 def resource_breached(result):
@@ -1286,20 +1305,21 @@ def resource_breached(result):
         }
         return result != expected
     if not result["partial"]:
-        return False
+        return False  # a complete set: its eligibility is the frozen rule's
+    # A partial set is never eligible: each missing case is a schema-gate
+    # failure, never FAILED_INFRA (GRAPHITE-COVERAGE-PARITY-02).
     missing = result["n_cases"] - result["n_scored"]
     return (
-        (result["n_scored"] == 0 and result["eligible"])
-        or result["n_gate_failed"] > 0
-        or result["n_failed_infra"] != missing
+        result["eligible"]
+        or result["n_failed_infra"] > 0
+        or result["n_gate_failed"] != missing
     )
 
 
 def _half_predictions():
     """Half the cases predicted: a partial set whose missing half must be
-    typed FAILED_INFRA (checked by a test; whether such a set may be eligible
-    is not judged here, as for battery: `exam.aggregate` excludes a
-    FAILED_INFRA case by design)."""
+    schema-gate failures, never FAILED_INFRA, so the set is never eligible
+    (checked by a test; GRAPHITE-COVERAGE-PARITY-02)."""
     oracle = _oracle_predictions()
     return {case: oracle[case] for case in sorted(oracle)[: len(oracle) // 2]}
 
@@ -1773,8 +1793,9 @@ def selective_fault_boundary(value):
 
 def dropping_accounting(value):
     """Vulnerable specimen: an accounting that drops every faulted case from
-    the aggregate (as if each were typed FAILED_INFRA) and scores the rest,
-    on both paths."""
+    the aggregate (as if each were typed FAILED_INFRA, the typing before
+    GRAPHITE-COVERAGE-PARITY-02) and scores the rest, eligible, on both
+    paths."""
     strategy, fault = _fault_of(value)
     honest = _honest(strategy)
     kept = {
@@ -1786,7 +1807,8 @@ def dropping_accounting(value):
     path = {
         "outcome": "SCORED",
         "scored": True,
-        "eligible": bool(summary["eligible"]),
+        # The frozen rule gate-fails the dropped cases; this accounting does not.
+        "eligible": True,
         "score": summary["score"],
         "n_scored": summary["n_scored"],
         "n_cases": summary["n_cases"],
@@ -2723,8 +2745,8 @@ def _families():
             protocol_family="the Attacker code-run rule this adapter defines: a "
             "wall allowance above code_run_seconds is refused before dispatch; "
             "and the frozen rule types every case a partial prediction set "
-            "leaves out as FAILED_INFRA, never a gate failure, and a set with "
-            "nothing scored is never eligible; rebuild, prediction and "
+            "leaves out as a schema-gate failure, never FAILED_INFRA, so a "
+            "partial set is never eligible; rebuild, prediction and "
             "non-finite-score faults use the registered candidate-fault "
             "classification and lifecycle implications",
             attacks=_resource_attacks,
@@ -3122,29 +3144,27 @@ SEAMS = (
         "pod_timeout_typing",
         "resource_and_failure_accounting",
         0,
-        "a pod run that times out is typed by experiment's pod outcome, while the "
-        "frozen rule types a missing prediction FAILED_INFRA; whether a pod "
-        "timeout is FAILED_INFRA or CANDIDATE_FAILED is open, so this adapter "
-        "judges neither",
+        "a pod run that times out is typed by experiment's pod outcome under "
+        "the registered attribution policy, never scored, while a missing "
+        "prediction is a schema-gate failure (GRAPHITE-COVERAGE-PARITY-02); "
+        "whether a pod timeout is FAILED_INFRA or CANDIDATE_FAILED is open, so "
+        "this adapter judges neither",
         "owner: whether a pod timeout is FAILED_INFRA or CANDIDATE_FAILED",
     ),
     SeamSpec(
         "missing_prediction_attribution",
         "resource_and_failure_accounting",
         0,
-        "both accountings type a case that arrives with no prediction "
-        "FAILED_INFRA and exclude it (exam.evaluate_case and exam.aggregate, "
-        "read by the Interface v1 validator and by Graphite's frozen rule), and "
-        "Graphite's host scores a pod's predictions file without checking that "
-        "it holds every case; a set that omits its worst cases stays eligible "
-        "with a better score. At Level 0 no construction can omit a case "
-        "(Carbon's own code predicts every case or fails the whole attempt, "
-        "which selective_fault runs), so this needs a harness or a "
-        "participant's own inference that omits one",
-        "owner (policy): whether a case without a prediction from the "
-        "construction's side is FAILED_INFRA and excluded or charged to the "
-        "candidate, and whether Carbon's hosts refuse an incomplete prediction "
-        "set",
+        "both cooling hosts ask every case (scoring.cover, read by the "
+        "Interface v1 validator and by Graphite's frozen rule): a case that "
+        "arrives with no prediction is a schema-gate failure charged to the "
+        "construction, never FAILED_INFRA and never excluded, so a set that "
+        "omits its worst cases is ineligible (GRAPHITE-COVERAGE-PARITY-02, "
+        "pinned by a test with an omitting construction). At Level 0 no "
+        "construction can omit a case (Carbon's own code predicts every case "
+        "or fails the whole attempt, which selective_fault runs), so a run "
+        "family for it, like battery's prediction_omission, needs a harness "
+        "that omits one and is not built here",
     ),
     SeamSpec(
         "practice_result_path_state",
@@ -3186,9 +3206,10 @@ SEAMS = (
         "level_5_custom_inference",
         SCORE_CHECK,
         5,
-        "custom inference; a case a participant's own inference omits would be "
-        "typed FAILED_INFRA and excluded by exam.aggregate, so it becomes a "
-        "surface only here. " + _PARTICIPANT_CODE,
+        "custom inference; a case a participant's own inference omits is a "
+        "schema-gate failure on both hosts (GRAPHITE-COVERAGE-PARITY-02), and "
+        "who is charged at this level waits for the uid-separated attribution "
+        "path (VALIDATOR-04). " + _PARTICIPANT_CODE,
         "security owner: isolation for executing participant code",
     ),
 )

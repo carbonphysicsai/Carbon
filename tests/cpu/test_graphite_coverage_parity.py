@@ -1,4 +1,4 @@
-"""GRAPHITE-COVERAGE-PARITY-01: coverage on every host, and no flattering score.
+"""GRAPHITE-COVERAGE-PARITY-01/-02: coverage on every host, and no flattering score.
 
 The claims tested:
 - `scoring.cover` asks every scored case; a case left out or given null is an
@@ -6,6 +6,10 @@ The claims tested:
 - battery's Graphite frozen rule (`BatteryPracticeRule.score`) types each
   missing case a schema-gate failure, so a partial set is ineligible and no
   case is excluded, and its identity names the coverage rule;
+- cooling's and motor's frozen rules (`CoolingPracticeRule.score`,
+  `MotorPracticeRule.score`) do the same (GRAPHITE-COVERAGE-PARITY-02), and
+  so does cooling's Interface v1 validator (tested with its own adapter in
+  `test_challenge_validator_cooling.py`);
 - battery's validator (`daemon.incomplete`, read by `_infer`) refuses a worker
   result that leaves a case out or gives it null, as the candidate's;
 - Graphite's host scores a pod's partial `predictions.json` ineligible;
@@ -24,8 +28,15 @@ from types import SimpleNamespace
 import pytest
 
 from carbon.agent_campaign.attack.adapters import battery as attack_battery
+from carbon.agent_campaign.attack.adapters import cooling as attack_cooling
+from carbon.agent_campaign.attack.adapters import motor as attack_motor
 from carbon.agent_campaign.graphite import delivery, experiment
-from carbon.challenge_validator import battery_scoring, scoring
+from carbon.challenge_validator import (
+    battery_scoring,
+    cooling_scoring,
+    motor_scoring,
+    scoring,
+)
 
 V1 = "carbon.graphite.phase3.proposal-result.v1"
 
@@ -67,6 +78,46 @@ def _guard_battery_rule(rule):
 
 def test_battery_frozen_rule_charges_a_missing_case(rule):
     _guard_battery_rule(rule)
+
+
+# -- cooling's and motor's Graphite frozen rules (GRAPHITE-COVERAGE-PARITY-02) -----------------
+#: Each Challenge's attack adapter (its exact public PRACTICE predictions)
+#: and how many cases the guard leaves out.
+PARITY_HOSTS = {"cooling": (attack_cooling, 7), "motor": (attack_motor, 3)}
+
+
+def _parity_rule(host):
+    adapter, _k = PARITY_HOSTS[host]
+    return scoring.scoring_for(adapter.CHALLENGE_ID).frozen_rule(".")
+
+
+def _guard_parity_rule(host):
+    """The same claims as battery's guard, on cooling's or motor's rule: a
+    case left out or given null is GATE_FAILED (schema_finite), counted in
+    `n_missing`, never FAILED_INFRA, and the set is ineligible."""
+    adapter, k = PARITY_HOSTS[host]
+    rule = _parity_rule(host)
+    predictions = adapter._oracle_predictions()
+    rows, full = rule.score(predictions)
+    assert full["eligible"] and full["n_missing"] == 0
+    assert full["n_scored"] == full["n_cases"] == len(predictions)
+    dropped = sorted(predictions)[:k]
+    partial = {key: v for key, v in predictions.items() if key not in dropped}
+    partial[dropped[0]] = None  # null counts as missing too
+    rows, summary = rule.score(partial)
+    assert summary["n_missing"] == k
+    assert summary["n_gate_failed"] == k and summary["n_failed_infra"] == 0
+    assert not summary["eligible"]
+    states = {r["case_id"]: r["state"] for r in rows}
+    assert {states[c] for c in dropped} == {"GATE_FAILED"}
+    assert summary["gate_failures"] == {"schema_finite": k}
+    assert rule.score("not a mapping")[1]["n_missing"] == len(predictions)
+    assert rule.identity["coverage"] == scoring.COVERAGE_RULE
+
+
+@pytest.mark.parametrize("host", sorted(PARITY_HOSTS))
+def test_cooling_and_motor_frozen_rules_charge_a_missing_case(host):
+    _guard_parity_rule(host)
 
 
 # -- battery's validator ------------------------------------------------------------------------
@@ -197,7 +248,26 @@ def _bare_score_view(m):
     m.setattr(experiment, "frozen_rule_view", v1_view)
 
 
+def _rule_excludes(module):
+    def mutate(m):
+        def excluding(predictions, case_ids):
+            source = predictions if isinstance(predictions, dict) else {}
+            return {case: source.get(case) for case in case_ids}, []
+
+        m.setattr(module, "cover", excluding)
+
+    return mutate
+
+
 MUTATIONS = {
+    "cooling_rule_excludes_a_missing_case": (
+        _rule_excludes(cooling_scoring),
+        lambda: _guard_parity_rule("cooling"),
+    ),
+    "motor_rule_excludes_a_missing_case": (
+        _rule_excludes(motor_scoring),
+        lambda: _guard_parity_rule("motor"),
+    ),
     "battery_rule_excludes_a_missing_case": (
         _battery_rule_excludes,
         lambda: _guard_battery_rule(
