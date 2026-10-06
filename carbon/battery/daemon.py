@@ -619,19 +619,10 @@ class BatteryValidator:
                 )
             # D6, across hotkeys: the digest is not bound to a hotkey, so a copy
             # of another's strategy would match. The earliest commitment block
-            # has priority; a same-block tie is refused for both.
-            holders = getattr(self.commitments, "holders", None)
-            if not callable(holders):
-                from carbon.chain.commitments import CommitmentUnavailable
-
-                raise CommitmentUnavailable("commitment_holders_unreadable")
-            if any(
-                hotkey != submission.hotkey and block <= posted
-                for hotkey, block in holders(expected)
-            ):
-                raise CommitmentContested(
-                    "another hotkey committed " + expected + " first"
-                )
+            # has priority; within one block, the earlier transaction
+            # (OWNER-COMMITMENT-D6-TIE-01). A position that cannot be
+            # established refuses both (fail closed).
+            self._commitment_priority(submission.hotkey, expected, posted)
             commitment = {"digest": expected, "block": posted}
         identities = self.identities()
         binding = {
@@ -673,6 +664,36 @@ class BatteryValidator:
             submission_id, binding=binding, window=window, **base
         )
         return self.outcome(row["submission_id"])
+
+    def _commitment_priority(self, hotkey, expected, posted):
+        """Refuse (`CommitmentContested`) unless this hotkey's commitment of
+        `expected` is the earliest: by block, then by transaction order
+        within the block."""
+        from carbon.chain.commitments import CommitmentUnavailable, same_account
+
+        holders = getattr(self.commitments, "holders", None)
+        if not callable(holders):
+            raise CommitmentUnavailable("commitment_holders_unreadable")
+        others = [(h, b) for h, b in holders(expected) if h != hotkey]
+        if any(block < posted for _h, block in others):
+            raise CommitmentContested("another hotkey committed " + expected + " first")
+        tied = [h for h, block in others if block == posted]
+        if not tied:
+            return
+        positions = getattr(self.commitments, "positions", None)
+        found = positions(posted) if callable(positions) else {}
+
+        def index(account):
+            matches = [i for who, i in found.items() if same_account(who, account)]
+            return matches[0] if len(matches) == 1 else None
+
+        mine = index(hotkey)
+        for other in tied:
+            theirs = index(other)
+            if mine is None or theirs is None or theirs < mine:
+                raise CommitmentContested(
+                    "another hotkey committed " + expected + " first in its block"
+                )
 
     def _serves_development(self, hotkey):
         """Whether this deployment admits a development variant from `hotkey`:

@@ -921,11 +921,53 @@ def test_the_earliest_commitment_of_a_digest_has_priority_across_hotkeys(
         validator.admit(copy)
     # The original admits, whichever arrives first.
     assert validator.admit(original)["state"] != "INVALID_CONSTRUCTION"
-    # A same-block tie: neither has priority, so both are refused.
+    # A same-block tie whose positions cannot be established: both refused.
     chain.values["hkC"] = {"digest": digest, "block": 100}
     tied = dataclasses.replace(original, hotkey="hkC")
     with pytest.raises(CommitmentContested):
         validator.admit(tied)
+
+
+def test_within_a_block_the_earlier_transaction_wins(tmp_path, refs, backend):
+    """OWNER-COMMITMENT-D6-TIE-01: two hotkeys commit one digest in the same
+    block; the one whose transaction comes first in the block has priority."""
+    import dataclasses
+
+    from carbon.battery.compile import compile_recipe
+    from carbon.battery.daemon import CommitmentContested
+
+    class Chain:
+        def __init__(self):
+            self.values, self.order = {}, {}
+
+        def read(self, hotkey):
+            return self.values.get(hotkey)
+
+        def holders(self, digest):
+            return sorted(
+                (hk, v["block"])
+                for hk, v in self.values.items()
+                if v["digest"] == digest
+            )
+
+        def positions(self, block):
+            return dict(self.order)
+
+    chain = Chain()
+    validator = make(
+        tmp_path, refs, backend, require_commitment=True, commitments=chain
+    )
+    first = submission("hkE", neighbours=5)
+    _, recipe = compile_recipe(first.strategy)
+    digest = commitment_digest(BATTERY, DIGEST, recipe.strategy_hash)
+    chain.values = {
+        "hkE": {"digest": digest, "block": 200},
+        "hkF": {"digest": digest, "block": 200},
+    }
+    chain.order = {"hkF": 7, "hkE": 3}
+    with pytest.raises(CommitmentContested):
+        validator.admit(dataclasses.replace(first, hotkey="hkF"))
+    assert validator.admit(first)["state"] != "INVALID_CONSTRUCTION"
 
 
 def test_a_reader_that_cannot_list_holders_is_infrastructure(tmp_path, refs, backend):

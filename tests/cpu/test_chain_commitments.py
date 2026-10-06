@@ -180,3 +180,45 @@ def test_a_holders_failure_is_infrastructure(failure):
 
     with pytest.raises(CommitmentUnavailable):
         ChainCommitmentReader(CONTEXT, fetch_all=fetch_all).holders(DIGEST)
+
+
+def test_commitment_positions_read_both_event_shapes():
+    from carbon.chain.commitments import commitment_positions
+
+    records = [
+        {  # py-substrate-interface shape
+            "extrinsic_idx": 4,
+            "event": {
+                "module_id": "Commitments",
+                "event_id": "Commitment",
+                "attributes": {"netuid": 567, "who": "5A"},
+            },
+        },
+        {  # a phase-tagged shape with positional data
+            "phase": {"ApplyExtrinsic": 2},
+            "event": {
+                "pallet": "Commitments",
+                "name": "Commitment",
+                "data": [567, "5B"],
+            },
+        },
+        {  # another subnet, and an unrelated event
+            "extrinsic_idx": 1,
+            "event": {
+                "module_id": "Commitments",
+                "event_id": "Commitment",
+                "attributes": {"netuid": 1, "who": "5C"},
+            },
+        },
+        {"extrinsic_idx": 0, "event": {"module_id": "System", "event_id": "X"}},
+        "garbage",
+    ]
+    assert commitment_positions(records, 567) == {"5A": 4, "5B": 2}
+
+
+def test_positions_failure_is_infrastructure():
+    async def fetch_events(context, block):
+        raise RuntimeError("x")
+
+    with pytest.raises(CommitmentUnavailable):
+        ChainCommitmentReader(CONTEXT, fetch_events=fetch_events).positions(5)
