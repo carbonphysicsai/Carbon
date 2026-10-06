@@ -14,10 +14,10 @@
  "keep": [
   "A recorded follow-up is not done until the operator command it needs exists on main; check the command before ruling an item ready for the executor.",
   "A no-spend authority is a whole, explicit shape refused at every spending entry point, never a convention of small values.",
-  "A readiness item reads the record it names (here the designation file), so a pending identity is NOT_BUILT and a malformed record FAILs."
+  "A readiness item reads the record it names (here the designation file), so a pending identity FAILs (a LOCK is refused until it is recorded) and so does a malformed record."
  ],
  "change": [
-  "Commit the three owner-approved zero-spend admission grants, run `admission-controller init` per Challenge on the operator host, and fill the identities in a one-line follow-up.",
+  "With the three owner-approved zero-spend admission grants committed, run `admission-controller init` per Challenge on the operator host, and fill the identities in a one-line follow-up.",
   "Consume battery Level 0 findings already on the R2 root (#609) into the dedicated controller before any battery Level 0 LOCK review."
  ],
  "protocol_elements": [

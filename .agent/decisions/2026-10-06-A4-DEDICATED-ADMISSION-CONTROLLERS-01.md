@@ -77,8 +77,9 @@ zero-spend grant could not be expressed.
    - **The check.** A4's check is `admission_controller`, which reads the
      designation for (challenge, level):
      - `DESIGNATED` with a well-formed sha256 passes;
-     - `PENDING_OPERATOR_IDENTITY` is NOT_BUILT, with the item's reason and
-       owner;
+     - `PENDING_OPERATOR_IDENTITY` FAILS, so a LOCK is refused until the
+       identity is recorded. This is main's stricter check (3c76400e), kept
+       byte for byte when main was merged in;
      - a missing entry, a malformed file or a duplicated entry fails.
    - **Stale wording.** The old pending reason, "#615 not on main", is
      replaced with the current state.
@@ -90,17 +91,15 @@ zero-spend grant could not be expressed.
 - It covers `init`, including identity read-back, a refused second `init`,
   refused grants and roots, no dispatch, and consumption as the designated
   authority.
-- Per Challenge, it checks for exactly one pending entry, A4 NOT_BUILT while
+- Per Challenge, it checks for exactly one pending entry, A4 FAIL while
   pending, A4 PASS for a DESIGNATED sha256, and A4 FAIL for malformed and
   duplicate entries.
 - **Mutations.** It runs five mutations, each switching one guard off.
 
 **Pending.**
-- **Grant files.** The three zero-spend grant files are not committed here.
-  The approval was relayed by the Test Engineer session, and this session's
-  permission check blocked writing the files. They need a commit made with
-  the owner's own approval.
-- **Executor.** After that, the executor runs `init` per Challenge on the
+- **Grant files.** The three zero-spend grant files are committed. The owner
+  approved them directly in the Test Engineer session on 2026-10-06.
+- **Executor.** After this merges, the executor runs `init` per Challenge on the
   operator host and reports each digest.
 - **Follow-up PR.** A one-line follow-up then fills each identity.
 - **Battery findings.** Battery Level 0 findings recorded on the R2 root
@@ -108,5 +107,5 @@ zero-spend grant could not be expressed.
   battery Level 0 LOCK review.
 
 **Maturity.** Implemented and tested with synthetic grants and temporary
-roots. Not scientifically or security qualified. A4 stays NOT_BUILT for all
-three Challenges until the identities land.
+roots. Not scientifically or security qualified. A4 FAILS for all three
+Challenges until the identities land.
