@@ -20,6 +20,7 @@ import re
 import subprocess
 from pathlib import Path
 
+import pytest
 import yaml
 
 REPOSITORY = Path(__file__).resolve().parents[2]
@@ -145,3 +146,85 @@ def test_every_released_kind_flows_through_every_job():
     script = SCRIPT.read_text()
     assert "torch-gpu:carbon-torch-gpu-worker" in script
     assert "torch-gpu-parent" in script
+
+
+PARENT_REF = REPOSITORY / "scripts" / "dev" / "worker_parent_ref.sh"
+PARENT_ID = "sha256:" + "5c" * 32
+SOURCE = "sha256:" + "f07e01414c6600f0" + "0" * 48
+CHILDREN = (
+    "accelerator_worker_image.sh",
+    "torch_worker_image.sh",
+    "torch_gpu_worker_image.sh",
+    "tpu_worker_image.sh",
+)
+
+
+def parent_ref(*args, repository=None):
+    env = {"PATH": "/usr/bin:/bin"}
+    if repository is not None:
+        env["CARBON_WORKER_PARENT_REPOSITORY"] = repository
+    return subprocess.run(
+        ["bash", str(PARENT_REF), *args],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=env,
+    )
+
+
+def test_a_local_build_names_the_parent_in_the_local_store():
+    done = parent_ref(PARENT_ID, SOURCE)
+    assert done.returncode == 0
+    assert done.stdout == f"carbon-c03-worker:f07e01414c6600f0@{PARENT_ID}\n"
+
+
+def test_a_release_builds_on_the_pushed_parent_by_registry_digest():
+    """Run 37530387660: the runner's builder resolved the local
+    `carbon-c03-worker:<tag>@<id>` on Docker Hub. A release names the pushed
+    parent, `<registry>/carbon-c03-worker@<id>`, with no tag."""
+    repository = "ghcr.io/carbonphysicsai/carbon-c03-worker"
+    done = parent_ref(PARENT_ID, SOURCE, repository=repository)
+    assert done.returncode == 0
+    assert done.stdout == f"{repository}@{PARENT_ID}\n"
+    assert "docker.io" not in done.stdout
+
+
+@pytest.mark.parametrize(
+    ("args", "repository"),
+    [
+        ((PARENT_ID, SOURCE), "ghcr.io/carbonphysicsai/carbon-c03-worker:v1"),
+        ((PARENT_ID, SOURCE), "ghcr.io/carbonphysicsai/other-worker"),
+        ((PARENT_ID, SOURCE), "GHCR.io/carbonphysicsai/carbon-c03-worker"),
+        ((PARENT_ID, SOURCE), "carbon-c03-worker"),
+        ((PARENT_ID, SOURCE), f"ghcr.io/x/carbon-c03-worker@{PARENT_ID}"),
+        (("carbon-c03-worker:latest", SOURCE), None),
+        ((PARENT_ID, "sha256:short"), None),
+        ((PARENT_ID,), None),
+    ],
+)
+def test_a_malformed_parent_reference_is_refused(args, repository):
+    done = parent_ref(*args, repository=repository)
+    assert done.returncode == 2 and done.stdout == ""
+
+
+@pytest.mark.parametrize("child", CHILDREN)
+def test_every_c03_child_takes_its_from_reference_from_the_one_helper(child):
+    text = (REPOSITORY / "scripts" / "dev" / child).read_text()
+    assert (
+        'parent_ref="$(bash "${script_dir}/worker_parent_ref.sh" "${parent}" '
+        '"${source_digest}")"' in text
+    )
+    assert "carbon-c03-worker:${source_digest" not in text
+
+
+def test_the_release_pushes_the_c03_parent_before_building_on_it():
+    script = SCRIPT.read_text()
+    c03 = script.index('bash "${script_dir}/c03_worker_image.sh"')
+    push = script.index('docker push --quiet "${c03_repository}:${tag}"')
+    checked = script.index('*" ${c03_repository}@${c03_parent} "*')
+    export = script.index('export CARBON_WORKER_PARENT_REPOSITORY="${c03_repository}"')
+    first_child = min(
+        script.index(f'bash "${{script_dir}}/{child}"') for child in CHILDREN[:3]
+    )
+    assert c03 < push < checked < export < first_child
+    assert 'c03_repository="${registry}/carbon-c03-worker"' in script
