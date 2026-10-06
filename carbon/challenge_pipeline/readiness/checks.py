@@ -126,7 +126,7 @@ def recorded_tests(item, ctx):
         for p in pending.get("neutral_tests", [])
         if _is_file(ctx, p.split("::")[0])
     ]
-    paths += list(ctx.data.get("tests", {}).get(item["id"], []))
+    paths += list(ctx.data.get("tests", {}).get(item.get("id", "P4"), []))
     if paths:
         return run_tests(ctx, list(dict.fromkeys(paths)))
     reason = pending.get("reason", "no check is wired")
@@ -486,12 +486,79 @@ def neutral_path(item, ctx):
             "tool text v2 names a challenge",
             tuple(f"names:{t}" for t in v2_names),
         )
+    evidence = (f"v1_names:{','.join(v1_names)}", "v2_names:none")
+    paths = list(ctx.data.get("tests", {}).get(item.get("id", "P4"), []))
+    if not paths:
+        return Result(
+            NOT_BUILT,
+            "tool text v2 names no challenge (detector proven on v1); the named-challenge "
+            "plumbing and literature tests are not recorded for this challenge "
+            "(owner: Carbon Validator)",
+            evidence,
+        )
+    plumbing = run_tests(ctx, paths)
+    if plumbing.status != PASS:
+        return Result(
+            FAIL,
+            "named-challenge plumbing: " + plumbing.detail,
+            evidence + plumbing.evidence,
+        )
+    return Result(
+        PASS,
+        "tool text v2 names no challenge and the named-challenge plumbing and "
+        "literature tests pass",
+        evidence + plumbing.evidence,
+    )
+
+
+def admission_controller(item, ctx):
+    """A4: a designated admission controller is recorded for (challenge, level)
+    (#615). A missing entry, a PENDING identity, or a malformed file all FAIL:
+    a LOCK is refused until the operator's identity is recorded."""
+    from carbon.challenge_pipeline import admission_controllers as ac
+
+    try:
+        entry = ac.designation(ctx.challenge, ctx.level)
+    except ac.DesignationRefused as refused:
+        return Result(FAIL, f"the designation file is refused ({refused})")
+    if entry is None:
+        return Result(
+            FAIL,
+            f"no admission controller is designated for ({ctx.challenge}, level "
+            f"{ctx.level}); owner: Test Engineer",
+        )
+    if ac.pending(entry):
+        return Result(
+            FAIL,
+            f"the controller {entry['name']} is designated but its identity is still "
+            "pending: an operator must record it (a LOCK is refused until then)",
+            (f"controller:{entry['name']}", "status:PENDING_OPERATOR_IDENTITY"),
+        )
+    return Result(
+        PASS,
+        "a designated admission controller with a recorded identity",
+        (f"controller:{entry['name']}", f"identity:{entry['identity']}"),
+    )
+
+
+def grant_binding(item, ctx):
+    """R5: the challenge's phase-4 grant is bound by the runner's registry, is
+    a committed file, and the grant-binding tests pass. Pricing with lost-run
+    headroom is a review of the owner's amounts, not a check this gate can make
+    without inventing a rule, so the item stays NOT_BUILT even when the binding
+    holds (evidence says what was verified)."""
+    grant, refused = _phase4_grant(ctx)
+    if refused:
+        return Result(FAIL, refused)
+    tested = run_tests(ctx, ["tests/cpu/test_graphite_phase4_grant.py"])
+    if tested.status != PASS:
+        return Result(FAIL, "grant-binding tests: " + tested.detail, tested.evidence)
     return Result(
         NOT_BUILT,
-        "tool text v2 names no challenge (checked against every registered "
-        "challenge name, detector proven on v1); the literature snapshot and "
-        "writeup parts need #614 and #606 (owner: Carbon Validator)",
-        (f"v1_names:{','.join(v1_names)}", "v2_names:none"),
+        f"the bound grant {grant} is committed and the binding tests pass; pricing with "
+        "lost-run headroom and tokens-only where no pods run are not machine-checked "
+        "(needs a recorded review of the owner's amounts; owner: Test Lead)",
+        (f"grant:{grant}", *tested.evidence),
     )
 
 
@@ -742,6 +809,8 @@ def confirmation_role(item, ctx):
 
 CHECKS = {
     "neutral_path": neutral_path,
+    "admission_controller": admission_controller,
+    "grant_binding": grant_binding,
     "q1_alignment": q1.v1_alignment_report,
     "q1_discrimination": q1.v2_panel_discrimination,
     "ownership_map": ownership_map,

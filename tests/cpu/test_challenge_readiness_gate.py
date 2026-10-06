@@ -702,3 +702,73 @@ def test_r1_refuses_a_recorded_grant_that_is_not_committed(monkeypatch):
         challenge=CHALLENGE, level=0, data={"grants": {"phase4": "no/such.json"}}
     )
     assert checks.prelive({}, ctx).status == model.FAIL
+
+
+# -- A4 (designated admission controller) and R5 (grant binding) --------------------------------
+def _controllers(monkeypatch, tmp_path, entries):
+    from carbon.challenge_pipeline import admission_controllers as ac
+
+    path = tmp_path / "controllers.json"
+    path.write_text(
+        json.dumps({"schema": ac.SCHEMA, "controllers": entries}), encoding="utf-8"
+    )
+    monkeypatch.setattr(ac, "PATH", path)
+
+
+def _entry(**over):
+    entry = {
+        "challenge": CHALLENGE,
+        "level": 0,
+        "name": "ctl",
+        "identity": "sha256:" + "a" * 64,
+        "status": "DESIGNATED",
+    }
+    entry.update(over)
+    return entry
+
+
+def test_a4_passes_only_a_designated_controller_with_an_identity(monkeypatch, tmp_path):
+    _controllers(monkeypatch, tmp_path, [_entry()])
+    assert checks.admission_controller({}, _ctx()).status == model.PASS
+    _controllers(
+        monkeypatch,
+        tmp_path,
+        [_entry(status="PENDING_OPERATOR_IDENTITY", identity=None)],
+    )
+    pending = checks.admission_controller({}, _ctx())
+    assert pending.status == model.FAIL and "pending" in pending.detail
+    _controllers(monkeypatch, tmp_path, [_entry(challenge="other")])
+    assert checks.admission_controller({}, _ctx()).status == model.FAIL
+    (tmp_path / "controllers.json").write_text("{", encoding="utf-8")
+    assert checks.admission_controller({}, _ctx()).status == model.FAIL
+
+
+def test_the_committed_designations_fail_a4_until_an_identity_is_recorded():
+    battery = checks.Context(
+        challenge="battery-fastcharge-ageing-development-v1", level=0
+    )
+    assert checks.admission_controller({}, battery).status == model.FAIL
+    cooling = checks.Context(challenge="chip-cold-plate", level=0)
+    assert checks.admission_controller({}, cooling).status == model.FAIL
+
+
+def test_r5_never_passes_and_never_borrows_another_grant(monkeypatch):
+    # Without a bound grant it fails; with one it stays NOT_BUILT (headroom is a
+    # review of the owner's amounts), never PASS.
+    motor = checks.Context(challenge="electric-motor-magnetics", level=0)
+    assert checks.grant_binding({}, motor).status == model.FAIL
+    monkeypatch.setattr(
+        checks, "run_tests", lambda ctx, paths: model.Result(model.PASS, "ok")
+    )
+    cooling = checks.Context(
+        challenge="chip-cold-plate",
+        level=0,
+        data={
+            "grants": {
+                "phase4": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json"
+            }
+        },
+    )
+    assert checks.grant_binding({}, cooling).status == model.FAIL
+    own = checks.Context(challenge="chip-cold-plate", level=0)
+    assert checks.grant_binding({}, own).status == model.NOT_BUILT

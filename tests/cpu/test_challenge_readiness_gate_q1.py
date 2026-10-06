@@ -326,3 +326,17 @@ def test_neutral_test_ids_are_selected_for_this_challenge(monkeypatch):
     }
     checks.recorded_tests(item, _ctx())
     assert seen == [[f"tests/cpu/test_challenge_readiness_gate_q1.py::t[{CHALLENGE}]"]]
+
+
+def test_p4_passes_only_with_neutral_v2_and_passing_plumbing_tests(monkeypatch):
+    monkeypatch.setattr(checks, "_challenge_tokens", lambda: ["chip-cold-plate"])
+    _fake_roles(monkeypatch, "scores chip-cold-plate", "scores the Challenge")
+    ctx = checks.Context(challenge=CHALLENGE, level=0, data={"tests": {"P4": ["t.py"]}})
+    monkeypatch.setattr(
+        checks, "run_tests", lambda c, p: model.Result(model.PASS, "ok")
+    )
+    assert checks.neutral_path({"id": "P4"}, ctx).status == model.PASS
+    monkeypatch.setattr(
+        checks, "run_tests", lambda c, p: model.Result(model.FAIL, "red")
+    )
+    assert checks.neutral_path({"id": "P4"}, ctx).status == model.FAIL
