@@ -226,20 +226,22 @@ def refusal(
     `field` is only ever a name from a server-side schema.
 
     `correction`, when given, is `(correction_code, text)`: a registered
-    correction Carbon wrote (AGENT-DOOR-USABILITY-01 A2), appended last so
-    every earlier part reads as before. Only the door's own schema refusal
-    passes one (`standard_server.validation_refusal`)."""
+    correction Carbon wrote (AGENT-DOOR-USABILITY-01 A2), placed after the
+    field and before the next action. The next action stays the line's last
+    part, the fixed text the catalogue declares for the code, so a client
+    reads it to the end of the line as before. Only the door's own schema
+    refusal passes one (`standard_server.validation_refusal`)."""
     parts = [
         code,
         "dispatch_may_have_occurred=" + str(dispatch_may_have_occurred).lower(),
     ]
     if field is not None:
         parts.append("field=" + field)
-    parts.append("next_action=" + NEXT_ACTION[code])
     if correction is not None:
         correction_code, text = correction
         parts.append("correction_code=" + correction_code)
         parts.append("correction=" + text)
+    parts.append("next_action=" + NEXT_ACTION[code])
     return "; ".join(parts)
 
 

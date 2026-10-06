@@ -49,9 +49,11 @@ refusal was the library's dump, which repeats what was sent.
 2. **A typed correction, never a dump.** Every schema refusal on this door's
    research tools, and on the Tasks start, is now `INVALID_ARGUMENT`, nothing
    dispatched, the declared field (`field=`, only a name this server
-   declared), the fixed next action, and a registered correction
-   (`correction_code=`, `correction=`) appended last
-   (`standard_server.validation_refusal`). The code agrees with the SDK's
+   declared), a registered correction (`correction_code=`, `correction=`)
+   and, last as on every refusal, the fixed next action the catalogue
+   declares for the code (`standard_server.validation_refusal`). The next
+   action reads to the end of the line, so the conformance rule
+   `refusal_next_action_is_fixed_and_declared` reads the declared text. The code agrees with the SDK's
    for the same request (`practice_recipe_required`,
    `workspace_recipe_forbidden`, `workspace_action_unknown`,
    `json_object_required`, `tool_text_bounded`, `tool_value_invalid`,
@@ -69,9 +71,10 @@ refusal was the library's dump, which repeats what was sent.
 
 **Public interface.** The start schema of a campaign that froze v2 gains
 `"null"` in `action`'s enum and as a value of `arguments`. The refusal line
-gains two optional trailing parts (`correction_code=`, `correction=`) on a
-schema refusal only; every earlier part reads as before, and an adapter
-refusal's line is unchanged. No field is removed or renamed.
+gains two optional parts (`correction_code=`, `correction=`) between the
+field and the next action, on a schema refusal only; the next action stays
+the last part with its declared text, no new next action or refusal code is
+added, and an adapter refusal's line is unchanged. No field is removed or renamed.
 
 ### D3. Phase-3 sessions record budget-status.v2 (A5)
 

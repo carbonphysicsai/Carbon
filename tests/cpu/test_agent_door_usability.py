@@ -63,6 +63,7 @@ from carbon.development_session.research_tools import (
     PREFIX,
     frozen_argument_normalisation,
 )
+from carbon.miner_mcp.serving import NEXT_ACTION
 
 START = PREFIX + "start_research_task"
 
@@ -199,9 +200,10 @@ def test_an_older_plans_null_is_refused_with_its_correction_not_a_dump(tmp_path,
         text = refused_text(server_for(adapter), door_args(action="null"))
         assert text.startswith(
             "Error executing tool " + START + ": INVALID_ARGUMENT; "
-            "dispatch_may_have_occurred=false; field=action; next_action="
+            "dispatch_may_have_occurred=false; field=action; "
+            "correction_code=practice_recipe_required; correction="
         ), text
-        assert "; correction_code=practice_recipe_required; correction=" in text
+        assert text.endswith("; next_action=" + NEXT_ACTION["INVALID_ARGUMENT"])
         assert 'It holds the string "null".' in text
         assert "The tool: start_research_task." in text
         # No schema-library text, and nothing sent is repeated.
@@ -224,8 +226,8 @@ def test_an_older_plans_null_is_refused_with_its_correction_not_a_dump(tmp_path,
 def test_a_schema_refusal_names_the_field_and_the_fix(change, field, code):
     _, adapter = make_adapter()
     text = refused_text(server_for(adapter), {**door_args(), **change})
-    assert f"field={field}; next_action=" in text
-    assert f"; correction_code={code}; correction=" in text
+    assert f"field={field}; correction_code={code}; correction=" in text
+    assert text.endswith("; next_action=" + NEXT_ACTION["INVALID_ARGUMENT"])
     assert f"The field that broke the contract: {field}." in text
     assert "validation error" not in text and "extra_forbidden" not in text
 
@@ -235,6 +237,9 @@ def test_an_invented_key_is_never_named_back():
     text = refused_text(server_for(adapter), {**door_args(), "my_secret_key": 1})
     assert "my_secret_key" not in text and "field=" not in text
     assert "; correction_code=tool_field_unexpected; correction=" in text
+    # The next action is the line's last part, the catalogue's fixed text,
+    # so a client reading it to the end of the line reads exactly that.
+    assert text.endswith("; next_action=" + NEXT_ACTION["INVALID_ARGUMENT"])
 
 
 def test_the_tasks_start_refuses_as_the_plain_tool_does(monkeypatch):
