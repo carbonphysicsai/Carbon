@@ -593,8 +593,13 @@ OPERATIONS = {
         ),
         Operation(
             "halt",
-            "Stop, pause or reconcile a campaign. Always available to its "
-            "owner: withdrawing work never needs registration.",
+            "Stop or pause your campaign (action=stop or action=pause), or "
+            "settle what it holds (action=reconcile): the Control Center's "
+            "Stop, Pause and Reconcile run this same operation. Stop is final "
+            "and idempotent - a stopped or finished campaign is answered as it "
+            "is; a pause is undone with resume. Nothing is deleted. Always "
+            "available to its owner: withdrawing work never needs "
+            "registration.",
             frozenset({"campaign", "action"}),
             frozenset(),
             ("request", "profile", "campaign"),

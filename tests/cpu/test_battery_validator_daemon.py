@@ -475,8 +475,13 @@ def test_outcomes_disclose_no_private_case_label_or_seed(tmp_path, refs, backend
     signed["payload"]["state"] = "tampered"
     assert not signing.verify(signed)
     assert "<redacted>" in repr(key)
-    with pytest.raises(PermissionError):
-        signing.winner_intent()
+    winner = signing.winner_intent(
+        netuid=567,
+        policy_digest="sha256:" + "1" * 64,
+        epoch=3,
+        targets_digest="sha256:" + "2" * 64,
+    )
+    assert signing.verify(key.sign("weight_intent", winner))
     intent = key.sign(
         "weight_intent", signing.all_burn_intent(pool_version=0, reason="phase A")
     )
@@ -792,15 +797,27 @@ def test_references_for_other_inputs_are_refused(tmp_path, refs):
         validator.ingest_references(fp, wrong)
 
 
-def test_the_service_key_signs_only_the_all_burn_intent(tmp_path):
+def test_the_service_key_signs_only_registered_weight_intent_shapes(tmp_path):
+    # OWNER-WEIGHTS-AUTHORITY-01 lifted OD-4b's refusal: the key signs the
+    # all-burn intent and the registered winner intent, nothing else.
     key = signing.ServiceKey.create(tmp_path / "service.key")
     burn = signing.all_burn_intent(pool_version=3, reason="phase A")
     assert signing.verify(key.sign("weight_intent", burn))
+    winner = signing.winner_intent(
+        netuid=567,
+        policy_digest="sha256:" + "1" * 64,
+        epoch=4,
+        targets_digest="sha256:" + "2" * 64,
+    )
+    assert signing.verify(key.sign("weight_intent", winner))
     for tampered in (
         {**burn, "mode": "WINNER"},
         {**burn, "winner_weights": True},
         {**burn, "weights": {"1": 65535}},
         {**burn, "netuid": 1},
+        {**winner, "weights": {"1": 65535}},
+        {**winner, "authority": "self-declared"},
+        {**winner, "targets_digest": "unbound"},
     ):
-        with pytest.raises(PermissionError):
+        with pytest.raises(ValueError):
             key.sign("weight_intent", tampered)

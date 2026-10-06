@@ -31,6 +31,7 @@ from carbon import research
 from carbon.chain.external_signer import SignerFailure
 from carbon.development_session.profile import canonical
 from carbon.development_session.research_control import DispatchStopped
+from carbon.development_session.research_ledger import PLAIN_REFUSALS
 from carbon.development_session.research_tools import (
     FIELDS,
     PREFIX,
@@ -209,7 +210,8 @@ def _pre_dispatch_stop(exc):
     while trace is not None:
         codes.append(trace.tb_frame.f_code)
         trace = trace.tb_next
-    message = str(exc) if type(exc) is ValueError else None
+    # The ledger's typed refusal (`LedgerRefusal`) keeps its historical text.
+    message = str(exc) if type(exc) in PLAIN_REFUSALS else None
     for outer, inner in itertools.pairwise(codes):
         if outer is _SDK_BODY and inner.co_name in _ADMISSION_CHECKS:
             return _ADMISSION_STOPS.get(message, AdapterCode.OPERATIONAL_STOP)
@@ -698,6 +700,19 @@ class ResearchToolAdapter:
         plan (`campaign_argument_normalisation`), read from the bound SDK's
         ledger; None without one."""
         return campaign_argument_normalisation(self._sdk.ledger)
+
+    @property
+    def argument_normalisation(self):
+        """The argument normalisation rule the bound campaign froze, for the
+        door's published schema (AGENT-DOOR-USABILITY-01 A2): None without
+        one, before a manifest is frozen, or for a rule this code does not
+        know - so an unknown rule is described as no rule, and refused as
+        none would be. Discovery; execution rereads it per call."""
+        self._check_binding()
+        try:
+            return self._normalisation()
+        except ValueError:
+            return None
 
     def _check_binding(self):
         sdk = self._sdk

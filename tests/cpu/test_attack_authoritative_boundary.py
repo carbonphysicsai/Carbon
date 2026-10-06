@@ -603,13 +603,15 @@ def test_a_valid_submittable_design_is_never_a_usability_record(shape):
     # None and recorded a spurious advisory divergence. The path accepted a
     # design Carbon admits: no breach and no usability record. The family's
     # detector does not fire on a valid design, so the agreement is no
-    # evidence of a hold (UNDETERMINED, oracle_inconclusive).
+    # evidence of a hold; since verdict v2 it closes as AGREED_ADMISSIBLE
+    # (GRAPHITE-ORACLE-AGREED-ADMISSIBLE-01), never HELD and never scored.
     verdict = verify.verify(_design_attempt(shape, "submittable"), ADAPTER)
     assert not verdict.finding and verdict.usability is None
     assert (verdict.outcome, verdict.reason) == (
-        verify.UNDETERMINED,
-        "oracle_inconclusive",
+        verify.AGREED_ADMISSIBLE,
+        verify.AGREED_ADMISSIBLE_REASON,
     )
+    assert not verdict.scored
 
 
 def test_a_design_requesting_an_excluded_capability_is_held_on_the_design():

@@ -1,0 +1,27 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-05-knn-state-gpu",
+ "recorded_at": "2026-10-05T23:30:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "claude/knn-state-gpu stacked on claude/knn-state-digest 3b63d4f76 (KNN-STATE-GPU-01, approved by the Test Lead)",
+  "description": "Carbon's pods now build a battery KNN with GPU program v2, which stages knn_state.py and writes state_sha256 into fit.json; every other recipe keeps GPU program v1 byte for byte."
+ },
+ "expected": "Staging a new module in the GPU program would move the Level-0 program and scaffold built-record pins, because every Level-0 built record names that one program.",
+ "observed": "Selecting the program by family kept v1 for every non-KNN recipe, so all Level-0 and run-5 pins held. Only KNN built records name v2. On CPU JAX, v2's state_sha256 equals the host's, and its params_sha256 and predictions equal v1's.",
+ "keep": [
+  "To add an output to a pinned worker program, add a new program version and select it only where the output applies; keep the old program's bytes and resolve every version by digest.",
+  "Prove a new program version adds only the new output: run old and new on the same staged files and compare every other output byte for byte."
+ ],
+ "change": [
+  "Miner GPU practice still runs v1, since its declared scope pins v1 and its feedback shows no state digest. Moving it needs a new scope schema."
+ ],
+ "protocol_elements": [
+  "construction.ladder",
+  "identity.rebuilt_artifact"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

@@ -28,6 +28,14 @@ one.
   build is compared with the bundle's. A difference is a `REBUILD_MISMATCH`
   finding. Numerical reproduction is not judged: its tolerance is
   science-reserved (plan §9) and stays `HUMAN_INPUT`.
+- **Identity across runs** (OWNER-GRAPHITE-TEST-WAVE-04 §1). A proposal id
+  (`p-<hex>`) is derived from the tool call's journal identity, so the same
+  id names a different recipe in every run: it is a label within one run,
+  never an identity across runs. The manifest (schema v3) binds the rebuilt
+  artifact (`artifact`, `reconstruction.artifact_identity.build_identity`
+  of Carbon's built record) beside the run id and recipe digest, and the
+  clean rebuild checks it. A v2 bundle, made before, is still read as it
+  was (it has no artifact to check).
 """
 
 from __future__ import annotations
@@ -38,11 +46,17 @@ from pathlib import Path
 
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
+from carbon.reconstruction.artifact_identity import build_identity
 
 from . import experiment as ex
 
 #: v2 adds `next-level-proposals.json` (GRAPHITE-D30).
-BUNDLE_SCHEMA = "carbon.graphite.phase3.pr-bundle.v2"
+BUNDLE_SCHEMA_V2 = "carbon.graphite.phase3.pr-bundle.v2"
+#: v3 adds `artifact`, the rebuilt artifact's identity, to the manifest: the
+#: bundle's identity across runs (OWNER-GRAPHITE-TEST-WAVE-04 §1).
+BUNDLE_SCHEMA = "carbon.graphite.phase3.pr-bundle.v3"
+#: Every bundle schema `clean_rebuild` reads.
+BUNDLE_SCHEMAS = (BUNDLE_SCHEMA_V2, BUNDLE_SCHEMA)
 REBUILD_SCHEMA = "carbon.graphite.phase3.clean-rebuild.v1"
 FILES = (
     "strategy.json",
@@ -200,6 +214,9 @@ def deliver(experiment, directory, *, selection=None, proposals=()):
         "contract_digest": expected["contract_digest"],
         "record_sequence": expected["record_sequence"],
         "recipe_digest": expected["recipe_digest"],
+        # The bundle's identity across runs: what it builds, never the
+        # run-local proposal id.
+        "artifact": build_identity(expected),
         "authority_granted": False,
         "official_eligible": False,
     }
@@ -212,6 +229,8 @@ def deliver(experiment, directory, *, selection=None, proposals=()):
     return {
         "status": "BUNDLED",
         "proposal_id": pid,
+        "run_id": experiment.run_id,
+        "artifact": manifest["artifact"],
         "bundle": str(folder),
         "manifest_digest": digest(canonical(manifest)),
         "clean_rebuild": check,
@@ -230,7 +249,7 @@ def clean_rebuild(directory, *, repository=ex.REPOSITORY):
     present = sorted(
         p.name for p in folder.iterdir() if p.is_file() and p.name != "manifest.json"
     )
-    if manifest.get("schema") != BUNDLE_SCHEMA:
+    if manifest.get("schema") not in BUNDLE_SCHEMAS:
         differences.append("manifest_schema")
     if present != sorted(manifest.get("files") or {}):
         differences.append("bundle_files_differ_from_manifest")
@@ -273,6 +292,13 @@ def clean_rebuild(directory, *, repository=ex.REPOSITORY):
             differences.append(name)
     if manifest.get("contract_digest") != rebuilt["contract_digest"]:
         differences.append("manifest_contract_digest")
+    if manifest.get("schema") == BUNDLE_SCHEMA and manifest.get(
+        "artifact"
+    ) != build_identity(recipe):
+        # v3 binds what the bundle builds (§1): the build identity of its
+        # `recipe.json`, which `rebuild_differences` has just checked field
+        # by field against Carbon's rebuild. A v2 bundle has no artifact.
+        differences.append("manifest_artifact")
     return _rebuild_result(differences, manifest, rebuilt)
 
 
@@ -305,6 +331,8 @@ def _result_line(label, rule):
 def writeup(record, baseline, ablated, undefined, selection):
     rule = record["frozen_rule"]
     against = record["against_baseline"]
+    # The Challenge's own rule identity: never another Challenge's wording.
+    identity = record.get("rule") or {}
     lines = [
         f"# Graphite phase 3 proposal {record['proposal_id']}",
         "",
@@ -320,17 +348,20 @@ def writeup(record, baseline, ablated, undefined, selection):
         "",
         "## Evidence",
         "",
-        "Scored by the battery exam's frozen gates, calibration and score on the",
-        "200 public PRACTICE cases (adaptively seen development feedback):",
+        (
+            "Scored by the Challenge's frozen practice rule"
+            f" (`{identity.get('rule', 'not stated')}`) on its"
+        ),
+        "public PRACTICE cases (adaptively seen development feedback):",
         "",
         (
             f"- eligible: {rule['eligible']}; score {_number(rule['score'])};"
-            f" important-region score {_number(rule['important_score'])}"
+            f" important-region score {_number(rule.get('important_score'))}"
         ),
         _result_line("baseline", baseline["frozen_rule"]),
         (
-            "- paired comparison with the baseline (rule v2):"
-            f" {against['outcome']}, {against['reason']}"
+            "- comparison with the baseline under the rule's registered"
+            f" comparison: {against['outcome']}, {against['reason']}"
         ),
         "",
         "## Ablations",
@@ -374,8 +405,8 @@ def rebuild_text(pid):
         [
             f"# Rebuilding proposal {pid} without the agent",
             "",
-            "From a Carbon checkout at any commit whose battery construction",
-            "contract is the one `manifest.json` names:",
+            "From a Carbon checkout at any commit whose construction contract for",
+            "the bundle's Challenge is the one `manifest.json` names:",
             "",
             "    python -m carbon.agent_campaign.graphite.phase3 rebuild --bundle DIR",
             "",
