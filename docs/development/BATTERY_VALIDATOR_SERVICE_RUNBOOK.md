@@ -205,6 +205,64 @@ can.
 3. `python -m carbon.battery.operate upgrade --config $C`.
 4. `preflight --config S` until ready (parity included), then start.
 
+### 4.4 Switching testnet from v1 to v2 (OWNER-TESTNET-V2-SWITCH-01)
+
+Ryan runs these on the testnet host. They use the same 567 identities: the
+same validator hotkey as `receiver`, and the same publisher wallet. Names:
+- `C1` is the v1 deployment file, which becomes EV5's frozen archive;
+- `C2` is the v2 deployment file (`battery-validator-v2`, rule v2);
+- `I` is the intake configuration, and `S` the service configuration.
+
+1. **Stop the service:** `systemctl --user stop carbon-battery-intake.service
+   carbon-battery-validator.service` (or SIGTERM the supervisor).
+2. **Back up v1 one last time** (`backup --config S`), then **archive it.**
+   Add `"archived": "OWNER-TESTNET-V2-SWITCH-01"` to `C1`, keeping it mode
+   `0600`. From then on:
+   - a writable start, `operate upgrade` and the weights publisher refuse
+     it;
+   - EV5 still reads it.
+3. **Point the intake at v2.** In `I`, set `"deployment": "<C2>"`. Nothing
+   else in `I` or `S` changes: the transport journal, inbox, receiver,
+   host, port and TLS all stay. The daemon unit takes its deployment from
+   `I`, so regenerate the units and reload them:
+
+   ```bash
+   python -m scripts.dev.battery_validator_service units --config S --out <units dir>
+   cp <units dir>/carbon-battery-*.service ~/.config/systemd/user/
+   systemctl --user daemon-reload
+   ```
+
+4. **Pull the release and upgrade v2.** Wait until #684 and the
+   TORCH-GPU-01 work have merged.
+   - Pull the released images by digest (the release's pull script), and
+     set `C2`'s `image_manifest` (and `torch_image_manifest`, if it serves
+     PyTorch) to the released manifests.
+   - Set `S`'s `practice_images` to the same manifests.
+   - Back up v2 (`backup --config S`, which now backs up v2), then run:
+
+   ```bash
+   python -m carbon.battery.operate upgrade --config <C2>
+   ```
+
+   This adopts implementation 2.0 under OWNER-BATTERY-CARRYOVER-01. A
+   changed rule, material or seed pin needs a new deployment instead.
+5. **Preflight and parity:** `preflight --config S` until it is ready, and
+   `parity --config S`. Both must pass. Then start:
+   `systemctl --user start carbon-battery-intake.service
+   carbon-battery-validator.service`.
+6. **Status:** `status --config S` shows `healthy: true`. Also check
+   `python -m carbon.battery.operate status --config <C2>`: the pool is
+   `rule v2` and its batches are complete.
+7. **Weights.** From now on, pass v2 to the publisher. Its other arguments
+   are unchanged:
+
+   ```bash
+   python -m carbon.rewards.testnet_winner_publication run --config <testnet config> \
+     --standing <standing> --journal <journal> --ledger <ledger> --battery-deployment <C2>
+   ```
+
+   Pointing it at `C1` now refuses with `WEIGHT_SOURCE_ARCHIVED`.
+
 ## 5. Publishing the endpoint (owner-reserved steps first)
 
 OWNER-INTAKE-EXPOSURE-01 permits a public bind for testnet 567, the

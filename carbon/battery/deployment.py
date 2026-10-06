@@ -63,6 +63,7 @@ from pathlib import Path
 SCHEMA = "carbon.battery.validator-deployment.v1"
 REQUIRED = {"schema", "state", "private_root", "journal", "work", "backend"}
 OPTIONAL = {
+    "archived",
     "require_commitment",
     "service_key",
     "image_manifest",
@@ -125,6 +126,11 @@ def load_config(path):
     if config.get("rule", "v1") not in RULES:
         raise EvaluationUnavailable("evaluation_config_rule")
     if type(config.get("require_commitment", True)) is not bool:
+        raise EvaluationUnavailable("evaluation_config_fields")
+    if "archived" in config and (
+        type(config["archived"]) is not str
+        or not config["archived"].startswith("OWNER-")
+    ):
         raise EvaluationUnavailable("evaluation_config_fields")
     if "commitment_reader" in config:
         _commitment_reader(config)  # refuses a malformed chain context now
@@ -192,6 +198,15 @@ def _owner_only_directory(path):
     return path
 
 
+def require_live(config):
+    """Refuse a deployment the owner archived (its `archived` field names the
+    owner record). An archived deployment is never run, upgraded or used as a
+    weight source again; it stays readable, so a study that pinned its
+    journal or root can still regenerate from it."""
+    if config.get("archived"):
+        raise EvaluationUnavailable("evaluation_config_archived")
+
+
 def build(config, *, repository, readonly=False):
     """A daemon for one configuration. Never dispatches work.
 
@@ -204,6 +219,8 @@ def build(config, *, repository, readonly=False):
     from .signing import ServiceKey
     from .worker import CarrierBackend, DirectBackend, WorkLedger
 
+    if not readonly:
+        require_live(config)
     root = seeds.PrivateRoot.load(_private(config["private_root"]))
     journal = seeds.SeedJournal(config["journal"])
     store = PoolStore(config["state"], rule=rule_for(config))
