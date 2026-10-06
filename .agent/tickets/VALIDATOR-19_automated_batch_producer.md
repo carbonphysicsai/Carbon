@@ -249,3 +249,25 @@ apply to every hidden batch and to `graphite-tuning-v2`.
 - **Still open:** these sizes come from the public stand-in, and the tuning
   set confirms them before any rule v3 adoption (the owner's). The margin
   stays HUMAN_INPUT and swept.
+
+**Built, part 1: the tuning set's quiz path** (branch
+`claude/validator-19-quiz-tuning`, stacked on #702's `value/quiz.py`).
+- `carbon/battery/quiz_stratum.py` draws and assembles a quiz from a private
+  root. It applies Data Collection's rulings:
+  - **Draws** are uniform `seeds.draw_inputs` under the reserved tuning role,
+    at draw indices above any main-set draw.
+  - **Q3 refusals:** a condition within both 2 °C and 0.03 soc0 of a
+    protected condition is redrawn. Protected means every committed
+    contract's scenario conditions plus the committed practice decision set
+    (B4, `practice-decision-set-v2`, read through its pins).
+  - **Q2 pool:** near-limit candidates in draw order, capped at 320.
+    `q2_select` reads only the registered panel's predictions.
+  - **Q3 selection:** the first 8 feasible scenarios. The quiz records its
+    redraws and its panel version.
+- **Tuning commands:** `quiz-jobs [--round N]`, `quiz-select` (refuses with
+  `tuning_quiz_needs_more_q3:--round N` when fewer than 8 are feasible), and
+  `quiz-seal` (a `quiz` seed-journal entry carrying only the digest, counts
+  and panel version). Also `predict --quiz` and `score --quiz`, which write
+  `quiz-scores.json` and `q3-regret.json`.
+- **Not yet:** the producer's quiz (part 2) and the gate (rule v3, the
+  owner's).

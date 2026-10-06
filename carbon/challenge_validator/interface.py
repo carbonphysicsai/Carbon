@@ -67,19 +67,25 @@ OUTCOME_REQUIRED = (
 #:   creates no cases, seed or batch (CHALLENGE-AI-COOLING-08);
 #: - `motor-graphite-confirmation-v1`: the motor's future operator-held
 #:   confirmation set, reserved the same way (VALIDATOR-03).
-#: - `graphite-tuning-v1`: battery's sealed tuning set, scored repeatedly for
-#:   score development and never seen by an agent or miner
-#:   (OWNER-GRAPHITE-TEST-WAVE-08 §1; VALIDATOR-17).
+#: - `graphite-tuning-v1`: battery's first tuning set
+#:   (OWNER-GRAPHITE-TEST-WAVE-08 §1; VALIDATOR-17), superseded unsealed and
+#:   kept reserved;
+#: - `graphite-tuning-v2`: battery's sealed tuning set, v1's main set plus the
+#:   near-limit quiz stratum (VALIDATOR-17's amendment; VALIDATOR-19 slice Q),
+#:   scored repeatedly for score development and never seen by an agent or
+#:   miner.
 #: Each is registered in `confirmation_sets/` (`confirmation.load_sets`).
 COOLING_CONFIRMATION_ROLE = "cooling-graphite-confirmation-v1"
 MOTOR_CONFIRMATION_ROLE = "motor-graphite-confirmation-v1"
-BATTERY_TUNING_ROLE = "graphite-tuning-v1"
+BATTERY_TUNING_ROLE_V1 = "graphite-tuning-v1"
+BATTERY_TUNING_ROLE = "graphite-tuning-v2"
 RESERVED_SEED_ROLES = frozenset(
     {
         "ev5-confirmation",
         "graphite-confirmation-v1",
         COOLING_CONFIRMATION_ROLE,
         MOTOR_CONFIRMATION_ROLE,
+        BATTERY_TUNING_ROLE_V1,
         BATTERY_TUNING_ROLE,
     }
 )

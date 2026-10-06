@@ -155,6 +155,38 @@ class BatterySource:
 
         return {"seeds": Path(seeds.__file__), "daemon": Path(daemon.__file__)}
 
+    def export(self, item, config, repository):
+        """A set sealed in the deployment `config`'s journal: its distinct
+        case inputs, regenerated in memory from the deployment's root and
+        checked against the committed fingerprint. Read only."""
+        from carbon.battery import deployment, seeds
+
+        if item.human_input:
+            raise ConfirmationRefused("confirmation_human_input_missing")
+        target = deployment.validator(config, repository=repository, readonly=True)
+        committed = [
+            e
+            for e in target.journal.public()
+            if e["kind"] == "batch" and canonical_role(e["role"]) == item.role
+        ]
+        if not committed:
+            raise ConfirmationRefused("confirmation_prior_not_sealed:" + item.role)
+        if len({e["fingerprint"] for e in committed}) != 1:
+            raise ConfirmationRefused("confirmation_role_reused")
+        batch = seeds.make_batch(
+            target.root,
+            target.pin,
+            committed[0]["role"],
+            item.batch_size,
+            item.hidden_duplicates,
+        )
+        if batch.fingerprint != committed[0]["fingerprint"]:
+            raise ConfirmationRefused(
+                "confirmation_prior_regeneration_mismatch:" + item.role
+            )
+        duplicates = dict(batch.duplicates)
+        return [dict(x) for case_id, x in batch.cases if case_id not in duplicates]
+
     def seal(self, item, sets, config, private, repository):
         """Seal `item` in the deployment `config`'s seed journal."""
         from carbon.battery import deployment, seeds

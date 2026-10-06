@@ -1,23 +1,29 @@
 """Battery's sealed tuning set, operator-side (VALIDATOR-17;
-OWNER-GRAPHITE-TEST-WAVE-08 §1).
+OWNER-GRAPHITE-TEST-WAVE-08 §1; VALIDATOR-19 slice Q).
 
-The tuning set (`graphite-tuning-v1`, registered in `confirmation_sets/`)
-scores every panel member and compares candidate score weightings. It is used
-repeatedly for score development. It is sealed like a confirmation set, and
-nothing here ever gives an agent or miner its cases, references, predictions
-or scores.
+The tuning set (`graphite-tuning-v2`, registered in `confirmation_sets/`;
+`graphite-tuning-v1` is superseded unsealed) scores every panel member and
+compares candidate score weightings. It is used repeatedly for score
+development. It is sealed like a confirmation set, and nothing here ever
+gives an agent or miner its cases, references, predictions or scores.
 
-Operator steps, all on the operator host:
+Operator steps, all on the hidden host (HIDDEN_HOST_SETUP §6):
 
     python -m carbon.challenge_validator.tuning export-pool --config HIDDEN.json --out FILE
-    python -m carbon.challenge_validator.confirmation seal --role graphite-tuning-v1 \\
-        --config TESTNET.json --prior graphite-hidden-battery-v1-pool=FILE
-    python -m carbon.challenge_validator.tuning jobs --config TESTNET.json \\
+    python -m carbon.challenge_validator.confirmation seal --role graphite-tuning-v2 \\
+        --config HIDDEN.json --prior graphite-hidden-battery-v1-pool=FILE \\
+        --prior ev5-confirmation=FILE --prior graphite-confirmation-v1=FILE
+    python -m carbon.challenge_validator.tuning jobs --config HIDDEN.json \\
         --commitment COMMITMENT.json --work DIR
     python -m carbon.challenge_validator.tuning solve --work DIR --overlay DIR
-    python -m carbon.challenge_validator.tuning predict --work DIR --panel PANEL.json
-    python -m carbon.challenge_validator.tuning score --work DIR
-    python -m carbon.challenge_validator.tuning recheck --config TESTNET.json \\
+    python -m carbon.challenge_validator.tuning quiz-jobs --config HIDDEN.json --work Q
+    python -m carbon.challenge_validator.tuning solve --work Q --overlay DIR
+    python -m carbon.challenge_validator.tuning quiz-select --work Q --panel PANEL.json
+    python -m carbon.challenge_validator.tuning quiz-seal --config HIDDEN.json --work Q
+    python -m carbon.challenge_validator.tuning predict --work DIR --panel PANEL.json \\
+        --quiz Q
+    python -m carbon.challenge_validator.tuning score --work DIR --quiz Q
+    python -m carbon.challenge_validator.tuning recheck --config HIDDEN.json \\
         --commitment COMMITMENT.json --public FILE --work DIR
 
 - **`export-pool`** writes the rotating hidden pool's case inputs, the
@@ -38,6 +44,23 @@ Operator steps, all on the operator host:
   tuning set (the Test Lead, 2026-10-05). The re-check is recorded owner-only
   in the work directory, and its public summary in the tuning set's record.
 
+The near-limit quiz stratum (`carbon.battery.quiz_stratum`, its own work
+directory Q):
+- **`quiz-jobs`** draws, from the hidden deployment's root, Q2's oversample
+  (`Q2_POOL * 4` candidates) and `Q3_K + 4` Q3 conditions (protected ones
+  redrawn), and writes their solve jobs. `--round N` adds 4 Q3 conditions per
+  round; Q2 is never redrawn. `solve --work Q` solves them.
+- **`quiz-select`** keeps Q2's near-limit pool, rebuilds the registered
+  disagreement panel once (its predictions cached under Q), picks Q2's cases
+  from the panel's predictions only, and keeps the first `Q3_K` feasible
+  scenarios. With fewer, it refuses and names the next `--round`.
+- **`quiz-seal`** commits the quiz's digest and counts to the deployment's
+  seed journal (kind `quiz`).
+- **`predict --quiz Q`** also predicts the quiz's inputs, and **`score --quiz
+  Q`** writes each member's quiz measures (`quiz-scores.json`) and
+  `q3-regret.json` (member to mean Q3 decision regret, for
+  `tuning_rescore --q3-regret`). Quiz cases never enter the accuracy rows.
+
 Every file is owner-only and lives outside the repository. DEVELOPMENT only:
 no qualification, weight, reward or LIVE authority.
 """
@@ -45,6 +68,7 @@ no qualification, weight, reward or LIVE authority.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import stat
@@ -57,10 +81,23 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 SCORES_SCHEMA = "carbon.challenge-validator.tuning-scores.v1"
 RECHECK_SCHEMA = "carbon.challenge-validator.tuning-recheck.v1"
 PANEL_SCHEMA = "carbon.challenge-validator.tuning-panel.v1"
+QUIZ_DRAWS_SCHEMA = "carbon.challenge-validator.tuning-quiz-draws.v1"
+QUIZ_SCORES_SCHEMA = "carbon.challenge-validator.tuning-quiz-scores.v1"
 
 
 class TuningRefused(ValueError):
     """A typed refusal; its code carries no private case, input or output."""
+
+
+@contextlib.contextmanager
+def _quiz_refusals():
+    """The quiz stratum's typed refusals, as the tuning tool's own."""
+    from carbon.battery.quiz_stratum import QuizRefused
+
+    try:
+        yield
+    except QuizRefused as refused:
+        raise TuningRefused("tuning_" + refused.code) from None
 
 
 def _outside_repository(path):
@@ -87,12 +124,34 @@ def _write_private(path, value):
         handle.write("\n")
 
 
+def _replace_private(path, value):
+    path = Path(path)
+    if path.exists():
+        path.unlink()
+    _write_private(path, value)
+
+
 def _read_private(path):
     path = Path(path)
     info = os.lstat(path)
     if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:
         raise TuningRefused("tuning_file_not_owner_only")
     return json.loads(path.read_bytes())
+
+
+def _records(work):
+    """A work directory's solve records by case id (FAILED_INFRA is retried,
+    so it is not a reference)."""
+    from carbon.battery.quiz_stratum import solved
+
+    path = Path(work) / "records.jsonl"
+    if not path.exists():
+        return {}
+    info = os.lstat(path)
+    if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:
+        raise TuningRefused("tuning_file_not_owner_only")
+    lines = path.read_text().splitlines()
+    return solved(json.loads(line) for line in lines if line.strip())
 
 
 def _tuning_set():
@@ -235,36 +294,94 @@ def load_panel(path):
     return members
 
 
-def predict(work, panel_path, *, backend=None):
-    """Rebuild each panel member on host CPU and predict the batch's inputs.
-    Owner-only bundles; resumable; a member's own failure is recorded."""
-    from carbon.battery.value.experiment import member_bundle
-
-    work = _owner_only_dir(work)
-    batch = _read_private(work / "batch.json")
-    inputs = {c["case_id"]: dict(c["inputs"]) for c in batch["cases"]}
+def _backend(backend):
     if backend is None:
         from carbon.battery.worker import DirectBackend
 
         backend = DirectBackend(str(REPOSITORY))
+    return backend
+
+
+def _rebuild(backend, member, inputs, failure_path):
+    """One member rebuilt on host CPU, predicting `inputs`: its bundle, or
+    None with its own failure recorded (typed) at `failure_path`."""
+    from carbon.battery.value.experiment import member_bundle
+
+    try:
+        bundle, _state = member_bundle(
+            backend, member["member"], member["strategy"], member["seed"], inputs
+        )
+    except Exception as failure:  # noqa: BLE001 - typed, recorded
+        _replace_private(
+            failure_path,
+            {"member": member["member"], "failure": type(failure).__name__},
+        )
+        return None
+    if failure_path.exists():
+        failure_path.unlink()
+    return bundle
+
+
+def _only(predictions, ids):
+    return {c: predictions[c] for c in ids if c in predictions}
+
+
+def load_quiz(quiz):
+    """A quiz work directory's selected quiz (`quiz-select`), checked."""
+    from carbon.battery import quiz_stratum as qs
+
+    path = Path(quiz) / "quiz.json"
+    if not path.exists():
+        raise TuningRefused("tuning_quiz_not_selected")
+    with _quiz_refusals():
+        return qs.check(_read_private(path))
+
+
+def predict(work, panel_path, *, quiz=None, backend=None):
+    """Rebuild each panel member on host CPU and predict the batch's inputs,
+    and with `quiz` (a quiz work directory) the quiz's inputs too, which are
+    kept apart in `quiz-predictions/`. Owner-only bundles; resumable (one
+    rebuild serves whatever a member still lacks); a member's own failure is
+    recorded."""
+    from carbon.battery import quiz_stratum as qs
+
+    work = _owner_only_dir(work)
+    batch = _read_private(work / "batch.json")
+    inputs = {c["case_id"]: dict(c["inputs"]) for c in batch["cases"]}
+    document = None if quiz is None else load_quiz(quiz)
+    quiz_inputs = {} if document is None else qs.inputs(document)
+    backend = _backend(backend)
     out = _owner_only_dir(work / "predictions")
+    quiz_out = None if document is None else _owner_only_dir(work / "quiz-predictions")
     done = failed = 0
     for member in load_panel(panel_path):
         path = out / f"{member['member']}.json"
-        if path.exists():
+        quiz_path = None if quiz_out is None else quiz_out / f"{member['member']}.json"
+        needed = {} if path.exists() else dict(inputs)
+        if quiz_path is not None and not quiz_path.exists():
+            needed.update(quiz_inputs)
+        if not needed:
             continue
-        try:
-            bundle, _state = member_bundle(
-                backend, member["member"], member["strategy"], member["seed"], inputs
-            )
-        except Exception as failure:  # noqa: BLE001 - typed, recorded
-            _write_private(
-                out / f"{member['member']}.failure.json",
-                {"member": member["member"], "failure": type(failure).__name__},
-            )
+        failure = out / f"{member['member']}.failure.json"
+        bundle = _rebuild(backend, member, needed, failure)
+        if bundle is None:
             failed += 1
             continue
-        _write_private(path, {**bundle, "kind": member["kind"]})
+        if not path.exists():
+            predictions = _only(bundle["predictions"], inputs)
+            _write_private(
+                path, {**bundle, "predictions": predictions, "kind": member["kind"]}
+            )
+        if quiz_path is not None and not quiz_path.exists():
+            _write_private(
+                quiz_path,
+                {
+                    "member": member["member"],
+                    "kind": member["kind"],
+                    "quiz_digest": qs.digest(document),
+                    "predictions": _only(bundle["predictions"], quiz_inputs),
+                },
+            )
         done += 1
     return {"rebuilt": done, "failed": failed}
 
@@ -314,12 +431,15 @@ def score_members(batch, refs, predictions, kinds, repository=REPOSITORY):
     return summary, rows
 
 
-def score(work, repository=REPOSITORY):
+def score(work, repository=REPOSITORY, *, quiz=None):
     """Score every stored member on the tuning set. Owner-only outputs:
-    `scores.json` (per member) and `rows/<member>.json` (per case)."""
+    `scores.json` (per member) and `rows/<member>.json` (per case); with
+    `quiz`, also `quiz-scores.json` and `q3-regret.json` (`score_quiz`)."""
     from carbon.battery import seeds
 
     work = _owner_only_dir(work)
+    if quiz is not None:
+        load_quiz(quiz)  # refused before anything is written
     batch, refs = references(work)
     predictions, kinds = {}, {}
     for path in sorted((work / "predictions").glob("*.json")):
@@ -349,7 +469,255 @@ def score(work, repository=REPOSITORY):
     if target.exists():
         target.unlink()
     _write_private(target, document)
-    return {"members": len(summary), "cases_with_reference": len(refs)}
+    result = {"members": len(summary), "cases_with_reference": len(refs)}
+    if quiz is not None:
+        result["quiz"] = score_quiz(work, quiz, repository)
+    return result
+
+
+def score_quiz(work, quiz, repository=REPOSITORY):
+    """Every member's quiz measures, from its stored quiz predictions and the
+    quiz's references, with the panel's synthetic controls added. Owner-only:
+    `quiz-scores.json` (Q2 and Q3 measures and Q3 outcomes per member) and
+    `q3-regret.json` (member to mean Q3 decision regret over the quiz's
+    feasible scenarios, None when unmeasured). Accuracy is never computed on
+    a quiz case."""
+    from carbon.battery import quiz_stratum as qs
+    from carbon.battery.value import panel as pn
+
+    work = _owner_only_dir(work)
+    document = load_quiz(quiz)
+    quiz_digest = qs.digest(document)
+    ids = set(qs.inputs(document))
+    refs = {c: r for c, r in _records(quiz).items() if c in ids}
+    predictions, kinds = {}, {}
+    folder = work / "quiz-predictions"
+    for path in sorted(folder.glob("*.json")) if folder.exists() else ():
+        bundle = _read_private(path)
+        if bundle.get("quiz_digest") != quiz_digest:
+            raise TuningRefused("tuning_quiz_predictions_stale")
+        predictions[bundle["member"]] = bundle["predictions"]
+        kinds[bundle["member"]] = bundle.get("kind", "RECONSTRUCTED")
+    for kind in pn.CONTROLS:
+        predictions["control-" + kind] = pn.control_predictions(kind, refs)
+        kinds["control-" + kind] = "SYNTHETIC_CONTROL"
+    contract = qs.contract(repository)
+    members = {}
+    with _quiz_refusals():
+        for member, member_predictions in sorted(predictions.items()):
+            members[member] = {
+                "kind": kinds[member],
+                **qs.member_measures(contract, document, member_predictions, refs),
+            }
+    _replace_private(
+        work / "quiz-scores.json",
+        {
+            "schema": QUIZ_SCORES_SCHEMA,
+            "role": document["role"],
+            "quiz_digest": quiz_digest,
+            "panel_version": document["panel_version"],
+            "q2_cases": len(document["q2"]),
+            "q3_scenarios": len(document["q3"]),
+            "members": members,
+            "state": "DEVELOPMENT_TUNING",
+            "audience": "operator only; never an agent or miner",
+        },
+    )
+    _replace_private(
+        work / "q3-regret.json",
+        {member: row["q3"]["regret"] for member, row in members.items()},
+    )
+    return {"members": len(members), "quiz_digest": quiz_digest}
+
+
+# --- the quiz stratum -----------------------------------------------------------------
+
+
+def _hidden(config_path):
+    """The deployment's root, its committed seed pin and its journal."""
+    from carbon.battery import deployment, seeds
+
+    config = deployment.load_config(config_path)
+    root = seeds.PrivateRoot.load(deployment._private(config["private_root"]))
+    journal = seeds.SeedJournal(config["journal"])
+    try:
+        pin = journal.root_pin(root)
+    except ValueError:
+        raise TuningRefused("tuning_root_not_committed") from None
+    return root, pin, journal
+
+
+def _quiz_dir(work):
+    work = _owner_only_dir(work)
+    if (work / "batch.json").exists():
+        raise TuningRefused("tuning_quiz_work_is_the_tuning_work")
+    return work
+
+
+def _draws(root, pin, role, round_, repository):
+    from carbon.battery import quiz_stratum as qs
+
+    with _quiz_refusals():
+        points = qs.protected_conditions(repository)
+        return {
+            "schema": QUIZ_DRAWS_SCHEMA,
+            "role": role,
+            "round": round_,
+            "q2": qs.q2_candidates(root, pin, role, qs.q2_draws()),
+            "q3": qs.q3_conditions(root, pin, role, qs.q3_draws(round_), points),
+        }
+
+
+def quiz_jobs(config_path, work, round_=1, repository=REPOSITORY):
+    """Draw the quiz stratum's candidates from the deployment's root and
+    write their solve jobs (owner-only). Round 1 draws Q2's oversample and
+    `Q3_K + 4` Q3 conditions; each later round adds 4 Q3 conditions, and Q2
+    is never redrawn. Rerunnable: the draws are deterministic and solved
+    records are kept."""
+    from carbon.battery import quiz_stratum as qs
+
+    if type(round_) is not int or round_ < 1:
+        raise TuningRefused("tuning_quiz_round_malformed")
+    work = _quiz_dir(work)
+    if (work / "quiz.json").exists():
+        raise TuningRefused("tuning_quiz_already_selected")
+    role = _tuning_set().role
+    root, pin, _journal = _hidden(config_path)
+    draws = _draws(root, pin, role, round_, repository)
+    jobs = qs.solve_jobs(qs.contract(repository), draws["q2"], draws["q3"])
+    _replace_private(work / "draws.json", draws)
+    _replace_private(
+        work / "jobs.json", {"fingerprint": qs.digest(draws), "jobs": jobs}
+    )
+    if not (work / "records.jsonl").exists():
+        (work / "records.jsonl").touch(mode=0o600)
+    last = draws["q3"][-1]
+    return {
+        "round": round_,
+        "q2_candidates": len(draws["q2"]),
+        "q3_conditions": len(draws["q3"]),
+        "q3_protected_redraws": last["attempt"] + 1 - len(draws["q3"]),
+        "solve_jobs": len(jobs),
+    }
+
+
+def _panel_predictions(members, inputs, cache, backend):
+    """Each registered panel member's predictions on the Q2 candidates:
+    rebuilt once per panel version and cached owner-only under the quiz
+    work directory. A member whose rebuild failed is missing (and retried on
+    the next run)."""
+    from carbon.battery import quiz_stratum as qs
+
+    key = qs.digest(inputs)
+    found = {}
+    for member in members:
+        path = cache / f"{member['member']}.json"
+        if not path.exists():
+            bundle = _rebuild(
+                _backend(backend),
+                member,
+                inputs,
+                cache / f"{member['member']}.failure.json",
+            )
+            if bundle is None:
+                continue
+            _write_private(
+                path,
+                {
+                    "member": member["member"],
+                    "inputs_digest": key,
+                    "predictions": _only(bundle["predictions"], inputs),
+                },
+            )
+        cached = _read_private(path)
+        if cached["inputs_digest"] != key:
+            raise TuningRefused("tuning_quiz_panel_cache_stale")
+        found[member["member"]] = cached["predictions"]
+    return found
+
+
+def quiz_select(work, panel_path, *, backend=None, repository=REPOSITORY):
+    """Select the quiz from the solved draws: Q3's first `Q3_K` feasible
+    scenarios (refused, naming the next `--round`, when fewer are), then Q2's
+    near-limit pool and the panel's pick. Writes owner-only `quiz.json`."""
+    from carbon.battery import quiz_stratum as qs
+    from carbon.battery.value import quiz as qz
+
+    work = _quiz_dir(work)
+    if (work / "quiz.json").exists():
+        raise TuningRefused("tuning_quiz_already_selected")
+    if not (work / "draws.json").exists():
+        raise TuningRefused("tuning_quiz_jobs_missing")
+    draws = _read_private(work / "draws.json")
+    if draws.get("schema") != QUIZ_DRAWS_SCHEMA or draws["role"] != _tuning_set().role:
+        raise TuningRefused("tuning_quiz_draws_malformed")
+    refs = _records(work)
+    contract = qs.contract(repository)
+    with _quiz_refusals():
+        q3, redraws = qs.q3_select(contract, draws["q3"], refs)
+        if len(q3) < qz.Q3_K:
+            raise TuningRefused(
+                f"tuning_quiz_needs_more_q3:--round {draws['round'] + 1}"
+            )
+        pool = qs.q2_pool(contract, draws["q2"], refs)
+        if len(pool) < qz.Q2_N:
+            raise TuningRefused("tuning_quiz_q2_pool_short")
+        registered = qs.registered_panel(repository)
+    members = load_panel(panel_path)
+    if sorted(m["member"] for m in members) != sorted(registered):
+        raise TuningRefused("tuning_quiz_panel_not_registered")
+    inputs = {c["case_id"]: dict(c["inputs"]) for c in draws["q2"]}
+    cache = _owner_only_dir(work / f"panel-v{qz.PANEL_VERSION}")
+    panel = _panel_predictions(members, inputs, cache, backend)
+    if len(panel) != len(members):
+        raise TuningRefused("tuning_quiz_panel_incomplete")
+    chosen = qs.q2_choose(contract, pool, panel)
+    document = qs.document(
+        draws["role"],
+        qz.PANEL_VERSION,
+        [{"case_id": c, "inputs": inputs[c]} for c in chosen],
+        q3,
+        redraws,
+    )
+    _write_private(work / "quiz.json", document)
+    return {
+        "digest": qs.digest(document),
+        "panel_version": qz.PANEL_VERSION,
+        "panel_members": len(panel),
+        "q2_pool": len(pool),
+        "q2_cases": len(chosen),
+        "q3_scenarios": len(q3),
+        "redraws": redraws,
+    }
+
+
+def quiz_seal(config_path, work, repository=REPOSITORY):
+    """Commit the selected quiz's digest to the deployment's seed journal
+    (kind `quiz`: digest, counts and panel version only). Refused unless the
+    quiz's cases are this deployment root's own draws. Idempotent."""
+    from carbon.battery import deployment
+    from carbon.battery import quiz_stratum as qs
+
+    work = _quiz_dir(work)
+    document = load_quiz(work)
+    draws = _read_private(work / "draws.json")
+    root, pin, _journal = _hidden(config_path)
+    regenerated = _draws(root, pin, draws["role"], draws["round"], repository)
+    q2 = {c["case_id"]: c["inputs"] for c in regenerated["q2"]}
+    q3 = {s["scenario_id"]: s["condition"] for s in regenerated["q3"]}
+    if (
+        regenerated != draws
+        or document["role"] != draws["role"]
+        or any(q2.get(c["case_id"]) != c["inputs"] for c in document["q2"])
+        or any(q3.get(s["scenario_id"]) != s["condition"] for s in document["q3"])
+    ):
+        raise TuningRefused("tuning_quiz_not_from_this_root")
+    target = deployment.validator(
+        Path(config_path), repository=repository, readonly=True
+    )
+    with deployment.writer(target), _quiz_refusals():
+        entry = qs.seal(target.journal, document)
+    return {"digest": entry["digest"], "journal_sequence": entry["sequence"]}
 
 
 # --- recheck --------------------------------------------------------------------------
@@ -429,11 +797,23 @@ def main(argv=None):
     predicted = sub.add_parser("predict")
     predicted.add_argument("--work", required=True)
     predicted.add_argument("--panel", required=True)
+    predicted.add_argument("--quiz")
     scored = sub.add_parser("score")
     scored.add_argument("--work", required=True)
+    scored.add_argument("--quiz")
     rechecked = sub.add_parser("recheck")
     for name in ("config", "commitment", "public", "work"):
         rechecked.add_argument("--" + name, required=True)
+    drawn = sub.add_parser("quiz-jobs")
+    drawn.add_argument("--config", required=True)
+    drawn.add_argument("--work", required=True)
+    drawn.add_argument("--round", type=int, default=1)
+    selected = sub.add_parser("quiz-select")
+    selected.add_argument("--work", required=True)
+    selected.add_argument("--panel", required=True)
+    committed = sub.add_parser("quiz-seal")
+    committed.add_argument("--config", required=True)
+    committed.add_argument("--work", required=True)
     args = parser.parse_args(argv)
     try:
         if args.command == "export-pool":
@@ -443,11 +823,17 @@ def main(argv=None):
         elif args.command == "solve":
             result = solve(args.work, args.overlay)
         elif args.command == "predict":
-            result = predict(args.work, args.panel)
+            result = predict(args.work, args.panel, quiz=args.quiz)
         elif args.command == "recheck":
             result = recheck(args.config, args.commitment, args.public, args.work)
+        elif args.command == "quiz-jobs":
+            result = quiz_jobs(args.config, args.work, args.round)
+        elif args.command == "quiz-select":
+            result = quiz_select(args.work, args.panel)
+        elif args.command == "quiz-seal":
+            result = quiz_seal(args.config, args.work)
         else:
-            result = score(args.work)
+            result = score(args.work, quiz=args.quiz)
     except TuningRefused as refused:
         print(json.dumps({"status": "REFUSED", "reason": str(refused)}))
         return 2
