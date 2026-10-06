@@ -40,7 +40,9 @@ def held(adapter):
         if window is None:
             continue
         salts = store.salts([fingerprint])
+        quiz = store.quiz(fingerprint)
         out[fingerprint] = {
+            "quiz_digest": None if quiz is None else quiz["quiz_digest"],
             "references_digest": batch["references_digest"],
             "window": window,
             "salt_digest": (

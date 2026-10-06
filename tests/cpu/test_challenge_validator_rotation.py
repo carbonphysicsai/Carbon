@@ -55,7 +55,15 @@ def made(tmp_path):
 def outbox(made):
     challenge = made["source"].challenge_id
     directory = made["dir"] / "producer" / "outbox" / challenge
-    return sorted(directory.glob("*.json")) if directory.exists() else []
+    if not directory.exists():
+        return []
+    # The screening packages; each slot also carries a finalist one.
+    return [
+        path
+        for path in sorted(directory.glob("*.json"))
+        if ak.verify(json.loads(path.read_text()), made["key"].public_key)[0]["kind"]
+        == "screening"
+    ]
 
 
 def events(producer, kind):
@@ -92,12 +100,15 @@ def test_a_batch_retires_when_its_window_ends_and_releases_nothing(made):
     producer.tick(100)
     [first] = outbox(made)
     report = producer.tick(4 * EVERY)[challenge]
-    assert report["retired"] == 1 and report["filled"] == [5]
+    # Slot 1's screening and finalist batches retire together.
+    assert report["retired"] == 2 and report["filled"] == [5]
     assert first.name not in [p.name for p in outbox(made)]
     retired_dir = made["dir"] / "producer" / "retired" / challenge
     assert (retired_dir / first.name).exists()
-    [retired] = events(producer, "retired")
-    assert retired["release"] == "HUMAN_INPUT"
+    retired_events = events(producer, "retired")
+    assert len(retired_events) == 2
+    assert {e["release"] for e in retired_events} == {"HUMAN_INPUT"}
+    [retired] = [e for e in retired_events if e["fingerprint"].endswith(first.stem)]
     # Retired is final: it is never published again.
     with pytest.raises(pr.ProducerRefused) as refused:
         producer.publish(challenge, retired["fingerprint"])
