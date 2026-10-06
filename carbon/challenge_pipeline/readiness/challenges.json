@@ -17,6 +17,15 @@
      "tests/cpu/test_graphite_hidden_score.py::test_the_agent_feedback_is_identical_whatever_the_hidden_pool_says",
      "tests/cpu/test_graphite_hidden_score.py::test_a_rule_that_discloses_hidden_results_is_refused",
      "tests/cpu/test_graphite_hidden_score.py::test_the_hidden_deployment_refuses_reserved_and_sealed_roles"
+    ],
+    "P4": [
+     "tests/cpu/test_graphite_named_challenge.py",
+     "tests/cpu/test_graphite_challenge_literature.py"
+    ],
+    "S5": [
+     "tests/cpu/test_graphite_coverage_parity.py::test_battery_frozen_rule_charges_a_missing_case",
+     "tests/cpu/test_graphite_coverage_parity.py::test_battery_validator_refuses_an_incomplete_worker_result",
+     "tests/cpu/test_graphite_coverage_parity.py::test_graphite_host_scores_a_partial_pod_file_ineligible"
     ]
    },
    "grants": {
@@ -28,6 +37,16 @@
    "tests": {
     "P7": [
      "tests/cpu/test_challenge_validator_boundary_consistency_cooling.py"
+    ],
+    "P4": [
+     "tests/cpu/test_graphite_named_challenge.py",
+     "tests/cpu/test_graphite_challenge_literature.py"
+    ],
+    "S5": [
+     "tests/cpu/test_graphite_coverage_parity.py::test_cooling_and_motor_frozen_rules_charge_a_missing_case[cooling]"
+    ],
+    "P3": [
+     "tests/cpu/test_graphite_named_challenge.py::test_a_cooling_bundle_reads_as_cooling"
     ]
    },
    "grants": {
@@ -35,7 +54,15 @@
    }
   },
   "electric-motor-magnetics": {
-   "tests": {}
+   "tests": {
+    "P4": [
+     "tests/cpu/test_graphite_named_challenge.py",
+     "tests/cpu/test_graphite_challenge_literature.py"
+    ],
+    "S5": [
+     "tests/cpu/test_graphite_coverage_parity.py::test_cooling_and_motor_frozen_rules_charge_a_missing_case[motor]"
+    ]
+   }
   }
  }
 }

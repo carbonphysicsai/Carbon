@@ -64,6 +64,7 @@ SCHEMA = "carbon.battery.validator-deployment.v1"
 REQUIRED = {"schema", "state", "private_root", "journal", "work", "backend"}
 OPTIONAL = {
     "archived",
+    "batch_source",
     "require_commitment",
     "service_key",
     "image_manifest",
@@ -131,6 +132,8 @@ def load_config(path):
         type(config["archived"]) is not str
         or not config["archived"].startswith("OWNER-")
     ):
+        raise EvaluationUnavailable("evaluation_config_fields")
+    if config.get("batch_source", "draw") not in ("draw", "answer_key"):
         raise EvaluationUnavailable("evaluation_config_fields")
     if "commitment_reader" in config:
         _commitment_reader(config)  # refuses a malformed chain context now
@@ -274,6 +277,7 @@ def build(config, *, repository, readonly=False):
             require_commitment=config.get("require_commitment", True),
             service_key=None if key is None else ServiceKey.load(key),
             development_only=config.get("development_only", False),
+            import_only=config.get("batch_source") == "answer_key",
         )
     except StateError as mismatch:
         raise EvaluationUnavailable("evaluation_" + mismatch.code) from None

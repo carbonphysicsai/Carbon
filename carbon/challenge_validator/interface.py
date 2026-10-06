@@ -293,6 +293,18 @@ class ChallengeAdapter(abc.ABC):
     def status(self):
         """Counts and identities only."""
 
+    # --- the shared answer key (VALIDATOR-19 slice 2) -----------------------
+
+    def holds_answer_key(self, commitment):
+        """Whether this validator already holds the committed batch, complete."""
+        raise Unavailable("answer_key_import_unsupported")
+
+    def import_answer_key(self, commitment, payload):
+        """Verify a producer package's payload against its commitment and
+        import it. Raises `answer_key.AnswerKeyRefused` and imports nothing
+        on any mismatch."""
+        raise Unavailable("answer_key_import_unsupported")
+
 
 def check_outcome(outcome, adapter):
     """Raise `OutcomeContractViolation` unless `outcome` meets the contract."""

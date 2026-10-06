@@ -105,7 +105,9 @@ def test_a_batch_is_drawn_solved_once_and_sealed(tmp_path, producer, source):
     assert producer.seal(challenge, fingerprint) == commitment
     events = [e["event"] for e in producer.journal.entries()]
     assert events == ["drawn", "sealed"]
-    assert producer.status() == {"challenges": {challenge: {"drawn": 1, "sealed": 1}}}
+    assert producer.status() == {
+        "challenges": {challenge: {"drawn": 1, "sealed": 1, "published": 0}}
+    }
 
 
 def test_the_public_record_names_no_case(tmp_path, producer, source):

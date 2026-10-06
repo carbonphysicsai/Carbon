@@ -116,12 +116,21 @@ class BittensorMessageSigner:
             raise TypeError("sign through the miner's external signer (connect_signer)")
         self._signer = signer
 
-    def sign(self, body: bytes, *, receiver: str, nonce_ns: int) -> dict[str, str]:
+    def sign(
+        self,
+        body: bytes,
+        *,
+        receiver: str,
+        nonce_ns: int,
+        path: str = "/carbon/v1/mcp",
+    ) -> dict[str, str]:
+        """`path` is the request path the signature binds: the MCP endpoint
+        by default, or a validator's answer-key fetch."""
         bt = _sdk()
         return bt.http_auth.sign(
             self._signer,
             method="POST",
-            path="/carbon/v1/mcp",
+            path=path,
             body=body,
             receiver_ss58=receiver,
             nonce_ns=nonce_ns,

@@ -12,7 +12,7 @@ controller bound to a zero-spend grant, not a spent run root.
   Challenge's committed zero-spend grant, refuses an existing store, and
   prints the identity `conditions --identity` then prints for the same root.
 - The committed designation has one PENDING entry per Challenge; A4 is
-  NOT_BUILT while pending, PASS for a DESIGNATED sha256, FAIL for a missing,
+  FAIL while pending (a LOCK is refused), PASS for a DESIGNATED sha256, FAIL for a missing,
   malformed or duplicated entry.
 
 Each guard is switched off once (`MUTATIONS`) and its test shown to fail.
@@ -146,12 +146,18 @@ def a4(challenge, repository, level=0):
 
 
 def a4_with(tmp_path, challenge, *entries, raw=None):
-    """A4 against a repository copy whose designation holds `entries`."""
-    path = tmp_path / checks.ADMISSION_CONTROLLERS
+    """A4 against a designation file holding `entries` (the check reads the
+    module's `PATH`, which this swaps for the call only)."""
+    path = tmp_path / "admission_controllers.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     body = {"schema": designations.SCHEMA, "controllers": list(entries)}
     path.write_text(raw if raw is not None else json.dumps(body))
-    return a4(challenge, tmp_path)
+    saved = designations.PATH
+    designations.PATH = path
+    try:
+        return a4(challenge, tmp_path)
+    finally:
+        designations.PATH = saved
 
 
 # -- the zero-spend grant ------------------------------------------------------------------
@@ -354,21 +360,21 @@ def test_each_challenge_has_exactly_one_pending_dedicated_entry(challenge):
 @pytest.mark.parametrize("challenge", CHALLENGES)
 def test_a_pending_entry_keeps_a4_not_passed(challenge):
     result = a4(challenge, model.REPOSITORY)
-    assert result.status == model.NOT_BUILT
-    assert "admission-controller init" in result.detail
+    assert result.status == model.FAIL
+    assert "pending" in result.detail
 
 
 def check_a4_pending(tmp_path, _monkeypatch, _capsys):
     for challenge in CHALLENGES:
         result = a4_with(tmp_path, challenge, entry(challenge))
-        assert result.status == model.NOT_BUILT, challenge
+        assert result.status == model.FAIL, challenge
 
 
 @pytest.mark.parametrize("challenge", CHALLENGES)
 def test_a_designated_sha256_passes_a4(tmp_path, challenge):
     result = a4_with(tmp_path, challenge, entry(challenge, DIGEST))
     assert result.status == model.PASS
-    assert DIGEST in result.evidence
+    assert any(DIGEST in item for item in result.evidence)
 
 
 def check_a4_refuses_bad_designations(tmp_path, _monkeypatch, _capsys):
