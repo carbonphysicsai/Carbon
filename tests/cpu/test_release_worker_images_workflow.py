@@ -127,7 +127,13 @@ def test_every_released_kind_flows_through_every_job():
     )
     release = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(release)
-    assert set(release.KINDS) == {"c03", "accelerator", "torch", "torch-gpu"}
+    assert set(release.KINDS) == {
+        "c03",
+        "accelerator",
+        "torch",
+        "torch-gpu",
+        "analysis",
+    }
     workflow = load()
     outputs = workflow["jobs"]["build"]["outputs"]
     text = WORKFLOW.read_text()
@@ -135,7 +141,7 @@ def test_every_released_kind_flows_through_every_job():
         key = kind.replace("-", "_") + "_record"
         assert key in outputs, key
         assert text.count(f"{kind}-worker-image.release.json") >= 2, kind
-    assert text.count("for kind in c03 accelerator torch torch-gpu; do") == 3
+    assert text.count("for kind in c03 accelerator torch torch-gpu analysis; do") == 3
     script = SCRIPT.read_text()
     assert "torch-gpu:carbon-torch-gpu-worker" in script
     assert "torch-gpu-parent" in script
