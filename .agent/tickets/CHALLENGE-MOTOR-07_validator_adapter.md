@@ -1,6 +1,6 @@
 # CHALLENGE-MOTOR-07 — Interface-v1 validator adapter
 
-**Status:** working contract; implementation and checks pending
+**Status:** implemented and locally tested; PR/CI handoff pending
 
 **Authority:** `VALIDATOR-01_challenge_neutral_validator.md` Interface v1,
 `CHALLENGE-MOTOR-01_development_exam.md`,
@@ -53,23 +53,23 @@ not protected confirmation or official evaluation.
 
 ## Acceptance
 
-- [ ] Registration binds the exact Motor contract/version and digest-pinned
+- [x] Registration binds the exact Motor contract/version and digest-pinned
       rule and implementation identities.
-- [ ] Before explicit complete reference ingestion and pool opening, Motor
+- [x] Before explicit complete reference ingestion and pool opening, Motor
       evaluation returns typed `UNAVAILABLE` and no score.
-- [ ] Invalid Motor recipes are `INVALID_CONSTRUCTION`; wrong-Challenge or
+- [x] Invalid Motor recipes are `INVALID_CONSTRUCTION`; wrong-Challenge or
       unserved contracts are refused by neutral dispatch.
-- [ ] Altered, duplicated or foreign public reference records are refused;
+- [x] Altered, duplicated or foreign public reference records are refused;
       restart preserves exact reference custody.
-- [ ] A valid submission deterministically scores all 30 public cases using
+- [x] A valid submission deterministically scores all 30 public cases using
       the existing Motor gates and aggregate. A missing prediction is charged
       as the registered schema gate, not excluded as infrastructure.
-- [ ] Miner outcome is allow-listed; operator records are owner-only; the
+- [x] Miner outcome is allow-listed; operator records are owner-only; the
       reserved Motor confirmation role cannot be prepared.
-- [ ] Candidate faults follow a registered versioned policy with no adapter
+- [x] Candidate faults follow a registered versioned policy with no adapter
       retry/refund; real infrastructure faults stay typed.
-- [ ] Battery and Cooling adapter behavior remains covered; focused,
-      applicable subsystem and repository acceptance checks pass.
+- [x] Battery and Cooling adapter behavior remains covered by local focused
+      and affected subsystem checks. Required PR acceptance remains pending.
 
 ## Explicit exclusions and maturity ceiling
 
@@ -82,6 +82,12 @@ and fail closed.
 
 ## Validation and hub impact
 
-Focused and affected canonical test commands/results will be recorded here
-before handoff. The Development Hub is retired by OWNER-WORKFLOW-SPEED-01;
-there is no Hub mutation for this ticket.
+Canonical baseline at `8da206b02`: 117 focused tests passed. Implementation
+at `a6ef52520`: 143 focused tests passed. Expanded regression at
+`0f1a76256`: 315 tests passed. At `94bb3927b`, canonical quality passed
+(Ruff 0/776, Black 0/68) and exact-head focused Motor/lesson tests passed
+(45 tests). The affected shared-store, boundary, attack, Motor, Cooling and
+Battery regression then passed 364 tests in 123.70 seconds at the same source
+head. PR CI remains the required acceptance check. Run through
+`./scripts/dev/canonical.sh` on Ubuntu-24.04. The Development Hub is retired
+by OWNER-WORKFLOW-SPEED-01; there is no Hub mutation for this ticket.
