@@ -6,7 +6,8 @@ point:
 - the battery practice cases against the EV1, EV2, EV4, EV5 (and Graphite
   run 5) decision conditions, EV4's protected grids and EV5's optimizer grids,
   compared on (t_amb_c, soc0) alone, which is stricter than the full input;
-- the B4 practice decision set at the ruled distance (BLOCKED until committed);
+- the committed B4 practice decision set at the ruled distance from the
+  ruled list, and by 4 dp coincidence from every point above;
 - the cooling practice cases against the cooling study's designs x conditions;
 - the motor practice cases against the motor study's designs x conditions.
 
@@ -23,8 +24,6 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-
-import pytest
 
 from carbon.battery import practice_safety as battery_safety
 from carbon.battery.practice import PracticeSet as BatteryPractice
@@ -80,12 +79,47 @@ def test_battery_practice_cases_share_no_condition_with_any_ev_point():
     assert not seen & protected
 
 
-def test_b4_is_blocked_until_its_decision_set_is_committed():
-    if battery_safety.DECISION_SET_PATH is not None:
-        pytest.fail("B4's decision set is committed: replace this with its check")
-    practice = BatteryPractice.load(REPO)
-    document = battery_safety.safety({}, practice)
-    assert document["metrics"]["B4"] == "BLOCKED: practice decision set not committed"
+def battery_ruled_conditions():
+    """The B4 separation's ruled list (Test Lead, 2026-10-05): every EV1,
+    EV2, EV4 and EV5 decision condition and every point of EV4's protected
+    grids. EV5's protected grids are in `battery_protected_conditions` but
+    not in the ruled list."""
+    from carbon.battery.value import ev4_protected_conditions as ev4
+
+    points = {tuple(map(float, p)) for p in ev4.PROTECTED}
+    for ev in ("ev1", "ev2", "ev4", "ev5"):
+        path = (
+            REPO
+            / f"carbon/battery/value/contracts/{ev}-charge-protocol-selection.v1.json"
+        )
+        scenarios = json.loads(path.read_text())["scenarios"]
+        for role in ("development", "verification"):
+            for scenario in scenarios[role]:
+                points |= {(float(t), float(s)) for t, s in scenario["conditions"]}
+    return points
+
+
+def _committed_decision_conditions():
+    return battery_safety.load_decision_set(REPO).conditions
+
+
+def test_b4_s_committed_set_keeps_the_ruled_separation():
+    ruled = battery_ruled_conditions()
+    conditions = _committed_decision_conditions()
+    assert len(conditions) == 6 and len(ruled) > 200
+    assert battery_safety.decision_set_clear(conditions, sorted(ruled))
+    # The set's own selection excluded exactly this list.
+    from scripts.dev.battery import practice_decision_set as pds
+
+    assert set(pds.excluded()) == ruled
+
+
+def test_b4_s_committed_set_shares_no_point_with_any_ev_point():
+    """The practice cases' own check (4 dp coincidence) over every protected
+    point, EV5's protected grids included."""
+    protected = {(_r(t), _r(s)) for t, s in battery_protected_conditions()}
+    seen = {(_r(t), _r(s)) for t, s in _committed_decision_conditions()}
+    assert len(seen) == 6 and not seen & protected
 
 
 #: (condition, clear?) against the protected condition (14.0, 0.33), under

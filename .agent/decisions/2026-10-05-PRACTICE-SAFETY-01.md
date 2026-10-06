@@ -111,3 +111,66 @@ The practice score, rules v1/v2, gates, EV studies and hidden-batch results.
 The attack adapters' disclosure allow-lists still name v1's fields: their
 probes call `feedback` without safety, so they stay green, but they do not
 yet probe the v2 block (follow-up on the attack side).
+
+## Addendum 2026-10-06: B4 computed
+
+Data Collection committed the practice decision set (#669,
+`docs/development/evidence/practice-decision-set-v1/`). B4 moves from
+BLOCKED to computed, as the ticket's B4 section defines it.
+
+- **Pin.** `DECISION_SET_SUMS_SHA256` pins the set's `SHA256SUMS`, and each of
+  `conditions.json` and `records.jsonl.gz` is read once and checked against
+  it before it is parsed. A missing file, a `SHA256SUMS` off its pin (even
+  one consistent with forged files), a file off `SHA256SUMS`, or a set that
+  is not 6 OK unrefined conditions at EV4's 35-candidate grid is refused
+  with one of four typed reasons (`B4_REFUSALS`). B4 then reports that
+  reason, nothing is computed and no decision case is staged. A mutant that
+  skips the file digest check is killed by test.
+- **Definition.** Each condition is one scenario (EV4's adaptation: one
+  condition per scenario). The model's predictions choose with
+  `decision.assess_predicted` and `decision.select` (EV4's rules, no band,
+  EV4's tie rule). The reference verifies the choice with
+  `decision.assess_reference` (EV4's bands). The EV4 grid is copied as
+  `CANDIDATES`, and a test binds it and the tie rule to the contract. The
+  mistake costs do not enter: B4 is a feasibility rate, not a decision loss.
+- **Working decision (engineering, recorded): the rate's denominator.**
+  `rate = feasible_choice / chosen`, where `chosen` counts the choices the
+  reference resolves FEASIBLE or INFEASIBLE. Abstentions (`abstained`) and
+  choices the reference leaves UNRESOLVED or unavailable (`unresolved`) are
+  counted beside the rate and never in it (ticket rule 5, and "abstentions
+  are reported separately"). All four counts are reported, so another
+  reading of the share can be derived. With the reference as the model, B4
+  is 5 of 5 chosen and 1 abstained.
+- **Missing data.** Any unmeasurable decision-set prediction makes B4 null.
+  The document's `unmeasured` then also counts the decision-set cases. B1-B3
+  are still gated on the practice cases alone.
+- **Allow-list.** B4 is exactly `{feasible_choice, chosen, rate, abstained,
+  unresolved, feedback_only}`, null, or a typed refusal. No case id,
+  condition id, condition value or per-condition verdict can leave. The
+  BLOCKED literal is no longer accepted.
+- **Worker inputs.** The provider loads the set inside its practice trial
+  (`practice_safety.decision_set`) and stages its 210 inputs (no label)
+  beside PRACTICE's in `practice-inputs.json`, under
+  `carbon.battery.practice-inputs.v2`. `staged_files` without extra cases
+  still stages exactly v1, so the validator's scoring and the stager
+  allow-list are unchanged. The practice score still reads PRACTICE alone.
+- **Versioning.** The battery practice result is
+  `carbon.battery.practice-feedback.v3`: v2's fields, with B4 computed and
+  `unmeasured` counting the set's cases. A stored v2 result keeps its
+  meaning (B4 always `ps.B4_BLOCKED`). Cooling and motor stay at v2. The
+  shared safety document schema is unchanged, because each Challenge
+  declares its own metric shapes.
+- **Separation.** The committed set passes the ruled list (every EV1, EV2,
+  EV4 and EV5 decision condition and EV4's protected grids, which is
+  exactly the list the selection excluded) at the ruled box, and it shares
+  no 4 dp point with any protected point, EV5's protected grids included.
+  **For the Test Lead:** D6's check above runs on a declared superset that
+  adds EV5's protected grids. Against that superset, 2 of the 6 conditions
+  lie inside both bounds of an EV5 protected-grid point (3 points in all).
+  The ruling does not name those grids, so B4 is computed on the set as
+  committed. If the ruling should include them, the set needs a v2 with
+  those 2 conditions reselected (70 solves), and a new pin.
+- **Feedback only.** B4 enters no score, rank, reward or weight. The
+  isolation tests now cover it. They check that the battery provider calls
+  the safety code only inside its practice trial, that no official path
+  loads it, and that the practice score is the same with B4.

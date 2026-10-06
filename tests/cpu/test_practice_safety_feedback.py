@@ -8,7 +8,7 @@ The claims tested:
 - disclosure is allow-listed: any other field, label or value is refused,
   and no case id leaves;
 - the practice result is versioned prospectively: without safety it is
-  exactly v1, with it v2 adds only `safety`;
+  exactly v1, with it v2 (battery v3, B4 computed) adds only `safety`;
 - the providers attach it; nothing on the official scoring path imports it.
 """
 
@@ -52,8 +52,25 @@ def motor():
     return motor_practice.PracticeSet.load(REPO)
 
 
+@pytest.fixture(scope="module")
+def decision():
+    return battery_safety.load_decision_set(REPO)
+
+
 def battery_oracle(practice):
     return {r["case_id"]: dict(r["outputs"]) for r in practice.records}
+
+
+def decision_oracle(decision):
+    return {c: dict(decision.references[c]["outputs"]) for c in decision.case_ids}
+
+
+def battery_doc(predictions, practice, decision):
+    """Battery safety with `predictions` on PRACTICE and the reference's own
+    outputs on the decision set."""
+    return battery_safety.safety(
+        {**decision_oracle(decision), **predictions}, practice, decision
+    )
 
 
 def cooling_oracle(practice):
@@ -84,8 +101,9 @@ def test_battery_rules_are_ev4_s_constraints_objective_and_bands():
         {k: c[k] for k in ("id", "threshold") if k in c}
         for c in contract["constraints"]
     ]
-    assert rules["reference"]["uncertainty"]["bands"] == (
-        contract["reference"]["uncertainty"]["bands"]
+    assert (
+        rules["reference"]["uncertainty"]["bands"]
+        == (contract["reference"]["uncertainty"]["bands"])
     )
 
 
@@ -111,13 +129,13 @@ def test_cooling_and_motor_limits_are_their_studies():
         "localized_sign_error",
     ],
 )
-def test_battery_b1_b2_b3_equal_the_value_modules_measures(battery, kind):
+def test_battery_b1_b2_b3_equal_the_value_modules_measures(battery, decision, kind):
     from carbon.battery.value import admissibility, false_acceptance, margins, panel
 
     contract = json.loads((REPO / battery_safety.CONTRACT_SOURCE).read_text())
     refs = {r["case_id"]: r for r in battery.records}
     predictions = panel.control_predictions(kind, refs)
-    metrics = battery_safety.safety(predictions, battery)["metrics"]
+    metrics = battery_doc(predictions, battery, decision)["metrics"]
     near = battery_safety.near_case_ids(battery)
     expected = false_acceptance.component(contract, predictions, near, refs)
     for constraint in battery_safety.CONSTRAINTS:
@@ -146,25 +164,25 @@ def test_battery_b1_b2_b3_equal_the_value_modules_measures(battery, kind):
         )
 
 
-def test_battery_names_the_boundary_optimist_and_clears_the_oracle(battery):
+def test_battery_names_the_boundary_optimist_and_clears_the_oracle(battery, decision):
     from carbon.battery.value import panel
 
     refs = {r["case_id"]: r for r in battery.records}
-    oracle = battery_safety.safety(battery_oracle(battery), battery)["metrics"]
+    oracle = battery_doc(battery_oracle(battery), battery, decision)["metrics"]
     assert oracle["B1"]["no_plating_onset"]["rate"] == 0.0
     assert oracle["B2"]["near_optimism_bands"] == 0.0
-    optimist = battery_safety.safety(
-        panel.control_predictions("boundary_optimist", refs), battery
+    optimist = battery_doc(
+        panel.control_predictions("boundary_optimist", refs), battery, decision
     )
     b1 = optimist["metrics"]["B1"]
     assert b1["no_plating_onset"]["reference_fail"] > 0
     assert b1["no_plating_onset"]["rate"] == 1.0 and b1["worst"] == "no_plating_onset"
     assert optimist["metrics"]["B3"]["no_plating_onset"]["signed_mean_bands"] > 0
-    assert optimist["metrics"]["B4"] == ps.B4_BLOCKED
+    assert optimist["metrics"]["B4"]["feedback_only"] is True
 
 
-def test_b2_shows_the_value_and_never_the_gate_or_its_cutoff(battery):
-    document = battery_safety.safety(battery_oracle(battery), battery)
+def test_b2_shows_the_value_and_never_the_gate_or_its_cutoff(battery, decision):
+    document = battery_doc(battery_oracle(battery), battery, decision)
     assert set(document["metrics"]["B2"]) == {"near_optimism_bands", "feedback_only"}
     text = json.dumps(document)
     assert "PASS" not in text and "FAIL" not in text and "cutoff" not in text
@@ -173,7 +191,7 @@ def test_b2_shows_the_value_and_never_the_gate_or_its_cutoff(battery):
 
 @pytest.mark.parametrize("broken", [None, "missing", math.nan])
 def test_a_missing_or_invalid_battery_prediction_is_unmeasured_never_clean(
-    battery, broken
+    battery, decision, broken
 ):
     predictions = battery_oracle(battery)
     first = battery.case_ids[0]
@@ -183,14 +201,15 @@ def test_a_missing_or_invalid_battery_prediction_is_unmeasured_never_clean(
         predictions[first] = None
     else:
         predictions[first] = {**predictions[first], "plating_margin_v": broken}
-    document = battery_safety.safety(predictions, battery)
+    document = battery_doc(predictions, battery, decision)
     assert document["unmeasured"] == 1
     assert [document["metrics"][k] for k in ("B1", "B2", "B3")] == [None] * 3
-    assert document["metrics"]["B4"] == ps.B4_BLOCKED
+    # B4 reads only the decision set, whose predictions are all measurable.
+    assert document["metrics"]["B4"]["feedback_only"] is True
 
 
-def test_a_reference_inside_its_band_is_unresolved_and_counted(battery):
-    document = battery_safety.safety(battery_oracle(battery), battery)
+def test_a_reference_inside_its_band_is_unresolved_and_counted(battery, decision):
+    document = battery_doc(battery_oracle(battery), battery, decision)
     resolved = sum(
         document["metrics"]["B1"][c]["reference_fail"]
         for c in battery_safety.CONSTRAINTS
@@ -274,17 +293,19 @@ def test_every_cooling_and_motor_metric_says_no_band(cooling, motor):
 # --- disclosure --------------------------------------------------------------
 
 
-def _documents(battery, cooling, motor):
+def _documents(battery, cooling, motor, decision):
     return [
-        battery_safety.safety(battery_oracle(battery), battery),
+        battery_doc(battery_oracle(battery), battery, decision),
         cooling_safety.safety(cooling_oracle(cooling), cooling),
         motor_safety.safety(motor_oracle(motor), motor),
     ]
 
 
-def test_every_metric_is_feedback_only_and_no_case_id_leaves(battery, cooling, motor):
+def test_every_metric_is_feedback_only_and_no_case_id_leaves(
+    battery, cooling, motor, decision
+):
     for document, practice in zip(
-        _documents(battery, cooling, motor), (battery, cooling, motor)
+        _documents(battery, cooling, motor, decision), (battery, cooling, motor)
     ):
         assert document["schema"] == ps.SCHEMA and document["feedback_only"] is True
         assert set(document) == {
@@ -296,10 +317,12 @@ def test_every_metric_is_feedback_only_and_no_case_id_leaves(battery, cooling, m
             "unresolved",
             "material",
         }
+        # Every metric, B4 included, is computed and feedback-only.
         for metric in document["metrics"].values():
-            assert metric == ps.B4_BLOCKED or metric["feedback_only"] is True
+            assert metric["feedback_only"] is True
         text = json.dumps(document)
         assert not [c for c in practice.case_ids if c in text]
+        assert not [c for c in decision.case_ids if c in text]
 
 
 def _shape():
@@ -409,7 +432,9 @@ def test_without_safety_the_result_is_exactly_v1_and_with_it_v2_adds_only_safety
     assert set(v1) == V1_FIELDS
     safety = {"schema": ps.SCHEMA, "feedback_only": True}
     v2 = module.feedback(summary, {}, safety=safety, **kwargs)
-    assert v2["schema"] == module.FEEDBACK_SCHEMA and v2["schema"].endswith(".v2")
+    # Battery's v3 has v2's fields; only its safety block's B4 differs.
+    latest = ".v3" if module is battery_practice else ".v2"
+    assert v2["schema"] == module.FEEDBACK_SCHEMA and v2["schema"].endswith(latest)
     assert set(v2) == V1_FIELDS | {"safety"} and v2["safety"] is safety
     assert {k: v for k, v in v2.items() if k not in ("schema", "safety")} == {
         k: v for k, v in v1.items() if k != "schema"
@@ -427,8 +452,10 @@ class _Workspace:
         pass
 
 
-def _runner(predictions, digest):
+def _runner(predictions, digest, staged=None):
     def run(ledger, **kwargs):
+        if staged is not None:
+            staged.update(kwargs["files"])
         snapshot = ledger.root / "op-1" / "snapshot"
         snapshot.mkdir(parents=True)
         files = {}
@@ -442,14 +469,15 @@ def _runner(predictions, digest):
 
 
 @pytest.mark.parametrize("challenge", ["battery", "cooling", "motor"])
-def test_each_practice_provider_returns_v2_with_its_safety(
-    challenge, battery, cooling, motor, tmp_path, monkeypatch
+def test_each_practice_provider_returns_its_latest_shape_with_its_safety(
+    challenge, battery, cooling, motor, decision, tmp_path, monkeypatch
 ):
     from carbon.development_session import research_workspace
 
     monkeypatch.setattr(research_workspace, "ResearchWorkspace", _Workspace)
     ledger = SimpleNamespace(root=tmp_path)
     image = SimpleNamespace(image_id="sha256:" + "1" * 64)
+    staged = {}
     if challenge == "battery":
         from carbon.battery import research
 
@@ -457,7 +485,7 @@ def test_each_practice_provider_returns_v2_with_its_safety(
         provider_class, practice, predictions = (
             research.BatteryPractice,
             battery,
-            battery_oracle(battery),
+            {**battery_oracle(battery), **decision_oracle(decision)},
         )
     elif challenge == "cooling":
         from carbon.cold_plate import research
@@ -480,20 +508,50 @@ def test_each_practice_provider_returns_v2_with_its_safety(
         owner="o",
         image=image,
         root=REPO,
-        runner=_runner(predictions, research.digest),
+        runner=_runner(predictions, research.digest, staged),
     )
     provider.compile = lambda strategy: (None, _recipe({"id": challenge}))
     result = provider("task-1", {"strategy": "fixture"})
-    assert result["schema"].endswith(".v2")
+    assert result["schema"].endswith(".v3" if challenge == "battery" else ".v2")
     assert result["safety"]["schema"] == ps.SCHEMA
     assert result["safety"]["unmeasured"] == 0
-    assert result["safety"] == provider_module_safety(challenge)(predictions, practice)
+    if challenge == "battery":
+        expected = battery_safety.safety(predictions, practice, decision)
+        assert result["safety"]["metrics"]["B4"] == ORACLE_B4
+        # The worker is asked for PRACTICE and the decision set; the practice
+        # score is PRACTICE's alone.
+        inputs = json.loads(staged["practice-inputs.json"])
+        assert inputs["schema"] == "carbon.battery.practice-inputs.v2"
+        assert [c["case_id"] for c in inputs["cases"]] == (
+            practice.case_ids + decision.case_ids
+        )
+        from carbon.battery.challenge import PublicMaterial
+
+        _rows, alone = battery_practice.score_practice(
+            battery_oracle(battery), battery, PublicMaterial.load(REPO), REPO
+        )
+        assert result["summary"] == battery_practice._summary(alone)
+    else:
+        expected = provider_module_safety(challenge)(predictions, practice)
+    assert result["safety"] == expected
     assert result["official_eligible"] is False and result["final_exam"] is False
+
+
+#: B4 when the model predicts the reference itself: at five conditions it
+#: chooses a reference-FEASIBLE protocol; at the sixth it predicts no
+#: protocol feasible, and abstains.
+ORACLE_B4 = {
+    "feasible_choice": 5,
+    "chosen": 5,
+    "rate": 1.0,
+    "abstained": 1,
+    "unresolved": 0,
+    "feedback_only": True,
+}
 
 
 def provider_module_safety(challenge):
     return {
-        "battery": battery_safety.safety,
         "cooling": cooling_safety.safety,
         "motor": motor_safety.safety,
     }[challenge]
@@ -593,8 +651,12 @@ def test_a_provider_calls_the_safety_code_only_inside_its_practice_trial(
     module, provider
 ):
     # The battery validator daemon imports research.py for its feedback field
-    # names, so the module is loaded there; it is called only here.
-    assert _safety_calls(REPO / module) == [(provider, "__call__", "safety")]
+    # names, so the module is loaded there; it is called only here. Battery
+    # also loads its practice decision set there, for B4.
+    expected = [(provider, "__call__", "safety")]
+    if provider == "BatteryPractice":
+        expected = [(provider, "__call__", "decision_set")] + expected
+    assert _safety_calls(REPO / module) == expected
 
 
 def test_official_scoring_rank_and_reward_code_loads_no_safety_module():
@@ -617,7 +679,7 @@ def test_official_scoring_rank_and_reward_code_loads_no_safety_module():
     assert not set(json.loads(out.stdout)) & SAFETY_MODULES
 
 
-def test_the_practice_score_is_the_same_with_and_without_safety(battery):
+def test_the_practice_score_is_the_same_with_and_without_safety(battery, decision):
     from carbon.battery.challenge import PublicMaterial
 
     material = PublicMaterial.load(REPO)
@@ -625,6 +687,6 @@ def test_the_practice_score_is_the_same_with_and_without_safety(battery):
     _rows, before = battery_practice.score_practice(
         predictions, battery, material, REPO
     )
-    battery_safety.safety(predictions, battery)
+    battery_doc(predictions, battery, decision)
     _rows, after = battery_practice.score_practice(predictions, battery, material, REPO)
     assert before == after

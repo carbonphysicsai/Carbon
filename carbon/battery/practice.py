@@ -52,7 +52,11 @@ PRACTICE_SOURCE_SHA256 = (
 PRACTICE_CASES = 200
 #: v2 (PRACTICE-SAFETY-01) adds the feedback-only `safety` block; nothing
 #: else changes. A v1 result keeps its meaning: it never carried the block.
-FEEDBACK_SCHEMA = "carbon.battery.practice-feedback.v2"
+#: v3 computes the block's B4 on the committed practice decision set (or
+#: gives its typed refusal), and the block's `unmeasured` also counts that
+#: set's cases. A v2 result keeps its meaning: its B4 is always BLOCKED.
+FEEDBACK_SCHEMA = "carbon.battery.practice-feedback.v3"
+FEEDBACK_SCHEMA_V2 = "carbon.battery.practice-feedback.v2"
 FEEDBACK_SCHEMA_V1 = "carbon.battery.practice-feedback.v1"
 PROVENANCE = "BATTERY_PUBLIC_PRACTICE"
 #: The files the worker receives, by staged name. Nothing else is staged.
@@ -164,15 +168,26 @@ class PracticeSet:
     def case_ids(self):
         return [r["case_id"] for r in self.records]
 
-    def inputs_document(self):
-        """What the worker receives: case ids and inputs, never a label."""
-        return {
-            "schema": "carbon.battery.practice-inputs.v1",
-            "cases": [
-                {"case_id": r["case_id"], "inputs": {k: r["inputs"][k] for k in INPUTS}}
-                for r in self.records
-            ],
-        }
+    def inputs_document(self, extra=()):
+        """What the worker receives: case ids and inputs, never a label.
+
+        `extra` (v2) appends further public cases to predict, as
+        {case_id, inputs}: the practice decision set's, for feedback only.
+        """
+        cases = [
+            {"case_id": r["case_id"], "inputs": {k: r["inputs"][k] for k in INPUTS}}
+            for r in self.records
+        ]
+        if not extra:
+            return {"schema": "carbon.battery.practice-inputs.v1", "cases": cases}
+        added = [
+            {"case_id": c["case_id"], "inputs": {k: c["inputs"][k] for k in INPUTS}}
+            for c in extra
+        ]
+        ids = [c["case_id"] for c in cases + added]
+        if len(set(ids)) != len(ids):
+            raise MaterialMismatch("extra practice inputs repeat a case id")
+        return {"schema": "carbon.battery.practice-inputs.v2", "cases": cases + added}
 
     def public_records(self):
         """The public PRACTICE references as a miner may download them."""
@@ -194,8 +209,9 @@ class PracticeSet:
         return gzip.compress(body, mtime=0)
 
 
-def staged_files(root, practice, recipe, seed):
-    """Every byte the worker receives, by staged name."""
+def staged_files(root, practice, recipe, seed, extra_cases=()):
+    """Every byte the worker receives, by staged name. `extra_cases` are
+    further public inputs to predict (`PracticeSet.inputs_document`)."""
     here = Path(__file__).parent
     files = {
         staged: (here / module).read_bytes()
@@ -208,7 +224,7 @@ def staged_files(root, practice, recipe, seed):
         _pinned(Path(root) / OCV_TABLE_PATH, OCV_TABLE_SHA256, "ocv_table")
     )
     files["ocv-table.json"] = _canonical({"soc": table["soc"], "ocv_v": table["ocv_v"]})
-    files["practice-inputs.json"] = _canonical(practice.inputs_document())
+    files["practice-inputs.json"] = _canonical(practice.inputs_document(extra_cases))
     files["recipe.json"] = _canonical(
         {
             "family": recipe.family,
@@ -244,8 +260,8 @@ def feedback(summary, fit, *, recipe, backend, worker, safety=None):
     """The public practice feedback: the exam aggregate on public PRACTICE,
     with fit statistics and the backend that actually ran.
 
-    With `safety` (`practice_safety.safety`), the v2 shape: the same fields
-    plus the feedback-only safety block. Without it, exactly the v1 shape.
+    With `safety` (`practice_safety.safety`), the v3 shape: v2's fields, the
+    safety block carrying B4 computed. Without it, exactly the v1 shape.
     """
     out = {
         "schema": FEEDBACK_SCHEMA if safety is not None else FEEDBACK_SCHEMA_V1,

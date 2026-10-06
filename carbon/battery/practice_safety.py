@@ -16,8 +16,18 @@ predictions for them. Feedback only: see `carbon.practice_safety_feedback`.
 - **B3. Signed near-limit margin error.** Per constraint, the mean of
   predicted minus reference margin in band units over the important cases
   (`value.margins._margins`). Positive is optimistic.
-- **B4. Feasible-choice rate on the practice decision set.** BLOCKED until
-  Data Collection commits the set (`DECISION_SET_PATH` is None).
+- **B4. Feasible-choice rate on the practice decision set.** The committed
+  public set (`DECISION_SET_PATH`: 6 conditions x EV4's 35-candidate grid,
+  pinned through its `SHA256SUMS`, which is itself pinned). At each
+  condition the model's predictions choose a protocol with EV4's rules and
+  tie rule (`decision.assess_predicted` / `decision.select`), and the
+  reference verifies the choice with EV4's bands
+  (`decision.assess_reference`). The rate is reference-FEASIBLE choices over
+  choices the reference resolves; abstentions and choices the reference
+  leaves UNRESOLVED are counted beside it, never in it. A set that does not
+  match its pins is refused with a typed reason and nothing is computed.
+  (In practice-feedback v2, before the set was committed, B4 was the
+  literal `ps.B4_BLOCKED`; v3 never emits it.)
 
 The value modules named above import the scoring-set module, so this module
 reimplements their few lines over `value.decision` alone; a test proves the
@@ -26,12 +36,17 @@ results identical on the practice references.
 
 from __future__ import annotations
 
+import gzip
+import hashlib
+import json
 import math
+from dataclasses import dataclass, field
+from pathlib import Path
 
 from carbon import practice_safety_feedback as ps
 
 from .challenge import CHALLENGE
-from .domain import GRID_POINTS, is_important
+from .domain import GRID_POINTS, INPUTS, is_important
 from .practice import PRACTICE_SOURCE_PATH, PRACTICE_SOURCE_SHA256
 from .value import decision as d
 
@@ -58,9 +73,39 @@ DECISION_RULES = {
     },
 }
 CONSTRAINTS = ("no_plating_onset", "peak_temperature")
-#: The committed practice decision set for B4. None until Data Collection
-#: commits it; B4 reports BLOCKED meanwhile and nothing is fabricated.
-DECISION_SET_PATH = None
+#: The committed public practice decision set for B4 (Data Collection, #669).
+#: Every condition in it is permanently practice-only.
+DECISION_SET_PATH = "docs/development/evidence/practice-decision-set-v1"
+#: The sha256 of the set's `SHA256SUMS`, which names the digest of each of
+#: `DECISION_SET_FILES`; each file is checked against it before it is read.
+DECISION_SET_SUMS_SHA256 = (
+    "0e135fddbf8662e26b946bcc3ca6c38edc2a5a7476028a9676645884227bef0f"
+)
+DECISION_SET_FILES = ("conditions.json", "records.jsonl.gz")
+DECISION_SET_SCHEMA = "carbon.battery.practice-decision-set.v1"
+DECISION_SET_CONDITIONS = 6
+#: EV4's frozen candidate grid (`design_variables`, in `value.contract.
+#: candidates` order and ids), copied like `DECISION_RULES`; a test binds it.
+CANDIDATE_C1 = (0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0)
+CANDIDATE_C2 = (0.2, 0.4, 0.6, 0.8, 1.0)
+CANDIDATES = tuple(
+    {"id": f"c1={c1:g},c2={c2:g}", "c1": c1, "c2": c2}
+    for c1 in CANDIDATE_C1
+    for c2 in CANDIDATE_C2
+)
+#: B4's typed refusals: the set does not match its pins or its shape.
+B4_REFUSED_MISSING = "REFUSED: practice decision set file missing"
+B4_REFUSED_SUMS = "REFUSED: practice decision set SHA256SUMS does not match its pin"
+B4_REFUSED_DIGEST = "REFUSED: practice decision set file does not match SHA256SUMS"
+B4_REFUSED_SHAPE = (
+    "REFUSED: practice decision set is not 6 conditions at EV4's 35-candidate grid"
+)
+B4_REFUSALS = (
+    B4_REFUSED_MISSING,
+    B4_REFUSED_SUMS,
+    B4_REFUSED_DIGEST,
+    B4_REFUSED_SHAPE,
+)
 #: The ruled exclusion box around every EV1/EV2/EV4/EV5 condition and
 #: protected grid point (Test Lead ruling, 2026-10-05): a practice decision
 #: condition inside both bounds of one is too close (`_clear`).
@@ -86,8 +131,174 @@ ALLOWED = {
         "sign": ps.literal(POSITIVE_IS_OPTIMISTIC),
         "feedback_only": ps.TRUE,
     },
-    "B4": ps.literal(ps.B4_BLOCKED),
+    "B4": (
+        {
+            "feasible_choice": ps.COUNT,
+            "chosen": ps.COUNT,
+            "rate": ps.NUMBER,
+            "abstained": ps.COUNT,
+            "unresolved": ps.COUNT,
+            "feedback_only": ps.TRUE,
+        },
+        ps.literal(*B4_REFUSALS),
+    ),
 }
+
+
+class DecisionSetRefused(ValueError):
+    """The practice decision set does not match its pins or its shape."""
+
+    def __init__(self, reason):
+        if reason not in B4_REFUSALS:
+            raise TypeError("untyped decision set refusal")
+        super().__init__(reason)
+        self.reason = reason
+
+
+@dataclass(frozen=True)
+class DecisionSet:
+    """The verified practice decision set, or (`refused` set) none at all.
+
+    `grid[i]` maps each candidate id to its case id at `conditions[i]`;
+    `references` maps each case id to its committed reference record.
+    """
+
+    conditions: tuple = ()
+    grid: tuple = ()
+    references: dict = field(default_factory=dict)
+    refused: str | None = None
+
+    @property
+    def case_ids(self):
+        return [case for cases in self.grid for case in cases.values()]
+
+    def cases(self):
+        """What the worker is asked to predict: case ids and inputs only."""
+        return [
+            {
+                "case_id": case,
+                "inputs": {k: self.references[case]["inputs"][k] for k in INPUTS},
+            }
+            for case in self.case_ids
+        ]
+
+    @staticmethod
+    def from_records(conditions, records):
+        """The set over `conditions` [(t_amb_c, soc0)], each at every
+        candidate exactly once, every reference an OK unrefined record."""
+        conditions = tuple((float(t), float(s)) for t, s in conditions)
+        by_input = {}
+        for record in records:
+            if record.get("status") != "OK" or record.get("refined") is not False:
+                raise DecisionSetRefused(B4_REFUSED_SHAPE)
+            x = record["inputs"]
+            key = (x["t_amb_c"], x["soc0"], x["c1"], x["c2"])
+            if key in by_input:
+                raise DecisionSetRefused(B4_REFUSED_SHAPE)
+            by_input[key] = record
+        grid = tuple(
+            {
+                c["id"]: by_input.get((t, s, c["c1"], c["c2"]), {}).get("case_id")
+                for c in CANDIDATES
+            }
+            for t, s in conditions
+        )
+        cases = [case for cases in grid for case in cases.values()]
+        if (
+            len(set(conditions)) != len(conditions)
+            or None in cases
+            or len(set(cases)) != len(cases)
+            or len(cases) != len(records)
+        ):
+            raise DecisionSetRefused(B4_REFUSED_SHAPE)
+        return DecisionSet(conditions, grid, {r["case_id"]: r for r in records})
+
+
+def _pinned_set_file(root, name, sums):
+    """The bytes of one set file, read once and checked against `sums`."""
+    try:
+        body = (Path(root) / DECISION_SET_PATH / name).read_bytes()
+    except OSError:
+        raise DecisionSetRefused(B4_REFUSED_MISSING) from None
+    if hashlib.sha256(body).hexdigest() != sums.get(name):
+        raise DecisionSetRefused(B4_REFUSED_DIGEST)
+    return body
+
+
+def load_decision_set(root="."):
+    """The committed practice decision set, verified, or DecisionSetRefused."""
+    try:
+        body = (Path(root) / DECISION_SET_PATH / "SHA256SUMS").read_bytes()
+    except OSError:
+        raise DecisionSetRefused(B4_REFUSED_MISSING) from None
+    if hashlib.sha256(body).hexdigest() != DECISION_SET_SUMS_SHA256:
+        raise DecisionSetRefused(B4_REFUSED_SUMS)
+    sums = {}
+    for line in body.decode().splitlines():
+        digest, name = line.split()
+        sums[name] = digest
+    if sorted(sums) != sorted(DECISION_SET_FILES):
+        raise DecisionSetRefused(B4_REFUSED_SUMS)
+    document = json.loads(_pinned_set_file(root, "conditions.json", sums))
+    lines = gzip.decompress(_pinned_set_file(root, "records.jsonl.gz", sums))
+    records = [json.loads(line) for line in lines.splitlines() if line.strip()]
+    conditions = document.get("conditions") or []
+    if (
+        document.get("schema") != DECISION_SET_SCHEMA
+        or len(conditions) != DECISION_SET_CONDITIONS
+    ):
+        raise DecisionSetRefused(B4_REFUSED_SHAPE)
+    return DecisionSet.from_records(
+        [(c["t_amb_c"], c["soc0"]) for c in conditions], records
+    )
+
+
+def decision_set(root="."):
+    """The verified set, or a set carrying only its typed refusal."""
+    try:
+        return load_decision_set(root)
+    except DecisionSetRefused as refusal:
+        return DecisionSet(refused=refusal.reason)
+
+
+def feasible_choice(predictions, decision):
+    """B4 and the number of decision-set cases it could not measure.
+
+    A refused set gives its refusal and computes nothing. Any unmeasurable
+    prediction makes B4 None (UNMEASURED).
+    """
+    if decision.refused is not None:
+        return decision.refused, 0
+    unmeasured = sum(not measurable(predictions.get(c)) for c in decision.case_ids)
+    if unmeasured:
+        return None, unmeasured
+    counts = {"feasible_choice": 0, "chosen": 0, "abstained": 0, "unresolved": 0}
+    for condition, cases in zip(decision.conditions, decision.grid):
+        scenario = {"conditions": [condition]}
+        quantities = {
+            (cid, 0): d.measure(DECISION_RULES, predictions[case])
+            for cid, case in cases.items()
+        }
+        predicted = d.assess_predicted(DECISION_RULES, scenario, CANDIDATES, quantities)
+        choice = d.select(CANDIDATES, predicted)
+        if choice is None:
+            counts["abstained"] += 1
+            continue
+        references = {
+            (cid, 0): decision.references[case] for cid, case in cases.items()
+        }
+        verified = d.assess_reference(DECISION_RULES, scenario, CANDIDATES, references)
+        status = verified[choice]["status"]
+        if status in (d.FEASIBLE, d.INFEASIBLE):
+            counts["chosen"] += 1
+            counts["feasible_choice"] += status == d.FEASIBLE
+        else:
+            counts["unresolved"] += 1
+    return {
+        **counts,
+        "rate": ps.rate(counts["feasible_choice"], counts["chosen"]),
+        "feedback_only": True,
+    }, 0
 
 
 def _finite_series(value):
@@ -136,10 +347,17 @@ def near_case_ids(practice):
     return [r["case_id"] for r in practice.records if is_important(r)]
 
 
-def safety(predictions, practice):
-    """The allow-listed safety document for one practice result."""
+def safety(predictions, practice, decision):
+    """The allow-listed safety document for one practice result.
+
+    `predictions` holds the practice cases' and the decision set's (`decision`,
+    from `decision_set`). `unmeasured` counts the cases of both that carry no
+    measurable prediction; B1-B3 are None when a practice case does, and B4
+    when a decision-set case does.
+    """
     refs = {r["case_id"]: r for r in practice.records}
     unmeasured = sum(not measurable(predictions.get(c)) for c in refs)
+    b4, decision_unmeasured = feasible_choice(predictions, decision)
     near = near_case_ids(practice)
     counts = {c: {"false_acceptance": 0, "reference_fail": 0} for c in CONSTRAINTS}
     unresolved = 0
@@ -194,8 +412,8 @@ def safety(predictions, practice):
         }
     return ps.document(
         CHALLENGE.challenge_id,
-        {"B1": b1, "B2": b2, "B3": b3, "B4": ps.B4_BLOCKED},
-        unmeasured=unmeasured,
+        {"B1": b1, "B2": b2, "B3": b3, "B4": b4},
+        unmeasured=unmeasured + decision_unmeasured,
         unresolved=unresolved,
         material={"path": PRACTICE_SOURCE_PATH, "sha256": PRACTICE_SOURCE_SHA256},
         allowed=ALLOWED,
