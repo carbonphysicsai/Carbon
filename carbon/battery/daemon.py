@@ -289,6 +289,7 @@ class BatteryValidator:
         require_commitment=True,
         service_key=None,
         allow_published_cases=False,
+        development_only=False,
     ):
         if type(store) is not PoolStore:
             raise TypeError("a PoolStore is required")
@@ -303,6 +304,13 @@ class BatteryValidator:
         self.require_commitment = require_commitment
         self.service_key = service_key
         self.allow_published_cases = allow_published_cases
+        #: A Graphite development deployment (VALIDATOR-13, the owner's opt-in
+        #: field `development_only`): it may admit a registered development
+        #: variant from a `graphite-dev:` identity, compiled by the
+        #: `development_compiler` the Graphite side supplies. This module never
+        #: names the variant module. Off by default; never sets weights.
+        self.development_only = development_only is True
+        self.development_compiler = None
         self.material = PublicMaterial.load(repository)
         self.tol, self.scales = frozen_calibration(repository)
         self.pin = journal.root_pin(root)
@@ -515,20 +523,38 @@ class BatteryValidator:
         if submission.strategy.get("challenge_id") != CHALLENGE.challenge_id:
             # A strategy naming another Challenge is never reinterpreted here.
             return refuse("cross_challenge_submission")
-        if is_development_variant(submission.contract_digest):
-            # A development-only contract variant is never served to a miner
-            # (OWNER-GRAPHITE-TEST-WAVE-03 §1).
-            return refuse(DEVELOPMENT_VARIANT_NOT_SERVED)
+        development = None
         try:
-            admitted = compile_submission(
-                submission.strategy, contract_digest=submission.contract_digest
-            )
+            if is_development_variant(submission.contract_digest):
+                if not self._serves_development(submission.hotkey):
+                    # A development-only contract variant is never served to a
+                    # miner (OWNER-GRAPHITE-TEST-WAVE-03 §1).
+                    return refuse(DEVELOPMENT_VARIANT_NOT_SERVED)
+                admitted = self.development_compiler(
+                    submission.strategy, submission.contract_digest
+                )
+                development = {
+                    **admitted.development,
+                    "variant_contract_digest": submission.contract_digest,
+                }
+            else:
+                admitted = compile_submission(
+                    submission.strategy, contract_digest=submission.contract_digest
+                )
         except SubmissionRefused as refused:
             return refuse(
                 "contract_refused",
                 [{"code": i.code, "path": i.path} for i in refused.issues],
             )
         except ValueError as refused:  # RecipeRejected carries named issues
+            if development is None and is_development_variant(
+                submission.contract_digest
+            ):
+                # The supplied development compiler refused it, by code.
+                return refuse(
+                    "development_variant_refused",
+                    [{"code": getattr(refused, "code", type(refused).__name__)}],
+                )
             issues = getattr(getattr(refused, "rejected", None), "issues", ())
             return refuse(
                 "recipe_refused",
@@ -579,6 +605,9 @@ class BatteryValidator:
             "attempt": 0,
             "coverage_rule": dict(COVERAGE_IDENTITY),
         }
+        if development is not None:
+            # Stamped beside the base fields; a Level-0 binding is unchanged.
+            binding["development"] = development
         window = None
         block = (submission.receipt or {}).get("block")
         if self.rule.get("per_hotkey") is not None:
@@ -592,6 +621,37 @@ class BatteryValidator:
             submission_id, binding=binding, window=window, **base
         )
         return self.outcome(row["submission_id"])
+
+    def _serves_development(self, hotkey):
+        """Whether this deployment admits a development variant from `hotkey`:
+        opted in, given a compiler, and a Graphite development identity."""
+        return (
+            self.development_only
+            and callable(self.development_compiler)
+            and type(hotkey) is str
+            and hotkey.startswith("graphite-dev:")
+        )
+
+    def _development(self, row):
+        """`(recipe, record)` for a development row, recompiled through the
+        supplied compiler and checked against what admission bound; None for
+        a Level-0 row."""
+        bound = row["binding"].get("development")
+        if bound is None:
+            return None
+        if not self._serves_development(row["hotkey"]):
+            raise StateError("development_compiler_unavailable")
+        compiled = self.development_compiler(
+            row["strategy"], bound["variant_contract_digest"]
+        )
+        if (
+            compiled.development["widened_digest"] != bound["widened_digest"]
+            or compiled.construction.recipe_digest != row["binding"]["recipe_digest"]
+        ):
+            raise StateError("artifact_mismatch", "development recompile differs")
+        from .level1_worker import expression_record
+
+        return compiled.construction, expression_record(compiled.reconstruction)
 
     # --- screening --------------------------------------------------------------------
 
@@ -615,6 +675,9 @@ class BatteryValidator:
     def _recipe(self, row):
         from .compile import compile_recipe
 
+        development = self._development(row)
+        if development is not None:
+            return development[0]
         carried = self._carried(row["binding"])
         try:
             _, recipe = compile_recipe(row["strategy"])
@@ -720,10 +783,13 @@ class BatteryValidator:
                 )
                 return self.outcome(submission_id)
             if self.store.model_state(submission_id) is None:
+                development = self._development(row)
                 state, stats = self.backend.reconstruct(
                     f"rec-{submission_id}-a{attempt}",
                     recipe,
                     reconstruction_seed(self.root, submission_id),
+                    # Level 0 calls the backend exactly as before.
+                    **({} if development is None else {"development": development[1]}),
                 )
                 self.store.retain_model(
                     submission_id,
@@ -826,6 +892,14 @@ class BatteryValidator:
             record = self._pool_records(
                 pool, submission_id, incumbent_id, f"a{attempt}"
             )
+            if "development" in self.store.submission(submission_id)["binding"]:
+                # A development level is never nominated, never an incumbent
+                # and never in standings or weights (VALIDATOR-13 separation).
+                record["nomination"] = {
+                    **record["nomination"],
+                    "nominated": False,
+                    "excluded": "DEVELOPMENT_LEVEL",
+                }
             nomination = (
                 self._nomination(submission_id, incumbent_id, record)
                 if record["nomination"]["nominated"]

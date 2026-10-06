@@ -236,6 +236,49 @@ scenario("a provider listing no models offers and preselects setup's model", asy
   clean(page);
 });
 
+// LAUNCHPAD-PAGE-USABILITY-01 (C3): the Model step offers the optional
+// output cap, shows the chosen model's default, mirrors the runner's bounds,
+// and sends model_settings.max_output_tokens only when one is set.
+scenario("the model step offers an output cap with the model's default and sends it", async () => {
+  const agent = carbonAgent(fx.caps_setup_model);
+  const state = launchable(world({caps: copy(fx.caps_setup_model), options: copy(fx.options_setup_model)}), agent);
+  const page = await open(state);
+  await wizardTo(page, "model", agent);
+  const choice = fx.caps_setup_model.model.setup_choice;
+  const cap = fx.caps_setup_model.model.output_cap;
+  const fallback = cap.defaults[choice.provider_id][choice.model_id].max_output_tokens;
+  assert.equal(page.$("wizard-output").hidden, false, "the cap is offered with a model chosen");
+  const input = page.$("wizard-max-output");
+  assert.equal(input.placeholder, "Default: " + fallback);
+  assert.equal(input.min, String(cap.bounds[0]));
+  assert.equal(input.max, String(cap.bounds[1]));
+  assert.match(page.text("wizard-output-note"), new RegExp("Default for " + choice.model_id.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&") + ": " + fallback.toLocaleString("en-US") + " tokens"));
+  // Outside the runner's bounds: the step does not pass, and says why.
+  for (const bad of [String(cap.bounds[0] - 1), String(cap.bounds[1] + 1), "1.5"]) {
+    await page.type(input, bad);
+    assert.equal(page.$("wizard-next").disabled, true, bad);
+    assert.match(page.text("wizard-next-reason"), /Fix the output cap: max output tokens must be a whole number from 256 to 131,072/);
+  }
+  await page.type(input, "4096");
+  assert.equal(page.$("wizard-next").disabled, false, page.text("wizard-next-reason"));
+  for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
+  assert.match(page.text("wizard-review"), /Max output4,096 tokens per reply, your cap/);
+  state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "d".repeat(32)}}});
+  await page.press(page.$("research-launch"));
+  const sent = lastPost(state, "/api/v1/research").body;
+  assert.equal(sent.model_provider, choice.provider_id);
+  assert.equal(sent.model, choice.model_id);
+  assert.deepEqual(sent.model_settings, {max_output_tokens: 4096});
+  // Blank is the model's default: no model_settings is sent.
+  await wizardTo(page, "model", agent);
+  await page.type(page.$("wizard-max-output"), "");
+  for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
+  state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "e".repeat(32)}}});
+  await page.press(page.$("research-launch"));
+  assert.equal("model_settings" in lastPost(state, "/api/v1/research").body, false);
+  clean(page);
+});
+
 // ---- 3. A pending launch: kept only while its outcome is unknown. ----
 scenario("a definite refusal clears the pending launch; a lost answer keeps it", async () => {
   const state = launchable(world());
@@ -350,6 +393,42 @@ scenario("a submit says started, then refused with what to do", async () => {
   assert.match(banner.textContent, /What to do: Register your hotkey/);
   assert.equal(one(page, "#campaign-detail [data-part=attention] a.button").getAttribute("href"), "#setup/register");
   assert.doesNotMatch(page.text("campaign-detail"), /Submitted for the DEVELOPMENT comparison/);
+  clean(page);
+});
+
+// LAUNCHPAD-PAGE-USABILITY-01 (C10): with no validator intake for the
+// campaign's Challenge, the Submission form says so before a submit, with what
+// still works and the next step; a refused submit shows the controller's next
+// step, not only its code.
+scenario("with no evaluation endpoint the submission says what works and what to do", async () => {
+  const state = launchable(world());
+  const run = manualRun();
+  state.runs = [run];
+  state.view = copy(fx.view);
+  // The real prelaunch review: Carbon publishes no endpoint for the run's
+  // Challenge, and this profile names none.
+  state.preflight.review = copy(fx.review);
+  const item = state.preflight.review.evaluation_endpoints.challenges.find(entry => entry.challenge_id === run.challenge.id);
+  assert.ok(item, "the review lists the run's Challenge");
+  assert.equal(item.status, "NONE_PUBLISHED");
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/submission");
+  await page.advance(0);
+  const note = one(page, "#campaign-detail .evaluation-unavailable");
+  assert.equal(note.dataset.evaluation, "NONE_PUBLISHED");
+  assert.match(note.textContent, /Evaluation is unavailable for this Challenge today: no validator intake is configured in your runner profile, and none is published for it yet\./);
+  assert.match(note.textContent, /What you can do now: practise, observe, freeze a candidate, and stop or pause this campaign\./);
+  assert.match(note.textContent, /Next: No evaluation endpoint is published/);
+  assert.equal(note.querySelector("a").getAttribute("href"), "#setup/review");
+  // The submit is still sent: the controller decides, and its next step shows.
+  state.script.push({match: r => r.path === "/api/v1/operations/submit", answer: {status: 409, body: {error: "evaluation_unavailable", next_step: "Your frozen candidate is kept, but it cannot be evaluated yet."}}});
+  await page.press(one(page, "#journey-submit-" + run.id));
+  assert.match(page.text("message"), /Refused: evaluation unavailable\. Next: Your frozen candidate is kept, but it cannot be evaluated yet\./);
+  // A configured intake: no such note.
+  Object.assign(item, {status: "INTAKE_CONFIGURED", source: "YOURS", next_step: undefined});
+  await refresh(page);
+  await refresh(page);
+  assert.equal(all(page, "#campaign-detail .evaluation-unavailable").length, 0);
   clean(page);
 });
 

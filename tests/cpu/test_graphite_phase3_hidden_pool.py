@@ -113,7 +113,6 @@ def test_a_sealed_rule_v2_deployment_serves_one_pool_per_run(
 @pytest.mark.parametrize(
     ("setup", "code"),
     [
-        ("variant", "hidden_pool_is_level_0_only"),
         ("missing", "hidden_evaluation_input_missing"),
     ],
 )

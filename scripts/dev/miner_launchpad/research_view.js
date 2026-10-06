@@ -787,7 +787,9 @@
     const status = CC.watchStatus(run);
     // A request held under its key (its answer lost) shows with Discard.
     const held = CC.heldOperation(run.id, which === "practice" ? ["practice"] : ["freeze_candidate", "submit"]);
-    return JSON.stringify([which, run.id, run.state, run.journey || null, (run.experiments || []).map(e => e.recipe || null), Boolean(s.launchOptions), s.connected, s.busy, status ? [status.kind, status.text] : null, held]);
+    // Whether its Challenge can be evaluated now: the Submission form says so.
+    const evaluation = which === "submission" && CC.evaluationFor ? CC.evaluationFor(run) : null;
+    return JSON.stringify([which, run.id, run.state, run.journey || null, (run.experiments || []).map(e => e.recipe || null), Boolean(s.launchOptions), s.connected, s.busy, status ? [status.kind, status.text] : null, held, evaluation]);
   }
   function tabExperiments(panel, doc, run) {
     if (run && run.selects === "miner" && CC.renderJourneyPractice) part(panel, "journey", journeyKey(run, "practice"), box => CC.renderJourneyPractice(box, run), "rs-journey-part", "div");
@@ -936,9 +938,14 @@
   function tabSubmission(panel, doc, run) {
     // The journey's freeze and submit form, then the outcomes: two parts, so
     // an outcome arriving never redraws the form (or a reason being typed).
-    const journey = part(panel, "journey", run && run.selects === "miner" ? journeyKey(run, "submission") : JSON.stringify(doc.campaign.selects), box => {
+    const evaluation = run && CC.evaluationFor ? CC.evaluationFor(run) : null;
+    const journey = part(panel, "journey", run && run.selects === "miner" ? journeyKey(run, "submission") : JSON.stringify([doc.campaign.selects, evaluation]), box => {
       if (run && run.selects === "miner" && CC.renderJourneySubmission) CC.renderJourneySubmission(box, run);
-      else if (doc.campaign.selects === "agent") para(box, "Carbon's agent freezes and submits in this campaign.", "hint");
+      else if (doc.campaign.selects === "agent") {
+        para(box, "Carbon's agent freezes and submits in this campaign.", "hint");
+        // Whether its Challenge can be evaluated today, as the miner's form says.
+        if (run && CC.evaluationNote) CC.evaluationNote(box, run);
+      }
     }, "rs-journey-part", "div");
     journey.hidden = !journey.children.length;
     part(panel, "outcomes", JSON.stringify(doc.outcomes), box => drawOutcomes(box, doc), "rs-outcomes-part", "div");

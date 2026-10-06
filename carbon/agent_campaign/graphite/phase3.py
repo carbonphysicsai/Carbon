@@ -6,7 +6,8 @@
         (--runpod-key-file PATH | --runpod-key-env RUNPOD_API_KEY) \
         --miner-profile PROFILE.json --miner-campaign ID --code-ref SHA \
         --literature-snapshot SNAPSHOT.json [--allow-unchecked-cards] [--session N] \
-        [--level N] [--compute carrier --image-manifest C03_IMAGE.json]
+        [--level N] [--compute carrier --image-manifest C03_IMAGE.json] \
+        [--score-variant VERSION]
     python -m carbon.agent_campaign.graphite.phase3 run --root DIR --challenge TOKEN --dry-run \
         [--literature-snapshot SNAPSHOT.json [--allow-unchecked-cards]] [--level N]
     python -m carbon.agent_campaign.graphite.phase3 cancel --root DIR --session N
@@ -57,6 +58,13 @@ before. A level above 0 runs the development-only contract variant
 variant itself, the controller records it as a development expansion, and
 every proposal compiles through the variant's own path. An unregistered or
 unrecorded level is refused before anything runs.
+
+**Development score variant** (`--score-variant VERSION`, VALIDATOR-09; see
+`score_variant`). A registered development score variant of the session's
+Challenge, at Level 0, is resolved before any spend and pinned in the brief
+and the permission profile. Every result carries its result beside the
+frozen rule's, and every result, the summary and the delivery its label; a
+resume under another variant is refused. Without the flag nothing changes.
 
 **Literature** (GRAPHITE-D28, D29). A live run reads a frozen phase-2 snapshot
 (`phase2 snapshot`), named by `--literature-snapshot`; it refuses to start
@@ -169,6 +177,7 @@ from . import delivery as deliver_
 from . import experiment as ex
 from . import grant_binding, next_level
 from . import literature as lit
+from . import score_variant as sv
 from . import tools as toolbox
 from .cli_usage import ChallengeParser, challenge_help, next_step
 from .ladder import Ladder, LadderError
@@ -398,11 +407,18 @@ class Phase3Provider(GraphiteProvider):
         randomness=os.urandom,
         adapter_id=None,
         scoring=None,
+        score_variant=None,
         hidden=None,
         **kwargs,
     ):
         if type(grant) is not SpendingGrant:
             raise ProviderUnavailable("spending_grant_required")
+        #: The session's development score variant (VALIDATOR-09), resolved
+        #: before spend (`score_variant.resolve`), or None. It wraps the
+        #: Challenge's own frozen rule, never an injected scorer.
+        if score_variant is not None and scorer is not None:
+            raise ProviderUnavailable("score_variant_wraps_the_frozen_rule_only")
+        self.score_variant = score_variant
         try:
             # The session's Challenge (`ChallengeScoring`, VALIDATOR-01): the
             # only registered one unless named.
@@ -558,6 +574,10 @@ class Phase3Provider(GraphiteProvider):
                 check_observation(observation, self.scoring)
                 if observation.get("literature") != literature_brief(self.literature):
                     raise ProviderUnavailable("brief_literature_is_not_the_sessions")
+                if observation.get("score_variant") != sv.identity_of(
+                    self.score_variant
+                ):
+                    raise ProviderUnavailable("brief_score_variant_is_not_the_sessions")
                 # OWNER-GRAPHITE-PHASE3-R4-01: a grant's lowest construction
                 # level and its start rung, checked before a session opens.
                 refused = grant_binding.level_refusal(
@@ -575,6 +595,9 @@ class Phase3Provider(GraphiteProvider):
     def experiment(self, run_id):
         opened = self._opened(run_id)
         brief = self._brief(opened["brief"]["digest"])
+        # VALIDATOR-09: a run's results are labelled with the score variant its
+        # brief pinned (None: none, exactly as before).
+        scored = recorded_score_variant(brief)
         return ex.Experiment(
             root=self._dir(run_id) / "experiment",
             run_id=run_id,
@@ -585,17 +608,31 @@ class Phase3Provider(GraphiteProvider):
             cancelled=lambda: self._state(run_id)["cancel_requested"],
             ladder=self.ladder,
             emit=lambda event_id, body: self._emit(run_id, event_id, body),
-            scorer=self.scorer or self._frozen_rule,
+            scorer=self._session_scorer(scored),
             repository=self.repository,
             clock=self.clock,
             randomness=self.randomness,
             scoring=self.scoring,
-            construction_level=recorded_level(opened, self.scoring),
+            construction_level=recorded_level(opened, self.scoring, scored),
             seconds_left=self._time_gate(run_id, opened),
             development_variant=recorded_variant(opened, self.scoring),
             on_finding=self._record_finding,
+            **({} if scored is None else {"score_variant": scored}),
             hidden=None if self.hidden is None else self.hidden(run_id),
         )
+
+    def _session_scorer(self, scored):
+        """The run's scorer: as before without a score variant. A run whose
+        brief pinned another variant than this provider's never scores
+        (`score_variant_is_not_the_sessions`, only when a score is needed, so
+        cancellation and reconciliation still run)."""
+        if scored == sv.identity_of(self.score_variant):
+            return self.scorer or self._frozen_rule
+
+        def refused():
+            raise ProviderUnavailable("score_variant_is_not_the_sessions")
+
+        return refused
 
     def _next_level(self, run_id, role):
         """The next-level writer bound to this session's exact Challenge. Each
@@ -616,9 +653,13 @@ class Phase3Provider(GraphiteProvider):
         return write
 
     def _frozen_rule(self):
-        """The frozen rule, loaded once per provider (its material is pinned)."""
+        """The frozen rule, loaded once per provider (its material is pinned).
+        Under a development score variant, the variant's rule over it
+        (`score_variant.VariantRule`, VALIDATOR-09)."""
         if getattr(self, "_rule", None) is None:
-            self._rule = ex.frozen_rule(self.repository, self.scoring)
+            self._rule = sv.rule_for(
+                ex.frozen_rule(self.repository, self.scoring), self.score_variant
+            )
         return self._rule
 
     def _ledger(self, run_id):
@@ -781,6 +822,14 @@ class Phase3Provider(GraphiteProvider):
             selection=selection,
             proposals=next_level.ProposalStore(self._dir(run_id)).proposals(),
         )
+        if experiment.score_variant is not None:
+            # The delivery report is labelled with the session's development
+            # score variant (VALIDATOR-09); without one it is unchanged.
+            outcome = {
+                **outcome,
+                "label": experiment.score_variant["label"],
+                "score_variant": experiment.score_variant,
+            }
         write_once(path, canonical(outcome))
         return outcome
 
@@ -950,18 +999,22 @@ def session_brief(
     scoring=None,
     variant=None,
     tool_text=TOOL_TEXT_V2,
+    score_variant=None,
 ):
     """The Constructor's brief: the session Challenge's public development
     material only (its `ChallengeScoring`), and the session's offered
     literature (the phase-1 fixture when none is given). `variant` is the
     development level's registered variant (`development_variant_for`) for
-    the same Challenge, or None at Level 0."""
+    the same Challenge, or None at Level 0. `score_variant` is the session's
+    development score variant identity (VALIDATOR-09), pinned here; None adds
+    nothing."""
     scoring = (
         challenge_scoring.scoring_for(budget.challenge_id)
         if scoring is None
         else challenge_scoring.resolve(scoring)
     )
     variant = _variant_of(scoring, variant)
+    _score_variant_of(scoring, variant, score_variant)
     baseline = scoring.baseline_strategy() if baseline is None else baseline
     literature = lit.FIXTURE_INDEX if literature is None else literature
     if variant is None:
@@ -992,6 +1045,8 @@ def session_brief(
             "say why."
         ),
     }
+    if score_variant is not None:
+        observation["score_variant"] = score_variant
     return SessionBrief(
         role=RoleName.CONSTRUCTOR,
         initial_observation=observation,
@@ -1002,12 +1057,15 @@ def session_brief(
     )
 
 
-def permission_profile(scoring, variant=None):
+def permission_profile(scoring, variant=None, score_variant=None):
     """Level 0: the session Challenge's recorded contract, widened by nothing.
     At a development level the profile is the registered variant itself: its
     document, pinned by its digest, which is what the campaign controller's
-    development ledger records (GRAPHITE-DEV-VARIANTS-01)."""
+    development ledger records (GRAPHITE-DEV-VARIANTS-01). A development score
+    variant (its identity, VALIDATOR-09) is pinned in the Level-0 profile, so
+    the controller records it by the profile's digest; None adds nothing."""
     scoring = challenge_scoring.resolve(scoring)
+    _score_variant_of(scoring, variant, score_variant)
     if _variant_of(scoring, variant) is not None:
         return variant.document(), variant.digest
     document = {
@@ -1017,7 +1075,26 @@ def permission_profile(scoring, variant=None):
         "surface": "declarative TrainingStrategy inside the recorded contract",
         "widens": [],
     }
+    if score_variant is not None:
+        document["score_variant"] = score_variant
     return document, digest(canonical(document))
+
+
+def _score_variant_of(scoring, variant, score_variant):
+    """A score variant identity runs at Level 0, for the session's Challenge."""
+    if score_variant is None:
+        return
+    if variant is not None:
+        raise RunnerRefused(sv.LEVEL0_ONLY)
+    if type(score_variant) is not dict or not str(
+        score_variant.get("label", "")
+    ).startswith("development_score_result:"):
+        raise RunnerRefused("score_variant_identity_malformed")
+
+
+def recorded_score_variant(brief):
+    """The development score variant identity a run's brief pinned, or None."""
+    return ((brief or {}).get("initial_observation") or {}).get("score_variant")
 
 
 def recorded_variant(opened, scoring):
@@ -1034,16 +1111,21 @@ def recorded_variant(opened, scoring):
         return None
 
 
-def recorded_level(opened, scoring):
+def recorded_level(opened, scoring, score_variant=None):
     """The construction level of an opened run, from the permission profile
     its task recorded: the profile's level only when the run's recorded
-    profile digest is this profile's (Level 0's, or a registered development
-    variant's of the same Challenge), else None (unknown). Never read from a
-    submission (`pod_outcome`)."""
+    profile digest is this profile's (Level 0's, Level 0's under the score
+    variant identity its brief pinned, or a registered development variant's
+    of the same Challenge), else None (unknown). Never read from a submission
+    (`pod_outcome`)."""
     document, profile = permission_profile(scoring)
     task = (opened or {}).get("task") or {}
     if task.get("profile_digest") == profile:
         return document["level"]
+    if score_variant is not None:
+        scored, profile = permission_profile(scoring, score_variant=score_variant)
+        if task.get("profile_digest") == profile:
+            return scored["level"]
     found = recorded_variant(opened, scoring)
     return None if found is None else found.level
 
@@ -1105,9 +1187,15 @@ def check_resume(provider, number):
     path = provider._dir(run_id) / "session-open.json"
     if not path.is_file():
         return
-    recorded = json.loads(path.read_bytes())["literature"]
-    if recorded != provider._literature_record():
+    opened = json.loads(path.read_bytes())
+    if opened["literature"] != provider._literature_record():
         raise ResumeRefused("literature_snapshot_changed_since_the_session_opened")
+    # VALIDATOR-09: the score variant identity the session's brief pinned (its
+    # rule identity, digest included) must be the provider's.
+    brief = provider._brief(opened["brief"]["digest"])
+    mine = sv.identity_of(getattr(provider, "score_variant", None))
+    if recorded_score_variant(brief) != mine:
+        raise ResumeRefused("score_variant_changed_since_the_session_opened")
 
 
 def ensure_development_expansion(control, variant, operator=OPERATOR):
@@ -1135,8 +1223,11 @@ def run_session(control, provider, brief, number, variant=None):
     named = (observation.get("construction_contract") or {}).get("development_variant")
     if named != (None if variant is None else variant.digest):
         raise ValueError("the brief names another construction level")
+    scored = sv.identity_of(getattr(provider, "score_variant", None))
+    if observation.get("score_variant") != scored:
+        raise ValueError("the brief names another score variant")
     check_resume(provider, number)
-    _document, profile = permission_profile(provider.scoring, variant)
+    _document, profile = permission_profile(provider.scoring, variant, scored)
     ensure_campaign(
         control, checkout_digest=brief.checkout_manifest_digest, profile_digest=profile
     )
@@ -1439,16 +1530,16 @@ def hidden_pool_factory(
     config_path, scoring, variant, *, clock=None, repository=REPOSITORY
 ):
     """`run_id -> HiddenPool` over the battery deployment at `config_path`
-    (VALIDATOR-13). Checked before anything is spent: Level 0 only, the
-    deployment loads writable, and its rule seals hidden results."""
+    (VALIDATOR-13). Checked before anything is spent: the deployment loads
+    writable, its rule seals hidden results, and a development level (the
+    run's registered variant) needs a deployment that opted in with
+    `development_only` (owner, 2026-10-06)."""
     from pathlib import Path
 
     from carbon.battery import deployment
 
     from .hidden_score import HiddenPool, HiddenPoolRefused
 
-    if variant is not None:
-        raise RunnerRefused("hidden_pool_is_level_0_only")
     if clock is None:
         from carbon.chain.models import ChainContext
         from carbon.development_testnet.operator import (
@@ -1470,12 +1561,51 @@ def hidden_pool_factory(
     except deployment.EvaluationUnavailable as refused:
         raise RunnerRefused("hidden_" + refused.code) from None
     try:
-        probe = HiddenPool(target, run_id="probe", clock=clock)
+        probe = HiddenPool(target, run_id="probe", clock=clock, variant=variant)
     except HiddenPoolRefused as refused:
         raise RunnerRefused(refused.code) from None
     if probe.challenge_id != scoring.challenge_id:
         raise RunnerRefused("hidden_pool_is_another_challenges")
-    return lambda run_id: HiddenPool(target, run_id=run_id, clock=clock)
+    return lambda run_id: HiddenPool(
+        target, run_id=run_id, clock=clock, variant=variant
+    )
+
+
+def hidden_remote_factory(url, key_path, scoring, variant, *, ca=None, post=None):
+    """`run_id -> RemoteHiddenPool`: the hidden pool on its own host, reached
+    through the signed door (VALIDATOR-19 slice 0). Graphite holds only the
+    submitter key and receives only sealed views."""
+    from pathlib import Path
+
+    from carbon.battery.dev_submit import (
+        DevSubmitRefused,
+        RemoteHiddenPool,
+        SubmitterKey,
+    )
+
+    try:
+        key = SubmitterKey.load(Path(key_path))
+    except (DevSubmitRefused, OSError):
+        raise RunnerRefused("hidden_submitter_key_unreadable") from None
+    base = scoring.contract().digest
+
+    def factory(run_id):
+        return RemoteHiddenPool(
+            url,
+            key,
+            run_id=run_id,
+            challenge_id=scoring.challenge_id,
+            contract_digest=base,
+            variant=variant,
+            ca=ca,
+            post=post,
+        )
+
+    try:
+        factory("probe")
+    except DevSubmitRefused as refused:
+        raise RunnerRefused(refused.code) from None
+    return factory
 
 
 def command_run(args):
@@ -1487,6 +1617,11 @@ def command_run(args):
     # before anything is read or spent; an unregistered one is refused here.
     variant = development_variant_for(getattr(args, "level", 0), scoring)
     level = {} if variant is None else {"development_variant": variant}
+    # VALIDATOR-09: a development score variant is resolved here too, before
+    # any grant, pod or model call; refused, typed, otherwise.
+    scored = score_variant_for(getattr(args, "score_variant", None), scoring, variant)
+    if scored is not None:
+        level["score_variant"] = scored
     if args.dry_run:
         return dry_run(
             _root(args.root),
@@ -1543,11 +1678,22 @@ def command_run(args):
                 raise RunnerRefused("runpod_key_file_must_be_owner_only")
         check_code_ref(args.code_ref)
         check_literature_challenge(literature, args.challenge, RunnerRefused)
-        hidden = (
-            None
-            if getattr(args, "hidden_deployment", None) is None
-            else hidden_pool_factory(args.hidden_deployment, scoring, variant)
-        )
+        if getattr(args, "hidden_deployment", None) and getattr(
+            args, "hidden_endpoint", None
+        ):
+            raise RunnerRefused("hidden_pool_named_twice")
+        if getattr(args, "hidden_endpoint", None):
+            hidden = hidden_remote_factory(
+                args.hidden_endpoint,
+                args.hidden_submitter_key,
+                scoring,
+                variant,
+                ca=getattr(args, "hidden_ca", None),
+            )
+        elif getattr(args, "hidden_deployment", None):
+            hidden = hidden_pool_factory(args.hidden_deployment, scoring, variant)
+        else:
+            hidden = None
         try:
             model = LiveModel(grant=grant, credential_file=engy, provider="graphite")
         except ModelAccessRefused as refused:
@@ -1578,6 +1724,7 @@ def command_run(args):
             miner_attach=attach,
             literature_index=literature,
             scoring=scoring,
+            score_variant=scored,
             hidden=hidden,
         )
         try:
@@ -1593,6 +1740,7 @@ def command_run(args):
                 literature=literature,
                 scoring=scoring,
                 variant=variant,
+                score_variant=sv.identity_of(scored),
             )
             _install_cancel(provider, provider.run_id_for(session_key(args.session)))
             result = run_session(control, provider, brief, args.session, variant)
@@ -1784,6 +1932,273 @@ def command_rebuild(args):
     return 0 if result["status"] == "REBUILT" else 4
 
 
+# -- admission conditions into the root's controller (GRAPHITE-ADMISSION-CONTROLLER-01) -----
+CONDITIONS_SCHEMA = "carbon.admission-conditions.v1"
+CONDITIONS_MESSAGES = {
+    "controller_already_active": (
+        "Another process holds this root's controller lock (a running session, "
+        "reconcile or conditions command). Nothing was recorded; retry when it "
+        "has finished."
+    ),
+    "grant_provider_mismatch": (
+        "The grant's provider is not the phase-3 provider's; nothing was opened."
+    ),
+    "grant_changed_under_existing_store": (
+        "The grant is not the one this root's controller is bound to; nothing "
+        "was recorded."
+    ),
+    "controller_store_id_invalid": (
+        "The controller's store-id file is damaged; nothing was recorded."
+    ),
+    "controller_store_missing": (
+        "This root has no campaign controller store (ROOT/controller/"
+        "campaign.sqlite3). Nothing was created; check the root."
+    ),
+    "conditions_report_unreadable": "The report could not be read.",
+    "conditions_report_malformed": (
+        "The report is not a well-formed carbon.admission-conditions.v1 "
+        "document; nothing was recorded."
+    ),
+    "conditions_report_schema_unsupported": (
+        "The report's schema is not carbon.admission-conditions.v1; nothing was "
+        "recorded."
+    ),
+    "conditions_report_challenge_mismatch": (
+        "The report names a Challenge other than --challenge; nothing was recorded."
+    ),
+    "admission_controller_not_designated": (
+        "No controller is designated for this (Challenge, level) in "
+        "carbon/challenge_pipeline/admission_controllers.json. Nothing was "
+        "recorded; pass --record-also to record here anyway (not the LOCK "
+        "authority)."
+    ),
+    "admission_controller_mismatch": (
+        "This root's controller is not the one designated for this (Challenge, "
+        "level). Nothing was recorded; pass --record-also to record here anyway "
+        "(not the LOCK authority)."
+    ),
+}
+
+
+class ConditionsRefused(RunnerRefused):
+    """A typed refusal with a plain message; nothing was recorded."""
+
+    def __init__(self, code, detail=None):
+        message = CONDITIONS_MESSAGES.get(code, code)
+        out = {"status": "REFUSED", "reason_code": code, "message": message}
+        if detail:
+            out["detail"] = detail
+        print(json.dumps(out))
+        SystemExit.__init__(self, 2)
+        self.reason_code = code
+
+
+class NoPods:
+    """The pod backend of a command that never runs a pod: every call is
+    refused before anything is created. It holds no key and reads none."""
+
+    name = "no-pods"
+
+    def describe(self):
+        return {"backend": self.name, "synthetic": True, "pods": "refused"}
+
+    def _refuse(self, *_args, **_kwargs):
+        from .pods import PodFailure
+
+        raise PodFailure("launch", "no pod runs under this command", executed=False)
+
+    launch = wait = fetch = terminate = charge = recover = _refuse
+
+
+def conditions_report(path, challenge):
+    """The report's bytes, document and level, checked before anything is
+    opened: schema `carbon.admission-conditions.v1`, a list of conditions
+    each naming one admission condition, an optional `challenge` that must be
+    `challenge` and an optional `level` (default 0)."""
+    from carbon.challenge_readiness import admission
+
+    try:
+        body = Path(path).read_bytes()
+    except OSError as error:
+        raise ConditionsRefused(
+            "conditions_report_unreadable", type(error).__name__
+        ) from None
+    try:
+        report = json.loads(body)
+    except ValueError:
+        raise ConditionsRefused("conditions_report_malformed", "not JSON") from None
+    if type(report) is not dict:
+        raise ConditionsRefused("conditions_report_malformed", "not an object")
+    if report.get("schema") != CONDITIONS_SCHEMA:
+        raise ConditionsRefused("conditions_report_schema_unsupported")
+    entries = report.get("conditions")
+    if type(entries) is not list or any(
+        type(entry) is not dict or entry.get("condition") not in admission.CONDITIONS
+        for entry in entries
+    ):
+        raise ConditionsRefused(
+            "conditions_report_malformed", "conditions name admission conditions"
+        )
+    if "challenge" in report and report["challenge"] != challenge:
+        raise ConditionsRefused("conditions_report_challenge_mismatch")
+    level = report.get("level", 0)
+    if type(level) is not int or level < 0:
+        raise ConditionsRefused("conditions_report_malformed", "level")
+    return body, report, level
+
+
+def conditions_controller(root, grant, scoring):
+    """The root's own controller (`controller_for`), opened offline: a
+    scripted model with no script and `NoPods`, so no model call, pod or key
+    is reachable. The provider's capabilities must match the grant's
+    provider; another process's lock is refused."""
+    from ..controller import ControllerError
+    from .model import ScriptedModel
+
+    if not (root / "controller" / "campaign.sqlite3").is_file():
+        raise ConditionsRefused("controller_store_missing")
+    try:
+        provider = Phase3Provider(
+            root=root / "graphite",
+            grant=grant,
+            model=ScriptedModel([]),
+            pods=NoPods(),
+            scoring=scoring,
+        )
+        return controller_for(root, provider, grant)
+    except ProviderUnavailable as refused:
+        raise ConditionsRefused(str(refused)) from None
+    except ControllerError as refused:
+        raise ConditionsRefused(refused.code) from None
+
+
+def _designation(challenge, level, identity, record_also):
+    """Whether this controller may take the report for (challenge, level),
+    and what to say. Pending: allowed with a warning (the designated root is
+    the one whose identity is pending, and a finding only ever closes LOCK).
+    Not designated or another controller: refused unless `record_also`."""
+    from carbon.challenge_pipeline import admission_controllers as designations
+
+    try:
+        entry = designations.designation(challenge, level)
+    except designations.DesignationRefused as refused:
+        raise ConditionsRefused(refused.code, str(refused)) from None
+    view = {"challenge": challenge, "level": level, "entry": entry}
+    if entry is not None and designations.pending(entry):
+        view["status"] = designations.IDENTITY_PENDING
+        view["lock_authority"] = None
+        warning = (
+            f"The designation for {challenge} level {level} is pending its "
+            f"operator-reported identity ({entry['name']}). Recorded here as the "
+            "intended authority; report this controller's identity in the "
+            "follow-up that fills the designation. No LOCK passes until it does."
+        )
+        return view, [warning]
+    if entry is not None and entry["identity"] == identity:
+        view["status"], view["lock_authority"] = designations.DESIGNATED, True
+        return view, []
+    code = designations.NOT_DESIGNATED if entry is None else designations.MISMATCH
+    if not record_also:
+        raise ConditionsRefused(code, f"{challenge} level {level}")
+    view["status"], view["lock_authority"] = code, False
+    warning = (
+        f"--record-also: this root is not the LOCK authority for {challenge} "
+        f"level {level} ({code}). The findings are recorded here, and must also "
+        "be recorded on the designated controller to block its LOCK."
+    )
+    return view, [warning]
+
+
+def command_conditions(args):
+    """Record an admission-conditions report's conditions as findings on the
+    root's controller (`consume_conditions`), or print its identity only.
+
+        conditions --root ROOT --grant GRANT --challenge TOKEN --report PATH
+            [--record-also]
+        conditions --root ROOT --grant GRANT --challenge TOKEN --identity
+
+    Idempotent: the same report bytes give the same finding ids, and a repeat
+    records nothing new (a finding repaired since is reopened, as the
+    controller reopens any repaired finding recorded again)."""
+    import hashlib
+
+    from ..controller import ControllerError
+
+    root = Path(args.root).expanduser().resolve()
+    if root == REPOSITORY or REPOSITORY in root.parents:
+        raise ConditionsRefused("root_must_be_outside_the_repository")
+    grant = load_grant(args.grant)
+    try:
+        scoring = challenge_scoring.scoring_for(args.challenge)
+    except challenge_scoring.ScoringUnavailable as refused:
+        raise ConditionsRefused(refused.code) from None
+    report = None
+    if not args.identity:
+        if args.report is None:
+            raise ConditionsRefused("required: --report or --identity")
+        body, report, level = conditions_report(args.report, args.challenge)
+    control = conditions_controller(root, grant, scoring)
+    try:
+        identity = control.identity()
+        if args.identity:
+            view, _ = _designation(args.challenge, 0, identity["identity"], True)
+            print(json.dumps({"controller": identity, "designation": view}, indent=1))
+            return 0
+        view, warnings = _designation(
+            args.challenge, level, identity["identity"], args.record_also
+        )
+        recorded = {
+            e["observed_result"]["id"]
+            for e in control.ledger()
+            if e["kind"] == "finding"
+        }
+        open_before = {f["id"] for f in control.open_findings()}
+        # The bytes checked above are the bytes consumed: a private copy.
+        with tempfile.TemporaryDirectory(prefix="graphite-conditions-") as private:
+            copy = Path(private) / "report.json"
+            copy.write_bytes(body)
+            try:
+                ids = control.consume_conditions(copy)
+            except ControllerError as refused:
+                raise ConditionsRefused(refused.code) from None
+    finally:
+        control.close()
+    for warning in warnings:
+        print("WARNING: " + warning, file=sys.stderr)
+    print(
+        json.dumps(
+            {
+                "status": "CONSUMED",
+                "challenge": args.challenge,
+                "level": level,
+                "report_sha256": "sha256:" + hashlib.sha256(body).hexdigest(),
+                "conditions": len(report["conditions"]),
+                "finding_ids": ids,
+                "findings": [
+                    {
+                        "id": fid,
+                        "result": (
+                            "RECORDED"
+                            if fid not in recorded
+                            else (
+                                "ALREADY_RECORDED"
+                                if fid in open_before
+                                else "REOPENED_AFTER_REPAIR"
+                            )
+                        ),
+                    }
+                    for fid in ids
+                ],
+                "controller": identity,
+                "designation": view,
+                "warnings": warnings,
+            },
+            indent=1,
+        )
+    )
+    return 0
+
+
 # -- the dry run ---------------------------------------------------------------------------
 DRY_RUN_GRANT = {
     "schema": "carbon.agent-campaign.spending-grant.v1",
@@ -1842,18 +2257,33 @@ def dry_run_script(baseline, variant, refused):
     ]
 
 
+def score_variant_for(version, scoring, variant=None):
+    """The development score variant `--score-variant` names for the session's
+    Challenge (`score_variant.resolve`), or None without the flag. Refused,
+    typed, before anything is read or spent (VALIDATOR-09)."""
+    try:
+        return sv.resolve(
+            version, scoring, level=0 if variant is None else variant.level
+        )
+    except sv.ScoreVariantRefused as refused:
+        raise RunnerRefused(refused.code) from None
+
+
 def dry_run(
     root,
     scoring,
     literature=None,
     development_variant=None,
     analysis_image_manifest=None,
+    score_variant=None,
 ):
     """`development_variant`: a development level's registered variant for the
     same Challenge (`development_variant_for`), or None at Level 0.
     `analysis_image_manifest`: the campaign's pinned analysis image, for the
     REAL miner lane's containment check; without it that check fails closed
-    and the dry run exits nonzero."""
+    and the dry run exits nonzero.
+    `score_variant`: a resolved development score variant (`score_variant_for`),
+    or None."""
     from carbon.development_session.containment_check import containment_check
 
     from .model import ScriptedModel
@@ -1884,6 +2314,7 @@ def dry_run(
         randomness=lambda n: b"\x00" * n,
         scoring=scoring,
         **({} if literature is None else {"literature_index": literature}),
+        **({} if score_variant is None else {"score_variant": score_variant}),
     )
     control = controller_for(root, provider, grant)
     try:
@@ -1893,6 +2324,11 @@ def dry_run(
             literature=literature,
             scoring=scoring,
             variant=development_variant,
+            **(
+                {}
+                if score_variant is None
+                else {"score_variant": sv.identity_of(score_variant)}
+            ),
         )
         result = run_session(control, provider, brief, 1, development_variant)
     finally:
@@ -1998,11 +2434,31 @@ def main(argv=None):
     run.add_argument(
         "--hidden-deployment",
         help="also score each construction on this battery deployment's hidden "
-        "pool through the real validator (VALIDATOR-13; Level 0)",
+        "pool through the real validator, in this process (synthetic fixtures "
+        "only; a sealed pool lives on its own host: use --hidden-endpoint)",
+    )
+    run.add_argument(
+        "--hidden-endpoint",
+        help="the hidden pool's host door (VALIDATOR-19 slice 0), reached with "
+        "--hidden-submitter-key",
+    )
+    run.add_argument("--hidden-submitter-key")
+    run.add_argument(
+        "--hidden-ca",
+        help="the hidden host's own TLS certificate, pinned (HIDDEN_HOST_SETUP.md)",
     )
     run.add_argument("--session", type=int, default=1)
     run.add_argument("--literature-snapshot")
     run.add_argument("--allow-unchecked-cards", action="store_true")
+    run.add_argument(
+        "--score-variant",
+        metavar="VERSION",
+        help=(
+            "a registered development score variant (VALIDATOR-09), Level 0 "
+            "only: its result is recorded beside the frozen rule's on every "
+            "result; resolved before any spend, or refused"
+        ),
+    )
     cancel = sub.add_parser("cancel")
     cancel.add_argument("--root", required=True)
     cancel.add_argument("--session", type=int, required=True)
@@ -2021,6 +2477,22 @@ def main(argv=None):
     proposals = sub.add_parser("proposals")
     proposals.add_argument("--root", required=True)
     proposals.add_argument("--dry-run", action="store_true")
+    conditions = sub.add_parser("conditions")
+    conditions.add_argument("--root", required=True)
+    conditions.add_argument("--grant", required=True)
+    conditions.add_argument("--challenge", required=True)
+    mode = conditions.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--report", help="a carbon.admission-conditions.v1 report")
+    mode.add_argument(
+        "--identity",
+        action="store_true",
+        help="print the controller's identity only; nothing is consumed",
+    )
+    conditions.add_argument(
+        "--record-also",
+        action="store_true",
+        help="record into a controller that is not the designated LOCK authority",
+    )
     args = parser.parse_args(argv)
     if args.command == "run" and not args.dry_run:
         missing = [
@@ -2054,6 +2526,7 @@ def main(argv=None):
         "status": command_status,
         "rebuild": command_rebuild,
         "proposals": command_proposals,
+        "conditions": command_conditions,
     }[args.command](args)
 
 

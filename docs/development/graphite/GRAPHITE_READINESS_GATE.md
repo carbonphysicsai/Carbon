@@ -39,6 +39,7 @@ fails the gate gets no live Graphite run, at any level.
 | P4 | No battery-specific literal is reached on this challenge's path: tool text v2, literature snapshot, writeup. | [auto] a grep of the path's resolved modules, plus the v2 role record | N1 |
 | P5 | The no-op audit passes for every rebuildable capability. Known no-ops are listed. | [auto] `test_construction_noop_audit.py` | I1 |
 | P6 | Identity is by rebuilt artifact: no count, dedup or limit keyed on recipe text. | [auto] the audit; WAVE-04 §1 | I1 |
+| P7 | The construction boundary is consistent across the validator door, the contract compile and Graphite's admission: the boundary-consistency test (the VALIDATOR-10 pattern) exists and passes for this challenge. | [auto] `test_challenge_validator_boundary_consistency.py` | X1 |
 
 ## R. Runtime: the real path, not a synthetic one
 

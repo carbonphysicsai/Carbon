@@ -266,3 +266,63 @@ def test_malformed_aliases_fail_closed(recorded, aliases):
     panel["aliases"] = aliases
     recorded(panel)
     assert _status(q1.v2_panel_discrimination) == model.FAIL
+
+
+# -- P4: tool text v2 neutrality ----------------------------------------------------------------
+def _fake_roles(monkeypatch, v1_text, v2_text, v2=True):
+    import sys
+    import types
+
+    class Role:
+        def tool_schemas(self, version):
+            return [{"description": v1_text if version == "v1" else v2_text}]
+
+    module = types.ModuleType("fake_roles")
+    module.TOOL_TEXT_V1 = "v1"
+    if v2:
+        module.TOOL_TEXT_V2 = "v2"
+    module.ROLES = {"r": Role()}
+    monkeypatch.setitem(sys.modules, "carbon.agent_campaign.graphite.roles", module)
+    import carbon.agent_campaign.graphite as package
+
+    monkeypatch.setattr(package, "roles", module, raising=False)
+
+
+def test_p4_v2_neutral_is_not_built_not_pass_until_other_parts_land(monkeypatch):
+    monkeypatch.setattr(checks, "_challenge_tokens", lambda: ["chip-cold-plate"])
+    _fake_roles(monkeypatch, "scores chip-cold-plate", "scores the Challenge")
+    result = checks.neutral_path({}, _ctx())
+    assert result.status == model.NOT_BUILT and "names no challenge" in result.detail
+
+
+def test_p4_fails_when_v2_names_a_challenge_or_detector_is_blind(monkeypatch):
+    monkeypatch.setattr(checks, "_challenge_tokens", lambda: ["chip-cold-plate"])
+    _fake_roles(monkeypatch, "scores chip-cold-plate", "still chip-cold-plate")
+    assert checks.neutral_path({}, _ctx()).status == model.FAIL
+    _fake_roles(monkeypatch, "no names here", "no names here")
+    blind = checks.neutral_path({}, _ctx())
+    assert blind.status == model.FAIL and "blind" in blind.detail
+
+
+def test_p4_without_versioned_tool_text_is_not_built(monkeypatch):
+    _fake_roles(monkeypatch, "a", "b", v2=False)
+    assert checks.neutral_path({}, _ctx()).status == model.NOT_BUILT
+
+
+def test_neutral_test_ids_are_selected_for_this_challenge(monkeypatch):
+    seen = []
+    monkeypatch.setattr(
+        checks,
+        "run_tests",
+        lambda ctx, paths: seen.append(paths) or model.Result(model.PASS, "ok"),
+    )
+    item = {
+        "id": "P5",
+        "pending": {
+            "neutral_tests": [
+                "tests/cpu/test_challenge_readiness_gate_q1.py::t[{challenge}]"
+            ]
+        },
+    }
+    checks.recorded_tests(item, _ctx())
+    assert seen == [[f"tests/cpu/test_challenge_readiness_gate_q1.py::t[{CHALLENGE}]"]]

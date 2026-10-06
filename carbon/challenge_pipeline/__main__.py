@@ -11,7 +11,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from carbon.challenge_pipeline import render
+from carbon.challenge_pipeline import admission_controllers, render
 from carbon.challenge_pipeline.lessons import load_lessons, open_revisions
 from carbon.challenge_pipeline.roadmap import rank_all
 from carbon.challenge_pipeline.state import load_state, measured_times, stage_of
@@ -29,7 +29,8 @@ def _readiness(args):
     except runner.ReadinessRefused as refused:
         print(f"readiness refused: {refused}")
         return 2
-    runner.append_history(report)
+    if not args.no_history:
+        runner.append_history(report)
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     print(runner.render_text(report))
@@ -44,7 +45,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m carbon.challenge_pipeline")
     sub = parser.add_subparsers(dest="command", required=True)
     v = sub.add_parser(
-        "validate", help="check the protocol, rubric, records and lessons"
+        "validate",
+        help="check the protocol, rubric, records, lessons and admission controllers",
     )
     v.add_argument(
         "--conditional-ledger",
@@ -64,6 +66,11 @@ def main(argv=None):
     g.add_argument("--level", type=int, default=0)
     g.add_argument("--json", metavar="OUT", help="also write the digest-bound report")
     g.add_argument(
+        "--no-history",
+        action="store_true",
+        help="scratch or rerun: print the report and append nothing",
+    )
+    g.add_argument(
         "--only", help="comma-separated item ids (a partial run is never green)"
     )
     r = sub.add_parser("render", help="write docs/development/CHALLENGE_PIPELINE.md")
@@ -77,9 +84,12 @@ def main(argv=None):
     families, protocol, _, records = load_state(ledgers=ledgers)
     if args.command == "validate":
         entries = load_lessons(protocol)
+        controllers = admission_controllers.load()["controllers"]
+        pending = sum(map(admission_controllers.pending, controllers))
         print(
             f"protocol {protocol['state']}; {len(records)} records valid; "
-            f"{len(entries)} lessons valid, {len(open_revisions(entries))} awaiting a decision"
+            f"{len(entries)} lessons valid, {len(open_revisions(entries))} awaiting a decision; "
+            f"{len(controllers)} admission controllers designated, {pending} pending identity"
         )
     elif args.command == "queue":
         for row in rank_all(families, measured_times(records)):
