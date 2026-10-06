@@ -583,6 +583,7 @@ RECEIVED_AGAIN = frozenset(
         "hotkey_window_used",
         "receipt_block_missing",
         "commitment_required",
+        "commitment_stale",
         "commitment_reader_unavailable",
         "backend_not_served",
     }
@@ -900,7 +901,7 @@ def work_once(inbox, target):
     was, to be retried; it is never a refusal of the miner. Returns what the
     pass moved, as counts only.
     """
-    from .daemon import BackendNotServed, CommitmentRequired
+    from .daemon import BackendNotServed, CommitmentRequired, CommitmentStale
     from .deployment import writer
     from .pool_store import HotkeyWindowUsed
 
@@ -918,12 +919,15 @@ def work_once(inbox, target):
             inbox.mark(submission_id, "REFUSED", {"failure": failure})
             moved["refused"] += 1
             continue
-        except CommitmentRequired:
-            code = (
-                "commitment_reader_unavailable"
-                if target.commitments is None
-                else "commitment_required"
-            )
+        except CommitmentRequired as missing:
+            if target.commitments is None:
+                code = "commitment_reader_unavailable"
+            elif isinstance(missing, CommitmentStale):
+                # D6: the matching commitment was spent by an earlier
+                # admission; a fresh one makes this resend count.
+                code = "commitment_stale"
+            else:
+                code = "commitment_required"
             inbox.mark(submission_id, "REFUSED", {"failure": {"code": code}})
             moved["refused"] += 1
             continue

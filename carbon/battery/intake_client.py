@@ -215,6 +215,11 @@ REFUSALS = {
         "This validator requires an on-chain commitment it cannot yet read."
     ),
     "commitment_required": "Commit this recipe's hash on chain, then resend.",
+    "commitment_stale": (
+        "Your on-chain commitment was posted before your previous submission "
+        "here, so it was already used. Commit this recipe's hash again, then "
+        "resend."
+    ),
     "backend_not_served": (
         "This validator has no worker image for your recipe's backend. This is "
         "not a verdict on your recipe and nothing was recorded; send it to a "

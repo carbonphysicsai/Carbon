@@ -331,11 +331,11 @@ def evaluate(target, submission):
         except CommitmentUnavailable:
             # The chain could not be read: infrastructure, never the miner's.
             raise EvaluationUnavailable("commitment_reader_unavailable") from None
-        except CommitmentRequired:
+        except CommitmentRequired as missing:
             code = (
                 "commitment_reader_unavailable"
                 if target.commitments is None
-                else "commitment_required"
+                else missing.code
             )
             raise EvaluationUnavailable(code) from None
         except BackendNotServed:

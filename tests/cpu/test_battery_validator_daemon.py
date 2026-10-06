@@ -821,3 +821,48 @@ def test_the_service_key_signs_only_registered_weight_intent_shapes(tmp_path):
     ):
         with pytest.raises(ValueError):
             key.sign("weight_intent", tampered)
+
+
+def test_a_commitment_counts_once_after_the_previous_admission(tmp_path, refs, backend):
+    """OWNER-COMMITMENT-POSTER-01 D6: a matching commitment counts only when
+    posted after this hotkey's previous admission; a replay is not refused."""
+    import dataclasses
+
+    from carbon.battery.compile import compile_recipe
+    from carbon.battery.daemon import CommitmentStale
+
+    class Chain:
+        def __init__(self):
+            self.values = {}
+
+        def read(self, hotkey):
+            return self.values.get(hotkey)
+
+    chain = Chain()
+    validator = make(
+        tmp_path, refs, backend, require_commitment=True, commitments=chain
+    )
+
+    def at(sub, block):
+        return dataclasses.replace(sub, receipt={**sub.receipt, "block": block})
+
+    def commit(sub, block):
+        _, recipe = compile_recipe(sub.strategy)
+        chain.values[sub.hotkey] = {
+            "digest": commitment_digest(BATTERY, DIGEST, recipe.strategy_hash),
+            "block": block,
+        }
+
+    first = submission("hk1", neighbours=8)
+    commit(first, 90)
+    admitted = validator.admit(at(first, 100))
+    # The same submission again is a replay, never a stale commitment.
+    assert validator.admit(at(first, 100))["submission_id"] == admitted["submission_id"]
+    second = submission("hk1", neighbours=3)
+    commit(second, 95)  # posted before the previous admission's block 100
+    with pytest.raises(CommitmentStale):
+        validator.admit(at(second, 500))
+    commit(second, 150)
+    assert (
+        validator.admit(at(second, 500))["submission_id"] != admitted["submission_id"]
+    )

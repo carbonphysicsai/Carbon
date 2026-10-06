@@ -218,6 +218,15 @@ def submission_identity(submission):
 class CommitmentRequired(PermissionError):
     """The miner has not committed this submission on chain."""
 
+    code = "commitment_required"
+
+
+class CommitmentStale(CommitmentRequired):
+    """The matching commitment was posted before this hotkey's previous
+    admission, so it was already spent (OWNER-COMMITMENT-POSTER-01 D6)."""
+
+    code = "commitment_stale"
+
 
 class BackendNotServed(PermissionError):
     """This validator has no worker image for the recipe's backend.
@@ -587,7 +596,20 @@ class BatteryValidator:
                 raise CommitmentRequired(
                     "commit " + expected + " on chain before submitting"
                 )
-            commitment = {"digest": expected, "block": observed.get("block")}
+            # D6: a commitment counts only when fresh, posted after this
+            # hotkey's previous admission (it is read at the finalized head,
+            # so it was posted before this submission). The chain keeps one
+            # commitment per hotkey, so the earliest-qualifying rule needs no
+            # choice here. A replay of this same submission is not "previous".
+            previous = self.store.last_admission_block(
+                submission.hotkey, excluding=submission_id
+            )
+            posted = observed.get("block")
+            if previous is not None and not (type(posted) is int and posted > previous):
+                raise CommitmentStale(
+                    "commit " + expected + " again after block " + str(previous)
+                )
+            commitment = {"digest": expected, "block": posted}
         identities = self.identities()
         binding = {
             **{
