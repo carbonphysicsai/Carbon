@@ -2,7 +2,7 @@
 
     python -m carbon.agent_campaign.graphite.phase3 run --root DIR --challenge TOKEN \
         --grant docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3.json \
-        (--credential-file PATH | --credential-env ENGY_API_KEY) \
+        --credential-file PATH \
         (--runpod-key-file PATH | --runpod-key-env RUNPOD_API_KEY) \
         --miner-profile PROFILE.json --miner-campaign ID --code-ref SHA \
         --literature-snapshot SNAPSHOT.json [--allow-unchecked-cards] [--session N] \
@@ -76,12 +76,22 @@ run's bundle carries its own. A proposal widens nothing and is never scored.
 `DIR` is a private directory outside the repository. Nothing here opens a
 pull request, writes under `docs/`, or touches chain state.
 
-**Credentials.** The Engy key as phase 2 takes it (`--credential-env
-ENGY_API_KEY` copies it into a 0600 file in a fresh 0700 directory, removed on
-exit). The RunPod key as the pod tooling keeps it: an owner-only file
-(`~/.runpod/api_key` for `pod_control`); `--runpod-key-env RUNPOD_API_KEY`
-copies the variable the same way. Neither key is printed, logged or given to
-the agent.
+**Credentials.** Keys by file path, as phase 4 takes them: `--credential-file`
+names an owner-only file holding the Engy key, checked by its metadata alone
+with phase 4's rule (`phase4.owner_only_file`). `--credential-env ENGY_API_KEY`
+is kept for older launchers: it copies the variable into a 0600 file in a fresh
+0700 directory, removed on exit. The RunPod key as the pod tooling keeps it: an
+owner-only file (`~/.runpod/api_key` for `pod_control`); `--runpod-key-env
+RUNPOD_API_KEY` copies the variable the same way. Neither key is printed,
+logged or given to the agent. `python -m carbon.agent_campaign.graphite
+run-checked` (`run_checked`) takes key files only.
+
+**Ends and next steps.** A session that ended (`succeeded`, `failed`,
+`cancelled`) is terminal: running the same `run` again prints its recorded
+end. `run` and `status` carry `next_step`; a `failed` session with code
+`reconciliation_required` names `reconcile`, then a new `--session N`.
+`run` and `status` also carry `pod_charges`: each pod's booked amount beside
+its provider charge or estimate, with the basis (`experiment.CHARGE_BASES`).
 
 `--dry-run` runs the whole session with a scripted model, a scripted pod
 account and a recording miner tool, under a synthetic grant, writing only
@@ -127,7 +137,6 @@ session recorded under the old cap resumes under it, byte-identically.
 
 from __future__ import annotations
 
-import argparse
 import asyncio
 import contextlib
 import json
@@ -161,6 +170,7 @@ from . import experiment as ex
 from . import grant_binding, next_level
 from . import literature as lit
 from . import tools as toolbox
+from .cli_usage import ChallengeParser, challenge_help, next_step
 from .ladder import Ladder, LadderError
 from .provider import (
     EPOCH,
@@ -388,6 +398,7 @@ class Phase3Provider(GraphiteProvider):
         randomness=os.urandom,
         adapter_id=None,
         scoring=None,
+        hidden=None,
         **kwargs,
     ):
         if type(grant) is not SpendingGrant:
@@ -428,6 +439,9 @@ class Phase3Provider(GraphiteProvider):
         if start_rungs:
             self.ladder = Ladder(Path(root) / "ladder", start_rungs=start_rungs)
         self.pods, self.miner_attach = pods, miner_attach
+        #: `run_id -> HiddenPool`, or None: each run's hidden-pool scoring
+        #: through the real validator (VALIDATOR-13, `hidden_score`).
+        self.hidden = hidden
         self.scorer, self.repository, self.randomness = scorer, repository, randomness
         #: The campaign controller this provider's runs record findings on as
         #: they are found, and tag next-level proposals from (`bind_findings`).
@@ -580,6 +594,7 @@ class Phase3Provider(GraphiteProvider):
             seconds_left=self._time_gate(run_id, opened),
             development_variant=recorded_variant(opened, self.scoring),
             on_finding=self._record_finding,
+            hidden=None if self.hidden is None else self.hidden(run_id),
         )
 
     def _next_level(self, run_id, role):
@@ -1403,6 +1418,68 @@ def carrier_pods(root, manifest):
     return CarrierPods(root, image=image)
 
 
+def finalized_block_clock(context):
+    """`() -> int | None`: the chain's finalized block, read-only; None when
+    the chain cannot be read (the hidden result is then `UNAVAILABLE`)."""
+    import asyncio
+
+    from carbon.chain.models import ChainFailure
+    from carbon.chain.sdk import BittensorReader
+
+    def clock():
+        try:
+            return asyncio.run(BittensorReader().capture(context)).finalized_block
+        except (ChainFailure, OSError):
+            return None
+
+    return clock
+
+
+def hidden_pool_factory(
+    config_path, scoring, variant, *, clock=None, repository=REPOSITORY
+):
+    """`run_id -> HiddenPool` over the battery deployment at `config_path`
+    (VALIDATOR-13). Checked before anything is spent: the deployment loads
+    writable, its rule seals hidden results, and a development level (the
+    run's registered variant) needs a deployment that opted in with
+    `development_only` (owner, 2026-10-06)."""
+    from pathlib import Path
+
+    from carbon.battery import deployment
+
+    from .hidden_score import HiddenPool, HiddenPoolRefused
+
+    if clock is None:
+        from carbon.chain.models import ChainContext
+        from carbon.development_testnet.operator import (
+            DEFAULT_ENDPOINT,
+            TESTNET_GENESIS,
+        )
+
+        clock = finalized_block_clock(
+            ChainContext(
+                "testnet",
+                DEFAULT_ENDPOINT,
+                "bittensor-official-test",
+                TESTNET_GENESIS,
+                567,
+            )
+        )
+    try:
+        target = deployment.validator(Path(config_path), repository=repository)
+    except deployment.EvaluationUnavailable as refused:
+        raise RunnerRefused("hidden_" + refused.code) from None
+    try:
+        probe = HiddenPool(target, run_id="probe", clock=clock, variant=variant)
+    except HiddenPoolRefused as refused:
+        raise RunnerRefused(refused.code) from None
+    if probe.challenge_id != scoring.challenge_id:
+        raise RunnerRefused("hidden_pool_is_another_challenges")
+    return lambda run_id: HiddenPool(
+        target, run_id=run_id, clock=clock, variant=variant
+    )
+
+
 def command_run(args):
     try:
         scoring = challenge_scoring.scoring_for(args.challenge)
@@ -1414,7 +1491,11 @@ def command_run(args):
     level = {} if variant is None else {"development_variant": variant}
     if args.dry_run:
         return dry_run(
-            _root(args.root), scoring, literature=_literature_from(args), **level
+            _root(args.root),
+            scoring,
+            literature=_literature_from(args),
+            analysis_image_manifest=getattr(args, "analysis_image_manifest", None),
+            **level,
         )
     root = _root(args.root)
     grant = load_grant(args.grant)
@@ -1444,6 +1525,11 @@ def command_run(args):
     from .pods import RunPodPods
 
     with contextlib.ExitStack() as stack:
+        if args.credential_file is not None:
+            # The same owner-only rule as phase 4's --credential-file.
+            from .phase4 import owner_only_file
+
+            owner_only_file(args.credential_file)
         engy = stack.enter_context(
             credential_file(path=args.credential_file, env=args.credential_env)
         )
@@ -1459,6 +1545,11 @@ def command_run(args):
                 raise RunnerRefused("runpod_key_file_must_be_owner_only")
         check_code_ref(args.code_ref)
         check_literature_challenge(literature, args.challenge, RunnerRefused)
+        hidden = (
+            None
+            if getattr(args, "hidden_deployment", None) is None
+            else hidden_pool_factory(args.hidden_deployment, scoring, variant)
+        )
         try:
             model = LiveModel(grant=grant, credential_file=engy, provider="graphite")
         except ModelAccessRefused as refused:
@@ -1489,6 +1580,7 @@ def command_run(args):
             miner_attach=attach,
             literature_index=literature,
             scoring=scoring,
+            hidden=hidden,
         )
         try:
             check_resume(provider, args.session)
@@ -1508,8 +1600,22 @@ def command_run(args):
             result = run_session(control, provider, brief, args.session, variant)
         finally:
             control.close()
+    run_dir = provider._dir(result["run_id"])
+    result["pod_charges"] = ex.pod_charge_report(
+        ex.PodLedger(run_dir / "experiment" / "pod-ledger.jsonl", time.time)
+    )
+    result["next_step"] = _next_step(_read(run_dir / "state.json"))
     print(json.dumps(result, indent=1, default=str))
     return 0 if result["provider_state"] == "succeeded" else 4
+
+
+def _next_step(state):
+    """The typed next step for a run's recorded state (`cli_usage.next_step`):
+    a terminal `reconciliation_required` session names `reconcile`, never a
+    rerun."""
+    if not isinstance(state, dict):
+        return None
+    return next_step(state.get("state"), state.get("failure"))
 
 
 def command_cancel(args):
@@ -1637,6 +1743,8 @@ def command_status(args):
             "pods_settled_usd": str(settled),
             "pods_pending_usd": str(pending),
             "pods_live": [p["intent_id"] for p in ledger.live()],
+            "pod_charges": ex.pod_charge_report(ledger),
+            "next_step": _next_step(state),
             "delivery": _read(run / "delivery.json"),
             "escalation": _read(run / "escalation.json"),
             "literature": _literature_of(run),
@@ -1676,6 +1784,273 @@ def command_rebuild(args):
     result = deliver_.clean_rebuild(Path(args.bundle))
     print(json.dumps(result, indent=1))
     return 0 if result["status"] == "REBUILT" else 4
+
+
+# -- admission conditions into the root's controller (GRAPHITE-ADMISSION-CONTROLLER-01) -----
+CONDITIONS_SCHEMA = "carbon.admission-conditions.v1"
+CONDITIONS_MESSAGES = {
+    "controller_already_active": (
+        "Another process holds this root's controller lock (a running session, "
+        "reconcile or conditions command). Nothing was recorded; retry when it "
+        "has finished."
+    ),
+    "grant_provider_mismatch": (
+        "The grant's provider is not the phase-3 provider's; nothing was opened."
+    ),
+    "grant_changed_under_existing_store": (
+        "The grant is not the one this root's controller is bound to; nothing "
+        "was recorded."
+    ),
+    "controller_store_id_invalid": (
+        "The controller's store-id file is damaged; nothing was recorded."
+    ),
+    "controller_store_missing": (
+        "This root has no campaign controller store (ROOT/controller/"
+        "campaign.sqlite3). Nothing was created; check the root."
+    ),
+    "conditions_report_unreadable": "The report could not be read.",
+    "conditions_report_malformed": (
+        "The report is not a well-formed carbon.admission-conditions.v1 "
+        "document; nothing was recorded."
+    ),
+    "conditions_report_schema_unsupported": (
+        "The report's schema is not carbon.admission-conditions.v1; nothing was "
+        "recorded."
+    ),
+    "conditions_report_challenge_mismatch": (
+        "The report names a Challenge other than --challenge; nothing was recorded."
+    ),
+    "admission_controller_not_designated": (
+        "No controller is designated for this (Challenge, level) in "
+        "carbon/challenge_pipeline/admission_controllers.json. Nothing was "
+        "recorded; pass --record-also to record here anyway (not the LOCK "
+        "authority)."
+    ),
+    "admission_controller_mismatch": (
+        "This root's controller is not the one designated for this (Challenge, "
+        "level). Nothing was recorded; pass --record-also to record here anyway "
+        "(not the LOCK authority)."
+    ),
+}
+
+
+class ConditionsRefused(RunnerRefused):
+    """A typed refusal with a plain message; nothing was recorded."""
+
+    def __init__(self, code, detail=None):
+        message = CONDITIONS_MESSAGES.get(code, code)
+        out = {"status": "REFUSED", "reason_code": code, "message": message}
+        if detail:
+            out["detail"] = detail
+        print(json.dumps(out))
+        SystemExit.__init__(self, 2)
+        self.reason_code = code
+
+
+class NoPods:
+    """The pod backend of a command that never runs a pod: every call is
+    refused before anything is created. It holds no key and reads none."""
+
+    name = "no-pods"
+
+    def describe(self):
+        return {"backend": self.name, "synthetic": True, "pods": "refused"}
+
+    def _refuse(self, *_args, **_kwargs):
+        from .pods import PodFailure
+
+        raise PodFailure("launch", "no pod runs under this command", executed=False)
+
+    launch = wait = fetch = terminate = charge = recover = _refuse
+
+
+def conditions_report(path, challenge):
+    """The report's bytes, document and level, checked before anything is
+    opened: schema `carbon.admission-conditions.v1`, a list of conditions
+    each naming one admission condition, an optional `challenge` that must be
+    `challenge` and an optional `level` (default 0)."""
+    from carbon.challenge_readiness import admission
+
+    try:
+        body = Path(path).read_bytes()
+    except OSError as error:
+        raise ConditionsRefused(
+            "conditions_report_unreadable", type(error).__name__
+        ) from None
+    try:
+        report = json.loads(body)
+    except ValueError:
+        raise ConditionsRefused("conditions_report_malformed", "not JSON") from None
+    if type(report) is not dict:
+        raise ConditionsRefused("conditions_report_malformed", "not an object")
+    if report.get("schema") != CONDITIONS_SCHEMA:
+        raise ConditionsRefused("conditions_report_schema_unsupported")
+    entries = report.get("conditions")
+    if type(entries) is not list or any(
+        type(entry) is not dict or entry.get("condition") not in admission.CONDITIONS
+        for entry in entries
+    ):
+        raise ConditionsRefused(
+            "conditions_report_malformed", "conditions name admission conditions"
+        )
+    if "challenge" in report and report["challenge"] != challenge:
+        raise ConditionsRefused("conditions_report_challenge_mismatch")
+    level = report.get("level", 0)
+    if type(level) is not int or level < 0:
+        raise ConditionsRefused("conditions_report_malformed", "level")
+    return body, report, level
+
+
+def conditions_controller(root, grant, scoring):
+    """The root's own controller (`controller_for`), opened offline: a
+    scripted model with no script and `NoPods`, so no model call, pod or key
+    is reachable. The provider's capabilities must match the grant's
+    provider; another process's lock is refused."""
+    from ..controller import ControllerError
+    from .model import ScriptedModel
+
+    if not (root / "controller" / "campaign.sqlite3").is_file():
+        raise ConditionsRefused("controller_store_missing")
+    try:
+        provider = Phase3Provider(
+            root=root / "graphite",
+            grant=grant,
+            model=ScriptedModel([]),
+            pods=NoPods(),
+            scoring=scoring,
+        )
+        return controller_for(root, provider, grant)
+    except ProviderUnavailable as refused:
+        raise ConditionsRefused(str(refused)) from None
+    except ControllerError as refused:
+        raise ConditionsRefused(refused.code) from None
+
+
+def _designation(challenge, level, identity, record_also):
+    """Whether this controller may take the report for (challenge, level),
+    and what to say. Pending: allowed with a warning (the designated root is
+    the one whose identity is pending, and a finding only ever closes LOCK).
+    Not designated or another controller: refused unless `record_also`."""
+    from carbon.challenge_pipeline import admission_controllers as designations
+
+    try:
+        entry = designations.designation(challenge, level)
+    except designations.DesignationRefused as refused:
+        raise ConditionsRefused(refused.code, str(refused)) from None
+    view = {"challenge": challenge, "level": level, "entry": entry}
+    if entry is not None and designations.pending(entry):
+        view["status"] = designations.IDENTITY_PENDING
+        view["lock_authority"] = None
+        warning = (
+            f"The designation for {challenge} level {level} is pending its "
+            f"operator-reported identity ({entry['name']}). Recorded here as the "
+            "intended authority; report this controller's identity in the "
+            "follow-up that fills the designation. No LOCK passes until it does."
+        )
+        return view, [warning]
+    if entry is not None and entry["identity"] == identity:
+        view["status"], view["lock_authority"] = designations.DESIGNATED, True
+        return view, []
+    code = designations.NOT_DESIGNATED if entry is None else designations.MISMATCH
+    if not record_also:
+        raise ConditionsRefused(code, f"{challenge} level {level}")
+    view["status"], view["lock_authority"] = code, False
+    warning = (
+        f"--record-also: this root is not the LOCK authority for {challenge} "
+        f"level {level} ({code}). The findings are recorded here, and must also "
+        "be recorded on the designated controller to block its LOCK."
+    )
+    return view, [warning]
+
+
+def command_conditions(args):
+    """Record an admission-conditions report's conditions as findings on the
+    root's controller (`consume_conditions`), or print its identity only.
+
+        conditions --root ROOT --grant GRANT --challenge TOKEN --report PATH
+            [--record-also]
+        conditions --root ROOT --grant GRANT --challenge TOKEN --identity
+
+    Idempotent: the same report bytes give the same finding ids, and a repeat
+    records nothing new (a finding repaired since is reopened, as the
+    controller reopens any repaired finding recorded again)."""
+    import hashlib
+
+    from ..controller import ControllerError
+
+    root = Path(args.root).expanduser().resolve()
+    if root == REPOSITORY or REPOSITORY in root.parents:
+        raise ConditionsRefused("root_must_be_outside_the_repository")
+    grant = load_grant(args.grant)
+    try:
+        scoring = challenge_scoring.scoring_for(args.challenge)
+    except challenge_scoring.ScoringUnavailable as refused:
+        raise ConditionsRefused(refused.code) from None
+    report = None
+    if not args.identity:
+        if args.report is None:
+            raise ConditionsRefused("required: --report or --identity")
+        body, report, level = conditions_report(args.report, args.challenge)
+    control = conditions_controller(root, grant, scoring)
+    try:
+        identity = control.identity()
+        if args.identity:
+            view, _ = _designation(args.challenge, 0, identity["identity"], True)
+            print(json.dumps({"controller": identity, "designation": view}, indent=1))
+            return 0
+        view, warnings = _designation(
+            args.challenge, level, identity["identity"], args.record_also
+        )
+        recorded = {
+            e["observed_result"]["id"]
+            for e in control.ledger()
+            if e["kind"] == "finding"
+        }
+        open_before = {f["id"] for f in control.open_findings()}
+        # The bytes checked above are the bytes consumed: a private copy.
+        with tempfile.TemporaryDirectory(prefix="graphite-conditions-") as private:
+            copy = Path(private) / "report.json"
+            copy.write_bytes(body)
+            try:
+                ids = control.consume_conditions(copy)
+            except ControllerError as refused:
+                raise ConditionsRefused(refused.code) from None
+    finally:
+        control.close()
+    for warning in warnings:
+        print("WARNING: " + warning, file=sys.stderr)
+    print(
+        json.dumps(
+            {
+                "status": "CONSUMED",
+                "challenge": args.challenge,
+                "level": level,
+                "report_sha256": "sha256:" + hashlib.sha256(body).hexdigest(),
+                "conditions": len(report["conditions"]),
+                "finding_ids": ids,
+                "findings": [
+                    {
+                        "id": fid,
+                        "result": (
+                            "RECORDED"
+                            if fid not in recorded
+                            else (
+                                "ALREADY_RECORDED"
+                                if fid in open_before
+                                else "REOPENED_AFTER_REPAIR"
+                            )
+                        ),
+                    }
+                    for fid in ids
+                ],
+                "controller": identity,
+                "designation": view,
+                "warnings": warnings,
+            },
+            indent=1,
+        )
+    )
+    return 0
 
 
 # -- the dry run ---------------------------------------------------------------------------
@@ -1736,9 +2111,20 @@ def dry_run_script(baseline, variant, refused):
     ]
 
 
-def dry_run(root, scoring, literature=None, development_variant=None):
+def dry_run(
+    root,
+    scoring,
+    literature=None,
+    development_variant=None,
+    analysis_image_manifest=None,
+):
     """`development_variant`: a development level's registered variant for the
-    same Challenge (`development_variant_for`), or None at Level 0."""
+    same Challenge (`development_variant_for`), or None at Level 0.
+    `analysis_image_manifest`: the campaign's pinned analysis image, for the
+    REAL miner lane's containment check; without it that check fails closed
+    and the dry run exits nonzero."""
+    from carbon.development_session.containment_check import containment_check
+
     from .model import ScriptedModel
     from .pods import ScriptedPods, Step, real_path_check, synthetic_outputs
 
@@ -1812,22 +2198,29 @@ def dry_run(root, scoring, literature=None, development_variant=None):
             scoring=scoring,
             scorer=provider._frozen_rule(),
         ),
+        # The miner door above is a fake; this runs one fixed cell through the
+        # REAL miner lane and checks its containment from the host
+        # (GRAPHITE-CARRIER-CONTAINMENT-01). Fails closed.
+        "carrier_containment": containment_check(
+            root=root / "carrier-containment", manifest=analysis_image_manifest
+        ),
     }
     print(json.dumps(result, indent=1, default=str))
     ok = (
         result["provider_state"] == "succeeded"
         and result["dry_run"]["real_pod_path"]["status"] == "OK"
         and result["dry_run"]["pod_failure_path"]["status"] == "OK"
+        and result["dry_run"]["carrier_containment"]["status"] == "PASS"
     )
     return 0 if ok else 4
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(prog="graphite.phase3")
+    parser = ChallengeParser(prog="graphite.phase3")
     sub = parser.add_subparsers(dest="command", required=True)
     run = sub.add_parser("run")
     run.add_argument("--root", required=True)
-    run.add_argument("--challenge", required=True)
+    run.add_argument("--challenge", required=True, help=challenge_help())
     run.add_argument("--dry-run", action="store_true")
     run.add_argument("--grant")
     run.add_argument(
@@ -1840,8 +2233,16 @@ def main(argv=None):
         ),
     )
     credential = run.add_mutually_exclusive_group()
-    credential.add_argument("--credential-file")
-    credential.add_argument("--credential-env")
+    credential.add_argument(
+        "--credential-file",
+        help="path of an owner-only file holding the Engy key, as phase 4 takes "
+        "it; checked by its metadata, never printed",
+    )
+    credential.add_argument(
+        "--credential-env",
+        help="kept for older launchers: ENGY_API_KEY, copied to a 0600 file "
+        "removed on exit; prefer --credential-file",
+    )
     runpod = run.add_mutually_exclusive_group()
     runpod.add_argument("--runpod-key-file")
     runpod.add_argument("--runpod-key-env")
@@ -1855,9 +2256,19 @@ def main(argv=None):
     run.add_argument(
         "--image-manifest", help="the pinned C-03 worker image (--compute carrier)"
     )
+    run.add_argument(
+        "--analysis-image-manifest",
+        help="the campaign's pinned analysis image, for the dry run's carrier "
+        "containment check (without it the check fails closed)",
+    )
     run.add_argument("--miner-profile")
     run.add_argument("--miner-campaign")
     run.add_argument("--code-ref")
+    run.add_argument(
+        "--hidden-deployment",
+        help="also score each construction on this battery deployment's hidden "
+        "pool through the real validator (VALIDATOR-13; Level 0)",
+    )
     run.add_argument("--session", type=int, default=1)
     run.add_argument("--literature-snapshot")
     run.add_argument("--allow-unchecked-cards", action="store_true")
@@ -1866,7 +2277,7 @@ def main(argv=None):
     cancel.add_argument("--session", type=int, required=True)
     reconcile = sub.add_parser("reconcile")
     reconcile.add_argument("--root", required=True)
-    reconcile.add_argument("--challenge", required=True)
+    reconcile.add_argument("--challenge", required=True, help=challenge_help())
     reconcile.add_argument("--grant", required=True)
     key = reconcile.add_mutually_exclusive_group(required=True)
     key.add_argument("--runpod-key-file")
@@ -1879,6 +2290,22 @@ def main(argv=None):
     proposals = sub.add_parser("proposals")
     proposals.add_argument("--root", required=True)
     proposals.add_argument("--dry-run", action="store_true")
+    conditions = sub.add_parser("conditions")
+    conditions.add_argument("--root", required=True)
+    conditions.add_argument("--grant", required=True)
+    conditions.add_argument("--challenge", required=True)
+    mode = conditions.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--report", help="a carbon.admission-conditions.v1 report")
+    mode.add_argument(
+        "--identity",
+        action="store_true",
+        help="print the controller's identity only; nothing is consumed",
+    )
+    conditions.add_argument(
+        "--record-also",
+        action="store_true",
+        help="record into a controller that is not the designated LOCK authority",
+    )
     args = parser.parse_args(argv)
     if args.command == "run" and not args.dry_run:
         missing = [
@@ -1912,6 +2339,7 @@ def main(argv=None):
         "status": command_status,
         "rebuild": command_rebuild,
         "proposals": command_proposals,
+        "conditions": command_conditions,
     }[args.command](args)
 
 

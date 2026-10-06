@@ -40,6 +40,7 @@ import test_challenge_admission as tca
 import test_challenge_pipeline as tcp
 import test_conditional_evidence as t
 from test_development_variants import install
+from test_graphite_admission_controller import designate_controller
 
 from carbon.agent_campaign import controller as ctl
 from carbon.agent_campaign.controller import CampaignController
@@ -220,7 +221,14 @@ def _zip(members):
 
 
 def test_the_lock_check_consults_the_controllers_own_ledger(tmp_path):
+    # The LOCK binds a designated controller (GRAPHITE-ADMISSION-CONTROLLER-01).
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        _lock_check_consults_the_ledger(tmp_path, monkeypatch)
+
+
+def _lock_check_consults_the_ledger(tmp_path, monkeypatch):
     controller = _ledgered(tmp_path)
+    designate_controller(monkeypatch, tmp_path, controller, "fixture")
     block = tca.accepted(tmp_path, "fixture")
     cited = {"path": "stripped.json", "sha256": ce._sha256(STRIPPED)}
     (tmp_path / "stripped.json").write_bytes(STRIPPED)

@@ -291,6 +291,64 @@ _clean = challenge_scoring.clean
 
 
 # -- the pod ledger ------------------------------------------------------------------------
+#: How a pod's booked amount was reached (`PodLedger.charges`,
+#: GRAPHITE-RUNNER-USABILITY-01 B6). `booked_usd` is what counts against the
+#: run's cap; `charged_usd` is set only on the provider's reported charge.
+CHARGE_BASES = {
+    "provider_reported": "settled from the provider's reported charge",
+    "reservation": (
+        "the pod is verified gone but the provider reported no charge, so its "
+        "full reservation stays booked (`pod_charge_unresolved`); the actual "
+        "charge is usually lower, see estimated_usd"
+    ),
+    "unresolved": (
+        "not settled and not verified gone: its full reservation stays booked "
+        "until `reconcile` settles it"
+    ),
+    "released": "no pod ran (settled_basis says why): nothing is booked",
+}
+CHARGE_NOTE = (
+    "booked_usd is what the run counts against its cap. estimated_usd is the "
+    "pod's hourly rate times its created-to-terminated time in this ledger: "
+    "an estimate for reading, never a provider charge and never booked."
+)
+
+
+def _estimate(pod, seen):
+    """The pod's hourly rate times its created-to-terminated ledger time,
+    rounded up to the nanodollar, or None when either is unknown."""
+    try:
+        start, end = float(seen["created_at"]), float(seen["terminated_at"])
+        rate = Decimal(str(pod["rate_usd_per_hr"]))
+    except (KeyError, TypeError, ValueError, ArithmeticError):
+        return None
+    if end < start or not rate.is_finite():
+        return None
+    return str(podlib.pod_reservation(Decimal(str(end - start)) / 60, rate))
+
+
+def pod_charge_report(ledger):
+    """The run report's pod money: each pod's booked amount beside its
+    provider charge or estimate, with the basis, and the totals."""
+    pods = ledger.charges()
+
+    def total(field):
+        known = [Decimal(p[field]) for p in pods if p[field] is not None]
+        return str(sum(known, Decimal(0)))
+
+    return {
+        "pods": pods,
+        "booked_usd": total("booked_usd"),
+        "charged_usd": total("charged_usd"),
+        "estimated_usd": total("estimated_usd"),
+        "booked_at_reservation": sum(
+            p["basis"] in ("reservation", "unresolved") for p in pods
+        ),
+        "bases": CHARGE_BASES,
+        "note": CHARGE_NOTE,
+    }
+
+
 class PodLedger:
     """EV4's campaign-ledger pattern, per run: an append-only JSONL file of
     every pod event. Spend is read back from it: a pod's committed amount is
@@ -363,6 +421,50 @@ class PodLedger:
             elif pod["reserved_usd"] is not None:
                 pending += Decimal(pod["reserved_usd"])
         return settled, pending
+
+    def charges(self):
+        """Per pod, what the run booked against its cap and on what basis,
+        beside the provider's charge and an estimate (CHARGE_BASES). A read
+        of this ledger only: nothing is fetched and nothing is settled."""
+        times = {}
+        for row in self.rows():
+            intent = row.get("intent_id")
+            if intent is None:
+                continue
+            seen = times.setdefault(intent, {"unresolved": False})
+            if row["event"] == "pod_created":
+                seen["created_at"] = row.get("at")
+            elif row["event"] == "pod_terminated_verified":
+                seen["terminated_at"] = row.get("at")
+            elif row["event"] == "pod_charge_unresolved":
+                seen["unresolved"] = True
+            elif row["event"] == "pod_settled":
+                seen["settled_basis"] = row.get("basis")
+        out = []
+        for intent, pod in sorted(self.pods().items()):
+            seen = times[intent]
+            if pod["settled_usd"] is not None:
+                provider = seen.get("settled_basis") == "provider_reported"
+                basis = "provider_reported" if provider else "released"
+                booked = pod["settled_usd"]
+            else:
+                basis = "reservation" if seen["unresolved"] else "unresolved"
+                booked = pod["reserved_usd"]
+            out.append(
+                {
+                    "intent_id": intent,
+                    "proposal": pod["proposal"],
+                    "basis": basis,
+                    "booked_usd": booked,
+                    "reserved_usd": pod["reserved_usd"],
+                    "charged_usd": (
+                        pod["settled_usd"] if basis == "provider_reported" else None
+                    ),
+                    "estimated_usd": _estimate(pod, seen),
+                    "settled_basis": seen.get("settled_basis"),
+                }
+            )
+        return out
 
     def live(self):
         """Pods that were (or may have been) created and are not verified gone."""
@@ -496,10 +598,12 @@ class Experiment:
         ):
             raise ValueError("a development variant runs at its own level")
         if hidden is not None and (
-            development_variant is not None
-            or hidden.challenge_id != self.scoring.challenge_id
+            hidden.challenge_id != self.scoring.challenge_id
+            or getattr(hidden, "variant", None) != development_variant
         ):
-            raise ValueError("hidden scoring serves its own Challenge at Level 0")
+            # The hidden pool scores this Challenge at this run's own level:
+            # Level 0, or the run's registered development variant.
+            raise ValueError("hidden scoring serves its own Challenge and level")
         self.hidden = hidden
         # The registered attribution policy (`pod_outcome`): the registry's
         # current version unless one is named.

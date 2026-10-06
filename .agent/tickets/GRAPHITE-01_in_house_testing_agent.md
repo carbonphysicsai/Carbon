@@ -825,8 +825,21 @@ What each argument is:
   that a miner has launched with the Launchpad, on a registered testnet
   hotkey. Graphite attaches to it as any MCP client does.
 - Sessions 2 and 3 use `--session 2` and `--session 3`.
-- Running the same command again resumes a session.
+- Running the same command again resumes a session that has not ended (a
+  process that died mid-session). A session that ended (`succeeded`,
+  `failed` or `cancelled`) is terminal: the same command only prints its
+  recorded end again. A `failed` session with code `reconciliation_required`
+  is never resumed: run `reconcile` (it terminates and settles every pod the
+  session may have left and exits 0 when none is live), read `status` (each
+  pod's booked amount and basis in `pod_charges`), and make any further
+  attempt a new `--session N` within the grant's permitted runs. `run` and
+  `status` print this as `next_step` (GRAPHITE-RUNNER-USABILITY-01).
 - `run` exits 4 on any end other than `succeeded`.
+- Keys go by file path: `--credential-file PATH` (owner-only, as phase 4) and
+  `--runpod-key-file PATH`; the `--credential-env` and `--runpod-key-env`
+  forms remain for older launchers. `python -m carbon.agent_campaign.graphite
+  run-checked --phase 3 ...` runs the gates, the launch and the post-run
+  `reconcile` and `status` in order, with key files only.
 
 **Limitations.**
 

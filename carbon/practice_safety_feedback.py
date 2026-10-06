@@ -35,7 +35,9 @@ SCHEMA = "carbon.practice-safety-feedback.v1"
 #: The label on every metric compared exactly against its limit (cooling and
 #: motor, Test Lead ruling 2026-10-05): read it as indicative.
 NO_BAND = "no uncertainty band applied"
-#: B4 until Data Collection commits the practice decision set.
+#: Battery B4 in practice-feedback v2, before Data Collection committed the
+#: practice decision set. A stored v2 result keeps this meaning; battery v3
+#: computes B4 instead and never emits it.
 B4_BLOCKED = "BLOCKED: practice decision set not committed"
 DIGITS = 6
 

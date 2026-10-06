@@ -63,7 +63,7 @@
    "kind": "auto",
    "lesson": "N1",
    "title": "No battery-specific literal is reached on this challenge's path: tool text v2, literature snapshot, writeup.",
-   "check": "recorded_tests",
+   "check": "neutral_path",
    "pending": {
     "reason": "neutrality grep and tool text v2: #606 and #610 not on main",
     "owner": "Carbon Validator",
@@ -80,7 +80,7 @@
     "reason": "no-op capability audit (#619) not on main",
     "owner": "Test Engineer",
     "neutral_tests": [
-     "tests/cpu/test_construction_noop_audit.py"
+     "tests/cpu/test_construction_noop_audit.py::test_no_rebuildable_capability_is_a_no_op[{challenge}]"
     ]
    }
   },
@@ -94,8 +94,20 @@
     "reason": "identity-by-rebuilt-artifact audit (#619) not on main",
     "owner": "Test Engineer",
     "neutral_tests": [
-     "tests/cpu/test_construction_noop_audit.py"
+     "tests/cpu/test_construction_noop_audit.py::test_no_rebuildable_capability_is_a_no_op[{challenge}]"
     ]
+   }
+  },
+  {
+   "id": "P7",
+   "kind": "auto",
+   "lesson": "X1",
+   "title": "The construction boundary is consistent across the validator door, the contract compile and Graphite's admission: the boundary-consistency test (the VALIDATOR-10 pattern) exists and passes for this challenge.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "the boundary-consistency test (VALIDATOR-10, #624) exists only for battery; a per-challenge version for this challenge is not built",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
    }
   },
   {

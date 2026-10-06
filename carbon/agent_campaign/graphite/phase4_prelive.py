@@ -40,6 +40,12 @@ boundary is synthetic:
   (`pods.real_path_check`, claude/fix-pod-store-threads) the gate calls it
   instead of its own minimal one.
 
+- **the miner lane's containment (`CONTAINMENT_STEP`, first)**: one fixed
+  cell through the REAL carrier lane in the pinned analysis image
+  (`containment_check`, GRAPHITE-CARRIER-CONTAINMENT-01), a phase-4 blocker
+  because the Attacker runs code; it fails closed without
+  `--analysis-image-manifest`, Docker or the image.
+
 Two guards run for the whole gate: a network guard (any socket connect or
 name lookup is refused and recorded) and a sqlite thread guard (every sqlite
 connection records the thread that made it and any use from another thread,
@@ -88,6 +94,9 @@ SCHEMA = "carbon.graphite.phase4-prelive.v2"
 #: The pod and compute-store step under phase 3's threading: a blocking gate
 #: failure until the pod store is thread-safe (claude/fix-pod-store-threads).
 POD_STEP = "pods_compute_store_phase3_threading"
+#: The REAL miner lane's containment check (GRAPHITE-CARRIER-CONTAINMENT-01):
+#: a phase-4 live-path blocker, because the Attacker runs code.
+CONTAINMENT_STEP = "carrier_containment"
 STORE_DIRNAME = "attacker-prelive"
 #: What the fake model key file holds: never a credential.
 FAKE_KEY = "prelive-fake-key-not-a-credential"
@@ -657,12 +666,15 @@ def prelive(
     repository=None,
     emit=print,
     scoring=None,
+    analysis_image_manifest=None,
 ):
     """Run the gate (module docstring) under `root`; returns the exit code.
     `challenge` is the Challenge `--challenge` names, whose registered grant
     the grant check binds to. `scoring` is the Challenge's registered
     ChallengeScoring, as `phase4 run` resolves it; None resolves it from the
-    adapter's Challenge."""
+    adapter's Challenge. `analysis_image_manifest` is the campaign's pinned
+    analysis image, for the carrier containment step; without it that step
+    fails closed."""
     from . import phase4
 
     repository = phase4.REPOSITORY if repository is None else Path(repository)
@@ -670,7 +682,15 @@ def prelive(
     with network_guard() as network, sqlite_thread_guard() as uses:
         gate = _Gate(uses)
         report = _run(
-            gate, store, adapter, atk, grant_path, repository, scoring, challenge
+            gate,
+            store=store,
+            adapter=adapter,
+            atk=atk,
+            grant_path=grant_path,
+            repository=repository,
+            scoring=scoring,
+            challenge=challenge,
+            analysis_image_manifest=analysis_image_manifest,
         )
     blocking = [
         {
@@ -707,10 +727,37 @@ def prelive(
         # The Attacker's input window, admission ceiling, timeout and
         # reservation per call, from the session record (GRAPHITE-D35).
         "attacker_model": report.get("attacker_model"),
+        # The real miner lane's containment report (CONTAINMENT_STEP).
+        "carrier_containment": report.get("carrier_containment"),
         "claims": {"security_acceptance": False, "live_run": False, "spend": False},
     }
     emit(json.dumps(out, indent=1, sort_keys=True, default=str))
     return 0 if out["verdict"] == "PASS" else 4
+
+
+class ContainmentNotPassed(AssertionError):
+    """The carrier containment check did not pass; its report is `report`."""
+
+    def __init__(self, report):
+        failing = [
+            p["probe"] for p in report.get("probes") or () if p["status"] != "PASS"
+        ]
+        super().__init__(
+            f"{report.get('code')}: {report.get('reason')}; failing probes: {failing}"
+        )
+        self.report = report
+
+
+def carrier_containment(store, manifest):
+    """The step: the REAL miner lane's containment check. Every network
+    attempt is inside the container (`--network none`); this process reaches
+    Docker only through its CLI subprocess, so the network guard sees none."""
+    from carbon.development_session.containment_check import containment_check
+
+    report = containment_check(root=store / "carrier-containment", manifest=manifest)
+    if report["status"] != "PASS":
+        raise ContainmentNotPassed(report)
+    return report
 
 
 def _refused_copy(phase4, store, name, document, repository, challenge):
@@ -727,11 +774,57 @@ def _refused_copy(phase4, store, name, document, repository, challenge):
     return None
 
 
-def _run(gate, store, adapter, atk, grant_path, repository, scoring, challenge):
+def _run(
+    gate,
+    *,
+    store,
+    adapter,
+    atk,
+    grant_path,
+    repository,
+    scoring,
+    challenge,
+    analysis_image_manifest=None,
+):
+    """The gate's steps. Every argument after `gate` is keyword-only, so a
+    caller cannot shift `challenge`, `grant_path` and
+    `analysis_image_manifest` into each other's places."""
     from . import phase4
     from .pods import RunPodPods, private_dir
 
     state = {}
+
+    def containment():
+        try:
+            report = carrier_containment(store, analysis_image_manifest)
+        except ContainmentNotPassed as failed:
+            state["carrier_containment"] = failed.report
+            raise
+        state["carrier_containment"] = report
+        return {
+            "status": report["status"],
+            "image_id": report["image_id"],
+            "create_arguments_digest": report["create_arguments_digest"],
+            "probes": {p["probe"]: p["status"] for p in report["probes"]},
+        }
+
+    gate.check(
+        CONTAINMENT_STEP,
+        (
+            (
+                "research_carrier.run_script -> _run(miner_authored=True) -> "
+                "miner_container.create_arguments -> docker create/start "
+                "(the real lane)"
+            ),
+            "the campaign's pinned analysis image (verify_image)",
+            (
+                "a host canary outside every mount; fixed probes: canary, "
+                "/proc/1/comm, /proc/self/cgroup, host home, network, writes "
+                "outside /scratch"
+            ),
+        ),
+        containment,
+    )
 
     def grant_and_code():
         grant, head = phase4.live_checks(grant_path, repository, challenge=challenge)
@@ -797,7 +890,11 @@ def _run(gate, store, adapter, atk, grant_path, repository, scoring, challenge):
         grant_and_code,
     )
     if "grant" not in state or "evidence" not in state:
-        return {"spent_usd": "0", "grant": None}
+        return {
+            "spent_usd": "0",
+            "grant": None,
+            "carrier_containment": state.get("carrier_containment"),
+        }
 
     engy = FakeEngy(session_script(adapter))
     door = FakeMinerDoor()
@@ -1026,4 +1123,5 @@ def _run(gate, store, adapter, atk, grant_path, repository, scoring, challenge):
         "spent_usd": entry.get("settled_usd"),
         "attacker_model": state.get("attacker_model"),
         "grant": state["evidence"],
+        "carrier_containment": state.get("carrier_containment"),
     }

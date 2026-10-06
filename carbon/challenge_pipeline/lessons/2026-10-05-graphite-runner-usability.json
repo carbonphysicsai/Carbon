@@ -1,0 +1,31 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-graphite-runner-usability",
+  "recorded_at": "2026-10-05T23:00:00Z",
+  "challenge": "protocol",
+  "stage": "protocol",
+  "execution": {
+    "kind": "build",
+    "ref": "GRAPHITE-RUNNER-USABILITY-01 (.agent/decisions/2026-10-05-GRAPHITE-RUNNER-USABILITY-01.md), branch claude/graphite-runner-usability; operator findings B6, B9, B11, C7, C8 and C9 from the Graphite Launchpad findings.",
+    "description": "Six runner usability fixes: per-pod booked versus charged or estimated money with its basis, a typed next step for a terminal reconciliation_required session, phase 4's coverage report and B2 written once under the run root, one key-file credential option across phases, --challenge errors that list the accepted tokens, and a supported run-checked wrapper for gates, launch and post-run checks."
+  },
+  "expected": "An operator, human or agent, can launch a Graphite session, read what it cost and know what to do next from the runners' own output, without bespoke scripts or reading the code.",
+  "observed": "Every pod read as booked at its full reservation with no estimate beside it; the ticket said rerun for a session that is terminal; the coverage report and B2 existed only on stdout; phase 3 and phase 4 took the Engy key in different ways; a missing --challenge did not say which tokens exist; and executors wrote their own launch scripts.",
+  "keep": [
+    "A runner's output separates what counts against a cap (booked) from what the provider charged and from an estimate, and names the basis for each number.",
+    "A terminal state's output names the next command, so neither a person nor an agent reruns a command that only reprints the end.",
+    "A required selection is never defaulted; the usage error lists the accepted values instead."
+  ],
+  "change": [
+    "Every report a runner prints that a later step reads is also written once under the run root at a stable path.",
+    "A supported wrapper composes the existing gate, launch and post-run commands; executors stop writing per-run launch scripts."
+  ],
+  "protocol_elements": [
+    "graphite.experiment.pod_charges",
+    "graphite.cli_usage.next_step",
+    "graphite.phase4.write_reports",
+    "graphite.run_checked"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

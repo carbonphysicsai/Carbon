@@ -105,7 +105,6 @@ acceptance. A live run is NOT executed in this work.
 
 from __future__ import annotations
 
-import argparse
 import contextlib
 import dataclasses
 import functools
@@ -142,6 +141,8 @@ from ..provider import ProviderUnavailable, TaskSpec
 from . import experiment as ex
 from . import grant_binding
 from . import tools as toolbox
+from .cli_usage import ChallengeParser
+from .cli_usage import challenge_help as _challenge_help
 from .phase3 import (
     Phase3Provider,
     RunnerRefused,
@@ -1891,7 +1892,43 @@ def command_run(args):
     print(
         json.dumps({"session": entry, "coverage": coverage}, indent=1, sort_keys=True)
     )
+    write_reports(store, entry, coverage)
     return 0 if entry["provider_state"] == "succeeded" else 4
+
+
+#: Where a session's coverage report and B2 are written once, under the run's
+#: store (`DIR/attacker` or `DIR/attacker-dry-run`).
+REPORTS_DIR = "reports"
+REPORT_FILES = (("coverage.json", None), ("benchmark-b2.json", "benchmark_b2"))
+
+
+def write_reports(store, entry, coverage):
+    """Write the session's coverage report and its benchmark B2 once, as
+    canonical JSON, at `<store>/reports/<run_id>/` (GRAPHITE-RUNNER-USABILITY-01
+    B11). stdout is unchanged; one JSON line on stderr names the files. A file
+    already written with other bytes is kept: the first is the record."""
+    if coverage is None:
+        return None
+    directory = Path(store) / REPORTS_DIR / entry["run_id"]
+    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    files = {}
+    for name, field in REPORT_FILES:
+        body = coverage if field is None else coverage.get(field)
+        if body is None:
+            continue
+        try:
+            payload = canonical(body)
+        except (TypeError, ValueError):
+            files[name] = "not_canonical_json"
+            continue
+        try:
+            write_once(directory / name, payload)
+            files[name] = "written"
+        except ValueError:
+            files[name] = "kept_first"
+    record = {"reports": str(directory), "files": files}
+    print(json.dumps(record, sort_keys=True), file=sys.stderr)
+    return record
 
 
 # -- the live run's parts, shared with the pre-live gate (`phase4_prelive`) -------------------
@@ -2196,14 +2233,15 @@ def dry_run(
         },
     }
     print(json.dumps(out, indent=1, sort_keys=True))
+    write_reports(store, entry, coverage)
     ok = entry["provider_state"] == "succeeded" and settled_zero and not attempts
     return 0 if ok else 4
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(prog="graphite.phase4")
+    parser = ChallengeParser(prog="graphite.phase4")
     sub = parser.add_subparsers(dest="command", required=True)
-    challenge_help = "the registered Level 0 Challenge's contract token"
+    challenge_help = _challenge_help("the registered Level 0 Challenge's token")
     run = sub.add_parser("run")
     run.add_argument("--root", required=True)
     run.add_argument("--challenge", required=True, help=challenge_help)
@@ -2242,6 +2280,11 @@ def main(argv=None):
             "the grant file a live run would pass (default: the committed grant "
             "registered for --challenge)"
         ),
+    )
+    prelive.add_argument(
+        "--analysis-image-manifest",
+        help="the campaign's pinned analysis image, for the carrier containment "
+        "step (without it the step fails closed)",
     )
     args = parser.parse_args(argv)
     command = {
@@ -2315,6 +2358,7 @@ def command_prelive(args):
         grant_path=grant_path,
         challenge=args.challenge,
         scoring=scoring,
+        analysis_image_manifest=args.analysis_image_manifest,
     )
 
 
