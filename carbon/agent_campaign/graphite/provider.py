@@ -770,6 +770,9 @@ class GraphiteProvider:
         if self.session_limits == SESSION_LIMITS_V2:
             # A v1 record has no block at all, exactly as before the rule.
             opened["session_limits"] = self.session_limits_record(opened["task"])
+        # The rules a later phase records with a new session only (none here),
+        # so a session opened before records none and resumes as it was.
+        opened.update(self.opening_rules())
         directory.mkdir(mode=0o700, exist_ok=True)
         write_once(directory / "session-open.json", canonical(opened))
         if not (directory / "state.json").exists():
@@ -788,6 +791,12 @@ class GraphiteProvider:
         )
         self._crash("after_open")
         return self._handle(run_id)
+
+    def opening_rules(self):
+        """Versioned rules a new session's record freezes beside its limits,
+        as `{key: rule}`: none for this provider. A subclass adds its own
+        (phase 3's `budget_status`); a resume reads the record, never this."""
+        return {}
 
     def _handle(self, run_id):
         return RunHandle(run_id, (run_id + "-worker",))

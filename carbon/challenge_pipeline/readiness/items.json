@@ -361,24 +361,14 @@
    "kind": "auto+review",
    "lesson": "S1",
    "title": "A Q1 score-to-value check on the available panel (baselines plus constructed controls): τ/ρ with a band, and divergences listed. A negative or within-noise τ is NOT a blocker, but it is recorded, and the first Graphite runs are then framed as alignment measurements, never as improvement hunting.",
-   "check": "recorded_tests",
-   "pending": {
-    "reason": "no Q1 score-to-value check is recorded for the challenge",
-    "owner": "Test Lead",
-    "neutral_tests": []
-   }
+   "check": "q1_alignment"
   },
   {
    "id": "V2",
    "kind": "auto",
    "lesson": "S3",
    "title": "Panel discrimination: at least two distinct decision outcomes among panel members on the decision study. If not, widen the construction families first (development variant).",
-   "check": "recorded_tests",
-   "pending": {
-    "reason": "no panel-discrimination check is recorded for the challenge",
-    "owner": "Test Lead",
-    "neutral_tests": []
-   }
+   "check": "q1_discrimination"
   },
   {
    "id": "V3",

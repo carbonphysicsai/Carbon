@@ -88,10 +88,12 @@ class ServiceKey:
     def sign(self, kind, payload):
         if kind not in KINDS:
             raise ValueError("unknown signature kind")
-        # Enforced here, not by convention: the only weight intent this key
-        # signs is the Phase A all-burn one (OD-4a; OD-4b refused).
-        if kind == "weight_intent" and not _is_all_burn(payload):
-            raise PermissionError("only the Phase A ALL_BURN intent is signed")
+        # A weight intent must be one of the two registered shapes: Phase A
+        # all-burn (OD-4a) or a winner intent (OWNER-WEIGHTS-AUTHORITY-01).
+        if kind == "weight_intent" and not (
+            _is_all_burn(payload) or _is_winner(payload)
+        ):
+            raise ValueError("weight intent is neither all-burn nor a winner intent")
         body = {"kind": kind, "key_id": self.key_id, "payload": payload}
         message = DOMAIN + kind.encode() + b"\x00" + _canonical(body)
         return {
@@ -156,6 +158,48 @@ def all_burn_intent(*, pool_version, reason):
     }
 
 
-def winner_intent(*args, **kwargs):
-    """OD-4b is not authorized: winner-weight intents do not exist yet."""
-    raise PermissionError("winner-weight publication is not authorized (OD-4b)")
+WINNER_KEYS = frozenset(
+    {
+        "schema",
+        "netuid",
+        "mode",
+        "authority",
+        "policy_digest",
+        "epoch",
+        "targets_digest",
+        "winner_weights",
+    }
+)
+
+
+def winner_intent(*, netuid, policy_digest, epoch, targets_digest):
+    """A winner-weight intent (OWNER-WEIGHTS-AUTHORITY-01, which lifted OD-4b's
+    refusal): one epoch's targets under a registered weight policy
+    (`rewards.winner_decay`), bound by digest. This returns data; it sends
+    nothing."""
+    return {
+        "schema": "carbon.battery.weight-intent.v1",
+        "netuid": netuid,
+        "mode": "DIRECT_WINNER_PLUS_BURN",
+        "authority": "OWNER-WEIGHTS-AUTHORITY-01",
+        "policy_digest": policy_digest,
+        "epoch": epoch,
+        "targets_digest": targets_digest,
+        "winner_weights": True,
+    }
+
+
+def _is_winner(payload):
+    return (
+        type(payload) is dict
+        and set(payload) == WINNER_KEYS
+        and payload["mode"] == "DIRECT_WINNER_PLUS_BURN"
+        and payload["authority"] == "OWNER-WEIGHTS-AUTHORITY-01"
+        and payload["winner_weights"] is True
+        and type(payload["netuid"]) is int
+        and type(payload["epoch"]) is int
+        and all(
+            type(payload[k]) is str and payload[k].startswith("sha256:")
+            for k in ("policy_digest", "targets_digest")
+        )
+    )

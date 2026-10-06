@@ -49,7 +49,18 @@ def _experiment(out):
     unpacked.write_bytes(plain)
     experiment.import_references(unpacked)
     experiment.import_predictions(out / "predictions")
-    experiment.evaluate()
+    from carbon.battery.value import reference_policy
+
+    settled = out / reference_policy.SETTLED_NAME
+    if settled.exists():
+        # Opt-in: REF-RESOLVE-01's settled references overlay EV4's.
+        experiment.evaluate(
+            reference_policy.overlay(
+                experiment.reference_map(), reference_policy.settled(settled)
+            )
+        )
+    else:
+        experiment.evaluate()
     path = out / "experiment" / "results" / "results.json"
     return json.loads(path.read_text(encoding="utf-8"))
 
