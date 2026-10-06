@@ -617,3 +617,22 @@ def test_export_prior_writes_a_sealed_sets_inputs_owner_only(
         with pytest.raises(cf.ConfirmationRefused) as caught:
             cf.export_prior(role, config=config, out=path)
         assert caught.value.code == code
+
+
+def test_the_quiz_reads_the_same_practice_points_without_the_safety_code():
+    """quiz_stratum pins the practice decision set's conditions itself
+    instead of importing practice-safety code (the hidden path stays apart
+    from practice feedback); the two must name the same points."""
+    from pathlib import Path
+
+    from carbon.battery import practice_safety as ps
+    from carbon.battery import quiz_stratum as qs
+
+    repository = Path(__file__).resolve().parents[2]
+    sums = (repository / ps.DECISION_SET_PATH / "SHA256SUMS").read_text()
+    pinned = dict(reversed(line.split()) for line in sums.splitlines())
+    assert pinned["conditions.json"] == qs.PRACTICE_CONDITIONS_SHA256
+    expected = [
+        (float(t), float(s)) for t, s in ps.load_decision_set(repository).conditions
+    ]
+    assert sorted(qs.practice_conditions(repository)) == sorted(expected)

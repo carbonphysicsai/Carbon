@@ -124,11 +124,42 @@ def q2_candidates(root, pin, role, count):
     ]
 
 
+#: The practice decision set's committed conditions (PRACTICE-SAFETY-01 B4),
+#: pinned here by their own sha256. The quiz reads only these public points,
+#: never the practice-safety code: practice feedback stays apart from the
+#: hidden path (`test_only_the_practice_providers_import_the_safety_code`).
+#: A changed file is refused until this pin moves with it (fail closed).
+PRACTICE_CONDITIONS = (
+    "docs/development/evidence/practice-decision-set-v2/conditions.json"
+)
+PRACTICE_CONDITIONS_SHA256 = (
+    "36b90c54f2d34ce201e1e8fe4ae5c05bf9ebf6e037a572c1c167365064eb5dc7"
+)
+PRACTICE_CONDITIONS_SCHEMA = "carbon.battery.practice-decision-set.v2"
+
+
+def practice_conditions(repository):
+    """The committed practice decision set's (t_amb_c, soc0) points,
+    verified against their pin, or refused."""
+    import hashlib
+    import json
+
+    try:
+        body = (Path(repository) / PRACTICE_CONDITIONS).read_bytes()
+    except OSError:
+        raise QuizRefused("quiz_practice_decision_set_refused") from None
+    if hashlib.sha256(body).hexdigest() != PRACTICE_CONDITIONS_SHA256:
+        raise QuizRefused("quiz_practice_decision_set_refused")
+    document = json.loads(body)
+    if document.get("schema") != PRACTICE_CONDITIONS_SCHEMA:
+        raise QuizRefused("quiz_practice_decision_set_refused")
+    return [(float(c["t_amb_c"]), float(c["soc0"])) for c in document["conditions"]]
+
+
 def protected_conditions(repository):
     """Every condition a Q3 scenario keeps its distance from: each scenario
     condition in the committed contracts, and the committed practice decision
-    set's conditions (verified against their pins, or refused)."""
-    from . import practice_safety as ps
+    set's conditions (verified against their pin, or refused)."""
     from .value import contract as ev
 
     points = set()
@@ -136,11 +167,7 @@ def protected_conditions(repository):
         document, _digest = ev.load(path)
         for scenario in ev.scenarios(document):
             points.update((float(t), float(s)) for t, s in scenario["conditions"])
-    try:
-        practice = ps.load_decision_set(repository)
-    except ps.DecisionSetRefused:
-        raise QuizRefused("quiz_practice_decision_set_refused") from None
-    points.update((float(t), float(s)) for t, s in practice.conditions)
+    points.update(practice_conditions(repository))
     return sorted(points)
 
 
