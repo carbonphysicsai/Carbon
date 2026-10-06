@@ -40,9 +40,15 @@ and readiness ceiling. Repair only a concrete regression found by this check.
       protected evaluation and unresolved readiness/owner reviews.
 - [x] No EV5, sealed journal, live contract, protected labels or scoring
       implementation is changed.
-- [ ] The execution lesson validates and required PR checks pass.
+- [x] The primary execution lesson passed the canonical lessons test (28
+      tests). Canonical quality passed. Required PR checks remain pending.
 
 **Evidence:** `docs/development/evidence/battery-neutral-path-verification-2026-10-06/README.md`.
+
+At evidence commit `ebb2e0d14`, `tests/cpu/test_challenge_pipeline.py` passed
+28/28 and `scripts/check_quality.py --base d12b14f79` passed with Ruff 0/776,
+Black 0/68 and no changed Python files. The validation executions have their
+own final lessons entries; PR CI will check the delivered head.
 
 ## Maturity ceiling
 
