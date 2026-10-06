@@ -69,7 +69,7 @@ before, and that none is as messy as this first wave.
 
 | # | Lesson | Cost | Prevention | Disposition |
 |---|---|---|---|---|
-| N1 | Battery-only literals were spread through "shared" code: scoring calls, pod data, writeups, tool text, published-material lists, literature topics, the dry run | 12 blocking gaps before cooling could run | A **neutrality audit** when a second challenge registers: an unnamed scoring call refuses; tests run the full Graphite path per registered challenge | ENFORCED: `--challenge` required, unnamed refusal (#584); versioned neutral tool text v2 (#610); IN PR: per-challenge plumbing (#606); GATED (P1–P4) |
+| N1 | Battery-only literals were spread through "shared" code: scoring calls, pod data, writeups, tool text, published-material lists, literature topics, the dry run | 12 blocking gaps before cooling could run | A **neutrality audit** when a second challenge registers: an unnamed scoring call refuses; tests run the full Graphite path per registered challenge | ENFORCED: `--challenge` required, unnamed refusal (#584); versioned neutral tool text v2 (#610); per-challenge plumbing (#606); versioned literature for a named challenge (#614); GATED (P1–P4) |
 | N2 | Frozen study manifests pin shared modules, so an innocent edit invalidates a freeze | Coordination overhead; risk to the counted motor campaign | A **pinned-file registry**, with CI refusing edits to files a live freeze pins unless the PR declares a new study version | OPEN → PR Head and the Test Engineer (CI check) |
 | N3 | A freeze manifest pinned a cutoff value but not the module computing it (EV5 `admissibility.py`) | A silent drift risk to a one-shot confirmation | Freeze manifests pin **every imported module**, and analysis re-hashes them before running | ENFORCED for EV5 (EV5-RUN-01 pin step); GATED (D6) |
 
@@ -79,7 +79,7 @@ before, and that none is as messy as this first wave.
 |---|---|---|---|---|
 | I1 | Proposal ids repeat across runs; a "no-op" recipe flag was really a default; a KNN digest ignored k | Wrong cross-run identity; aliased and merged constructions | Identity by rebuilt artifact (OWNER-GRAPHITE-TEST-WAVE-04 §1), plus a standing no-op audit | ENFORCED: `test_construction_noop_audit.py` (#619); OPEN: KNN versioned digest (Test Engineer) |
 | I2 | The controller counts every run and binds one grant document | Refund grants needed (R2, R3) | Price runs with lost-run headroom, use per-challenge grants, and bind grants to main's blob and the named challenge | ENFORCED: grant bound to main's blob (#569); per-challenge binding (#612); DOCUMENTED: headroom |
-| I3 | Admission findings lived in per-run controllers, so no record was canonical | The LOCK check could look at the wrong root | One designated admission controller per (challenge, level) | IN PR (#615) |
+| I3 | Admission findings lived in per-run controllers, so no record was canonical | The LOCK check could look at the wrong root | One designated admission controller per (challenge, level) | ENFORCED (#615) |
 
 ## 5. Attribution and grading integrity
 
