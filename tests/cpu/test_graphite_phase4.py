@@ -1283,7 +1283,17 @@ def test_the_prelive_grant_default_follows_the_challenge(tmp_path, monkeypatch):
 
     seen = []
 
-    def record(root, adapter, atk, *, grant_path, challenge, scoring=None):
+    def record(
+        root,
+        adapter,
+        atk,
+        *,
+        grant_path,
+        challenge,
+        scoring=None,
+        analysis_image_manifest=None,
+    ):
+        assert analysis_image_manifest is None  # not given on this command line
         seen.append((grant_path, challenge, adapter.challenge_id))
         return 0
 
