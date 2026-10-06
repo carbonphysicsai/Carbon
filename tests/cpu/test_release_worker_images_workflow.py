@@ -19,6 +19,7 @@ from __future__ import annotations
 import re
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import yaml
@@ -228,3 +229,83 @@ def test_the_release_pushes_the_c03_parent_before_building_on_it():
     )
     assert c03 < push < checked < export < first_child
     assert 'c03_repository="${registry}/carbon-c03-worker"' in script
+
+
+class _BuildCLI:
+    """The docker CLI the analysis builder sees: records every call."""
+
+    def __init__(self):
+        self.calls = []
+
+    def run(self, args, timeout=None):
+        self.calls.append(list(args))
+        if args[0] == "build":
+            return SimpleNamespace(stdout=b"sha256:" + b"b" * 64)
+        return SimpleNamespace(stdout=b"")
+
+    def json(self, args):
+        self.calls.append(list(args))
+        return {"Id": PARENT_ID}
+
+
+@pytest.fixture
+def analysis(tmp_path, monkeypatch):
+    from carbon.development_session import research_image
+
+    cli = _BuildCLI()
+    parent = SimpleNamespace(image_id=PARENT_ID, source_tree_digest=SOURCE)
+    monkeypatch.setattr(research_image, "DockerCLI", lambda: cli)
+    monkeypatch.setattr(research_image, "load_image_identity", lambda path: parent)
+    monkeypatch.setattr(
+        research_image, "doctor", lambda **k: SimpleNamespace(eligible=True)
+    )
+    monkeypatch.setattr(research_image, "verify_image", lambda image, cli: image)
+
+    def build(**kwargs):
+        image = research_image.build_analysis_image(
+            tmp_path / "parent.json", tmp_path / "root", **kwargs
+        )
+        dockerfiles = list((tmp_path / "root").glob("*/*/Dockerfile"))
+        assert len(dockerfiles) == 1
+        return image, dockerfiles[0].read_text().splitlines()[0], cli.calls
+
+    return build
+
+
+def test_the_miner_path_keeps_its_checked_local_parent_tag(analysis):
+    """install_miner.sh: no repository, so the local tag, checked first."""
+    image, first, calls = analysis()
+    tag = "carbon-cw1d4-parent:" + PARENT_ID[7:]
+    assert first == f"FROM {tag}"
+    assert ["tag", PARENT_ID, tag] in calls
+    assert image.parent_image == PARENT_ID
+
+
+def test_a_release_builds_the_analysis_image_on_the_pushed_parent(analysis):
+    repository = "ghcr.io/carbonphysicsai/carbon-c03-worker"
+    image, first, calls = analysis(parent_repository=repository)
+    assert first == f"FROM {repository}@{PARENT_ID}"
+    assert not any(call[0] == "tag" for call in calls)
+    assert image.parent_image == PARENT_ID
+
+
+@pytest.mark.parametrize(
+    "repository",
+    [
+        "ghcr.io/carbonphysicsai/carbon-c03-worker:v1",
+        "ghcr.io/carbonphysicsai/carbon-miner-analysis",
+        "carbon-c03-worker",
+    ],
+)
+def test_a_release_refuses_a_parent_repository_the_helper_refuses(analysis, repository):
+    with pytest.raises(ValueError, match="release parent reference refused"):
+        analysis(parent_repository=repository)
+
+
+def test_the_release_passes_the_pushed_parent_to_the_analysis_builder():
+    script = SCRIPT.read_text()
+    export = script.index('export CARBON_WORKER_PARENT_REPOSITORY="${c03_repository}"')
+    passed = script.index('--parent-repository "${c03_repository}"')
+    assert export < passed < script.index("analysis_manifest=")
+    installer = (REPOSITORY / "scripts" / "install_miner.sh").read_text()
+    assert "--parent-repository" not in installer

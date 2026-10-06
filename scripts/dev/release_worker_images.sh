@@ -88,6 +88,7 @@ bash "${script_dir}/torch_gpu_worker_image.sh" "${artifacts}/torch-gpu-worker-im
 # it (the repository's environment from bootstrap.sh).
 analysis_built="$("${repo_root}/.venv/bin/python" -m carbon.development_session.research_image \
   --parent-manifest "${artifacts}/c03-worker-image.json" \
+  --parent-repository "${c03_repository}" \
   --root "${artifacts}/research-images")"
 analysis_manifest="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1])["manifest"])' "${analysis_built}")"
 cp -- "${analysis_manifest}" "${artifacts}/analysis-worker-image.json"
