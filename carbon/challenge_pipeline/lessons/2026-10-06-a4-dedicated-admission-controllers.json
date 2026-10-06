@@ -1,0 +1,29 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-06-a4-dedicated-admission-controllers",
+ "recorded_at": "2026-10-06T18:00:00Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "claude/a4-admission-controllers from origin/main 32e79ffb0 (A4-DEDICATED-ADMISSION-CONTROLLERS-01, Test Lead ruling on readiness item A4)",
+  "description": "Built #615's recorded follow-up: zero-spend grants refused by every spending path, `phase3 admission-controller init` that creates a dedicated controller store and prints its identity, one pending Level 0 designation per Challenge (battery, cooling, motor), and readiness item A4 wired to the designation file."
+ },
+ "expected": "Each Challenge's admission state lives in its own controller with a fixed identity, created offline with no spend, and A4 passes only once that identity is designated.",
+ "observed": "The recorded follow-up could not be run: no command created a controller store, and the grant format could not express zero spend (a positive run cost and at least one run were required). A4 still carried the stale reason '#615 not on main' and checked nothing. Making zero spend a whole shape (every amount 0, 0 runs, 0 submissions) and refusing it at each spending entry point kept every existing grant unchanged. A zero-spend grant file still binds spend authority, so it needs the owner's own approval even at USD 0.",
+ "keep": [
+  "A recorded follow-up is not done until the operator command it needs exists on main; check the command before ruling an item ready for the executor.",
+  "A no-spend authority is a whole, explicit shape refused at every spending entry point, never a convention of small values.",
+  "A readiness item reads the record it names (here the designation file), so a pending identity is NOT_BUILT and a malformed record FAILs."
+ ],
+ "change": [
+  "Commit the three owner-approved zero-spend admission grants, run `admission-controller init` per Challenge on the operator host, and fill the identities in a one-line follow-up.",
+  "Consume battery Level 0 findings already on the R2 root (#609) into the dedicated controller before any battery Level 0 LOCK review."
+ ],
+ "protocol_elements": [
+  "admission.lock",
+  "graphite.controller"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

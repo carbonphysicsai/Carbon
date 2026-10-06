@@ -137,6 +137,41 @@ def review_only(item, ctx):
     return None
 
 
+#: The committed designation of one admission controller per (challenge, level).
+ADMISSION_CONTROLLERS = "carbon/challenge_pipeline/admission_controllers.json"
+
+
+def admission_controller(item, ctx):
+    """A4: the designation names this (challenge, level)'s admission controller
+    (A4-DEDICATED-ADMISSION-CONTROLLERS-01). DESIGNATED with a sha256 digest
+    passes; PENDING_OPERATOR_IDENTITY is NOT_BUILT with the item's reason and
+    owner; no entry, or a malformed or duplicated designation file, fails."""
+    from carbon.challenge_pipeline import admission_controllers as designations
+
+    path = ctx.repository / ADMISSION_CONTROLLERS
+    try:
+        entry = designations.designation(ctx.challenge, ctx.level, path)
+    except designations.DesignationRefused as refused:
+        return Result(FAIL, "the designation file is refused", (refused.code,))
+    if entry is None:
+        return Result(
+            FAIL, f"no admission controller is designated for level {ctx.level}"
+        )
+    if designations.pending(entry):
+        pending = item.get("pending", {})
+        reason = pending.get("reason", "the designated identity is pending")
+        return Result(
+            NOT_BUILT,
+            f"{reason}; owner: {pending.get('owner', 'unassigned')}",
+            (entry["name"], entry["status"]),
+        )
+    return Result(
+        PASS,
+        "a designated admission controller is recorded by identity",
+        (entry["name"], entry["identity"], file_digest(path)),
+    )
+
+
 # -- plumbing -----------------------------------------------------------------------------------
 def registered_l0(item, ctx):
     from carbon.challenge_registry import registry
@@ -748,6 +783,7 @@ CHECKS = {
     "disk_free": disk_free,
     "review_only": review_only,
     "recorded_tests": recorded_tests,
+    "admission_controller": admission_controller,
     "branch_plan": branch_plan,
     "onboarding_decisions": onboarding_decisions,
     "registered_l0": registered_l0,

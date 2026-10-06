@@ -220,10 +220,10 @@
    "kind": "auto",
    "lesson": "I3",
    "title": "A designated admission controller is recorded for (challenge, level).",
-   "check": "recorded_tests",
+   "check": "admission_controller",
    "pending": {
-    "reason": "designated admission controller (#615) not on main",
-    "owner": "Test Engineer",
+    "reason": "#615's designation is on main; this (challenge, level) names its dedicated zero-spend admission controller (A4-DEDICATED-ADMISSION-CONTROLLERS-01), whose identity is PENDING_OPERATOR_IDENTITY until the executor runs `phase3 admission-controller init` on the operator host and reports the digest",
+    "owner": "Graphite executor",
     "neutral_tests": []
    }
   },
