@@ -1,7 +1,7 @@
 """Static F1 packet conformance; no Challenge activation or solver execution."""
 
-from pathlib import Path
 import re
+from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -43,7 +43,11 @@ def test_common_packet_maps_existing_owners_and_keeps_open_values_explicit() -> 
     example = EXAMPLE.read_text(encoding="utf-8")
     for number in range(1, 11):
         assert f"| {number} |" in template
-    for owner in ("carbon/authoring/", "carbon/challenge_readiness/", "carbon/reconstruction/"):
+    for owner in (
+        "carbon/authoring/",
+        "carbon/challenge_readiness/",
+        "carbon/reconstruction/",
+    ):
         assert owner in template
     assert template.count("`OPEN`") >= 10
     assert example.count("`OPEN`") >= 10
