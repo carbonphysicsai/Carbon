@@ -378,7 +378,7 @@ def check_a4_refuses_bad_designations(tmp_path, _monkeypatch, _capsys):
             (entry(challenge, "sha256:" + "e" * 63),),
             (entry(challenge, status=designations.DESIGNATED),),
             (entry(challenge, DIGEST, status=designations.PENDING),),
-            (entry(challenge, name="/home/carbon/root"),),
+            (entry(challenge, name="../admission-root"),),
             (entry(challenge, DIGEST), entry(challenge, DIGEST, name="again")),
             (entry("another-challenge", DIGEST),),
         ]
