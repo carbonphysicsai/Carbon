@@ -110,11 +110,15 @@ def test_motor_synthetic_fixture_is_challenge_owned_and_nonpromoting():
     assert rule.identity["comparison"]["promotable"] is False
 
 
-def test_motor_graphite_dry_run_uses_named_adapter(tmp_path, capsys):
+def test_motor_graphite_dry_run_uses_named_adapter(tmp_path, capsys, monkeypatch):
     if os.name != "posix":
         pytest.skip("the Graphite controller requires POSIX fcntl")
+    import containment_double
+
     from carbon.agent_campaign.graphite import phase3
 
+    # The dry run's carrier containment check (synthetic passing double).
+    containment_double.install(monkeypatch)
     assert phase3.dry_run(tmp_path, scoring()) == 0
     output = capsys.readouterr().out
     result = json.loads(output[output.index("{\n") :])

@@ -425,7 +425,11 @@ def test_a_live_run_needs_a_snapshot_and_the_opt_in_needs_one_too(tmp_path, caps
     assert _refusal(capsys) == "allow_unchecked_cards_needs_a_literature_snapshot"
 
 
-def test_the_dry_run_takes_a_snapshot_and_records_it(tmp_path, capsys):
+def test_the_dry_run_takes_a_snapshot_and_records_it(tmp_path, capsys, monkeypatch):
+    import containment_double
+
+    # The dry run's carrier containment check (synthetic passing double).
+    containment_double.install(monkeypatch)
     path = snapshot_file(tmp_path / "lit", count=2, verdicts={1: "CORRECT"})
     root = str(tmp_path / "root")
     assert (

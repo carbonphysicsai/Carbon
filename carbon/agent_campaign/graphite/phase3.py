@@ -1481,7 +1481,11 @@ def command_run(args):
     level = {} if variant is None else {"development_variant": variant}
     if args.dry_run:
         return dry_run(
-            _root(args.root), scoring, literature=_literature_from(args), **level
+            _root(args.root),
+            scoring,
+            literature=_literature_from(args),
+            analysis_image_manifest=getattr(args, "analysis_image_manifest", None),
+            **level,
         )
     root = _root(args.root)
     grant = load_grant(args.grant)
@@ -1809,9 +1813,20 @@ def dry_run_script(baseline, variant, refused):
     ]
 
 
-def dry_run(root, scoring, literature=None, development_variant=None):
+def dry_run(
+    root,
+    scoring,
+    literature=None,
+    development_variant=None,
+    analysis_image_manifest=None,
+):
     """`development_variant`: a development level's registered variant for the
-    same Challenge (`development_variant_for`), or None at Level 0."""
+    same Challenge (`development_variant_for`), or None at Level 0.
+    `analysis_image_manifest`: the campaign's pinned analysis image, for the
+    REAL miner lane's containment check; without it that check fails closed
+    and the dry run exits nonzero."""
+    from carbon.development_session.containment_check import containment_check
+
     from .model import ScriptedModel
     from .pods import ScriptedPods, Step, real_path_check, synthetic_outputs
 
@@ -1885,12 +1900,19 @@ def dry_run(root, scoring, literature=None, development_variant=None):
             scoring=scoring,
             scorer=provider._frozen_rule(),
         ),
+        # The miner door above is a fake; this runs one fixed cell through the
+        # REAL miner lane and checks its containment from the host
+        # (GRAPHITE-CARRIER-CONTAINMENT-01). Fails closed.
+        "carrier_containment": containment_check(
+            root=root / "carrier-containment", manifest=analysis_image_manifest
+        ),
     }
     print(json.dumps(result, indent=1, default=str))
     ok = (
         result["provider_state"] == "succeeded"
         and result["dry_run"]["real_pod_path"]["status"] == "OK"
         and result["dry_run"]["pod_failure_path"]["status"] == "OK"
+        and result["dry_run"]["carrier_containment"]["status"] == "PASS"
     )
     return 0 if ok else 4
 
@@ -1927,6 +1949,11 @@ def main(argv=None):
     )
     run.add_argument(
         "--image-manifest", help="the pinned C-03 worker image (--compute carrier)"
+    )
+    run.add_argument(
+        "--analysis-image-manifest",
+        help="the campaign's pinned analysis image, for the dry run's carrier "
+        "containment check (without it the check fails closed)",
     )
     run.add_argument("--miner-profile")
     run.add_argument("--miner-campaign")
