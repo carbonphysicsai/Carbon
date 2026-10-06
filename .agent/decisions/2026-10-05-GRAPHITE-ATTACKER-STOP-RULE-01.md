@@ -82,3 +82,17 @@ families, and two of its turns were cut off at 2,048 output tokens.
 
 **Unchanged.** Scientific, security and launch qualification stay
 human-reserved. No verdict here is security acceptance.
+
+**Addendum (2026-10-06): rule v2, deterministic coverage.** The Test Lead
+ruled on 2026-10-05, under the owner's delegation, that three filter-stopped
+Attacker items stay parked and that their risks are covered by deterministic,
+boundary-side tests instead, recorded as "covered deterministically" and never
+as a silent NOT_RUN. `carbon.graphite.attacker-stop-rule.v2` records this:
+- `rebuild_identity` is labelled "covered deterministically: the no-op
+  capability audit (#619) and the WAVE-04 artifact-identity tests (#607)";
+- the coverage table and the frozen record list `hidden_outcome_channel`
+  (#642's non-leak differential), `rotation_exhaustion` (#642's tempo and
+  rotation tests) and the v2 practice safety block (#652's allow-list tests)
+  as covered deterministically.
+New sessions freeze v2. A session recorded under v1 resumes under its own v1
+record, with the v1 labels and no deterministic list (invariant 10).
