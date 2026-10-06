@@ -712,8 +712,13 @@ def test_a_battery_agent_needs_a_finite_budget_and_the_autonomous_policy():
         LEGACY,
         prompt_for,
     )
+    from carbon.development_session.research_tools import ARGUMENT_NORMALISATION_V2
 
-    assert provider_plan("none", None) == {"agent": "none", "model_calls": 0}
+    assert provider_plan("none", None) == {
+        "agent": "none",
+        "model_calls": 0,
+        "argument_normalisation": ARGUMENT_NORMALISATION_V2,
+    }
     for budget in (None, {}, {"ceilings": {"provider_attempts": 3}}):
         with pytest.raises(ValueError, match="finite provider"):
             provider_plan("autonomous", budget)

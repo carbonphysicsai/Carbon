@@ -1,0 +1,30 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-research-budget-refusal-read-as-crash",
+  "recorded_at": "2026-10-05T20:00:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": ".agent/decisions/2026-10-05-RESEARCH-BUDGET-REFUSAL-TYPING-01.md",
+    "description": "Typed the campaign ledger's limit refusals so a task its own ceiling refused completes as MINER_CEILING_REACHED instead of FAILED_INFRA / INTERNAL."
+  },
+  "expected": "A practice task refused by the campaign's own research_trials ceiling tells the miner which ceiling bound and how to raise it.",
+  "observed": "Two practice tasks on a campaign with research_trials 3 of 3 used ended FAILED_INFRA / INTERNAL in about 0.5 s with no stored reason, indistinguishable from a worker crash: the durable provider's blanket except turned the ledger's ValueError into INTERNAL.",
+  "keep": [
+    "Refusing work against the miner's own ceiling before anything is reserved.",
+    "INTERNAL for every exception the executor cannot type."
+  ],
+  "change": [
+    "A limit refusal is a typed exception carrying the dimension and the counts, with its historical text, so text readers keep working.",
+    "A blanket except around an executor asks the executor to type what it recognises before falling back to INTERNAL.",
+    "A refusal says whose limit it is and names the launch field that sets it."
+  ],
+  "protocol_elements": [
+    "research.task_outcomes",
+    "research_ledger.miner_budget",
+    "invariant_7.infrastructure_failure_separation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

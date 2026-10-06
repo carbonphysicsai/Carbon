@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-motor-scoring-quality-venv",
+  "recorded_at": "2026-10-05T15:42:00Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-MOTOR-05 isolated quality gate", "description": "Ran changed-path quality gate from the Linux-readable isolated copy."},
+  "expected": "Quality gate executes its pinned toolchain.",
+  "observed": "The gate reached tool discovery but the reused test venv does not put ruff on PATH; no lint result was produced.",
+  "keep": ["Do not represent an interrupted quality gate as a pass."],
+  "change": ["Locate the existing ruff binary or run the canonical toolchain before delivery."],
+  "protocol_elements": ["quality-tool availability", "honest validation status"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

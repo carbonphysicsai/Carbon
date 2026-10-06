@@ -208,8 +208,14 @@ def compile_targets(
     *,
     network="localnet",
     spec_version=RUNTIME_SPEC,
+    allow_owner_coldkey_winner=False,
 ):
-    """Caller must resolve NET-4A provenance; this function cannot issue authority."""
+    """Caller must resolve NET-4A provenance; this function cannot issue authority.
+
+    `allow_owner_coldkey_winner` admits a winner whose coldkey is the subnet
+    owner's. Only a testnet publisher sets it (OWNER-WEIGHTS-AUTHORITY-01). A
+    winner whose hotkey is an owner hotkey is refused regardless: weight sent
+    there burns."""
     if type(capabilities) is not RuntimeCapabilities:
         raise PublicationFailure("RUNTIME_CAPABILITIES_REQUIRED")
     member, sink = capabilities.validate(
@@ -227,9 +233,8 @@ def compile_targets(
             registered,
         ):
             raise PublicationFailure("WINNER_IDENTITY_CHANGED_REFRESH_TO_BURN")
-        if (
-            hotkey in capabilities.owner_hotkeys
-            or coldkey == capabilities.owner_coldkey
+        if hotkey in capabilities.owner_hotkeys or (
+            coldkey == capabilities.owner_coldkey and not allow_owner_coldkey_winner
         ):
             raise PublicationFailure("OWNER_ASSOCIATED_WINNER_WOULD_BURN")
         if recipient.uid == member.uid:

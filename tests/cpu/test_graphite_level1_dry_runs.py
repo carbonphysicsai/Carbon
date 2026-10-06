@@ -24,7 +24,11 @@ def _run(main, root, level=1):
         return stopped.code
 
 
-def test_the_constructor_runs_at_level_1(tmp_path):
+def test_the_constructor_runs_at_level_1(tmp_path, monkeypatch):
+    import containment_double
+
+    # The dry run's carrier containment check (synthetic passing double).
+    containment_double.install(monkeypatch)
     assert _run(phase3.main, tmp_path) == 0
     variant = dv.variant(BATTERY, 1)
     database = tmp_path / "dry-run" / "controller" / "campaign.sqlite3"

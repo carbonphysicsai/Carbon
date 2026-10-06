@@ -55,11 +55,6 @@ _TOOLING_PATHS = frozenset(TOOLING_TESTS) | frozenset(
         "scripts/dev/classify_changes.py",
         "scripts/dev/select_cpu_profile.py",
         "scripts/dev/development_scope.py",
-        "docs/development/carbon_hub/tools/validate_hub.py",
-        "docs/development/carbon_hub/tools/test_validator.py",
-        "docs/development/carbon_hub/tools/test_newcomer.py",
-        "docs/development/carbon_hub/tools/test_routes.js",
-        "docs/development/carbon_hub/tools/browser_smoke_test.py",
     }
 )
 

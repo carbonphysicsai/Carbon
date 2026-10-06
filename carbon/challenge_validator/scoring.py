@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import abc
 import math
+from statistics import fmean
 
 #: Never shipped to a pod, whatever a Challenge declares (lower-case
 #: fragments). Kept from Graphite's pods (`FORBIDDEN_DATA`).
@@ -116,6 +117,33 @@ def clean(value):
     return value
 
 
+def paired_error_difference(baseline_rows, rows, *, important=None):
+    """Descriptive paired error difference on common, scorable public cases.
+
+    This is deliberately not an uncertainty estimate or promotion rule.
+    """
+
+    def by_case(items):
+        return {
+            row["case_id"]: row
+            for row in items
+            if row.get("case_id") is not None and row.get("error") is not None
+        }
+
+    baseline, candidate = by_case(baseline_rows), by_case(rows)
+    common = sorted(set(baseline) & set(candidate))
+    if important is not None:
+        common = [case for case in common if bool(candidate[case].get("important"))]
+    if not common:
+        return {"n": 0, "mean_delta": None}
+    return {
+        "n": len(common),
+        "mean_delta": fmean(
+            candidate[case]["error"] - baseline[case]["error"] for case in common
+        ),
+    }
+
+
 class PracticeRule(abc.ABC):
     """A Challenge's frozen rule on its public PRACTICE references.
 
@@ -155,6 +183,10 @@ class ChallengeScoring(abc.ABC):
     wrong_challenge_code: str = "not_this_challenge"
     #: The Constructor's objective, in the brief.
     construction_objective: str = ""
+    #: The score legs a development score variant may weight (VALIDATOR-09):
+    #: the Challenge's score-tuning legs. Data only: this module never reads a
+    #: variant. Empty means no variant can be registered for this Challenge.
+    declared_score_components: tuple = ()
 
     def challenge(self):
         return {"id": self.challenge_id, "version": self.challenge_version}
@@ -251,6 +283,16 @@ class ChallengeScoring(abc.ABC):
         """
         raise NotImplementedError("the Challenge declares no synthetic predictions")
 
+    def published_material(self):
+        """The repository files a construction or attack session of this
+        Challenge may read (its checkout allowlist). The default is the list
+        registered in `carbon.agent_campaign.boundaries.PUBLISHED_MATERIAL`;
+        a Challenge's adapter may supply its own. The boundary's denylist
+        still wins over either."""
+        from carbon.agent_campaign.boundaries import published_material
+
+        return published_material(self.challenge_id)
+
 
 def admit(scoring, strategy, seed, root, *, contract=None):
     """Compile `strategy` exactly as Carbon would rebuild it; return what Carbon
@@ -297,11 +339,18 @@ def _cooling():
     return CoolingScoring()
 
 
+def _motor():
+    from .motor_scoring import MotorScoring
+
+    return MotorScoring()
+
+
 #: Registered scorings by Challenge token. A Challenge joins by record, with
 #: its own construction contract registered first.
 _FACTORIES = {
     "battery-fastcharge-ageing-development-v1": _battery,
     "chip-cold-plate": _cooling,
+    "electric-motor-magnetics": _motor,
 }
 _CACHE = {}
 
@@ -325,6 +374,19 @@ def scoring_for(challenge_id=None):
     return _CACHE[challenge_id]
 
 
+def published_material(challenge_id):
+    """The checkout allowlist for `challenge_id`: its registered scoring's
+    (`ChallengeScoring.published_material`), or the boundary's registered
+    list while no scoring is registered for it."""
+    from carbon.agent_campaign.boundaries import published_material as registered
+
+    try:
+        scoring = scoring_for(challenge_id)
+    except ScoringUnavailable:
+        return registered(challenge_id)
+    return scoring.published_material()
+
+
 def resolve(scoring):
     """`scoring` itself, or the only registered scoring when it is None."""
     if scoring is None:
@@ -346,6 +408,7 @@ __all__ = [
     "admit",
     "clean",
     "cover",
+    "paired_error_difference",
     "rebuild_differences",
     "registered",
     "resolve",
