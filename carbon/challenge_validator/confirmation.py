@@ -42,7 +42,9 @@ A rerun is idempotent: it recalls the same batch and commitment.
 owner-only custody directory (`init`): a 32-byte root and an append-only
 journal of public commitments.
 
-Nothing here prints, stores or returns a private case, input, seed or root.
+Nothing here prints or returns a private case, input, seed or root. Only
+`export-prior` stores case inputs: a sealed battery set, written owner-only
+outside the repository as another deployment's private prior.
 Sealing itself is an operator action: this module is the tooling, and the
 owner orders each seal. DEVELOPMENT only: no score, weight or reward.
 """
@@ -95,6 +97,10 @@ _DOCUMENT_KEYS = {
     "required_private_priors",
     "authority",
 }
+#: A tuning set may describe a quiz stratum drawn beside its main set
+#: (VALIDATOR-17's v2 amendment), by reference only: the stratum's sizes and
+#: rules live in the referenced amendment and quiz library.
+_QUIZ_STRATUM_KEYS = {"description", "amendment", "library", "drawn_by"}
 
 
 class ConfirmationRefused(ValueError):
@@ -134,14 +140,24 @@ class ConfirmationSet:
     required_private_priors: tuple
     authority: dict
     digest: str
+    quiz_stratum: dict | None = None
 
     @staticmethod
     def from_document(document, pinned):
         def bad(why):
             raise ConfirmationRefused("confirmation_set_malformed:" + why)
 
-        if type(document) is not dict or set(document) != _DOCUMENT_KEYS:
+        if type(document) is not dict or set(document) - {"quiz_stratum"} != (
+            _DOCUMENT_KEYS
+        ):
             bad("keys")
+        quiz = document.get("quiz_stratum")
+        if "quiz_stratum" in document and (
+            type(quiz) is not dict
+            or set(quiz) != _QUIZ_STRATUM_KEYS
+            or not all(type(v) is str and v for v in quiz.values())
+        ):
+            bad("quiz_stratum")
         if document["schema"] != SET_SCHEMA:
             bad("schema")
         role = document["role"]
@@ -231,6 +247,7 @@ class ConfirmationSet:
             required_private_priors=tuple(document["required_private_priors"]),
             authority={k: list(v) for k, v in authority.items()},
             digest=pinned,
+            quiz_stratum=None if quiz is None else dict(quiz),
         )
 
     @property
@@ -261,7 +278,9 @@ class ConfirmationSet:
 
     def skeleton(self):
         """The public skeleton: no case, input, seed or root."""
+        quiz = {} if self.quiz_stratum is None else {"quiz_stratum": self.quiz_stratum}
         return {
+            **quiz,
             "role": self.role,
             "challenge_id": self.challenge_id,
             "sealable": self.sealable,
@@ -783,6 +802,38 @@ def _seal_journal(item, sets, source, directory, private, repository):
     }
 
 
+# --- exporting a sealed set as another seal's private prior ----------------------------
+
+
+def export_prior(role, *, config, out, repository=REPOSITORY, directory=None):
+    """Write a battery set sealed in the deployment `config`'s journal as an
+    owner-only private-prior file (`{"cases": [{"inputs": {...}}, ...]}`),
+    for a seal in another deployment (HIDDEN_HOST_SETUP §6: EV5 and
+    `graphite-confirmation-v1` as priors of `graphite-tuning-v2`). The set
+    is regenerated from the root and checked against its committed
+    fingerprint. Returns only the role, the count and the file's digest."""
+    from .confirmation_sources import source_for
+
+    item = confirmation_set(role, directory)
+    source = source_for(item.challenge_id)
+    if source.custody != "battery_deployment":
+        raise ConfirmationRefused("confirmation_custody_not_served")
+    out = _outside_repository(out, "confirmation_private_prior")
+    cases = source.export(item, config, repository)
+    try:
+        fd = os.open(out, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        raise ConfirmationRefused("confirmation_private_prior_exists") from None
+    with os.fdopen(fd, "w") as handle:
+        json.dump(
+            {"role": item.role, "cases": [{"inputs": x} for x in cases]},
+            handle,
+            sort_keys=True,
+        )
+        handle.write("\n")
+    return {"role": item.role, "cases": len(cases), "file_digest": _file_digest(out)}
+
+
 # --- the pinning manifest -------------------------------------------------------------
 
 
@@ -852,6 +903,12 @@ def main(argv=None):
     run.add_argument("--custody")
     run.add_argument("--config")
     run.add_argument("--prior", action="append", metavar="NAME=PATH")
+    exported = sub.add_parser(
+        "export-prior", help="a sealed battery set as an owner-only prior file"
+    )
+    exported.add_argument("--role", required=True)
+    exported.add_argument("--config", required=True)
+    exported.add_argument("--out", required=True)
     pin = sub.add_parser("manifest", help="a set's pinning manifest")
     pin.add_argument("--role", required=True)
     pin.add_argument("--fingerprint")
@@ -881,6 +938,8 @@ def main(argv=None):
                 config=args.config,
                 private_priors=_priors(args.prior),
             )
+        elif args.command == "export-prior":
+            result = export_prior(args.role, config=args.config, out=args.out)
         else:
             given = (args.fingerprint, args.sequence)
             if given.count(None) == 1:

@@ -5,7 +5,8 @@
     "graphite-confirmation-v1": "sha256:a88427f428ca2bb65c955da5aa74d4549b9ab4aa2f717e3285b0248b8dd5189e",
     "cooling-graphite-confirmation-v1": "sha256:de25ce75bf451d56190de5a6895a49bac62ba473f8605b71fdf94d2a788aa617",
     "motor-graphite-confirmation-v1": "sha256:137881997726b5e0589b50c302ddaee0ecc2b82eb6e64be746cb739afab84609",
-    "graphite-tuning-v1": "sha256:946326038f59f80e0adceb634bc01ff3a310044fea4d7db525453e22080e9c99"
+    "graphite-tuning-v1": "sha256:946326038f59f80e0adceb634bc01ff3a310044fea4d7db525453e22080e9c99",
+    "graphite-tuning-v2": "sha256:90211c5dd6e6255bf9acb3ff2cd122cad5ca7cf711ac59cb97256fe687eaad2b"
   },
   "rule": "A confirmation set is a registered document in this directory, pinned here by digest. Size and sampling law stay null (HUMAN_INPUT) until a recorded owner decision sets them; a change is a new document version, never an edit to code. Every role is reserved in interface.RESERVED_SEED_ROLES. Sealing is an operator action."
 }

@@ -94,3 +94,18 @@ The owner, 2026-10-06: "Yes make the quiz questions maximally effective."
   quiz helps, but alone it does not expose decision-level failures.
 - **Still HUMAN_INPUT:** the margin (swept) and the sizes, until the owner
   adopts them.
+
+**Built (VALIDATOR-19 slice Q, part 1).**
+- **`graphite-tuning-v2`** is registered and pinned. It has v1's 200 + 4
+  uniform main set and a `quiz_stratum` field that refers to this amendment
+  and `value/quiz.py`.
+  - It is reserved and is now `BATTERY_TUNING_ROLE`. v1 stays reserved and
+    unsealed.
+  - It is sealed on the hidden host only. Its priors are owner-only files:
+    the rotating pool, plus EV5 and `graphite-confirmation-v1` from the new
+    `confirmation export-prior`.
+- **Sizes:** the quiz uses the agreed sizes (Q2 80 from a pool of up to 320;
+  Q3 k = 8) through the `tuning quiz-*` commands.
+- **Kept apart:** quiz cases never enter the accuracy rows.
+- **Not yet done:** drawing and sealing v2 (an operator action, held until
+  the owner orders it).
