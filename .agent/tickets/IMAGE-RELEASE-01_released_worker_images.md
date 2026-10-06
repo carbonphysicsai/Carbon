@@ -11,8 +11,12 @@ release tooling around images that already exist.
   image that main can use too, and do not rebuild locally;
 - the owner's addition the same day: full JAX and PyTorch CPU and GPU
   capability, with nothing lost;
-- the Test Lead's addition: a pinned PyTorch determinism configuration;
-- OWNER-SHARED-ANSWER-KEY-01 (the validator-GPU addendum names the A40);
+- the Test Lead's addition: a pinned PyTorch determinism configuration,
+  and the ruling on #684: the cuDNN pins in a GPU-only profile with its
+  own identity, the CPU profile and Level-0 pins byte-identical;
+- OWNER-SHARED-ANSWER-KEY-01 (the validator-GPU addendum names the A40,
+  and the owner put PyTorch GPU rebuilds in scope);
+- the A40 determinism re-run grant (#681, approved);
 - OWNER-PYTORCH-BACKEND-01 (the PyTorch tolerance is human-reserved);
 - OWNER-LAUNCHPAD-PROD-02 answer 10 (practice runs on the validator's own
   images).
@@ -90,18 +94,23 @@ deleted image is then re-pulled, never rebuilt.
    Each check is VERIFIED, UNVERIFIED or FAILED. A GPU check on a GPU-less
    runner is UNVERIFIED, never passed. The report is a job artifact and a
    release asset.
-6. **PyTorch determinism configuration** (`torch_profile.DETERMINISM`). It
-   pins:
-   - deterministic algorithms;
-   - cuDNN deterministic, no benchmark;
-   - `CUBLAS_WORKSPACE_CONFIG=:4096:8`, the NVIDIA overlay's own value;
-   - 2 intra-op threads;
-   - the explicit-generator seed source.
+6. **PyTorch determinism profiles** (`torch_profile`). There are two, each
+   with its own digest and label:
+   - `CPU_DETERMINISM`: deterministic algorithms, 2 intra-op threads and the
+     explicit-generator seed source, which is what the CPU rebuild path
+     already applies. The PyTorch CPU image recipe checks
+     `CPU_DETERMINISM_DIGEST` at build time and carries it as the
+     `carbon.torch.determinism` label. The release record and the pull
+     require that label.
+   - `GPU_DETERMINISM`: the CPU settings plus cuDNN deterministic, no cuDNN
+     benchmark and `CUBLAS_WORKSPACE_CONFIG=:4096:8` (the NVIDIA overlay's
+     own value). It has `GPU_DETERMINISM_DIGEST` and the
+     `carbon.torch.gpu-determinism` label. The GPU-only module
+     `carbon/reconstruction/torch_gpu.py` applies it on CUDA and refuses
+     without CUDA or the pinned workspace.
 
-   `DETERMINISM_DIGEST` is its identity, and any changed setting changes it.
-   The PyTorch image recipe checks the digest at build time and carries it as
-   the `carbon.torch.determinism` label. The release record and the pull
-   require that label. No tolerance is set.
+   Any changed, dropped or added setting changes the profile's identity. No
+   tolerance is set.
 7. **Inventory** (`docs/development/images/IMAGE_INVENTORY.md`). It lists all
    50 images on the operator host, from read-only `docker images` and label
    inspection only, and says what uses each one, which script built it, and
@@ -125,19 +134,23 @@ deleted image is then re-pulled, never rebuilt.
   `carbon.c03.worker-image.v1` manifest schema is unchanged, because the
   validator loads an exact key set. The record carries the registry reference
   and the labels the manifest has no place for.
-- **D3: the cuDNN settings are not applied in the rebuild path in this PR.**
-  `carbon/battery/torch_training.py` is a battery implementation module.
-  Editing it moves `contracts.implementation_digest()`, and with it the
-  battery contract digest and the frozen `LEVEL0_PINS`, which is a contract
-  migration. The CPU path already applies deterministic algorithms, the
-  thread count and an explicit generator, and a test holds them equal to the
-  pin. The cuDNN settings act only on CUDA, and PyTorch has no CUDA path. They
-  are applied when that path is added, as its own contract revision (see
-  Blocked).
-- **D4: no PyTorch GPU image.** Building one needs a CUDA PyTorch lock with
-  hashes, which needs network resolution, and a CUDA rebuild path. Neither
-  exists. The matrix reports the cell as UNVERIFIED throughout and does not
-  pretend otherwise.
+- **D3: the cuDNN pins live in a GPU-only profile** (the Test Lead's
+  ruling on #684). `carbon/battery/torch_training.py` is a battery
+  implementation module, and editing it would move
+  `contracts.implementation_digest()`, the battery contract digest and the
+  frozen `LEVEL0_PINS`. So it is not edited. The CUDA-only settings are
+  applied by `carbon/reconstruction/torch_gpu.py`, which is not an
+  implementation module. Tests hold that the CPU torch environment digest and
+  `LEVEL0_PINS` are unchanged, and that dropping any GPU pin changes the GPU
+  profile identity and not the CPU one. Nothing calls `torch_gpu` until a
+  PyTorch CUDA rebuild path exists (draft expansion 0002).
+- **D4: no PyTorch GPU image in this PR.** The owner put PyTorch GPU
+  rebuilds in scope (OWNER-SHARED-ANSWER-KEY-01). Building one needs a CUDA
+  PyTorch lock with hashes and a CUDA rebuild path, and that is a contract
+  revision, which is the owner's call. The Test Lead is asking him. Meanwhile
+  it is designed as a draft development expansion 0002 (not committed until
+  the owner answers). The matrix reports the cell as UNVERIFIED throughout
+  and does not pretend otherwise.
 - **D5: the GPU rebuild check stays UNVERIFIED even on a GPU host.** The
   validator path's accelerator dispatch is disabled
   (`require_accelerator_admission`). The GPU device checks run with `--gpus`.
@@ -149,7 +162,7 @@ deleted image is then re-pulled, never rebuilt.
   - PyTorch CPU: the same, plus deterministic algorithms and threads in
     force.
   - JAX GPU: imports, locks, and the pinned XLA flags accepted.
-- **UNVERIFIED until an A40 run:**
+- **UNVERIFIED until the granted A40 run (#681):**
   - JAX GPU: devices, the flags active on a device, a GPU rebuild.
   - Every PyTorch GPU check.
   - Any reproducibility claim.
@@ -158,21 +171,22 @@ deleted image is then re-pulled, never rebuilt.
 
 - **Security acceptance of the released digests** before mainnet (the OD-3
   successor).
-- **The A40 determinism re-run.** It needs a grant.
 - **The PyTorch reproducibility tolerance** (OWNER-PYTORCH-BACKEND-01). Only
   the configuration is pinned.
 - **Removing old images** from the host, after the release is signed off.
+- **GHCR package visibility** (Ryan): new packages start private. Either make
+  `carbon-c03-worker` and `carbon-torch-worker` public, or each host logs in.
+- **GHCR package access** (Ryan): give this repository's Actions write access
+  to the existing `carbon-accelerator-worker` package.
 
 ## Blocked / follow-up
 
 - **PyTorch GPU worker.** It needs a CUDA PyTorch lock with hashes, a CUDA
-  rebuild path in `torch_training.py`, and the cuDNN settings applied there.
-  That is a battery contract revision. The smallest decision needed is for
-  the owner or the Carbon Validator to authorize that revision.
-- **Package visibility.** New GHCR packages start private. The owner makes
-  `carbon-c03-worker` and `carbon-torch-worker` public, or each host logs in.
-- **Pushing to the existing `carbon-accelerator-worker` package** needs that
-  package to grant this repository's Actions write access.
+  rebuild path that applies `torch_gpu`, and an image recipe. That is a
+  battery contract revision, and the owner decides it. The design is a draft
+  development expansion 0002, held outside the repository until he answers.
+- **The A40 determinism re-run** is granted (#681). It runs after a release
+  exists, and its result fills the GPU cells.
 
 ## Testnet adoption (Ryan; not run by this ticket)
 
@@ -197,7 +211,9 @@ file stay until the owner signs off.
 - `scripts/dev/torch_worker_image.sh`: the determinism build argument
 - `.devcontainer/torch/Dockerfile`: the determinism label and build-time
   check
-- `carbon/reconstruction/torch_profile.py`: `DETERMINISM` and its digest
+- `carbon/reconstruction/torch_profile.py`: the CPU and GPU determinism
+  profiles, their digests and labels (the CPU environment is unchanged)
+- `carbon/reconstruction/torch_gpu.py` (new): applies the GPU profile
 - `tests/cpu/test_worker_image_release.py`,
   `tests/cpu/test_worker_image_capability.py`,
   `tests/cpu/test_torch_determinism_config.py`,

@@ -9,7 +9,8 @@ carrier are replaced here, so nothing reaches Docker. What is held:
   VERIFIED, and the PyTorch GPU cell is UNVERIFIED throughout;
 - a version that differs from its lock, or a probe that fails, is FAILED and
   the command exits 1;
-- the report carries the owner-reserved items as HUMAN_INPUT.
+- the report carries the owner-reserved items as HUMAN_INPUT, and the
+  granted A40 re-run (#681) as not run here.
 """
 
 from __future__ import annotations
@@ -53,7 +54,7 @@ def test_the_pinned_versions_are_read_from_the_lock_files():
 
 
 def probe_like(pins, *, versions=None, torch_state=None):
-    from carbon.reconstruction.torch_profile import DETERMINISM
+    from carbon.reconstruction.torch_profile import CPU_DETERMINISM
 
     def run_probe(reference, mode, names, *, env=None, gpus=False):
         installed = {}
@@ -71,8 +72,7 @@ def probe_like(pins, *, versions=None, torch_state=None):
             out.update(
                 cuda_available=False,
                 devices=["cpu"],
-                determinism=torch_state
-                or {**dict(DETERMINISM), "cublas_workspace_config": None},
+                determinism=torch_state or dict(CPU_DETERMINISM),
             )
         return out
 
@@ -132,9 +132,9 @@ def test_a_version_off_its_lock_or_a_failed_probe_is_failed(fakes, monkeypatch):
 
 
 def test_a_determinism_setting_not_in_force_is_failed(fakes, monkeypatch):
-    from carbon.reconstruction.torch_profile import DETERMINISM
+    from carbon.reconstruction.torch_profile import CPU_DETERMINISM
 
-    state = {**dict(DETERMINISM), "intra_op_threads": 4}
+    state = {**dict(CPU_DETERMINISM), "intra_op_threads": 4}
     monkeypatch.setattr(capability, "run_probe", probe_like(fakes, torch_state=state))
     found = capability.matrix(RECORDS, {}, pins=fakes)["pytorch_cpu"]["checks"]
     assert found["determinism_config"]["status"] == "FAILED"
@@ -142,7 +142,7 @@ def test_a_determinism_setting_not_in_force_is_failed(fakes, monkeypatch):
     # The CUDA-only settings are the PyTorch GPU cell's, never passed on CPU.
     gpu = capability.matrix(RECORDS, {}, pins=fakes)["pytorch_gpu"]["checks"]
     assert gpu["determinism_config"]["status"] == "UNVERIFIED"
-    assert "carbon.torch.determinism" in gpu["determinism_config"]["detail"]
+    assert "carbon.torch.gpu-determinism" in gpu["determinism_config"]["detail"]
 
 
 def test_the_report_names_the_owner_reserved_items_and_exits_on_failure(
@@ -158,12 +158,9 @@ def test_the_report_names_the_owner_reserved_items_and_exits_on_failure(
     report = json.loads(out.read_text())
     assert report["schema"] == "carbon.worker-image-capability.v1"
     assert report["gpu_host"] is False
-    for item in (
-        "reproducibility_tolerance",
-        "a40_determinism_rerun",
-        "security_acceptance",
-    ):
+    for item in ("reproducibility_tolerance", "security_acceptance"):
         assert report[item] == "HUMAN_INPUT"
+    assert report["a40_determinism_rerun"] == "GRANTED_NOT_RUN_HERE (#681)"
     monkeypatch.setattr(
         capability, "run_probe", probe_like(fakes, versions={"jax": "0"})
     )

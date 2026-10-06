@@ -20,8 +20,9 @@ GPU-less runner every GPU device and rebuild check is UNVERIFIED. A cell is
 VERIFIED only when every one of its checks is. The command exits 1 when any
 check FAILED.
 
-The report states facts only. The reproducibility tolerance and the A40
-determinism re-run are the owner's (HUMAN_INPUT); nothing here sets either.
+The report states facts only. The reproducibility tolerance is the
+owner's (HUMAN_INPUT) and nothing here sets it. The A40 determinism re-run is
+granted (#681) and is reported as not yet run here.
 
     worker_image_capability.py --records DIR --manifests DIR --out REPORT \\
         [--gpus] [--expect-device-kind KIND]
@@ -53,19 +54,22 @@ RECIPE = {"width": 16, "depth": 1, "steps": 32}
 NO_GPU = "this host exposes no GPU to the probe (run with --gpus on a GPU host)"
 NO_GPU_DISPATCH = (
     "the validator path's accelerator dispatch is disabled in this repository "
-    "(accelerators.require_accelerator_admission); the A40 run is HUMAN_INPUT"
+    "(accelerators.require_accelerator_admission); the granted A40 run (#681) "
+    "establishes it"
 )
 NO_TORCH_GPU = (
     "no PyTorch GPU worker image exists in this repository: no CUDA PyTorch "
     "lock and no CUDA execution path in the PyTorch backend"
 )
 NO_TORCH_GPU_DETERMINISM = (
-    "the configuration is pinned (torch_profile.DETERMINISM, the image's "
-    "carbon.torch.determinism label); its cuDNN settings are applied when the "
-    "PyTorch CUDA rebuild path exists, and active on a device is unverified"
+    "the GPU profile is pinned (torch_profile.GPU_DETERMINISM, its own digest "
+    "and carbon.torch.gpu-determinism label) and applied by "
+    "carbon.reconstruction.torch_gpu; active on a device is unverified until a "
+    "PyTorch GPU image and CUDA rebuild path exist (draft expansion 0002)"
 )
-#: The pinned settings that act on CPU, checked inside the CPU rebuild path.
-CPU_DETERMINISM = ("use_deterministic_algorithms", "intra_op_threads")
+#: The CPU profile settings the probe can observe inside the rebuild path
+#: (`seed_source` is a property of the code, held by a unit test).
+OBSERVED_CPU_DETERMINISM = ("use_deterministic_algorithms", "intra_op_threads")
 
 #: Runs inside the pinned image with its own interpreter.
 PROBE = r"""
@@ -94,9 +98,6 @@ else:
         out["determinism"] = {
             "use_deterministic_algorithms": torch.are_deterministic_algorithms_enabled(),
             "intra_op_threads": torch.get_num_threads(),
-            "cudnn_deterministic": bool(torch.backends.cudnn.deterministic),
-            "cudnn_benchmark": bool(torch.backends.cudnn.benchmark),
-            "cublas_workspace_config": os.environ.get("CUBLAS_WORKSPACE_CONFIG"),
         }
 print(json.dumps(out))
 """
@@ -329,7 +330,7 @@ def jax_gpu(references, pins, *, gpus, expect_kind):
 
 
 def pytorch_cpu(references, manifests, pins):
-    from carbon.reconstruction.torch_profile import DETERMINISM
+    from carbon.reconstruction.torch_profile import CPU_DETERMINISM
 
     probe = {}
     names = (*JAX_NAMES, *TORCH_NAMES)
@@ -343,10 +344,11 @@ def pytorch_cpu(references, manifests, pins):
         return check(VERIFIED if ok else FAILED, probe.get("devices"))
 
     def determinism():
-        # The settings that act on CPU must be in force in the rebuild path.
-        # The cuDNN and cuBLAS ones act only on CUDA (the PyTorch GPU cell).
+        # The CPU profile must be in force in the rebuild path. The GPU
+        # profile's CUDA-only settings are the PyTorch GPU cell's.
         active = probe.get("determinism") or {}
-        pinned = {k: v for k, v in DETERMINISM if k in CPU_DETERMINISM}
+        observed = OBSERVED_CPU_DETERMINISM
+        pinned = {k: v for k, v in CPU_DETERMINISM if k in observed}
         differs = {k: active.get(k) for k, v in pinned.items() if active.get(k) != v}
         return check(FAILED, differs) if differs else check(VERIFIED, pinned)
 
@@ -414,7 +416,7 @@ def report(records, cells, *, gpus):
         "images": {kind: records[kind]["reference"] for kind in KINDS},
         "cells": cells,
         "reproducibility_tolerance": "HUMAN_INPUT",
-        "a40_determinism_rerun": "HUMAN_INPUT",
+        "a40_determinism_rerun": "GRANTED_NOT_RUN_HERE (#681)",
         "security_acceptance": "HUMAN_INPUT",
     }
 
