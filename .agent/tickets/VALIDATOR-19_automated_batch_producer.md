@@ -186,6 +186,15 @@ Carbon draws and solves.
     names the hotkeys, the run is blocked, fail closed; everything above
     runs in process.
 
+- **Finalists** (for the dress rehearsal, OWNER-REHEARSAL-AND-RELEASE-01):
+  - Each slot carries one finalist batch (`pfinal-S<slot>`) beside its
+    screening batch, under the same signed window.
+  - Import-only validators claim a final's set by the earliest live
+    producer window, then the fingerprint, never by their own import order.
+    Every validator therefore judges the same final on the same fresh cases.
+  - **Gap fixed:** the claim used to follow each validator's local journal
+    sequence.
+
 ## Operator setup (Ryan; exact steps, run once per host)
 
 ```bash

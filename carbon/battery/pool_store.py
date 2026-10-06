@@ -1184,10 +1184,29 @@ class PoolStore:
                 raise StateError("unknown_final")
             if row[0]:
                 return row[0]
-            nxt = db.execute(
-                "SELECT fingerprint FROM batches WHERE kind='finalist' AND "
-                "state='PREPARED' AND references_state='COMPLETE' ORDER BY sequence LIMIT 1"
-            ).fetchone()
+            if self.windowed:
+                # Import-only: the earliest live producer window, then the
+                # fingerprint, so every validator claims the same set for
+                # the same final, whatever order it imported in.
+                latest = self._latest_block(db)
+                nxt = (
+                    None
+                    if latest is None
+                    else db.execute(
+                        "SELECT b.fingerprint FROM batches b JOIN batch_windows w "
+                        "ON w.fingerprint = b.fingerprint WHERE b.kind='finalist' "
+                        "AND b.state='PREPARED' AND b.references_state='COMPLETE' "
+                        "AND w.activate_block <= ? AND ? < w.retire_block "
+                        "ORDER BY w.activate_block, b.fingerprint LIMIT 1",
+                        (latest, latest),
+                    ).fetchone()
+                )
+            else:
+                nxt = db.execute(
+                    "SELECT fingerprint FROM batches WHERE kind='finalist' AND "
+                    "state='PREPARED' AND references_state='COMPLETE' "
+                    "ORDER BY sequence LIMIT 1"
+                ).fetchone()
             if nxt is None:
                 return None
             db.execute(
