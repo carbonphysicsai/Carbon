@@ -64,7 +64,9 @@ MUTATIONS = {
     ),
     # Nothing escalates above the top rung.
     "ladder_ceiling": (
-        lambda m: m.setattr(gl, "TOP", len(ENGY_LADDER) + 5),
+        lambda m: m.setattr(
+            gl.Ladder, "top", property(lambda self: len(ENGY_LADDER) + 5)
+        ),
         lambda tmp: tl.test_the_top_rung_is_a_ceiling(tmp),
     ),
     # Escalation needs a recorded failure of this role, consumed once.

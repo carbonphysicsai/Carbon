@@ -1,0 +1,29 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-graphite-spur-provider",
+  "recorded_at": "2026-10-06T18:00:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "GRAPHITE-SPUR-PROVIDER-01 (.agent/decisions/2026-10-06-GRAPHITE-SPUR-PROVIDER-01.md), branch claude/spur-model-provider.",
+    "description": "SPUR Compute added as Graphite's second inference provider beside Engy, Graphite-only, with an empty rate table, a grant binding and the same selection, reservation, settlement, admission, deadline and transport path."
+  },
+  "expected": "A second provider plugs in through the same selection and settlement path, and a SPUR run is refused, typed, until the owner records rates and binds a grant.",
+  "observed": "Same-name models are the trap: SPUR serves glm-5.2 like Engy, and the context table, ladder index and ladder store were all keyed by model name alone, so a SPUR glm-5.2 would have borrowed Engy's 262,144-token context. The Launchpad also reads the shared adapter list, so a provider meant for Carbon's own testing had to live in a registry no miner surface reads.",
+  "keep": [
+    "A provider is a set of parts (adapters, rates, ladder, contexts, key file, refusals) behind one path; tests run the same assertions for every provider.",
+    "An empty rate table is shipped as empty and refused by a typed code, never filled with an estimate."
+  ],
+  "change": [
+    "Key every provider fact by provider and model (spur:glm-5.2), never by model name alone.",
+    "Pin the miner-facing provider list's digest whenever a development-only provider is added."
+  ],
+  "protocol_elements": [
+    "graphite.model_providers",
+    "grant_binding.model_provider",
+    "model_provider.unreported_charge"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

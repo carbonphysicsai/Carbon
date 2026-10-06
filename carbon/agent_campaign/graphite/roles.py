@@ -233,7 +233,7 @@ SELECT_MAX_INPUT_TOKENS = 1048576
 CONSTRUCTOR_TIMEOUT_SECONDS = 600
 
 
-def _whole_context(model_id):
+def _whole_context(model_id, context_tokens=ENGY_CONTEXT_TOKENS):
     """A whole-context role's settings on `model_id`: the model's whole
     published context, up to what `select` accepts, and the 600 s timeout.
     Output (2,048 tokens by default) and reasoning effort stay `DEFAULT_SETTINGS`',
@@ -246,7 +246,7 @@ def _whole_context(model_id):
     model's context, a request's input plus the 2,048 output tokens therefore
     stays at least 2,048 tokens inside its `max_model_len`."""
     return {
-        "max_input_tokens": min(ENGY_CONTEXT_TOKENS[model_id], SELECT_MAX_INPUT_TOKENS),
+        "max_input_tokens": min(context_tokens[model_id], SELECT_MAX_INPUT_TOKENS),
         "timeout_seconds": CONSTRUCTOR_TIMEOUT_SECONDS,
     }
 
@@ -275,13 +275,26 @@ WHOLE_CONTEXT_ROLES = (RoleName.CONSTRUCTOR, RoleName.ATTACKER)
 ATTACKER_MAX_OUTPUT_TOKENS = CONTEXT_RESERVE_TOKENS
 #: Each role's extra settings on top of its whole context.
 _ROLE_EXTRA = {RoleName.ATTACKER: {"max_output_tokens": ATTACKER_MAX_OUTPUT_TOKENS}}
-MODEL_SETTINGS = {
-    role: {
-        model: {**_whole_context(model), **_ROLE_EXTRA.get(role, {})}
-        for model in ENGY_CONTEXT_TOKENS
+
+
+def model_settings_for(context_tokens):
+    """`MODEL_SETTINGS`' table for one model provider's recorded contexts
+    (`{model_id: tokens}`): the same rule on every provider, so a model
+    another provider serves under the same name never borrows Engy's
+    context (GRAPHITE-SPUR-PROVIDER-01)."""
+    return {
+        role: {
+            model: {
+                **_whole_context(model, context_tokens),
+                **_ROLE_EXTRA.get(role, {}),
+            }
+            for model in context_tokens
+        }
+        for role in WHOLE_CONTEXT_ROLES
     }
-    for role in WHOLE_CONTEXT_ROLES
-}
+
+
+MODEL_SETTINGS = model_settings_for(ENGY_CONTEXT_TOKENS)
 
 
 _COMMON = (

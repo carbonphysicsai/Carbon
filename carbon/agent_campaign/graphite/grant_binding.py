@@ -290,6 +290,35 @@ def run_conditions(grant):
     }
 
 
+# -- the model provider a grant pays ------------------------------------------------------
+#: The model provider each grant's token spend is bound to
+#: (GRAPHITE-SPUR-PROVIDER-01). The grant format names its campaign provider
+#: (`graphite`), not the inference provider it pays, so the binding is
+#: registered here, as the Challenge binding is. A grant not listed pays
+#: `DEFAULT_MODEL_PROVIDER`, Engy: every grant approved so far. No grant is
+#: bound to SPUR: the owner approves its amounts later, by committing a grant
+#: and listing it here, so until then every SPUR run is refused.
+MODEL_PROVIDER_GRANTS = types.MappingProxyType({})
+DEFAULT_MODEL_PROVIDER = "engy"
+MODEL_PROVIDER_REFUSED = "grant_does_not_name_the_model_provider"
+
+
+def model_provider_of(grant):
+    """The model provider `grant` names (`MODEL_PROVIDER_GRANTS`)."""
+    return MODEL_PROVIDER_GRANTS.get(
+        getattr(grant, "grant_id", None), DEFAULT_MODEL_PROVIDER
+    )
+
+
+def model_provider_refusal(grant, model_provider):
+    """`MODEL_PROVIDER_REFUSED` unless `grant` names `model_provider`, else
+    None: a SPUR run refuses any grant that does not name SPUR, and an Engy
+    run any grant bound to another provider."""
+    if type(model_provider) is not str or model_provider_of(grant) != model_provider:
+        return MODEL_PROVIDER_REFUSED
+    return None
+
+
 def tokens_only(grant):
     """True for a grant in `phase3.TOKENS_ONLY_GRANTS` (VALIDATOR-06): its
     runs have a pod money budget of 0 (`experiment.phase3_budget`), so a

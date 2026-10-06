@@ -104,16 +104,17 @@ from ..provider import (
     digest_text,
     identifier,
 )
-from . import next_level
+from . import model_providers, next_level
 from . import tools as toolbox
-from .ladder import Ladder
+from .grant_binding import model_provider_refusal
+from .ladder import Ladder, LadderError
 from .literature import (
     FIXTURE_INDEX,
     LiteratureIndex,
     OfferedLiterature,
     literature_record,
 )
-from .model import ENGY_ADAPTERS
+from .model_providers import DEFAULT_MODEL_PROVIDER
 from .roles import (
     MODEL_SETTINGS,
     PARALLEL_RULES,
@@ -351,16 +352,25 @@ class GraphiteProvider:
         model,
         literature_index=FIXTURE_INDEX,
         miner_tools=None,
-        adapter_id="engy-anthropic",
+        adapter_id=None,
         max_calls_per_run=None,
         clock=time.time,
         crash_at=None,
         crash_at_checkpoint=None,
         session_limits=SESSION_LIMITS_V2,
+        model_provider=DEFAULT_MODEL_PROVIDER,
     ):
         root = Path(root)
         if not root.is_absolute() or root.is_symlink():
             raise ValueError("graphite root must be private and absolute")
+        try:
+            # The inference provider the run picked (GRAPHITE-SPUR-PROVIDER-01):
+            # Engy unless named; recorded with each new session it opens.
+            chosen = model_providers.resolve(model_provider)
+        except ValueError as refused:
+            raise ProviderUnavailable(refused.args[0]) from None
+        if adapter_id is None:
+            adapter_id = chosen.default_adapter
         if type(grant) is not SpendingGrant:
             raise ProviderUnavailable("spending_grant_required")
         if grant.provider != PROVIDER:
@@ -369,12 +379,19 @@ class GraphiteProvider:
             # Charges are metered in USD nanodollars; another currency has no
             # conversion here, so nothing is admitted against it.
             raise ProviderUnavailable("grant_currency_must_be_usd")
+        refused = model_provider_refusal(grant, chosen.name)
+        if refused is not None:
+            # No call, and no reservation, until a grant names the provider.
+            raise ProviderUnavailable(refused)
         if not callable(getattr(model, "transport_for", None)):
             raise ProviderUnavailable("model_access_required")
         if model.live and getattr(model, "grant", None) != grant:
             raise ProviderUnavailable("live_model_grant_mismatch")
-        if adapter_id not in ENGY_ADAPTERS:
-            raise ProviderUnavailable("engy_adapter_required")
+        if getattr(model, "model_provider", chosen) != chosen:
+            raise ProviderUnavailable("model_provider_mismatch")
+        refused = chosen.adapter_refusal(adapter_id)
+        if refused is not None:
+            raise ProviderUnavailable(refused)
         if type(literature_index) not in (LiteratureIndex, OfferedLiterature):
             raise TypeError("exact LiteratureIndex or OfferedLiterature required")
         if max_calls_per_run is not None and (
@@ -393,6 +410,7 @@ class GraphiteProvider:
         self.literature = literature_index
         self.miner_tools = miner_tools
         self.adapter_id = adapter_id
+        self.model_provider = chosen
         self.max_calls_per_run = max_calls_per_run
         # The rule a session this provider opens is recorded under; a resume
         # always follows the rule its record carries.
@@ -401,7 +419,7 @@ class GraphiteProvider:
         self.crash_at = crash_at
         self.crash_at_checkpoint = crash_at_checkpoint
         self._checkpoints = 0
-        self.ladder = Ladder(root / "ladder")
+        self.ladder = Ladder(root / chosen.ladder_directory, models=chosen.ladder)
         self._active = set()
 
     # -- configuration ------------------------------------------------------------------
@@ -695,9 +713,16 @@ class GraphiteProvider:
         anything opens; any other role keeps `DEFAULT_SETTINGS`. A resume
         never calls this: it rebuilds the selection its record froze
         (`selection_from_record`)."""
+        chosen = self.model_provider
+        # No recorded rate on the run's provider, no selection at all.
+        refused = chosen.rate_refusal(model_id)
+        if refused is not None:
+            raise ProviderUnavailable(refused)
+        # The provider's own contexts: never Engy's for a same-name model.
+        table = MODEL_SETTINGS if chosen.is_default else chosen.model_settings
         settings = None
-        if role in MODEL_SETTINGS:
-            settings = MODEL_SETTINGS[role].get(model_id)
+        if role in table:
+            settings = table[role].get(model_id)
             if settings is None:
                 raise ProviderUnavailable("model_context_not_recorded")
         return select(
@@ -705,7 +730,15 @@ class GraphiteProvider:
             model_id=model_id,
             credential={"kind": "file", "reference": self.model.credential_reference},
             settings=None if settings is None else dict(settings),
+            adapters=chosen.registry,
         )
+
+    def _model_provider_record(self, model_id):
+        """The `model_provider` block a new session on `model_id` records:
+        None on Engy (absent means Engy), the choice and identity otherwise."""
+        if self.model_provider.is_default:
+            return None
+        return self.model_provider.record(model_id)
 
     # -- the provider operations -----------------------------------------------------------
     def start(self, spec: TaskSpec, idempotency_key: str):
@@ -737,7 +770,14 @@ class GraphiteProvider:
         ] != role.manifest_digest(tool_text):
             # The brief was registered against another prompt or manifest.
             raise ProviderUnavailable("brief_role_changed")
-        rung = self.ladder.rung(role.name)
+        try:
+            rung = self.ladder.rung(role.name)
+        except LadderError as refused:
+            if refused.code != "start_model_not_on_the_ladder":
+                raise
+            # The provider's ladder is its rate table: a role whose start
+            # model it does not hold has no recorded rate there.
+            raise ProviderUnavailable(self.model_provider.rate_refused) from None
         model_id = self.ladder.model(role.name)
         selection = self._selection(model_id, role.name)
         self.model.transport_for(selection)  # refuses before anything is opened
@@ -770,6 +810,12 @@ class GraphiteProvider:
         if self.session_limits == SESSION_LIMITS_V2:
             # A v1 record has no block at all, exactly as before the rule.
             opened["session_limits"] = self.session_limits_record(opened["task"])
+        model_provider = self._model_provider_record(model_id)
+        if model_provider is not None:
+            # The run's provider choice and the provider-model identity
+            # (`spur:glm-5.2`). Engy, the default, records no block, so an
+            # Engy session's bytes are exactly as before.
+            opened["model_provider"] = model_provider
         # The rules a later phase records with a new session only (none here),
         # so a session opened before records none and resumes as it was.
         opened.update(self.opening_rules())
@@ -903,8 +949,21 @@ class GraphiteProvider:
             brief = self._brief(opened["brief"]["digest"])
             if brief is None:
                 raise SessionMismatch("brief_missing")
+            if opened.get("model_provider") != self._model_provider_record(
+                opened["role"]["model"]
+            ):
+                # A session resumes only on the provider that opened it.
+                raise SessionMismatch("model_provider_changed")
             selection = selection_from_record(
-                opened["model"], credential_file=self.model.credential_reference
+                opened["model"],
+                credential_file=self.model.credential_reference,
+                # Engy's registry is `ADAPTERS`, so an Engy resume makes
+                # exactly the call it always has.
+                **(
+                    {}
+                    if self.model_provider.is_default
+                    else {"adapters": self.model_provider.registry}
+                ),
             )
             _verify(
                 opened,
