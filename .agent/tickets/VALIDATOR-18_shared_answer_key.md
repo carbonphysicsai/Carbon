@@ -130,5 +130,23 @@ These replace §2's per-validator encryption and the two open decisions above.
 - **Validator side:** one command fetches, verifies the manifest's digests
   and imports the batch, using the validator's hotkey and nothing else.
   Activation follows the manifest's block window.
-- **Still owner-reserved:** security acceptance (AGENTS.md §13), and where the
-  service is hosted.
+- **Hosting** (the owner, 2026-10-06, relayed by the Test Lead): two hosts,
+  and nothing with the root or the solver ever faces the internet.
+  - **The producer host** holds the root, the solves and the producer
+    journal (VALIDATOR-19). It is private and SSH-only, with one forward to
+    Graphite's development door (`HIDDEN_HOST_SETUP.md` option A).
+  - **A separate, small, public distribution host** serves `btauth/1`
+    fetches to permit holders. It holds only sealed, active batches with
+    their signed manifests, plus the fetch log. It holds no root, no
+    solver, no producer journal and no retired-but-unreleased or
+    producer-only set.
+  - **The producer pushes** each sealed batch to the distribution host ahead
+    of its window, over an outbound, key-restricted channel from the
+    producer. The distribution host can never reach the producer. It
+    removes a batch when the batch retires.
+  - **A compromised distribution host** leaks at most the active batches,
+    which every permit holder already gets (the leak family in
+    VALIDATOR-19 S4). It never exposes the root, so it cannot predict
+    future batches.
+- **Still owner-reserved:** security acceptance (AGENTS.md §13), and the
+  distribution host's provider.

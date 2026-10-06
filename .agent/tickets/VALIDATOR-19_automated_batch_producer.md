@@ -46,7 +46,9 @@ Carbon draws and solves.
    - **Publish the public commitment:** fingerprint, references digest,
      activation window (finalized blocks), rule and contract digests. It is
      signed by Carbon's service key.
-   - **Serve the batch** to validators through the answer-key service.
+   - **Serve the batch** to validators: push it to VALIDATOR-18's separate
+     public distribution host, which serves it. The producer host itself is
+     never internet-facing.
    - **Producer-only sets:** tuning and confirmation sets are produced and
      kept by the producer only. They are never served, and the service
      refuses them by role.
