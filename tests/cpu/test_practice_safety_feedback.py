@@ -101,9 +101,8 @@ def test_battery_rules_are_ev4_s_constraints_objective_and_bands():
         {k: c[k] for k in ("id", "threshold") if k in c}
         for c in contract["constraints"]
     ]
-    assert (
-        rules["reference"]["uncertainty"]["bands"]
-        == (contract["reference"]["uncertainty"]["bands"])
+    assert rules["reference"]["uncertainty"]["bands"] == (
+        contract["reference"]["uncertainty"]["bands"]
     )
 
 
