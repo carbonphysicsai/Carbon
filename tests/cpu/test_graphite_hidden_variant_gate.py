@@ -152,3 +152,37 @@ def test_the_remote_pool_names_the_variant_in_its_signed_request(key):  # noqa: 
     body = json.loads(sent[0])["body"]
     assert body["score_variant"] == VERSION
     assert ds.verify(json.loads(sent[0]), key.public_key)["score_variant"] == VERSION
+
+
+def test_only_the_runners_flag_sets_the_variant_never_the_agents_strategy(
+    tmp_path, key  # noqa: F811
+):
+    """The variant is fixed when the runner builds the pool from its own
+    `--score-variant`. Whatever the agent puts in its strategy stays inside
+    the strategy; the signed request's `score_variant` is the runner's."""
+    from carbon.agent_campaign.graphite import phase3
+    from carbon.challenge_validator.scoring import scoring_for
+
+    sent = []
+
+    def post(url, body):
+        sent.append(json.loads(body))
+        return {"view": {"state": "SCORED"}}
+
+    factory = phase3.hidden_remote_factory(
+        "http://127.0.0.1:1",
+        tmp_path / "submitter.key",
+        scoring_for("battery-fastcharge-ageing-development-v1"),
+        None,
+        post=post,
+        score_variant=None,
+    )
+    hostile = {
+        **knn(7),
+        "score_variant": "attacker-chosen",
+        "parameters": {"neighbours": 7, "score_variant": "attacker-chosen"},
+    }
+    factory("run-x").submit("proposal", hostile)
+    body = sent[0]["body"]
+    assert "score_variant" not in body
+    assert body["strategy"] == hostile  # only ever inside the strategy
