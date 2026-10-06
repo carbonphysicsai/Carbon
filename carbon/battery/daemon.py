@@ -92,7 +92,7 @@ from .pool_store import (
     canonical,
 )
 from .research import EVALUATION_FEEDBACK_FIELDS, SCREENING_FEEDBACK_FIELDS
-from .seeds import PrivateBatch, make_batch, reconstruction_seed
+from .seeds import PrivateBatch, make_batch, reconstruction_seed, shared_seed
 from .worker import WorkerFailure
 
 SCHEMA = "carbon.battery.validator-outcome.v1"
@@ -719,8 +719,26 @@ class BatteryValidator:
         return recipe
 
     def _seed(self, label):
+        if self.import_only:
+            return shared_seed(self._active_salts(), label)
         tag = hmac.new(self.root._bytes, label.encode(), hashlib.sha256).digest()
         return int.from_bytes(tag[:4], "big")
+
+    def _reconstruction_seed(self, submission_id):
+        """Import-only validators seed from the active batches' shared salts
+        (VALIDATOR-19 slice 4), so every validator with the same batches
+        rebuilds a submission alike; others from their own root, as before."""
+        if self.import_only:
+            return shared_seed(self._active_salts(), "reconstruction/" + submission_id)
+        return reconstruction_seed(self.root, submission_id)
+
+    def _active_salts(self):
+        pool = self.store.pool()
+        active = [] if pool is None else pool["active"]
+        salts = self.store.salts(active)
+        if not active or len(salts) != len(active):
+            raise StateError("answer_key_salt_missing")
+        return salts
 
     def _infer(self, model_id, case_ids, inputs, tag):
         """Stored predictions, completed by inference only for missing cases."""
@@ -796,14 +814,14 @@ class BatteryValidator:
                 state, stats = self.backend.reconstruct(
                     f"rec-{submission_id}-a{attempt}",
                     recipe,
-                    reconstruction_seed(self.root, submission_id),
+                    self._reconstruction_seed(submission_id),
                     # Level 0 calls the backend exactly as before.
                     **({} if development is None else {"development": development[1]}),
                 )
                 self.store.retain_model(
                     submission_id,
                     recipe_digest=recipe.recipe_digest,
-                    seed=reconstruction_seed(self.root, submission_id),
+                    seed=self._reconstruction_seed(submission_id),
                     state=state,
                     reconstruction={**self.backend.identity, "fit": stats},
                 )

@@ -236,7 +236,10 @@ class BatteryAdapter(ChallengeAdapter):
         try:
             batch = PrivateBatch.from_document(payload["document"])
             references = payload["references"]
-            if set(payload) != {"document", "references"}:
+            salt = payload["reconstruction_salt"]
+            if set(payload) != {"document", "references", "reconstruction_salt"} or (
+                type(salt) is not str or len(salt) != 64
+            ):
                 raise ValueError
         except (KeyError, TypeError, ValueError):
             raise AnswerKeyRefused("answer_key_malformed") from None
@@ -263,6 +266,7 @@ class BatteryAdapter(ChallengeAdapter):
                     fingerprint, [references[c] for c in needed]
                 )
                 self.target.store.set_window(fingerprint, window)
+                self.target.store.set_salt(fingerprint, salt)
         except StateError as refused:
             raise AnswerKeyRefused("answer_key_" + refused.code) from None
         except PublishedCaseRefused:
@@ -374,6 +378,8 @@ class BatteryBatchSource(BatchSource):
         }
 
     def export(self, fingerprint):
+        from carbon.battery.seeds import reconstruction_salt
+
         row = self._row(fingerprint)
         if row["references_state"] != "COMPLETE":
             raise ProducerRefused("producer_references_pending")
@@ -382,6 +388,10 @@ class BatteryBatchSource(BatchSource):
         return {
             "document": row["document"],
             "references": {c: stored[c] for c in store.needed_cases(fingerprint)},
+            # Shared with validators only: they seed reconstructions from it.
+            "reconstruction_salt": reconstruction_salt(
+                self.adapter.target.root, fingerprint
+            ),
         }
 
     def sealed(self, fingerprint):

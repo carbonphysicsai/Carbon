@@ -95,7 +95,7 @@ def test_a_published_package_verifies_and_is_owner_only(published):
     key = published["key"]
     commitment, payload = ak.verify(published["value"], key.public_key)
     assert commitment["kind"] == "screening"
-    assert set(payload) == {"document", "references"}
+    assert set(payload) == {"document", "references", "reconstruction_salt"}
     assert os.lstat(published["path"]).st_mode & 0o077 == 0
     # Publishing again writes the same bytes and journals nothing new.
     producer, source = published["producer"], published["source"]
