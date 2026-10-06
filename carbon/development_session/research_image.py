@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -211,7 +213,38 @@ def load_analysis_image(path):
     return ResearchImageIdentity(**value)
 
 
-def build_analysis_image(parent_manifest, root):
+#: The one helper that forms a C-03 child's FROM reference (IMAGE-RELEASE-01).
+PARENT_REF_HELPER = (
+    Path(__file__).resolve().parents[2] / "scripts/dev/worker_parent_ref.sh"
+)
+
+
+def release_parent_reference(parent, repository):
+    """`<repository>@<parent image ID>`, formed by the release's own helper.
+
+    A release builds on the C-03 worker it has just pushed, by registry
+    digest, because the runner's builder cannot see the local image store.
+    The helper refuses a tagged, foreign or malformed repository."""
+    environment = {**os.environ, "CARBON_WORKER_PARENT_REPOSITORY": repository}
+    done = subprocess.run(
+        ["bash", str(PARENT_REF_HELPER), parent.image_id, parent.source_tree_digest],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=environment,
+    )
+    reference = done.stdout.strip()
+    if done.returncode != 0 or reference != repository + "@" + parent.image_id:
+        raise ValueError("release parent reference refused")
+    return reference
+
+
+def build_analysis_image(parent_manifest, root, *, parent_repository=None):
+    """Build the analysis image on the pinned C-03 parent.
+
+    A miner host (`install_miner.sh`) names the parent by a local tag it
+    checks first. Only a release passes `parent_repository`: the image is
+    then built FROM the pushed parent's registry digest instead."""
     parent = load_image_identity(parent_manifest)
     cli = DockerCLI()
     if not doctor(image_id=parent.image_id, image_identity=parent, cli=cli).eligible:
@@ -223,20 +256,25 @@ def build_analysis_image(parent_manifest, root):
     manifest = root / "analysis-image.json"
     if manifest.exists():
         return verify_image(load_analysis_image(manifest), cli)
-    context = root / "build-context"
+    context = root / (
+        "build-context" if parent_repository is None else "release-context"
+    )
     context.mkdir(mode=0o700, exist_ok=True)
     for name, body in permitted_files().items():
         path = context / "permitted" / name
         path.parent.mkdir(parents=True, exist_ok=True)
         write_once(path, body)
     write_once(context / "install-analysis.py", INSTALL.encode())
-    tag = "carbon-cw1d4-parent:" + parent.image_id[7:]
-    cli.run(["tag", parent.image_id, tag])
-    if (
-        cli.json(["image", "inspect", tag, "--format", "{{json .}}"])["Id"]
-        != parent.image_id
-    ):
-        raise ValueError("local parent tag identity changed")
+    if parent_repository is None:
+        tag = "carbon-cw1d4-parent:" + parent.image_id[7:]
+        cli.run(["tag", parent.image_id, tag])
+        if (
+            cli.json(["image", "inspect", tag, "--format", "{{json .}}"])["Id"]
+            != parent.image_id
+        ):
+            raise ValueError("local parent tag identity changed")
+    else:
+        tag = release_parent_reference(parent, parent_repository)
     dockerfile = f"""FROM {tag}
 USER 0:0
 COPY permitted /tmp/permitted
@@ -280,8 +318,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--parent-manifest", type=Path, required=True)
     parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument(
+        "--parent-repository",
+        help="release only: build FROM <repository>@<parent image ID>",
+    )
     args = parser.parse_args()
-    image = build_analysis_image(args.parent_manifest, args.root)
+    image = build_analysis_image(
+        args.parent_manifest, args.root, parent_repository=args.parent_repository
+    )
     print(
         json.dumps(
             {
