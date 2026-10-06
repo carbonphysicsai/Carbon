@@ -243,6 +243,16 @@ def score_practice(predictions, practice, material, root="."):
     and the exam agree on what a failure is. There are no hidden duplicates in
     PRACTICE, so the paired-repeat gate has nothing to check here.
     """
+    store = practice_store(practice, material, root)
+    rows, summary = exam.evaluate(predictions, practice.case_ids, store)
+    return rows, summary
+
+
+def practice_store(practice, material, root="."):
+    """The exam's case store over the public PRACTICE references: the exam's
+    TRAIN scales and frozen tolerances. `score_practice` scores on it, and a
+    Graphite development score variant reads its legs from the same store
+    (VALIDATOR-09)."""
     from .calibration import SHAPES, frozen_calibration
 
     tol, scales = frozen_calibration(root)
@@ -251,9 +261,7 @@ def score_practice(predictions, practice, material, root="."):
         cid: float(np.interp(r["inputs"]["soc0"], material.ocv_soc, material.ocv_v))
         for cid, r in refs.items()
     }
-    store = exam.CaseStore(refs, ocv, tol, scales, SHAPES)
-    rows, summary = exam.evaluate(predictions, practice.case_ids, store)
-    return rows, summary
+    return exam.CaseStore(refs, ocv, tol, scales, SHAPES)
 
 
 def feedback(summary, fit, *, recipe, backend, worker, safety=None):

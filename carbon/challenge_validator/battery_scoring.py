@@ -104,6 +104,14 @@ class BatteryScoring(ChallengeScoring):
     #: The score-tuning legs a development score variant may weight: the one
     #: candidate definition, `carbon.battery.value.score_tuning.LEGS`.
     declared_score_components = ("a", "r", "g", "m", "n", "p")
+    #: The practice value contract a variant's legs are computed under: EV4's
+    #: development decision contract (the Test Lead, #668, 2026-10-05), never
+    #: EV5's frozen confirmation or a panel copy. Its digest, which #654's
+    #: `load_variant` compares a variant's record with, and its file.
+    practice_value_contract = (
+        "sha256:fedd753c0e7aa69d2fd4d6efbf3d877ac8eeb211859d9f32d76a61f38bbe38d1"
+    )
+    practice_value_contract_file = "ev4-charge-protocol-selection.v1.json"
     construction_objective = (
         "Propose battery TrainingStrategy recipes that beat the baseline under "
         "Carbon's frozen rule on public PRACTICE. Carbon runs, scores and "
