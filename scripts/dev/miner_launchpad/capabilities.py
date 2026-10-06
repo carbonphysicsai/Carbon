@@ -494,6 +494,46 @@ def _with_setup_model(row, setup):
     return {**row, "models": [*row["models"], model]}
 
 
+def _output_cap(providers):
+    """The launch's optional output cap (`model_settings.max_output_tokens`,
+    LAUNCHPAD-PAGE-USABILITY-01): its bounds, and for each offered model the
+    default a launch with no cap gets - the model's own maximum as
+    `model_provider.output_maximum` records it, exactly what the runner's
+    `select(output_default=OUTPUT_DEFAULT_V2)` chooses. The page shows and
+    pre-checks these; the runner validates the launch and has the last word."""
+    from carbon.development_session.model_provider import (
+        DEFAULT_SETTINGS,
+        OUTPUT_TOKEN_BOUNDS,
+        ModelSelectionRefused,
+        output_maximum,
+    )
+
+    defaults = {}
+    for row in providers:
+        for model in row["models"]:
+            try:
+                chosen = output_maximum(row["id"], model["id"])
+            except ModelSelectionRefused:
+                continue
+            defaults.setdefault(row["id"], {})[model["id"]] = {
+                "max_output_tokens": chosen["max_output_tokens"],
+                "basis": chosen["basis"],
+            }
+    low, high = OUTPUT_TOKEN_BOUNDS
+    return {
+        "launch_field": "model_settings.max_output_tokens",
+        "bounds": [low, high],
+        "defaults": defaults,
+        "basis": (
+            "Optional. Blank: the model's own maximum output where Carbon "
+            f"records one, otherwise {DEFAULT_SETTINGS.max_output_tokens:,} "
+            "tokens. A number caps each reply; "
+            "each call is reserved at the cap. Sent only with a provider and "
+            "model, and validated by the runner at launch."
+        ),
+    }
+
+
 def _model(options, refusal, cfg=None):
     """Model providers the miner can choose, each with its own credential.
 
@@ -536,12 +576,14 @@ def _model(options, refusal, cfg=None):
         },
         *_registered_providers(options, refusal),
     ]
+    providers = [_with_setup_model(row, setup) for row in rows]
     return {
         "used_by": ["graphite"],
         "chosen_by": "miner",
-        "providers": [_with_setup_model(row, setup) for row in rows],
+        "providers": providers,
         "setup_choice": setup,
         "launch_field": ["model_provider", "model"],
+        "output_cap": _output_cap(providers),
         "selection": (
             "The launch carries model_provider and model. The key file is the "
             "one your runner profile configures for that provider; a provider "
@@ -758,6 +800,8 @@ def _launch():
             "review_digest",
             "model_provider",
             "model",
+            # Only max_output_tokens, only with model_provider and model.
+            "model_settings",
             # Graphite's own, with agent=graphite only (S4).
             "graphite_mode",
             "research_share",

@@ -1543,8 +1543,54 @@ def development_variant_names(directory=None):
 
 def is_development_variant(value, directory=None):
     """Whether `value` names a registered development-only variant (its digest
-    or its version name). Such a value is never served to a miner."""
-    return type(value) is str and value in development_variant_names(directory)
+    or its version name): a contract variant, or a development score variant
+    (VALIDATOR-09). Such a value is never served to a miner."""
+    return type(value) is str and (
+        value in development_variant_names(directory)
+        or is_development_score_variant(value)
+    )
+
+
+# VALIDATOR-09: a development score variant is a development-only scoring rule
+# for Carbon's own Graphite runs, registered by digest in the scoring
+# package's variant policy directory. Every door that refuses a contract
+# variant refuses a score variant by the same name check, reading that
+# registry as data only: the registered versions' names and digests.
+DEVELOPMENT_SCORE_VARIANT_DIR = (
+    Path(__file__).resolve().parents[1]
+    / "scoring"
+    / "development_score_variant_policies"
+)
+DEVELOPMENT_SCORE_VARIANT_REGISTRY_SCHEMA = (
+    "carbon.development-score-variant-registry.v1"
+)
+
+
+def development_score_variant_names(directory=None):
+    """Every registered development score variant's version name and digest.
+    A missing or malformed registry raises: every door fails closed."""
+    path = Path(DEVELOPMENT_SCORE_VARIANT_DIR if directory is None else directory)
+    try:
+        value = json.loads((path / "registry.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        raise RuntimeError("development score variant registry unreadable") from None
+    variants = value.get("variants") if type(value) is dict else None
+    if (
+        value.get("schema") != DEVELOPMENT_SCORE_VARIANT_REGISTRY_SCHEMA
+        or type(variants) is not dict
+        or not all(
+            type(k) is str and k and type(v) is str and _SHA256.fullmatch(v)
+            for k, v in variants.items()
+        )
+    ):
+        raise RuntimeError("development score variant registry malformed")
+    return frozenset(variants) | frozenset(variants.values())
+
+
+def is_development_score_variant(value, directory=None):
+    """Whether `value` names a registered development score variant (its
+    version name or its digest). Never served to a miner."""
+    return type(value) is str and value in development_score_variant_names(directory)
 
 
 def contract(challenge=BURGERS_CHALLENGE):

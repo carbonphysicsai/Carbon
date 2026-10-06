@@ -1,0 +1,29 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-05-graphite-admission-controller",
+ "recorded_at": "2026-10-05T18:00:00Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "claude/admission-conditions-cli from origin/main d62fefb90 (GRAPHITE-ADMISSION-CONTROLLER-01, W2 of OWNER-GRAPHITE-TEST-WAVE-03)",
+  "description": "Built `phase3 conditions`, which records a carbon.admission-conditions.v1 report's conditions as findings on a phase-3 root's own controller offline (no model, pod or RunPod key), idempotently, and prints the controller's identity; a write-once store id and CampaignController.identity(); and a committed designation of one admission controller per (Challenge, level) that check_lock and the CLI bind to."
+ },
+ "expected": "A finding consumed from a divergence report blocks LOCK of the affected level, and a LOCK cannot be checked against a controller that never consumed it.",
+ "observed": "Each phase-3 root has its own controller and check_lock cross-checked whichever controller it was handed, so a LOCK checked against a fresh root would have bound an empty findings ledger: the W2 rule held per controller, not per level. Naming the authority needs an identity that survives reopening and never encodes a host path; the grant binding alone is shared by every root under one grant, so a write-once random store id was added beside it. The designated root is known only on the operator's host, so the committed designation is a fail-closed pending placeholder until the operator reports the identity. Re-consuming the same report bytes records nothing new, except that a finding repaired since is reopened, which is the controller's existing rule.",
+ "keep": [
+  "A LOCK binds a designated controller by identity, never by path, and an undesignated, mismatched or pending designation refuses it.",
+  "Operator-side CLIs that only touch the ledger open the controller with a provider that cannot reach a model, a pod or a key.",
+  "Validate an external report completely before opening the store, and consume the exact bytes validated."
+ ],
+ "change": [
+  "Admission state should live in a dedicated admission controller bound to a zero-spend grant, not inside an exhausted run root (recorded as a follow-up in GRAPHITE-ADMISSION-CONTROLLER-01).",
+  "Fill the battery Level 0 identity from the operator's `conditions --identity` on the R2 root in a one-line follow-up before any LOCK review."
+ ],
+ "protocol_elements": [
+  "admission.lock",
+  "graphite.controller"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

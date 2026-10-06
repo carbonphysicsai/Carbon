@@ -179,3 +179,64 @@ def test_the_validators_score_record_carries_the_rebuild_identity(
         "device_class": "cpu",
     }
     assert SCORE_RECORD_SCHEMA == "carbon.battery.operator-score-record.v2"
+
+
+def leveled(pid, value, device_class=None, level=0, version=1):
+    found = operator(pid, value, device_class, version)
+    if level:
+        found["level"] = level
+    return found
+
+
+def placements(report):
+    """(table, level, pool version, device class) of every ranked row."""
+    out = {}
+    for version, classes in report["primary"]["by_pool_version"].items():
+        for cls, rows in classes.items():
+            for r in rows:
+                out[r["proposal_id"]] = ("primary", 0, version, cls)
+    for level, table in report["development_levels"].items():
+        for version, classes in table["by_pool_version"].items():
+            for cls, rows in classes.items():
+                for r in rows:
+                    out[r["proposal_id"]] = ("development", int(level), version, cls)
+    return out
+
+
+def test_nothing_is_ranked_across_levels_or_device_classes():
+    """Main's development table and this branch's device classes, merged:
+    Level 0 by (pool version, device class); a development level by (level,
+    pool version, device class)."""
+    records = [
+        leveled("l0-cpu", 0.3, "cpu"),
+        leveled("l0-gpu", 0.2, A40),
+        leveled("l1-cpu", 0.1, "cpu", level=1),
+        leveled("l1-gpu", 0.05, A40, level=1),
+        leveled("l1-gpu-v2", 0.04, A40, level=1, version=2),
+    ]
+    found = placements(hidden_score.report(records))
+    assert found == {
+        "l0-cpu": ("primary", 0, "1", "cpu"),
+        "l0-gpu": ("primary", 0, "1", A40),
+        "l1-cpu": ("development", 1, "1", "cpu"),
+        "l1-gpu": ("development", 1, "1", A40),
+        "l1-gpu-v2": ("development", 1, "2", A40),
+    }
+    # Every ranked list holds one level, one pool version and one class.
+    assert len(set(found.values())) == len(found)
+
+
+@pytest.mark.parametrize("dropped", ["rebuild", "level"])
+def test_dropping_either_key_moves_the_record_never_mixes_it(dropped):
+    """Mutation: a record that loses its device class (or its level) is
+    placed by what it then says - the legacy CPU class (or Level 0) - so it
+    leaves its former list rather than being ranked inside it."""
+    gpu_l1 = leveled("x", 0.05, A40, level=1)
+    before = placements(hidden_score.report([gpu_l1]))["x"]
+    mutated = {k: v for k, v in gpu_l1.items() if k != dropped}
+    after = placements(hidden_score.report([mutated]))["x"]
+    assert before == ("development", 1, "1", A40)
+    if dropped == "rebuild":
+        assert after == ("development", 1, "1", "cpu")
+    else:
+        assert after == ("primary", 0, "1", A40)

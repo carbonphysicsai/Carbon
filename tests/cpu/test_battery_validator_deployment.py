@@ -344,3 +344,25 @@ def test_a_carrier_deployment_reads_its_image_manifest_as_a_path(tmp_path, monke
     with pytest.raises(Stop):
         deployment.validator(path, repository=REPOSITORY)
     assert seen == [manifest] and isinstance(seen[0], Path)
+
+
+# -- an archived deployment (OWNER-TESTNET-V2-SWITCH-01) -------------------------------------
+
+
+def test_an_archived_deployment_is_never_run_upgraded_or_weighted(tmp_path, capsys):
+    path = config(tmp_path, archived="OWNER-TESTNET-V2-SWITCH-01")
+    # Still readable: a study that pinned its journal or root regenerates it.
+    assert deployment.validator(path, repository=REPOSITORY, readonly=True)
+    with pytest.raises(deployment.EvaluationUnavailable) as refused:
+        deployment.validator(path, repository=REPOSITORY)
+    assert refused.value.code == "evaluation_config_archived"
+    assert operate.main(["upgrade", "--config", str(path)]) == 2
+    assert "evaluation_config_archived" in capsys.readouterr().out
+    assert operate.exit_code("evaluation_config_archived") == operate.REFUSED_EXIT
+
+
+@pytest.mark.parametrize("value", ["", "yes", True])
+def test_an_archive_names_an_owner_record(tmp_path, value):
+    with pytest.raises(deployment.EvaluationUnavailable) as refused:
+        deployment.load_config(config(tmp_path, archived=value))
+    assert refused.value.code == "evaluation_config_fields"

@@ -288,3 +288,24 @@ def test_a_cpu_rebuild_is_byte_identical_under_v1_and_v2(tmp_path, family):
     assert v1["params_sha256"] == v2["params_sha256"]
     assert v1["final_loss"] == v2["final_loss"]
     assert "device" not in v2
+
+
+def test_staging_without_extra_cases_is_byte_identical_to_mains():
+    """Main's `extra_cases` and this branch's versioned modules, merged: with
+    no extras the practice inputs are `inputs_document()` exactly, and the
+    modules are the current implementation's."""
+    from carbon.battery import practice
+    from carbon.battery.compile import compile_recipe
+    from carbon.battery.research import SCAFFOLD
+
+    material = practice.PracticeSet.load(REPOSITORY)
+    recipe = compile_recipe(SCAFFOLD)[1]
+    plain = practice.staged_files(REPOSITORY, material, recipe, 7)
+    assert plain == practice.staged_files(REPOSITORY, material, recipe, 7, ())
+    assert plain["practice-inputs.json"] == practice._canonical(
+        material.inputs_document()
+    )
+    staged = {k: plain[k] for k in practice.STAGED_MODULES}
+    assert staged == practice.staged_modules()
+    v1 = practice.staged_files(REPOSITORY, material, recipe, 7, implementation="1.0")
+    assert {k: v1[k] for k in practice.STAGED_MODULES} == practice.staged_modules("1.0")

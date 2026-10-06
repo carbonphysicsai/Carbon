@@ -121,7 +121,11 @@ def recorded_tests(item, ctx):
     in this tree, plus tests recorded for this challenge in challenges.json.
     Nothing to run is NOT_BUILT with the item's reason and owner."""
     pending = item.get("pending", {})
-    paths = [p for p in pending.get("neutral_tests", []) if _is_file(ctx, p)]
+    paths = [
+        p.replace("{challenge}", ctx.challenge)
+        for p in pending.get("neutral_tests", [])
+        if _is_file(ctx, p.split("::")[0])
+    ]
     paths += list(ctx.data.get("tests", {}).get(item["id"], []))
     if paths:
         return run_tests(ctx, list(dict.fromkeys(paths)))
@@ -428,6 +432,69 @@ def compute_lanes(item, ctx):
     )
 
 
+def _challenge_tokens():
+    """Literals that name a registered challenge: each registered id, and the
+    id's first word when it is long enough to be a name (not a stop word)."""
+    from carbon.challenge_registry import registry
+
+    tokens = set()
+    for entry in registry.entries():
+        tokens.add(entry.challenge_id)
+        first = entry.challenge_id.split("-")[0]
+        if len(first) >= 6:
+            tokens.add(first)
+    return sorted(tokens)
+
+
+def neutral_path(item, ctx):
+    """P4: the tool text v2 an agent reads names no challenge (VALIDATOR-07,
+    #610). The check proves its detector can fire by finding a challenge name in
+    v1 first; a detector that cannot fire is a FAIL, never a pass. The literature
+    snapshot and writeup parts of P4 are separate and are reported as NOT_BUILT
+    until their PRs (#614 and #606) are on main, so the item is NOT_BUILT, not
+    PASS, even when v2 is clean."""
+    try:
+        from carbon.agent_campaign.graphite import roles
+    except Exception as error:  # noqa: BLE001
+        return Result(FAIL, f"graphite roles could not load: {type(error).__name__}")
+    v2 = getattr(roles, "TOOL_TEXT_V2", None)
+    if v2 is None:
+        return Result(
+            NOT_BUILT,
+            "versioned tool text (VALIDATOR-07, #610) is not in this tree; owner: Carbon Validator",
+        )
+    tokens = _challenge_tokens()
+
+    def named(version):
+        found = set()
+        for role in roles.ROLES.values():
+            text = json.dumps(role.tool_schemas(version), sort_keys=True).lower()
+            found |= {t for t in tokens if t.lower() in text}
+        return sorted(found)
+
+    v1_names = named(roles.TOOL_TEXT_V1)
+    if not v1_names:
+        return Result(
+            FAIL,
+            "the neutrality detector found no challenge name in tool text v1, "
+            "which is known to name one: the detector is blind",
+        )
+    v2_names = named(v2)
+    if v2_names:
+        return Result(
+            FAIL,
+            "tool text v2 names a challenge",
+            tuple(f"names:{t}" for t in v2_names),
+        )
+    return Result(
+        NOT_BUILT,
+        "tool text v2 names no challenge (checked against every registered "
+        "challenge name, detector proven on v1); the literature snapshot and "
+        "writeup parts need #614 and #606 (owner: Carbon Validator)",
+        (f"v1_names:{','.join(v1_names)}", "v2_names:none"),
+    )
+
+
 def ownership_map(item, ctx):
     """O1's committed map: every component names an engineering `owner` and an
     `acceptance` authority, and an artifact
@@ -491,6 +558,35 @@ def disk_free(item, ctx):
 
 
 # -- runtime ------------------------------------------------------------------------------------
+def _phase4_grant(ctx):
+    """`(grant file, refusal)` for the challenge's OWN phase-4 grant. The
+    authority is the runner's per-challenge binding (`phase4.PHASE4_GRANTS`,
+    #612): the grant format has no challenge field, so the binding lives there.
+    A challenge with no entry has no grant. A grant recorded in challenges.json
+    is only a cross-check: if it names a different file than the binding, R1
+    fails, so it can never pass on another challenge's grant."""
+    try:
+        from carbon.agent_campaign.graphite import phase4
+
+        entry = phase4.PHASE4_GRANTS.get(ctx.challenge)
+    except Exception as error:  # noqa: BLE001
+        return None, f"the phase-4 grant binding could not load: {type(error).__name__}"
+    if entry is None:
+        return None, (
+            f"no grant for {ctx.challenge}: the runner's per-challenge binding "
+            "registers none (it never falls back to another challenge's grant)"
+        )
+    recorded = (ctx.data.get("grants") or {}).get("phase4")
+    if recorded and recorded != entry.grant_file:
+        return None, (
+            f"challenges.json records {recorded} for {ctx.challenge} but the runner "
+            f"binds {entry.grant_file}: refusing another grant"
+        )
+    if not _is_file(ctx, entry.grant_file):
+        return None, f"the bound grant {entry.grant_file} is not a committed file"
+    return entry.grant_file, None
+
+
 def prelive(item, ctx):
     """`phase4 prelive` for the challenge under a scratch root. It needs the
     committed grant on a pushed HEAD and a main to compare, so a host without
@@ -501,6 +597,9 @@ def prelive(item, ctx):
             "prelive needs a POSIX host (it uses fcntl); run the gate on the "
             "canonical Linux host. Failing closed.",
         )
+    grant, refused = _phase4_grant(ctx)
+    if refused:
+        return Result(FAIL, refused)
     with tempfile.TemporaryDirectory(prefix="readiness-prelive-") as root:
         command = [
             sys.executable,
@@ -511,6 +610,8 @@ def prelive(item, ctx):
             root,
             "--challenge",
             ctx.challenge,
+            "--grant",
+            str(ctx.repository / grant),
         ]
         try:
             done = subprocess.run(
@@ -640,6 +741,7 @@ def confirmation_role(item, ctx):
 
 
 CHECKS = {
+    "neutral_path": neutral_path,
     "q1_alignment": q1.v1_alignment_report,
     "q1_discrimination": q1.v2_panel_discrimination,
     "ownership_map": ownership_map,

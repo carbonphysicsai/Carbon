@@ -35,3 +35,22 @@ def test_refusal_needs_both_distances():
 def test_the_jobs_are_each_condition_at_ev4_s_grid():
     jobs = pds.jobs(_committed())["jobs"]
     assert len(jobs) == 6 * 35 and len({j["case_id"] for j in jobs}) == 210
+
+
+def _committed_v2():
+    return json.loads((pds.ROOT / pds.EVIDENCE_V2 / "conditions.json").read_text())
+
+
+def test_v2_is_reproduced_and_clears_the_wider_list():
+    """Test Lead ruling 2026-10-06: EV5's protected grids count as EV5."""
+    document = _committed_v2()
+    assert pds.select_v2()["conditions"] == document["conditions"]
+    conditions = document["conditions"]
+    assert [c["kind"] for c in conditions].count("representative") == 4
+    assert [c["kind"] for c in conditions].count("near_limit") == 2
+    prior = pds.excluded_v2()
+    points = [(c["t_amb_c"], c["soc0"]) for c in conditions]
+    for i, point in enumerate(points):
+        assert not pds.refused(point, prior + points[:i] + points[i + 1 :])
+    replaced = {c["replaces"] for c in conditions if "replaces" in c}
+    assert replaced == {"P-T23.9-S0.244", "P-T34.4-S0.238"}

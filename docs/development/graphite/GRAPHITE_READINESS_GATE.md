@@ -39,6 +39,7 @@ fails the gate gets no live Graphite run, at any level.
 | P4 | No battery-specific literal is reached on this challenge's path: tool text v2, literature snapshot, writeup. | [auto] a grep of the path's resolved modules, plus the v2 role record | N1 |
 | P5 | The no-op audit passes for every rebuildable capability. Known no-ops are listed. | [auto] `test_construction_noop_audit.py` | I1 |
 | P6 | Identity is by rebuilt artifact: no count, dedup or limit keyed on recipe text. | [auto] the audit; WAVE-04 §1 | I1 |
+| P7 | The construction boundary is consistent across the validator door, the contract compile and Graphite's admission: the boundary-consistency test (the VALIDATOR-10 pattern) exists and passes for this challenge. | [auto] `test_challenge_validator_boundary_consistency.py` | X1 |
 
 ## R. Runtime: the real path, not a synthetic one
 
@@ -91,6 +92,18 @@ fails the gate gets no live Graphite run, at any level.
 | V1 | A Q1 score-to-value check on the available panel (baselines plus constructed controls): τ/ρ with a band, and divergences listed. A negative or within-noise τ is NOT a blocker, but it is recorded, and the first Graphite runs are then framed as alignment measurements, never as improvement hunting. | [auto] the harness; [review] framing | S1 |
 | V2 | Panel discrimination: at least two distinct decision outcomes among panel members on the decision study. If not, widen the construction families first (development variant). | [auto] | S3 |
 | V3 | Promotion claims require multi-seed evidence. | [review] | S2 |
+
+## H. Hidden path: operational evidence (OWNER-GRAPHITE-TEST-WAVE-08)
+
+Practice-score evidence is a proxy: the rule's form on cases the agent had seen.
+Operational scoring evidence comes only from the hidden path.
+
+| Item | Check | Kind | Lesson |
+|---|---|---|---|
+| H1 | A rotating hidden pool exists for the challenge, and Graphite scores through the real validator. | [auto] `test_graphite_hidden_score.py` (VALIDATOR-13) | S9 |
+| H2 | Tuning and confirmation sets are registered and disjoint (overlap-checked) against the other sealed roles, the rotating pool, TRAIN, PRACTICE and the practice decision set. | [auto] | S9 |
+| H3 | No agent-visible output carries hidden-derived data (the VALIDATOR-13 non-leak test). | [auto] | S9 |
+| H4 | Gates are tested on hidden and tuning data, not practice alone. | [auto] report; [review] framing | S9 |
 
 ## How the gate stays current
 

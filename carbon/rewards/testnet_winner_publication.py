@@ -397,6 +397,14 @@ def load_standing(path, context):
     )
 
 
+def check_weight_source(target):
+    """A deployment whose promotions may set weights: never a Graphite
+    development deployment (`development_only`, VALIDATOR-13)."""
+    if getattr(target, "development_only", False):
+        _refuse("DEVELOPMENT_DEPLOYMENT_NEVER_SETS_WEIGHTS")
+    return target
+
+
 async def _run(args):
     from pathlib import Path
 
@@ -415,9 +423,16 @@ async def _run(args):
     auth = load_standing(args.standing, config.context)
     sources = {}
     if args.battery_deployment:
+        try:
+            deployment.require_live(
+                deployment.load_config(Path(args.battery_deployment))
+            )
+        except deployment.EvaluationUnavailable:
+            _refuse("WEIGHT_SOURCE_ARCHIVED")
         target = deployment.validator(
             Path(args.battery_deployment), repository=args.repository, readonly=True
         )
+        check_weight_source(target)
         sources[target.identities()["challenge"]["id"]] = lambda: battery_promotion(
             target
         )

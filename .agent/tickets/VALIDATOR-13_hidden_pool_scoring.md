@@ -204,3 +204,64 @@ qualification, reward or LIVE authority.
     descriptive evidence only. They never enter a primary ranking, an
     alignment (Q1) result or a promotion claim.
   - Hidden-score tests: 14 passed (canonical).
+- **Slice 4: the phase-3 option** (follows #642).
+  - `phase3 run --hidden-deployment CONFIG` builds a `HiddenPool` per run
+    over that battery deployment.
+  - It is checked before anything is spent:
+    - Level 0 only (`hidden_pool_is_level_0_only`);
+    - the deployment loads writable (`hidden_evaluation_*`);
+    - its rule seals hidden results (`hidden_rule_not_sealed`).
+  - The clock is testnet's finalized block, read-only. An unreadable chain
+    gives `UNAVAILABLE`.
+  - Tests: `tests/cpu/test_graphite_phase3_hidden_pool.py`.
+- **Slice 5: battery Level 1 through the real validator on the hidden pool.**
+  This is entry condition 4 for battery Level 1 runs on R4.
+  - **Authority.** The owner, 2026-10-06, relayed by the Test Lead:
+
+    > if you think #1 is safe and an accurate depiction of main net lets do
+    > it
+
+    The owner chose "Approve, new opt-in field" in the Test Engineer session.
+    In this session, directly: "approve, build it". The Test Lead's conditions
+    apply (mainnet accuracy, safety, separation, tests).
+  - **Mainnet accuracy.** It is the miner door's own intake, rebuild, scoring
+    and sealing. The only differences:
+    - it admits a registered development variant, rebuilt by Carbon's Level-1
+      trainer;
+    - it uses a `graphite-dev:` identity.
+  - **Safety.**
+    - The new deployment field `development_only` is off by default. It
+      requires `require_commitment: false` and no `commitment_reader`.
+    - The daemon admits a variant digest only when the deployment opted in,
+      the Graphite side supplied the compile function, and the identity is
+      `graphite-dev:`. Otherwise it is refused, as every miner door still
+      refuses it.
+    - The winner publisher refuses a development deployment
+      (`check_weight_source`).
+  - **Separation.**
+    - A development row is never nominated (`excluded: DEVELOPMENT_LEVEL`),
+      never an incumbent, and never feeds standings or weights.
+    - The operator record is stamped with `level` and `variant_digest`.
+    - `report()` lists Level 1+ in `development_levels`, never ranked with
+      Level 0.
+    - Rule v2's per-hotkey cap applies unchanged.
+  - **Rebuild.**
+    - `DirectBackend` builds with `level1_worker.build_in_process`.
+    - `CarrierBackend` stages the loss expression and runs Level 0's program
+      with its one build line replaced (`worker.level1_reconstruct_program`).
+      Level 0's program and calls are unchanged.
+    - `fit.trainer` records `level1`.
+  - **Deviations from the design trace:**
+    1. The daemon never imports or names the variant module, as
+       `tests/invariants/test_development_variants_unreachable.py` requires.
+       `HiddenPool` supplies `development_compiler`, a function over
+       `compile_development`. The daemon calls it, and recompiles through it
+       to check the bound `widened_digest` and recipe digest at rebuild.
+    2. Level 1+ scores are stored in the validator's existing score table,
+       stamped and excluded from nomination, rather than in a new table.
+       Every consumer of standings and weights reads only the incumbent,
+       which a development row can never become. A new table would be a
+       state-schema migration; it is offered if the Test Lead requires it.
+  - **Tests:** `tests/cpu/test_graphite_hidden_l1.py`. Each guard is paired
+    with its guard-off twin, with an end-to-end Level-1 score on the rule-v2
+    fixture and the container staging check.

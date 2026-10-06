@@ -95,6 +95,36 @@ else:
     (out / "fit.json").write_text(json.dumps({k: stats[k] for k in sorted(stats)}))
 '''
 
+
+def level1_reconstruct_program():
+    """The reconstruction program for a Level-1 recipe: Level 0's program with
+    its one build line replaced by the Level-1 build (`level1_worker`). Level
+    0's program is unchanged."""
+    import textwrap
+
+    from . import level1_worker
+
+    # The build line sits inside the program's `try:`, indented four spaces.
+    build = '    model = recipes.build(recipe["family"], recipe["settings"])\n'
+    if RECONSTRUCT_PROGRAM.count(build) != 1:
+        raise RuntimeError("the reconstruction program's build line moved")
+    return RECONSTRUCT_PROGRAM.replace(
+        build, textwrap.indent(level1_worker._LEVEL1_BUILD, "    ")
+    )
+
+
+def _rebuild_level1(recipe, record, material, seed):
+    """In-process Level-1 rebuild on pinned public TRAIN v1, as `compile.rebuild`
+    rebuilds Level 0."""
+    from .compile import with_state
+    from .level1_worker import build_in_process
+    from .recipes import Structure
+
+    model = build_in_process(recipe, record)
+    stats = model.fit(material.train, Structure(material.ocv_soc, material.ocv_v), seed)
+    return model, {**with_state(model, stats), "trainer": "level1"}
+
+
 INFER_PROGRAM = r'''"""Carbon battery validator inference: predict query inputs from a state.
 
 Fixed by Carbon. Only a retained model state and query inputs are staged.
@@ -420,15 +450,26 @@ class CarrierBackend:
             ) from None
         return self._snapshot(result, names)
 
-    def reconstruct(self, identity, recipe, seed):
+    def reconstruct(self, identity, recipe, seed, development=None):
+        program, files = RECONSTRUCT_PROGRAM, reconstruct_files(self.root, recipe, seed)
+        if development is not None:
+            # A Level-1 recipe (VALIDATOR-13): the same program with its one
+            # build line replaced, and the loss expression staged as data.
+            from . import level1_worker
+
+            program = level1_reconstruct_program()
+            files = {**files, **level1_worker.staged(development)}
         out = self._call(
             identity,
-            RECONSTRUCT_PROGRAM,
-            reconstruct_files(self.root, recipe, seed),
+            program,
+            files,
             {"state.npz": 256 * 1024**2, "fit.json": 65536},
             recipe.settings.get("backend", "jax"),
         )
-        return out["state.npz"], json.loads(out["fit.json"])
+        stats = json.loads(out["fit.json"])
+        if development is not None:
+            stats["trainer"] = "level1"
+        return out["state.npz"], stats
 
     def infer(self, identity, state, inputs):
         out = self._call(
@@ -461,13 +502,16 @@ class DirectBackend:
         self.material = PublicMaterial.load(self.root)
         self.calls = {"reconstruct": 0, "infer": 0}
 
-    def reconstruct(self, identity, recipe, seed):
+    def reconstruct(self, identity, recipe, seed, development=None):
         from .compile import rebuild
         from .recipes import state_bytes
 
         self.calls["reconstruct"] += 1
         try:
-            model, stats = rebuild(recipe, self.material, seed)
+            if development is None:
+                model, stats = rebuild(recipe, self.material, seed)
+            else:
+                model, stats = _rebuild_level1(recipe, development, self.material, seed)
         except Exception as failure:  # noqa: BLE001 - the candidate's own build
             raise WorkerFailure(
                 "reconstruction_failed:" + type(failure).__name__, candidate=True

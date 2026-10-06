@@ -1,0 +1,10 @@
+{
+ "schema": "carbon.battery.quiz-design-registry.v1",
+ "registered": "2026-10-06, before any v6 computation (owner: 'not gameable?')",
+ "extends": "quiz-registry-v5.json (designs, sizes, known-bad for safety unchanged)",
+ "known_bad_for_value": [
+  "control-near_limit_cautious (constructed: the mirror of the boundary optimist; within 0.003 V above to 0.012 V of the plating limit it reports 0.012 V less margin, and within 41.5-46 degC of the thermal limit it reports 3.5 degC hotter; accurate elsewhere)"
+ ],
+ "metric_added": "value detection: AUC over draws of Q3 decision regret, known-bad-for-value against known-good; over-caution (MISSED_OPPORTUNITY share) reported beside it",
+ "status": "DEVELOPMENT"
+}

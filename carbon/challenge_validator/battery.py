@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 
 from .interface import ChallengeAdapter, Unavailable
+from .producer import BatchSource, ProducerRefused
 
 #: v2 adds `rebuild` (worker image and device class, TORCH-GPU-01); a
 #: stored record without it reads as the legacy CPU identity.
@@ -189,4 +190,124 @@ class BatteryAdapter(ChallengeAdapter):
         return _plain(self.target.status())
 
 
-__all__ = ["BatteryAdapter", "ScoreReplayMismatch"]
+class BatteryBatchSource(BatchSource):
+    """Battery's batches for the producer (VALIDATOR-19 slice 1, WRAP).
+
+    Drawing, journal commitment and the references digest are the battery
+    validator's own (`prepare_batch`, `SeedJournal`, `complete_references`),
+    so a producer batch is exactly what a validator would have drawn and
+    solved. Solves run in the pinned truth image with no network.
+    """
+
+    def __init__(self, adapter, *, overlay=None, repository=None, runner=None):
+        if type(adapter) is not BatteryAdapter:
+            raise TypeError("a BatteryAdapter is required")
+        self.adapter = adapter
+        self.challenge_id = adapter.challenge_id
+        self.overlay = overlay
+        self.repository = repository or adapter.target.repository
+        self.runner = runner
+
+    @classmethod
+    def from_deployment(cls, config_path, *, overlay=None, repository):
+        return cls(
+            BatteryAdapter.from_deployment(config_path, repository=repository),
+            overlay=overlay,
+            repository=repository,
+        )
+
+    def identities(self):
+        identities = self.adapter.identities()
+        return {
+            k: identities[k] for k in ("contract_digest", "rule_digest", "seed_pin")
+        }
+
+    def _row(self, fingerprint):
+        from carbon.battery.pool_store import StateError
+
+        try:
+            return self.adapter.target.store.batch(fingerprint)
+        except StateError:
+            raise ProducerRefused("producer_unknown_batch") from None
+
+    def draw(self, role, *, kind, size=None):
+        from carbon.battery.pool_store import StateError
+
+        from .interface import ReservedRole
+
+        try:
+            return self.adapter.prepare_batch(role, kind=kind, count=size)
+        except (ReservedRole, StateError) as refused:
+            raise ProducerRefused(refused.code) from None
+
+    def jobs(self, fingerprint):
+        self._row(fingerprint)
+        return self.adapter.reference_jobs(fingerprint)
+
+    def solve(self, work, *, workers=7, timeout_s=1200.0):
+        import subprocess
+
+        from carbon.battery import truth_env
+
+        if self.overlay is None:
+            raise ProducerRefused("producer_no_truth_overlay")
+        command = truth_env.solve_command(
+            self.overlay,
+            work,
+            repository=self.repository,
+            workers=workers,
+            timeout_s=timeout_s,
+        )
+        completed = (self.runner or subprocess.run)(command, check=False)
+        return {"returncode": completed.returncode}
+
+    def ingest(self, fingerprint, records):
+        from carbon.battery.pool_store import StateError
+
+        self._row(fingerprint)
+        try:
+            # `complete_references` recomputes the digest over the stored
+            # records each time, and refuses one that changed after the batch
+            # completed.
+            return self.adapter.ingest_references(fingerprint, records)
+        except StateError as refused:
+            # The code only: a detail may name a case.
+            if refused.code == "reference_records_changed":
+                raise ProducerRefused("producer_references_changed") from None
+            raise ProducerRefused(refused.code) from None
+
+    def sealed(self, fingerprint):
+        row = self._row(fingerprint)
+        if row["references_state"] != "COMPLETE":
+            return None
+        return {
+            "role": row["role"],
+            "kind": row["kind"],
+            "journal_sequence": row["sequence"],
+            "cases": len(row["document"]["cases"]),
+            "references_digest": row["references_digest"],
+        }
+
+    def check(self, fingerprint):
+        from carbon.battery.seeds import PrivateBatch
+
+        row = self._row(fingerprint)
+        target = self.adapter.target
+        try:
+            batch = PrivateBatch.from_document(row["document"])
+        except (ValueError, KeyError, TypeError):
+            # A changed case can also break the batch's own invariants (a
+            # hidden duplicate no longer repeating its original): the stored
+            # batch is not the committed one either way.
+            raise ProducerRefused("producer_fingerprint_mismatch") from None
+        if batch.fingerprint != fingerprint:
+            raise ProducerRefused("producer_fingerprint_mismatch")
+        try:
+            committed = target.journal.recall(batch)
+        except ValueError:
+            raise ProducerRefused("producer_not_committed") from None
+        if committed.sequence != row["sequence"]:
+            raise ProducerRefused("producer_sequence_mismatch")
+
+
+__all__ = ["BatteryAdapter", "BatteryBatchSource", "ScoreReplayMismatch"]

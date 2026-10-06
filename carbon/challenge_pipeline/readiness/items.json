@@ -63,7 +63,7 @@
    "kind": "auto",
    "lesson": "N1",
    "title": "No battery-specific literal is reached on this challenge's path: tool text v2, literature snapshot, writeup.",
-   "check": "recorded_tests",
+   "check": "neutral_path",
    "pending": {
     "reason": "neutrality grep and tool text v2: #606 and #610 not on main",
     "owner": "Carbon Validator",
@@ -80,7 +80,7 @@
     "reason": "no-op capability audit (#619) not on main",
     "owner": "Test Engineer",
     "neutral_tests": [
-     "tests/cpu/test_construction_noop_audit.py"
+     "tests/cpu/test_construction_noop_audit.py::test_no_rebuildable_capability_is_a_no_op[{challenge}]"
     ]
    }
   },
@@ -94,8 +94,20 @@
     "reason": "identity-by-rebuilt-artifact audit (#619) not on main",
     "owner": "Test Engineer",
     "neutral_tests": [
-     "tests/cpu/test_construction_noop_audit.py"
+     "tests/cpu/test_construction_noop_audit.py::test_no_rebuildable_capability_is_a_no_op[{challenge}]"
     ]
+   }
+  },
+  {
+   "id": "P7",
+   "kind": "auto",
+   "lesson": "X1",
+   "title": "The construction boundary is consistent across the validator door, the contract compile and Graphite's admission: the boundary-consistency test (the VALIDATOR-10 pattern) exists and passes for this challenge.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "the boundary-consistency test (VALIDATOR-10, #624) exists only for battery; a per-challenge version for this challenge is not built",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
    }
   },
   {
@@ -376,6 +388,54 @@
    "lesson": "S2",
    "title": "Promotion claims require multi-seed evidence.",
    "check": "review_only"
+  },
+  {
+   "id": "H1",
+   "kind": "auto",
+   "lesson": "S9",
+   "title": "A rotating hidden pool exists for the challenge, and Graphite scores through the real validator.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "no hidden-pool scoring exists for this challenge: VALIDATOR-13 (#642) serves battery at Level 0 only",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "H2",
+   "kind": "auto",
+   "lesson": "S9",
+   "title": "Tuning and confirmation sets are registered and disjoint (overlap-checked) against the other sealed roles, the rotating pool, TRAIN, PRACTICE and the practice decision set.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "the tuning role (graphite-tuning-v1) and an overlap checker are not on main",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "H3",
+   "kind": "auto",
+   "lesson": "S9",
+   "title": "No agent-visible output carries hidden-derived data (the VALIDATOR-13 non-leak test).",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "the VALIDATOR-13 non-leak tests cover battery only",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "H4",
+   "kind": "auto+review",
+   "lesson": "S9",
+   "title": "Gates are tested on hidden and tuning data, not practice alone.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "the gate audit on hidden and tuning predictions does not exist yet (VALIDATOR-09)",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
+   }
   }
  ]
 }

@@ -586,3 +586,119 @@ def test_lane_probe_outcomes(monkeypatch, tmp_path, code, body, ok):
     _lane_tree(monkeypatch, tmp_path, _probe_lane())
     monkeypatch.setattr(checks.subprocess, "run", lambda *a, **k: _Done(code, body))
     assert (checks.compute_lanes({}, _ctx()).status == model.PASS) is ok
+
+
+# -- history location, --no-history and R1's own grant ------------------------------------------
+def test_history_and_reports_live_outside_carbon():
+    assert model.RUNTIME.relative_to(model.REPOSITORY).as_posix() == (
+        "docs/development/challenge_pipeline/readiness"
+    )
+    assert model.PACKAGE.relative_to(model.REPOSITORY).parts[0] == "carbon"
+
+
+def test_append_history_defaults_to_runtime_and_writes_a_digest_named_report(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setattr(runner, "RUNTIME", tmp_path)
+    report = runner.run_gate(CHALLENGE, 0, only=["R7"], root=tmp_path / "cfg")
+    path = runner.append_history(report)
+    assert path == tmp_path / CHALLENGE / "history.jsonl"
+    name = report["report_digest"].split(":", 1)[1][:16]
+    stored = json.loads(
+        (tmp_path / CHALLENGE / "reports" / f"{name}.json").read_text(encoding="utf-8")
+    )
+    assert stored["report_digest"] == report["report_digest"]
+    assert runner.history_metrics(CHALLENGE)["runs"] == 1
+
+
+def test_cli_no_history_appends_nothing_and_default_appends(monkeypatch, tmp_path):
+    monkeypatch.setattr(runner, "RUNTIME", tmp_path)
+    args = ["readiness", "--challenge", CHALLENGE, "--only", "R7"]
+    pipeline_cli.main([*args, "--no-history"])
+    assert not (tmp_path / CHALLENGE).exists()
+    pipeline_cli.main(args)
+    assert (tmp_path / CHALLENGE / "history.jsonl").is_file()
+
+
+def test_a_gate_run_leaves_carbon_clean(monkeypatch, tmp_path):
+    before = sorted(str(p) for p in model.PACKAGE.rglob("*"))
+    monkeypatch.setattr(runner, "RUNTIME", tmp_path)
+    pipeline_cli.main(["readiness", "--challenge", CHALLENGE, "--only", "R7"])
+    assert sorted(str(p) for p in model.PACKAGE.rglob("*")) == before
+
+
+def _r1_runner(monkeypatch):
+    calls = []
+    # Import the runner's grant binding before os.name is faked: pathlib cannot
+    # be instantiated for a faked platform.
+    from carbon.agent_campaign.graphite import phase4  # noqa: F401
+
+    monkeypatch.setattr(checks.os, "name", "posix")
+
+    def fake(command, **kwargs):
+        calls.append(command)
+        return _Done(0, {"verdict": "PASS"})
+
+    monkeypatch.setattr(checks.subprocess, "run", fake)
+    return calls
+
+
+BATTERY = "battery-fastcharge-ageing-development-v1"
+
+
+def test_r1_never_passes_for_a_challenge_with_no_bound_grant(monkeypatch):
+    calls = _r1_runner(monkeypatch)
+    motor = checks.Context(
+        challenge="electric-motor-magnetics",
+        level=0,
+        data=checks.load_challenge_data("electric-motor-magnetics"),
+    )
+    result = checks.prelive({}, motor)
+    assert (
+        result.status == model.FAIL and "no grant for electric-motor" in result.detail
+    )
+    assert calls == [], "prelive must not run without the challenge's own grant"
+
+
+def test_r1_never_passes_on_another_challenges_grant(monkeypatch):
+    calls = _r1_runner(monkeypatch)
+    # challenges.json (or anything else) naming battery's grant for cooling.
+    cooling = checks.Context(
+        challenge="chip-cold-plate",
+        level=0,
+        data={
+            "grants": {
+                "phase4": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json"
+            }
+        },
+    )
+    result = checks.prelive({}, cooling)
+    assert result.status == model.FAIL and "refusing another grant" in result.detail
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    "challenge, grant",
+    [
+        (BATTERY, "GRAPHITE-GRANT-PHASE4.json"),
+        ("chip-cold-plate", "GRAPHITE-GRANT-PHASE4-COOLING.json"),
+    ],
+)
+def test_r1_passes_the_challenges_own_bound_grant_to_prelive(
+    monkeypatch, challenge, grant
+):
+    calls = _r1_runner(monkeypatch)
+    ctx = checks.Context(
+        challenge=challenge, level=0, data=checks.load_challenge_data(challenge)
+    )
+    assert checks.prelive({}, ctx).status == model.PASS
+    command = calls[0]
+    assert command[command.index("--grant") + 1].endswith(grant)
+
+
+def test_r1_refuses_a_recorded_grant_that_is_not_committed(monkeypatch):
+    monkeypatch.setattr(checks.os, "name", "posix")
+    ctx = checks.Context(
+        challenge=CHALLENGE, level=0, data={"grants": {"phase4": "no/such.json"}}
+    )
+    assert checks.prelive({}, ctx).status == model.FAIL

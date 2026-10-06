@@ -311,7 +311,7 @@ def _setups(tmp_path, monkeypatch):
 @pytest.fixture
 def documents(tmp_path, journey, monkeypatch):
     from carbon.development_session.exam_environment import exam_environment
-    from scripts.dev.miner_launchpad import capabilities, controller
+    from scripts.dev.miner_launchpad import capabilities, controller, prelaunch
     from scripts.dev.miner_launchpad.operations import describe, perform
     from scripts.dev.miner_launchpad.research_fixture import FixtureRunner
 
@@ -337,6 +337,9 @@ def documents(tmp_path, journey, monkeypatch):
         "options": options,
         "options_setup_model": {**options, "agents": opened["agents"]},
         "preflight": preflight,
+        # A real prelaunch review (its evaluation_endpoints say NONE_PUBLISHED
+        # while Carbon publishes none): LAUNCHPAD-PAGE-USABILITY-01.
+        "review": prelaunch.review({"runtime": {}}),
         "reconciled": reconciled,
         "operations": describe(),
         "catalog": controller.capability_catalog(),
