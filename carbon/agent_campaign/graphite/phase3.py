@@ -1429,16 +1429,16 @@ def hidden_pool_factory(
     config_path, scoring, variant, *, clock=None, repository=REPOSITORY
 ):
     """`run_id -> HiddenPool` over the battery deployment at `config_path`
-    (VALIDATOR-13). Checked before anything is spent: Level 0 only, the
-    deployment loads writable, and its rule seals hidden results."""
+    (VALIDATOR-13). Checked before anything is spent: the deployment loads
+    writable, its rule seals hidden results, and a development level (the
+    run's registered variant) needs a deployment that opted in with
+    `development_only` (owner, 2026-10-06)."""
     from pathlib import Path
 
     from carbon.battery import deployment
 
     from .hidden_score import HiddenPool, HiddenPoolRefused
 
-    if variant is not None:
-        raise RunnerRefused("hidden_pool_is_level_0_only")
     if clock is None:
         from carbon.chain.models import ChainContext
         from carbon.development_testnet.operator import (
@@ -1460,12 +1460,14 @@ def hidden_pool_factory(
     except deployment.EvaluationUnavailable as refused:
         raise RunnerRefused("hidden_" + refused.code) from None
     try:
-        probe = HiddenPool(target, run_id="probe", clock=clock)
+        probe = HiddenPool(target, run_id="probe", clock=clock, variant=variant)
     except HiddenPoolRefused as refused:
         raise RunnerRefused(refused.code) from None
     if probe.challenge_id != scoring.challenge_id:
         raise RunnerRefused("hidden_pool_is_another_challenges")
-    return lambda run_id: HiddenPool(target, run_id=run_id, clock=clock)
+    return lambda run_id: HiddenPool(
+        target, run_id=run_id, clock=clock, variant=variant
+    )
 
 
 def command_run(args):

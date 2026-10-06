@@ -77,7 +77,7 @@ class HiddenPool:
     submission is received at: testnet's in operation, a fixed one in tests.
     """
 
-    def __init__(self, target, *, run_id, clock):
+    def __init__(self, target, *, run_id, clock, variant=None):
         from carbon.battery import exam
         from carbon.battery.daemon import BatteryValidator
         from carbon.challenge_validator.battery import BatteryAdapter
@@ -99,6 +99,21 @@ class HiddenPool:
         self.challenge_id = self.adapter.challenge_id
         self.challenge_version = self.adapter.challenge_version
         self.contract_digest = target.identities()["contract_digest"]
+        self.variant = variant
+        if variant is not None:
+            # A development level (owner, 2026-10-06): only on a deployment
+            # that opted in (`development_only`), only a registered variant,
+            # compiled by the variant module on this side, never the daemon's.
+            from carbon.reconstruction import development_variants as dv
+
+            if not getattr(target, "development_only", False):
+                raise HiddenPoolRefused(
+                    "hidden_level_needs_a_development_only_deployment"
+                )
+            if dv.registered(variant.digest, self.challenge_id) != variant:
+                raise HiddenPoolRefused("hidden_variant_unregistered")
+            target.development_compiler = _development_compiler
+            self.contract_digest = variant.digest
 
     def identity(self, kind):
         """The development identity a proposal of `kind` submits under."""
@@ -186,6 +201,8 @@ class HiddenPool:
             "aggregate": full["aggregate"],
             "nomination": full["nomination"],
             "rotation_overdue": overdue,
+            "level": 0 if self.variant is None else self.variant.level,
+            "variant_digest": None if self.variant is None else self.variant.digest,
             "overdue_margin_blocks": (
                 self._overdue_margin(version, block) if overdue else None
             ),
@@ -225,9 +242,14 @@ def report(records):
     submission and never ranked.
     """
     reproduced = [r for r in records if r.get("replay") == "REPRODUCED"]
-    primary = {}
+    primary, development = {}, {}
     for record in reproduced:
-        if not record["rotation_overdue"]:
+        if record["rotation_overdue"]:
+            continue
+        if record.get("level", 0):
+            # A development level is its own table: never ranked with Level 0.
+            development.setdefault(str(record["level"]), []).append(record)
+        else:
             primary.setdefault(str(record["pool_version"]), []).append(record)
 
     def rank_key(record):
@@ -267,10 +289,32 @@ def report(records):
                 for r in overdue
             ],
         },
+        "development_levels": {
+            level: {
+                "never_ranked_with_level_0": True,
+                "rows": [
+                    {
+                        **row(r),
+                        "pool_version": r["pool_version"],
+                        "variant_digest": r.get("variant_digest"),
+                    }
+                    for r in sorted(rows, key=rank_key)
+                ],
+            }
+            for level, rows in sorted(development.items())
+        },
         "replay_mismatch": [
             r["submission_id"] for r in records if r.get("replay") == "MISMATCH"
         ],
     }
+
+
+def _development_compiler(strategy, variant_digest):
+    """The development compile the battery daemon calls for a registered
+    variant (it never imports the variant module itself)."""
+    from carbon.reconstruction import development_variants as dv
+
+    return dv.compile_development(strategy, dv.registered(variant_digest))
 
 
 def _view(state, **fields):

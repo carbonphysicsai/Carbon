@@ -496,10 +496,12 @@ class Experiment:
         ):
             raise ValueError("a development variant runs at its own level")
         if hidden is not None and (
-            development_variant is not None
-            or hidden.challenge_id != self.scoring.challenge_id
+            hidden.challenge_id != self.scoring.challenge_id
+            or getattr(hidden, "variant", None) != development_variant
         ):
-            raise ValueError("hidden scoring serves its own Challenge at Level 0")
+            # The hidden pool scores this Challenge at this run's own level:
+            # Level 0, or the run's registered development variant.
+            raise ValueError("hidden scoring serves its own Challenge and level")
         self.hidden = hidden
         # The registered attribution policy (`pod_outcome`): the registry's
         # current version unless one is named.
