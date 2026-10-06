@@ -26,7 +26,9 @@ That is exactly what a mainnet miner sees.
 - the replay-verified aggregate;
 - the pool version and active batch fingerprints;
 - the nomination;
-- whether the pool version's rotation was overdue.
+- whether the pool version's rotation was overdue;
+- the near-limit quiz's measures, when the active batches carry a quiz
+  (VALIDATOR-19 slice Q), reported per pool version and gating nothing.
 
 It is written only under the run's private root. Cases and predictions stay
 in the validator's own state.
@@ -97,6 +99,11 @@ class HiddenPool:
             raise HiddenPoolRefused("hidden_run_id_missing")
         self.target = target
         self.adapter = BatteryAdapter(target)  # refuses a target without its lock
+        # The near-limit quiz's operator-only measures (VALIDATOR-19 slice Q):
+        # reported beside each hidden score, gating nothing.
+        from carbon.challenge_validator.battery_quiz import install
+
+        install(target)
         self.run_id = run_id
         self.clock = clock
         self.challenge_id = self.adapter.challenge_id
@@ -225,6 +232,9 @@ class HiddenPool:
             ),
             "replay": "REPRODUCED",
             "score_variant": self._variant_result(full),
+            # The near-limit quiz (VALIDATOR-19 slice Q): reported, gating
+            # nothing; None when no active batch carried one.
+            "quiz": full.get("quiz"),
             "score_record_digest": digest(canonical(full)),
         }
 
@@ -398,9 +408,48 @@ def report(records):
             }
             for level, versions in sorted(development.items())
         },
+        "quiz": _quiz_table(reproduced),
         "replay_mismatch": [
             r["submission_id"] for r in records if r.get("replay") == "MISMATCH"
         ],
+    }
+
+
+def _quiz_table(records):
+    """The quiz measures per pool version (VALIDATOR-19 slice Q): one row per
+    record whose active batches carried a quiz, in proposal order. Descriptive
+    only: never ranked and never a gate until the owner adopts rule v3. A
+    quiz that could not be measured is listed with its state and code."""
+    table = {}
+    for record in records:
+        quiz = record.get("quiz")
+        if not quiz:
+            continue
+        pooled = quiz.get("pooled") or {}
+        q3 = pooled.get("q3") or {}
+        table.setdefault(str(record["pool_version"]), []).append(
+            {
+                "proposal_id": record.get("proposal_id"),
+                "kind": record.get("kind"),
+                "submission_id": record["submission_id"],
+                "level": record.get("level", 0),
+                "state": quiz.get("state"),
+                "code": quiz.get("code"),
+                "panel_versions": sorted(
+                    {b["panel_version"] for b in quiz.get("batches", {}).values()}
+                ),
+                "q2": pooled.get("q2"),
+                "q3": (
+                    {k: q3.get(k) for k in ("false_feasible", "regret", "over_caution")}
+                    if q3
+                    else None
+                ),
+            }
+        )
+    return {
+        "descriptive_only": True,
+        "gates": "NONE",
+        "by_pool_version": dict(sorted(table.items(), key=lambda i: int(i[0]))),
     }
 
 

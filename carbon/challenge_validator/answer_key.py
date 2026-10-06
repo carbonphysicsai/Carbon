@@ -158,7 +158,7 @@ class ProducerKey:
 
 def package(key, commitment, payload):
     """One signed package: the producer commitment and its payload."""
-    from .producer import COMMITMENT_SCHEMA, SERVED_KINDS
+    from .batch_source import COMMITMENT_SCHEMA, SERVED_KINDS
 
     if type(key) is not ProducerKey:
         raise TypeError("a ProducerKey is required")
@@ -188,7 +188,7 @@ def verify_manifest(value, producer_public_key):
     from cryptography.exceptions import InvalidSignature
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
-    from .producer import COMMITMENT_SCHEMA, SERVED_KINDS
+    from .batch_source import COMMITMENT_SCHEMA, SERVED_KINDS
 
     try:
         manifest = value["manifest"]
