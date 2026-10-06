@@ -89,8 +89,17 @@ def test_battery_declares_exactly_the_score_tuning_legs():
     assert scoring_for(BATTERY).declared_score_components == st.LEGS
 
 
-def test_the_shipped_registry_is_empty_and_refuses_an_unregistered_version():
-    assert dsv.registered() == {}
+def test_every_shipped_variant_is_a_registered_gate_sweep_candidate():
+    """The shipped registry holds the G-FEAS and G-PLATE sweeps (owner,
+    2026-10-05): each loads, expands per cutoff and leaves the threshold to
+    the owner. An unregistered version is refused."""
+    shipped = dsv.registered()
+    assert len(shipped) == 10
+    for version in shipped:
+        variant = dsv.load_variant(version)
+        assert variant.status == "CANDIDATE"
+        assert variant.identity()["threshold"] == "HUMAN_INPUT"
+        assert len(variant.sweep) == 8
     with pytest.raises(dsv.ScoreVariantRefused) as refused:
         dsv.load_variant("anything")
     assert refused.value.code == "score_variant_unregistered"
@@ -128,7 +137,7 @@ def test_a_promoted_candidate_scores_byte_identically_under_both_paths(tmp_path)
     ("changes", "code"),
     [
         (
-            {"candidate": {**ENTRY, "kind": "deciding"}},
+            {"candidate": {**ENTRY, "kind": "deciding", "gate": None}},
             "score_variant_deciding_is_the_base_rule",
         ),
         (
@@ -203,3 +212,91 @@ def test_a_contract_other_than_the_challenges_pinned_one_is_refused(
     assert refused.value.code == "score_variant_practice_value_contract_not_pinned"
     monkeypatch.setattr(type(scoring), "practice_value_contract", CONTRACT)
     assert load(tmp_path).practice_value_contract == CONTRACT
+
+
+# -- gate sweeps (owner, 2026-10-05: evidence-driven gates, threshold HUMAN_INPUT) --
+
+SWEEP = {
+    "id": "G-FEAS-test",
+    "kind": "gate_sweep",
+    "measure": "feasibility",
+    "grid": [0.01, 0.05, 1.01],
+    "base": ENTRY["id"],
+    "basis": "EV5: infeasible designs ranked in the top half",
+}
+BASE = {**ENTRY, "gate": None}
+
+
+def sweep_document(**changes):
+    value = document(
+        candidate=dict(SWEEP), status="CANDIDATE", base_candidate=dict(BASE)
+    )
+    value.update(changes)
+    return value
+
+
+def load_sweep(tmp_path, **changes):
+    item = sweep_document(**changes)
+    return dsv.load_variant(item["version"], directory=register(tmp_path, item))
+
+
+def gated_panel():
+    legs, recipe_of = panel()
+    for i, row in enumerate(legs.values()):
+        row["gates"] = {**row["gates"], "feasibility": 0.02 * i, "plating_fa": 0.0}
+    return legs, recipe_of
+
+
+def test_a_gate_sweep_expands_only_through_the_tuning_module(tmp_path):
+    variant = load_sweep(tmp_path)
+    base = st.parse_candidate(BASE)
+    assert variant.sweep == tuple(st.expand_sweep(SWEEP, {base.id: base}))
+    identity = variant.identity()
+    assert identity["threshold"] == "HUMAN_INPUT"
+    assert identity["sweep"] == [c.id for c in variant.sweep]
+
+
+def test_a_sweep_scores_byte_identically_per_cutoff(tmp_path):
+    variant = load_sweep(tmp_path)
+    legs, recipe_of = gated_panel()
+    base = st.parse_candidate(BASE)
+    theirs = {
+        c.id: st.candidate_scores(c, legs, recipe_of)
+        for c in st.expand_sweep(SWEEP, {base.id: base})
+    }
+    mine = dsv.panel_scores(variant, legs, recipe_of)
+    assert json.dumps(mine, sort_keys=True) == json.dumps(theirs, sort_keys=True)
+    single = dsv.score_member(variant, next(iter(legs.values())))
+    assert set(single["by_cutoff"]) == set(theirs)
+
+
+@pytest.mark.parametrize(
+    ("changes", "code"),
+    [
+        ({"status": "SURVIVOR"}, "score_variant_sweep_has_no_chosen_threshold"),
+        (
+            {"base_candidate": {**BASE, "id": "another"}},
+            "score_variant_sweep_base_mismatch",
+        ),
+        (
+            {"candidate": {**SWEEP, "grid": [0.5, 0.1]}},
+            "score_variant_candidate_refused:sweep_grid",
+        ),
+    ],
+)
+def test_a_malformed_sweep_is_refused_by_name(tmp_path, changes, code):
+    with pytest.raises(dsv.ScoreVariantRefused) as refused:
+        load_sweep(tmp_path, **changes)
+    assert refused.value.code == code
+
+
+def test_a_base_entry_belongs_only_to_a_sweep(tmp_path):
+    item = sweep_document()
+    del item["base_candidate"]
+    with pytest.raises(dsv.ScoreVariantRefused) as refused:
+        dsv.load_variant(item["version"], directory=register(tmp_path / "a", item))
+    assert refused.value.code == "score_variant_malformed"
+    single = document(base_candidate=dict(BASE))
+    with pytest.raises(dsv.ScoreVariantRefused) as refused:
+        dsv.load_variant(single["version"], directory=register(tmp_path / "b", single))
+    assert refused.value.code == "score_variant_malformed"
