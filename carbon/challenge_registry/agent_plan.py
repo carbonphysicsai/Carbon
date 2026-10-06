@@ -12,7 +12,18 @@ AGENT_BUDGET_KEYS = ("provider_attempts", "provider_nanodollars")
 def provider_plan(agent, budget, selection=None, graphite=None):
     """Return the finite, evaluator-blind plan for a named campaign agent."""
     if agent == "none":
-        return {"agent": "none", "model_calls": 0}
+        from carbon.development_session.research_tools import (
+            ARGUMENT_NORMALISATION_V2,
+        )
+
+        # The miner's own agent calls the miner MCP door, which reads this
+        # rule too (AGENT-DOOR-USABILITY-01 A1): a new plan freezes v2. A
+        # plan frozen before names none and replays unchanged.
+        return {
+            "agent": "none",
+            "model_calls": 0,
+            "argument_normalisation": ARGUMENT_NORMALISATION_V2,
+        }
     if agent == "graphite":
         return graphite_plan(budget, selection, graphite)
     if graphite is not None:
@@ -27,7 +38,10 @@ def provider_plan(agent, budget, selection=None, graphite=None):
         PARALLEL_CALLS_V2,
     )
     from carbon.development_session.research_campaign import FINAL_EPOCHS
-    from carbon.development_session.research_tools import TOOLS_RULE
+    from carbon.development_session.research_tools import (
+        ARGUMENT_NORMALISATION_V2,
+        TOOLS_RULE,
+    )
 
     ceilings = (budget or {}).get("ceilings") or {}
     if any(type(ceilings.get(key)) is not int for key in AGENT_BUDGET_KEYS):
@@ -49,6 +63,9 @@ def provider_plan(agent, budget, selection=None, graphite=None):
         "parallel_calls": PARALLEL_CALLS_V2,
         "miner_guidance": miner_guidance.RULE,
         "research_tools": TOOLS_RULE,
+        # AGENT-DOOR-USABILITY-01 A1: every new plan freezes v2; a plan
+        # frozen before names no rule and replays unchanged.
+        "argument_normalisation": ARGUMENT_NORMALISATION_V2,
     }
     if not selection.is_historical_default:
         plan["model_selection"] = selection.record()
@@ -66,7 +83,7 @@ def graphite_plan(budget, selection, graphite):
     from carbon.development_session.research_agent_policy import PARALLEL_CALLS_V2
     from carbon.development_session.research_campaign import FINAL_EPOCHS
     from carbon.development_session.research_tools import (
-        ARGUMENT_NORMALISATION,
+        ARGUMENT_NORMALISATION_V2,
         TOOLS_RULE,
     )
 
@@ -94,7 +111,9 @@ def graphite_plan(budget, selection, graphite):
         "parallel_calls": PARALLEL_CALLS_V2,
         "miner_guidance": miner_guidance.RULE,
         "research_tools": TOOLS_RULE,
-        "argument_normalisation": ARGUMENT_NORMALISATION,
+        # RESEARCH-TOOL-USABILITY-01: new plans freeze v2; a plan that froze
+        # v1 (or no rule) keeps it.
+        "argument_normalisation": ARGUMENT_NORMALISATION_V2,
         "limits": {
             "plan": edition.limits_rule(
                 limits.get("planner_calls"), limits.get("trials_per_epoch")

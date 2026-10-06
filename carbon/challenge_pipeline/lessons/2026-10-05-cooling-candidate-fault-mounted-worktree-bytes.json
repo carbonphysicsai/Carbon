@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-mounted-worktree-bytes",
+  "recorded_at": "2026-10-05T11:50:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "three focused CPU modules from the mounted ticket worktree",
+    "description": "Ran the new policy and Cooling validator/attacker tests with Linux Python against the Windows worktree."
+  },
+  "expected": "The focused modules collect and run under the repository Linux environment.",
+  "observed": "Collection stopped after 73.83 seconds while the shared attack registry loaded Battery controls; Battery's raw practice bytes in the Windows checkout did not match their pin. No candidate-fault test executed.",
+  "keep": [
+    "Do not weaken Battery's digest pin or omit the shared registry import to make Cooling tests pass."
+  ],
+  "change": [
+    "Export the exact committed tree into Linux so Git-normalized LF bytes reach every Challenge adapter."
+  ],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "graphite.attacker.cooling",
+    "material.digest_pin"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

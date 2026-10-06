@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-validator-08-literature-per-challenge",
+  "recorded_at": "2026-10-05T23:30:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-08, branch claude/graphite-literature-challenges, from main d62fefb90. Native: the new suite and the method-card, phase-2, literature-fetch, phase-3 literature, phase-3, level-planner and miner-library suites: 251 passed, 1 skipped. scripts/check_quality.py --base origin/main passed. Canonical results are recorded in the PR.",
+    "description": "Graphite's literature became per-Challenge for every Challenge but battery: a registered profile per Challenge (query set, categories, cues), Challenge-neutral extraction into v2 cards paid only for the Challenge's own pre-filtered papers, a deterministic per-Challenge grade, ranked v3 snapshots, and phase 3 refusing another Challenge's literature, with an owner-approved grant."
+  },
+  "expected": "Reusing the miner edition's focus rule would give per-Challenge literature with little new code.",
+  "observed": "Its ideas carried over (neutral extraction, free pre-filter, a grade that ignores the model's applicability text), but its lexicons are module globals pinned by the miner's focus-rule digest, so extending them in place would have changed a pinned rule. Registered per-Challenge profiles reused its matching, cues and thresholds without touching it. The raw store's retrieval journal already recorded which query set fetched each record, so Challenges could share one raw store and one neutral card store, with each Challenge's extraction and snapshot selecting its own records. Checking the grant's admission arithmetic showed the ceiling, not the run count, binds: a run opens only while booked spend is at most USD 1.41, so the worst case does not fit two runs. The operator steps cap each run's calls so both open.",
+  "keep": [
+    "Extend a pinned rule by registering new data beside it, never by editing its globals.",
+    "Check a grant's admission arithmetic against the planned runs, not only the total.",
+    "Let one Challenge-neutral extraction serve every Challenge and put per-Challenge relevance in a deterministic, recorded grade."
+  ],
+  "change": [
+    "Never put backticks inside a shell-quoted heredoc: the outer shell runs them."
+  ],
+  "protocol_elements": [
+    "a Challenge's literature is selected by its registered profile and ranked by a recorded rule",
+    "a session reads only its own Challenge's literature and records the unchecked share"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

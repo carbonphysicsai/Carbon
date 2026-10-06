@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-lessons-stage-repair",
+  "recorded_at": "2026-10-05T12:38:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "python -m carbon.challenge_pipeline validate after kind repair",
+    "description": "Revalidated the lessons directory after correcting test execution kinds."
+  },
+  "expected": "Every candidate-fault lesson uses a registered stage and execution kind.",
+  "observed": "Execution kinds were accepted, then validation stopped because five lessons used descriptive baseline/validation stage labels outside the registered stage vocabulary.",
+  "keep": [
+    "Keep baseline and final-pass meaning in each execution description and observed result."
+  ],
+  "change": [
+    "Use the registered test_iterate stage for all bounded ticket test and quality executions."
+  ],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

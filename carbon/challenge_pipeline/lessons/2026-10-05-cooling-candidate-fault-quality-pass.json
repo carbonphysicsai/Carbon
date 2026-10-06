@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-quality-pass",
+  "recorded_at": "2026-10-05T12:20:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "focused Ruff and Black verification",
+    "description": "Checked all eight changed Python source and test modules after applying the repository formatter."
+  },
+  "expected": "Ruff reports no findings and Black would leave every file unchanged.",
+  "observed": "Ruff passed; Black reported all eight files unchanged.",
+  "keep": [
+    "Retain focused quality evidence alongside the final exact-tree tests."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "quality_gate"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

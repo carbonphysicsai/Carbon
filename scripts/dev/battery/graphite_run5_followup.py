@@ -99,8 +99,17 @@ def defences(out, report):
     one = [m for m in members if rows[m]["first_seed"]]
     taus = {}
     for rule, scores in rules.items():
+        # A gate FAIL is inadmissible, so it ranks below every passing member.
+        # `admissibility.gated` returns 0.0, which is last only for rules on
+        # (0, 1]: under control-exam-v1 (-E < 0) it would rank a FAIL first.
+        finite = [s for s in scores.values() if isinstance(s, (int, float))]
+        floor = (min(finite) if finite else 0.0) - 1.0
         gated = {
-            m: admissibility.gated(scores[m], gate[m]["near_optimism_bands"])
+            m: (
+                floor
+                if admissibility.verdict(gate[m]["near_optimism_bands"]) == "FAIL"
+                else scores[m]
+            )
             for m in members
         }
         for label, values in (("ungated", scores), ("gated", gated)):

@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-temp-checkout-quoting",
+  "recorded_at": "2026-10-05T11:40:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "temporary LF-native Linux checkout setup",
+    "description": "Tried to create and clone into a mktemp directory through an inline PowerShell-to-WSL Bash command."
+  },
+  "expected": "Bash retains its temporary-directory variable and clones the ticket branch below /tmp.",
+  "observed": "PowerShell expanded the Bash variable before WSL received the command, reducing the target to /repo; the clone failed with permission denied and created no checkout.",
+  "keep": [
+    "Use a unique mktemp directory and clone only the exact local branch."
+  ],
+  "change": [
+    "Pass a short checked-in-worktree Bash helper by path so PowerShell never interprets Bash variables."
+  ],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "canonical_test_environment"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -42,7 +42,7 @@ from carbon.development_session.research_agent_policy import (
 )
 from carbon.development_session.research_ledger import CampaignLedger
 from carbon.development_session.research_tools import (
-    ARGUMENT_NORMALISATION,
+    ARGUMENT_NORMALISATION_V2,
     TOOLS_RULE,
 )
 
@@ -126,8 +126,9 @@ def test_a_graphite_plan_freezes_the_block_and_the_engine_rules():
     assert plan["parallel_calls"] == PARALLEL_CALLS_V2
     assert plan["miner_guidance"] == miner_guidance.RULE
     assert plan["research_tools"] == TOOLS_RULE
-    # LP-PROD-FIX-01: a new Graphite plan freezes the argument normalisation.
-    assert plan["argument_normalisation"] == ARGUMENT_NORMALISATION
+    # LP-PROD-FIX-01: a new Graphite plan freezes the argument normalisation;
+    # RESEARCH-TOOL-USABILITY-01: from now on its v2.
+    assert plan["argument_normalisation"] == ARGUMENT_NORMALISATION_V2
     assert plan["compaction"] == editions.COMPACTION_V1
     assert plan["limits"] == {
         "plan": {
@@ -251,13 +252,20 @@ def test_a_full_plan_whose_share_pays_for_no_research_call_is_refused():
 
 def test_the_autonomous_and_agentless_plans_are_unchanged():
     plan = battery.provider_plan("autonomous", BUDGET)
-    assert digest(canonical(plan)) == AUTONOMOUS_PLAN_DIGEST
     assert plan["agent"] == "autonomous"
     assert plan["max_provider_calls_per_epoch"] == 48
     assert plan["max_research_trials_per_epoch"] == 8
     assert "graphite" not in plan and "limits" not in plan
-    assert "argument_normalisation" not in plan  # LP-PROD-FIX-01: Graphite only
-    assert battery.provider_plan("none", None) == {"agent": "none", "model_calls": 0}
+    # AGENT-DOOR-USABILITY-01 A1: a new plan freezes v2; without it, it is
+    # byte for byte the plan frozen before (pinned).
+    assert plan["argument_normalisation"] == ARGUMENT_NORMALISATION_V2
+    old = {k: v for k, v in plan.items() if k != "argument_normalisation"}
+    assert digest(canonical(old)) == AUTONOMOUS_PLAN_DIGEST
+    assert battery.provider_plan("none", None) == {
+        "agent": "none",
+        "model_calls": 0,
+        "argument_normalisation": ARGUMENT_NORMALISATION_V2,
+    }
 
 
 def test_graphite_is_a_launch_agent_and_autonomous_still_builds():
@@ -501,7 +509,14 @@ def test_an_autonomous_campaign_prepares_as_it_did(host):
     frozen = json.loads((host.root / "campaign-manifest.json").read_bytes())
     chosen = new_plan_selection(host.args("run", agent="autonomous"))
     assert frozen["provider"] == battery.provider_plan("autonomous", BUDGET, chosen)
-    rest = {k: v for k, v in frozen["provider"].items() if k != "model_selection"}
+    # Apart from it and the argument normalisation every new plan freezes
+    # since AGENT-DOOR-USABILITY-01 (v2), the base commit's plan.
+    assert frozen["provider"]["argument_normalisation"] == ARGUMENT_NORMALISATION_V2
+    rest = {
+        k: v
+        for k, v in frozen["provider"].items()
+        if k not in ("model_selection", "argument_normalisation")
+    }
     assert digest(canonical(rest)) == AUTONOMOUS_PLAN_DIGEST
     assert frozen["provider"].get("model_selection") == (
         None if chosen.is_historical_default else chosen.record()

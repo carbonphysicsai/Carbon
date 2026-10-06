@@ -488,6 +488,7 @@ def test_the_prelive_step_is_a_phase4_blocker_and_fails_closed(tmp_path, monkeyp
 
     from carbon.agent_campaign.graphite import phase4
     from carbon.agent_campaign.graphite import phase4_prelive as prelive
+    from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 
     copy = _grant_copy(tmp_path)
     _committed_by_digest(monkeypatch, copy)
@@ -501,6 +502,7 @@ def test_the_prelive_step_is_a_phase4_blocker_and_fails_closed(tmp_path, monkeyp
         _synthetic_adapter(weak=False),
         phase4.attack_modules(),
         grant_path=refused,  # stops the gate after its first two steps
+        challenge=BATTERY_CHALLENGE,
         emit=printed.append,
         scoring=SCORING,
     )

@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-aa79-quality-pass",
+  "recorded_at": "2026-10-05T13:54:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "aa79adba exact-tree focused Ruff and Black",
+    "description": "Checked all eight candidate-fault source and test files in the verified LF-native tree."
+  },
+  "expected": "No lint findings and no formatter changes.",
+  "observed": "Ruff passed and Black would leave all eight files unchanged.",
+  "keep": [
+    "Preserve exact-tree quality evidence after current-main reconciliation."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "quality_gate"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

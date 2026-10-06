@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-generalized-tests-pass",
+  "recorded_at": "2026-10-05T12:55:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "tests/cpu/test_cooling_candidate_fault_policy.py tests/cpu/test_challenge_validator_cooling.py",
+    "description": "Ran the registered policy and Interface-v1 regressions after moving the exact fault inventory out of shared code."
+  },
+  "expected": "The generic loader remains strict while Cooling's policy still binds and classifies all three authorized faults.",
+  "observed": "All 27 tests passed in 27.07 seconds.",
+  "keep": [
+    "Parameterize shared loading by Challenge and keep Challenge-specific fault names in registered data and adapter tests."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_validator.cooling",
+    "challenge_neutrality"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

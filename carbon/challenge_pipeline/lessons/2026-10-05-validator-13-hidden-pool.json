@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-validator-13-hidden-pool",
+  "recorded_at": "2026-10-05T22:00:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-13 slice 1, branch claude/validator-13-hidden-pool. Canonical: hidden-score, Graphite experiment, battery adapter and rule-v2 suites passed; the canonical results are recorded in the PR.",
+    "description": "Graphite constructions are now also scored on the battery validator's hidden pool through deployment.evaluate under rule v2, with the agent seeing only the sealed miner outcome."
+  },
+  "expected": "Graphite's evidence could come from hidden batches without the agent being able to tell how it scored on them.",
+  "observed": "It can. A non-leak differential test runs one construction against two different hidden pools: the operator aggregates differ, and the agent's feedback is byte-identical. Rule v1 discloses hidden screening scores to miners, so the hidden pool refuses any rule that is not sealed.",
+  "keep": [
+    "Prove non-disclosure with a differential: vary only the hidden material and require the agent-visible bytes to be identical.",
+    "Score development evidence through the validator's own evaluation path, never a copy."
+  ],
+  "change": [
+    "Practice-case scores are adaptive development feedback; never rank or report them as exam evidence."
+  ],
+  "protocol_elements": [
+    "every Challenge's development evidence is scored on hidden batches through its real validator, with miner-equivalent disclosure"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

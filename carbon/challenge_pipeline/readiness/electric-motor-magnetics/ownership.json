@@ -1,0 +1,74 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-ownership.v1",
+ "challenge": "electric-motor-magnetics",
+ "status": "DRAFT",
+ "note": "DRAFT by the Graphite Testing Manager. Two fields per component: owner = engineering, acceptance = who accepts it (Test Lead ruling 2026-10-05). The Test Lead reviews and approves it as a PR.",
+ "components": {
+  "contract": {
+   "owner": "Codex",
+   "state": "EXISTS",
+   "artifact": "carbon/motor/contracts.py",
+   "basis": "Test Lead ownership brief, 2026-10-05",
+   "acceptance": "Ryan (technical owner)"
+  },
+  "scorer": {
+   "owner": "Codex",
+   "state": "NOT_BUILT",
+   "artifact": null,
+   "basis": "OWNER-GRAPHITE-TEST-WAVE-05 section 1",
+   "note": "Codex builds the motor ChallengeScoring; phase-4 runs stay blocked until it merges.",
+   "acceptance": "Ryan (technical owner)"
+  },
+  "validator_adapter": {
+   "owner": "Codex",
+   "state": "NOT_BUILT",
+   "artifact": null,
+   "basis": "OWNER-GRAPHITE-TEST-WAVE-05 section 1",
+   "acceptance": "Ryan (technical owner)"
+  },
+  "attack_adapter": {
+   "owner": "Test Engineer",
+   "state": "EXISTS",
+   "artifact": "carbon/agent_campaign/attack/adapters/motor.py",
+   "basis": "Test Lead ownership brief, 2026-10-05",
+   "acceptance": "Ryan (technical owner)"
+  },
+  "decision_study": {
+   "owner": "Data Collection",
+   "state": "EXISTS",
+   "artifact": "carbon/motor/decision_study.py",
+   "basis": "Test Lead ownership brief, 2026-10-05",
+   "acceptance": "Ryan (technical owner)"
+  },
+  "references": {
+   "owner": "Data Collection",
+   "state": "EXISTS",
+   "artifact": "carbon/motor/reference_campaign.py",
+   "basis": "Test Lead ownership brief, 2026-10-05",
+   "acceptance": "Ryan (technical owner)"
+  },
+  "gates": {
+   "owner": "Carbon Validator",
+   "state": "EXISTS",
+   "artifact": "carbon/motor/exam.py",
+   "basis": "Test Lead ownership brief, 2026-10-05",
+   "acceptance": "Ryan (technical owner)"
+  },
+  "literature": {
+   "owner": "Carbon Validator",
+   "state": "NOT_BUILT",
+   "artifact": null,
+   "basis": "Test Lead ownership brief, 2026-10-05",
+   "note": "Challenge-named literature is VALIDATOR-08 (#614), open.",
+   "acceptance": "Ryan (technical owner)"
+  },
+  "grants": {
+   "owner": "Test Engineer",
+   "state": "NOT_BUILT",
+   "artifact": null,
+   "basis": "OWNER-GRAPHITE-TEST-WAVE-05 section 2",
+   "note": "A motor grant is proposed once motor's scorer exists.",
+   "acceptance": "Ryan (technical owner)"
+  }
+ }
+}

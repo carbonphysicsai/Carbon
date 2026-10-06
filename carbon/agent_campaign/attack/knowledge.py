@@ -59,6 +59,30 @@ What the store learns from, and what it refuses:
 - A timeout, crash, unrebuildable construction or NOT_RUN family is never a
   hold: priors count it as inconclusive.
 
+Distinct constructions (OWNER-GRAPHITE-TEST-WAVE-04 §1):
+
+- A record's digest is its storage identity only: two reworded copies of
+  one construction are two attempt records, as two attempts are two
+  attempts. Every record (schema v2) also carries its construction
+  `identity`: the rebuilt artifact (`basis: rebuilt_artifact`, the digest
+  `attack.identity.artifact_of` gives), or, for a finding with no rebuilt
+  artifact, its behaviour (`basis: behaviour`, the verdict's reason), or
+  `none`. Recipe text never keys anything.
+- Under the identity rule (`IDENTITY_RULE`) the priors (schema v2) count
+  `distinct_constructions` and `distinct_findings` by that identity, and
+  "which strategy found what" (`by_strategy[...]["found"]`) lists one entry
+  per distinct finding. Regression specimens are one per distinct finding
+  (family, condition and identity): a reworded copy of a finding's
+  construction adds no specimen. A record with no artifact is counted
+  `without_artifact` and never as a distinct construction.
+- Versioned, never reinterpreted (invariant 10). A v1 record (no identity)
+  stays readable; under the identity rule it is `legacy_unkeyed`: counted as
+  an attempt or a finding, never distinct, its specimen kept on its own. A
+  snapshot records the rule it was frozen under (snapshot schema v2); a v1
+  snapshot is read under the rule it was frozen under (`LEGACY_RULE`:
+  priors v1, one specimen per finding record), so a frozen run replays
+  exactly what it used.
+
 Neither the miner edition, the shared pack, the method cards, the Library,
 the Launchpad nor the MCP door can reach this module
 (`tests/invariants/test_attack_store_unreachable.py`). DEVELOPMENT only: no
@@ -85,13 +109,33 @@ from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
 
 SCHEMA_PREFIX = "carbon.graphite.attack-knowledge"
-RECORD_SCHEMA = SCHEMA_PREFIX + ".record.v1"
+RECORD_SCHEMA_V1 = SCHEMA_PREFIX + ".record.v1"
+#: v2: every record carries its construction `identity` (§1).
+RECORD_SCHEMA = SCHEMA_PREFIX + ".record.v2"
+#: Every record schema the store still reads.
+RECORD_SCHEMAS = (RECORD_SCHEMA_V1, RECORD_SCHEMA)
 #: v2: each entry carries `prev`, the sha256 of the entry line before it
 #: (None for the first), checked with `seq` on every read.
 JOURNAL_SCHEMA = SCHEMA_PREFIX + ".journal.v2"
-SNAPSHOT_SCHEMA = SCHEMA_PREFIX + ".snapshot.v1"
-PRIORS_SCHEMA = SCHEMA_PREFIX + ".priors.v1"
+SNAPSHOT_SCHEMA_V1 = SCHEMA_PREFIX + ".snapshot.v1"
+#: v2: the snapshot names the identity rule it was frozen under.
+SNAPSHOT_SCHEMA = SCHEMA_PREFIX + ".snapshot.v2"
+PRIORS_SCHEMA_V1 = SCHEMA_PREFIX + ".priors.v1"
+#: v2: distinct counts and "found" by construction identity (§1).
+PRIORS_SCHEMA = SCHEMA_PREFIX + ".priors.v2"
 SUITE_PIN_SCHEMA = SCHEMA_PREFIX + ".suite-pin.v1"
+#: How the store reads distinct constructions: by the rebuilt artifact
+#: (`attack.identity.RULE`; the same names are kept here so the store's
+#: reviewed import list is unchanged, and a test holds them equal), or, for a
+#: v1 snapshot, as it was frozen: one per record (`LEGACY_RULE`).
+IDENTITY_RULE = "rebuilt_artifact.v1"
+LEGACY_RULE = "record_digest.v1"
+#: A record's construction identity basis (`attack.identity`'s names).
+ARTIFACT_BASIS, BEHAVIOUR_BASIS, NO_BASIS = "rebuilt_artifact", "behaviour", "none"
+#: A v1 record read under the identity rule: never distinct.
+LEGACY_BASIS = "legacy_unkeyed"
+#: A finding with no artifact whose behaviour was not given.
+UNSPECIFIED_BEHAVIOUR = "unspecified"
 #: The directory name a host's store lives under (`<carbon root>/<this>`).
 STORE_DIRNAME = "graphite-attack-knowledge"
 
@@ -185,6 +229,22 @@ SEALED_IDENTITIES = (
         "kind": "digest",
         "value": "sha256:5ec0222502eb608c52d1162f4be6c7347deed7b6d4f03777ec4ea31b6d619559",
         "source": "docs/development/evidence/motor-pools-v1/pools.json",
+    },
+    # Cooling's and motor's confirmation roles come before battery's: each
+    # contains battery's role as a token sequence, and the first entry that
+    # matches names the identity (OWNER-GRAPHITE-TEST-WAVE-05 §4).
+    {
+        "id": "cooling-graphite-confirmation-role",
+        "kind": "phrase",
+        "value": ("cooling-graphite-confirmation-v1",),
+        "source": "carbon/challenge_validator/interface.py COOLING_CONFIRMATION_ROLE",
+    },
+    {
+        "id": "motor-graphite-confirmation-role",
+        "kind": "phrase",
+        "value": ("motor-graphite-confirmation-v1",),
+        "source": ".agent/decisions/2026-10-05-GRAPHITE-ATTACK-IDENTITY-01.md"
+        " (OWNER-GRAPHITE-TEST-WAVE-05 §4)",
     },
     {
         "id": "graphite-confirmation-role",
@@ -528,6 +588,9 @@ def exposure_finding(record):
         "specimen": specimen,
         "control": control,
         "evidence": list(record["evidence"]),
+        # The construction identity is a digest or a reason code, never the
+        # material: kept, so the exposure still counts once (§1).
+        "identity": record["identity"],
     }
 
 
@@ -626,6 +689,45 @@ def _common(
         "attempt_id": _text(attempt_id, "attempt_id", pattern=_LABEL),
         "source": source,
     }
+
+
+def _construction_identity(kind, artifact=None, behaviour=None):
+    """A record's construction identity (§1): its rebuilt artifact; for a
+    finding with none, its behaviour (the verdict's reason); else none."""
+    if artifact is not None:
+        return {
+            "basis": ARTIFACT_BASIS,
+            "key": _text(artifact, "artifact", pattern=_DIGEST),
+        }
+    if kind == FINDING:
+        return {
+            "basis": BEHAVIOUR_BASIS,
+            "key": _text(
+                UNSPECIFIED_BEHAVIOUR if behaviour is None else behaviour,
+                "behaviour",
+                pattern=_LABEL,
+            ),
+        }
+    if behaviour is not None:
+        raise _invalid("only a finding without an artifact names a behaviour")
+    return {"basis": NO_BASIS, "key": None}
+
+
+def behaviour_label(reason):
+    """A verdict's reason as a finding's behaviour label: the reason when it
+    is a short code, else `unspecified` (a breach without an artifact then
+    counts once with every other unspecified one: never more distinct)."""
+    if type(reason) is str and _LABEL.fullmatch(reason) and len(reason) <= MAX_TEXT:
+        return reason
+    return UNSPECIFIED_BEHAVIOUR
+
+
+def _identity_of(record):
+    """`(basis, key)` of a stored record; a v1 record is `legacy_unkeyed`."""
+    found = record.get("identity")
+    if type(found) is not dict:
+        return LEGACY_BASIS, None
+    return found.get("basis"), found.get("key")
 
 
 def _refuse_material(record):
@@ -765,6 +867,49 @@ def _count(stats, record):
         stats["findings"] += 1
 
 
+def _distinct_stats(**extra):
+    """Priors v2 counts: v1's per-record counts and the distinct counts by
+    construction identity (§1)."""
+    return {
+        **_stats(),
+        "distinct_constructions": 0,
+        "without_artifact": 0,
+        "distinct_findings": 0,
+        "legacy_findings": 0,
+        **extra,
+    }
+
+
+def _finding_key(record):
+    """One distinct finding: its Challenge, family, condition and
+    construction identity. Never its text, attempt or record digest; a v1
+    record (no identity) is keyed by its record digest and never counted
+    distinct."""
+    basis, key = _identity_of(record)
+    if basis == LEGACY_BASIS:
+        return (LEGACY_BASIS, record["record_digest"])
+    return (record["challenge_id"], record["family"], record["condition"], basis, key)
+
+
+def _count_distinct(stats, record, seen):
+    """Add one record's identity to a priors v2 bucket; `seen` is the
+    bucket's own sets."""
+    _count(stats, record)
+    basis, key = _identity_of(record)
+    if record["kind"] == ATTEMPT:
+        if basis == ARTIFACT_BASIS:
+            seen.setdefault("constructions", set()).add(key)
+        else:
+            stats["without_artifact"] += 1
+    elif record["kind"] == FINDING:
+        if basis == LEGACY_BASIS:
+            stats["legacy_findings"] += 1
+        else:
+            seen.setdefault("findings", set()).add(_finding_key(record))
+    stats["distinct_constructions"] = len(seen.get("constructions", ()))
+    stats["distinct_findings"] = len(seen.get("findings", ()))
+
+
 class SpecimenAttempt:
     """A regression specimen as an adapter's oracle takes an attempt: the
     shape of `attack.adapter.AttackInput` (`name`, `value`). `name` is the
@@ -810,7 +955,11 @@ def _oracle_state(result, family):
 
 
 class _Reader:
-    """Reads over an ordered list of `(kind, digest)` entries."""
+    """Reads over an ordered list of `(kind, digest)` entries, under one
+    identity rule (`rule`): `IDENTITY_RULE`, or `LEGACY_RULE` for a v1
+    snapshot, read exactly as it was frozen."""
+
+    rule = IDENTITY_RULE
 
     def __init__(self, root):
         self.root = root
@@ -829,8 +978,11 @@ class _Reader:
             if digest(body) != value:
                 raise KnowledgeError(RECORD_CORRUPT, "record does not match " + value)
             found = json.loads(body)
-            if found.get("schema") != RECORD_SCHEMA:
+            if found.get("schema") not in RECORD_SCHEMAS:
                 raise KnowledgeError(RECORD_CORRUPT, "not an attack record")
+            if (found["schema"] == RECORD_SCHEMA) != ("identity" in found):
+                # A v2 record always carries its identity; a v1 never does.
+                raise KnowledgeError(RECORD_CORRUPT, "record identity mismatch")
             self._cache[value] = found
         return found
 
@@ -876,10 +1028,18 @@ class _Reader:
         return self.records(REGRESSION, challenge_id=challenge_id, level=level)
 
     def specimens(self, challenge_id, level):
-        """The regression specimens for one Challenge and construction level:
-        one per verified finding that has one, in the order found."""
-        return [
-            {
+        """The regression specimens for one Challenge and construction level,
+        in the order found. Under the identity rule: one per distinct
+        finding (`_finding_key`: family, condition and construction
+        identity), the first found; a reworded copy of a finding's
+        construction adds none (§1). Under `LEGACY_RULE` (a v1 snapshot):
+        one per finding record, as it was frozen."""
+        legacy = self.rule == LEGACY_RULE
+        out, seen = [], set()
+        for record in self.findings(challenge_id, level):
+            if record["specimen"] is None:
+                continue
+            entry = {
                 "finding": record["record_digest"],
                 "challenge_id": record["challenge_id"],
                 "level": record["level"],
@@ -892,9 +1052,15 @@ class _Reader:
                 "condition": record["condition"],
                 "specimen": record["specimen"],
             }
-            for record in self.findings(challenge_id, level)
-            if record["specimen"] is not None
-        ]
+            if not legacy:
+                key = _finding_key(record)
+                if key in seen:
+                    continue
+                seen.add(key)
+                basis, value = _identity_of(record)
+                entry["identity"] = {"basis": basis, "key": value}
+            out.append(entry)
+        return out
 
     def regression_due(self, challenge_id, level, contract_digest):
         """The specimens not yet re-run under `contract_digest`, a version
@@ -915,10 +1081,26 @@ class _Reader:
         """What the attack runs have taught, by check, family, boundary and
         strategy: for one Challenge, or across every Challenge (None).
         Families are keyed by name within a Challenge and by
-        `<challenge>/<family>` across Challenges. Counts only: no score."""
+        `<challenge>/<family>` across Challenges. Counts only: no score.
+
+        Under the identity rule (priors v2) every bucket also counts
+        `distinct_constructions`, `without_artifact`, `distinct_findings`
+        and `legacy_findings`, and "found" lists one entry per distinct
+        finding (§1). Under `LEGACY_RULE` (a v1 snapshot) the priors are v1,
+        exactly as frozen."""
         if challenge_id is not None:
             _text(challenge_id, "challenge_id", pattern=_CHALLENGE)
-        by_check = {check: _stats() for check in sorted(TRACK_A_CHECKS)}
+        legacy = self.rule == LEGACY_RULE
+        make = _stats if legacy else _distinct_stats
+        sets = {}
+
+        def count(bucket, record):
+            if legacy:
+                _count(bucket, record)
+            else:
+                _count_distinct(bucket, record, sets.setdefault(id(bucket), {}))
+
+        by_check = {check: make() for check in sorted(TRACK_A_CHECKS)}
         by_family, by_strategy, challenges = {}, {}, set()
         for record in self._served()[0]:
             if record["kind"] == REGRESSION:
@@ -926,7 +1108,7 @@ class _Reader:
             if challenge_id is not None and record["challenge_id"] != challenge_id:
                 continue
             challenges.add(record["challenge_id"])
-            _count(by_check[record["check"]], record)
+            count(by_check[record["check"]], record)
             if record["family"] is not None:
                 key = record["family"]
                 if challenge_id is None:
@@ -934,38 +1116,48 @@ class _Reader:
                 family = by_family.setdefault(
                     key,
                     {
-                        **_stats(),
+                        **make(),
                         "check": record["check"],
                         "levels": [],
                         "boundaries": {},
                     },
                 )
-                _count(family, record)
+                count(family, record)
                 if record["level"] not in family["levels"]:
                     family["levels"] = sorted([*family["levels"], record["level"]])
                 if record["boundary"] is not None:
-                    _count(
-                        family["boundaries"].setdefault(record["boundary"], _stats()),
+                    count(
+                        family["boundaries"].setdefault(record["boundary"], make()),
                         record,
                     )
             if record["strategy"] is not None:
                 strategy = by_strategy.setdefault(
-                    record["strategy"], {**_stats(), "found": []}
+                    record["strategy"], {**make(), "found": []}
                 )
-                _count(strategy, record)
+                count(strategy, record)
                 if record["kind"] == FINDING:
-                    strategy["found"].append(
-                        {
-                            "finding": record["record_digest"],
-                            "challenge_id": record["challenge_id"],
-                            "family": record["family"],
-                            "condition": record["condition"],
-                        }
-                    )
+                    entry = {
+                        "finding": record["record_digest"],
+                        "challenge_id": record["challenge_id"],
+                        "family": record["family"],
+                        "condition": record["condition"],
+                    }
+                    if not legacy:
+                        # One entry per distinct finding: a reworded copy of
+                        # a construction already found adds none (§1).
+                        found = sets.setdefault(id(strategy), {})
+                        key = _finding_key(record)
+                        if key in found.setdefault("found", set()):
+                            continue
+                        found["found"].add(key)
+                        basis, value = _identity_of(record)
+                        entry["identity"] = {"basis": basis, "key": value}
+                    strategy["found"].append(entry)
         return json.loads(
             canonical(
                 {
-                    "schema": PRIORS_SCHEMA,
+                    "schema": PRIORS_SCHEMA_V1 if legacy else PRIORS_SCHEMA,
+                    **({} if legacy else {"identity_rule": IDENTITY_RULE}),
                     "scope": challenge_id,
                     "challenges": sorted(challenges),
                     "by_check": by_check,
@@ -995,7 +1187,15 @@ class ReadOnlyView(_Reader):
         if digest(body) != value:
             raise KnowledgeError(SNAPSHOT_CORRUPT, "snapshot does not match " + value)
         document = json.loads(body)
-        if document.get("schema") != SNAPSHOT_SCHEMA:
+        schema = document.get("schema")
+        if schema == SNAPSHOT_SCHEMA_V1 and set(document) == {"schema", "records"}:
+            # Frozen before the identity rule: read exactly as it was frozen.
+            self.rule = LEGACY_RULE
+        elif schema == SNAPSHOT_SCHEMA and document.get("identity_rule") == (
+            IDENTITY_RULE
+        ):
+            self.rule = IDENTITY_RULE
+        else:
             raise KnowledgeError(SNAPSHOT_CORRUPT, "not an attack-knowledge snapshot")
         self.digest = value
         self._frozen = tuple(
@@ -1117,10 +1317,14 @@ class AttackStore(_Reader):
         outcome,
         source=ORACLE,
         control=None,
+        artifact=None,
     ):
         """Record one attack the oracle judged; its record digest. The same
-        attempt recorded twice is stored once."""
+        attempt recorded twice is stored once. `artifact` is the rebuilt
+        artifact's identity (`attack.identity.artifact_of`), None when Carbon
+        rebuilt none: the attempt is then never a distinct construction."""
         control = _control(control)
+        identity = _construction_identity(ATTEMPT, artifact)
         record = _common(
             ATTEMPT,
             challenge_id=challenge_id,
@@ -1136,7 +1340,10 @@ class AttackStore(_Reader):
         if outcome not in OUTCOMES:
             raise _invalid("outcome is one of " + ", ".join(OUTCOMES))
         record.update(
-            attempt=_payload(attempt, "attempt"), outcome=outcome, control=control
+            attempt=_payload(attempt, "attempt"),
+            outcome=outcome,
+            control=control,
+            identity=identity,
         )
         _refuse_material(record)
         return self._put(record)
@@ -1156,9 +1363,12 @@ class AttackStore(_Reader):
         note,
         margin=None,
         source=ORACLE,
+        artifact=None,
     ):
         """Record an attack that came close to a boundary without crossing
-        it; `margin` is the oracle's own distance, when it reports one."""
+        it; `margin` is the oracle's own distance, when it reports one.
+        `artifact` as for `add_attempt`."""
+        identity = _construction_identity(NEAR_MISS, artifact)
         record = _common(
             NEAR_MISS,
             challenge_id=challenge_id,
@@ -1179,6 +1389,7 @@ class AttackStore(_Reader):
             attempt=_payload(attempt, "attempt"),
             note=_text(note, "note"),
             margin=margin,
+            identity=identity,
         )
         _refuse_material(record)
         return self._put(record)
@@ -1200,14 +1411,22 @@ class AttackStore(_Reader):
         rebuilt,
         source=ORACLE,
         control=None,
+        artifact=None,
+        behaviour=None,
     ):
         """Record a verified finding and its regression specimen; its record
         digest. A finding is an oracle row on a construction Carbon rebuilt
         (`rebuilt` is True), in the CONDITIONS vocabulary. One that names
         protected, sealed or held-out material is recorded as an OTHER_SIGNAL
         exposure with that material withheld (`exposure_finding`); a held-out
-        `control` field is still refused, as on every record."""
+        `control` field is still refused, as on every record.
+
+        Its identity (§1) is `artifact`, the rebuilt artifact, or, with
+        none, `behaviour` (a short reason code, `behaviour_label`): a
+        finding without an artifact counts once per behaviour, never once
+        per wording."""
         control = _control(control)
+        identity = _construction_identity(FINDING, artifact, behaviour)
         record = _common(
             FINDING,
             challenge_id=challenge_id,
@@ -1242,6 +1461,7 @@ class AttackStore(_Reader):
             specimen=_payload(specimen, "specimen", object_only=False),
             control=control,
             evidence=sorted(set(evidence)),
+            identity=identity,
         )
         if _material(_content(record)):
             # An exposure, never dropped; refused typed only if what it must
@@ -1278,6 +1498,8 @@ class AttackStore(_Reader):
             "finding": finding,
             "state": state,
             "detail": _text(detail, "detail", optional=True),
+            # The re-run finding's identity; a v1 finding's is legacy.
+            "identity": source.get("identity") or {"basis": LEGACY_BASIS, "key": None},
         }
         _refuse_material(record)
         return self._put(record)
@@ -1326,6 +1548,8 @@ class AttackStore(_Reader):
         with self._lock():
             document = {
                 "schema": SNAPSHOT_SCHEMA,
+                # The rule a frozen run's counts were read under (§1).
+                "identity_rule": IDENTITY_RULE,
                 "records": [
                     {"kind": record["kind"], "digest": record["record_digest"]}
                     for record in self._served()[0]

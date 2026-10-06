@@ -118,7 +118,9 @@ class _InterruptedDisclosureDescriptorRegistry:
         raise self.signal
 
 
-def _authority(graph: object) -> tuple[
+def _authority(
+    graph: object,
+) -> tuple[
     ReferenceDisclosureAuthority,
     _PositiveDisclosureRegistry,
 ]:

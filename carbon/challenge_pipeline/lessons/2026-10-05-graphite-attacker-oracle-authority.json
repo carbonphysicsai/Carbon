@@ -1,0 +1,31 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-graphite-attacker-oracle-authority",
+  "recorded_at": "2026-10-05T00:00:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "coverage_run",
+    "ref": ".agent/decisions/2026-10-05-GRAPHITE-ATTACKER-ORACLE-AUTHORITY-01.md (phase-4 Attacker session graphite-5dba40abea97545a, REF f7c27d97)",
+    "description": "Triaged the first live phase-4 Attacker session's 35 FAILING_TRIGGER findings and repaired the battery attack oracle so a FAILING_TRIGGER rests on a tool's authority."
+  },
+  "expected": "The oracle would raise a FAILING_TRIGGER only when an authoritative admission path accepted a construction Carbon refuses.",
+  "observed": "All 35 findings were advisory or miner-local acceptance, or unassigned attempts, read as fail-opens: dry_validate and check_design acceptance, run_python/read_file/write_file execution, and a workspace strategy_json of \"null\" read as an unparseable construction. The authoritative chain refused every one of the 19 malformed categories and accepted the 2 valid controls; zero authoritative breaches, independently confirmed by the Carbon Validator on main 83839718.",
+  "keep": [
+    "Judge a research tool by its authority: only an AUTHORITATIVE path (compile_strategy, practice intake) accepting what Carbon refuses is a finding.",
+    "Decide \"would Carbon accept this?\" by the full authoritative chain on the same input: the validator door's strict parse, compile_submission, then experiment.admit; never validate_for_challenge alone, which accepts out-of-domain values such as kNN neighbours -5.",
+    "Read a workspace strategy_json of \"null\" as no construction, matching the live miner path, so a workspace action is judged for isolation, not as a fail-open.",
+    "Judge a miner-local action against the carrier's isolation boundary from its own recorded result plus the operator's canary registry and carrier evidence; reading its own sandbox and staged files is not a breach."
+  ],
+  "change": [
+    "In a Carbon-internal Graphite run the miner host is the operator host, so a miner-local escape (out-of-sandbox read or write, a canary hit, a network attempt, host access) is a finding, not merely NOT_APPLICABLE.",
+    "An advisory tool diverging from Carbon's own boundary is a usability record, never a finding."
+  ],
+  "protocol_elements": [
+    "attack.verify.authority-gate",
+    "attack.analysis.tool-authority",
+    "attack.adapters.battery.carbon-admits"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

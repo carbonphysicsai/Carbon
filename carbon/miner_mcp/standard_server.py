@@ -15,9 +15,15 @@ from importlib.metadata import version
 from typing import Annotated, Literal
 
 from carbon import research
-from carbon.development_session.research_tools import FIELDS, PREFIX
+from carbon.development_session.research_tools import (
+    FIELDS,
+    PREFIX,
+    practice_null_fields,
+)
 from carbon.miner_mcp.standard import (
+    _OBJECT_CORRECTIONS,
     OPERATION_ID_PATTERN,
+    AdapterCode,
     AdapterFailure,
     ResearchToolAdapter,
     ResearchToolRequest,
@@ -55,6 +61,115 @@ READ_OPERATION_ID_DESCRIPTION = (
     "operation_id. This tool only records it: nothing is replayed or refused "
     "by it." + _OPERATION_ID_BOUNDS
 )
+
+
+#: The SDK's names for this wire's object fields. A caller that sends one is
+#: told the field this server takes instead; both names are Carbon's.
+_SDK_NAMES = {"strategy_json": "strategy", "arguments_json": "arguments"}
+_WIRE_TO_SDK = {wire: sdk for sdk, wire in _SDK_NAMES.items()}
+#: Corrections only this door gives (AGENT-DOOR-USABILITY-01 A2), in its own
+#: object terms. Registered text: none of it repeats what a caller sent.
+DOOR_CORRECTIONS = {
+    "object_field_named": (
+        "On this server the recipe and an action's arguments are JSON objects "
+        "in the fields strategy and arguments. strategy_json and "
+        "arguments_json are the research SDK's JSON-string fields and are not "
+        "taken here: send the object under the field named below."
+    ),
+}
+
+
+def _schema_correction(operation, code, field, value):
+    """The registered correction text for one schema refusal: the SDK's own
+    builder (`research_tools.task_correction`) in this wire's object terms,
+    or this door's own text, naming the field and the tool. `value` is only
+    compared with the string "null", never repeated."""
+    from carbon.development_session.research_tools import (
+        TASK_CORRECTIONS,
+        task_correction,
+    )
+
+    if code in DOOR_CORRECTIONS:
+        return (
+            DOOR_CORRECTIONS[code]
+            + " The field that broke the contract: "
+            + field
+            + ". The tool: "
+            + operation
+            + "."
+        )
+    if field is None:
+        return object_wording(TASK_CORRECTIONS[code])
+    text = task_correction(
+        code,
+        _WIRE_TO_SDK.get(field, field),
+        "null" if value == "null" else None,
+        tool=operation,
+    )
+    if code in _OBJECT_CORRECTIONS:
+        # The SDK's text describes its JSON-string wire (`standard._correction`).
+        text = text.replace(TASK_CORRECTIONS[code], _OBJECT_CORRECTIONS[code])
+    return object_wording(text)
+
+
+def _schema_code(kind, field):
+    """The registered correction code for a field this door's schema refused,
+    agreeing with the SDK's for the same request: the practice and workspace
+    rules where the call's kind names one, else the tool's generic codes."""
+    if kind == "practice" and field in ("strategy", "action", "arguments"):
+        return "practice_recipe_required"
+    if kind == "workspace" and field == "strategy":
+        return "workspace_recipe_forbidden"
+    if kind == "workspace" and field == "action":
+        return "workspace_action_unknown"
+    if field in ("strategy", "arguments"):
+        return "json_object_required"
+    if field in ("hypothesis", "expected_effect"):
+        return "tool_text_bounded"
+    return "tool_value_invalid"
+
+
+def validation_refusal(operation, arguments, error, fields):
+    """The refusal line for arguments this door's schema refused
+    (AGENT-DOOR-USABILITY-01 A2), in place of the schema library's dump:
+    INVALID_ARGUMENT, nothing dispatched, the declared field to correct and
+    the registered correction that says how.
+
+    The field is only ever one this server declared (`fields`); a key the
+    caller invented is never named back. A key that is the SDK's name for one
+    of this wire's object fields (strategy_json, arguments_json) is answered
+    with the field this server takes. The correction code agrees with the
+    SDK's for the same request (`_schema_code`), and a field sent as the
+    string "null" is told that null means JSON null."""
+    from carbon.miner_mcp import serving
+
+    supplied = arguments if type(arguments) is dict else {}
+    kind = supplied.get("kind")
+    code, field = "tool_arguments_object_required", None
+    for detail in error.errors():
+        location = detail.get("loc") or ()
+        name = location[0] if location else None
+        if detail.get("type") == "extra_forbidden":
+            if _SDK_NAMES.get(name) in fields:
+                code, field = "object_field_named", _SDK_NAMES[name]
+            else:
+                code, field = "tool_field_unexpected", None
+            break
+        if name in fields:
+            field = name
+            code = (
+                "tool_field_missing"
+                if detail.get("type") == "missing"
+                else _schema_code(kind, name)
+            )
+            break
+    value = supplied.get(field) if field is not None else None
+    return serving.refusal(
+        AdapterCode.INVALID_ARGUMENT.value,
+        dispatch_may_have_occurred=False,
+        field=field,
+        correction=(code, _schema_correction(operation, code, field, value)),
+    )
 
 
 def generated_operation_id():
@@ -192,7 +307,14 @@ def _create_server(
     from mcp.server.mcpserver.exceptions import ToolError
     from mcp.server.mcpserver.tools import Tool
     from mcp.server.mcpserver.utilities.func_metadata import ArgModelBase, FuncMetadata
-    from pydantic import BaseModel, ConfigDict, Field, JsonValue, create_model
+    from pydantic import (
+        BaseModel,
+        ConfigDict,
+        Field,
+        JsonValue,
+        ValidationError,
+        create_model,
+    )
 
     from carbon.miner_mcp import serving
     from carbon.miner_mcp.mcp_extensions import make_tasks_extension
@@ -209,6 +331,27 @@ def _create_server(
         def pre_parse_json(self, data):
             return data
 
+    class CorrectingTool(Tool):
+        """A research tool whose schema refusal is Carbon's registered
+        correction, never the schema library's text (which repeats what was
+        sent): INVALID_ARGUMENT, nothing dispatched, the declared field and
+        how to fix it (`validation_refusal`, AGENT-DOOR-USABILITY-01 A2)."""
+
+        async def run(self, arguments, context, convert_result=False):
+            try:
+                self.fn_metadata.validate_arguments(arguments)
+            except ValidationError as error:
+                raise ToolError(
+                    f"Error executing tool {self.name}: "
+                    + validation_refusal(
+                        self.name.removeprefix(PREFIX),
+                        arguments,
+                        error,
+                        frozenset(self.fn_metadata.arg_model.model_fields),
+                    )
+                ) from None
+            return await super().run(arguments, context, convert_result)
+
     class Result(BaseModel):
         model_config = ConfigDict(strict=True, extra="forbid")
         operation: str
@@ -220,6 +363,22 @@ def _create_server(
     actions = list(DEVELOPMENT_WORKSPACE_ACTIONS)
     if adapter.authored_julia_available:
         actions.append("run_julia")
+    # The practice fields whose string "null" the campaign's frozen argument
+    # normalisation reads as JSON null (v2: action and arguments), in this
+    # wire's names. The schema admits that string for them, so the call
+    # reaches the adapter, which reads it as the SDK does and binds what was
+    # sent (AGENT-DOOR-USABILITY-01 A2). Under no rule or v1 the schema is
+    # byte for byte the one before.
+    null_read = {
+        _SDK_NAMES.get(name, name)
+        for name in practice_null_fields(adapter.argument_normalisation)
+    }
+    action_values = tuple(actions) + (("null",) if "action" in null_read else ())
+    arguments_type = (
+        dict[str, JsonValue] | Literal["null"] | None
+        if "arguments" in null_read
+        else dict[str, JsonValue] | None
+    )
     # The SDK's own per-operation descriptions - each workspace action and its
     # fields - in this wire's object-valued terms (LP-PROD-B).
     described = {
@@ -282,7 +441,7 @@ def _create_server(
             ),
         ),
         "action": (
-            Literal[tuple(actions)] | None,
+            Literal[action_values] | None,
             Field(
                 None,
                 description=(
@@ -292,7 +451,7 @@ def _create_server(
             ),
         ),
         "arguments": (
-            dict[str, JsonValue] | None,
+            arguments_type,
             Field(
                 None,
                 description=(
@@ -424,11 +583,13 @@ def _create_server(
                 )
                 # A stable slug a client can branch on, and the next usable
                 # step. The next action is fixed per slug: a provider message
-                # here is how unbounded internal detail reaches the wire.
+                # here is how unbounded internal detail reaches the wire. A
+                # refusal carrying a registered correction names its field.
                 raise ToolError(
                     serving.refusal(
                         exc.code.value,
                         dispatch_may_have_occurred=exc.dispatch_may_have_occurred,
+                        field=exc.field,
                     )
                 ) from None
             finally:
@@ -453,7 +614,7 @@ def _create_server(
                 official_eligible=result.official_eligible,
             )
 
-        return Tool(
+        return CorrectingTool(
             fn=invoke,
             name=PREFIX + operation,
             description=(
@@ -476,6 +637,12 @@ def _create_server(
                 models["start_research_task"].model_validate(arguments).model_dump()
             ),
             fields=frozenset(models["start_research_task"].model_fields),
+            refuse_invalid=lambda arguments, error: validation_refusal(
+                "start_research_task",
+                arguments,
+                error,
+                frozenset(models["start_research_task"].model_fields),
+            ),
         ),
         make_skills_extension(guard=guard),
     ]

@@ -135,7 +135,9 @@ def invalid_field(error, fields):
     return None
 
 
-def make_tasks_extension(adapter, *, guard, validate_start, fields=frozenset()):
+def make_tasks_extension(
+    adapter, *, guard, validate_start, fields=frozenset(), refuse_invalid=None
+):
     from mcp.server.extension import Extension, MethodBinding
     from mcp.server.mcpserver import require_client_extension
     from mcp.shared.exceptions import MCPError
@@ -236,6 +238,10 @@ def make_tasks_extension(adapter, *, guard, validate_start, fields=frozenset()):
             try:
                 arguments = validate_start(params.arguments or {})
             except ValidationError as error:
+                if refuse_invalid is not None:
+                    # The plain tool's own schema refusal: the field and its
+                    # registered correction (AGENT-DOOR-USABILITY-01 A2).
+                    return refused(refuse_invalid(params.arguments or {}, error))
                 # Named the way the plain tool would be, with the one field to
                 # correct when the schema can name it; nothing was dispatched.
                 return refused(
@@ -252,11 +258,13 @@ def make_tasks_extension(adapter, *, guard, validate_start, fields=frozenset()):
                 )
             except AdapterFailure as failure:
                 # The adapter's own code - SIGNER_NOT_RUNNING, NO_CAMPAIGN,
-                # OPERATION_ID_REUSED ... - and its honest dispatch flag.
+                # OPERATION_ID_REUSED ... - and its honest dispatch flag; a
+                # refusal carrying a registered correction names its field.
                 return refused(
                     serving.refusal(
                         failure.code.value,
                         dispatch_may_have_occurred=failure.dispatch_may_have_occurred,
+                        field=failure.field,
                     )
                 )
             try:

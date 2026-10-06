@@ -403,6 +403,58 @@ def test_infrastructure_failure_is_typed_never_a_score(
     assert operator.attempt_counts("hk3")["by_kind"]["FAILED_INFRA"] == 1
 
 
+def _coverage_rule_recorded(tmp_path, refs, backend):
+    """GRAPHITE-COVERAGE-PARITY-01 changed outcomes (`daemon.incomplete`)
+    under an unchanged RULE and rule_digest, so every outcome, binding,
+    refusal and score record written from it on names the coverage rule, and
+    a row written before it (no such field) still reads, without one."""
+    from carbon.battery import daemon
+
+    identity = daemon.COVERAGE_IDENTITY
+    assert identity["name"] == "missing-prediction-is-a-schema-gate-failure.v1"
+    assert identity["digest"].startswith("sha256:")
+    target = make(tmp_path / "v", refs, backend)
+    scored = direct(target, "hk1", strategy(neighbours=8), 1)
+    refused = direct(target, "hk2", strategy(backbone="not-a-backbone"), 2)
+    assert (scored["state"], refused["state"]) == ("SCORED", "INVALID_CONSTRUCTION")
+    for outcome in (scored, refused):
+        assert outcome.get("coverage_rule") == identity
+    sid = scored["submission_id"]
+    assert target.store.submission(sid)["binding"]["coverage_rule"] == identity
+    assert target.store.score(sid)["record"]["coverage_rule"] == identity
+    # The rule and its pinned digest are unchanged: the coverage rule sits
+    # beside them, never inside them.
+    assert rule_digest(target.rule) == rule_digest() == rule_digest(daemon.RULE)
+    assert "coverage" not in json.dumps(daemon.RULE)
+    # A row written before the ruling: the field absent, read as written.
+    with sqlite3.connect(target.store.path) as db:
+        db.execute(
+            "UPDATE submissions SET binding=json_remove(binding, '$.coverage_rule'),"
+            " failure=json_remove(failure, '$.coverage_rule')"
+        )
+    for old in (sid, refused["submission_id"]):
+        outcome = target.outcome(old)
+        assert "coverage_rule" not in outcome
+        assert outcome["state"] in ("SCORED", "INVALID_CONSTRUCTION")
+        assert daemon.coverage_rule_of(target.store.submission(old)) is None
+
+
+def test_every_new_record_names_the_coverage_rule_and_old_ones_still_read(
+    tmp_path, refs, backend
+):
+    _coverage_rule_recorded(tmp_path, refs, backend)
+
+
+def test_a_dropped_coverage_rule_field_is_caught(tmp_path, refs, backend, monkeypatch):
+    """Mutation: the outcome reader drops the field (`daemon.coverage_rule_of`,
+    the name `outcome` reads); the guard above turns red."""
+    from carbon.battery import daemon
+
+    monkeypatch.setattr(daemon, "coverage_rule_of", lambda row: None)
+    with pytest.raises(AssertionError):
+        _coverage_rule_recorded(tmp_path, refs, backend)
+
+
 def test_the_adapter_wraps_only_a_locked_battery_validator(tmp_path, refs, backend):
     with pytest.raises(TypeError):
         BatteryAdapter(object())

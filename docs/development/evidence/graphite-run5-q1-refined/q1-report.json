@@ -1,0 +1,1589 @@
+{
+  "aliasing": [
+    {
+      "alias": "graphite-run5-p-fa70c075f903",
+      "alias_pod_score": 0.057552774665334816,
+      "alias_prediction_digest": "sha256:cc7560028fa6abb7eac5e17ebb8c896a20e83738fe36027d4d926347c96a4351",
+      "alias_recipe_digest": "sha256:af5cae8d45b2a3e80331ec7d6e3f82499c4b8e9ef8830c32eca8b6d4d7d130f7",
+      "identical_predictions": true,
+      "observation": "IDENTITY_ALIASING: different recipe digests, byte-identical rebuilt predictions at the same seed; the pod scores differ only by seed, so Graphite's step between them is seed variation",
+      "seed": 1551240143,
+      "target": "graphite-run5-p-69268f1b74ec",
+      "target_pod_score": 0.05937869909044359,
+      "target_prediction_digest": "sha256:cc7560028fa6abb7eac5e17ebb8c896a20e83738fe36027d4d926347c96a4351",
+      "target_recipe_digest": "sha256:34c7cbb6ca9be0158836d110947547e9d0ed0a9e5568f90c98f6381885dc1de2"
+    },
+    {
+      "alias": "graphite-run5-p-4fd7fb870d2b",
+      "alias_pod_score": 0.05986594321185995,
+      "alias_prediction_digest": "sha256:3a196b7142fa03173638cb17b0995745f708571710780ba4e16d9532135513d0",
+      "alias_recipe_digest": "sha256:0fc19adb5852b71d0116439336ebf8a029312a09c0708b3273cd2e2effa91d9c",
+      "identical_predictions": false,
+      "observation": "distinct: predictions differ at the same seed",
+      "seed": 3718551111,
+      "target": "graphite-run5-p-1d4aaff5d292",
+      "target_pod_score": 0.05617319925089667,
+      "target_prediction_digest": "sha256:86cc45561e9bd45230774b7d5ff2eff35e32b857640ca332b915a554bbf90a2e",
+      "target_recipe_digest": "sha256:06f5dd2ff5541a22b7a681ca9bc53a46f10189f150abcfab39dd8b9eb54de998"
+    }
+  ],
+  "conditions_label": "EV4 development conditions (previously used): development evidence, no confirmation claim",
+  "experiment_results": "experiment/results/results.json",
+  "mask": {
+    "common_resolved": 7,
+    "development_scenarios": 12,
+    "excluded": [
+      "D-T14-S0.12",
+      "D-T14-S0.48",
+      "D-T24-S0.48",
+      "D-T5-S0.33",
+      "D-T5-S0.48"
+    ],
+    "rule": "every member scored on scenarios where every member's decision loss is defined; reference failure is never a candidate penalty"
+  },
+  "members": {
+    "graphite-run5-baseline-s1801172379": {
+      "control_exam_v1": -0.07166792180216862,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.07404506774171599,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 6
+      },
+      "development_decision_loss": 0.0012612491675659903,
+      "eligible": true,
+      "first_seed": true,
+      "graphite_proposal": "graphite-run5-baseline",
+      "recipe": "graphite-run5-baseline",
+      "seed": 1801172379
+    },
+    "graphite-run5-baseline-s1801172380": {
+      "control_exam_v1": -0.07257818176029894,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.07662696150670266,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 6
+      },
+      "development_decision_loss": 0.008475333818179684,
+      "eligible": true,
+      "first_seed": false,
+      "graphite_proposal": "graphite-run5-baseline",
+      "recipe": "graphite-run5-baseline",
+      "seed": 1801172380
+    },
+    "graphite-run5-baseline-s1801172381": {
+      "control_exam_v1": -0.0714381892184546,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.07513488068171037,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 6
+      },
+      "development_decision_loss": 0.008475333818179684,
+      "eligible": true,
+      "first_seed": false,
+      "graphite_proposal": "graphite-run5-baseline",
+      "recipe": "graphite-run5-baseline",
+      "seed": 1801172381
+    },
+    "graphite-run5-p-1585ecbf838a-s475176988": {
+      "control_exam_v1": -0.07826099314308714,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.08087187900617948,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.4357855132220423,
+      "eligible": true,
+      "first_seed": true,
+      "graphite_proposal": "graphite-run5-p-1585ecbf838a",
+      "recipe": "graphite-run5-p-1585ecbf838a",
+      "seed": 475176988
+    },
+    "graphite-run5-p-1585ecbf838a-s475176989": {
+      "control_exam_v1": -0.08514738119244128,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.08716999631783524,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.531920032652526,
+      "eligible": true,
+      "first_seed": false,
+      "graphite_proposal": "graphite-run5-p-1585ecbf838a",
+      "recipe": "graphite-run5-p-1585ecbf838a",
+      "seed": 475176989
+    },
+    "graphite-run5-p-1585ecbf838a-s475176990": {
+      "control_exam_v1": -0.10860030252962888,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.10977351573292714,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.531920032652526,
+      "eligible": true,
+      "first_seed": false,
+      "graphite_proposal": "graphite-run5-p-1585ecbf838a",
+      "recipe": "graphite-run5-p-1585ecbf838a",
+      "seed": 475176990
+    },
+    "graphite-run5-p-1d4aaff5d292-s3718551111": {
+      "control_exam_v1": -0.057355595211594466,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.05619965871218511,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.4732040291633233,
+      "eligible": true,
+      "first_seed": true,
+      "graphite_proposal": "graphite-run5-p-1d4aaff5d292",
+      "recipe": "graphite-run5-p-1d4aaff5d292",
+      "seed": 3718551111
+    },
+    "graphite-run5-p-1d4aaff5d292-s3718551112": {
+      "control_exam_v1": -0.060241142382451485,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.0605430874864938,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 4,
+        "SELECTED_INFEASIBLE": 2
+      },
+      "development_decision_loss": 2.880192568741649,
+      "eligible": true,
+      "first_seed": false,
+      "graphite_proposal": "graphite-run5-p-1d4aaff5d292",
+      "recipe": "graphite-run5-p-1d4aaff5d292",
+      "seed": 3718551112
+    },
+    "graphite-run5-p-1d4aaff5d292-s3718551113": {
+      "control_exam_v1": -0.05884593854768188,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.06099646801045015,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.4528823893377865,
+      "eligible": true,
+      "first_seed": false,
+      "graphite_proposal": "graphite-run5-p-1d4aaff5d292",
+      "recipe": "graphite-run5-p-1d4aaff5d292",
+      "seed": 3718551113
+    },
+    "graphite-run5-p-37985e699fe3-s1919562590": {
+      "control_exam_v1": -0.06111536778453537,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.06304869882202477,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.4457791868162513,
+      "eligible": true,
+      "first_seed": true,
+      "graphite_proposal": "graphite-run5-p-37985e699fe3",
+      "recipe": "graphite-run5-p-37985e699fe3",
+      "seed": 1919562590
+    },
+    "graphite-run5-p-37985e699fe3-s1919562591": {
+      "control_exam_v1": -0.05948840500489235,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.059401435331231676,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.4516211401702204,
+      "eligible": true,
+      "first_seed": false,
+      "graphite_proposal": "graphite-run5-p-37985e699fe3",
+      "recipe": "graphite-run5-p-37985e699fe3",
+      "seed": 1919562591
+    },
+    "graphite-run5-p-37985e699fe3-s1919562592": {
+      "control_exam_v1": -0.06510640314690253,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.06663370478957983,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.4516211401702204,
+      "eligible": true,
+      "first_seed": false,
+      "graphite_proposal": "graphite-run5-p-37985e699fe3",
+      "recipe": "graphite-run5-p-37985e699fe3",
+      "seed": 1919562592
+    },
+    "graphite-run5-p-4fd7fb870d2b-s1132250632": {
+      "control_exam_v1": -0.05925681685335315,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.06050852555787488,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.4516211401702204,
+      "eligible": true,
+      "first_seed": true,
+      "graphite_proposal": "graphite-run5-p-4fd7fb870d2b",
+      "recipe": "graphite-run5-p-4fd7fb870d2b",
+      "seed": 1132250632
+    },
+    "graphite-run5-p-4fd7fb870d2b-s1132250633": {
+      "control_exam_v1": -0.05780141668241911,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.05782809829923616,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.4516211401702204,
+      "eligible": true,
+      "first_seed": false,
+      "graphite_proposal": "graphite-run5-p-4fd7fb870d2b",
+      "recipe": "graphite-run5-p-4fd7fb870d2b",
+      "seed": 1132250633
+    },
+    "graphite-run5-p-4fd7fb870d2b-s1132250634": {
+      "control_exam_v1": -0.05809469380432173,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.05873893236493697,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.4470404359838172,
+      "eligible": true,
+      "first_seed": false,
+      "graphite_proposal": "graphite-run5-p-4fd7fb870d2b",
+      "recipe": "graphite-run5-p-4fd7fb870d2b",
+      "seed": 1132250634
+    },
+    "graphite-run5-p-69268f1b74ec-s1551240143": {
+      "control_exam_v1": -0.05973710936740781,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.05944015045043877,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 6
+      },
+      "development_decision_loss": 0.02304971159879193,
+      "eligible": true,
+      "first_seed": true,
+      "graphite_proposal": "graphite-run5-p-69268f1b74ec",
+      "recipe": "graphite-run5-p-69268f1b74ec",
+      "seed": 1551240143
+    },
+    "graphite-run5-p-69268f1b74ec-s1551240144": {
+      "control_exam_v1": -0.056081059531352374,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.05686804070788048,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.4516211401702204,
+      "eligible": true,
+      "first_seed": false,
+      "graphite_proposal": "graphite-run5-p-69268f1b74ec",
+      "recipe": "graphite-run5-p-69268f1b74ec",
+      "seed": 1551240144
+    },
+    "graphite-run5-p-69268f1b74ec-s1551240145": {
+      "control_exam_v1": -0.059145948913473655,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.059608319337314856,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 4,
+        "SELECTED_INFEASIBLE": 2
+      },
+      "development_decision_loss": 2.8743506153876797,
+      "eligible": true,
+      "first_seed": false,
+      "graphite_proposal": "graphite-run5-p-69268f1b74ec",
+      "recipe": "graphite-run5-p-69268f1b74ec",
+      "seed": 1551240145
+    },
+    "graphite-run5-p-87b76ad0a2fd-s3716900652": {
+      "control_exam_v1": -0.06335146330079865,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.06520179396564059,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.4298326777389947,
+      "eligible": true,
+      "first_seed": true,
+      "graphite_proposal": "graphite-run5-p-87b76ad0a2fd",
+      "recipe": "graphite-run5-p-87b76ad0a2fd",
+      "seed": 3716900652
+    },
+    "graphite-run5-p-87b76ad0a2fd-s3716900653": {
+      "control_exam_v1": -0.06174547694576359,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.0631013634890747,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.4370467623896082,
+      "eligible": true,
+      "first_seed": false,
+      "graphite_proposal": "graphite-run5-p-87b76ad0a2fd",
+      "recipe": "graphite-run5-p-87b76ad0a2fd",
+      "seed": 3716900653
+    },
+    "graphite-run5-p-87b76ad0a2fd-s3716900654": {
+      "control_exam_v1": -0.06569205273844636,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.06681538835163732,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.4298326777389947,
+      "eligible": true,
+      "first_seed": false,
+      "graphite_proposal": "graphite-run5-p-87b76ad0a2fd",
+      "recipe": "graphite-run5-p-87b76ad0a2fd",
+      "seed": 3716900654
+    },
+    "graphite-run5-p-c41a9a1ebb82-s524989794": {
+      "control_exam_v1": -0.061021174146005386,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.06136158904829669,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.4516211401702204,
+      "eligible": true,
+      "first_seed": true,
+      "graphite_proposal": "graphite-run5-p-c41a9a1ebb82",
+      "recipe": "graphite-run5-p-c41a9a1ebb82",
+      "seed": 524989794
+    },
+    "graphite-run5-p-c41a9a1ebb82-s524989795": {
+      "control_exam_v1": -0.0593056171308192,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.061770019092842805,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.4528823893377865,
+      "eligible": true,
+      "first_seed": false,
+      "graphite_proposal": "graphite-run5-p-c41a9a1ebb82",
+      "recipe": "graphite-run5-p-c41a9a1ebb82",
+      "seed": 524989795
+    },
+    "graphite-run5-p-c41a9a1ebb82-s524989796": {
+      "control_exam_v1": -0.058309848277249415,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.05903020981213276,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.4516211401702204,
+      "eligible": true,
+      "first_seed": false,
+      "graphite_proposal": "graphite-run5-p-c41a9a1ebb82",
+      "recipe": "graphite-run5-p-c41a9a1ebb82",
+      "seed": 524989796
+    },
+    "graphite-run5-p-fa70c075f903-s360154323": {
+      "control_exam_v1": -0.05595288141008939,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.057339779741682674,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.4285714285714286,
+      "eligible": true,
+      "first_seed": false,
+      "graphite_proposal": "graphite-run5-p-fa70c075f903",
+      "recipe": "graphite-run5-p-69268f1b74ec",
+      "seed": 360154323
+    },
+    "graphite-run5-p-fa70c075f903-s360154324": {
+      "control_exam_v1": -0.0576518573582502,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.05832975953326943,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.4285714285714286,
+      "eligible": true,
+      "first_seed": false,
+      "graphite_proposal": "graphite-run5-p-fa70c075f903",
+      "recipe": "graphite-run5-p-69268f1b74ec",
+      "seed": 360154324
+    },
+    "graphite-run5-p-fa70c075f903-s360154325": {
+      "control_exam_v1": -0.056466746326909456,
+      "cpu_practice_eligible": true,
+      "cpu_practice_score": 0.056201315655701044,
+      "decision_kinds": {
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 5,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "development_decision_loss": 1.4285714285714286,
+      "eligible": true,
+      "first_seed": false,
+      "graphite_proposal": "graphite-run5-p-fa70c075f903",
+      "recipe": "graphite-run5-p-69268f1b74ec",
+      "seed": 360154325
+    }
+  },
+  "n_one_seed": 8,
+  "near_limit_false_acceptance": {
+    "members": {
+      "graphite-run5-baseline-s1801172379": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 1,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 1,
+            "false_acceptance_rate": 0.014925373134328358,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "peak_temperature",
+        "worst_false_acceptance_rate": 0.014925373134328358
+      },
+      "graphite-run5-baseline-s1801172380": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 1,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 2,
+            "false_acceptance_rate": 0.029850746268656716,
+            "false_rejection": 1,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "peak_temperature",
+        "worst_false_acceptance_rate": 0.029850746268656716
+      },
+      "graphite-run5-baseline-s1801172381": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 1,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 1,
+            "false_acceptance_rate": 0.014925373134328358,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "peak_temperature",
+        "worst_false_acceptance_rate": 0.014925373134328358
+      },
+      "graphite-run5-p-1585ecbf838a-s475176988": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 1,
+            "false_acceptance_rate": 0.013513513513513514,
+            "false_rejection": 2,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 2,
+            "false_acceptance_rate": 0.029850746268656716,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "peak_temperature",
+        "worst_false_acceptance_rate": 0.029850746268656716
+      },
+      "graphite-run5-p-1585ecbf838a-s475176989": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 4,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 2,
+            "false_acceptance_rate": 0.029850746268656716,
+            "false_rejection": 1,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "peak_temperature",
+        "worst_false_acceptance_rate": 0.029850746268656716
+      },
+      "graphite-run5-p-1585ecbf838a-s475176990": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 3,
+            "false_acceptance_rate": 0.04054054054054054,
+            "false_rejection": 7,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 2,
+            "false_acceptance_rate": 0.029850746268656716,
+            "false_rejection": 2,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "no_plating_onset",
+        "worst_false_acceptance_rate": 0.04054054054054054
+      },
+      "graphite-run5-p-1d4aaff5d292-s3718551111": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 7,
+            "false_acceptance_rate": 0.0945945945945946,
+            "false_rejection": 4,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "no_plating_onset",
+        "worst_false_acceptance_rate": 0.0945945945945946
+      },
+      "graphite-run5-p-1d4aaff5d292-s3718551112": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 2,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 1,
+            "false_acceptance_rate": 0.014925373134328358,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "peak_temperature",
+        "worst_false_acceptance_rate": 0.014925373134328358
+      },
+      "graphite-run5-p-1d4aaff5d292-s3718551113": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 2,
+            "false_acceptance_rate": 0.02702702702702703,
+            "false_rejection": 2,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "no_plating_onset",
+        "worst_false_acceptance_rate": 0.02702702702702703
+      },
+      "graphite-run5-p-37985e699fe3-s1919562590": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 1,
+            "false_acceptance_rate": 0.013513513513513514,
+            "false_rejection": 0,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "no_plating_onset",
+        "worst_false_acceptance_rate": 0.013513513513513514
+      },
+      "graphite-run5-p-37985e699fe3-s1919562591": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 1,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "peak_temperature",
+        "worst_false_acceptance_rate": 0.0
+      },
+      "graphite-run5-p-37985e699fe3-s1919562592": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 2,
+            "false_acceptance_rate": 0.02702702702702703,
+            "false_rejection": 1,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "no_plating_onset",
+        "worst_false_acceptance_rate": 0.02702702702702703
+      },
+      "graphite-run5-p-4fd7fb870d2b-s1132250632": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 3,
+            "false_acceptance_rate": 0.04054054054054054,
+            "false_rejection": 3,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "no_plating_onset",
+        "worst_false_acceptance_rate": 0.04054054054054054
+      },
+      "graphite-run5-p-4fd7fb870d2b-s1132250633": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 4,
+            "false_acceptance_rate": 0.05405405405405406,
+            "false_rejection": 0,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "no_plating_onset",
+        "worst_false_acceptance_rate": 0.05405405405405406
+      },
+      "graphite-run5-p-4fd7fb870d2b-s1132250634": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 1,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "peak_temperature",
+        "worst_false_acceptance_rate": 0.0
+      },
+      "graphite-run5-p-69268f1b74ec-s1551240143": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 1,
+            "false_acceptance_rate": 0.013513513513513514,
+            "false_rejection": 0,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "no_plating_onset",
+        "worst_false_acceptance_rate": 0.013513513513513514
+      },
+      "graphite-run5-p-69268f1b74ec-s1551240144": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 1,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 1,
+            "false_acceptance_rate": 0.014925373134328358,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "peak_temperature",
+        "worst_false_acceptance_rate": 0.014925373134328358
+      },
+      "graphite-run5-p-69268f1b74ec-s1551240145": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 2,
+            "false_acceptance_rate": 0.02702702702702703,
+            "false_rejection": 1,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "no_plating_onset",
+        "worst_false_acceptance_rate": 0.02702702702702703
+      },
+      "graphite-run5-p-87b76ad0a2fd-s3716900652": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 1,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "peak_temperature",
+        "worst_false_acceptance_rate": 0.0
+      },
+      "graphite-run5-p-87b76ad0a2fd-s3716900653": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 1,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 1,
+            "false_acceptance_rate": 0.014925373134328358,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "peak_temperature",
+        "worst_false_acceptance_rate": 0.014925373134328358
+      },
+      "graphite-run5-p-87b76ad0a2fd-s3716900654": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 2,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 1,
+            "false_acceptance_rate": 0.014925373134328358,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "peak_temperature",
+        "worst_false_acceptance_rate": 0.014925373134328358
+      },
+      "graphite-run5-p-c41a9a1ebb82-s524989794": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 1,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "peak_temperature",
+        "worst_false_acceptance_rate": 0.0
+      },
+      "graphite-run5-p-c41a9a1ebb82-s524989795": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 1,
+            "false_acceptance_rate": 0.013513513513513514,
+            "false_rejection": 2,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "no_plating_onset",
+        "worst_false_acceptance_rate": 0.013513513513513514
+      },
+      "graphite-run5-p-c41a9a1ebb82-s524989796": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 2,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "peak_temperature",
+        "worst_false_acceptance_rate": 0.0
+      },
+      "graphite-run5-p-fa70c075f903-s360154323": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 2,
+            "false_acceptance_rate": 0.02702702702702703,
+            "false_rejection": 1,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "no_plating_onset",
+        "worst_false_acceptance_rate": 0.02702702702702703
+      },
+      "graphite-run5-p-fa70c075f903-s360154324": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 1,
+            "false_acceptance_rate": 0.013513513513513514,
+            "false_rejection": 0,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 0,
+            "false_acceptance_rate": 0.0,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "no_plating_onset",
+        "worst_false_acceptance_rate": 0.013513513513513514
+      },
+      "graphite-run5-p-fa70c075f903-s360154325": {
+        "constraints": {
+          "no_plating_onset": {
+            "false_acceptance": 3,
+            "false_acceptance_rate": 0.04054054054054054,
+            "false_rejection": 1,
+            "reference_fail": 74,
+            "reference_pass": 160
+          },
+          "peak_temperature": {
+            "false_acceptance": 1,
+            "false_acceptance_rate": 0.014925373134328358,
+            "false_rejection": 0,
+            "reference_fail": 67,
+            "reference_pass": 244
+          }
+        },
+        "worst_constraint": "no_plating_onset",
+        "worst_false_acceptance_rate": 0.04054054054054054
+      }
+    },
+    "near_cases": 311
+  },
+  "one_seed": {
+    "conditions": [
+      {
+        "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+        "condition": "SCORE_VALUE_DIVERGENCE",
+        "kind": "GRAPHITE_RECONSTRUCTED",
+        "member": "graphite-run5-p-1d4aaff5d292-s3718551111",
+        "schema": "carbon.admission-condition.v1",
+        "scored_at_or_above": [
+          "graphite-run5-baseline-s1801172379",
+          "graphite-run5-p-1585ecbf838a-s475176988",
+          "graphite-run5-p-37985e699fe3-s1919562590",
+          "graphite-run5-p-4fd7fb870d2b-s1132250632",
+          "graphite-run5-p-69268f1b74ec-s1551240143",
+          "graphite-run5-p-87b76ad0a2fd-s3716900652",
+          "graphite-run5-p-c41a9a1ebb82-s524989794"
+        ],
+        "value": [
+          0,
+          1.4732040291633233
+        ],
+        "value_noise_band": null
+      },
+      {
+        "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+        "condition": "SCORE_VALUE_DIVERGENCE",
+        "kind": "GRAPHITE_RECONSTRUCTED",
+        "member": "graphite-run5-p-37985e699fe3-s1919562590",
+        "schema": "carbon.admission-condition.v1",
+        "scored_at_or_above": [
+          "graphite-run5-baseline-s1801172379",
+          "graphite-run5-p-1585ecbf838a-s475176988",
+          "graphite-run5-p-87b76ad0a2fd-s3716900652"
+        ],
+        "value": [
+          0,
+          1.4457791868162513
+        ],
+        "value_noise_band": null
+      },
+      {
+        "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+        "condition": "SCORE_VALUE_DIVERGENCE",
+        "kind": "GRAPHITE_RECONSTRUCTED",
+        "member": "graphite-run5-p-4fd7fb870d2b-s1132250632",
+        "schema": "carbon.admission-condition.v1",
+        "scored_at_or_above": [
+          "graphite-run5-baseline-s1801172379",
+          "graphite-run5-p-1585ecbf838a-s475176988",
+          "graphite-run5-p-37985e699fe3-s1919562590",
+          "graphite-run5-p-87b76ad0a2fd-s3716900652"
+        ],
+        "value": [
+          0,
+          1.4516211401702204
+        ],
+        "value_noise_band": null
+      },
+      {
+        "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+        "condition": "SCORE_VALUE_DIVERGENCE",
+        "kind": "GRAPHITE_RECONSTRUCTED",
+        "member": "graphite-run5-p-69268f1b74ec-s1551240143",
+        "schema": "carbon.admission-condition.v1",
+        "scored_at_or_above": [
+          "graphite-run5-baseline-s1801172379"
+        ],
+        "value": [
+          0,
+          0.02304971159879193
+        ],
+        "value_noise_band": null
+      },
+      {
+        "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+        "condition": "SCORE_VALUE_DIVERGENCE",
+        "kind": "GRAPHITE_RECONSTRUCTED",
+        "member": "graphite-run5-p-87b76ad0a2fd-s3716900652",
+        "schema": "carbon.admission-condition.v1",
+        "scored_at_or_above": [
+          "graphite-run5-baseline-s1801172379"
+        ],
+        "value": [
+          0,
+          1.4298326777389947
+        ],
+        "value_noise_band": null
+      },
+      {
+        "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+        "condition": "SCORE_VALUE_DIVERGENCE",
+        "kind": "GRAPHITE_RECONSTRUCTED",
+        "member": "graphite-run5-p-c41a9a1ebb82-s524989794",
+        "schema": "carbon.admission-condition.v1",
+        "scored_at_or_above": [
+          "graphite-run5-baseline-s1801172379",
+          "graphite-run5-p-1585ecbf838a-s475176988",
+          "graphite-run5-p-37985e699fe3-s1919562590",
+          "graphite-run5-p-87b76ad0a2fd-s3716900652"
+        ],
+        "value": [
+          0,
+          1.4516211401702204
+        ],
+        "value_noise_band": null
+      }
+    ],
+    "excluded_unresolved_or_ineligible": [],
+    "kendall_tau_b": -0.47280542884465016,
+    "members_ranked": [
+      "graphite-run5-baseline-s1801172379",
+      "graphite-run5-p-1585ecbf838a-s475176988",
+      "graphite-run5-p-1d4aaff5d292-s3718551111",
+      "graphite-run5-p-37985e699fe3-s1919562590",
+      "graphite-run5-p-4fd7fb870d2b-s1132250632",
+      "graphite-run5-p-69268f1b74ec-s1551240143",
+      "graphite-run5-p-87b76ad0a2fd-s3716900652",
+      "graphite-run5-p-c41a9a1ebb82-s524989794"
+    ],
+    "schema": "carbon.design-search.score-value-alignment.v1",
+    "spearman_rho": -0.5389318178609666,
+    "tau_noise_band": {
+      "band": 0.0,
+      "panels": 1,
+      "tau_max": -0.47280542884465016,
+      "tau_min": -0.47280542884465016
+    },
+    "top_k": {
+      "by_score": [
+        "graphite-run5-p-1d4aaff5d292-s3718551111",
+        "graphite-run5-p-69268f1b74ec-s1551240143",
+        "graphite-run5-p-4fd7fb870d2b-s1132250632"
+      ],
+      "by_value": [
+        "graphite-run5-baseline-s1801172379",
+        "graphite-run5-p-69268f1b74ec-s1551240143",
+        "graphite-run5-p-87b76ad0a2fd-s3716900652"
+      ],
+      "k": 3,
+      "overlap": 1
+    },
+    "value_noise_band": null
+  },
+  "panel": "graphite-run5",
+  "rank_drift_pod_vs_cpu": {
+    "graphite-run5-baseline": {
+      "cpu_rank": 7,
+      "cpu_score": 0.07404506774171599,
+      "pod_rank": 7,
+      "pod_score": 0.07404252349670187
+    },
+    "graphite-run5-p-1585ecbf838a": {
+      "cpu_rank": 8,
+      "cpu_score": 0.08087187900617948,
+      "pod_rank": 8,
+      "pod_score": 0.08082905278260079
+    },
+    "graphite-run5-p-1d4aaff5d292": {
+      "cpu_rank": 1,
+      "cpu_score": 0.05619965871218511,
+      "pod_rank": 1,
+      "pod_score": 0.05617319925089667
+    },
+    "graphite-run5-p-37985e699fe3": {
+      "cpu_rank": 5,
+      "cpu_score": 0.06304869882202477,
+      "pod_rank": 5,
+      "pod_score": 0.06289528856694253
+    },
+    "graphite-run5-p-4fd7fb870d2b": {
+      "cpu_rank": 3,
+      "cpu_score": 0.06050852555787488,
+      "pod_rank": 3,
+      "pod_score": 0.05986594321185995
+    },
+    "graphite-run5-p-69268f1b74ec": {
+      "cpu_rank": 2,
+      "cpu_score": 0.05944015045043877,
+      "pod_rank": 2,
+      "pod_score": 0.05937869909044359
+    },
+    "graphite-run5-p-87b76ad0a2fd": {
+      "cpu_rank": 6,
+      "cpu_score": 0.06520179396564059,
+      "pod_rank": 6,
+      "pod_score": 0.06515196254955603
+    },
+    "graphite-run5-p-c41a9a1ebb82": {
+      "cpu_rank": 4,
+      "cpu_score": 0.06136158904829669,
+      "pod_rank": 4,
+      "pod_score": 0.061001995643691485
+    }
+  },
+  "recipe_bands": {
+    "graphite-run5-baseline": {
+      "decision_loss_spread": 0.007214084650613693,
+      "decision_losses": [
+        0.0012612491675659903,
+        0.008475333818179684,
+        0.008475333818179684
+      ],
+      "practice_scores": [
+        0.07404506774171599,
+        0.07662696150670266,
+        0.07513488068171037
+      ],
+      "practice_spread": 0.002581893764986673
+    },
+    "graphite-run5-p-1585ecbf838a": {
+      "decision_loss_spread": 0.09613451943048368,
+      "decision_losses": [
+        1.4357855132220423,
+        1.531920032652526,
+        1.531920032652526
+      ],
+      "practice_scores": [
+        0.08087187900617948,
+        0.08716999631783524,
+        0.10977351573292714
+      ],
+      "practice_spread": 0.028901636726747656
+    },
+    "graphite-run5-p-1d4aaff5d292": {
+      "decision_loss_spread": 1.4273101794038625,
+      "decision_losses": [
+        1.4732040291633233,
+        2.880192568741649,
+        1.4528823893377865
+      ],
+      "practice_scores": [
+        0.05619965871218511,
+        0.0605430874864938,
+        0.06099646801045015
+      ],
+      "practice_spread": 0.004796809298265044
+    },
+    "graphite-run5-p-37985e699fe3": {
+      "decision_loss_spread": 0.005841953353969087,
+      "decision_losses": [
+        1.4457791868162513,
+        1.4516211401702204,
+        1.4516211401702204
+      ],
+      "practice_scores": [
+        0.06304869882202477,
+        0.059401435331231676,
+        0.06663370478957983
+      ],
+      "practice_spread": 0.0072322694583481575
+    },
+    "graphite-run5-p-4fd7fb870d2b": {
+      "decision_loss_spread": 0.004580704186403217,
+      "decision_losses": [
+        1.4516211401702204,
+        1.4516211401702204,
+        1.4470404359838172
+      ],
+      "practice_scores": [
+        0.06050852555787488,
+        0.05782809829923616,
+        0.05873893236493697
+      ],
+      "practice_spread": 0.0026804272586387207
+    },
+    "graphite-run5-p-69268f1b74ec": {
+      "decision_loss_spread": 2.851300903788888,
+      "decision_losses": [
+        0.02304971159879193,
+        1.4516211401702204,
+        2.8743506153876797,
+        1.4285714285714286,
+        1.4285714285714286,
+        1.4285714285714286
+      ],
+      "practice_scores": [
+        0.05944015045043877,
+        0.05686804070788048,
+        0.059608319337314856,
+        0.057339779741682674,
+        0.05832975953326943,
+        0.056201315655701044
+      ],
+      "practice_spread": 0.0034070036816138127
+    },
+    "graphite-run5-p-87b76ad0a2fd": {
+      "decision_loss_spread": 0.0072140846506134615,
+      "decision_losses": [
+        1.4298326777389947,
+        1.4370467623896082,
+        1.4298326777389947
+      ],
+      "practice_scores": [
+        0.06520179396564059,
+        0.0631013634890747,
+        0.06681538835163732
+      ],
+      "practice_spread": 0.003714024862562615
+    },
+    "graphite-run5-p-c41a9a1ebb82": {
+      "decision_loss_spread": 0.001261249167566092,
+      "decision_losses": [
+        1.4516211401702204,
+        1.4528823893377865,
+        1.4516211401702204
+      ],
+      "practice_scores": [
+        0.06136158904829669,
+        0.061770019092842805,
+        0.05903020981213276
+      ],
+      "practice_spread": 0.0027398092807100483
+    }
+  },
+  "schema": "carbon.design-search.q1-graphite-run5.v1",
+  "score_source_primary": "CPU rebuild, battery rule v2 practice scoring on the 200 public PRACTICE cases (same artifact as the decisions)",
+  "score_source_secondary": "Graphite pod practice scores (A40 rebuild), first seed only",
+  "secondary_pod_scores_one_seed": {
+    "conditions": [
+      {
+        "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+        "condition": "SCORE_VALUE_DIVERGENCE",
+        "kind": "GRAPHITE_RECONSTRUCTED",
+        "member": "graphite-run5-p-1d4aaff5d292-s3718551111",
+        "schema": "carbon.admission-condition.v1",
+        "scored_at_or_above": [
+          "graphite-run5-baseline-s1801172379",
+          "graphite-run5-p-1585ecbf838a-s475176988",
+          "graphite-run5-p-37985e699fe3-s1919562590",
+          "graphite-run5-p-4fd7fb870d2b-s1132250632",
+          "graphite-run5-p-69268f1b74ec-s1551240143",
+          "graphite-run5-p-87b76ad0a2fd-s3716900652",
+          "graphite-run5-p-c41a9a1ebb82-s524989794"
+        ],
+        "value": [
+          0,
+          1.4732040291633233
+        ],
+        "value_noise_band": null
+      },
+      {
+        "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+        "condition": "SCORE_VALUE_DIVERGENCE",
+        "kind": "GRAPHITE_RECONSTRUCTED",
+        "member": "graphite-run5-p-37985e699fe3-s1919562590",
+        "schema": "carbon.admission-condition.v1",
+        "scored_at_or_above": [
+          "graphite-run5-baseline-s1801172379",
+          "graphite-run5-p-1585ecbf838a-s475176988",
+          "graphite-run5-p-87b76ad0a2fd-s3716900652"
+        ],
+        "value": [
+          0,
+          1.4457791868162513
+        ],
+        "value_noise_band": null
+      },
+      {
+        "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+        "condition": "SCORE_VALUE_DIVERGENCE",
+        "kind": "GRAPHITE_RECONSTRUCTED",
+        "member": "graphite-run5-p-4fd7fb870d2b-s1132250632",
+        "schema": "carbon.admission-condition.v1",
+        "scored_at_or_above": [
+          "graphite-run5-baseline-s1801172379",
+          "graphite-run5-p-1585ecbf838a-s475176988",
+          "graphite-run5-p-37985e699fe3-s1919562590",
+          "graphite-run5-p-87b76ad0a2fd-s3716900652"
+        ],
+        "value": [
+          0,
+          1.4516211401702204
+        ],
+        "value_noise_band": null
+      },
+      {
+        "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+        "condition": "SCORE_VALUE_DIVERGENCE",
+        "kind": "GRAPHITE_RECONSTRUCTED",
+        "member": "graphite-run5-p-69268f1b74ec-s1551240143",
+        "schema": "carbon.admission-condition.v1",
+        "scored_at_or_above": [
+          "graphite-run5-baseline-s1801172379"
+        ],
+        "value": [
+          0,
+          0.02304971159879193
+        ],
+        "value_noise_band": null
+      },
+      {
+        "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+        "condition": "SCORE_VALUE_DIVERGENCE",
+        "kind": "GRAPHITE_RECONSTRUCTED",
+        "member": "graphite-run5-p-87b76ad0a2fd-s3716900652",
+        "schema": "carbon.admission-condition.v1",
+        "scored_at_or_above": [
+          "graphite-run5-baseline-s1801172379"
+        ],
+        "value": [
+          0,
+          1.4298326777389947
+        ],
+        "value_noise_band": null
+      },
+      {
+        "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+        "condition": "SCORE_VALUE_DIVERGENCE",
+        "kind": "GRAPHITE_RECONSTRUCTED",
+        "member": "graphite-run5-p-c41a9a1ebb82-s524989794",
+        "schema": "carbon.admission-condition.v1",
+        "scored_at_or_above": [
+          "graphite-run5-baseline-s1801172379",
+          "graphite-run5-p-1585ecbf838a-s475176988",
+          "graphite-run5-p-37985e699fe3-s1919562590",
+          "graphite-run5-p-87b76ad0a2fd-s3716900652"
+        ],
+        "value": [
+          0,
+          1.4516211401702204
+        ],
+        "value_noise_band": null
+      }
+    ],
+    "excluded_unresolved_or_ineligible": [],
+    "kendall_tau_b": -0.47280542884465016,
+    "members_ranked": [
+      "graphite-run5-baseline-s1801172379",
+      "graphite-run5-p-1585ecbf838a-s475176988",
+      "graphite-run5-p-1d4aaff5d292-s3718551111",
+      "graphite-run5-p-37985e699fe3-s1919562590",
+      "graphite-run5-p-4fd7fb870d2b-s1132250632",
+      "graphite-run5-p-69268f1b74ec-s1551240143",
+      "graphite-run5-p-87b76ad0a2fd-s3716900652",
+      "graphite-run5-p-c41a9a1ebb82-s524989794"
+    ],
+    "schema": "carbon.design-search.score-value-alignment.v1",
+    "spearman_rho": -0.5389318178609666,
+    "tau_noise_band": {
+      "band": 0.0,
+      "panels": 1,
+      "tau_max": -0.47280542884465016,
+      "tau_min": -0.47280542884465016
+    },
+    "top_k": {
+      "by_score": [
+        "graphite-run5-p-1d4aaff5d292-s3718551111",
+        "graphite-run5-p-69268f1b74ec-s1551240143",
+        "graphite-run5-p-4fd7fb870d2b-s1132250632"
+      ],
+      "by_value": [
+        "graphite-run5-baseline-s1801172379",
+        "graphite-run5-p-69268f1b74ec-s1551240143",
+        "graphite-run5-p-87b76ad0a2fd-s3716900652"
+      ],
+      "k": 3,
+      "overlap": 1
+    },
+    "value_noise_band": null
+  },
+  "seed_luck": {
+    "baseline": [
+      0.07404506774171599,
+      0.07662696150670266,
+      0.07513488068171037
+    ],
+    "bundled": [
+      0.05619965871218511,
+      0.0605430874864938,
+      0.06099646801045015
+    ],
+    "bundled_gap_first_seed": -0.0178693242458052,
+    "condition": "CANDIDATE_RULE_CONDITION: a single-seed practice score can move by more than the improvement gap, and best-of-N selection over one-seed scores can select on seed luck; evidence for the rule owner, no rule change",
+    "largest_single_recipe_seed_spread": 0.028901636726747656,
+    "rule": "battery rule v2 paired comparison bootstraps over CASES, not seeds"
+  },
+  "selection_bias": "practice cases were seen adaptively during Graphite's search; best-of-N selection bias applies",
+  "three_seed": {
+    "conditions": [
+      {
+        "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+        "condition": "SCORE_VALUE_DIVERGENCE",
+        "kind": "GRAPHITE_RECONSTRUCTED",
+        "member": "graphite-run5-p-1d4aaff5d292-s3718551112",
+        "schema": "carbon.admission-condition.v1",
+        "scored_at_or_above": [
+          "graphite-run5-baseline-s1801172379",
+          "graphite-run5-baseline-s1801172380",
+          "graphite-run5-baseline-s1801172381"
+        ],
+        "value": [
+          0,
+          2.880192568741649
+        ],
+        "value_noise_band": 2.851300903788888
+      },
+      {
+        "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+        "condition": "SCORE_VALUE_DIVERGENCE",
+        "kind": "GRAPHITE_RECONSTRUCTED",
+        "member": "graphite-run5-p-69268f1b74ec-s1551240145",
+        "schema": "carbon.admission-condition.v1",
+        "scored_at_or_above": [
+          "graphite-run5-baseline-s1801172379",
+          "graphite-run5-baseline-s1801172380",
+          "graphite-run5-baseline-s1801172381"
+        ],
+        "value": [
+          0,
+          2.8743506153876797
+        ],
+        "value_noise_band": 2.851300903788888
+      }
+    ],
+    "excluded_unresolved_or_ineligible": [],
+    "kendall_tau_b": -0.0801879193228918,
+    "members_ranked": [
+      "graphite-run5-baseline-s1801172379",
+      "graphite-run5-baseline-s1801172380",
+      "graphite-run5-baseline-s1801172381",
+      "graphite-run5-p-1585ecbf838a-s475176988",
+      "graphite-run5-p-1585ecbf838a-s475176989",
+      "graphite-run5-p-1585ecbf838a-s475176990",
+      "graphite-run5-p-1d4aaff5d292-s3718551111",
+      "graphite-run5-p-1d4aaff5d292-s3718551112",
+      "graphite-run5-p-1d4aaff5d292-s3718551113",
+      "graphite-run5-p-37985e699fe3-s1919562590",
+      "graphite-run5-p-37985e699fe3-s1919562591",
+      "graphite-run5-p-37985e699fe3-s1919562592",
+      "graphite-run5-p-4fd7fb870d2b-s1132250632",
+      "graphite-run5-p-4fd7fb870d2b-s1132250633",
+      "graphite-run5-p-4fd7fb870d2b-s1132250634",
+      "graphite-run5-p-69268f1b74ec-s1551240143",
+      "graphite-run5-p-69268f1b74ec-s1551240144",
+      "graphite-run5-p-69268f1b74ec-s1551240145",
+      "graphite-run5-p-87b76ad0a2fd-s3716900652",
+      "graphite-run5-p-87b76ad0a2fd-s3716900653",
+      "graphite-run5-p-87b76ad0a2fd-s3716900654",
+      "graphite-run5-p-c41a9a1ebb82-s524989794",
+      "graphite-run5-p-c41a9a1ebb82-s524989795",
+      "graphite-run5-p-c41a9a1ebb82-s524989796",
+      "graphite-run5-p-fa70c075f903-s360154323",
+      "graphite-run5-p-fa70c075f903-s360154324",
+      "graphite-run5-p-fa70c075f903-s360154325"
+    ],
+    "schema": "carbon.design-search.score-value-alignment.v1",
+    "spearman_rho": -0.08015186518612429,
+    "tau_noise_band": {
+      "band": 1.1239058265298805,
+      "panels": 13122,
+      "tau_max": 0.2545875386086578,
+      "tau_min": -0.8693182879212227
+    },
+    "top_k": {
+      "by_score": [
+        "graphite-run5-p-1d4aaff5d292-s3718551111",
+        "graphite-run5-p-fa70c075f903-s360154325",
+        "graphite-run5-p-69268f1b74ec-s1551240144"
+      ],
+      "by_value": [
+        "graphite-run5-baseline-s1801172379",
+        "graphite-run5-baseline-s1801172380",
+        "graphite-run5-baseline-s1801172381"
+      ],
+      "k": 3,
+      "overlap": 0
+    },
+    "value_noise_band": 2.851300903788888
+  }
+}

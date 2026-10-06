@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-motor-scoring-focused-first",
+  "recorded_at": "2026-10-05T15:26:00Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-MOTOR-05 first focused WSL suite",
+    "description": "Attempted Motor, Cooling, registry and Motor attacker tests in Linux."
+  },
+  "expected": "Collect and run the focused adapter tests.",
+  "observed": "Collection stopped in the Battery attacker adapter because CRLF translation of a Battery public practice file on the Windows mount differs from its pinned LF digest. This does not implicate Motor scoring; no test case ran.",
+  "keep": ["Preserve Battery's pinned bytes and live contract."],
+  "change": ["Run cross-Challenge suites from an isolated LF checkout; run Motor-only tests separately first."],
+  "protocol_elements": ["pinned public material", "canonical validation", "no Battery contract change"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
