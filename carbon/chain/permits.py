@@ -92,7 +92,10 @@ async def _fetch(context, hotkey):
         if member is None:
             return (False, False, block)
         permits = await substrate.query(
-            "SubtensorModule", "ValidatorPermit", [context.netuid], block_hash=block_hash
+            "SubtensorModule",
+            "ValidatorPermit",
+            [context.netuid],
+            block_hash=block_hash,
         )
         if type(permits) is not list or member.uid >= len(permits):
             raise ChainFailure(FailureCode.INCOMPLETE)

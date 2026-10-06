@@ -387,9 +387,10 @@ class Producer:
         source = self._source(challenge_id)
         # Re-checked, so a batch changed after its seal is never published.
         source.check(fingerprint)
-        if source.sealed(fingerprint) is None or self._commitment(
-            source, fingerprint
-        ) != sealed["commitment"]:
+        if (
+            source.sealed(fingerprint) is None
+            or self._commitment(source, fingerprint) != sealed["commitment"]
+        ):
             raise ProducerRefused("producer_commitment_changed")
         try:
             value = package(

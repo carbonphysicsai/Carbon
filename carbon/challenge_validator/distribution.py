@@ -197,7 +197,9 @@ class DistributionService:
         except (AnswerKeyRefused, OSError):
             return refuse(503, "answer_key_inbox_unavailable", block)
         if fingerprint is None:
-            self.log.note(hotkey=hotkey, block=block, fingerprint=None, verdict="LISTED")
+            self.log.note(
+                hotkey=hotkey, block=block, fingerprint=None, verdict="LISTED"
+            )
             return 200, {
                 "packages": [listing_entry(packages[f]) for f in sorted(packages)]
             }
