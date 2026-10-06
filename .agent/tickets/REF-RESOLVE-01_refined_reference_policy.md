@@ -38,3 +38,11 @@
 
 - **(a)** Keep the same band for the refined values (proposed), or use a refined-specific band. There is no committed basis for the latter, so it would be HUMAN_INPUT.
 - **(b)** Approve the 27 cases and the host-CPU run (about 30 to 60 min, Graphite executor window).
+
+## Policy v2 (`refined-measured-band`): evaluated, rejected (2026-10-05)
+
+- **Proposal** (Test Lead): a refined case resolves when its margin's distance from the limit exceeds 2 × the largest measured |refined − original| shift across the settled cases.
+- **Measured:** the largest plating shift across the 22 OK pairs is 1.245 mV, so 2 × shift = **2.49 mV**. That is wider than the contract band of **1.97 mV**.
+- **Result:** none of the 16 still-UNRESOLVED cases would resolve (the largest |margin| is 1.91 mV), and some of v1's 6 resolutions would be undone. Coverage cannot exceed v1's 7/12.
+- **Rejected.** The refinement shift is about two-thirds of the contract band, which supports the band rather than suggesting it is loose. No band decision goes to the science owner on this evidence.
+- **Ruling:** the Test Lead, 2026-10-05, recorded as a negative result. v1 (the contract band) stays the only development policy.
