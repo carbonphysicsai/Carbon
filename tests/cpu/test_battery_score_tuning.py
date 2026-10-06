@@ -361,3 +361,44 @@ def test_the_committed_registries_load():
         )
         assert "CE" in candidates
     assert len(identity["sweeps"]) == 10 and len(candidates) == 12 + 80
+    v3, identity3 = st.load_registry(
+        st.Path(__file__).resolve().parents[2]
+        / "docs/development/evidence/battery-score-tuning/registry-v3.json"
+    )
+    assert set(candidates) < set(v3) and "A-Q" in v3 and len(identity3["sweeps"]) == 11
+
+
+def test_false_infeasible_and_near_limit_on_real_references():
+    from carbon.battery.value import scoring as sc
+    from carbon.battery.value.contract import load
+
+    contract, _ = load(
+        st.Path(__file__).resolve().parents[2]
+        / "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json"
+    )
+    store, ids, _ = sc.scoring_set(st.Path(__file__).resolve().parents[2])
+    ids = ids[:200]
+    oracle = {c: store.refs[c]["outputs"] for c in ids}
+    assert st.false_infeasible_rate(contract, oracle, ids, store.refs) == 0.0
+    assert st.false_feasible_rate(contract, oracle, ids, store.refs) in (0.0, None)
+    near = [c for c in ids if st.near_limit(contract, store.refs[c]["outputs"], 1.0)]
+    wider = [c for c in ids if st.near_limit(contract, store.refs[c]["outputs"], 4.0)]
+    assert set(near) <= set(wider)
+    assert st.false_infeasible_rate(contract, {}, ids, store.refs) is None
+
+
+def test_leg_q_and_the_cautious_control():
+    legs, values, recipe_of = _legs()
+    for i, m in enumerate(sorted(legs)):
+        legs[m]["legs"]["q"] = 1.0 / (1.0 + i)  # regret i: the worst decider has most
+    scores, _ = st.candidate_scores(
+        st.parse_candidate({"id": "A-Q", "weights": {"a": 0.5, "q": 0.5}}),
+        legs,
+        recipe_of,
+    )
+    assert max(scores, key=scores.get) == min(values, key=values.get)
+    outputs = {"plating_margin_v": 0.002, "temperature_c": [25.0, 40.0, 44.0]}
+    cautious = st.near_limit_cautious(outputs)
+    assert cautious["plating_margin_v"] < 0 and max(cautious["temperature_c"]) > 45
+    far = {"plating_margin_v": 0.05, "temperature_c": [25.0, 30.0]}
+    assert st.near_limit_cautious(far) == far

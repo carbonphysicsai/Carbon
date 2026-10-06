@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-validator-09-phase3-variant",
+  "recorded_at": "2026-10-05T23:59:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-09 slice 2 (phase 3), branch claude/validator-09-phase3-variant, decision VALIDATOR-09-PHASE3-VARIANT-01. Targeted phase-3, door, controller and variant tests passed; the results are recorded in the PR.",
+    "description": "Graphite phase 3 resolves a development score variant before spend, pins it in the brief and the profile, records its result beside the frozen rule's on every result, refuses a resume under another variant, and every miner door refuses it by name."
+  },
+  "expected": "The variant's rule could replace the frozen rule, and its scoring inputs would follow from the variant document.",
+  "observed": "Replacing the frozen rule would need a variant-side comparison margin, which no authority sets, so the variant's result sits beside the base rule's as an order and is never promotable. But an agent fed the base score optimises the base rule, so the Test Lead required that its feedback shows the variant's score. member_legs also needed a value contract that neither registry named (five are committed). It was escalated, ruled EV4 on #668, and declared once as Challenge data by digest, with each variant recording the digest it was registered against.",
+  "keep": [
+    "Add a development-only rule beside the governing rule, never in its place, until its comparison is owned; but show the agent the score it is meant to optimise.",
+    "Extend the one data-only name check every miner door already uses, rather than adding a check per door."
+  ],
+  "change": [
+    "A variant document should pin every input its score depends on, including the value contract, so a runner never has to choose one."
+  ],
+  "protocol_elements": [
+    "a development scoring variant is resolved before spend, pinned in the session's brief and profile, labelled on every result, and refused on every miner door by name"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

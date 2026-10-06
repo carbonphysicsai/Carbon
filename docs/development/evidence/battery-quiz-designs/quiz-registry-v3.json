@@ -1,0 +1,22 @@
+{
+ "schema": "carbon.battery.quiz-design-registry.v1",
+ "registered": "2026-10-06, before any quiz computation (owner-approved: make the quiz questions maximally effective)",
+ "purpose": "the near-limit quiz stratum of each hidden batch and of the tuning set; G-FEAS and G-PLATE are computed on it",
+ "designs": [
+  {"id": "Q0", "kind": "random", "basis": "today's: cases drawn uniformly from the batch"},
+  {"id": "Q1", "kind": "near_band", "margins_bands": [0.5, 1.0, 2.0, 4.0], "basis": "cases whose reference margin on plating or peak temperature lies within k contract bands of the limit, on either side; one design per k"},
+  {"id": "Q2", "kind": "panel_disagreement", "pool_margin_bands": 4.0, "basis": "within 4 bands of a limit, the cases where the public panel (EV4's recipes, first seeds) splits most evenly between calling the case feasible and infeasible"}
+ ],
+ "sizes": [10, 20, 40, 80, 160],
+ "metric": {
+  "measures": ["feasibility (G-FEAS: share of reference-FAIL cases called feasible)", "plating_fa (G-PLATE: share of reference plating FAILs called PASS)"],
+  "detection": "AUC over draws: P(measure of a known-bad member > measure of a known-good member); reported as the mean and the 5th percentile over draws, per design and size",
+  "known_bad": ["the 8 Track A constructions in EV5's adversarial FAIL", "graphite-run5-p-1d4aaff5d292-s3718551111 (the run-5 winner)"],
+  "known_good": ["control-oracle", "control-conservative", "control-rank_preserving_delay", "the best quarter of EV4's real members by development decision value (ev4-dev-tuning-v1)"],
+  "false_infeasible": "mean share of reference-PASS cases a known-good member calls infeasible",
+  "draws": 1000,
+  "rng": "numpy PCG64, seed 20261006",
+  "sizing_rule": "the smallest size at which a design's 5th-percentile AUC reaches 0.9 on both measures; reported, not a threshold for any score"
+ },
+ "status": "DEVELOPMENT; the quiz size for the tuning set is proposed to the Validator from the public stand-in before the seal"
+}

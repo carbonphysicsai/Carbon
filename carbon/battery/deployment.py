@@ -39,6 +39,12 @@ operator's; none is reachable from a miner surface:
   `require_commitment: false` and no `commitment_reader`, and the winner-weight
   publisher refuses it: a development deployment never sets weights and never
   serves miners.
+- `service_account` (optional; VALIDATOR-19 slice 0): the OS account that
+  alone may touch this deployment. Every load refuses under any other account
+  (`evaluation_wrong_account`), so `operate`, the confirmation seal, the
+  tuning tools and the daemon run only as it. A hidden deployment lives on a
+  host no agent can reach (the owner, 2026-10-06), and this is defence in
+  depth there.
 
 Loading fails closed: a missing, group-readable or linked file, an unknown
 field or a changed identity binding is `EvaluationUnavailable`, never a score.
@@ -57,6 +63,7 @@ from pathlib import Path
 SCHEMA = "carbon.battery.validator-deployment.v1"
 REQUIRED = {"schema", "state", "private_root", "journal", "work", "backend"}
 OPTIONAL = {
+    "archived",
     "batch_source",
     "require_commitment",
     "service_key",
@@ -66,6 +73,7 @@ OPTIONAL = {
     "rule",
     "commitment_reader",
     "development_only",
+    "service_account",
 }
 READER_FIELDS = {"network", "endpoint", "provider", "genesis_hash", "netuid"}
 BACKENDS = ("carrier", "direct")
@@ -120,10 +128,23 @@ def load_config(path):
         raise EvaluationUnavailable("evaluation_config_rule")
     if type(config.get("require_commitment", True)) is not bool:
         raise EvaluationUnavailable("evaluation_config_fields")
+    if "archived" in config and (
+        type(config["archived"]) is not str
+        or not config["archived"].startswith("OWNER-")
+    ):
+        raise EvaluationUnavailable("evaluation_config_fields")
     if config.get("batch_source", "draw") not in ("draw", "answer_key"):
         raise EvaluationUnavailable("evaluation_config_fields")
     if "commitment_reader" in config:
         _commitment_reader(config)  # refuses a malformed chain context now
+    account = config.get("service_account")
+    if account is not None:
+        import pwd
+
+        if type(account) is not str or not account:
+            raise EvaluationUnavailable("evaluation_config_fields")
+        if pwd.getpwuid(os.geteuid()).pw_name != account:
+            raise EvaluationUnavailable("evaluation_wrong_account")
     if type(config.get("development_only", False)) is not bool:
         raise EvaluationUnavailable("evaluation_config_fields")
     if config.get("development_only") and (
@@ -180,6 +201,15 @@ def _owner_only_directory(path):
     return path
 
 
+def require_live(config):
+    """Refuse a deployment the owner archived (its `archived` field names the
+    owner record). An archived deployment is never run, upgraded or used as a
+    weight source again; it stays readable, so a study that pinned its
+    journal or root can still regenerate from it."""
+    if config.get("archived"):
+        raise EvaluationUnavailable("evaluation_config_archived")
+
+
 def build(config, *, repository, readonly=False):
     """A daemon for one configuration. Never dispatches work.
 
@@ -192,6 +222,8 @@ def build(config, *, repository, readonly=False):
     from .signing import ServiceKey
     from .worker import CarrierBackend, DirectBackend, WorkLedger
 
+    if not readonly:
+        require_live(config)
     root = seeds.PrivateRoot.load(_private(config["private_root"]))
     journal = seeds.SeedJournal(config["journal"])
     store = PoolStore(config["state"], rule=rule_for(config))
