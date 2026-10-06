@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-portfolio-f1-canonical-bootstrap-refusal",
+  "recorded_at": "2026-10-06T20:29:26Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "F1 canonical focused attempt 3", "description": "Run focused test with WSL Git dir/worktree environment override"},
+  "expected": "Isolated canonical copy bootstraps and runs pytest",
+  "observed": "Pinned image built, but isolated bootstrap rejected the Windows .git pointer as an invalid repository root; no pytest ran.",
+  "keep": ["Canonical result remains unverified; the pinned image build is not a test pass."],
+  "change": ["Validate from a Linux-created linked worktree or rely on exact-head CI if local mount cannot be made valid."],
+  "protocol_elements": ["challenge.pipeline.lessons", "portfolio.f1.packet"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
