@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-main-integration-quality",
+  "recorded_at": "2026-10-05T13:17:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "current-main selective-fault integration Ruff and Black check",
+    "description": "Checked the merged Cooling attack adapter and its tests after adding policy-bound evidence."
+  },
+  "expected": "No lint findings or formatter changes.",
+  "observed": "Ruff passed and Black would leave both files unchanged.",
+  "keep": [
+    "Keep the current-main integration mechanically clean before rerunning the attack suite."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "graphite.attacker.cooling.selective_fault",
+    "quality_gate"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

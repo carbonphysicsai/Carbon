@@ -40,7 +40,8 @@ from carbon.cold_plate.openfoam import IMAGE
 from carbon.development_session.research_catalog import RecipeRejected
 from carbon.reconstruction.capability_registry import contract
 
-from .interface import Admitted, ChallengeAdapter, Unavailable, digest
+from .candidate_fault import load_policy as load_candidate_fault_policy
+from .interface import Admitted, CandidateFault, ChallengeAdapter, Unavailable, digest
 
 ADAPTER_SCHEMA = "carbon.cold-plate.validator-adapter.v1"
 BATCH_SCHEMA = "carbon.cold-plate.validator-public-batch.v1"
@@ -369,6 +370,9 @@ class CoolingAdapter(ChallengeAdapter):
     def __init__(self, root, *, repository="."):
         self.repository = Path(repository)
         self.material = PublicMaterial.load(self.repository)
+        self.candidate_fault_policy = load_candidate_fault_policy(self.challenge_id)
+        if self.candidate_fault_policy.challenge_version != self.challenge_version:
+            raise CoolingAdapterError("candidate_fault_policy_version_mismatch")
         self.store = CoolingStore(root)
         rule = rule_document(self.material)
         self._identities = {
@@ -383,6 +387,9 @@ class CoolingAdapter(ChallengeAdapter):
         self._practice = {
             record["case_id"]: _copy(record) for record in self.material.practice
         }
+
+    def _candidate_fault(self, fault):
+        return CandidateFault(fault, self.candidate_fault_policy)
 
     def identities(self):
         return _copy(self._identities)
@@ -458,18 +465,30 @@ class CoolingAdapter(ChallengeAdapter):
             )
             return outcome
 
-        model = rebuild(recipe, self.material)
+        try:
+            model = rebuild(recipe, self.material)
+        except Exception as fault:
+            raise self._candidate_fault("rebuild_exception") from fault
         references = self.store.references(fingerprint)
-        predictions = {
-            case_id: model.predict(record["inputs"])
-            for case_id, record in references.items()
-        }
+        try:
+            predictions = {
+                case_id: model.predict(record["inputs"])
+                for case_id, record in references.items()
+            }
+        except Exception as fault:
+            raise self._candidate_fault("predict_exception") from fault
         scales = exam.scales_from_train(self.material.train)
         rows = [
             exam.score_case(predictions[case_id], references[case_id], scales)
             for case_id in sorted(references)
         ]
         summary = exam.aggregate(rows)
+        try:
+            _canonical(
+                {"predictions": predictions, "cases": rows, "aggregate": summary}
+            )
+        except ValueError:
+            raise self._candidate_fault("non_finite_score")
         outcome = self._outcome(submission_id, "SCORED", summary=summary)
         score_record = {
             "schema": SCORE_RECORD_SCHEMA,

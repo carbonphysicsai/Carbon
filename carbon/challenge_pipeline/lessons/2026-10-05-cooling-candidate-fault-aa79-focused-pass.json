@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-aa79-focused-pass",
+  "recorded_at": "2026-10-05T13:48:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "aa79adba policy, validator and merged selective-fault focused suite",
+    "description": "Ran the full candidate-fault policy, Cooling Interface-v1 and current-main Cooling attacker modules in the verified LF-native tree."
+  },
+  "expected": "All policy and real-path attack regressions pass after the persistence-boundary repair.",
+  "observed": "All 167 focused tests passed in 397.34 seconds.",
+  "keep": [
+    "Test both the policy document directly and its actual Interface-v1 behavior through the selective-fault family."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_validator.cooling",
+    "graphite.attacker.cooling.selective_fault"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

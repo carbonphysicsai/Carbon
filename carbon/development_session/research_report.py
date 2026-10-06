@@ -8,6 +8,7 @@ import json
 import math
 from pathlib import Path
 
+from .research_control import read_settlement
 from .research_ledger import CampaignLedger
 
 
@@ -40,6 +41,12 @@ def render_status(ledger, *, owner):
         value["status"] = "ACTIVE_OR_RECONCILIATION_REQUIRED"
     value["retained_physical_bytes"] = ledger.check_storage()
     value["completed_unix"] = completed
+    # The campaign controller's own state (OPERATOR-USABILITY-01 D1): READY,
+    # PAUSED, STOPPED and the rest mean nothing runs, with when it settled.
+    # `completed_unix` stays the finite campaign's end; a campaign waiting
+    # for its miner is settled, not complete. None for a ledger no
+    # controller ever ran.
+    value["control"] = read_settlement(ledger)
     value["elapsed_basis"] = (
         "RECORDED_COMPLETION"
         if completed is not None
@@ -132,6 +139,15 @@ def render_status(ledger, *, owner):
 
 def report(ledger, *, owner):
     value = render_status(ledger, owner=owner)
+    control = value["control"]
+    if control is None:
+        control_line = "not started"
+    else:
+        control_line = control["state"]
+        if control["settled"]:
+            control_line += "; nothing is running"
+        if control["settled_unix"] is not None:
+            control_line += f"; settled at Unix UTC {control['settled_unix']}"
 
     def esc(v):
         return html.escape(str(v))
@@ -159,6 +175,7 @@ def report(ledger, *, owner):
     document = f"""<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Carbon miner research status</title>
 <style>body{{font:16px system-ui;max-width:1100px;margin:2em auto;padding:1em;color:#182329;background:#f6f7f5}}table{{border-collapse:collapse;width:100%}}td,th{{text-align:left;border-bottom:1px solid #ccd4d0;padding:.6em}}pre{{white-space:pre-wrap;overflow-wrap:anywhere}}details{{margin:1em 0}}h1,h2{{color:#174b3b}}</style>
 <h1>Carbon miner research</h1><p>Status: <strong>{esc(value['status'])}</strong></p>
+<p>Controller: <strong>{esc(control_line)}</strong></p>
 <p>This view shows retained operations only. It does not imply a provider call, training run or accepted improvement.</p>
 <p>Campaign digest: {esc(value['campaign_digest'])}<br>First operation (Unix UTC): {esc(value['started_unix'])}</p>
 <h2>Current operation</h2><p>Elapsed seconds: {esc(round(value["elapsed_seconds"],1) if value["elapsed_seconds"] is not None else "unknown")}; remaining: {esc(round(value["remaining_elapsed_seconds"],1) if value["remaining_elapsed_seconds"] is not None else "unknown")}</p><pre>{esc(json.dumps({"active_operations":value["active_operations"],"hypothesis":value["current_hypothesis"]},indent=2))}</pre><h2>Research versus final work</h2><pre>{esc(json.dumps(value["phase_accounting"],indent=2))}</pre><h2>Cumulative accounting</h2><p>Unresolved operations keep their full reservations. Repository CI is separate.</p><table><tr><th>Resource</th><th>Used or reserved</th><th>Remaining ceiling</th></tr>{budgets}</table>

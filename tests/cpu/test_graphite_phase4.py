@@ -34,10 +34,17 @@ from carbon.agent_campaign.graphite.roles import ROLES, RoleName
 from carbon.agent_campaign.provider import ProviderUnavailable, TaskSpec
 from carbon.challenge_validator import scoring as challenge_scoring
 from carbon.development_session.research_tools import PREFIX
-from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
+from carbon.reconstruction.capability_registry import (
+    BATTERY_CHALLENGE,
+    COLD_PLATE_CHALLENGE,
+    MOTOR_CHALLENGE,
+)
 
 REPOSITORY = Path(__file__).resolve().parents[2]
-GRANT_FILE = REPOSITORY / phase4.GRANT_FILE
+#: Battery's phase-4 grant, as the registry names it (`phase4.PHASE4_GRANTS`).
+BATTERY_GRANT_FILE = phase4.PHASE4_GRANTS[BATTERY_CHALLENGE].grant_file
+COOLING_GRANT_FILE = phase4.PHASE4_GRANTS[COLD_PLATE_CHALLENGE].grant_file
+GRANT_FILE = REPOSITORY / BATTERY_GRANT_FILE
 CID = BATTERY_CHALLENGE
 SCORING = challenge_scoring.scoring_for(CID)
 ENGINE = importlib.util.find_spec("carbon.agent_campaign.attack") is not None
@@ -685,8 +692,11 @@ def _assert_every_check_named(coverage):
 
 
 def _validate_script(construction):
+    # compile_strategy is an AUTHORITATIVE tool: a breach the oracle finds on
+    # its boundary is recorded as a finding (dry_validate is advisory, so its
+    # divergence would be a usability record, not a finding).
     return [
-        tool(PREFIX + "dry_validate", {"strategy_json": json.dumps(construction)}),
+        tool(PREFIX + "compile_strategy", {"strategy_json": json.dumps(construction)}),
         text("done"),
     ]
 
@@ -732,7 +742,7 @@ def test_a_verified_breach_is_recorded_and_stops_expansion(tmp_path):
         [finding] = kstore.findings(SYNTHETIC, 0)
         assert finding["condition"] == "FAILING_TRIGGER"
         assert finding["specimen"] == ATTACK
-        assert finding["strategy"] == "graphite-attacker:dry_validate"
+        assert finding["strategy"] == "graphite-attacker:compile_strategy"
         assert [a["outcome"] for a in kstore.attempts(SYNTHETIC, 0)] == ["BREACHED"]
     finally:
         control.close()
@@ -1041,38 +1051,55 @@ def _git(cwd, *args):
     )
 
 
-def _grant_repo(tmp_path):
-    """A repository holding the committed phase-4 grant, pushed to a bare
-    remote: what `check_committed_grant` reads, apart from this checkout."""
+def _grant_repo(tmp_path, challenges=(CID,)):
+    """A repository holding the committed phase-4 grants of `challenges` on
+    main, pushed to a bare remote: what `check_committed_grant` reads, apart
+    from this checkout. Returns the repository and the first Challenge's
+    grant file."""
     remote, repo = tmp_path / "remote.git", tmp_path / "repo"
     _git(tmp_path, "init", "-q", "--bare", "-b", "main", str(remote))
     _git(tmp_path, "init", "-q", "-b", "main", str(repo))
-    grant = repo / phase4.GRANT_FILE
-    grant.parent.mkdir(parents=True)
-    grant.write_bytes(GRANT_FILE.read_bytes())
+    files = []
+    for challenge in challenges:
+        name = phase4.PHASE4_GRANTS[challenge].grant_file
+        grant = repo / name
+        grant.parent.mkdir(parents=True, exist_ok=True)
+        grant.write_bytes((REPOSITORY / name).read_bytes())
+        files.append(grant)
     _git(repo, "add", "-A")
     _git(repo, "commit", "-q", "-m", "grant")
     _git(repo, "remote", "add", "origin", str(remote))
     _git(repo, "push", "-q", "-u", "origin", "main")
-    return repo, grant
+    return repo, files[0]
 
 
-def test_the_committed_grant_is_read_from_head_not_the_working_tree(tmp_path, capsys):
-    """L1. The committed blob at a pushed HEAD is the grant: an operator who
-    edits the working-tree grant and passes it (or an identical copy) is
-    refused; so is a clean copy while the grants directory differs from
-    HEAD, an unpushed HEAD, and a HEAD with no grant committed. Mutation:
-    read `REPOSITORY / GRANT_FILE` from disk again, and the edited
+PHASE4_CHALLENGES = (CID, COLD_PLATE_CHALLENGE)
+
+
+@pytest.mark.parametrize("challenge", PHASE4_CHALLENGES)
+def test_the_committed_grant_is_read_from_head_not_the_working_tree(
+    tmp_path, capsys, challenge
+):
+    """L1, for each Challenge's grant. The committed blob at a pushed HEAD is
+    the grant: an operator who edits the working-tree grant and passes it (or
+    an identical copy) is refused; so is a clean copy while the grants
+    directory differs from HEAD, an unpushed HEAD, and a HEAD with no grant
+    committed. Mutation: read the grant file from disk again, and the edited
     working-tree grant passes."""
-    repo, grant = _grant_repo(tmp_path)
+    repo, grant = _grant_repo(tmp_path, (challenge,))
+    name = phase4.PHASE4_GRANTS[challenge].grant_file
     committed = json.loads(grant.read_bytes())
+
+    def check(path):
+        return phase4.check_committed_grant(path, repo, challenge=challenge)
+
     copy = tmp_path / "copy.json"
     copy.write_bytes(grant.read_bytes())
-    assert phase4.check_committed_grant(copy, repo) == phase4.grant_digest(committed)
-    assert phase4.check_committed_grant(grant, repo) == phase4.grant_digest(committed)
+    assert check(copy) == phase4.grant_digest(committed)
+    assert check(grant) == phase4.grant_digest(committed)
 
     def refusal(path):
-        return _refusal(capsys, lambda: phase4.check_committed_grant(path, repo))
+        return _refusal(capsys, lambda: check(path))
 
     # The operator edits the working-tree grant and hands it in, or an
     # identical copy of it: refused against HEAD's blob.
@@ -1084,28 +1111,32 @@ def test_the_committed_grant_is_read_from_head_not_the_working_tree(tmp_path, ca
         assert refusal(path) == "grant_differs_from_the_committed_phase4_grant"
     # A clean copy while the grants directory differs from HEAD.
     assert refusal(copy) == "grants_directory_has_uncommitted_changes"
-    _git(repo, "checkout", "--", phase4.GRANT_FILE)
+    _git(repo, "checkout", "--", name)
     (grant.parent / "NOTE.txt").write_text("untracked")
     assert refusal(copy) == "grants_directory_has_uncommitted_changes"
     (grant.parent / "NOTE.txt").unlink()
-    assert phase4.check_committed_grant(copy, repo)
+    assert check(copy)
     # A HEAD that is not on a remote branch.
     (repo / "other.txt").write_text("x")
     _git(repo, "add", "other.txt")
     _git(repo, "commit", "-q", "-m", "local only")
     assert refusal(copy) == "grant_commit_not_pushed"
     # A HEAD with no grant committed.
-    _git(repo, "rm", "-q", phase4.GRANT_FILE)
+    _git(repo, "rm", "-q", name)
     _git(repo, "commit", "-q", "-m", "no grant")
     assert refusal(copy) == "phase4_grant_not_committed"
 
 
-def test_a_pushed_branch_carrying_an_edited_grant_is_refused(tmp_path, capsys):
-    """C1. The grant binds to main, which is what the owner approved: a
-    feature branch that commits and pushes a raised ceiling, run with a copy
-    of its own committed grant, is refused; so is a checkout whose remote has
-    no main grant. Back on main the same check passes."""
-    repo, grant = _grant_repo(tmp_path)
+@pytest.mark.parametrize("challenge", PHASE4_CHALLENGES)
+def test_a_pushed_branch_carrying_an_edited_grant_is_refused(
+    tmp_path, capsys, challenge
+):
+    """C1, for each Challenge's grant. The grant binds to main, which is what
+    the owner approved: a feature branch that commits and pushes a raised
+    ceiling, run with a copy of its own committed grant, is refused; so is a
+    checkout whose remote has no main grant. Back on main the same check
+    passes."""
+    repo, grant = _grant_repo(tmp_path, (challenge,))
     committed = json.loads(grant.read_bytes())
     raised = {**committed, "monetary_ceiling": "100.00"}
     _git(repo, "checkout", "-q", "-b", "feature")
@@ -1115,8 +1146,11 @@ def test_a_pushed_branch_carrying_an_edited_grant_is_refused(tmp_path, capsys):
     copy = tmp_path / "copy.json"
     copy.write_text(json.dumps(raised))
 
+    def check(path, repository=repo):
+        return phase4.check_committed_grant(path, repository, challenge=challenge)
+
     def refusal(path, repository=repo):
-        return _refusal(capsys, lambda: phase4.check_committed_grant(path, repository))
+        return _refusal(capsys, lambda: check(path, repository))
 
     assert refusal(copy) == "grant_differs_from_main"
     # A remote with no main to read the approved grant from.
@@ -1129,7 +1163,204 @@ def test_a_pushed_branch_carrying_an_edited_grant_is_refused(tmp_path, capsys):
     _git(repo, "remote", "set-url", "origin", str(tmp_path / "remote.git"))
     _git(repo, "checkout", "-q", "main")
     copy.write_bytes(grant.read_bytes())
-    assert phase4.check_committed_grant(copy, repo) == phase4.grant_digest(committed)
+    assert check(copy) == phase4.grant_digest(committed)
+
+
+def test_a_branch_only_cooling_grant_is_refused_until_it_is_on_main(tmp_path, capsys):
+    """WAVE-05 §2: the cooling grant counts only as the committed blob on
+    main. Committed and pushed on a feature branch (this pull request's
+    state), it is refused `main_grant_unavailable`; once main carries the
+    same blob, the same checkout passes, while battery's grant passes
+    throughout."""
+    repo, battery = _grant_repo(tmp_path, (CID,))
+    _git(repo, "checkout", "-q", "-b", "cooling-grant")
+    cooling = repo / COOLING_GRANT_FILE
+    cooling.write_bytes((REPOSITORY / COOLING_GRANT_FILE).read_bytes())
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "cooling grant")
+    _git(repo, "push", "-q", "-u", "origin", "cooling-grant")
+    copy = tmp_path / "cooling.json"
+    copy.write_bytes(cooling.read_bytes())
+
+    def check(path, challenge):
+        return phase4.check_committed_grant(path, repo, challenge=challenge)
+
+    code = _refusal(capsys, lambda: check(copy, COLD_PLATE_CHALLENGE))
+    assert code == "main_grant_unavailable"
+    assert check(battery, CID)
+    # The pull request merges: main now holds the same blob.
+    _git(repo, "push", "-q", "origin", "cooling-grant:main")
+    expected = phase4.grant_digest(json.loads(copy.read_bytes()))
+    assert check(copy, COLD_PLATE_CHALLENGE) == expected
+    assert check(battery, CID)
+
+
+def test_a_grant_for_another_challenge_is_refused(tmp_path, capsys):
+    """Each Challenge accepts only its own grant, even with both committed on
+    main: battery's grant with `--challenge chip-cold-plate` and cooling's
+    with battery are `grant_is_for_another_challenge`, an unregistered id is
+    `grant_is_not_the_phase4_grant`."""
+    repo, _ = _grant_repo(tmp_path, PHASE4_CHALLENGES)
+    grants = {c: repo / phase4.PHASE4_GRANTS[c].grant_file for c in PHASE4_CHALLENGES}
+
+    def refusal(path, challenge):
+        return _refusal(
+            capsys,
+            lambda: phase4.check_committed_grant(path, repo, challenge=challenge),
+        )
+
+    for challenge, own in grants.items():
+        assert phase4.check_committed_grant(own, repo, challenge=challenge)
+        for other, path in grants.items():
+            if other != challenge:
+                assert refusal(path, challenge) == "grant_is_for_another_challenge"
+    unknown = tmp_path / "unknown.json"
+    unknown.write_text(
+        json.dumps({**json.loads(grants[CID].read_bytes()), "grant_id": "OTHER"})
+    )
+    for challenge in PHASE4_CHALLENGES:
+        assert refusal(unknown, challenge) == "grant_is_not_the_phase4_grant"
+
+
+@needs_engine
+@pytest.mark.parametrize(
+    "challenge, grant_of",
+    [(COLD_PLATE_CHALLENGE, CID), (CID, COLD_PLATE_CHALLENGE)],
+)
+def test_the_live_run_refuses_another_challenges_grant(
+    tmp_path, capsys, challenge, grant_of
+):
+    """Through `phase4 run`: the committed grant of the other Challenge is
+    refused before the credential is looked at or anything opens."""
+    credential = tmp_path / "engy"
+    credential.write_text("x")
+    credential.chmod(0o600)
+    argv = [
+        "run",
+        "--root",
+        str(tmp_path / "r"),
+        "--challenge",
+        challenge,
+        "--grant",
+        str(REPOSITORY / phase4.PHASE4_GRANTS[grant_of].grant_file),
+        "--credential-file",
+        str(credential),
+        "--miner-profile",
+        "p.json",
+        "--miner-campaign",
+        "c",
+    ]
+    code = _refusal(capsys, lambda: phase4.main(argv))
+    assert code == "grant_is_for_another_challenge"
+    assert not (tmp_path / "r" / "attacker").exists()
+
+
+def test_a_challenge_with_no_registered_grant_is_refused(tmp_path, capsys):
+    """Motor has no phase-4 grant until its scorer exists (WAVE-05 §2): every
+    grant path refuses it typed, whichever committed grant is handed in."""
+    repo, _ = _grant_repo(tmp_path, PHASE4_CHALLENGES)
+    assert MOTOR_CHALLENGE not in phase4.PHASE4_GRANTS
+    for challenge in (MOTOR_CHALLENGE, None, "", "stand-in-challenge-v1"):
+        assert _refusal(capsys, lambda c=challenge: phase4.phase4_grant(c)) == (
+            "no_phase4_grant_for_challenge"
+        )
+    for owner in PHASE4_CHALLENGES:
+        path = repo / phase4.PHASE4_GRANTS[owner].grant_file
+        for call in (
+            lambda p=path: phase4.check_committed_grant(
+                p, repo, challenge=MOTOR_CHALLENGE
+            ),
+            lambda p=path: phase4.live_checks(p, repo, challenge=MOTOR_CHALLENGE),
+            lambda: phase4.dry_run_grant(MOTOR_CHALLENGE),
+        ):
+            assert _refusal(capsys, call) == "no_phase4_grant_for_challenge"
+
+
+def test_the_prelive_grant_default_follows_the_challenge(tmp_path, monkeypatch):
+    """`phase4 prelive` without `--grant` checks the grant registered for
+    `--challenge`, and binds the gate to that Challenge."""
+    from carbon.agent_campaign.graphite import phase4_prelive
+
+    seen = []
+
+    def record(root, adapter, atk, *, grant_path, challenge, scoring=None):
+        seen.append((grant_path, challenge, adapter.challenge_id))
+        return 0
+
+    monkeypatch.setattr(phase4_prelive, "prelive", record)
+    for challenge in PHASE4_CHALLENGES:
+        root = str(tmp_path / challenge)
+        assert phase4.main(["prelive", "--root", root, "--challenge", challenge]) == 0
+    assert seen == [
+        (str(REPOSITORY / phase4.PHASE4_GRANTS[c].grant_file), c, c)
+        for c in PHASE4_CHALLENGES
+    ]
+
+
+def test_the_prelive_gate_refuses_motor_typed_once_its_scoring_exists(
+    tmp_path, capsys, monkeypatch
+):
+    """When a motor scorer registers (WAVE-05 §1) motor still has no grant:
+    the prelive default refuses `no_phase4_grant_for_challenge` instead of
+    borrowing battery's."""
+    monkeypatch.setattr(
+        challenge_scoring, "scoring_for", lambda challenge_id=None: SCORING
+    )
+    root = str(tmp_path / "r")
+    code = _refusal(
+        capsys,
+        lambda: phase4.main(
+            ["prelive", "--root", root, "--challenge", MOTOR_CHALLENGE]
+        ),
+    )
+    assert code == "no_phase4_grant_for_challenge"
+
+
+# -- mutations: each new grant guard, disabled, lets the wrong grant through ------------------------
+def test_mutation_one_grant_for_every_challenge_lets_battery_s_run_cooling(
+    tmp_path, capsys, monkeypatch
+):
+    """The registry lookup is the binding: answer battery's entry for every
+    Challenge, and battery's committed grant passes for cooling and motor."""
+    repo, battery = _grant_repo(tmp_path, PHASE4_CHALLENGES)
+    real = phase4.phase4_grant
+    monkeypatch.setattr(phase4, "phase4_grant", lambda c: real(CID))
+    for challenge in (COLD_PLATE_CHALLENGE, MOTOR_CHALLENGE):
+        assert phase4.check_committed_grant(battery, repo, challenge=challenge)
+    monkeypatch.setattr(phase4, "phase4_grant", real)
+    for challenge, code in (
+        (COLD_PLATE_CHALLENGE, "grant_is_for_another_challenge"),
+        (MOTOR_CHALLENGE, "no_phase4_grant_for_challenge"),
+    ):
+        assert (
+            _refusal(
+                capsys,
+                lambda c=challenge: phase4.check_committed_grant(
+                    battery, repo, challenge=c
+                ),
+            )
+            == code
+        )
+
+
+def test_mutation_without_the_id_binding_the_refusal_loses_its_type(
+    tmp_path, capsys, monkeypatch
+):
+    """`bind_grant_to_challenge` types a wrong pairing; with it disabled the
+    digest still refuses, but as an untyped difference."""
+    repo, battery = _grant_repo(tmp_path, PHASE4_CHALLENGES)
+
+    def refusal():
+        return _refusal(
+            capsys,
+            lambda: phase4.check_committed_grant(
+                battery, repo, challenge=COLD_PLATE_CHALLENGE
+            ),
+        )
+
+    assert refusal() == "grant_is_for_another_challenge"
+    monkeypatch.setattr(phase4, "bind_grant_to_challenge", lambda d, e: e)
+    assert refusal() == "grant_differs_from_the_committed_phase4_grant"
 
 
 def test_mutation_reading_the_working_tree_grant_lets_an_edit_through(
@@ -1141,13 +1372,15 @@ def test_mutation_reading_the_working_tree_grant_lets_an_edit_through(
 
     def from_disk(path, repository=phase4.REPOSITORY):
         given = json.loads(Path(path).read_bytes())
-        on_disk = json.loads((Path(repository) / phase4.GRANT_FILE).read_bytes())
+        on_disk = json.loads((Path(repository) / BATTERY_GRANT_FILE).read_bytes())
         if phase4.grant_digest(given) != phase4.grant_digest(on_disk):
             raise phase4.RunnerRefused("grant_differs_from_the_committed_phase4_grant")
         return phase4.grant_digest(on_disk)
 
     assert from_disk(grant, repo)  # the old check: the edit passes
-    code = _refusal(capsys, lambda: phase4.check_committed_grant(grant, repo))
+    code = _refusal(
+        capsys, lambda: phase4.check_committed_grant(grant, repo, challenge=CID)
+    )
     assert code == "grant_differs_from_the_committed_phase4_grant"
 
 

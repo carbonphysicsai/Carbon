@@ -44,12 +44,18 @@ from carbon.agent_campaign.attack import analysis, verify
 from carbon.agent_campaign.graphite import tools as toolbox
 from carbon.challenge_readiness.admission import CONDITIONS
 
-ACCEPTED = path_reply("dry_validate", {"valid": True})
-REFUSED = path_reply("dry_validate", {"valid": False})
+# The generic rebuild/oracle/specimen mechanics here are exercised through an
+# AUTHORITATIVE tool (compile_strategy): only an authoritative path's
+# acceptance of what Carbon refuses is a fail-open. The advisory tools
+# (dry_validate, check_design) and miner-local actions have their own
+# authority-gating tests (test_attack_authoritative_boundary).
+COMPILE = DRY.replace("dry_validate", "compile_strategy")
+ACCEPTED = path_reply("compile_strategy", {"accepted": True})
+REFUSED = path_reply("compile_strategy", {"accepted": False})
 BATTERY = "battery-fastcharge-ageing-development-v1"
 
 
-def attempt_of(tmp_path, name=DRY, arguments=None, result=ACCEPTED):
+def attempt_of(tmp_path, name=COMPILE, arguments=None, result=ACCEPTED):
     write_call(tmp_path, name, dry(GOOD) if arguments is None else arguments, result)
     (found,) = analysis.attempts(tmp_path)
     return found
@@ -251,7 +257,7 @@ def test_the_oracle_is_handed_what_the_path_did(tmp_path):
     assert isinstance(accepted, verify.OracleAttempt)
     assert (accepted.name, accepted.identity) == ("epoch-1-tool-000",) * 2
     assert accepted.value == GOOD and accepted.arguments == dry(GOOD)
-    assert accepted.tool == DRY and accepted.operation == "dry_validate"
+    assert accepted.tool == COMPILE and accepted.operation == "compile_strategy"
     assert (accepted.path_accepted, refused.path_accepted) == (True, False)
     # Without a construction, the value is the call's arguments.
     verify.verify(attempt_of(tmp_path / "c", INFO, {"topic": "x"}), adapter)
@@ -298,7 +304,7 @@ def test_a_digest_only_rebuilt_reads_as_its_digests_and_detail(tmp_path):
 def test_verification_never_reads_held_out_controls(tmp_path):
     adapter = StubAdapter(oracle=breaching())
     for n, arguments in enumerate((dry(GOOD), dry(FORBIDDEN))):
-        write_call(tmp_path, DRY, arguments, ACCEPTED, turn=n)
+        write_call(tmp_path, COMPILE, arguments, ACCEPTED, turn=n)
     verdicts = verify.verify_all(analysis.attempts(tmp_path), adapter)
     assert [v.outcome for v in verdicts] == ["BREACHED", "BREACHED"]
     assert adapter.controls_calls == []
@@ -537,9 +543,12 @@ def test_a_battery_specimen_rebuilds_from_its_bundle_alone(tmp_path):
     verdict = verify.verify(found, Battery(forged), specimen_dir=tmp_path / "bad")
     assert verdict.specimen["status"] == "REBUILD_MISMATCH"
     assert verdict.specimen["differences"] == ["program"]
-    # Re-verifying writes the same bundle: idempotent.
+    # Re-verifying finds this artifact's bundle and re-checks it: idempotent
+    # (the folder is keyed by the rebuilt artifact, OWNER-GRAPHITE-TEST-WAVE-04
+    # §1, so it is reused, never rewritten).
     again = verify.verify(found, Battery(forged), specimen_dir=tmp_path / "bad")
-    assert again.specimen == verdict.specimen
+    assert verdict.specimen["reused"] is False and again.specimen["reused"] is True
+    assert {**again.specimen, "reused": False} == verdict.specimen
 
 
 def test_a_specimen_that_names_protected_material_is_never_written(tmp_path):

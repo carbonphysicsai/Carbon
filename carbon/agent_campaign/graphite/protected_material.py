@@ -30,6 +30,11 @@ PROTECTED_MARKERS = (
     "protected exam",
     "hidden_case",
     "hidden-case",
+    # The sealed tuning set (OWNER-GRAPHITE-TEST-WAVE-08 §1; VALIDATOR-17).
+    "graphite-tuning",
+    "graphite_tuning",
+    "tuning_set",
+    "tuning-set",
     "verification_reference",
     "verification-reference",
     "verification reference",
@@ -69,6 +74,59 @@ def _protected_text(text):
 def protected(value):
     """True when any string in `value` names protected material."""
     return any(_protected_text(text) for text in _strings(value))
+
+
+#: Each marker's class: a category name that is never a marker itself and
+#: never trips the check (`test_graphite_pod_gpu_probe`). A withheld record
+#: may name the class; it never carries a marker or the matched text
+#: (GRAPHITE-POD-GPU-PROBE-01). Every marker has exactly one class.
+MARKER_CLASSES = {
+    "seed_material": (
+        "official_seed",
+        "official-seed",
+        "official seed",
+        "derived_seed",
+        "derived-seed",
+    ),
+    "draw_material": ("draw_id", "draw-id"),
+    "exam_material": (
+        "protected_exam",
+        "protected-exam",
+        "protected exam",
+        "hidden_case",
+        "hidden-case",
+        "graphite-tuning",
+        "graphite_tuning",
+        "tuning_set",
+        "tuning-set",
+    ),
+    "reference_material": (
+        "verification_reference",
+        "verification-reference",
+        "verification reference",
+    ),
+    "validator_state": ("validator_private", "private_validator", "private validator"),
+    "tripwire": (boundaries.CANARY_PREFIX.lower(),),
+}
+#: The class of a match of the checkout deny rule (`boundaries._denied`)
+#: that no Graphite marker explains.
+CHECKOUT_DENY_CLASS = "checkout_deny_rule"
+
+
+def marker_classes(value):
+    """The sorted class names of the protected material `value` names: class
+    names only, never a marker or the text that matched."""
+    found = set()
+    for text in _strings(value):
+        lowered = text.lower()
+        hit = False
+        for name, markers in MARKER_CLASSES.items():
+            if any(marker in lowered for marker in markers):
+                found.add(name)
+                hit = True
+        if not hit and boundaries._denied(lowered):
+            found.add(CHECKOUT_DENY_CLASS)
+    return sorted(found)
 
 
 #: The checkout deny fragments that name sealed or confirmation material, as

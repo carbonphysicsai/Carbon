@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-postmerge-subsystem-pass",
+  "recorded_at": "2026-10-05T14:46:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "current-main exact-source LF-native affected-subsystem regression",
+    "description": "Reran validator contract, Battery compatibility, confirmation and pod-timeout tests with both pinned text records at their registered bytes."
+  },
+  "expected": "The reconciled candidate-fault policy preserves the neutral validator, Battery compatibility and pod lifecycle behavior.",
+  "observed": "All 209 affected-subsystem tests passed in 139.54 seconds.",
+  "keep": [
+    "Keep the policy registry additive and the existing pod-attribution loader compatible with its new section."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_validator.dispatch",
+    "graphite.pod_attribution"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

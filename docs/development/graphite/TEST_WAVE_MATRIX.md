@@ -88,6 +88,35 @@ Status uses `DONE` / `IN PR` / `BUILDING` / `TODO` / `BLOCKED (reason)`.
 | Fresh confirmation set (sealed, operator host) | `graphite-confirmation-v1` specified, not sealed | TODO: fresh conditions | TODO: fresh set (the private pool is already used) |
 | Training-budget study | TODO | TODO | TODO |
 
+## 3a. Environment coverage
+
+Every compute, inference and agent option is tested eventually. No option is
+assumed to work because another one did (OWNER-GRAPHITE-TEST-WAVE-06 §4).
+Status is TESTED / PLANNED / NOT_RUN, per challenge.
+
+| Axis | Option | Battery | Cooling | Motor |
+|---|---|---|---|---|
+| Compute | rented GPU pod (RunPod) | TESTED (phase 3, R2 runs 4–5) | PLANNED (GPU lane) | PLANNED |
+| Compute | pinned isolated CPU carrier (miner Level 0) | PLANNED | PLANNED (CPU lane) | PLANNED |
+| Compute | operator host CPU | TESTED (miner setup) | PLANNED | PLANNED |
+| Compute | operator host GPU (RTX 3060) | PLANNED (L1 GPU identity check) | PLANNED | PLANNED |
+| Compute | rented CPU pod | NOT_RUN | NOT_RUN | TESTED (cpu5c timing; reference only) |
+| Compute | miner's own GPU or remote setup | NOT_RUN | NOT_RUN | NOT_RUN |
+| Compute | confidential compute (Targon) | NOT_RUN (deferred) | NOT_RUN | NOT_RUN |
+| Inference | Engy, chat | TESTED (smoke; R2 runs) | PLANNED | PLANNED |
+| Inference | Engy, messages | TESTED (session 1; no charge reported) | NOT_RUN | NOT_RUN |
+| Inference | Chutes | NOT_RUN | NOT_RUN | NOT_RUN |
+| Inference | OpenAI-compatible | NOT_RUN | NOT_RUN | NOT_RUN |
+| Inference | every role-ladder rung at full context | PARTIAL (deepseek Constructor) | NOT_RUN | NOT_RUN |
+| Agent | Graphite miner edition: Build | TESTED (smoke) | PLANNED | PLANNED |
+| Agent | Graphite miner edition: Research and Full | NOT_RUN | NOT_RUN | NOT_RUN |
+| Agent | internal Constructor (phase 3) | TESTED | PLANNED | PLANNED |
+| Agent | internal Attacker (phase 4) | PLANNED (gate PASS) | PLANNED | BLOCKED (motor scorer) |
+| Agent | Planner (level proposals) | TESTED (level-plan-3) | NOT_RUN | NOT_RUN |
+| Agent | Optimizer researcher | NOT_RUN (fake runs only) | NOT_RUN | NOT_RUN |
+| Agent | miner's own agent over MCP | PARTIAL (attach and submit-path checks) | NOT_RUN | NOT_RUN |
+| Agent | manual or no agent | TESTED (manual test campaign) | NOT_RUN | NOT_RUN |
+
 ## 4. Construction ladder per challenge
 
 | Level | Adds | Battery | Cooling | Motor |

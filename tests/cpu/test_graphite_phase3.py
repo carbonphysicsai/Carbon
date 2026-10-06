@@ -79,6 +79,8 @@ from carbon.agent_campaign.graphite.roles import (
     PROPOSE,
     ROLES,
     SELECT_MAX_INPUT_TOKENS,
+    TOOL_TEXT_V1,
+    TOOL_TEXT_V2,
     RoleName,
 )
 from carbon.agent_campaign.provider import ProviderUnavailable, TaskSpec
@@ -655,7 +657,7 @@ def _session_open(graphite, number=1):
     )
 
 
-def _open(graphite, number=1):
+def _open(graphite, number=1, tool_text=TOOL_TEXT_V2):
     """Open (not run) a Constructor session; returns its run id."""
     _document, profile = phase3.permission_profile(SCORING)
     spec = TaskSpec(
@@ -664,7 +666,7 @@ def _open(graphite, number=1):
         workspace_id=phase3.WORKSPACE,
         credential_ref=phase3.CREDENTIAL_REF,
         profile_digest=profile,
-        instructions_digest=graphite.register_brief(p3f.brief(graphite)),
+        instructions_digest=graphite.register_brief(p3f.brief(graphite, tool_text)),
         max_runtime_s=graphite.grant.max_runtime_s,
     )
     return graphite.start(spec, phase3.session_key(number)).provider_run_id
@@ -828,7 +830,8 @@ def _before_d34(root, model, **kw):
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(gp, "MODEL_SETTINGS", {})
         patch.setattr(boundaries, "checkout_manifest", _recorded_checkout)
-        return graphite, _open(graphite)
+        # Recorded before the tool-text versions: v1 (VALIDATOR-07).
+        return graphite, _open(graphite, tool_text=TOOL_TEXT_V1)
 
 
 def _digests(graphite, run):
