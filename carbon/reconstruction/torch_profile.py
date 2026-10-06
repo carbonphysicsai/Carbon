@@ -59,3 +59,62 @@ def requirements_digest(root) -> str:
 DEPENDENCY_SPECS = tuple(
     (name, version, _tagged(source.encode())) for name, version, source in PINS
 )
+
+
+# The determinism configuration for PyTorch reconstruction (IMAGE-RELEASE-01).
+#
+# The sibling of the XLA configuration pinned in
+# `carbon.reconstruction.accelerators` (`GPU_DETERMINISM_XLA_FLAGS` and
+# `GPU_DETERMINISM_ENVIRONMENT`):
+#
+#   use_deterministic_algorithms   refuses an op with no deterministic
+#                                  implementation instead of silently using a
+#                                  nondeterministic one.
+#   cudnn_deterministic            deterministic cuDNN convolution algorithms.
+#   cudnn_benchmark=False          no per-run, timing-dependent algorithm choice
+#                                  (the PyTorch analogue of autotune level 0).
+#   cublas_workspace_config        the fixed cuBLAS workspace that
+#                                  deterministic algorithms require on CUDA. It
+#                                  is the NVIDIA worker overlay's own value, so
+#                                  JAX and PyTorch share one setting.
+#   intra_op_threads               the fixed CPU thread count; reduction order
+#                                  depends on it.
+#   seed_source                    all randomness comes from Carbon's
+#                                  reconstruction seed through an explicit
+#                                  `torch.Generator`, never the global RNG.
+#
+# Where each is applied today: the CPU rebuild path
+# (`carbon.battery.torch_training.deterministic`) applies deterministic
+# algorithms, the thread count and the explicit generator; the NVIDIA worker
+# overlay sets the cuBLAS workspace. The cuDNN settings act only on CUDA, and
+# PyTorch has no CUDA rebuild path yet: they are applied when it is added.
+# That change edits a battery implementation module, so it moves the battery
+# contract digest and is a contract migration of its own, not part of this pin.
+#
+# This pins a configuration only. Whether a repeat on a CUDA device reproduces
+# within a tolerance is the owner's (OWNER-PYTORCH-BACKEND-01, HUMAN_INPUT);
+# nothing here sets or implies one. That the CUDA settings take effect on a
+# device is unverified until a GPU run establishes it.
+DETERMINISM = (
+    ("use_deterministic_algorithms", True),
+    ("cudnn_deterministic", True),
+    ("cudnn_benchmark", False),
+    ("cublas_workspace_config", ":4096:8"),
+    ("intra_op_threads", 2),
+    ("seed_source", "reconstruction_seed_explicit_generator"),
+)
+DETERMINISM_SCHEMA = "carbon.torch-determinism.v1"
+
+
+def determinism_digest(settings=DETERMINISM) -> str:
+    """The identity of a determinism configuration: any changed, dropped or
+    added setting changes it. The PyTorch worker image checks it at build time
+    and carries it as its `carbon.torch.determinism` label."""
+    import json
+
+    document = {"schema": DETERMINISM_SCHEMA, "settings": [list(s) for s in settings]}
+    raw = json.dumps(document, sort_keys=True, separators=(",", ":"))
+    return _tagged(raw.encode("ascii"))
+
+
+DETERMINISM_DIGEST = determinism_digest()

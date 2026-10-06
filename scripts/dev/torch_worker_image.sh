@@ -18,6 +18,8 @@ parent_ref="carbon-c03-worker:${source_digest:7:16}@${parent}"
 recipe="${repo_root}/.devcontainer/torch/Dockerfile"
 recipe_digest="sha256:$(sha256sum "${recipe}" | cut -d' ' -f1)"
 lock_digest="sha256:$(sha256sum "${repo_root}/.devcontainer/torch/torch-cpu-py311.txt" | cut -d' ' -f1)"
+determinism_digest="$(cd "${repo_root}" && python3 -c 'from carbon.reconstruction.torch_profile import DETERMINISM_DIGEST; print(DETERMINISM_DIGEST)')"
+[[ "${determinism_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 2
 temporary="$(mktemp -d)"
 container=""
 cleanup() {
@@ -30,6 +32,7 @@ docker build --platform linux/amd64 --file "${recipe}" \
   --build-arg "WORKER_IMAGE=${parent}" \
   --build-arg "TORCH_RECIPE_DIGEST=${recipe_digest}" \
   --build-arg "TORCH_LOCK_DIGEST=${lock_digest}" \
+  --build-arg "TORCH_DETERMINISM_DIGEST=${determinism_digest}" \
   --iidfile "${temporary}/iid" \
   --tag "carbon-torch-worker:${source_digest:7:16}" "${repo_root}"
 image="$(tr -d '[:space:]' < "${temporary}/iid")"
