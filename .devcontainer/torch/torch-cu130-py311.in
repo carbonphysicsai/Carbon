@@ -1,7 +1,16 @@
 # Prospective Linux x86_64 Python 3.11.16 PyTorch CUDA 13 worker environment.
 # No runtime installation. torch matches the CPU worker's 2.13.0. Its CUDA
 # libraries (cuDNN 9.20) differ from the JAX CUDA13 lock's (cuDNN 9.12), so
-# this resolves into its own environment and never shares JAX's.
-torch==2.13.0
+# this resolves into its own environment and never shares JAX's. torch is
+# pinned to its CUDA 13 build; every other package takes its best version
+# across PyPI and the PyTorch index, so general libraries come from PyPI.
+torch==2.13.0+cu130
 neuraloperator==2.0.0
 numpy==2.4.6
+# The PyTorch index serves old general libraries; pin them to the CPU torch
+# worker's uv.lock versions so both PyTorch environments match.
+requests==2.34.2
+urllib3==2.7.0
+certifi==2026.7.22
+charset-normalizer==3.5.1
+idna==3.19

@@ -7,6 +7,8 @@ the C-03 worker with its own environment. JAX's lock is untouched. Nothing
 here builds an image or reaches a network. What is held:
 - the committed lock is the exact-hashed cu130 resolution, its command line
   naming repository paths, and it is not the JAX accelerator lock;
+- it is constrained to the CPU PyTorch export: every package the two share
+  is at the identical version, torch alone differing by its build;
 - the GPU environment's pins are the lock's, and its identity moves with any
   pin, while the CPU environment and every Level-0 pin stay byte-identical;
 - the image recipe layers on C-03 (never the accelerator image) and keeps
@@ -40,8 +42,12 @@ HEADER = (
     "--python-version 3.11.16 --python-platform x86_64-manylinux_2_31 "
     "--generate-hashes --only-binary=:all: "
     "--extra-index-url https://download.pytorch.org/whl/cu130 "
+    "--index-strategy unsafe-best-match "
+    "--constraint .devcontainer/torch/torch-cu130-py311.constraints.txt "
     "--output-file .devcontainer/torch/torch-cu130-py311.txt"
 )
+CPU_EXPORT = REPOSITORY / torch_profile.REQUIREMENTS_PATH
+CONSTRAINTS = REPOSITORY / ".devcontainer/torch/torch-cu130-py311.constraints.txt"
 #: Each guard the recipe must keep, by the line that implements it.
 GUARDS = {
     "lock_digest": 'test "sha256:$(sha256sum /opt/carbon/torch-gpu-requirements.txt',
@@ -160,3 +166,32 @@ def test_the_build_script_passes_every_identity_the_recipe_checks():
     assert "GPU_DETERMINISM_DIGEST" in script
     assert ".devcontainer/torch/torch-cu130-py311.txt" in script
     assert SCRIPT.stat().st_mode & 0o111
+
+
+def shared_version_drift(cpu, cuda):
+    """Packages both PyTorch environments install at different versions,
+    torch's build tag aside."""
+    return sorted(
+        name
+        for name in cpu.keys() & cuda.keys()
+        if name != "torch" and cpu[name] != cuda[name]
+    )
+
+
+def test_every_package_shared_with_the_cpu_export_is_the_identical_version():
+    cpu, cuda = requirements(CPU_EXPORT), requirements(LOCK)
+    assert shared_version_drift(cpu, cuda) == []
+    assert cpu["torch"] == "2.13.0+cpu" and cuda["torch"] == "2.13.0+cu130"
+    # The general libraries the PyTorch index also serves are PyPI's current
+    # ones, exactly as the CPU export has them.
+    for name in ("requests", "urllib3", "certifi", "packaging", "tensorly"):
+        assert cuda[name] == cpu[name], name
+    # A drifted version is caught.
+    drifted = dict(cuda, requests="2.28.1")
+    assert shared_version_drift(cpu, drifted) == ["requests"]
+
+
+def test_the_constraints_are_the_cpu_export_without_torch():
+    constraints = requirements(CONSTRAINTS)
+    cpu = requirements(CPU_EXPORT)
+    assert constraints == {k: v for k, v in cpu.items() if k != "torch"}
