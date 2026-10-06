@@ -231,7 +231,12 @@ def config(tmp_path, **changes):
         "schema": pr.CONFIG_SCHEMA,
         "service_account": ME,
         "producer_dir": str(tmp_path / "producer"),
-        "sources": {"battery": {"deployment": "/x/hidden.json"}},
+        "sources": {
+            "battery": {
+                "deployment": "/x/hidden.json",
+                "approval": {"record": "OWNER-X-01", "file": "x.md", "sha256": "0"},
+            }
+        },
         **changes,
     }
     path = tmp_path / "producer.json"

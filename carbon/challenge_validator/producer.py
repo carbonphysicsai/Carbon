@@ -13,6 +13,7 @@ per Challenge:
         --challenge ID --fingerprint FP
     python -m carbon.challenge_validator.producer publish --config PRODUCER.json \\
         --challenge ID --fingerprint FP
+    python -m carbon.challenge_validator.producer tick --config PRODUCER.json [--block N]
     python -m carbon.challenge_validator.producer status --config PRODUCER.json
 
 - **`draw`** draws one batch from the registered population with the source's
@@ -31,6 +32,22 @@ Every file is owner-only and lives outside the repository; the producer runs
 only under its configured service account. Its journal and commitments hold
 public values only: no case id, input, reference or score.
 
+- **`tick`** (slice 3) is rotation and retirement by finalized block, with
+  no human or agent in the loop. A Challenge's cadence comes from its own
+  registered rule (`BatchSource.cadence`): one batch per slot of
+  `every_blocks`, each live for `active` slots. A slot's window is
+  `[slot * every_blocks, (slot + active) * every_blocks)` in finalized blocks,
+  the same for every validator. Each tick:
+  - retires every published batch whose window has ended. It leaves the
+    outbox, so the push removes it from the distribution host, and it enters
+    the owner-only release queue. Releasing it is HUMAN_INPUT and never
+    automatic.
+  - fills the next slots ahead of their windows: it takes the earliest
+    sealed, unscheduled batch, or draws, solves and seals a new one, then
+    schedules and publishes it.
+  - A slot left unfilled is recorded, never stalls validators, and is never
+    filled after it starts.
+  A Challenge with no registered cadence gets no scheduled batch.
 - **`publish`** (slice 2) signs a sealed batch's package with Carbon's
   producer key (`answer_key.package`) and writes it to the owner-only outbox.
   The operator pushes the outbox to the distribution host over a
@@ -43,6 +60,7 @@ from __future__ import annotations
 
 import abc
 import argparse
+import hashlib
 import json
 import os
 import pwd
@@ -111,6 +129,12 @@ class BatchSource(abc.ABC):
         `role`, `kind`, `journal_sequence`, `cases` and `references_digest`.
         None while any reference is pending."""
 
+    def cadence(self):
+        """`{"every_blocks", "active"}` from the Challenge's own registered
+        rule, or None: then no batch is scheduled (the cadence is
+        HUMAN_INPUT until the rule names one)."""
+        return
+
     @abc.abstractmethod
     def export(self, fingerprint):
         """A sealed batch's payload for its answer-key package: the batch
@@ -122,9 +146,40 @@ class BatchSource(abc.ABC):
         commitment. Raises `ProducerRefused`."""
 
 
+def require_approval(approval, *, repository=REPOSITORY):
+    """A Challenge is produced only under the owner's approval record, named
+    by its id and pinned by the sha256 of its decision file in this checkout
+    (`.agent/decisions/`). Returns the record id."""
+    if type(approval) is not dict or set(approval) != {"record", "file", "sha256"}:
+        raise ProducerRefused("producer_challenge_not_approved")
+    record, name = approval["record"], approval["file"]
+    if (
+        type(record) is not str
+        or not record.startswith("OWNER-")
+        or type(name) is not str
+        or "/" in name
+        or not name.endswith(".md")
+    ):
+        raise ProducerRefused("producer_challenge_not_approved")
+    path = Path(repository) / ".agent" / "decisions" / name
+    try:
+        body = path.read_bytes()
+    except OSError:
+        raise ProducerRefused("producer_challenge_not_approved") from None
+    if (
+        hashlib.sha256(body).hexdigest() != approval["sha256"]
+        or record.encode() not in body
+    ):
+        raise ProducerRefused("producer_challenge_not_approved")
+    return record
+
+
 def source_for(challenge_id, spec, *, repository=REPOSITORY):
-    """The registered `BatchSource` for one configured Challenge."""
+    """The registered `BatchSource` for one configured, owner-approved
+    Challenge."""
     from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
+
+    require_approval(spec.get("approval"), repository=repository)
 
     if challenge_id == BATTERY_CHALLENGE:
         from .battery import BatteryBatchSource
@@ -186,13 +241,13 @@ def load_config(path, *, account=None):
     if (
         type(config) is not dict
         or not keys <= set(config)
-        or set(config) - keys - {"signing_key"}
+        or set(config) - keys - {"signing_key", "chain"}
         or config["schema"] != CONFIG_SCHEMA
         or type(config["sources"]) is not dict
         or any(
             type(spec) is not dict
-            or "deployment" not in spec
-            or set(spec) - {"deployment", "overlay"}
+            or not {"deployment", "approval"} <= set(spec)
+            or set(spec) - {"deployment", "overlay", "approval"}
             for spec in config["sources"].values()
         )
     ):
@@ -235,7 +290,7 @@ class ProducerJournal:
 
     def find(self, event, challenge_id, fingerprint):
         for entry in self.entries():
-            if (entry["event"], entry["challenge_id"], entry["fingerprint"]) == (
+            if (entry["event"], entry["challenge_id"], entry.get("fingerprint")) == (
                 event,
                 challenge_id,
                 fingerprint,
@@ -392,10 +447,15 @@ class Producer:
             or self._commitment(source, fingerprint) != sealed["commitment"]
         ):
             raise ProducerRefused("producer_commitment_changed")
+        scheduled = self.journal.find("scheduled", challenge_id, fingerprint)
+        if scheduled is None:
+            # A validator activates a batch only by its window (slice 3).
+            raise ProducerRefused("producer_not_scheduled")
+        if self.journal.find("retired", challenge_id, fingerprint) is not None:
+            raise ProducerRefused("producer_retired")
+        commitment = {**sealed["commitment"], "window": scheduled["window"]}
         try:
-            value = package(
-                self.signing_key, sealed["commitment"], source.export(fingerprint)
-            )
+            value = package(self.signing_key, commitment, source.export(fingerprint))
         except AnswerKeyRefused as refused:
             raise ProducerRefused(refused.code) from None
         name = fingerprint.removeprefix("sha256:") + ".json"
@@ -412,6 +472,154 @@ class Producer:
             )
         return {"fingerprint": fingerprint, "key_id": value["key_id"], "file": name}
 
+    # --- rotation and retirement (slice 3) ------------------------------------
+
+    def _cadence(self, challenge_id):
+        cadence = self._source(challenge_id).cadence()
+        if cadence is None:
+            raise ProducerRefused("producer_no_cadence")
+        return cadence
+
+    @staticmethod
+    def window(cadence, slot):
+        every, active = cadence["every_blocks"], cadence["active"]
+        return {
+            "slot": slot,
+            "activate_block": slot * every,
+            "retire_block": (slot + active) * every,
+        }
+
+    def _scheduled(self, challenge_id):
+        return {
+            e["window"]["slot"]: e["fingerprint"]
+            for e in self.journal.entries()
+            if e["event"] == "scheduled" and e["challenge_id"] == challenge_id
+        }
+
+    def schedule(self, challenge_id, fingerprint, slot, *, block):
+        """Give a sealed batch one slot's window, before the window starts.
+        A slot holds one batch and a batch one slot, for good."""
+        if type(slot) is not int or type(block) is not int or slot < 0:
+            raise ProducerRefused("producer_slot_malformed")
+        if self.journal.find("sealed", challenge_id, fingerprint) is None:
+            raise ProducerRefused("producer_not_sealed")
+        window = self.window(self._cadence(challenge_id), slot)
+        earlier = self.journal.find("scheduled", challenge_id, fingerprint)
+        if earlier is not None:
+            if earlier["window"] != window:
+                raise ProducerRefused("producer_already_scheduled")
+            return window
+        if slot in self._scheduled(challenge_id):
+            raise ProducerRefused("producer_slot_taken")
+        if window["activate_block"] <= block:
+            # Never mid-window: a validator might already be scoring without it.
+            raise ProducerRefused("producer_slot_started")
+        self.journal.append(
+            "scheduled",
+            challenge_id=challenge_id,
+            fingerprint=fingerprint,
+            window=window,
+        )
+        return window
+
+    def _retire(self, challenge_id, block):
+        """Retire every scheduled batch whose window has ended."""
+        retired = []
+        for entry in self.journal.entries():
+            if entry["event"] != "scheduled" or entry["challenge_id"] != challenge_id:
+                continue
+            fingerprint = entry["fingerprint"]
+            if entry["window"]["retire_block"] > block or self.journal.find(
+                "retired", challenge_id, fingerprint
+            ):
+                continue
+            name = fingerprint.removeprefix("sha256:") + ".json"
+            outbox = self.directory / "outbox" / challenge_id / name
+            if outbox.exists():
+                # Out of the outbox: the next push removes it from the
+                # distribution host. Kept, owner-only, for the release
+                # decision.
+                destination = self._private_dir("retired", challenge_id) / name
+                os.replace(outbox, destination)
+            self.journal.append(
+                "retired",
+                challenge_id=challenge_id,
+                fingerprint=fingerprint,
+                block=block,
+                # OWNER-BATTERY-3B-AND-EXPOSURE-01: retirement releases
+                # nothing; the release decision is HUMAN_INPUT.
+                release="HUMAN_INPUT",
+            )
+            retired.append(fingerprint)
+        return retired
+
+    def _fill(self, challenge_id, slot, block, role_prefix):
+        """One slot: an existing sealed batch, or a new one drawn, solved and
+        sealed now; then scheduled and published. Returns its fingerprint,
+        or None (recorded once) when the slot could not be filled."""
+        scheduled = set(self._scheduled(challenge_id).values())
+        sealed = [
+            e["fingerprint"]
+            for e in self.journal.entries()
+            if e["event"] == "sealed"
+            and e["challenge_id"] == challenge_id
+            and e["commitment"]["kind"] == "screening"
+            and e["fingerprint"] not in scheduled
+        ]
+        fingerprint = sealed[0] if sealed else None
+        if fingerprint is None:
+            drawn = self.draw(challenge_id, f"{role_prefix}{slot}", kind="screening")
+            fingerprint = drawn["fingerprint"]
+            if self.journal.find("sealed", challenge_id, fingerprint) is None:
+                self.solve(challenge_id, fingerprint)
+                if self.seal(challenge_id, fingerprint).get("state") == "PENDING":
+                    fingerprint = None
+        if fingerprint is None:
+            if not any(
+                e["event"] == "slot_unfilled"
+                and e["challenge_id"] == challenge_id
+                and e.get("slot") == slot
+                for e in self.journal.entries()
+            ):
+                self.journal.append(
+                    "slot_unfilled", challenge_id=challenge_id, slot=slot, block=block
+                )
+            return None
+        self.schedule(challenge_id, fingerprint, slot, block=block)
+        self.publish(challenge_id, fingerprint)
+        return fingerprint
+
+    def tick(self, block, *, lead_slots=1, role_prefix="pscreen-S"):
+        """One rotation step at finalized `block`, for every configured
+        Challenge with a registered cadence. Idempotent at a given block.
+        `lead_slots` is how many slots ahead are filled: an engineering value,
+        never a scientific one."""
+        if type(block) is not int or block < 0:
+            raise ProducerRefused("producer_block_malformed")
+        report = {}
+        for challenge_id in sorted(self.sources):
+            cadence = self.sources[challenge_id].cadence()
+            if cadence is None:
+                report[challenge_id] = {"cadence": None}
+                continue
+            retired = self._retire(challenge_id, block)
+            current = block // cadence["every_blocks"]
+            filled, unfilled = [], []
+            taken = self._scheduled(challenge_id)
+            for slot in range(current + 1, current + 1 + lead_slots):
+                if slot in taken:
+                    continue
+                result = self._fill(challenge_id, slot, block, role_prefix)
+                (filled if result else unfilled).append(slot)
+            report[challenge_id] = {
+                "block": block,
+                "slot": current,
+                "retired": len(retired),
+                "filled": filled,
+                "unfilled": unfilled,
+            }
+        return report
+
     def status(self):
         """Counts per Challenge; public values only."""
         counts = {}
@@ -419,17 +627,33 @@ class Producer:
             row = counts.setdefault(
                 entry["challenge_id"], {"drawn": 0, "sealed": 0, "published": 0}
             )
-            row[entry["event"]] += 1
+            row[entry["event"]] = row.get(entry["event"], 0) + 1
         return {"challenges": counts}
+
+
+def finalized_block(chain):
+    """The chain's finalized head, for `tick` without `--block`."""
+    from carbon.chain.models import ChainContext
+    from carbon.chain.permits import PermitUnavailable
+    from carbon.chain.permits import finalized_block as read
+
+    if type(chain) is not dict:
+        raise ProducerRefused("producer_no_chain")
+    try:
+        return read(ChainContext(**chain))
+    except (PermitUnavailable, TypeError, ValueError):
+        raise ProducerRefused("producer_chain_unavailable") from None
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="carbon.challenge_validator.producer")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("draw", "solve", "seal", "publish", "status"):
+    for name in ("draw", "solve", "seal", "publish", "tick", "status"):
         command = sub.add_parser(name)
         command.add_argument("--config", required=True)
-        if name == "status":
+        if name == "tick":
+            command.add_argument("--block", type=int)
+        if name in ("status", "tick"):
             continue
         command.add_argument("--challenge", required=True)
         if name == "draw":
@@ -455,6 +679,11 @@ def main(argv=None):
             result = producer.seal(args.challenge, args.fingerprint)
         elif args.command == "publish":
             result = producer.publish(args.challenge, args.fingerprint)
+        elif args.command == "tick":
+            block = args.block
+            if block is None:
+                block = finalized_block(load_config(args.config).get("chain"))
+            result = producer.tick(block)
         else:
             result = producer.status()
     except ProducerRefused as refused:

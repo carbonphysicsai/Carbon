@@ -91,7 +91,9 @@ class Inbox:
         self.directory = Path(directory)
         self.producer_public_key = producer_public_key
 
-    def packages(self, challenge_id):
+    def packages(self, challenge_id, *, block=None):
+        """Verified packages for `challenge_id`. With `block`, only those a
+        validator may still use: windowed, and not retired at `block`."""
         info = os.lstat(self.directory)
         if not stat.S_ISDIR(info.st_mode) or info.st_mode & 0o077:
             raise AnswerKeyRefused("answer_key_inbox_not_owner_only")
@@ -103,8 +105,15 @@ class Inbox:
             except (AnswerKeyRefused, OSError, ValueError):
                 skipped += 1
                 continue
-            if commitment["challenge_id"] == challenge_id:
-                found[commitment["fingerprint"]] = value
+            if commitment["challenge_id"] != challenge_id:
+                continue
+            window = commitment.get("window")
+            if block is not None and (
+                type(window) is not dict or window.get("retire_block", 0) <= block
+            ):
+                # Retired, or never scheduled: never served (slice 3).
+                continue
+            found[commitment["fingerprint"]] = value
         return found, skipped
 
 
@@ -193,7 +202,7 @@ class DistributionService:
             return refuse(403, "answer_key_no_validator_permit", block)
         block = permit["block"]
         try:
-            packages, _ = self.inbox.packages(request["challenge_id"])
+            packages, _ = self.inbox.packages(request["challenge_id"], block=block)
         except (AnswerKeyRefused, OSError):
             return refuse(503, "answer_key_inbox_unavailable", block)
         if fingerprint is None:

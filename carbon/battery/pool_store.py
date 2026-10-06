@@ -82,6 +82,11 @@ CREATE TABLE IF NOT EXISTS pool(
 CREATE TABLE IF NOT EXISTS pool_clock(
   id INTEGER PRIMARY KEY CHECK(id = 1),
   block INTEGER);
+CREATE TABLE IF NOT EXISTS batch_windows(
+  fingerprint TEXT PRIMARY KEY,
+  slot INTEGER NOT NULL,
+  activate_block INTEGER NOT NULL,
+  retire_block INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS submissions(
   submission_id TEXT PRIMARY KEY,
   request_digest TEXT NOT NULL,
@@ -173,6 +178,12 @@ class HotkeyWindowUsed(PermissionError):
 
 class PoolStore:
     """Transactional access to the validator's durable battery state."""
+
+    #: Import-only deployments (VALIDATOR-19 slice 3): the active pool is the
+    #: imported screening batches whose producer window covers the newest
+    #: finalized block, so every validator holding the same batches rotates
+    #: at the same blocks. Set by the daemon; False keeps rule v1/v2 rotation.
+    windowed = False
 
     def __init__(self, path, *, clock=time.time, rule=None):
         self.path = Path(path)
@@ -492,10 +503,16 @@ class PoolStore:
         """Activate the first three complete screening batches (once).
 
         Refused with `pool_incomplete` until three screening batches have
-        complete references: the pool never starts short.
+        complete references: the pool never starts short. A windowed pool
+        opens empty (`ROTATION_PENDING`); its first window activates it.
         """
         with self.transaction() as db:
             if db.execute("SELECT 1 FROM pool WHERE id=1").fetchone():
+                return self._pool_row(db)
+            if self.windowed:
+                db.execute("INSERT INTO pool VALUES(1, 0, 0, '[]', 'ROTATION_PENDING')")
+                self._event(db, "pool_opened", {"version": 0, "active": []})
+                self._try_rotate(db)
                 return self._pool_row(db)
             ready = [
                 r[0]
@@ -546,9 +563,110 @@ class PoolStore:
                 inputs[case["case_id"]] = dict(case["inputs"])
         return inputs
 
+    def set_window(self, fingerprint, window):
+        """Record an imported batch's producer window (idempotent)."""
+        self.batch(fingerprint)
+        values = (window["slot"], window["activate_block"], window["retire_block"])
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT slot, activate_block, retire_block FROM batch_windows "
+                "WHERE fingerprint=?",
+                (fingerprint,),
+            ).fetchone()
+            if row is not None:
+                if tuple(row) != values:
+                    raise StateError("batch_window_conflict")
+                return
+            db.execute(
+                "INSERT INTO batch_windows VALUES(?,?,?,?)", (fingerprint, *values)
+            )
+            self._event(
+                db, "batch_window", {"fingerprint": fingerprint, "window": window}
+            )
+
+    def window(self, fingerprint):
+        with self.db() as db:
+            row = db.execute(
+                "SELECT slot, activate_block, retire_block FROM batch_windows "
+                "WHERE fingerprint=?",
+                (fingerprint,),
+            ).fetchone()
+        if row is None:
+            return None
+        return dict(zip(("slot", "activate_block", "retire_block"), row, strict=True))
+
+    def _windowed_rotate(self, db):
+        """The active pool from producer windows at the newest finalized block
+        a submission was received against. Never stalls: when no window covers
+        it, the current batches keep scoring and the overdue rotation is
+        recorded."""
+        latest = self._latest_block(db)
+        if latest is None:
+            return None
+        active = [
+            row[0]
+            for row in db.execute(
+                "SELECT w.fingerprint FROM batch_windows w JOIN batches b "
+                "ON b.fingerprint = w.fingerprint WHERE b.kind='screening' "
+                "AND b.references_state='COMPLETE' AND w.activate_block <= ? "
+                "AND ? < w.retire_block ORDER BY w.activate_block, w.fingerprint",
+                (latest, latest),
+            )
+        ]
+        pool = self._pool_row(db)
+        if active == pool["active"]:
+            return None
+        if not active:
+            if (
+                pool["active"]
+                and not db.execute(
+                    "SELECT 1 FROM events WHERE kind='rotation_overdue' AND body=?",
+                    (_json({"version": pool["version"]}),),
+                ).fetchone()
+            ):
+                self._event(db, "rotation_overdue", {"version": pool["version"]})
+            return None
+        version = pool["version"] + 1
+        retired = [f for f in pool["active"] if f not in active]
+        activated = [f for f in active if f not in pool["active"]]
+        for fingerprint in retired:
+            db.execute(
+                "UPDATE batches SET state='RETIRED', retired_version=? "
+                "WHERE fingerprint=?",
+                (version, fingerprint),
+            )
+            db.execute(
+                "INSERT OR IGNORE INTO operations VALUES(?, 'journal_retire', "
+                "'PENDING', ?)",
+                ("retire:" + fingerprint, canonical({"fingerprint": fingerprint})),
+            )
+        for fingerprint in activated:
+            db.execute(
+                "UPDATE batches SET state='ACTIVE', activated_version=? "
+                "WHERE fingerprint=?",
+                (version, fingerprint),
+            )
+        db.execute(
+            "UPDATE pool SET version=?, admitted=0, active=?, status='OPEN' WHERE id=1",
+            (version, canonical(active)),
+        )
+        self._event(
+            db,
+            "rotated",
+            {
+                "version": version,
+                "retired": retired,
+                "activated": activated,
+                "block": latest,
+            },
+        )
+        return retired[0] if retired else None
+
     def _try_rotate(self, db):
         """Rotate if due and possible; else mark ROTATION_PENDING. Returns the
         retired fingerprint when a rotation happened."""
+        if self.windowed:
+            return self._windowed_rotate(db)
         pool = self._pool_row(db)
         rotation = self.rule.get("rotation")
         if rotation is None:

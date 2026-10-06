@@ -315,6 +315,8 @@ class BatteryValidator:
         #: shared answer key (`challenge_validator.answer_key`); this
         #: validator never draws or seals one itself.
         self.import_only = import_only is True
+        # Its pool rotates by the producer's windows, never its own clock.
+        self.store.windowed = self.import_only
         self.development_compiler = None
         self.material = PublicMaterial.load(repository)
         self.tol, self.scales = frozen_calibration(repository)
