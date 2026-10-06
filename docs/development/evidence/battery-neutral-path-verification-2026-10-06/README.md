@@ -5,32 +5,52 @@ examples, not a new scientific experiment or an official hidden exam.
 
 ## Identity and execution
 
-- Source commit: `d12b14f79e095f0e2adf80b0c7eba289d22378be` (main after
-  Motor Interface-v1 PR #706).
-- Source tree: `edafb1fbefa3cac92eb8146d4bae495f93d2b28a`.
+- Reconciled source commit: `74efce7be818fc028f9304a03ca032ea6bad575d`
+  (main after Validator-19 PR #708); tested branch merge commit:
+  `5116d881238fb10708f25da4bf1b3ceedb69d784`. The executable files
+  are unchanged between that main commit and the tested merge.
+- Reconciled main source tree: `b57865af1f488400c52beffe959bf6e3e5847727`.
 - Runtime: `./scripts/dev/canonical.sh`, pinned Ubuntu 24.04/linux-amd64,
-  CPython 3.11.16, uv 0.12.7, `dev science-jax` lock groups.
+  CPython 3.11.16, uv 0.12.7, `dev science-jax archive` lock groups.
 - Command, from the source-tree root:
 
   ```bash
-  CARBON_UV_GROUPS=science-jax ./scripts/dev/canonical.sh python -m pytest -q \
+  CARBON_UV_GROUPS='science-jax archive' ./scripts/dev/canonical.sh python -m pytest -q \
     tests/cpu/test_challenge_validator_battery.py \
     tests/cpu/test_challenge_validator_contract.py \
     tests/cpu/test_challenge_validator_scoring.py \
+    tests/cpu/test_challenge_validator_producer.py \
+    tests/cpu/test_challenge_validator_acceptance.py \
+    tests/cpu/test_challenge_validator_rotation.py \
     tests/cpu/test_challenge_readiness.py
   ```
 
-- Result: **156 passed in 99.56 seconds**. No test was skipped or failed in
-  this selection. This was a local canonical check; PR CI is separate.
+- Result: **188 passed in 140.27 seconds**. No test was skipped or failed in
+  this corrected selection. This was a local canonical check; PR CI is
+  separate.
+
+An earlier four-file selection on `d12b14f79` passed 156 tests in 99.56
+seconds. Main then merged Validator-19 changes to the Battery adapter. The
+first expanded run at the reconciled head used only `science-jax` and ended
+with 173 passes, 14 errors and 1 failure; the first isolated error was
+`ModuleNotFoundError: cryptography` in `ProducerKey.create`. That is a test
+environment omission: `cryptography==50.0.1` is pinned in the repository's
+`archive` dependency group. The corrected full rerun with both groups is the
+188-pass result above. The failed attempt is retained as evidence, not
+counted as an implementation regression or a pass.
 
 The source tree pins all inspected code and tests. Additional SHA-256 checks
 for the relevant files (hex, lower case):
 
 | Path | SHA-256 |
 | --- | --- |
-| `carbon/challenge_validator/battery.py` | `246a88ae52ef998abd0d47d1eba78d448b8bbdd6bea6bbe308a23f0b5d238827` |
+| `carbon/challenge_validator/battery.py` | `e21cf3fa537a93ce24be1b004552b1bcba30e60d19a7b861975356e70d3b39b0` |
 | `carbon/challenge_validator/dispatch.py` | `a7fce0dc195f58ee2b58433c3efca54abd7c7ae4df7aa08e5a0b1fe0afe8b473` |
+| `carbon/challenge_validator/acceptance.py` | `96f6ccba0e5f55d6e1f3929167cce5a68743ada95ee93c9cd9d6af2fbbadcf2` |
+| `carbon/challenge_validator/producer.py` | `5fadccd46cfb72705b03c59858ea1be86e5f52811ede880fb93d20ffe8f1f749` |
 | `tests/cpu/test_challenge_validator_battery.py` | `a230f31d88519ad7b9c6decf4f2cb935ee839895b94a485bdda3205fc2b5146a` |
+| `tests/cpu/test_challenge_validator_acceptance.py` | `fbf3efc9b9e918402e5e60b80a51a3d8a5eb157ad3a6a1274cf2dc545eb163b0` |
+| `tests/cpu/test_challenge_validator_rotation.py` | `09d7766d750ca6ec127510727fbb1ddb002b385e6aad1671de90550a0096e73a` |
 | `tests/cpu/test_challenge_validator_contract.py` | `f4978475316f341d9843665915f48eb0bc3b48364beda64c44d3cb2e1c66b63b` |
 | `tests/cpu/test_challenge_validator_scoring.py` | `5e5f63630d87df487f1fcbc845201f092fccb8c1650c115112ca29229c71048a` |
 | `tests/cpu/test_challenge_readiness.py` | `e259203097f769514122045f3d304ef9ad04e313c3736c245f2decf92dfa458f` |
@@ -46,7 +66,9 @@ matching stored scores, bindings and finals (aside from wall-clock columns).
 The selected tests also cover strict transport/contract admission, rule pins,
 operator-only score replay, disclosure of no hidden case/seed, reserved and
 sealed role refusal without journal mutation, typed `UNAVAILABLE`, and
-infrastructure failure that does not become a scientific score.
+infrastructure failure that does not become a scientific score. The expanded
+selection covers the new synthetic producer, acceptance and block-window
+rotation path in the merged Validator-19 work.
 
 The tests use retained published PyBaMM reference examples and a
 `DirectBackend` with temporary test-local validator roots. The literal

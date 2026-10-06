@@ -7,8 +7,10 @@ Battery verification instruction; `VALIDATOR-01_challenge_neutral_validator.md`
 Interface v1; `CONSTITUTION.md`; `.agent/INVARIANTS.md`; current
 `.agent/DELIVERY_PROTOCOL.md`.
 
-**Base:** `d12b14f79e095f0e2adf80b0c7eba289d22378be` (main after Motor
-Interface-v1 PR #706). One ticket, one PR.
+**Initial base:** `d12b14f79e095f0e2adf80b0c7eba289d22378be` (main after
+Motor Interface-v1 PR #706). Reconciled with current main
+`74efce7be818fc028f9304a03ca032ea6bad575d` after Validator-19 changed
+Battery's adapter and producer path. One ticket, one PR.
 
 ## Outcome
 
@@ -34,8 +36,9 @@ and readiness ceiling. Repair only a concrete regression found by this check.
 
 ## Acceptance
 
-- [x] Canonical Battery neutral replay, contract/scoring boundary and readiness
-      tests run at the stated source commit, with exact command and count.
+- [x] Canonical Battery neutral replay, contract/scoring boundary, new
+      acceptance/rotation and readiness tests run at the reconciled source
+      commit, with exact command and count.
 - [x] Report distinguishes what the tests exercise from worker isolation,
       protected evaluation and unresolved readiness/owner reviews.
 - [x] No EV5, sealed journal, live contract, protected labels or scoring
@@ -47,8 +50,10 @@ and readiness ceiling. Repair only a concrete regression found by this check.
 
 At evidence commit `ebb2e0d14`, `tests/cpu/test_challenge_pipeline.py` passed
 28/28 and `scripts/check_quality.py --base d12b14f79` passed with Ruff 0/776,
-Black 0/68 and no changed Python files. The validation executions have their
-own final lessons entries; PR CI will check the delivered head.
+Black 0/68 and no changed Python files. After reconciliation, 188 tests passed
+on source head `5116d8812` with required `science-jax archive` groups. The
+initial missing-`archive` run and the corrected run are both recorded. Final
+PR CI will check the delivered head.
 
 ## Maturity ceiling
 

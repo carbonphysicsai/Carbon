@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-battery-neutral-missing-archive-group",
+  "recorded_at": "2026-10-06T19:11:31Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "expanded canonical Battery/Validator-19 tests at 5116d8812 without archive group",
+    "description": "first expanded suite and isolated first-error reproduction"
+  },
+  "expected": "Reconciled Battery and Validator-19 acceptance/rotation tests pass",
+  "observed": "The expanded suite produced 173 passes, 14 setup errors and 1 failure; the isolated first error was ModuleNotFoundError: cryptography in ProducerKey.create. The pinned package belongs to the archive dependency group, omitted from this invocation.",
+  "keep": ["Do not treat dependency-group omissions as scientific or candidate failures."],
+  "change": ["Run this combined suite with CARBON_UV_GROUPS='science-jax archive'."],
+  "protocol_elements": ["challenge.validator.interface-v1", "challenge.pipeline.lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
