@@ -82,6 +82,9 @@ CREATE TABLE IF NOT EXISTS pool(
 CREATE TABLE IF NOT EXISTS pool_clock(
   id INTEGER PRIMARY KEY CHECK(id = 1),
   block INTEGER);
+CREATE TABLE IF NOT EXISTS batch_salts(
+  fingerprint TEXT PRIMARY KEY,
+  salt TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS batch_windows(
   fingerprint TEXT PRIMARY KEY,
   slot INTEGER NOT NULL,
@@ -584,6 +587,49 @@ class PoolStore:
                 db, "batch_window", {"fingerprint": fingerprint, "window": window}
             )
 
+    def set_salt(self, fingerprint, salt):
+        """Record an imported batch's shared reconstruction salt (idempotent).
+        Private: it seeds every reconstruction while the batch is active."""
+        self.batch(fingerprint)
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT salt FROM batch_salts WHERE fingerprint=?", (fingerprint,)
+            ).fetchone()
+            if row is not None:
+                if row[0] != salt:
+                    raise StateError("batch_salt_conflict")
+                return
+            db.execute("INSERT INTO batch_salts VALUES(?,?)", (fingerprint, salt))
+
+    def salts(self, fingerprints):
+        with self.db() as db:
+            rows = dict(
+                db.execute(
+                    "SELECT fingerprint, salt FROM batch_salts WHERE fingerprint IN "
+                    "(" + ",".join("?" * len(fingerprints)) + ")",
+                    tuple(fingerprints),
+                ).fetchall()
+            )
+        return [rows[f] for f in fingerprints if f in rows]
+
+    def windowed_active(self, block):
+        """The screening batches whose producer window covers `block`. Read
+        only: what an import-only pool activates at that block."""
+        with self.db() as db:
+            return self._windows_at(db, block)
+
+    def _windows_at(self, db, block):
+        return [
+            row[0]
+            for row in db.execute(
+                "SELECT w.fingerprint FROM batch_windows w JOIN batches b "
+                "ON b.fingerprint = w.fingerprint WHERE b.kind='screening' "
+                "AND b.references_state='COMPLETE' AND w.activate_block <= ? "
+                "AND ? < w.retire_block ORDER BY w.activate_block, w.fingerprint",
+                (block, block),
+            )
+        ]
+
     def window(self, fingerprint):
         with self.db() as db:
             row = db.execute(
@@ -603,16 +649,7 @@ class PoolStore:
         latest = self._latest_block(db)
         if latest is None:
             return None
-        active = [
-            row[0]
-            for row in db.execute(
-                "SELECT w.fingerprint FROM batch_windows w JOIN batches b "
-                "ON b.fingerprint = w.fingerprint WHERE b.kind='screening' "
-                "AND b.references_state='COMPLETE' AND w.activate_block <= ? "
-                "AND ? < w.retire_block ORDER BY w.activate_block, w.fingerprint",
-                (latest, latest),
-            )
-        ]
+        active = self._windows_at(db, latest)
         pool = self._pool_row(db)
         if active == pool["active"]:
             return None

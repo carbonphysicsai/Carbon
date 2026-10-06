@@ -220,6 +220,29 @@ class DistributionService:
         return 200, {"package": packages[fingerprint]}
 
 
+def fetchers(log_path, fingerprint, *, from_block=None, to_block=None):
+    """The hotkeys this host served `fingerprint` to, optionally only at
+    finalized blocks in `[from_block, to_block)`. This is how far a leaked
+    batch narrows: to these hotkeys, never to one of them, because every
+    validator receives the same bytes (VALIDATOR-19 S4, the leak family)."""
+    found = set()
+    path = Path(log_path)
+    if not path.exists():
+        return []
+    for line in path.read_text().splitlines():
+        entry = json.loads(line)
+        block = entry.get("block")
+        if (
+            entry.get("verdict") != "SERVED"
+            or entry.get("fingerprint") != fingerprint
+            or (from_block is not None and (block is None or block < from_block))
+            or (to_block is not None and (block is None or block >= to_block))
+        ):
+            continue
+        found.add(entry["hotkey"])
+    return sorted(found)
+
+
 def load_config(path, *, repository=REPOSITORY):
     from carbon.battery.intake import require_exposure
 
@@ -308,7 +331,26 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog="carbon.challenge_validator.distribution")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("serve").add_argument("--config", required=True)
+    narrow = sub.add_parser("leak-narrowing")
+    narrow.add_argument("--config", required=True)
+    narrow.add_argument("--fingerprint", required=True)
+    narrow.add_argument("--from-block", type=int)
+    narrow.add_argument("--to-block", type=int)
     args = parser.parse_args(argv)
+    if args.command == "leak-narrowing":
+        try:
+            config = read_private(args.config)
+        except AnswerKeyRefused as refused:
+            print(json.dumps({"refused": refused.code}))
+            return 2
+        hotkeys = fetchers(
+            config["fetch_log"],
+            args.fingerprint,
+            from_block=args.from_block,
+            to_block=args.to_block,
+        )
+        print(json.dumps({"fetchers": len(hotkeys), "hotkeys": hotkeys}))
+        return 0
     try:
         config = load_config(args.config)
         server = make_server(build(config), config)

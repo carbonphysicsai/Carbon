@@ -152,6 +152,39 @@ Carbon draws and solves.
        validator, because the key is identical.
     2. **A miner gets a validator permit** (by staking) and fetches the active
        key itself. Measure the expected exposure for each rotation window.
+  - **Built (in process):**
+    - `acceptance.parity`: held batches, references, windows and salt
+      digests, and the active set at every block, across validators.
+    - `acceptance.score_parity`: one submission at one block gets the same
+      active batches, references and aggregate on every validator.
+    - `distribution.fetchers` / `leak-narrowing`: a leaked batch narrows to
+      the hotkeys served it in a block range (leak 1).
+    - `acceptance.permit_exposure`: what a permit holder can fetch, counted
+      from the cadence (leak 2).
+    - Three import-only validators with separate roots and import orders
+      agree on all of it (`test_challenge_validator_acceptance.py`).
+  - **Gap found and fixed:** the reconstruction seed came from each
+    validator's own private root, as did the finals' seeds. So validators
+    sharing batches rebuilt a seed-sensitive construction differently, and
+    scored the same submission differently.
+    - The producer now ships a secret per-batch `reconstruction_salt`
+      inside the signed package (`seeds.reconstruction_salt`).
+    - Import-only validators derive every seed from their active batches'
+      salts (`seeds.shared_seed`): the same for every validator holding
+      those batches, and unpredictable to miners.
+    - Deployments that draw their own batches are unchanged.
+  - **Not yet measured:** leak 1's score advantage. A Level-0 miner holding a
+    leaked batch can only select hyperparameters against it (a declarative
+    recipe carries no data). The harness is here; the live measurement runs
+    with the testnet acceptance run.
+  - **The live testnet run needs the owner's choice of hotkeys.** The ticket
+    names UIDs 0, 1 and 2, but:
+    - UID 1's hotkey is not in the WSL wallet, and the owner asked for it
+      to be left alone;
+    - UID 2 is the hotkey Graphite mines with.
+    Each validator also needs a validator permit on 567. Until the owner
+    names the hotkeys, the run is blocked, fail closed; everything above
+    runs in process.
 
 ## Operator setup (Ryan; exact steps, run once per host)
 
