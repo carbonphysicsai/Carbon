@@ -59,24 +59,22 @@ def valid_class(value) -> bool:
 
 
 def from_reconstruction(reconstruction) -> dict:
-    """The rebuild identity of a retained model, from what its rebuild
-    recorded, the same way for every backend: the backend identity (`image`,
-    and `pytorch_image` for a PyTorch rebuild) and the device kind - from the
-    backend identity (a GPU carrier names it, as JAX's GPU backend records
-    do) or the fit statistics (a PyTorch GPU rebuild records it). Two that
-    disagree are refused."""
+    """The rebuild identity of a retained model, the same way for every
+    backend: the image from the validator's backend identity (`image`, and
+    `pytorch_image` for a PyTorch rebuild), and the device class from that
+    backend identity alone (a GPU backend names its `device_kind`, as JAX's
+    GPU backend records do). Nothing the rebuild returns can set it: a fit
+    that names a device is only a cross-check, refused when it names another
+    device or names one the backend does not."""
     reconstruction = reconstruction if type(reconstruction) is dict else {}
     fit = reconstruction.get("fit") if type(reconstruction.get("fit")) is dict else {}
     key = "pytorch_image" if fit.get("backend") == "pytorch" else "image"
     image = reconstruction.get(key)
-    kinds = {
-        kind
-        for kind in (reconstruction.get("device_kind"), fit.get("device_kind"))
-        if kind is not None
-    }
-    if len(kinds) > 1:
+    backend_kind = reconstruction.get("device_kind")
+    fit_kind = fit.get("device_kind")
+    if fit_kind is not None and fit_kind != backend_kind:
         raise ValueError("the backend and the rebuild name different devices")
-    device_class = "gpu:" + kinds.pop() if kinds else CPU
+    device_class = CPU if backend_kind is None else "gpu:" + str(backend_kind)
     if not valid_class(device_class):
         raise ValueError("unrecognised device class")
     return {

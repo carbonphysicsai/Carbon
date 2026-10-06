@@ -1093,27 +1093,6 @@ class BatteryValidator:
                 r["case_id"]: r["components"] for r in case_rows if "components" in r
             }
 
-        from .rebuild_identity import DeviceClassMixed, require_one_class
-
-        try:
-            require_one_class(
-                [
-                    {"rebuild": self._rebuild(f"{final_id}-{role}")}
-                    for role in ("incumbent", "challenger")
-                ]
-            )
-        except DeviceClassMixed:
-            # Rebuilt on different device classes: the comparison does not
-            # answer the question, and nothing is promoted (TORCH-GPU-01).
-            return self._decide(
-                final_id,
-                {
-                    "outcome": exam.INSUFFICIENT,
-                    "reason": "device classes differ",
-                    "promotable": False,
-                },
-                fingerprint,
-            )
         (inc_rows, _inc_agg), (chal_rows, chal_agg) = (
             rows["incumbent"],
             rows["challenger"],
@@ -1128,6 +1107,22 @@ class BatteryValidator:
             inc_components=components(inc_rows),
             chal_components=components(chal_rows),
         )
+        # The comparison above always runs and its outcome is kept. Only then
+        # does the device-class partition apply: two rebuilds of different
+        # classes promote nothing (TORCH-GPU-01).
+        from .rebuild_identity import comparable
+
+        if not comparable(
+            *[
+                {"rebuild": self._rebuild(f"{final_id}-{role}")}
+                for role in ("incumbent", "challenger")
+            ]
+        ):
+            outcome = {
+                **outcome,
+                "promotable": False,
+                "device_class": "DIFFERS",
+            }
         return self._decide(final_id, outcome, fingerprint)
 
     def _withdraw(self, final_id, final, current, attempt):

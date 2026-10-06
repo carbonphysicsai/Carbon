@@ -21,6 +21,10 @@ The claims tested:
 - no sealed identity is named, and only public TRAIN and PRACTICE material
   (and the calibration document their loader checks) is read;
 - each pinned value is a copy of its motor source;
+- the adapter scores through motor's frozen rule (`MotorPracticeRule`, as
+  Graphite does): an omitted or null prediction is a schema-gate failure,
+  never FAILED_INFRA and never excluded, so a partial set is never eligible
+  (GRAPHITE-COVERAGE-PARITY-02);
 - mutations: disabling each boundary turns its guard red. Each mutation
   patches the module the check actually reads, never a re-export.
 """
@@ -530,15 +534,41 @@ def test_vectors_that_need_an_owner_value_invent_none():
     }
 
 
-def test_a_partial_prediction_set_is_failed_infra_never_a_pass():
+def test_a_partial_prediction_set_is_a_gate_failure_never_a_pass():
+    """GRAPHITE-COVERAGE-PARITY-02: every case a set leaves out, or gives
+    null, is a schema-gate failure, never FAILED_INFRA and never excluded, so
+    a partial set is never eligible (before it, an omitted case was
+    FAILED_INFRA and excluded)."""
+    value = {"kind": "scoring", "predictions": {}, "partial": True}
+    result = m.resource_boundary(value)
+    assert not result["eligible"]
+    assert result["n_failed_infra"] == 0
+    assert result["n_gate_failed"] == result["n_cases"] == 30
     half = m._half_predictions()
-    result = m.resource_boundary({"kind": "scoring", "predictions": half})
-    assert result["n_failed_infra"] == result["n_cases"] - len(half) == 15
-    assert result["n_gate_failed"] == 0
-    nothing = m.resource_boundary(
-        {"kind": "scoring", "predictions": {}, "partial": True}
-    )
-    assert not nothing["eligible"] and not m.resource_breached(nothing)
+    nulls = {case: None for case in m._oracle_predictions()}
+    for predictions in (half, {**nulls, **half}):
+        read = m.resource_boundary(
+            {"kind": "scoring", "predictions": predictions, "partial": True}
+        )
+        assert not read["eligible"] and read["n_failed_infra"] == 0
+        assert read["n_gate_failed"] == read["n_cases"] - read["n_scored"] == 15
+        assert not m.resource_breached(read)
+    assert m.resource_breached(m.resource_specimen(value))
+
+
+def test_the_adapter_scores_through_motors_frozen_rule():
+    """`_score` is Graphite's frozen rule for motor (`MotorPracticeRule`),
+    whose identity names the coverage rule; a complete exact set is eligible
+    with nothing missing."""
+    from carbon.challenge_validator import scoring
+    from carbon.challenge_validator.motor_scoring import MotorPracticeRule
+
+    rule = m._frozen_rule()
+    assert isinstance(rule, MotorPracticeRule)
+    assert rule.identity["coverage"] == scoring.COVERAGE_RULE
+    _rows, summary = m._score(m._oracle_predictions())
+    assert summary["eligible"] and summary["n_missing"] == 0
+    assert summary["n_scored"] == summary["n_cases"] == 30
 
 
 def test_a_code_run_is_refused_before_dispatch_above_the_wall_allowance():
@@ -860,12 +890,17 @@ def _guard_sign_flip():
         assert (reading.reading, reading.oracle.verdict) == (m.HELD, m.HELD), name
 
 
-def _failed_infra_counts_as_pass(patch):
-    from carbon.motor import exam
+def _missing_prediction_typed_failed_infra(patch):
+    """Motor's frozen rule excludes a missing case again, the typing before
+    GRAPHITE-COVERAGE-PARITY-02: motor's scoring reads `cover` from its own
+    module."""
+    from carbon.challenge_validator import motor_scoring
 
-    patch.setattr(
-        exam, "aggregate", _aggregate(lambda o: {"eligible": o["n_gate_failed"] == 0})
-    )
+    def excluding(predictions, case_ids):
+        source = predictions if isinstance(predictions, dict) else {}
+        return {case: source.get(case) for case in case_ids}, []
+
+    patch.setattr(motor_scoring, "cover", excluding)
 
 
 def _saturation_bias_dropped(patch):
@@ -1119,8 +1154,15 @@ MUTATIONS = {
         _code_run_seconds_lifted,
         lambda: _held_and_fired("resource_accounting"),
     ),
-    "failed_infra_counted_as_a_pass": (
-        _failed_infra_counts_as_pass,
+    # GRAPHITE-COVERAGE-PARITY-02 retired `failed_infra_counted_as_a_pass`: a
+    # partial set no longer has FAILED_INFRA cases to count. Its successor
+    # restores the old typing itself.
+    "missing_prediction_typed_failed_infra": (
+        _missing_prediction_typed_failed_infra,
+        test_a_partial_prediction_set_is_a_gate_failure_never_a_pass,
+    ),
+    "missing_prediction_excluded_from_resource_accounting": (
+        _missing_prediction_typed_failed_infra,
         lambda: _held_and_fired("resource_accounting"),
     ),
     "motor_wall_allowance_lifted": (

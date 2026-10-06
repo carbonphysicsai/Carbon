@@ -111,6 +111,11 @@ def best_improvement(records):
         and r["status"] == "SCORED"
         and (r.get("against_baseline") or {}).get("outcome") == "IMPROVEMENT"
         and r["frozen_rule"]["eligible"]
+        # Never across device classes (TORCH-GPU-01): a comparison the
+        # partition withheld is not a deliverable improvement.
+        and ((r.get("against_baseline") or {}).get("device_class") or {}).get(
+            "comparable", True
+        )
     ]
     if not found:
         return None

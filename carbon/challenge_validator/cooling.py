@@ -7,7 +7,10 @@ population, gate, scale, recipe or reference:
   Gaussian kernel-ridge rebuild;
 - the only preparable batch is the digest-pinned public PRACTICE artifact;
 - reference ingestion accepts only a record equal to that pinned artifact;
-- scoring is `carbon.cold_plate.exam`, using its TRAIN-derived scales; and
+- scoring is `carbon.cold_plate.exam`, using its TRAIN-derived scales, with
+  every case asked (`scoring.cover`: a case the construction gives no
+  prediction is a schema-gate failure charged to it, never FAILED_INFRA and
+  never excluded; GRAPHITE-COVERAGE-PARITY-02); and
 - miner disclosure is a small aggregate outcome. Cases, predictions, gates,
   recipes and full identities remain operator-only.
 
@@ -42,6 +45,7 @@ from carbon.reconstruction.capability_registry import contract
 
 from .candidate_fault import load_policy as load_candidate_fault_policy
 from .interface import Admitted, CandidateFault, ChallengeAdapter, Unavailable, digest
+from .scoring import COVERAGE_RULE, cover
 
 ADAPTER_SCHEMA = "carbon.cold-plate.validator-adapter.v1"
 BATCH_SCHEMA = "carbon.cold-plate.validator-public-batch.v1"
@@ -112,6 +116,7 @@ def rule_document(material):
         "components": list(exam.COMPONENTS),
         "aggregate": "mean of three TRAIN-normalized errors; mandatory gate failure is ineligible",
         "important_peak_c": exam.T_IMPORTANT_C,
+        "coverage": COVERAGE_RULE,
         "scales": exam.scales_from_train(material.train),
         "public_material": {
             "train_sha256": "sha256:" + TRAIN_SHA256,
@@ -478,11 +483,13 @@ class CoolingAdapter(ChallengeAdapter):
         except Exception as fault:
             raise self._candidate_fault("predict_exception") from fault
         scales = exam.scales_from_train(self.material.train)
+        # A case without a prediction fails the schema gate (`cover`).
+        asked, missing = cover(predictions, sorted(references))
         rows = [
-            exam.score_case(predictions[case_id], references[case_id], scales)
+            exam.score_case(asked[case_id], references[case_id], scales)
             for case_id in sorted(references)
         ]
-        summary = exam.aggregate(rows)
+        summary = {**exam.aggregate(rows), "n_missing": len(missing)}
         try:
             _canonical(
                 {"predictions": predictions, "cases": rows, "aggregate": summary}

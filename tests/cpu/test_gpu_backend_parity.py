@@ -156,15 +156,17 @@ def test_a_missing_device_is_the_environments_never_the_candidates(backend):
 
 
 def _gpu_reconstruction(backend):
-    """What each backend's GPU rebuild records about its device. A GPU carrier
-    names the device in its identity, as JAX's GPU backend records do; a
-    PyTorch rebuild also records the device kind it verified. Either way the
-    field is `device_kind`."""
+    """What each backend's GPU rebuild records about its device. For both,
+    the GPU carrier names the device in its own identity, as JAX's GPU
+    backend records do, and that alone sets the class. A PyTorch rebuild
+    also reports the kind it verified, a cross-check only (JAX's worker
+    checks the same kind but does not report it in its fit)."""
     if backend == "jax":
         return {"image": "sha256:" + "1" * 64, "device_kind": KIND, "fit": {}}
     return {
         "image": "sha256:" + "1" * 64,
         "pytorch_image": "sha256:" + "2" * 64,
+        "device_kind": KIND,
         "fit": {"backend": "pytorch", "device": "cuda", "device_kind": KIND},
     }
 

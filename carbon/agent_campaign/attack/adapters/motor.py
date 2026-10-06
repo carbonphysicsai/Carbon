@@ -25,9 +25,10 @@ at that level, in the shape of cooling's adapter (`adapters/cooling.py`):
   `CONTROLS_VERSION`; every held-out control is a genuinely different valid
   input, canonically distinct from every trained one;
 - **the oracle**: Carbon's own verdict on one attempt, from the real boundary
-  (the construction contract gate, the motor compiler, motor's public
-  PRACTICE rule `carbon.motor.practice.score_practice` with its exam gates and
-  aggregate, the practice feedback, the worker staging, the population screen,
+  (the construction contract gate, the motor compiler, motor's frozen public
+  PRACTICE rule as Graphite scores with it (`MotorPracticeRule.score`:
+  `carbon.motor.practice.score_practice` with its exam gates and aggregate,
+  every case asked by `scoring.cover`), the practice feedback, the worker staging, the population screen,
   the public-material digests and the shared rebuild comparison);
 - **rebuild**: Carbon's own typed rebuild record for a strategy (the contract
   gate and motor's compiler, staging and practice program, under the newest
@@ -38,8 +39,9 @@ at that level, in the shape of cooling's adapter (`adapters/cooling.py`):
   design), declared NOT_RUN with the missing value named. No threshold is
   invented here.
 
-Motor's public `ChallengeScoring` now serves Graphite Level 0 practice. The
-adapter continues to score with motor's own public PRACTICE rule. Its attack
+Motor's public `ChallengeScoring` now serves Graphite Level 0 practice, and
+the adapter scores through its frozen rule (`MotorPracticeRule`), as Graphite
+does. Its attack
 rebuild record is Carbon's own; phase 4's verify-pod rebuild remains a
 declared seam. Official evaluation stays the typed
 `motor_validator_not_served` refusal.
@@ -79,7 +81,11 @@ from carbon.challenge_readiness.admission import CHECKS, LEDGER_TRACK
 CHALLENGE_ID = "electric-motor-magnetics"
 LEVEL = 0
 PROFILE = "level-0"
-ADAPTER_VERSION = "carbon.attack.adapter.motor-l0.v1"
+#: v2 scores through motor's frozen rule (`MotorPracticeRule`), which asks
+#: every case: a partial prediction set is never eligible, every missing case
+#: a schema-gate failure (GRAPHITE-COVERAGE-PARITY-02, battery's v2 reading).
+#: The controls are unchanged, so `CONTROLS_VERSION` stays v1.
+ADAPTER_VERSION = "carbon.attack.adapter.motor-l0.v2"
 CONTROLS_VERSION = "carbon.attack.controls.motor-l0.v1"
 BUILD_SCHEMA = "carbon.attack.motor-l0-carbon-build.v1"
 TRACK = LEDGER_TRACK
@@ -412,6 +418,16 @@ def _practice():
     return PracticeSet.load(REPOSITORY)
 
 
+@functools.cache
+def _frozen_rule():
+    """Motor's frozen public PRACTICE rule, as Graphite scores with it
+    (`MotorPracticeRule`, through motor's registered `ChallengeScoring`)."""
+    from carbon.agent_campaign.graphite.experiment import FrozenRule
+    from carbon.challenge_validator.scoring import scoring_for
+
+    return FrozenRule(REPOSITORY, scoring=scoring_for(CHALLENGE_ID))
+
+
 def _records():
     return _practice().records
 
@@ -638,16 +654,14 @@ def _corrupt(case_index, edit):
     return out
 
 
-# -- motor's public PRACTICE rule as each scoring family reads it ------------------------------
+# -- motor's frozen public PRACTICE rule as each scoring family reads it -----------------------
 def _score(predictions):
-    """Rows and summary from motor's public PRACTICE rule
-    (`practice.score_practice`: the exam's typing, gates, components and
-    aggregate over the public PRACTICE cases, normalised by public TRAIN)."""
-    from carbon.motor import practice
-
-    if not isinstance(predictions, Mapping):
-        predictions = {}
-    return practice.score_practice(predictions, _practice(), _material())
+    """Rows and summary from motor's frozen public PRACTICE rule
+    (`MotorPracticeRule.score`: every case asked by `scoring.cover`, then
+    `practice.score_practice`, the exam's typing, gates, components and
+    aggregate over the public PRACTICE cases, normalised by public TRAIN).
+    A set that is not a mapping covers nothing."""
+    return _frozen_rule().score(predictions)
 
 
 def _predictions_of(value):
@@ -1070,7 +1084,9 @@ def _probe(predictions, feedback=None):
     miner receives (`practice.score_practice`, `practice.feedback`)."""
     from carbon.motor import practice
 
-    _rows, summary = _score(predictions)
+    if not isinstance(predictions, Mapping):
+        predictions = {}
+    _rows, summary = practice.score_practice(predictions, _practice(), _material())
     feedback = practice.feedback if feedback is None else feedback
     return feedback(
         summary, {}, recipe=_control_recipe(), backend=PROBE_BACKEND, worker={}
@@ -1175,9 +1191,17 @@ def code_run_refusal(arguments):
 
 
 def _scoring_accounting(value):
-    """A prediction set scored by the rule. For a partial set, every case
-    left without a prediction must be FAILED_INFRA, never a gate failure; a
-    set with nothing scored is never eligible."""
+    """A prediction set scored by the frozen rule (`MotorPracticeRule.score`).
+    For a partial set (`partial`), every case left without a prediction must
+    be a schema-gate failure, never FAILED_INFRA and never excluded, so the
+    set is never eligible (GRAPHITE-COVERAGE-PARITY-02, as battery's under
+    -01; before it, the rule typed a missing case FAILED_INFRA and excluded
+    it).
+
+    This is the frozen rule's typing of a missing prediction only. How a pod
+    run that timed out is typed is a different path (`experiment`'s pod
+    outcome); that question is the NOT_RUN seam `pod_timeout_typing`, not
+    judged here."""
     view = score_view(value["predictions"])
     return {
         "kind": "scoring",
@@ -1198,32 +1222,40 @@ def resource_boundary(value):
 
 
 def resource_specimen(value):
-    """Vulnerable specimen: a lifted allowance, and an aggregate that counts
-    an infrastructure failure as a pass."""
+    """Vulnerable specimen: a lifted allowance, and the accounting before
+    GRAPHITE-COVERAGE-PARITY-02 counted as a pass: every missing case typed
+    FAILED_INFRA, excluded, and the set eligible."""
     if value["kind"] == "code_run":
         return {"kind": "code_run", "dispatched": True, "refusal": None}
     result = _scoring_accounting(value)
-    return {**result, "eligible": result["n_gate_failed"] == 0}
+    missing = result["n_cases"] - len(value["predictions"])
+    return {
+        **result,
+        "eligible": True,
+        "n_failed_infra": missing,
+        "n_gate_failed": 0,
+    }
 
 
 def resource_breached(result):
     if result["kind"] == "code_run":
         return result["dispatched"]
     if not result["partial"]:
-        return False
+        return False  # a complete set: its eligibility is the frozen rule's
+    # A partial set is never eligible: each missing case is a schema-gate
+    # failure, never FAILED_INFRA (GRAPHITE-COVERAGE-PARITY-02).
     missing = result["n_cases"] - result["n_scored"]
     return (
-        (result["n_scored"] == 0 and result["eligible"])
-        or result["n_gate_failed"] > 0
-        or result["n_failed_infra"] != missing
+        result["eligible"]
+        or result["n_failed_infra"] > 0
+        or result["n_gate_failed"] != missing
     )
 
 
 def _half_predictions():
     """Half the cases predicted: a partial set whose missing half must be
-    typed FAILED_INFRA (checked by a test; whether such a set may be eligible
-    is not judged here, as for battery and cooling: `exam.aggregate` excludes
-    a FAILED_INFRA case by design)."""
+    schema-gate failures, never FAILED_INFRA, so the set is never eligible
+    (checked by a test; GRAPHITE-COVERAGE-PARITY-02)."""
     oracle = _oracle_predictions()
     return {case: oracle[case] for case in sorted(oracle)[: len(oracle) // 2]}
 
@@ -1825,6 +1857,7 @@ def clear_caches():
     _expected_build_cached.cache_clear()
     _material.cache_clear()
     _practice.cache_clear()
+    _frozen_rule.cache_clear()
     _control_recipe.cache_clear()
 
 
@@ -2009,9 +2042,9 @@ def _families():
             check="resource_and_failure_accounting",
             protocol_family="the Attacker code-run rule this adapter defines: a "
             "wall allowance above code_run_seconds is refused before dispatch; "
-            "and the rule types every case a partial prediction set leaves out "
-            "as FAILED_INFRA, never a gate failure, and a set with nothing "
-            "scored is never eligible",
+            "and the frozen rule types every case a partial prediction set "
+            "leaves out as a schema-gate failure, never FAILED_INFRA, so a "
+            "partial set is never eligible",
             attacks=_resource_attacks,
             boundary=resource_boundary,
             specimen=resource_specimen,
@@ -2316,10 +2349,11 @@ SEAMS = (
         "pod_timeout_typing",
         "resource_and_failure_accounting",
         0,
-        "a pod run that times out would be typed by experiment's pod outcome, "
-        "while the rule types a missing prediction FAILED_INFRA; whether a pod "
-        "timeout is FAILED_INFRA or CANDIDATE_FAILED is open, and motor has no "
-        "pod scoring yet, so this adapter judges neither",
+        "a pod run that times out is typed by experiment's pod outcome under "
+        "the registered attribution policy, never scored, while a missing "
+        "prediction is a schema-gate failure (GRAPHITE-COVERAGE-PARITY-02); "
+        "whether a pod timeout is FAILED_INFRA or CANDIDATE_FAILED is open, so "
+        "this adapter judges neither",
         "owner: whether a pod timeout is FAILED_INFRA or CANDIDATE_FAILED",
     ),
     SeamSpec(
@@ -2363,9 +2397,11 @@ SEAMS = (
         "level_5_custom_inference",
         SCORE_CHECK,
         5,
-        "custom inference; a case a participant's own inference omits would be "
-        "typed FAILED_INFRA and excluded by exam.aggregate, so it becomes a "
-        "surface only here. " + _PARTICIPANT_CODE,
+        "custom inference; a case a participant's own inference omits is a "
+        "schema-gate failure on Graphite's host (GRAPHITE-COVERAGE-PARITY-02; "
+        "motor has no Interface v1 scorer yet), and who is charged at this "
+        "level waits for the uid-separated attribution path (VALIDATOR-04). "
+        + _PARTICIPANT_CODE,
         "security owner: isolation for executing participant code",
     ),
 )

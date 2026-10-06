@@ -187,7 +187,25 @@ Two surfaces are owner-reserved (HUMAN_INPUT) and unchanged:
   change to the disclosure allow-list (OWNER-BATTERY-3B-AND-EXPOSURE-01).
 
 A Graphite record made before the field existed reads as `unrecorded`, since
-it may have run on a GPU pod, and is compared with nothing.
+it may have run on a GPU pod, and is never promoted against anything.
+
+**The partition comes after the fault comparison, never in place of it**
+(the Test Lead, after #692's CI). Graphite's baseline comparison used to
+answer `DEVICE_CLASS_DIFFERS` instead of comparing. The attack adapters' pods
+write no runtime record, so both sides read as unrecorded, and a selective
+fault was no longer called a REGRESSION. Now:
+- the fault, gate and regression comparison always runs and keeps its outcome
+  (`graphite.experiment.against_baseline`);
+- a device-class difference only withholds promotion (`promotable: false`,
+  `device_class`), and delivery never delivers such an improvement;
+- finals compare first, then a class difference sets `promotable: false`.
+
+A mutation test moves the partition first and shows the selective-fault guard
+then fails.
+
+**Not candidate-reachable.** The device class comes from the validator's
+backend identity alone. A fit (what the worker returns) that names a device
+the backend did not is refused, never read as a class.
 
 ## Operator note
 

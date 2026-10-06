@@ -82,24 +82,19 @@ def rebuild_device():
     return torch.device("cuda", 0)
 
 
-@contextlib.contextmanager
 def _determinism(device):
-    """The pinned determinism configuration for `device`."""
+    """The pinned determinism configuration for `device`. A CUDA environment
+    that is not ready is refused here, when asked for, before anything is
+    built or changed."""
     if device.type != "cuda":
-        with deterministic():
-            yield
-        return
+        return deterministic()
     from carbon.reconstruction import torch_gpu
 
     try:
-        context = torch_gpu.deterministic_cuda(torch)
-        context.__enter__()
+        torch_gpu.require_ready(torch)
     except torch_gpu.EnvironmentIneligible as refused:
         raise DeviceUnavailable(str(refused)) from None
-    try:
-        yield
-    finally:
-        context.__exit__(None, None, None)
+    return torch_gpu.deterministic_cuda(torch)
 
 
 @contextlib.contextmanager

@@ -11,7 +11,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .scoring import ChallengeScoring, PracticeRule, clean, paired_error_difference
+from .scoring import (
+    COVERAGE_RULE,
+    ChallengeScoring,
+    PracticeRule,
+    clean,
+    cover,
+    paired_error_difference,
+)
 
 BUILT_SCHEMA = "carbon.graphite.pod-built.v1"
 
@@ -39,14 +46,19 @@ class CoolingPracticeRule(PracticeRule):
                 "reason": "no approved cooling promotion or sampling rule",
             },
             "cases": "public PRACTICE, 100, fixed and adaptively seen",
+            "coverage": COVERAGE_RULE,
         }
 
     def score(self, predictions):
         from carbon.cold_plate.practice import score_practice
 
-        asked = {case: predictions.get(case) for case in self.practice.case_ids}
+        # A case without a prediction fails the schema gate (`cover`).
+        asked, missing = cover(predictions, self.practice.case_ids)
         rows, summary = score_practice(asked, self.practice, self.material)
-        return [clean(row) for row in rows], clean(summary)
+        return [clean(row) for row in rows], {
+            **clean(summary),
+            "n_missing": len(missing),
+        }
 
     def compare(self, baseline_rows, rows, eligible):
         overall = paired_error_difference(baseline_rows, rows)

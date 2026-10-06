@@ -19,6 +19,7 @@ from carbon.challenge_validator.cooling import (
     PUBLIC_BATCH_KIND,
     CoolingAdapter,
     CoolingAdapterError,
+    rule_document,
 )
 from carbon.challenge_validator.dispatch import Adapters, Operator, Validator
 from carbon.challenge_validator.interface import (
@@ -27,6 +28,7 @@ from carbon.challenge_validator.interface import (
     Submission,
 )
 from carbon.challenge_validator.ledger import AttemptLedger
+from carbon.challenge_validator.scoring import COVERAGE_RULE
 from carbon.cold_plate.openfoam import IMAGE
 from carbon.reconstruction import capability_registry as registry
 
@@ -314,6 +316,88 @@ def test_a_non_finite_aggregate_score_uses_the_registered_policy(
         "non_finite_score"
     )
     assert "NaN" not in json.dumps(result)
+
+
+#: The cases the nulling construction gives no prediction, by case id.
+NULLED = 4
+
+
+def _null_the_first_cases(monkeypatch, adapter):
+    """A construction that returns no prediction (None) for the first
+    `NULLED` PRACTICE cases by id and the real prediction for every other.
+    `CoolingAdapter.evaluate` reads `rebuild` from the validator's module."""
+    from carbon.challenge_validator import cooling
+
+    records = sorted(adapter.material.practice, key=lambda r: r["case_id"])
+    nulled = records[:NULLED]
+    keys = {json.dumps(r["inputs"], sort_keys=True) for r in nulled}
+    original = cooling.rebuild
+
+    class Nulling:
+        def __init__(self, model):
+            self.model = model
+
+        def predict(self, inputs):
+            if json.dumps(inputs, sort_keys=True) in keys:
+                return None
+            return self.model.predict(inputs)
+
+    monkeypatch.setattr(
+        cooling,
+        "rebuild",
+        lambda recipe, material=None, **kw: Nulling(original(recipe, material, **kw)),
+    )
+    return [r["case_id"] for r in nulled]
+
+
+def _missing_prediction_charged(adapter, ledger, monkeypatch):
+    """GRAPHITE-COVERAGE-PARITY-02: a case the construction gives no
+    prediction is a schema-gate failure charged to it (`scoring.cover`), never
+    FAILED_INFRA and never excluded, so the set is ineligible; the operator
+    record counts it in `n_missing`, and the rule document names the rule."""
+    prepare(adapter)
+    nulled = _null_the_first_cases(monkeypatch, adapter)
+    adapters = Adapters([adapter])
+    result = Validator(adapters, ledger).evaluate(
+        submission(strategy(length="length_8", ridge="ridge_1e_6"))
+    )
+    outcome = result["outcome"]
+    assert result["kind"] == "OUTCOME" and outcome["state"] == "SCORED"
+    assert outcome["eligible"] is False
+    assert outcome["n_gate_failed"] == NULLED
+    assert (outcome["n_scored"], outcome["n_cases"]) == (100 - NULLED, 100)
+    record = Operator(adapters, ledger).score_record(
+        CONTRACT.digest, outcome["submission_id"]
+    )["record"]
+    aggregate = record["aggregate"]
+    assert aggregate["n_missing"] == NULLED and aggregate["n_failed_infra"] == 0
+    assert aggregate["gate_failures"] == {"schema_finite": NULLED}
+    states = {row["case_id"]: row["state"] for row in record["cases"]}
+    assert {states[case] for case in nulled} == {"GATE_FAILED"}
+    assert rule_document(adapter.material)["coverage"] == COVERAGE_RULE
+
+
+def test_a_missing_prediction_is_a_gate_failure_charged_to_the_construction(
+    adapter, ledger, monkeypatch
+):
+    _missing_prediction_charged(adapter, ledger, monkeypatch)
+
+
+def test_excluding_a_missing_prediction_again_turns_the_check_red(
+    adapter, ledger, monkeypatch
+):
+    """The mutation: the validator excludes a case without a prediction again
+    (the typing before GRAPHITE-COVERAGE-PARITY-02); `evaluate` reads `cover`
+    from the validator's own module."""
+    from carbon.challenge_validator import cooling
+
+    def excluding(predictions, case_ids):
+        source = predictions if isinstance(predictions, dict) else {}
+        return {case: source.get(case) for case in case_ids}, []
+
+    monkeypatch.setattr(cooling, "cover", excluding)
+    with pytest.raises(AssertionError):
+        _missing_prediction_charged(adapter, ledger, monkeypatch)
 
 
 def test_confirmation_role_is_reserved_without_creating_a_batch(adapter):

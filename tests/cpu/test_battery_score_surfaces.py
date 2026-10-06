@@ -43,10 +43,14 @@ A40 = "NVIDIA A40"
 
 
 def bundle(device_kind=None):
+    """A prediction bundle; a GPU backend names its device in its identity
+    (the only source of the class), and the rebuild cross-checks it."""
+    reconstruction = {"backend": "ISOLATED_CARRIER"}
     fit = {"params_sha256": "x"}
     if device_kind is not None:
+        reconstruction["device_kind"] = device_kind
         fit.update(backend="pytorch", device="cuda", device_kind=device_kind)
-    return {"reconstruction": {"backend": "ISOLATED_CARRIER"}, "fit": fit}
+    return {"reconstruction": reconstruction, "fit": fit}
 
 
 def _calls(path, function, name):
@@ -98,7 +102,9 @@ def test_dropping_a_bundles_device_kind_is_caught_as_a_mixed_panel():
     panel that also holds an intact GPU bundle is refused."""
     gpu = bundle(A40)
     dropped = {
-        **gpu,
+        "reconstruction": {
+            k: v for k, v in gpu["reconstruction"].items() if k != "device_kind"
+        },
         "fit": {k: v for k, v in gpu["fit"].items() if k != "device_kind"},
     }
     with pytest.raises(ri.DeviceClassMixed):
@@ -146,8 +152,11 @@ def test_a_graphite_comparison_needs_one_recorded_class():
 def test_graphite_records_the_class_and_guards_the_baseline_comparison():
     source = (REPOSITORY / "carbon/agent_campaign/graphite/experiment.py").read_text()
     assert '"rebuild": ri.from_runtime(_object(files.get("runtime.json")))' in source
-    assert "elif not ri.comparable(_rebuilt(baseline), record):" in source
-    assert '"outcome": "DEVICE_CLASS_DIFFERS"' in source
+    assert (
+        "against_baseline(\n                    comparison, _rebuilt(baseline), record"
+        in source
+    )
+    assert "DEVICE_CLASS_DIFFERS" not in source
     # Delivery promotes only an IMPROVEMENT, so a refused comparison is never
     # delivered.
     delivery = (REPOSITORY / "carbon/agent_campaign/graphite/delivery.py").read_text()
@@ -164,3 +173,81 @@ def test_weights_follow_the_incumbent_and_are_not_partitioned_here():
     source = (REPOSITORY / "carbon/rewards/winner_eligibility.py").read_text()
     assert "store.incumbent()" in source
     assert "device_class" not in source
+
+
+# --- the partition never precedes or replaces the fault comparison ---------------
+
+
+def _comparison(outcome):
+    return {"outcome": outcome, "reason": "r", "promotable": outcome == "IMPROVEMENT"}
+
+
+def test_a_device_class_difference_keeps_the_comparison_outcome():
+    from carbon.agent_campaign.graphite.experiment import _rebuilt, against_baseline
+
+    gpu = {"rebuild": ri.from_runtime({"backend": "gpu", "devices": [{"kind": A40}]})}
+    unrecorded = _rebuilt({"status": "SCORED"})
+    for outcome in ("REGRESSION", "TRADE_OFF", "IMPROVEMENT"):
+        kept = against_baseline(_comparison(outcome), unrecorded, gpu)
+        assert kept["outcome"] == outcome
+        assert kept["promotable"] is False
+        assert kept["device_class"]["comparable"] is False
+    # One class: the comparison is untouched.
+    assert against_baseline(_comparison("IMPROVEMENT"), gpu, dict(gpu)) == {
+        **{k: None for k in ("n", "mean_delta", "ci", "overall", "important")},
+        **_comparison("IMPROVEMENT"),
+    }
+
+
+def test_an_improvement_across_device_classes_is_never_delivered():
+    from carbon.agent_campaign.graphite.delivery import best_improvement
+
+    def scored(against):
+        return {
+            "kind": "proposal",
+            "status": "SCORED",
+            "against_baseline": against,
+            "frozen_rule": {"eligible": True, "score": 0.1},
+            "ordinal": 1,
+        }
+
+    same = scored({"outcome": "IMPROVEMENT", "promotable": True})
+    other = scored(
+        {
+            "outcome": "IMPROVEMENT",
+            "promotable": False,
+            "device_class": {"comparable": False},
+        }
+    )
+    assert best_improvement([same]) is same
+    assert best_improvement([other]) is None
+
+
+def _partition_first(comparison, baseline, record):
+    """The ordering the rule forbids: the device class decides before (and
+    instead of) the fault comparison."""
+    if not ri.comparable(baseline, record):
+        return {"outcome": "DEVICE_CLASS_DIFFERS", "promotable": False}
+    return comparison
+
+
+@pytest.mark.parametrize(
+    "mode, select",
+    [
+        ("nonfinite_temperature", "above_own_mean"),
+        ("infinite_capacity", "worst_k"),
+    ],
+)
+def test_putting_the_partition_first_would_fail_the_selective_fault_guard(
+    monkeypatch, mode, select
+):
+    """Mutation: with the partition moved before the comparison, a selective
+    fault on Graphite's real pod path is no longer caught as a REGRESSION (the
+    adapter's pods write no runtime record, so both sides are unrecorded).
+    With the real ordering it is."""
+    from carbon.agent_campaign.attack.adapters import battery as b
+    from carbon.agent_campaign.graphite import experiment
+
+    assert b._graphite(mode, select)["against_baseline"] == "REGRESSION"
+    monkeypatch.setattr(experiment, "against_baseline", _partition_first)
+    assert b._graphite(mode, select)["against_baseline"] != "REGRESSION"
