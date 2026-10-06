@@ -70,13 +70,13 @@ Carbon draws and solves.
    below.
    - Agents' accounts get no read access to its state.
    - Its outputs contain only fingerprints, windows and verdicts.
-6. **Adoption without re-solving.**
-   - `producer adopt` takes the existing `graphite-hidden-battery-v1` batches
-     and the tuning seal (runbook §B): it verifies each against its committed
-     fingerprint and its ingested references digest.
-   - It records them in the producer's journal as adopted, with their
-     original commitments.
-   - The tuning set stays producer-only.
+6. **Adoption: dropped (recorded working decision, 2026-10-06).** The
+   owner's cloud-VM decision superseded it. The PC pool
+   (`graphite-hidden-v1`) is discarded unused (`HIDDEN_HOST_SETUP.md` §0),
+   `graphite-tuning-v1` was never sealed, and the VM starts from a fresh
+   root. So there is nothing to adopt. The producer draws every hidden batch
+   on the VM, and `graphite-tuning-v2` is sealed and solved there by its own
+   tool (runbook §B), which keeps it producer-only by construction.
 
 ## HUMAN_INPUT, fail closed
 
@@ -89,11 +89,19 @@ Carbon draws and solves.
 
 ## Slices
 
-- **S1: producer core and adoption.**
-  - the `BatchSource` interface, battery's adapter, the producer journal and
-    commitments;
-  - `adopt` for the existing pool and tuning seal;
-  - tests on synthetic roots.
+- **S1: the producer core** (`carbon/challenge_validator/producer.py`).
+  - The `BatchSource` interface, and battery's source
+    (`BatteryBatchSource`, which wraps the validator's own `prepare_batch`,
+    seed journal and references digest).
+  - `draw`, `solve` (in the pinned truth image), `seal` and `status`.
+  - The owner-only producer journal, and public commitments: fingerprint,
+    references digest, case count, contract, rule and seed pin. The window
+    is null until S3.
+  - Only served kinds (screening, finalist) are drawn. The config loads only
+    under its service account.
+  - **Moved to S2:** signing the commitment, done where it is published.
+  - Tests on synthetic roots
+    (`tests/cpu/test_challenge_validator_producer.py`).
 - **S2: the answer-key service and validator import.**
   - `btauth/1` plus the validator-permit check;
   - the per-hotkey fetch log;
