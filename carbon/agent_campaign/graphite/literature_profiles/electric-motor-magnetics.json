@@ -1,0 +1,77 @@
+{
+  "schema": "carbon.graphite.literature-profile.v1",
+  "version": "graphite-motor-literature.v1",
+  "challenge_id": "electric-motor-magnetics",
+  "query_set": {
+    "version": "graphite-motor-queries.v1",
+    "queries": [
+      {
+        "query_id": "electric-machine-surrogate",
+        "search_query": "abs:\"electric machine\" AND abs:surrogate",
+        "purpose": "surrogates of electric machines"
+      },
+      {
+        "query_id": "torque-ripple",
+        "search_query": "abs:\"torque ripple\"",
+        "purpose": "torque-ripple prediction and reduction"
+      },
+      {
+        "query_id": "finite-element-magnetic-learning",
+        "search_query": "abs:\"finite element\" AND abs:magnetic AND abs:\"neural network\"",
+        "purpose": "learned surrogates of finite-element magnetics"
+      },
+      {
+        "query_id": "permanent-magnet-motor-optimization",
+        "search_query": "abs:\"permanent magnet\" AND abs:motor AND abs:optimization",
+        "purpose": "permanent-magnet motor design optimisation"
+      },
+      {
+        "query_id": "magnetic-saturation-model",
+        "search_query": "abs:\"magnetic saturation\" AND abs:model",
+        "purpose": "modelling magnetic saturation"
+      },
+      {
+        "query_id": "electromagnetic-reduced-order",
+        "search_query": "abs:electromagnetic AND abs:\"reduced-order\"",
+        "purpose": "reduced-order electromagnetic models"
+      }
+    ]
+  },
+  "categories": [
+    "cs.LG",
+    "physics.comp-ph",
+    "math.NA",
+    "eess.SY",
+    "stat.ML",
+    "physics.flu-dyn",
+    "physics.app-ph",
+    "cs.CE",
+    "eess.SP"
+  ],
+  "primary_cues": [
+    "electric machine",
+    "electric machines",
+    "electrical machine",
+    "electrical machines",
+    "electric motor",
+    "electric motors",
+    "permanent magnet",
+    "torque ripple",
+    "pmsm",
+    "synchronous machine",
+    "synchronous motor",
+    "induction motor",
+    "cogging torque"
+  ],
+  "secondary_cues": [
+    "finite element",
+    "finite-element",
+    "magnetostatic",
+    "electromagnetic",
+    "magnetic saturation",
+    "flux density",
+    "magnetic field",
+    "torque"
+  ],
+  "authority": "VALIDATOR-08, the Test Lead's approval of the per-Challenge literature design, 2026-10-05; the backfill's spend is GRAPHITE-GRANT-LITERATURE-COOLING-MOTOR"
+}

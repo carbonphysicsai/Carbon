@@ -1,0 +1,19 @@
+{
+ "schema": "carbon.battery.score-tuning-registry.v1",
+ "registered": "2026-10-05, before any tuning-set data exists (graphite-tuning-v1 unsealed)",
+ "seeds": "EV5 adversarial FAIL (8 top-half infeasible rebuild-identity constructions; Mode X violators best_deciding and best_proposed), SR-B1 (#618), run-5 diagnosis (thermal false acceptance at the limit)",
+ "candidates": [
+  {"id": "CE", "kind": "deciding", "basis": "baseline: the deciding testnet rule control-exam-v1 (-E)"},
+  {"id": "CE+near2", "kind": "deciding", "gate": {"measure": "near", "cutoff": 2.0}, "basis": "the deciding rule plus EV5's gate as frozen (failures last)"},
+  {"id": "SR2", "weights": {"r": 0.3, "g": 0.6, "m": 0.1}, "basis": "EV5's SR-2 candidate sr2-a0-r0.3-g0.6-m0.1"},
+  {"id": "G-N", "weights": {"g": 0.5, "n": 0.5}, "basis": "EV5: top-half constructions and Mode X violators accept unsafe protocols; weight decision agreement and the near-limit margin only"},
+  {"id": "G-N+near2", "weights": {"g": 0.5, "n": 0.5}, "gate": {"measure": "near", "cutoff": 2.0}, "basis": "G-N plus EV5's gate"},
+  {"id": "R-G-N", "weights": {"r": 0.2, "g": 0.4, "n": 0.4}, "basis": "G-N keeping some important-region accuracy so good deciders are not demoted"},
+  {"id": "N-heavy", "weights": {"g": 0.3, "n": 0.7}, "basis": "run-5 diagnosis: the failure is a near-limit thermal sign error; push weight onto the near-limit margin"},
+  {"id": "G-P", "weights": {"g": 0.5, "p": 0.5}, "basis": "SR-B1's proximity-weighted optimism leg with decision agreement"},
+  {"id": "P1", "weights": {"r": 0.3, "g": 0.6, "p": 0.1}, "basis": "SR-B1's registered P1"},
+  {"id": "S-G-N", "weights": {"g": 0.5, "n": 0.5}, "stable": true, "basis": "G-N averaged over a recipe's seeds (SR-B1: seed luck)"},
+  {"id": "G-N+env1", "weights": {"g": 0.5, "n": 0.5}, "gate": {"measure": "envelope", "cutoff": 1.0}, "basis": "G-N with SR-B1's decision-envelope gate G2 at 1.0 band"},
+  {"id": "A-G-N", "weights": {"a": 0.2, "g": 0.4, "n": 0.4}, "basis": "control: G-N keeping whole-set accuracy, to test whether accuracy alone re-admits the constructions"}
+ ]
+}

@@ -17,6 +17,7 @@ from carbon.development_session.research_catalog import RecipeRejected, _issue
 
 from .challenge import CHALLENGE, TRAIN_V1_CASES
 from .contracts import battery_contracts, canonical, digest
+from .knn_state import with_state
 from .recipes import Structure, build
 
 _COMPILED = object()
@@ -193,11 +194,12 @@ def rebuild(recipe, material, seed, *, train=None):
     """Train a fresh model from the recipe on pinned public TRAIN v1.
 
     `seed` is Carbon's reconstruction randomness. `train` narrows TRAIN for
-    bounded tests and diagnostics; a validator rebuild uses the full set.
+    bounded tests and diagnostics; a validator rebuild uses the full set. A
+    KNN's statistics also carry its versioned state digest (`knn_state`).
     """
     if type(seed) is not int or seed < 0:
         raise ValueError("a non-negative integer reconstruction seed is required")
     model = build_model(recipe)
     structure = Structure(material.ocv_soc, material.ocv_v)
     stats = model.fit(material.train if train is None else train, structure, seed)
-    return model, stats
+    return model, with_state(model, stats)

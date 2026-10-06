@@ -226,6 +226,100 @@ def _check_product(manifest):
         raise ValueError("a product campaign never carries a development grant")
 
 
+#: The code of a refusal by one of the campaign's own ceilings: a cap in its
+#: frozen budget (`ceilings`), or its elapsed time (`elapsed_seconds`). The
+#: same code the research loop and Graphite's miner edition stop with
+#: (`research_loop.MINER_CEILING_REACHED`).
+MINER_CEILING_REACHED = "miner_ceiling_reached"
+#: The code of a refusal by Carbon's own shared service capacity
+#: (`SERVICE_LIMITS`): never the miner's budget, and never reported as one.
+CARBON_SERVICE_CAPACITY = "carbon_service_capacity"
+#: The pseudo-dimension a refusal by the campaign's elapsed time names.
+ELAPSED_DIMENSION = "elapsed_seconds"
+
+
+class LedgerRefusal(ValueError):
+    """The ledger's own typed refusal to admit work against a limit
+    (RESEARCH-BUDGET-REFUSAL-TYPING-01).
+
+    The text is exactly the historical message, so every caller that matched
+    a plain ValueError's text reads what it always read; callers that checked
+    the exact type accept this one beside ValueError (`PLAIN_REFUSALS`).
+
+    `code` is `MINER_CEILING_REACHED` (the campaign's own ceiling, or its
+    elapsed time) or `CARBON_SERVICE_CAPACITY`. `dimension` names the ledger
+    dimension that bound (`elapsed_seconds` for time). `used`, `requested` and
+    `ceiling` are whole numbers in that dimension's unit where the ledger knew
+    them (seconds for time), else None; `requested` includes any final-phase
+    reserve the campaign asked to hold back. `basis` says whose limit it is:
+    `miner_launch_budget` for a product campaign (the budget its miner set at
+    launch), `development_grant`, `development_campaign`, or `carbon_service`
+    for Carbon's own capacity. `refused_at` is `reservation` - a reservation
+    refused before the ledger recorded anything of it - or `storage_check`.
+    Nothing here is another owner's state or hidden data: it is this
+    campaign's own budget and use, which `status` already reports to its owner.
+    """
+
+    def __init__(
+        self,
+        message,
+        *,
+        code,
+        dimension,
+        basis=None,
+        used=None,
+        requested=None,
+        ceiling=None,
+        refused_at="reservation",
+    ):
+        if refused_at not in ("reservation", "storage_check"):
+            raise TypeError("closed refusal site required")
+        if code not in (MINER_CEILING_REACHED, CARBON_SERVICE_CAPACITY):
+            raise TypeError("closed ledger refusal code required")
+        if dimension not in (*DIMENSIONS, ELAPSED_DIMENSION):
+            raise TypeError("ledger dimension required")
+        for value in (used, requested, ceiling):
+            if value is not None and type(value) is not int:
+                raise TypeError("whole-number refusal values required")
+        super().__init__(message)
+        self.code, self.dimension, self.basis = code, dimension, basis
+        self.used, self.requested, self.ceiling = used, requested, ceiling
+        self.refused_at = refused_at
+
+    def record(self):
+        """The refusal as a miner-safe record of this campaign's own limit."""
+        return {
+            "code": self.code,
+            "dimension": self.dimension,
+            "basis": self.basis,
+            "used": self.used,
+            "requested": self.requested,
+            "ceiling": self.ceiling,
+            "refused_at": self.refused_at,
+        }
+
+
+#: The exception types a caller that reads the ledger's refusal text may
+#: accept: the historical plain ValueError and the ledger's typed refusal.
+#: Every other subclass (a run's own typed cap, an operation refusal) is not
+#: the ledger's plain refusal and stays excluded, exactly as before.
+PLAIN_REFUSALS = (ValueError, LedgerRefusal)
+
+
+def manifest_basis(manifest):
+    """Whose limits a frozen manifest's budget is (`LedgerRefusal.basis`)."""
+    schema = manifest.get("schema") if type(manifest) is dict else None
+    if schema == PRODUCT:
+        return "miner_launch_budget"
+    if schema == VERSION:
+        return "development_campaign"
+    return "development_grant"
+
+
+def _whole_seconds(value):
+    return math.ceil(value) if math.isfinite(value) else None
+
+
 class ReconcileFenced(ValueError):
     """A booking reserved for the campaign's reconcile action, attempted by a
     caller that is not it: another owner, a stale control generation, or a
@@ -402,10 +496,20 @@ class CampaignLedger:
         # The default matters: a budget that never mentions storage has no
         # storage cap, and `.get` without it would hand a None to the
         # comparison below.
-        caps = _caps(json.loads(row[0])) if row else {}
+        frozen = json.loads(row[0]) if row else {}
+        caps = _caps(frozen) if row else {}
         cap = caps.get("retained_bytes", NO_BUDGET)
         if cap is not NO_BUDGET and size + additional + 1024**2 > cap:
-            raise ValueError("miner budget: retained_bytes")
+            raise LedgerRefusal(
+                "miner budget: retained_bytes",
+                code=MINER_CEILING_REACHED,
+                dimension="retained_bytes",
+                basis=manifest_basis(frozen),
+                used=size,
+                requested=additional + 1024**2,
+                ceiling=cap,
+                refused_at="storage_check",
+            )
         return size
 
     def freeze(self, manifest):
@@ -573,11 +677,34 @@ class CampaignLedger:
                 deadline = (
                     min(started + elapsed, expiry) if expiry else started + elapsed
                 )
-            if now < started or (deadline is not None and now >= deadline):
+            basis = manifest_basis(manifest)
+
+            def out_of_time(message, requested):
+                # The campaign's own time: its elapsed budget, or the
+                # development grant's expiry where that is sooner.
+                return LedgerRefusal(
+                    message,
+                    code=MINER_CEILING_REACHED,
+                    dimension=ELAPSED_DIMENSION,
+                    basis=basis,
+                    used=math.floor(now - started),
+                    requested=requested,
+                    ceiling=None if elapsed is NO_BUDGET else elapsed,
+                )
+
+            if now < started:
+                # A clock that ran backwards is not a limit; the text is the
+                # historical one, the type the plain ValueError it was.
                 raise ValueError("campaign elapsed-time exhausted or clock regressed")
+            if deadline is not None and now >= deadline:
+                raise out_of_time(
+                    "campaign elapsed-time exhausted or clock regressed", 0
+                )
             if controlled and resources.get("provider_attempts", 0):
                 if deadline is not None and now + 120 > deadline:
-                    raise ValueError("provider timeout cannot fit remaining grant")
+                    raise out_of_time(
+                        "provider timeout cannot fit remaining grant", 120
+                    )
                 pending = db.execute(
                     "SELECT reservation FROM operations WHERE state='RESERVED'"
                 ).fetchall()
@@ -604,7 +731,10 @@ class CampaignLedger:
                     deadline is not None
                     and now + resources["numerical_milliseconds"] / 1000 > deadline
                 ):
-                    raise ValueError("worker cannot fit remaining elapsed time")
+                    raise out_of_time(
+                        "worker cannot fit remaining elapsed time",
+                        _whole_seconds(resources["numerical_milliseconds"] / 1000),
+                    )
                 active = db.execute(
                     "SELECT reservation FROM operations WHERE state='RESERVED'"
                 ).fetchall()
@@ -623,7 +753,15 @@ class CampaignLedger:
                 # confused for one another.
                 service = SERVICE_LIMITS.get(key)
                 if service is not None and used[key] + want > service:
-                    raise ValueError("carbon service capacity: " + key)
+                    raise LedgerRefusal(
+                        "carbon service capacity: " + key,
+                        code=CARBON_SERVICE_CAPACITY,
+                        dimension=key,
+                        basis="carbon_service",
+                        used=used[key],
+                        requested=want,
+                        ceiling=service,
+                    )
                 cap = caps.get(key, NO_BUDGET)
                 if cap is NO_BUDGET:
                     # No budget is a supported state, so the check is skipped
@@ -635,7 +773,15 @@ class CampaignLedger:
                     # used. Numerical and monetary reserves remain conservative.
                     headroom = max(0, headroom - used[key])
                 if used[key] + want + headroom > cap:
-                    raise ValueError("miner budget: " + key)
+                    raise LedgerRefusal(
+                        "miner budget: " + key,
+                        code=MINER_CEILING_REACHED,
+                        dimension=key,
+                        basis=basis,
+                        used=used[key],
+                        requested=want + headroom,
+                        ceiling=cap,
+                    )
             db.execute("UPDATE campaign SET started=? WHERE id=1", (started,))
             db.execute(
                 "INSERT INTO operations VALUES(?,?,?,?,?,?,?,?,?)",

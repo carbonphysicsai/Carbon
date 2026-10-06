@@ -1,0 +1,45 @@
+{
+ "conditions": [
+  {
+   "id": "P-T37.6-S0.344",
+   "kind": "representative",
+   "soc0": 0.344,
+   "t_amb_c": 37.6
+  },
+  {
+   "id": "P-T23.9-S0.244",
+   "kind": "representative",
+   "soc0": 0.244,
+   "t_amb_c": 23.9
+  },
+  {
+   "id": "P-T34.4-S0.238",
+   "kind": "representative",
+   "soc0": 0.238,
+   "t_amb_c": 34.4
+  },
+  {
+   "id": "P-T10.5-S0.13",
+   "kind": "representative",
+   "soc0": 0.13,
+   "t_amb_c": 10.5
+  },
+  {
+   "id": "P-T8.8-S0.444",
+   "kind": "near_limit",
+   "soc0": 0.444,
+   "t_amb_c": 8.8
+  },
+  {
+   "id": "P-T5.5-S0.423",
+   "kind": "near_limit",
+   "soc0": 0.423,
+   "t_amb_c": 5.5
+  }
+ ],
+ "excluded_points": 205,
+ "rule": "is fixed here and committed before any solve (the Test\nLead's ruling, 2026-10-05):\n- six conditions inside the published box (t_amb 5\u201340 \u00b0C, soc0 0.05\u20130.50):\n  four representative ones drawn uniformly over the box, and two near-limit\n  ones drawn from low t_amb and high soc0 (t_amb 5\u201312 \u00b0C, soc0 0.38\u20130.50);\n- a draw is refused only when it lies within BOTH 2 \u00b0C in t_amb AND 0.03 in\n  soc0 of an EV1, EV2, EV4 or EV5 condition, a point of EV4's protected\n  optimizer grid, or a condition already chosen;\n- draws come from numpy PCG64 seeded with the first 8 bytes of\n  sha256(\"PRACTICE-SAFETY-01-B4\"); t_amb is rounded to 0.1 \u00b0C and soc0 to\n  0.001, before the refusal test.",
+ "schema": "carbon.battery.practice-decision-set.v1",
+ "seed_label": "PRACTICE-SAFETY-01-B4",
+ "status": "PRACTICE_ONLY: never Track B, never a confirmation set"
+}

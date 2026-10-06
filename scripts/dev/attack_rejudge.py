@@ -35,13 +35,16 @@ from pathlib import Path
 
 from carbon.agent_campaign.attack import analysis, verify
 from carbon.agent_campaign.attack.adapter import ADAPTERS
+from carbon.agent_campaign.graphite.phase4 import FINISH_TOOL_NAME
 from carbon.development_session.profile import canonical, digest
 
 #: v2: verdict v2 records (`AGREED_ADMISSIBLE`), per-family outcome counts,
 #: the agreed-admissible list, closure counts and a `report_digest`. Output
 #: from before v2 carried no `schema`; read it as v1 (verdict v1 records, five
-#: outcomes): its UNDETERMINED verdicts keep their meaning.
-SCHEMA = "carbon.attack.rejudge.v2"
+#: outcomes): its UNDETERMINED verdicts keep their meaning. v3: verdict v3
+#: records (each carries its rebuilt `artifact`, OWNER-GRAPHITE-TEST-WAVE-04
+#: §1); a v2 output's verdicts have none and keep their meaning.
+SCHEMA = "carbon.attack.rejudge.v3"
 #: Outcomes that close an attempt without a finding for triage: a hold, and
 #: what judged nothing (NOT_APPLICABLE; AGREED_ADMISSIBLE counts the same).
 CLOSES = frozenset({verify.HELD, *verify.CLOSED_UNJUDGED})
@@ -49,7 +52,8 @@ CLOSES = frozenset({verify.HELD, *verify.CLOSED_UNJUDGED})
 
 def rejudge(session_dir, adapter, *, canaries=(), carrier=None):
     """Every attempt's verdict record, in run order (read-only)."""
-    found = analysis.attempts(session_dir)
+    # The phase-4 stop rule's finish call ends a session and probes nothing.
+    found = [a for a in analysis.attempts(session_dir) if a.tool != FINISH_TOOL_NAME]
     verdicts = [
         verify.verify(attempt, adapter, canaries=canaries, carrier=carrier)
         for attempt in found

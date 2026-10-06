@@ -31,6 +31,25 @@ from .model import (
 from .records import InfrastructureExecutionFailure
 
 
+def _typed_refusal(executor, attempt, error):
+    """The executor's own typed outcome for `error`, or None.
+
+    An executor that holds the result store may type a refusal it recognises
+    (`refusal_outcome`): its ledger refusing work against the campaign's own
+    budget is the requester's limit, not an infrastructure failure
+    (RESEARCH-BUDGET-REFUSAL-TYPING-01). Anything else - no such hook, the
+    hook declining or the hook itself failing - is None, and the caller keeps
+    the INTERNAL infrastructure failure. A reply of any other type is turned
+    into INTERNAL by the lifecycle, as every executor reply is."""
+    typed = getattr(executor, "refusal_outcome", None)
+    if not callable(typed):
+        return None
+    try:
+        return typed(attempt, error)
+    except Exception:  # noqa: BLE001 - the hook's failure is the original's.
+        return None
+
+
 class _NoRetry:
     def __init__(self, executor):
         self.executor = executor
@@ -40,10 +59,12 @@ class _NoRetry:
         # policy must never silently duplicate an uncertain numerical attempt.
         try:
             outcome = self.executor.execute(attempt)
-        except Exception:  # noqa: BLE001
-            return InfrastructureExecutionFailure(
-                InfrastructureFailureClass.INTERNAL, False
-            )
+        except Exception as error:  # noqa: BLE001
+            outcome = _typed_refusal(self.executor, attempt, error)
+            if outcome is None:
+                return InfrastructureExecutionFailure(
+                    InfrastructureFailureClass.INTERNAL, False
+                )
         if type(outcome) is InfrastructureExecutionFailure:
             return InfrastructureExecutionFailure(
                 outcome.failure_class, False, outcome.observed_resource_receipt_ref

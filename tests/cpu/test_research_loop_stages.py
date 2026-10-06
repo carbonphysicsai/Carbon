@@ -53,6 +53,7 @@ from carbon.development_session.research_agent_policy import (
     graphite_miner_reminder,
     limits_v2,
 )
+from carbon.development_session.research_ledger import LedgerRefusal
 from carbon.development_session.research_loop import (
     FINISH_INVALID,
     MINER_CEILING_REACHED,
@@ -718,7 +719,10 @@ def test_a_tools_own_ceiling_refusal_is_not_a_session_stop(tmp_path):
             request={},
             resources={"research_trials": 1},
         )
-    assert type(raised.value) is ValueError
+    # The ledger's own refusal, never a session stop: since
+    # RESEARCH-BUDGET-REFUSAL-TYPING-01 it is the ledger's typed LedgerRefusal
+    # (a ValueError with the same text) rather than a bare ValueError.
+    assert type(raised.value) is LedgerRefusal
 
 
 def test_only_the_ledgers_plain_ceiling_refusals_are_the_miners_ceiling():

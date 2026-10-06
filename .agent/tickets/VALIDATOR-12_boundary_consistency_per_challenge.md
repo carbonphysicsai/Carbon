@@ -43,3 +43,15 @@ Battery's test file is unchanged, byte for byte.
 ## Maturity
 
 TESTED (DEVELOPMENT). Not a security audit.
+
+## Motor (after #638)
+
+`tests/cpu/test_challenge_validator_boundary_consistency_motor.py` mirrors
+cooling's checks in motor's vocabulary:
+- 2 valid controls: the scaffold, and `length_2` with `ridge_1e_6`;
+- the same 21 malformed strategies;
+- `null`.
+
+Another Challenge's strategy is refused by name
+(`not_the_motor_development_challenge`). All 26 cases pass on main
+`c69c4be14` (canonical).
