@@ -84,3 +84,39 @@ The phase-3 part is implemented on branch `claude/validator-09-phase3-variant`
 ## Maturity
 
 IMPLEMENTED and TESTED (DEVELOPMENT). No variant is registered.
+
+## Gate sweeps (evidence-driven gate candidates)
+
+**Authority.** The owner, 2026-10-05, relayed by the Test Lead:
+
+> We need to add gates if we see that showing up in design decisions and it's
+> something we can filter out
+
+Approving the plan:
+
+> Send my approval. I think this is the right direction toward being active
+> toward our goals. Max value alignment and max freedom.
+
+**The candidates:**
+- **G-FEAS:** a design predicted feasible whose reference is infeasible
+  fails. This is the EV5 finding.
+- **G-PLATE:** a plating false-acceptance rate above the threshold fails.
+  This is run 5's 9.5%.
+
+Each is defined once, in `score_tuning` (#674): the `feasibility` and
+`plating_fa` gate measures, plus a `gate_sweep` entry expanded by
+`expand_sweep`.
+
+**Here:**
+- **A sweep variant** carries the sweep entry and its base entry verbatim. It
+  expands only through `expand_sweep` and stays CANDIDATE, with the threshold
+  HUMAN_INPUT. Scores per cutoff are byte-identical to the tuning loop's
+  (parity test). The owner picks the cutoff from the curve, and adoption is
+  his.
+- **Registered:** 10 sweeps, G-FEAS and G-PLATE each over CE, SR2, G-N,
+  R-G-N and N-heavy, on the grid 0.005 to 0.5, plus 1.01 (ungated). They are
+  promoted from registry v2 (`candidate_registry`: its SHA-256, commit
+  ae3983d6).
+- **The deciding rule (CE) with a gate** is now a candidate: a gate on the
+  rule in force. CE alone is still refused as the base rule.
+- **The practice value contract pin** accepts #668's `(file, digest)` form.

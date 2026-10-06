@@ -30,7 +30,12 @@ import test_development_variant_refusals as dvr
 import test_research_tool_usability as rtu
 from graphite_phase3_fixtures import SCORING
 from test_battery_validator_daemon import backend, refs  # noqa: F401 - fixtures
-from test_graphite_phase3_score_variant import BATTERY, VERSION, document
+from test_graphite_phase3_score_variant import (
+    BATTERY,
+    VERSION,
+    document,
+    shipped_registry,
+)
 from test_graphite_phase3_score_variant import write_registry as write
 
 from carbon.agent_campaign.graphite import miner_path
@@ -65,9 +70,17 @@ def test_the_name_check_reads_the_score_variant_registry_as_data():
     assert not cr.is_development_variant(BATTERY)
 
 
-def test_the_shipped_registry_names_no_score_variant(monkeypatch):
+def test_the_shipped_registry_names_exactly_its_score_variants(monkeypatch):
+    # main registers the G-FEAS and G-PLATE gate sweeps (9da1ae5e2); every
+    # door's name check refuses each by version name and by digest.
     monkeypatch.undo()
-    assert cr.development_score_variant_names() == frozenset()
+    shipped = shipped_registry()
+    assert cr.development_score_variant_names() == frozenset(shipped) | frozenset(
+        shipped.values()
+    )
+    for name, digest in shipped.items():
+        assert cr.is_development_variant(name)
+        assert cr.is_development_variant(digest)
 
 
 def test_a_malformed_score_variant_registry_fails_every_door_closed(

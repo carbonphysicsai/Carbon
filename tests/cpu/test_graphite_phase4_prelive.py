@@ -29,6 +29,7 @@ import sqlite3
 from contextlib import redirect_stdout
 from pathlib import Path
 
+import containment_double
 import pytest
 from test_graphite_phase4 import (  # the stand-in's material: an autouse fixture
     _stand_in_material,  # noqa: F401
@@ -46,6 +47,9 @@ from carbon.reconstruction.capability_registry import (
 REPOSITORY = Path(__file__).resolve().parents[2]
 GRANT_FILE = REPOSITORY / phase4.PHASE4_GRANTS[BATTERY_CHALLENGE].grant_file
 PHASE4_PATHS = (
+    # A passing double here; the step's own tests are
+    # test_carrier_containment.py (GRAPHITE-CARRIER-CONTAINMENT-01).
+    prelive.CONTAINMENT_STEP,
     "grant_and_code_checks",
     "session_model_ledger_controller",
     "carbon_side_store_pin_replay",
@@ -222,6 +226,12 @@ def engine_modules():
     return phase4.attack_modules()
 
 
+@pytest.fixture(autouse=True)
+def _containment_passes(monkeypatch):
+    """The carrier containment step's passing double (synthetic)."""
+    containment_double.install(monkeypatch)
+
+
 def test_the_gate_runs_every_phase4_path_and_spends_nothing(
     tmp_path, monkeypatch, engine_modules
 ):
@@ -310,7 +320,8 @@ def test_a_refused_grant_stops_the_gate_before_anything_opens(
         scoring=SCORING,
     )
     report = json.loads(printed[-1])
-    (row,) = report["paths"]
+    containment, row = report["paths"]
+    assert containment["path"] == prelive.CONTAINMENT_STEP
     assert row["path"] == "grant_and_code_checks" and row["status"] == "FAIL"
     assert row["detail"]["refusal"] == "grant_differs_from_the_committed_phase4_grant"
     assert code == 4
@@ -381,7 +392,8 @@ def test_another_challenges_grant_stops_the_gate(tmp_path, monkeypatch):
             ]
         )
     report = json.loads(out.getvalue())
-    (row,) = report["paths"]
+    containment, row = report["paths"]
+    assert containment["path"] == prelive.CONTAINMENT_STEP
     assert row["detail"]["refusal"] == "grant_is_for_another_challenge"
     assert report["grant"] is None and code == 4
 
@@ -396,7 +408,7 @@ def test_mutation_an_unbound_grant_check_fails_the_gate(
     _committed_by_digest(monkeypatch, copy)
     monkeypatch.setattr(phase4, "bind_grant_to_challenge", lambda d, e: e)
     code, report = _gate(tmp_path, _synthetic_adapter(weak=False), engine_modules)
-    row = report["paths"][0]
+    row = report["paths"][1]
     assert row["path"] == "grant_and_code_checks" and row["status"] == "FAIL"
     assert "was not refused" in row["detail"]["message"]
     assert report["grant"] is None and code == 4
@@ -417,7 +429,7 @@ def test_mutation_a_grant_check_that_takes_a_raised_ceiling_fails_the_gate(
 
     monkeypatch.setattr(phase4, "check_committed_grant", lax)
     code, report = _gate(tmp_path, _synthetic_adapter(weak=False), engine_modules)
-    row = report["paths"][0]
+    row = report["paths"][1]
     assert row["path"] == "grant_and_code_checks" and row["status"] == "FAIL"
     assert "ceiling raised was not refused" in row["detail"]["message"]
     assert report["grant"] is None and code == 4
@@ -459,3 +471,38 @@ def test_the_pod_step_calls_the_pod_layers_shared_check_when_it_exists(
     assert rows[prelive.POD_STEP]["detail"]["error"] == "ProgrammingError"
     assert report["verdict"] == "FAIL" and code == 4
     assert report["phase4_live_path"] == "PASS"
+
+
+def test_the_gate_helper_refuses_a_positional_call(tmp_path):
+    """Every `_run` parameter after `gate` is keyword-only, so `challenge`,
+    `grant_path` and `analysis_image_manifest` cannot shift into each
+    other's places: a positional call is refused before any step runs."""
+    import inspect
+
+    parameters = list(inspect.signature(prelive._run).parameters.values())
+    assert parameters[0].name == "gate"
+    assert parameters[0].kind is inspect.Parameter.POSITIONAL_OR_KEYWORD
+    assert {p.name for p in parameters[1:]} >= {
+        "store",
+        "grant_path",
+        "challenge",
+        "analysis_image_manifest",
+    }
+    assert all(p.kind is inspect.Parameter.KEYWORD_ONLY for p in parameters[1:])
+
+    class Untouched:
+        def __getattr__(self, name):
+            raise AssertionError("a positional call reached the gate")
+
+    with pytest.raises(TypeError, match="positional argument"):
+        prelive._run(
+            Untouched(),
+            tmp_path,
+            None,
+            None,
+            "grant.json",
+            tmp_path,
+            SCORING,
+            BATTERY_CHALLENGE,
+            None,
+        )

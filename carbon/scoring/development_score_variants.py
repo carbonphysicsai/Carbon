@@ -101,10 +101,14 @@ class ScoreVariant:
     #: was registered against, by digest (the Test Lead's ruling, 2026-10-05).
     practice_value_contract: str
     status: str
+    #: A gate sweep's candidates, one per cutoff, as the Challenge's own
+    #: `expand_sweep` builds them; empty for a single candidate. A sweep's
+    #: threshold stays HUMAN_INPUT: the owner picks it from the curve.
+    sweep: tuple = ()
 
     def identity(self):
         """What a result scored under this variant records."""
-        return {
+        out = {
             "score_variant": self.version,
             "score_variant_digest": self.digest,
             "base_rule": self.base_rule,
@@ -113,6 +117,10 @@ class ScoreVariant:
             "practice_value_contract": self.practice_value_contract,
             "label": "development_score_result:" + self.version,
         }
+        if self.sweep:
+            out["threshold"] = "HUMAN_INPUT"
+            out["sweep"] = [c.id for c in self.sweep]
+        return out
 
 
 def _registry(directory):
@@ -164,7 +172,7 @@ def load_variant(version, *, directory=None, declared=None):
         raise ScoreVariantRefused("score_variant_altered")
     if (
         type(document) is not dict
-        or set(document) != _KEYS
+        or set(document) not in (_KEYS, _KEYS | {"base_candidate"})
         or document["schema"] != SCHEMA
         or document["version"] != version
         or type(document["challenge_id"]) is not str
@@ -197,22 +205,46 @@ def load_variant(version, *, directory=None, declared=None):
     pinned_contract = getattr(
         _scoring(document["challenge_id"]), "practice_value_contract", None
     )
+    if isinstance(pinned_contract, tuple):
+        pinned_contract = pinned_contract[-1]  # (file name, digest)
     if pinned_contract is not None and contract != pinned_contract:
         # Registered against other decision data than the Challenge pins.
         raise ScoreVariantRefused("score_variant_practice_value_contract_not_pinned")
     module = tuning_module(document["challenge_id"])
+    declared = (
+        _declared(document["challenge_id"]) if declared is None else tuple(declared)
+    )
+    is_sweep = document["candidate"].get("kind") == getattr(module, "SWEEP_KIND", None)
+    if is_sweep != ("base_candidate" in document):
+        raise ScoreVariantRefused("score_variant_malformed")
     try:
-        candidate = module.parse_candidate(document["candidate"])
+        if is_sweep:
+            # A gate sweep (owner, 2026-10-05: evidence-driven gates, threshold
+            # HUMAN_INPUT): its base entry verbatim, expanded only by the
+            # Challenge's own `expand_sweep`.
+            if document["status"] != "CANDIDATE":
+                raise ScoreVariantRefused("score_variant_sweep_has_no_chosen_threshold")
+            base = module.parse_candidate(document["base_candidate"])
+            if base.id != document["candidate"].get("base"):
+                raise ScoreVariantRefused("score_variant_sweep_base_mismatch")
+            sweep = tuple(module.expand_sweep(document["candidate"], {base.id: base}))
+            candidate = None
+            weights, gated = base.weights, True
+            kind = base.kind
+        else:
+            candidate = module.parse_candidate(document["candidate"])
+            sweep = ()
+            weights, kind = candidate.weights, candidate.kind
+            gated = candidate.gate is not None
     except module.TuningError as refused:
         raise ScoreVariantRefused(
             "score_variant_candidate_refused:" + refused.code
         ) from None
-    if candidate.kind != "geometric":
+    if kind != "geometric" and not gated:
+        # The deciding rule alone is the base rule; with a gate it is a gate
+        # candidate on the rule in force.
         raise ScoreVariantRefused("score_variant_deciding_is_the_base_rule")
-    declared = (
-        _declared(document["challenge_id"]) if declared is None else tuple(declared)
-    )
-    if set(candidate.weights) - set(declared):
+    if set(weights) - set(declared):
         raise ScoreVariantRefused("score_variant_component_not_declared")
     return ScoreVariant(
         version=version,
@@ -224,13 +256,26 @@ def load_variant(version, *, directory=None, declared=None):
         candidate_registry=dict(origin),
         practice_value_contract=contract,
         status=document["status"],
+        sweep=sweep,
     )
 
 
 def score_member(variant, row):
     """One member's score from its legs row (`member_legs`), through the
-    Challenge's own scorer, with its gate verdict."""
+    Challenge's own scorer, with its gate verdict. For a sweep, one entry per
+    cutoff candidate."""
     module = tuning_module(variant.challenge_id)
+    if variant.sweep:
+        return {
+            **variant.identity(),
+            "by_cutoff": {
+                c.id: {
+                    "score": module.score_member(c, row),
+                    "gate": module.gate_verdict(c, row),
+                }
+                for c in variant.sweep
+            },
+        }
     return {
         **variant.identity(),
         "score": module.score_member(variant.candidate, row),
@@ -240,10 +285,14 @@ def score_member(variant, row):
 
 def panel_scores(variant, legs, recipe_of):
     """Every member's score on a panel, exactly as the tuning loop computes
-    it (`candidate_scores`: seed means when stable, gate failures last)."""
-    return tuning_module(variant.challenge_id).candidate_scores(
-        variant.candidate, legs, recipe_of
-    )
+    it (`candidate_scores`: seed means when stable, gate failures last). For a
+    sweep, one result per cutoff candidate, by its id."""
+    module = tuning_module(variant.challenge_id)
+    if variant.sweep:
+        return {
+            c.id: module.candidate_scores(c, legs, recipe_of) for c in variant.sweep
+        }
+    return module.candidate_scores(variant.candidate, legs, recipe_of)
 
 
 def main(argv=None):

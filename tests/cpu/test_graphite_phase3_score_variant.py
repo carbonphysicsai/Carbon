@@ -245,8 +245,19 @@ def test_a_declared_digest_the_file_does_not_have_is_refused(monkeypatch):
     assert refused.value.code == "score_variant_practice_contract_altered"
 
 
-def test_the_shipped_registry_resolves_nothing(capsys):
-    assert dsv.registered() == {}
+def shipped_registry():
+    """The committed score variant registry, read as data."""
+    path = cr.DEVELOPMENT_SCORE_VARIANT_DIR / "registry.json"
+    return json.loads(path.read_text(encoding="utf-8"))["variants"]
+
+
+def test_the_shipped_registry_resolves_only_its_registered_variants(capsys):
+    # main registers the G-FEAS and G-PLATE gate sweeps (9da1ae5e2): each
+    # resolves at Level 0; an unregistered name is still refused, typed.
+    shipped = shipped_registry()
+    assert dsv.registered() == shipped
+    for name in shipped:
+        assert phase3.score_variant_for(name, SCORING) is not None
     with pytest.raises(phase3.RunnerRefused):
         phase3.score_variant_for("anything", SCORING)
     assert refused_code(capsys) == "score_variant_unregistered"

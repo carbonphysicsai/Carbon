@@ -133,7 +133,11 @@ def test_the_attacker_checks_out_the_attacked_challenge():
     assert BATTERY in seen and COOLING in seen
 
 
-def test_a_cooling_bundle_reads_as_cooling(tmp_path, capsys):
+def test_a_cooling_bundle_reads_as_cooling(tmp_path, capsys, monkeypatch):
+    import containment_double
+
+    # The dry run's carrier containment check (synthetic passing double).
+    containment_double.install(monkeypatch)
     assert phase3.dry_run(tmp_path, cs.scoring_for(COOLING)) == 0
     output = capsys.readouterr().out
     result = json.loads(output[output.index("{\n") :])
