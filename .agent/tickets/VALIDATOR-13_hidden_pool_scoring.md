@@ -204,3 +204,13 @@ qualification, reward or LIVE authority.
     descriptive evidence only. They never enter a primary ranking, an
     alignment (Q1) result or a promotion claim.
   - Hidden-score tests: 14 passed (canonical).
+- **Slice 4: the phase-3 option** (follows #642).
+  - `phase3 run --hidden-deployment CONFIG` builds a `HiddenPool` per run
+    over that battery deployment.
+  - It is checked before anything is spent:
+    - Level 0 only (`hidden_pool_is_level_0_only`);
+    - the deployment loads writable (`hidden_evaluation_*`);
+    - its rule seals hidden results (`hidden_rule_not_sealed`).
+  - The clock is testnet's finalized block, read-only. An unreadable chain
+    gives `UNAVAILABLE`.
+  - Tests: `tests/cpu/test_graphite_phase3_hidden_pool.py`.
