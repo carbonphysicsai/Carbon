@@ -34,7 +34,7 @@ from carbon.agent_campaign.grant import SpendingGrant
 from carbon.agent_campaign.graphite import experiment as ex
 from carbon.agent_campaign.graphite import grant_binding, phase3, pods, roles
 from carbon.agent_campaign.graphite.ladder import Ladder, LadderError
-from carbon.agent_campaign.graphite.model import ScriptedModel, text
+from carbon.agent_campaign.graphite.model import ScriptedModel, text, tool
 from carbon.agent_campaign.graphite.roles import FailureKind, RoleName
 from carbon.agent_campaign.provider import ProviderUnavailable, TaskSpec
 from carbon.challenge_validator import scoring as challenge_scoring
@@ -72,11 +72,11 @@ def _refusal(capsys, call):
     return json.loads(capsys.readouterr().out.strip().splitlines()[-1])["reason_code"]
 
 
-def _provider(tmp_path, grant, script=None):
+def _provider(tmp_path, grant, script=None, model=None):
     return phase3.Phase3Provider(
         root=tmp_path / "graphite",
         grant=grant,
-        model=ScriptedModel(script or [text("done")]),
+        model=model or ScriptedModel(script or [text("done")]),
         pods=pods.ScriptedPods(),
         miner_tools=phase3.DryRunMiner(),
         randomness=lambda n: b"\x00" * n,
@@ -110,9 +110,9 @@ def _start(provider, variant):
     return provider._opened(provider.run_id_for(phase3.session_key(1)))
 
 
-def _run(tmp_path, grant):
+def _run(tmp_path, grant, model=None):
     """One whole Level 1 session under the controller, as the runner runs it."""
-    provider = _provider(tmp_path, grant)
+    provider = _provider(tmp_path, grant, model=model)
     control = phase3.controller_for(tmp_path, provider, grant)
     try:
         brief = phase3.session_brief(
@@ -369,6 +369,65 @@ def test_other_grants_keep_their_ladder_and_record(tmp_path):
     assert opened["role"]["model"] == roles.ROLES[RoleName.CONSTRUCTOR].start_model
     assert "run_conditions" not in opened
     assert "token_share_usd" not in opened["grant"]["phase3_budget"]
+
+
+# -- a settled call frees its unused reservation -------------------------------------------------
+#: Run 5 made 23 model calls. No per-call token record of it is committed, so
+#: this is a stated conservative profile: each call charged as 30,000 input
+#: tokens plus the whole 2,048-token output cap at kimi-k3's list prices,
+#: 30,000 × 1,950 + 2,048 × 9,750 nanodollars = USD 0.078468, about 2.6 times
+#: the ~USD 0.03 run 5's calls would cost on kimi-k3.
+RUN5_CALLS = 23
+RUN5_CHARGED_MICRO = 78468
+
+
+def _run5_model():
+    probe = tool("carbon_research_v2__get_challenge_info", {})
+    return ScriptedModel(
+        [probe] * (RUN5_CALLS - 1) + [text("done")],
+        charged_micro=RUN5_CHARGED_MICRO,
+        input_tokens=30000,
+    )
+
+
+def _succeeded(provider, result):
+    calls = provider.session_record(result["run_id"])["calls"]
+    return [call for call in calls if call["state"] == "SUCCEEDED"]
+
+
+def test_23_settled_kimi_k3_calls_are_admitted_under_the_r4_share(tmp_path):
+    """Each call is admitted against the share with its full USD 2.0646912
+    reservation, then settles to its reported charge, which replaces the
+    reservation in the research ledger (`CampaignLedger._usage`): run 5's
+    23 calls fit, where full reservations alone would stop after 5."""
+    provider, result = _run(tmp_path, _grant(), model=_run5_model())
+    assert result["provider_state"] == "succeeded"
+    calls = _succeeded(provider, result)
+    assert len(calls) == RUN5_CALLS
+    for call in calls:
+        assert call["provider_model"] == "kimi-k3"
+        assert call["reservation"]["provider_nanodollars"] == KIMI_RESERVATION_NANO
+        assert call["settlement"]["provider_nanodollars"] == RUN5_CHARGED_MICRO * 1000
+    spent = Decimal(RUN5_CALLS * RUN5_CHARGED_MICRO) / 10**6
+    assert spent + Decimal(KIMI_RESERVATION_NANO) / NANO <= Decimal("11.93")
+
+
+def test_mutation_keeping_each_full_reservation_stops_after_5_calls(
+    tmp_path, monkeypatch
+):
+    from carbon.development_session import research_ledger
+
+    def reserved_only(self, db):
+        used = dict.fromkeys(research_ledger.DIMENSIONS, 0)
+        for (reserved,) in db.execute("SELECT reservation FROM operations"):
+            for key, value in json.loads(reserved).items():
+                used[key] += value
+        return used
+
+    monkeypatch.setattr(research_ledger.CampaignLedger, "_usage", reserved_only)
+    provider, result = _run(tmp_path, _grant(), model=_run5_model())
+    assert result["provider_state"] != "succeeded"
+    assert len(_succeeded(provider, result)) == 5
 
 
 # -- mutations: each guard, disabled, lets the wrong thing through ------------------------------

@@ -485,8 +485,12 @@ USD 1.95 / 9.75 per million):
     ⌊ 11.93 / 2.0646912 ⌋ = 5 full reservations   (5 × 2.0646912 = 10.323456 ≤ 11.93)
     ⌊ 10.00 / 2.0646912 ⌋ = 4 within the approved USD 10 model allowance
 
-Each call settles at Engy's reported charge, so a run makes more calls than
-that while charges stay below the reservation. Under R3's token share
+Those counts bound calls in flight, not calls per run: each call is admitted
+with its full reservation and settles at Engy's reported charge, which then
+replaces the reservation in the research ledger (`CampaignLedger._usage`). At
+a conservative USD 0.078468 per call (30,000 input tokens plus the whole
+2,048-token output at kimi-k3's prices), run 5's 23 calls fit the 11.93 share
+(`test_23_settled_kimi_k3_calls_are_admitted_under_the_r4_share`). Under R3's token share
 (USD 1.95) not one full-window kimi-k3 call is admitted.
 
 **Runs** in a fresh controller root, under the OWNER-GRAPHITE-TEST-WAVE-05 §3
