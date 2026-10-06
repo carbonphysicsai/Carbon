@@ -290,7 +290,13 @@ class BatteryBatchSource(BatchSource):
 
         row = self._row(fingerprint)
         target = self.adapter.target
-        batch = PrivateBatch.from_document(row["document"])
+        try:
+            batch = PrivateBatch.from_document(row["document"])
+        except (ValueError, KeyError, TypeError):
+            # A changed case can also break the batch's own invariants (a
+            # hidden duplicate no longer repeating its original): the stored
+            # batch is not the committed one either way.
+            raise ProducerRefused("producer_fingerprint_mismatch") from None
         if batch.fingerprint != fingerprint:
             raise ProducerRefused("producer_fingerprint_mismatch")
         try:

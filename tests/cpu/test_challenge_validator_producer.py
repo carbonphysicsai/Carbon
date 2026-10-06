@@ -189,12 +189,22 @@ def test_a_changed_reference_is_refused(producer, source):
     assert refused.value.code == "producer_references_changed"
 
 
-def test_a_changed_case_is_refused(producer, source):
+@pytest.mark.parametrize("duplicated", [False, True])
+def test_a_changed_case_is_refused(producer, source, duplicated):
+    """Either way: a changed fresh case changes the fingerprint; a changed
+    case that has a hidden duplicate also breaks the batch's invariants."""
     fingerprint = sealed(producer, source)
+    document = source.adapter.target.store.batch(fingerprint)["document"]
+    twins = set(document["duplicates"]) | set(document["duplicates"].values())
+    index = next(
+        i
+        for i, case in enumerate(document["cases"])
+        if (case["case_id"] in twins) == duplicated
+    )
     tamper(
         source,
-        "UPDATE batches SET document=json_set(document,'$.cases[0].inputs.c1',9.0)"
-        " WHERE fingerprint=?",
+        f"UPDATE batches SET document=json_set(document,'$.cases[{index}].inputs.c1',"
+        "9.0) WHERE fingerprint=?",
         fingerprint,
     )
     with pytest.raises(pr.ProducerRefused) as refused:
