@@ -56,6 +56,9 @@
   const TERMINAL = ["COMPLETED", "STOPPED", "READBACK_UNAVAILABLE", "EXPIRED"];
   // The keyed operations, as a person names them.
   const OPERATION_NAMES = {practice: "practice", freeze_candidate: "freeze", submit: "submit"};
+  // The prelaunch review's evaluation statuses under which a submit can be
+  // sent (LP-PROD-E); any other is said plainly as unavailable.
+  const EVALUABLE = ["INTAKE_CONFIGURED", "VALIDATOR_ON_THIS_MACHINE"];
   const templateKey = "carbon.launchpad.launch-templates.v1";
   const wizardKey = "carbon.control-center.wizard.v1";
   const draftKey = "carbon.control-center.journey-drafts.v1";
@@ -1577,6 +1580,41 @@
     const providers = caps?.model.providers || [];
     return providers.find(provider => provider.id === wizard.provider) || null;
   }
+  // The provider and model a launch names, or null: a model this page lists,
+  // at an available provider, for an agent that calls one.
+  function launchModel() {
+    if (!caps?.model?.launch_field || !agentEntry(wizard.agentChoice)?.uses_model) return null;
+    const provider = selectedProvider();
+    if (provider?.availability !== "available" || !wizard.model || !provider.models.some(model => model.id === wizard.model)) return null;
+    return {provider, model: wizard.model};
+  }
+  // The launch's optional output cap, model_settings.max_output_tokens
+  // (LAUNCHPAD-PAGE-USABILITY-01): offered only when the launch names its
+  // provider and model, since the runner refuses settings without them. The
+  // bounds and each model's default are the controller's; this check only
+  // mirrors the runner's, which validates the launch and has the last word.
+  function outputCap() {
+    const cap = caps?.model?.output_cap;
+    const chosen = launchModel();
+    if (!cap || !Array.isArray(cap.bounds) || cap.bounds.length !== 2 || !chosen) return null;
+    const [low, high] = cap.bounds;
+    const fallback = cap.defaults?.[chosen.provider.id]?.[chosen.model] || null;
+    const text = String(wizard.maxOutput ?? "").trim();
+    let value = null, problem = null;
+    if (text) {
+      value = /^\d+$/.test(text) ? Number(text) : NaN;
+      if (!Number.isSafeInteger(value) || value < low || value > high) {
+        problem = "max output tokens must be a whole number from " + low.toLocaleString("en-US") + " to " + high.toLocaleString("en-US");
+        value = null;
+      }
+    }
+    return {low, high, fallback, value, problem, basis: cap.basis};
+  }
+  const OUTPUT_BASIS = {model_documented_maximum: "this model's documented maximum", provider_documented_maximum: "the provider's documented maximum", no_documented_maximum: "Carbon records no maximum for this model, so the conservative cap"};
+  function outputDefault(cap) {
+    if (!cap?.fallback) return "the runner's default";
+    return cap.fallback.max_output_tokens.toLocaleString("en-US") + " tokens (" + (OUTPUT_BASIS[cap.fallback.basis] || "the runner's default") + ")";
+  }
   // The provider and model the runner profile's setup chose, or null.
   function setupModel() {
     const value = caps?.model?.setup_choice;
@@ -1966,6 +2004,7 @@
     if (/^registration_/.test(code)) return {label: "Check your registration", href: "#setup/register"};
     if (/^model_provider_|^model_selection_/.test(code)) return {label: "Set up inference", href: "#setup/inference"};
     if (/^research_profile_|^runner_profile_/.test(code)) return {label: "Continue setup", href: "#setup/review"};
+    if (code === "evaluation_unavailable") return {label: "Review evaluation in setup", href: "#setup/review"};
     // Graphite's own (OWNER-GRAPHITE-MINER-01): where each is put right.
     if (code === "autonomous_agent_replaced") return {label: "Choose Graphite", href: "#launch"};
     if (code === "graphite_not_offered_for_challenge") return {label: "Choose a Challenge", href: "#challenges"};
@@ -2545,8 +2584,30 @@
     submit.disabled = !connected || busy || !ready || !frozen;
     submit.addEventListener("click", () => operate("submit", {campaign: run.id}, "Submit started: your registration is read, then your frozen candidate is sent for the DEVELOPMENT comparison. Whether it was admitted shows here."));
     second.append(freeze, submit); box.append(second);
+    evaluationNote(box, run);
     operationLine(box, run, ["freeze_candidate", "submit"]);
     parent.append(box);
+  }
+  // Whether this campaign's frozen candidate can be evaluated today, from the
+  // prelaunch review's evaluation_endpoints (LP-PROD-E): configuration only,
+  // stated before a submit rather than learnt from its refusal. Said plainly,
+  // with what still works and the next step (LAUNCHPAD-PAGE-USABILITY-01).
+  function evaluationOf(id) {
+    const items = research.preflight?.review?.evaluation_endpoints?.challenges;
+    if (!Array.isArray(items) || typeof id !== "string") return null;
+    return items.find(item => item && item.challenge_id === id) || null;
+  }
+  function evaluationFor(run) { return evaluationOf(run?.challenge?.id); }
+  function evaluationNote(parent, run) {
+    const item = evaluationFor(run);
+    if (!item || EVALUABLE.includes(item.status)) return;
+    const note = el("div", undefined, "evaluation-unavailable"); note.dataset.evaluation = item.status;
+    note.append(el("p", "Evaluation is unavailable for this Challenge today: no validator intake is configured in your runner profile" + (item.status === "NONE_PUBLISHED" ? ", and none is published for it yet" : "") + ". Submit is refused as evaluation unavailable, and a frozen candidate is kept.", "reason"));
+    note.append(el("p", "What you can do now: practise, observe, freeze a candidate, and stop or pause this campaign.", "hint"));
+    if (typeof item.next_step === "string" && item.next_step) note.append(el("p", "Next: " + item.next_step, "hint"));
+    const link = el("a", "Review evaluation in setup"); link.href = "#setup/review";
+    note.append(link);
+    parent.append(note);
   }
   // The line under a journey's buttons: what the last operation is doing, or
   // how it ended, from the campaign's own record.
@@ -2944,6 +3005,8 @@
         if (!provider.models.some(model => model.id === wizard.model)) {
           return provider.models.length ? "Choose a model." : provider.provider + " lists no models here. Choose it with your model under Set up, Inference: that model is then offered here.";
         }
+        const cap = outputCap();
+        if (cap?.problem) return "Fix the output cap: " + cap.problem + ", or leave it blank for " + outputDefault(cap) + ".";
       }
     }
     if (step === "compute") {
@@ -3252,6 +3315,24 @@
       for (const item of caps.model.unavailable) researchNote(node, item.id + " · unavailable: " + words(item.reason) + " · Next: " + item.next_action, "reason");
     });
     for (const input of target.querySelectorAll("input[name=wizard-model]")) input.checked = input.value === wizard.provider + "/" + wizard.model;
+    // The optional output cap, patched in place so typing is never redrawn.
+    const cap = outputCap();
+    const box = $("wizard-output");
+    if (box.hidden !== !cap) box.hidden = !cap;
+    if (!cap) return;
+    const input = $("wizard-max-output");
+    if (input.min !== String(cap.low)) input.min = String(cap.low);
+    if (input.max !== String(cap.high)) input.max = String(cap.high);
+    const placeholder = cap.fallback ? "Default: " + cap.fallback.max_output_tokens : "Default";
+    if (input.placeholder !== placeholder) input.placeholder = placeholder;
+    fill(input, wizard.maxOutput ?? "");
+    input.setAttribute("aria-invalid", cap.problem ? "true" : "false");
+    let note = "Default for " + wizard.model + ": " + outputDefault(cap) + ". Leave it blank to use that, or enter a whole number from " + cap.low.toLocaleString("en-US") + " to " + cap.high.toLocaleString("en-US") + " to cap each reply; each call is reserved at the cap. The Control Center checks it again at launch.";
+    if (cap.problem) note = "Not valid: " + cap.problem + ". " + note;
+    else if (cap.value !== null && cap.fallback && cap.fallback.basis !== "no_documented_maximum" && cap.value > cap.fallback.max_output_tokens) note = "Above " + outputDefault(cap) + ": the provider may refuse the call. " + note;
+    setText($("wizard-output-note"), note);
+    const kind = cap.problem ? "reason" : "hint";
+    if ($("wizard-output-note").className !== kind) $("wizard-output-note").className = kind;
   }
   function renderWizardCompute() {
     rebuild($("wizard-compute"), JSON.stringify([capsVersion, Boolean(caps)]), target => {
@@ -3354,8 +3435,13 @@
       row("Model", agent && !agent.uses_model ? "None: this agent calls no model"
         : provider && wizard.model ? provider.provider + " · " + wizard.model + " · credential " + (provider.credential.configured ? "configured" : "not configured") + ". " + caps.model.selection
         : setup ? "Your setup's choice: " + setup.model_id + " (" + setup.provider_id + ")" : "Not chosen");
+      const cap = outputCap();
+      if (cap && !cap.problem) row("Max output", cap.value !== null ? cap.value.toLocaleString("en-US") + " tokens per reply, your cap" : "Not set: " + outputDefault(cap));
       row("Compute", compute ? compute.label + " · " + compute.lane + " lane · " + compute.availability : "Unavailable");
       row("Tools", entry ? Object.keys(entry.tools?.workflow || {}).join(", ") || "none listed" : "Choose a Challenge");
+      // Stated before launch, not learnt at submit (LAUNCHPAD-PAGE-USABILITY-01).
+      const evaluation = entry ? evaluationOf(entry.challenge_id) : null;
+      if (evaluation) row("Evaluation", EVALUABLE.includes(evaluation.status) ? "A validator is configured for this Challenge in your profile; whether it answers is seen at submit." : "Unavailable today: no validator intake is configured in your profile" + (evaluation.status === "NONE_PUBLISHED" ? " and none is published for this Challenge yet" : "") + ". You can launch, practise, observe, freeze, and stop or pause; a submit is refused and the frozen candidate kept until one is configured.");
       const limits = [];
       limits.push("elapsed: " + ("elapsed_seconds" in budget ? budget.elapsed_seconds + " s" + longer(budget.elapsed_seconds) : "no limit"));
       limits.push("final reserve: " + (budget.final_reserve ? "on" : "off"));
@@ -3478,6 +3564,7 @@
   $("path-quick").addEventListener("click", () => { launchPath = "quick"; saveWizard(); render(); });
   $("path-advanced").addEventListener("click", () => { launchPath = "advanced"; writeAdvanced(); saveWizard(); render(); });
   $("budget-elapsed").addEventListener("input", readAdvanced);
+  $("wizard-max-output").addEventListener("input", () => { wizard.maxOutput = $("wizard-max-output").value; saveWizard(); render(); });
   $("budget-final-reserve").addEventListener("change", readAdvanced);
   $("template-save").addEventListener("click", () => {
     const name = $("template-name").value.trim();
@@ -3679,7 +3766,10 @@
     try {
       const outcome = await keyedOperation(name, body);
       if (outcome.ok) { watch(name, body.campaign, outcome.value, outcome); message(started + (outcome.replaced ? " " + REPLACED : "")); }
-      else message(notDone(outcome), true);
+      // A refusal with the controller's next step, not just its code
+      // (LAUNCHPAD-PAGE-USABILITY-01: a submit with no intake said only
+      // "evaluation unavailable").
+      else message(notDone(outcome) + (outcome.refused && outcome.error?.nextStep && !SIGNER_HELP[outcome.error.code] ?" Next: " + String(outcome.error.nextStep).replace(/\.$/, "") + "." : ""), true);
     } finally { busy = false; await refresh(); render(); }
   }
   // ---- What a started operation shows (LP-PROD-F). The controller answers
@@ -3791,10 +3881,13 @@
     // The chosen provider and model, when the agent calls one and the launch
     // carries them; the key file stays in the runner profile. With none
     // chosen here, the controller runs the model chosen in setup.
-    const provider = selectedProvider();
-    if (agentEntry(wizard.agentChoice)?.uses_model && caps.model.launch_field && provider?.availability === "available" && wizard.model && provider.models.some(model => model.id === wizard.model)) {
+    const provider = launchModel()?.provider;
+    if (provider) {
       pendingResearch.body.model_provider = provider.id;
       pendingResearch.body.model = wizard.model;
+      // The output cap only when the miner set one: blank is the default.
+      const cap = outputCap();
+      if (cap && cap.value !== null) pendingResearch.body.model_settings = {max_output_tokens: cap.value};
     }
     // Graphite's mode, research share, plan, hunt and limits: each where its
     // mode uses it, and only as the launch operation declares it.
@@ -3845,6 +3938,7 @@
     launchProblem: () => !connected ? "Connect this browser first." : storageError ? "Browser retry storage is unavailable; launch is disabled to preserve duplicate protection." : stepProblem("review"),
     goWizard(step) { if (STEPS.some(([name]) => name === step)) { wizard.step = step; saveWizard(); } location.hash = "#launch"; render(); },
     researchAction, renderCampaigns, renderJourneyPractice, renderJourneySubmission,
+    evaluationFor, evaluationNote,
     // Live regions, refusals and keyed operations (LP-PROD-F), shared with
     // the research surface and its Tools tab so all three behave alike.
     held, rebuild, quietly, setText, sent, refused,
