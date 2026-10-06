@@ -124,13 +124,26 @@ class BatteryScoring(ChallengeScoring):
         self.challenge_id = CHALLENGE.challenge_id
         self.challenge_version = CHALLENGE.version
 
-    def built_record(self, strategy, contract_digest, seed, root):
-        from carbon.reconstruction.challenge_contracts import compile_submission
+    def built_record(self, strategy, contract_digest, seed, root, implementation=None):
+        """`implementation` names a registered battery implementation
+        version: a record made under an earlier version is rebuilt from that
+        version's own module bytes (TORCH-GPU-01)."""
+        from carbon.reconstruction.challenge_contracts import (
+            CompiledSubmission,
+            compile_submission,
+        )
 
         admitted = compile_submission(strategy, contract_digest=contract_digest)
-        return self.built_from(admitted, seed, root)
+        if implementation is not None:
+            from carbon.battery.compile import compile_recipe
 
-    def built_from(self, admitted, seed, root):
+            compiled, recipe = compile_recipe(strategy, implementation=implementation)
+            admitted = CompiledSubmission(
+                admitted.challenge, admitted.contract_digest, compiled, recipe
+            )
+        return self.built_from(admitted, seed, root, implementation=implementation)
+
+    def built_from(self, admitted, seed, root, implementation=None):
         from carbon.battery.practice import PracticeSet, staged_files
         from carbon.development_session.battery_gpu import pod_program
         from carbon.development_session.profile import digest
@@ -140,7 +153,9 @@ class BatteryScoring(ChallengeScoring):
         # KNN-STATE-GPU-01: a KNN builds with GPU program v2, which stages the
         # versioned state digest; every other recipe keeps v1 byte for byte.
         program, extra = pod_program(recipe.family)
-        base = staged_files(root, PracticeSet.load(root), recipe, seed)
+        base = staged_files(
+            root, PracticeSet.load(root), recipe, seed, implementation=implementation
+        )
         files = {**base, **extra}
         development = getattr(admitted, "development", None)
         loss = None

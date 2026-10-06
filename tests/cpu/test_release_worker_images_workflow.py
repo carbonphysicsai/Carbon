@@ -87,6 +87,7 @@ def test_it_builds_the_exact_tag_with_the_existing_scripts_then_tests_the_push()
         "c03_worker_image.sh",
         "accelerator_worker_image.sh",
         "torch_worker_image.sh",
+        "torch_gpu_worker_image.sh",
     ):
         assert f'bash "${{script_dir}}/{existing}"' in script
     # The capability matrix runs after the push, on the pulled digests.
@@ -115,3 +116,26 @@ def test_every_run_block_is_valid_bash(tmp_path):
         ["bash", "-n", str(SCRIPT)], capture_output=True, text=True, check=False
     )
     assert done.returncode == 0, done.stderr
+
+
+def test_every_released_kind_flows_through_every_job():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "worker_image_release",
+        REPOSITORY / "scripts" / "dev" / "worker_image_release.py",
+    )
+    release = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(release)
+    assert set(release.KINDS) == {"c03", "accelerator", "torch", "torch-gpu"}
+    workflow = load()
+    outputs = workflow["jobs"]["build"]["outputs"]
+    text = WORKFLOW.read_text()
+    for kind in release.KINDS:
+        key = kind.replace("-", "_") + "_record"
+        assert key in outputs, key
+        assert text.count(f"{kind}-worker-image.release.json") >= 2, kind
+    assert text.count("for kind in c03 accelerator torch torch-gpu; do") == 3
+    script = SCRIPT.read_text()
+    assert "torch-gpu:carbon-torch-gpu-worker" in script
+    assert "torch-gpu-parent" in script

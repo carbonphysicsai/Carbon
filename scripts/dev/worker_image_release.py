@@ -75,6 +75,14 @@ KINDS = {
         "torch-worker-image.json",
         ("org.opencontainers.image.carbon.torch.determinism",),
     ),
+    # Labelled as the JAX accelerator worker is: profile and environment.
+    "torch-gpu": (
+        "torch-gpu-worker-image.json",
+        (
+            "org.opencontainers.image.carbon.accelerator.profile",
+            "org.opencontainers.image.carbon.accelerator.environment",
+        ),
+    ),
 }
 MANIFEST_FIELDS = (
     "image_id",

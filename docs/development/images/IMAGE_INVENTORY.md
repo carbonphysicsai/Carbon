@@ -40,6 +40,7 @@ store, so an ID is also the registry digest of a pushed image.
 | `carbon-accelerator-worker:de7fa60b`, `ghcr.io/carbonphysicsai/carbon-accelerator-worker:de7fa60b` | e4a2014daa9a | validator GPU path (`docs/development/VALIDATOR_DEPLOYMENT_PATH.md` pins this digest), miner GPU practice | `scripts/dev/accelerator_worker_image.sh` | COVERED (`accelerator`); its GHCR digest stays pullable |
 | `carbon-gpu-worker-local:df26e757-728a6bf37906` | 728a6bf37906 | local GPU practice build; its accelerator-profile label is not the current `GPU_PROFILE` digest | `accelerator_worker_image.sh` (local tag; no script names it) | OBSOLETE (superseded by `accelerator`) |
 | (none on host) PyTorch CPU worker | - | validator `torch_image_manifest`, PyTorch practice | `scripts/dev/torch_worker_image.sh` | COVERED (`torch`); first build |
+| (none on host) PyTorch GPU worker | - | PyTorch GPU rebuilds (battery implementation 2.0, TORCH-GPU-01) | `scripts/dev/torch_gpu_worker_image.sh` | COVERED (`torch-gpu`); first build |
 | (deleted) testnet v1/v2 C-03 worker `sha256:f33ce005…` | - | testnet v1 and v2 `image_manifest` | `c03_worker_image.sh` | COVERED (`c03`): re-pulled from the release, never rebuilt |
 
 ## Images the release does not cover
@@ -90,7 +91,7 @@ store, so an ID is also the registry digest of a pushed image.
 | JAX CPU | many local C-03 builds; the testnet one deleted | `carbon-c03-worker`, released by digest |
 | JAX GPU (CUDA 13) | `carbon-accelerator-worker` e4a2014daa9a | `carbon-accelerator-worker`, released from the tag |
 | PyTorch CPU | no image on the host | `carbon-torch-worker`, released |
-| PyTorch GPU | never existed | not built: there is no CUDA PyTorch lock or CUDA rebuild path (see the ticket) |
+| PyTorch GPU | never existed | `carbon-torch-gpu-worker`, released (CUDA 13, its own environment); PyTorch CUDA rebuilds are battery implementation 2.0 (TORCH-GPU-01) |
 | Julia, truth, motor reference | as above | unchanged and separately pinned |
 | TPU (`scripts/dev/tpu_worker_image.sh`) | no image on the host | not released (preparation only) |
 

@@ -883,10 +883,17 @@ class BatteryValidator:
                     "incumbent_inference:" + failure.code, candidate=False
                 ) from None
             _, inc_agg = exam.evaluate(inc_preds, ids, store)
-            inc_rec = {**inc_agg, "pool_version": pool["version"]}
+            inc_rec = {
+                **inc_agg,
+                "pool_version": pool["version"],
+                "rebuild": self._rebuild(incumbent_id),
+            }
         record = {
             "model_id": challenger,
             "pool_version": pool["version"],
+            # Which image and device class rebuilt the scored model: scores
+            # are compared only within one device class (TORCH-GPU-01).
+            "rebuild": self._rebuild(challenger),
             "active_batches": list(pool["active"]),
             "references": self._reference_identity(pool["active"]),
             "rule_digest": rule_digest(self.rule),
@@ -908,6 +915,23 @@ class BatteryValidator:
             "incumbent_score": None if inc_rec is None else inc_rec["score"],
         }
         return record
+
+    def _labelled_incumbent(self):
+        """The incumbent, labelled with its rebuild device class."""
+        incumbent = self.store.incumbent()
+        if incumbent is None:
+            return None
+        return {
+            **incumbent,
+            "device_class": self._rebuild(incumbent["model_id"])["device_class"],
+        }
+
+    def _rebuild(self, model_id):
+        """The rebuild identity of a retained model (`rebuild_identity`)."""
+        from .rebuild_identity import from_reconstruction
+
+        state = self.store.model_state(model_id)
+        return from_reconstruction(None if state is None else state["reconstruction"])
 
     def _screen(self, submission_id, attempt):
         while True:
@@ -1110,6 +1134,22 @@ class BatteryValidator:
             inc_components=components(inc_rows),
             chal_components=components(chal_rows),
         )
+        # The comparison above always runs and its outcome is kept. Only then
+        # does the device-class partition apply: two rebuilds of different
+        # classes promote nothing (TORCH-GPU-01).
+        from .rebuild_identity import comparable
+
+        if not comparable(
+            *[
+                {"rebuild": self._rebuild(f"{final_id}-{role}")}
+                for role in ("incumbent", "challenger")
+            ]
+        ):
+            outcome = {
+                **outcome,
+                "promotable": False,
+                "device_class": "DIFFERS",
+            }
         return self._decide(final_id, outcome, fingerprint)
 
     def _withdraw(self, final_id, final, current, attempt):
@@ -1338,7 +1378,7 @@ class BatteryValidator:
                     "active": len(pool["active"]),
                 }
             ),
-            "incumbent": self.store.incumbent(),
+            "incumbent": self._labelled_incumbent(),
             "batches": {
                 kind: {
                     state: len(self.store.batches(kind=kind, state=state))

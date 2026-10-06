@@ -32,8 +32,13 @@ def test_panel_rebuilds_exactly_graphite_s_pinned_recipes():
     rows = panel.PANELS["graphite-run5"]
     assert len(rows) == 9
     for label, strategy, seeds in rows:
-        _, recipe = compile_recipe(strategy)
+        # Run 5 was rebuilt under battery implementation 1.0, and recompiles
+        # to its frozen digests under 1.0 from main (TORCH-GPU-01); the current
+        # implementation names these recipes by other digests.
+        _, recipe = compile_recipe(strategy, implementation="1.0")
         assert recipe.recipe_digest == pinned[label]["recipe_digest"], label
+        _, current = compile_recipe(strategy)
+        assert current.recipe_digest != pinned[label]["recipe_digest"], label
         assert seeds[0] == pinned[label]["seed"]
         assert seeds[1:] == ((seeds[0] + 1) % 2**32, (seeds[0] + 2) % 2**32)
     assert "ev5" in panel.ATTACK_PANELS and "graphite-run5" not in panel.ATTACK_PANELS

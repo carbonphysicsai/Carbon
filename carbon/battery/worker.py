@@ -37,7 +37,7 @@ import os
 import stat
 from pathlib import Path
 
-from .practice import STAGED_MODULES, _canonical, _pinned
+from .practice import _canonical, _pinned, staged_modules
 
 RECONSTRUCT_PROGRAM = r'''"""Carbon battery validator reconstruction: train one compiled recipe.
 
@@ -174,15 +174,11 @@ def _digest(body):
     return "sha256:" + hashlib.sha256(body).hexdigest()
 
 
-def _code_files():
-    here = Path(__file__).parent
-    return {
-        staged: (here / module).read_bytes()
-        for staged, module in STAGED_MODULES.items()
-    }
+def _code_files(implementation=None):
+    return staged_modules(implementation)
 
 
-def reconstruct_files(root, recipe, seed):
+def reconstruct_files(root, recipe, seed, *, implementation=None):
     """Every byte the reconstruction worker receives."""
     from .challenge import (
         OCV_TABLE_PATH,
@@ -191,7 +187,7 @@ def reconstruct_files(root, recipe, seed):
         TRAIN_V1_SHA256,
     )
 
-    files = _code_files()
+    files = _code_files(implementation)
     files["train-v1.jsonl.gz"] = _pinned(
         Path(root) / TRAIN_V1_PATH, TRAIN_V1_SHA256, "train_v1"
     )

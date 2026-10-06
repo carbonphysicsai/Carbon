@@ -21,7 +21,9 @@ import json
 from .interface import ChallengeAdapter, Unavailable
 from .producer import BatchSource, ProducerRefused
 
-SCORE_RECORD_SCHEMA = "carbon.battery.operator-score-record.v1"
+#: v2 adds `rebuild` (worker image and device class, TORCH-GPU-01); a
+#: stored record without it reads as the legacy CPU identity.
+SCORE_RECORD_SCHEMA = "carbon.battery.operator-score-record.v2"
 
 
 def _plain(value):
@@ -132,7 +134,7 @@ class BatteryAdapter(ChallengeAdapter):
     # --- operator side ------------------------------------------------------
 
     def score_record(self, submission_id):
-        from carbon.battery import exam
+        from carbon.battery import exam, rebuild_identity
 
         store = self.target.store
         score = store.score(submission_id)
@@ -161,6 +163,7 @@ class BatteryAdapter(ChallengeAdapter):
             "active_batches": batches,
             "aggregate": aggregate,
             "nomination": record["nomination"],
+            "rebuild": rebuild_identity.of(record),
             "cases": _plain(rows),
             "predictions": _plain(predictions),
         }

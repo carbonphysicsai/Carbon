@@ -31,6 +31,7 @@ jobs:
       c03_record: ${{ steps.records.outputs.c03_record }}
       accelerator_record: ${{ steps.records.outputs.accelerator_record }}
       torch_record: ${{ steps.records.outputs.torch_record }}
+      torch_gpu_record: ${{ steps.records.outputs.torch_gpu_record }}
     steps:
       - name: Require a worker-images release tag
         env:
@@ -51,13 +52,16 @@ jobs:
           [[ "$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")" == "${commit}" ]]
           git merge-base --is-ancestor "${commit}" origin/main
       - name: Free runner disk for the CUDA image
-        # An estimate, not a measurement: the NVIDIA worker is about 6 GB
-        # unpacked (the operator host's last local build), the C-03 worker
-        # about 1 GB and the PyTorch worker an estimated 2-3 GB. The containerd
-        # image store keeps compressed layers beside unpacked snapshots, so the
-        # peak is an estimated 15-20 GB with build cache. Removing toolchains
-        # this job never uses frees an estimated 25-30 GB on a standard runner;
-        # if it still does not fit, run this job on a larger runner instead.
+        # An estimate, not a measurement: the NVIDIA (JAX) worker is about
+        # 6 GB unpacked (the operator host's last local build), the C-03 worker
+        # about 1 GB, the PyTorch CPU worker an estimated 2-3 GB and the
+        # PyTorch GPU worker, with its own CUDA 13 libraries, an estimated
+        # 7-9 GB. The containerd image store keeps compressed layers beside
+        # unpacked snapshots, so the peak is an estimated 30-40 GB with build
+        # cache. Removing toolchains this job never uses frees an estimated
+        # 25-30 GB on a standard runner, which likely does not fit all four:
+        # run this job on a larger runner (one `runs-on` change), or build the
+        # PyTorch GPU worker in a job of its own.
         run: |
           set -euo pipefail
           df -h /
@@ -97,8 +101,8 @@ jobs:
         id: records
         run: |
           set -euo pipefail
-          for kind in c03 accelerator torch; do
-            printf '%s_record=%s\n' "${kind}" "$(cat "${RUNNER_TEMP}/release/${kind}-worker-image.release.json")" >> "${GITHUB_OUTPUT}"
+          for kind in c03 accelerator torch torch-gpu; do
+            printf '%s_record=%s\n' "${kind//-/_}" "$(cat "${RUNNER_TEMP}/release/${kind}-worker-image.release.json")" >> "${GITHUB_OUTPUT}"
           done
       - name: Upload the manifests and release records
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -167,6 +171,7 @@ jobs:
           C03_RECORD: ${{ needs.build.outputs.c03_record }}
           ACCELERATOR_RECORD: ${{ needs.build.outputs.accelerator_record }}
           TORCH_RECORD: ${{ needs.build.outputs.torch_record }}
+          TORCH_GPU_RECORD: ${{ needs.build.outputs.torch_gpu_record }}
         run: |
           set -euo pipefail
           records="${RUNNER_TEMP}/records"
@@ -174,7 +179,8 @@ jobs:
           printf '%s\n' "${C03_RECORD}" > "${records}/c03-worker-image.release.json"
           printf '%s\n' "${ACCELERATOR_RECORD}" > "${records}/accelerator-worker-image.release.json"
           printf '%s\n' "${TORCH_RECORD}" > "${records}/torch-worker-image.release.json"
-          for kind in c03 accelerator torch; do
+          printf '%s\n' "${TORCH_GPU_RECORD}" > "${records}/torch-gpu-worker-image.release.json"
+          for kind in c03 accelerator torch torch-gpu; do
             .venv/bin/python scripts/dev/worker_image_release.py pull \
               --record "${records}/${kind}-worker-image.release.json" \
               --out "${RUNNER_TEMP}/manifests/${kind}-worker-image.json"
@@ -216,6 +222,7 @@ jobs:
           C03_RECORD: ${{ needs.build.outputs.c03_record }}
           ACCELERATOR_RECORD: ${{ needs.build.outputs.accelerator_record }}
           TORCH_RECORD: ${{ needs.build.outputs.torch_record }}
+          TORCH_GPU_RECORD: ${{ needs.build.outputs.torch_gpu_record }}
           REPORT: ${{ needs.capability.outputs.report }}
         run: |
           set -euo pipefail
@@ -224,8 +231,9 @@ jobs:
           printf '%s\n' "${C03_RECORD}" > "${assets}/c03-worker-image.release.json"
           printf '%s\n' "${ACCELERATOR_RECORD}" > "${assets}/accelerator-worker-image.release.json"
           printf '%s\n' "${TORCH_RECORD}" > "${assets}/torch-worker-image.release.json"
+          printf '%s\n' "${TORCH_GPU_RECORD}" > "${assets}/torch-gpu-worker-image.release.json"
           printf '%s\n' "${REPORT}" > "${assets}/capability-report.json"
-          for kind in c03 accelerator torch; do
+          for kind in c03 accelerator torch torch-gpu; do
             python3 -c 'import json,sys; m=json.load(open(sys.argv[1]))["manifest"]; open(sys.argv[2],"w").write(json.dumps(m, sort_keys=True, separators=(",", ":")) + "\n")' \
               "${assets}/${kind}-worker-image.release.json" "${assets}/${kind}-worker-image.json"
           done

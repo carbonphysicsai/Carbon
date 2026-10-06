@@ -351,20 +351,31 @@ class Experiment:
                 "prerequisites_missing",
                 f"{len(unsolved)} decision references, {len(members)} members",
             )
+        from .. import implementation_versions
+        from .. import rebuild_identity as ri
         from ..compile import compile_recipe
 
         bundles = {}
         for member, _family, strategy, seed in self._members():
             bundle = self._member_predictions(member)
-            _, recipe = compile_recipe(strategy)
-            if (
-                bundle["recipe_digest"] != recipe.recipe_digest
-                or bundle["seed"] != seed
-            ):
+            # A bundle verifies under the implementation version it was made
+            # under, never reinterpreted under another (TORCH-GPU-01).
+            known = {
+                compile_recipe(strategy, implementation=version)[1].recipe_digest
+                for version in implementation_versions.VERSIONS
+            }
+            if bundle["recipe_digest"] not in known or bundle["seed"] != seed:
                 # Retained predictions from another recipe or seed are never
                 # silently reinterpreted under this contract.
                 raise ExperimentError("artifact_mismatch", member)
             bundles[member] = bundle
+        try:
+            # The members are ranked against each other: one device class.
+            ri.bundles_class(bundles.values())
+        except ri.DeviceClassMixed as mixed:
+            raise ExperimentError(
+                "device_classes_mixed", ",".join(mixed.classes)
+            ) from None
         kinds = pn.kinds(self.contract().get("panel", "ev1"))
         results = evaluate(
             self.contract(),

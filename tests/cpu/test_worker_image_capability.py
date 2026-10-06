@@ -48,18 +48,37 @@ def test_the_pinned_versions_are_read_from_the_lock_files():
     for name in capability.JAX_NAMES:
         assert pins[capability.ACCELERATOR_LOCK][name] == uv[name]
     assert pins[capability.TORCH_EXPORT]["numpy"] == uv["numpy"]
-    for cell in ("jax_cpu", "jax_gpu", "pytorch_cpu"):
+    for cell in ("jax_cpu", "jax_gpu", "pytorch_cpu", "pytorch_gpu"):
         assert all(capability.expected_for(cell, pins).values())
     assert capability.expected_for("pytorch_cpu", pins)["torch"].endswith("+cpu")
+    gpu = capability.expected_for("pytorch_gpu", pins)
+    assert gpu["torch"] == "2.13.0+cu130"
+    # Its own CUDA libraries, not the JAX accelerator lock's.
+    assert (
+        gpu["nvidia-cudnn-cu13"]
+        != pins[capability.ACCELERATOR_LOCK]["nvidia-cudnn-cu13"]
+    )
 
 
-def probe_like(pins, *, versions=None, torch_state=None):
-    from carbon.reconstruction.torch_profile import CPU_DETERMINISM
+#: Which lock each image installs on top of uv.lock's C-03 stack.
+IMAGE_LOCK = {
+    "c03": None,
+    "accelerator": capability.ACCELERATOR_LOCK,
+    "torch": capability.TORCH_EXPORT,
+    "torch-gpu": capability.TORCH_GPU_LOCK,
+}
+
+
+def probe_like(
+    pins, *, versions=None, torch_state=None, gpu_state=None, cuda_build="13.0"
+):
+    from carbon.reconstruction.torch_profile import CPU_DETERMINISM, GPU_DETERMINISM
 
     def run_probe(reference, mode, names, *, env=None, gpus=False):
-        installed = {}
-        for source in pins.values():
-            installed.update(source)
+        kind = reference.split("/")[-1].split("@")[0]
+        installed = dict(pins["uv.lock"])
+        if IMAGE_LOCK[kind]:
+            installed.update(pins[IMAGE_LOCK[kind]])
         installed.update(versions or {})
         out = {"versions": {n: installed.get(n) for n in names}}
         if mode == "jax":
@@ -68,6 +87,11 @@ def probe_like(pins, *, versions=None, torch_state=None):
                 devices=["cpu:cpu"],
                 xla_flags=(env or {}).get("XLA_FLAGS"),
             )
+        elif mode == "torch_gpu":
+            out.update(cuda_available=gpus, torch_cuda=cuda_build)
+            out["devices"] = ["cpu", "cuda:NVIDIA A40"] if gpus else ["cpu"]
+            if gpus:
+                out["determinism"] = gpu_state or dict(GPU_DETERMINISM)
         else:
             out.update(
                 cuda_available=False,
@@ -101,14 +125,60 @@ def test_a_gpu_less_host_verifies_cpu_and_leaves_every_gpu_check_unverified(fake
     assert gpu["imports"]["status"] == gpu["lock_versions"]["status"] == "VERIFIED"
     for name in ("devices", "rebuild", "determinism_config"):
         assert gpu[name]["status"] == "UNVERIFIED", name
+    torch_gpu = cells["pytorch_gpu"]["checks"]
+    assert cells["pytorch_gpu"]["image"] == "torch-gpu"
     assert cells["pytorch_gpu"]["status"] == "UNVERIFIED"
-    assert {c["status"] for c in cells["pytorch_gpu"]["checks"].values()} == {
-        "UNVERIFIED"
-    }
-    assert (
-        "no PyTorch GPU worker image"
-        in cells["pytorch_gpu"]["checks"]["imports"]["detail"]
+    assert torch_gpu["imports"]["status"] == "VERIFIED"
+    assert torch_gpu["lock_versions"]["status"] == "VERIFIED"
+    for name in ("devices", "rebuild", "determinism_config"):
+        assert torch_gpu[name]["status"] == "UNVERIFIED", name
+    assert "accelerator dispatch is disabled" in torch_gpu["rebuild"]["detail"]
+
+
+def test_on_a_gpu_host_the_pytorch_gpu_profile_is_checked_and_rebuild_stays_open(
+    fakes, monkeypatch
+):
+    cells = capability.matrix(
+        RECORDS, {}, pins=fakes, gpus=True, expect_kind="NVIDIA A40"
     )
+    torch_gpu = cells["pytorch_gpu"]["checks"]
+    assert torch_gpu["devices"]["status"] == "VERIFIED"
+    assert torch_gpu["determinism_config"]["status"] == "VERIFIED"
+    # Accelerator dispatch is disabled: never passed, even on a GPU.
+    assert torch_gpu["rebuild"]["status"] == "UNVERIFIED"
+    assert cells["pytorch_gpu"]["status"] == "UNVERIFIED"
+    # Another device kind than the expected one is a failure.
+    cells = capability.matrix(
+        RECORDS, {}, pins=fakes, gpus=True, expect_kind="NVIDIA H100"
+    )
+    assert cells["pytorch_gpu"]["checks"]["devices"]["status"] == "FAILED"
+
+
+@pytest.mark.parametrize(
+    "setting",
+    [
+        "cudnn_deterministic",
+        "cudnn_benchmark",
+        "environment:CUBLAS_WORKSPACE_CONFIG",
+        "environment:NVIDIA_TF32_OVERRIDE",
+    ],
+)
+def test_a_gpu_profile_setting_not_in_force_is_failed(fakes, monkeypatch, setting):
+    from carbon.reconstruction.torch_profile import GPU_DETERMINISM
+
+    state = dict(GPU_DETERMINISM)
+    state[setting] = None
+    monkeypatch.setattr(capability, "run_probe", probe_like(fakes, gpu_state=state))
+    found = capability.matrix(RECORDS, {}, pins=fakes, gpus=True)["pytorch_gpu"]
+    assert found["checks"]["determinism_config"]["status"] == "FAILED"
+    assert found["checks"]["determinism_config"]["detail"] == {setting: None}
+
+
+def test_a_cpu_torch_build_in_the_gpu_image_is_failed(fakes, monkeypatch):
+    monkeypatch.setattr(capability, "run_probe", probe_like(fakes, cuda_build=None))
+    found = capability.matrix(RECORDS, {}, pins=fakes)["pytorch_gpu"]
+    assert found["checks"]["imports"]["status"] == "FAILED"
+    assert found["status"] == "FAILED"
 
 
 def test_a_version_off_its_lock_or_a_failed_probe_is_failed(fakes, monkeypatch):
@@ -142,7 +212,7 @@ def test_a_determinism_setting_not_in_force_is_failed(fakes, monkeypatch):
     # The CUDA-only settings are the PyTorch GPU cell's, never passed on CPU.
     gpu = capability.matrix(RECORDS, {}, pins=fakes)["pytorch_gpu"]["checks"]
     assert gpu["determinism_config"]["status"] == "UNVERIFIED"
-    assert "carbon.torch.gpu-determinism" in gpu["determinism_config"]["detail"]
+    assert "carbon.accelerator.profile" in gpu["determinism_config"]["detail"]
 
 
 def test_the_report_names_the_owner_reserved_items_and_exits_on_failure(

@@ -415,9 +415,15 @@ def test_overdue_scores_never_enter_the_primary_ranking():
         ]
     )
     primary = found["primary"]["by_pool_version"]
-    assert [r["proposal_id"] for r in primary["1"]] == ["p-c", "p-a", "p-d"]
-    assert [r["proposal_id"] for r in primary["2"]] == ["p-e"]
-    ranked = {r["proposal_id"] for rows in primary.values() for r in rows}
+    # Records without a device class are the legacy CPU class (TORCH-GPU-01).
+    assert [r["proposal_id"] for r in primary["1"]["cpu"]] == ["p-c", "p-a", "p-d"]
+    assert [r["proposal_id"] for r in primary["2"]["cpu"]] == ["p-e"]
+    ranked = {
+        r["proposal_id"]
+        for classes in primary.values()
+        for rows in classes.values()
+        for r in rows
+    }
     assert "p-b" not in ranked
     assert found["overdue"]["descriptive_only"] is True
     assert found["overdue"]["count"] == 1
