@@ -49,6 +49,8 @@ from pathlib import Path
 from carbon.design_search import score_value
 
 from . import admissibility, margins, ratios
+from . import decision as d
+from . import false_acceptance as fa
 from . import score_candidates_b1 as b1
 from . import scoring as sc
 from .near import near_cases
@@ -56,7 +58,9 @@ from .near import near_cases
 REGISTRY_SCHEMA = "carbon.battery.score-tuning-registry.v1"
 RESULT_SCHEMA = "carbon.battery.score-tuning-result.v1"
 LEGS = ("a", "r", "g", "m", "n", "p")
-GATES = ("near", "envelope")
+GATES = ("near", "envelope", "feasibility", "plating_fa")
+#: A registered threshold sweep expands to one candidate per cutoff (`load_registry`).
+SWEEP_KIND = "gate_sweep"
 DECIDING = "control-exam-v1"
 INFEASIBLE = "SELECTED_INFEASIBLE"
 
@@ -124,11 +128,22 @@ def load_registry(path, *, repository=None):
     document = json.loads(body)
     if document.get("schema") != REGISTRY_SCHEMA:
         raise TuningError("registry_schema")
-    candidates = [parse_candidate(e) for e in document["candidates"]]
+    candidates, sweeps = [], {}
+    for entry in document["candidates"]:
+        if entry.get("kind") == SWEEP_KIND:
+            expanded = expand_sweep(entry, {c.id: c for c in candidates})
+            sweeps[entry["id"]] = [c.id for c in expanded]
+            candidates += expanded
+        else:
+            candidates.append(parse_candidate(entry))
     ids = [c.id for c in candidates]
     if len(ids) != len(set(ids)):
         raise TuningError("registry_duplicate_id")
-    identity = {"sha256": hashlib.sha256(body).hexdigest(), "commit": None}
+    identity = {
+        "sha256": hashlib.sha256(body).hexdigest(),
+        "commit": None,
+        "sweeps": sweeps,
+    }
     if repository is not None:
         root = Path(repository)
         rel = str(path.resolve().relative_to(root.resolve()))
@@ -148,6 +163,37 @@ def load_registry(path, *, repository=None):
             raise TuningError("registry_not_committed", rel)
         identity["commit"] = commit
     return {c.id: c for c in candidates}, identity
+
+
+def expand_sweep(entry, registered):
+    """A registered threshold sweep: one candidate per cutoff, each the base
+    candidate's weighting gated at that cutoff. No cutoff is chosen here."""
+    if set(entry) - {"id", "kind", "measure", "grid", "base", "basis"}:
+        raise TuningError("sweep_fields", entry.get("id"))
+    if entry.get("measure") not in GATES:
+        raise TuningError("sweep_measure", entry.get("id"))
+    base = registered.get(entry.get("base"))
+    if base is None:
+        raise TuningError("sweep_base_unregistered", entry.get("id"))
+    grid = entry.get("grid")
+    if (
+        not isinstance(grid, list)
+        or not grid
+        or any(not isinstance(x, (int, float)) or x <= 0 for x in grid)
+        or grid != sorted(set(grid))
+    ):
+        raise TuningError("sweep_grid", entry.get("id"))
+    return [
+        Candidate(
+            f"{entry['id']}@{cutoff:g}",
+            base.kind,
+            dict(base.weights),
+            {"measure": entry["measure"], "cutoff": float(cutoff)},
+            base.stable,
+            f"sweep {entry['id']} of {base.id} at {cutoff:g}",
+        )
+        for cutoff in grid
+    ]
 
 
 # --- legs ------------------------------------------------------------------------------
@@ -179,8 +225,41 @@ def member_legs(contract, predictions, store, case_ids):
             "envelope": admissibility.near_optimism(
                 contract, predictions, inside, store.refs
             ),
+            "feasibility": false_feasible_rate(
+                contract, predictions, case_ids, store.refs
+            ),
+            "plating_fa": _plating_fa(contract, predictions, near, store.refs),
         },
     }
+
+
+def false_feasible_rate(contract, predictions, case_ids, refs):
+    """G-FEAS's measure: of the cases the reference fails on any constraint
+    (contract bands), the share the model calls feasible on every constraint
+    (no band). Computed on the scoring set, never on decision scenarios, so
+    the gate cannot grade the decisions it is evaluated against. None when a
+    case is missing or no case fails."""
+    bands = contract["reference"]["uncertainty"]["bands"]
+    fails = accepted = 0
+    for case_id in case_ids:
+        outputs, reference = predictions.get(case_id), refs[case_id].get("outputs")
+        if outputs is None or reference is None:
+            return None
+        truth = d.check(contract, d.measure(contract, reference), bands)
+        if any(v == d.FAIL for v in truth.values()):
+            said = d.check(contract, d.measure(contract, outputs))
+            fails += 1
+            accepted += all(v == d.PASS for v in said.values())
+    return None if fails == 0 else accepted / fails
+
+
+def _plating_fa(contract, predictions, near, refs):
+    """G-PLATE's measure: near-limit plating false acceptance
+    (`false_acceptance.component`, the run-5 9.5 % measure)."""
+    component = fa.component(contract, predictions, near, refs)
+    if component is None:
+        return None
+    return component["constraints"]["no_plating_onset"]["false_acceptance_rate"]
 
 
 # --- scoring ---------------------------------------------------------------------------
@@ -385,9 +464,27 @@ def evaluate_all(
         out[cid]["progress_vs_baseline"] = (
             cid != baseline and interval is not None and interval[0] > 0
         )
+    curves = {
+        sweep: [
+            {
+                "cutoff": candidates[cid].gate["cutoff"],
+                "top1_false_feasible_rate": out[cid]["top1_false_feasible_rate"],
+                "regret": out[cid]["regret"],
+                "tau_all": out[cid]["tau_all"],
+                "tau_seed_band": out[cid]["tau_seed_band"],
+                "gate_failures": len(out[cid]["gate_failures"]),
+                "adversarial_in_top_half": out[cid]["adversarial_in_top_half"],
+            }
+            for cid in members_of
+            if cid in out
+        ]
+        for sweep, members_of in identity.get("sweeps", {}).items()
+    }
     return {
         "schema": RESULT_SCHEMA,
         "registry": identity,
+        "sweep_curves": curves,
+        "threshold": "HUMAN_INPUT: the owner picks a cutoff from each curve",
         "baseline": baseline,
         "candidates": out,
         "claims": "DEVELOPMENT evidence; nothing adopted; no rule, gate or reward changed",

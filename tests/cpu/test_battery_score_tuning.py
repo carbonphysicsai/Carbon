@@ -281,3 +281,83 @@ def test_adversarial_members_must_leave_the_top_half_without_good_deciders():
     assert ce["good_deciders_top_half_share"] == 0.0
     assert a["adversarial_in_top_half"] == []
     assert a["good_deciders_top_half_share"] == 1.0
+
+
+def test_a_gate_sweep_expands_and_reports_its_curve(tmp_path):
+    legs, values, recipe_of = _legs()
+    for i, m in enumerate(sorted(legs)):
+        legs[m]["gates"]["feasibility"] = (
+            0.1 * i
+        )  # the worst decider is the most false-feasible
+    members = sorted(legs)
+    document = {
+        "schema": st.REGISTRY_SCHEMA,
+        "candidates": [
+            {"id": "CE", "kind": "deciding"},
+            {"id": "A", "weights": {"a": 1.0}},
+            {
+                "id": "G-FEAS/CE",
+                "kind": "gate_sweep",
+                "measure": "feasibility",
+                "grid": [0.25, 1.01],
+                "base": "CE",
+            },
+        ],
+    }
+    path = _registry(tmp_path, document)
+    registry = st.load_registry(path, repository=tmp_path)
+    assert registry[1]["sweeps"] == {"G-FEAS/CE": ["G-FEAS/CE@0.25", "G-FEAS/CE@1.01"]}
+    result = st.evaluate_all(registry, legs, values, {}, recipe_of, members, members)
+    curve = result["sweep_curves"]["G-FEAS/CE"]
+    assert [p["cutoff"] for p in curve] == [0.25, 1.01]
+    assert curve[0]["gate_failures"] > 0 and curve[1]["gate_failures"] == 0
+    assert curve[0]["tau_all"] > curve[1]["tau_all"]
+    assert result["threshold"].startswith("HUMAN_INPUT")
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {
+            "id": "s",
+            "kind": "gate_sweep",
+            "measure": "nope",
+            "grid": [0.1],
+            "base": "CE",
+        },
+        {
+            "id": "s",
+            "kind": "gate_sweep",
+            "measure": "feasibility",
+            "grid": [0.2, 0.1],
+            "base": "CE",
+        },
+        {
+            "id": "s",
+            "kind": "gate_sweep",
+            "measure": "feasibility",
+            "grid": [0.1],
+            "base": "missing",
+        },
+    ],
+)
+def test_malformed_sweeps_are_refused(tmp_path, bad):
+    document = {
+        "schema": st.REGISTRY_SCHEMA,
+        "candidates": [{"id": "CE", "kind": "deciding"}, bad],
+    }
+    path = tmp_path / "r.json"
+    path.write_text(json.dumps(document))
+    with pytest.raises(st.TuningError):
+        st.load_registry(path)
+
+
+def test_the_committed_registries_load():
+    for name in ("registry-v1.json", "registry-v2.json"):
+        candidates, identity = st.load_registry(
+            st.Path(__file__).resolve().parents[2]
+            / "docs/development/evidence/battery-score-tuning"
+            / name
+        )
+        assert "CE" in candidates
+    assert len(identity["sweeps"]) == 10 and len(candidates) == 12 + 80
