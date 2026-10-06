@@ -108,15 +108,29 @@ the locked `.venv`:
 
 ```bash
 image="$(.venv/bin/python -c 'import json;p=json.load(open("scripts/dev/localnet-runtime.json"));print(p["image"]+"@"+p["image_digest"])')"
-startup="$(.venv/bin/python -c 'from carbon.chain.localnet import startup_for;print(startup_for("fast"),end="")')"
+startup="$(.venv/bin/python -c 'from carbon.chain.localnet import startup_for;print(startup_for("standard"),end="")')"
 docker run --detach --rm --name carbon-commitment-localnet --platform linux/amd64 \
   -p 127.0.0.1:9944:9944 --entrypoint /bin/bash "$image" -c "$startup"
-# wait until the node produces blocks (docker logs -f carbon-commitment-localnet)
+# wait until it produces blocks, about one per 12 s (docker logs -f carbon-commitment-localnet)
 CARBON_COMMITMENT_LOCALNET=1 .venv/bin/python scripts/dev/commitment_localnet_roundtrip.py \
   --endpoint ws://127.0.0.1:9944 --setup --out .carbon-artifacts/commitment
 docker stop carbon-commitment-localnet
 ```
 
+- **Profile: standard, not fast** (Test Lead ruling on #717). The original
+  plan used `startup_for("fast")`. The fast profile carries the recorded
+  v445 fast-localnet unshielding blocker (`docs/development/LOCALNET_INTEGRATION.md`:
+  shielded registration's inner extrinsic is never unshielded), which
+  `--setup`'s shielded `BurnedRegister` needs, and 12-second blocks match
+  testnet and mainnet. The script refuses any endpoint whose genesis is not
+  `profiles.standard.expected_genesis` in `scripts/dev/localnet-runtime.json`;
+  there is no fast fallback.
+- **Timing at 12 s.** Each setup step and the commitment broadcast wait at
+  most 20 blocks (240 s; `FINALITY_SECONDS`). The era is 128 blocks (about
+  25.6 minutes), the SDK default; the signer's cap is min(128, one 360-block
+  tempo) = 128, counted in blocks, so it is unchanged by block time. The
+  D4 window is 360 blocks (72 minutes). Expect the whole run, with setup, to
+  take roughly 10 to 20 minutes.
 - `--setup` creates netuid 2 with `//Alice` and registers `//Bob` on it, as
   the disposable harness does. Drop it on a chain already set up that way.
 - The signer prompts **on this terminal**. Check the digest and fee, type the

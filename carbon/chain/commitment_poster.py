@@ -63,8 +63,12 @@ DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 #: refuses anything over its own recorded cap.
 ERA_PERIOD = 128
 #: How long a broadcast may take to reach finality before its outcome is
-#: treated as unknown and reconciled by reading (engineering bound).
-FINALITY_SECONDS = 180
+#: treated as unknown and reconciled by reading (engineering bound): 20
+#: blocks at testnet's, mainnet's and the standard localnet's 12-second
+#: blocks, well inside the 128-block era (about 25.6 minutes).
+BLOCK_SECONDS = 12
+FINALITY_BLOCKS = 20
+FINALITY_SECONDS = FINALITY_BLOCKS * BLOCK_SECONDS
 #: States in which a signature may exist that the chain has not settled.
 PENDING = frozenset({"REQUESTED", "BROADCAST", "AMBIGUOUS"})
 

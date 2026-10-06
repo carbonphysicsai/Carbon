@@ -399,3 +399,22 @@ def test_an_agent_can_request_but_only_the_terminal_confirms(signer, tmp_path):
     (request,) = signer.requests
     assert set(request) == {"netuid", "digest", "unsigned", "fee"}
     assert "confirm" not in json.dumps(request)
+
+
+def test_timing_holds_at_twelve_second_blocks():
+    """Standard localnet, testnet and mainnet all run 12-second blocks: the
+    finality wait fits well inside the era, and the era is the SDK default
+    capped at one 360-block tempo (counted in blocks, so block time does not
+    move the cap). The round trip accepts only the standard profile."""
+    from carbon.chain.localnet import runtime_profile
+    from carbon_miner_signer import commitment as cm
+
+    record = json.loads(cm.RECORD_PATH.read_text())
+    _, standard = runtime_profile("standard")
+    assert standard["nominal_block_seconds"] == str(cp.BLOCK_SECONDS) == "12"
+    assert cp.ERA_PERIOD == record["era"]["max_period"] == 128
+    assert record["era"]["max_period"] <= record["network"]["tempo_blocks"] == 360
+    assert cp.FINALITY_SECONDS < cp.ERA_PERIOD * cp.BLOCK_SECONDS
+    script = (REPOSITORY / "scripts/dev/commitment_localnet_roundtrip.py").read_text()
+    assert 'PROFILE = "standard"' in script and '"fast"' not in script
+    assert 'profile["expected_genesis"]' in script

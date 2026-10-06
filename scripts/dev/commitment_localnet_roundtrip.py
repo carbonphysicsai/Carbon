@@ -1,7 +1,12 @@
 """Localnet round trip for a miner's strategy commitment (COMMITMENT-POSTER-01).
 
 OPT-IN. It needs a running local subtensor that the executor started, with its
-RPC on a loopback address. It never starts a chain, never touches a public
+RPC on a loopback address, from the pinned image's STANDARD profile
+(``scripts/dev/localnet-runtime.json`` ``profiles.standard``: 12-second blocks,
+as testnet and mainnet). The fast profile is not accepted: its shielded
+registration is blocked (``docs/development/LOCALNET_INTEGRATION.md``, the
+v445 fast-localnet unshielding failure). The endpoint's genesis must equal the
+standard profile's ``expected_genesis``; there is no fallback to fast. It never starts a chain, never touches a public
 network and uses only public development URIs (``//Alice``, ``//Bob``), never a
 wallet file. It refuses an endpoint whose genesis is testnet's or mainnet's.
 
@@ -50,6 +55,9 @@ sys.path.insert(0, str(ROOT))
 TESTNET_GENESIS = "0x8f9cf856bf558a14440e75569c9e58594757048d7b3a84b5d25f6bd978263105"
 FINNEY_GENESIS = "0x2f0555cc76fc2840a25a6ea3b9637146806f1f44b090c175ffde2a7e5ab36c03"
 NETUID = 2  # the first subnet a fresh localnet creates (carbon/chain/localnet.py)
+PROFILE = "standard"
+#: Each setup step waits at most this long: 20 standard 12-second blocks.
+STEP_SECONDS = 20 * 12
 
 
 def _digest(label):
@@ -96,24 +104,26 @@ async def _setup(endpoint, genesis):
 
     async def run(label, intent, signer):
         print("setup:", label, flush=True)
+        result = await asyncio.wait_for(step(intent, signer), STEP_SECONDS)
+        if not result.success:
+            raise SystemExit(f"setup step {label} failed: {result.message}")
+
+    async def step(intent, signer):
         if intent.mev_shield_required:
-            result = await client.submit_shielded(
+            return await client.submit_shielded(
                 intent,
                 signer,
                 period=MEV_SHIELD_ERA_PERIOD,
                 wait_for_inclusion=True,
                 wait_for_finalization=True,
             )
-        else:
-            result = await client.execute(
-                intent,
-                signer,
-                retries=0,
-                wait_for_inclusion=True,
-                wait_for_finalization=True,
-            )
-        if not result.success:
-            raise SystemExit(f"setup step {label} failed: {result.message}")
+        return await client.execute(
+            intent,
+            signer,
+            retries=0,
+            wait_for_inclusion=True,
+            wait_for_finalization=True,
+        )
 
     try:
         await substrate.connect()
@@ -178,6 +188,7 @@ def main(argv=None):
         SdkCommitmentChain,
     )
     from carbon.chain.external_signer import connect_signer, request_commitment
+    from carbon.chain.localnet import runtime_profile
     from carbon.chain.models import ChainContext, hash256
     from carbon_miner_signer import SignerServer
     from carbon_miner_signer import commitment as cm
@@ -185,6 +196,12 @@ def main(argv=None):
     genesis = hash256(asyncio.run(_genesis(args.endpoint)))
     if genesis in (TESTNET_GENESIS, FINNEY_GENESIS):
         raise SystemExit("refused: this endpoint is a public network")
+    _, profile = runtime_profile(PROFILE)
+    if genesis != profile["expected_genesis"]:
+        raise SystemExit(
+            "refused: not the pinned standard-profile localnet "
+            f"(genesis {genesis}, expected {profile['expected_genesis']})"
+        )
     # ChainContext refuses a "localnet" endpoint that is not loopback.
     context = ChainContext("localnet", args.endpoint, "disposable", genesis, NETUID)
     if args.setup:
