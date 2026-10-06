@@ -146,6 +146,7 @@ SHOW_ACCOUNTING = False
 #: committed as its time and name alone.
 PUBLIC_FIELDS = {
     "campaign_start": {"campaign", "max_pods"},
+    "cap_amended": {"campaign", "decision"},
     "connectivity_test": {"pod_id"},
     "dispatch_requested": {
         "campaign",
@@ -156,6 +157,7 @@ PUBLIC_FIELDS = {
         "minutes",
         "vcpu",
         "cuda",
+        "gpus",
     },
     "created": {
         "pod_id",
@@ -306,6 +308,12 @@ IMAGE = (
 )
 GPU = "NVIDIA A40"
 MAX_RATE = 0.49
+#: Operator overrides (OWNER-EV5-GPU-01): an ordered list of acceptable GPU
+#: types and the per-pod rate ceiling. Unset, A40 at MAX_RATE as before.
+GPUS = tuple(
+    g.strip() for g in os.environ.get("CARBON_POD_GPUS", GPU).split(",") if g.strip()
+)
+MAX_RATE = float(os.environ.get("CARBON_POD_MAX_RATE", MAX_RATE))
 CLEANUP_RESERVE_USD = 0.25
 DISK_GB = 20
 DISK_USD_PER_GB_MONTH = (
@@ -394,10 +402,10 @@ def account() -> dict:
     ]["myself"]
 
 
-def a40_price(cuda: str) -> tuple[float | None, str | None]:
+def a40_price(cuda: str, gpu: str = GPU) -> tuple[float | None, str | None]:
     d = gql(
         'query { gpuTypes(input:{id:"'
-        + GPU
+        + gpu
         + '"}) { lowestPrice(input:{gpuCount:1, secureCloud:true, cudaVersion:"'
         + cuda
         + '"}) { uninterruptablePrice stockStatus } } }'
@@ -419,6 +427,7 @@ def public_record(rec: dict) -> dict:
 #: What the budget reads from a row; a projected row lacks it.
 BUDGET_FIELDS = {
     "campaign_start": {"cap_usd"},
+    "cap_amended": {"cap_usd"},
     "created": {"rate"},
     "connectivity_test": {"cost_usd"},
 }
@@ -519,10 +528,35 @@ def committed_spend() -> float:
 
 
 def campaign_cap() -> float:
+    """The cap fixed at start, or the latest owner-recorded amendment."""
+    cap = None
     for r in ledger_rows():
-        if r["event"] == "campaign_start":
-            return r["cap_usd"]
-    raise SystemExit("no campaign_start in the ledger; run `start` first")
+        if r["event"] in ("campaign_start", "cap_amended"):
+            cap = r["cap_usd"]
+    if cap is None:
+        raise SystemExit("no campaign_start in the ledger; run `start` first")
+    return cap
+
+
+def cmd_amend_cap(a) -> None:
+    """Record an owner decision that changes a started campaign's cap; still
+    never above the operator ceiling or the balance less the floor."""
+    if not any(r["event"] == "campaign_start" for r in ledger_rows()):
+        raise SystemExit("no campaign_start in the ledger; run `start` first")
+    limits = operator_limits()
+    acct = account()
+    cap = start_cap(acct["clientBalance"], a.cap_usd, limits)
+    ledger(
+        "cap_amended",
+        campaign=CAMPAIGN,
+        decision=a.decision,
+        balance_usd=acct["clientBalance"],
+        cap_usd=round(cap, 4),
+    )
+    out = {"campaign": CAMPAIGN, "amended": True, "decision": a.decision}
+    if SHOW_ACCOUNTING:
+        out |= {"cap_usd": round(cap, 4)}
+    print(json.dumps(out))
 
 
 def code_manifest(ref: str, paths: list[str]) -> dict:
@@ -683,17 +717,23 @@ def cmd_dispatch(a) -> None:
     limits = operator_limits()
     allowed = allowed_pods(a.max_pods)
     check_pod_allowance(active_pods(), pods(), allowed)
-    cuda_ok = []
+    cuda_ok, offered = [], []
     for cuda in (
         "13.0",
     ):  # the REST create schema accepts CUDA versions up to 13.0; keeps the host line fixed
-        price, stock = a40_price(cuda)
-        if price is not None and price <= MAX_RATE and stock:
+        for index, gpu in enumerate(GPUS):
+            price, stock = a40_price(cuda, gpu)
+            if price is not None and price <= MAX_RATE and stock:
+                offered.append((price, index, gpu))
+        if offered:
             cuda_ok.append(cuda)
     if not cuda_ok:
         raise SystemExit(
-            f"refusing: no {GPU} Secure pod at <= USD {MAX_RATE}/hr on CUDA 13.0 right now"
+            f"refusing: no {'/'.join(GPUS)} Secure pod at <= USD {MAX_RATE}/hr "
+            "on CUDA 13.0 right now"
         )
+    # Cheapest first; ties keep the operator's order (OWNER-EV5-GPU-01).
+    gpu_order = [gpu for _price, _index, gpu in sorted(offered)]
     rate = MAX_RATE
     acct = account()
     minutes = float(a.minutes)
@@ -735,7 +775,19 @@ def cmd_dispatch(a) -> None:
         json.loads(Path(os.path.join(REPO, a.plan)).read_text()) if a.plan else {}
     )
     # Whole trees the plan or the operator names (e.g. the `carbon` package).
-    paths += ship_paths(ref, [*plan_doc.get("ship", []), *(a.ship or [])])
+    # `--ship-only FILE` replaces the plan's trees with an explicit list of
+    # tracked files (one per line), each still hash-pinned at `ref`: a whole
+    # `carbon` tree's manifest grew past what the create request accepts
+    # (OWNER-EV5-GPU-01, 2026-10-05).
+    if a.ship_only:
+        listed = [line.strip() for line in Path(a.ship_only).read_text().splitlines()]
+        listed = [p for p in listed if p]
+        missing = sorted(set(listed) - set(ship_paths(ref, listed)))
+        if missing:
+            raise SystemExit(f"refusing: not tracked at {ref}: {missing[:5]}")
+        paths += listed
+    else:
+        paths += ship_paths(ref, [*plan_doc.get("ship", []), *(a.ship or [])])
     paths += [a.plan] if a.plan else []
     paths = list(dict.fromkeys(paths))
     if a.plan:
@@ -824,7 +876,8 @@ def cmd_dispatch(a) -> None:
         "computeType": "GPU",
         "cloudType": "SECURE",
         "interruptible": False,
-        "gpuTypeIds": [GPU],
+        "gpuTypeIds": gpu_order,
+        "gpuTypePriority": "custom",
         "gpuCount": 1,
         "allowedCudaVersions": cuda_ok,
         "containerDiskInGb": DISK_GB,
@@ -847,6 +900,7 @@ def cmd_dispatch(a) -> None:
         balance_usd=acct["clientBalance"],
         committed_before_usd=round(spent, 4),
         cuda=cuda_ok,
+        gpus=gpu_order,
     )
     code, resp = rest("POST", "/pods", body)
     pod_id = resp.get("id") if isinstance(resp, dict) else None
@@ -1362,6 +1416,10 @@ def main(argv=None) -> None:
         help="tracked trees to ship hash-pinned besides scripts/dev/exam_design",
     )
     d.add_argument(
+        "--ship-only",
+        help="a file listing the tracked files to ship instead of the plan's trees",
+    )
+    d.add_argument(
         "--max-pods",
         type=int,
         default=1,
@@ -1388,6 +1446,9 @@ def main(argv=None) -> None:
     w.add_argument("deadline")
     sub.add_parser("reconcile")
     sub.add_parser("migrate-ledger")
+    amend = sub.add_parser("amend-cap", help="record an owner cap decision")
+    amend.add_argument("--cap-usd", type=float, required=True)
+    amend.add_argument("--decision", required=True, help="the owner decision id")
     a = ap.parse_args(argv)
     use_campaign(a.campaign)
     SHOW_ACCOUNTING = a.show_accounting
@@ -1401,6 +1462,7 @@ def main(argv=None) -> None:
         "terminate": cmd_terminate,
         "watchdog": cmd_watchdog,
         "reconcile": cmd_reconcile,
+        "amend-cap": cmd_amend_cap,
         "migrate-ledger": cmd_migrate_ledger,
     }[a.cmd](a)
 

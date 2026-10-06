@@ -74,6 +74,121 @@ LOG_BYTES = 64 * 1024
 SETUP_MARGIN_S = 45
 OUTPUTS = ("predictions.json", "fit.json", "runtime.json")
 REPOSITORY = Path(__file__).resolve().parents[3]
+#: The lane's declared properties, registered and digest-pinned
+#: (VALIDATOR-11): levels, program deadline margin, price, attribution and
+#: environment probe. The constants above must equal the current version.
+LANE_DIR = Path(__file__).with_name("compute_lanes")
+LANE_SCHEMA = "carbon.graphite.compute-lane.v1"
+LANE_REGISTRY_SCHEMA = "carbon.graphite.compute-lane-registry.v1"
+_LANE_KEYS = {
+    "schema",
+    "version",
+    "lane",
+    "host",
+    "levels",
+    "program_deadline_margin_s",
+    "hourly_usd",
+    "attribution",
+    "environment_probe",
+    "authority",
+    "security",
+}
+
+
+class LaneRefused(ValueError):
+    def __init__(self, code):
+        super().__init__(code)
+        self.code = code
+
+
+def lane_policy(directory=None):
+    """`(document, digest)` of the carrier lane's current registered version.
+    Refused when the registry or document is altered, malformed, or disagrees
+    with this module's constants."""
+    directory = LANE_DIR if directory is None else Path(directory)
+    try:
+        registry = json.loads((directory / "registry.json").read_text())
+        version = registry["current"][BACKEND]
+        pinned = registry["versions"][version]
+        document = json.loads((directory / f"{version}.json").read_text())
+    except (OSError, ValueError, KeyError, TypeError):
+        raise LaneRefused("lane_policy_unreadable") from None
+    if registry.get("schema") != LANE_REGISTRY_SCHEMA:
+        raise LaneRefused("lane_policy_registry_malformed")
+    found = "sha256:" + hashlib.sha256(_canonical(document)).hexdigest()
+    if found != pinned:
+        raise LaneRefused("lane_policy_altered")
+    if (
+        type(document) is not dict
+        or set(document) != _LANE_KEYS
+        or document["schema"] != LANE_SCHEMA
+        or document["version"] != version
+        or document["lane"] != BACKEND
+    ):
+        raise LaneRefused("lane_policy_malformed")
+    if (
+        frozenset(document["levels"]) != CARRIER_LEVELS
+        or document["program_deadline_margin_s"] != SETUP_MARGIN_S
+        or Decimal(document["hourly_usd"]) != Decimal(0)
+        or document["host"] != "operator"
+    ):
+        raise LaneRefused("lane_policy_disagrees_with_the_lane")
+    return document, pinned
+
+
+def environment_check(manifest, *, doctor=None, load=None):
+    """The lane's environment probe, read-only (the readiness gate's R3):
+    the pinned C-03 worker image manifest loads, and the host doctor finds
+    the host eligible with that image present and bound. Runs nothing."""
+    from carbon.reconstruction.worker import docker_runtime
+
+    document, pinned = lane_policy()
+    load = docker_runtime.load_image_identity if load is None else load
+    doctor = docker_runtime.doctor if doctor is None else doctor
+    result = {
+        "lane_policy": document["version"],
+        "lane_policy_digest": pinned,
+        "manifest_loaded": False,
+        "image_present": None,
+        "doctor_eligible": False,
+        "doctor_code": None,
+        "eligible": False,
+    }
+    try:
+        image = load(Path(manifest))
+    except (OSError, ValueError, TypeError):
+        result["doctor_code"] = "lane.manifest_unreadable"
+        return result
+    result["manifest_loaded"] = True
+    verdict = doctor(image_id=image.image_id, image_identity=image)
+    result["doctor_code"] = verdict.code
+    result["doctor_eligible"] = bool(verdict.eligible)
+    result["image_present"] = _image_present(verdict.code)
+    result["eligible"] = bool(verdict.eligible)
+    return result
+
+
+#: Doctor codes returned before the image is inspected: its presence is
+#: unknown, never assumed.
+_BEFORE_IMAGE_CHECK = frozenset(
+    {
+        "worker.doctor.unauthenticated_remote_daemon",
+        "worker.doctor.image_identity_invalid",
+        "worker.doctor.docker_unavailable",
+        "worker.doctor.runtime_unknown",
+        "worker.doctor.capacity_or_cgroup_ineligible",
+        "worker.doctor.engine_mode_unsupported",
+    }
+)
+
+
+def _image_present(code):
+    """True when the doctor found the image (eligible, or present but
+    ineligible or unbound), False when the image is absent, None when the
+    doctor stopped before inspecting it."""
+    if code in _BEFORE_IMAGE_CHECK:
+        return None
+    return code != "worker.doctor.image_unavailable"
 
 
 def _canonical(value):
@@ -167,6 +282,8 @@ class CarrierPods:
     def __init__(
         self, root, *, image, repository=REPOSITORY, runner=None, clock=time.time
     ):
+        # The lane runs only under its registered policy (fail closed).
+        lane_policy()
         self.root = _owner_only_directory(root)
         self.image = image
         self.repository = Path(repository)
@@ -182,7 +299,9 @@ class CarrierPods:
         return self._runner
 
     def describe(self):
+        document, pinned = lane_policy()
         return {
+            "lane_policy": {"version": document["version"], "digest": pinned},
             "backend": BACKEND,
             "image": "c03:" + str(self.image.image_id),
             "host": "operator",
@@ -328,3 +447,26 @@ class CarrierPods:
 
     def charge(self, handle):
         return Decimal(0)
+
+
+def main(argv=None):
+    """`check --image-manifest PATH`: the lane's environment probe, as JSON;
+    exits 0 when eligible, 1 otherwise."""
+    import argparse
+
+    parser = argparse.ArgumentParser(prog="graphite.carrier_pods")
+    sub = parser.add_subparsers(dest="command", required=True)
+    check = sub.add_parser("check")
+    check.add_argument("--image-manifest", required=True)
+    args = parser.parse_args(argv)
+    try:
+        result = environment_check(args.image_manifest)
+    except LaneRefused as refused:
+        print(json.dumps({"refused": refused.code}))
+        return 2
+    print(json.dumps(result, indent=1, sort_keys=True))
+    return 0 if result["eligible"] else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

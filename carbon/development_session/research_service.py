@@ -41,6 +41,84 @@ class Compiler(research.B02BCompilationProvider):
             return rejected.rejected
 
 
+#: The B-02B compiler's own code for a strategy naming another Challenge
+#: than the one compiled for (`construction.compiler.compile_strategy`).
+CHALLENGE_MISMATCH = "strategy.challenge_mismatch"
+
+
+def names_another_challenge(strategy, challenge):
+    """Whether `strategy` names, as a well-formed id, a Challenge other than
+    `challenge`. A missing or malformed id is not this: the contract's own
+    structural check names it."""
+    from carbon.schema.strategy import _IDENTIFIER
+
+    named = strategy.get("challenge_id") if type(strategy) is dict else None
+    return (
+        type(named) is str
+        and _IDENTIFIER.fullmatch(named) is not None
+        and named != challenge
+    )
+
+
+def submission_issues(strategy, challenge):
+    """Every issue the submission path refuses `strategy` with, for the
+    Challenge `challenge`, or () when it would admit it.
+
+    The same compile a submission meets (`challenge_contracts.compile_submission`):
+    structural validation, the named Challenge's contract
+    (`validate_for_challenge`), then that Challenge's own compiler and its
+    backend rules - each issue with the code and path that path names. A
+    strategy naming another Challenge is refused as the B-02B compiler
+    refuses it (`strategy.challenge_mismatch`), never compiled under that
+    other contract. A dry run: it compiles in memory and dispatches, admits,
+    scores and stores nothing."""
+    from carbon.construction.compiler import _ISSUE_MESSAGES as COMPILE_MESSAGES
+    from carbon.construction.compiler import CompileIssue
+    from carbon.reconstruction.challenge_contracts import (
+        SubmissionRefused,
+        compile_submission,
+    )
+
+    if names_another_challenge(strategy, challenge):
+        return (
+            CompileIssue(
+                CHALLENGE_MISMATCH,
+                "/challenge_id",
+                COMPILE_MESSAGES[CHALLENGE_MISMATCH],
+            ),
+        )
+    try:
+        compile_submission(strategy)
+    except SubmissionRefused as refused:
+        return refused.issues
+    except RecipeRejected as rejected:
+        return rejected.rejected.issues
+    return ()
+
+
+class ChallengeContractValidation:
+    """dry_validate as the named Challenge's submission path answers it
+    (RESEARCH-TOOL-USABILITY-01): the issues `submission_issues` names, with
+    the codes the authoritative compile refuses with, rather than A2's
+    structural check alone, which called valid what that compile refuses."""
+
+    __slots__ = ("key",)
+
+    def __init__(self, key=CHALLENGE):
+        self.key = key
+
+    def dry_validate(self, request):
+        from carbon.research.service import dry_validation_result
+
+        if type(request) is not research.DryValidateRequest:
+            raise TypeError("exact DryValidateRequest required")
+        if request.challenge_key != self.key:
+            raise ValueError("research validation binding differs")
+        return dry_validation_result(
+            request, tuple(submission_issues(request.strategy, self.key.challenge_id))
+        )
+
+
 class Discovery:
     def __init__(self, info, manifest, key=CHALLENGE):
         self.info, self.manifest, self.key = info, manifest, key
@@ -168,6 +246,11 @@ class ChallengeParts:
     implementation_files: tuple
     disclosure: bytes = b"carbon.autoresearch.public-result.v1"
     on_inspection: object = None
+    #: dry_validate answers with the Challenge's submission path
+    #: (`ChallengeContractValidation`). False keeps A2's structural check:
+    #: the GPU practice composition, whose recipes are its own catalogue's,
+    #: not submissions under the Challenge contract.
+    contract_validation: bool = True
 
 
 def make_research_service(
@@ -241,6 +324,7 @@ def make_research_service(
             if gpu
             else None
         ),
+        contract_validation=not gpu,
     )
     return compose_research_service(
         parts,
@@ -394,7 +478,11 @@ def compose_research_service(
             discovery,
             prior,
             Scaffold(contracts, parts.scaffold_strategy, key),
-            research.A2ValidationProvider(),
+            (
+                ChallengeContractValidation(key)
+                if parts.contract_validation
+                else research.A2ValidationProvider()
+            ),
             compiler,
             prior,
             inspection,

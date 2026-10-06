@@ -58,7 +58,7 @@ from carbon.development_session import research_loop, research_tools
 from carbon.development_session.model_provider import DEFAULT_SELECTION
 from carbon.development_session.profile import canonical
 from carbon.development_session.research_agent_policy import PARALLEL_CALLS_V2
-from carbon.development_session.research_ledger import CampaignLedger
+from carbon.development_session.research_ledger import CampaignLedger, LedgerRefusal
 
 MINER = Path(driver.__file__).resolve().parent
 #: This slice's modules. The literature slice's modules share the package and
@@ -517,7 +517,10 @@ def test_the_miners_own_limits_end_a_model_call_typed_and_nothing_else(tmp_path)
     reserve("epoch-1-tool-000", {"research_trials": 1})
     with pytest.raises(ValueError, match="miner budget: research_trials") as plain:
         reserve("epoch-1-tool-001", {"research_trials": 1})
-    assert type(plain.value) is ValueError
+    # The ledger's own refusal, never a stage stop: since
+    # RESEARCH-BUDGET-REFUSAL-TYPING-01 the ledger raises its typed
+    # LedgerRefusal (a ValueError with the same text) rather than a bare one.
+    assert type(plain.value) is LedgerRefusal
     # Another refusal of a model call is not a limit: untyped.
     with pytest.raises(ValueError, match="replay conflict") as conflict:
         reserve("epoch-1-provider-000", {"provider_attempts": 1}, request={"x": 1})

@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-black-format",
+  "recorded_at": "2026-10-05T12:17:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "Black formatting of three candidate-fault files",
+    "description": "Applied the repository formatter to the exact files named by the prior check."
+  },
+  "expected": "Black reformats only the three named files without semantic edits.",
+  "observed": "Black reformatted all three named files successfully.",
+  "keep": [
+    "Keep mechanical formatting separate from policy semantics."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "quality_gate"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

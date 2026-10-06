@@ -40,11 +40,24 @@ was NOT_RUN, and the wrongful-rejection count on **held-out** valid controls
 - an attempt the oracle judged nothing on (`NOT_APPLICABLE`, including one
   withheld because it names protected material) is counted `not_covered`
   (`protected_withheld` for the latter), never held or covered;
+- an `AGREED_ADMISSIBLE` attempt (an advisory tool and Carbon's
+  authoritative chain both accept a valid, in-contract construction) counts
+  like `NOT_APPLICABLE`: in `not_covered`, and per family in
+  `agreed_admissible`; never held, never coverage, never a finding;
 - wrongful rejection is reported as a rate, held-out apart from trained; with
   no control that ran it is `NOT_MEASURED` (rate None), never zero;
 - the report carries the findings open on the campaign controller when it is
   built (`open_findings`, from `CampaignController.open_findings()`) as
-  `conditional_on`, with the policy identity (`conditional-evidence.v1`).
+  `conditional_on`, with the policy identity (`conditional-evidence.v1`);
+- distinct constructions are counted by the rebuilt artifact, never by
+  recipe text (OWNER-GRAPHITE-TEST-WAVE-04 §1, `attack.identity.distinct`):
+  each family line and the report carry `distinct`. `attempts`, `held` and
+  `verified` stay per attempt (every finding is emitted; none is folded
+  away), but only `distinct` counts constructions. An attempt with no
+  rebuilt artifact is `without_artifact`, never a distinct construction; a
+  breach with none counts once per behaviour. The digest of a construction
+  as written (`construction_digest`) is kept on each attempt as a
+  diagnostic only.
 
 A report; grading stays with the technical owner, and nothing here is
 security acceptance.
@@ -54,7 +67,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from carbon.agent_campaign.attack import analysis, verify
+from carbon.agent_campaign.attack import analysis, identity, verify
 from carbon.challenge_readiness import conditional_evidence
 from carbon.development_session.profile import canonical, digest
 
@@ -62,7 +75,13 @@ from carbon.development_session.profile import canonical, digest
 #: a rate, NOT_MEASURED when nothing ran; attempts refused at rebuild and
 #: attempts not covered (protected-withheld, not applicable) counted apart.
 #: v3: `conditional_on` and `conditional_policy` (conditional-evidence.v1).
-SCHEMA = "carbon.attack.family-report.v3"
+#: v4: `agreed_admissible` per family and in the totals (verdict v2); an
+#: AGREED_ADMISSIBLE attempt counts in `not_covered` like NOT_APPLICABLE. A v3
+#: report has no such outcome and keeps its meaning.
+#: v5: v4 plus `distinct`, per family and for the report, by the rebuilt
+#: artifact (OWNER-GRAPHITE-TEST-WAVE-04 §1); each attempt carries its
+#: `artifact` (verdict v3). A v4 report has no `distinct` and keeps its meaning.
+SCHEMA = "carbon.attack.family-report.v5"
 FINDING, ATTEMPTED_COVERAGE, NOT_RUN = "FINDING", "ATTEMPTED_COVERAGE", "NOT_RUN"
 INCONCLUSIVE = "INCONCLUSIVE"
 #: A wrongful-rejection rate with no control that ran: never a zero rate.
@@ -117,6 +136,10 @@ def attacker_runs(verdicts, *, families=()):
                 "scored": v.scored,
                 "rebuild": v.rebuild,
                 "reason": v.reason,
+                # The rebuilt artifact: the only distinct-construction key.
+                "artifact": getattr(v, "artifact", None),
+                # The construction as written: a diagnostic, counted nowhere.
+                "construction_digest": v.evidence.get("construction"),
             }
         )
     return list(runs.values())
@@ -189,6 +212,11 @@ def normalize(run):
                         ),
                         "near_miss": False,
                         "evidence": r.get("result_digest"),
+                        # Carbon's own declared attack: no participant
+                        # construction, so no artifact; a breach counts
+                        # once per declared attack (`identity.distinct`).
+                        "artifact": None,
+                        "declared": r["attempt"],
                     }
                 )
             elif r["role"] == "control":
@@ -329,8 +357,15 @@ def refused_at_rebuild(attempt):
 
 def not_covered(attempt):
     """An attempt the oracle judged nothing on (NOT_APPLICABLE: a protected-
-    withheld attempt, a family with no gate or no input). Never covered."""
-    return attempt["outcome"] == verify.NOT_APPLICABLE
+    withheld attempt, a family with no gate or no input; or
+    AGREED_ADMISSIBLE, which counts the same). Never covered."""
+    return attempt["outcome"] in verify.CLOSED_UNJUDGED
+
+
+def agreed_admissible(attempt):
+    """An attempt both the advisory tool and Carbon's authoritative chain
+    accept as a valid, in-contract construction (`verify`, step 8)."""
+    return attempt["outcome"] == verify.AGREED_ADMISSIBLE
 
 
 def _control_finding(family, control):
@@ -398,6 +433,7 @@ def summarize(run, held_out=(), not_run=None, check=None, family=None):
     withheld = [
         a for a in uncovered if a.get("reason") == verify.PROTECTED_WITHHELD_REASON
     ]
+    agreed = [a for a in uncovered if agreed_admissible(a)]
     held = sum(a["outcome"] == HELD and not refused_at_rebuild(a) for a in completed)
     not_run = not_run or (run or {}).get("not_run")
     if not_run is None and not attempts:
@@ -414,6 +450,8 @@ def summarize(run, held_out=(), not_run=None, check=None, family=None):
         status, inconclusive = INCONCLUSIVE, "not_covered_protected_withheld"
     elif held == 0 and at_rebuild:
         status, inconclusive = INCONCLUSIVE, "refused_at_rebuild_only"
+    elif held == 0 and agreed:
+        status, inconclusive = INCONCLUSIVE, "not_covered_agreed_admissible"
     elif held == 0:
         status, inconclusive = INCONCLUSIVE, "no_attempt_judged"
     else:
@@ -429,9 +467,13 @@ def summarize(run, held_out=(), not_run=None, check=None, family=None):
         "refused_at_rebuild": len(at_rebuild),
         "not_covered": len(uncovered),
         "protected_withheld": len(withheld),
+        "agreed_admissible": len(agreed),
         "undetermined": sum(a["outcome"] == verify.UNDETERMINED for a in completed),
         "refused_by_graphite": len(graphite),
         "verified": sum(a["outcome"] == BREACHED for a in attempts),
+        # Distinct constructions by the rebuilt artifact (§1): the only
+        # count of constructions; `verified` above counts attempts.
+        "distinct": identity.distinct(attempts, family),
         "findings": findings,
         "near_misses": sum(bool(a.get("near_miss")) for a in attempts),
         "timeouts_crashes": sum(a["outcome"] in NOT_COMPLETED for a in attempts),
@@ -478,11 +520,18 @@ def family_report(runs, *, controls_held_out, seams=(), open_findings=()):
     ]
     trained_controls = [c for run in normalized.values() for c in run["controls"]]
     held_out_all = [c for rows in held_out.values() for c in rows]
+    every_attempt = [
+        {**attempt, "family": name}
+        for name, run in normalized.items()
+        for attempt in run["attempts"]
+    ]
     return {
         "schema": SCHEMA,
         "families": families,
         "checks": checks_view(families),
         "findings": findings,
+        # Across families: one construction is one, whichever family saw it.
+        "distinct": identity.distinct(every_attempt),
         "totals": {
             key: sum(line[key] for line in families.values())
             for key in (
@@ -494,6 +543,7 @@ def family_report(runs, *, controls_held_out, seams=(), open_findings=()):
                 "refused_at_rebuild",
                 "not_covered",
                 "protected_withheld",
+                "agreed_admissible",
             )
         },
         # Held-out apart from trained: the held-out rate is the measurement

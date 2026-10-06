@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-f238-subsystem-pass",
+  "recorded_at": "2026-10-05T13:08:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "exact commit f238b23e affected validator and attribution subsystem suite",
+    "description": "Ran neutral validator contracts, Battery compatibility, Cooling validator, Cooling policy, Cooling attacker and pod-attribution regressions."
+  },
+  "expected": "The additive Cooling policy preserves generic validator, Battery and existing pod-attribution behavior.",
+  "observed": "All 317 affected-subsystem tests passed in 146.66 seconds.",
+  "keep": [
+    "Test the shared dispatch and registry changes against Battery and pod-attribution, not Cooling alone."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_validator.interface_v1",
+    "graphite.pod_attribution",
+    "battery.compatibility"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

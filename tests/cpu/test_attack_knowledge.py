@@ -49,6 +49,9 @@ CONTRACT = "sha256:" + "c" * 64
 NEXT_CONTRACT = "sha256:" + "d" * 64
 LATER_CONTRACT = "sha256:" + "e" * 64
 EVIDENCE = ["sha256:" + "f" * 64]
+#: Two rebuilt artifacts' identities (`attack.identity.artifact_of`).
+ARTIFACT_A = "sha256:" + "a1" * 32
+ARTIFACT_B = "sha256:" + "b2" * 32
 
 
 def base(**overrides):
@@ -293,7 +296,13 @@ def test_an_identical_record_in_another_store_has_the_same_digest(tmp_path):
     assert left.snapshot() == right.snapshot()
     empty = AttackStore(tmp_path / "empty").snapshot()
     assert empty == digest(
-        canonical({"schema": knowledge.SNAPSHOT_SCHEMA, "records": []})
+        canonical(
+            {
+                "schema": knowledge.SNAPSHOT_SCHEMA,
+                "identity_rule": knowledge.IDENTITY_RULE,
+                "records": [],
+            }
+        )
     )
 
 
@@ -303,12 +312,17 @@ def test_an_identical_record_in_another_store_has_the_same_digest(tmp_path):
 def frozen_replay_is_pinned(store):
     """The frozen-replay boundary, as one check: a run frozen under digest d1
     keeps exactly d1's specimens; a specimen added later belongs to the next
-    suite version (d2); replaying the frozen run under d2 is refused."""
-    store.add_finding(**finding())
+    suite version (d2); replaying the frozen run under d2 is refused. (The
+    two findings rebuild two different artifacts: two distinct findings.)"""
+    store.add_finding(**finding(artifact=ARTIFACT_A))
     d1 = store.snapshot()
     frozen = store.pin(d1).suite_pin()
     store.add_finding(
-        **finding(attempt_id="epoch-2-attack-tool-001", specimen={"case": 9})
+        **finding(
+            attempt_id="epoch-2-attack-tool-001",
+            specimen={"case": 9},
+            artifact=ARTIFACT_B,
+        )
     )
     d2 = store.snapshot()
     assert d2 != d1
@@ -566,7 +580,9 @@ def test_priors_per_challenge_and_across_challenges(store):
     assert battery["challenges"] == [BATTERY_CHALLENGE]
     assert set(battery["by_check"]) == CHECKS["construction_integrity"]
     artifact = battery["by_check"]["artifact_and_dependency_attacks"]
-    # A timeout and an unrebuildable construction are never holds.
+    # A timeout and an unrebuildable construction are never holds. None of
+    # these attempts names a rebuilt artifact: none is a distinct
+    # construction (OWNER-GRAPHITE-TEST-WAVE-04 §1).
     assert artifact == {
         "attempts": 5,
         "held": 2,
@@ -574,6 +590,10 @@ def test_priors_per_challenge_and_across_challenges(store):
         "inconclusive": 2,
         "near_misses": 1,
         "findings": 0,
+        "distinct_constructions": 0,
+        "without_artifact": 5,
+        "distinct_findings": 0,
+        "legacy_findings": 0,
     }
     forgery = battery["by_family"]["recipe_forgery"]
     assert forgery["check"] == "artifact_and_dependency_attacks"
@@ -585,6 +605,7 @@ def test_priors_per_challenge_and_across_challenges(store):
             "challenge_id": BATTERY_CHALLENGE,
             "family": "mandatory_failure",
             "condition": "FAILING_TRIGGER",
+            "identity": {"basis": "behaviour", "key": "unspecified"},
         }
     ]
     assert "fin_count" not in battery["by_family"]
@@ -782,6 +803,7 @@ def test_a_finding_that_names_a_protected_case_is_an_other_signal(store):
         kind="finding",
         source=knowledge.ORACLE,
         control=None,
+        identity={"basis": "behaviour", "key": "unspecified"},
     )
     assert record["withheld_digest"] == digest(canonical(stored))
     path = store.root / "objects" / (value.removeprefix("sha256:") + ".json")

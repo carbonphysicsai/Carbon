@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-generalized-quality-pass",
+  "recorded_at": "2026-10-05T12:50:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "generalized candidate-fault loader Ruff and Black verification",
+    "description": "Rechecked the generic loader and its Cooling policy tests after formatting."
+  },
+  "expected": "No lint findings and no formatter changes remain.",
+  "observed": "Ruff passed and Black would leave both files unchanged.",
+  "keep": [
+    "The shared loader accepts a registered Challenge's canonical fault names without embedding Cooling literals."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_neutrality",
+    "quality_gate"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

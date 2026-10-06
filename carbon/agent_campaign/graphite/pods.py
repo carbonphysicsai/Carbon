@@ -241,6 +241,10 @@ class PodBackend(Protocol):
     # without it gives the experiment no host timing, so a timeout it cannot
     # confirm is never blamed on the candidate.
     #
+    # Optional: `recover_settles(intent_id) -> dict | None`, when an uncertain
+    # create `recover` cannot yet settle will settle (its age, the grace and
+    # the time). A backend without it gives a reconcile no time to re-run at.
+    #
     # Optional: `listing(handle) -> {path: sha256 hex} | None`, the digests
     # the pod listed for the files of its last `fetch`. A kept log must match
     # it (`pod_logs`); a backend without it keeps no log.
@@ -600,6 +604,23 @@ class RunPodPods:
         return PodHandle(
             intent_id, resource.resource_id, _rate(resource.rate_usd_per_hr)
         )
+
+    def recover_settles(self, intent_id):
+        """When an uncertain create `recover` cannot yet settle stops being
+        uncertain: {intent_age_s, not_found_grace_s, settles_at_unix}, or
+        None for an intent it does not hold. Until then RunPod may still list
+        the pod, so a reconcile keeps its reservation; at or after
+        `settles_at_unix` a reconcile that finds no pod settles it
+        (`ComputeService.recover`). Reads only."""
+        intent = self.store.intent(self.CAMPAIGN, intent_id)
+        if intent is None:
+            return None
+        grace = self.service.not_found_grace_s
+        return {
+            "intent_age_s": max(0.0, self.clock() - intent.created_at),
+            "not_found_grace_s": grace,
+            "settles_at_unix": intent.created_at + grace,
+        }
 
     def wait(self, handle, *, deadline, cancelled):
         # The host's own clock readings of the phase (`pod_outcome.HostTiming`):

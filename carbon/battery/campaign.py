@@ -152,7 +152,7 @@ def graphite_plan(budget, selection, graphite):
     from carbon.development_session.research_agent_policy import PARALLEL_CALLS_V2
     from carbon.development_session.research_campaign import FINAL_EPOCHS
     from carbon.development_session.research_tools import (
-        ARGUMENT_NORMALISATION,
+        ARGUMENT_NORMALISATION_V2,
         TOOLS_RULE,
     )
 
@@ -184,7 +184,10 @@ def graphite_plan(budget, selection, graphite):
         # call's strategy_json "null" reads as JSON null. A plan frozen
         # earlier names no rule, refuses it as before and replays unchanged;
         # the autonomous plan, which no new launch freezes, is left as it was.
-        "argument_normalisation": ARGUMENT_NORMALISATION,
+        # v2 (RESEARCH-TOOL-USABILITY-01) also reads a practice call's action
+        # and arguments_json "null" as JSON null; a plan that froze v1 keeps
+        # v1.
+        "argument_normalisation": ARGUMENT_NORMALISATION_V2,
         "limits": {
             "plan": edition.limits_rule(
                 limits.get("planner_calls"), limits.get("trials_per_epoch")

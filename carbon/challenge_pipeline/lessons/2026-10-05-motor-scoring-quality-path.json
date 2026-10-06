@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-motor-scoring-quality-path",
+  "recorded_at": "2026-10-05T15:43:00Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-MOTOR-05 quality tool PATH repair", "description": "Retried quality gate with a modified PATH."},
+  "expected": "Both git and ruff are discoverable.",
+  "observed": "The shell PATH assignment omitted /usr/bin, so git was not discoverable and the gate stopped before checks.",
+  "keep": ["Record toolchain setup failures separately from source failures."],
+  "change": ["Use an explicit PATH containing the venv, /usr/bin and /bin."],
+  "protocol_elements": ["quality-tool availability", "honest validation status"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
