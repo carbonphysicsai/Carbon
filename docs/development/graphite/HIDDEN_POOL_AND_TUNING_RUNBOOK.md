@@ -12,6 +12,18 @@ operator's own, outside the repository, in an owner-only (0700) directory. No
 step prints a root, seed or case. Sealing and solving are operator actions;
 an agent never runs them.
 
+> **HOLD: do not run any step yet** (the owner, 2026-10-06).
+>
+> Hidden cases, references and tuning material are protected only by file
+> ownership. Every agent session runs as the WSL `carbon` account.
+> - Do not create any deployment, seal or solve below until VALIDATOR-19's
+>   slice 0 lands:
+>   - a separate `carbon-producer` service account that agents cannot read;
+>   - every command refusing the wrong account;
+>   - Graphite reaching the validator over the signed intake instead of
+>     loading it in-process.
+> - After that, run every step as `carbon-producer`, never as `carbon`.
+
 ## A. Create the rotating hidden pool, `graphite-hidden-battery-v1`
 
 This is a separate deployment from the testnet deployment that holds EV5 and
