@@ -190,8 +190,8 @@ Not run on any chain. Not SECURITY_QUALIFIED. Nothing here is LIVE.
   (Carbon Validator): freshness (`commitment_stale`), and the cross-hotkey
   clause, which refuses a submission when another hotkey committed the same
   digest at an earlier or the same block (`commitment_contested`).
-  **Owner decision:** D6 doesn't settle a same-block tie, so a tie refuses
-  both hotkeys (fail closed) until the owner rules.
+  A same-block tie goes to the earlier transaction in the block
+  (OWNER-COMMITMENT-D6-TIE-01, #720). #715 implements it.
 - **Chain runtime upgrade.** If an upgrade changes the 13 pinned
   extensions, the call index or the data tag, the signer's rebuilt bytes no
   longer match and every commit is refused (`PAYLOAD_MISMATCH`, fail closed).
