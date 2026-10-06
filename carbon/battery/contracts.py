@@ -12,7 +12,6 @@ import functools
 import hashlib
 import json
 from dataclasses import dataclass
-from pathlib import Path
 
 from carbon import construction as c
 from carbon.authoring import physical as p
@@ -26,6 +25,7 @@ from carbon.authoring.model import ApplicabilityBinding as A
 from carbon.authoring.model import DisclosureContract, PrecisionLiteral, TimeMode
 from carbon.authoring.primitives import CANONICALIZATION_PROFILE
 from carbon.authoring.refs import ChallengeScope, owner_ref
+from carbon.battery import implementation_versions as versions
 from carbon.construction.compiler import SUPPORTED_COMPILER_IDENTITY
 from carbon.construction.refs import CONSTRUCTION_CANONICALIZATION_PROFILE
 from carbon.reconstruction import profile as jax
@@ -54,7 +54,9 @@ from .challenge import (
 
 PROFILE = "carbon.battery-fastcharge-ageing-development.profile.v1"
 IMPLEMENTATION_ID = "carbon_battery_recipes"
-IMPLEMENTATION_VERSION = "1.0"
+#: The version new recipes compile under; every registered version stays
+#: compilable (`implementation_versions`, TORCH-GPU-01).
+IMPLEMENTATION_VERSION = versions.CURRENT
 
 
 def canonical(value):
@@ -102,26 +104,14 @@ def backend_dependency_specs():
 
 
 #: Every module whose bytes determine what a battery recipe rebuilds.
-IMPLEMENTATION_MODULES = (
-    "domain.py",
-    "recipes.py",
-    "training.py",
-    "torch_training.py",
-    "torch_families.py",
-)
+IMPLEMENTATION_MODULES = versions.MODULES
 
 
-def implementation_digest():
-    """The exact bytes of Carbon's battery recipe implementation."""
-    here = Path(__file__).parent
-    return digest(
-        canonical(
-            {
-                name: digest((here / name).read_bytes())
-                for name in IMPLEMENTATION_MODULES
-            }
-        )
-    )
+def implementation_digest(version=None):
+    """The exact bytes of a battery recipe implementation version (the
+    current one by default); an earlier version's are its read-only
+    snapshot."""
+    return versions.implementation_digest(version or IMPLEMENTATION_VERSION)
 
 
 def profile_document():
@@ -371,10 +361,19 @@ class BatteryContracts:
         )
 
 
-@functools.lru_cache(maxsize=1)
-def battery_contracts():
-    """The battery B-02B contracts. Built once per process: every input is
-    fixed by the registry, the authored contracts and the pinned modules."""
+def battery_contracts(implementation=None):
+    """The battery B-02B contracts under an implementation version (the
+    current one by default). A recipe compiled under a version carries that
+    version's implementation pin in its plan, so it recompiles to the same
+    digests from main for as long as the version is registered."""
+    return _battery_contracts(implementation or IMPLEMENTATION_VERSION)
+
+
+@functools.cache
+def _battery_contracts(implementation):
+    """Built once per process and version: every input is fixed by the
+    registry, the authored contracts and that version's module bytes."""
+    implemented = implementation_digest(implementation)
     physical, candidate, training = authored_contracts()
     source = semantic("provenance", "prospective_battery_profile")
     unqualified = FixtureAuthoringCapability().issue_origin(
@@ -419,9 +418,7 @@ def battery_contracts():
     # recipe's `backend` setting selects which one rebuilds it.
     env = c.EnvironmentPin(*BACKENDS_ENVIRONMENT)
     deps = tuple(c.DependencyPin(*spec) for spec in backend_dependency_specs())
-    impl = c.ImplementationPin(
-        IMPLEMENTATION_ID, IMPLEMENTATION_VERSION, implementation_digest()
-    )
+    impl = c.ImplementationPin(IMPLEMENTATION_ID, implementation, implemented)
     interface = digest(canonical(profile_document()["outputs"]))
     ip = c.InterfacePin(
         "carbon_battery_input",
@@ -437,7 +434,7 @@ def battery_contracts():
             selector,
             "carbon_" + lab_kind,
             "1.0",
-            implementation_digest(),
+            implemented,
             impl,
             env,
             deps,

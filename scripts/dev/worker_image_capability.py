@@ -67,9 +67,10 @@ NO_GPU_DISPATCH = (
     "establishes it"
 )
 NO_TORCH_GPU_REBUILD = (
-    "the PyTorch backend has no CUDA rebuild path yet (TORCH-GPU-01): adding "
-    "one moves the battery implementation digest and every recipe digest, "
-    "which waits on the owner's decision"
+    "the PyTorch CUDA rebuild path is battery implementation 2.0 "
+    "(TORCH-GPU-01), but the validator path's accelerator dispatch is disabled "
+    "in this repository (accelerators.require_accelerator_admission); the "
+    "granted A40 run (#681) establishes it"
 )
 NO_TORCH_GPU_DETERMINISM = (
     "the GPU profile (torch_profile.GPU_DETERMINISM, the image's "

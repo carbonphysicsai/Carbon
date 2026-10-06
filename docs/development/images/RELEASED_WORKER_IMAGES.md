@@ -18,10 +18,11 @@ The PyTorch GPU worker (TORCH-GPU-01) installs the exact-hashed
 worker. It does not share the JAX accelerator image: torch 2.13.0+cu130 needs
 cuDNN 9.20.0.48 and the JAX CUDA 13 lock pins 9.12.0.46, so the two do not
 resolve together. JAX's lock is unchanged. The image build refuses if the
-cu130 install changes any C-03 distribution's version. The PyTorch backend
-has no CUDA rebuild path yet; adding one waits on an owner decision (see the
-ticket), so the image serves imports, devices and the GPU determinism profile,
-not scored rebuilds.
+cu130 install changes any C-03 distribution's version. The image sets
+`CARBON_TORCH_DEVICE=cuda`: battery implementation 2.0 rebuilds a PyTorch
+recipe on that device under the GPU determinism profile (the recipe never
+chooses the device). The validator path's accelerator dispatch stays disabled
+in the repository, so the image is not yet a scored rebuild path.
 
 PyTorch determinism is pinned as two profiles with separate identities
 (`carbon/reconstruction/torch_profile.py`):
@@ -88,7 +89,7 @@ UNVERIFIED or FAILED.
 | JAX CPU (`c03`) | imports, CPU devices, lock versions (`uv.lock`), one recipe rebuilt through the validator carrier | - |
 | JAX GPU (`accelerator`) | imports, lock versions (`uv.lock`, `cuda13-py311.txt`), the pinned XLA flags accepted by the image's jaxlib | GPU devices, the flags active on a device, a GPU rebuild (validator accelerator dispatch is disabled in the repository) |
 | PyTorch CPU (`torch`) | imports, CPU devices, lock versions (`uv.lock`, the science-torch export), deterministic algorithms and thread count in force, one recipe rebuilt through the validator carrier | - |
-| PyTorch GPU (`torch-gpu`) | imports (a CUDA torch build), lock versions (`uv.lock`, `torch-cu130-py311.txt`) | GPU devices, the GPU determinism profile in force on a device; a CUDA rebuild stays UNVERIFIED even on a GPU until the rebuild path exists |
+| PyTorch GPU (`torch-gpu`) | imports (a CUDA torch build), lock versions (`uv.lock`, `torch-cu130-py311.txt`) | GPU devices, the GPU determinism profile in force on a device; a CUDA rebuild stays UNVERIFIED even on a GPU while accelerator dispatch is disabled |
 
 On a GPU host, `--gpus` (and optionally `--expect-device-kind`) runs the GPU
 device checks. The release workflow never passes them.

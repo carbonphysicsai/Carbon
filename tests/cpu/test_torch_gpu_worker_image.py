@@ -59,6 +59,8 @@ GUARDS = {
     "cublas_env": "ENV CUBLAS_WORKSPACE_CONFIG=:4096:8",
     "label": 'org.opencontainers.image.carbon.torch.gpu-determinism="${TORCH_GPU_DETERMINISM_DIGEST}"',
     "numeric_user": "USER 65532:65532",
+    "cuda_device_env": "ENV CARBON_TORCH_DEVICE=cuda",
+    "cuda_device_check": "the image does not rebuild on the CUDA device",
 }
 
 
@@ -124,7 +126,7 @@ def test_the_cpu_environment_and_level0_pins_stay_byte_identical():
         "sha256:569b153aa814fa81136b070deb2df6c436dd9f5d8011d1cfb0fed8cfbb7b9991"
     )
     assert torch_profile.REQUIREMENTS_PATH == ".devcontainer/torch/torch-cpu-py311.txt"
-    assert contracts.implementation_digest() == LEVEL0_PINS["implementation"]
+    assert contracts.implementation_digest("1.0") == LEVEL0_PINS["implementation"]
     # The battery contract's dependency pins are the CPU ones only.
     assert all("cu130" not in pin for _, _, pin in contracts.backend_dependency_specs())
 

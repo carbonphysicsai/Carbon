@@ -382,6 +382,17 @@ LEVEL0_PINS = {
     "scaffold_built_record": "sha256:4fec51cd8a27ea005361602067c86af4625e1c9b037ef56a9eeec00b4637f6e1",
     "program": "sha256:264413438e3456605279d89aa3f066386bbf0dfaa497198a0957bdf912a9746a",
 }
+#: The same identities under battery implementation 2.0 (TORCH-GPU-01, the
+#: PyTorch CUDA rebuild device), beside the 1.0 set above. 1.0's stay its own:
+#: a record made under 1.0 recompiles and rebuilds from its read-only
+#: snapshot, from main (`carbon.battery.implementation_versions`).
+LEVEL0_PINS_V2 = {
+    "implementation": "sha256:897b2c7e144f720c00f9f7fe89cf2d62b5ea112da1a1bc15e26879bc2f567688",
+    "scaffold_recipe": "sha256:54aefc5b44b9f7e5406e54b534f45460d9368746aac704f7e3676e9ccf898468",
+    "scaffold_built_record": "sha256:bbf01e62e170dec463ac335ba2957128fde38a986ccbe833fdfe34d83bbc5ff0",
+    "program": "sha256:264413438e3456605279d89aa3f066386bbf0dfaa497198a0957bdf912a9746a",
+}
+LEVEL0_PINS_BY_VERSION = {"1.0": LEVEL0_PINS, "2.0": LEVEL0_PINS_V2}
 
 
 def _canonical_digest(value):
@@ -391,22 +402,29 @@ def _canonical_digest(value):
     return "sha256:" + hashlib.sha256(body).hexdigest()
 
 
-def test_level0_rebuild_artifacts_are_mains():
+@pytest.mark.parametrize("version", sorted(LEVEL0_PINS_BY_VERSION))
+def test_level0_rebuild_artifacts_are_mains(version):
     from carbon.battery import contracts
     from carbon.battery.compile import compile_recipe
     from carbon.battery.research import SCAFFOLD
     from carbon.battery.value import panel
 
-    assert contracts.implementation_digest() == LEVEL0_PINS["implementation"]
-    assert compile_recipe(SCAFFOLD)[1].recipe_digest == LEVEL0_PINS["scaffold_recipe"]
+    pins = LEVEL0_PINS_BY_VERSION[version]
+    assert contracts.implementation_digest(version) == pins["implementation"]
+    scaffold = compile_recipe(SCAFFOLD, implementation=version)[1]
+    assert scaffold.recipe_digest == pins["scaffold_recipe"]
     run5 = {label: s for label, s, _ in panel.PANELS["graphite-run5"]}
-    baseline = compile_recipe(run5["graphite-run5-baseline"])[1]
-    assert baseline.recipe_digest == LEVEL0_PINS["scaffold_recipe"]
+    baseline = compile_recipe(run5["graphite-run5-baseline"], implementation=version)[1]
+    assert baseline.recipe_digest == pins["scaffold_recipe"]
     record, files, _program = SCORING.built_record(
-        SCAFFOLD, cr.contract(BATTERY).digest, 7, str(REPOSITORY)
+        SCAFFOLD,
+        cr.contract(BATTERY).digest,
+        7,
+        str(REPOSITORY),
+        implementation=version,
     )
-    assert _canonical_digest(record) == LEVEL0_PINS["scaffold_built_record"]
-    assert record["program"] == LEVEL0_PINS["program"]
+    assert _canonical_digest(record) == pins["scaffold_built_record"]
+    assert record["program"] == pins["program"]
     # No Level-1 field or file appears at Level 0, not even as null.
     assert not {"development", "rebuild"} & set(record)
     assert not set(level1_worker.STAGED_MODULES) & set(files)

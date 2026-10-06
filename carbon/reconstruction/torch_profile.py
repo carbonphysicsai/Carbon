@@ -65,9 +65,8 @@ DEPENDENCY_SPECS = tuple(
 #
 # Two profiles with separate identities, siblings of the XLA configuration in
 # `carbon.reconstruction.accelerators` (`GPU_DETERMINISM_XLA_FLAGS`,
-# `GPU_DETERMINISM_ENVIRONMENT`). Neither changes `ENVIRONMENT_DIGEST`,
-# `DEPENDENCY_SPECS` or any battery implementation module, so the CPU torch
-# environment and every Level-0 pin stay byte-identical.
+# `GPU_DETERMINISM_ENVIRONMENT`). Neither changes `ENVIRONMENT_DIGEST` or
+# `DEPENDENCY_SPECS`, so the CPU torch environment stays byte-identical.
 #
 # CPU (`CPU_DETERMINISM`): what the CPU rebuild path
 # (`carbon.battery.torch_training.deterministic`) already applies.
@@ -82,7 +81,8 @@ DEPENDENCY_SPECS = tuple(
 #                                  `torch.Generator`, never the global RNG.
 #
 # GPU (`GPU_DETERMINISM`): the CPU settings plus the CUDA-only ones, applied by
-# the GPU-only module `carbon.reconstruction.torch_gpu` around a CUDA rebuild.
+# the GPU-only module `carbon.reconstruction.torch_gpu` around a CUDA rebuild
+# (battery implementation 2.0).
 #
 #   cudnn_deterministic            deterministic cuDNN convolution algorithms.
 #   cudnn_benchmark=False          no per-run, timing-dependent algorithm choice

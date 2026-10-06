@@ -194,13 +194,19 @@ class PracticeSet:
         return gzip.compress(body, mtime=0)
 
 
-def staged_files(root, practice, recipe, seed):
+def staged_modules(implementation=None):
+    """The implementation modules a worker receives, by staged name: the
+    current version's by default, or a registered earlier version's
+    read-only snapshot (`implementation_versions`)."""
+    from . import implementation_versions as versions
+
+    modules = versions.module_bytes(implementation or versions.CURRENT)
+    return {staged: modules[module] for staged, module in STAGED_MODULES.items()}
+
+
+def staged_files(root, practice, recipe, seed, *, implementation=None):
     """Every byte the worker receives, by staged name."""
-    here = Path(__file__).parent
-    files = {
-        staged: (here / module).read_bytes()
-        for staged, module in STAGED_MODULES.items()
-    }
+    files = staged_modules(implementation)
     files["train-v1.jsonl.gz"] = _pinned(
         Path(root) / TRAIN_V1_PATH, TRAIN_V1_SHA256, "train_v1"
     )

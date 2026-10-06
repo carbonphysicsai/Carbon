@@ -20,16 +20,6 @@ the JAX backend defines it. The learning-rate curves are exact ports of the
 optax schedules the JAX backend uses, with the same fixed constants (see
 `training`).
 
-Device (implementation 2.0, TORCH-GPU-01): a recipe rebuilds on the CPU, or
-on a CUDA device when the validator's PyTorch GPU worker says so
-(`CARBON_TORCH_DEVICE=cuda`); the recipe never chooses. Initialization, the
-minibatch order and the stored state stay on the CPU, so a recipe starts from
-the same weights and visits cases in the same order on either device. A CUDA
-rebuild runs under the pinned GPU determinism profile
-(`carbon.reconstruction.torch_gpu`); CPU and CUDA rebuilds are separate
-evidence and are not required to match. On the CPU every change from
-implementation 1.0 is the identity.
-
 Determinism: all randomness comes from Carbon's reconstruction seed through an
 explicit `torch.Generator`. Training runs with
 `torch.use_deterministic_algorithms(True)` and a fixed CPU thread count
@@ -46,7 +36,6 @@ from __future__ import annotations
 import contextlib
 import itertools
 import math
-import os
 
 import numpy as np
 import torch
@@ -57,39 +46,6 @@ from .training import ACTIVATIONS, SAM_RHO
 #: A declared engineering constant; reduction order depends on it.
 THREADS = 2
 TORCH_BACKEND = "pytorch"
-#: The environment variable the validator's worker sets to choose the device.
-DEVICE_ENV = "CARBON_TORCH_DEVICE"
-DEVICES = ("cpu", "cuda")
-
-
-class DeviceUnavailable(ImportError):
-    """The rebuild device this worker was given is absent: Carbon's own
-    environment, never the candidate's (the fixed worker programs report an
-    ImportError as `stage: environment`)."""
-
-
-def rebuild_device():
-    """The device this process rebuilds on, from the worker environment."""
-    name = os.environ.get(DEVICE_ENV, "cpu")
-    if name not in DEVICES:
-        raise DeviceUnavailable("unknown PyTorch rebuild device " + name)
-    if name == "cuda" and not torch.cuda.is_available():
-        raise DeviceUnavailable("the PyTorch GPU rebuild needs a CUDA device")
-    return torch.device(name)
-
-
-def _determinism(device):
-    """The pinned determinism configuration for `device`."""
-    if device.type == "cuda":
-        from carbon.reconstruction import torch_gpu
-
-        # The worker's environment, checked before anything changes: a
-        # missing or different pinned value is Carbon's, never the candidate's.
-        required = torch_gpu.worker_environment()
-        if any(os.environ.get(k) != v for k, v in required.items()):
-            raise DeviceUnavailable("the GPU determinism environment is not pinned")
-        return torch_gpu.deterministic_cuda(torch)
-    return deterministic()
 
 
 @contextlib.contextmanager
@@ -220,9 +176,8 @@ def deeponet_network(generator, settings, width, depth, layout, n_in, dtype):
         t_layers = [params[2 * (nb + i) : 2 * (nb + i) + 2] for i in range(nt)]
         bias_ = params[2 * (nb + nt)]
         b = apply_stack(b_layers, f, act, norm)
-        tv_, tt_ = tv.to(f.device), tt.to(f.device)
-        v = b[:, :basis] @ apply_stack(t_layers, tv_, act, norm)[:, :basis].T
-        t = b[:, basis : 2 * basis] @ apply_stack(t_layers, tt_, act, norm)[:, basis:].T
+        v = b[:, :basis] @ apply_stack(t_layers, tv, act, norm)[:, :basis].T
+        t = b[:, basis : 2 * basis] @ apply_stack(t_layers, tt, act, norm)[:, basis:].T
         traj = torch.cat([v, t], dim=1) + bias_
         return torch.cat([traj, b[:, 2 * basis :]], dim=1)
 
@@ -415,9 +370,7 @@ class Lamb(_Carbon):
                 update = update + self.s["weight_decay"] * p
             pn, un = torch.linalg.vector_norm(p), torch.linalg.vector_norm(update)
             ratio = torch.where(
-                (pn > 0) & (un > 0),
-                pn / un,
-                torch.ones((), dtype=p.dtype, device=p.device),
+                (pn > 0) & (un > 0), pn / un, torch.ones((), dtype=p.dtype)
             )
             p.sub_(lr * ratio * update)
 
@@ -432,9 +385,9 @@ class Prodigy(_Carbon):
         self.v = [torch.zeros_like(p) for p in params]
         self.s_ = [torch.zeros_like(p) for p in params]
         self.p0 = [p.detach().clone() for p in params]
-        dtype, device = params[0].dtype, params[0].device
-        self.d = torch.tensor(1e-6, dtype=dtype, device=device)
-        self.num = torch.tensor(0.0, dtype=dtype, device=device)
+        dtype = params[0].dtype
+        self.d = torch.tensor(1e-6, dtype=dtype)
+        self.num = torch.tensor(0.0, dtype=dtype)
 
     def step(self, grads, lr):
         b1, b2, eps = self.s["beta1"], self.s["beta2"], self.s["adam_epsilon"]
@@ -636,27 +589,21 @@ class MuonWithAdam:
 # --- The training loop ----------------------------------------------------------
 
 
-def train(
-    *, network, f, z, sw, gw, trajectory, settings, seed, order, dtype, device=None
-):
+def train(*, network, f, z, sw, gw, trajectory, settings, seed, order, dtype):
     """Train `network` in place; returns the parameters Carbon predicts from.
 
     The PyTorch port of `training.train`, surface for surface. `f`, `z`, `sw`,
-    `gw` and `order` are NumPy arrays. Training runs on `device` (the CPU by
-    default); the minibatch order is drawn on the CPU on either device.
+    `gw` and `order` are NumPy arrays.
     """
-    device = torch.device("cpu") if device is None else device
     s = settings
     n = f.shape[0]
     steps = s["steps"] - s["polish_steps"]
     batch = min(s["batch_size"], n)
     micro = s["microbatches"]
     generator = torch.Generator().manual_seed(seed + 1)
-    f, z, sw, gw = (torch.tensor(a, dtype=dtype, device=device) for a in (f, z, sw, gw))
-    rank = torch.tensor(order, device=device)
-    params = [
-        p.detach().clone().to(device).requires_grad_(True) for p in network.params
-    ]
+    f, z, sw, gw = (torch.tensor(a, dtype=dtype) for a in (f, z, sw, gw))
+    rank = torch.tensor(order)
+    params = [p.detach().clone().requires_grad_(True) for p in network.params]
     apply = network._apply
     lr_at = curve(s, steps)
     opt = optimizer(params, s)
@@ -667,8 +614,8 @@ def train(
 
     def ramp(length):
         if s["time_weighting"] == "early":
-            return torch.linspace(2.0, 0.0, length, dtype=dtype, device=device)
-        return torch.linspace(0.0, 2.0, length, dtype=dtype, device=device)
+            return torch.linspace(2.0, 0.0, length, dtype=dtype)
+        return torch.linspace(0.0, 2.0, length, dtype=dtype)
 
     def case_loss(p, idx):
         zhat = apply(p, f[idx])
@@ -695,9 +642,7 @@ def train(
                     extra = extra + s["h2_weight"] * torch.mean(d**2, dim=1)
                 if s["spectral_weight"]:
                     spectrum = torch.abs(torch.fft.rfft(e, dim=1)) ** 2
-                    k = torch.linspace(
-                        0.0, 1.0, spectrum.shape[1], dtype=dtype, device=device
-                    )
+                    k = torch.linspace(0.0, 1.0, spectrum.shape[1], dtype=dtype)
                     extra = (
                         extra
                         + s["spectral_weight"]
@@ -739,7 +684,7 @@ def train(
     use_ema = s["inference_weights"] == "ema"
     ema = [p.detach().clone() for p in params]
     avg = [p.detach().clone() for p in params]
-    everything = torch.arange(n, device=device)
+    everything = torch.arange(n)
     adversary = None
     from .training import keep_history, recording_history
 
@@ -748,9 +693,7 @@ def train(
     history = []
     for i in range(steps):
         idx = (
-            everything
-            if batch >= n
-            else torch.randperm(n, generator=generator)[:batch].to(device)
+            everything if batch >= n else torch.randperm(n, generator=generator)[:batch]
         )
         if sam and i % 2 == 0:
             # SAM's adversarial update: a normalized-gradient step of SAM_RHO.
@@ -835,8 +778,7 @@ def fit(model, d, y, seed):
     dtype = torch_dtype(s["precision"])
     np_dtype = np.float64 if dtype is torch.float64 else np.float32
     t0 = time.perf_counter()
-    device = rebuild_device()
-    with _determinism(device):
+    with deterministic():
         z = model._encode(y).astype(np_dtype)
         f = features(d.x, model.rich).astype(np_dtype)
         sw = np.where(d.important, model.important_weight, 1.0).astype(np_dtype)
@@ -852,17 +794,15 @@ def fit(model, d, y, seed):
             z=z,
             sw=sw,
             gw=gw,
-            trajectory=trajectory(model, dtype, device),
+            trajectory=trajectory(model, dtype),
             settings=s,
             seed=seed,
             order=order,
             dtype=dtype,
-            device=device,
         )
         with torch.no_grad():
-            x = torch.tensor(f, dtype=dtype, device=device)
-            zhat = network(params, x).cpu().numpy()
-    leaves = [p.cpu().numpy() for p in params]
+            zhat = network(params, torch.tensor(f, dtype=dtype)).numpy()
+    leaves = [p.numpy() for p in params]
     model.params, model._network_torch = leaves, network
     final = float(np.mean((zhat - z) ** 2 * gw[None, :]) * gw.size)
     blob = b"".join(a.tobytes() for a in leaves)
@@ -876,23 +816,20 @@ def fit(model, d, y, seed):
         "n_params": int(sum(a.size for a in leaves)),
         "backend": TORCH_BACKEND,
     }
-    if device.type != "cpu":
-        # A CPU rebuild's statistics are implementation 1.0's, key for key.
-        stats["device"] = device.type
     history = take_history()
     if history is not None:
         stats["loss_history"] = history
     return stats
 
 
-def trajectory(model, dtype, device=None):
+def trajectory(model, dtype):
     """Normalized voltage and temperature trajectories from outputs z."""
     nv, nt = model.layout.nv, model.layout.nt
     if not model.pca:
         return lambda z: (z[:, :nv], z[:, nv : nv + nt])
 
     def t(a):
-        return torch.tensor(np.asarray(a), dtype=dtype, device=device)
+        return torch.tensor(np.asarray(a), dtype=dtype)
 
     zsd, zmu, pv, pt = t(model.zsd), t(model.zmu), t(model.pv), t(model.pt)
     vm, tm, mu, sd, p = t(model.vm), t(model.tm), t(model.mu), t(model.sd), model.pca

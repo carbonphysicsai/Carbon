@@ -74,7 +74,7 @@ def test_the_cpu_environment_and_level0_pins_are_unchanged():
         "nvidia-physicsnemo",
         "numpy",
     ]
-    assert contracts.implementation_digest() == LEVEL0_PINS["implementation"]
+    assert contracts.implementation_digest("1.0") == LEVEL0_PINS["implementation"]
     # No GPU module is a battery implementation module.
     assert "torch_gpu.py" not in contracts.IMPLEMENTATION_MODULES
 
@@ -212,8 +212,8 @@ def test_the_gpu_module_refuses_without_cuda_or_the_pinned_workspace(monkeypatch
 
 
 def test_the_cpu_rebuild_path_is_the_cpu_profile():
-    """Read from the source, without importing torch: the battery
-    implementation module is not edited (that would move a Level-0 pin)."""
+    """Read from the source, without importing torch: the CPU rebuild path
+    of the current battery implementation applies the CPU profile."""
     source = (REPOSITORY / "carbon" / "battery" / "torch_training.py").read_text()
     tree = ast.parse(source)
     threads = [

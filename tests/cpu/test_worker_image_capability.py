@@ -132,7 +132,7 @@ def test_a_gpu_less_host_verifies_cpu_and_leaves_every_gpu_check_unverified(fake
     assert torch_gpu["lock_versions"]["status"] == "VERIFIED"
     for name in ("devices", "rebuild", "determinism_config"):
         assert torch_gpu[name]["status"] == "UNVERIFIED", name
-    assert "no CUDA rebuild path" in torch_gpu["rebuild"]["detail"]
+    assert "accelerator dispatch is disabled" in torch_gpu["rebuild"]["detail"]
 
 
 def test_on_a_gpu_host_the_pytorch_gpu_profile_is_checked_and_rebuild_stays_open(
@@ -144,7 +144,7 @@ def test_on_a_gpu_host_the_pytorch_gpu_profile_is_checked_and_rebuild_stays_open
     torch_gpu = cells["pytorch_gpu"]["checks"]
     assert torch_gpu["devices"]["status"] == "VERIFIED"
     assert torch_gpu["determinism_config"]["status"] == "VERIFIED"
-    # No CUDA rebuild path yet: never passed, even on a GPU.
+    # Accelerator dispatch is disabled: never passed, even on a GPU.
     assert torch_gpu["rebuild"]["status"] == "UNVERIFIED"
     assert cells["pytorch_gpu"]["status"] == "UNVERIFIED"
     # Another device kind than the expected one is a failure.

@@ -2,14 +2,13 @@
 
 GPU only. It applies `torch_profile.GPU_DETERMINISM` around a PyTorch rebuild
 on a CUDA device, and it is the only place the CUDA-only settings (cuDNN
-deterministic, no cuDNN benchmark, the fixed cuBLAS workspace) are set. The
-CPU rebuild path (`carbon.battery.torch_training`) is untouched, so the battery
-contract, its implementation digest and every Level-0 pin stay as they are.
+deterministic, no cuDNN benchmark, the fixed cuBLAS workspace) are set.
 
-The PyTorch GPU worker image (`.devcontainer/torch/Dockerfile.gpu`) carries
-this profile's digest, and the capability matrix applies it inside that image
-on a GPU host. PyTorch has no CUDA rebuild path yet (TORCH-GPU-01); when it is
-added, it rebuilds inside `deterministic_cuda`.
+Battery implementation 2.0 (`carbon.battery.torch_training`, TORCH-GPU-01)
+rebuilds a PyTorch recipe on CUDA inside `deterministic_cuda` when the PyTorch
+GPU worker image (`.devcontainer/torch/Dockerfile.gpu`) selects the device;
+that image carries this profile's digest, and the capability matrix applies it
+inside the image on a GPU host.
 
 Importing this module never imports torch; `deterministic_cuda` does.
 """
