@@ -344,15 +344,21 @@ def report(records):
         }
 
     overdue = [r for r in reproduced if r["rotation_overdue"]]
+    # Like the primary ranking, never across pool versions or device classes.
     variant = {
-        version: _variant_ranking(rows) for version, rows in sorted(primary.items())
+        version: {
+            cls: ranking
+            for cls, rows in sorted(classes.items())
+            if (ranking := _variant_ranking(rows))
+        }
+        for version, classes in sorted(primary.items())
     }
     return {
         "schema": REPORT_SCHEMA,
         "evidence": EVIDENCE,
         # Under the run's development score variant, beside the rule's own
-        # ranking: closest to 1 best, a gate FAIL last (the EV5 ruling).
-        # Empty without a variant.
+        # ranking, per pool version and device class: closest to 1 best, a
+        # gate FAIL last (the EV5 ruling). Empty without a variant.
         "score_variant": {k: v for k, v in variant.items() if v},
         "primary": {
             "by_pool_version": {
