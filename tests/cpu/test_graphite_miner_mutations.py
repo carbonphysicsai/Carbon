@@ -776,13 +776,11 @@ def test_importing_the_miner_edition_plainly_loads_no_internal_module():
     assert set(MINER_MODULES) <= loaded
     leaked = loaded & LOADED_FORBIDDEN
     if leaked:
-        parent = loaded_after(
-            """
+        parent = loaded_after("""
             import json, sys
             import carbon.agent_campaign.graphite
             print(json.dumps(sorted(sys.modules)))
-            """
-        )
+            """)
         assert leaked <= parent, sorted(leaked - parent)
         pytest.xfail(
             "carbon/agent_campaign/graphite/__init__.py eagerly imports the "

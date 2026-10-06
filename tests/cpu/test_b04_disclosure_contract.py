@@ -120,7 +120,10 @@ class _InterruptedDisclosureDescriptorRegistry:
 
 def _authority(
     graph: object,
-) -> tuple[ReferenceDisclosureAuthority, _PositiveDisclosureRegistry,]:
+) -> tuple[
+    ReferenceDisclosureAuthority,
+    _PositiveDisclosureRegistry,
+]:
     registry = _PositiveDisclosureRegistry()
     authority = _issue_reference_disclosure_authority(
         disclosure_policy_ref=graph.policy.disclosure_policy_ref,

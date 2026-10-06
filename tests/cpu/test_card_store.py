@@ -1912,8 +1912,7 @@ def test_fresh_no_dependency_wheel_works_outside_tree_without_later_imports(
     )
     assert install_result.returncode == 0, install_result.stderr
 
-    script = textwrap.dedent(
-        """
+    script = textwrap.dedent("""
         import dataclasses
         import importlib.abc
         import importlib.metadata
@@ -2040,8 +2039,7 @@ def test_fresh_no_dependency_wheel_works_outside_tree_without_later_imports(
                 duplicate is CardWriteDisposition.ALREADY_PRESENT,
             ],
         }, sort_keys=True))
-        """
-    )
+        """)
     execution_result = subprocess.run(
         [str(environment_python), "-I", "-c", script],
         cwd=outside_tree,

@@ -790,10 +790,7 @@ def test_each_resource_limit_rejects_invalid_exact_values(
 
 
 def test_challenge_limit_has_unsigned_32_ceiling() -> None:
-    assert (
-        _limits(max_challenge_id_bytes=2**32 - 1).max_challenge_id_bytes
-        == 2**32 - 1
-    )
+    assert _limits(max_challenge_id_bytes=2**32 - 1).max_challenge_id_bytes == 2**32 - 1
     with pytest.raises(SubmissionResourcePolicyError):
         _limits(max_challenge_id_bytes=2**32)
 
@@ -4669,8 +4666,7 @@ def test_fresh_wheel_imports_a7_outside_tree_without_dependencies(
     )
     assert install_result.returncode == 0, install_result.stderr
 
-    script = textwrap.dedent(
-        """
+    script = textwrap.dedent("""
         import importlib.metadata
         import json
         import pathlib
@@ -4685,8 +4681,7 @@ def test_fresh_wheel_imports_a7_outside_tree_without_dependencies(
             "fields": [field for field in limits.__slots__],
             "module_file": str(pathlib.Path(fees.__file__).resolve()),
         }))
-        """
-    )
+        """)
     execution = subprocess.run(
         [str(environment_python), "-I", "-c", script],
         cwd=outside,
