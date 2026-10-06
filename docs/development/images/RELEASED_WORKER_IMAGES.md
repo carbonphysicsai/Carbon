@@ -12,6 +12,7 @@ deleted image is re-pulled, never rebuilt.**
 | `accelerator` | `ghcr.io/carbonphysicsai/carbon-accelerator-worker` | `scripts/dev/accelerator_worker_image.sh` | JAX GPU (CUDA 13), on `c03` |
 | `torch` | `ghcr.io/carbonphysicsai/carbon-torch-worker` | `scripts/dev/torch_worker_image.sh` | PyTorch CPU, on `c03` |
 | `torch-gpu` | `ghcr.io/carbonphysicsai/carbon-torch-gpu-worker` | `scripts/dev/torch_gpu_worker_image.sh` | PyTorch GPU (CUDA 13), on `c03`, its own environment |
+| `analysis` | `ghcr.io/carbonphysicsai/carbon-miner-analysis` | `python -m carbon.development_session.research_image` (as `install_miner.sh`) | the Launchpad's miner analysis image (`analysis_image_manifest`), on `c03` |
 
 The PyTorch GPU worker (TORCH-GPU-01) installs the exact-hashed
 `.devcontainer/torch/torch-cu130-py311.txt` (torch 2.13.0+cu130) on the C-03
@@ -74,13 +75,24 @@ The default path is `.carbon-artifacts/<kind>-worker-image.json`, which the
 validator, the battery service and the Launchpad already read. An existing
 different file is never overwritten.
 
+The analysis image (`analysis`) is pulled the same way. Its identity labels
+are the `d4` pair that `research_image.verify_image` checks; its default path
+is `.carbon-artifacts/analysis-image.json`. Name that file as the Launchpad's
+`analysis_image_manifest` (`python -m scripts.dev.miner_launchpad.installed
+write --analysis-image-manifest ...`) and as prelive's
+`--analysis-image-manifest`. Pull the C-03 worker first: the containment
+check inspects the analysis image's C-03 parent. `verify_image` binds the
+image to the analysis builder's own sources, so it verifies from a checkout
+at the release tag.
+
 **Host requirement:** Docker on the containerd image store. On that store an
 image's ID is its registry digest, so one `image_id` names the image on every
 host. The operator host already uses it. A host on the classic store is
 refused with `image_id_mismatch`.
 
 New GHCR packages start private. Until the owner makes `carbon-c03-worker`,
-`carbon-torch-worker` and `carbon-torch-gpu-worker` public, a host needs its own `docker login ghcr.io`
+`carbon-torch-worker`, `carbon-torch-gpu-worker` and `carbon-miner-analysis`
+public, a host needs its own `docker login ghcr.io`
 with read access. The pull never logs in.
 
 ## Capability matrix

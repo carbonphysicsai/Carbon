@@ -58,10 +58,10 @@ store, so an ID is also the registry digest of a pushed image.
 | `carbon-cw1d4-parent:ac873d…` | ac873d7622d9 | native Julia reference worker | `julia_worker_image.sh` | SEPARATELY PINNED (Julia) |
 | `carbon-c03-worker:7540003d5ee5337d`, `carbon-julia-parent:0bd385…` | 0bd385eb429d | C-03 parent of the Julia workers | `julia_worker_image.sh` (via `c03_worker_image.sh`) | SEPARATELY PINNED (Julia parent) |
 | `carbon-julia-parent:e623ce…` | e623cec461d1 | C-03 parent of an older Julia build | as above | SEPARATELY PINNED (Julia parent) |
-| `carbon-julia-parent:eef521…` | eef521815d4b | C-03 parent of the authored-Julia analysis images | as above | SEPARATELY PINNED (Julia parent) |
-| `carbon-authored-julia-parent:22750c…` | 22750c4d6c2b | miner analysis image (Launchpad `analysis_image_manifest`) | `carbon/development_session/julia_analysis.py` | SEPARATELY PINNED (Julia) |
-| `carbon-authored-julia-parent:4cb885…` | 4cb8855c77c0 | miner analysis image, earlier build | as above | SEPARATELY PINNED (Julia) |
-| `carbon-authored-julia-parent:649a5b…` | 649a5b0bf98d | miner analysis image, earlier build | as above | SEPARATELY PINNED (Julia) |
+| `carbon-julia-parent:eef521…` | eef521815d4b | C-03 parent of the authored-Julia analysis images | as above | COVERED (`c03`): the released analysis image's parent is the released C-03 worker |
+| `carbon-authored-julia-parent:22750c…` | 22750c4d6c2b | miner analysis image (Launchpad `analysis_image_manifest`) | `carbon/development_session/research_image.py` (tagged as a parent by `julia_analysis.py`) | COVERED (`analysis`, `ghcr.io/carbonphysicsai/carbon-miner-analysis`): released on the C-03 worker, as `install_miner.sh` builds it |
+| `carbon-authored-julia-parent:4cb885…` | 4cb8855c77c0 | miner analysis image, earlier build | as above | COVERED (`analysis`): superseded by the released analysis image |
+| `carbon-authored-julia-parent:649a5b…` | 649a5b0bf98d | miner analysis image, earlier build | as above | COVERED (`analysis`): superseded by the released analysis image |
 | `carbon-authored-julia-packages:2d885c…` | 2d885cb264dd | authored-Julia package stage | as above | SEPARATELY PINNED (Julia) |
 | `carbon-authored-julia-packages:3fd756…` | 3fd7564e0591 | authored-Julia package stage | as above | SEPARATELY PINNED (Julia) |
 | `carbon-julia-depot:aa09e0…`, `ghcr.io/carbonphysicsai/carbon-julia-depot:52a6de…` | aa09e0acfdc0 | the published authored-Julia depot (`scripts/dev/julia_depot.lock.json` pins this digest), CI `julia-service` | `carbon/development_session/julia_depot_build.py` | SEPARATELY PINNED (Julia depot) |
