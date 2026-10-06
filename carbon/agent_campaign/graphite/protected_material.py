@@ -30,6 +30,11 @@ PROTECTED_MARKERS = (
     "protected exam",
     "hidden_case",
     "hidden-case",
+    # The sealed tuning set (OWNER-GRAPHITE-TEST-WAVE-08 §1; VALIDATOR-17).
+    "graphite-tuning",
+    "graphite_tuning",
+    "tuning_set",
+    "tuning-set",
     "verification_reference",
     "verification-reference",
     "verification reference",
@@ -90,6 +95,10 @@ MARKER_CLASSES = {
         "protected exam",
         "hidden_case",
         "hidden-case",
+        "graphite-tuning",
+        "graphite_tuning",
+        "tuning_set",
+        "tuning-set",
     ),
     "reference_material": (
         "verification_reference",
