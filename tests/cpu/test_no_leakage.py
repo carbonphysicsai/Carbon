@@ -650,8 +650,7 @@ def test_fresh_wheel_outside_tree_a4_execution_is_import_isolated(
     )
     assert install_result.returncode == 0, install_result.stderr
 
-    script = textwrap.dedent(
-        """
+    script = textwrap.dedent("""
         import importlib.abc
         import importlib.metadata
         import json
@@ -819,8 +818,7 @@ def test_fresh_wheel_outside_tree_a4_execution_is_import_isolated(
                 type(qualification).__name__,
             ],
         }, sort_keys=True))
-        """
-    )
+        """)
     execution_result = subprocess.run(
         [str(environment_python), "-I", "-c", script],
         cwd=outside_tree,

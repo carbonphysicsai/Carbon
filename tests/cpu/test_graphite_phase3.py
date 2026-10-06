@@ -79,6 +79,8 @@ from carbon.agent_campaign.graphite.roles import (
     PROPOSE,
     ROLES,
     SELECT_MAX_INPUT_TOKENS,
+    TOOL_TEXT_V1,
+    TOOL_TEXT_V2,
     RoleName,
 )
 from carbon.agent_campaign.provider import ProviderUnavailable, TaskSpec
@@ -655,7 +657,7 @@ def _session_open(graphite, number=1):
     )
 
 
-def _open(graphite, number=1):
+def _open(graphite, number=1, tool_text=TOOL_TEXT_V2):
     """Open (not run) a Constructor session; returns its run id."""
     _document, profile = phase3.permission_profile(SCORING)
     spec = TaskSpec(
@@ -664,7 +666,7 @@ def _open(graphite, number=1):
         workspace_id=phase3.WORKSPACE,
         credential_ref=phase3.CREDENTIAL_REF,
         profile_digest=profile,
-        instructions_digest=graphite.register_brief(p3f.brief(graphite)),
+        instructions_digest=graphite.register_brief(p3f.brief(graphite, tool_text)),
         max_runtime_s=graphite.grant.max_runtime_s,
     )
     return graphite.start(spec, phase3.session_key(number)).provider_run_id
@@ -813,7 +815,9 @@ def test_a_kimi_k3_session_stops_typed_before_its_first_call(tmp_path):
 
 def _recorded_checkout(repository, role, paths=None):
     """The checkout `BEFORE_D34_CHECKOUT` recorded, in place of the live files."""
-    assert role is boundaries.Role.CONSTRUCTION and paths is None
+    # Battery's published material, now named by the session's Challenge.
+    assert role is boundaries.Role.CONSTRUCTION
+    assert paths == boundaries.published_material(SCORING.challenge_id)
     return BEFORE_D34_CHECKOUT
 
 
@@ -826,7 +830,11 @@ def _before_d34(root, model, **kw):
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(gp, "MODEL_SETTINGS", {})
         patch.setattr(boundaries, "checkout_manifest", _recorded_checkout)
-        return graphite, _open(graphite)
+        # Recorded before the tool-text versions: v1 (VALIDATOR-07).
+        # Recorded before the budget-status rule (AGENT-DOOR-USABILITY-01):
+        # no rule, so its status keeps the v1 bytes.
+        patch.setattr(phase3.Phase3Provider, "NEW_SESSION_BUDGET_STATUS", None)
+        return graphite, _open(graphite, tool_text=TOOL_TEXT_V1)
 
 
 def _digests(graphite, run):
@@ -1884,7 +1892,14 @@ def test_the_runner_refuses_without_an_exact_grant_and_credentials(
     assert "fixture-engy" not in capsys.readouterr().out
 
 
-def test_the_dry_run_exercises_the_whole_session_without_spend(tmp_path, capsys):
+def test_the_dry_run_exercises_the_whole_session_without_spend(
+    tmp_path, capsys, monkeypatch
+):
+    import containment_double
+
+    # The dry run's carrier containment check: a synthetic passing double
+    # here; the check's own tests are test_carrier_containment.py.
+    containment_double.install(monkeypatch)
     assert (
         phase3.main(
             [

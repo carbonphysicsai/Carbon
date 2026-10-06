@@ -825,9 +825,9 @@ def test_apply_accepts_response_defaults_and_uses_only_managed_endpoints() -> No
 def test_failed_create_attempt_stops_after_one_forward_post() -> None:
     artifact = _artifact()
     responses = _base_responses()
-    responses[
-        "POST repos/carbonphysicsai/Carbon/rulesets"
-    ] = ruleset_module.RulesetError("injected ambiguous repository ruleset POST")
+    responses["POST repos/carbonphysicsai/Carbon/rulesets"] = (
+        ruleset_module.RulesetError("injected ambiguous repository ruleset POST")
+    )
     client = FakeClient(responses)
     plan = _plan(
         repository="carbonphysicsai/Carbon",

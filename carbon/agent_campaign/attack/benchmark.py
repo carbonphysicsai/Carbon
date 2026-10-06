@@ -15,6 +15,15 @@ record made without one says `store_snapshot_missing`. An engine side's family
 state is recomputed from its records within the budget; controls are engine
 diagnostics, never budgeted. A comparison, never a grade: which side found
 more is descriptive.
+
+**Distinct by the rebuilt artifact (OWNER-GRAPHITE-TEST-WAVE-04 §1).** The
+equal budget is an attempt budget: what each side spent, reworded copies
+included. What each side *found* is counted by construction identity
+(`attack.identity.distinct`): `verified_difference` is the difference in
+distinct verified findings (distinct rebuilt artifacts, plus distinct
+behaviours of breaches that have none), so a reworded copy of a construction
+already found adds nothing. The per-attempt difference is kept as
+`verified_attempts_difference`, a diagnostic.
 """
 
 from __future__ import annotations
@@ -22,9 +31,11 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 
-from carbon.agent_campaign.attack import report
+from carbon.agent_campaign.attack import identity, report
 
-SCHEMA = "carbon.attack.b2.v1"
+#: v2: `verified_difference` by distinct construction identity (§1);
+#: `verified_attempts_difference` per attempt, a diagnostic.
+SCHEMA = "carbon.attack.b2.v2"
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 #: Whether a B2 record names the attack-knowledge store snapshot it ran under.
 SNAPSHOT_PINNED, SNAPSHOT_MISSING = "PINNED", "store_snapshot_missing"
@@ -59,6 +70,12 @@ def _within(run, budget):
         out["records"] = kept
         out["engine_state"] = report.engine_state(kept)
     return out
+
+
+def found(line):
+    """What one side found, for the comparison: its distinct verified
+    findings (`identity.distinct`), never its breached attempts (§1)."""
+    return line["distinct"]["verified"]
 
 
 def _side(run, budget, held_out, not_run, check=None, family=None):
@@ -104,7 +121,9 @@ def b2(
             "budget": n,
             "attacker": mine,
             "baseline": theirs,
-            "verified_difference": mine["verified"] - theirs["verified"],
+            # Distinct constructions found, never reworded copies (§1).
+            "verified_difference": found(mine) - found(theirs),
+            "verified_attempts_difference": mine["verified"] - theirs["verified"],
         }
     return {
         "schema": SCHEMA,
@@ -114,6 +133,7 @@ def b2(
             SNAPSHOT_MISSING if store_snapshot is None else SNAPSHOT_PINNED
         ),
         "budget": budget if isinstance(budget, int) else dict(budget),
+        "identity_rule": identity.RULE,
         "families": families,
         "checks": report.checks_view(families),
         "zero_findings_reads_as": report.ATTEMPTED_COVERAGE,

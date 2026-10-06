@@ -188,9 +188,9 @@ def test_proposal_rejects_changed_registered_and_computed_values() -> None:
         parse_proposed_design(json.dumps(payload))
 
     payload = json.loads(_design_text())
-    payload["execution_design"]["analysis"][
-        "leakage_joint_clearance_target"
-    ] = math.nextafter(1.0, 0.0)
+    payload["execution_design"]["analysis"]["leakage_joint_clearance_target"] = (
+        math.nextafter(1.0, 0.0)
+    )
     with pytest.raises(DesignDocumentError, match="leakage probability design"):
         parse_proposed_design(json.dumps(payload))
 

@@ -10,35 +10,10 @@ registered for Cooling.
 from __future__ import annotations
 
 from pathlib import Path
-from statistics import fmean
 
-from .scoring import ChallengeScoring, PracticeRule, clean
+from .scoring import ChallengeScoring, PracticeRule, clean, paired_error_difference
 
 BUILT_SCHEMA = "carbon.graphite.pod-built.v1"
-
-
-def _rows_by_case(rows):
-    return {
-        row["case_id"]: row
-        for row in rows
-        if row.get("case_id") is not None and row.get("error") is not None
-    }
-
-
-def _paired_difference(baseline_rows, rows, *, important=None):
-    baseline = _rows_by_case(baseline_rows)
-    candidate = _rows_by_case(rows)
-    common = sorted(set(baseline) & set(candidate))
-    if important is not None:
-        common = [case for case in common if bool(candidate[case].get("important"))]
-    if not common:
-        return {"n": 0, "mean_delta": None}
-    return {
-        "n": len(common),
-        "mean_delta": fmean(
-            candidate[case]["error"] - baseline[case]["error"] for case in common
-        ),
-    }
 
 
 class CoolingPracticeRule(PracticeRule):
@@ -74,8 +49,8 @@ class CoolingPracticeRule(PracticeRule):
         return [clean(row) for row in rows], clean(summary)
 
     def compare(self, baseline_rows, rows, eligible):
-        overall = _paired_difference(baseline_rows, rows)
-        important = _paired_difference(baseline_rows, rows, important=True)
+        overall = paired_error_difference(baseline_rows, rows)
+        important = paired_error_difference(baseline_rows, rows, important=True)
         if not eligible:
             outcome = "REGRESSION"
             reason = "the candidate failed the existing public-practice rule"

@@ -71,6 +71,7 @@ from carbon.agent_campaign.graphite.roles import (
     CONSTRUCTOR_SESSION_TURNS,
     CONSTRUCTOR_STALL_ATTEMPTS,
     ROLES,
+    TOOL_TEXT_V1,
     RoleName,
 )
 from carbon.agent_campaign.provider import RunState
@@ -332,6 +333,8 @@ def test_a_v1_plan_is_byte_identical_to_the_one_written_before_the_change(tmp_pa
             ScriptedPods(),
             session_limits=gp.SESSION_LIMITS_V1,
             adapter_id="engy-anthropic",
+            # Every v1 session read the v1 tool text (VALIDATOR-07).
+            tool_text=TOOL_TEXT_V1,
         )
     assert result["provider_state"] == "succeeded"
     assert digest(_plan_bytes(graphite._dir(run_id()))) == V1_CONSTRUCTOR_PLAN
@@ -746,7 +749,11 @@ def test_a_v2_harness_role_runs_past_the_shared_48(tmp_path):
     assert json.loads(outcome.read_bytes())["reason"] == "epoch provider-call ceiling"
 
 
-def test_the_dry_run_shows_no_call_cap_and_the_money_cap(tmp_path, capsys):
+def test_the_dry_run_shows_no_call_cap_and_the_money_cap(tmp_path, capsys, monkeypatch):
+    import containment_double
+
+    # The dry run's carrier containment check (synthetic passing double).
+    containment_double.install(monkeypatch)
     assert (
         phase3.main(
             [

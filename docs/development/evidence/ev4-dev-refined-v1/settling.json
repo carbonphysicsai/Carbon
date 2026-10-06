@@ -1,0 +1,340 @@
+[
+ {
+  "case_id": "ev4:D-T5-S0.48:c1=0.5,c2=0.4:0",
+  "original_plating_margin_v": 0.001727009050513548,
+  "original_status": "OK",
+  "plating_margin_bands": 0.6122794860636618,
+  "plating_margin_v": 0.0012061905875454138,
+  "refined_status": "OK",
+  "resolved": false,
+  "verdicts": {
+   "no_plating_onset": "UNRESOLVED",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "PASS"
+  }
+ },
+ {
+  "case_id": "ev4:D-T5-S0.33:c1=0.5,c2=0.4:0",
+  "original_plating_margin_v": 0.001741897365309697,
+  "original_status": "OK",
+  "plating_margin_bands": 0.6405309123748562,
+  "plating_margin_v": 0.0012618458973784666,
+  "refined_status": "OK",
+  "resolved": false,
+  "verdicts": {
+   "no_plating_onset": "UNRESOLVED",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "FAIL"
+  }
+ },
+ {
+  "case_id": "ev4:D-T5-S0.33:c1=0.75,c2=0.4:0",
+  "original_plating_margin_v": -0.00012378084895612327,
+  "original_status": "OK",
+  "plating_margin_bands": -0.5815291169644426,
+  "plating_margin_v": -0.001145612360419952,
+  "refined_status": "OK",
+  "resolved": false,
+  "verdicts": {
+   "no_plating_onset": "UNRESOLVED",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "PASS"
+  }
+ },
+ {
+  "case_id": "ev4:D-T5-S0.33:c1=0.75,c2=0.2:0",
+  "original_plating_margin_v": -0.00012378084895612327,
+  "original_status": "OK",
+  "plating_margin_bands": -0.5815291169644426,
+  "plating_margin_v": -0.001145612360419952,
+  "refined_status": "OK",
+  "resolved": false,
+  "verdicts": {
+   "no_plating_onset": "UNRESOLVED",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "FAIL"
+  }
+ },
+ {
+  "case_id": "ev4:D-T5-S0.48:c1=2,c2=0.4:0",
+  "original_status": "REFERENCE_SOLVER_FAILED",
+  "refined_status": "REFERENCE_SOLVER_FAILED",
+  "resolved": false
+ },
+ {
+  "case_id": "ev4:D-T5-S0.48:c1=2,c2=0.6:0",
+  "original_status": "REFERENCE_SOLVER_FAILED",
+  "refined_status": "REFERENCE_SOLVER_FAILED",
+  "resolved": false
+ },
+ {
+  "case_id": "ev4:D-T5-S0.48:c1=2,c2=0.2:0",
+  "original_status": "REFERENCE_SOLVER_FAILED",
+  "refined_status": "REFERENCE_SOLVER_FAILED",
+  "resolved": false
+ },
+ {
+  "case_id": "ev4:D-T14-S0.12:c1=1.25,c2=0.8:0",
+  "original_plating_margin_v": -0.0014241519354155907,
+  "original_status": "OK",
+  "plating_margin_bands": -1.137025483383565,
+  "plating_margin_v": -0.002239940202265623,
+  "refined_status": "OK",
+  "resolved": true,
+  "verdicts": {
+   "no_plating_onset": "FAIL",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "PASS"
+  }
+ },
+ {
+  "case_id": "ev4:D-T5-S0.48:c1=2,c2=0.8:0",
+  "original_status": "REFERENCE_SOLVER_FAILED",
+  "refined_status": "REFERENCE_SOLVER_FAILED",
+  "resolved": false
+ },
+ {
+  "case_id": "ev4:D-T14-S0.12:c1=1.5,c2=0.8:0",
+  "original_plating_margin_v": -0.001084683098917412,
+  "original_status": "OK",
+  "plating_margin_bands": -0.9711722565090578,
+  "plating_margin_v": -0.0019132093453228438,
+  "refined_status": "OK",
+  "resolved": false,
+  "verdicts": {
+   "no_plating_onset": "UNRESOLVED",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "PASS"
+  }
+ },
+ {
+  "case_id": "ev4:D-T5-S0.48:c1=2,c2=1:0",
+  "original_status": "REFERENCE_SOLVER_FAILED",
+  "refined_status": "REFERENCE_SOLVER_FAILED",
+  "resolved": false
+ },
+ {
+  "case_id": "ev4:D-T14-S0.48:c1=1,c2=0.6:0",
+  "original_plating_margin_v": -0.0004920399215443566,
+  "original_status": "OK",
+  "plating_margin_bands": -0.6117968943488502,
+  "plating_margin_v": -0.001205239881867235,
+  "refined_status": "OK",
+  "resolved": false,
+  "verdicts": {
+   "no_plating_onset": "UNRESOLVED",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "PASS"
+  }
+ },
+ {
+  "case_id": "ev4:D-T14-S0.48:c1=1,c2=0.4:0",
+  "original_plating_margin_v": -0.0004920399215443566,
+  "original_status": "OK",
+  "plating_margin_bands": -0.6117968943488502,
+  "plating_margin_v": -0.001205239881867235,
+  "refined_status": "OK",
+  "resolved": false,
+  "verdicts": {
+   "no_plating_onset": "UNRESOLVED",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "PASS"
+  }
+ },
+ {
+  "case_id": "ev4:D-T14-S0.48:c1=1,c2=0.2:0",
+  "original_plating_margin_v": -0.0004920399215443566,
+  "original_status": "OK",
+  "plating_margin_bands": -0.6117968943488502,
+  "plating_margin_v": -0.001205239881867235,
+  "refined_status": "OK",
+  "resolved": false,
+  "verdicts": {
+   "no_plating_onset": "UNRESOLVED",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "FAIL"
+  }
+ },
+ {
+  "case_id": "ev4:D-T24-S0.48:c1=0.75,c2=1:0",
+  "original_plating_margin_v": -0.000757055459436573,
+  "original_status": "OK",
+  "plating_margin_bands": -0.8235928673452583,
+  "plating_margin_v": -0.0016224779486701587,
+  "refined_status": "OK",
+  "resolved": false,
+  "verdicts": {
+   "no_plating_onset": "UNRESOLVED",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "PASS"
+  }
+ },
+ {
+  "case_id": "ev4:D-T24-S0.48:c1=1,c2=1:0",
+  "original_plating_margin_v": 0.0002948832081521278,
+  "original_status": "OK",
+  "plating_margin_bands": -0.2383305209604224,
+  "plating_margin_v": -0.0004695111262920321,
+  "refined_status": "OK",
+  "resolved": false,
+  "verdicts": {
+   "no_plating_onset": "UNRESOLVED",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "PASS"
+  }
+ },
+ {
+  "case_id": "ev4:D-T24-S0.48:c1=1.25,c2=1:0",
+  "original_plating_margin_v": 0.0004546458976645161,
+  "original_status": "OK",
+  "plating_margin_bands": -0.1851547169554484,
+  "plating_margin_v": -0.00036475479240223336,
+  "refined_status": "OK",
+  "resolved": false,
+  "verdicts": {
+   "no_plating_onset": "UNRESOLVED",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "PASS"
+  }
+ },
+ {
+  "case_id": "ev4:D-T24-S0.48:c1=1.5,c2=0.8:0",
+  "original_plating_margin_v": -0.0012066416805443262,
+  "original_status": "OK",
+  "plating_margin_bands": -0.7138816472616917,
+  "plating_margin_v": -0.0014063468451055326,
+  "refined_status": "OK",
+  "resolved": false,
+  "verdicts": {
+   "no_plating_onset": "UNRESOLVED",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "PASS"
+  }
+ },
+ {
+  "case_id": "ev4:D-T24-S0.48:c1=1.5,c2=0.4:0",
+  "original_plating_margin_v": -0.0012066416805443262,
+  "original_status": "OK",
+  "plating_margin_bands": -0.7138816472616917,
+  "plating_margin_v": -0.0014063468451055326,
+  "refined_status": "OK",
+  "resolved": false,
+  "verdicts": {
+   "no_plating_onset": "UNRESOLVED",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "FAIL"
+  }
+ },
+ {
+  "case_id": "ev4:D-T24-S0.48:c1=1.5,c2=0.6:0",
+  "original_plating_margin_v": -0.0012066416805443262,
+  "original_status": "OK",
+  "plating_margin_bands": -0.7138816472616917,
+  "plating_margin_v": -0.0014063468451055326,
+  "refined_status": "OK",
+  "resolved": false,
+  "verdicts": {
+   "no_plating_onset": "UNRESOLVED",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "PASS"
+  }
+ },
+ {
+  "case_id": "ev4:D-T24-S0.48:c1=1.5,c2=0.2:0",
+  "original_plating_margin_v": -0.0012066416805443262,
+  "original_status": "OK",
+  "plating_margin_bands": -0.7138816472616917,
+  "plating_margin_v": -0.0014063468451055326,
+  "refined_status": "OK",
+  "resolved": false,
+  "verdicts": {
+   "no_plating_onset": "UNRESOLVED",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "FAIL"
+  }
+ },
+ {
+  "case_id": "ev4:D-T24-S0.48:c1=1.5,c2=1:0",
+  "original_plating_margin_v": -0.0012066416805443262,
+  "original_status": "OK",
+  "plating_margin_bands": -0.7138816472616917,
+  "plating_margin_v": -0.0014063468451055326,
+  "refined_status": "OK",
+  "resolved": false,
+  "verdicts": {
+   "no_plating_onset": "UNRESOLVED",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "PASS"
+  }
+ },
+ {
+  "case_id": "ev4:D-T34-S0.33:c1=2,c2=0.4:0",
+  "original_plating_margin_v": -0.0014953519235654652,
+  "original_status": "OK",
+  "plating_margin_bands": -1.3910099316963167,
+  "plating_margin_v": -0.0027402895654417437,
+  "refined_status": "OK",
+  "resolved": true,
+  "verdicts": {
+   "no_plating_onset": "FAIL",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "FAIL"
+  }
+ },
+ {
+  "case_id": "ev4:D-T34-S0.33:c1=2,c2=0.2:0",
+  "original_plating_margin_v": -0.0014953519235654652,
+  "original_status": "OK",
+  "plating_margin_bands": -1.3910099316963167,
+  "plating_margin_v": -0.0027402895654417437,
+  "refined_status": "OK",
+  "resolved": true,
+  "verdicts": {
+   "no_plating_onset": "FAIL",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "FAIL"
+  }
+ },
+ {
+  "case_id": "ev4:D-T34-S0.33:c1=2,c2=0.6:0",
+  "original_plating_margin_v": -0.0014953519235654652,
+  "original_status": "OK",
+  "plating_margin_bands": -1.3910099316963167,
+  "plating_margin_v": -0.0027402895654417437,
+  "refined_status": "OK",
+  "resolved": true,
+  "verdicts": {
+   "no_plating_onset": "FAIL",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "PASS"
+  }
+ },
+ {
+  "case_id": "ev4:D-T34-S0.33:c1=2,c2=0.8:0",
+  "original_plating_margin_v": -0.0014953519235654652,
+  "original_status": "OK",
+  "plating_margin_bands": -1.3910099316963167,
+  "plating_margin_v": -0.0027402895654417437,
+  "refined_status": "OK",
+  "resolved": true,
+  "verdicts": {
+   "no_plating_onset": "FAIL",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "PASS"
+  }
+ },
+ {
+  "case_id": "ev4:D-T34-S0.33:c1=2,c2=1:0",
+  "original_plating_margin_v": -0.0014953519235654652,
+  "original_status": "OK",
+  "plating_margin_bands": -1.3910099316963167,
+  "plating_margin_v": -0.0027402895654417437,
+  "refined_status": "OK",
+  "resolved": true,
+  "verdicts": {
+   "no_plating_onset": "FAIL",
+   "peak_temperature": "PASS",
+   "reach_cv_in_window": "PASS"
+  }
+ }
+]

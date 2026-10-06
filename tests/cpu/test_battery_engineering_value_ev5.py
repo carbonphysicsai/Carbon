@@ -598,7 +598,13 @@ def test_the_ev5_campaign_is_declared_without_figures(ev5_campaign):
         json.dumps({"balance_floor_usd": 1.0, "ceilings_usd": {"ev5": 2.0}})
     )
     assert pc.operator_limits().ceiling_usd == 2.0
-    assert not (REPOSITORY / ev5.EVIDENCE / "accounting").exists()
+    # EV5 has run (OWNER-EV5-GO-01): its committed ledger is the public
+    # projection only, with no balance, spend, cap or rate in any row.
+    ledger = REPOSITORY / ev5.EVIDENCE / "accounting" / "ledger.jsonl"
+    for line in ledger.read_text().splitlines():
+        row = json.loads(line)
+        allowed = {"utc", "event"} | pc.PUBLIC_FIELDS.get(row["event"], set())
+        assert set(row) <= allowed, row["event"]
 
 
 def test_nothing_dispatches_without_the_operator_limits(ev5_campaign, monkeypatch):
@@ -912,7 +918,14 @@ def test_the_frozen_manifest_binds_the_sealed_batch_and_the_frozen_files():
     _, digest = ev.load(REPOSITORY / ev5.CONTRACT)
     assert digest == manifest["contract"]["digest"] == EV5_DIGEST
     files = manifest["plans"]["files"]
-    assert sorted(p.name for p in (REPOSITORY / ev5.PLANS).iterdir()) == sorted(files)
+    # The optimizer's verification plans are added after selection
+    # (manifest "optimizer_verification"); everything else is frozen.
+    on_disk = sorted(
+        p.name
+        for p in (REPOSITORY / ev5.PLANS).iterdir()
+        if not p.name.startswith("optimizer-")
+    )
+    assert on_disk == sorted(files)
     for name, entry in files.items():
         plan = json.loads((REPOSITORY / ev5.PLANS / name).read_text())
         assert plan == entry["plan"] and cr.digest(plan) == entry["digest"], name

@@ -42,6 +42,10 @@ def load_caps(value):
 class VerifiedWeightPublisher:
     """Shared checked publication lifecycle with an exact stage/type binding."""
 
+    #: Whether a winner whose coldkey is the subnet owner's is admitted
+    #: (`compile_targets`). False except for a testnet winner publisher.
+    ALLOW_OWNER_COLDKEY_WINNER = False
+
     def __init__(
         self,
         issuer,
@@ -91,6 +95,7 @@ class VerifiedWeightPublisher:
                 self.backend.publisher,
                 network=self.network,
                 spec_version=self.spec_version,
+                allow_owner_coldkey_winner=self.ALLOW_OWNER_COLDKEY_WINNER,
             )
             self.validate_stage(ref, snapshot, caps, resolved, plan)
             self.journal.prepare(ref, plan, snapshot, caps)
@@ -105,6 +110,7 @@ class VerifiedWeightPublisher:
                     self.backend.publisher,
                     network=self.network,
                     spec_version=self.spec_version,
+                    allow_owner_coldkey_winner=self.ALLOW_OWNER_COLDKEY_WINNER,
                 )
                 self.validate_stage(ref, fresh, fresh_caps, fresh_resolved, latest)
                 if (

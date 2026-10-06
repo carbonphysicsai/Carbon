@@ -109,7 +109,8 @@ def test_level_0_is_exactly_as_before(tmp_path):
 
 def check_unregistered_level_is_refused(tmp_path, capsys):
     tmp_path.mkdir(parents=True, exist_ok=True)
-    for level in (1, 2, 3):
+    # Level 1 is registered in the shipped registry (GRAPHITE-L1-BUILD-01).
+    for level in (2, 3):
         with pytest.raises(SystemExit):
             phase3.development_variant_for(level, SCORING)
         assert _refusal(capsys) == UNREGISTERED
@@ -129,7 +130,7 @@ def check_unregistered_level_is_refused(tmp_path, capsys):
     with pytest.raises(SystemExit):
         phase4.main(
             ["run", "--root", str(tmp_path), "--challenge", BATTERY]
-            + ["--dry-run", "--level", "1"]
+            + ["--dry-run", "--level", "3"]
         )
     assert _refusal(capsys) == UNREGISTERED
     assert list(tmp_path.iterdir()) == []  # nothing was read, written or spent
@@ -143,27 +144,33 @@ def test_an_unregistered_level_is_refused_before_anything_runs(tmp_path, capsys)
 
 
 def check_attack_adapter_per_level(variants, capsys):
-    variant = variants[1]
+    # Battery Level 1 ships its own adapter (GRAPHITE-L1-BUILD-01); Level 2
+    # has none, so it is the level that must be refused.
+    variant = variants[2]
     with pytest.raises(SystemExit):
-        phase4.adapter_for(phase4.attack_modules(), BATTERY, 1)
+        phase4.adapter_for(phase4.attack_modules(), BATTERY, 2)
     assert _refusal(capsys) == "no_attack_adapter_for_challenge_level"
     from carbon.agent_campaign.attack import adapter as adapters
 
     with pytest.raises(adapters.AdapterError) as refused:
-        adapters.get(BATTERY, 1)
+        adapters.get(BATTERY, 2)
     assert refused.value.code == "adapter_not_registered"
+    # The shipped Level-1 adapter attacks the shipped variant, not a fixture.
+    with pytest.raises(SystemExit):
+        phase4.adapter_for(phase4.attack_modules(), BATTERY, 1)
+    assert _refusal(capsys) == "attack_adapter_is_not_for_this_variant"
 
     def engine(contract_digest):
-        attack = types.SimpleNamespace(contract_digest=contract_digest, level=1)
-        registry = types.SimpleNamespace(ADAPTERS={(BATTERY, 1): attack})
+        attack = types.SimpleNamespace(contract_digest=contract_digest, level=2)
+        registry = types.SimpleNamespace(ADAPTERS={(BATTERY, 2): attack})
         return {"adapter": registry}, attack
 
     atk, _wrong = engine(cr.contract(BATTERY).digest)
     with pytest.raises(SystemExit):
-        phase4.adapter_for(atk, BATTERY, 1)
+        phase4.adapter_for(atk, BATTERY, 2)
     assert _refusal(capsys) == "attack_adapter_is_not_for_this_variant"
     atk, attack = engine(variant.digest)
-    assert phase4.adapter_for(atk, BATTERY, 1) == (attack, variant)
+    assert phase4.adapter_for(atk, BATTERY, 2) == (attack, variant)
     assert phase4.attacker_profile(attack, variant) == (
         variant.document(),
         variant.digest,
@@ -301,7 +308,11 @@ def test_a_development_pod_job_names_its_variant(variants):
     assert job.config(None)["development_variant"] == FIXTURE_DIGESTS[1]
 
 
-def test_a_development_dry_run_runs_end_to_end(variants, tmp_path, capsys):
+def test_a_development_dry_run_runs_end_to_end(variants, tmp_path, capsys, monkeypatch):
+    import containment_double
+
+    # The dry run's carrier containment check (synthetic passing double).
+    containment_double.install(monkeypatch)
     root = tmp_path / "root"
     root.mkdir()
     assert phase3.dry_run(root, SCORING, development_variant=variants[1]) == 0

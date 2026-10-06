@@ -101,6 +101,29 @@ def test_the_adapter_names_the_live_contract_read_only():
     assert surface["contract_digest"] == A.contract_digest
     assert surface["submission_form"].startswith("declarative strategy only")
     assert surface["adapter_version"] == c.ADAPTER_VERSION
+    policy = surface["candidate_fault_policy"]
+    assert policy == c._candidate_fault_policy().record()
+    assert policy["version"] == "cooling-candidate-fault-v1"
+
+
+def test_each_registered_candidate_fault_is_a_held_resource_attack():
+    spec = A.family_spec("resource_accounting")
+    attacks = dict(spec.attacks())
+    policy = c._candidate_fault_policy()
+    for fault in sorted(policy.faults):
+        name = "candidate_fault_" + fault
+        value = attacks[name]
+        real = spec.boundary(value)
+        weak = spec.specimen(value)
+        assert real == {"kind": "candidate_fault", **policy.record(fault)}
+        assert not spec.breached(real)
+        assert spec.breached(weak)
+        reading = A.assess(spec, (name, value))
+        assert (reading.reading, reading.oracle.verdict, reading.oracle.specimen) == (
+            c.HELD,
+            c.HELD,
+            c.FIRED,
+        )
 
 
 def test_the_session_surface_is_carbons_own_admission():
@@ -517,6 +540,12 @@ def test_a_selective_fault_dodges_no_case_on_either_real_path():
         assert v1["outcome"] == "FAILED_INFRA:adapter_failure", name
         assert v1["recorded_submissions"] == 0 and v1["retry_same"], name
         assert v1["ledger"] == {"FAILED_INFRA": 2}, name
+        expected_fault = (
+            "predict_exception" if value["mode"] == "raise" else "non_finite_score"
+        )
+        assert v1["candidate_fault_policy"] == c._candidate_fault_policy().record(
+            expected_fault
+        ), name
         graphite = result["graphite"]
         assert graphite["pods_launched"] == 2 and not graphite["retried"], name
         if value["mode"] == "raise":

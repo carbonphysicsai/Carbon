@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-readiness-linux-shakedown",
+  "recorded_at": "2026-10-05T17:30:00Z",
+  "challenge": "protocol",
+  "stage": "protocol",
+  "execution": {
+    "kind": "test_run",
+    "ref": "unofficial Linux shakedown of the readiness gate on the WSL host, battery, cooling and motor at Level 0",
+    "description": "Ran the gate in a scratch LF clone (CPU only, no Docker, no history committed) before the official baseline."
+  },
+  "expected": "The gate would behave on Linux as on Windows, minus the host-specific failures.",
+  "observed": "Digests and attack adapters were clean on an LF clone and phase4 prelive passed for battery and cooling. Two gate defects surfaced: the gate's own history file under carbon/ made the next R1 run refuse (shipped_code_has_uncommitted_changes), and cooling passed R1 on battery's phase-4 grant.",
+  "keep": [
+    "Keep running the gate unofficially on the canonical host before any official baseline."
+  ],
+  "change": [
+    "Write gate history and reports under docs/development/challenge_pipeline/readiness/, never under carbon/.",
+    "Make R1 use the challenge's own grant and fail closed when it has none.",
+    "Add lessons X6 and X7 to the register."
+  ],
+  "protocol_elements": [
+    "challenge.pipeline.lessons",
+    "challenge.graphite.readiness_gate"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

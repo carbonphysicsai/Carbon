@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-validator-12-boundary-per-challenge",
+  "recorded_at": "2026-10-05T19:00:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-12, branch claude/boundary-consistency-cooling, from main d8bd17bfe. Native: cooling and battery boundary tests, 48 passed. Canonical results are recorded in the PR.",
+    "description": "Cooling's construction boundary got its own standing three-layer consistency check, beside battery's unchanged one, for the readiness gate's P7."
+  },
+  "expected": "Cooling's boundary would mirror battery's on the same attack categories.",
+  "observed": "It did, with cooling's own vocabulary: a numeric or unknown kernel-length token is refused by the recipe, not the door, and another Challenge's strategy is refused by name. An empirical probe of all three layers came first, so the test's expectations were measured, not assumed.",
+  "keep": [
+    "Probe every layer empirically before writing a boundary test's expected outcomes.",
+    "Give each Challenge its own boundary set in its own vocabulary; never reuse another Challenge's field names as proof."
+  ],
+  "change": [
+    "Build a Challenge's boundary check in the same change that registers its scoring."
+  ],
+  "protocol_elements": [
+    "every registered Challenge has a standing check that its door, contract compile and admission agree"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

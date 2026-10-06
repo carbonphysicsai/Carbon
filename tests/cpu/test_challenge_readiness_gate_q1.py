@@ -170,7 +170,15 @@ def test_v2_ignores_ineligible_members_and_refuses_unrecorded_outcomes(recorded)
 
 def test_the_real_scoring_rule_digest_resolves_for_registered_scorings():
     assert q1.current_rule_digest("chip-cold-plate").startswith("sha256:")
-    assert q1.current_rule_digest("electric-motor-magnetics") is None
+    # Every registered scoring resolves to the digest of its own rule identity
+    # (not a fixed count: more challenges register over time).
+    from carbon.challenge_validator import scoring
+
+    for challenge in scoring.registered():
+        digest = q1.current_rule_digest(challenge)
+        assert digest is not None and digest.startswith("sha256:"), challenge
+    # A challenge with no registered scoring has no rule to be current against.
+    assert q1.current_rule_digest("not-a-registered-challenge") is None
 
 
 def test_build_cli_binds_the_rule_digest_and_recomputes(tmp_path):
@@ -198,7 +206,7 @@ def test_build_cli_binds_the_rule_digest_and_recomputes(tmp_path):
             [
                 "build",
                 "--challenge",
-                "electric-motor-magnetics",
+                "not-a-registered-challenge",
                 "--panel",
                 str(panel),
                 "--out",

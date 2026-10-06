@@ -46,7 +46,7 @@ from carbon.reconstruction.capability_registry import (
     public_registry,
 )
 
-from . import exam
+from . import exam, practice_safety
 from .challenge import (
     CAPACITY_CYCLES,
     CHALLENGE,
@@ -106,6 +106,9 @@ EVALUATION_FEEDBACK_FIELDS = (
     "nominated",
     "waiting",
     "finals",
+    # The coverage rule that typed the outcome (GRAPHITE-COVERAGE-PARITY-01),
+    # on outcomes recorded from that ruling on; absent on older ones.
+    "coverage_rule",
 )
 SCREENING_FEEDBACK_FIELDS = (
     "pool_version",
@@ -719,6 +722,8 @@ class BatteryPractice:
                 "output_digest": worker.get("output_digest"),
                 "provenance": worker.get("provenance"),
             },
+            # PRACTICE-SAFETY-01: feedback only, on the same public cases.
+            safety=practice_safety.safety(asked, self.practice),
         )
         result["recipe"] = strategy
         result["seed_source"] = "carbon_retained_randomness"
@@ -765,13 +770,15 @@ def implementation_files():
             "domain.py",
             "exam.py",
             "practice.py",
+            "practice_safety.py",
             "recipes.py",
             "research.py",
             "training.py",
             "torch_training.py",
             "torch_families.py",
+            "value/decision.py",
         )
-    )
+    ) + (here.parent / "practice_safety_feedback.py",)
 
 
 def challenge_parts():

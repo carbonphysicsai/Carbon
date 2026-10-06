@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-postmerge-subsystem-material-mismatch",
+  "recorded_at": "2026-10-05T14:42:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "current-main LF-native affected-subsystem regression attempt",
+    "description": "Ran validator contract, Battery compatibility, confirmation and pod-timeout tests after normalizing the public PRACTICE record."
+  },
+  "expected": "The affected subsystem matrix runs against registered exact-byte evidence.",
+  "observed": "194 tests passed and 15 refused the still-CRLF calibration prepare record before reaching their assertions.",
+  "keep": [
+    "Keep the calibration digest fail closed."
+  ],
+  "change": [
+    "Normalize the isolated prepare record to its registered LF digest and rerun the same matrix."
+  ],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "pinned_public_material"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

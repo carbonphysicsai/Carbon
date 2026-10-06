@@ -29,17 +29,27 @@ import sqlite3
 from contextlib import redirect_stdout
 from pathlib import Path
 
+import containment_double
 import pytest
-from test_graphite_phase4 import _synthetic_adapter
+from test_graphite_phase4 import (  # the stand-in's material: an autouse fixture
+    _stand_in_material,  # noqa: F401
+    _synthetic_adapter,
+)
 
 from carbon.agent_campaign.graphite import phase4
 from carbon.agent_campaign.graphite import phase4_prelive as prelive
 from carbon.challenge_validator import scoring as challenge_scoring
-from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
+from carbon.reconstruction.capability_registry import (
+    BATTERY_CHALLENGE,
+    COLD_PLATE_CHALLENGE,
+)
 
 REPOSITORY = Path(__file__).resolve().parents[2]
-GRANT_FILE = REPOSITORY / phase4.GRANT_FILE
+GRANT_FILE = REPOSITORY / phase4.PHASE4_GRANTS[BATTERY_CHALLENGE].grant_file
 PHASE4_PATHS = (
+    # A passing double here; the step's own tests are
+    # test_carrier_containment.py (GRAPHITE-CARRIER-CONTAINMENT-01).
+    prelive.CONTAINMENT_STEP,
     "grant_and_code_checks",
     "session_model_ledger_controller",
     "carbon_side_store_pin_replay",
@@ -141,21 +151,26 @@ def test_the_network_guard_refuses_and_records(monkeypatch):
 
 
 # -- the gate -----------------------------------------------------------------------------------
-def _grant_copy(tmp_path):
-    """The committed grant, with an expiry the test clock is always under."""
+def _grant_copy(tmp_path, challenge=BATTERY_CHALLENGE):
+    """The committed grant registered for `challenge`, with an expiry the
+    test clock is always under."""
     copy = tmp_path / "grant.json"
-    document = json.loads(GRANT_FILE.read_bytes())
+    name = phase4.PHASE4_GRANTS[challenge].grant_file
+    document = json.loads((REPOSITORY / name).read_bytes())
     copy.write_text(json.dumps({**document, "expires_at": "2099-01-01T00:00:00Z"}))
     return copy
 
 
 def _committed_by_digest(monkeypatch, copy):
     """L1's git checks need a pushed HEAD; a pull request's checkout has
-    none, so the gate's grant check here compares digests with `copy`."""
+    none, so the gate's grant check here keeps the real registry lookup and
+    id binding and compares digests with `copy` in place of the git blobs."""
     expected = phase4.grant_digest(json.loads(copy.read_bytes()))
 
-    def check(path, repository=phase4.REPOSITORY):
-        if phase4.grant_digest(json.loads(Path(path).read_bytes())) != expected:
+    def check(path, repository=phase4.REPOSITORY, *, challenge):
+        document = json.loads(Path(path).read_bytes())
+        phase4.bind_grant_to_challenge(document, phase4.phase4_grant(challenge))
+        if phase4.grant_digest(document) != expected:
             raise phase4.RunnerRefused("grant_differs_from_the_committed_phase4_grant")
         return expected
 
@@ -175,6 +190,7 @@ def _gate(tmp_path, adapter, atk):
         adapter,
         atk,
         grant_path=_grant_copy(tmp_path),
+        challenge=BATTERY_CHALLENGE,
         emit=printed.append,
         scoring=SCORING,
     )
@@ -208,6 +224,12 @@ def _assert_pod_step(report, code):
 @pytest.fixture()
 def engine_modules():
     return phase4.attack_modules()
+
+
+@pytest.fixture(autouse=True)
+def _containment_passes(monkeypatch):
+    """The carrier containment step's passing double (synthetic)."""
+    containment_double.install(monkeypatch)
 
 
 def test_the_gate_runs_every_phase4_path_and_spends_nothing(
@@ -293,19 +315,27 @@ def test_a_refused_grant_stops_the_gate_before_anything_opens(
         _synthetic_adapter(weak=False),
         engine_modules,
         grant_path=other,
+        challenge=BATTERY_CHALLENGE,
         emit=printed.append,
         scoring=SCORING,
     )
     report = json.loads(printed[-1])
-    (row,) = report["paths"]
+    containment, row = report["paths"]
+    assert containment["path"] == prelive.CONTAINMENT_STEP
     assert row["path"] == "grant_and_code_checks" and row["status"] == "FAIL"
     assert row["detail"]["refusal"] == "grant_differs_from_the_committed_phase4_grant"
     assert code == 4
+    # Release evidence names no grant when the grant was refused.
+    assert report["grant"] is None and report["challenge"] == BATTERY_CHALLENGE
 
 
-def test_the_battery_gate_through_the_cli(tmp_path, monkeypatch):
-    """`phase4 prelive` on battery Level 0, the first live run's Challenge."""
-    copy = _grant_copy(tmp_path)
+@pytest.mark.parametrize("challenge", [BATTERY_CHALLENGE, COLD_PLATE_CHALLENGE])
+def test_the_gate_through_the_cli(tmp_path, monkeypatch, challenge):
+    """`phase4 prelive` at battery and at cooling Level 0. The report is
+    release evidence (WAVE-05 §3): it names the Challenge and the grant it
+    accepted, bound to that Challenge, and shows the other Challenge's
+    grant refused."""
+    copy = _grant_copy(tmp_path, challenge)
     _committed_by_digest(monkeypatch, copy)
     out = io.StringIO()
     with redirect_stdout(out):
@@ -315,7 +345,7 @@ def test_the_battery_gate_through_the_cli(tmp_path, monkeypatch):
                 "--root",
                 str(tmp_path / "root"),
                 "--challenge",
-                BATTERY_CHALLENGE,
+                challenge,
                 "--grant",
                 str(copy),
             ]
@@ -326,6 +356,83 @@ def test_the_battery_gate_through_the_cli(tmp_path, monkeypatch):
         assert rows[name]["status"] == "PASS", rows[name]["detail"]
     _assert_pod_step(report, code)
     assert rows["session_model_ledger_controller"]["detail"]["settled_usd"] == "0"
+    entry = phase4.PHASE4_GRANTS[challenge]
+    assert report["schema"] == "carbon.graphite.phase4-prelive.v2"
+    assert report["challenge"] == challenge
+    assert report["grant"] == {
+        "challenge": challenge,
+        "grant_id": entry.grant_id,
+        "grant_file": entry.grant_file,
+        "grant_digest": phase4.grant_digest(json.loads(copy.read_bytes())),
+    }
+    detail = rows["grant_and_code_checks"]["detail"]
+    assert detail["other_challenges_grants"] == {
+        other.grant_id: "grant_is_for_another_challenge"
+        for other in phase4.PHASE4_GRANTS.values()
+        if other.challenge != challenge
+    }
+
+
+def test_another_challenges_grant_stops_the_gate(tmp_path, monkeypatch):
+    """Battery's grant handed to `prelive --challenge chip-cold-plate` fails
+    the grant check typed, and the gate opens nothing after it."""
+    copy = _grant_copy(tmp_path, BATTERY_CHALLENGE)
+    _committed_by_digest(monkeypatch, copy)
+    out = io.StringIO()
+    with redirect_stdout(out):
+        code = phase4.main(
+            [
+                "prelive",
+                "--root",
+                str(tmp_path / "root"),
+                "--challenge",
+                COLD_PLATE_CHALLENGE,
+                "--grant",
+                str(copy),
+            ]
+        )
+    report = json.loads(out.getvalue())
+    containment, row = report["paths"]
+    assert containment["path"] == prelive.CONTAINMENT_STEP
+    assert row["detail"]["refusal"] == "grant_is_for_another_challenge"
+    assert report["grant"] is None and code == 4
+
+
+def test_mutation_an_unbound_grant_check_fails_the_gate(
+    tmp_path, monkeypatch, engine_modules
+):
+    """The gate's own negative: with the id binding disabled, a copy naming
+    the other Challenge's grant is no longer refused typed, and the grant
+    check fails the gate."""
+    copy = _grant_copy(tmp_path)
+    _committed_by_digest(monkeypatch, copy)
+    monkeypatch.setattr(phase4, "bind_grant_to_challenge", lambda d, e: e)
+    code, report = _gate(tmp_path, _synthetic_adapter(weak=False), engine_modules)
+    row = report["paths"][1]
+    assert row["path"] == "grant_and_code_checks" and row["status"] == "FAIL"
+    assert "was not refused" in row["detail"]["message"]
+    assert report["grant"] is None and code == 4
+
+
+def test_mutation_a_grant_check_that_takes_a_raised_ceiling_fails_the_gate(
+    tmp_path, monkeypatch, engine_modules
+):
+    """The gate's tamper negative: a grant check that accepts a copy with
+    its ceiling raised fails the gate, and names no accepted grant."""
+    copy = _grant_copy(tmp_path)
+    _committed_by_digest(monkeypatch, copy)
+
+    def lax(path, repository=phase4.REPOSITORY, *, challenge):
+        document = json.loads(Path(path).read_bytes())
+        phase4.bind_grant_to_challenge(document, phase4.phase4_grant(challenge))
+        return phase4.grant_digest(document)
+
+    monkeypatch.setattr(phase4, "check_committed_grant", lax)
+    code, report = _gate(tmp_path, _synthetic_adapter(weak=False), engine_modules)
+    row = report["paths"][1]
+    assert row["path"] == "grant_and_code_checks" and row["status"] == "FAIL"
+    assert "ceiling raised was not refused" in row["detail"]["message"]
+    assert report["grant"] is None and code == 4
 
 
 def test_the_pod_step_calls_the_pod_layers_shared_check_when_it_exists(
@@ -364,3 +471,38 @@ def test_the_pod_step_calls_the_pod_layers_shared_check_when_it_exists(
     assert rows[prelive.POD_STEP]["detail"]["error"] == "ProgrammingError"
     assert report["verdict"] == "FAIL" and code == 4
     assert report["phase4_live_path"] == "PASS"
+
+
+def test_the_gate_helper_refuses_a_positional_call(tmp_path):
+    """Every `_run` parameter after `gate` is keyword-only, so `challenge`,
+    `grant_path` and `analysis_image_manifest` cannot shift into each
+    other's places: a positional call is refused before any step runs."""
+    import inspect
+
+    parameters = list(inspect.signature(prelive._run).parameters.values())
+    assert parameters[0].name == "gate"
+    assert parameters[0].kind is inspect.Parameter.POSITIONAL_OR_KEYWORD
+    assert {p.name for p in parameters[1:]} >= {
+        "store",
+        "grant_path",
+        "challenge",
+        "analysis_image_manifest",
+    }
+    assert all(p.kind is inspect.Parameter.KEYWORD_ONLY for p in parameters[1:])
+
+    class Untouched:
+        def __getattr__(self, name):
+            raise AssertionError("a positional call reached the gate")
+
+    with pytest.raises(TypeError, match="positional argument"):
+        prelive._run(
+            Untouched(),
+            tmp_path,
+            None,
+            None,
+            "grant.json",
+            tmp_path,
+            SCORING,
+            BATTERY_CHALLENGE,
+            None,
+        )

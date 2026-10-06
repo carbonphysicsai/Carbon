@@ -31,13 +31,17 @@ from carbon import research
 from carbon.chain.external_signer import SignerFailure
 from carbon.development_session.profile import canonical
 from carbon.development_session.research_control import DispatchStopped
+from carbon.development_session.research_ledger import PLAIN_REFUSALS
 from carbon.development_session.research_tools import (
     FIELDS,
     PREFIX,
     TASK_CORRECTIONS,
     PreDispatchRefusal,
     ResearchMinerTools,
+    campaign_argument_normalisation,
     correction_parts,
+    practice_null_fields,
+    task_correction,
 )
 from carbon.research.model import DEVELOPMENT_WORKSPACE_ACTIONS
 
@@ -112,12 +116,25 @@ class AdapterCode(str, Enum):
 
 
 class AdapterFailure(ValueError):
-    """Closed public error; details from trusted services never cross the wire."""
+    """Closed public error; details from trusted services never cross the wire.
 
-    def __init__(self, code: AdapterCode, *, dispatch_may_have_occurred=False):
+    `correction`, when present, is a registered correction in this wire's
+    object terms (`_correction`'s projection: correction_code, field,
+    correction), built only from `research_tools.task_correction` - never a
+    caller's value or a service message (RESEARCH-TOOL-USABILITY-01)."""
+
+    def __init__(
+        self, code: AdapterCode, *, dispatch_may_have_occurred=False, correction=None
+    ):
         super().__init__(code.value)
         self.code = code
         self.dispatch_may_have_occurred = dispatch_may_have_occurred
+        self.correction = correction
+
+    @property
+    def field(self):
+        """The registered field the correction names, or None."""
+        return None if self.correction is None else self.correction.get("field")
 
 
 def _signer_failure(failure, issued_before, key):
@@ -193,7 +210,8 @@ def _pre_dispatch_stop(exc):
     while trace is not None:
         codes.append(trace.tb_frame.f_code)
         trace = trace.tb_next
-    message = str(exc) if type(exc) is ValueError else None
+    # The ledger's typed refusal (`LedgerRefusal`) keeps its historical text.
+    message = str(exc) if type(exc) in PLAIN_REFUSALS else None
     for outer, inner in itertools.pairwise(codes):
         if outer is _SDK_BODY and inner.co_name in _ADMISSION_CHECKS:
             return _ADMISSION_STOPS.get(message, AdapterCode.OPERATIONAL_STOP)
@@ -288,7 +306,72 @@ def _object_json(value):
     return encoded.decode("utf-8")
 
 
-def _arguments(operation, supplied):
+#: kind=practice's fields on this wire, as the SDK names them, in the order
+#: the SDK checks them: the first that breaks the contract is the one named.
+_PRACTICE_FIELDS = (
+    ("strategy", "strategy_json"),
+    ("action", "action"),
+    ("arguments", "arguments_json"),
+)
+
+
+def _practice_refused(sdk_field, value):
+    """INVALID_ARGUMENT for a kind=practice field, carrying the registered
+    correction the SDK gives the same request (`practice_recipe_required`,
+    the field, the tool and, for the string "null", that null means JSON
+    null), in this wire's object terms. Nothing was dispatched."""
+    text = task_correction(
+        "practice_recipe_required", sdk_field, value, tool="start_research_task"
+    )
+    raise AdapterFailure(
+        AdapterCode.INVALID_ARGUMENT,
+        correction=_correction(
+            "start_research_task",
+            {
+                "correction_code": "practice_recipe_required",
+                "field": sdk_field,
+                "correction": text,
+            },
+        ),
+    )
+
+
+def _null_read_as_none(value, sdk_field, rule):
+    """Whether this practice field's value is the string "null" that the
+    campaign's frozen argument normalisation reads as JSON null (v2 only).
+    `rule` is read only then; a rule this code does not know reads nothing
+    as null, so the value is refused as under no rule."""
+    if value != "null" or type(value) is not str:
+        return False
+    try:
+        return sdk_field in practice_null_fields(rule())
+    except ValueError:
+        return False
+
+
+def _check_practice(args, rule):
+    """kind=practice takes a recipe object and null action and arguments; a
+    field that breaks that is refused with its correction. Under a plan that
+    froze argument-normalisation.v2, action and arguments sent as the string
+    "null" pass through as sent: the SDK reads them as JSON null, so the
+    request it builds is the one real null builds, and its ledger binds what
+    was sent."""
+    if type(args["strategy"]) is not dict:
+        _practice_refused("strategy_json", args["strategy"])
+    for field, sdk_field in _PRACTICE_FIELDS[1:]:
+        value = args[field]
+        if value is not None and not _null_read_as_none(value, sdk_field, rule):
+            _practice_refused(sdk_field, value)
+
+
+def _no_rule():
+    return None
+
+
+def _arguments(operation, supplied, rule=_no_rule):
+    """The SDK's arguments for one object-valued request. `rule` returns the
+    campaign's frozen argument normalisation; it is read only for a practice
+    field sent as the string "null"."""
     if type(supplied) is not dict:
         _invalid()
     expected = {
@@ -322,8 +405,7 @@ def _arguments(operation, supplied):
             if type(args[key]) is not str or not 1 <= len(args[key]) <= 2048:
                 _invalid()
         if args["kind"] == "practice":
-            if args["action"] is not None or args["arguments"] is not None:
-                _invalid()
+            _check_practice(args, rule)
             args["strategy_json"] = _object_json(args.pop("strategy"))
             args["arguments_json"] = args.pop("arguments")
         elif args["kind"] == "workspace":
@@ -613,6 +695,25 @@ class ResearchToolAdapter:
         """Operator-selected identity; never supplied by a transport caller."""
         return self._principal
 
+    def _normalisation(self):
+        """The argument normalisation rule this campaign froze in its run
+        plan (`campaign_argument_normalisation`), read from the bound SDK's
+        ledger; None without one."""
+        return campaign_argument_normalisation(self._sdk.ledger)
+
+    @property
+    def argument_normalisation(self):
+        """The argument normalisation rule the bound campaign froze, for the
+        door's published schema (AGENT-DOOR-USABILITY-01 A2): None without
+        one, before a manifest is frozen, or for a rule this code does not
+        know - so an unknown rule is described as no rule, and refused as
+        none would be. Discovery; execution rereads it per call."""
+        self._check_binding()
+        try:
+            return self._normalisation()
+        except ValueError:
+            return None
+
     def _check_binding(self):
         sdk = self._sdk
         if (
@@ -687,7 +788,7 @@ class ResearchToolAdapter:
             or _TOKEN.fullmatch(request.operation_id) is None
         ):
             _invalid()
-        args = _arguments(request.operation, request.arguments)
+        args = _arguments(request.operation, request.arguments, self._normalisation)
         key = getattr(getattr(self._sdk, "connection", None), "miner_key", None)
         issued_before = getattr(key, "issued", None)
         try:
@@ -726,7 +827,7 @@ class ResearchToolAdapter:
             or _TOKEN.fullmatch(request.operation_id) is None
         ):
             _invalid()
-        args = _arguments(request.operation, request.arguments)
+        args = _arguments(request.operation, request.arguments, self._normalisation)
         return await self._task_call("start", args, request.operation_id)
 
     async def observe_task(self, task_id: str) -> ResearchToolResult:
