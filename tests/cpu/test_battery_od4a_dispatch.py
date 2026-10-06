@@ -457,10 +457,9 @@ def _called(source):
 
 
 def test_signing_boundaries_are_untouched_and_unused():
-    # 2.1 and 2.2: winner_intent() still raises and sign() still refuses a
-    # non-all-burn intent; the adapter calls neither and loads no key.
-    with pytest.raises(PermissionError):
-        signing.winner_intent()
+    # The OD-4a adapter calls neither winner_intent() nor sign() and loads no
+    # key. (OWNER-WEIGHTS-AUTHORITY-01 lifted OD-4b's refusal in `signing`;
+    # winner weights publish through `rewards.testnet_winner_publication`.)
     forbidden = {"winner_intent", "sign", "ServiceKey", "load", "create"}
     # Specimen: the same scan finds each call where it is present.
     assert forbidden <= _called(

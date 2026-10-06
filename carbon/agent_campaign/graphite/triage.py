@@ -174,7 +174,12 @@ class Backfill:
         clock=time.time,
         now=None,
         sleep=time.sleep,
+        profile=None,
     ):
+        """`profile`: a Challenge's literature profile (VALIDATOR-08). With
+        one, the run extracts only records its query set retrieved and its
+        free pre-filter keeps, with the Challenge-neutral Reader prompt, into
+        v2 cards; without one, the battery v1 backfill, unchanged."""
         root = Path(root)
         if not root.is_absolute() or root.is_symlink():
             raise ValueError("the backfill root is private and absolute")
@@ -191,6 +196,15 @@ class Backfill:
         self.clock, self.sleep = clock, sleep
         self.cards = method_cards.CardStore(root / "cards")
         self.ladder = Ladder(root / "ladder")
+        self.profile = profile
+        if profile is None:
+            self.prompt, self.prompt_digest = None, method_cards.PROMPT_DIGEST
+            self.card_schema = method_cards.CARD_SCHEMA
+        else:
+            from .miner.hunt import READER_PROMPT, READER_PROMPT_DIGEST
+
+            self.prompt, self.prompt_digest = READER_PROMPT, READER_PROMPT_DIGEST
+            self.card_schema = method_cards.CARD_SCHEMA_V2
 
     # -- runs and the grant ---------------------------------------------------------------
     def _run_dir(self, run_id):
@@ -227,8 +241,20 @@ class Backfill:
             "selection": selection.record(),
             "role": RoleName.READER.value,
             "rung": self.ladder.rung(RoleName.READER),
-            "prompt_digest": method_cards.PROMPT_DIGEST,
-            "query_set_digest": QUERY_SET.digest,
+            "prompt_digest": self.prompt_digest,
+            "query_set_digest": (
+                QUERY_SET.digest
+                if self.profile is None
+                else self.profile.query_set.digest
+            ),
+            **(
+                {}
+                if self.profile is None
+                else {
+                    "challenge_id": self.profile.challenge_id,
+                    "profile_digest": self.profile.digest,
+                }
+            ),
             "ceilings": ceilings(self.grant, self.max_calls),
             "elapsed_seconds": self.grant.max_runtime_s,
             "live_inference": bool(self.model.live),
@@ -330,10 +356,20 @@ class Backfill:
 
     # -- the run -------------------------------------------------------------------------------
     def pending(self):
-        """Stored records with neither a card nor a rejection, in order."""
+        """Stored records with neither a card nor a rejection, in order. With a
+        profile: only the records its query set retrieved and its free
+        pre-filter keeps; nothing is paid for the rest."""
         rows = []
-        for address in self.raw.addresses():
+        if self.profile is None:
+            addresses = self.raw.addresses()
+        else:
+            from .challenge_literature import retrieved_by
+
+            addresses = retrieved_by(self.raw, self.profile.query_set)
+        for address in addresses:
             record = self.raw.record(address)
+            if self.profile is not None and not self.profile.triage(record)[0]:
+                continue
             if not self.cards.done(record, address):
                 rows.append((address, record))
         return rows
@@ -352,7 +388,7 @@ class Backfill:
             "model": selection.model_id,
             "provider_id": selection.provider_id,
             "selection_digest": digest(canonical(selection.record())),
-            "prompt_digest": method_cards.PROMPT_DIGEST,
+            "prompt_digest": self.prompt_digest,
             "run_id": run_id,
             "rung": record["rung"],
             "live_inference": bool(self.model.live),
@@ -360,7 +396,7 @@ class Backfill:
         made = rejected = 0
         stop = {"status": "COMPLETED"}
         for address, paper in self.pending():
-            request = method_cards.extraction_request(selection, paper)
+            request = method_cards.extraction_request(selection, paper, self.prompt)
             try:
                 response = request_model(
                     ledger,
@@ -412,14 +448,14 @@ class Backfill:
                         "code": error.code,
                         "run_id": run_id,
                         **call,
-                        "prompt_digest": method_cards.PROMPT_DIGEST,
+                        "prompt_digest": self.prompt_digest,
                         "model": selection.model_id,
                     },
                 )
                 rejected += 1
                 continue
             card = method_cards.make_card(
-                paper, address, extraction, {**provenance, **call}
+                paper, address, extraction, {**provenance, **call}, self.card_schema
             )
             self.cards.put_card(card)
             made += 1

@@ -60,6 +60,12 @@ CHECK_SCHEMA = "carbon.graphite.human-check.v1"
 #: (GRAPHITE-D29). A v1 snapshot still loads; its cards count as UNCHECKED.
 SNAPSHOT_SCHEMA = "carbon.graphite.literature-snapshot.v2"
 SNAPSHOT_SCHEMA_V1 = "carbon.graphite.literature-snapshot.v1"
+#: v2 cards: the Challenge-neutral Reader prompt (`miner.hunt.READER_PROMPT`),
+#: for every Challenge but battery (VALIDATOR-08). v3 snapshots: one
+#: Challenge's v2 cards, graded and ranked by its literature profile.
+CARD_SCHEMA_V2 = "carbon.graphite.method-card.v2"
+SNAPSHOT_SCHEMA_V3 = "carbon.graphite.literature-snapshot.v3"
+SNAPSHOT_SCHEMAS = (SNAPSHOT_SCHEMA_V1, SNAPSHOT_SCHEMA, SNAPSHOT_SCHEMA_V3)
 UNCHECKED = "UNCHECKED"
 VERDICTS = ("CORRECT", "EXTRACTION_ERROR", "NOT_RELEVANT")
 #: A card a human rejected never enters a snapshot.
@@ -168,12 +174,15 @@ def paper(record):
     }
 
 
-def extraction_request(selection, record):
-    """The closed, stateless request for one record. Only the record varies."""
+def extraction_request(selection, record, instructions=None):
+    """The closed, stateless request for one record. Only the record varies.
+    `instructions`: the Reader prompt (v1's unless a Challenge's profile
+    names the neutral one, VALIDATOR-08)."""
     effort = selection.settings.reasoning_effort
+    prompt = READER_EXTRACTION_PROMPT if instructions is None else instructions
     return {
         "model": selection.model_id,
-        "instructions": READER_EXTRACTION_PROMPT,
+        "instructions": prompt,
         "input": [{"role": "user", "content": canonical(paper(record)).decode()}],
         "tools": [],
         "parallel_tool_calls": False,
@@ -233,10 +242,12 @@ def parse_extraction(response):
     return {name: value[name] for name in EXTRACTED_FIELDS}
 
 
-def make_card(record, record_address, extraction, provenance):
+def make_card(record, record_address, extraction, provenance, schema=CARD_SCHEMA):
     """A method card. Its status is `UNCHECKED`; nothing here sets another."""
+    if schema not in (CARD_SCHEMA, CARD_SCHEMA_V2):
+        raise ValueError("unknown card schema")
     return {
-        "schema": CARD_SCHEMA,
+        "schema": schema,
         "card_id": card_id(record["arxiv_id"]),
         "arxiv_id": record["arxiv_id"],
         "title": record["title"],
@@ -468,6 +479,75 @@ def snapshot(store, raw, *, label, query_set_digest):
     return index, document
 
 
+def challenge_snapshot(store, raw, profile, *, label):
+    """One Challenge's snapshot (schema v3): its v2 cards for the records its
+    query set retrieved, graded by its literature profile, grade 1 or more,
+    best first. Returns `(index, document)`, deterministic."""
+    from .challenge_literature import retrieved_by
+
+    retrieved = set(retrieved_by(raw, profile.query_set))
+    graded, withheld, excluded, below, statuses = [], [], [], [], {}
+    considered = []
+    for card in store.cards():
+        if (
+            card.get("schema") != CARD_SCHEMA_V2
+            or card["record_digest"] not in retrieved
+        ):
+            continue
+        considered.append(card)
+        status = store.status(card)
+        if not card["relevant"] or status.removeprefix("HUMAN_CHECKED_") in (
+            _REJECTING
+        ):
+            excluded.append(card["card_id"])
+            continue
+        record = raw.record(card["record_digest"])
+        if digest(record["abstract"].encode("utf-8")) != card["abstract_digest"]:
+            raise ValueError("a card's abstract no longer matches its record")
+        entry = _index_card(card, record["abstract"], status)
+        if _withheld(entry):
+            withheld.append(card["card_id"])
+            continue
+        grade, _reasons = profile.grade(entry)
+        if grade < 1:
+            below.append(card["card_id"])
+            continue
+        graded.append((grade, entry))
+        statuses[card["card_id"]] = status
+    if not graded:
+        raise ValueError("no admissible card to index for this Challenge")
+    graded.sort(key=lambda pair: (-pair[0], pair[1]["card_id"]))
+    index = literature.LiteratureIndex(
+        cards=tuple(entry for _, entry in graded), label=label
+    )
+    from .miner.hunt import READER_PROMPT_DIGEST
+
+    document = {
+        "schema": SNAPSHOT_SCHEMA_V3,
+        "label": label,
+        "challenge_id": profile.challenge_id,
+        "profile_digest": profile.digest,
+        "query_set_digest": profile.query_set.digest,
+        "prompt_digest": READER_PROMPT_DIGEST,
+        "ranking": profile.ranking_rule(),
+        "ranked": [[entry["card_id"], grade] for grade, entry in graded],
+        "index": index.document(),
+        "index_snapshot_digest": index.snapshot_digest,
+        "card_digests": {
+            card["card_id"]: digest(canonical(card)) for card in considered
+        },
+        "card_status": dict(sorted(statuses.items())),
+        "withheld_protected": sorted(withheld),
+        "excluded": sorted(excluded),
+        "below_grade": sorted(below),
+        "authority": (
+            "a literature snapshot for one Challenge's Graphite sessions; no "
+            "claim on a card is Carbon's"
+        ),
+    }
+    return index, document
+
+
 def write_snapshot(store, document):
     body = canonical(document)
     address = digest(body)
@@ -489,7 +569,7 @@ def load_snapshot_document(path):
     if path.stem != address[7:]:
         raise ValueError("a snapshot file does not match its address")
     document = json.loads(body)
-    if document.get("schema") not in (SNAPSHOT_SCHEMA, SNAPSHOT_SCHEMA_V1):
+    if document.get("schema") not in SNAPSHOT_SCHEMAS:
         raise ValueError("not a Graphite literature snapshot")
     stored = document["index"]
     index = literature.LiteratureIndex(
@@ -550,7 +630,20 @@ def offered_literature(path, *, allow_unchecked=False):
         for card in sorted(index.cards, key=lambda card: card["card_id"])
         if _offered(statuses[card["card_id"]], allow_unchecked) and not protected(card)
     )
+    ranking = None
+    if document["schema"] == SNAPSHOT_SCHEMA_V3:
+        # One Challenge's ranked snapshot: its offered cards keep the rank.
+        offered_ids = {card["card_id"] for card in offered}
+        ranking = {
+            "challenge_id": document["challenge_id"],
+            "rule": document["ranking"]["rule"],
+            "rule_digest": document["ranking"]["digest"],
+            "grades": tuple(
+                (cid, grade) for cid, grade in document["ranked"] if cid in offered_ids
+            ),
+        }
     return literature.OfferedLiterature(
+        ranking=ranking,
         cards=offered,
         statuses=tuple(
             (card["card_id"], statuses[card["card_id"]]) for card in offered

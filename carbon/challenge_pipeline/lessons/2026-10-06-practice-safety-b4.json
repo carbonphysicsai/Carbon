@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-practice-safety-b4",
+  "recorded_at": "2026-10-06T12:00:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "PRACTICE-SAFETY-01 B4 (.agent/decisions/2026-10-05-PRACTICE-SAFETY-01.md, addendum 2026-10-06), branch claude/practice-safety-b4; the practice decision set committed in #669.",
+    "description": "Battery practice feedback B4 moves from BLOCKED to computed on the committed practice decision set (6 conditions x EV4's 35-candidate grid), pinned through its SHA256SUMS, under practice-feedback v3; the worker is asked for the set's inputs beside PRACTICE's."
+  },
+  "expected": "B4 shows the share of conditions where the model's chosen protocol is reference-feasible, with abstentions and unresolved choices counted beside it, from public material only, and refuses with a typed reason when the set does not match its pins.",
+  "observed": "Committing a public set does not by itself make a metric computable: the worker predicted only the 200 PRACTICE inputs, so B4 also needed the set's inputs staged, an inputs schema v2 and a feedback v3. The committed set passes the ruled separation list but not #652's broader check, which adds EV5's protected grids: 2 of 6 conditions lie inside both bounds of an EV5 protected-grid point.",
+  "keep": [
+    "A committed evidence set is pinned through the digest of its own SHA256SUMS, and each file is read once and checked before parsing, so files and sums forged together are still refused.",
+    "A pinned-set refusal is typed and computes nothing; a mutant that skips the digest check is killed by test."
+  ],
+  "change": [
+    "A selection rule and the later check against it name the same protected list. A check run on a declared superset is reconciled with the ruling before the set is solved, not after."
+  ],
+  "protocol_elements": [
+    "practice_feedback.v3",
+    "practice_safety_feedback.allow_list",
+    "practice_safety.disjointness"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

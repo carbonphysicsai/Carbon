@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-validator-13-level1-hidden",
+  "recorded_at": "2026-10-06T12:00:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-13 slice 5, branch claude/validator-13d-l1-hidden. Canonical: the Level-1 hidden-path tests and the battery validator, miner-door refusal and invariant suites; results recorded in the PR.",
+    "description": "Battery Level 1 constructions are scored on the hidden pool through the real validator, on an opted-in development deployment only, kept apart from Level 0 and from weights."
+  },
+  "expected": "The daemon could compile a development variant itself.",
+  "observed": "A constitutional invariant forbids the daemon from importing or naming the variant module, so the Graphite side supplies the compile function on an opted-in deployment only, and the daemon recompiles through it at rebuild. The Level-0 program needed only its one indented build line replaced.",
+  "keep": [
+    "Inject development-only capability into a miner-facing component; never import it there.",
+    "Pair every safety guard with its guard-off twin."
+  ],
+  "change": [
+    "Check a design trace against the invariants before building it."
+  ],
+  "protocol_elements": [
+    "development levels run through the real validator only on an explicitly opted-in development deployment that can never set weights"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,0 +1,27 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-05-graphite-carrier-containment-gate",
+ "recorded_at": "2026-10-05T15:00:00Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "stage_gate",
+  "ref": "claude/carrier-containment-gate from origin/main b327ac12d (GRAPHITE-CARRIER-CONTAINMENT-01, approved by the Test Lead)",
+  "description": "Added a deterministic containment check of the real miner research lane to phase 4 prelive and the phase-3 dry run: one fixed cell through run_script and the lane's own docker create/start, in the pinned analysis image, probing a planted host canary, /proc/1/comm, /proc/self/cgroup, the host home, the network and writes outside /scratch. Ran it once on the WSL operator host."
+ },
+ "expected": "The lane's isolation (network none, private PID and cgroup namespaces, read-only root, non-root user, only /input and /scratch mounted) contains every probe, and a gate that cannot run the check fails closed.",
+ "observed": "On the operator host every probe was contained: the canary and the host home were absent, PID 1 was python against the host's systemd, the cgroup was the namespaced root, TCP and UDP failed with ENETUNREACH and DNS with gaierror, every write outside /scratch failed with EROFS, and the canary was removed. Both gates had faked the miner door, so before this no release evidence ran code through the lane at all. A canary under the gate's own owner-only root would prove nothing, because the worker uid could not traverse it even if it were visible; it has to be world-readable in the system temp dir for an absent result to mean the path is not there. The host's own /proc/self/cgroup on WSL reads 0::/non-systemd, so the cgroup probe compares against the namespaced root, not against a docker path pattern. The follow-on internal resource profile was blocked when the permission classifier refused the miner_container.py edit, and was stopped there as instructed.",
+ "keep": [
+  "A release gate that stands a fake at the miner door also runs one fixed cell through the real lane, with fixed probes and a fail-closed typed refusal when Docker or the pinned image is missing.",
+  "A containment canary is world-readable and outside every mount, so absence inside the container means invisibility and not a permission accident."
+ ],
+ "change": [
+  "Pass the campaign's pinned analysis image manifest to phase 4 prelive and the phase-3 dry run (--analysis-image-manifest); without it both now fail."
+ ],
+ "protocol_elements": [
+  "construction.ladder",
+  "graphite.attacker"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

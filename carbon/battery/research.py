@@ -46,7 +46,7 @@ from carbon.reconstruction.capability_registry import (
     public_registry,
 )
 
-from . import exam
+from . import exam, practice_safety
 from .challenge import (
     CAPACITY_CYCLES,
     CHALLENGE,
@@ -106,6 +106,9 @@ EVALUATION_FEEDBACK_FIELDS = (
     "nominated",
     "waiting",
     "finals",
+    # The coverage rule that typed the outcome (GRAPHITE-COVERAGE-PARITY-01),
+    # on outcomes recorded from that ruling on; absent on older ones.
+    "coverage_rule",
 )
 SCREENING_FEEDBACK_FIELDS = (
     "pool_version",
@@ -635,6 +638,10 @@ class BatteryPractice:
                 )
             )
         seed = self._seed(identity)
+        # PRACTICE-SAFETY-01 B4: the public practice decision set, verified
+        # against its pins (or refused, staging nothing), predicted beside
+        # PRACTICE for feedback only.
+        decision = practice_safety.decision_set(self.root)
         run = {
             "source": PROGRAM,
             "image": self.image,
@@ -653,7 +660,9 @@ class BatteryPractice:
             self.ledger,
             owner=self.owner,
             identity=identity,
-            files=staged_files(self.root, self.practice, recipe, seed),
+            files=staged_files(
+                self.root, self.practice, recipe, seed, decision.cases()
+            ),
             seconds=self.seconds,
             provenance=PROVENANCE,
             extra_resources=(
@@ -719,6 +728,13 @@ class BatteryPractice:
                 "output_digest": worker.get("output_digest"),
                 "provenance": worker.get("provenance"),
             },
+            # PRACTICE-SAFETY-01: feedback only, on the same public cases and
+            # the decision set's; the score above saw PRACTICE alone.
+            safety=practice_safety.safety(
+                {**asked, **{c: predictions.get(c) for c in decision.case_ids}},
+                self.practice,
+                decision,
+            ),
         )
         result["recipe"] = strategy
         result["seed_source"] = "carbon_retained_randomness"
@@ -765,13 +781,15 @@ def implementation_files():
             "domain.py",
             "exam.py",
             "practice.py",
+            "practice_safety.py",
             "recipes.py",
             "research.py",
             "training.py",
             "torch_training.py",
             "torch_families.py",
+            "value/decision.py",
         )
-    )
+    ) + (here.parent / "practice_safety_feedback.py",)
 
 
 def challenge_parts():

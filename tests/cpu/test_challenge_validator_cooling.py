@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import copy
 import json
+import math
 from pathlib import Path
 
 import pytest
@@ -235,6 +236,84 @@ def test_invalid_recipe_is_an_outcome_and_never_gets_a_score_record(adapter, led
         Operator(adapters, ledger).score_record(
             CONTRACT.digest, outcome["submission_id"]
         )
+
+
+@pytest.mark.parametrize(
+    ("fault", "install"),
+    [
+        (
+            "rebuild_exception",
+            lambda monkeypatch: monkeypatch.setattr(
+                "carbon.challenge_validator.cooling.rebuild",
+                lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                    RuntimeError("private rebuild path")
+                ),
+            ),
+        ),
+        (
+            "predict_exception",
+            lambda monkeypatch: monkeypatch.setattr(
+                "carbon.challenge_validator.cooling.rebuild",
+                lambda *_args, **_kwargs: type(
+                    "BrokenModel",
+                    (),
+                    {
+                        "predict": lambda self, _inputs: (_ for _ in ()).throw(
+                            RuntimeError("private prediction path")
+                        )
+                    },
+                )(),
+            ),
+        ),
+    ],
+)
+def test_candidate_exceptions_use_the_registered_policy(
+    adapter, ledger, monkeypatch, fault, install
+):
+    prepare(adapter)
+    install(monkeypatch)
+    result = Validator(Adapters([adapter]), ledger).evaluate(submission())
+    assert (result["kind"], result["code"], result["outcome"]) == (
+        "FAILED_INFRA",
+        "adapter_failure",
+        None,
+    )
+    policy = result["candidate_fault_policy"]
+    assert (policy["version"], policy["fault"]) == (
+        "cooling-candidate-fault-v1",
+        fault,
+    )
+    assert policy == adapter.candidate_fault_policy.record(fault)
+    assert not policy["retry"]["validator_performs"]
+    assert not policy["refund"]["validator_performs"]
+    encoded = json.dumps(result)
+    assert "private rebuild path" not in encoded
+    assert "private prediction path" not in encoded
+    assert ledger.attempts()[0]["kind"] == "FAILED_INFRA"
+
+
+def test_a_non_finite_aggregate_score_uses_the_registered_policy(
+    adapter, ledger, monkeypatch
+):
+    from carbon.challenge_validator import cooling
+
+    prepare(adapter)
+    original = cooling.exam.aggregate
+
+    def non_finite(rows):
+        return {**original(rows), "score": math.nan}
+
+    monkeypatch.setattr(cooling.exam, "aggregate", non_finite)
+    result = Validator(Adapters([adapter]), ledger).evaluate(submission())
+    assert (result["kind"], result["code"], result["outcome"]) == (
+        "FAILED_INFRA",
+        "adapter_failure",
+        None,
+    )
+    assert result["candidate_fault_policy"] == adapter.candidate_fault_policy.record(
+        "non_finite_score"
+    )
+    assert "NaN" not in json.dumps(result)
 
 
 def test_confirmation_role_is_reserved_without_creating_a_batch(adapter):

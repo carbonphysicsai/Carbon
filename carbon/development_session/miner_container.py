@@ -16,12 +16,14 @@ validator's settings, and the validator's cannot be loosened through this one.
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import stat
 from dataclasses import dataclass
 from pathlib import Path
 
+from carbon.development_session.profile import canonical, digest
 from carbon.reconstruction.worker.model import (
     GRACEFUL_CANCELLATION_SECONDS,
     WORKER_GID,
@@ -39,6 +41,75 @@ LANE = "carbon.miner-research.unlimited.v1"
 _GPU_UUID = re.compile(r"(?:GPU|MIG)-[0-9a-fA-F-]{8,64}")
 #: What attaching it adds, and nothing else (RSURF-D20).
 GPU_CAPABILITIES = "compute,utility"
+#: Carbon's own operator host may bound this lane for its internal runs
+#: (INTERNAL-RESOURCE-PROFILE-01): a protection that keeps the research free
+#: while sharing Carbon's host. It is read only from an owner-only file the
+#: host's operator names in this variable; a miner's own machine sets nothing,
+#: so its research stays unlimited exactly as before.
+RESOURCE_PROFILE_ENV = "CARBON_RESEARCH_RESOURCE_PROFILE"
+RESOURCE_PROFILE_SCHEMA = "carbon.miner-research.resource-profile.v1"
+_PROFILE_FIELDS = ("cpus", "memory_bytes", "pids_limit", "nofile")
+_PROFILE_LABEL = "carbon.resource-profile"
+
+
+@dataclass(frozen=True)
+class ResourceProfile:
+    """An operator's bounds for the miner lane on Carbon's own host: whole
+    CPUs, memory in bytes (swap included), processes and open files. Each is
+    a positive integer; there is no default and no Carbon-chosen value."""
+
+    cpus: int
+    memory_bytes: int
+    pids_limit: int
+    nofile: int
+
+    def __post_init__(self):
+        for name in _PROFILE_FIELDS:
+            value = getattr(self, name)
+            if type(value) is not int or value <= 0:
+                raise WorkerFailure(WorkerCode.INVALID)
+
+    def record(self):
+        return {
+            "schema": RESOURCE_PROFILE_SCHEMA,
+            **{name: getattr(self, name) for name in _PROFILE_FIELDS},
+        }
+
+    def digest(self):
+        return digest(canonical(self.record()))
+
+
+def load_host_profile(environ=None):
+    """The host's resource profile, or None when the operator names none.
+
+    Fail closed: a named file that is not a regular, owner-only file owned by
+    this user, or whose record is not exactly the v1 schema, refuses the
+    launch (POLICY) rather than running unbounded on a host that asked for
+    bounds."""
+    environ = os.environ if environ is None else environ
+    named = environ.get(RESOURCE_PROFILE_ENV)
+    if not named:
+        return None
+    path = Path(named)
+    try:
+        info = path.lstat()
+        if (
+            not path.is_absolute()
+            or not stat.S_ISREG(info.st_mode)
+            or info.st_uid != os.getuid()
+            or info.st_mode & 0o077
+        ):
+            raise WorkerFailure(WorkerCode.POLICY)
+        document = json.loads(path.read_bytes())
+    except (OSError, ValueError):
+        raise WorkerFailure(WorkerCode.POLICY) from None
+    if (
+        type(document) is not dict
+        or set(document) != {"schema", *_PROFILE_FIELDS}
+        or document["schema"] != RESOURCE_PROFILE_SCHEMA
+    ):
+        raise WorkerFailure(WorkerCode.POLICY)
+    return ResourceProfile(**{name: document[name] for name in _PROFILE_FIELDS})
 
 
 @dataclass(frozen=True)
@@ -53,11 +124,18 @@ class MinerResearchLaunch:
     #: The host's installed GPU, by UUID, for a GPU code cell (RSURF-D20).
     #: None for every CPU run, whose arguments are exactly as before.
     gpu_device: str | None = None
+    #: Carbon's own host's bounds (`load_host_profile`); None on a miner's
+    #: machine, whose arguments are exactly as before.
+    resource_profile: ResourceProfile | None = None
 
     def __post_init__(self):
         exact_token(self.container_name)
         exact_digest(self.image_id)
         exact_digest(self.launch_digest)
+        if self.resource_profile is not None and (
+            type(self.resource_profile) is not ResourceProfile
+        ):
+            raise WorkerFailure(WorkerCode.INVALID)
         if self.gpu_device is not None and (
             type(self.gpu_device) is not str or not _GPU_UUID.fullmatch(self.gpu_device)
         ):
@@ -89,7 +167,12 @@ def prepare_scratch(directory: Path) -> Path:
 def create_arguments(launch: MinerResearchLaunch) -> list[str]:
     if type(launch) is not MinerResearchLaunch:
         raise WorkerFailure(WorkerCode.INVALID)
-    threads = str(os.cpu_count() or 1)
+    profile = launch.resource_profile
+    cores = os.cpu_count() or 1
+    threads = str(cores if profile is None else min(cores, profile.cpus))
+    shm = _host_memory_bytes()
+    if profile is not None:
+        shm = min(shm, profile.memory_bytes)
     return [
         "create",
         "--name",
@@ -126,10 +209,13 @@ def create_arguments(launch: MinerResearchLaunch) -> list[str]:
         "compress=false",
         "--stop-timeout",
         str(GRACEFUL_CANCELLATION_SECONDS),
-        # No limits: no --memory, --cpus, --cpuset-cpus, --pids-limit or nofile
-        # ulimit, and shared memory as large as the host's, for data loaders.
+        # On a miner's machine, no limits: no --memory, --cpus, --cpuset-cpus,
+        # --pids-limit or nofile ulimit, and shared memory as large as the
+        # host's, for data loaders. Carbon's own host adds its operator's
+        # profile here, and nothing else changes.
+        *_profile_arguments(profile),
         "--shm-size",
-        str(_host_memory_bytes()),
+        str(shm),
         "--mount",
         (
             f"type=bind,source={launch.input_directory},target=/input,"
@@ -159,6 +245,46 @@ def create_arguments(launch: MinerResearchLaunch) -> list[str]:
         *_gpu_arguments(launch.gpu_device),
         launch.image_id,
     ]
+
+
+def _profile_arguments(profile):
+    """The operator's bounds, labelled by digest; nothing without a profile."""
+    if profile is None:
+        return []
+    return [
+        "--label",
+        f"{_PROFILE_LABEL}={profile.digest()}",
+        "--cpus",
+        str(profile.cpus),
+        "--memory",
+        str(profile.memory_bytes),
+        "--memory-swap",
+        str(profile.memory_bytes),
+        "--pids-limit",
+        str(profile.pids_limit),
+        "--ulimit",
+        f"nofile={profile.nofile}:{profile.nofile}",
+    ]
+
+
+def _profile_exactly(profile, host, config):
+    """No bounds asserted on a miner's machine; on Carbon's host, exactly the
+    operator's profile was applied."""
+    if profile is None:
+        return True
+    ulimits = {
+        item.get("Name"): (item.get("Soft"), item.get("Hard"))
+        for item in host.get("Ulimits") or []
+        if type(item) is dict
+    }
+    return (
+        (config.get("Labels") or {}).get(_PROFILE_LABEL) == profile.digest()
+        and host.get("NanoCpus") == profile.cpus * 10**9
+        and host.get("Memory") == profile.memory_bytes
+        and host.get("MemorySwap") == profile.memory_bytes
+        and host.get("PidsLimit") == profile.pids_limit
+        and ulimits.get("nofile") == (profile.nofile, profile.nofile)
+    )
 
 
 def _gpu_arguments(device):
@@ -202,6 +328,8 @@ def inspect_isolation(cli, launch: MinerResearchLaunch) -> dict:
     security = host.get("SecurityOpt") or []
     if not _gpu_exactly(launch.gpu_device, host, config):
         raise WorkerFailure(WorkerCode.POLICY)
+    if not _profile_exactly(launch.resource_profile, host, config):
+        raise WorkerFailure(WorkerCode.POLICY)
     if (
         value.get("Image") != launch.image_id
         or config.get("User") != f"{WORKER_UID}:{WORKER_GID}"
@@ -232,6 +360,11 @@ def inspect_isolation(cli, launch: MinerResearchLaunch) -> dict:
         "memory": host.get("Memory") or None,
         "nano_cpus": host.get("NanoCpus") or None,
         "pids_limit": host.get("PidsLimit") or None,
+        **(
+            {}
+            if launch.resource_profile is None
+            else {"resource_profile": launch.resource_profile.digest()}
+        ),
     }
 
 

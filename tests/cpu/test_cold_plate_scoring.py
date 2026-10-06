@@ -41,9 +41,13 @@ def test_cooling_reuses_only_the_registered_public_practice_surface():
     assert cooling.work_seconds() == 600
 
 
-def test_two_registered_scorings_have_no_unnamed_default():
+def test_registered_scorings_have_no_unnamed_default():
     assert cs.registered() == sorted(
-        ["battery-fastcharge-ageing-development-v1", CHALLENGE.challenge_id]
+        [
+            "battery-fastcharge-ageing-development-v1",
+            CHALLENGE.challenge_id,
+            "electric-motor-magnetics",
+        ]
     )
     with pytest.raises(cs.ScoringUnavailable) as refused:
         cs.scoring_for(None)
@@ -119,10 +123,15 @@ def test_synthetic_pod_fixture_is_challenge_owned_and_lower_is_better():
     assert scores[1] < scores[0]
 
 
-def test_cooling_graphite_dry_run_uses_the_named_adapter(tmp_path, capsys):
+def test_cooling_graphite_dry_run_uses_the_named_adapter(tmp_path, capsys, monkeypatch):
     if os.name != "posix":
         pytest.skip("the Graphite controller requires POSIX fcntl")
+    import containment_double
+
     from carbon.agent_campaign.graphite import phase3
+
+    # The dry run's carrier containment check (synthetic passing double).
+    containment_double.install(monkeypatch)
 
     assert phase3.dry_run(tmp_path, scoring()) == 0
     output = capsys.readouterr().out

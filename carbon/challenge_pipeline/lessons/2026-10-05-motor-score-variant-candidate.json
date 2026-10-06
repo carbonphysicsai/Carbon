@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-motor-score-variant-candidate",
+  "recorded_at": "2026-10-05T20:33:25Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-MOTOR-06; temporary exact-base Linux checkout; canonical Motor candidate/scorer/exam/SR-M1 matrix 61 passed; Ruff and Black passed",
+    "description": "Measured an unregistered reciprocal score transform on two pinned public Motor PRACTICE baseline summaries without new reference or hidden evaluation."
+  },
+  "expected": "The proposal would map the existing raw error to a unit interval without changing Motor's ranking, and would refuse positive scores on incomplete evidence.",
+  "observed": "Learned and closed-form public baselines map to 0.49561666445300995 and 0.2536523757244385. The ordering is unchanged. A first focused run had one test-only exact-float assertion failure because 1.7/0.17 is not exactly ten in binary64; after using numerical comparison, all 61 affected tests passed. SR-M1's A2 rank correlation gain remains a separate non-adopted hypothesis and its top-three decision overlap is zero.",
+  "keep": [
+    "Publish the unit-interval conversion and score-rule replacement as separate prospective decisions.",
+    "Report decision-value top-k and false-safe behaviour alongside rank correlation when assessing score candidates."
+  ],
+  "change": [
+    "Use tolerance-aware assertions for intended floating-point identities while preserving strict validation of malformed aggregate inputs."
+  ],
+  "protocol_elements": [
+    "Challenge-specific score candidates are measured on public DEVELOPMENT material before any owner adoption or protected confirmation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

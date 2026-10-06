@@ -1,0 +1,30 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-agent-door-usability",
+  "recorded_at": "2026-10-05T23:30:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "AGENT-DOOR-USABILITY-01 (.agent/decisions/2026-10-05-AGENT-DOOR-USABILITY-01.md), branch claude/agent-door-usability; owner request via the Graphite Test executor, findings A1, A2, A5, A6 and A7.",
+    "description": "Agent-facing door fixes: every new run plan freezes argument-normalisation.v2, the miner MCP door's schema follows the frozen rule and answers a schema refusal with the declared field and a registered correction, new phase-3 sessions record a budget-status rule that drops the unmetered trial line, and a phase-3 unserved-backend refusal lists the served backends."
+  },
+  "expected": "A tolerance one door gives a model's habit holds on every door and every new plan, a refusal tells the agent which field to fix and how, and the turn status names only budgets the ledger actually meters.",
+  "observed": "Normalisation v2 was frozen only by Graphite plans, so agent-none and autonomous campaigns still refused a practice \"null\"; the MCP door's schema refused it before the adapter that would read it, with the schema library's dump; phase-3 sessions were told \"0 of 0 research trials left\" while their experiments ran on pods; and a phase-3 proposal on an unserved backend learned the served ones only by trying again.",
+  "keep": [
+    "A rule a door reads is frozen by every plan builder, and a test enumerates the builders rather than the one the finding came from.",
+    "A published schema that follows a frozen rule is pinned byte for byte under every older rule, so only the new rule's campaigns see the change.",
+    "A schema refusal names only fields the server declared and registered text; a value is compared, never repeated."
+  ],
+  "change": [
+    "When a door gains a tolerance, check every door in front of it: a stricter schema earlier in the path hides the tolerance behind it.",
+    "A refusal for an unserved choice carries the served choices from public contract data, so no attempt is spent learning them."
+  ],
+  "protocol_elements": [
+    "research_tools.arguments",
+    "miner_mcp.refusal_corrections",
+    "research_loop.budget_status"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,0 +1,29 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-validator-05-named-challenge-plumbing",
+  "recorded_at": "2026-10-05T19:00:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "design",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-05, branch claude/graphite-neutral-challenge, from main e736dfda5. Native, 20 Graphite, agent-campaign, attack and cooling/motor contract suites: 602 passed, 9 failed before the fixes; the 9 and their files then passed (phase 4: 47; named-challenge, limits and the pre-D34 replay: 80). scripts/check_quality.py --base origin/main passed. Canonical results are recorded in the PR.",
+    "description": "A Graphite session now checks out its own Challenge's published material (a per-Challenge list in the boundary, battery's byte-identical, with a ChallengeScoring hook for each adapter), and bundle text is challenge-neutral."
+  },
+  "expected": "Most of the readiness review's 12 gaps would need building; the text change would be wording only.",
+  "observed": "Reading main first showed #584 had already closed eight of the gaps, so the PR shrank to the allowlist, the bundle text and an end-to-end test. Two corrections came from running the suites rather than reading: the suspected writeup KeyError did not exist (cooling's rule summary has the field), and the agents' tool descriptions are not wording at all, because every recorded plan carries them and a byte-identity test pins a historical plan. Changing them would also have refused the resume of a session in flight, so the tool text was reverted and left for a versioned role record. A strict allowlist also broke phase-4 tests whose synthetic Challenges had no material; their fixtures now register it, since refusing a real unregistered Challenge is the intended behaviour.",
+  "keep": [
+    "Verify a gap list against current main before building; merged work moves faster than review documents.",
+    "Treat any text an agent session records (tool descriptions, prompts) as versioned data, not wording.",
+    "When a strict default breaks synthetic test fixtures, register the fixture's data rather than relax the default."
+  ],
+  "change": [
+    "Run the byte-identity replay tests before changing any role or tool text.",
+    "Never run two test processes that write to the same log file; stop the first one before starting the second."
+  ],
+  "protocol_elements": [
+    "a Graphite session reads only its own Challenge's published material",
+    "recorded agent text changes only as a new registered version"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

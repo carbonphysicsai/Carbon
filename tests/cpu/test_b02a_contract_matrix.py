@@ -846,14 +846,12 @@ def test_transient_and_steady_time_bindings_fail_closed_on_substitution() -> Non
     validate_candidate_against_physical(steady_candidate, steady_physical)
 
 
-def _query_observation_graph() -> (
-    tuple[
-        dict[object, object],
-        SamplingPlan,
-        CanonicalChallengeCase,
-        InstanceDistributionContract,
-    ]
-):
+def _query_observation_graph() -> tuple[
+    dict[object, object],
+    SamplingPlan,
+    CanonicalChallengeCase,
+    InstanceDistributionContract,
+]:
     physical = fixtures._physical()
     candidate = fixtures._candidate(physical)
     target = fixtures._population(PopulationRole.TARGET_WORKLOAD_P, physical, candidate)

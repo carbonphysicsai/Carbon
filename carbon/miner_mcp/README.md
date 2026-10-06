@@ -68,11 +68,28 @@ python -m carbon.miner_mcp.standard_cli \
 
 Registration admits every operation that starts or extends work; observe and
 halt only read or withdraw, so a miner can always see and stop their own
-campaign. `carbon_submit` is the DEVELOPMENT submit: a signed message to the
+campaign. To stop or pause a campaign, call `carbon_halt` with
+`action=stop` or `action=pause`; the Control Center's Stop and Pause buttons
+run the same operation through the same gates. Stop is final and idempotent,
+a pause is undone with `carbon_resume`, and neither deletes anything.
+`carbon_observe`'s `state` is the campaign controller's own state: `READY`,
+`PAUSED`, `STOPPED`, `COMPLETED`, `INTERRUPTED` and
+`RECONCILIATION_REQUIRED` mean nothing is running. The campaign's owner
+report (`agent-report.json`) carries the same as `control`, with
+`settled_unix`. `carbon_submit` is the DEVELOPMENT submit: a signed message to the
 local development service, with nothing written to the chain. Official
 submission is not an operation on either door. A campaign an MCP session
 launched with Graphite is carried out by the campaigns' supervisor, not the
 session; closing the Control Center pauses it, and resume continues it.
+
+What a miner can and cannot do today: a campaign can be launched,
+practised, observed, and stopped or paused on any Challenge.
+`carbon_submit` needs a validator deployment or intake for the campaign's
+Challenge in the runner profile. Until a validator intake is published for
+a Challenge (`carbon_setup_status`'s `evaluation` says which have one), a
+submit is refused `evaluation_unavailable` before anything is sent, and the
+frozen candidate is kept; review setup again once one is published, or name
+an intake you run yourself, then submit again.
 
 ## Starting without a campaign
 

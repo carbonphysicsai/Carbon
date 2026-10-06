@@ -1,0 +1,31 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-05-battery-level1-loss-expressions-build",
+ "recorded_at": "2026-10-05T18:00:00Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "claude/l1-loss-expressions-build stacked on claude/loss-expressions-hardening (GRAPHITE-L1-BUILD-01, after the Test Lead's review of the Level-1 packet)",
+  "description": "Built battery Level 1 as two registered development-only variants (the valid surface with one ablatable permission per operation family, and a signed attack arm), wired the trainer and the pod phase to evaluate a compiled loss expression in JAX, added the (battery, 1) attack adapter and ran the climb on the variant gate with CPU practice trials."
+ },
+ "expected": "A Level-1 construction compiles on Carbon's host under exactly the permissions its profile grants, trains through Carbon's own JAX trainer from canonical bytes, and every refusal or non-finite outcome is typed as the candidate's own, while Level 0 traces exactly as before.",
+ "observed": "One capability carrying several operation families could not be ablated by the climb, which removes whole permissions. Splitting the families into permission-only capabilities made each ablatable, but then a reconstruction needed to know which permissions its profile granted, so the reconstruction call now passes them. A second variant at the same level for the signed attack arm did not fit a registry keyed by (challenge, level), so the registry gained named arms that only Carbon's campaigns select. Running the real pod phase locally on CPU with the contract's smallest step budget took about five seconds a trial, which made R1 and the degenerate-loss rule provable end to end instead of by a stand-in. The base compile, at about a second per admitted construction, dominates the climb's cost. The first wiring added an optional loss to recipes.py and training.py and kept Level 0's behaviour, but those files are battery's implementation modules, whose bytes enter every Level-0 recipe digest, so every Level-0 rebuild identity moved; Data Collection's run-5 pin caught it in CI. The Level-1 trainer now lives in its own module, generated from training.train with one edit and checked against it by a test, and Level 0's identities are pinned from main.",
+ "keep": [
+  "Build the registered variant document from the code that enforces it, and test that the shipped document equals it.",
+  "Prove failure typing with a real local run of the same pod phase at the smallest step budget before any pod spend.",
+  "One permission per independently ablatable family; a permission without a field refuses a value supplied under its name."
+ ],
+ "change": [
+  "Before adding a second variant at a level, decide how it is named and selected; arms keep the level's own variant the only one --level resolves.",
+  "Cache or narrow the base compile when a climb's panel grows, because every profile recompiles every construction.",
+  "Before wiring a new level, list the modules whose bytes enter a lower level's identities (battery: contracts.IMPLEMENTATION_MODULES) and leave them untouched; behaviour-preserving is not identity-preserving. Pin the lower level's identities from main in the same PR."
+ ],
+ "protocol_elements": [
+  "construction.ladder",
+  "admission.lock",
+  "graphite.attacker"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

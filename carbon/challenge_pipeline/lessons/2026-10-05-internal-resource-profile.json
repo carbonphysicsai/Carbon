@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-internal-resource-profile",
+  "recorded_at": "2026-10-05T00:00:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "coverage_run",
+    "ref": ".agent/decisions/2026-10-05-INTERNAL-RESOURCE-PROFILE-01.md",
+    "description": "Added an opt-in operator resource profile to the miner research lane, so Carbon's own host can bound internal agent code while a miner's machine stays unlimited."
+  },
+  "expected": "Internal Graphite agent code on the shared operator host would be bounded so it cannot starve sealed work or data campaigns.",
+  "observed": "The miner lane deliberately carried no resource limits, so the operator host relied on an exclusive host window to keep internal agent runs from competing with sealed work.",
+  "keep": [
+    "Protect rather than narrow: bound Carbon's own host through an operator-written, owner-only profile, and leave a miner's own machine unlimited.",
+    "Fail closed when a host names a profile it cannot read, and verify after create that the container got exactly the profile."
+  ],
+  "change": [
+    "An operator host can name CARBON_RESEARCH_RESOURCE_PROFILE; without it every argument is exactly as before."
+  ],
+  "protocol_elements": [
+    "attack.analysis.tool-authority"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

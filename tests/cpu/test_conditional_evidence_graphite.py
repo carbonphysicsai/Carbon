@@ -28,6 +28,9 @@ import graphite_phase3_fixtures as p3f
 import test_attack_report as tar
 import test_graphite_phase4 as t4
 from graphite_phase3_fixtures import ScriptedPods, text
+from test_graphite_phase4 import (  # the stand-in's material: an autouse fixture
+    _stand_in_material,  # noqa: F401
+)
 
 from carbon.agent_campaign.attack import report
 from carbon.agent_campaign.graphite import next_level, phase3, phase4

@@ -48,9 +48,11 @@ none of them changes the rule):
   incumbent, as in the approved campaign replay.
 - Each finalist comparison uses one prepared fresh set, which is consumed.
 
-Scientific results never become chain actions here. The only weight intent is
-Phase A all-burn (OD-4a), signed with the Carbon service key and handed to the
-owner publisher. Winner weights (OD-4b) are not authorized.
+Scientific results never become chain actions here. Weights are published
+elsewhere: Phase A all-burn (OD-4a) through the owner publisher, and winner
+weights (OWNER-WEIGHTS-AUTHORITY-01) through
+`carbon.rewards.testnet_winner_publication`, which reads this validator's
+incumbent and its promotions read-only.
 """
 
 from __future__ import annotations
@@ -63,6 +65,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from carbon.challenge_registry import ResolutionError, resolve
+from carbon.challenge_validator.scoring import COVERAGE_RULE
 from carbon.reconstruction.capability_registry import (
     DEVELOPMENT_VARIANT_NOT_SERVED,
     is_development_variant,
@@ -104,6 +107,40 @@ def _digest(value):
 
 def rule_digest(rule=RULE):
     return _digest(rule)
+
+
+def incomplete(predictions, asked):
+    """Whether a worker's predictions fail to cover the cases it was asked
+    for: a case absent, an extra case, or a case given no prediction (None).
+    Each is the candidate's (`prediction_cases_differ`, candidate-charged),
+    never FAILED_INFRA and never excluded from the score
+    (GRAPHITE-COVERAGE-PARITY-01; Track A: a partial artifact is never graded
+    as valid). Before that ruling a case given None passed this check and was
+    typed FAILED_INFRA by `exam.evaluate`, so it was excluded."""
+    if type(predictions) is not dict or set(predictions) != set(asked):
+        return True
+    return any(predictions[case] is None for case in asked)
+
+
+#: The coverage rule's identity, recorded on every submission binding, refusal
+#: and score record this validator writes from GRAPHITE-COVERAGE-PARITY-01 on,
+#: and so on every miner outcome derived from them (`coverage_rule`). It
+#: changes outcomes (`incomplete`) without changing `RULE` or `rule_digest`,
+#: which the deployment's seed pin fixes, so each record says which typing
+#: made it. A record without it was typed before the ruling: read as written.
+COVERAGE_IDENTITY = {
+    "name": COVERAGE_RULE,
+    "digest": _digest({"coverage_rule": COVERAGE_RULE, "check": "daemon.incomplete"}),
+}
+
+
+def coverage_rule_of(row):
+    """The coverage rule a stored submission row was typed under, or None
+    for a row written before it (absent field)."""
+    for part in (row.get("binding"), row.get("failure")):
+        if isinstance(part, dict) and part.get("coverage_rule") is not None:
+            return part["coverage_rule"]
+    return None
 
 
 def commitment_digest(challenge, contract_digest, strategy_hash):
@@ -252,6 +289,7 @@ class BatteryValidator:
         require_commitment=True,
         service_key=None,
         allow_published_cases=False,
+        development_only=False,
     ):
         if type(store) is not PoolStore:
             raise TypeError("a PoolStore is required")
@@ -266,6 +304,13 @@ class BatteryValidator:
         self.require_commitment = require_commitment
         self.service_key = service_key
         self.allow_published_cases = allow_published_cases
+        #: A Graphite development deployment (VALIDATOR-13, the owner's opt-in
+        #: field `development_only`): it may admit a registered development
+        #: variant from a `graphite-dev:` identity, compiled by the
+        #: `development_compiler` the Graphite side supplies. This module never
+        #: names the variant module. Off by default; never sets weights.
+        self.development_only = development_only is True
+        self.development_compiler = None
         self.material = PublicMaterial.load(repository)
         self.tol, self.scales = frozen_calibration(repository)
         self.pin = journal.root_pin(root)
@@ -455,7 +500,11 @@ class BatteryValidator:
         def refuse(code, issues=()):
             row = self.store.refuse(
                 submission_id,
-                failure={"code": code, "issues": list(issues)},
+                failure={
+                    "code": code,
+                    "issues": list(issues),
+                    "coverage_rule": dict(COVERAGE_IDENTITY),
+                },
                 **base,
             )
             return self.outcome(row["submission_id"])
@@ -474,20 +523,38 @@ class BatteryValidator:
         if submission.strategy.get("challenge_id") != CHALLENGE.challenge_id:
             # A strategy naming another Challenge is never reinterpreted here.
             return refuse("cross_challenge_submission")
-        if is_development_variant(submission.contract_digest):
-            # A development-only contract variant is never served to a miner
-            # (OWNER-GRAPHITE-TEST-WAVE-03 §1).
-            return refuse(DEVELOPMENT_VARIANT_NOT_SERVED)
+        development = None
         try:
-            admitted = compile_submission(
-                submission.strategy, contract_digest=submission.contract_digest
-            )
+            if is_development_variant(submission.contract_digest):
+                if not self._serves_development(submission.hotkey):
+                    # A development-only contract variant is never served to a
+                    # miner (OWNER-GRAPHITE-TEST-WAVE-03 §1).
+                    return refuse(DEVELOPMENT_VARIANT_NOT_SERVED)
+                admitted = self.development_compiler(
+                    submission.strategy, submission.contract_digest
+                )
+                development = {
+                    **admitted.development,
+                    "variant_contract_digest": submission.contract_digest,
+                }
+            else:
+                admitted = compile_submission(
+                    submission.strategy, contract_digest=submission.contract_digest
+                )
         except SubmissionRefused as refused:
             return refuse(
                 "contract_refused",
                 [{"code": i.code, "path": i.path} for i in refused.issues],
             )
         except ValueError as refused:  # RecipeRejected carries named issues
+            if development is None and is_development_variant(
+                submission.contract_digest
+            ):
+                # The supplied development compiler refused it, by code.
+                return refuse(
+                    "development_variant_refused",
+                    [{"code": getattr(refused, "code", type(refused).__name__)}],
+                )
             issues = getattr(getattr(refused, "rejected", None), "issues", ())
             return refuse(
                 "recipe_refused",
@@ -536,7 +603,11 @@ class BatteryValidator:
             "commitment": commitment,
             "receipt": submission.receipt,
             "attempt": 0,
+            "coverage_rule": dict(COVERAGE_IDENTITY),
         }
+        if development is not None:
+            # Stamped beside the base fields; a Level-0 binding is unchanged.
+            binding["development"] = development
         window = None
         block = (submission.receipt or {}).get("block")
         if self.rule.get("per_hotkey") is not None:
@@ -550,6 +621,37 @@ class BatteryValidator:
             submission_id, binding=binding, window=window, **base
         )
         return self.outcome(row["submission_id"])
+
+    def _serves_development(self, hotkey):
+        """Whether this deployment admits a development variant from `hotkey`:
+        opted in, given a compiler, and a Graphite development identity."""
+        return (
+            self.development_only
+            and callable(self.development_compiler)
+            and type(hotkey) is str
+            and hotkey.startswith("graphite-dev:")
+        )
+
+    def _development(self, row):
+        """`(recipe, record)` for a development row, recompiled through the
+        supplied compiler and checked against what admission bound; None for
+        a Level-0 row."""
+        bound = row["binding"].get("development")
+        if bound is None:
+            return None
+        if not self._serves_development(row["hotkey"]):
+            raise StateError("development_compiler_unavailable")
+        compiled = self.development_compiler(
+            row["strategy"], bound["variant_contract_digest"]
+        )
+        if (
+            compiled.development["widened_digest"] != bound["widened_digest"]
+            or compiled.construction.recipe_digest != row["binding"]["recipe_digest"]
+        ):
+            raise StateError("artifact_mismatch", "development recompile differs")
+        from .level1_worker import expression_record
+
+        return compiled.construction, expression_record(compiled.reconstruction)
 
     # --- screening --------------------------------------------------------------------
 
@@ -573,6 +675,9 @@ class BatteryValidator:
     def _recipe(self, row):
         from .compile import compile_recipe
 
+        development = self._development(row)
+        if development is not None:
+            return development[0]
         carried = self._carried(row["binding"])
         try:
             _, recipe = compile_recipe(row["strategy"])
@@ -619,7 +724,7 @@ class BatteryValidator:
             predictions = self.backend.infer(
                 f"inf-{model_id}-{tag}", state["state"], {c: inputs[c] for c in missing}
             )
-            if set(predictions) != set(missing):
+            if incomplete(predictions, missing):
                 raise WorkerFailure("prediction_cases_differ", candidate=True)
             self.store.store_predictions(model_id, predictions)
             have.update(predictions)
@@ -678,10 +783,13 @@ class BatteryValidator:
                 )
                 return self.outcome(submission_id)
             if self.store.model_state(submission_id) is None:
+                development = self._development(row)
                 state, stats = self.backend.reconstruct(
                     f"rec-{submission_id}-a{attempt}",
                     recipe,
                     reconstruction_seed(self.root, submission_id),
+                    # Level 0 calls the backend exactly as before.
+                    **({} if development is None else {"development": development[1]}),
                 )
                 self.store.retain_model(
                     submission_id,
@@ -755,6 +863,7 @@ class BatteryValidator:
             "active_batches": list(pool["active"]),
             "references": self._reference_identity(pool["active"]),
             "rule_digest": rule_digest(self.rule),
+            "coverage_rule": dict(COVERAGE_IDENTITY),
             **agg,
         }
         if inc_rec is not None and inc_rec["score"] is None:
@@ -783,6 +892,14 @@ class BatteryValidator:
             record = self._pool_records(
                 pool, submission_id, incumbent_id, f"a{attempt}"
             )
+            if "development" in self.store.submission(submission_id)["binding"]:
+                # A development level is never nominated, never an incumbent
+                # and never in standings or weights (VALIDATOR-13 separation).
+                record["nomination"] = {
+                    **record["nomination"],
+                    "nominated": False,
+                    "excluded": "DEVELOPMENT_LEVEL",
+                }
             nomination = (
                 self._nomination(submission_id, incumbent_id, record)
                 if record["nomination"]["nominated"]
@@ -1085,11 +1202,65 @@ class BatteryValidator:
                 }
                 for f in finals
             ]
+        coverage = coverage_rule_of(row)
+        if coverage is not None:
+            # Absent on a row typed before GRAPHITE-COVERAGE-PARITY-01.
+            out["coverage_rule"] = coverage
         if set(out) - set(EVALUATION_FEEDBACK_FIELDS) or set(
             out.get("screening", {})
         ) - set(SCREENING_FEEDBACK_FIELDS):
             raise RuntimeError("outcome field outside the disclosure allow-list")
         return out
+
+    def fresh_rerun(self, submission_id):
+        """Score a screened submission's retained model once on a fresh hidden
+        batch (VALIDATOR-13, `fresh_cases_rerun`): a prepared finalist batch no
+        result has used, consumed by this rerun and never scored again.
+        Operator-only; nothing here reaches a miner outcome.
+
+        One rerun per submission, idempotent: a replay returns the recorded
+        result. Returns `{"state": "WAITING_FOR_FRESH_SET"}` when no batch is
+        ready and `{"state": "FAILED_INFRA", ...}` for an infrastructure
+        failure, which is retried on the same batch. A candidate's own
+        inference failure is recorded, never inferred over.
+        """
+        rerun_id = "rerun-" + submission_id
+        done = self.store.rerun(rerun_id)
+        if done is not None:
+            return done
+        if self.store.score(submission_id) is None:
+            raise StateError("rerun_not_scored", submission_id)
+        fingerprint = self.store.claim_rerun_set(rerun_id)
+        if fingerprint is None:
+            return {"state": "WAITING_FOR_FRESH_SET"}
+        inputs = self.store.case_inputs([fingerprint])
+        ids = [c["case_id"] for c in self.store.batch(fingerprint)["document"]["cases"]]
+        try:
+            predictions = self._infer(submission_id, ids, inputs, rerun_id)
+        except WorkerFailure as failure:
+            if not failure.candidate:
+                return {"state": "FAILED_INFRA", "code": failure.code}
+            return self.store.record_rerun(
+                rerun_id,
+                {
+                    "state": "CANDIDATE_FAILED",
+                    "submission_id": submission_id,
+                    "code": failure.code,
+                },
+            )
+        _rows, aggregate = exam.evaluate(
+            predictions, ids, self._case_store([fingerprint])
+        )
+        return self.store.record_rerun(
+            rerun_id,
+            {
+                "state": "SCORED",
+                "submission_id": submission_id,
+                "rule_digest": rule_digest(self.rule),
+                "references": self._reference_identity([fingerprint]),
+                "aggregate": aggregate,
+            },
+        )
 
     def _finals_for(self, submission_id):
         with self.store.db() as db:

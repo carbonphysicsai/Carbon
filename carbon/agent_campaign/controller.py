@@ -64,7 +64,9 @@ import datetime
 import fcntl
 import hashlib
 import json
+import os
 import re
+import secrets
 import sqlite3
 from contextlib import contextmanager
 from decimal import Decimal
@@ -99,6 +101,10 @@ ATTEMPT_SCHEMA = "carbon.agent-campaign.attempt.v2"
 #: how the run ended. Each is tagged with the findings open when it is recorded.
 RESULT_KINDS = frozenset({"event", "artifact", "terminal"})
 _COMMIT = re.compile(r"[0-9a-f]{40}\Z")
+#: The store's write-once random id, beside its database (identity()).
+STORE_ID_FILE = "store-id"
+_STORE_ID = re.compile(r"[0-9a-f]{32}\Z")
+IDENTITY_SCHEMA = "carbon.campaign-controller-identity.v1"
 CRASH_POINTS = (
     "after_intent",
     "after_dispatch",
@@ -238,6 +244,53 @@ class CampaignController:
             elif row[0] != document:
                 raise ControllerError("grant_changed_under_existing_store")
         self._database.chmod(0o600)
+        try:
+            self.store_id = self._load_store_id()
+        except BaseException:
+            self._lease.close()
+            raise
+
+    # -- identity ----------------------------------------------------------------------
+    def _load_store_id(self):
+        """This store's random id, written once under the supervisor lease and
+        never rewritten (GRAPHITE-ADMISSION-CONTROLLER-01). A store opened
+        before ids existed gets one on its next open; nothing else in it
+        changes. The id is linked into place whole, so a crash never leaves a
+        partial one."""
+        path = self.root / STORE_ID_FILE
+        if not path.exists() and not path.is_symlink():
+            temporary = self.root / (STORE_ID_FILE + ".tmp-" + secrets.token_hex(8))
+            descriptor = os.open(
+                temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600
+            )
+            try:
+                with os.fdopen(descriptor, "w") as stream:
+                    stream.write(secrets.token_hex(16) + "\n")
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                os.link(temporary, path)
+            finally:
+                temporary.unlink(missing_ok=True)
+        if path.is_symlink() or not path.is_file():
+            raise ControllerError("controller_store_id_invalid")
+        value = path.read_text().strip()
+        if not _STORE_ID.fullmatch(value):
+            raise ControllerError("controller_store_id_invalid")
+        return value
+
+    def identity(self):
+        """Which controller this is, never where: the digest of the bound
+        grant's digest and the store's write-once id. A LOCK binds the
+        controller `admission_controllers.json` designates by this digest."""
+        with self._db() as db:
+            bound = db.execute("SELECT grant_doc FROM binding WHERE id=1").fetchone()[0]
+        body = {
+            "schema": IDENTITY_SCHEMA,
+            "grant_digest": "sha256:" + hashlib.sha256(bound.encode()).hexdigest(),
+            "store_id": self.store_id,
+        }
+        digest = hashlib.sha256(_canonical(body).encode()).hexdigest()
+        return {**body, "identity": "sha256:" + digest}
 
     # -- plumbing --------------------------------------------------------------------
     @contextmanager
@@ -1413,8 +1466,15 @@ class CampaignController:
             "policy": conditional_evidence.identity(),
         }
 
-    def check_lock(self, block, challenge_id, *, repository):
-        """An admission block validated (`admission.validate`), then
+    def check_lock(self, block, challenge_id, *, repository, level=0):
+        """First, this controller must be the one `admission_controllers.json`
+        designates for (`challenge_id`, `level`) (GRAPHITE-ADMISSION-CONTROLLER-01):
+        `admission_controller_not_designated` without an entry,
+        `admission_controller_identity_pending` while its identity is null,
+        `admission_controller_mismatch` for another controller. A LOCK is never
+        checked against a controller that may not hold the level's findings.
+
+        Then an admission block validated (`admission.validate`), then
         cross-checked against this controller's own ledgers, so a LOCK binds
         more than the study's ledgers (GRAPHITE-DEV-VARIANTS-01):
         - a study expansion whose permissions digest this controller recorded
@@ -1428,6 +1488,7 @@ class CampaignController:
         (`conditional_ledger`, conditional-evidence.v2), so evidence whose
         digest it recorded on a conditional result is refused whatever its
         bytes say. Returns the block."""
+        self._lock_designation_check(challenge_id, level)
         admission.validate(
             block,
             challenge_id,
@@ -1447,6 +1508,15 @@ class CampaignController:
         self._lock_development_check(study, development)
         self._lock_findings_check(study, findings)
         return block
+
+    def _lock_designation_check(self, challenge_id, level):
+        """This controller is the designated LOCK authority for the level."""
+        from carbon.challenge_pipeline import admission_controllers as designations
+
+        try:
+            designations.require(challenge_id, level, self.identity()["identity"])
+        except designations.DesignationRefused as refused:
+            raise admission.AdmissionError(refused.code) from None
 
     @staticmethod
     def _lock_development_check(study, development):

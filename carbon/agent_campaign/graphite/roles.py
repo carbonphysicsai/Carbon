@@ -29,6 +29,7 @@ from dataclasses import dataclass
 
 from carbon.development_session.model_provider import ENGY_LADDER, ENGY_MODELS_URL
 from carbon.development_session.profile import canonical, digest
+from carbon.development_session.research_agent import CONTEXT_RESERVE_TOKENS
 from carbon.development_session.research_agent_policy import (
     PARALLEL_CALLS_V2,
     every_call_per_turn,
@@ -235,7 +236,9 @@ CONSTRUCTOR_TIMEOUT_SECONDS = 600
 def _whole_context(model_id):
     """A whole-context role's settings on `model_id`: the model's whole
     published context, up to what `select` accepts, and the 600 s timeout.
-    Output (2,048 tokens) and reasoning effort stay `DEFAULT_SETTINGS`'.
+    Output (2,048 tokens by default) and reasoning effort stay `DEFAULT_SETTINGS`',
+    unless the role's own extra settings raise the output (the Attacker's
+    `ATTACKER_MAX_OUTPUT_TOKENS`, at most `CONTEXT_RESERVE_TOKENS`).
 
     The loop admits a request only under `max_input_tokens` minus
     `CONTEXT_RESERVE_TOKENS` (4,096), by a bound that never undercounts
@@ -261,8 +264,22 @@ WHOLE_CONTEXT_ROLES = (RoleName.CONSTRUCTOR, RoleName.ATTACKER)
 #: context is refused before a session opens. A role not named keeps
 #: `DEFAULT_SETTINGS`. A recorded session resumes with the selection its
 #: record froze, whatever this says now.
+#: The phase-4 Attacker's output cap (GRAPHITE-ATTACKER-STOP-RULE-01, tied to
+#: GRAPHITE-D35): two of phase-4 session 1's turns were cut at 2,048 tokens.
+#: 4,096 is the largest cap that keeps D35's whole input window unchanged: the
+#: loop admits a request only under `max_input_tokens` minus
+#: `CONTEXT_RESERVE_TOKENS` (4,096), and `max_input_tokens` is at most the
+#: model's context, so a request plus 4,096 output tokens still fits its
+#: `max_model_len`. A larger cap would need a smaller input window, which D35
+#: forbids. The Constructor keeps D34's table.
+ATTACKER_MAX_OUTPUT_TOKENS = CONTEXT_RESERVE_TOKENS
+#: Each role's extra settings on top of its whole context.
+_ROLE_EXTRA = {RoleName.ATTACKER: {"max_output_tokens": ATTACKER_MAX_OUTPUT_TOKENS}}
 MODEL_SETTINGS = {
-    role: {model: _whole_context(model) for model in ENGY_CONTEXT_TOKENS}
+    role: {
+        model: {**_whole_context(model), **_ROLE_EXTRA.get(role, {})}
+        for model in ENGY_CONTEXT_TOKENS
+    }
     for role in WHOLE_CONTEXT_ROLES
 }
 
@@ -341,6 +358,50 @@ does not show.
 }
 
 
+# -- the agents' tool text, by version (VALIDATOR-07) ---------------------------
+#: v1 is the original wording, which named battery. Every session recorded
+#: under it keeps it byte for byte: its plan and role record carry the full
+#: schemas. v2 names no Challenge: a cooling or motor Constructor must not read
+#: another Challenge in its tools. A new brief selects v2 (`SessionBrief`);
+#: the session records it; a resume reads what was recorded, absent meaning v1.
+TOOL_TEXT_V1 = "graphite-tool-text-v1"
+TOOL_TEXT_V2 = "graphite-tool-text-v2"
+TOOL_TEXTS = (TOOL_TEXT_V1, TOOL_TEXT_V2)
+PROPOSAL_TOOL_V2 = {
+    **PROPOSAL_TOOL,
+    "description": (
+        "Ask Carbon to run one TrainingStrategy proposal for the session's "
+        "Challenge and score it. strategy_json is the strategy object as a "
+        "JSON string (schema_version, challenge_id, backbone, parameters), "
+        "inside the Challenge's recorded construction contract given in the "
+        "brief; Carbon refuses, typed, anything it cannot rebuild, and never "
+        "scores it. The reply is development feedback: the frozen rule's "
+        "eligibility, score and gate failures on public PRACTICE, the "
+        "comparison with the session's baseline under the Challenge's "
+        "registered rule, the fit statistics, the stall count and the runs "
+        "left. Each call uses one run from the session's budget."
+    ),
+}
+NEXT_LEVEL_TOOL_V2 = {
+    **NEXT_LEVEL_TOOL,
+    "description": NEXT_LEVEL_TOOL["description"].replace(
+        "outside the current recorded battery construction contract",
+        "outside the session Challenge's recorded construction contract",
+    ),
+}
+#: What v2 changes, by tool name; every other tool is v1's.
+_TOOL_TEXT_CHANGES = {
+    TOOL_TEXT_V1: {},
+    TOOL_TEXT_V2: {PROPOSE: PROPOSAL_TOOL_V2, NEXT_LEVEL: NEXT_LEVEL_TOOL_V2},
+}
+
+
+def tool_text_known(tool_text):
+    if tool_text not in TOOL_TEXTS:
+        raise ValueError("tool_text_unknown")
+    return tool_text
+
+
 @dataclass(frozen=True)
 class GraphiteRole:
     name: RoleName
@@ -378,29 +439,46 @@ class GraphiteRole:
     def prompt_digest(self):
         return digest(self.prompt.encode("utf-8"))
 
-    def tool_schemas(self):
-        """The exact schemas offered to the model, in manifest order."""
-        return [TOOL_REGISTRY[name] for name in self.tools]
+    def tool_schemas(self, tool_text=TOOL_TEXT_V1):
+        """The exact schemas offered to the model, in manifest order, under
+        `tool_text`."""
+        changes = _TOOL_TEXT_CHANGES[tool_text_known(tool_text)]
+        return [changes.get(name, TOOL_REGISTRY[name]) for name in self.tools]
+
+    def effective_tool_text(self, tool_text):
+        """`tool_text` when it changes one of this role's tools, else v1: a
+        role whose tools v2 leaves alone records exactly what it always did."""
+        changes = _TOOL_TEXT_CHANGES[tool_text_known(tool_text)]
+        return tool_text if set(changes) & set(self.tools) else TOOL_TEXT_V1
+
+    def manifest_digest(self, tool_text=TOOL_TEXT_V1):
+        return digest(canonical(self.tool_schemas(tool_text)))
 
     @property
     def tool_manifest_digest(self):
-        return digest(canonical(self.tool_schemas()))
+        """The v1 manifest digest (the historical record's)."""
+        return self.manifest_digest(TOOL_TEXT_V1)
 
     @property
     def start_rung(self):
         return ENGY_LADDER.index(self.start_model)
 
-    def record(self):
-        return {
+    def record(self, tool_text=TOOL_TEXT_V1):
+        tool_text = self.effective_tool_text(tool_text)
+        record = {
             "schema": ROLE_SCHEMA,
             "name": self.name.value,
             "boundary": self.boundary.value,
             "prompt_digest": self.prompt_digest,
             "tool_manifest": list(self.tools),
-            "tool_manifest_digest": self.tool_manifest_digest,
+            "tool_manifest_digest": self.manifest_digest(tool_text),
             "start_model": self.start_model,
             "escalation_kinds": sorted(kind.value for kind in self.escalation_kinds),
         }
+        if tool_text != TOOL_TEXT_V1:
+            # A v1 record has no key at all, exactly as before the versions.
+            record["tool_text"] = tool_text
+        return record
 
 
 def _tools(*names):

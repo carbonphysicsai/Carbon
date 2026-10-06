@@ -438,6 +438,64 @@ USD 2.96 for 12 pods at USD 0.246 each, because RunPod reports no charge.
 **Runs** in a fresh controller root, under the OWNER-GRAPHITE-TEST-WAVE-05 §3
 checklist, with pod-attribution-v2 on main.
 
+## GRAPHITE-GRANT-PHASE3-R4 (GRAPHITE-01 phase 3, battery Level 1+ on the top rung)
+
+**Authority.** OWNER-GRAPHITE-PHASE3-R4-01
+(`.agent/decisions/2026-10-05-OWNER-GRAPHITE-PHASE3-R4-01.md`). The owner,
+2026-10-05: "Level 0 probably not needed. But 1 and up I want to see
+creativity. So I approve." and "For 1 and up." USD 10 per run for model calls
+plus USD 5 per run for compute, USD 45 over 3 runs.
+
+| Field | Value | Basis |
+|---|---|---|
+| `monetary_ceiling` | `45.00` USD | the approval; at least 3 × 14.91 + 0.25 = 44.98 |
+| `worst_case_run_cost` | `14.91` USD | R3's compute-inclusive 4.91 plus 10.00 for the model |
+| `permitted_runs` | `3` | the approval |
+| `max_submissions` | `3` | one per run |
+| everything else | as GRAPHITE-GRANT-PHASE3-R3 | unchanged |
+
+**Run conditions** (`grant_binding.PHASE3_GRANTS`; recorded in each new
+session's `run_conditions`):
+
+- construction Level 1 and above only: a Level 0 run under it is refused
+  `grant_requires_construction_level_1_or_above`, at the CLI and again before a
+  session opens;
+- the Constructor (and the Planner, when used) starts on `kimi-k3`, the top
+  Engy rung; a session that would open below it is refused
+  `start_model_below_the_grants_start_rung`. The escalation rule is unchanged;
+  a stall at the top records `ladder_top`;
+- the run's token share is fixed at USD 11.93 (the Test Lead's figure, 14.91
+  less 2.98 of compute); its pods get the remaining 2.98, which covers the 12
+  pods' 2.96 at today's rate ceiling, or the budget is refused
+  `grant_token_share_leaves_too_little_for_pods`. Without the fixed share the
+  split would follow the rate ceiling (today 11.95);
+- bound to battery and to main's committed blob.
+
+### Arithmetic
+
+    validator:   cleanup + worst case                 = 0.25 + 14.91  = 15.16  ≤ 45.00
+    run 3 gate:  runs 1-2 (≤ 2 × 14.91) + 14.91 + 0.25                = 44.98  ≤ 45.00
+    split:       14.91 = 11.93 tokens + 2.98 pods     (12 pods need 12 × 0.246369864 → 2.96)
+
+kimi-k3's per-call reservation at the Constructor's settings
+(`roles.MODEL_SETTINGS`: 1,048,576 input tokens, 2,048 output tokens; Engy list
+USD 1.95 / 9.75 per million):
+
+    1,048,576 × 0.00000195 + 2,048 × 0.00000975 = 2.044723200 + 0.019968000 = USD 2.0646912
+    ⌊ 11.93 / 2.0646912 ⌋ = 5 full reservations   (5 × 2.0646912 = 10.323456 ≤ 11.93)
+    ⌊ 10.00 / 2.0646912 ⌋ = 4 within the approved USD 10 model allowance
+
+Those counts bound calls in flight, not calls per run: each call is admitted
+with its full reservation and settles at Engy's reported charge, which then
+replaces the reservation in the research ledger (`CampaignLedger._usage`). At
+a conservative USD 0.078468 per call (30,000 input tokens plus the whole
+2,048-token output at kimi-k3's prices), run 5's 23 calls fit the 11.93 share
+(`test_23_settled_kimi_k3_calls_are_admitted_under_the_r4_share`). Under R3's token share
+(USD 1.95) not one full-window kimi-k3 call is admitted.
+
+**Runs** in a fresh controller root, under the OWNER-GRAPHITE-TEST-WAVE-05 §3
+checklist, and only once OWNER-GRAPHITE-PHASE3-R4-01's entry conditions hold.
+
 ## GRAPHITE-GRANT-PLANNER-01 (GRAPHITE-ADMISSION-01: Graphite's level planner)
 
 **Authority: OWNER-GRAPHITE-05** (`.agent/DECISIONS.md`, 2026-10-02). It is
@@ -636,3 +694,246 @@ run. The grant's `max_runtime_s` is the run's elapsed limit.
 **Expected spend.** Each call and each pod settles from the provider's
 reported charge, not from its reservation. The first live session measures the
 real figures and replaces these numbers.
+
+## GRAPHITE-GRANT-PHASE4-COOLING (Graphite's Attacker on cooling, `chip-cold-plate`)
+
+**Authority.** OWNER-GRAPHITE-TEST-WAVE-05 §2
+(`.agent/decisions/2026-10-05-OWNER-GRAPHITE-TEST-WAVE-05.md`,
+carbonphysicsai/Carbon#593). Asked to approve a phase-4 Attacker grant for
+cooling with the amounts proposed in #587, identical to GRAPHITE-GRANT-PHASE4,
+the owner answered "approve". The record says the grant is a new file, and
+that the runner accepts a grant only when it is the committed blob on main for
+the Challenge named by `--challenge`. A motor grant is proposed the same way
+once motor's scorer exists; none is added here.
+
+**State.** Approved. The grant validates. No live session has run. The
+engineering choices for the per-Challenge binding are
+GRAPHITE-GRANT-BINDING-01
+(`.agent/decisions/2026-10-05-GRAPHITE-GRANT-BINDING-01.md`).
+
+**Binding to the Challenge.** The grant format
+(`carbon.agent-campaign.spending-grant.v1`) has an exact field set and no
+Challenge field, so the binding lives in the runner:
+`phase4.PHASE4_GRANTS` maps `battery-fastcharge-ageing-development-v1` to
+GRAPHITE-GRANT-PHASE4 and `chip-cold-plate` to this grant.
+- A live run and `phase4 prelive` accept only the grant registered for the
+  Challenge `--challenge` names. Another Challenge's grant is
+  `grant_is_for_another_challenge`. A Challenge with no registered grant
+  (motor today) is `no_phase4_grant_for_challenge`.
+- The grant must be the committed blob at a pushed HEAD and equal the blob on
+  main, with the grants directory clean, exactly as for battery
+  (`check_committed_grant`). Until this file is on main, the cooling checks
+  refuse with `main_grant_unavailable`.
+- `phase4 prelive --challenge chip-cold-plate` defaults `--grant` to this
+  file, and its report names the grant id, file, digest and Challenge it
+  accepted.
+
+| Field | Value | Basis |
+|---|---|---|
+| `monetary_ceiling` | `10.50` USD | OWNER-GRAPHITE-TEST-WAVE-05 §2, as GRAPHITE-GRANT-PHASE4 |
+| `cleanup_allowance` | `0.25` USD | OWNER-GRAPHITE-TEST-WAVE-05 §2; pod_control's `CLEANUP_RESERVE_USD`, as GRAPHITE-GRANT-PHASE4 |
+| `worst_case_run_cost` | `3.41` USD | OWNER-GRAPHITE-TEST-WAVE-05 §2, as GRAPHITE-GRANT-PHASE4 (derivation below) |
+| `permitted_runs` | `3` | OWNER-GRAPHITE-TEST-WAVE-05 §2 |
+| `max_concurrency` | `1` | "one at a time", OWNER-GRAPHITE-TEST-WAVE-05 §2 |
+| `max_runtime_s` | `15600` | OWNER-GRAPHITE-TEST-WAVE-05 §2 |
+| `max_submissions` | `3` | One session export per permitted run, as GRAPHITE-GRANT-PHASE4 |
+| `account` | `Carbon-Account` | The same paying account label as GRAPHITE-GRANT-PHASE4 (a label, not a credential) |
+| `expires_at` | `2026-12-31T23:59:59Z` | As GRAPHITE-GRANT-PHASE4 |
+| `provider` | `graphite` | The provider a Graphite grant binds |
+| `granted_by` | `owner` | OWNER-GRAPHITE-TEST-WAVE-05 §2 |
+
+### Arithmetic
+
+This is engineering arithmetic from recorded prices, not a new price. It is
+GRAPHITE-GRANT-PHASE4's, checked against cooling's own registered scoring.
+
+**Pods per run.** Cooling's `ChallengeScoring` gives the same 30-minute verify
+pod as battery (`graphite.pods.proposal_minutes`), at the same price
+(`graphite.pods.prices()`, read from the EV4 pod tooling): USD 0.246369864 per
+pod. `phase4.attacker_budget` reserves `ATTACKER_VERIFY_PODS` = 6 of them:
+
+    6 × USD 0.246369864 = 1.478219184  →  USD 1.48 (rounded up to the cent)
+
+**Tokens per run.** The token share is what the run cost leaves after the
+pods:
+
+    3.41 − 1.48 = USD 1.93
+
+At `glm-5.2` and `DEFAULT_SETTINGS` one call reserves USD 0.04763648, so the
+token share covers about 40 calls. The count only explains the figure: money
+binds, not the count. The verify-pod rebuild is still the declared NOT_RUN
+seam (`phase4.POD_REBUILD_SEAM`), so the pods' share stays reserved but
+unspent.
+
+**Runs.**
+
+    3 × 3.41 + 0.25 = 10.48 ≤ 10.50        ⌊ (10.50 − 0.25) / 3.41 ⌋ = 3 runs
+
+`tests/cpu/test_graphite_phase4_grant.py` holds this arithmetic for both
+phase-4 grants.
+
+**Expected spend.** Each call settles from the provider's reported charge, not
+from its reservation. The first live cooling session measures the real
+figures.
+
+## GRAPHITE-GRANT-PHASE3-COOLING-CPU (Graphite's Constructor on cooling, CPU lane)
+
+**Authority.** OWNER-GRAPHITE-TEST-WAVE-06 §3
+(`.agent/decisions/2026-10-05-OWNER-GRAPHITE-TEST-WAVE-06.md`,
+carbonphysicsai/Carbon#595). Asked to approve a cooling Constructor grant for
+the CPU lane, the owner answered "approve". The approved terms:
+
+- 3 runs, one at a time;
+- a worst case of USD 1.95 per run, tokens only, because the CPU lane has no
+  pods;
+- a cleanup allowance of USD 0.25;
+- a ceiling of USD 6.10.
+
+The record also says the grant file is bound by the runner to
+`chip-cold-plate` and to main's committed blob. A GPU-lane cooling grant
+includes pod time, and is proposed with a price once the GPU lane exists.
+
+**State.** Approved. The grant validates. No live session has run. The
+engineering choices are GRAPHITE-GRANT-BINDING-01
+(`.agent/decisions/2026-10-05-GRAPHITE-GRANT-BINDING-01.md`).
+
+**Binding.** `grant_binding.PHASE3_GRANTS` registers every phase-3 grant with
+its Challenge:
+- GRAPHITE-GRANT-PHASE3, GRAPHITE-GRANT-PHASE3-R2 and GRAPHITE-GRANT-PHASE3-R3
+  are battery's, and are accepted for battery exactly as before;
+- this grant is cooling's.
+
+`phase3 run` (`grant_binding.check_phase3_grant`) refuses:
+- a registered grant named for another Challenge:
+  `grant_is_for_another_challenge`;
+- any grant on `chip-cold-plate` that is not registered for it:
+  `grant_is_not_a_phase3_grant_for_challenge`.
+
+It accepts this grant only as the committed blob at a pushed HEAD, equal to
+the blob on main, with the grants directory clean. Those are the phase-4
+checks (`grant_binding.check_committed_blob`), with phase-3 codes. Until the
+file is on main, a cooling run refuses `main_grant_unavailable`.
+
+**No paid pods.** The grant is in `phase3.TOKENS_ONLY_GRANTS` (VALIDATOR-06),
+so its runs have a pod money budget of 0 (`Phase3Budget.tokens_only`):
+- Its proposals run on the CPU carrier lane (`phase3 run --compute
+  carrier`), which costs no provider money (rate 0).
+- `phase3 run --compute runpod` refuses it
+  (`grant_is_tokens_only_use_the_carrier_lane`).
+- Behind that, `Experiment._admit_pod` refuses `grant_allows_no_pods` for
+  every launch that would reserve pod money: the baseline's, a proposal's,
+  an ablation's and a retry's on RunPod. That happens before any pod is
+  reserved in the run's pod ledger and before any create request reaches
+  RunPod.
+
+| Field | Value | Basis |
+|---|---|---|
+| `monetary_ceiling` | `6.10` USD | OWNER-GRAPHITE-TEST-WAVE-06 §3 |
+| `worst_case_run_cost` | `1.95` USD | OWNER-GRAPHITE-TEST-WAVE-06 §3, tokens only. It equals the phase-3 grants' token share (below) |
+| `cleanup_allowance` | `0.25` USD | OWNER-GRAPHITE-TEST-WAVE-06 §3 |
+| `permitted_runs` | `3` | OWNER-GRAPHITE-TEST-WAVE-06 §3 |
+| `max_concurrency` | `1` | "one at a time", OWNER-GRAPHITE-TEST-WAVE-06 §3 |
+| `max_runtime_s` | `39600` | Not stated in the approval. It is kept as GRAPHITE-GRANT-PHASE3's and R2's elapsed limit for a Constructor session. It bounds time only, never money |
+| `max_submissions` | `3` | One session export per permitted run, as GRAPHITE-GRANT-PHASE3 |
+| `account` | `Carbon-Account` | The same paying account label as the other Graphite grants (a label, not a credential) |
+| `expires_at` | `2026-12-31T23:59:59Z` | As the other Graphite grants |
+| `provider` | `graphite` | The provider a Graphite grant binds |
+| `granted_by` | `owner` | OWNER-GRAPHITE-TEST-WAVE-06 §3 |
+
+### Arithmetic
+
+This is engineering arithmetic, not a new price.
+
+**The run's split.** With no pod money, the pod allowance is 0 and the whole
+run cost is the token share:
+
+    pods:   USD 0.00 (the carrier costs no provider money; RunPod is refused)
+    tokens: 1.95 − 0.00 = USD 1.95
+
+The run's research ledger is frozen with USD 1.95 as its money cap. That is
+the same token share each GRAPHITE-GRANT-PHASE3 run has (4.91 − 2.96), so a
+Constructor session's model calls are bounded exactly as on battery. See
+"Since 2026-10-04" above for how many calls each rung's reservation allows.
+
+**Runs.**
+
+    3 × 1.95 + 0.25 = 6.10 ≤ 6.10        ⌊ (6.10 − 0.25) / 1.95 ⌋ = 3 runs
+
+Every launch gate passes: run 3 needs 2 × 1.95 + 1.95 + 0.25 = 6.10.
+
+`tests/cpu/test_graphite_phase3_cooling_cpu_grant.py` holds this arithmetic.
+
+**Expected spend.** Each call settles from Engy's reported charge, not from
+its reservation. The first live cooling session measures the real figures.
+
+## GRAPHITE-GRANT-LITERATURE-COOLING-MOTOR (literature for cooling and motor)
+
+**State.** Approved by the owner on 2026-10-05
+(OWNER-GRAPHITE-LITERATURE-GRANT-01: "approve").
+
+It pays the method-card extraction for a Challenge with a registered
+literature profile (VALIDATOR-08):
+
+    phase2 triage --challenge chip-cold-plate --grant docs/development/graphite/grants/GRAPHITE-GRANT-LITERATURE-COOLING-MOTOR.json ...
+    phase2 triage --challenge electric-motor-magnetics --grant ...
+
+Any other grant is refused (`grant_is_not_the_literature_grant`). The arXiv
+fetch costs nothing. Battery's phase-2 backfill keeps `GRAPHITE-GRANT-PHASE2`.
+
+| Field | Value | Why |
+|---|---|---|
+| `monetary_ceiling` | `4.00` | Covers the expected backfill (about 1,800 booked calls) with room for the worst case below |
+| `worst_case_run_cost` | `2.49` | 3,000 calls at the booked reservation (below) |
+| `permitted_runs` | `3` | One run per Challenge, plus one resume or retry |
+| `cleanup_allowance` | `0.10` | Headroom kept back at every run's admission |
+| `max_runtime_s` | `360000` | About 100 hours, as phase 2's |
+| `max_concurrency` | `1` | One run at a time |
+
+### Arithmetic
+
+This is engineering arithmetic from listed prices, not a new price.
+
+**One call's reservation.** The same Reader settings and rung as phase 2:
+16,384 input and 1,024 output tokens on `deepseek-v4-flash-0731`, at 45 and 90
+nanodollars a token:
+
+    16,384 × 45 + 1,024 × 90 = 829,440 nanodollars = USD 0.00082944 per call
+
+Engy reports no charge for these calls, so every call is booked at this
+reservation.
+
+**One run's worst case.** At most 3,000 calls (`triage.MAX_CALLS_PER_RUN`):
+
+    3,000 × USD 0.00082944 = USD 2.48832  →  USD 2.49
+
+**The ceiling, not the run count, binds the third run.** A run opens only
+while booked spend, plus the next run's worst case, plus cleanup, stays
+within the ceiling:
+
+    booked + 2.49 + 0.10 ≤ 4.00   ⇔   booked ≤ USD 1.41
+
+So once the runs before it have booked more than USD 1.41 (about 1,700
+calls), no further run opens, whatever the run count allows. With the
+expected volume, one run per Challenge (cooling, then motor) both open: about
+900 calls, or USD 0.75, each. A third run opens only if those two booked at
+most USD 1.41 together.
+
+**Expected volume.**
+- Each Challenge has 6 queries with a quota of 3 pages of 100 records:
+  at most 1,800 records, so 3,600 for both.
+- Each profile's free pre-filter keeps only records naming the Challenge's
+  domain, or a domain and a surrogate cue, before any paid call. About half
+  are expected to pass: about 1,800 calls in total.
+- That is USD 1.49 booked, about USD 0.20 actual (phase 2 measured about
+  USD 0.00007 a card).
+- **The worst case does not fit.** If every record passed, the first
+  Challenge's run alone could book 1,800 calls (USD 1.49). That is past the
+  USD 1.41 a second run's admission allows, so the other Challenge's run
+  would be refused.
+  - **Mitigation:** run each Challenge with `--max-calls 850`, which caps a
+    run at USD 0.71 booked. Both runs then open (0.71 + 2.59 ≤ 4.00), and so
+    does a third (1.41 + 2.59 ≤ 4.00).
+  - A Challenge with more kept records than its run's calls finishes them in
+    the third run. Past that, it needs a ceiling amendment from the owner.
+
+The first live run measures the real figures and replaces these numbers.

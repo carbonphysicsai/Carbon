@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .scoring import ChallengeScoring, PracticeRule, clean
+from .scoring import COVERAGE_RULE, ChallengeScoring, PracticeRule, clean, cover
 
 BUILT_SCHEMA = "carbon.graphite.pod-built.v1"
 EVIDENCE = "docs/development/evidence/exam-design-2026-09-24"
@@ -47,14 +47,16 @@ class BatteryPracticeRule(PracticeRule):
             "equivalence_margin_rel": rule["equivalence_margin_rel"],
             "comparison": rule["comparison"],
             "cases": "public PRACTICE, 200, adaptively seen",
+            "coverage": COVERAGE_RULE,
         }
 
     def score(self, predictions):
         from carbon.battery.practice import score_practice
 
-        asked = {case: predictions.get(case) for case in self.practice.case_ids}
+        # A case without a prediction fails the schema gate (`cover`).
+        asked, missing = cover(predictions, self.practice.case_ids)
         rows, summary = score_practice(asked, self.practice, self.material, self.root)
-        return [_row(r) for r in rows], clean(summary)
+        return [_row(r) for r in rows], {**clean(summary), "n_missing": len(missing)}
 
     def compare(self, baseline_rows, rows, eligible):
         from carbon.battery import exam
@@ -99,6 +101,9 @@ class BatteryScoring(ChallengeScoring):
         EVIDENCE + "/refs-a-part2/out/records.jsonl",
     )
     wrong_challenge_code = "not_the_battery_development_challenge"
+    #: The score-tuning legs a development score variant may weight: the one
+    #: candidate definition, `carbon.battery.value.score_tuning.LEGS`.
+    declared_score_components = ("a", "r", "g", "m", "n", "p")
     construction_objective = (
         "Propose battery TrainingStrategy recipes that beat the baseline under "
         "Carbon's frozen rule on public PRACTICE. Carbon runs, scores and "
@@ -119,12 +124,29 @@ class BatteryScoring(ChallengeScoring):
 
     def built_from(self, admitted, seed, root):
         from carbon.battery.practice import PracticeSet, staged_files
-        from carbon.development_session.battery_gpu import GPU_PROGRAM
+        from carbon.development_session.battery_gpu import pod_program
         from carbon.development_session.profile import digest
 
         recipe = admitted.construction
         plan = admitted.compiled.construction_plan
-        files = staged_files(root, PracticeSet.load(root), recipe, seed)
+        # KNN-STATE-GPU-01: a KNN builds with GPU program v2, which stages the
+        # versioned state digest; every other recipe keeps v1 byte for byte.
+        program, extra = pod_program(recipe.family)
+        base = staged_files(root, PracticeSet.load(root), recipe, seed)
+        files = {**base, **extra}
+        development = getattr(admitted, "development", None)
+        loss = None
+        if development is not None:
+            # A Level-1 loss expression (Graphite only) is staged with its
+            # operation set and trained by the Level-1 program.
+            from carbon.battery import level1_worker
+
+            loss = level1_worker.expression_record(
+                getattr(admitted, "reconstruction", None)
+            )
+            if loss is not None:
+                files = {**base, **level1_worker.staged(loss)}
+                program = level1_worker.program()
         record = {
             "schema": BUILT_SCHEMA,
             "challenge": recipe.document()["challenge"],
@@ -134,15 +156,18 @@ class BatteryScoring(ChallengeScoring):
             "strategy_hash": plan.strategy_hash.value,
             "plan_digest": plan.to_ref().content_digest,
             "staged": {name: digest(body) for name, body in sorted(files.items())},
-            "program": digest(GPU_PROGRAM.encode()),
+            "program": digest(program.encode()),
             "seed": seed,
         }
-        development = getattr(admitted, "development", None)
         if development is not None:
             # A development construction (Graphite only) carries its variant
             # binding beside the base fields; a Level 0 record never does.
             record["development"] = development
-        return record, files, GPU_PROGRAM
+        if loss is not None:
+            # Until GPU identity is measured (Test Lead Q6), a Level-1 result
+            # says its rebuild is verified on CPU only.
+            record["rebuild"] = level1_worker.REBUILD_LABEL
+        return record, files, program
 
     def refusal(self, error):
         from carbon.development_session.research_catalog import RecipeRejected

@@ -39,6 +39,13 @@ def _feedback_modes():
     return feedback_modes()
 
 
+def _output_bounds():
+    # The runner validates max_output_tokens against these (model_provider).
+    from carbon.development_session.model_provider import OUTPUT_TOKEN_BOUNDS
+
+    return " to ".join(format(value, ",") for value in OUTPUT_TOKEN_BOUNDS)
+
+
 #: Every request field any operation takes, with its JSON type and meaning.
 #: Both doors read these: the browser validates bodies against them and MCP
 #: builds its tool schemas from them, so a field cannot mean two things.
@@ -111,7 +118,10 @@ FIELDS = {
             "model_provider; recorded in the campaign manifest. Omitted: the "
             "pinned defaults, except max_output_tokens, which is the chosen "
             "model's own maximum output where Carbon records one; set it to "
-            "cap the agent's replies (each call is reserved at the cap)."
+            "cap the agent's replies (each call is reserved at the cap). "
+            "max_output_tokens is an integer from "
+            + _output_bounds()
+            + "; any other value is refused model_selection_refused."
         ),
     ),
     "feedback_mode": (
@@ -583,8 +593,13 @@ OPERATIONS = {
         ),
         Operation(
             "halt",
-            "Stop, pause or reconcile a campaign. Always available to its "
-            "owner: withdrawing work never needs registration.",
+            "Stop or pause your campaign (action=stop or action=pause), or "
+            "settle what it holds (action=reconcile): the Control Center's "
+            "Stop, Pause and Reconcile run this same operation. Stop is final "
+            "and idempotent - a stopped or finished campaign is answered as it "
+            "is; a pause is undone with resume. Nothing is deleted. Always "
+            "available to its owner: withdrawing work never needs "
+            "registration.",
             frozenset({"campaign", "action"}),
             frozenset(),
             ("request", "profile", "campaign"),
@@ -609,7 +624,14 @@ OPERATIONS = {
             "submit",
             "DEVELOPMENT submit of your frozen candidate: an independent "
             "reconstruction and comparison with the control, against the local "
-            "development service. Nothing reaches the chain.",
+            "development service. Nothing reaches the chain. It needs a "
+            "validator deployment or intake for the campaign's Challenge in "
+            "your runner profile; without one it is refused "
+            "evaluation_unavailable before anything is sent, and the candidate "
+            "is kept. Until an intake is published for that Challenge, a "
+            "campaign can still be launched, practised, observed, stopped or "
+            "paused; carbon_setup_status's evaluation says which Challenges "
+            "have one.",
             frozenset({"campaign"}),
             frozenset({"idempotency_key"}),
             ("request", "profile", "replay", "registration", "campaign"),
