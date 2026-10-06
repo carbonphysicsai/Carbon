@@ -65,6 +65,7 @@ from carbon.development_session.profile import canonical, digest
 from carbon.reconstruction.capability_registry import (
     BATTERY_CHALLENGE,
     COLD_PLATE_CHALLENGE,
+    MOTOR_CHALLENGE,
 )
 
 REPOSITORY = Path(__file__).resolve().parents[3]
@@ -322,3 +323,43 @@ def check_phase3_grant(path, grant, *, challenge, level=0, repository=REPOSITORY
             raise _refused("phase3_grant_file_unreadable") from None
         check_committed_blob(given, repository, entry.grant_file, phase="phase3")
     return entry
+
+
+# -- dedicated admission controllers (A4-DEDICATED-ADMISSION-CONTROLLERS-01) ---------------
+#: Each Challenge's owner-approved zero-spend admission-controller grant, by
+#: Challenge token. The grant binds only the dedicated controller's identity;
+#: it authorizes no spend (`SpendingGrant.zero_spend`).
+ADMISSION_CONTROLLER_GRANTS = types.MappingProxyType(
+    {
+        BATTERY_CHALLENGE: GRANTS_DIR
+        + "/GRAPHITE-GRANT-ADMISSION-CONTROLLER-BATTERY.json",
+        COLD_PLATE_CHALLENGE: GRANTS_DIR
+        + "/GRAPHITE-GRANT-ADMISSION-CONTROLLER-COOLING.json",
+        MOTOR_CHALLENGE: GRANTS_DIR + "/GRAPHITE-GRANT-ADMISSION-CONTROLLER-MOTOR.json",
+    }
+)
+
+
+def admission_grant_refusal(grant, challenge, repository=None):
+    """The typed refusal of `grant` as `challenge`'s dedicated admission
+    controller's grant, or None. It must be zero-spend, and field for field
+    the committed file registered for `challenge`:
+
+    - `admission_grant_must_be_zero_spend`;
+    - `admission_grant_not_registered_for_challenge`: no file is registered;
+    - `admission_grant_file_unreadable`;
+    - `admission_grant_differs_from_the_committed_grant`: another grant, or
+      an edited copy."""
+    if not grant.zero_spend:
+        return "admission_grant_must_be_zero_spend"
+    relative = ADMISSION_CONTROLLER_GRANTS.get(challenge)
+    if relative is None:
+        return "admission_grant_not_registered_for_challenge"
+    repository = REPOSITORY if repository is None else repository
+    try:
+        committed = json.loads((Path(repository) / relative).read_bytes())
+    except (OSError, ValueError):
+        return "admission_grant_file_unreadable"
+    if grant_digest(grant.document()) != grant_digest(committed):
+        return "admission_grant_differs_from_the_committed_grant"
+    return None

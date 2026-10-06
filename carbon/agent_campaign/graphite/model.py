@@ -164,6 +164,9 @@ class LiveModel:
         if type(grant) is not SpendingGrant:
             # A document, a template full of HUMAN_INPUT or None: no grant.
             raise ModelAccessRefused("spending_grant_required")
+        if grant.zero_spend:
+            # An admission controller's grant pays for no model call.
+            raise ModelAccessRefused("grant_is_zero_spend")
         if grant.provider != provider:
             raise ModelAccessRefused("grant_provider_mismatch")
         if grant.currency != "USD":

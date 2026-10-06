@@ -105,6 +105,8 @@ _COMMIT = re.compile(r"[0-9a-f]{40}\Z")
 STORE_ID_FILE = "store-id"
 _STORE_ID = re.compile(r"[0-9a-f]{32}\Z")
 IDENTITY_SCHEMA = "carbon.campaign-controller-identity.v1"
+#: The refusal of any campaign or launch under a zero-spend grant.
+GRANT_ZERO_SPEND = "grant_is_zero_spend"
 CRASH_POINTS = (
     "after_intent",
     "after_dispatch",
@@ -389,6 +391,8 @@ class CampaignController:
 
         `ceiling` is the owner's per-campaign monetary ceiling. It has no
         default: None (unset) refuses registration, so nothing dispatches."""
+        if self.grant.zero_spend:
+            raise ControllerError(GRANT_ZERO_SPEND)
         identifier(campaign_id, "campaign_id")
         if type(role) is not boundaries.Role:
             raise TypeError("exact Role required")
@@ -625,6 +629,10 @@ class CampaignController:
         if type(spec) is not TaskSpec:
             raise TypeError("exact TaskSpec required")
         identifier(idempotency_key, "idempotency_key")
+        if self.grant.zero_spend:
+            # An admission controller's grant: nothing is ever reserved or
+            # dispatched under it (A4-DEDICATED-ADMISSION-CONTROLLERS-01).
+            raise ControllerError(GRANT_ZERO_SPEND)
         if not self.capabilities.dispatchable:
             raise ControllerError("provider_not_dispatchable", self.capabilities.basis)
         moment = self.clock()

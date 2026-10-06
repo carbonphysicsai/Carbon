@@ -16,6 +16,8 @@
     python -m carbon.agent_campaign.graphite.phase3 status --root DIR
     python -m carbon.agent_campaign.graphite.phase3 rebuild --bundle DIR
     python -m carbon.agent_campaign.graphite.phase3 proposals --root DIR
+    python -m carbon.agent_campaign.graphite.phase3 admission-controller init \
+        --root DIR --challenge TOKEN --grant ZERO_SPEND_ADMISSION_GRANT
 
 `reconcile` prints its report and exits 0 when every pod is settled, or 4
 when one is not; then stderr carries one typed line
@@ -169,6 +171,8 @@ from carbon.development_session.research_loop import parallel_call_counts, run_e
 from .. import boundaries
 from ..grant import SpendingGrant
 from ..provider import (
+    Capabilities,
+    IntegrationMode,
     ProviderUnavailable,
     RunStatus,
     TaskSpec,
@@ -185,6 +189,7 @@ from .provider import (
     EPOCH,
     NANO_PER_USD,
     OWNER,
+    PROVIDER,
     SESSION_LIMITS_V1,
     SESSION_LIMITS_V2,
     GraphiteLedger,
@@ -413,6 +418,9 @@ class Phase3Provider(GraphiteProvider):
     ):
         if type(grant) is not SpendingGrant:
             raise ProviderUnavailable("spending_grant_required")
+        if grant.zero_spend:
+            # An admission controller's grant runs no session.
+            raise ProviderUnavailable("grant_is_zero_spend")
         #: The session's development score variant (VALIDATOR-09), resolved
         #: before spend (`score_variant.resolve`), or None. It wraps the
         #: Challenge's own frozen rule, never an injected scorer.
@@ -1954,6 +1962,26 @@ CONDITIONS_MESSAGES = {
         "This root has no campaign controller store (ROOT/controller/"
         "campaign.sqlite3). Nothing was created; check the root."
     ),
+    "controller_store_exists": (
+        "ROOT/controller already exists; an admission controller is created "
+        "once. Nothing was changed; use conditions --identity to read it."
+    ),
+    "admission_grant_must_be_zero_spend": (
+        "An admission controller is bound only to a zero-spend grant (every "
+        "amount 0, 0 runs, 0 submissions); nothing was created."
+    ),
+    "admission_grant_not_registered_for_challenge": (
+        "No admission-controller grant is registered for this Challenge "
+        "(grant_binding.ADMISSION_CONTROLLER_GRANTS); nothing was created."
+    ),
+    "admission_grant_file_unreadable": (
+        "The Challenge's committed admission-controller grant could not be "
+        "read; nothing was created."
+    ),
+    "admission_grant_differs_from_the_committed_grant": (
+        "The grant is not the Challenge's committed admission-controller grant, "
+        "field for field; nothing was created."
+    ),
     "conditions_report_unreadable": "The report could not be read.",
     "conditions_report_malformed": (
         "The report is not a well-formed carbon.admission-conditions.v1 "
@@ -2057,6 +2085,9 @@ def conditions_controller(root, grant, scoring):
 
     if not (root / "controller" / "campaign.sqlite3").is_file():
         raise ConditionsRefused("controller_store_missing")
+    if grant.zero_spend:
+        # A dedicated admission controller (`admission-controller init`).
+        return admission_controller(root, grant, scoring.challenge_id)
     try:
         provider = Phase3Provider(
             root=root / "graphite",
@@ -2070,6 +2101,101 @@ def conditions_controller(root, grant, scoring):
         raise ConditionsRefused(str(refused)) from None
     except ControllerError as refused:
         raise ConditionsRefused(refused.code) from None
+
+
+# -- dedicated admission controllers (A4-DEDICATED-ADMISSION-CONTROLLERS-01) ---------------
+class NoDispatch:
+    """The provider of a dedicated admission controller: never dispatchable,
+    and every run call refused. It holds no model, pod or key."""
+
+    def capabilities(self):
+        return Capabilities(
+            provider=PROVIDER,
+            mode=IntegrationMode.UNAVAILABLE,
+            verified=False,
+            supports_idempotent_start=False,
+            supports_cancel=False,
+            reports_worker_termination=False,
+            reports_usage=False,
+            basis="dedicated admission controller: zero-spend grant, no dispatch",
+        )
+
+    def _refuse(self, *_args, **_kwargs):
+        raise ProviderUnavailable("admission_controller_never_dispatches")
+
+    start = find = status = usage = events = artifacts = cancel = _refuse
+
+
+def admission_controller(root, grant, challenge):
+    """`challenge`'s dedicated admission controller at `root`, opened with
+    `NoDispatch` under its committed zero-spend grant
+    (`grant_binding.admission_grant_refusal`)."""
+    from ..controller import ControllerError
+
+    refused = grant_binding.admission_grant_refusal(grant, challenge)
+    if refused is not None:
+        raise ConditionsRefused(refused)
+    try:
+        return controller_for(root, NoDispatch(), grant)
+    except ControllerError as refused:
+        raise ConditionsRefused(refused.code) from None
+
+
+def admission_store_exists(root):
+    """Whether ROOT/controller exists in any form (an admission controller is
+    created once; a link counts)."""
+    store = root / "controller"
+    return store.exists() or store.is_symlink()
+
+
+def command_admission_controller(args):
+    """Create `challenge`'s dedicated admission controller, offline:
+
+        admission-controller init --root ROOT --challenge TOKEN --grant GRANT
+
+    The grant must be the Challenge's committed zero-spend admission grant.
+    The store is created empty under ROOT/controller (an existing one is
+    refused), nothing is spent or dispatched, and the controller's identity
+    is printed for the designation (`admission_controllers.json`).
+    `conditions --identity` on the same root prints the same identity."""
+    from carbon.challenge_pipeline import admission_controllers as designations
+
+    root = Path(args.root).expanduser().resolve()
+    if root == REPOSITORY or REPOSITORY in root.parents:
+        raise ConditionsRefused("root_must_be_outside_the_repository")
+    grant = load_grant(args.grant)
+    try:
+        challenge_scoring.scoring_for(args.challenge)
+    except challenge_scoring.ScoringUnavailable as refused:
+        raise ConditionsRefused(refused.code) from None
+    refused = grant_binding.admission_grant_refusal(grant, args.challenge)
+    if refused is not None:
+        raise ConditionsRefused(refused)
+    if admission_store_exists(root):
+        raise ConditionsRefused("controller_store_exists")
+    root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    control = admission_controller(root, grant, args.challenge)
+    try:
+        identity = control.identity()
+    finally:
+        control.close()
+    try:
+        entry = designations.designation(args.challenge, 0)
+    except designations.DesignationRefused as refused:
+        raise ConditionsRefused(refused.code, str(refused)) from None
+    print(
+        json.dumps(
+            {
+                "status": "CREATED",
+                "challenge": args.challenge,
+                "level": 0,
+                "controller": identity,
+                "designation": entry,
+            },
+            indent=1,
+        )
+    )
+    return 0
 
 
 def _designation(challenge, level, identity, record_also):
@@ -2493,6 +2619,14 @@ def main(argv=None):
         action="store_true",
         help="record into a controller that is not the designated LOCK authority",
     )
+    admission = sub.add_parser("admission-controller")
+    actions = admission.add_subparsers(dest="action", required=True)
+    init = actions.add_parser(
+        "init", help="create a dedicated zero-spend admission controller"
+    )
+    init.add_argument("--root", required=True)
+    init.add_argument("--challenge", required=True)
+    init.add_argument("--grant", required=True)
     args = parser.parse_args(argv)
     if args.command == "run" and not args.dry_run:
         missing = [
@@ -2527,6 +2661,7 @@ def main(argv=None):
         "rebuild": command_rebuild,
         "proposals": command_proposals,
         "conditions": command_conditions,
+        "admission-controller": command_admission_controller,
     }[args.command](args)
 
 
