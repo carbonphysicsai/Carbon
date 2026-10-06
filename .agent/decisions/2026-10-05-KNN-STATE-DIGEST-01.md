@@ -64,3 +64,34 @@ identity.
      statistic only, and that disclosure is unchanged.
 
 **No execution.** This record dispatches, provisions and spends nothing.
+
+### Addendum (2026-10-05) — KNN-STATE-GPU-01: the pods emit the digest under GPU program v2
+
+The Test Lead approved closing the §2 trade-off with a versioned re-pin.
+
+1. **Two program versions.**
+   - `battery_gpu.GPU_PROGRAM` is v1 (`carbon.battery.gpu-practice.program.v1`),
+     byte for byte as before.
+   - `KNN_GPU_PROGRAM` is v2
+     (`carbon.battery.gpu-practice.program.v2-knn-state`). It is v1 with
+     one block added after the fit: it stages `battery-knn-state.py` and wraps
+     the statistics with `knn_state.with_state`.
+   - `battery_gpu.PROGRAMS` maps each version's program digest to its version
+     and source. An unknown digest is refused.
+2. **Selection by family.**
+   - `BatteryScoring.built_from` uses `pod_program(family)`. A KNN gets v2 and
+     the extra staged file. Every other family gets v1 and no extra file.
+   - The Level-1 program and the miner's GPU practice scope stay on v1. A
+     Level-1 KNN is refused anyway.
+   - So no Level-0 implementation, recipe, scaffold built-record or program
+     pin moves, and the run-5 baseline holds. `params_sha256` is unchanged.
+3. **Old records keep their meaning.** A KNN record pinned under v1 still
+   names v1's digest, which still resolves. Its fit carries no `state_sha256`,
+   so `trained_identity` reads `params_sha256`. A new KNN pod build names
+   v2's digest and stages `knn_state.py`.
+4. **Evidence.** On CPU JAX (no GPU or pod), v2 reports the host's
+   `state_sha256`. Its `params_sha256` and predictions equal v1's
+   (`tests/cpu/test_battery_knn_state.py`).
+5. **Not moved.** Miner GPU practice (`research.py`) still runs v1. Its
+   declared scope pins v1's digest, and its feedback shows no state digest.
+   Moving it would need a new scope schema.
