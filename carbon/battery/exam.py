@@ -727,14 +727,20 @@ EXISTING_DISPOSITION = {
 def nominate(record: dict, incumbent: dict | None, margin: float) -> tuple[bool, str]:
     """Screening nomination rule: eligible, better overall, and no serious important-region regression.
 
-    ``record``/``incumbent`` are pool score records on the same ``pool_version``.
+    ``record``/``incumbent`` are pool score records on the same ``pool_version``
+    and the same rebuild device class (TORCH-GPU-01): a score from another
+    device class is never compared.
     """
+    from .rebuild_identity import device_class
+
     if not record["eligible"]:
         return False, "gate failure"
     if incumbent is None:
         return True, "no incumbent"
     if record["pool_version"] != incumbent["pool_version"]:
         return False, "incumbent not scored on this pool version"
+    if device_class(record) != device_class(incumbent):
+        return False, "incumbent rebuilt on another device class"
     if record["score"] >= incumbent["score"] * (1 - margin):
         return False, "not better than the incumbent by the margin"
     ri, ii = record.get("important_score"), incumbent.get("important_score")

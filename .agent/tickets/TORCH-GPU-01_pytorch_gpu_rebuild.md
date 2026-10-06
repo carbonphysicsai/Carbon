@@ -5,9 +5,10 @@ stacked on #684 (`claude/released-worker-images`). Built:
 - the PyTorch GPU worker image and its lock;
 - battery implementation 2.0 (the CUDA rebuild device) beside the read-only
   1.0 snapshot;
+- the device class on every score record, never mixed in a comparison;
 - the release tooling and the capability cell.
 
-**Blocked:** expansion record 0002, on one decision (below). Nothing is LIVE.
+Nothing is LIVE.
 
 **Primary Hub map_ref:** `SYSTEM/AGENT-EXECUTION`. No Hub source change.
 
@@ -84,7 +85,18 @@ stacked on #684 (`claude/released-worker-images`). Built:
      is disabled (`require_accelerator_admission`, the owner's, as for JAX
      GPU).
 
-## Blocked: expansion record 0002 (one decision)
+## No expansion record 0002 (the Test Lead's ruling (a))
+
+The ruling: skip 0002. Implementation 2.0 is recorded by its implementation
+pin (`ImplementationPin("carbon_battery_recipes", "2.0", <digest>)`) and by
+this ticket. The registry contract and the battery Level-1 development
+policies are untouched. No 0002 record, draft or registry change is on the
+branch.
+
+The owner, on what 2.0 is for: "built to be the version that is ready for
+main and can determine reward. We will work tolerance during testing."
+
+Why 0002 would have mattered:
 
 A construction expansion record logs a change to the registry contract
 document. Recording one with no change is refused. The natural change for
@@ -100,11 +112,32 @@ this ticket's to do.
 Implementation 2.0 alone does not stale them: it changes no registry
 document.
 
-**Smallest decision:** either
-- record 0002 (the `pytorch_cuda` lane) and have the variants' owner rebase
-  the battery Level-1 policies onto it; or
-- leave the registry as it is, so implementation 2.0 is recorded by this
-  ticket and its implementation pin, and there is no 0002.
+## Device class: never compared across (the ruling's condition)
+
+CPU and GPU rebuilds of one recipe produce different numbers.
+`carbon/battery/rebuild_identity.py` makes this enforceable, which keeps
+OWNER-SHARED-ANSWER-KEY-01's "a CPU rebuild is not a scored result" true:
+- **Every score record** carries `rebuild`
+  (`carbon.battery.rebuild-identity.v1`):
+  - the worker image that rebuilt the model;
+  - the device class, `cpu` or `gpu:<device name>`.
+
+  It is taken from what the rebuild recorded: the carrier's image and, on a
+  GPU, `fit.device_class`.
+- **Versioned.** A record made before the field existed keeps its meaning:
+  the legacy CPU class with its image unrecorded. Every validator rebuild
+  before 2.0 ran on the CPU. Nothing is rewritten.
+  - The operator score record is now `carbon.battery.operator-score-record.v2`.
+  - The hidden-score operator record and the hidden-pool report are now v2.
+- **Never mixed:**
+  - nomination refuses an incumbent of another device class (`exam.nominate`);
+  - a final whose two rebuilds differ in class is decided INSUFFICIENT and
+    promotes nothing;
+  - the hidden-pool report ranks per pool version and device class.
+- **Tests** (`tests/cpu/test_battery_rebuild_device_class.py`):
+  - mixing device classes in a ranking is refused;
+  - the mutation that drops the device class reads as CPU, so it is refused
+    against a GPU incumbent and never silently compared.
 
 ## Operator note
 
@@ -115,7 +148,6 @@ under 2.0, and each recompilation is recorded. Nothing is deleted.
 
 ## Owner-reserved (HUMAN_INPUT)
 
-- The 0002 choice above.
 - The PyTorch GPU reproducibility tolerance, to be set during testing.
 - Security acceptance of the released digests before mainnet.
 - Reward and LIVE authority. Agents never flip LIVE. The owner intends this

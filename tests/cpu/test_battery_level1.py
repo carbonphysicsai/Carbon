@@ -387,9 +387,9 @@ LEVEL0_PINS = {
 #: a record made under 1.0 recompiles and rebuilds from its read-only
 #: snapshot, from main (`carbon.battery.implementation_versions`).
 LEVEL0_PINS_V2 = {
-    "implementation": "sha256:897b2c7e144f720c00f9f7fe89cf2d62b5ea112da1a1bc15e26879bc2f567688",
-    "scaffold_recipe": "sha256:54aefc5b44b9f7e5406e54b534f45460d9368746aac704f7e3676e9ccf898468",
-    "scaffold_built_record": "sha256:bbf01e62e170dec463ac335ba2957128fde38a986ccbe833fdfe34d83bbc5ff0",
+    "implementation": "sha256:3d8e14542bb9a1471881dc0d5854d47f8cb01999e63a609e5e0b82a02f1b2739",
+    "scaffold_recipe": "sha256:0404ce21fa5412133c5fabca74fc01a2beb5ad1983220dd5d0f5fff61d25a9ac",
+    "scaffold_built_record": "sha256:ef9e89fe41027fb558c745a431c8dfff0e92fd14ada870274ba8fb1161c18374",
     "program": "sha256:264413438e3456605279d89aa3f066386bbf0dfaa497198a0957bdf912a9746a",
 }
 LEVEL0_PINS_BY_VERSION = {"1.0": LEVEL0_PINS, "2.0": LEVEL0_PINS_V2}

@@ -790,10 +790,17 @@ class BatteryValidator:
                     "incumbent_inference:" + failure.code, candidate=False
                 ) from None
             _, inc_agg = exam.evaluate(inc_preds, ids, store)
-            inc_rec = {**inc_agg, "pool_version": pool["version"]}
+            inc_rec = {
+                **inc_agg,
+                "pool_version": pool["version"],
+                "rebuild": self._rebuild(incumbent_id),
+            }
         record = {
             "model_id": challenger,
             "pool_version": pool["version"],
+            # Which image and device class rebuilt the scored model: scores
+            # are compared only within one device class (TORCH-GPU-01).
+            "rebuild": self._rebuild(challenger),
             "active_batches": list(pool["active"]),
             "references": self._reference_identity(pool["active"]),
             "rule_digest": rule_digest(self.rule),
@@ -815,6 +822,13 @@ class BatteryValidator:
             "incumbent_score": None if inc_rec is None else inc_rec["score"],
         }
         return record
+
+    def _rebuild(self, model_id):
+        """The rebuild identity of a retained model (`rebuild_identity`)."""
+        from .rebuild_identity import from_reconstruction
+
+        state = self.store.model_state(model_id)
+        return from_reconstruction(None if state is None else state["reconstruction"])
 
     def _screen(self, submission_id, attempt):
         while True:
@@ -995,6 +1009,27 @@ class BatteryValidator:
                 r["case_id"]: r["components"] for r in case_rows if "components" in r
             }
 
+        from .rebuild_identity import DeviceClassMixed, require_one_class
+
+        try:
+            require_one_class(
+                [
+                    {"rebuild": self._rebuild(f"{final_id}-{role}")}
+                    for role in ("incumbent", "challenger")
+                ]
+            )
+        except DeviceClassMixed:
+            # Rebuilt on different device classes: the comparison does not
+            # answer the question, and nothing is promoted (TORCH-GPU-01).
+            return self._decide(
+                final_id,
+                {
+                    "outcome": exam.INSUFFICIENT,
+                    "reason": "device classes differ",
+                    "promotable": False,
+                },
+                fingerprint,
+            )
         (inc_rows, _inc_agg), (chal_rows, chal_agg) = (
             rows["incumbent"],
             rows["challenger"],

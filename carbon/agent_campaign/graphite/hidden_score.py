@@ -51,9 +51,12 @@ import hashlib
 from carbon.development_session.profile import canonical, digest
 
 VIEW_SCHEMA = "carbon.graphite.hidden-score.v1"
-OPERATOR_SCHEMA = "carbon.graphite.hidden-score-operator.v1"
+#: v2 records carry `rebuild` (TORCH-GPU-01); a v1 record reads as the
+#: legacy CPU identity.
+OPERATOR_SCHEMA = "carbon.graphite.hidden-score-operator.v2"
 RERUN_SCHEMA = "carbon.graphite.hidden-fresh-rerun.v1"
-REPORT_SCHEMA = "carbon.graphite.hidden-pool-report.v1"
+#: v2 ranks within one pool version and one device class.
+REPORT_SCHEMA = "carbon.graphite.hidden-pool-report.v2"
 #: Rerun states that are final; any other is retried later.
 RERUN_FINAL = ("SCORED", "CANDIDATE_FAILED")
 EVIDENCE = "DEVELOPMENT_HIDDEN_POOL"
@@ -185,6 +188,7 @@ class HiddenPool:
             "active_batches": full["active_batches"],
             "aggregate": full["aggregate"],
             "nomination": full["nomination"],
+            "rebuild": full["rebuild"],
             "rotation_overdue": overdue,
             "overdue_margin_blocks": (
                 self._overdue_margin(version, block) if overdue else None
@@ -215,20 +219,26 @@ def report(records):
     """A run's hidden-pool report from its operator records (in proposal
     order).
 
-    Scores are comparable only within one pool version, so the primary
-    ranking is per pool version: eligible first, then by score (lower is
-    better). A score taken on an overdue pool was adaptively over-exposed
+    Scores are comparable only within one pool version and one rebuild
+    device class (TORCH-GPU-01: CPU and GPU rebuilds differ), so the primary
+    ranking is per pool version and device class: eligible first, then by
+    score (lower is better). A record without a device class is the legacy
+    CPU class (`carbon.battery.rebuild_identity`). A score taken on an overdue pool was adaptively over-exposed
     (the Test Lead's ruling of 2026-10-05). Such scores are reported
     separately, counted, with their overdue margin, as descriptive evidence
     only. They never enter the primary ranking, an alignment result or a
     promotion claim. A record whose score did not replay is listed by
     submission and never ranked.
     """
+    from carbon.battery.rebuild_identity import device_class
+
     reproduced = [r for r in records if r.get("replay") == "REPRODUCED"]
     primary = {}
     for record in reproduced:
         if not record["rotation_overdue"]:
-            primary.setdefault(str(record["pool_version"]), []).append(record)
+            primary.setdefault(str(record["pool_version"]), {}).setdefault(
+                device_class(record), []
+            ).append(record)
 
     def rank_key(record):
         score = record["aggregate"].get("score")
@@ -251,8 +261,11 @@ def report(records):
         "evidence": EVIDENCE,
         "primary": {
             "by_pool_version": {
-                version: [row(r) for r in sorted(rows, key=rank_key)]
-                for version, rows in sorted(primary.items(), key=lambda i: int(i[0]))
+                version: {
+                    cls: [row(r) for r in sorted(rows, key=rank_key)]
+                    for cls, rows in sorted(classes.items())
+                }
+                for version, classes in sorted(primary.items(), key=lambda i: int(i[0]))
             },
         },
         "overdue": {
@@ -262,6 +275,7 @@ def report(records):
                 {
                     **row(r),
                     "pool_version": r["pool_version"],
+                    "device_class": device_class(r),
                     "overdue_margin_blocks": r.get("overdue_margin_blocks"),
                 }
                 for r in overdue

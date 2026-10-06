@@ -877,8 +877,11 @@ def fit(model, d, y, seed):
         "backend": TORCH_BACKEND,
     }
     if device.type != "cpu":
-        # A CPU rebuild's statistics are implementation 1.0's, key for key.
+        # A CPU rebuild's statistics are implementation 1.0's, key for key. A
+        # GPU rebuild names its device class: its scores are never compared
+        # with another class's (`carbon.battery.rebuild_identity`).
         stats["device"] = device.type
+        stats["device_class"] = "gpu:" + torch.cuda.get_device_name(device)
     history = take_history()
     if history is not None:
         stats["loss_history"] = history
