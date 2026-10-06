@@ -20,3 +20,19 @@ The designs and the metric were registered in `quiz-registry-v3.json` (commit 18
 - **Q2 is the only design with real signal.** Its cost is a higher false-infeasible rate at small n.
 - **Q1 is weak.** Few near-limit public cases fail on plating: 48 lie within 0.5 band and 83 within 1 band, so G-PLATE is often undefined under narrow bands.
 - **The deeper finding.** EV5's Track A constructions fail on *decisions* in EV conditions, but on single-case feasibility calls they look like good deciders. A per-case quiz alone does not expose them. Decision-level checks (the B4 practice decision set, Mode X) remain necessary.
+
+## Q3: the decision-scenario quiz (quiz-registry-v4, commit fa865e57)
+
+**Setup.** The stand-in pool is EV4's 12 verification scenarios: committed reference grids, disjoint from ev4-dev-tuning-v1's development-split value. Each model decides with EV4's fixed rules (`q3-public-standin.json`).
+
+**Results.**
+- **The 8 EV5 Track A constructions make no infeasible pick on these 12 scenarios** (decision false-feasible 0.0). The good set's worst is 0.11.
+  - Their EV5 FAIL was scenario-specific: they rank high and picked infeasibly in EV5's conditions.
+  - As decision-makers on other conditions they are indistinguishable from good members.
+  - So "known-bad" does not hold for them outside EV5, and Q3's AUC with them as positives sits below 0.5 at every k (0.49 at k 1, 0.37 at k 12).
+- **Run 5's winner is caught:** decision false-feasible 0.20 over the 12 scenarios, above every good member (0.11 or less).
+- **Producer cost per scenario:** 35 reference solves at a median of 82 CPU-s, about **0.8 CPU-hours** (B4's host solves, pinned truth image).
+
+**Reading.**
+- A decision-level quiz catches a model whose decisions are bad (the run-5 winner). It cannot "catch" constructions whose decisions are only bad in particular conditions, because nothing about them is intrinsically unsafe.
+- The detection metric needs a known-bad set defined by behaviour across conditions, not by one study's verdict. Candidates: the boundary-optimist and localized-sign-error controls, the run-5 winner, and constructions selected adversarially per scenario (Mode X).

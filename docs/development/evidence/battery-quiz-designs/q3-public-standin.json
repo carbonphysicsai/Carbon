@@ -1,0 +1,117 @@
+{
+ "all_12_false_feasible": {
+  "bad": {
+   "attack_rebuild_identity_backbone_a-s0": 0.0,
+   "attack_rebuild_identity_backbone_b-s0": 0.0,
+   "attack_rebuild_identity_optimizer_a-s0": 0.0,
+   "attack_rebuild_identity_steps_a-s0": 0.0,
+   "attack_rebuild_identity_steps_b-s0": 0.0,
+   "attack_rebuild_identity_train_fraction_a-s0": 0.0,
+   "attack_rebuild_identity_width_a-s0": 0.0,
+   "attack_rebuild_identity_width_b-s0": 0.0,
+   "graphite-run5-p-1d4aaff5d292-s3718551111": 0.2
+  },
+  "good_max": 0.1111111111111111
+ },
+ "known_bad": [
+  "attack_rebuild_identity_backbone_a-s0",
+  "attack_rebuild_identity_backbone_b-s0",
+  "attack_rebuild_identity_optimizer_a-s0",
+  "attack_rebuild_identity_steps_a-s0",
+  "attack_rebuild_identity_steps_b-s0",
+  "attack_rebuild_identity_train_fraction_a-s0",
+  "attack_rebuild_identity_width_a-s0",
+  "attack_rebuild_identity_width_b-s0",
+  "graphite-run5-p-1d4aaff5d292-s3718551111"
+ ],
+ "known_good": {
+  "best_quarter": 25,
+  "controls": [
+   "control-oracle",
+   "control-conservative",
+   "control-rank_preserving_delay"
+  ]
+ },
+ "producer_cost_per_scenario": {
+  "basis": "the B4 practice set's 210 host solves (pinned truth image)",
+  "cpu_hours_per_scenario": 0.7961569081861106,
+  "cpu_seconds_per_solve_median": 81.89042484199996,
+  "reference_solves": 35
+ },
+ "registry_commit": "fa865e57",
+ "results": {
+  "Q3/k1": {
+   "auc_decision_false_feasible": {
+    "mean": 0.49178501810080755,
+    "p05": 0.35912698412698413
+   },
+   "k": 1,
+   "over_caution_good_mean": 0.014006962998947454,
+   "regret_bad_mean": 0.2531770971447855,
+   "regret_good_mean": 0.5435132442507081
+  },
+  "Q3/k12": {
+   "auc_decision_false_feasible": {
+    "mean": 0.36507936507936495,
+    "p05": 0.36507936507936506
+   },
+   "k": 12,
+   "over_caution_good_mean": 0.013888888888888888,
+   "regret_bad_mean": 0.27014264744519867,
+   "regret_good_mean": 0.5565020668272982
+  },
+  "Q3/k2": {
+   "auc_decision_false_feasible": {
+    "mean": 0.48082539682539677,
+    "p05": 0.35912698412698413
+   },
+   "k": 2,
+   "over_caution_good_mean": 0.012234234234234235,
+   "regret_bad_mean": 0.2574014593744642,
+   "regret_good_mean": 0.5595464912974908
+  },
+  "Q3/k3": {
+   "auc_decision_false_feasible": {
+    "mean": 0.47470436507936503,
+    "p05": 0.35714285714285715
+   },
+   "k": 3,
+   "over_caution_good_mean": 0.013652710298180432,
+   "regret_bad_mean": 0.2611729115282929,
+   "regret_good_mean": 0.5368598654044356
+  },
+  "Q3/k4": {
+   "auc_decision_false_feasible": {
+    "mean": 0.45857539682539683,
+    "p05": 0.3412698412698413
+   },
+   "k": 4,
+   "over_caution_good_mean": 0.013848214285714285,
+   "regret_bad_mean": 0.26630019771635105,
+   "regret_good_mean": 0.5788471339798656
+  },
+  "Q3/k6": {
+   "auc_decision_false_feasible": {
+    "mean": 0.443531746031746,
+    "p05": 0.3392857142857143
+   },
+   "k": 6,
+   "over_caution_good_mean": 0.014108333333333332,
+   "regret_bad_mean": 0.27245711011507645,
+   "regret_good_mean": 0.5564715124033329
+  },
+  "Q3/k8": {
+   "auc_decision_false_feasible": {
+    "mean": 0.4168809523809523,
+    "p05": 0.3392857142857143
+   },
+   "k": 8,
+   "over_caution_good_mean": 0.013829209183673469,
+   "regret_bad_mean": 0.26976745783557776,
+   "regret_good_mean": 0.5617573164269295
+  }
+ },
+ "scenarios": 12,
+ "schema": "carbon.battery.quiz-q3-comparison.v1",
+ "source": "PUBLIC_STANDIN: EV4 verification scenarios; not a hidden batch"
+}
