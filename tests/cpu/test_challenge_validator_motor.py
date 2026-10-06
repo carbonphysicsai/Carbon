@@ -8,6 +8,7 @@ import math
 from pathlib import Path
 
 import pytest
+
 from carbon.challenge_validator.candidate_fault import load_policy
 from carbon.challenge_validator.dispatch import Adapters, Operator, Validator
 from carbon.challenge_validator.interface import (
