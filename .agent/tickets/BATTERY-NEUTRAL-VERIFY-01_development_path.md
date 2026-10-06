@@ -1,6 +1,6 @@
 # BATTERY-NEUTRAL-VERIFY-01 — public DEVELOPMENT neutral-path verification
 
-**Status:** bounded verification underway; PR acceptance pending
+**Status:** bounded verification complete; PR acceptance pending
 
 **Authority:** the owner's three-Challenge DEVELOPMENT wave and its explicit
 Battery verification instruction; `VALIDATOR-01_challenge_neutral_validator.md`
@@ -34,13 +34,15 @@ and readiness ceiling. Repair only a concrete regression found by this check.
 
 ## Acceptance
 
-- [ ] Canonical Battery neutral replay, contract/scoring boundary and readiness
+- [x] Canonical Battery neutral replay, contract/scoring boundary and readiness
       tests run at the stated source commit, with exact command and count.
-- [ ] Report distinguishes what the tests exercise from worker isolation,
+- [x] Report distinguishes what the tests exercise from worker isolation,
       protected evaluation and unresolved readiness/owner reviews.
-- [ ] No EV5, sealed journal, live contract, protected labels or scoring
+- [x] No EV5, sealed journal, live contract, protected labels or scoring
       implementation is changed.
 - [ ] The execution lesson validates and required PR checks pass.
+
+**Evidence:** `docs/development/evidence/battery-neutral-path-verification-2026-10-06/README.md`.
 
 ## Maturity ceiling
 
