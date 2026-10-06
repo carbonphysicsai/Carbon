@@ -1,42 +1,28 @@
-"""Cooling's public DEVELOPMENT `ChallengeAdapter` (Interface v1).
+"""Motor's public DEVELOPMENT `ChallengeAdapter` (Interface v1).
 
-This adapter wraps existing Cooling authority. It does not define a new
-population, gate, scale, recipe or reference:
-
-- construction is the registered Level-0 cold-plate compiler and deterministic
-  Gaussian kernel-ridge rebuild;
-- the only preparable batch is the digest-pinned public PRACTICE artifact;
-- reference ingestion accepts only a record equal to that pinned artifact;
-- scoring is `carbon.cold_plate.exam`, using its TRAIN-derived scales, with
-  every case asked (`scoring.cover`: a case the construction gives no
-  prediction is a schema-gate failure charged to it, never FAILED_INFRA and
-  never excluded; GRAPHITE-COVERAGE-PARITY-02); and
-- miner disclosure is a small aggregate outcome. Cases, predictions, gates,
-  recipes and full identities remain operator-only.
-
-The evidence is public, adaptive DEVELOPMENT evidence. The reserved Cooling
-Graphite confirmation role has no set here. Nothing in this module prepares,
-loads or scores private/counting/confirmation evidence, and nothing confers
-qualification, reward, customer acceptance or LIVE authority.
+Only the registered Level-0 recipe, digest-pinned public TRAIN and PRACTICE
+material and existing Motor exam are reachable. This is adaptive public
+feedback, not a private/official exam, confirmation set or qualification.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
-from carbon.cold_plate import exam
-from carbon.cold_plate.challenge import (
+from carbon import learned_baseline
+from carbon.development_session.research_catalog import RecipeRejected
+from carbon.motor import exam
+from carbon.motor.challenge import (
     CALIBRATION_SHA256,
     CHALLENGE,
     PRACTICE_SHA256,
     TRAIN_SHA256,
     PublicMaterial,
 )
-from carbon.cold_plate.compile import compile_recipe, rebuild
-from carbon.cold_plate.contracts import implementation_digest as model_digest
-from carbon.cold_plate.openfoam import IMAGE
-from carbon.development_session.research_catalog import RecipeRejected
+from carbon.motor.compile import compile_recipe, rebuild
+from carbon.motor.contracts import implementation_digest as model_digest
 from carbon.reconstruction.capability_registry import contract
 
 from .candidate_fault import load_policy as load_candidate_fault_policy
@@ -44,18 +30,18 @@ from .interface import Admitted, CandidateFault, ChallengeAdapter, Unavailable, 
 from .public_practice_store import PublicPracticeStore
 from .scoring import COVERAGE_RULE, cover
 
-ADAPTER_SCHEMA = "carbon.cold-plate.validator-adapter.v1"
-BATCH_SCHEMA = "carbon.cold-plate.validator-public-batch.v1"
-OUTCOME_SCHEMA = "carbon.cold-plate.validator-outcome.v1"
-SCORE_RECORD_SCHEMA = "carbon.cold-plate.operator-score-record.v1"
-STORE_SCHEMA = "carbon.cold-plate.validator-store.v1"
+ADAPTER_SCHEMA = "carbon.motor.validator-adapter.v1"
+BATCH_SCHEMA = "carbon.motor.validator-public-batch.v1"
+OUTCOME_SCHEMA = "carbon.motor.validator-outcome.v1"
+SCORE_RECORD_SCHEMA = "carbon.motor.operator-score-record.v1"
+STORE_SCHEMA = "carbon.motor.validator-store.v1"
 PUBLIC_BATCH_KIND = "public_practice"
 EVIDENCE = "DEVELOPMENT_PUBLIC_ADAPTIVE"
 MAX_STRATEGY_BYTES = 16_384
 
 
-class CoolingAdapterError(ValueError):
-    """A typed operator/store refusal. Its code contains no submitted data."""
+class MotorAdapterError(ValueError):
+    """Typed operator/store refusal; code contains no submitted content."""
 
     def __init__(self, code):
         super().__init__(code)
@@ -70,42 +56,44 @@ def _copy(value):
     return json.loads(_canonical(value))
 
 
-def _sha256_file(path):
-    import hashlib
-
-    return "sha256:" + hashlib.sha256(Path(path).read_bytes()).hexdigest()
-
-
 def implementation_digest():
-    """Pin the adapter and every executable Cooling component it invokes."""
+    """Pin the adapter and executable Motor pieces used during evaluation."""
 
-    from carbon import learned_baseline
-    from carbon.challenge_validator import public_practice_store
-    from carbon.cold_plate import compile as compiler
-    from carbon.cold_plate import recipes
+    from carbon.challenge_validator import (
+        candidate_fault,
+        public_practice_store,
+        scoring,
+    )
+    from carbon.motor import compile as compiler
+    from carbon.motor import recipes
 
     files = {
         "adapter": Path(__file__),
+        "candidate_fault": Path(candidate_fault.__file__),
         "compiler": Path(compiler.__file__),
         "exam": Path(exam.__file__),
         "learned_baseline": Path(learned_baseline.__file__),
         "public_practice_store": Path(public_practice_store.__file__),
         "recipes": Path(recipes.__file__),
+        "scoring": Path(scoring.__file__),
     }
     return digest(
         {
             "schema": ADAPTER_SCHEMA,
-            "files": {name: _sha256_file(path) for name, path in sorted(files.items())},
+            "files": {
+                name: "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+                for name, path in sorted(files.items())
+            },
             "model_implementation_digest": model_digest(),
         }
     )
 
 
 def rule_document(material):
-    """The existing exam rule represented as pinned, finite JSON."""
+    """Represent only the existing provisional Motor exam as finite JSON."""
 
     return {
-        "schema": "carbon.cold-plate.development-exam-rule.v1",
+        "schema": "carbon.motor.development-exam-rule.v1",
         "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
         "evidence": EVIDENCE,
         "gates": [
@@ -113,8 +101,8 @@ def rule_document(material):
             for gate in exam.GATES
         ],
         "components": list(exam.COMPONENTS),
-        "aggregate": "mean of three TRAIN-normalized errors; mandatory gate failure is ineligible",
-        "important_peak_c": exam.T_IMPORTANT_C,
+        "aggregate": "mean of two TRAIN-normalized errors; mandatory gate failure is ineligible",
+        "important_current_density_a_mm2": exam.J_IMPORTANT,
         "coverage": COVERAGE_RULE,
         "scales": exam.scales_from_train(material.train),
         "public_material": {
@@ -125,17 +113,17 @@ def rule_document(material):
     }
 
 
-class CoolingStore(PublicPracticeStore):
-    """Cooling-compatible owner-only custody backed by the neutral store."""
+class MotorStore(PublicPracticeStore):
+    """Motor-specific identity on the shared owner-only public store."""
 
     def __init__(self, root):
         super().__init__(
-            root, name="cooling", schema=STORE_SCHEMA, error_type=CoolingAdapterError
+            root, name="motor", schema=STORE_SCHEMA, error_type=MotorAdapterError
         )
 
 
-class CoolingAdapter(ChallengeAdapter):
-    """The registered Cooling Level-0 contract behind Interface v1."""
+class MotorAdapter(ChallengeAdapter):
+    """The registered Motor Level-0 contract behind Interface v1."""
 
     challenge_id = CHALLENGE.challenge_id
     challenge_version = CHALLENGE.version
@@ -150,8 +138,8 @@ class CoolingAdapter(ChallengeAdapter):
         self.material = PublicMaterial.load(self.repository)
         self.candidate_fault_policy = load_candidate_fault_policy(self.challenge_id)
         if self.candidate_fault_policy.challenge_version != self.challenge_version:
-            raise CoolingAdapterError("candidate_fault_policy_version_mismatch")
-        self.store = CoolingStore(root)
+            raise MotorAdapterError("candidate_fault_policy_version_mismatch")
+        self.store = MotorStore(root)
         rule = rule_document(self.material)
         self._identities = {
             "schema": ADAPTER_SCHEMA,
@@ -159,15 +147,12 @@ class CoolingAdapter(ChallengeAdapter):
             "rule_digest": digest(rule),
             "implementation_digest": implementation_digest(),
             "public_material": rule["public_material"],
-            "reference_solver_image": IMAGE,
+            "candidate_fault_policy_digest": self.candidate_fault_policy.digest,
             "evidence": EVIDENCE,
         }
         self._practice = {
             record["case_id"]: _copy(record) for record in self.material.practice
         }
-
-    def _candidate_fault(self, fault):
-        return CandidateFault(fault, self.candidate_fault_policy)
 
     def identities(self):
         return _copy(self._identities)
@@ -186,7 +171,7 @@ class CoolingAdapter(ChallengeAdapter):
                 "contract_digest": submission.contract_digest,
             }
         )
-        return "cooling-" + identity.removeprefix("sha256:")
+        return "motor-" + identity.removeprefix("sha256:")
 
     def _outcome(self, submission_id, state, *, failure=None, summary=None):
         outcome = {
@@ -212,20 +197,20 @@ class CoolingAdapter(ChallengeAdapter):
 
     @staticmethod
     def _issues(refused):
-        issues = []
-        for issue in refused.rejected.issues:
-            path = issue.path
-            if type(path) is tuple:
-                path = list(path)
-            issues.append({"code": issue.code, "path": path})
-        return issues
+        return [
+            {
+                "code": issue.code,
+                "path": list(issue.path) if type(issue.path) is tuple else issue.path,
+            }
+            for issue in refused.rejected.issues
+        ]
 
     def evaluate(self, submission):
         if type(submission) is not Admitted:
             raise TypeError("an admitted submission is required")
         fingerprint = self.store.active_pool()
         if fingerprint is None:
-            raise Unavailable("cooling_public_practice_pool_not_open")
+            raise Unavailable("motor_public_practice_pool_not_open")
         submission_id = self._submission_id(submission)
         existing = self.store.submission(submission_id)
         if existing is not None:
@@ -246,7 +231,9 @@ class CoolingAdapter(ChallengeAdapter):
         try:
             model = rebuild(recipe, self.material)
         except Exception as fault:
-            raise self._candidate_fault("rebuild_exception") from fault
+            raise CandidateFault(
+                "rebuild_exception", self.candidate_fault_policy
+            ) from fault
         references = self.store.references(fingerprint)
         try:
             predictions = {
@@ -254,9 +241,10 @@ class CoolingAdapter(ChallengeAdapter):
                 for case_id, record in references.items()
             }
         except Exception as fault:
-            raise self._candidate_fault("predict_exception") from fault
+            raise CandidateFault(
+                "predict_exception", self.candidate_fault_policy
+            ) from fault
         scales = exam.scales_from_train(self.material.train)
-        # A case without a prediction fails the schema gate (`cover`).
         asked, missing = cover(predictions, sorted(references))
         rows = [
             exam.score_case(asked[case_id], references[case_id], scales)
@@ -267,8 +255,10 @@ class CoolingAdapter(ChallengeAdapter):
             _canonical(
                 {"predictions": predictions, "cases": rows, "aggregate": summary}
             )
-        except ValueError:
-            raise self._candidate_fault("non_finite_score")
+        except (TypeError, ValueError) as fault:
+            raise CandidateFault(
+                "non_finite_score", self.candidate_fault_policy
+            ) from fault
         outcome = self._outcome(submission_id, "SCORED", summary=summary)
         score_record = {
             "schema": SCORE_RECORD_SCHEMA,
@@ -311,9 +301,9 @@ class CoolingAdapter(ChallengeAdapter):
 
     def _prepare_batch(self, role, *, kind, **options):
         if kind != PUBLIC_BATCH_KIND:
-            raise CoolingAdapterError("cooling_batch_kind_not_served")
+            raise MotorAdapterError("motor_batch_kind_not_served")
         if options:
-            raise CoolingAdapterError("cooling_public_batch_takes_no_options")
+            raise MotorAdapterError("motor_public_batch_takes_no_options")
         document = {
             "schema": BATCH_SCHEMA,
             "challenge": {"id": self.challenge_id, "version": self.challenge_version},
@@ -336,7 +326,7 @@ class CoolingAdapter(ChallengeAdapter):
                 "case_id": case["case_id"],
                 "inputs": case["inputs"],
                 "reference": "PINNED_PUBLIC_PRACTICE",
-                "solver_image": IMAGE,
+                "practice_sha256": "sha256:" + PRACTICE_SHA256,
             }
             for case in document["cases"]
             if case["case_id"] not in found
@@ -346,18 +336,18 @@ class CoolingAdapter(ChallengeAdapter):
         document, _state = self.store.batch(fingerprint)
         cases = {case["case_id"] for case in document["cases"]}
         if type(records) not in (list, tuple):
-            raise CoolingAdapterError("cooling_reference_records_malformed")
+            raise MotorAdapterError("motor_reference_records_malformed")
         validated = {}
         for record in records:
             if type(record) is not dict or type(record.get("case_id")) is not str:
-                raise CoolingAdapterError("cooling_reference_record_malformed")
+                raise MotorAdapterError("motor_reference_record_malformed")
             case_id = record["case_id"]
             if case_id in validated:
-                raise CoolingAdapterError("cooling_reference_case_duplicate")
+                raise MotorAdapterError("motor_reference_case_duplicate")
             if case_id not in cases:
-                raise CoolingAdapterError("cooling_reference_case_not_in_batch")
+                raise MotorAdapterError("motor_reference_case_not_in_batch")
             if _canonical(record) != _canonical(self._practice[case_id]):
-                raise CoolingAdapterError("cooling_reference_record_mismatch")
+                raise MotorAdapterError("motor_reference_record_mismatch")
             validated[case_id] = record
         self.store.ingest(fingerprint, validated)
         return not self.reference_jobs(fingerprint)
@@ -366,19 +356,15 @@ class CoolingAdapter(ChallengeAdapter):
         return self.store.open_pool(len(self.material.practice))
 
     def status(self):
-        return {
-            "schema": STORE_SCHEMA,
-            "evidence": EVIDENCE,
-            **self.store.status(),
-        }
+        return {"schema": STORE_SCHEMA, "evidence": EVIDENCE, **self.store.status()}
 
 
 __all__ = [
     "EVIDENCE",
     "PUBLIC_BATCH_KIND",
-    "CoolingAdapter",
-    "CoolingAdapterError",
-    "CoolingStore",
+    "MotorAdapter",
+    "MotorAdapterError",
+    "MotorStore",
     "implementation_digest",
     "rule_document",
 ]

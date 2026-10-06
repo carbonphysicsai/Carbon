@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-motor-validator-quality-import-spacing",
+  "recorded_at": "2026-10-06T17:46:14Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "canonical quality gate at 0f1a76256",
+    "description": "canonical quality gate at 0f1a76256"
+  },
+  "expected": "No new changed-file Ruff or Black diagnostics",
+  "observed": "Quality gate failed with one I001: the Motor test imports needed a blank line after pytest. Black was clean. This was a code-style finding, not a test failure.",
+  "keep": [
+    "Use the repository quality gate rather than relying on path-based host Ruff configuration."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.validator.interface-v1",
+    "quality_gate",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
