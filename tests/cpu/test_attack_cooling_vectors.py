@@ -9,7 +9,9 @@ The claims tested:
   still `cooling-l0.v2`, the base the API was merged onto), except
   `group_sacrifice`'s attack and evidence digests, which `cooling-l0.v3` moved
   deliberately (its attack example became a real sacrifice, after the
-  Validator's review);
+  Validator's review), and `resource_accounting`'s evidence, which
+  `cooling-l0.v4` moved deliberately (a partial set is a schema-gate failure,
+  GRAPHITE-COVERAGE-PARITY-02);
 - `VECTOR_NAMES` holds the six vectors, each its family's attack example: on
   the adapter's own references `apply_vector` returns exactly that attack, and
   no two vectors give the same predictions, on the real references or a
@@ -96,8 +98,7 @@ PINNED_BASE = {
 }
 #: `cooling-l0.v3`: `group_sacrifice`'s attack example became a real
 #: sacrifice (the Validator's review of #621 found it identical to
-#: `cooling_optimism`'s). These are the only digests that moved from the base.
-PINNED_VERSION = "carbon.attack.adapter.cooling-l0.v3"
+#: `cooling_optimism`'s).
 CHANGED_IN_V3 = {
     ("attacks", "group_sacrifice"): (
         "sha256:3b2ffd7f8080290ff50212bdaa0d4cb1ec862dce2eee8011f47effe6a0ee3c52"
@@ -106,12 +107,25 @@ CHANGED_IN_V3 = {
         "sha256:b1b906b24bbbf089b0dcc3f706d2f5e049cca75c6f59c2950284557f7e1a8fb1"
     ),
 }
+#: `cooling-l0.v4`: both cooling hosts ask every case (`scoring.cover`), so a
+#: partial set's missing cases are schema-gate failures, never FAILED_INFRA
+#: (GRAPHITE-COVERAGE-PARITY-02). Only `resource_accounting`'s oracle evidence
+#: moved: its attacks, every other family, the controls and the fault
+#: selections are unchanged. Regenerated from `_adapter_output()`.
+PINNED_VERSION = "carbon.attack.adapter.cooling-l0.v4"
+CHANGED_IN_V4 = {
+    ("evidence", "resource_accounting"): (
+        "sha256:03480fd31e08f3f52abaf62243445059fbdc7a4618184cce7872437565b98207"
+    ),
+}
+#: Every digest moved from the base, with the version that moved it.
+CHANGED = {**CHANGED_IN_V3, **CHANGED_IN_V4}
 
 
 def _pinned():
-    """The v3 pin: the base pin with only `CHANGED_IN_V3` moved."""
+    """The current pin: the base pin with only `CHANGED` moved."""
     pin = copy.deepcopy(PINNED_BASE)
-    for (section, name), digest in CHANGED_IN_V3.items():
+    for (section, name), digest in CHANGED.items():
         pin[section][name] = digest
     return pin
 
@@ -145,11 +159,12 @@ def test_the_adapters_output_is_byte_identical_to_the_pin():
     assert _adapter_output() == _pinned()
 
 
-def test_v3_moved_only_group_sacrifices_attack_and_evidence():
+def test_v3_and_v4_moved_only_their_named_digests():
     """Against the base pin (main with #620), the only digests that differ
     are `group_sacrifice`'s attack and its oracle evidence and specimen
-    readings; every other family, both control splits and every fault
-    selection are unchanged."""
+    readings (v3) and `resource_accounting`'s oracle evidence (v4); every
+    other family, both control splits and every fault selection are
+    unchanged."""
     c.clear_caches()
     now = _adapter_output()
     moved = {
@@ -158,7 +173,7 @@ def test_v3_moved_only_group_sacrifices_attack_and_evidence():
         for name, digest in digests.items()
         if now[section][name] != digest
     }
-    assert moved == set(CHANGED_IN_V3)
+    assert moved == set(CHANGED)
     assert {section: set(d) for section, d in now.items()} == {
         section: set(d) for section, d in PINNED_BASE.items()
     }

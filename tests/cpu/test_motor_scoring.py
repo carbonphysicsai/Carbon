@@ -76,7 +76,8 @@ def test_motor_rule_reuses_public_exam_and_descriptive_comparison():
         exact, rule.practice, rule.material
     )
     assert rows == [cs.clean(row) for row in original_rows]
-    assert summary == cs.clean(original_summary)
+    # The rule adds only the coverage count (GRAPHITE-COVERAGE-PARITY-02).
+    assert summary == {**cs.clean(original_summary), "n_missing": 0}
     assert len(rows) == 30 and summary["eligible"] is True and summary["score"] == 0.0
     comparison = rule.compare(rows, rows, True)
     assert comparison["outcome"] == "NO_IMPROVEMENT"
