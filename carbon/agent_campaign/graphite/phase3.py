@@ -1470,7 +1470,7 @@ def hidden_pool_factory(
     )
 
 
-def hidden_remote_factory(url, key_path, scoring, variant, *, post=None):
+def hidden_remote_factory(url, key_path, scoring, variant, *, ca=None, post=None):
     """`run_id -> RemoteHiddenPool`: the hidden pool on its own host, reached
     through the signed door (VALIDATOR-19 slice 0). Graphite holds only the
     submitter key and receives only sealed views."""
@@ -1496,6 +1496,7 @@ def hidden_remote_factory(url, key_path, scoring, variant, *, post=None):
             challenge_id=scoring.challenge_id,
             contract_digest=base,
             variant=variant,
+            ca=ca,
             post=post,
         )
 
@@ -1568,7 +1569,11 @@ def command_run(args):
             raise RunnerRefused("hidden_pool_named_twice")
         if getattr(args, "hidden_endpoint", None):
             hidden = hidden_remote_factory(
-                args.hidden_endpoint, args.hidden_submitter_key, scoring, variant
+                args.hidden_endpoint,
+                args.hidden_submitter_key,
+                scoring,
+                variant,
+                ca=getattr(args, "hidden_ca", None),
             )
         elif getattr(args, "hidden_deployment", None):
             hidden = hidden_pool_factory(args.hidden_deployment, scoring, variant)
@@ -1986,6 +1991,10 @@ def main(argv=None):
         "--hidden-submitter-key",
     )
     run.add_argument("--hidden-submitter-key")
+    run.add_argument(
+        "--hidden-ca",
+        help="the hidden host's own TLS certificate, pinned (HIDDEN_HOST_SETUP.md)",
+    )
     run.add_argument("--session", type=int, default=1)
     run.add_argument("--literature-snapshot")
     run.add_argument("--allow-unchecked-cards", action="store_true")

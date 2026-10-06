@@ -9,6 +9,8 @@ spend. Not a security audit (AGENTS.md §13).
 import json
 import os
 import pwd
+import shutil
+import subprocess
 import sys
 import threading
 import time
@@ -194,6 +196,64 @@ def test_graphite_reaches_the_host_and_holds_nothing_hidden(tmp_path, host, key)
         )
         view, _ = forged.submit("proposal", knn(8))
         assert (view["state"], view["code"]) == ("UNAVAILABLE", "dev_submit_signature")
+    finally:
+        server.shutdown()
+
+
+def self_signed(directory, ip):
+    """HIDDEN_HOST_SETUP.md §5's certificate command, verbatim but for paths."""
+    if shutil.which("openssl") is None:
+        pytest.skip("openssl is not installed")
+    subprocess.run(
+        [
+            "openssl", "req", "-x509", "-newkey", "ec",
+            "-pkeyopt", "ec_paramgen_curve:prime256v1", "-nodes", "-days", "825",
+            "-subj", "/CN=carbon-hidden", "-addext", f"subjectAltName=IP:{ip}",
+            "-keyout", str(directory / "tls.key"), "-out", str(directory / "tls.crt"),
+        ],
+        check=True,
+        capture_output=True,
+    )  # fmt: skip
+    return directory / "tls.crt", directory / "tls.key"
+
+
+def test_graphite_trusts_only_the_pinned_certificate(tmp_path, host, key):
+    door = service(tmp_path, host, key)
+    cert, private = self_signed(tmp_path, "127.0.0.1")
+    other = tmp_path / "other"
+    other.mkdir()
+    other_cert, _ = self_signed(other, "127.0.0.1")
+    config = {
+        "host": "127.0.0.1",
+        "port": 0,
+        "tls_cert": str(cert),
+        "tls_key": str(private),
+    }
+    server = ds.make_server(door, config, repository=REPOSITORY)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        url = f"https://127.0.0.1:{server.server_address[1]}"
+
+        def remote(ca):
+            return ds.RemoteHiddenPool(
+                url,
+                key,
+                run_id="run-tls",
+                challenge_id=BATTERY,
+                contract_digest=base_digest(),
+                ca=ca,
+            )
+
+        view, _ = remote(cert).submit("proposal", knn(7))
+        assert view["state"] == "SCORED"
+        # Another certificate, or the system trust store, is refused.
+        for ca in (other_cert, None):
+            view, _ = remote(ca).submit("proposal", knn(9))
+            assert (view["state"], view["code"]) == (
+                "UNAVAILABLE",
+                "dev_submit_unreachable",
+            )
     finally:
         server.shutdown()
 

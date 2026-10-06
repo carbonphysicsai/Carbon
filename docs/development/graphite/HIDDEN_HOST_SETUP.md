@@ -15,6 +15,25 @@ and never sees a case, reference, prediction, score or operator record.
 **Who runs this:** Ryan, once, on the VM. Agents never get the VM's SSH key,
 cloud console or any credential for it.
 
+## Credential custody (read first)
+
+Agent sessions on the PC can read the PC user's files and drive its browsers.
+So:
+- **The VM's SSH key.** It must be passphrase-protected or hardware-backed:
+  - preferred: a FIDO2 key, `ssh-keygen -t ed25519-sk`, which needs a touch
+    on every use;
+  - otherwise: a passphrase, and never left unlocked in a running
+    `ssh-agent`.
+  Either way, a key file an agent can read is not enough to log in.
+- **The cloud console.** Never leave it logged in in the Chrome profile that
+  Claude in Chrome drives, or in the app's built-in browser. Use another
+  profile or browser and sign out after use.
+- **Cloud CLI credentials** (for example gcloud, aws or doctl) never live
+  on the PC user's account.
+- **What the PC may hold:** the Graphite submitter key
+  (`~/.config/carbon/graphite-submitter.key`, which can only submit) and the
+  VM's public TLS certificate.
+
 ## 0. Discard the `carbon`-owned pool on the PC
 
 It holds a root (key) and a root-only journal, and no batch was ever drawn
@@ -29,7 +48,11 @@ Keep its config only as a template. The VM gets a fresh root.
 ## 1. Create the VM
 
 A small Linux VM (Ubuntu 24.04) with Docker. Choosing the provider and
-spending money are the owner's decision. Only Ryan's own SSH key goes on it.
+spending money are the owner's decision. Only Ryan's own SSH key goes on it
+(see Credential custody).
+
+**Cloud firewall:** allow inbound TCP 22 and 8468 only from the PC's public
+IP. Deny everything else inbound.
 
 ## 2. Create the service account and its state
 
@@ -92,7 +115,27 @@ sudo -u carbon-producer python -m carbon.battery.operate init --config /var/lib/
    ```
 
    This prints the public key.
-2. **On the VM, write the door's config.**
+2. **On the VM, create the door's TLS certificate.** It is self-signed, and
+   the PC pins it. Replace `<VM_IP>` with the VM's public IP:
+
+   ```bash
+   E=/var/lib/carbon-producer/etc
+   sudo -u carbon-producer openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 825 \
+     -subj /CN=carbon-hidden -addext subjectAltName=IP:<VM_IP> -keyout $E/tls.key -out $E/tls.crt
+   sudo -u carbon-producer chmod 0600 $E/tls.key
+   ```
+
+   Copy **`tls.crt` only** (public) to the PC. From a WSL shell on the PC,
+   as `carbon`, with your own SSH session:
+
+   ```bash
+   ssh <VM_IP> sudo cat /var/lib/carbon-producer/etc/tls.crt > ~/.config/carbon/hidden-host.crt
+   ```
+
+   Graphite trusts that certificate and nothing else (`--hidden-ca`). Any other certificate, including one from a
+   public authority, is refused, and so is a mismatched IP. A new IP or an
+   expired certificate means repeating this step and the copy.
+3. **On the VM, write the door's config.**
    `/var/lib/carbon-producer/etc/dev-submit.json` (mode 0600):
 
    ```json
@@ -111,8 +154,10 @@ sudo -u carbon-producer python -m carbon.battery.operate init --config /var/lib/
    ```
 
    A public bind refuses without a recorded owner exposure decision and TLS.
-   That record is the owner's security call (AGENTS.md §13).
-3. **Run the door as a service** under `carbon-producer`:
+   That record is the owner's security call (AGENTS.md §13). It is a
+   `## OWNER-…INTAKE-EXPOSURE-NN` heading under `.agent/decisions/`, and it
+   must be in the release tag the VM runs.
+4. **Run the door as a service** under `carbon-producer`:
 
    ```bash
    sudo -u carbon-producer python -m carbon.battery.dev_submit serve --config /var/lib/carbon-producer/etc/dev-submit.json
@@ -120,15 +165,36 @@ sudo -u carbon-producer python -m carbon.battery.operate init --config /var/lib/
 
 ## 6. Batches and the tuning set: all on the VM, as `carbon-producer`
 
-Follow `HIDDEN_POOL_AND_TUNING_RUNBOOK.md` (sections A and B), prefixing
-every command with `sudo -u carbon-producer`.
+**Pool batches:** follow `HIDDEN_POOL_AND_TUNING_RUNBOOK.md` section A,
+prefixing every command with `sudo -u carbon-producer`.
+
+**The tuning set is never sealed on the PC.** Runbook §B seals it in the
+testnet deployment, whose root is on the PC, so its cases would be
+agent-readable. That section stays on HOLD.
+- `graphite-tuning-v1` is superseded unsealed.
+- `graphite-tuning-v2` (VALIDATOR-17 amendment, with slice Q's quiz) is
+  sealed **on the VM**, in this hidden deployment's journal. Its overlap
+  priors are owner-only files:
+  1. **The rotating pool:** `tuning export-pool` on the VM.
+  2. **EV5 and `graphite-confirmation-v1`:** these are sealed under the
+     testnet root on the PC. Ryan exports their case inputs there, copies
+     them to `/var/lib/carbon-producer/etc/` with `scp`, and then runs
+     `shred -u` on the PC copies. The export command (`confirmation
+     export-prior`) and v2's registration land together with slice Q.
+- **Why not move the testnet deployment to the VM instead:**
+  - The export adds no exposure, because those cases are already reachable
+    from the PC root.
+  - The tuning cases never touch the PC.
+  - Moving the running testnet validator and its chain wallet is a larger,
+    separate owner decision.
 
 ## 7. Graphite runs
 
 On the PC:
 
 ```bash
-python -m carbon.agent_campaign.graphite.phase3 run ... --hidden-endpoint https://<vm>:8468 --hidden-submitter-key ~/.config/carbon/graphite-submitter.key
+python -m carbon.agent_campaign.graphite.phase3 run ... --hidden-endpoint https://<VM_IP>:8468 \
+  --hidden-submitter-key ~/.config/carbon/graphite-submitter.key --hidden-ca ~/.config/carbon/hidden-host.crt
 ```
 
 The run's hidden report is read on the VM only:

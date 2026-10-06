@@ -40,6 +40,7 @@ import argparse
 import json
 import os
 import re
+import ssl
 import stat
 import sys
 import time
@@ -293,8 +294,13 @@ class RemoteHiddenPool:
         challenge_id,
         contract_digest,
         variant=None,
+        ca=None,
         post=None,
     ):
+        """`ca` pins the host's own certificate (a public file, copied from
+        the host): only that certificate is trusted, and its subject
+        alternative name must match the URL's host. Without it the system's
+        trust store decides, so a self-signed host is refused."""
         if not url.startswith("https://") and not url.startswith("http://127.0.0.1"):
             raise DevSubmitRefused("dev_submit_needs_tls")
         if type(key) is not SubmitterKey:
@@ -302,7 +308,18 @@ class RemoteHiddenPool:
         self.url, self.key, self.run_id = url.rstrip("/") + PATH, key, run_id
         self.challenge_id, self.contract_digest = challenge_id, contract_digest
         self.variant = variant
-        self._post = post or _post
+        if post is None:
+            context = None
+            if ca is not None:
+                try:
+                    context = ssl.create_default_context(cafile=str(ca))
+                except (OSError, ssl.SSLError):
+                    raise DevSubmitRefused("dev_submit_ca_unreadable") from None
+
+            def post(url, body):
+                return _post(url, body, context=context)
+
+        self._post = post
 
     def submit(self, kind, strategy):
         from carbon.agent_campaign.graphite.hidden_score import _view
@@ -328,14 +345,14 @@ class RemoteHiddenPool:
         return answer["view"], None
 
 
-def _post(url, body, *, timeout=600.0):
+def _post(url, body, *, context=None, timeout=600.0):
     import urllib.request
 
     req = urllib.request.Request(
         url, data=body, method="POST", headers={"Content-Type": "application/json"}
     )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as response:
+        with urllib.request.urlopen(req, timeout=timeout, context=context) as response:
             return json.loads(response.read(MAX_BODY))
     except urllib.error.HTTPError as failure:
         return json.loads(failure.read(MAX_BODY) or b"{}")
