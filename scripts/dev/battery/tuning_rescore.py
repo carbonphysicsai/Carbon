@@ -32,7 +32,7 @@ ROOT = Path(__file__).resolve().parents[3]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-REGISTRY = ROOT / "docs/development/evidence/battery-score-tuning/registry-v2.json"
+REGISTRY = ROOT / "docs/development/evidence/battery-score-tuning/registry-v3.json"
 CONTRACT = ROOT / "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json"
 UNSAFE = ("graphite-run5-p-1d4aaff5d292-s3718551111",)
 #: EV5's adversarial FAIL (conditions.json, #661): the 8 top-half infeasible
@@ -77,7 +77,9 @@ def _standin(dirs):
     return store, ids, predictions
 
 
-def rescore(store, ids, predictions, dev_results, registry_path=REGISTRY):
+def rescore(
+    store, ids, predictions, dev_results, registry_path=REGISTRY, q3_regret=None
+):
     from carbon.battery.value import panel as pn
     from carbon.battery.value import score_tuning as st
     from carbon.battery.value.contract import load
@@ -89,7 +91,11 @@ def rescore(store, ids, predictions, dev_results, registry_path=REGISTRY):
     results = json.loads(Path(dev_results).read_text())
     decided = set(results["decisions"])
     names = sorted(m for m in members if m in decided)
-    legs = {m: st.member_legs(contract, members[m], store, ids) for m in names}
+    q3_regret = q3_regret or {}
+    legs = {
+        m: st.member_legs(contract, members[m], store, ids, q3_regret.get(m))
+        for m in names
+    }
     values, mask, outcomes = st.decision_values(results, names)
     recipe_of = {
         m: (m if m.startswith("control-") else m.rsplit("-s", 1)[0]) for m in names
@@ -163,12 +169,18 @@ def main(argv=None):
     parser.add_argument("--attack", type=Path)
     parser.add_argument("--dev-results", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument(
+        "--q3-regret",
+        type=Path,
+        help="member -> mean Q3 decision regret (the quiz producer's aggregate); leg q",
+    )
     args = parser.parse_args(argv)
     if args.public_standin:
         store, ids, predictions = _standin([args.ev4, args.run5, args.attack])
     else:
         store, ids, predictions = _tuning(args.work)
-    out = rescore(store, ids, predictions, args.dev_results)
+    q3 = json.loads(args.q3_regret.read_text()) if args.q3_regret else None
+    out = rescore(store, ids, predictions, args.dev_results, q3_regret=q3)
     out["source"] = (
         "PUBLIC_STANDIN (plumbing only)"
         if args.public_standin
