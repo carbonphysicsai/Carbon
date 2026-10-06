@@ -6,7 +6,8 @@
         (--runpod-key-file PATH | --runpod-key-env RUNPOD_API_KEY) \
         --miner-profile PROFILE.json --miner-campaign ID --code-ref SHA \
         --literature-snapshot SNAPSHOT.json [--allow-unchecked-cards] [--session N] \
-        [--level N] [--compute carrier --image-manifest C03_IMAGE.json]
+        [--level N] [--compute carrier --image-manifest C03_IMAGE.json] \
+        [--score-variant VERSION]
     python -m carbon.agent_campaign.graphite.phase3 run --root DIR --challenge TOKEN --dry-run \
         [--literature-snapshot SNAPSHOT.json [--allow-unchecked-cards]] [--level N]
     python -m carbon.agent_campaign.graphite.phase3 cancel --root DIR --session N
@@ -52,6 +53,13 @@ before. A level above 0 runs the development-only contract variant
 variant itself, the controller records it as a development expansion, and
 every proposal compiles through the variant's own path. An unregistered or
 unrecorded level is refused before anything runs.
+
+**Development score variant** (`--score-variant VERSION`, VALIDATOR-09; see
+`score_variant`). A registered development score variant of the session's
+Challenge, at Level 0, is resolved before any spend and pinned in the brief
+and the permission profile. Every result carries its result beside the
+frozen rule's, and every result, the summary and the delivery its label; a
+resume under another variant is refused. Without the flag nothing changes.
 
 **Literature** (GRAPHITE-D28, D29). A live run reads a frozen phase-2 snapshot
 (`phase2 snapshot`), named by `--literature-snapshot`; it refuses to start
@@ -155,6 +163,7 @@ from . import delivery as deliver_
 from . import experiment as ex
 from . import literature as lit
 from . import next_level
+from . import score_variant as sv
 from . import tools as toolbox
 from .ladder import LadderError
 from .provider import (
@@ -359,10 +368,17 @@ class Phase3Provider(GraphiteProvider):
         randomness=os.urandom,
         adapter_id=None,
         scoring=None,
+        score_variant=None,
         **kwargs,
     ):
         if type(grant) is not SpendingGrant:
             raise ProviderUnavailable("spending_grant_required")
+        #: The session's development score variant (VALIDATOR-09), resolved
+        #: before spend (`score_variant.resolve`), or None. It wraps the
+        #: Challenge's own frozen rule, never an injected scorer.
+        if score_variant is not None and scorer is not None:
+            raise ProviderUnavailable("score_variant_wraps_the_frozen_rule_only")
+        self.score_variant = score_variant
         try:
             # The session's Challenge (`ChallengeScoring`, VALIDATOR-01): the
             # only registered one unless named.
@@ -491,12 +507,19 @@ class Phase3Provider(GraphiteProvider):
                 check_observation(observation, self.scoring)
                 if observation.get("literature") != literature_brief(self.literature):
                     raise ProviderUnavailable("brief_literature_is_not_the_sessions")
+                if observation.get("score_variant") != sv.identity_of(
+                    self.score_variant
+                ):
+                    raise ProviderUnavailable("brief_score_variant_is_not_the_sessions")
         return super().start(spec, idempotency_key)
 
     # -- the run's experiment ----------------------------------------------------------------
     def experiment(self, run_id):
         opened = self._opened(run_id)
         brief = self._brief(opened["brief"]["digest"])
+        # VALIDATOR-09: a run's results are labelled with the score variant its
+        # brief pinned (None: none, exactly as before).
+        scored = recorded_score_variant(brief)
         return ex.Experiment(
             root=self._dir(run_id) / "experiment",
             run_id=run_id,
@@ -507,16 +530,30 @@ class Phase3Provider(GraphiteProvider):
             cancelled=lambda: self._state(run_id)["cancel_requested"],
             ladder=self.ladder,
             emit=lambda event_id, body: self._emit(run_id, event_id, body),
-            scorer=self.scorer or self._frozen_rule,
+            scorer=self._session_scorer(scored),
             repository=self.repository,
             clock=self.clock,
             randomness=self.randomness,
             scoring=self.scoring,
-            construction_level=recorded_level(opened, self.scoring),
+            construction_level=recorded_level(opened, self.scoring, scored),
             seconds_left=self._time_gate(run_id, opened),
             development_variant=recorded_variant(opened, self.scoring),
             on_finding=self._record_finding,
+            **({} if scored is None else {"score_variant": scored}),
         )
+
+    def _session_scorer(self, scored):
+        """The run's scorer: as before without a score variant. A run whose
+        brief pinned another variant than this provider's never scores
+        (`score_variant_is_not_the_sessions`, only when a score is needed, so
+        cancellation and reconciliation still run)."""
+        if scored == sv.identity_of(self.score_variant):
+            return self.scorer or self._frozen_rule
+
+        def refused():
+            raise ProviderUnavailable("score_variant_is_not_the_sessions")
+
+        return refused
 
     def _next_level(self, run_id, role):
         """The next-level writer bound to this session's exact Challenge. Each
@@ -537,9 +574,13 @@ class Phase3Provider(GraphiteProvider):
         return write
 
     def _frozen_rule(self):
-        """The frozen rule, loaded once per provider (its material is pinned)."""
+        """The frozen rule, loaded once per provider (its material is pinned).
+        Under a development score variant, the variant's rule over it
+        (`score_variant.VariantRule`, VALIDATOR-09)."""
         if getattr(self, "_rule", None) is None:
-            self._rule = ex.frozen_rule(self.repository, self.scoring)
+            self._rule = sv.rule_for(
+                ex.frozen_rule(self.repository, self.scoring), self.score_variant
+            )
         return self._rule
 
     def _ledger(self, run_id):
@@ -697,6 +738,14 @@ class Phase3Provider(GraphiteProvider):
             selection=selection,
             proposals=next_level.ProposalStore(self._dir(run_id)).proposals(),
         )
+        if experiment.score_variant is not None:
+            # The delivery report is labelled with the session's development
+            # score variant (VALIDATOR-09); without one it is unchanged.
+            outcome = {
+                **outcome,
+                "label": experiment.score_variant["label"],
+                "score_variant": experiment.score_variant,
+            }
         write_once(path, canonical(outcome))
         return outcome
 
@@ -863,18 +912,22 @@ def session_brief(
     scoring=None,
     variant=None,
     tool_text=TOOL_TEXT_V2,
+    score_variant=None,
 ):
     """The Constructor's brief: the session Challenge's public development
     material only (its `ChallengeScoring`), and the session's offered
     literature (the phase-1 fixture when none is given). `variant` is the
     development level's registered variant (`development_variant_for`) for
-    the same Challenge, or None at Level 0."""
+    the same Challenge, or None at Level 0. `score_variant` is the session's
+    development score variant identity (VALIDATOR-09), pinned here; None adds
+    nothing."""
     scoring = (
         challenge_scoring.scoring_for(budget.challenge_id)
         if scoring is None
         else challenge_scoring.resolve(scoring)
     )
     variant = _variant_of(scoring, variant)
+    _score_variant_of(scoring, variant, score_variant)
     baseline = scoring.baseline_strategy() if baseline is None else baseline
     literature = lit.FIXTURE_INDEX if literature is None else literature
     if variant is None:
@@ -902,6 +955,8 @@ def session_brief(
             "say why."
         ),
     }
+    if score_variant is not None:
+        observation["score_variant"] = score_variant
     return SessionBrief(
         role=RoleName.CONSTRUCTOR,
         initial_observation=observation,
@@ -912,12 +967,15 @@ def session_brief(
     )
 
 
-def permission_profile(scoring, variant=None):
+def permission_profile(scoring, variant=None, score_variant=None):
     """Level 0: the session Challenge's recorded contract, widened by nothing.
     At a development level the profile is the registered variant itself: its
     document, pinned by its digest, which is what the campaign controller's
-    development ledger records (GRAPHITE-DEV-VARIANTS-01)."""
+    development ledger records (GRAPHITE-DEV-VARIANTS-01). A development score
+    variant (its identity, VALIDATOR-09) is pinned in the Level-0 profile, so
+    the controller records it by the profile's digest; None adds nothing."""
     scoring = challenge_scoring.resolve(scoring)
+    _score_variant_of(scoring, variant, score_variant)
     if _variant_of(scoring, variant) is not None:
         return variant.document(), variant.digest
     document = {
@@ -927,7 +985,26 @@ def permission_profile(scoring, variant=None):
         "surface": "declarative TrainingStrategy inside the recorded contract",
         "widens": [],
     }
+    if score_variant is not None:
+        document["score_variant"] = score_variant
     return document, digest(canonical(document))
+
+
+def _score_variant_of(scoring, variant, score_variant):
+    """A score variant identity runs at Level 0, for the session's Challenge."""
+    if score_variant is None:
+        return
+    if variant is not None:
+        raise RunnerRefused(sv.LEVEL0_ONLY)
+    if type(score_variant) is not dict or not str(
+        score_variant.get("label", "")
+    ).startswith("development_score_result:"):
+        raise RunnerRefused("score_variant_identity_malformed")
+
+
+def recorded_score_variant(brief):
+    """The development score variant identity a run's brief pinned, or None."""
+    return ((brief or {}).get("initial_observation") or {}).get("score_variant")
 
 
 def recorded_variant(opened, scoring):
@@ -944,16 +1021,21 @@ def recorded_variant(opened, scoring):
         return None
 
 
-def recorded_level(opened, scoring):
+def recorded_level(opened, scoring, score_variant=None):
     """The construction level of an opened run, from the permission profile
     its task recorded: the profile's level only when the run's recorded
-    profile digest is this profile's (Level 0's, or a registered development
-    variant's of the same Challenge), else None (unknown). Never read from a
-    submission (`pod_outcome`)."""
+    profile digest is this profile's (Level 0's, Level 0's under the score
+    variant identity its brief pinned, or a registered development variant's
+    of the same Challenge), else None (unknown). Never read from a submission
+    (`pod_outcome`)."""
     document, profile = permission_profile(scoring)
     task = (opened or {}).get("task") or {}
     if task.get("profile_digest") == profile:
         return document["level"]
+    if score_variant is not None:
+        scored, profile = permission_profile(scoring, score_variant=score_variant)
+        if task.get("profile_digest") == profile:
+            return scored["level"]
     found = recorded_variant(opened, scoring)
     return None if found is None else found.level
 
@@ -1015,9 +1097,15 @@ def check_resume(provider, number):
     path = provider._dir(run_id) / "session-open.json"
     if not path.is_file():
         return
-    recorded = json.loads(path.read_bytes())["literature"]
-    if recorded != provider._literature_record():
+    opened = json.loads(path.read_bytes())
+    if opened["literature"] != provider._literature_record():
         raise ResumeRefused("literature_snapshot_changed_since_the_session_opened")
+    # VALIDATOR-09: the score variant identity the session's brief pinned (its
+    # rule identity, digest included) must be the provider's.
+    brief = provider._brief(opened["brief"]["digest"])
+    mine = sv.identity_of(getattr(provider, "score_variant", None))
+    if recorded_score_variant(brief) != mine:
+        raise ResumeRefused("score_variant_changed_since_the_session_opened")
 
 
 def ensure_development_expansion(control, variant, operator=OPERATOR):
@@ -1045,8 +1133,11 @@ def run_session(control, provider, brief, number, variant=None):
     named = (observation.get("construction_contract") or {}).get("development_variant")
     if named != (None if variant is None else variant.digest):
         raise ValueError("the brief names another construction level")
+    scored = sv.identity_of(getattr(provider, "score_variant", None))
+    if observation.get("score_variant") != scored:
+        raise ValueError("the brief names another score variant")
     check_resume(provider, number)
-    _document, profile = permission_profile(provider.scoring, variant)
+    _document, profile = permission_profile(provider.scoring, variant, scored)
     ensure_campaign(
         control, checkout_digest=brief.checkout_manifest_digest, profile_digest=profile
     )
@@ -1320,6 +1411,11 @@ def command_run(args):
     # before anything is read or spent; an unregistered one is refused here.
     variant = development_variant_for(getattr(args, "level", 0), scoring)
     level = {} if variant is None else {"development_variant": variant}
+    # VALIDATOR-09: a development score variant is resolved here too, before
+    # any grant, pod or model call; refused, typed, otherwise.
+    scored = score_variant_for(getattr(args, "score_variant", None), scoring, variant)
+    if scored is not None:
+        level["score_variant"] = scored
     if args.dry_run:
         return dry_run(
             _root(args.root), scoring, literature=_literature_from(args), **level
@@ -1385,6 +1481,7 @@ def command_run(args):
             miner_attach=attach,
             literature_index=literature,
             scoring=scoring,
+            score_variant=scored,
         )
         try:
             check_resume(provider, args.session)
@@ -1399,6 +1496,7 @@ def command_run(args):
                 literature=literature,
                 scoring=scoring,
                 variant=variant,
+                score_variant=sv.identity_of(scored),
             )
             _install_cancel(provider, provider.run_id_for(session_key(args.session)))
             result = run_session(control, provider, brief, args.session, variant)
@@ -1577,9 +1675,25 @@ def dry_run_script(baseline, variant, refused):
     ]
 
 
-def dry_run(root, scoring, literature=None, development_variant=None):
+def score_variant_for(version, scoring, variant=None):
+    """The development score variant `--score-variant` names for the session's
+    Challenge (`score_variant.resolve`), or None without the flag. Refused,
+    typed, before anything is read or spent (VALIDATOR-09)."""
+    try:
+        return sv.resolve(
+            version, scoring, level=0 if variant is None else variant.level
+        )
+    except sv.ScoreVariantRefused as refused:
+        raise RunnerRefused(refused.code) from None
+
+
+def dry_run(
+    root, scoring, literature=None, development_variant=None, score_variant=None
+):
     """`development_variant`: a development level's registered variant for the
-    same Challenge (`development_variant_for`), or None at Level 0."""
+    same Challenge (`development_variant_for`), or None at Level 0.
+    `score_variant`: a resolved development score variant (`score_variant_for`),
+    or None."""
     from .model import ScriptedModel
     from .pods import ScriptedPods, Step, real_path_check, synthetic_outputs
 
@@ -1608,6 +1722,7 @@ def dry_run(root, scoring, literature=None, development_variant=None):
         randomness=lambda n: b"\x00" * n,
         scoring=scoring,
         **({} if literature is None else {"literature_index": literature}),
+        **({} if score_variant is None else {"score_variant": score_variant}),
     )
     control = controller_for(root, provider, grant)
     try:
@@ -1617,6 +1732,11 @@ def dry_run(root, scoring, literature=None, development_variant=None):
             literature=literature,
             scoring=scoring,
             variant=development_variant,
+            **(
+                {}
+                if score_variant is None
+                else {"score_variant": sv.identity_of(score_variant)}
+            ),
         )
         result = run_session(control, provider, brief, 1, development_variant)
     finally:
@@ -1702,6 +1822,15 @@ def main(argv=None):
     run.add_argument("--session", type=int, default=1)
     run.add_argument("--literature-snapshot")
     run.add_argument("--allow-unchecked-cards", action="store_true")
+    run.add_argument(
+        "--score-variant",
+        metavar="VERSION",
+        help=(
+            "a registered development score variant (VALIDATOR-09), Level 0 "
+            "only: its result is recorded beside the frozen rule's on every "
+            "result; resolved before any spend, or refused"
+        ),
+    )
     cancel = sub.add_parser("cancel")
     cancel.add_argument("--root", required=True)
     cancel.add_argument("--session", type=int, required=True)

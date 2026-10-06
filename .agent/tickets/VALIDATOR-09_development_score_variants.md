@@ -59,7 +59,16 @@ The decision-region case weighting w(x) arrives as a new leg family in #650's
 - **The invariant** `tests/invariants/test_score_variants_unreachable.py`:
   no miner surface, validator or intake reaches the module.
 
-## Slice 2 (next)
+## Slice 2
+
+The phase-3 part is implemented on branch `claude/validator-09-phase3-variant`
+(Test Engineer), stacked on slice 1. It is recorded in
+`.agent/decisions/2026-10-05-VALIDATOR-09-PHASE3-VARIANT-01.md`:
+- Level 0 only;
+- the variant's result sits beside the base rule's and is never promotable;
+- every miner door refuses through the shared data-only name check;
+- the value contract for the legs is HUMAN_INPUT, so the flag refuses until
+  the owner pins it.
 
 - **Graphite `--score-variant` in phase 3:**
   - a variant practice rule computes `member_legs` on the practice

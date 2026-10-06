@@ -142,6 +142,9 @@ OPERATOR = "graphite-phase4-runner"
 WORKSPACE = "graphite-phase4-workspace"
 CREDENTIAL_REF = "graphite-phase4-engy"
 PROFILE_SCHEMA = "carbon.graphite.phase4.attacker-profile.v1"
+#: VALIDATOR-09: an Attacker session refuses a development score variant until
+#: phase-4 variant support lands (the Test Engineer's).
+ATTACKER_SCORE_VARIANT = "attacker_score_variant_not_supported"
 #: The owner-approved grant the Attacker runs under (OWNER-GRAPHITE-ATTACKER-01
 #: §5). The dry run copies it under a synthetic identity.
 GRANT_ID = "GRAPHITE-GRANT-PHASE4"
@@ -436,6 +439,10 @@ class AttackerProvider(Phase3Provider):
     ):
         from carbon.challenge_validator import scoring as challenge_scoring
 
+        if kwargs.get("score_variant") is not None:
+            # VALIDATOR-09: Attacker sessions take no development score variant
+            # until the Test Engineer's phase-4 support lands.
+            raise ProviderUnavailable(ATTACKER_SCORE_VARIANT)
         self.adapter = adapter
         self._code_run_seconds = adapter_code_run_seconds(adapter)
         self._code_run_rule = code_run_rule(adapter, self._code_run_seconds)
@@ -1347,6 +1354,9 @@ def _store(root, dry_run):
 
 
 def command_run(args):
+    if getattr(args, "score_variant", None) is not None:
+        # Refused before anything is read or spent (VALIDATOR-09).
+        raise RunnerRefused(ATTACKER_SCORE_VARIANT)
     atk = attack_modules()
     challenge = args.challenge
     level = getattr(args, "level", None)
@@ -1736,6 +1746,11 @@ def main(argv=None):
     run.add_argument("--miner-profile")
     run.add_argument("--miner-campaign")
     run.add_argument("--session", type=int, default=1)
+    run.add_argument(
+        "--score-variant",
+        metavar="VERSION",
+        help="refused: Attacker sessions take no development score variant yet",
+    )
     cancel = sub.add_parser("cancel")
     cancel.add_argument("--root", required=True)
     cancel.add_argument("--session", type=int, required=True)

@@ -348,6 +348,9 @@ def _feedback_view(record):
         "differences",
         "stall",
         "pods_left",
+        # A development score variant's result and label (VALIDATOR-09).
+        "score_variant",
+        "label",
     ):
         if key in record:
             view[key] = record[key]
@@ -403,6 +406,7 @@ class Experiment:
         seconds_left=None,
         development_variant=None,
         on_finding=None,
+        score_variant=None,
     ):
         from .provider import RunCancelled
 
@@ -423,6 +427,9 @@ class Experiment:
         #: record it on the campaign controller before any later result
         #: (conditional-evidence.v2 "ordering"); None records nothing more.
         self.on_finding = on_finding
+        #: The session's development score variant identity (VALIDATOR-09),
+        #: or None: it labels every result and the summary.
+        self.score_variant = score_variant
         if development_variant is not None and (
             construction_level != development_variant.level
         ):
@@ -518,6 +525,10 @@ class Experiment:
             # event or a bundle (`pod_logs`).
             kept = pod_logs.keep(self._dir(pid) / "pod-logs", held)
             self.ledger.append("pod_logs_kept", proposal=pid, attempts=kept)
+        if self.score_variant is not None:
+            # Every result of a session under a development score variant is
+            # labelled with it (VALIDATOR-09); without one, nothing changes.
+            record = {**record, "label": self.score_variant["label"]}
         write_once(self._dir(pid) / "result.json", canonical(record))
         self.emit(
             "proposal-" + pid,
@@ -1182,6 +1193,10 @@ class Experiment:
             "pods_left": self.pods_left(),
             **_attempts(attempts),
         }
+        if "score_variant" in summary:
+            # A development score variant's result, beside the frozen rule's
+            # and never in place of it (VALIDATOR-09).
+            record["score_variant"] = summary["score_variant"]
         if kind != "baseline":
             baseline_id = self.baseline_id()
             baseline_rows = self.rows(baseline_id)
@@ -1213,6 +1228,12 @@ class Experiment:
                     record["against_baseline"]["interpretation"] = comparison[
                         "interpretation"
                     ]
+                if "score_variant" in record:
+                    record["against_baseline"]["score_variant"] = (
+                        scorer.compare_variant(
+                            baseline.get("score_variant"), record["score_variant"]
+                        )
+                    )
                 # Read as written (v1 or v2); an ineligible baseline's score
                 # is never shown as one.
                 record["baseline"] = {
@@ -1548,6 +1569,10 @@ class Experiment:
         stop = self.stopped()
         if stop is not None:
             summary["session_stop"] = stop
+        if self.score_variant is not None:
+            # VALIDATOR-09: the session's development score variant; a session
+            # without one has exactly the summary it had before.
+            summary["score_variant"] = self.score_variant
         return summary
 
 
