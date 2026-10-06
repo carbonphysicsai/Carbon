@@ -829,6 +829,9 @@ def _before_d34(root, model, **kw):
         patch.setattr(gp, "MODEL_SETTINGS", {})
         patch.setattr(boundaries, "checkout_manifest", _recorded_checkout)
         # Recorded before the tool-text versions: v1 (VALIDATOR-07).
+        # Recorded before the budget-status rule (AGENT-DOOR-USABILITY-01):
+        # no rule, so its status keeps the v1 bytes.
+        patch.setattr(phase3.Phase3Provider, "NEW_SESSION_BUDGET_STATUS", None)
         return graphite, _open(graphite, tool_text=TOOL_TEXT_V1)
 
 

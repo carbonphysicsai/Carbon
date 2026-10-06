@@ -491,6 +491,10 @@ class AttackerProvider(Phase3Provider):
     Attacker proposes no construction: its experiment has no baseline and runs
     no pod, and its session bundles and scores nothing itself."""
 
+    #: An Attacker session records no budget-status rule: it always omits the
+    #: unmetered trial line (`_epoch`), so its records stay as they were.
+    NEW_SESSION_BUDGET_STATUS = None
+
     def __init__(
         self,
         *,

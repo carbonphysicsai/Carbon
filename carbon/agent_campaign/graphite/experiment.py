@@ -372,6 +372,7 @@ def _feedback_view(record):
     for key in (
         "reason_code",
         "issues",
+        "served_backends",
         "recipe_digest",
         "frozen_rule",
         "against_baseline",
@@ -1118,6 +1119,11 @@ class Experiment:
                     **base,
                     "status": "REFUSED_BACKEND_NOT_SERVED",
                     "reason_code": str(refused),
+                    # The backends these pods serve, from the Challenge's
+                    # public scoring record, so the refusal says what would
+                    # be accepted (AGENT-DOOR-USABILITY-01 A7). A result
+                    # recorded before has none and is read as it was.
+                    "served_backends": list(self.scoring.served_backends),
                     "scored": False,
                 },
             )
