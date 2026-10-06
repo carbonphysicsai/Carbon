@@ -6,9 +6,10 @@ deterministic, no cuDNN benchmark, the fixed cuBLAS workspace) are set. The
 CPU rebuild path (`carbon.battery.torch_training`) is untouched, so the battery
 contract, its implementation digest and every Level-0 pin stay as they are.
 
-Nothing calls this yet: PyTorch has no CUDA rebuild path. The draft expansion
-for one (0002) wires it in. Until then it is the pinned, tested definition the
-path will use.
+The PyTorch GPU worker image (`.devcontainer/torch/Dockerfile.gpu`) carries
+this profile's digest, and the capability matrix applies it inside that image
+on a GPU host. PyTorch has no CUDA rebuild path yet (TORCH-GPU-01); when it is
+added, it rebuilds inside `deterministic_cuda`.
 
 Importing this module never imports torch; `deterministic_cuda` does.
 """

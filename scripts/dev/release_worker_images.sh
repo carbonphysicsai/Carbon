@@ -8,13 +8,14 @@ set -euo pipefail
 # existing scripts and nothing else:
 #   - c03_worker_image.sh          the CPU C-03 worker (JAX);
 #   - accelerator_worker_image.sh  the NVIDIA (CUDA 13) worker on it (JAX GPU);
-#   - torch_worker_image.sh        the PyTorch CPU worker on it.
+#   - torch_worker_image.sh        the PyTorch CPU worker on it;
+#   - torch_gpu_worker_image.sh    the PyTorch GPU (CUDA 13) worker on it, in
+#                                  its own environment (TORCH-GPU-01).
 # The accelerator and PyTorch scripts each rebuild the C-03 parent; the parent
 # they name must be the same image as the released C-03 worker, or nothing is
 # pushed. Each image is tagged `<registry>/<name>:<tag>`, pushed, and recorded
 # by its registry digest (worker_image_release.py record). Hosts pull by that
-# digest. There is no PyTorch GPU worker recipe in this repository, so none is
-# built.
+# digest.
 #
 # Usage: release_worker_images.sh --registry REGISTRY --tag TAG --out DIR
 #   REGISTRY  e.g. ghcr.io/carbonphysicsai (lowercase, no tag or digest)
@@ -68,21 +69,23 @@ mkdir -p "${out}"
 bash "${script_dir}/c03_worker_image.sh" "${artifacts}/c03-worker-image.json"
 bash "${script_dir}/accelerator_worker_image.sh" "${artifacts}/accelerator-worker-image.json"
 bash "${script_dir}/torch_worker_image.sh" "${artifacts}/torch-worker-image.json"
+bash "${script_dir}/torch_gpu_worker_image.sh" "${artifacts}/torch-gpu-worker-image.json"
 
 field() {
   python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$1" "$2"
 }
 c03="$(field "${artifacts}/c03-worker-image.json" image_id)"
-for parent in accelerator-parent torch-parent; do
+for parent in accelerator-parent torch-parent torch-gpu-parent; do
   [[ "$(field "${artifacts}/${parent}-worker-image.json" image_id)" == "${c03}" ]] \
     || fail "the ${parent} C-03 image is not the released C-03 worker ${c03}"
 done
-for kind in accelerator torch; do
+for kind in accelerator torch torch-gpu; do
   [[ "$(field "${artifacts}/${kind}-worker-image.json" base_image_digest)" == "${c03}" ]] \
     || fail "the ${kind} worker is not built on the released C-03 worker"
 done
 
-for pair in c03:carbon-c03-worker accelerator:carbon-accelerator-worker torch:carbon-torch-worker; do
+for pair in c03:carbon-c03-worker accelerator:carbon-accelerator-worker torch:carbon-torch-worker \
+  torch-gpu:carbon-torch-gpu-worker; do
   kind="${pair%%:*}"
   repository="${registry}/${pair#*:}"
   manifest="${artifacts}/${kind}-worker-image.json"

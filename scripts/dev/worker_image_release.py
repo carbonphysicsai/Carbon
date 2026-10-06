@@ -75,6 +75,10 @@ KINDS = {
         "torch-worker-image.json",
         ("org.opencontainers.image.carbon.torch.determinism",),
     ),
+    "torch-gpu": (
+        "torch-gpu-worker-image.json",
+        ("org.opencontainers.image.carbon.torch.gpu-determinism",),
+    ),
 }
 MANIFEST_FIELDS = (
     "image_id",

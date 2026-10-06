@@ -42,13 +42,22 @@ from pathlib import Path
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = "carbon.worker-image-capability.v1"
 VERIFIED, UNVERIFIED, FAILED = "VERIFIED", "UNVERIFIED", "FAILED"
-KINDS = ("c03", "accelerator", "torch")
+KINDS = ("c03", "accelerator", "torch", "torch-gpu")
 #: The stack each cell's lock check reads, and the file pinning each name.
 JAX_NAMES = ("jax", "jaxlib", "optax", "numpy")
 CUDA_NAMES = ("jax-cuda13-plugin", "jax-cuda13-pjrt")
 TORCH_NAMES = ("torch", "torchvision", "neuraloperator", "nvidia-physicsnemo")
 ACCELERATOR_LOCK = ".devcontainer/accelerators/cuda13-py311.txt"
 TORCH_EXPORT = ".devcontainer/torch/torch-cpu-py311.txt"
+TORCH_GPU_LOCK = ".devcontainer/torch/torch-cu130-py311.txt"
+#: The PyTorch GPU stack the GPU cell checks against its own lock.
+TORCH_GPU_NAMES = (
+    "torch",
+    "neuraloperator",
+    "nvidia-cublas",
+    "nvidia-cudnn-cu13",
+    "triton",
+)
 #: One small recipe per backend: a capability probe, not a study.
 RECIPE = {"width": 16, "depth": 1, "steps": 32}
 NO_GPU = "this host exposes no GPU to the probe (run with --gpus on a GPU host)"
@@ -57,15 +66,15 @@ NO_GPU_DISPATCH = (
     "(accelerators.require_accelerator_admission); the granted A40 run (#681) "
     "establishes it"
 )
-NO_TORCH_GPU = (
-    "no PyTorch GPU worker image exists in this repository: no CUDA PyTorch "
-    "lock and no CUDA execution path in the PyTorch backend"
+NO_TORCH_GPU_REBUILD = (
+    "the PyTorch backend has no CUDA rebuild path yet (TORCH-GPU-01): adding "
+    "one moves the battery implementation digest and every recipe digest, "
+    "which waits on the owner's decision"
 )
 NO_TORCH_GPU_DETERMINISM = (
-    "the GPU profile is pinned (torch_profile.GPU_DETERMINISM, its own digest "
-    "and carbon.torch.gpu-determinism label) and applied by "
-    "carbon.reconstruction.torch_gpu; active on a device is unverified until a "
-    "PyTorch GPU image and CUDA rebuild path exist (draft expansion 0002)"
+    "the GPU profile (torch_profile.GPU_DETERMINISM, the image's "
+    "carbon.torch.gpu-determinism label) is applied by "
+    "carbon.reconstruction.torch_gpu only on a CUDA device"
 )
 #: The CPU profile settings the probe can observe inside the rebuild path
 #: (`seed_source` is a property of the code, held by a unit test).
@@ -86,6 +95,17 @@ if mode == "jax":
     out["platform"] = jax.default_backend()
     out["devices"] = [d.platform + ":" + d.device_kind for d in jax.devices()]
     out["xla_flags"] = os.environ.get("XLA_FLAGS")
+elif mode == "torch_gpu":
+    import neuralop, torch
+    out["cuda_available"] = torch.cuda.is_available()
+    out["torch_cuda"] = torch.version.cuda
+    out["devices"] = ["cpu"] + [
+        "cuda:" + torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())
+    ]
+    if out["cuda_available"]:
+        from carbon.reconstruction.torch_gpu import deterministic_cuda
+        with deterministic_cuda() as active:
+            out["determinism"] = active
 else:
     import neuralop, torch
     from carbon.battery.torch_training import deterministic
@@ -125,6 +145,7 @@ def pinned_versions(root=REPOSITORY_ROOT):
         "uv.lock": uv,
         ACCELERATOR_LOCK: _requirements(root, ACCELERATOR_LOCK),
         TORCH_EXPORT: _requirements(root, TORCH_EXPORT),
+        TORCH_GPU_LOCK: _requirements(root, TORCH_GPU_LOCK),
     }
 
 
@@ -146,6 +167,9 @@ def expected_for(cell, pins):
     if cell == "pytorch_cpu":
         for name in (*TORCH_NAMES, "numpy"):
             expected[name] = pins[TORCH_EXPORT].get(name)
+    if cell == "pytorch_gpu":
+        for name in (*TORCH_GPU_NAMES, "numpy"):
+            expected[name] = pins[TORCH_GPU_LOCK].get(name)
     if any(v is None for v in expected.values()):
         raise ValueError(f"a pin for {cell} is missing from its lock file")
     return expected
@@ -370,16 +394,50 @@ def pytorch_cpu(references, manifests, pins):
     }
 
 
-def pytorch_gpu(*, gpus):
-    reason = NO_TORCH_GPU if gpus else NO_TORCH_GPU + "; and " + NO_GPU
-    checks = {
-        name: check(UNVERIFIED, reason)
-        for name in ("imports", "devices", "lock_versions", "rebuild")
+def pytorch_gpu(references, pins, *, gpus, expect_kind):
+    from carbon.reconstruction.torch_profile import GPU_DETERMINISM
+
+    probe = {}
+    names = (*JAX_NAMES, *TORCH_GPU_NAMES)
+
+    def imports():
+        probe.update(run_probe(references["torch-gpu"], "torch_gpu", names, gpus=gpus))
+        if probe.get("torch_cuda") is None:
+            return check(FAILED, "torch is not a CUDA build")
+        return check(
+            VERIFIED, "torch (CUDA " + str(probe["torch_cuda"]) + "), neuralop"
+        )
+
+    def devices():
+        if not gpus:
+            return check(UNVERIFIED, NO_GPU)
+        kinds = [d for d in probe.get("devices", []) if d.startswith("cuda:")]
+        if not probe.get("cuda_available") or not kinds:
+            return check(FAILED, probe.get("devices"))
+        if expect_kind and any(k != "cuda:" + expect_kind for k in kinds):
+            return check(FAILED, {"expected": expect_kind, "reported": kinds})
+        return check(VERIFIED, kinds)
+
+    def determinism():
+        if not gpus:
+            return check(UNVERIFIED, NO_TORCH_GPU_DETERMINISM + "; " + NO_GPU)
+        active = probe.get("determinism") or {}
+        differs = {k: active.get(k) for k, v in GPU_DETERMINISM if active.get(k) != v}
+        if differs:
+            return check(FAILED, differs)
+        return check(VERIFIED, dict(GPU_DETERMINISM))
+
+    return {
+        "imports": guarded(imports),
+        "devices": guarded(devices),
+        "lock_versions": guarded(
+            lambda: compare_versions(
+                expected_for("pytorch_gpu", pins), probe["versions"]
+            )
+        ),
+        "determinism_config": guarded(determinism),
+        "rebuild": check(UNVERIFIED, NO_TORCH_GPU_REBUILD),
     }
-    checks["determinism_config"] = check(
-        UNVERIFIED, NO_TORCH_GPU_DETERMINISM + ("" if gpus else "; " + NO_GPU)
-    )
-    return checks
 
 
 def cell(image, checks):
@@ -402,7 +460,10 @@ def matrix(records, manifests, *, gpus=False, expect_kind=None, pins=None):
             jax_gpu(references, pins, gpus=gpus, expect_kind=expect_kind),
         ),
         "pytorch_cpu": cell("torch", pytorch_cpu(references, manifests, pins)),
-        "pytorch_gpu": cell(None, pytorch_gpu(gpus=gpus)),
+        "pytorch_gpu": cell(
+            "torch-gpu",
+            pytorch_gpu(references, pins, gpus=gpus, expect_kind=expect_kind),
+        ),
     }
 
 

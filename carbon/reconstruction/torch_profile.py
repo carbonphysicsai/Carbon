@@ -127,3 +127,44 @@ def determinism_digest(settings, schema) -> str:
 
 CPU_DETERMINISM_DIGEST = determinism_digest(CPU_DETERMINISM, CPU_DETERMINISM_SCHEMA)
 GPU_DETERMINISM_DIGEST = determinism_digest(GPU_DETERMINISM, GPU_DETERMINISM_SCHEMA)
+
+
+# The PyTorch CUDA 13 worker environment (TORCH-GPU-01).
+#
+# A separate environment on the C-03 worker image, never JAX's: torch
+# 2.13.0+cu130 needs cuDNN 9.20.0.48, and the JAX CUDA 13 accelerator lock pins
+# cuDNN 9.12.0.46, so the two do not resolve together. The exact-hashed lock is
+# `GPU_REQUIREMENTS_PATH` (`uv pip compile` against PyPI plus the PyTorch cu130
+# index); its sha256 is the PyTorch GPU worker image's `lock_digest`. It
+# carries the PyTorch backend's battery stack (torch, neuraloperator, numpy) and
+# not torchvision or nvidia-physicsnemo, which the battery backend never
+# imports. The CPU constants above are untouched by it.
+GPU_ENVIRONMENT_ID = "carbon_torch_linux_x86_64_py311_cuda13"
+GPU_ENVIRONMENT_VERSION = "1.0"
+GPU_PINS = (
+    ("torch", "2.13.0", "pytorch-cu130:torch==2.13.0+cu130"),
+    ("neuraloperator", "2.0.0", "pypi:neuraloperator==2.0.0"),
+    ("numpy", "2.4.6", "pypi:numpy==2.4.6"),
+)
+
+
+def gpu_environment_digest(pins=GPU_PINS) -> str:
+    """The GPU environment's identity: any changed, dropped or added pin
+    changes it. Composed exactly as the CPU `ENVIRONMENT_DIGEST`, with the
+    CUDA platform tag."""
+    return _tagged(
+        b"python==3.11.*\0"
+        + b"\0".join(source.encode() for _, _, source in pins)
+        + b"\0linux-x86_64-cuda13"
+    )
+
+
+GPU_ENVIRONMENT_DIGEST = gpu_environment_digest()
+GPU_REQUIREMENTS_PATH = ".devcontainer/torch/torch-cu130-py311.txt"
+
+
+def gpu_requirements_digest(root) -> str:
+    """The digest a PyTorch GPU worker image built from `root` records."""
+    from pathlib import Path
+
+    return _tagged((Path(root) / GPU_REQUIREMENTS_PATH).read_bytes())
