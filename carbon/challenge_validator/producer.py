@@ -489,11 +489,15 @@ class Producer:
             "retire_block": (slot + active) * every,
         }
 
-    def _scheduled(self, challenge_id):
+    def _scheduled(self, challenge_id, kind="screening"):
+        """`{slot: fingerprint}` for one kind. Each slot holds one screening
+        and one finalist batch, under the same window."""
         return {
             e["window"]["slot"]: e["fingerprint"]
             for e in self.journal.entries()
-            if e["event"] == "scheduled" and e["challenge_id"] == challenge_id
+            if e["event"] == "scheduled"
+            and e["challenge_id"] == challenge_id
+            and e.get("kind", "screening") == kind
         }
 
     def schedule(self, challenge_id, fingerprint, slot, *, block):
@@ -501,15 +505,17 @@ class Producer:
         A slot holds one batch and a batch one slot, for good."""
         if type(slot) is not int or type(block) is not int or slot < 0:
             raise ProducerRefused("producer_slot_malformed")
-        if self.journal.find("sealed", challenge_id, fingerprint) is None:
+        sealed = self.journal.find("sealed", challenge_id, fingerprint)
+        if sealed is None:
             raise ProducerRefused("producer_not_sealed")
+        kind = sealed["commitment"]["kind"]
         window = self.window(self._cadence(challenge_id), slot)
         earlier = self.journal.find("scheduled", challenge_id, fingerprint)
         if earlier is not None:
             if earlier["window"] != window:
                 raise ProducerRefused("producer_already_scheduled")
             return window
-        if slot in self._scheduled(challenge_id):
+        if slot in self._scheduled(challenge_id, kind):
             raise ProducerRefused("producer_slot_taken")
         if window["activate_block"] <= block:
             # Never mid-window: a validator might already be scoring without it.
@@ -518,6 +524,7 @@ class Producer:
             "scheduled",
             challenge_id=challenge_id,
             fingerprint=fingerprint,
+            kind=kind,
             window=window,
         )
         return window
@@ -553,22 +560,22 @@ class Producer:
             retired.append(fingerprint)
         return retired
 
-    def _fill(self, challenge_id, slot, block, role_prefix):
-        """One slot: an existing sealed batch, or a new one drawn, solved and
-        sealed now; then scheduled and published. Returns its fingerprint,
-        or None (recorded once) when the slot could not be filled."""
-        scheduled = set(self._scheduled(challenge_id).values())
+    def _fill(self, challenge_id, slot, block, role_prefix, kind="screening"):
+        """One slot of one kind: an existing sealed batch, or a new one drawn,
+        solved and sealed now; then scheduled and published. Returns its
+        fingerprint, or None (recorded once) when it could not be filled."""
+        scheduled = set(self._scheduled(challenge_id, kind).values())
         sealed = [
             e["fingerprint"]
             for e in self.journal.entries()
             if e["event"] == "sealed"
             and e["challenge_id"] == challenge_id
-            and e["commitment"]["kind"] == "screening"
+            and e["commitment"]["kind"] == kind
             and e["fingerprint"] not in scheduled
         ]
         fingerprint = sealed[0] if sealed else None
         if fingerprint is None:
-            drawn = self.draw(challenge_id, f"{role_prefix}{slot}", kind="screening")
+            drawn = self.draw(challenge_id, f"{role_prefix}{slot}", kind=kind)
             fingerprint = drawn["fingerprint"]
             if self.journal.find("sealed", challenge_id, fingerprint) is None:
                 self.solve(challenge_id, fingerprint)
@@ -579,15 +586,24 @@ class Producer:
                 e["event"] == "slot_unfilled"
                 and e["challenge_id"] == challenge_id
                 and e.get("slot") == slot
+                and e.get("kind", "screening") == kind
                 for e in self.journal.entries()
             ):
                 self.journal.append(
-                    "slot_unfilled", challenge_id=challenge_id, slot=slot, block=block
+                    "slot_unfilled",
+                    challenge_id=challenge_id,
+                    slot=slot,
+                    kind=kind,
+                    block=block,
                 )
             return None
         self.schedule(challenge_id, fingerprint, slot, block=block)
         self.publish(challenge_id, fingerprint)
         return fingerprint
+
+    #: Each slot's finalist batch: one fresh set, consumed by the first final
+    #: frozen while its window is live (`PoolStore.claim_finalist_set`).
+    FINALIST_PREFIX = "pfinal-S"
 
     def tick(self, block, *, lead_slots=1, role_prefix="pscreen-S"):
         """One rotation step at finalized `block`, for every configured
@@ -605,18 +621,25 @@ class Producer:
             retired = self._retire(challenge_id, block)
             current = block // cadence["every_blocks"]
             filled, unfilled = [], []
+            finalists = {"filled": [], "unfilled": []}
             taken = self._scheduled(challenge_id)
+            final_taken = self._scheduled(challenge_id, "finalist")
             for slot in range(current + 1, current + 1 + lead_slots):
-                if slot in taken:
-                    continue
-                result = self._fill(challenge_id, slot, block, role_prefix)
-                (filled if result else unfilled).append(slot)
+                if slot not in taken:
+                    result = self._fill(challenge_id, slot, block, role_prefix)
+                    (filled if result else unfilled).append(slot)
+                if slot not in final_taken:
+                    result = self._fill(
+                        challenge_id, slot, block, self.FINALIST_PREFIX, "finalist"
+                    )
+                    finalists["filled" if result else "unfilled"].append(slot)
             report[challenge_id] = {
                 "block": block,
                 "slot": current,
                 "retired": len(retired),
                 "filled": filled,
                 "unfilled": unfilled,
+                "finalist": finalists,
             }
         return report
 
