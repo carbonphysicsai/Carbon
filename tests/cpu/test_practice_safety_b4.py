@@ -89,6 +89,17 @@ def test_the_committed_set_matches_its_pins_and_shape(decision):
     assert all(r["status"] == "OK" for r in decision.references.values())
 
 
+def test_b4_reads_v2_and_refuses_the_superseded_v1(tmp_path):
+    assert bs.DECISION_SET_PATH.endswith("practice-decision-set-v2")
+    (v1,) = bs.DECISION_SET_SUPERSEDED
+    assert (REPO / v1 / "SUPERSEDED.md").is_file()  # kept as history
+    shutil.copytree(REPO / v1, tmp_path / bs.DECISION_SET_PATH)
+    with pytest.raises(bs.DecisionSetRefused) as refused:
+        bs.load_decision_set(tmp_path)
+    assert refused.value.reason == bs.B4_REFUSED_SUMS
+    assert bs.decision_set(tmp_path).cases() == []
+
+
 def _copy_set(root):
     target = Path(root) / bs.DECISION_SET_PATH
     shutil.copytree(REPO / bs.DECISION_SET_PATH, target)

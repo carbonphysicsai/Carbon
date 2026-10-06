@@ -6,8 +6,9 @@ point:
 - the battery practice cases against the EV1, EV2, EV4, EV5 (and Graphite
   run 5) decision conditions, EV4's protected grids and EV5's optimizer grids,
   compared on (t_amb_c, soc0) alone, which is stricter than the full input;
-- the committed B4 practice decision set at the ruled distance from the
-  ruled list, and by 4 dp coincidence from every point above;
+- the committed B4 practice decision set (v2) at the ruled distance from
+  every point above, EV5's protected grids included (Test Lead ruling,
+  2026-10-06), and by 4 dp coincidence;
 - the cooling practice cases against the cooling study's designs x conditions;
 - the motor practice cases against the motor study's designs x conditions.
 
@@ -79,39 +80,32 @@ def test_battery_practice_cases_share_no_condition_with_any_ev_point():
     assert not seen & protected
 
 
-def battery_ruled_conditions():
-    """The B4 separation's ruled list (Test Lead, 2026-10-05): every EV1,
-    EV2, EV4 and EV5 decision condition and every point of EV4's protected
-    grids. EV5's protected grids are in `battery_protected_conditions` but
-    not in the ruled list."""
-    from carbon.battery.value import ev4_protected_conditions as ev4
-
-    points = {tuple(map(float, p)) for p in ev4.PROTECTED}
-    for ev in ("ev1", "ev2", "ev4", "ev5"):
-        path = (
-            REPO
-            / f"carbon/battery/value/contracts/{ev}-charge-protocol-selection.v1.json"
-        )
-        scenarios = json.loads(path.read_text())["scenarios"]
-        for role in ("development", "verification"):
-            for scenario in scenarios[role]:
-                points |= {(float(t), float(s)) for t, s in scenario["conditions"]}
-    return points
-
-
 def _committed_decision_conditions():
     return battery_safety.load_decision_set(REPO).conditions
 
 
-def test_b4_s_committed_set_keeps_the_ruled_separation():
-    ruled = battery_ruled_conditions()
+def _v1_conditions():
+    (path,) = battery_safety.DECISION_SET_SUPERSEDED
+    document = json.loads((REPO / path / "conditions.json").read_text())
+    return [(c["t_amb_c"], c["soc0"]) for c in document["conditions"]]
+
+
+def test_b4_s_committed_v2_set_passes_652_s_wider_separation_check():
+    """Test Lead ruling, 2026-10-06: EV5 includes EV5's protected grids, so
+    the set keeps the ruled box from every point this test protects."""
+    protected = sorted(battery_protected_conditions())
     conditions = _committed_decision_conditions()
-    assert len(conditions) == 6 and len(ruled) > 200
-    assert battery_safety.decision_set_clear(conditions, sorted(ruled))
-    # The set's own selection excluded exactly this list.
+    assert len(conditions) == 6
+    assert battery_safety.decision_set_clear(conditions, protected)
+    # v2's own selection excluded exactly this list.
     from scripts.dev.battery import practice_decision_set as pds
 
-    assert set(pds.excluded()) == ruled
+    assert set(pds.excluded_v2()) == set(protected)
+
+
+def test_the_superseded_v1_set_fails_the_wider_check():
+    protected = sorted(battery_protected_conditions())
+    assert not battery_safety.decision_set_clear(_v1_conditions(), protected)
 
 
 def test_b4_s_committed_set_shares_no_point_with_any_ev_point():

@@ -73,16 +73,20 @@ DECISION_RULES = {
     },
 }
 CONSTRAINTS = ("no_plating_onset", "peak_temperature")
-#: The committed public practice decision set for B4 (Data Collection, #669).
-#: Every condition in it is permanently practice-only.
-DECISION_SET_PATH = "docs/development/evidence/practice-decision-set-v1"
+#: The committed public practice decision set for B4: v2 (Data Collection,
+#: #682), which keeps its distance from EV5's protected grids too (Test Lead
+#: ruling, 2026-10-06). Every condition in it is permanently practice-only.
+DECISION_SET_PATH = "docs/development/evidence/practice-decision-set-v2"
+#: v1 (#669) is superseded and kept as history; B4 never reads it (its
+#: `SHA256SUMS` does not match the pin below, so it is refused).
+DECISION_SET_SUPERSEDED = ("docs/development/evidence/practice-decision-set-v1",)
 #: The sha256 of the set's `SHA256SUMS`, which names the digest of each of
 #: `DECISION_SET_FILES`; each file is checked against it before it is read.
 DECISION_SET_SUMS_SHA256 = (
-    "0e135fddbf8662e26b946bcc3ca6c38edc2a5a7476028a9676645884227bef0f"
+    "ffaed3c70a31429984f82506d6902889c4700133d5b120d2cb3fa6e578b9ad29"
 )
 DECISION_SET_FILES = ("conditions.json", "records.jsonl.gz")
-DECISION_SET_SCHEMA = "carbon.battery.practice-decision-set.v1"
+DECISION_SET_SCHEMA = "carbon.battery.practice-decision-set.v2"
 DECISION_SET_CONDITIONS = 6
 #: EV4's frozen candidate grid (`design_variables`, in `value.contract.
 #: candidates` order and ids), copied like `DECISION_RULES`; a test binds it.

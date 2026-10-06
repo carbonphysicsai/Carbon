@@ -174,3 +174,10 @@ BLOCKED to computed, as the ticket's B4 section defines it.
   isolation tests now cover it. They check that the battery provider calls
   the safety code only inside its practice trial, that no official path
   loads it, and that the practice score is the same with B4.
+- **Resolved, 2026-10-06 (supersedes the Separation bullet above).** The Test
+  Lead ruled that "EV5" includes EV5's protected grids, so D6's wider check
+  stands. B4 now reads practice-decision-set v2 (#682), pinned by its own
+  `SHA256SUMS`. v2 passes the wider check, and a test proves it. v1 stays
+  committed as history (`DECISION_SET_SUPERSEDED`), and B4 refuses it on
+  the pin. With the reference as the model, B4 is still 5 of 5 chosen and 1
+  abstained.
