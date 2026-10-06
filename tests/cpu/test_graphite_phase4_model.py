@@ -31,7 +31,12 @@ from contextlib import redirect_stdout
 from decimal import Decimal
 
 import pytest
-from test_graphite_phase4 import StandIn, _synthetic_adapter, stand_in_modules
+from test_graphite_phase4 import (  # the stand-in's material: an autouse fixture
+    StandIn,
+    _stand_in_material,  # noqa: F401
+    _synthetic_adapter,
+    stand_in_modules,
+)
 from test_graphite_phase4_prelive import _committed_by_digest, _gate, _grant_copy
 
 from carbon.agent_campaign.controller import SimulatedCrash
