@@ -53,9 +53,18 @@ A small Linux VM (Ubuntu 24.04) with Docker. Choosing the provider and
 spending money are the owner's decision. Only Ryan's own SSH key goes on it
 (see Credential custody).
 
-**Firewall** (the provider's firewall, or `ufw`): allow inbound TCP 22
-only from the PC's public IP, and deny everything else inbound. Option B in
-§5 also opens TCP 8468 to that IP.
+**Firewall and SSH hardening.** The owner's IP changes, so SSH is open from
+anywhere, but with keys only:
+
+```bash
+sudo ufw default deny incoming && sudo ufw allow OpenSSH && sudo ufw enable
+sudo apt-get install -y fail2ban    # its default sshd jail bans repeated failures
+```
+
+- Password logins are off (the sshd block in §5).
+- Option B in §5 would also open TCP 8468.
+- **Lockout recovery:** the Hetzner Robot rescue system. Boot it, mount the
+  disk, and fix `/etc/ssh/sshd_config.d/50-carbon.conf`.
 
 ## 2. Create the service account and its state
 
@@ -158,13 +167,16 @@ Add the following to `/etc/ssh/sshd_config.d/50-carbon.conf`, then run
 `sudo sshd -t && sudo systemctl reload ssh`. It keeps the tunnel account to
 one local forward even if its `authorized_keys` line is wrong. **Keep your
 current SSH session open** until a fresh admin login works: `AllowUsers`
-with a mistyped admin name locks you out, and `sshd -t` does not catch it.
+without your exact admin login (`root` on a fresh Hetzner install) locks you
+out, and `sshd -t` does not catch it. `prohibit-password` keeps root's
+key-only login. Use `PermitRootLogin no` only once you log in as a separate
+admin user.
 
 ```text
 PasswordAuthentication no
 KbdInteractiveAuthentication no
-PermitRootLogin no
-AllowUsers <your admin user> carbon-tunnel
+PermitRootLogin prohibit-password
+AllowUsers <your admin login: root, or your admin user> carbon-tunnel
 Match User carbon-tunnel
     AllowTcpForwarding local
     PermitOpen 127.0.0.1:8468
@@ -235,7 +247,7 @@ done
 
 ### Option B (not chosen): a public TLS door with a pinned certificate
 
-The firewall also allows TCP 8468 from the PC's IP.
+The firewall also allows TCP 8468 (`sudo ufw allow 8468/tcp`).
 
 1. **Create a self-signed certificate on the VM,** replacing `<VM_IP>`:
 
