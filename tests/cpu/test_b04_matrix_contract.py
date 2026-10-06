@@ -858,9 +858,16 @@ def _positive_admission_inputs(label: str):
 def test_noncallable_authority_is_rejected_before_grant_claim(
     provider_kind: str,
 ) -> None:
-    graph, _attempt_binding, run, artifact, comparison, issuance, grant, delegate = (
-        _positive_admission_inputs(f"preclaim_authority_{provider_kind}")
-    )
+    (
+        graph,
+        _attempt_binding,
+        run,
+        artifact,
+        comparison,
+        issuance,
+        grant,
+        delegate,
+    ) = _positive_admission_inputs(f"preclaim_authority_{provider_kind}")
 
     class ChangingCallback:
         reads = 0
@@ -954,9 +961,16 @@ def test_noncallable_authority_is_rejected_before_grant_claim(
 
 
 def test_callable_authority_descriptor_is_snapshotted_once_before_claim() -> None:
-    graph, _attempt_binding, run, artifact, comparison, issuance, grant, delegate = (
-        _positive_admission_inputs("one_read_authority_callback")
-    )
+    (
+        graph,
+        _attempt_binding,
+        run,
+        artifact,
+        comparison,
+        issuance,
+        grant,
+        delegate,
+    ) = _positive_admission_inputs("one_read_authority_callback")
 
     class OneReadCallback:
         reads = 0
@@ -1007,9 +1021,16 @@ def test_callable_authority_descriptor_is_snapshotted_once_before_claim() -> Non
 def test_authority_descriptor_reentrancy_cannot_hide_nested_admission(
     reentrant_seam: str,
 ) -> None:
-    graph, _attempt_binding, run, artifact, comparison, issuance, grant, delegate = (
-        _positive_admission_inputs(f"descriptor_reentrancy_{reentrant_seam}")
-    )
+    (
+        graph,
+        _attempt_binding,
+        run,
+        artifact,
+        comparison,
+        issuance,
+        grant,
+        delegate,
+    ) = _positive_admission_inputs(f"descriptor_reentrancy_{reentrant_seam}")
 
     class ReentrantAuthority:
         attempted_reentry = False
@@ -1469,9 +1490,16 @@ def test_issuance_provider_receives_an_isolated_attempt_snapshot() -> None:
 
 
 def test_admission_provider_receives_isolated_attempt_and_grant_ref_snapshots() -> None:
-    graph, attempt, run, artifact, comparison, issuance, grant, _ = (
-        _positive_admission_inputs("isolated_authority_inputs")
-    )
+    (
+        graph,
+        attempt,
+        run,
+        artifact,
+        comparison,
+        issuance,
+        grant,
+        _,
+    ) = _positive_admission_inputs("isolated_authority_inputs")
     attempt_snapshot = admission_runtime._copy_admission_attempt(attempt)
     issuance_bytes = canonical_bytes(issuance)
     grant_bytes = canonical_bytes(grant)
@@ -1540,9 +1568,16 @@ def test_admission_provider_receives_isolated_attempt_and_grant_ref_snapshots() 
 
 
 def test_admission_preclaim_baseexception_releases_inspection_reservation() -> None:
-    graph, _attempt, run, artifact, comparison, issuance, grant, delegate = (
-        _positive_admission_inputs("preclaim_baseexception")
-    )
+    (
+        graph,
+        _attempt,
+        run,
+        artifact,
+        comparison,
+        issuance,
+        grant,
+        delegate,
+    ) = _positive_admission_inputs("preclaim_baseexception")
 
     class PreclaimControlSignal(BaseException):
         pass
@@ -1614,9 +1649,16 @@ def test_admission_callback_baseexception_is_sanitized_and_burns_grant(
         GeneratorExit: "generator_exit",
         asyncio.CancelledError: "asyncio_cancelled",
     }[signal_type]
-    graph, attempt, run, artifact, comparison, issuance, grant, _ = (
-        _positive_admission_inputs(f"callback_{signal_label}")
-    )
+    (
+        graph,
+        attempt,
+        run,
+        artifact,
+        comparison,
+        issuance,
+        grant,
+        _,
+    ) = _positive_admission_inputs(f"callback_{signal_label}")
     signal = signal_type(_PROTECTED_CONTROL_SECRET)
 
     class InterruptedAuthority:
@@ -1702,9 +1744,16 @@ def test_admission_callback_baseexception_is_sanitized_and_burns_grant(
 def test_admission_authority_failure_burns_at_most_once_grant(
     failure_mode: str,
 ) -> None:
-    graph, attempt, run, artifact, comparison, issuance, grant, _ = (
-        _positive_admission_inputs(f"authority_failure_burn_{failure_mode}")
-    )
+    (
+        graph,
+        attempt,
+        run,
+        artifact,
+        comparison,
+        issuance,
+        grant,
+        _,
+    ) = _positive_admission_inputs(f"authority_failure_burn_{failure_mode}")
     receipt_ref = fixture_runtime._identity(
         ReferenceIdentityKind.CONSUMED_GRANT_RECEIPT,
         f"matrix_authority_failure_receipt_{failure_mode}",
@@ -1870,9 +1919,16 @@ def test_admission_authority_failure_burns_at_most_once_grant(
 
 
 def test_authority_can_reject_invalid_grant_on_its_first_claim() -> None:
-    graph, attempt, run, artifact, comparison, issuance, grant, _ = (
-        _positive_admission_inputs("first_claim_invalid_grant")
-    )
+    (
+        graph,
+        attempt,
+        run,
+        artifact,
+        comparison,
+        issuance,
+        grant,
+        _,
+    ) = _positive_admission_inputs("first_claim_invalid_grant")
     receipt_ref = fixture_runtime._identity(
         ReferenceIdentityKind.CONSUMED_GRANT_RECEIPT,
         "matrix_first_claim_invalid_grant_receipt",
@@ -1960,9 +2016,16 @@ def test_first_claim_invalid_grant_precedes_local_structural_failures() -> None:
 
 
 def test_reentrant_admission_replay_is_rejected_before_second_callback() -> None:
-    graph, attempt, run, artifact, comparison, issuance, grant, _ = (
-        _positive_admission_inputs("reentrant_grant_claim")
-    )
+    (
+        graph,
+        attempt,
+        run,
+        artifact,
+        comparison,
+        issuance,
+        grant,
+        _,
+    ) = _positive_admission_inputs("reentrant_grant_claim")
     receipt_ref = fixture_runtime._identity(
         ReferenceIdentityKind.CONSUMED_GRANT_RECEIPT,
         "matrix_reentrant_grant_receipt",
@@ -2022,9 +2085,16 @@ def test_reentrant_admission_replay_is_rejected_before_second_callback() -> None
 
 
 def test_concurrent_admission_replay_has_one_terminal_callback() -> None:
-    graph, attempt, run, artifact, comparison, issuance, grant, _ = (
-        _positive_admission_inputs("concurrent_grant_claim")
-    )
+    (
+        graph,
+        attempt,
+        run,
+        artifact,
+        comparison,
+        issuance,
+        grant,
+        _,
+    ) = _positive_admission_inputs("concurrent_grant_claim")
     receipt_ref = fixture_runtime._identity(
         ReferenceIdentityKind.CONSUMED_GRANT_RECEIPT,
         "matrix_concurrent_grant_receipt",
@@ -2212,9 +2282,16 @@ def test_caller_metadata_is_validated_before_admission_capabilities() -> None:
 
 
 def test_partial_admission_carriers_fail_before_capability_or_claim() -> None:
-    graph, attempt, run, artifact, comparison, issuance, grant, _ = (
-        _positive_admission_inputs("partial_carriers")
-    )
+    (
+        graph,
+        attempt,
+        run,
+        artifact,
+        comparison,
+        issuance,
+        grant,
+        _,
+    ) = _positive_admission_inputs("partial_carriers")
     with pytest.raises(ReferenceValidationError) as partial_issuance_for_grant:
         admission_runtime.create_truth_asset_admission_grant(
             object.__new__(admission_runtime.TruthAssetAdmissionGrantIssuanceRecord),
@@ -2362,9 +2439,16 @@ def test_partial_admission_carriers_fail_before_capability_or_claim() -> None:
 
 
 def test_admission_records_snapshot_attempt_and_nested_binding_layers() -> None:
-    graph, attempt, run, artifact, comparison, issuance, grant, authority = (
-        _positive_admission_inputs("attempt_snapshot")
-    )
+    (
+        graph,
+        attempt,
+        run,
+        artifact,
+        comparison,
+        issuance,
+        grant,
+        authority,
+    ) = _positive_admission_inputs("attempt_snapshot")
     decision = admission_runtime._decide_truth_asset_admission_record(
         authority,
         issuance,
@@ -2433,9 +2517,16 @@ def test_admission_records_snapshot_attempt_and_nested_binding_layers() -> None:
 
 
 def test_private_or_decoded_positive_decision_cannot_mint_truth_asset() -> None:
-    graph, _attempt_binding, run, artifact, comparison, issuance, grant, authority = (
-        _positive_admission_inputs("unregistered")
-    )
+    (
+        graph,
+        _attempt_binding,
+        run,
+        artifact,
+        comparison,
+        issuance,
+        grant,
+        authority,
+    ) = _positive_admission_inputs("unregistered")
     decision = admission_runtime._decide_truth_asset_admission_record(
         authority,
         issuance,
@@ -2468,9 +2559,16 @@ def test_private_or_decoded_positive_decision_cannot_mint_truth_asset() -> None:
 
 
 def test_public_positive_decision_registers_one_exact_reconstructable_asset() -> None:
-    graph, _attempt_binding, run, artifact, comparison, issuance, grant, authority = (
-        _positive_admission_inputs("registered")
-    )
+    (
+        graph,
+        _attempt_binding,
+        run,
+        artifact,
+        comparison,
+        issuance,
+        grant,
+        authority,
+    ) = _positive_admission_inputs("registered")
     decision = admission_runtime.decide_truth_asset_admission(
         authority,
         issuance,
@@ -2566,9 +2664,16 @@ def test_public_positive_decision_registers_one_exact_reconstructable_asset() ->
 
 
 def test_authority_cannot_change_the_registered_graph_via_caller_aliases() -> None:
-    graph, attempt, run, artifact, comparison, issuance, grant, _ = (
-        _positive_admission_inputs("caller_graph_aliases")
-    )
+    (
+        graph,
+        attempt,
+        run,
+        artifact,
+        comparison,
+        issuance,
+        grant,
+        _,
+    ) = _positive_admission_inputs("caller_graph_aliases")
     caller_inputs = tuple(
         decode_canonical_bytes(canonical_bytes(record), type(record))
         for record in (
@@ -2699,9 +2804,16 @@ def test_authority_cannot_change_the_registered_graph_via_caller_aliases() -> No
 def test_forged_run_enum_cannot_cross_canonical_admission_snapshot(
     forgery_kind: str,
 ) -> None:
-    graph, _attempt, run, artifact, comparison, issuance, grant, delegate = (
-        _positive_admission_inputs(f"forged_run_enum_{forgery_kind}")
-    )
+    (
+        graph,
+        _attempt,
+        run,
+        artifact,
+        comparison,
+        issuance,
+        grant,
+        delegate,
+    ) = _positive_admission_inputs(f"forged_run_enum_{forgery_kind}")
     forged_run = decode_canonical_bytes(canonical_bytes(run), ReferenceRunRecord)
     if forgery_kind == "run_outcome":
         pseudo_supported = str.__new__(
@@ -2796,9 +2908,16 @@ def test_forged_run_enum_cannot_cross_canonical_admission_snapshot(
 def test_malformed_supersedes_does_not_consume_positive_graph(
     malformed_kind: str,
 ) -> None:
-    graph, _attempt_binding, run, artifact, comparison, issuance, grant, authority = (
-        _positive_admission_inputs(f"malformed_supersedes_{malformed_kind}")
-    )
+    (
+        graph,
+        _attempt_binding,
+        run,
+        artifact,
+        comparison,
+        issuance,
+        grant,
+        authority,
+    ) = _positive_admission_inputs(f"malformed_supersedes_{malformed_kind}")
     decision = admission_runtime.decide_truth_asset_admission(
         authority,
         issuance,
@@ -2855,9 +2974,16 @@ def test_invalid_exact_supersedes_binding_does_not_consume_positive_graph(
     malformed_kind: str,
     expected_code: ReferenceInputCode,
 ) -> None:
-    graph, _attempt_binding, run, artifact, comparison, issuance, grant, authority = (
-        _positive_admission_inputs(f"invalid_exact_supersedes_{malformed_kind}")
-    )
+    (
+        graph,
+        _attempt_binding,
+        run,
+        artifact,
+        comparison,
+        issuance,
+        grant,
+        authority,
+    ) = _positive_admission_inputs(f"invalid_exact_supersedes_{malformed_kind}")
     decision = admission_runtime.decide_truth_asset_admission(
         authority,
         issuance,
@@ -2915,9 +3041,16 @@ def test_invalid_exact_supersedes_binding_does_not_consume_positive_graph(
 
 
 def test_positive_decision_is_atomically_single_use_under_concurrency() -> None:
-    graph, _attempt_binding, run, artifact, comparison, issuance, grant, authority = (
-        _positive_admission_inputs("concurrent")
-    )
+    (
+        graph,
+        _attempt_binding,
+        run,
+        artifact,
+        comparison,
+        issuance,
+        grant,
+        authority,
+    ) = _positive_admission_inputs("concurrent")
     decision = admission_runtime.decide_truth_asset_admission(
         authority,
         issuance,

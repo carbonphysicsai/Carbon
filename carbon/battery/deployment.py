@@ -26,6 +26,11 @@ operator's; none is reachable from a miner surface:
   A deployment that requires one but has no chain reader configured refuses
   every submission as `commitment_reader_unavailable`; it never skips the
   check;
+- `commitment_reader` (optional; VALIDATOR-14): the chain the commitments
+  are read from, as `{network, endpoint, provider, genesis_hash, netuid}`
+  (`chain.models.ChainContext`). It is read-only
+  (`chain.commitments.ChainCommitmentReader`). A chain failure while reading is
+  `commitment_reader_unavailable`: infrastructure, never the miner's;
 - `service_key` (optional): the Carbon service key (OD-6) results are signed
   with. Named by path; never read into a log or an outcome.
 
@@ -52,7 +57,9 @@ OPTIONAL = {
     "torch_image_manifest",
     "seconds",
     "rule",
+    "commitment_reader",
 }
+READER_FIELDS = {"network", "endpoint", "provider", "genesis_hash", "netuid"}
 BACKENDS = ("carrier", "direct")
 
 _VALIDATORS = {}
@@ -105,7 +112,25 @@ def load_config(path):
         raise EvaluationUnavailable("evaluation_config_rule")
     if type(config.get("require_commitment", True)) is not bool:
         raise EvaluationUnavailable("evaluation_config_fields")
+    if "commitment_reader" in config:
+        _commitment_reader(config)  # refuses a malformed chain context now
     return config
+
+
+def _commitment_reader(config):
+    """The configured read-only commitment reader, or None."""
+    spec = config.get("commitment_reader")
+    if spec is None:
+        return None
+    from carbon.chain.commitments import ChainCommitmentReader
+    from carbon.chain.models import ChainContext, ChainFailure
+
+    if type(spec) is not dict or set(spec) != READER_FIELDS:
+        raise EvaluationUnavailable("evaluation_config_commitment_reader")
+    try:
+        return ChainCommitmentReader(ChainContext(**spec))
+    except (ChainFailure, TypeError, ValueError):
+        raise EvaluationUnavailable("evaluation_config_commitment_reader") from None
 
 
 @contextlib.contextmanager
@@ -198,7 +223,7 @@ def build(config, *, repository, readonly=False):
             root=root,
             journal=journal,
             repository=repository,
-            commitments=None,
+            commitments=_commitment_reader(config),
             require_commitment=config.get("require_commitment", True),
             service_key=None if key is None else ServiceKey.load(key),
         )
@@ -234,6 +259,8 @@ def evaluate(target, submission):
 
     Runs under the deployment's single-writer lock (`writer`).
     """
+    from carbon.chain.commitments import CommitmentUnavailable
+
     from .daemon import BackendNotServed, CommitmentRequired
     from .pool_store import HotkeyWindowUsed
 
@@ -249,6 +276,9 @@ def evaluate(target, submission):
             )
             refused.next_block = used.next_block
             raise refused from None
+        except CommitmentUnavailable:
+            # The chain could not be read: infrastructure, never the miner's.
+            raise EvaluationUnavailable("commitment_reader_unavailable") from None
         except CommitmentRequired:
             code = (
                 "commitment_reader_unavailable"

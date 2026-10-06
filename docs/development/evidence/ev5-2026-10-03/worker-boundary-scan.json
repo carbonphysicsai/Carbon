@@ -1,0 +1,10 @@
+{
+ "conclusion": "success",
+ "head_sha": "c9c27a639f51fff6e7d428f4b7e46ee0e95fce87",
+ "result": "2 passed",
+ "ruling": "Test Lead 2026-10-05, ruling 11 evidence source amended to (d): the scan at the exact checkout",
+ "run_id": "operator-host canonical service lane; output sha256:d5709d56c1d21f842fe8c4e4dbf30112323e5884df87c59c9bb9edcbce6e7b88",
+ "runner": "scripts/dev/c03_worker_image.sh + scripts/dev/c03_worker_service.sh, as CI's c03-worker lane, Linux x86-64 with Docker",
+ "test": "tests/service/test_battery_track_a_service.py",
+ "worker_image_id": "sha256:427997a044bc6fd04c46d4261bcabc7078733a66b702a686503bfa2498fe0b6f"
+}

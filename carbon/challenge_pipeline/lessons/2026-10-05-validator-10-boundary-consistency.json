@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-validator-10-boundary-consistency",
+  "recorded_at": "2026-10-05T16:30:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-10, branch claude/validator-boundary-consistency, from main 61c63925e. Native: tests/cpu/test_challenge_validator_boundary_consistency.py 22 passed. scripts/check_quality.py --base origin/main passed. Canonical results are recorded in the PR.",
+    "description": "After battery phase-4 session 1 recorded 35 FAILING_TRIGGER findings, an independent replay of every attack category through the authoritative boundary (door parse, contract compile, Graphite admission) found 0 breaches; that replay became a standing test that the three layers agree."
+  },
+  "expected": "Some of the 35 findings might be real boundary breaches at the validator, intake or compile.",
+  "observed": "None was. Every malformed category was refused by both the contract compile and the admission, and the valid controls were accepted; the door alone stops NaN, Inf and null. The findings came from the oracle reading advisory tools as the boundary. The first probe run also showed every door result as an error, which was the probe calling the parser by the wrong name: a check that cannot fail on its controls proves nothing, so the controls ran first.",
+  "keep": [
+    "Review an attack's findings by replaying its inputs through the authoritative layers yourself, not by reusing the attacker's own re-run.",
+    "Keep valid controls in every refusal test, and look at them first: they catch a broken probe."
+  ],
+  "change": [
+    "Count a test's cases in the test itself, so a stated total cannot drift from the list."
+  ],
+  "protocol_elements": [
+    "a construction boundary finding is judged only by the authoritative layers on the same input",
+    "a standing test keeps the boundary's layers consistent independently of any attacker oracle"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

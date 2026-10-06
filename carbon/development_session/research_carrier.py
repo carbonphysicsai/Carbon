@@ -720,10 +720,14 @@ def _run_miner_lane(
         collect_outputs,
         create_arguments,
         inspect_isolation,
+        load_host_profile,
         prepare_scratch,
     )
 
     try:
+        # Carbon's own host may name an operator profile; a miner's machine
+        # names none, and a named one that is unreadable refuses here.
+        profile = load_host_profile()
         scratch = prepare_scratch(operation / "scratch")
         run = MinerResearchLaunch(
             name,
@@ -732,6 +736,7 @@ def _run_miner_lane(
             stage,
             scratch,
             **({} if device is None else {"gpu_device": device.device_uuid}),
+            **({} if profile is None else {"resource_profile": profile}),
         )
     except Exception:
         # Refused before any container command: settle now, as the prechecks

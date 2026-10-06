@@ -95,6 +95,10 @@ NOT_RETRYABLE_REASON = "not_retried:reason_not_retryable"
 CANDIDATE_ATTRIBUTED = "not_retried:candidate_attributed"
 ALREADY_RETRIED = "not_retried:retry_already_used"
 NO_TIME = "not_retried:retry_cannot_fit_remaining_time"
+#: The baseline already had its extra pod from an environment relaunch
+#: (`pod-attribution-v2`, GRAPHITE-POD-GPU-PROBE-01): the two rules together
+#: give the session's baseline at most one extra pod.
+ENVIRONMENT_RELAUNCH_USED = "not_retried:environment_relaunch_used"
 
 
 class PolicyRefused(ValueError):
@@ -218,20 +222,32 @@ def load_policy(version=None, directory=None):
     return RetryPolicy.from_document(document, digest)
 
 
-def decide(*, policy, first, retries_used, budget_refusal, time_fits):
+def decide(
+    *,
+    policy,
+    first,
+    retries_used,
+    budget_refusal,
+    time_fits,
+    environment_relaunched=False,
+):
     """Whether to retry the failed baseline `first` (its result record).
 
     `retries_used` counts retries already run; `budget_refusal` is None when
     the session's pod limit and the run's money cap hold `policy.pods_required`
     more pods, else the refusal code; `time_fits` is whether those pods can
-    finish within the run's remaining elapsed time. Returns `(retry,
-    reason_code)`; the checks run in a fixed order, the cheapest first."""
+    finish within the run's remaining elapsed time; `environment_relaunched`
+    is whether the baseline's own run already used an environment relaunch.
+    Returns `(retry, reason_code)`; the checks run in a fixed order, the
+    cheapest first."""
     if type(policy) is not RetryPolicy:
         raise TypeError("a registered RetryPolicy is required")
     if not is_session_baseline(first):
         return False, NOT_THE_BASELINE
     if not retryable(first, policy):
         return False, why_not(first, policy)
+    if environment_relaunched:
+        return False, ENVIRONMENT_RELAUNCH_USED
     if not retry_left(retries_used, policy):
         return False, ALREADY_RETRIED
     if budget_refusal is not None:
@@ -289,6 +305,7 @@ __all__ = [
     "BASELINE_ID",
     "CANDIDATE_ATTRIBUTED",
     "DECISION_SCHEMA",
+    "ENVIRONMENT_RELAUNCH_USED",
     "NEVER_STATUSES",
     "NOT_RETRYABLE_REASON",
     "NOT_RETRYABLE_STATUS",

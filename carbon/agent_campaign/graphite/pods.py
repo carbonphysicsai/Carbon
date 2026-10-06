@@ -241,6 +241,10 @@ class PodBackend(Protocol):
     # without it gives the experiment no host timing, so a timeout it cannot
     # confirm is never blamed on the candidate.
     #
+    # Optional: `recover_settles(intent_id) -> dict | None`, when an uncertain
+    # create `recover` cannot yet settle will settle (its age, the grace and
+    # the time). A backend without it gives a reconcile no time to re-run at.
+    #
     # Optional: `listing(handle) -> {path: sha256 hex} | None`, the digests
     # the pod listed for the files of its last `fetch`. A kept log must match
     # it (`pod_logs`); a backend without it keeps no log.
@@ -285,6 +289,52 @@ def code_manifest(ref, paths, repository=REPOSITORY):
         manifest[path] = hashlib.sha256(body).hexdigest()
         offset = end + 1 + size + 1
     return manifest
+
+
+#: The image's accelerator lock: the pinned study image (`pod_control.IMAGE`)
+#: is built from the worker image whose JAX CUDA stack this lock pins
+#: (`.devcontainer/accelerators/Dockerfile` installs it with
+#: `--require-hashes`; docs/development/GPU_R1_SIMULATED_VALIDATORS_RESULT.md
+#: records the digest's build). Read only, never edited here.
+ACCELERATOR_LOCK = ".devcontainer/accelerators/cuda13-py311.txt"
+#: The highest CUDA version RunPod's REST pod-create schema accepts in
+#: `allowedCudaVersions`, as `pod_control.cmd_dispatch` records it ("the REST
+#: create schema accepts CUDA versions up to 13.0"; EV4 created every pod with
+#: `["13.0"]`).
+RUNPOD_CUDA_CEILING = (13, 0)
+
+
+def allowed_cuda_versions(repository=REPOSITORY):
+    """The CUDA versions a Graphite pod's host may run (`allowedCudaVersions`),
+    derived deterministically from the pinned image's JAX CUDA plugin
+    (GRAPHITE-POD-GPU-PROBE-01): every version from the CUDA runtime the lock
+    pins for the plugin (`jax-cudaNN-plugin`, `nvidia-cuda-runtime==NN.M.*`)
+    up to RunPod's schema ceiling, within the plugin's CUDA major. A host
+    whose driver supports CUDA 13.0 runs the 13.0 runtime (CUDA's minor-version
+    compatibility; JAX documents driver >= 580 for its CUDA 13 wheels, the
+    driver line that reports CUDA 13.0). Raises `PodFailure` (nothing is
+    launched) when the lock does not name both or the ceiling is below them."""
+    import re
+
+    try:
+        text = (Path(repository) / ACCELERATOR_LOCK).read_text()
+    except OSError:
+        raise PodFailure(
+            "launch", "accelerator lock unreadable", executed=False
+        ) from None
+    plugin = re.search(r"^jax-cuda(\d+)-plugin==(\S+)", text, re.MULTILINE)
+    runtime = re.search(r"^nvidia-cuda-runtime==(\d+)\.(\d+)\.", text, re.MULTILINE)
+    if plugin is None or runtime is None or plugin.group(1) != runtime.group(1):
+        raise PodFailure(
+            "launch", "accelerator lock names no CUDA plugin runtime", executed=False
+        )
+    major, minor = int(runtime.group(1)), int(runtime.group(2))
+    ceiling_major, ceiling_minor = RUNPOD_CUDA_CEILING
+    if major != ceiling_major or minor > ceiling_minor:
+        raise PodFailure(
+            "launch", "no RunPod CUDA version serves the plugin", executed=False
+        )
+    return tuple(f"{major}.{m}" for m in range(minor, ceiling_minor + 1))
 
 
 #: Directories never shipped from the code trees, at any depth (lower-case):
@@ -373,6 +423,7 @@ class RunPodPods:
         )
         self.service = ComputeService(self.store, self.adapter, clock=clock)
         self._tokens = {}
+        self.cuda_versions = allowed_cuda_versions(self.repository)
         paths = ship_list(code_ref, self.repository, self.scoring)
         self.manifest = code_manifest(code_ref, paths, self.repository)
         self.boot = (
@@ -389,6 +440,7 @@ class RunPodPods:
             "code_files": len(self.manifest),
             "code_manifest_sha256": manifest_digest(self.manifest),
             "phase": PHASE,
+            "allowed_cuda_versions": list(self.cuda_versions),
         }
 
     def _env(self, job, record):
@@ -416,8 +468,11 @@ class RunPodPods:
         return tuple(sorted(env.items()))
 
     def _record(self, job, private):
-        """The job's token and deadline, fixed once before any provider call,
-        so a restart re-derives the same create request (`RentedRunner`)."""
+        """The job's token, deadline and allowed CUDA versions, fixed once
+        before any provider call, so a restart re-derives the same create
+        request (`RentedRunner`). A record written before the CUDA versions
+        were recorded has none, and its replay sends none, as its first
+        create did."""
         from carbon.development_session.data import write_once
 
         path = Path(private) / "pod-job.json"
@@ -432,6 +487,7 @@ class RunPodPods:
                             "intent_id": job.intent_id,
                             "token": secrets.token_urlsafe(24),
                             "deadline_at": int(self.clock() + job.minutes * 60),
+                            "allowed_cuda_versions": list(self.cuda_versions),
                         },
                         sort_keys=True,
                     ).encode(),
@@ -480,6 +536,7 @@ class RunPodPods:
                 max_rate_usd_per_hr=float(economics["rate_ceiling_usd_per_hr"]),
                 storage_usd_per_gb_month=float(economics["disk_usd_per_gb_month"]),
                 start_command=("/opt/carbon-worker/bin/python", "-I", "-c", self.boot),
+                allowed_cuda_versions=tuple(record.get("allowed_cuda_versions", ())),
             )
             resource = self.service.provision(
                 ProvisionRequest(
@@ -547,6 +604,23 @@ class RunPodPods:
         return PodHandle(
             intent_id, resource.resource_id, _rate(resource.rate_usd_per_hr)
         )
+
+    def recover_settles(self, intent_id):
+        """When an uncertain create `recover` cannot yet settle stops being
+        uncertain: {intent_age_s, not_found_grace_s, settles_at_unix}, or
+        None for an intent it does not hold. Until then RunPod may still list
+        the pod, so a reconcile keeps its reservation; at or after
+        `settles_at_unix` a reconcile that finds no pod settles it
+        (`ComputeService.recover`). Reads only."""
+        intent = self.store.intent(self.CAMPAIGN, intent_id)
+        if intent is None:
+            return None
+        grace = self.service.not_found_grace_s
+        return {
+            "intent_age_s": max(0.0, self.clock() - intent.created_at),
+            "not_found_grace_s": grace,
+            "settles_at_unix": intent.created_at + grace,
+        }
 
     def wait(self, handle, *, deadline, cancelled):
         # The host's own clock readings of the phase (`pod_outcome.HostTiming`):
@@ -920,6 +994,57 @@ def failed_outputs(stage="program", *, logs=None, root=REPOSITORY):
     return outputs
 
 
+#: The SYNTHETIC phase log of a scripted pod whose GPU probe failed: the R2
+#: runs 4 and 5 shape (`environment_outputs`).
+SYNTHETIC_PROBE_LOG = (
+    b"SYNTHETIC phase log: a scripted pod, nothing ran\n"
+    b"Traceback (most recent call last):\n"
+    b'  File "<string>", line 1, in <module>\n'
+    b"RuntimeError: SYNTHETIC Unable to initialize backend 'cuda'\n"
+)
+
+
+def environment_outputs(*, program_started=False, probe_ok=False, extra=None):
+    """SYNTHETIC outputs of a pod whose GPU probe failed before any candidate
+    code, for tests and `--dry-run`: the probe's supervisor report
+    (`pod_outcome.SUPERVISOR_SCHEMA`), the `environment` claim and the phase
+    log; no build, no program log, no predictions. `program_started`,
+    `probe_ok` and `extra` (more files) script a forged or inconsistent
+    export."""
+    from .pod_outcome import ENVIRONMENT, SUPERVISOR_SCHEMA
+
+    def outputs(job):
+        probe = {
+            "schema": "carbon.graphite.gpu-probe.v1",
+            "before_program": True,
+            "ok": probe_ok,
+            "exit": 0 if probe_ok else 1,
+            "jax_platforms": "cuda,cpu",
+            "requires_gpu": True,
+        }
+        if not probe_ok:
+            probe["error_type"] = "RuntimeError"
+        files = {
+            "supervisor.json": json.dumps(
+                {
+                    "schema": SUPERVISOR_SCHEMA,
+                    "stage": ENVIRONMENT,
+                    "probe": probe,
+                    "program_started": program_started,
+                },
+                sort_keys=True,
+            ).encode(),
+            "failure.json": json.dumps(
+                {"stage": ENVIRONMENT, "error": "RuntimeError"}
+            ).encode(),
+            "phase.log": SYNTHETIC_PROBE_LOG,
+        }
+        files.update(extra(job) if callable(extra) else (extra or {}))
+        return files
+
+    return outputs
+
+
 # -- the real-path check -------------------------------------------------------------------
 #: The synthetic key `real_path_check` writes for its in-memory account. It is
 #: no credential: nothing it is sent to leaves the process.
@@ -940,6 +1065,8 @@ class InMemoryRunPod:
     def __init__(self, *, balance=100.0, rate=0.44, charge=0.07):
         self.balance, self.rate, self.charge = balance, rate, charge
         self.pods, self.creates, self.threads = {}, [], set()
+        #: Each create request's `allowedCudaVersions`, in create order.
+        self.cuda = []
         self._lock = threading.Lock()
 
     def transport(self, method, url, *, body, headers, timeout):
@@ -969,6 +1096,7 @@ class InMemoryRunPod:
             request = json.loads(body)
             pod_id = f"inmemory{len(self.creates):04d}"
             self.creates.append(pod_id)
+            self.cuda.append(request.get("allowedCudaVersions"))
             self.pods[pod_id] = {
                 "id": pod_id,
                 "name": request["name"],
@@ -1128,6 +1256,12 @@ def real_path_check(
             failures.append("a_pod_export_differs")
         if not account.threads - {caller}:
             failures.append("no_provider_call_ran_off_the_calling_thread")
+        # Every create names the CUDA versions derived from the image's JAX
+        # plugin (GRAPHITE-POD-GPU-PROBE-01), as the job record fixed them.
+        if not backend.cuda_versions or any(
+            sent != list(backend.cuda_versions) for sent in account.cuda
+        ):
+            failures.append("create_without_the_derived_cuda_versions")
         # Recover and terminate on the calling thread, as reconcile does.
         for job, handle in zip(jobs, handles, strict=True):
             found = backend.recover(job.intent_id, privates[job.intent_id])
@@ -1175,6 +1309,7 @@ def real_path_check(
                 "provider_threads": len(account.threads),
                 "off_caller_thread": bool(account.threads - {caller}),
                 "pods_alive": sorted(account.pods),
+                "allowed_cuda_versions": account.cuda,
                 "backend": "runpod-real-path/in-memory-account",
             }
         )

@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-latest-main-selective-pass",
+  "recorded_at": "2026-10-05T15:02:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "66b593ff1cac exact-source LF-native targeted regression",
+    "description": "Ran the registered policy, Cooling validator and selective-fault real-path checks after the final current-main merge."
+  },
+  "expected": "The candidate-fault registry and policy evidence remain valid with the merged CPU carrier lane.",
+  "observed": "All 33 targeted tests passed in 71.87 seconds.",
+  "keep": [
+    "Retain the registered policy evidence on both selective-fault execution paths."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "graphite.selective_fault",
+    "graphite.cpu_carrier_lane"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

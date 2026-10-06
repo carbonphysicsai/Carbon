@@ -1,0 +1,13 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-policies.v1",
+ "rule": "Operational test-side values the readiness gate reads. Each cites its decision. They are test-host thresholds, not scientific or economic values, and changing one is a new recorded decision.",
+ "policies": {
+  "R6": {
+   "min_free_gb": 30,
+   "unit": "GB = 10^9 bytes",
+   "path_windows": "C:\\",
+   "path_wsl": "/mnt/c",
+   "authority": "Test Lead decision, 2026-10-05: at least 30 GB free on the WSL host's C: drive, the threshold the owner used for the first install on 2026-10-03"
+  }
+ }
+}

@@ -1,0 +1,22 @@
+{
+  "schema": "carbon.graphite.compute-lane.v1",
+  "version": "carrier-lane-v1",
+  "lane": "c03-carrier",
+  "host": "operator",
+  "levels": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "program_deadline_margin_s": 45,
+  "hourly_usd": "0",
+  "attribution": "typed by the registered pod-attribution policy in force (graphite/attribution_policies); this lane writes compile, verification, program and timeout claims only, never an environment claim",
+  "environment_probe": [
+    "pinned C-03 worker image manifest loads (docker_runtime.load_image_identity)",
+    "host doctor eligible with that image present and bound (docker_runtime.doctor with image_id and image_identity)",
+    "effective controls verified after every start (inspect_effective_controls, inside the carrier's trusted lane)"
+  ],
+  "authority": "VALIDATOR-06 (#608) and the Test Lead's carrier-lane approval, 2026-10-05; registered for the Graphite readiness gate's item R3 (VALIDATOR-11)",
+  "security": "flagged for the dedicated security review (AGENTS.md section 13)"
+}

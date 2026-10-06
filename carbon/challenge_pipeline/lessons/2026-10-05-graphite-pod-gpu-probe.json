@@ -1,0 +1,32 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-05-graphite-pod-gpu-probe",
+ "recorded_at": "2026-10-05T23:59:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "claude/pod-gpu-probe (GRAPHITE-POD-GPU-PROBE-01), after Graphite R2 runs 4 and 5",
+  "description": "Built the Test Lead's approved fix for pods whose CUDA backend failed to initialise and were charged to the candidate: a GPU probe before any candidate code, pod-attribution-v2 with an environment stage and one relaunch, allowedCudaVersions derived from the pinned image's JAX CUDA plugin, marker-class diagnostics for withheld logs, and an Attacker probe against forged environment claims."
+ },
+ "expected": "A pod whose host cannot run the image's CUDA stack is typed infrastructure, relaunched once on a fresh pod, and never charged to the candidate, while a construction cannot dress its own failure as that infrastructure outcome.",
+ "observed": "The logs kept since #580 showed the R2 failures ending in RuntimeError: Unable to initialize backend 'cuda' ... no supported devices found, intermittent across hosts and recipes (an MLP baseline, DeepONets that scored on other pods). The operator layer never sent allowedCudaVersions, which EV4's pod_control sent, so pods could land on hosts whose driver the image's CUDA 13 plugin cannot use. Under pod-attribution-v1 the resulting program claim at Level 0 was CANDIDATE_FAILED. The two run-5 DeepONet recipes ran to completion through Carbon's real compile and pod-phase program on the CPU at the full 10,000 steps with 200 finite predictions each, ruling out a recipe defect on that path.",
+ "keep": [
+  "Read the kept logs before deciding attribution: the exception class and the last lines named the host, not the recipe.",
+  "Change attribution only by a new registered policy version, keeping the old one for replay, with the owning session's constraints as load-time invariants and a mutation per guard.",
+  "Run Carbon's own checks of the environment before any candidate code, in the candidate's exact interpreter and environment, and record them where a later uid split makes them admissible without a policy change."
+ ],
+ "change": [
+  "pod_phase probes the JAX backend JAX_PLATFORMS names before compiling the strategy; a failed probe claims stage environment, writes the supervisor report and stops, and the phase rewrites its claim and report after the program.",
+  "pod-attribution-v2: an environment claim is admissible only where Carbon writes it, accepted only when the export shows the program never started and the probe failed first, contradicted when the host saw the full worker allowance, relaunched once inside one shared infrastructure-retry cap, and a second one stops the session FAILED_INFRA with no agent charge.",
+  "Graphite pods are created with allowedCudaVersions [\"13.0\"], derived from the image's accelerator lock and fixed in the job record so a replay keeps its request digest; the disposable-pod check runs inside a grant's next run.",
+  "phase3 run --dry-run requires the environment relaunch and repeated-environment stop scenarios in experiment.failure_path_check."
+ ],
+ "protocol_elements": [
+  "graphite.pods",
+  "dry-run.coverage",
+  "evidence.retention"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

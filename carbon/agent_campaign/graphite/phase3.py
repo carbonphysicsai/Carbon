@@ -6,7 +6,7 @@
         (--runpod-key-file PATH | --runpod-key-env RUNPOD_API_KEY) \
         --miner-profile PROFILE.json --miner-campaign ID --code-ref SHA \
         --literature-snapshot SNAPSHOT.json [--allow-unchecked-cards] [--session N] \
-        [--level N]
+        [--level N] [--compute carrier --image-manifest C03_IMAGE.json]
     python -m carbon.agent_campaign.graphite.phase3 run --root DIR --challenge TOKEN --dry-run \
         [--literature-snapshot SNAPSHOT.json [--allow-unchecked-cards]] [--level N]
     python -m carbon.agent_campaign.graphite.phase3 cancel --root DIR --session N
@@ -15,6 +15,16 @@
     python -m carbon.agent_campaign.graphite.phase3 status --root DIR
     python -m carbon.agent_campaign.graphite.phase3 rebuild --bundle DIR
     python -m carbon.agent_campaign.graphite.phase3 proposals --root DIR
+
+`reconcile` prints its report and exits 0 when every pod is settled, or 4
+when one is not; then stderr carries one typed line
+(`reconcile_pods_not_settled`) with each unsettled intent's age and, for an
+uncertain create, the UTC minute at or after which a re-run can settle it.
+
+`--compute carrier` runs proposals in the isolated C-03 carrier on this
+operator host instead of RunPod (`carrier_pods`, VALIDATOR-06): no RunPod
+key, no provider money, Levels 0-3 only, and the lane's declared program
+deadline. A tokens-only grant (`TOKENS_ONLY_GRANTS`) runs only there.
 
 One session is one run of the Constructor behind the #475 campaign controller,
 under one owner grant that covers both its model calls and its pods
@@ -90,7 +100,11 @@ Constructor's model selection (GRAPHITE-D34): adapter, model, input window,
 admission ceiling, output cap, timeout and per-call reservation. It also runs
 `experiment.failure_path_check` (GRAPHITE-POD-LOGS-RETRY-01), which must be OK:
 a pod exiting non-zero keeps its logs, bounded, and a baseline failing as
-infrastructure is retried once and scores.
+infrastructure is retried once and scores; a pod whose GPU probe fails
+(`environment`) is relaunched once and scores, and a second probe failure
+stops the session `FAILED_INFRA` (GRAPHITE-POD-GPU-PROBE-01). The provider
+ends a session the experiment stopped that way `failed`, code `failed_infra`,
+with no agent charge.
 
 **Model access** (GRAPHITE-D34, 2026-10-04). A new session opens on
 `engy-chat` (`ADAPTER`): Engy's Chat Completions replies report each call's
@@ -144,10 +158,10 @@ from ..provider import (
 )
 from . import delivery as deliver_
 from . import experiment as ex
+from . import grant_binding, next_level
 from . import literature as lit
-from . import next_level
 from . import tools as toolbox
-from .ladder import LadderError
+from .ladder import Ladder, LadderError
 from .provider import (
     EPOCH,
     NANO_PER_USD,
@@ -158,7 +172,10 @@ from .provider import (
     GraphiteProvider,
     RunCapReached,
     SessionBrief,
+    SessionMismatch,
+    SessionStopped,
     limit_dimension,
+    tool_text_of,
 )
 from .roles import (
     CONSTRUCTOR_SESSION_TURNS,
@@ -166,6 +183,7 @@ from .roles import (
     PARALLEL_RULES,
     PROPOSE,
     ROLES,
+    TOOL_TEXT_V2,
     RoleName,
 )
 
@@ -294,15 +312,42 @@ class Phase3Ledger(GraphiteLedger):
     call's own reservation stay within the grant's worst-case run cost. A
     replayed call (already reserved) is never refused."""
 
-    def __init__(self, root, *, clock, cancelled, crash, admits):
+    def __init__(self, root, *, clock, cancelled, crash, admits, stopped=None):
         super().__init__(root, clock=clock, cancelled=cancelled, crash=crash)
         self._admits = admits
+        self._stopped = stopped
 
     def _reserve(self, identity, **kwargs):
+        # A session Carbon stopped as infrastructure (a repeated pod
+        # environment failure) reserves nothing new; a replay still reads.
+        stop = None if self._stopped is None else self._stopped(identity)
+        if stop is not None:
+            raise SessionStopped(stop)
         nano = (kwargs.get("resources") or {}).get("provider_nanodollars") or 0
         if nano and not self._admits(identity, nano):
             raise RunCapReached("run_cap_tokens_plus_pods")
         return super()._reserve(identity, **kwargs)
+
+
+#: The budget-status rule a new phase-3 session records (AGENT-DOOR-USABILITY-01
+#: A5, approved by the Test Lead): its turn status drops the campaign
+#: research-trial line when the run ledger meters no research trials (its
+#: budget is 0: a phase-3 experiment runs on pods, metered by the run's money
+#: cap and pod limit), instead of telling the agent "0 of 0 research trials
+#: left" (`research_loop.budget_status`, `omit_unmetered_trials`). A session
+#: whose record names no rule - every one opened before - keeps the v1 status
+#: bytes on replay and resume.
+BUDGET_STATUS_V2 = "carbon.graphite.budget-status.v2"
+BUDGET_STATUSES = (BUDGET_STATUS_V2,)
+
+
+def budget_status_of(opened):
+    """The budget-status rule a session record carries: None (v1, the
+    historical status) when it names none; an unknown rule resumes nothing."""
+    rule = opened.get("budget_status")
+    if rule is not None and rule not in BUDGET_STATUSES:
+        raise SessionMismatch("budget_status_unknown")
+    return rule
 
 
 class Phase3Provider(GraphiteProvider):
@@ -326,6 +371,8 @@ class Phase3Provider(GraphiteProvider):
 
     #: A v1 Constructor session's call cap (GRAPHITE-D26); see `roles`.
     HISTORICAL_SESSION_TURNS = CONSTRUCTOR_SESSION_TURNS
+    #: The budget-status rule a new session records (`BUDGET_STATUS_V2`).
+    NEW_SESSION_BUDGET_STATUS = BUDGET_STATUS_V2
 
     def __init__(
         self,
@@ -351,8 +398,18 @@ class Phase3Provider(GraphiteProvider):
             self.scoring = challenge_scoring.resolve(scoring)
         except challenge_scoring.ScoringUnavailable as refused:
             raise ProviderUnavailable(refused.code) from None
+        # The session reads its own Challenge's literature only.
+        check_literature_challenge(
+            kwargs.get("literature_index"),
+            self.scoring.challenge_id,
+            ProviderUnavailable,
+        )
         try:
-            self.budget = ex.phase3_budget(grant, self.scoring)
+            # The backend's own rate when it declares one (the CPU carrier
+            # lane costs no provider money); otherwise RunPod's.
+            self.budget = ex.phase3_budget(
+                grant, self.scoring, getattr(pods, "hourly_usd", None)
+            )
         except ex.BudgetRefused as refused:
             raise ProviderUnavailable(refused.code) from None
         super().__init__(
@@ -364,6 +421,12 @@ class Phase3Provider(GraphiteProvider):
             adapter_id=ADAPTER if adapter_id is None else adapter_id,
             **kwargs,
         )
+        # A grant registering a start model (OWNER-GRAPHITE-PHASE3-R4-01)
+        # raises its start roles' ladder to that rung; every other grant
+        # keeps the base ladder, exactly as before.
+        start_rungs = grant_binding.start_rungs(grant)
+        if start_rungs:
+            self.ladder = Ladder(Path(root) / "ladder", start_rungs=start_rungs)
         self.pods, self.miner_attach = pods, miner_attach
         self.scorer, self.repository, self.randomness = scorer, repository, randomness
         #: The campaign controller this provider's runs record findings on as
@@ -447,6 +510,18 @@ class Phase3Provider(GraphiteProvider):
     def _manifest(self, opened):
         return {**super()._manifest(opened), "implementation": "graphite-phase3"}
 
+    def opening_rules(self):
+        """A new session records the budget-status rule it runs under
+        (`BUDGET_STATUS_V2`); none when this provider records none."""
+        rule = self.NEW_SESSION_BUDGET_STATUS
+        rules = {} if rule is None else {"budget_status": rule}
+        # The grant's run conditions (start model, lowest level, token share),
+        # only for a grant that registers them: every other record unchanged.
+        conditions = grant_binding.run_conditions(self.grant)
+        if conditions is not None:
+            rules["run_conditions"] = conditions
+        return rules
+
     def _literature_record(self):
         """A phase-3 session records where its literature came from; the
         phase-1 fixture says it is one (GRAPHITE-D28)."""
@@ -469,6 +544,17 @@ class Phase3Provider(GraphiteProvider):
                 check_observation(observation, self.scoring)
                 if observation.get("literature") != literature_brief(self.literature):
                     raise ProviderUnavailable("brief_literature_is_not_the_sessions")
+                # OWNER-GRAPHITE-PHASE3-R4-01: a grant's lowest construction
+                # level and its start rung, checked before a session opens.
+                refused = grant_binding.level_refusal(
+                    self.grant, observation.get("level")
+                ) or grant_binding.start_model_refusal(
+                    self.grant,
+                    RoleName.CONSTRUCTOR,
+                    self.ladder.model(RoleName.CONSTRUCTOR),
+                )
+                if refused is not None:
+                    raise ProviderUnavailable(refused)
         return super().start(spec, idempotency_key)
 
     # -- the run's experiment ----------------------------------------------------------------
@@ -527,7 +613,16 @@ class Phase3Provider(GraphiteProvider):
             cancelled=lambda: self._state(run_id)["cancel_requested"],
             crash=self._checkpoint_crash,
             admits=lambda identity, nano: self._admits_call(run_id, identity, nano),
+            stopped=lambda identity: self._stopped_for(run_id, identity),
         )
+
+    def _stopped_for(self, run_id, identity):
+        """The reason the run's experiment stopped the session, for a call not
+        yet reserved; None for a replay or a running session."""
+        if any(call["identity"] == identity for call in self._calls(run_id)):
+            return None
+        stop = self.experiment(run_id).stopped()
+        return None if stop is None else stop["reason_code"]
 
     def _admits_call(self, run_id, identity, nano):
         if any(call["identity"] == identity for call in self._calls(run_id)):
@@ -624,13 +719,18 @@ class Phase3Provider(GraphiteProvider):
                     transport=self.model.transport_for(selection),
                     provider=selection,
                     instructions=role.prompt,
-                    tools=role.tool_schemas(),
+                    tools=role.tool_schemas(tool_text_of(opened)),
                     # Every tool call of a turn runs, in the model's order
                     # (LP-PROD-A, superseding GRAPHITE-D33's first-call rule).
                     parallel_calls=PARALLEL_RULES.get(role.name),
                     # v2: no call cap, count-free limits and compaction; v1:
                     # the historical 150-call cap (`_loop_limits`).
                     **self._loop_limits(opened),
+                    # The status rule the record names: v2 drops the unmetered
+                    # "0 of 0 research trials" line; none keeps v1's bytes.
+                    omit_unmetered_trials=(
+                        budget_status_of(opened) == BUDGET_STATUS_V2
+                    ),
                 )
         except ValueError as error:
             if (
@@ -740,7 +840,10 @@ FIXTURE_NOTE = (
     "--literature-snapshot."
 )
 #: The most cards a brief lists; the rest stay readable by id (GRAPHITE-D31).
+#: A ranked snapshot lists them best first; an unranked one by card id.
 MAX_BRIEF_CARDS = 100
+#: The Challenge an unranked (phase-2 v1/v2) snapshot is for.
+BATTERY_LITERATURE = "battery-fastcharge-ageing-development-v1"
 
 
 def literature_brief(index):
@@ -831,6 +934,7 @@ def session_brief(
     repository=REPOSITORY,
     scoring=None,
     variant=None,
+    tool_text=TOOL_TEXT_V2,
 ):
     """The Constructor's brief: the session Challenge's public development
     material only (its `ChallengeScoring`), and the session's offered
@@ -849,7 +953,10 @@ def session_brief(
         level, contract = 0, ex.recorded_contract(scoring)
     else:
         level, contract = variant.level, _variant_contract(variant)
-    manifest = boundaries.checkout_manifest(repository, boundaries.Role.CONSTRUCTION)
+    # The session Challenge's published material, never another's.
+    manifest = boundaries.checkout_manifest(
+        repository, boundaries.Role.CONSTRUCTION, scoring.published_material()
+    )
     observation = {
         "challenge": scoring.challenge(),
         "level": level,
@@ -875,6 +982,8 @@ def session_brief(
         initial_observation=observation,
         checkout_commit=checkout_commit,
         checkout_manifest_digest=boundaries.manifest_digest(manifest),
+        # A new session reads challenge-neutral tool text (VALIDATOR-07).
+        tool_text=tool_text,
     )
 
 
@@ -1225,15 +1334,73 @@ def _install_cancel(provider, run_id):
         signal.signal(getattr(signal, name), handler)
 
 
-def _literature_from(args):
-    """The session's literature, or None for the dry run's fixture."""
+def _literature_from(args, *, check_challenge=True):
+    """The session's literature, or None for the dry run's fixture. A live run
+    checks its Challenge later (`check_challenge=False`), after the spend and
+    code checks: authority first, then input content."""
     if args.literature_snapshot is None:
         if args.allow_unchecked_cards:
             raise RunnerRefused("allow_unchecked_cards_needs_a_literature_snapshot")
         return None
-    return open_literature(
+    offered = open_literature(
         args.literature_snapshot, allow_unchecked=args.allow_unchecked_cards
     )
+    if check_challenge:
+        check_literature_challenge(offered, args.challenge, RunnerRefused)
+    return offered
+
+
+def check_literature_challenge(offered, challenge_id, refusal):
+    """A session reads its own Challenge's literature only: a ranked snapshot
+    names its Challenge; an unranked (v1/v2) one is battery's phase 2."""
+    if type(offered) is not lit.OfferedLiterature:
+        return
+    for_challenge = offered.challenge_id or BATTERY_LITERATURE
+    if for_challenge != challenge_id:
+        raise refusal("literature_snapshot_is_for_another_challenge")
+
+
+#: The compute lanes a live phase-3 run may use (`--compute`).
+COMPUTE_LANES = ("runpod", "carrier")
+#: Grants that pay for tokens only: their runs use the CPU carrier lane, and
+#: a RunPod launch under one is refused. The cooling CPU grant's id is the
+#: Test Lead's (2026-10-05); its file is
+#: docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3-COOLING-CPU.json, and
+#: a tokens-only run's pod money budget is 0 (`experiment.Phase3Budget`).
+TOKENS_ONLY_GRANTS = frozenset({"GRAPHITE-GRANT-PHASE3-COOLING-CPU"})
+
+
+def compute_lane(args, grant):
+    """The run's compute lane, checked before anything is read or spent."""
+    compute = getattr(args, "compute", "runpod")
+    if compute not in COMPUTE_LANES:
+        raise RunnerRefused("compute_lane_unknown")
+    if compute == "runpod":
+        if grant.grant_id in TOKENS_ONLY_GRANTS:
+            raise RunnerRefused("grant_is_tokens_only_use_the_carrier_lane")
+        return compute
+    if getattr(args, "level", 0) not in (0, 1, 2, 3):
+        # Levels 4-5 run participant code: never in the operator's carrier.
+        raise RunnerRefused("carrier_lane_refuses_levels_4_5")
+    if not getattr(args, "image_manifest", None):
+        raise RunnerRefused("required: --image-manifest")
+    return compute
+
+
+def carrier_pods(root, manifest):
+    """The CPU carrier backend on this (operator) host: the pinned C-03 worker
+    image, refused unless the host doctor finds this host eligible."""
+    from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity
+
+    from .carrier_pods import CarrierPods
+
+    try:
+        image = load_image_identity(manifest)
+    except (OSError, ValueError, TypeError):
+        raise RunnerRefused("carrier_image_manifest_unreadable") from None
+    if not doctor(image_id=image.image_id, image_identity=image).eligible:
+        raise RunnerRefused("carrier_host_not_eligible")
+    return CarrierPods(root, image=image)
 
 
 def command_run(args):
@@ -1247,18 +1414,34 @@ def command_run(args):
     level = {} if variant is None else {"development_variant": variant}
     if args.dry_run:
         return dry_run(
-            _root(args.root), scoring, literature=_literature_from(args), **level
+            _root(args.root),
+            scoring,
+            literature=_literature_from(args),
+            analysis_image_manifest=getattr(args, "analysis_image_manifest", None),
+            **level,
         )
     root = _root(args.root)
     grant = load_grant(args.grant)
     if grant.provider != "graphite":
         raise RunnerRefused("grant_provider_must_be_graphite")
+    # The grant bound to the named Challenge, and to main's committed blob
+    # where its registration says so, and to the construction level where it
+    # registers a lowest one (`grant_binding`).
+    from .grant_binding import check_phase3_grant
+
+    check_phase3_grant(
+        args.grant, grant, challenge=args.challenge, level=getattr(args, "level", 0)
+    )
     if args.miner_profile is None or args.miner_campaign is None:
         raise RunnerRefused("the_real_miner_path_needs_a_miner_profile_and_campaign")
     if args.literature_snapshot is None:
         # GRAPHITE-D28: a paid session never runs on the synthetic fixture.
         raise RunnerRefused("live_run_needs_a_literature_snapshot")
-    literature = _literature_from(args)
+    # Refusal precedence: the grant and compute lane (spend authority), then
+    # the code ref (code integrity), then the literature's Challenge (input
+    # content). Every one refuses before a model call or a pod.
+    literature = _literature_from(args, check_challenge=False)
+    compute = compute_lane(args, grant)
     from . import miner_path
     from .model import LiveModel, ModelAccessRefused
     from .phase2 import credential_file
@@ -1268,26 +1451,31 @@ def command_run(args):
         engy = stack.enter_context(
             credential_file(path=args.credential_file, env=args.credential_env)
         )
-        runpod = stack.enter_context(
-            secret_file(
-                path=args.runpod_key_file,
-                env=args.runpod_key_env,
-                names=("RUNPOD_API_KEY",),
+        if compute == "runpod":
+            runpod = stack.enter_context(
+                secret_file(
+                    path=args.runpod_key_file,
+                    env=args.runpod_key_env,
+                    names=("RUNPOD_API_KEY",),
+                )
             )
-        )
-        if not runpod_key_status(runpod):
-            raise RunnerRefused("runpod_key_file_must_be_owner_only")
+            if not runpod_key_status(runpod):
+                raise RunnerRefused("runpod_key_file_must_be_owner_only")
         check_code_ref(args.code_ref)
+        check_literature_challenge(literature, args.challenge, RunnerRefused)
         try:
             model = LiveModel(grant=grant, credential_file=engy, provider="graphite")
         except ModelAccessRefused as refused:
             raise RunnerRefused(refused.code) from None
-        pods = RunPodPods(
-            root=root / "pods",
-            key_file=runpod,
-            code_ref=args.code_ref,
-            scoring=scoring,
-        )
+        if compute == "runpod":
+            pods = RunPodPods(
+                root=root / "pods",
+                key_file=runpod,
+                code_ref=args.code_ref,
+                scoring=scoring,
+            )
+        else:
+            pods = carrier_pods(root / "carrier", args.image_manifest)
 
         def attach(*, session):
             return miner_path.attach(
@@ -1383,7 +1571,62 @@ def command_reconcile(args):
     live = any(
         r.get("terminated") is not True for rows in report.values() for r in rows
     )
+    if live:
+        # Exit 4 stays; stdout stays the report. What to do next goes to
+        # stderr as one typed line (OPERATOR-USABILITY-01 D3).
+        print(json.dumps(reconcile_pending(report)), file=sys.stderr)
     return 4 if live else 0
+
+
+def _minute_utc(unix):
+    """`unix` rounded up to the whole minute, as (ISO time, "HH:MM UTC")."""
+    import datetime
+    import math
+
+    moment = datetime.datetime.fromtimestamp(math.ceil(unix / 60) * 60, datetime.UTC)
+    return moment.strftime("%Y-%m-%dT%H:%MZ"), moment.strftime("%H:%M UTC")
+
+
+def reconcile_pending(report):
+    """Why a reconcile exited 4, and when to run it again.
+
+    An uncertain pod create that the provider cannot yet confirm or deny
+    settles only once the compute layer's grace has passed since the intent
+    was made (`ComputeService.recover`, `not_found_grace_s`): each such pod
+    gets its intent's age and the first whole UTC minute at or after which a
+    re-run can settle it. A termination that was not verified can be re-run
+    at once."""
+    unsettled, rerun = [], None
+    for rows in report.values():
+        for row in rows:
+            if row.get("terminated") is True:
+                continue
+            entry = {"intent_id": row.get("intent_id")}
+            if row.get("terminated") is None and "settles_at_unix" in row:
+                at, hhmm = _minute_utc(row["settles_at_unix"])
+                entry.update(
+                    intent_age_s=round(row["intent_age_s"]),
+                    not_found_grace_s=row["not_found_grace_s"],
+                    rerun_at_utc=at,
+                    next_step=(
+                        f"settles after {row['not_found_grace_s']:g} s; "
+                        f"re-run at or after {hhmm}"
+                    ),
+                )
+                rerun = max(rerun or at, at)
+            elif row.get("terminated") is None:
+                entry["next_step"] = (
+                    "the provider cannot say yet whether the pod exists; re-run reconcile"
+                )
+            else:
+                entry["next_step"] = "termination not verified; re-run reconcile now"
+            unsettled.append(entry)
+    return {
+        "status": "REFUSED",
+        "reason_code": "reconcile_pods_not_settled",
+        "unsettled": unsettled,
+        "rerun_at_utc": rerun,
+    }
 
 
 def command_status(args):
@@ -1764,9 +2007,20 @@ def dry_run_script(baseline, variant, refused):
     ]
 
 
-def dry_run(root, scoring, literature=None, development_variant=None):
+def dry_run(
+    root,
+    scoring,
+    literature=None,
+    development_variant=None,
+    analysis_image_manifest=None,
+):
     """`development_variant`: a development level's registered variant for the
-    same Challenge (`development_variant_for`), or None at Level 0."""
+    same Challenge (`development_variant_for`), or None at Level 0.
+    `analysis_image_manifest`: the campaign's pinned analysis image, for the
+    REAL miner lane's containment check; without it that check fails closed
+    and the dry run exits nonzero."""
+    from carbon.development_session.containment_check import containment_check
+
     from .model import ScriptedModel
     from .pods import ScriptedPods, Step, real_path_check, synthetic_outputs
 
@@ -1840,12 +2094,19 @@ def dry_run(root, scoring, literature=None, development_variant=None):
             scoring=scoring,
             scorer=provider._frozen_rule(),
         ),
+        # The miner door above is a fake; this runs one fixed cell through the
+        # REAL miner lane and checks its containment from the host
+        # (GRAPHITE-CARRIER-CONTAINMENT-01). Fails closed.
+        "carrier_containment": containment_check(
+            root=root / "carrier-containment", manifest=analysis_image_manifest
+        ),
     }
     print(json.dumps(result, indent=1, default=str))
     ok = (
         result["provider_state"] == "succeeded"
         and result["dry_run"]["real_pod_path"]["status"] == "OK"
         and result["dry_run"]["pod_failure_path"]["status"] == "OK"
+        and result["dry_run"]["carrier_containment"]["status"] == "PASS"
     )
     return 0 if ok else 4
 
@@ -1873,6 +2134,21 @@ def main(argv=None):
     runpod = run.add_mutually_exclusive_group()
     runpod.add_argument("--runpod-key-file")
     runpod.add_argument("--runpod-key-env")
+    run.add_argument(
+        "--compute",
+        choices=COMPUTE_LANES,
+        default="runpod",
+        help="where proposals run: RunPod GPU pods, or the CPU carrier "
+        "(C-03, this operator host, Levels 0-3 only)",
+    )
+    run.add_argument(
+        "--image-manifest", help="the pinned C-03 worker image (--compute carrier)"
+    )
+    run.add_argument(
+        "--analysis-image-manifest",
+        help="the campaign's pinned analysis image, for the dry run's carrier "
+        "containment check (without it the check fails closed)",
+    )
     run.add_argument("--miner-profile")
     run.add_argument("--miner-campaign")
     run.add_argument("--code-ref")
@@ -1925,7 +2201,13 @@ def main(argv=None):
                 ),
                 (
                     "--runpod-key-file or --runpod-key-env",
-                    args.runpod_key_file or args.runpod_key_env,
+                    args.compute != "runpod"
+                    or args.runpod_key_file
+                    or args.runpod_key_env,
+                ),
+                (
+                    "--image-manifest",
+                    args.compute != "carrier" or args.image_manifest,
                 ),
                 ("--code-ref", args.code_ref),
             )

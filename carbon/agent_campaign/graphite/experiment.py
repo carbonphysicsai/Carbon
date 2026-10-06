@@ -31,6 +31,17 @@ write-once under the run's private root:
    Carbon records one `BUILD_STALLED_AGAINST_BASELINE` observation on the
    ladder for the run.
 
+**Environment failures** (GRAPHITE-POD-GPU-PROBE-01, `pod-attribution-v2`).
+A pod whose GPU probe failed before any candidate code is relaunched once on
+a fresh pod, reserved and admitted like every pod (the session's pod limit,
+the run's money cap, the remaining elapsed time and the pod launch gate),
+with both attempts ledgered and typed. A proposal's infrastructure retries
+share one cap (`AttributionPolicy.infra_retry_cap`). A second environment
+failure stops the session: the stop is recorded write-once
+(`session-stop.json`), no further pod is launched, and the provider ends the
+session `FAILED_INFRA`, with no agent charge. The session's baseline gets at
+most one extra pod from the relaunch and the baseline retry together.
+
 Everything returned to the agent is data: a closed feedback document with no
 authority, scanned like every other tool result by the role's toolbox.
 """
@@ -42,6 +53,7 @@ import os
 from dataclasses import dataclass
 from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from pathlib import Path
+from types import SimpleNamespace
 
 from carbon.challenge_validator import scoring as challenge_scoring
 from carbon.challenge_validator.scoring import (
@@ -52,7 +64,13 @@ from carbon.challenge_validator.scoring import (
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
 
-from . import baseline_retry, pod_logs, pod_outcome
+from . import (
+    baseline_retry,
+    grant_binding,
+    hidden_score,
+    pod_logs,
+    pod_outcome,
+)
 from . import pods as podlib
 from .roles import (
     CONSTRUCTOR_STALL_ATTEMPTS,
@@ -61,8 +79,26 @@ from .roles import (
 )
 
 REPOSITORY = Path(__file__).resolve().parents[3]
-PROPOSAL_SCHEMA = "carbon.graphite.phase3.proposal-result.v1"
+#: v2 (GRAPHITE-COVERAGE-PARITY-01): a scored record's `frozen_rule` is
+#: `frozen_rule_view` (an ineligible set is headlined INELIGIBLE with its gate
+#: reasons, and any soft score over its scorable cases sits apart, labelled as
+#: partial coverage). v1 records are read as they were written, never
+#: rewritten (`frozen_headline` and `headline_score` read both).
+PROPOSAL_SCHEMA = "carbon.graphite.phase3.proposal-result.v2"
+PROPOSAL_SCHEMAS = ("carbon.graphite.phase3.proposal-result.v1", PROPOSAL_SCHEMA)
 FEEDBACK_SCHEMA = "carbon.graphite.phase3.feedback.v1"
+STOP_SCHEMA = "carbon.graphite.phase3.session-stop.v1"
+#: A proposal refused because Carbon stopped the session as infrastructure.
+SESSION_STOPPED = "REFUSED_SESSION_STOPPED"
+#: The typed finding and session stop when a backend reports money for a pod
+#: under a tokens-only budget (GRAPHITE-GRANT-BINDING-01 D7 addendum).
+TOKENS_ONLY_CHARGE = "tokens_only_backend_reported_a_charge"
+#: Reason prefixes when an environment relaunch cannot run.
+RELAUNCH_REFUSED = "pod_environment_relaunch_refused:"
+#: The session baseline's retry never gets a relaunch too: the baseline gets
+#: at most one extra pod from the two rules together.
+BASELINE_RETRY_USED = "baseline_retry_used"
+RELAUNCH_NO_TIME = "relaunch_cannot_fit_remaining_time"
 NANO = Decimal(10) ** 9
 MAX_STRATEGY_BYTES = 16384
 
@@ -84,6 +120,11 @@ class Phase3Budget:
     pod is admitted only while tokens committed plus pods committed plus the
     new pod's reservation stay within it, and the run's model calls are capped
     at the token remainder by the research ledger.
+
+    `tokens_only` (a grant in `phase3.TOKENS_ONLY_GRANTS`): the pod money
+    budget is 0, the whole run cap is the token share, and a launch that
+    would reserve pod money is refused `grant_allows_no_pods`. A backend that
+    costs no provider money (the CPU carrier lane, rate 0) still runs.
     """
 
     run_cap_usd: Decimal
@@ -91,21 +132,49 @@ class Phase3Budget:
     pod_minutes: int
     max_pods: int
     challenge_id: str
+    tokens_only: bool = False
+    #: A grant's registered token share (`grant_binding.Phase3Grant`,
+    #: OWNER-GRAPHITE-PHASE3-R4-01): the run's model calls get exactly it and
+    #: its pods the rest of the run cap. None: the run cap less the pods.
+    token_share_usd: Decimal | None = None
 
     @property
     def pod_reservation_usd(self):
         return podlib.pod_reservation(self.pod_minutes, self.hourly_usd)
 
     @property
-    def pod_allowance_usd(self):
+    def pods_need_usd(self):
+        """What `max_pods` pods reserve, in whole cents (rounded up)."""
         return podlib.cents_up(self.max_pods * self.pod_reservation_usd)
 
     @property
+    def pays_for_pods(self):
+        """False when a pod would reserve money this budget has none for: a
+        tokens-only budget at a non-zero pod rate (`grant_allows_no_pods`)."""
+        return not (self.tokens_only and self.pod_reservation_usd > 0)
+
+    @property
+    def pod_allowance_usd(self):
+        if self.tokens_only:
+            return Decimal("0.00")
+        if self.token_share_usd is not None:
+            return self.run_cap_usd - self.token_share_usd
+        return self.pods_need_usd
+
+    @property
     def token_allowance_usd(self):
+        if self.token_share_usd is not None and not self.tokens_only:
+            return self.token_share_usd
         return self.run_cap_usd - self.pod_allowance_usd
 
     def record(self):
+        # `tokens_only` and `token_share_usd` are recorded only when set, so
+        # every other run's record is unchanged.
+        extra = {"tokens_only": True} if self.tokens_only else {}
+        if self.token_share_usd is not None:
+            extra["token_share_usd"] = str(self.token_share_usd)
         return {
+            **extra,
             "run_cap_usd": str(self.run_cap_usd),
             "pod_minutes": self.pod_minutes,
             "max_pods": self.max_pods,
@@ -124,20 +193,38 @@ class Phase3Budget:
 SESSION_POD_MINUTES = 360
 
 
-def phase3_budget(grant, scoring=None):
+def phase3_budget(grant, scoring=None, hourly_usd=None):
+    """One run's budget. `hourly_usd` is the compute backend's own rate when
+    it declares one (the CPU carrier lane: 0, so the whole run cap goes to
+    tokens); otherwise the RunPod rate ceiling (`pods.prices`)."""
     scoring = challenge_scoring.resolve(scoring)
-    economics = podlib.prices()
+    if hourly_usd is None:
+        hourly_usd = podlib.prices()["hourly_usd"]
     minutes = podlib.proposal_minutes(scoring)
+    # A tokens-only grant (`grant_binding.tokens_only`) has a pod money
+    # budget of 0: the whole run cost is its token share, and a pod that
+    # would reserve money is refused (`Phase3Budget.pays_for_pods`).
     budget = Phase3Budget(
         run_cap_usd=grant.worst_case_run_cost,
-        hourly_usd=economics["hourly_usd"],
+        hourly_usd=hourly_usd,
         pod_minutes=minutes,
         max_pods=SESSION_POD_MINUTES // minutes,
         challenge_id=scoring.challenge_id,
+        tokens_only=grant_binding.tokens_only(grant),
+        # A registered token share (OWNER-GRAPHITE-PHASE3-R4-01); None for
+        # every other grant, whose budget is exactly as before.
+        token_share_usd=getattr(grant_binding.entry_of(grant), "token_share_usd", None),
     )
     if budget.max_pods < 2 or budget.token_allowance_usd <= 0:
         # A baseline and one proposal, and some tokens, must fit one run.
         raise BudgetRefused("grant_run_cost_cannot_cover_pods_and_tokens")
+    if (
+        budget.token_share_usd is not None
+        and not budget.tokens_only
+        and budget.pod_allowance_usd < budget.pods_need_usd
+    ):
+        # The registered share leaves the session's pods too little.
+        raise BudgetRefused("grant_token_share_leaves_too_little_for_pods")
     return budget
 
 
@@ -310,6 +397,7 @@ def _feedback_view(record):
     for key in (
         "reason_code",
         "issues",
+        "served_backends",
         "recipe_digest",
         "frozen_rule",
         "against_baseline",
@@ -318,6 +406,8 @@ def _feedback_view(record):
         "differences",
         "stall",
         "pods_left",
+        # The hidden-pool view (`hidden_score`): only what a mainnet miner sees.
+        "hidden",
     ):
         if key in record:
             view[key] = record[key]
@@ -348,6 +438,13 @@ class Experiment:
     when it and the waiting proposal's pod can finish within it. The logs of
     a pod run that does not score are kept, bounded, in its proposal's record
     directory (`pod_logs`), as operator evidence only.
+
+    `hidden` is a `hidden_score.HiddenPool` (VALIDATOR-13) or None. With one,
+    every scored proposal is also submitted to the battery validator's hidden
+    pool. Its record and feedback carry only the miner-visible `hidden` view;
+    the operator record is written beside them (`hidden-operator.json`) and
+    nowhere else. With None, nothing changes. Level 0 only: the validator
+    never serves a development variant.
     """
 
     def __init__(
@@ -373,6 +470,7 @@ class Experiment:
         seconds_left=None,
         development_variant=None,
         on_finding=None,
+        hidden=None,
     ):
         from .provider import RunCancelled
 
@@ -397,6 +495,12 @@ class Experiment:
             construction_level != development_variant.level
         ):
             raise ValueError("a development variant runs at its own level")
+        if hidden is not None and (
+            development_variant is not None
+            or hidden.challenge_id != self.scoring.challenge_id
+        ):
+            raise ValueError("hidden scoring serves its own Challenge at Level 0")
+        self.hidden = hidden
         # The registered attribution policy (`pod_outcome`): the registry's
         # current version unless one is named.
         self.attribution = (
@@ -440,6 +544,52 @@ class Experiment:
     def rows(self, pid):
         path = self.root / "proposals" / pid / "rows.json"
         return json.loads(path.read_bytes()) if path.exists() else None
+
+    def hidden_records(self):
+        """The run's hidden-pool operator records, by proposal (operator
+        evidence; `DEVELOPMENT_HIDDEN_POOL`). Scores are comparable only within
+        one pool version; the validator's own leader is `hidden.standing()`."""
+        found = []
+        for record in self.records():
+            path = self.root / "proposals" / record["proposal_id"]
+            path = path / "hidden-operator.json"
+            if path.exists():
+                found.append(
+                    {
+                        "proposal_id": record["proposal_id"],
+                        "kind": record["kind"],
+                        **json.loads(path.read_bytes()),
+                    }
+                )
+        return found
+
+    def hidden_report(self):
+        """The run's hidden-pool report (`hidden_score.report`): a primary
+        ranking per pool version, with overdue-pool scores kept apart as
+        descriptive evidence only."""
+        return hidden_score.report(self.hidden_records())
+
+    def hidden_rerun(self, pid):
+        """Re-score proposal `pid`, the run's winner as the operator names it,
+        once on a fresh hidden batch (VALIDATOR-13 §6, `fresh_cases_rerun`).
+        Operator evidence only. It is written once to `hidden-rerun.json` when
+        final (`hidden_score.RERUN_FINAL`); waiting and infrastructure states
+        are returned and can be retried."""
+        if self.hidden is None:
+            raise ValueError("no hidden pool")
+        folder = self.root / "proposals" / pid
+        done = folder / "hidden-rerun.json"
+        if done.exists():
+            return json.loads(done.read_bytes())
+        scored = folder / "hidden-operator.json"
+        if not scored.exists():
+            raise ValueError("proposal_not_hidden_scored")
+        operator = json.loads(scored.read_bytes())
+        result = self.hidden.fresh_rerun(operator["submission_id"])
+        if result["state"] in hidden_score.RERUN_FINAL:
+            write_once(done, canonical({"proposal_id": pid, **result}))
+            return json.loads(done.read_bytes())
+        return result
 
     def findings(self):
         path = self.root / "findings.jsonl"
@@ -511,6 +661,15 @@ class Experiment:
         )
 
     def _admit_pod(self):
+        stop = self.stopped()
+        if stop is not None:
+            # The session was stopped (`_stop_session`): no further pod, a
+            # retry or relaunch of the proposal in flight included.
+            raise BudgetRefused("session_stopped:" + stop["reason_code"])
+        if not self.budget.pays_for_pods:
+            # A paid pod under a tokens-only grant: refused before any
+            # reservation or launch.
+            raise BudgetRefused(grant_binding.NO_PODS)
         if self.pods_left() <= 0:
             raise BudgetRefused("session_pod_limit_reached")
         reservation = self.budget.pod_reservation_usd
@@ -545,7 +704,13 @@ class Experiment:
                     report.append({"intent_id": pod["intent_id"], "terminated": True})
                     continue
                 if handle == "unknown":
-                    report.append({"intent_id": pod["intent_id"], "terminated": None})
+                    report.append(
+                        {
+                            "intent_id": pod["intent_id"],
+                            "terminated": None,
+                            **self._settles(pod["intent_id"]),
+                        }
+                    )
                     continue
                 self.ledger.append(
                     "pod_created",
@@ -558,6 +723,20 @@ class Experiment:
             verified = self._terminate(pod["proposal"], handle)
             report.append({"intent_id": pod["intent_id"], "terminated": verified})
         return report
+
+    def _settles(self, intent_id):
+        """For an uncertain create the provider cannot settle yet: the
+        intent's age and when a reconcile can settle it (OPERATOR-USABILITY-01
+        D3), from the backend's `recover_settles`. Empty when the backend
+        cannot say; a reconcile row is never refused for want of it."""
+        settles = getattr(self.pods, "recover_settles", None)
+        if settles is None:
+            return {}
+        try:
+            value = settles(intent_id)
+        except Exception:  # noqa: BLE001 - a hint, never a reconcile failure
+            return {}
+        return dict(value) if type(value) is dict else {}
 
     def _recover(self, pid, intent_id):
         """A pod an uncertain create may have made. None when none exists (its
@@ -625,6 +804,27 @@ class Experiment:
             charge_usd=str(charge),
             basis="provider_reported",
         )
+        if self.budget.tokens_only and charge > 0:
+            self._tokens_only_charge(pid, handle, charge)
+
+    def _tokens_only_charge(self, pid, handle, charge):
+        """A backend reported money for a pod under a tokens-only budget, which
+        reserved none for it (GRAPHITE-GRANT-BINDING-01 D7). The charge stays
+        booked exactly as reported (`_settle`); hiding real spend is worse. A
+        typed finding names the pod and the amount, and the session stops
+        through the existing stop (`_stop_session`): no further pod, and the
+        provider ends the session typed."""
+        self._finding(
+            TOKENS_ONLY_CHARGE.upper(),
+            pid,
+            {
+                "code": TOKENS_ONLY_CHARGE,
+                "intent_id": handle.intent_id,
+                "pod_id": handle.pod_id,
+                "charge_usd": str(charge),
+            },
+        )
+        self._stop_session(pid, SimpleNamespace(reason_code=TOKENS_ONLY_CHARGE))
 
     # -- one proposal --------------------------------------------------------------------------
     def propose_tool(self, arguments, identity):
@@ -655,6 +855,15 @@ class Experiment:
                 "authority_granted": False,
             }
         pid = "p-" + digest(identity.encode())[7:19]
+        stop = self.stopped()
+        if stop is not None and self.record(pid) is None:
+            # Carbon stopped the session as infrastructure: nothing new runs.
+            return {
+                "status": "REJECTED_BEFORE_DISPATCH",
+                "reason_code": "session_stopped:" + stop["reason_code"],
+                "dispatched": False,
+                "authority_granted": False,
+            }
         record = self.run(
             pid,
             "proposal",
@@ -706,6 +915,8 @@ class Experiment:
     def _retry_budget(self, pods):
         """None when the session's pod limit and the run's money cap (tokens
         and pods together) hold `pods` more pods, else the refusal code."""
+        if not self.budget.pays_for_pods:
+            return grant_binding.NO_PODS
         if self.pods_left() < pods:
             return "session_pod_limit_reached"
         committed = self.token_committed() + self.pod_committed()
@@ -716,6 +927,62 @@ class Experiment:
     def _fits_time(self, pods):
         left = None if self.seconds_left is None else self.seconds_left()
         return left is None or pods * self.budget.pod_minutes * 60 <= left
+
+    # -- environment relaunches and the session stop (`pod-attribution-v2`) -----------------
+    def _relaunch_refusal(self, pid):
+        """Why an environment relaunch cannot run, or None. Its pod is then
+        admitted like any pod (`_admit_pod`: the session's pod limit and the
+        run's money cap) and launched through the pod launch gate."""
+        if pid == baseline_retry.RETRY_ID:
+            return BASELINE_RETRY_USED
+        if not self._fits_time(1):
+            return RELAUNCH_NO_TIME
+        return None
+
+    def relaunched(self, pid):
+        """Whether proposal `pid` used an environment relaunch: an extra pod
+        admitted for it, as the pod ledger records."""
+        return any(
+            row["event"] == "pod_environment_relaunch" and row.get("proposal") == pid
+            for row in self.ledger.rows()
+        )
+
+    def stopped(self):
+        """The recorded session stop, or None."""
+        path = self.root / "session-stop.json"
+        return json.loads(path.read_bytes()) if path.exists() else None
+
+    def _stop_session(self, pid, verdict):
+        """Record, once, that Carbon stops the session as infrastructure: no
+        agent charge, no further pod. The provider ends the session."""
+        if self.stopped() is not None:
+            return
+        stop = {
+            "schema": STOP_SCHEMA,
+            "status": "FAILED_INFRA",
+            "reason_code": verdict.reason_code,
+            "proposal_id": pid,
+            "policy": self.attribution.record(),
+            "candidate_charged": False,
+        }
+        write_once(self.root / "session-stop.json", canonical(stop))
+        self.ledger.append(
+            "session_stopped",
+            proposal=pid,
+            status="FAILED_INFRA",
+            reason_code=verdict.reason_code,
+            policy=self.attribution.record(),
+        )
+        self.emit(
+            "session-stopped",
+            {
+                "kind": "session_stopped",
+                "status": "FAILED_INFRA",
+                "reason_code": verdict.reason_code,
+                "proposal_id": pid,
+                "policy": self.attribution.record(),
+            },
+        )
 
     def _retry_baseline(self):
         """Decide once, under the registered policy, whether the session's
@@ -728,7 +995,7 @@ class Experiment:
                 self._run_retry(decision)  # a process died after the decision
             return
         first = self.record("baseline")
-        if first is None or first["status"] == "SCORED":
+        if first is None or first["status"] == "SCORED" or self.stopped():
             return
         policy = self.retry_policy
         retry, reason = baseline_retry.decide(
@@ -739,6 +1006,7 @@ class Experiment:
             ),
             budget_refusal=self._retry_budget(policy.pods_required),
             time_fits=self._fits_time(policy.pods_required),
+            environment_relaunched=self.relaunched("baseline"),
         )
         earlier = [
             r["proposal_id"]
@@ -876,6 +1144,11 @@ class Experiment:
                     **base,
                     "status": "REFUSED_BACKEND_NOT_SERVED",
                     "reason_code": str(refused),
+                    # The backends these pods serve, from the Challenge's
+                    # public scoring record, so the refusal says what would
+                    # be accepted (AGENT-DOOR-USABILITY-01 A7). A result
+                    # recorded before has none and is read as it was.
+                    "served_backends": list(self.scoring.served_backends),
                     "scored": False,
                 },
             )
@@ -901,6 +1174,21 @@ class Experiment:
             self.run("baseline", "baseline", self.baseline, why=None)
         if kind != "baseline":
             self._retry_baseline()
+        stop = self.stopped()
+        if stop is not None:
+            # The session was stopped as infrastructure (here, by the
+            # baseline's repeated environment failure): no pod is launched.
+            return self._close(
+                pid,
+                {
+                    **base,
+                    "status": SESSION_STOPPED,
+                    "reason_code": stop["reason_code"],
+                    "recipe_digest": expected["recipe_digest"],
+                    "scored": False,
+                    "pods_left": self.pods_left(),
+                },
+            )
         try:
             reservation = self._admit_pod()
         except BudgetRefused as refused:
@@ -916,27 +1204,43 @@ class Experiment:
                 },
             )
         common = {**base, "recipe_digest": expected["recipe_digest"]}
-        attempts = []
-        for attempt in range(self.attribution.retries + 1):
+        attempts, verdict = [], None
+        for attempt in range(pod_attempts(self.attribution)):
             if attempt:
-                # A retry after a worker timeout, on a fresh pod under the
-                # same declared budget, as many as the registered attribution
-                # policy allows (OWNER-GRAPHITE-TEST-WAVE-02 §3: one). It is
-                # charged to the run like any pod.
-                try:
-                    reservation = self._admit_pod()
-                except BudgetRefused as refused:
+                # A retry on a fresh pod under the same declared budget: after
+                # a worker timeout, or a relaunch after an environment
+                # failure, within the proposal's one cap on infrastructure
+                # retries (`pod_attempts`). It is charged to the run like any
+                # pod and admitted by the same limits.
+                prefix = (
+                    RELAUNCH_REFUSED
+                    if verdict.relaunch
+                    else "worker_timeout_retry_refused:"
+                )
+                refusal = self._relaunch_refusal(pid) if verdict.relaunch else None
+                if refusal is None:
+                    try:
+                        reservation = self._admit_pod()
+                    except BudgetRefused as refused:
+                        refusal = refused.code
+                if refusal is not None:
                     return self._close(
                         pid,
                         {
                             **common,
                             "status": "FAILED_INFRA",
-                            "reason_code": "worker_timeout_retry_refused:"
-                            + refused.code,
+                            "reason_code": prefix + refusal,
                             **_attempts(attempts),
                             "scored": False,
                             "pods_left": self.pods_left(),
                         },
+                    )
+                if verdict.relaunch:
+                    self.ledger.append(
+                        "pod_environment_relaunch",
+                        proposal=pid,
+                        attempt=attempt,
+                        policy=self.attribution.record(),
                     )
             job_intent = intent_id if not attempt else retry_intent(intent_id, attempt)
             outcome, files, timing = self._attempt(
@@ -956,9 +1260,14 @@ class Experiment:
                 )
             built = _json(files.get("built.json"))
             failure = _object(files.get("failure.json"))
-            differences = rebuild_differences(expected, built)
-            if not differences:
-                differences = development_differences(expected, built)
+            if _stage(failure) == pod_outcome.ENVIRONMENT and "built.json" not in files:
+                # The pod stopped at the probe, before anything was built:
+                # there is no build to compare. The claim is typed below.
+                differences = []
+            else:
+                differences = rebuild_differences(expected, built)
+                if not differences:
+                    differences = development_differences(expected, built)
             if (failure or {}).get("stage") == "verification" and not differences:
                 differences = ["pod_refused_pinned_digests"]
             if differences:
@@ -980,17 +1289,39 @@ class Experiment:
             if outcome == "done":
                 break
             verdict, evidence = self._type_unfinished(
-                pid, job_intent, attempt, files, failure, timing
+                pid,
+                job_intent,
+                attempt,
+                files,
+                failure,
+                timing,
+                earlier=tuple(a["reason_code"] for a in attempts),
             )
             attempts.append(evidence)
             if verdict.retry:
                 continue
+            if verdict.stop:
+                self._stop_session(pid, verdict)
             return self._close(
                 pid,
                 {
                     **common,
                     "status": verdict.status,
                     "reason_code": verdict.reason_code,
+                    **_attempts(attempts),
+                    "scored": False,
+                    "pods_left": self.pods_left(),
+                },
+            )
+        else:
+            # Every allowed attempt asked for a retry: the cap stops it here,
+            # whatever the policy said (never a loop).
+            return self._close(
+                pid,
+                {
+                    **common,
+                    "status": "FAILED_INFRA",
+                    "reason_code": "infra_retry_cap_reached",
                     **_attempts(attempts),
                     "scored": False,
                     "pods_left": self.pods_left(),
@@ -1019,18 +1350,7 @@ class Experiment:
             "scored": True,
             "rule": scorer.identity,
             "built_digest": digest(canonical(built)),
-            "frozen_rule": {
-                key: summary.get(key)
-                for key in (
-                    "eligible",
-                    "score",
-                    "important_score",
-                    "n_scored",
-                    "n_gate_failed",
-                    "gate_failures",
-                    "components",
-                )
-            },
+            "frozen_rule": frozen_rule_view(summary, len(rows)),
             "fit": {
                 key: _clean(fit[key])
                 for key in ("final_loss", "train_s", "compile_s", "n_params")
@@ -1070,16 +1390,31 @@ class Experiment:
                     record["against_baseline"]["interpretation"] = comparison[
                         "interpretation"
                     ]
+                # Read as written (v1 or v2); an ineligible baseline's score
+                # is never shown as one.
                 record["baseline"] = {
                     "eligible": baseline["frozen_rule"]["eligible"],
-                    "score": baseline["frozen_rule"]["score"],
+                    "score": headline_score(baseline["frozen_rule"]),
+                    "headline": frozen_headline(baseline["frozen_rule"]),
                 }
                 if baseline_id != "baseline":
                     # The session's baseline is its retry (`baseline_retry`).
                     record["baseline"]["proposal_id"] = baseline_id
         if kind == "proposal":
             record["stall"] = self._stall(record)
+        if self.hidden is not None:
+            record["hidden"] = self._hidden_score(pid, kind, strategy)
         return self._close(pid, record)
+
+    def _hidden_score(self, pid, kind, strategy):
+        """Submit a scored proposal to the hidden pool (`hidden_score`). The
+        record keeps only the miner-visible view; the operator record is
+        written once beside it and is never in a record, feedback, event or
+        bundle."""
+        view, operator = self.hidden.submit(kind, strategy)
+        if operator is not None:
+            write_once(self._dir(pid) / "hidden-operator.json", canonical(operator))
+        return view
 
     def _attempt(self, pid, intent_id, reservation, strategy, expected, seed):
         """Reserve and run one pod for a proposal; `(outcome, files, timing)`."""
@@ -1106,23 +1441,32 @@ class Experiment:
         )
         return self._pod(pid, job)
 
-    def _type_unfinished(self, pid, intent_id, attempt, files, failure, timing):
+    def _type_unfinished(
+        self, pid, intent_id, attempt, files, failure, timing, earlier=()
+    ):
         """Type a pod run that ended without finishing under the registered
         attribution policy (`pod_outcome.classify`): host timing and lifecycle
         decide, and the construction level decides whose claims the pod's
         files carry. The evidence keeps the raw claim, the host's timing and
-        the policy, so the policy can be judged from it."""
+        the policy, so the policy can be judged from it. `earlier` is the
+        reason codes of this proposal's earlier attempts."""
         image = (self.pods.describe() or {}).get("image")
         report = _object(files.get("supervisor.json"))
         claim = _stage(failure)
+        # The deadline host timing is compared with (the backend's declared
+        # program deadline, VALIDATOR-06) and the export v2 reads (#604).
+        deadline = self._program_deadline()
+        export = pod_outcome.environment_export(files, report)
         verdict = pod_outcome.classify(
             claim=claim,
             admissible=pod_outcome.admissible_stage(report, image),
             timing=timing,
-            work_seconds=podlib.contract_work_seconds(self.scoring),
+            work_seconds=deadline,
             attempt=attempt,
             level=self.construction_level,
             policy=self.attribution,
+            export=export,
+            earlier=earlier,
         )
         evidence = {
             "intent_id": intent_id,
@@ -1137,7 +1481,15 @@ class Experiment:
                 digest(files["failure.json"]) if "failure.json" in files else None
             ),
             "host_timing": None if timing is None else timing.record(),
+            # What host timing is compared with: the contract's deadline, or
+            # the backend's declared effective program deadline.
+            "program_deadline_seconds": deadline,
         }
+        if claim == pod_outcome.ENVIRONMENT:
+            # What the export showed against the claim (v2's consistency
+            # check). Recorded only for this claim, so every other typed
+            # outcome keeps the shape it had.
+            evidence["environment_export"] = export
         self.ledger.append(
             "pod_attempt_typed",
             intent_id=intent_id,
@@ -1145,7 +1497,21 @@ class Experiment:
             status=verdict.status,
             reason_code=verdict.reason_code,
         )
-        if verdict.signal:
+        if verdict.signal and claim == pod_outcome.ENVIRONMENT:
+            evidence["finding"] = self._finding(
+                "POD_ENVIRONMENT_CLAIM_DISAGREEMENT",
+                pid,
+                {
+                    "intent_id": intent_id,
+                    "claimed_stage": claim,
+                    "reason_code": verdict.reason_code,
+                    "failure_digest": evidence["failure_digest"],
+                    "environment_export": export,
+                    "host_timing": evidence["host_timing"],
+                    "work_seconds": deadline,
+                },
+            )
+        elif verdict.signal:
             evidence["finding"] = self._finding(
                 "POD_TIMING_DISAGREEMENT",
                 pid,
@@ -1154,10 +1520,20 @@ class Experiment:
                     "claimed_stage": evidence["claimed_stage"],
                     "failure_digest": evidence["failure_digest"],
                     "host_timing": evidence["host_timing"],
-                    "work_seconds": podlib.contract_work_seconds(self.scoring),
+                    "work_seconds": deadline,
                 },
             )
         return verdict, evidence
+
+    def _program_deadline(self):
+        """The deadline a program actually had: the contract's work seconds,
+        or the backend's declared effective deadline when it stops a program
+        earlier (the CPU carrier lane's setup margin). Host-observed timing is
+        compared with this, so a backend's own stop is never read as a
+        forged claim, and every lane attributes timeouts by the same rule."""
+        work = podlib.contract_work_seconds(self.scoring)
+        declared = getattr(self.pods, "effective_work_seconds", None)
+        return work if declared is None else declared(work)
 
     def _timing(self, handle):
         read = getattr(self.pods, "timing", None)
@@ -1276,10 +1652,19 @@ class Experiment:
         stalled = count >= CONSTRUCTOR_STALL_ATTEMPTS
         observation = self.root / "stall-observation.json"
         if stalled and not observation.exists():
+            # A proposal id is a run-local label (it is derived from the tool
+            # call's journal identity, so every run reuses it): the evidence
+            # binds the run and what each proposal built, never the bare ids
+            # (OWNER-GRAPHITE-TEST-WAVE-04 §1).
             evidence = digest(
                 canonical(
-                    [r["proposal_id"] for r in self.records("proposal")]
-                    + [record["proposal_id"]]
+                    {
+                        "run_id": self.run_id,
+                        "proposals": [
+                            [r["proposal_id"], r.get("recipe_digest")]
+                            for r in [*self.records("proposal"), record]
+                        ],
+                    }
                 )
             )
             failure_id = self.ladder.record_failure(
@@ -1358,7 +1743,17 @@ class Experiment:
         decision = self.baseline_retry()
         if decision is not None:
             summary["baseline_retry"] = decision
+        stop = self.stopped()
+        if stop is not None:
+            summary["session_stop"] = stop
         return summary
+
+
+def pod_attempts(policy):
+    """The most pods one proposal may use: its first, plus the policy's one
+    cap on infrastructure retries of every kind (`pod_outcome`). The loop is
+    bounded by it, whatever a verdict asks for."""
+    return 1 + min(policy.infra_retry_cap, pod_outcome.MAX_INFRA_RETRIES)
 
 
 def retry_intent(intent_id, attempt=1):
@@ -1408,6 +1803,65 @@ def _raw_claim(body):
     if parsed is not None and len(body) <= MAX_RAW_CLAIM:
         return {"parsed": parsed}
     return {"bytes": len(body), "digest": digest(body)}
+
+
+#: The frozen rule's aggregate as a v1 record kept it.
+FROZEN_RULE_KEYS = (
+    "eligible",
+    "score",
+    "important_score",
+    "n_scored",
+    "n_gate_failed",
+    "gate_failures",
+    "components",
+)
+#: What an eligible set's score column holds; an ineligible set never fills it.
+_SCORE_COLUMN = ("score", "important_score", "components")
+SCORED, INELIGIBLE = "SCORED", "INELIGIBLE"
+
+
+def frozen_rule_view(summary, n_cases):
+    """A v2 record's frozen-rule result. An eligible set is headlined SCORED
+    with its score. An ineligible set is headlined INELIGIBLE with its gate
+    reasons; its score column is empty, and any soft score over its scorable
+    cases sits under `partial_coverage`, labelled "partial coverage, k of n
+    cases", where nothing comparable with an eligible score reads it."""
+    view = {key: summary.get(key) for key in FROZEN_RULE_KEYS}
+    k = summary.get("n_scored")
+    view["n_cases"] = n_cases
+    if view["eligible"]:
+        view["headline"] = SCORED
+        return view
+    view["headline"] = INELIGIBLE
+    partial = {key: view[key] for key in _SCORE_COLUMN}
+    for key in _SCORE_COLUMN:
+        view[key] = None
+    if partial["score"] is not None:
+        view["partial_coverage"] = {
+            "label": f"partial coverage, {k} of {n_cases} cases",
+            "k": k,
+            "n": n_cases,
+            **partial,
+        }
+    return view
+
+
+def headline_score(rule):
+    """A record's score as a score column may show it: an eligible set's,
+    else None. Reads v1 and v2 records as written."""
+    return rule.get("score") if rule.get("eligible") else None
+
+
+def frozen_headline(rule):
+    """One line for a record's frozen-rule result, v1 or v2: the score of an
+    eligible set, else INELIGIBLE with its gate reasons (a v1 record's soft
+    score over its scorable cases is never shown as its result)."""
+    if rule.get("eligible"):
+        score = rule.get("score")
+        return SCORED + ("" if score is None else f" {score:.6g}")
+    failures = rule.get("gate_failures") or {}
+    reasons = ", ".join(f"{gate} x{count}" for gate, count in sorted(failures.items()))
+    return f"{INELIGIBLE} ({reasons or 'no gate reason recorded'})"
 
 
 def _json(body):
@@ -1464,6 +1918,14 @@ def failure_path_check(
        (`CANDIDATE_FAILED` at Level 0): it is retried once (the owner's
        direction, 2026-10-04), the retry scores, and a proposal is compared
        with it.
+    5. In a third run (GRAPHITE-POD-GPU-PROBE-01), the baseline's pod and a
+       proposal's pod each fail at the GPU probe (`environment`): each is
+       relaunched once on a fresh pod and scores; the baseline retry is not
+       used; both relaunches and typed attempts are ledgered.
+    6. In a fourth run, the baseline's pod fails at the probe twice: the
+       session stops `FAILED_INFRA` with no agent charge, the waiting
+       proposal is refused without a pod, a later proposal is rejected before
+       dispatch, and only two pods were launched.
     Nothing of any log reaches a result record, an event or the ledger.
 
     `root` must be new or empty. Returns a report with `status` OK or FAILED;
@@ -1588,20 +2050,100 @@ def failure_path_check(
         for pid in ("p-check-scored", baseline_retry.RETRY_ID):
             if (run.root / "proposals" / pid / "pod-logs").exists():
                 failures.append("a_scored_pods_logs_were_kept")
-        marker = b"SYNTHETIC scripted failure"
-        leaked = [
-            path.name
-            for path in root.glob("*/proposals/*/result.json")
-            if marker in path.read_bytes()
-        ]
+        # 5. GPU probe failures (GRAPHITE-POD-GPU-PROBE-01): the baseline's
+        # and a proposal's pods fail at the probe, before any candidate code;
+        # each is relaunched once and scores. The baseline retry is not used.
+        environment = podlib.environment_outputs()
+        relaunching = podlib.ScriptedPods(
+            steps=[
+                podlib.Step(outcome="failed", outputs=environment),
+                podlib.Step(outputs=podlib.synthetic_outputs(1.0)),
+                podlib.Step(outcome="failed", outputs=environment),
+                podlib.Step(outputs=podlib.synthetic_outputs(0.4)),
+            ]
+        )
+        env_run = experiment("environment-relaunch", relaunching)
+        env_scored = env_run.run("p-check-environment", "proposal", baseline, why=why)
+        env_base = env_run.record("baseline")
+        env_against = env_scored.get("against_baseline") or {}
         if (
-            leaked
-            or any(
-                marker in path.read_bytes() for path in root.glob("*/pod-ledger.jsonl")
-            )
-            or any(marker in canonical(body) for _event, body in events)
+            env_base["status"] != "SCORED"
+            or [a["reason_code"] for a in env_base.get("attempts", [])]
+            != ["pod_environment"]
+            or env_scored["status"] != "SCORED"
+            or [a["reason_code"] for a in env_scored.get("attempts", [])]
+            != ["pod_environment"]
         ):
-            failures.append("log_text_left_the_pod_logs")
+            failures.append("an_environment_failure_was_not_relaunched_to_a_score")
+        if env_against.get("outcome") in (None, "NO_BASELINE"):
+            failures.append("a_relaunched_proposal_was_not_compared")
+        if env_run.baseline_retry() is not None or env_run.stopped() is not None:
+            failures.append("a_relaunch_also_used_the_baseline_retry_or_stopped")
+        if len(relaunching.launched) != 4 or relaunching.alive:
+            failures.append("the_relaunches_used_other_than_one_pod_each")
+        relaunch_rows = [
+            r
+            for r in env_run.ledger.rows()
+            if r["event"] in ("pod_environment_relaunch", "pod_attempt_typed")
+        ]
+        if len(relaunch_rows) != 4:
+            failures.append("a_relaunch_or_its_typed_attempt_was_not_ledgered")
+        # 6. The baseline's pod fails at the probe twice: the session stops as
+        # FAILED_INFRA, with no agent charge, and nothing else is launched.
+        twice = podlib.ScriptedPods(
+            steps=[
+                podlib.Step(outcome="failed", outputs=environment),
+                podlib.Step(outcome="failed", outputs=environment),
+                podlib.Step(outputs=podlib.synthetic_outputs(0.4)),
+            ]
+        )
+        stop_run = experiment("environment-twice", twice)
+        stop_refused = stop_run.run("p-check-stopped", "proposal", baseline, why=why)
+        stop_base = stop_run.record("baseline")
+        stop = stop_run.stopped() or {}
+        late = stop_run.propose_tool(
+            {
+                "strategy_json": json.dumps(baseline),
+                "hypothesis": "after the stop",
+                "expected_effect": "refused",
+            },
+            "failure-path-check-after-stop",
+        )
+        if (stop_base["status"], stop_base["reason_code"]) != (
+            "FAILED_INFRA",
+            "pod_environment_repeated",
+        ):
+            failures.append("a_repeated_environment_failure_was_not_failed_infra")
+        if (stop.get("status"), stop.get("candidate_charged")) != (
+            "FAILED_INFRA",
+            False,
+        ):
+            failures.append("a_repeated_environment_failure_did_not_stop_the_session")
+        if (
+            stop_refused["status"] != SESSION_STOPPED
+            or late.get("status") != "REJECTED_BEFORE_DISPATCH"
+            or late.get("dispatched") is not False
+        ):
+            failures.append("a_proposal_ran_after_the_session_stopped")
+        if stop_run.baseline_retry() is not None:
+            failures.append("the_stopped_baseline_was_retried")
+        if len(twice.launched) != 2 or twice.alive:
+            failures.append("the_stop_launched_other_than_two_pods")
+        for marker in (b"SYNTHETIC scripted failure", b"SYNTHETIC Unable"):
+            leaked = [
+                path.name
+                for path in root.glob("*/proposals/*/result.json")
+                if marker in path.read_bytes()
+            ]
+            if (
+                leaked
+                or any(
+                    marker in path.read_bytes()
+                    for path in root.glob("*/pod-ledger.jsonl")
+                )
+                or any(marker in canonical(body) for _event, body in events)
+            ):
+                failures.append("log_text_left_the_pod_logs")
         if account.alive:
             failures.append("a_pod_left_alive")
         report.update(
@@ -1640,6 +2182,40 @@ def failure_path_check(
                         ),
                     },
                     "pods_launched": len(crashing.launched),
+                },
+                "environment_relaunch": {
+                    "baseline": {
+                        "status": env_base["status"],
+                        "attempts": [
+                            a["reason_code"] for a in env_base.get("attempts", [])
+                        ],
+                    },
+                    "proposal": {
+                        "status": env_scored["status"],
+                        "attempts": [
+                            a["reason_code"] for a in env_scored.get("attempts", [])
+                        ],
+                        "compared": env_against.get("outcome"),
+                    },
+                    "baseline_retry": env_run.baseline_retry(),
+                    "pods_launched": len(relaunching.launched),
+                    "policy": env_base.get("attribution_policy"),
+                },
+                "environment_twice": {
+                    "baseline": {
+                        "status": stop_base["status"],
+                        "reason_code": stop_base["reason_code"],
+                    },
+                    "session_stop": stop,
+                    "next_proposal": {
+                        "status": stop_refused["status"],
+                        "reason_code": stop_refused.get("reason_code"),
+                    },
+                    "proposal_after_stop": {
+                        "status": late.get("status"),
+                        "reason_code": late.get("reason_code"),
+                    },
+                    "pods_launched": len(twice.launched),
                 },
                 "failed_pod": {
                     "status": failed["status"],

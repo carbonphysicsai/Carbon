@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-motor-scoring-lf-cooling",
+  "recorded_at": "2026-10-05T15:37:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-MOTOR-05 Cooling dry-run regression", "description": "Reran Cooling's Graphite dry run with Linux-readable Git metadata in the isolated test copy."},
+  "expected": "Cooling's existing adapter behavior is unchanged.",
+  "observed": "The Cooling dry-run regression passed; it had failed because of the temporary copy's Git metadata, not the shared paired-comparison helper.",
+  "keep": ["Test existing Challenges when changing shared scoring code."],
+  "change": ["Prepare commit-aware fixture checkouts with a usable Git pointer."],
+  "protocol_elements": ["shared-code regression", "fixture correctness"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

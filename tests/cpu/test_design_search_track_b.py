@@ -603,3 +603,49 @@ def test_an_overrun_is_also_reported_at_the_rung_that_covers_it(tmp_path):
     assert overruns[0]["rung"] == "k6"
     assert overruns[0]["actual_total_cost"] == 900.0
     assert overruns[0]["also_reported_at_rung"] == "k12"
+
+
+def test_a_tie_determined_selection_is_flagged_and_earns_no_credit(tmp_path):
+    p = problem()
+    tied = track_b.Problem(
+        challenge=p.challenge,
+        designs=p.designs,
+        conditions=p.conditions,
+        passes=p.passes,
+        objective=p.objective,
+        host_route=HOST,
+        tie_break=lambda q: -q["objective"],
+        tie_break_rule="toy: higher objective",
+    )
+    flat = model("flat", lambda q: {**q, "objective": 1.0, "ok": True})
+    result = track_b.alignment(
+        tied,
+        [flat],
+        method="fixed_grid",
+        parameters={},
+        query_allowance=24,
+        reference=reference(p),
+        directory=tmp_path,
+        unit=UNIT,
+        clock=clock,
+    )
+    arm = result["arms"]["flat"]
+    assert arm["design_id"] == "d0"
+    scope = arm["scopes"][track_b.CONTRACT_SCOPE]
+    assert scope["tie_determined"] is True
+    assert scope["correct_decision"] is None
+    assert track_b.decision_value(scope) == (2, 0.0)  # d0 is infeasible
+    commitment = json.loads(
+        (tmp_path / "alignment--flat.commitment.json").read_text(encoding="utf-8")
+    )
+    assert commitment["tie"]["tied_candidates"] == 8
+    assert commitment["tie"]["alternative_rule"] == "toy: higher objective"
+
+
+def test_a_safe_tie_determined_selection_ranks_nothing():
+    scope = {
+        "tie_determined": True,
+        "proposal_outcome": "CONFIRMED_FEASIBLE",
+        "regret": {"status": "DEFINED_FINITE_SET", "regret": 0.0},
+    }
+    assert track_b.decision_value(scope) is None

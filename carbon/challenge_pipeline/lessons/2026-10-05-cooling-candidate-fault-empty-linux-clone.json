@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-empty-linux-clone",
+  "recorded_at": "2026-10-05T11:45:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "focused tests in /tmp/carbon-ccfp.ANGhV7/repo",
+    "description": "Tried the focused policy, validator and attacker tests in a Linux clone of the local Windows repository."
+  },
+  "expected": "The clone contains the ticket branch and all three focused test modules.",
+  "observed": "The mounted local repository cloned as an unborn empty master branch; the new policy test file was absent and pytest ran no tests.",
+  "keep": [
+    "Require the test environment to contain the exact ticket commit before accepting any result."
+  ],
+  "change": [
+    "Materialize the exact committed tree with git archive instead of cloning the mounted Windows repository from Linux."
+  ],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "canonical_test_environment"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

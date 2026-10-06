@@ -20,9 +20,10 @@ approved, and that is enforced by construction:
   `source_intent_digest` is the approved one, and rechecks the digest, UID 0,
   netuid 567 and the expiry at every stage, including just before signing.
 
-All-burn only: `signing.sign()` and `winner_intent()` are untouched and this
-module never widens them. OD-4b (winner weights) is unauthorized and has no
-path here. Signing is external: the publisher hotkey is opened through the
+All-burn only: this adapter calls neither `signing.sign()` nor
+`winner_intent()`. Winner weights (OD-4b, lifted by
+OWNER-WEIGHTS-AUTHORITY-01) publish through
+`carbon.rewards.testnet_winner_publication`, never through this adapter. Signing is external: the publisher hotkey is opened through the
 existing operator wallet path, and only the public coldkey address is read.
 Testnet subnet 567 only.
 """

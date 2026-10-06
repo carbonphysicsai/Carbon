@@ -1514,13 +1514,25 @@ def development_variant_registry(directory=None):
         or type(current) is not list
         or not all(
             type(c) is dict
-            and set(c) == {"challenge", "level", "version"}
+            and (
+                set(c) == {"challenge", "level", "version"}
+                # A named arm: a further variant at the same level that only
+                # Carbon's campaigns select by name (GRAPHITE-L1-BUILD-01).
+                or (
+                    set(c) == {"challenge", "level", "version", "arm"}
+                    and type(c["arm"]) is str
+                    and _ARM.fullmatch(c["arm"]) is not None
+                )
+            )
             and c["version"] in versions
             for c in current
         )
     ):
         raise RuntimeError("development variant registry malformed")
     return value
+
+
+_ARM = re.compile(r"[a-z][a-z0-9_]{0,31}\Z")
 
 
 def development_variant_names(directory=None):

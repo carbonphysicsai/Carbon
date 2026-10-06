@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-wsl-denied",
+  "recorded_at": "2026-10-05T11:20:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "candidate-fault policy digest calculation through Ubuntu-24.04",
+    "description": "Attempted to use the existing Linux Python environment to calculate the canonical policy digest."
+  },
+  "expected": "The registered policy digest is calculated by the same canonical JSON algorithm used at load.",
+  "observed": "The managed Windows session denied WSL service access before Python started, so the attempt produced no digest evidence.",
+  "keep": [
+    "The digest remains generated from parsed canonical JSON rather than file line endings."
+  ],
+  "change": [
+    "Use the available host Python launcher for deterministic metadata generation and reserve canonical Linux execution for tests when WSL access is available."
+  ],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_validator.cooling"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

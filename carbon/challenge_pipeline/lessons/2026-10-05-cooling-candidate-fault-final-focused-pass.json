@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-final-focused-pass",
+  "recorded_at": "2026-10-05T12:30:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "exact commit 05a09df7 focused candidate-fault suite",
+    "description": "Reran the policy loader, Cooling validator and Cooling attacker modules from the exact final source commit in a verified LF-native Linux tree."
+  },
+  "expected": "The formatted exact tree preserves every focused policy, dispatch and attack guarantee.",
+  "observed": "All 150 focused tests passed in 68.09 seconds.",
+  "keep": [
+    "Use the exact committed tree, verify pinned material bytes, and keep the three fault paths in one focused acceptance set."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_validator.cooling",
+    "graphite.attacker.cooling"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

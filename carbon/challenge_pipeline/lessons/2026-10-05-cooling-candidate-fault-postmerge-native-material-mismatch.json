@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-postmerge-native-material-mismatch",
+  "recorded_at": "2026-10-05T14:24:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "current-main focused regression attempt in Windows Python 3.12",
+    "description": "Attempted the focused suite in an existing host test environment."
+  },
+  "expected": "The focused suite reaches the candidate-fault tests.",
+  "observed": "Collection stopped because Windows checkout conversion changed the exact bytes of Battery's pinned public PRACTICE record.",
+  "keep": [
+    "Treat exact-byte material refusal as a valid guard, not as a Cooling implementation failure."
+  ],
+  "change": [
+    "Run the affected suite from an LF-native isolated source tree."
+  ],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "pinned_public_material"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
