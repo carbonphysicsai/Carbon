@@ -204,3 +204,27 @@ only as one instance.
 - adopting rule v3.
 
 **Build order:** S0 (#683), then S1 (the producer core), then Q.
+
+**The agreed quiz** (Data Collection, approved by the Test Lead under the
+owner's "maximally effective", 2026-10-06; evidence on #686). Both types
+apply to every hidden batch and to `graphite-tuning-v2`.
+- **Q2:**
+  - 80 cases selected by panel disagreement, from a pool of about 320
+    near-limit cases (`score_tuning.near_limit`, within 4 bands).
+  - The disagreement panel is versioned:
+    `docs/development/evidence/battery-quiz-designs/disagreement-panel-v1.json`,
+    80 EV4 first-seed recipes. Later versions add retired top submissions.
+  - Each batch records the panel version it used.
+- **Q3:**
+  - k = 8 decision scenarios, each a pre-solved 35-candidate grid, judged by
+    EV4's fixed decision rules.
+  - All-infeasible scenarios are excluded (quiz-registry-v5).
+- **Producer cost per batch:**
+  - Q3: about 0.8 CPU-h per scenario, about 6.4 CPU-h in all (accepted for
+    the VM).
+  - Q2: its 320-case pool needs about 1,280 draws solved at the ~25%
+    near-limit rate. That is to be measured on the VM, unless the producer
+    oversamples near the limit at draw time.
+- **Still open:** these sizes come from the public stand-in, and the tuning
+  set confirms them before any rule v3 adoption (the owner's). The margin
+  stays HUMAN_INPUT and swept.
