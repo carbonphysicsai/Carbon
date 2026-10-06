@@ -183,6 +183,10 @@ class ChallengeScoring(abc.ABC):
     wrong_challenge_code: str = "not_this_challenge"
     #: The Constructor's objective, in the brief.
     construction_objective: str = ""
+    #: The score legs a development score variant may weight (VALIDATOR-09):
+    #: the Challenge's score-tuning legs. Data only: this module never reads a
+    #: variant. Empty means no variant can be registered for this Challenge.
+    declared_score_components: tuple = ()
 
     def challenge(self):
         return {"id": self.challenge_id, "version": self.challenge_version}
