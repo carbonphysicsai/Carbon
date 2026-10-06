@@ -87,9 +87,43 @@ Carbon draws and solves.
 - **The release decision for retired batches.**
 - *(Settled: Carbon is the sole producer; it draws and solves.)*
 
+## Slice 0 first: isolation before any seal (the owner, 2026-10-06)
+
+> yes, move the service account to the front
+
+**Why.** Hidden cases, references and tuning material are protected by file
+ownership only.
+- Today every agent session runs as the WSL `carbon` account.
+- Graphite's hidden-pool scoring (#642, #665, #679) loads the validator
+  deployment inside Graphite's own process, so that process, and any session
+  sharing its account, can read the hidden material.
+
+**Until S0 lands:** no hidden pool batch, tuning set or confirmation set is
+sealed, and `--hidden-deployment` is never run against a sealed batch.
+
+- **S0a: service accounts.**
+  - A `carbon-producer` system user, with the setup steps below, owns the
+    producer, the tuning work and every hidden deployment's state.
+  - Each command that touches hidden material refuses when the effective
+    user is not the deployment's configured `service_account`: `operate`,
+    `confirmation seal`, `tuning`, and the daemon's `run --every`. It fails
+    closed.
+  - **The acceptance check:** `sudo -u carbon ls` on every hidden path
+    prints "Permission denied".
+- **S0b: Graphite reaches the validator over the wire.**
+  - The hidden deployment runs as a service under `carbon-producer`, behind
+    the existing hotkey-signed battery intake (`battery/intake.py`, NET-2).
+  - `HiddenPool` submits through the intake client, with its
+    `graphite-dev:` identity, and receives only the sealed miner outcome.
+  - Operator records and the hidden-pool report are written by the service
+    under its own account. Graphite holds only fingerprints and verdicts.
+  - The in-process path (`deployment.evaluate` inside Graphite) stays for
+    synthetic test fixtures only, and refuses a deployment whose
+    `service_account` is not the current user.
+
 ## Slices
 
-- **S1: producer core and adoption.**
+- **S1 (after S0): producer core and adoption.**
   - the `BatchSource` interface, battery's adapter, the producer journal and
     commitments;
   - `adopt` for the existing pool and tuning seal;
