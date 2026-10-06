@@ -98,6 +98,17 @@ ownership only.
   deployment inside Graphite's own process, so that process, and any session
   sharing its account, can read the hidden material.
 
+**Same-host isolation is impossible here** (found 2026-10-06):
+- the agent account `carbon` is in the `docker` group, which is
+  root-equivalent;
+- any Windows-side session can run `wsl.exe -u root`.
+
+**The owner's decision:** hidden material lives on a **small cloud VM** that
+no agent session has credentials for. It starts CPU-only (seals, reference
+solves, Level 0 and 1 rebuilds) and moves to an A40 when scored GPU rebuilds
+begin. Graphite reaches it only through the hotkey-signed intake (S0b). The
+account guard (S0a) is defence in depth on the VM.
+
 **Until S0 lands:** no hidden pool batch, tuning set or confirmation set is
 sealed, and `--hidden-deployment` is never run against a sealed batch.
 
