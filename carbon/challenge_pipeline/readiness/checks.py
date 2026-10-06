@@ -558,6 +558,35 @@ def disk_free(item, ctx):
 
 
 # -- runtime ------------------------------------------------------------------------------------
+def _phase4_grant(ctx):
+    """`(grant file, refusal)` for the challenge's OWN phase-4 grant. The
+    authority is the runner's per-challenge binding (`phase4.PHASE4_GRANTS`,
+    #612): the grant format has no challenge field, so the binding lives there.
+    A challenge with no entry has no grant. A grant recorded in challenges.json
+    is only a cross-check: if it names a different file than the binding, R1
+    fails, so it can never pass on another challenge's grant."""
+    try:
+        from carbon.agent_campaign.graphite import phase4
+
+        entry = phase4.PHASE4_GRANTS.get(ctx.challenge)
+    except Exception as error:  # noqa: BLE001
+        return None, f"the phase-4 grant binding could not load: {type(error).__name__}"
+    if entry is None:
+        return None, (
+            f"no grant for {ctx.challenge}: the runner's per-challenge binding "
+            "registers none (it never falls back to another challenge's grant)"
+        )
+    recorded = (ctx.data.get("grants") or {}).get("phase4")
+    if recorded and recorded != entry.grant_file:
+        return None, (
+            f"challenges.json records {recorded} for {ctx.challenge} but the runner "
+            f"binds {entry.grant_file}: refusing another grant"
+        )
+    if not _is_file(ctx, entry.grant_file):
+        return None, f"the bound grant {entry.grant_file} is not a committed file"
+    return entry.grant_file, None
+
+
 def prelive(item, ctx):
     """`phase4 prelive` for the challenge under a scratch root. It needs the
     committed grant on a pushed HEAD and a main to compare, so a host without
@@ -568,16 +597,9 @@ def prelive(item, ctx):
             "prelive needs a POSIX host (it uses fcntl); run the gate on the "
             "canonical Linux host. Failing closed.",
         )
-    grant = (ctx.data.get("grants") or {}).get("phase4")
-    if not grant:
-        return Result(
-            FAIL,
-            f"no grant for {ctx.challenge}: the pre-live gate must run on the "
-            "challenge's own committed grant (challenges.json `grants.phase4`); it "
-            "never passes on another challenge's grant (per-challenge binding is #612)",
-        )
-    if not _is_file(ctx, grant):
-        return Result(FAIL, f"the recorded grant {grant} is not a committed file")
+    grant, refused = _phase4_grant(ctx)
+    if refused:
+        return Result(FAIL, refused)
     with tempfile.TemporaryDirectory(prefix="readiness-prelive-") as root:
         command = [
             sys.executable,
