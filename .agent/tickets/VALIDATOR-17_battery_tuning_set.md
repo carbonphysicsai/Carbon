@@ -62,3 +62,17 @@ SHA-256, the verdict and the count.
 ## Maturity
 
 IMPLEMENTED and TESTED (DEVELOPMENT). Not a security audit.
+
+## Prospective amendment: a near-limit quiz stratum (VALIDATOR-19 slice Q)
+
+The owner, 2026-10-06: "Yes make the quiz questions maximally effective."
+
+- `graphite-tuning-v1` is unsealed. It is superseded before any seal by
+  `graphite-tuning-v2`, registered as a new document version, which adds a
+  near-limit quiz stratum: oversample, solve, keep the near-limit cases on
+  both sides.
+- The quiz's size is set with Data Collection. Its margin is HUMAN_INPUT
+  (swept).
+- The tuning set's accuracy rows exclude quiz cases. The quiz feeds G-FEAS,
+  G-PLATE and false-infeasible only.
+- v1 is never sealed.

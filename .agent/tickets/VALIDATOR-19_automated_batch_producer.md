@@ -144,3 +144,50 @@ and `-2`, each with its own deployment directory and hotkey path.
 ## Maturity
 
 Design only.
+
+## Slice Q: the near-limit quiz (the owner, 2026-10-06)
+
+**Authority.** The owner approved the Test Lead's proposal:
+
+> Yes make the quiz questions maximally effective.
+
+**What.** Every hidden batch carries a hidden, rotating set of near-limit
+"quiz" cases. G-FEAS and G-PLATE are computed on them, and the gate runs in
+screening.
+
+1. **The quiz stratum** (producer, after S1).
+   - The producer oversamples from the registered population and solves once.
+   - It keeps the cases whose reference lies within a margin of a
+     feasibility or plating limit, on both sides, so false-feasible and
+     false-infeasible are both measurable.
+   - "Near the limit" uses the one definition in `score_tuning`: the decision
+     contract's constraint measure and its bands. Data Collection adds a
+     public `near_limit` selector and `false_infeasible_rate` there.
+   - **The margin is HUMAN_INPUT,** registered as a sweep.
+   - Quiz membership is private, inside the sealed batch document, and
+     committed with its fingerprint. The quiz rotates, retires and publishes
+     with its batch.
+2. **Kept apart from accuracy** (invariant 7.2).
+   - Quiz cases are excluded from the accuracy score, so the population P(x)
+     that score claims is unchanged.
+   - The gates are computed on the quiz only.
+   - In screening, a gate failure ranks last and never reaches the finals.
+   - **This is an exam rule change:** a new battery rule version (v3), which
+     the owner adopts once the margin and threshold are picked from the
+     curves. Until then the quiz is drawn and reported, and gates nothing
+     (fail closed).
+3. **Tuning set.** `graphite-tuning-v1` is not sealed yet. It is superseded,
+   before any seal, by `graphite-tuning-v2`, which adds a near-limit quiz
+   stratum sized with Data Collection (VALIDATOR-17, prospective). v1 is
+   never sealed.
+4. **Over-caution is measured.** Every quiz report gives false-infeasible
+   beside false-feasible, so a model that calls everything near the limit
+   unsafe shows up as a value loss.
+
+**HUMAN_INPUT, fail closed:**
+- the quiz margin (swept);
+- each gate threshold (swept; the owner picks);
+- the quiz share of a batch;
+- adopting rule v3.
+
+**Build order:** S0 (#683), then S1 (the producer core), then Q.
