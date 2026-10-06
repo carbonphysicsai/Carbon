@@ -253,6 +253,32 @@ def false_feasible_rate(contract, predictions, case_ids, refs):
     return None if fails == 0 else accepted / fails
 
 
+def false_infeasible_rate(contract, predictions, case_ids, refs):
+    """The mirror of `false_feasible_rate`: of the cases the reference passes
+    on every constraint (contract bands), the share the model calls
+    infeasible on any (no band). None when a case is missing or none passes."""
+    bands = contract["reference"]["uncertainty"]["bands"]
+    passes = rejected = 0
+    for case_id in case_ids:
+        outputs, reference = predictions.get(case_id), refs[case_id].get("outputs")
+        if outputs is None or reference is None:
+            return None
+        truth = d.check(contract, d.measure(contract, reference), bands)
+        if all(v == d.PASS for v in truth.values()):
+            said = d.check(contract, d.measure(contract, outputs))
+            passes += 1
+            rejected += any(v == d.FAIL for v in said.values())
+    return None if passes == 0 else rejected / passes
+
+
+def near_limit(contract, reference_outputs, margin):
+    """Whether a reference lies within `margin` contract bands of the plating
+    or peak-temperature limit, on either side (`margins._margins`). The
+    quiz stratum's selector; `margin` stays HUMAN_INPUT and swept."""
+    values = margins._margins(contract, reference_outputs)
+    return min(abs(v) for v in values.values()) <= margin
+
+
 def _plating_fa(contract, predictions, near, refs):
     """G-PLATE's measure: near-limit plating false acceptance
     (`false_acceptance.component`, the run-5 9.5 % measure)."""

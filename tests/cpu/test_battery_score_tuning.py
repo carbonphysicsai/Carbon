@@ -361,3 +361,22 @@ def test_the_committed_registries_load():
         )
         assert "CE" in candidates
     assert len(identity["sweeps"]) == 10 and len(candidates) == 12 + 80
+
+
+def test_false_infeasible_and_near_limit_on_real_references():
+    from carbon.battery.value import scoring as sc
+    from carbon.battery.value.contract import load
+
+    contract, _ = load(
+        st.Path(__file__).resolve().parents[2]
+        / "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json"
+    )
+    store, ids, _ = sc.scoring_set(st.Path(__file__).resolve().parents[2])
+    ids = ids[:200]
+    oracle = {c: store.refs[c]["outputs"] for c in ids}
+    assert st.false_infeasible_rate(contract, oracle, ids, store.refs) == 0.0
+    assert st.false_feasible_rate(contract, oracle, ids, store.refs) in (0.0, None)
+    near = [c for c in ids if st.near_limit(contract, store.refs[c]["outputs"], 1.0)]
+    wider = [c for c in ids if st.near_limit(contract, store.refs[c]["outputs"], 4.0)]
+    assert set(near) <= set(wider)
+    assert st.false_infeasible_rate(contract, {}, ids, store.refs) is None
