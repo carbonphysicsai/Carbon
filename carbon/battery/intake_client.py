@@ -215,6 +215,10 @@ REFUSALS = {
         "This validator requires an on-chain commitment it cannot yet read."
     ),
     "commitment_required": "Commit this recipe's hash on chain, then resend.",
+    "commitment_contested": (
+        "Another hotkey committed this same recipe hash on chain first, so "
+        "this submission cannot count for you."
+    ),
     "commitment_stale": (
         "Your on-chain commitment was posted before your previous submission "
         "here, so it was already used. Commit this recipe's hash again, then "

@@ -228,6 +228,14 @@ class CommitmentStale(CommitmentRequired):
     code = "commitment_stale"
 
 
+class CommitmentContested(CommitmentRequired):
+    """Another hotkey committed the same digest at an earlier block, or the
+    same one: D6 gives the earliest commitment priority, and a same-block tie
+    has no rule, so it is refused (fail closed)."""
+
+    code = "commitment_contested"
+
+
 class BackendNotServed(PermissionError):
     """This validator has no worker image for the recipe's backend.
 
@@ -608,6 +616,21 @@ class BatteryValidator:
             if previous is not None and not (type(posted) is int and posted > previous):
                 raise CommitmentStale(
                     "commit " + expected + " again after block " + str(previous)
+                )
+            # D6, across hotkeys: the digest is not bound to a hotkey, so a copy
+            # of another's strategy would match. The earliest commitment block
+            # has priority; a same-block tie is refused for both.
+            holders = getattr(self.commitments, "holders", None)
+            if not callable(holders):
+                from carbon.chain.commitments import CommitmentUnavailable
+
+                raise CommitmentUnavailable("commitment_holders_unreadable")
+            if any(
+                hotkey != submission.hotkey and block <= posted
+                for hotkey, block in holders(expected)
+            ):
+                raise CommitmentContested(
+                    "another hotkey committed " + expected + " first"
                 )
             commitment = {"digest": expected, "block": posted}
         identities = self.identities()

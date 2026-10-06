@@ -901,7 +901,12 @@ def work_once(inbox, target):
     was, to be retried; it is never a refusal of the miner. Returns what the
     pass moved, as counts only.
     """
-    from .daemon import BackendNotServed, CommitmentRequired, CommitmentStale
+    from .daemon import (
+        BackendNotServed,
+        CommitmentContested,
+        CommitmentRequired,
+        CommitmentStale,
+    )
     from .deployment import writer
     from .pool_store import HotkeyWindowUsed
 
@@ -922,6 +927,10 @@ def work_once(inbox, target):
         except CommitmentRequired as missing:
             if target.commitments is None:
                 code = "commitment_reader_unavailable"
+            elif isinstance(missing, CommitmentContested):
+                # D6: another hotkey committed this digest first; never
+                # received again.
+                code = "commitment_contested"
             elif isinstance(missing, CommitmentStale):
                 # D6: the matching commitment was spent by an earlier
                 # admission; a fresh one makes this resend count.

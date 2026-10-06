@@ -45,11 +45,35 @@ class ChainCommitmentReader:
     is the SDK read below.
     """
 
-    def __init__(self, context, *, fetch=None):
+    def __init__(self, context, *, fetch=None, fetch_all=None):
         if type(context) is not ChainContext:
             raise TypeError("a ChainContext is required")
         self.context = context
         self._fetch = _fetch if fetch is None else fetch
+        self._fetch_all = _fetch_all if fetch_all is None else fetch_all
+
+    def holders(self, digest):
+        """`[(hotkey, block)]`, earliest first, for every hotkey whose visible
+        commitment on this subnet is `digest`, at the finalized head
+        (OWNER-COMMITMENT-POSTER-01 D6: across hotkeys, the earliest
+        commitment block has priority). Raises `CommitmentUnavailable`."""
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                rows = pool.submit(asyncio.run, self._fetch_all(self.context)).result()
+        except ChainFailure as failure:
+            raise CommitmentUnavailable(str(failure)) from None
+        except Exception:  # noqa: BLE001 -- any provider error is infrastructure
+            raise CommitmentUnavailable("commitment_read_failed") from None
+        if type(rows) is not list:
+            raise CommitmentUnavailable("commitment_rows_malformed")
+        found = []
+        for row in rows:
+            if type(row) is not tuple or len(row) != 3:
+                raise CommitmentUnavailable("commitment_rows_malformed")
+            hotkey, data, block = row
+            if data == digest and type(hotkey) is str and type(block) is int:
+                found.append((hotkey, block))
+        return sorted(found, key=lambda item: (item[1], item[0]))
 
     def read(self, hotkey):
         if type(hotkey) is not str or not hotkey:
@@ -73,6 +97,33 @@ class ChainCommitmentReader:
         if type(data) is not str or DIGEST.fullmatch(data) is None:
             return None
         return {"digest": data, "block": block}
+
+
+async def _fetch_all(context):
+    """`[(hotkey, data, block)]` for every visible commitment on
+    `context.netuid` at the finalized head. Genesis-checked, as `_fetch` is."""
+    if version("bittensor") != SDK_VERSION:
+        raise ChainFailure(FailureCode.UNSUPPORTED)
+    import bittensor as bt
+
+    substrate = bt.RpcSubstrate(
+        context.endpoint,
+        fallback_endpoints=[],
+        archive_endpoints=[],
+        retry_forever=False,
+    )
+    client = bt.Client(context.endpoint, substrate=substrate)
+    try:
+        await substrate.connect()
+        if hash256(await substrate.block_hash(0)) != context.genesis_hash:
+            raise ChainFailure(FailureCode.IDENTITY)
+        async with aclosing(client.blocks(finalized=True)) as headers:
+            header = await anext(headers)
+        view = await client.at(uint(header.number))
+        rows = await view.read("commitments", netuid=context.netuid)
+        return [(r["hotkey"], r["commitment"], r["block"]) for r in rows]
+    finally:
+        await client.close()
 
 
 async def _fetch(context, hotkey):

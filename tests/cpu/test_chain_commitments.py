@@ -43,7 +43,14 @@ def reader(answer):
             raise answer
         return answer(hotkey) if callable(answer) else answer
 
-    return ChainCommitmentReader(CONTEXT, fetch=fetch)
+    async def fetch_all(context):
+        # The listing D6's cross-hotkey priority reads: hk1's commitment only.
+        if isinstance(answer, Exception):
+            raise answer
+        value = answer("hk1") if callable(answer) else answer
+        return [] if value is None else [("hk1", value[0], value[1])]
+
+    return ChainCommitmentReader(CONTEXT, fetch=fetch, fetch_all=fetch_all)
 
 
 def test_a_digest_commitment_is_read_with_its_block():
@@ -147,3 +154,29 @@ def test_admission_through_the_deployment(
     assert refused.value.code == outcome
     # Nothing is recorded against the miner either way.
     assert target.store.pending_submissions() == []
+
+
+def test_holders_lists_every_hotkey_showing_a_digest_earliest_first():
+    rows = [
+        ("hkB", DIGEST, 140),
+        ("hkA", DIGEST, 100),
+        ("hkC", "sha256:" + "c" * 64, 90),
+        ("hkD", None, 80),  # a sealed timelocked commitment shows no content
+    ]
+
+    async def fetch_all(context):
+        return rows
+
+    found = ChainCommitmentReader(CONTEXT, fetch_all=fetch_all).holders(DIGEST)
+    assert found == [("hkA", 100), ("hkB", 140)]
+
+
+@pytest.mark.parametrize(
+    "failure", [ChainFailure(FailureCode.UNAVAILABLE), RuntimeError("x")]
+)
+def test_a_holders_failure_is_infrastructure(failure):
+    async def fetch_all(context):
+        raise failure
+
+    with pytest.raises(CommitmentUnavailable):
+        ChainCommitmentReader(CONTEXT, fetch_all=fetch_all).holders(DIGEST)
