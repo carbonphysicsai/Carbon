@@ -214,7 +214,7 @@ def test_the_digest_bypass_mutant_is_killed(tmp_path, monkeypatch):
 ORACLE_B4 = {
     "feasible_choice": 5,
     "chosen": 5,
-    "rate": 1.0,
+    "b4_feasible_choice_rate": 1.0,
     "abstained": 1,
     "unresolved": 0,
     "feedback_only": True,
@@ -234,7 +234,7 @@ def test_b4_lowers_the_rate_for_an_optimist_that_chooses_infeasible_protocols(
     assert unmeasured == 0 and metric["abstained"] == 0
     assert metric["chosen"] + metric["unresolved"] == 6
     assert metric["feasible_choice"] < metric["chosen"]
-    assert metric["rate"] < ORACLE_B4["rate"]
+    assert metric["b4_feasible_choice_rate"] < ORACLE_B4["b4_feasible_choice_rate"]
 
 
 def test_b4_counts_abstentions_beside_the_rate_never_in_it(decision):
@@ -242,7 +242,7 @@ def test_b4_counts_abstentions_beside_the_rate_never_in_it(decision):
     assert metric == {
         "feasible_choice": 0,
         "chosen": 0,
-        "rate": None,
+        "b4_feasible_choice_rate": None,
         "abstained": 6,
         "unresolved": 0,
         "feedback_only": True,
@@ -322,7 +322,12 @@ def test_the_allow_list_accepts_b4_s_aggregates_null_and_its_refusals(metric):
         {**ORACLE_B4, "condition": "P-T37.6-S0.344"},
         {**ORACLE_B4, "t_amb_c": 37.6},
         {**ORACLE_B4, "per_condition": ["SELECTED_FEASIBLE"]},
-        {**ORACLE_B4, "rate": math.nan},
+        {**ORACLE_B4, "b4_feasible_choice_rate": math.nan},
+        # The bare name is refused: B4's rate is never read as the exam's Q3.
+        {
+            **{k: v for k, v in ORACLE_B4.items() if k != "b4_feasible_choice_rate"},
+            "rate": 1.0,
+        },
         {**ORACLE_B4, "chosen": 5.0},
         {k: v for k, v in ORACLE_B4.items() if k != "feedback_only"},
         ps.B4_BLOCKED,

@@ -22,7 +22,9 @@ predictions for them. Feedback only: see `carbon.practice_safety_feedback`.
   condition the model's predictions choose a protocol with EV4's rules and
   tie rule (`decision.assess_predicted` / `decision.select`), and the
   reference verifies the choice with EV4's bands
-  (`decision.assess_reference`). The rate is reference-FEASIBLE choices over
+  (`decision.assess_reference`). The rate, reported as
+  `b4_feasible_choice_rate` so it is never read as the exam's Q3 decision
+  number, is reference-FEASIBLE choices over
   choices the reference resolves; abstentions and choices the reference
   leaves UNRESOLVED are counted beside it, never in it. A set that does not
   match its pins is refused with a typed reason and nothing is computed.
@@ -139,7 +141,7 @@ ALLOWED = {
         {
             "feasible_choice": ps.COUNT,
             "chosen": ps.COUNT,
-            "rate": ps.NUMBER,
+            "b4_feasible_choice_rate": ps.NUMBER,
             "abstained": ps.COUNT,
             "unresolved": ps.COUNT,
             "feedback_only": ps.TRUE,
@@ -300,7 +302,7 @@ def feasible_choice(predictions, decision):
             counts["unresolved"] += 1
     return {
         **counts,
-        "rate": ps.rate(counts["feasible_choice"], counts["chosen"]),
+        "b4_feasible_choice_rate": ps.rate(counts["feasible_choice"], counts["chosen"]),
         "feedback_only": True,
     }, 0
 

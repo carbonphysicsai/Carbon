@@ -134,7 +134,7 @@ BLOCKED to computed, as the ticket's B4 section defines it.
   `CANDIDATES`, and a test binds it and the tie rule to the contract. The
   mistake costs do not enter: B4 is a feasibility rate, not a decision loss.
 - **Working decision (engineering, recorded): the rate's denominator.**
-  `rate = feasible_choice / chosen`, where `chosen` counts the choices the
+  `b4_feasible_choice_rate = feasible_choice / chosen`, where `chosen` counts the choices the
   reference resolves FEASIBLE or INFEASIBLE. Abstentions (`abstained`) and
   choices the reference leaves UNRESOLVED or unavailable (`unresolved`) are
   counted beside the rate and never in it (ticket rule 5, and "abstentions
@@ -144,8 +144,8 @@ BLOCKED to computed, as the ticket's B4 section defines it.
 - **Missing data.** Any unmeasurable decision-set prediction makes B4 null.
   The document's `unmeasured` then also counts the decision-set cases. B1-B3
   are still gated on the practice cases alone.
-- **Allow-list.** B4 is exactly `{feasible_choice, chosen, rate, abstained,
-  unresolved, feedback_only}`, null, or a typed refusal. No case id,
+- **Allow-list.** B4 is exactly `{feasible_choice, chosen,
+  b4_feasible_choice_rate, abstained, unresolved, feedback_only}`, null, or a typed refusal. No case id,
   condition id, condition value or per-condition verdict can leave. The
   BLOCKED literal is no longer accepted.
 - **Worker inputs.** The provider loads the set inside its practice trial
@@ -181,3 +181,9 @@ BLOCKED to computed, as the ticket's B4 section defines it.
   committed as history (`DECISION_SET_SUPERSEDED`), and B4 refuses it on
   the pin. With the reference as the model, B4 is still 5 of 5 chosen and 1
   abstained.
+- **Report name, 2026-10-06 (Test Lead ruling).** B4's rate keeps its
+  definition (abstentions excluded). It is reported as
+  `b4_feasible_choice_rate`, never as a bare `rate`, so it is never read as
+  the exam's Q3 decision number. B4 is new in practice-feedback v3, which
+  has not merged, so the field is renamed in place under v3; the allow-list
+  refuses the bare name.

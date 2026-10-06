@@ -542,7 +542,7 @@ def test_each_practice_provider_returns_its_latest_shape_with_its_safety(
 ORACLE_B4 = {
     "feasible_choice": 5,
     "chosen": 5,
-    "rate": 1.0,
+    "b4_feasible_choice_rate": 1.0,
     "abstained": 1,
     "unresolved": 0,
     "feedback_only": True,
