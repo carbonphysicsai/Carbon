@@ -77,7 +77,7 @@ class HiddenPool:
     submission is received at: testnet's in operation, a fixed one in tests.
     """
 
-    def __init__(self, target, *, run_id, clock, variant=None):
+    def __init__(self, target, *, run_id, clock, variant=None, score_variant=None):
         from carbon.battery import exam
         from carbon.battery.daemon import BatteryValidator
         from carbon.challenge_validator.battery import BatteryAdapter
@@ -100,6 +100,19 @@ class HiddenPool:
         self.challenge_version = self.adapter.challenge_version
         self.contract_digest = target.identities()["contract_digest"]
         self.variant = variant
+        #: A development score variant (VALIDATOR-09), applied operator-side
+        #: to every hidden score beside the rule's own. Only on a deployment
+        #: that opted in (`development_only`), which never sets weights, so
+        #: a variant result never reaches weights, the allow-list or rule
+        #: v2's record.
+        self.score_variant = score_variant
+        if score_variant is not None:
+            if not getattr(target, "development_only", False):
+                raise HiddenPoolRefused(
+                    "hidden_score_variant_needs_development_deployment"
+                )
+            if score_variant.challenge_id != self.challenge_id:
+                raise HiddenPoolRefused("hidden_score_variant_other_challenge")
         if variant is not None:
             # A development level (owner, 2026-10-06): only on a deployment
             # that opted in (`development_only`), only a registered variant,
@@ -207,8 +220,16 @@ class HiddenPool:
                 self._overdue_margin(version, block) if overdue else None
             ),
             "replay": "REPRODUCED",
+            "score_variant": self._variant_result(full),
             "score_record_digest": digest(canonical(full)),
         }
+
+    def _variant_result(self, full):
+        if self.score_variant is None:
+            return None
+        from . import score_variant as sv
+
+        return sv.hidden_result(self.score_variant, self.target, full)
 
     def fresh_rerun(self, submission_id):
         """Re-score a hidden-scored submission once on a fresh hidden batch,
@@ -226,6 +247,44 @@ class HiddenPool:
         its nomination and finals, never by Graphite's ranking."""
         incumbent = self.target.store.incumbent()
         return None if incumbent is None else dict(incumbent)
+
+
+def _variant_ranking(records):
+    """One pool version's records ranked under their score variant: a gate
+    FAIL last, then score, closest to 1 first; one ranking per cutoff for a
+    gate sweep. Empty when no record carries a variant result."""
+    results = [(r, r.get("score_variant")) for r in records]
+    results = [(r, v) for r, v in results if v]
+    if not results:
+        return {}
+
+    def ranked(entries):
+        def key(item):
+            _record, result = item
+            score = result.get("score")
+            return (result.get("gate") == "FAIL", score is None, -(score or 0.0))
+
+        return [
+            {
+                "proposal_id": record.get("proposal_id"),
+                "kind": record.get("kind"),
+                "submission_id": record["submission_id"],
+                "score": result.get("score"),
+                "gate": result.get("gate"),
+            }
+            for record, result in sorted(entries, key=key)
+        ]
+
+    first = results[0][1]
+    out = {"score_variant": first.get("score_variant")}
+    if "by_cutoff" in first:
+        out["by_cutoff"] = {
+            cutoff: ranked([(r, v["by_cutoff"][cutoff]) for r, v in results])
+            for cutoff in sorted(first["by_cutoff"])
+        }
+    else:
+        out["ranking"] = ranked(results)
+    return out
 
 
 def report(records):
@@ -268,9 +327,16 @@ def report(records):
         }
 
     overdue = [r for r in reproduced if r["rotation_overdue"]]
+    variant = {
+        version: _variant_ranking(rows) for version, rows in sorted(primary.items())
+    }
     return {
         "schema": REPORT_SCHEMA,
         "evidence": EVIDENCE,
+        # Under the run's development score variant, beside the rule's own
+        # ranking: closest to 1 best, a gate FAIL last (the EV5 ruling).
+        # Empty without a variant.
+        "score_variant": {k: v for k, v in variant.items() if v},
         "primary": {
             "by_pool_version": {
                 version: [row(r) for r in sorted(rows, key=rank_key)]
