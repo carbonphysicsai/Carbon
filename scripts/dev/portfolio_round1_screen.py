@@ -16,6 +16,15 @@ SHEET = (
 )
 VERSION = "portfolio-customer-development-round1-v1"
 FAMILIES = {"f02", "f06", "f08", "f13", "f17"}
+GRANT_FIELDS = ("memory_gib", "node_hours", "usd", "attempts", "timeout_s")
+# Review-controlled maxima for this version, not runner enforcement.
+GRANT_MAXIMA = {
+    "f02": (24, 6, 20, 50, 3600),
+    "f06": (256, 12, 60, 36, 7200),
+    "f08": (24, 12, 30, 36, 3600),
+    "f13": (24, 8, 25, 40, 3600),
+    "f17": (32, 8, 25, 40, 3600),
+}
 
 
 def _positive(value: object) -> bool:
@@ -40,13 +49,15 @@ def validate_allowances(sheet: dict) -> dict:
     ):
         raise ValueError("this screen cannot authorize execution or qualification")
     usd = node_hours = vcpu_hours = attempts = 0
-    for challenge in sheet["challenges"].values():
+    for family, challenge in sheet["challenges"].items():
         grant = challenge["grant"]
         if challenge["reference_adequacy"] != "NOT_DEMONSTRATED":
             raise ValueError("adequacy needs evidence, not this screen")
-        for key in ("memory_gib", "node_hours", "usd", "attempts", "timeout_s"):
+        for key, maximum in zip(GRANT_FIELDS, GRANT_MAXIMA[family], strict=True):
             if not _positive(grant[key]):
                 raise ValueError(f"invalid grant {key}")
+            if grant[key] > maximum:
+                raise ValueError(f"{family} exceeds approved {key} ceiling")
         if (
             any(
                 type(grant[key]) is not int
@@ -78,6 +89,74 @@ def validate_allowances(sheet: dict) -> dict:
     if totals != sheet["aggregate"]:
         raise ValueError("aggregate must equal the non-transferable allowances")
     return {**totals, "maximum_attempts": attempts}
+
+
+def _rc_peak(
+    thermal: dict,
+    resistance: float,
+    capacity: float,
+    family: str,
+    power: float,
+    duration: float,
+) -> float:
+    """Exact segment solution of C*dT/dt=P-(T-Tcool)/R; no spatial claim."""
+    base = thermal["base_w"]
+    segments = [(thermal["onset_s"], base, 0)]
+    if family == "rectangular":
+        segments += [(duration, power, 0)]
+    elif family == "ramp":
+        segments += [(duration, base, (power - base) / duration)]
+    elif family == "two-pulse":
+        segments += [
+            (duration / 2, power, 0),
+            (thermal["two_pulse_gap_s"], base, 0),
+            (duration / 2, power, 0),
+        ]
+    else:
+        raise ValueError("unknown RC waveform family")
+    segments += [(thermal["horizon_s"] - sum(s[0] for s in segments), base, 0)]
+    tau = resistance * capacity
+    coolant = thermal["cooling_regimes"][1]["coolant_c"]
+    temperature = peak = thermal["initial_c"][1]
+    for interval, initial_power, slope in segments:
+        if interval < 0:
+            raise ValueError("waveform exceeds thermal horizon")
+        decay = math.exp(-interval / tau)
+        equilibrium = coolant + resistance * initial_power
+        temperature = (
+            equilibrium
+            + (temperature - equilibrium) * decay
+            + resistance * slope * (interval - tau * (1 - decay))
+        )
+        peak = max(peak, temperature)
+    return peak
+
+
+def _near_limit_actions(thermal: dict, resistance: float, capacity: float) -> dict:
+    selections = {}
+    for family in ("rectangular", "ramp", "two-pulse"):
+        choices = [
+            (_rc_peak(thermal, resistance, capacity, family, p, d), p, d)
+            for p in thermal["peak_w"]
+            for d in thermal["on_time_s"]
+            if (p, d) not in ((110, 10), (80, 5))
+        ]
+        predicted, power, duration = min(
+            choices, key=lambda c: (abs(c[0] - thermal["limit_c"]), c[1], c[2])
+        )
+        distance = abs(predicted - thermal["limit_c"])
+        selections[family] = {
+            "peak_w": power,
+            "on_time_s": duration,
+            "rc_peak_c": predicted,
+            "distance_to_limit_c": distance,
+            "boundary_coverage": (
+                "SCREEN_NEAR_ONLY"
+                if distance <= thermal["pre_screen_near_band_c"]
+                else "GAP_UNRESOLVED"
+            ),
+        }
+    return selections
 
 
 def screen(sheet: dict) -> dict:
@@ -152,8 +231,16 @@ def screen(sheet: dict) -> dict:
             "solid_1d_resistance_k_w": solid_r,
             "lumped_heat_capacity_j_k": heat_c,
             "total_1d_resistance_k_w": [
-                solid_r + 1 / (h * layers[-1]["area_m2"]) for h in thermal["h_w_m2_k"]
+                solid_r + 1 / (r["h_w_m2_k"] * layers[-1]["area_m2"])
+                for r in thermal["cooling_regimes"]
             ],
+            "near_limit_actions": _near_limit_actions(
+                thermal,
+                solid_r
+                + 1
+                / (thermal["cooling_regimes"][1]["h_w_m2_k"] * layers[-1]["area_m2"]),
+                heat_c,
+            ),
             "cannot_establish": "3D spreading, hotspot transients or burst feasibility",
         },
         "f06": {
@@ -161,6 +248,17 @@ def screen(sheet: dict) -> dict:
             "minimum_remaining_si_nm": optical["si_thickness_nm"]
             - optical["etch_nm"][1]
             - optical["etch_offset_nm"][1],
+            "bare_cells_at_10nm_range": [
+                (optical["periods"][i] * optical["pitch_nm"][i] / 1000 + 10)
+                * optical["width_um"][i]
+                * (
+                    optical["box_thickness_nm"] / 1000
+                    + optical["si_thickness_nm"] / 1000
+                    + 2
+                )
+                / 0.01**3
+                for i in (0, 1)
+            ],
             "cannot_establish": "coupling, reflection, FDTD memory or reference adequacy",
         },
         "f08": {

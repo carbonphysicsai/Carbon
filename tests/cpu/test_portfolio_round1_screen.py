@@ -7,7 +7,12 @@ import json
 
 import pytest
 
-from scripts.dev.portfolio_round1_screen import SHEET, screen, validate_allowances
+from scripts.dev.portfolio_round1_screen import (
+    SHEET,
+    _rc_peak,
+    screen,
+    validate_allowances,
+)
 
 
 @pytest.fixture
@@ -23,7 +28,7 @@ def test_allowances_reconcile_and_no_execution_authority(sheet):
         "usd": 160,
         "allocated_node_hours": 46,
         "allocated_vcpu_hours": 736,
-        "maximum_attempts": 198,
+        "maximum_attempts": 202,
     }
     assert all("cannot_establish" in result[f] for f in sheet["challenges"])
 
@@ -60,6 +65,54 @@ def test_adequacy_is_not_a_screen_result(sheet):
         screen(sheet)
 
 
+@pytest.mark.parametrize(
+    "field", ["memory_gib", "node_hours", "usd", "attempts", "timeout_s"]
+)
+def test_raising_family_caps_and_totals_together_is_refused(sheet, field):
+    sheet["challenges"]["f13"]["grant"][field] += 1
+    if field == "usd":
+        sheet["aggregate"]["usd"] += 1
+    if field == "node_hours":
+        sheet["aggregate"]["allocated_node_hours"] += 1
+        sheet["aggregate"]["allocated_vcpu_hours"] += 16
+    with pytest.raises(ValueError, match="approved .* ceiling"):
+        validate_allowances(sheet)
+
+
+def test_rc_selection_is_frozen_before_reference_and_not_a_safe_claim(sheet):
+    thermal = sheet["challenges"]["f02"]["thermal"]
+    assert thermal["cooling_regimes"] == [
+        {"coolant_c": 30, "h_w_m2_k": 2500},
+        {"coolant_c": 40, "h_w_m2_k": 1500},
+    ]
+    result = screen(sheet)["f02"]
+    for family, selection in result["near_limit_actions"].items():
+        assert selection["peak_w"] in thermal["peak_w"]
+        assert selection["on_time_s"] in thermal["on_time_s"]
+        assert (selection["peak_w"], selection["on_time_s"]) not in ((110, 10), (80, 5))
+        assert selection["boundary_coverage"] in ("SCREEN_NEAR_ONLY", "GAP_UNRESOLVED")
+        assert selection["rc_peak_c"] == _rc_peak(
+            thermal,
+            result["total_1d_resistance_k_w"][1],
+            result["lumped_heat_capacity_j_k"],
+            family,
+            selection["peak_w"],
+            selection["on_time_s"],
+        )
+
+
+def test_rc_constant_equilibrium_control_and_missing_boundary_coverage(sheet):
+    thermal = sheet["challenges"]["f02"]["thermal"]
+    thermal["initial_c"][1] = 60
+    # R=1,C=1,Tcool=40,base=20 => exact equilibrium60.
+    assert _rc_peak(thermal, 1, 1, "rectangular", 20, 5) == pytest.approx(60)
+    thermal["limit_c"] = 1000
+    assert all(
+        v["boundary_coverage"] == "GAP_UNRESOLVED"
+        for v in screen(sheet)["f02"]["near_limit_actions"].values()
+    )
+
+
 def test_thermal_screen_uses_each_layer_area_and_cooling_regime(sheet):
     result = screen(sheet)["f02"]
     assert result["lumped_heat_capacity_j_k"] == pytest.approx(6.73548)
@@ -76,6 +129,7 @@ def test_optical_support_remains_manufacturable_after_offsets(sheet):
         >= sheet["challenges"]["f06"]["optical"]["minimum_feature_nm"]
     )
     assert result["minimum_remaining_si_nm"] == 80
+    assert result["bare_cells_at_10nm_range"] == pytest.approx([572569600, 1195104000])
 
 
 def test_structure_screen_reports_unribbed_control_not_dynamic_pass(sheet):

@@ -25,9 +25,11 @@ Staggering is a physical design action; coaxial geometry is a strong control.
 Actions: valid geometry; reference-input geometry law is uniform independent
 parameters conditioned on packaging/clearance. Exogenous `P_dev` is uniform
 frequency on the declared band, approximated by an explicitly converged
-frequency integration. Q feasibility: low/nominal/high chamber geometries,
-each coaxial and25-mm-offset, at predefined geometry values before solving.
-Begin with a10-Hz grid then adapt around resonances. Grid density is Q, not
+frequency integration. Q first-round **reference preflight only**: straight
+duct and coaxial single-chamber limiting controls plus low/nominal/high
+two-chamber geometries at selected500/1500/2500-Hz diagnostic points. A complete
+curve begins with a10-Hz grid (201 frequencies), then adapts around resonances;
+it is not promised by40 launches. Grid density is Q, not
 extra target weight; w is frequency interval width /2000 Hz. Do not overweight
 an adaptively refined resonance by counting its nodes equally. No random-trial
 reliability interpretation for a frequency curve.
@@ -50,10 +52,13 @@ frequency refinement are mandatory. Duct's first transverse mode is outside
 this band, but chamber modes need3D resolution.
 
 Straight-duct |TL|≤0.25 dB, power balance≤1%, mesh-halving ΔTL≤0.5 dB at resolved
-frequencies, resonance-location change≤min(10 Hz,2%). Retain transmission
-notches; refine interval quadrature until p10 and mean change≤0.25 dB.
+frequencies, resonance-location change≤10 Hz. For a later complete-curve claim,
+retain transmission notches; refine frequency quadrature and mesh until both
+p10 and mean change≤0.25 dB. Sparse preflight points cannot yield a band p10.
 40 process launches/8 node-hours/$25 caps include controls and every separately
-launched frequency solve. The grant need not finish six full curves; stop and
+launched frequency solve. Without a verified multi-frequency deck this grant
+cannot finish even one full201-point curve; complete-band/p10 adequacy is
+explicitly deferred to a separately costed stage. Stop and
 report exactly which checks/cases are unresolved, never skip tough resonances.
 
 ## 6. Output and measurement contract
@@ -79,7 +84,8 @@ and extraction. Never ship protected EVAL/STRESS, seeds or labels to pods.
 
 ## 9. Evidence plan
 
-Controls before volume. Compare equal decision/query budgets including baseline
+Controls before volume. Do not compare/rank full-band decisions from this
+first-round sparse reference preflight. Compare equal decision/query budgets including baseline
 setup and failed attempts. Park a topology that transfer/modal methods solve
 adequately cheaply; do not add asymmetry solely to favor a model. Later fresh
 confirmation and calibrated duct measurements require new custody/rights plans.

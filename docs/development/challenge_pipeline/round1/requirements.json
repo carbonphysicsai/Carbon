@@ -16,13 +16,13 @@
           {"name": "tim-surrogate", "area_m2": 0.0004, "thickness_m": 0.0002, "k_w_m_k": 5, "rho_kg_m3": 2500, "cp_j_kg_k": 1000},
           {"name": "copper-surrogate", "area_m2": 0.0009, "thickness_m": 0.002, "k_w_m_k": 390, "rho_kg_m3": 8960, "cp_j_kg_k": 385}
         ],
-        "coolant_c": [30, 40], "h_w_m2_k": [2500, 1500], "initial_c": [40, 55],
+        "cooling_regimes": [{"coolant_c": 30, "h_w_m2_k": 2500}, {"coolant_c": 40, "h_w_m2_k": 1500}], "initial_c": [40, 55],
         "base_w": 20, "peak_w": [80, 110, 140], "on_time_s": [5, 10, 20],
-        "horizon_s": 120, "onset_s": 20, "grid_s": 0.5, "limit_c": 95,
-        "unresolved_band_c": 1, "peak_refinement_c": 0.5, "crossing_refinement_s": 0.5,
+        "horizon_s": 120, "onset_s": 20, "two_pulse_gap_s": 10, "grid_s": 0.5, "limit_c": 95,
+        "unresolved_band_c": 1, "pre_screen_near_band_c": 5, "peak_refinement_c": 0.5, "crossing_refinement_s": 0.5,
         "energy_residual_fraction": 0.01
       },
-      "grant": {"vcpu": 16, "memory_gib": 24, "node_hours": 6, "usd": 20, "attempts": 46, "timeout_s": 3600, "concurrent_executions": 1, "automatic_retries": 0},
+      "grant": {"vcpu": 16, "memory_gib": 24, "node_hours": 6, "usd": 20, "attempts": 50, "timeout_s": 3600, "concurrent_executions": 1, "automatic_retries": 0},
       "reference_adequacy": "NOT_DEMONSTRATED"
     },
     "f06": {

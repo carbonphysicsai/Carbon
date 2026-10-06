@@ -1,6 +1,6 @@
 # f02 — burst-power thermal envelope, customer round 1
 
-Authority and numeric source: [round-one index](README.md),
+Authority and core numeric sheet: [round-one index](README.md),
 [requirements.json](requirements.json). New transient scope; the original
 Cooling periodic-cell CFD evidence is not its reference.
 
@@ -34,8 +34,13 @@ D={5,10,20} s. No causal future observation is available to the construction.
 split×3 families); nine schedules are actions, not random customer states.
 `P_dev,reference` is uniform over all 216 condition/action pairs. This is an
 experiment law, not deployment frequency. Q is 24 cases, one per stratum using
-110 W/10 s, plus six warm/55 °C/80:20 boundary cases: every family at 80 W/5 s
-and 140 W/20 s. Uniform stratum weights apply only to a later complete decision
+110 W/10 s, plus six warm/55 °C/80:20 boundary cases: every family at80 W/5 s
+and its nearest-limit action under the frozen one-node RC screen. Exclude the
+nominal and low action from the latter; minimize absolute RC-peak distance to
+95 °C, ties by lower peak power then shorter on-time. The screen ignores
+spreading and imbalance. A nearest peak more than5 °C from95 °C is an explicit
+boundary-coverage gap, not a passed near-limit test. Persist this selection
+before Elmer access. Uniform stratum weights apply only to a later complete decision
 comparison; Q diagnostic rows are reported individually without a P estimate.
 
 ## 4. Case contract
@@ -61,7 +66,10 @@ rise); energy residual≤1%. Six boundary cases receive independent mesh- and
 time-halving launches (12 refinements). Require peak shift≤0.5 °C and crossing
 shift≤0.5 s; resolved peak within 1 °C of the limit is decision-unresolved.
 If a crossing exists at one rung but not the other, it is unresolved. Allowance:
-30 primary+4 controls+12 refinements, zero retry; all caps in the sheet apply.
+30 primary+4 controls+12 refinements+4 steady baselines=50 attempts, zero retry;
+node-hour, RAM and spend caps are unchanged. Baselines cover the2 cooling×2
+source-split regimes; initial temperature does not affect this linear steady
+problem. Incomplete checks at any cap remain unresolved.
 
 ## 6. Output and measurement contract
 
@@ -69,8 +77,9 @@ Both patch-center temperatures and top-die spatial maximum at t=0:0.5:120 s,
 plus every source event. Retain internal peak/crossing search, not just sampled
 maxima; report peak and its time, first 95 °C crossing or NOT_REACHED, and
 recovery after the last burst to within 1 °C of the separately computed 20-W
-steady baseline or NOT_RECOVERED. Recovery needs its own steady reference work,
-charged within the attempt cap; omit it as UNRESOLVED if that work cannot fit.
+steady baseline or NOT_RECOVERED. The four baseline attempts are explicitly
+reserved; if they fail or hit the other caps, recovery is UNRESOLVED, not a
+successful recovery claim.
 Energy is the integral of the declared waveform minus base, not peak×D for
 the ramp. Missing reference rows never become favorable feasibility.
 

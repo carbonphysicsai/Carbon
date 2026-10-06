@@ -62,7 +62,13 @@ thickness/padding and simulation duration separately. Require Δcoupling≤0.02,
 No double-counting fiber-coupled power and total upward radiation in energy
 closure. Complex phase is retained diagnostically, not scored. No surrogate
 replaces unresolved full-wave evidence. Every normalization/control/refinement
-launch counts toward36 attempts and the CPU/RAM/$ caps; insufficient memory
+launch counts toward36 attempts and the CPU/RAM/$ caps. At10-nm uniform3D
+spacing, bare minimum/maximum supported dimensions already require about
+573 million/1.20 billion cells before substrate depth, air padding and PML.
+This is a cell-count lower-bound screen, not measured Meep memory. Require a
+deck-specific cell/memory forecast before even reserving a fine rung; the old
+coupler's memory is not transferable. If it cannot fit, this round is coarse
+feasibility only, with fine-rung adequacy unresolved. Insufficient memory
 or time means UNRESOLVED, not permission to skip the fine rung or buy a GPU.
 
 ## 6. Output and measurement contract

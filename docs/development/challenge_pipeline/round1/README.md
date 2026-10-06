@@ -3,7 +3,7 @@
 **Authority:** [OWNER-PORTFOLIO-DEV-ROUND-01](../../../../.agent/decisions/2026-10-06-OWNER-PORTFOLIO-DEV-ROUND-01.md),
 the owner's direct rolling delegation on 2026-10-06. These five hypothetical
 buyers define useful decisions, not five claims of paid customer demand.
-Numbers in [requirements.json](requirements.json) are **selected first-round
+Core limits and grant numbers in [requirements.json](requirements.json) are **selected first-round
 DEVELOPMENT requirements**, not unanswered proposals, measured material laws,
 or production tolerances. Material constants are explicitly synthetic fixtures.
 
@@ -27,13 +27,15 @@ queue, lock it, register Challenges or alter the original three contracts.
 
 | Task | Maximum allocated node-hours | vCPU-hours ceiling | RAM ceiling (GiB) | Solver launches, including failed/refinement/control work | All-in USD cap |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| f02 | 6 | 96 | 24 | 46 | 20 |
+| f02 | 6 | 96 | 24 | 50 | 20 |
 | f06 | 12 | 192 | 256 | 36 | 60 |
 | f08 | 12 | 192 | 24 | 36 | 30 |
 | f13 | 8 | 128 | 24 | 40 | 25 |
 | f17 | 8 | 128 | 32 | 40 | 25 |
-| **Aggregate** | **46** | **736** | one node at a time | **198** | **160** |
+| **Aggregate** | **46** | **736** | one node at a time | **202** | **160** |
 
+The packets complete geometry, observation and sampling conventions not
+encoded in the core numeric sheet; a runnable adapter must bind both.
 These are owner-delegated, non-transferable first feasibility grants, **not
 estimated cost or an enforced runner**. One 16-vCPU CPU allocation, one solver
 process at a time, no GPU, no automatic retries. A solver launch reserves an
@@ -90,6 +92,21 @@ It checks simple dimensional/limiting calculations, not reference adequacy.
 Its output names what it checked and what it cannot establish. Runtime remains
 fail closed (`dispatch_ready:false`); this field is descriptive, not a runner
 authorization token. No code reads this sheet to grant execution authority.
+
+The first screen found a plain structural beam compliance of0.0352 mm/N
+(above the0.03-mm/N target), so ribs must demonstrate their value rather than
+receiving a pass by assumption. Duct mode cutoff is about4.02 kHz, but chamber
+cutoffs lie at1.44–1.83 kHz inside the acoustic band: a1D transfer model cannot
+be presumed adequate. Mixer Re is0.083–0.416 while Pe is833–16667; the principal
+numerical risk is scalar smearing, not turbulent flow. Optical geometry remains
+above180-nm line/space after declared offsets, but10-nm full3D memory feasibility
+is unresolved. These are model-form screens, not results on a physical device.
+
+Read-only review repairs before dispatch: f02 reserves four steady baselines
+and freezes RC-selected near-limit probes; f08 places its second observation
+on solid material and limits complete convergence to a named subset; f13's
+40 launches are controls/preflight only, not a full-band p10 exam; the screen
+refuses increased per-family ceilings even if the aggregate is edited too.
 
 Next: pin f02 geometry/waveform/extraction and solver packaging, controls first,
 under the protocol's stage permission. For the other four, prepare equivalent
