@@ -342,7 +342,9 @@ class Experiment:
         ]
         return unsolved, members
 
-    def evaluate(self):
+    def evaluate(self, references=None):
+        """`references`: a reference map to use instead of `reference_map()`
+        (an opt-in, versioned resolution policy: `reference_policy.overlay`)."""
         unsolved, members = self._missing()
         if unsolved or members:
             raise ExperimentError(
@@ -366,7 +368,7 @@ class Experiment:
         kinds = pn.kinds(self.contract().get("panel", "ev1"))
         results = evaluate(
             self.contract(),
-            self.reference_map(),
+            self.reference_map() if references is None else references,
             bundles,
             self.repository,
             families_by_member={
