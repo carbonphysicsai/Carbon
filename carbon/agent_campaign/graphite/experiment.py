@@ -133,10 +133,19 @@ class Phase3Budget:
     max_pods: int
     challenge_id: str
     tokens_only: bool = False
+    #: A grant's registered token share (`grant_binding.Phase3Grant`,
+    #: OWNER-GRAPHITE-PHASE3-R4-01): the run's model calls get exactly it and
+    #: its pods the rest of the run cap. None: the run cap less the pods.
+    token_share_usd: Decimal | None = None
 
     @property
     def pod_reservation_usd(self):
         return podlib.pod_reservation(self.pod_minutes, self.hourly_usd)
+
+    @property
+    def pods_need_usd(self):
+        """What `max_pods` pods reserve, in whole cents (rounded up)."""
+        return podlib.cents_up(self.max_pods * self.pod_reservation_usd)
 
     @property
     def pays_for_pods(self):
@@ -148,16 +157,22 @@ class Phase3Budget:
     def pod_allowance_usd(self):
         if self.tokens_only:
             return Decimal("0.00")
-        return podlib.cents_up(self.max_pods * self.pod_reservation_usd)
+        if self.token_share_usd is not None:
+            return self.run_cap_usd - self.token_share_usd
+        return self.pods_need_usd
 
     @property
     def token_allowance_usd(self):
+        if self.token_share_usd is not None and not self.tokens_only:
+            return self.token_share_usd
         return self.run_cap_usd - self.pod_allowance_usd
 
     def record(self):
-        # `tokens_only` is recorded only when set, so every other run's
-        # record is unchanged.
+        # `tokens_only` and `token_share_usd` are recorded only when set, so
+        # every other run's record is unchanged.
         extra = {"tokens_only": True} if self.tokens_only else {}
+        if self.token_share_usd is not None:
+            extra["token_share_usd"] = str(self.token_share_usd)
         return {
             **extra,
             "run_cap_usd": str(self.run_cap_usd),
@@ -196,10 +211,20 @@ def phase3_budget(grant, scoring=None, hourly_usd=None):
         max_pods=SESSION_POD_MINUTES // minutes,
         challenge_id=scoring.challenge_id,
         tokens_only=grant_binding.tokens_only(grant),
+        # A registered token share (OWNER-GRAPHITE-PHASE3-R4-01); None for
+        # every other grant, whose budget is exactly as before.
+        token_share_usd=getattr(grant_binding.entry_of(grant), "token_share_usd", None),
     )
     if budget.max_pods < 2 or budget.token_allowance_usd <= 0:
         # A baseline and one proposal, and some tokens, must fit one run.
         raise BudgetRefused("grant_run_cost_cannot_cover_pods_and_tokens")
+    if (
+        budget.token_share_usd is not None
+        and not budget.tokens_only
+        and budget.pod_allowance_usd < budget.pods_need_usd
+    ):
+        # The registered share leaves the session's pods too little.
+        raise BudgetRefused("grant_token_share_leaves_too_little_for_pods")
     return budget
 
 

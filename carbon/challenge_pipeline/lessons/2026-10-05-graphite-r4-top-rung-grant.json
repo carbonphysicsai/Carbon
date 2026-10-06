@@ -1,0 +1,28 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-05-graphite-r4-top-rung-grant",
+ "recorded_at": "2026-10-05T23:30:00Z",
+ "challenge": "protocol",
+ "stage": "protocol",
+ "execution": {
+  "kind": "test_run",
+  "ref": "tests/cpu/test_graphite_phase3_r4_grant.py",
+  "description": "Recorded the owner-approved top-rung grant for battery Level 1+ and wired its start rung, lowest level and token share."
+ },
+ "expected": "Raising the run cost by the approved USD 10 model allowance lets a kimi-k3 Constructor run.",
+ "observed": "A full-window kimi-k3 call reserves USD 2.0646912, more than a Level 0 run's USD 1.95 token share, so a run on the old split would stop before its first call. The token share had to be registered with the grant (USD 11.93, five full reservations) and checked against a real scripted session, not inferred from the run cost. The brief's estimate of about USD 3.30 per call did not match the code's settings.",
+ "keep": [
+  "Derive a model grant from the role's real selection (`roles.MODEL_SETTINGS`) and test a full-window call's admission end to end.",
+  "Bind a model-tier condition to the grant registry so every other grant stays byte-identical."
+ ],
+ "change": [
+  "State a grant's token share explicitly whenever the model rung differs from the one its sibling grant was sized for."
+ ],
+ "protocol_elements": [
+  "grants",
+  "graphite.ladder",
+  "graphite.phase3"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
