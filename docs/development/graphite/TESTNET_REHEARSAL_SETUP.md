@@ -53,15 +53,14 @@ Every host runs the same release tag (§2 of the record).
    (`ANSWER_KEY_OPERATIONS.md` §2), plus the producer's push key.
 3. **A real TLS certificate,** so any validator can verify it without
    pinning:
-   - point a DNS name at it, for example `answer-key.testnet.<your domain>`;
-   - run `sudo certbot certonly --standalone -d <that name>`;
+   - point `answers.carbonphysics.ai` at it (the owner's name);
+   - run `sudo certbot certonly --standalone -d answers.carbonphysics.ai`;
    - copy the certificate and key into `/var/lib/carbon-dist/etc/`, owned by
      `carbon-dist`, mode 0600;
    - add a renewal hook that copies them again and restarts the service.
-4. **The owner's exposure record** (the owner's security call, AGENTS.md
-   §13): a decision heading named `OWNER-ANSWER-KEY-INTAKE-EXPOSURE-01`
-   (the name must end `INTAKE-EXPOSURE-NN`), merged before the release tag
-   the host runs.
+4. **The owner's exposure record:** `OWNER-ANSWER-KEY-INTAKE-EXPOSURE-01`
+   (approved 2026-10-06, `.agent/decisions/`). It must be in the release
+   tag the host runs.
 5. **`dist.json`** (`ANSWER_KEY_OPERATIONS.md` §3):
    - `"host": "0.0.0.0"`, `"port": 443`;
    - `exposure_record`, `tls_cert` and `tls_key`;
@@ -92,7 +91,7 @@ This replaces steps 4–7 of the v2 switch (`BATTERY_VALIDATOR_SERVICE_RUNBOOK.m
    It opens empty (`ROTATION_PENDING`); the first imported window
    activates it.
 3. **The fetch configuration and timer** (`ANSWER_KEY_OPERATIONS.md` §4):
-   - `url`: `https://<the distribution host's name>`;
+   - `url`: `https://answers.carbonphysics.ai`;
    - `receiver`: from Part 2.5;
    - `hotkey`: the validator hotkey, through its signer (`signer_socket`);
    - the pinned `producer_public_key`;
