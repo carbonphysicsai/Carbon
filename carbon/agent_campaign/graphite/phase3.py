@@ -179,7 +179,7 @@ from ..provider import (
 )
 from . import delivery as deliver_
 from . import experiment as ex
-from . import grant_binding, next_level
+from . import grant_binding, model_providers, next_level
 from . import literature as lit
 from . import score_variant as sv
 from . import tools as toolbox
@@ -447,21 +447,35 @@ class Phase3Provider(GraphiteProvider):
             )
         except ex.BudgetRefused as refused:
             raise ProviderUnavailable(refused.code) from None
+        try:
+            on_engy = model_providers.resolve(
+                kwargs.get("model_provider", model_providers.DEFAULT_MODEL_PROVIDER)
+            ).is_default
+        except ValueError:
+            on_engy = False  # refused, typed, by `GraphiteProvider`
+        if adapter_id is None and on_engy:
+            # New Engy sessions open on engy-chat (GRAPHITE-D34); another
+            # provider opens on its own default adapter.
+            adapter_id = ADAPTER
         super().__init__(
             root=root,
             grant=grant,
             model=model,
             miner_tools=miner_tools,
-            # New sessions open on engy-chat (GRAPHITE-D34).
-            adapter_id=ADAPTER if adapter_id is None else adapter_id,
+            adapter_id=adapter_id,
             **kwargs,
         )
         # A grant registering a start model (OWNER-GRAPHITE-PHASE3-R4-01)
         # raises its start roles' ladder to that rung; every other grant
-        # keeps the base ladder, exactly as before.
+        # keeps the base ladder, exactly as before. Only an Engy grant
+        # registers one (its rung is on Engy's ladder).
         start_rungs = grant_binding.start_rungs(grant)
         if start_rungs:
-            self.ladder = Ladder(Path(root) / "ladder", start_rungs=start_rungs)
+            self.ladder = Ladder(
+                Path(root) / self.model_provider.ladder_directory,
+                start_rungs=start_rungs,
+                models=self.model_provider.ladder,
+            )
         self.pods, self.miner_attach = pods, miner_attach
         #: `run_id -> HiddenPool`, or None: each run's hidden-pool scoring
         #: through the real validator (VALIDATOR-13, `hidden_score`).
@@ -1650,6 +1664,17 @@ def command_run(args):
     check_phase3_grant(
         args.grant, grant, challenge=args.challenge, level=getattr(args, "level", 0)
     )
+    # The inference provider this run picked (GRAPHITE-SPUR-PROVIDER-01; Engy
+    # unless named). The grant must name it, and another provider's key is
+    # taken by owner-only file only; both refuse before any key or pod.
+    model_provider = getattr(args, "model_provider", None) or "engy"
+    if model_provider not in model_providers.MODEL_PROVIDERS:
+        raise RunnerRefused(model_providers.UNKNOWN_MODEL_PROVIDER)
+    refused = grant_binding.model_provider_refusal(grant, model_provider)
+    if refused is not None:
+        raise RunnerRefused(refused)
+    if model_provider != "engy" and args.credential_file is None:
+        raise RunnerRefused("model_provider_key_by_file_only")
     if args.miner_profile is None or args.miner_campaign is None:
         raise RunnerRefused("the_real_miner_path_needs_a_miner_profile_and_campaign")
     if args.literature_snapshot is None:
@@ -1703,7 +1728,12 @@ def command_run(args):
         else:
             hidden = None
         try:
-            model = LiveModel(grant=grant, credential_file=engy, provider="graphite")
+            model = LiveModel(
+                grant=grant,
+                credential_file=engy,
+                provider="graphite",
+                model_provider=model_provider,
+            )
         except ModelAccessRefused as refused:
             raise RunnerRefused(refused.code) from None
         if compute == "runpod":
@@ -1734,6 +1764,7 @@ def command_run(args):
             scoring=scoring,
             score_variant=scored,
             hidden=hidden,
+            model_provider=model_provider,
         )
         try:
             check_resume(provider, args.session)
@@ -2535,6 +2566,14 @@ def main(argv=None):
         "--credential-env",
         help="kept for older launchers: ENGY_API_KEY, copied to a 0600 file "
         "removed on exit; prefer --credential-file",
+    )
+    run.add_argument(
+        "--model-provider",
+        choices=tuple(model_providers.MODEL_PROVIDERS),
+        default=model_providers.DEFAULT_MODEL_PROVIDER,
+        help="the inference provider this run pays (default engy); the grant "
+        "must name it, and spur takes its key by --credential-file only "
+        "(expected ~/.config/carbon/spur-api-key, mode 0600)",
     )
     runpod = run.add_mutually_exclusive_group()
     runpod.add_argument("--runpod-key-file")
