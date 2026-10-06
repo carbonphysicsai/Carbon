@@ -3,7 +3,6 @@
 import re
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 PACKET_DIR = ROOT / "docs" / "development" / "challenge_pipeline"
 TEMPLATE = PACKET_DIR / "COMMON_DESIGN_PACKET_V1.md"
