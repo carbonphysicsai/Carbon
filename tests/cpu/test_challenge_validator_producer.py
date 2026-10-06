@@ -112,11 +112,16 @@ def test_the_public_record_names_no_case(tmp_path, producer, source):
     fingerprint = drawn(producer, source)["fingerprint"]
     producer.solve(source.challenge_id, fingerprint)
     producer.seal(source.challenge_id, fingerprint)
-    jobs = json.loads(next((tmp_path / "producer" / "work").rglob("jobs.json")).read_text())
+    jobs = json.loads(
+        next((tmp_path / "producer" / "work").rglob("jobs.json")).read_text()
+    )
     case_ids = [job["case_id"] for job in jobs["jobs"]]
     public = [
         (tmp_path / "producer" / "journal.jsonl").read_text(),
-        *(p.read_text() for p in (tmp_path / "producer" / "commitments").rglob("*.json")),
+        *(
+            p.read_text()
+            for p in (tmp_path / "producer" / "commitments").rglob("*.json")
+        ),
     ]
     for text in public:
         assert "inputs" not in text
