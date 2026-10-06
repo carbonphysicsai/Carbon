@@ -66,10 +66,18 @@ data; Carbon re-checks each one outside the agent:
    `AGREED_ADMISSIBLE`.
 
 Versions. `carbon.attack.verdict.v1` records carry five outcomes; v2 adds
-`AGREED_ADMISSIBLE` and reads an advisory exposure as a finding. A v1 record
+`AGREED_ADMISSIBLE` and reads an advisory exposure as a finding; v3 keeps
+v2's outcomes and rules and adds `artifact` (below). A v1 record
 keeps its meaning (invariant 10): its `UNDETERMINED` stays `UNDETERMINED`
 and is never re-read as agreed, and a v1 advisory usability record stays a
 usability record, never re-read as a finding (`outcome_of`).
+
+**Identity (OWNER-GRAPHITE-TEST-WAVE-04 §1).** A verdict on a construction
+Carbon rebuilt carries its `artifact`: the rebuilt artifact's identity
+(`attack.identity.artifact_of`). Every distinct count downstream (the report,
+B2, the knowledge store) keys on it. A verdict with no rebuilt construction
+has none. `evidence["construction"]`, the digest of the construction as
+written, is a diagnostic only.
 
 Findings use only the admission `CONDITIONS` vocabulary; a verdict with any
 other condition cannot be constructed. `record` puts each on the campaign
@@ -84,13 +92,17 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from carbon.agent_campaign.attack import analysis
+from carbon.agent_campaign.attack import analysis, identity
 from carbon.challenge_readiness.admission import CONDITIONS
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
 
 #: v2: the `AGREED_ADMISSIBLE` outcome (module docstring, step 8).
-SCHEMA = "carbon.attack.verdict.v2"
+#: v3: v2's outcomes, plus `artifact`, the rebuilt artifact's identity
+#: (OWNER-GRAPHITE-TEST-WAVE-04 §1), on every verdict on a construction Carbon
+#: rebuilt. A v2 record has no `artifact` and keeps its meaning.
+SCHEMA = "carbon.attack.verdict.v3"
+SCHEMA_V2 = "carbon.attack.verdict.v2"
 SCHEMA_V1 = "carbon.attack.verdict.v1"
 FINDING_SCHEMA = "carbon.attack.finding.v1"
 REBUILT, UNREBUILDABLE, NO_CONSTRUCTION = "REBUILT", "UNREBUILDABLE", "NO_CONSTRUCTION"
@@ -103,7 +115,7 @@ AGREED_ADMISSIBLE_REASON = "advisory_and_authoritative_agree_admissible"
 OUTCOMES_V1 = frozenset({HELD, BREACHED, UNDETERMINED, INFRA, NOT_APPLICABLE})
 OUTCOMES = OUTCOMES_V1 | {AGREED_ADMISSIBLE}
 #: Each verdict schema's outcome vocabulary: a record is read under its own.
-OUTCOMES_BY_SCHEMA = {SCHEMA_V1: OUTCOMES_V1, SCHEMA: OUTCOMES}
+OUTCOMES_BY_SCHEMA = {SCHEMA_V1: OUTCOMES_V1, SCHEMA_V2: OUTCOMES, SCHEMA: OUTCOMES}
 #: Outcomes that close an attempt as nothing to judge, never a hold or a pass.
 CLOSED_UNJUDGED = frozenset({NOT_APPLICABLE, AGREED_ADMISSIBLE})
 REBUILDS = frozenset({REBUILT, UNREBUILDABLE, NO_CONSTRUCTION})
@@ -173,10 +185,21 @@ class Verdict:
     #: An advisory tool that accepted what Carbon's own boundary refuses: a
     #: usability record (`{attempt, operation, kind, reason}`), never a finding.
     usability: dict | None = field(default=None, compare=False)
+    #: The rebuilt artifact's identity (`identity.artifact_of`); None when
+    #: Carbon rebuilt no construction for this attempt.
+    artifact: str | None = None
 
     def __post_init__(self):
         if self.outcome not in OUTCOMES or self.rebuild not in REBUILDS:
             raise ValueError("verdict_outcome_or_rebuild_unknown")
+        if self.artifact is not None and (
+            self.rebuild != REBUILT
+            or not (
+                isinstance(self.artifact, str) and self.artifact.startswith("sha256:")
+            )
+        ):
+            # Only a construction Carbon rebuilt has an artifact.
+            raise ValueError("verdict_artifact_needs_a_rebuilt_construction")
         check_conditions(self.conditions)
         if self.conditions and self.outcome != BREACHED:
             raise ValueError("verdict_condition_without_a_breach")
@@ -222,6 +245,7 @@ class Verdict:
             "evidence": dict(self.evidence),
             "specimen": self.specimen,
             "usability": self.usability,
+            "artifact": self.artifact,
         }
 
 
@@ -316,6 +340,47 @@ def _issues(value):
 def _construction(adapter, attempt):
     own = getattr(adapter, "construction", None)
     return own(attempt) if callable(own) else analysis.construction(attempt)
+
+
+def rebuild_artifact(attempt, adapter):
+    """Carbon's own rebuild of an attempt's construction and its artifact
+    identity, with no family, authority or oracle judgement. For Carbon's own
+    harnesses (the copy probe, `identity.counts`), never for a session
+    attempt: `verify` judges those, and its UNASSIGNED guard runs before any
+    rebuild (GRAPHITE-ATTACKER-ORACLE-AUTHORITY-01 §6).
+
+    Returns `{rebuild, unrebuildable, artifact, refused_by, evidence}`: a
+    rebuilt construction has its artifact; an unrebuildable one its code; no
+    construction, or a rebuild that crashed, NO_CONSTRUCTION. Never a
+    verdict."""
+    evidence = {"intent": attempt.intent_digest, "result": attempt.result_digest}
+    out = {
+        "rebuild": NO_CONSTRUCTION,
+        "unrebuildable": None,
+        "artifact": None,
+        "refused_by": None,
+        "evidence": evidence,
+    }
+    construction = _construction(adapter, attempt)
+    if construction is None:
+        return out
+    evidence["construction"] = _digest_of(construction)
+    try:
+        rebuilt, record, code, _ = _rebuild(adapter, construction)
+        artifact = (
+            None if code is not None else identity.artifact_of(adapter, rebuilt, record)
+        )
+    except Exception as crashed:  # noqa: BLE001 - Carbon failed: no identity
+        evidence["crashed"] = type(crashed).__name__
+        return out
+    if code is not None:
+        out.update(
+            rebuild=UNREBUILDABLE, unrebuildable=code, refused_by=attempt.refused_by
+        )
+        return out
+    evidence["rebuilt"] = _digest_of(record)
+    out.update(rebuild=REBUILT, artifact=artifact)
+    return out
 
 
 def _pod_built(pods, attempt):
@@ -594,6 +659,8 @@ def verify(
     family = family or analysis.family_of(attempt, adapter)
     evidence = {"intent": attempt.intent_digest, "result": attempt.result_digest}
     authority = None
+    # The rebuilt artifact's identity, once Carbon has rebuilt one.
+    rebuilt_as = {"artifact": None}
 
     def verdict(outcome, rebuild=NO_CONSTRUCTION, conditions=(), **rest):
         rest.setdefault("authority", authority)
@@ -604,6 +671,7 @@ def verify(
             outcome=outcome,
             conditions=tuple(conditions),
             evidence=evidence,
+            artifact=rebuilt_as["artifact"] if rebuild == REBUILT else None,
             **rest,
         )
 
@@ -658,9 +726,12 @@ def verify(
     rebuild = NO_CONSTRUCTION
     construction = _construction(adapter, attempt)
     if construction is not None:
+        # The construction as written: a diagnostic, never a count key (§1).
         evidence["construction"] = _digest_of(construction)
         try:
             rebuilt, record, code, issues = _rebuild(adapter, construction)
+            if code is None:
+                rebuilt_as["artifact"] = identity.artifact_of(adapter, rebuilt, record)
         except Exception as crashed:  # noqa: BLE001 - Carbon failed: never a pass
             return verdict(INFRA, reason="rebuild_crashed:" + type(crashed).__name__)
         if code is not None:
@@ -756,7 +827,13 @@ def verify(
     specimen = None
     if outcome == BREACHED and rebuild == REBUILT and specimen_dir is not None:
         specimen = _specimen(
-            adapter, attempt, family, construction, record, specimen_dir
+            adapter,
+            attempt,
+            family,
+            construction,
+            record,
+            specimen_dir,
+            artifact=rebuilt_as["artifact"],
         )
         if (
             specimen["status"] == "REBUILD_MISMATCH"
@@ -814,14 +891,22 @@ def _unrebuildable(verdict, attempt, code, issues, evidence, advisory=False):
 
 
 # -- specimens ------------------------------------------------------------------------------
-def _specimen(adapter, attempt, family, construction, record, directory):
+def _specimen(adapter, attempt, family, construction, record, directory, *, artifact):
     """Bundle a breached attempt's construction and re-check it from the
     bundle alone. `REBUILD_MISMATCH` is a finding; a bundle Carbon could not
-    write or check is reported, never a pass."""
+    write or check is reported, never a pass.
+
+    The folder is keyed by the family and the rebuilt artifact
+    (OWNER-GRAPHITE-TEST-WAVE-04 §1), never by the attempt's journal
+    identity, which names a different attempt in every session sharing the
+    specimen directory. One artifact has one specimen: a later breach of
+    the same artifact (a reworded copy, or the same construction in another
+    session) re-checks the bundle already there (`reused`)."""
     from carbon.agent_campaign.attack import knowledge
 
-    key = digest((family + "/" + attempt.identity).encode())[7:23]
+    key = digest(canonical({"family": family, "artifact": artifact}))[7:23]
     folder = Path(directory) / ("specimen-" + key)
+    reused = (folder / "manifest.json").is_file()
     # The store's material rule (registered sealed identities and protected
     # markers), not the checkout deny list: a breach that names an attack
     # target such as a `.env` path keeps its specimen, bundled operator-side.
@@ -829,9 +914,10 @@ def _specimen(adapter, attempt, family, construction, record, directory):
         return {"status": "NOT_BUNDLED", "reason": "protected_material", "folder": None}
     try:
         bundle = getattr(adapter, "bundle_specimen", None)
-        if callable(bundle):
+        # A reused folder is this artifact's specimen already: re-checked only.
+        if not reused and callable(bundle):
             bundle(construction, record, folder)
-        else:
+        elif not reused:
             bundle_specimen(construction, record, folder, label=attempt.identity)
         check = getattr(adapter, "clean_rebuild", None)
         if not callable(check):
@@ -847,6 +933,7 @@ def _specimen(adapter, attempt, family, construction, record, directory):
         "status": result.get("status"),
         "differences": list(result.get("differences") or []),
         "folder": str(folder),
+        "reused": reused,
     }
 
 
@@ -893,6 +980,8 @@ def bundle_specimen(construction, record, folder, *, label):
         "contract_digest": record["contract_digest"],
         "record_sequence": record["record_sequence"],
         "recipe_digest": record["recipe_digest"],
+        # What the specimen builds (§1): the bundle's identity.
+        "artifact": identity.build_identity(record),
         "authority_granted": False,
         "official_eligible": False,
     }

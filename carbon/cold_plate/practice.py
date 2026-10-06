@@ -22,7 +22,10 @@ from .challenge import (
 )
 from .contracts import canonical
 
-FEEDBACK_SCHEMA = "carbon.cold-plate.practice-feedback.v1"
+#: v2 (PRACTICE-SAFETY-01) adds the feedback-only `safety` block; nothing
+#: else changes. A v1 result keeps its meaning: it never carried the block.
+FEEDBACK_SCHEMA = "carbon.cold-plate.practice-feedback.v2"
+FEEDBACK_SCHEMA_V1 = "carbon.cold-plate.practice-feedback.v1"
 PROVENANCE = "COLD_PLATE_PUBLIC_PRACTICE"
 STAGED_MODULES = {
     "learned-baseline.py": "../learned_baseline.py",
@@ -117,9 +120,12 @@ def score_practice(predictions, practice, material):
     return rows, exam.aggregate(rows)
 
 
-def feedback(summary, fit, *, recipe, backend, worker):
-    return {
-        "schema": FEEDBACK_SCHEMA,
+def feedback(summary, fit, *, recipe, backend, worker, safety=None):
+    """The public practice feedback. With `safety` (`practice_safety.safety`),
+    the v2 shape: the same fields plus the feedback-only safety block.
+    Without it, exactly the v1 shape."""
+    out = {
+        "schema": FEEDBACK_SCHEMA if safety is not None else FEEDBACK_SCHEMA_V1,
         "provenance": PROVENANCE,
         "challenge": recipe.document()["challenge"],
         "recipe_digest": recipe.recipe_digest,
@@ -133,6 +139,9 @@ def feedback(summary, fit, *, recipe, backend, worker):
         "official_eligible": False,
         "scientific_qualification": False,
     }
+    if safety is not None:
+        out["safety"] = safety
+    return out
 
 
 def material_paths():
