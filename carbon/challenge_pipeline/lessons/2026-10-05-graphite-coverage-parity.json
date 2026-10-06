@@ -1,0 +1,28 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-05-graphite-coverage-parity",
+ "recorded_at": "2026-10-05T18:00:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": ".agent/decisions/2026-10-05-GRAPHITE-COVERAGE-PARITY-01.md; branch claude/fault-coverage-parity, stacked on claude/cooling-selective-crash (#602)",
+  "description": "Built the Test Lead's items 2-4 after the selective-crash probe: Graphite records no longer headline an ineligible set's soft score (v2 records, v1 read as written); a missing prediction is a schema-gate failure on battery's Graphite rule and refused by battery's validator; battery's Level 0 adapter gained selective_fault and prediction_omission run through both real paths, with mutations per host."
+ },
+ "expected": "Every host would charge a missing prediction and the omission probes would hold on both Challenges.",
+ "observed": "Battery holds on every probe and host. Cooling's two hosts were not changed: the edit to the cooling scoring adapter was refused as a shared-resource change, so cooling's missing_prediction_attribution seam stays open pending its owners, and the record-level attribution hook was likewise not built. Battery's validator already refused an absent case; a null one was the hole.",
+ "keep": [
+  "Put a coverage rule in one shared helper whose empty prediction fails the Challenge's own schema gate, so no exam or science module changes and track_a's byte pin holds.",
+  "Version a record whose meaning changes and read old versions through one helper, never by rewriting them.",
+  "Memoise only a deterministic step the probe does not test when a real path is too slow to run per attack, and say so."
+ ],
+ "change": [
+  "Coverage edits in files another session owns need that owner or the owner's permission first; plan those hunks as notes, not edits.",
+  "Motor gets both probes once its scorer exists."
+ ],
+ "protocol_elements": [
+  "graphite.attacker"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

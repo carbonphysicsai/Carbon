@@ -1,0 +1,8 @@
+{
+  "schema": "carbon.graphite.literature-profile-registry.v1",
+  "profiles": {
+    "chip-cold-plate": "sha256:47b2f7fa39fac413e79214e792f5d268d1e83473c607d2be3be7dafa990098d1",
+    "electric-motor-magnetics": "sha256:c85f946743ced417291b3f87fe27356f450d1b1774cae55fa39073384ff75c96"
+  },
+  "rule": "A Challenge's literature profile is a registered document here, pinned by digest. Battery's literature is the phase-2 v1 pipeline and has no profile. A change is a new profile version, never an edit to code."
+}

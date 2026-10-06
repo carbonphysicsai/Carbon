@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-motor-scoring-quality-diagnostics",
+  "recorded_at": "2026-10-05T15:45:00Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-MOTOR-05 quality diagnostics", "description": "Ran the repository quality gate with git and ruff available from an isolated Linux copy."},
+  "expected": "No new formatting or import diagnostics.",
+  "observed": "The gate found three import-order diagnostics and five Black formatting entries in touched files. The isolated copy's worktree metadata caused a broad changed-file inventory, but the reported actionable diagnostics were confined to the ticket's edits.",
+  "keep": ["Use the quality report to repair concrete source issues."],
+  "change": ["Format the touched files, then rerun focused tests and quality checks."],
+  "protocol_elements": ["changed-file quality", "mechanical formatting only"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

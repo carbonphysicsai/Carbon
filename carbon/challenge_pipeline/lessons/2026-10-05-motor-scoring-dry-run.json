@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-motor-scoring-dry-run",
+  "recorded_at": "2026-10-05T15:39:00Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-MOTOR-05 synthetic Graphite dry run", "description": "Ran five focused Motor scorer tests including Graphite's synthetic end-to-end construction, score, compare and rebuild path."},
+  "expected": "The named Motor adapter can complete the public-practice dry run without pod spend.",
+  "observed": "Five tests passed. The synthetic Graphite path reported a succeeded provider, clean rebuild, and OK real-pod-path fixture; no real pod was launched.",
+  "keep": ["Keep the fixture labelled synthetic and nonpromotable.", "Bind host and pod records by digest."],
+  "change": ["The next step is canonical acceptance and PR delivery, not private or paid evaluation."],
+  "protocol_elements": ["public practice isolation", "rebuild custody", "no qualification from fixture"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

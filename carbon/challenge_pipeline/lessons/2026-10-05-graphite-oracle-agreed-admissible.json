@@ -1,0 +1,30 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-graphite-oracle-agreed-admissible",
+  "recorded_at": "2026-10-05T00:00:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "coverage_run",
+    "ref": ".agent/decisions/2026-10-05-GRAPHITE-ORACLE-AGREED-ADMISSIBLE-01.md (re-judge of phase-4 Attacker session 1 on a read-only copy)",
+    "description": "Added the AGREED_ADMISSIBLE oracle outcome so an advisory tool and Carbon's authoritative chain agreeing on a valid, in-contract design can close, and re-judged session 1."
+  },
+  "expected": "Once the oracle stopped reading advisory acceptance as a breach, a valid design that check_design and the authoritative chain both accept would close.",
+  "observed": "The family's detector does not fire on a valid design, so the oracle read the agreement INCONCLUSIVE and verify recorded UNDETERMINED (oracle_inconclusive); session 1 attempts 007-01 and 014-01 could never close. With the new outcome only those two changed on re-judge (UNDETERMINED to AGREED_ADMISSIBLE); zero findings before and after.",
+  "keep": [
+    "Give a clean agreement its own explicit, versioned outcome rather than folding it into HELD or leaving it UNDETERMINED: an agreement is not evidence that a defense held.",
+    "Guard the outcome on Carbon's own full authoritative chain AND the level contract, on the same rebuilt construction, and never let it apply beside a breach, a usability record, a canary or isolation hit, or an authoritative refusal.",
+    "Bump the verdict and report schema versions when the outcome vocabulary grows, and read each record under its own version so earlier re-judge reports keep their meaning."
+  ],
+  "change": [
+    "Each guard of a new oracle outcome needs its own mutation test against a stub adapter, because the real adapter's oracle already refuses most failing cases and would mask a missing guard.",
+    "A tool's authority class decides only whether its acceptance is a breach: an exposure of protected material from an advisory tool is an OTHER_SIGNAL finding, never a usability record (Test Lead ruling, matching AT-C 3/14)."
+  ],
+  "protocol_elements": [
+    "attack.verify.agreed-admissible",
+    "attack.adapters.battery.agreement",
+    "attack.report.agreed-admissible-count"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

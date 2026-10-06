@@ -16,6 +16,44 @@
    "planned": 120,
    "reason": "the 4 hidden duplicates test prediction consistency; they reuse their original's reference solve, as the validator does",
    "ruling": "Test Lead, 2026-10-05, EV5-RUN-01 item 12"
+  },
+  {
+   "decision": "OWNER-EV5-GPU-01",
+   "detail": "the owner lifted the A40-at-USD-0.49 rule ('cheapest GPU that works, regardless of cost'); pods drew from A40, L4, RTX 3090, RTX 4090, RTX 6000 Ada, L40S, A100 at <= USD 1.59/h, cheapest first; the campaign cap was amended in the ledger",
+   "item": "compute route",
+   "pods": {
+    "1cbnzgrygbbjo8": "optimizer verify shard 0, NVIDIA A40",
+    "3zl9q49271y5tu": "value_refs, NVIDIA A40",
+    "cwkaxla5efry5d": "value_refs, NVIDIA A40",
+    "czcbghl963ag0w": "optimizer verify shard 2, NVIDIA L4",
+    "qiz2pysk35ae0l": "optimizer verify shard 1, NVIDIA L4",
+    "rrkp58prx1mqm6": "duplicate optimizer shard 2 from an operator retry loop (USD 0.74/h class); terminated after about 1 min; never fetched or imported",
+    "w3rn8xx192ptm8": "value_panel, NVIDIA A40, failed at start (FileNotFoundError, see below); fetched, terminated, unused",
+    "xckrevt23888mf": "value_panel, NVIDIA A40"
+   }
+  },
+  {
+   "decision": "OWNER-EV5-GPU-01",
+   "detail": "the frozen plans' whole-carbon ship (1017 files) made RunPod's create request fail with HTTP 500; pods shipped the static import closure of the pod phases (410 modules, their packages' data, scripts/dev/exam_design; 502-507 files), each hash-pinned at the run ref; import-checked offline before dispatch",
+   "item": "shipped code set"
+  },
+  {
+   "decision": "OWNER-EV5-GPU-01",
+   "detail": "ev5.optimizer_spec reads docs/development/evidence/sr-ev4-2026-10-02/sr2/results.json, which the frozen panel plan never shipped; added to the shipped list; would have failed with the whole-carbon ship too",
+   "item": "panel plan missing input"
+  },
+  {
+   "detail": "optimizer verification plans committed after selection at 94211d1dc0cb7a0f45ab350c79f97b33764e7523 (plans only); `ev5_run verify` passes there, 1017/1017 files; diff from c9c27a63: optimizer-jobs.json and three shard plans only",
+   "item": "optimizer plans ref",
+   "ruling": "Test Lead, 2026-10-05"
+  },
+  {
+   "checkout_head": "c9c27a639f51fff6e7d428f4b7e46ee0e95fce87",
+   "detail": "CI's service lane was skipped at c9c27a63 (run 37328226257, path classifier; ci.yml has no manual dispatch). tests/service/test_battery_track_a_service.py was run on the operator host at the exact c9c27a63 checkout with CI's own lane scripts (c03_worker_image.sh, c03_worker_service.sh): 2 passed",
+   "item": "worker-boundary scan evidence source",
+   "output_sha256": "d5709d56c1d21f842fe8c4e4dbf30112323e5884df87c59c9bb9edcbce6e7b88",
+   "ruling": "Test Lead, 2026-10-05: ruling 11's evidence source amended to (d), decided before the scan's result",
+   "worker_image_id": "sha256:427997a044bc6fd04c46d4261bcabc7078733a66b702a686503bfa2498fe0b6f"
   }
  ],
  "execution": "EV5 runs from a checkout of the exact approved head commit of the PR that adds this record, never from a later main; every analysis and confirmation output records that commit (git rev-parse HEAD), and the worker-boundary CI result counts only at that commit",

@@ -65,6 +65,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from carbon.challenge_registry import ResolutionError, resolve
+from carbon.challenge_validator.scoring import COVERAGE_RULE
 from carbon.reconstruction.capability_registry import (
     DEVELOPMENT_VARIANT_NOT_SERVED,
     is_development_variant,
@@ -106,6 +107,40 @@ def _digest(value):
 
 def rule_digest(rule=RULE):
     return _digest(rule)
+
+
+def incomplete(predictions, asked):
+    """Whether a worker's predictions fail to cover the cases it was asked
+    for: a case absent, an extra case, or a case given no prediction (None).
+    Each is the candidate's (`prediction_cases_differ`, candidate-charged),
+    never FAILED_INFRA and never excluded from the score
+    (GRAPHITE-COVERAGE-PARITY-01; Track A: a partial artifact is never graded
+    as valid). Before that ruling a case given None passed this check and was
+    typed FAILED_INFRA by `exam.evaluate`, so it was excluded."""
+    if type(predictions) is not dict or set(predictions) != set(asked):
+        return True
+    return any(predictions[case] is None for case in asked)
+
+
+#: The coverage rule's identity, recorded on every submission binding, refusal
+#: and score record this validator writes from GRAPHITE-COVERAGE-PARITY-01 on,
+#: and so on every miner outcome derived from them (`coverage_rule`). It
+#: changes outcomes (`incomplete`) without changing `RULE` or `rule_digest`,
+#: which the deployment's seed pin fixes, so each record says which typing
+#: made it. A record without it was typed before the ruling: read as written.
+COVERAGE_IDENTITY = {
+    "name": COVERAGE_RULE,
+    "digest": _digest({"coverage_rule": COVERAGE_RULE, "check": "daemon.incomplete"}),
+}
+
+
+def coverage_rule_of(row):
+    """The coverage rule a stored submission row was typed under, or None
+    for a row written before it (absent field)."""
+    for part in (row.get("binding"), row.get("failure")):
+        if isinstance(part, dict) and part.get("coverage_rule") is not None:
+            return part["coverage_rule"]
+    return None
 
 
 def commitment_digest(challenge, contract_digest, strategy_hash):
@@ -457,7 +492,11 @@ class BatteryValidator:
         def refuse(code, issues=()):
             row = self.store.refuse(
                 submission_id,
-                failure={"code": code, "issues": list(issues)},
+                failure={
+                    "code": code,
+                    "issues": list(issues),
+                    "coverage_rule": dict(COVERAGE_IDENTITY),
+                },
                 **base,
             )
             return self.outcome(row["submission_id"])
@@ -538,6 +577,7 @@ class BatteryValidator:
             "commitment": commitment,
             "receipt": submission.receipt,
             "attempt": 0,
+            "coverage_rule": dict(COVERAGE_IDENTITY),
         }
         window = None
         block = (submission.receipt or {}).get("block")
@@ -621,7 +661,7 @@ class BatteryValidator:
             predictions = self.backend.infer(
                 f"inf-{model_id}-{tag}", state["state"], {c: inputs[c] for c in missing}
             )
-            if set(predictions) != set(missing):
+            if incomplete(predictions, missing):
                 raise WorkerFailure("prediction_cases_differ", candidate=True)
             self.store.store_predictions(model_id, predictions)
             have.update(predictions)
@@ -757,6 +797,7 @@ class BatteryValidator:
             "active_batches": list(pool["active"]),
             "references": self._reference_identity(pool["active"]),
             "rule_digest": rule_digest(self.rule),
+            "coverage_rule": dict(COVERAGE_IDENTITY),
             **agg,
         }
         if inc_rec is not None and inc_rec["score"] is None:
@@ -1087,11 +1128,65 @@ class BatteryValidator:
                 }
                 for f in finals
             ]
+        coverage = coverage_rule_of(row)
+        if coverage is not None:
+            # Absent on a row typed before GRAPHITE-COVERAGE-PARITY-01.
+            out["coverage_rule"] = coverage
         if set(out) - set(EVALUATION_FEEDBACK_FIELDS) or set(
             out.get("screening", {})
         ) - set(SCREENING_FEEDBACK_FIELDS):
             raise RuntimeError("outcome field outside the disclosure allow-list")
         return out
+
+    def fresh_rerun(self, submission_id):
+        """Score a screened submission's retained model once on a fresh hidden
+        batch (VALIDATOR-13, `fresh_cases_rerun`): a prepared finalist batch no
+        result has used, consumed by this rerun and never scored again.
+        Operator-only; nothing here reaches a miner outcome.
+
+        One rerun per submission, idempotent: a replay returns the recorded
+        result. Returns `{"state": "WAITING_FOR_FRESH_SET"}` when no batch is
+        ready and `{"state": "FAILED_INFRA", ...}` for an infrastructure
+        failure, which is retried on the same batch. A candidate's own
+        inference failure is recorded, never inferred over.
+        """
+        rerun_id = "rerun-" + submission_id
+        done = self.store.rerun(rerun_id)
+        if done is not None:
+            return done
+        if self.store.score(submission_id) is None:
+            raise StateError("rerun_not_scored", submission_id)
+        fingerprint = self.store.claim_rerun_set(rerun_id)
+        if fingerprint is None:
+            return {"state": "WAITING_FOR_FRESH_SET"}
+        inputs = self.store.case_inputs([fingerprint])
+        ids = [c["case_id"] for c in self.store.batch(fingerprint)["document"]["cases"]]
+        try:
+            predictions = self._infer(submission_id, ids, inputs, rerun_id)
+        except WorkerFailure as failure:
+            if not failure.candidate:
+                return {"state": "FAILED_INFRA", "code": failure.code}
+            return self.store.record_rerun(
+                rerun_id,
+                {
+                    "state": "CANDIDATE_FAILED",
+                    "submission_id": submission_id,
+                    "code": failure.code,
+                },
+            )
+        _rows, aggregate = exam.evaluate(
+            predictions, ids, self._case_store([fingerprint])
+        )
+        return self.store.record_rerun(
+            rerun_id,
+            {
+                "state": "SCORED",
+                "submission_id": submission_id,
+                "rule_digest": rule_digest(self.rule),
+                "references": self._reference_identity([fingerprint]),
+                "aggregate": aggregate,
+            },
+        )
 
     def _finals_for(self, submission_id):
         with self.store.db() as db:
