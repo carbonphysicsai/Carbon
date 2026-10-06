@@ -7,6 +7,16 @@
    "tests": {
     "P7": [
      "tests/cpu/test_challenge_validator_boundary_consistency.py"
+    ],
+    "H1": [
+     "tests/cpu/test_graphite_hidden_score.py::test_a_scored_submission_shows_only_the_miner_outcome",
+     "tests/cpu/test_graphite_hidden_score.py::test_only_a_writable_battery_validator_is_served",
+     "tests/cpu/test_graphite_hidden_score.py::test_one_hidden_score_per_tempo_and_the_baseline_has_its_own_window"
+    ],
+    "H3": [
+     "tests/cpu/test_graphite_hidden_score.py::test_the_agent_feedback_is_identical_whatever_the_hidden_pool_says",
+     "tests/cpu/test_graphite_hidden_score.py::test_a_rule_that_discloses_hidden_results_is_refused",
+     "tests/cpu/test_graphite_hidden_score.py::test_the_hidden_deployment_refuses_reserved_and_sealed_roles"
     ]
    },
    "grants": {
@@ -15,7 +25,14 @@
   },
   "chip-cold-plate": {
    "validator_adapter": "carbon.challenge_validator.cooling:CoolingAdapter",
-   "tests": {}
+   "tests": {
+    "P7": [
+     "tests/cpu/test_challenge_validator_boundary_consistency_cooling.py"
+    ]
+   },
+   "grants": {
+    "phase4": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4-COOLING.json"
+   }
   },
   "electric-motor-magnetics": {
    "tests": {}
