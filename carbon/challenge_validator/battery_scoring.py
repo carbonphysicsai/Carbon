@@ -101,6 +101,9 @@ class BatteryScoring(ChallengeScoring):
         EVIDENCE + "/refs-a-part2/out/records.jsonl",
     )
     wrong_challenge_code = "not_the_battery_development_challenge"
+    #: The score-tuning legs a development score variant may weight: the one
+    #: candidate definition, `carbon.battery.value.score_tuning.LEGS`.
+    declared_score_components = ("a", "r", "g", "m", "n", "p")
     construction_objective = (
         "Propose battery TrainingStrategy recipes that beat the baseline under "
         "Carbon's frozen rule on public PRACTICE. Carbon runs, scores and "
