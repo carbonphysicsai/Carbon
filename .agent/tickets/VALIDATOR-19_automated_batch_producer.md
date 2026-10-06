@@ -151,11 +151,24 @@ Design only.
 
 > Yes make the quiz questions maximally effective.
 
-**What.** Every hidden batch carries a hidden, rotating set of near-limit
-"quiz" cases. G-FEAS and G-PLATE are computed on them, and the gate runs in
-screening.
+**What.** Every hidden batch carries a hidden, rotating quiz, and the gate
+runs in screening.
 
-1. **The quiz stratum** (producer, after S1).
+**The quiz type is open** (the Test Lead, 2026-10-06). Data Collection is
+comparing two registered types:
+- **Q2, per case:** near-limit cases scored by G-FEAS and G-PLATE.
+- **Q3, decision level:** hidden design scenarios. The validator runs a fixed,
+  registered optimizer and checks its pick against each scenario's pre-solved
+  reference grid, which every validator shares. This would catch EV5's
+  Track A constructions, which fail only at the decision level (#686).
+
+The producer is built to emit both near-limit cases and pre-solved scenario
+grids. The type is chosen from that comparison, and the text below names Q2
+only as one instance.
+
+1. **The quiz stratum** (producer, after S1; Q2 shown, and Q3's
+   scenario grids are produced the same way: drawn, solved once, sealed,
+   shared).
    - The producer oversamples from the registered population and solves once.
    - It keeps the cases whose reference lies within a margin of a
      feasibility or plating limit, on both sides, so false-feasible and
