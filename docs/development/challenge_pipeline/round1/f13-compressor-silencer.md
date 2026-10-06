@@ -34,6 +34,12 @@ extra target weight; w is frequency interval width /2000 Hz. Do not overweight
 an adaptively refined resonance by counting its nodes equally. No random-trial
 reliability interpretation for a frequency curve.
 
+The three diagnostic geometries use both chamber radii55/62.5/70 mm and
+lengths40/75/110 mm, neck lengths10/30/50 mm and offsets0/12.5/25 mm respectively;
+neck radius remains20 mm. Controls are outside that design-input law. The
+runner must publish its exact sparse panel/control allocation before reference
+access; missing full-band evidence remains explicit, not a reconstructed p10.
+
 ## 4. Case contract
 
 Validate3D geometry, neck clearance, positive volumes and total≤300-mm length.

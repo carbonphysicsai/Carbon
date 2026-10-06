@@ -1,6 +1,6 @@
 # CHALLENGE-PORTFOLIO-DEV-01 — first customer-shaped development requirements
 
-**Status:** implementation in progress.
+**Status:** bounded engineering candidate prepared for PR Lead; not merged or reference-qualified.
 **Start:** main `7f4f6936af8e4ebd327a9be92428c916e2185647`.
 **Authority:** OWNER-PORTFOLIO-DEV-ROUND-01 (direct owner delegation),
 OWNER-LAUNCH-PORTFOLIO-02, Foundation Plan §3/§4/§5, current AGENTS/delivery.
@@ -44,3 +44,19 @@ Next engineering slice is f02 case/deck/extraction packaging against the
 selected requirements, subject to the existing protocol's stage permissions.
 Other solver adapters stay in the authorized dependency order. A numeric
 choice is not itself a completed reference or training-budget study.
+
+## Bounded validation
+
+At `d5b70de8b`, the pinned canonical environment ran the offline screen,
+`pytest -q tests/cpu/test_portfolio_round1_screen.py tests/cpu/test_challenge_pipeline.py`
+(51 passed,1 existing skip), `python -m carbon.challenge_pipeline validate`,
+Ruff and Black on the two Python files. The local DrvFS mount's executable-bit
+artifact required ignoring EXE002 locally only; Git stores both files100644
+and Linux CI retains its usual check. New tests cover independent per-family
+resource caps, atomic cooling regimes, RC equilibrium/selection/coverage gaps,
+dimensional estimates and the ten-section packet structure.
+
+F1 #718's broad CI found seven assertions in unchanged
+`graphite/hidden_score.py:260` (string record passed to `.get`), relayed to PR
+Lead/Carbon Validator on #718 and #643; no push or fix to their owned branch.
+This package's focused green is not a claim that those broad failures passed.

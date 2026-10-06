@@ -43,6 +43,11 @@ boundary-coverage gap, not a passed near-limit test. Persist this selection
 before Elmer access. Uniform stratum weights apply only to a later complete decision
 comparison; Q diagnostic rows are reported individually without a P estimate.
 
+The offline selection is rectangular80 W/10 s (RC peak99.406 °C), ramp80 W/20 s
+(94.136 °C), two-pulse140 W/5 s (97.392 °C), all for the warm/55 °C screen.
+These are preregistered probe actions, **not safe schedule recommendations**.
+Elmer must test actual spatial/time response; no RC value is imported as truth.
+
 ## 4. Case contract
 
 Canonical case includes complete stack, SI dimensions/materials, patch source,

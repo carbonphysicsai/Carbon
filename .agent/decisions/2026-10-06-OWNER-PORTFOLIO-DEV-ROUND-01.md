@@ -16,7 +16,8 @@ by OWNER-LAUNCH-PORTFOLIO-02 §3 for **f02, f06, f08, f13 and f17 only**.
 Codex selects customer-shaped synthetic populations, material fixtures,
 decision limits, numerical verification acceptance criteria and bounded
 feasibility allowances in [the round-one package](../../docs/development/challenge_pipeline/round1/README.md).
-Their numeric source is `round1/requirements.json`. They are approved working
+Core limits and grant ceilings are in `round1/requirements.json`; packets
+complete the geometry, observation and sampling conventions. They are approved working
 choices under this delegation, not five actual customer specifications.
 
 The recommendation is **KEEP** this first pass, then revise prospectively
@@ -37,7 +38,8 @@ unresolved evidence, not a looser criterion or inferred success.
 First reference-feasibility work only: at most **$160 all-in across five
 non-transferable allowances**, 46 hours of allocation on one 16-vCPU CPU node
 at a time (736 allocated vCPU-hours); per-task caps are in the numeric sheet.
-No GPU grant, automatic retries, counted model-comparison campaign, fresh
+The attempt ceilings total202, including f02's four separately reserved steady
+baselines. No GPU grant, automatic retries, counted model-comparison campaign, fresh
 protected confirmation, rig purchase, network write or reward is covered.
 All attempts, setup, refinement, normalization and failed work consume the
 allowance. Retain artifacts and the ledger; uncertain attempts remain charged.
