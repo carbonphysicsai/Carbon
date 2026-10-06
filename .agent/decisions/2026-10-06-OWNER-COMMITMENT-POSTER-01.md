@@ -2,8 +2,7 @@
 
 **Authority.** The owner, 2026-10-06, in the Test Lead session. The owner was
 answering the ten decisions in the COMMITMENT-POSTER scope (Test Engineer;
-`/home/carbon/shared/tickets-draft/COMMITMENT-POSTER-scope.md`, committed with
-the ticket):
+committed with its ticket in #717):
 
 > Answer D1-D10 with whatever is the bittensor standard and easiest and best for all parties (Miners, Valis, Us)
 
