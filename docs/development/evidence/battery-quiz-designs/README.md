@@ -70,3 +70,16 @@ The designs and the metric were registered in `quiz-registry-v3.json` (commit 18
 - Q2 reaches the registered bar at about 80 near-limit cases, at a false-infeasible rate of 0.086.
 - Q3 approaches it at k = 8 scenarios, costing 35 solves, about 0.8 CPU-hours, per scenario.
 - The run-5 winner's decision errors are only partly visible on feasible scenarios. Its per-case plating behaviour (Q2, G-PLATE) is the stronger signal.
+
+## v6: over-caution (quiz-registry-v6 and score-tuning registry v3, commit ccafd40a)
+
+**The control.** The near-limit-cautious control (`score_tuning.near_limit_cautious`) is the mirror of the boundary optimist. It was decided on EV4's 9 feasible verification scenarios (`value-v6-public-standin.json`).
+
+**Results.**
+- **Over-caution** (the share of feasible opportunities missed): **0.67** for the cautious control against **0.02** for the known-good mean. This is the clean separator.
+- **Q3 decision regret:** the control's is 1.77. Its regret AUC against the known-good set is 0.93–0.96 mean, 0.93 at the 5th percentile, for k = 1–8. One good member has a higher maximum regret (3.67), because one infeasible pick costs 10, so regret alone is noisier than over-caution.
+
+**Reading.**
+- A gate alone can be passed cheaply by over-caution.
+- Score-tuning registry v3 therefore adds leg **q** = 1/(1 + mean Q3 regret) and candidates A-Q, SR2-Q, G-N-Q, R-G-N-Q, and G-FEAS over A-Q. Over-caution then costs score as well as appearing in the report.
+- `tuning_rescore --q3-regret` takes the quiz producer's per-member regret aggregate for the tuning-set comparison.

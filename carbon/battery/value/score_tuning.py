@@ -57,7 +57,7 @@ from .near import near_cases
 
 REGISTRY_SCHEMA = "carbon.battery.score-tuning-registry.v1"
 RESULT_SCHEMA = "carbon.battery.score-tuning-result.v1"
-LEGS = ("a", "r", "g", "m", "n", "p")
+LEGS = ("a", "r", "g", "m", "n", "p", "q")
 GATES = ("near", "envelope", "feasibility", "plating_fa")
 #: A registered threshold sweep expands to one candidate per cutoff (`load_registry`).
 SWEEP_KIND = "gate_sweep"
@@ -199,8 +199,10 @@ def expand_sweep(entry, registered):
 # --- legs ------------------------------------------------------------------------------
 
 
-def member_legs(contract, predictions, store, case_ids):
-    """One member's legs and gate measures on `case_ids` of `store`."""
+def member_legs(contract, predictions, store, case_ids, decision_regret=None):
+    """One member's legs and gate measures on `case_ids` of `store`.
+    `decision_regret`: the member's mean Q3 decision regret over the quiz's
+    feasible decision scenarios (registry v3's leg q), or None."""
     near = near_cases(store, case_ids)
     inside = b1.envelope_ids(store, case_ids)
     component = sc.components(predictions, case_ids, store, contract)
@@ -217,6 +219,7 @@ def member_legs(contract, predictions, store, case_ids):
             "m": None if m is None else m["score"],
             "n": None if n is None else n["score"],
             "p": b1.proximity_leg(contract, predictions, case_ids, store.refs),
+            "q": None if decision_regret is None else 1.0 / (1.0 + decision_regret),
         },
         "gates": {
             "near": admissibility.near_optimism(
@@ -271,6 +274,25 @@ def false_infeasible_rate(contract, predictions, case_ids, refs):
     return None if passes == 0 else rejected / passes
 
 
+def near_limit_cautious(outputs):
+    """The near-limit-cautious constructed control (quiz-registry-v6): the
+    mirror of `panel`'s boundary optimist. Accurate everywhere except just
+    inside the limits, where it reports 0.012 V less plating margin and a
+    3.5 degC hotter trajectory, so it rejects near-limit designs that are
+    feasible. Kept here, not in `panel.CONTROLS`, so no frozen study's panel
+    changes."""
+    import copy
+
+    out = copy.deepcopy(outputs)
+    margin = out["plating_margin_v"]
+    temperatures = out["temperature_c"]
+    if -0.003 < margin < 0.012:
+        out["plating_margin_v"] = margin - 0.012
+    if 41.5 < max(temperatures) < 46.0:
+        out["temperature_c"] = [temperatures[0]] + [t + 3.5 for t in temperatures[1:]]
+    return out
+
+
 def near_limit(contract, reference_outputs, margin):
     """Whether a reference lies within `margin` contract bands of the plating
     or peak-temperature limit, on either side (`margins._margins`). The
@@ -299,7 +321,7 @@ def score_member(candidate, row):
     if not row["eligible"]:
         return 0.0
     return b1._geometric(
-        tuple(row["legs"][leg] for leg in LEGS),
+        tuple(row["legs"].get(leg) for leg in LEGS),
         tuple(candidate.weights.get(leg, 0.0) for leg in LEGS),
     )
 
@@ -541,9 +563,9 @@ def diagnosis(results, members, legs, values, mask, split="development"):
     attribution = {}
     for leg in LEGS:
         pairs = [
-            (legs[m]["legs"][leg], -values[m])
+            (legs[m]["legs"].get(leg), -values[m])
             for m in usable
-            if legs[m]["legs"][leg] is not None
+            if legs[m]["legs"].get(leg) is not None
         ]
         attribution[leg] = {
             "rho_with_decision_value": (
