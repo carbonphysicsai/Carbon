@@ -39,6 +39,12 @@ operator's; none is reachable from a miner surface:
   `require_commitment: false` and no `commitment_reader`, and the winner-weight
   publisher refuses it: a development deployment never sets weights and never
   serves miners.
+- `service_account` (optional; VALIDATOR-19 slice 0): the OS account that
+  alone may touch this deployment. Every load refuses under any other account
+  (`evaluation_wrong_account`), so `operate`, the confirmation seal, the
+  tuning tools and the daemon run only as it. A hidden deployment lives on a
+  host no agent can reach (the owner, 2026-10-06), and this is defence in
+  depth there.
 
 Loading fails closed: a missing, group-readable or linked file, an unknown
 field or a changed identity binding is `EvaluationUnavailable`, never a score.
@@ -65,6 +71,7 @@ OPTIONAL = {
     "rule",
     "commitment_reader",
     "development_only",
+    "service_account",
 }
 READER_FIELDS = {"network", "endpoint", "provider", "genesis_hash", "netuid"}
 BACKENDS = ("carrier", "direct")
@@ -121,6 +128,14 @@ def load_config(path):
         raise EvaluationUnavailable("evaluation_config_fields")
     if "commitment_reader" in config:
         _commitment_reader(config)  # refuses a malformed chain context now
+    account = config.get("service_account")
+    if account is not None:
+        import pwd
+
+        if type(account) is not str or not account:
+            raise EvaluationUnavailable("evaluation_config_fields")
+        if pwd.getpwuid(os.geteuid()).pw_name != account:
+            raise EvaluationUnavailable("evaluation_wrong_account")
     if type(config.get("development_only", False)) is not bool:
         raise EvaluationUnavailable("evaluation_config_fields")
     if config.get("development_only") and (

@@ -1571,6 +1571,43 @@ def hidden_pool_factory(
     )
 
 
+def hidden_remote_factory(url, key_path, scoring, variant, *, ca=None, post=None):
+    """`run_id -> RemoteHiddenPool`: the hidden pool on its own host, reached
+    through the signed door (VALIDATOR-19 slice 0). Graphite holds only the
+    submitter key and receives only sealed views."""
+    from pathlib import Path
+
+    from carbon.battery.dev_submit import (
+        DevSubmitRefused,
+        RemoteHiddenPool,
+        SubmitterKey,
+    )
+
+    try:
+        key = SubmitterKey.load(Path(key_path))
+    except (DevSubmitRefused, OSError):
+        raise RunnerRefused("hidden_submitter_key_unreadable") from None
+    base = scoring.contract().digest
+
+    def factory(run_id):
+        return RemoteHiddenPool(
+            url,
+            key,
+            run_id=run_id,
+            challenge_id=scoring.challenge_id,
+            contract_digest=base,
+            variant=variant,
+            ca=ca,
+            post=post,
+        )
+
+    try:
+        factory("probe")
+    except DevSubmitRefused as refused:
+        raise RunnerRefused(refused.code) from None
+    return factory
+
+
 def command_run(args):
     try:
         scoring = challenge_scoring.scoring_for(args.challenge)
@@ -1641,11 +1678,22 @@ def command_run(args):
                 raise RunnerRefused("runpod_key_file_must_be_owner_only")
         check_code_ref(args.code_ref)
         check_literature_challenge(literature, args.challenge, RunnerRefused)
-        hidden = (
-            None
-            if getattr(args, "hidden_deployment", None) is None
-            else hidden_pool_factory(args.hidden_deployment, scoring, variant)
-        )
+        if getattr(args, "hidden_deployment", None) and getattr(
+            args, "hidden_endpoint", None
+        ):
+            raise RunnerRefused("hidden_pool_named_twice")
+        if getattr(args, "hidden_endpoint", None):
+            hidden = hidden_remote_factory(
+                args.hidden_endpoint,
+                args.hidden_submitter_key,
+                scoring,
+                variant,
+                ca=getattr(args, "hidden_ca", None),
+            )
+        elif getattr(args, "hidden_deployment", None):
+            hidden = hidden_pool_factory(args.hidden_deployment, scoring, variant)
+        else:
+            hidden = None
         try:
             model = LiveModel(grant=grant, credential_file=engy, provider="graphite")
         except ModelAccessRefused as refused:
@@ -2386,7 +2434,18 @@ def main(argv=None):
     run.add_argument(
         "--hidden-deployment",
         help="also score each construction on this battery deployment's hidden "
-        "pool through the real validator (VALIDATOR-13; Level 0)",
+        "pool through the real validator, in this process (synthetic fixtures "
+        "only; a sealed pool lives on its own host: use --hidden-endpoint)",
+    )
+    run.add_argument(
+        "--hidden-endpoint",
+        help="the hidden pool's host door (VALIDATOR-19 slice 0), reached with "
+        "--hidden-submitter-key",
+    )
+    run.add_argument("--hidden-submitter-key")
+    run.add_argument(
+        "--hidden-ca",
+        help="the hidden host's own TLS certificate, pinned (HIDDEN_HOST_SETUP.md)",
     )
     run.add_argument("--session", type=int, default=1)
     run.add_argument("--literature-snapshot")
