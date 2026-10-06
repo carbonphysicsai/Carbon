@@ -412,6 +412,41 @@ def test_a_fee_at_the_ceiling_is_signed(short_dir):
     assert _server(short_dir).answer(_request(fee=(CEILING, 0)))["ok"] is True
 
 
+#: set_commitment pays no fee and both deposits are 0 on localnet and on
+#: testnet 567 (read 2026-10-06), so the measured record is 0 and so is D3's
+#: ceiling (2 x 0).
+ZERO_FEE = {"multiplier": 2, "measured_fee_rao": 0, "measured_deposit_rao": 0}
+
+
+def test_a_measured_zero_fee_pins_a_zero_ceiling(short_dir):
+    policy, missing = cm.load_policy(_record(fee={**ZERO_FEE, "ceiling_rao": 0}))
+    assert missing == [] and policy.fee_ceiling_rao == 0
+    server = _server(short_dir, policy=policy)
+    assert server.answer(_request(fee=(0, 0)))["ok"] is True
+    assert _refusal(server.answer(_request(fee=(1, 0)))) == "FEE_OVER_CEILING"
+    assert _refusal(server.answer(_request(fee=(0, 1)))) == "FEE_OVER_CEILING"
+
+
+@pytest.mark.parametrize(
+    "fee",
+    [
+        {**ZERO_FEE, "ceiling_rao": 1},
+        {**ZERO_FEE, "measured_fee_rao": -1, "ceiling_rao": 0},
+        {
+            **ZERO_FEE,
+            "measured_deposit_rao": -2,
+            "measured_fee_rao": 2,
+            "ceiling_rao": 0,
+        },
+        {**ZERO_FEE, "measured_fee_rao": True, "ceiling_rao": 2},
+        {**ZERO_FEE, "ceiling_rao": 0.0},
+    ],
+)
+def test_a_negative_mismatched_or_non_integer_fee_record_is_broken(fee):
+    with pytest.raises(ValueError, match="fee"):
+        cm.load_policy(_record(fee=fee))
+
+
 @pytest.mark.parametrize(
     "extra",
     [

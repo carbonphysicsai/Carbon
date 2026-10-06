@@ -178,8 +178,16 @@ def load_policy(record=None):
     ]
     if missing:
         return None, missing
+    if not all(
+        _int(fee[name], 0, 2**128 - 1)
+        for name in ("measured_fee_rao", "measured_deposit_rao", "ceiling_rao")
+    ):
+        raise ValueError("a fee measurement is not a whole number of rao")
+    # A measured 0 is a measurement (set_commitment pays no fee and both
+    # deposits are 0 on localnet and testnet 567): the ceiling is then 0 and
+    # any quoted fee is refused.
     measured = fee["measured_fee_rao"] + fee["measured_deposit_rao"]
-    if fee["ceiling_rao"] != fee["multiplier"] * measured or measured <= 0:
+    if fee["ceiling_rao"] != fee["multiplier"] * measured:
         raise ValueError("the fee ceiling is not the multiplier times the measurement")
     period = era["max_period"]
     if (
