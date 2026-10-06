@@ -123,6 +123,23 @@ Carbon draws and solves.
     and the push channel's operator steps.
 - **S3: rotation and retirement.** A finalized-block tick, the cadence gate,
   the release-queue hook, and the new-Challenge owner-approval argument.
+  - **Built:**
+    - `producer tick`: slots and windows from each Challenge's registered
+      rule (battery v2: 1,080 blocks, 3 live). It fills slots ahead of
+      their windows, never late; records `slot_unfilled`; and on retirement
+      moves the package out of the outbox and records
+      `release: HUMAN_INPUT`.
+    - Each source needs an `approval` record pinned by sha256.
+    - Windows are signed into the package commitment.
+    - The distribution host never serves an unwindowed or retired package.
+    - Import-only validators activate exactly the windows covering their
+      newest finalized block, never by their own clock. Two validators
+      agree whatever order they imported in, and they never stall.
+    - Operator steps (tick timer, `rrsync` push, distribution, validator
+      sync): `docs/development/graphite/ANSWER_KEY_OPERATIONS.md`.
+  - **Gap fixed:** rule v2's rotation started each validator's clock at its
+    own first admission, so validators sharing batches rotated at different
+    blocks.
 - **S4: service accounts and the testnet acceptance test.**
   - Testnet UIDs 0, 1 and 2 run as three validators under separate OS
     accounts.
