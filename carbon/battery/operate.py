@@ -235,9 +235,10 @@ def serving_identities(config_path, *, repository=REPOSITORY):
 
 def upgrade(config_path):
     """Rebind a deployment to this checkout's identities, in place."""
+    from .deployment import require_live
     from .pool_store import StateError
 
-    load_config(config_path)
+    require_live(load_config(config_path))
     target = validator(config_path, repository=REPOSITORY, readonly=True)
     identities = serving_identities(config_path)
     with writer(target):

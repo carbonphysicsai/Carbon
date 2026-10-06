@@ -388,6 +388,54 @@
    "lesson": "S2",
    "title": "Promotion claims require multi-seed evidence.",
    "check": "review_only"
+  },
+  {
+   "id": "H1",
+   "kind": "auto",
+   "lesson": "S9",
+   "title": "A rotating hidden pool exists for the challenge, and Graphite scores through the real validator.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "no hidden-pool scoring exists for this challenge: VALIDATOR-13 (#642) serves battery at Level 0 only",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "H2",
+   "kind": "auto",
+   "lesson": "S9",
+   "title": "Tuning and confirmation sets are registered and disjoint (overlap-checked) against the other sealed roles, the rotating pool, TRAIN, PRACTICE and the practice decision set.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "the tuning role (graphite-tuning-v1) and an overlap checker are not on main",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "H3",
+   "kind": "auto",
+   "lesson": "S9",
+   "title": "No agent-visible output carries hidden-derived data (the VALIDATOR-13 non-leak test).",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "the VALIDATOR-13 non-leak tests cover battery only",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
+   }
+  },
+  {
+   "id": "H4",
+   "kind": "auto+review",
+   "lesson": "S9",
+   "title": "Gates are tested on hidden and tuning data, not practice alone.",
+   "check": "recorded_tests",
+   "pending": {
+    "reason": "the gate audit on hidden and tuning predictions does not exist yet (VALIDATOR-09)",
+    "owner": "Carbon Validator",
+    "neutral_tests": []
+   }
   }
  ]
 }

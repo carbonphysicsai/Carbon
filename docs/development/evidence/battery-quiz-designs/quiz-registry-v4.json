@@ -1,0 +1,22 @@
+{
+ "schema": "carbon.battery.quiz-design-registry.v1",
+ "registered": "2026-10-06, before any Q3 computation (Test Lead: the failure is decision-level, so the quiz must be)",
+ "extends": "quiz-registry-v3.json (Q0, Q1, Q2 unchanged)",
+ "designs": [
+  {"id": "Q3", "kind": "decision_scenarios", "k": [1, 2, 3, 4, 6, 8, 12],
+   "task": "each scenario: the candidate model, inside the fixed registered optimizer (EV4's decision rules: grid, constraints, tie rule, abstention), picks one protocol; the pick is checked against the scenario's pre-solved reference grid. The validator solves nothing.",
+   "stand_in_pool": "EV4's 12 verification scenarios (committed references; ev4-dev-tuning-v1 measures value on the development split only, so the pool is disjoint from it)",
+   "basis": "public stand-in only; the hidden batches' scenarios are produced operator-side"}
+ ],
+ "metric": {
+  "gate": "decision-level false-feasible: the share of the k scenarios (with a resolved outcome) whose pick the reference shows infeasible (SELECTED_INFEASIBLE)",
+  "also": ["regret: mean decision loss over the k scenarios", "over-caution: the share of the k scenarios that are MISSED_OPPORTUNITY (abstained or too slow where a feasible design existed)"],
+  "detection": "AUC over draws of k scenarios (without replacement): P(gate of a known-bad member > gate of a known-good member); mean and 5th percentile, per k",
+  "known_bad": "as v3: the 8 EV5 Track A constructions and the run-5 winner",
+  "known_good": "as v3: the 3 controls and the best quarter of EV4's real members by development decision value",
+  "draws": 1000,
+  "rng": "numpy PCG64, seed 20261006",
+  "comparison": "against v3's Q2 at matching producer cost: one Q3 scenario costs the grid's 35 reference solves"
+ },
+ "status": "DEVELOPMENT"
+}

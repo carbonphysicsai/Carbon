@@ -1,0 +1,40 @@
+{
+ "cautious": {
+  "over_caution": 0.6666666666666666,
+  "regret": 1.7682477118626048
+ },
+ "good": {
+  "over_caution_mean": 0.019841269841269844,
+  "regret_max": 3.6653558567254145
+ },
+ "registry_commit": "ccafd40a",
+ "regret_auc_by_k": {
+  "k1": {
+   "mean": 0.9137785714285712,
+   "p05": 0.5
+  },
+  "k2": {
+   "mean": 0.9606776251526251,
+   "p05": 0.9285714285714286
+  },
+  "k3": {
+   "mean": 0.9567638888888886,
+   "p05": 0.9285714285714286
+  },
+  "k4": {
+   "mean": 0.9508035714285713,
+   "p05": 0.9285714285714286
+  },
+  "k6": {
+   "mean": 0.9426428571428571,
+   "p05": 0.9285714285714286
+  },
+  "k8": {
+   "mean": 0.9325357142857145,
+   "p05": 0.9285714285714286
+  }
+ },
+ "scenarios": 9,
+ "schema": "carbon.battery.quiz-value-comparison.v1",
+ "source": "PUBLIC_STANDIN: EV4 verification scenarios with a feasible design"
+}

@@ -103,7 +103,7 @@ class BatteryScoring(ChallengeScoring):
     wrong_challenge_code = "not_the_battery_development_challenge"
     #: The score-tuning legs a development score variant may weight: the one
     #: candidate definition, `carbon.battery.value.score_tuning.LEGS`.
-    declared_score_components = ("a", "r", "g", "m", "n", "p")
+    declared_score_components = ("a", "r", "g", "m", "n", "p", "q")
     #: The practice value contract a variant's legs are computed under: EV4's
     #: development decision contract (the Test Lead, #668, 2026-10-05), never
     #: EV5's frozen confirmation or a panel copy. Its digest, which #654's
