@@ -9,7 +9,13 @@ it is deliberately not part of Carbon's product process:
   reads;
 - it listens on a Unix socket only the miner's own user can reach, and signs
   only Carbon ``btauth/1`` request payloads from its own hotkey, with a fresh
-  nonce - never a chain extrinsic, never an arbitrary message;
+  nonce, never an arbitrary message;
+- its one chain extrinsic is a strategy commitment
+  (``Commitments.set_commitment``, OWNER-COMMITMENT-POSTER-01): it rebuilds
+  the call and checks every bound itself (``commitment``), never opens a
+  network connection, and signs only after the miner types the digest's last
+  8 characters in its terminal;
+- it refuses to start on a key file others can read (D8);
 - it imports nothing from ``carbon``, and nothing in Carbon's product process
   imports it (``tests/invariants/test_product_process_holds_no_key.py``).
 
@@ -20,6 +26,7 @@ hotkey before using it.
 Start it with ``carbon-miner-signer --wallet NAME --hotkey HOTKEY``.
 """
 
+from .commitment import CommitRefusal, key_file_problem, load_policy
 from .signer import (
     PATH,
     PROTOCOL,
@@ -34,10 +41,13 @@ from .signer import (
 __all__ = [
     "PATH",
     "PROTOCOL",
+    "CommitRefusal",
     "Refusal",
     "SignerServer",
     "default_socket",
+    "key_file_problem",
     "load_hotkey",
+    "load_policy",
     "main",
     "refusal_for",
 ]

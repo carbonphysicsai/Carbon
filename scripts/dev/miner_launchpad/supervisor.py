@@ -456,8 +456,15 @@ NEXT_ACTIONS = {
     ),
     "commitment_required": (
         "This validator requires the recipe's hash committed on chain first. "
-        "Commit it in your own wallet tooling, then submit again; the frozen "
-        "candidate is kept."
+        "Commit it from the Launchpad (your signer asks you to confirm it in "
+        "its terminal) or with your own Bittensor SDK code, then submit again; "
+        "the frozen candidate is kept."
+    ),
+    "commitment_stale": (
+        "This validator counts a commitment only if it was posted after your "
+        "hotkey's previous admitted submission. Recommit the recipe's hash "
+        "(the Launchpad offers it; your signer asks you to confirm), then "
+        "submit again; the frozen candidate is kept."
     ),
     "backend_not_served": (
         "This validator has no worker image for your recipe's backend. That "

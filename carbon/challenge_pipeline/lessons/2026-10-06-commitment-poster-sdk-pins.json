@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-commitment-poster-sdk-pins",
+  "recorded_at": "2026-10-06T21:00:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "COMMITMENT-POSTER-01 (.agent/tickets/COMMITMENT-POSTER-01_miner_commitment.md), branch claude/commitment-poster on #712's record (OWNER-COMMITMENT-POSTER-01).",
+    "description": "Built the miner signer's one extrinsic (Commitments.set_commitment, S-offline, TTY-confirmed) and the Launchpad poster, after pinning the call from the installed bittensor 11.1.0 source."
+  },
+  "expected": "The installed SDK source pins how set_commitment is composed and paid, so the signer can rebuild the exact call bytes offline.",
+  "observed": "The SDK source pins the pallet (index 18 from its error table), the call and argument names, the Raw<len> data variant, the fee query and that the hotkey's coldkey pays; it does not carry the call index, the Raw71 tag byte or the signed-extension order, which exist only in runtime metadata. The signer therefore ships with those pins null and refuses every commit until a localnet round trip measures them with the fee.",
+  "keep": [
+    "A key-holding process signs only bytes it rebuilt itself; Carbon's prepared bytes are compared to the reconstruction, never signed as given.",
+    "A pin the SDK source does not carry is recorded as null with its reason, and null refuses; the measuring step prints the exact record to commit.",
+    "Only the controlling terminal confirms; the request shape is closed so no socket field can."
+  ],
+  "change": [
+    "Before scoping a chain write, check which of its byte-level facts the pinned SDK source holds and which need runtime metadata, and plan the localnet measurement for the latter from the start."
+  ],
+  "protocol_elements": [
+    "miner.signer.commitment",
+    "miner_operations.submit"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
