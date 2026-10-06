@@ -1,0 +1,43 @@
+{
+  "schema": "carbon.miner-signer.commitment-record.v1",
+  "authority": "OWNER-COMMITMENT-POSTER-01 (.agent/decisions/2026-10-06-OWNER-COMMITMENT-POSTER-01.md), D1-D10",
+  "sdk": {
+    "package": "bittensor",
+    "version": "11.1.0",
+    "generated_spec_version": 445
+  },
+  "call": {
+    "pallet": "Commitments",
+    "function": "set_commitment",
+    "pallet_index": 18,
+    "pallet_index_source": "bittensor/_generated/errors.py:243 (module errors (18, n) are the Commitments pallet's); re-checked by the localnet round trip",
+    "call_index": null,
+    "data_variant": "Raw71",
+    "data_tag": null,
+    "unpinned_reason": "call_index and data_tag come from runtime metadata, not the SDK source; the localnet round trip measures them"
+  },
+  "extensions": null,
+  "zero_sized_extensions": null,
+  "network": {
+    "name": "testnet",
+    "genesis_hash": "0x8f9cf856bf558a14440e75569c9e58594757048d7b3a84b5d25f6bd978263105",
+    "genesis_source": "carbon/development_testnet/operator.py:39",
+    "netuid": 567,
+    "tempo_blocks": 360,
+    "tempo_source": "carbon/battery/exam.py:81 (rule v2 per_hotkey window_blocks, aligned to multiples of 360)"
+  },
+  "era": {
+    "sdk_default_period": 128,
+    "max_period": 128,
+    "rule": "D9: the SDK's default mortal era (bittensor/settings.py:22), capped at one tempo"
+  },
+  "fee": {
+    "status": "HUMAN_INPUT",
+    "rule": "D3: ceiling = multiplier x (measured partial fee + measured deposit) from a localnet round trip; paid by the hotkey's owning coldkey (bittensor/fee_filters.py:30)",
+    "multiplier": 2,
+    "measured_fee_rao": null,
+    "measured_deposit_rao": null,
+    "ceiling_rao": null,
+    "measurement": null
+  }
+}

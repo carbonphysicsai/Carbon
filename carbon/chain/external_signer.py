@@ -40,6 +40,32 @@ SIGNER_REFUSALS = frozenset(
         "RECEIVER_NOT_ALLOWED",
     }
 )
+#: Its closed commit refusals (`carbon_miner_signer.CommitRefusal`).
+COMMIT_REFUSALS = frozenset(
+    {
+        "MALFORMED_REQUEST",
+        "COMMITMENT_NOT_PINNED",
+        "NOT_A_COMMITMENT",
+        "BAD_DIGEST",
+        "WRONG_NETUID",
+        "WRONG_NETWORK",
+        "NONZERO_TIP",
+        "IMMORTAL_ERA",
+        "ERA_TOO_LONG",
+        "PAYLOAD_MISMATCH",
+        "FEE_UNKNOWN",
+        "FEE_OVER_CEILING",
+        "ALREADY_COMMITTED_THIS_TEMPO",
+        "STALE_CHAIN_CONTEXT",
+        "COMMIT_IN_FLIGHT",
+        "NOT_CONFIRMED",
+        "LEDGER_UNAVAILABLE",
+    }
+)
+#: How long a commit request may wait: the miner reads the prompt and types
+#: (the signer's own window is 120 s), plus the exchange itself.
+COMMIT_TIMEOUT_S = 150.0
+_CALL = re.compile(r"0x(?:[0-9a-f]{2})+")
 
 
 class SignerCode(str, Enum):
@@ -62,7 +88,8 @@ class SignerFailure(Exception):
 
     def __init__(self, code: SignerCode, refusal: str | None = None):
         self.code = code.value
-        self.refusal = refusal if refusal in SIGNER_REFUSALS else None
+        known = SIGNER_REFUSALS | COMMIT_REFUSALS
+        self.refusal = refusal if refusal in known else None
         super().__init__(
             code.value if self.refusal is None else f"{code.value}:{self.refusal}"
         )
@@ -204,6 +231,44 @@ class ExternalSigner:
         self.issued += 1
         _count_signature()
         return signature
+
+
+def request_commitment(signer: ExternalSigner, request: dict) -> dict:
+    """Ask the miner's signer to sign one strategy commitment.
+
+    The signer rebuilds and checks the call and extensions itself and asks
+    the miner on its own terminal; this only carries the closed request and
+    the answer. Returns ``{"signature": bytes, "call": bytes,
+    "fee_ceiling_rao": int, "tempo_index": int}``. The caller verifies the
+    signature over its own prepared payload before anything is broadcast.
+    """
+    response = _exchange(
+        signer._path,
+        {"protocol": PROTOCOL, "op": "commit", **request},
+        COMMIT_TIMEOUT_S,
+    )
+    signature, call = response.get("signature"), response.get("call")
+    ceiling, tempo = response.get("fee_ceiling_rao"), response.get("tempo_index")
+    if (
+        set(response) != {"ok", "signature", "call", "fee_ceiling_rao", "tempo_index"}
+        or type(signature) is not str
+        or not _SIGNATURE.fullmatch(signature)
+        or type(call) is not str
+        or not _CALL.fullmatch(call)
+        or type(ceiling) is not int
+        or ceiling <= 0
+        or type(tempo) is not int
+        or tempo < 0
+    ):
+        raise SignerFailure(SignerCode.PROTOCOL)
+    signer.issued += 1
+    _count_signature()
+    return {
+        "signature": bytes.fromhex(signature[2:]),
+        "call": bytes.fromhex(call[2:]),
+        "fee_ceiling_rao": ceiling,
+        "tempo_index": tempo,
+    }
 
 
 def connect_signer(

@@ -234,3 +234,34 @@ In order:
   registration. One such transaction is approved in principle but not built:
   OD-7(a) recipe-hash commitments. If it is ever built, the miner posts the
   commitment themselves. The signer will not sign extrinsics, by design.
+  **Superseded for one extrinsic by OWNER-COMMITMENT-POSTER-01 (D1):** see
+  §9. This paragraph is kept as the reviewed state it was.
+
+## 9. Amendment: the commitment op (COMMITMENT-POSTER-01), NOT YET REVIEWED
+
+OWNER-COMMITMENT-POSTER-01 (D1, D2, D8, D10) gives the signer exactly one
+chain extrinsic, `Commitments.set_commitment`, and checks the key file at
+every start. This amendment describes the change; it is **not** a security
+acceptance, which stays the owner's, and tests are not an audit.
+
+- **What it signs.** Only a payload it rebuilds itself
+  (`carbon_miner_signer/commitment.py`): the call from `(netuid, digest)` and
+  the signed extensions from structured fields, under the pins in
+  `commitment_record.json`. The Launchpad's bytes must equal that
+  reconstruction or the request is refused.
+- **Who confirms.** Only the miner, typing the digest's last 8 characters on
+  the signer's controlling terminal (`/dev/tty`). No socket field can
+  confirm; a request carrying one is malformed.
+- **Network.** None. The Launchpad reads the chain and broadcasts (S-offline).
+- **Bounds.** Netuid and genesis fixed at start; tip 0; a mortal era of at
+  most the recorded cap; a fee ceiling (HUMAN_INPUT until measured); one
+  commitment per tempo in an append-only ledger beside the socket; one
+  request at a time.
+- **Start.** A key file that is a symlink, another user's, or readable or
+  writable by group or others is refused before it is opened, with
+  `chmod 600 <file>`.
+- **Open for the review.** The prompt reads `/dev/tty` from a connection
+  thread while the signer keeps serving `btauth/1` requests; a local process
+  of the same user could print to that terminal. The digest's last 8
+  characters bind what is typed to what is signed, but the review should
+  judge the terminal as the trust root.
