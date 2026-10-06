@@ -1,0 +1,30 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-practice-safety-feedback",
+  "recorded_at": "2026-10-05T23:30:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "PRACTICE-SAFETY-01 (.agent/decisions/2026-10-05-PRACTICE-SAFETY-01.md, ticket .agent/tickets/PRACTICE-SAFETY-01_decision_value_feedback.md), branch claude/practice-safety-build; owner decision A8 after Graphite run 5 (#609).",
+    "description": "Practice feedback for battery, cooling and motor gains feedback-only decision-value safety metrics (false-acceptance and false-feasible rates per constraint, near-limit optimism, signed near-limit error) beside the practice score, under a v2 practice result shape; B4 stays BLOCKED until the practice decision set is committed."
+  },
+  "expected": "A participant sees whether a model errs on the unsafe side of a decision limit, from public practice material only, without any metric touching the official score or revealing a per-case verdict.",
+  "observed": "Graphite run 5's winner had the best practice score and a thermal false acceptance at the limit; average-error feedback could not show the direction of the error. Building the metrics showed that the value modules the ticket names import the private scoring-set module, and that the decision limits' named sources also hold EV conditions and study points, so reusing them directly would have widened what practice code loads.",
+  "keep": [
+    "Feedback metrics copy the limits and bands they need, and a test binds each copy to its named source, so practice code never opens a file that also holds protected conditions.",
+    "A reimplemented measure is proved equal to the authoritative one on the public cases, instead of importing a module that loads protected material.",
+    "A miner-facing result gains a field only under a new schema version; the function without the new input still returns exactly the old shape."
+  ],
+  "change": [
+    "A ruled separation is checked for feasibility against the actual protected grids before the selection rule is drawn. B4's, written as 'at least 2 degC AND 0.03 from every condition', had no solution inside the published box; the Test Lead's ruling of 2026-10-05 made it an exclusion box (too close only within both bounds), which leaves 8,422 workable grid points, and a mutant restoring the old reading is killed by test.",
+    "The attack adapters' practice disclosure allow-lists still name only v1 fields; they should probe the v2 safety block."
+  ],
+  "protocol_elements": [
+    "practice_feedback.v2",
+    "practice_safety_feedback.allow_list",
+    "practice_safety.disjointness"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

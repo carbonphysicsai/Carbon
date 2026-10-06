@@ -8,6 +8,7 @@ worker cleanup. The supervisor must hold the campaign's OS lock.
 from __future__ import annotations
 
 import json
+import math
 import time
 
 
@@ -15,8 +16,76 @@ class DispatchStopped(Exception):
     """A durable control request prevents further dispatch."""
 
 
+class CampaignDeadlineReached(DispatchStopped):
+    """The campaign's own time ended dispatch: its elapsed budget, or a
+    development grant's expiry (RESEARCH-BUDGET-REFUSAL-TYPING-01).
+
+    Still a DispatchStopped with the historical text, so every caller reads
+    it as it did. `refusal` is the ledger's typed record of the same limit
+    (`research_ledger.LedgerRefusal`, dimension `elapsed_seconds`)."""
+
+    def __init__(self, message, refusal):
+        super().__init__(message)
+        self.refusal = refusal
+
+
 class DispatchPaused(Exception):
     """Pause won the admission transaction; wait without losing the operation."""
+
+
+#: Where `settled` leaves a dispatch: nothing of it runs any more. READY is a
+#: campaign waiting for its miner; the rest are terminal or need the miner.
+SETTLED_STATES = frozenset(
+    {
+        "READY",
+        "PAUSED",
+        "STOPPED",
+        "COMPLETED",
+        "INTERRUPTED",
+        "RECONCILIATION_REQUIRED",
+    }
+)
+
+
+def read_settlement(ledger):
+    """The controller's state for the owner report, read without changing
+    the ledger: the observed and desired state, whether nothing runs
+    (`settled`), and when the current dispatch settled (`settled_unix`) -
+    None while it runs, or when it settled before settlement times were
+    recorded. None for a ledger no controller ever ran."""
+    with ledger.db() as db:
+        tables = {
+            row[0]
+            for row in db.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('launchpad_control','launchpad_settlement')"
+            )
+        }
+        if "launchpad_control" not in tables:
+            return None
+        generation, desired, state = db.execute(
+            "SELECT generation,desired,observed FROM launchpad_control WHERE id=1"
+        ).fetchone()
+        recorded = (
+            db.execute(
+                "SELECT generation,state,settled_unix FROM launchpad_settlement WHERE id=1"
+            ).fetchone()
+            if "launchpad_settlement" in tables
+            else None
+        )
+    settled = state in SETTLED_STATES
+    return {
+        "state": state,
+        "desired": desired,
+        "generation": generation,
+        "settled": settled,
+        "settled_unix": (
+            recorded[2]
+            if settled
+            and recorded is not None
+            and (recorded[0], recorded[1]) == (generation, state)
+            else None
+        ),
+    }
 
 
 class CampaignControl:
@@ -28,6 +97,11 @@ class CampaignControl:
             )
             db.execute(
                 "INSERT OR IGNORE INTO launchpad_control VALUES(1,0,'RUN','QUEUED')"
+            )
+            # When the last dispatch settled, and to what (OPERATOR-USABILITY-01
+            # D1). Added 2026-10-05: a ledger settled before then has no row.
+            db.execute(
+                "CREATE TABLE IF NOT EXISTS launchpad_settlement (id INTEGER PRIMARY KEY CHECK(id=1), generation INTEGER NOT NULL, state TEXT NOT NULL, settled_unix REAL NOT NULL)"
             )
 
     def status(self):
@@ -97,7 +171,14 @@ class CampaignControl:
                     "SELECT manifest,started FROM campaign WHERE id=1"
                 ).fetchone()
                 if frozen is not None:
-                    from .research_ledger import NO_BUDGET, _elapsed
+                    from .research_ledger import (
+                        ELAPSED_DIMENSION,
+                        MINER_CEILING_REACHED,
+                        NO_BUDGET,
+                        LedgerRefusal,
+                        _elapsed,
+                        manifest_basis,
+                    )
 
                     manifest = json.loads(frozen[0])
                     authority = self.ledger.authority(manifest)
@@ -110,8 +191,22 @@ class CampaignControl:
                     elapsed = _elapsed(manifest)
                     if frozen[1] is not None and elapsed is not NO_BUDGET:
                         bounds.append(frozen[1] + elapsed)
-                    if bounds and self.ledger.clock() >= min(bounds):
-                        raise DispatchStopped("original campaign deadline reached")
+                    now = self.ledger.clock()
+                    if bounds and now >= min(bounds):
+                        message = "original campaign deadline reached"
+                        started = now if frozen[1] is None else frozen[1]
+                        raise CampaignDeadlineReached(
+                            message,
+                            LedgerRefusal(
+                                message,
+                                code=MINER_CEILING_REACHED,
+                                dimension=ELAPSED_DIMENSION,
+                                basis=manifest_basis(manifest),
+                                used=max(0, math.floor(now - started)),
+                                requested=0,
+                                ceiling=None if elapsed is NO_BUDGET else elapsed,
+                            ),
+                        )
                 current, desired, state = db.execute(
                     "SELECT generation,desired,observed FROM launchpad_control WHERE id=1"
                 ).fetchone()
@@ -164,4 +259,32 @@ class CampaignControl:
             else:
                 state = "INTERRUPTED"
             db.execute("UPDATE launchpad_control SET observed=? WHERE id=1", (state,))
-            return state
+            db.execute(
+                "INSERT OR REPLACE INTO launchpad_settlement VALUES(1,?,?,?)",
+                (generation, state, self.ledger.clock()),
+            )
+        self._refresh_report()
+        return state
+
+    def _refresh_report(self):
+        """Rewrite the owner report so it says how the dispatch settled.
+
+        The run writes its report as it closes, before the dispatch settles,
+        so until 2026-10-05 a READY or STOPPED campaign's report still read
+        as running (OPERATOR-USABILITY-01 D1). The report is a derived view:
+        a campaign not yet frozen has none, and one that cannot be written
+        now (its storage bound, say) leaves the settlement in the ledger,
+        where the next report reads it."""
+        try:
+            with self.ledger.db() as db:
+                frozen = db.execute(
+                    "SELECT manifest FROM campaign WHERE id=1"
+                ).fetchone()
+            if frozen is None:
+                return
+            owner = json.loads(frozen[0])["owner"]
+            from .research_report import report
+
+            report(self.ledger, owner=owner)
+        except Exception:  # noqa: BLE001 - the settlement stands without its view
+            return

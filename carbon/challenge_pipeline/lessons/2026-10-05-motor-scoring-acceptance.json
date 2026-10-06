@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-motor-scoring-acceptance",
+  "recorded_at": "2026-10-05T15:50:00Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-MOTOR-05 affected acceptance", "description": "Reran the complete Motor, Cooling, shared scoring and Motor attacker suite after formatting; ran the repository quality gate separately."},
+  "expected": "Affected public-practice paths remain stable, with no new lint or format debt.",
+  "observed": "148 affected tests passed on the isolated LF-native Linux copy. The quality gate passed with zero new Ruff and Black diagnostics. These are fixture and development checks, not a paid pod or scientific qualification.",
+  "keep": ["Keep every Challenge's public rule behind a named adapter.", "Use a common paired-error helper without adding a promotion claim."],
+  "change": ["Deliver the bounded adapter for PR Lead; leave private validation and paid evaluation separate."],
+  "protocol_elements": ["challenge-neutral scoring", "public-material isolation", "nonpromotable development feedback"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,0 +1,37 @@
+{
+  "schema": "carbon.challenge-validator.confirmation-set.v1",
+  "role": "graphite-tuning-v1",
+  "challenge_id": "battery-fastcharge-ageing-development-v1",
+  "sealable": true,
+  "cases": 200,
+  "hidden_duplicates": 4,
+  "sampling_law": {
+    "id": "battery-published-box-uniform-v1",
+    "description": "uniform over the published input box (the Level 0 study sheet's population, as EV5's), drawn by carbon.battery.seeds.make_batch"
+  },
+  "strata": "NONE_UNIFORM_LAW",
+  "subgroups": [
+    "the published important region reported separately"
+  ],
+  "custody": {
+    "kind": "battery_deployment",
+    "made_on": "the validator host only: seeds.make_batch from the testnet deployment's committed root (the root holding EV5 and graphite-confirmation-v1, so both are checked by regeneration), committed to its seed journal under the writer lock before any use; never in the repository, never in a pool",
+    "solved_on": "the operator host's CPU only (carbon.challenge_validator.tuning): never in a pod plan, rented compute, the attack knowledge store or a Graphite session; scored operator-side only, repeatedly, for score development"
+  },
+  "required_prior_roles": [
+    "ev5-confirmation",
+    "graphite-confirmation-v1"
+  ],
+  "required_private_priors": [
+    "graphite-hidden-battery-v1-pool"
+  ],
+  "authority": {
+    "decisions": [
+      "OWNER-GRAPHITE-TEST-WAVE-08 \u00a71: battery's tuning set, role graphite-tuning-v1, 200 cases plus 4 hidden duplicates, the Level 0 study sheet's population, sealed and solved on the operator host's CPU; no overlap with EV5, graphite-confirmation-v1, the rotating pool, TRAIN, PRACTICE or the practice decision set",
+      "OWNER-GRAPHITE-TEST-WAVE-05 \u00a74: the Level 0 population is one uniform law with no strata (NONE_UNIFORM_LAW)",
+      "TRAIN and PRACTICE are checked as published cases (daemon.published_inputs), every committed engineering-value study's decision cases as public_decision, and the rotating pool as an operator-supplied private prior",
+      "The Test Lead, 2026-10-05: the practice decision set (PRACTICE-SAFETY-01's B4) does not exist yet and is public; when it is committed, an operator re-check (tuning recheck) compares the sealed set against it, and on any overlap B4 is reselected, never the sealed tuning set; the re-check is recorded in the tuning set's record"
+    ],
+    "human_input": []
+  }
+}

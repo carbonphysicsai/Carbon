@@ -106,11 +106,12 @@ class BatteryScoring(ChallengeScoring):
     declared_score_components = ("a", "r", "g", "m", "n", "p")
     #: The practice value contract a variant's legs are computed under: EV4's
     #: development decision contract (the Test Lead, #668, 2026-10-05), never
-    #: EV5's frozen confirmation or a panel copy. (file, digest).
+    #: EV5's frozen confirmation or a panel copy. Its digest, which #654's
+    #: `load_variant` compares a variant's record with, and its file.
     practice_value_contract = (
-        "ev4-charge-protocol-selection.v1.json",
-        "sha256:fedd753c0e7aa69d2fd4d6efbf3d877ac8eeb211859d9f32d76a61f38bbe38d1",
+        "sha256:fedd753c0e7aa69d2fd4d6efbf3d877ac8eeb211859d9f32d76a61f38bbe38d1"
     )
+    practice_value_contract_file = "ev4-charge-protocol-selection.v1.json"
     construction_objective = (
         "Propose battery TrainingStrategy recipes that beat the baseline under "
         "Carbon's frozen rule on public PRACTICE. Carbon runs, scores and "
@@ -131,13 +132,16 @@ class BatteryScoring(ChallengeScoring):
 
     def built_from(self, admitted, seed, root):
         from carbon.battery.practice import PracticeSet, staged_files
-        from carbon.development_session.battery_gpu import GPU_PROGRAM
+        from carbon.development_session.battery_gpu import pod_program
         from carbon.development_session.profile import digest
 
         recipe = admitted.construction
         plan = admitted.compiled.construction_plan
-        files = staged_files(root, PracticeSet.load(root), recipe, seed)
-        program = GPU_PROGRAM
+        # KNN-STATE-GPU-01: a KNN builds with GPU program v2, which stages the
+        # versioned state digest; every other recipe keeps v1 byte for byte.
+        program, extra = pod_program(recipe.family)
+        base = staged_files(root, PracticeSet.load(root), recipe, seed)
+        files = {**base, **extra}
         development = getattr(admitted, "development", None)
         loss = None
         if development is not None:
@@ -149,7 +153,7 @@ class BatteryScoring(ChallengeScoring):
                 getattr(admitted, "reconstruction", None)
             )
             if loss is not None:
-                files = {**files, **level1_worker.staged(loss)}
+                files = {**base, **level1_worker.staged(loss)}
                 program = level1_worker.program()
         record = {
             "schema": BUILT_SCHEMA,

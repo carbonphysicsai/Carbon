@@ -63,9 +63,9 @@ def document(version=VERSION, **changes):
         "candidate_registry": {"sha256": "a" * 64, "commit": "b" * 40},
         "scope": dsv.SCOPE,
         "status": "SURVIVOR",
-        # The contract it was registered against: in `authority` until #654's
-        # schema has a top-level field.
-        "authority": {"promoted_from": "FIXTURE", sv.CONTRACT_FIELD: EV4},
+        "authority": {"promoted_from": "FIXTURE"},
+        # The practice value contract it was registered against (#654).
+        "practice_value_contract": EV4,
         "fixture": True,
     }
     value.update(changes)
@@ -172,69 +172,74 @@ def test_a_development_level_refuses_a_score_variant(registry, capsys):
     assert refused_code(capsys) == sv.LEVEL0_ONLY
 
 
-def test_battery_declares_ev4s_practice_contract_by_its_digest():
+def test_battery_declares_ev4s_practice_contract_by_its_digest(registry):
     """The Test Lead on #668: EV4's development decision contract, pinned once
     as battery Challenge data, never EV5's frozen confirmation or a panel
     copy. The declared digest is the committed file's."""
     from carbon.battery.value import contract
 
-    assert SCORING.practice_value_contract == (EV4_FILE, EV4)
+    assert SCORING.practice_value_contract == EV4
+    assert SCORING.practice_value_contract_file == EV4_FILE
     assert contract.load(contract.CONTRACTS / EV4_FILE)[1] == EV4
     assert sv.practice_contract(SCORING) == (EV4_FILE, EV4)
+    assert resolved().identity()["practice_value_contract"] == EV4
+
+
+def _without_contract():
+    value = document()
+    del value["practice_value_contract"]
+    return value
 
 
 @pytest.mark.parametrize(
-    ("recorded", "code"),
+    ("item", "code"),
     [
-        (None, "score_variant_practice_contract_unrecorded"),
-        ("sha256:" + "0" * 64, "score_variant_practice_contract_mismatch"),
+        # #654's own refusals, through the runner (decision 6).
+        (_without_contract(), "score_variant_malformed"),
+        (
+            document(practice_value_contract="sha256:" + "0" * 64),
+            "score_variant_practice_value_contract_not_pinned",
+        ),
     ],
 )
 def test_a_variant_registered_against_another_contract_is_refused(
-    registry, recorded, code
+    registry, capsys, item, code
 ):
-    authority = {"promoted_from": "FIXTURE"}
-    if recorded is not None:
-        authority[sv.CONTRACT_FIELD] = recorded
-    reregister(registry, document(authority=authority))
+    reregister(registry, item)
     with pytest.raises(sv.ScoreVariantRefused) as refused:
         resolved()
     assert refused.value.code == code
+    with pytest.raises(phase3.RunnerRefused):
+        phase3.score_variant_for(VERSION, SCORING)
+    assert refused_code(capsys) == code
 
 
 def test_ev5s_digest_is_not_battery_practice_contract(registry):
     from carbon.battery.value import contract
 
     ev5 = contract.load(contract.CONTRACTS / "ev5-charge-protocol-selection.v1.json")
-    reregister(
-        registry,
-        document(authority={"promoted_from": "FIXTURE", sv.CONTRACT_FIELD: ev5[1]}),
-    )
+    reregister(registry, document(practice_value_contract=ev5[1]))
     with pytest.raises(sv.ScoreVariantRefused) as refused:
         resolved()
-    assert refused.value.code == "score_variant_practice_contract_mismatch"
+    assert refused.value.code == "score_variant_practice_value_contract_not_pinned"
 
 
-def test_a_top_level_contract_field_is_read_first():
-    """Once #654's schema carries the field, the top-level value governs."""
-    top = document(**{sv.CONTRACT_FIELD: EV4})
-    top["authority"] = {"promoted_from": "FIXTURE", sv.CONTRACT_FIELD: "other"}
-    assert sv.recorded_contract(top) == EV4
-    assert sv.recorded_contract(document(authority={})) is None
-
-
-def test_a_challenge_without_a_declared_contract_is_unpinned():
+def test_a_challenge_without_a_declared_contract_is_unpinned(registry, monkeypatch):
     cooling = challenge_scoring.scoring_for("chip-cold-plate")
     assert cooling.practice_value_contract is None
     with pytest.raises(sv.ScoreVariantRefused) as refused:
         sv.practice_contract(cooling)
     assert refused.value.code == "score_variant_practice_contract_unpinned"
+    # #654 accepts a variant when the Challenge pins nothing; the runner
+    # still refuses it.
+    monkeypatch.setattr(type(SCORING), "practice_value_contract", None)
+    with pytest.raises(sv.ScoreVariantRefused) as refused:
+        resolved()
+    assert refused.value.code == "score_variant_practice_contract_unpinned"
 
 
 def test_a_declared_digest_the_file_does_not_have_is_refused(monkeypatch):
-    monkeypatch.setattr(
-        type(SCORING), "practice_value_contract", (EV4_FILE, "sha256:" + "1" * 64)
-    )
+    monkeypatch.setattr(type(SCORING), "practice_value_contract", "sha256:" + "1" * 64)
     with pytest.raises(sv.ScoreVariantRefused) as refused:
         sv.practice_contract(SCORING)
     assert refused.value.code == "score_variant_practice_contract_altered"
@@ -349,7 +354,7 @@ def test_the_variant_result_is_the_registered_scorers_own(registry, tmp_path):
     assert summary["score_variant"] == challenge_scoring.clean(
         dsv.score_member(score, row)
     )
-    assert rule.identity["practice_value_contract"] == EV4
+    assert rule.identity["score_variant"]["practice_value_contract"] == EV4
 
 
 def test_feedback_shows_the_variant_result_and_label(registry, tmp_path):

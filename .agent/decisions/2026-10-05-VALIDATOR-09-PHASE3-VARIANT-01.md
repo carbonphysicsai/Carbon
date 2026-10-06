@@ -62,20 +62,23 @@ no chain writes, no live runs and no spend.
    `ev4-charge-protocol-selection.v1`, never EV5's frozen confirmation or the
    graphite-run5 panel copy.
    - **Declared once, as Challenge data.** It is
-     `ChallengeScoring.practice_value_contract`, a (file, digest) pair, next
-     to `declared_score_components`. Battery declares EV4 by digest
-     `sha256:fedd753c…38d1`. Resolution checks the committed file still has
-     that digest (`score_variant_practice_contract_altered`).
-   - **Recorded by each variant.** A variant document records the digest it
-     was registered against. #654's schema has no field for it yet, so it is
-     read from the top-level `practice_value_contract` when present, and
-     until then from `authority.practice_value_contract`.
-   - **Refusals.** An absent digest is refused
-     `score_variant_practice_contract_unrecorded`, and a different one
-     `score_variant_practice_contract_mismatch`. A Challenge with no declared
-     contract (cooling) still refuses
-     `score_variant_practice_contract_unpinned`.
-   - **In every result.** The rule identity carries the declared digest.
+     `ChallengeScoring.practice_value_contract`, the digest #654's
+     `load_variant` compares with, next to `declared_score_components`.
+     `practice_value_contract_file` names the file the legs are read from.
+     Battery declares EV4 by digest `sha256:fedd753c…38d1`. Resolution checks
+     the committed file still has that digest
+     (`score_variant_practice_contract_altered`).
+   - **Recorded by each variant.** A variant records the digest it was
+     registered against in #654's top-level `practice_value_contract` field,
+     now on main.
+   - **Refusals.** #654's own refusals apply:
+     - an absent digest is `score_variant_malformed`;
+     - a bad format is `score_variant_practice_value_contract_malformed`;
+     - another contract is `score_variant_practice_value_contract_not_pinned`.
+
+     The runner adds `score_variant_practice_contract_unpinned` for a
+     Challenge that pins none (cooling), which #654 accepts.
+   - **In every result.** The variant identity carries the digest.
 7. **Level 0 only.** At a development level the permission profile is the
    contract variant's own registered digest, so a score variant cannot be
    pinned there without a controller change. A higher level is refused, typed.
@@ -101,10 +104,7 @@ no chain writes, no live runs and no spend.
     the profile, a result, a feedback, the summary or the delivery. The
     pinned phase-3 replays are unchanged.
 
-**Needed from #654.** A top-level `practice_value_contract` field in
-`carbon.development-score-variant.v1`, added to `_KEYS`:
-- a `"sha256:<64 hex>"` string, required;
-- exposed on `ScoreVariant`;
-- included in `identity()`.
-
-Until it lands, the `authority` entry stands in for it.
+**From #654.** #654 added the top-level `practice_value_contract` field
+(required `"sha256:<64 hex>"`, on `ScoreVariant` and in `identity()`). This
+slice reads only that field. #654's test fixture now records battery's
+pinned EV4 digest.

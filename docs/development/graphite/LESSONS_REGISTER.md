@@ -78,7 +78,7 @@ before, and that none is as messy as this first wave.
 | # | Lesson | Cost | Prevention | Disposition |
 |---|---|---|---|---|
 | I1 | Proposal ids repeat across runs; a "no-op" recipe flag was really a default; a KNN digest ignored k | Wrong cross-run identity; aliased and merged constructions | Identity by rebuilt artifact (OWNER-GRAPHITE-TEST-WAVE-04 §1), plus a standing no-op audit | ENFORCED: `test_construction_noop_audit.py` (#619); OPEN: KNN versioned digest (Test Engineer) |
-| I2 | The controller counts every run and binds one grant document | Refund grants needed (R2, R3) | Price runs with lost-run headroom, use per-challenge grants, and bind grants to main's blob and the named challenge | ENFORCED: grant bound to main's blob (#569); IN PR: per-challenge binding (#612); DOCUMENTED: headroom |
+| I2 | The controller counts every run and binds one grant document | Refund grants needed (R2, R3) | Price runs with lost-run headroom, use per-challenge grants, and bind grants to main's blob and the named challenge | ENFORCED: grant bound to main's blob (#569); per-challenge binding (#612); DOCUMENTED: headroom |
 | I3 | Admission findings lived in per-run controllers, so no record was canonical | The LOCK check could look at the wrong root | One designated admission controller per (challenge, level) | IN PR (#615) |
 
 ## 5. Attribution and grading integrity
@@ -87,7 +87,7 @@ before, and that none is as messy as this first wave.
 |---|---|---|---|---|
 | G1 | Hard-coded attribution assumptions (crash = candidate, timeout = candidate) | Mis-typed outcomes; dodge vectors | Every attribution rule is a **registered, versioned policy** with its raw evidence kept, and the Attacker tests it | ENFORCED: pod-attribution v1/v2, baseline-retry, cooling candidate-fault v1 (#620, no charge to the candidate; replay baseline). OPEN: cooling candidate-fault v2, which charges the candidate, is a follow-up and a condition for any live cooling Graphite or Attacker run (readiness A5 condition) |
 | G2 | Failure-stage claims were written where the candidate could write | A forgery vector at Levels 4–5 | Host-observed timing is the authority; candidate-writable files are evidence only | ENFORCED (#573) |
-| G3 | Missing predictions were excluded instead of charged | An omission dodge | Every host refuses incomplete prediction sets | IN PR (#613, WAVE-07 §1) |
+| G3 | Missing predictions were excluded instead of charged | An omission dodge | Every host refuses incomplete prediction sets | ENFORCED (#613, WAVE-07 §1) |
 | G4 | A gate helper returned 0.0 on FAIL, so a failure ranked first under a negative-error score | A wrong τ in #609 | Admissibility before ranking: gate failures rank last, tested | ENFORCED (#617); EV5-RUN-01 ruling |
 | G5 | A gate tolerance sat 0.0006 K inside the references | Live false-rejection risk | A **margin study for every gate** at onboarding | GATED (S3); cooling v2 at 0.1 K |
 | G6 | A case-insensitive role guard could be bypassed | Possible recall of a sealed batch | Security review of every guard; case-folded comparison | ENFORCED (#583) |
@@ -96,7 +96,7 @@ before, and that none is as messy as this first wave.
 
 | # | Lesson | Cost | Prevention | Disposition |
 |---|---|---|---|---|
-| A1 | The oracle judged advisory and miner-local tool acceptance as boundary breaches | 35 false findings in phase-4 session 1 | Per-tool **authority classes**; FAILING_TRIGGER only at authoritative boundaries; regression tests | OPEN → Test Engineer (oracle-fix PR) |
+| A1 | The oracle judged advisory and miner-local tool acceptance as boundary breaches | 35 false findings in phase-4 session 1 | Per-tool **authority classes**; FAILING_TRIGGER only at authoritative boundaries; regression tests | ENFORCED: `attack.analysis.authority_of`, findings rest on tool authority, re-judge tool (#637, GRAPHITE-ATTACKER-ORACLE-AUTHORITY-01) |
 | A2 | The Attacker stopped itself with 87% of its budget left, and 5 families were unreachable | Thin coverage | A coverage stop rule (k attempts per family) and a route for every family | OPEN → Test Engineer |
 | A3 | Containment was evidenced only by self-reported output | Unverifiable isolation | A **deterministic containment check** with host canaries in the pre-live gate | OPEN → Test Engineer (containment PR); GATED (R2) |
 
@@ -128,6 +128,18 @@ change to the gate tables.
 | X5 | Agent session restarts change the session's message address, so messages to the old address were lost | Resends and stalled work | Keep pins and the board current: list sessions before sending; PR Head keeps the board | DOCUMENTED (extends C2 and C3); owner Test Lead and PR Head. Not enforceable in code: it depends on the host's session manager |
 | X6 | The gate wrote its runtime history under `carbon/`, so a gate run left shipped code dirty and the pre-live check (R1) then refused it | R1 failed on the second run of the gate; found in the Linux shakedown | Runtime outputs (history, reports) live outside shipped code, under `docs/development/challenge_pipeline/readiness/` | ENFORCED: `test_a_gate_run_leaves_carbon_clean` and the history-path test (readiness runner PR); owner Graphite Testing Manager. No gate item needed: it is a property of the gate itself |
 | X7 | A gate check ran on another challenge's resource: cooling passed R1 on battery's phase-4 grant, which hid the missing per-challenge grant | A false PASS for a challenge with no grant | A check uses the challenge's own resources and fails closed when it has none; it never falls back to another challenge's | ENFORCED: R1 reads `grants.phase4` per challenge and `test_r1_never_passes_on_another_challenges_grant`; owner Graphite Testing Manager. Per-challenge grant binding is #612 (open). R5 (grants) is the gate item for it |
+
+## 7b. Added with the move to operational testing (OWNER-GRAPHITE-TEST-WAVE-08)
+
+| # | Lesson | Cost | Prevention | Disposition |
+|---|---|---|---|---|
+| S9 | Practice-score evidence is a proxy: the rule's form evaluated on public cases the agent had already seen. It showed whether the rule's form tracks value; it could not tune weights or stand as operational evidence | Score-to-value results (S1) were taken as evidence about operation | Operational scoring evidence comes only from the hidden path: a rotating hidden pool scored through the real validator (VALIDATOR-13), a sealed tuning set for score development, a sealed confirmation set used once, and gates tested on hidden and tuning data | DOCUMENTED (WAVE-08). GATED by proposed items H1 to H4 (not yet in the gate); owner Test Lead. Enforcing code: VALIDATOR-13 (#642, open) |
+
+## 7c. Coordination
+
+| # | Lesson | Cost | Prevention | Disposition |
+|---|---|---|---|---|
+| E10 | Coordination token cost: ack-only messages and per-step relays are waste | Context and time spent on messages that carried no decision | Message only for a decision needed, a result or PR ready, or a blocker; batch register upkeep per batch of merges; put long tables in committed files and send a pointer; read narrowly and let CI run the full suite; do not re-confirm what is already ruled | DOCUMENTED (Test Lead team rules); owner Test Lead. Not enforceable in code |
 
 ## 8. Metrics recorded per challenge onboarding
 

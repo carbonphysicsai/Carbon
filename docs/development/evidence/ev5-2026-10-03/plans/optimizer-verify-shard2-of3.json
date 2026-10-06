@@ -1,0 +1,10 @@
+{
+ "jobs_file": "docs/development/evidence/ev5-2026-10-03/plans/optimizer-jobs.json",
+ "phase": "value_refs",
+ "shard": 2,
+ "shards": 3,
+ "ship": [
+  "carbon"
+ ],
+ "timeout_s": 1200
+}

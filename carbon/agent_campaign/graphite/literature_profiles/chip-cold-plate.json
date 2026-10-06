@@ -1,0 +1,75 @@
+{
+  "schema": "carbon.graphite.literature-profile.v1",
+  "version": "graphite-cooling-literature.v1",
+  "challenge_id": "chip-cold-plate",
+  "query_set": {
+    "version": "graphite-cooling-queries.v1",
+    "queries": [
+      {
+        "query_id": "cold-plate-heat-sink",
+        "search_query": "abs:\"cold plate\" OR abs:\"microchannel heat sink\"",
+        "purpose": "cold plates and microchannel heat sinks"
+      },
+      {
+        "query_id": "conjugate-heat-transfer-surrogate",
+        "search_query": "abs:\"conjugate heat transfer\" AND abs:surrogate",
+        "purpose": "surrogates of conjugate heat transfer"
+      },
+      {
+        "query_id": "heat-transfer-neural-operator",
+        "search_query": "abs:\"neural operator\" AND abs:\"heat transfer\"",
+        "purpose": "operator learning for heat transfer and CFD"
+      },
+      {
+        "query_id": "thermal-management-learning",
+        "search_query": "abs:\"thermal management\" AND abs:\"neural network\"",
+        "purpose": "learned models for electronics thermal management"
+      },
+      {
+        "query_id": "heat-sink-design-optimization",
+        "search_query": "abs:\"heat sink\" AND abs:optimization",
+        "purpose": "heat-sink design optimisation"
+      },
+      {
+        "query_id": "heat-transfer-reduced-order",
+        "search_query": "abs:\"heat transfer\" AND abs:\"reduced-order\"",
+        "purpose": "reduced-order models of convective heat transfer"
+      }
+    ]
+  },
+  "categories": [
+    "cs.LG",
+    "physics.comp-ph",
+    "math.NA",
+    "eess.SY",
+    "stat.ML",
+    "physics.flu-dyn",
+    "physics.app-ph",
+    "cs.CE",
+    "eess.SP"
+  ],
+  "primary_cues": [
+    "cold plate",
+    "cold plates",
+    "microchannel",
+    "microchannels",
+    "heat sink",
+    "heat sinks",
+    "heat transfer",
+    "thermal management",
+    "conjugate heat transfer",
+    "liquid cooling"
+  ],
+  "secondary_cues": [
+    "cfd",
+    "computational fluid dynamics",
+    "convection",
+    "convective",
+    "laminar flow",
+    "coolant",
+    "temperature field",
+    "pressure drop",
+    "thermal"
+  ],
+  "authority": "VALIDATOR-08, the Test Lead's approval of the per-Challenge literature design, 2026-10-05; the backfill's spend is GRAPHITE-GRANT-LITERATURE-COOLING-MOTOR"
+}

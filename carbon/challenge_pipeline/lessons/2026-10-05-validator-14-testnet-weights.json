@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-validator-14-testnet-weights",
+  "recorded_at": "2026-10-05T23:30:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-14, branch claude/validator-14-testnet-weights. Canonical: the new weight, eligibility, commitment, publication and study tests, plus the unchanged chain and battery suites, passed; the results are recorded in the PR.",
+    "description": "Testnet 567 winner weights now come from each Challenge validator's own promotions under the owner's 1/N, 24-hour, halving rule, with unpaid emissions burned every epoch."
+  },
+  "expected": "Winner weights could reuse the existing checked publisher with only a new intent family and a standing authorization.",
+  "observed": "They could. The shared compiler's owner-associated-winner refusal also applies, so Carbon's own testnet miners need a coldkey that is not the owner's to win.",
+  "keep": [
+    "Pay winners from the validator's promotion record, never from a ranking of scores.",
+    "Record each promotion once, at its first observed finalized time, so its decay clock cannot be reset by replay."
+  ],
+  "change": [
+    "Register a Challenge's public baseline before launch, so the first winner must beat it."
+  ],
+  "protocol_elements": [
+    "every Challenge's weight share is 1/N; its winner is its own validator's promotion; unpaid emissions burn every epoch"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
