@@ -37,9 +37,7 @@ JAX_PLATFORMS = "cuda"
 #: The practice program with one addition: the worker records what JAX
 #: actually ran on, so the feedback states the backend observed, not assumed.
 #: The CPU program is unchanged, so no existing practice identity moves.
-GPU_PROGRAM = (
-    PROGRAM
-    + r"""
+GPU_PROGRAM = PROGRAM + r"""
 import os
 
 import jax
@@ -56,7 +54,6 @@ import jax
     )
 )
 """
-)
 
 #: KNN-STATE-GPU-01: the GPU program's versions. v1 is `GPU_PROGRAM`, byte for
 #: byte as before: every non-KNN recipe (so every Level-0 pin), every Level-1
