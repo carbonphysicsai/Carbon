@@ -815,7 +815,9 @@ def test_a_kimi_k3_session_stops_typed_before_its_first_call(tmp_path):
 
 def _recorded_checkout(repository, role, paths=None):
     """The checkout `BEFORE_D34_CHECKOUT` recorded, in place of the live files."""
-    assert role is boundaries.Role.CONSTRUCTION and paths is None
+    # Battery's published material, now named by the session's Challenge.
+    assert role is boundaries.Role.CONSTRUCTION
+    assert paths == boundaries.published_material(SCORING.challenge_id)
     return BEFORE_D34_CHECKOUT
 
 

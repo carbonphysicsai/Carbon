@@ -279,6 +279,16 @@ class ChallengeScoring(abc.ABC):
         """
         raise NotImplementedError("the Challenge declares no synthetic predictions")
 
+    def published_material(self):
+        """The repository files a construction or attack session of this
+        Challenge may read (its checkout allowlist). The default is the list
+        registered in `carbon.agent_campaign.boundaries.PUBLISHED_MATERIAL`;
+        a Challenge's adapter may supply its own. The boundary's denylist
+        still wins over either."""
+        from carbon.agent_campaign.boundaries import published_material
+
+        return published_material(self.challenge_id)
+
 
 def admit(scoring, strategy, seed, root, *, contract=None):
     """Compile `strategy` exactly as Carbon would rebuild it; return what Carbon
@@ -358,6 +368,19 @@ def scoring_for(challenge_id=None):
     if challenge_id not in _CACHE:
         _CACHE[challenge_id] = factory()
     return _CACHE[challenge_id]
+
+
+def published_material(challenge_id):
+    """The checkout allowlist for `challenge_id`: its registered scoring's
+    (`ChallengeScoring.published_material`), or the boundary's registered
+    list while no scoring is registered for it."""
+    from carbon.agent_campaign.boundaries import published_material as registered
+
+    try:
+        scoring = scoring_for(challenge_id)
+    except ScoringUnavailable:
+        return registered(challenge_id)
+    return scoring.published_material()
 
 
 def resolve(scoring):

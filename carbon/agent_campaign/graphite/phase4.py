@@ -1028,8 +1028,15 @@ def check_attacker_observation(observation, adapter, *, code_run_seconds):
 def session_brief(
     adapter, *, checkout_commit, knowledge=None, repository=REPOSITORY, stop_rule=False
 ):
+    from carbon.challenge_validator import scoring as challenge_scoring
+
     role = ROLES[RoleName.ATTACKER]
-    manifest = boundaries.checkout_manifest(repository, role.boundary)
+    # The attacked Challenge's published material, never another's.
+    manifest = boundaries.checkout_manifest(
+        repository,
+        role.boundary,
+        challenge_scoring.published_material(adapter.challenge_id),
+    )
     return SessionBrief(
         role=RoleName.ATTACKER,
         initial_observation=brief_observation(

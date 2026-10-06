@@ -47,6 +47,11 @@ class Role(str, Enum):
 
 AGENT_ROLES = frozenset({Role.CONSTRUCTION, Role.ADVERSARIAL, Role.OPTIMIZER})
 
+
+class BoundaryError(ValueError):
+    """A boundary refused an operation."""
+
+
 #: Published battery challenge material a construction or adversarial session
 #: may read (Level 0): the interface, the recipes and their training code, the
 #: public reference solver (invariant 33), the construction contract and the
@@ -60,6 +65,50 @@ _PUBLISHED_CHALLENGE = (
     "carbon/reconstruction/capability_registry.py",
     "carbon/schema/strategy.py",
 )
+_CONTRACT_AND_SCHEMA = (
+    "carbon/reconstruction/capability_registry.py",
+    "carbon/schema/strategy.py",
+)
+#: Each Challenge's published Level-0 material, by its contract token: the
+#: interface, the recipes and the code that builds a construction, the public
+#: reference solver (invariant 33), the construction contract and the strategy
+#: schema. Battery's is `_PUBLISHED_CHALLENGE`, unchanged. A Challenge's
+#: scoring adapter may supply its own (`ChallengeScoring.published_material`);
+#: these are the defaults.
+PUBLISHED_MATERIAL = {
+    "battery-fastcharge-ageing-development-v1": _PUBLISHED_CHALLENGE,
+    "chip-cold-plate": (
+        "carbon/cold_plate/domain.py",
+        "carbon/cold_plate/challenge.py",
+        "carbon/cold_plate/recipes.py",
+        "carbon/cold_plate/compile.py",
+        "carbon/cold_plate/contracts.py",
+        "carbon/learned_baseline.py",
+        "carbon/cold_plate/openfoam.py",
+        *_CONTRACT_AND_SCHEMA,
+    ),
+    "electric-motor-magnetics": (
+        "carbon/motor/domain.py",
+        "carbon/motor/challenge.py",
+        "carbon/motor/recipes.py",
+        "carbon/motor/compile.py",
+        "carbon/motor/contracts.py",
+        "carbon/learned_baseline.py",
+        "carbon/motor/getdp.py",
+        "carbon/motor/mesh.py",
+        *_CONTRACT_AND_SCHEMA,
+    ),
+}
+
+
+def published_material(challenge_id):
+    """The Challenge's registered published material, or a typed refusal:
+    a session never reads another Challenge's material by default."""
+    if type(challenge_id) is not str or challenge_id not in PUBLISHED_MATERIAL:
+        raise BoundaryError("challenge_material_not_registered")
+    return PUBLISHED_MATERIAL[challenge_id]
+
+
 ALLOWLIST = {
     Role.CONSTRUCTION: _PUBLISHED_CHALLENGE,
     Role.ADVERSARIAL: _PUBLISHED_CHALLENGE,
@@ -89,10 +138,6 @@ DENY_FRAGMENTS = (
     ".env",
     "canary",
 )
-
-
-class BoundaryError(ValueError):
-    """A boundary refused an operation."""
 
 
 def _denied(relative: str) -> bool:
