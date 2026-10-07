@@ -10,9 +10,14 @@ door, and it is opened by operator entry points alone:
 - **`BatteryQuizSource`**, the producer's battery source (`producer.source_for`):
   the batch's quiz drawn from the producer root under the batch's own role,
   solved with the batch, and selected as the tuning set's quiz is.
-  - Q3: the first k = 8 feasible scenarios. Protected conditions are refused
-    and redrawn, and all-infeasible scenarios skipped, both counted. Too few
-    asks for the next round.
+  - Q3: each scenario's 117-point lattice. Once it is solved, its band-edge
+    points are refined (quiz-registry-v8: `quiz_select` asks for the refined
+    solves, which the producer adds to the batch's next solve), and the
+    answer key is the settled references (`quiz.q3_settle`).
+  - Q3 keeps the first k = 8 scenarios whose settled lattice is feasible.
+    Protected conditions are refused and redrawn, and all-infeasible
+    scenarios skipped, both counted. Too few asks for the next round. Each
+    kept scenario records its refine counts and residual UNRESOLVED points.
   - Q2: the near-limit pool of up to 320, then 80 cases by the registered
     panel's disagreement, from the panel's predictions only.
   - The panel is rebuilt once per panel version and cached owner-only on the
@@ -95,17 +100,24 @@ class BatteryQuizSource(BatteryBatchSource):
         return qs.solve_jobs(qs.contract(self.repository), draws["q2"], draws["q3"])
 
     def quiz_select(self, draws, records, *, panel, cache):
-        """quiz_stratum's selection, as the tuning set's: Q3's first `Q3_K`
-        feasible scenarios (else the next round), Q2's near-limit pool, then
-        `Q2_N` cases by the registered panel's disagreement, from the panel's
-        predictions only. The quiz is committed to the producer's seed
+        """quiz_stratum's selection, as the tuning set's: each Q3 lattice's
+        band-edge points refined first (`{"refine": jobs}` until every refine
+        point has a terminal refined record), then Q3's first `Q3_K`
+        scenarios feasible on the settled references (else the next round),
+        Q2's near-limit pool, then `Q2_N` cases by the registered panel's
+        disagreement, from the panel's predictions only. The references are
+        the settled ones. The quiz is committed to the producer's seed
         journal (kind `quiz`: digest and counts only) before any use."""
         from carbon.battery.worker import WorkerFailure
 
-        refs = qs.solved(records)
+        refs, refined = qs.solved(records), qs.refined(records)
         contract = qs.contract(self.repository)
         try:
-            q3, redraws = qs.q3_select(contract, draws["q3"], refs)
+            points = qs.refine_points(contract, draws["q3"], refs)
+            if qs.unrefined(points, refined):
+                return {"refine": qs.refine_jobs(points)}
+            settled = qs.settle(refs, points, refined)
+            q3, redraws = qs.q3_select(contract, draws["q3"], settled)
             if len(q3) < qz.Q3_K:
                 # Infeasible scenarios: the next round adds conditions.
                 round_ = (len(draws["q3"]) - qz.Q3_K) // qs.Q3_EXTRA + 1
@@ -129,10 +141,10 @@ class BatteryQuizSource(BatteryBatchSource):
             draws["role"],
             qz.PANEL_VERSION,
             [{"case_id": c, "inputs": inputs[c]} for c in chosen],
-            q3,
+            qs.with_refine(contract, q3, points, refined, settled),
             redraws,
         )
-        references = {c: refs[c] for c in qs.inputs(document)}
+        references = {c: settled[c] for c in qs.inputs(document)}
         with self.adapter._writer(), _producer_refusals():
             qs.seal(self.adapter.target.journal, document)
         return {"document": document, "references": references}

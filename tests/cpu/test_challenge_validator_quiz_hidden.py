@@ -24,7 +24,7 @@ from test_battery_validator_daemon import refs  # noqa: F401 - fixture
 from test_challenge_validator_acceptance import real_package
 from test_challenge_validator_answer_key import battery_validator
 from test_challenge_validator_rotation import EVERY
-from test_challenge_validator_tuning_quiz import PANEL, truth
+from test_challenge_validator_tuning_quiz import EDGE_C1, PANEL, solved, truth
 from test_graphite_hidden_score import knn
 
 from carbon.battery import quiz_stratum as qs
@@ -75,12 +75,15 @@ class PanelBackend:
 
 class Truth:
     """The truth container's contract, scripted and resumable: every job in
-    `/work/jobs.json` gets a closed-form terminal record. With `short`, the
-    first round's first five Q3 conditions plate at every candidate."""
+    `/work/jobs.json` gets a closed-form terminal record, keyed as the truth
+    service keys it (a refined job is its own key). With `short`, the first
+    round's first five Q3 conditions plate at every candidate. With `edge`,
+    each Q3 lattice has a band-edge column (`tuning_quiz.solved`)."""
 
-    def __init__(self, short=False):
-        self.short = short
+    def __init__(self, short=False, edge=False):
+        self.short, self.edge = short, edge
         self.infeasible = set()
+        self.calls = 0
 
     def __call__(self, command, check):
         mount = next(a for a in command if a.endswith(":/work:rw"))
@@ -92,18 +95,23 @@ class Truth:
                 self.infeasible.update(
                     tuple(c["condition"]) for c in value["draws"]["q3"][:5]
                 )
+        self.calls += 1
         jobs = json.loads((work / "jobs.json").read_text())["jobs"]
         path = work / "records.jsonl"
-        done = {json.loads(line)["case_id"] for line in path.read_text().splitlines()}
+
+        def key(value):
+            return value["case_id"] + ("/R" if value.get("refined") else "")
+
+        done = {key(json.loads(line)) for line in path.read_text().splitlines()}
         with path.open("a") as out:
             for job in jobs:
-                if job["case_id"] in done:
+                if key(job) in done:
                     continue
                 record = {
                     "case_id": job["case_id"],
+                    "refined": job.get("refined", False),
                     "inputs": {k: job[k] for k in INPUTS},
-                    "status": "OK",
-                    "outputs": truth(job, self.infeasible),
+                    **solved(job, self.infeasible, self.edge),
                 }
                 out.write(json.dumps(record) + "\n")
 
@@ -129,11 +137,11 @@ def panel_file(directory):
     return path
 
 
-def quiz_producer(tmp_path, *, short=False):
+def quiz_producer(tmp_path, *, short=False, edge=False):
     source = BatteryQuizSource(
         battery_validator(tmp_path / "producer-state"),
         overlay=tmp_path / "overlay",
-        runner=Truth(short),
+        runner=Truth(short, edge),
         panel_backend=PanelBackend(),
     )
     key = ak.ProducerKey.create(tmp_path / "producer.key")
@@ -169,7 +177,7 @@ def package_of(producer, source, fingerprint, slot):
 def test_the_producer_seals_a_screening_batch_with_its_quiz(tmp_path, small):
     producer, source, key = quiz_producer(tmp_path)
     drawn, commitment = sealed(producer, source, "pscreen-Q01")
-    assert drawn["quiz_jobs"] == qz.Q2_POOL * 4 + (qz.Q3_K + 4) * 35
+    assert drawn["quiz_jobs"] == qz.Q2_POOL * 4 + (qz.Q3_K + 4) * 117
     work = producer._work(source.challenge_id, drawn["fingerprint"])
     quiz = producer._quiz(source.challenge_id, drawn["fingerprint"])
     document = quiz["document"]
@@ -283,6 +291,102 @@ def test_a_changed_quiz_is_never_published(tmp_path, small):
     with pytest.raises(pr.ProducerRefused) as refused:
         producer.publish(source.challenge_id, drawn["fingerprint"])
     assert refused.value.code == "producer_commitment_changed"
+
+
+def test_the_producer_stays_pending_until_the_refined_solves_are_ingested(
+    tmp_path, small
+):
+    producer, source, key = quiz_producer(tmp_path, edge=True)
+    challenge = source.challenge_id
+    drawn, first = sealed(producer, source, "pscreen-R")
+    fingerprint = drawn["fingerprint"]
+    work = producer._work(challenge, fingerprint)
+    # The lattice is solved, so the band-edge points are asked for: PENDING.
+    assert first == {
+        "fingerprint": fingerprint,
+        "state": "PENDING",
+        "quiz": "QUIZ_REFINE",
+    }
+    assert producer._quiz(challenge, fingerprint) is None
+    assert producer.journal.find("sealed", challenge, fingerprint) is None
+    conditions = qz.Q3_K + 4
+    jobs = json.loads((work / "jobs.json").read_text())["jobs"]
+    refine = [j for j in jobs if j.get("refined")]
+    assert len(refine) == 9 * conditions
+    assert all(j["c1"] == EDGE_C1 for j in refine)
+    assert len(jobs) == len(source.jobs(fingerprint)) + drawn["quiz_jobs"] + len(refine)
+    # Sealing again before the refined solves are in changes nothing.
+    again = producer.seal(challenge, fingerprint)
+    assert again == first
+    # A redraw (as a tick does) keeps the refined jobs in `jobs.json`.
+    producer.draw(challenge, "pscreen-R", kind="screening")
+    assert json.loads((work / "jobs.json").read_text())["jobs"] == jobs
+    producer.solve(challenge, fingerprint)
+    commitment = producer.seal(challenge, fingerprint)
+    assert commitment["quiz_digest"] and "state" not in commitment
+    quiz = producer._quiz(challenge, fingerprint)
+    document = quiz["document"]
+    for s in document["q3"]:
+        assert len(s["grid"]) == 117
+        assert s["refine"] == {"refine_points": 9, "refined_ok": 8, "residual": 1}
+    # The package's references are the settled ones.
+    records = [
+        json.loads(line) for line in (work / "records.jsonl").read_text().splitlines()
+    ]
+    standard = {r["case_id"]: r for r in records if not r.get("refined")}
+    for s in document["q3"]:
+        for job in s["grid"]:
+            reference = quiz["references"][job["case_id"]]
+            if job["c1"] == EDGE_C1 and job["c2"] != 0.2:
+                assert reference["settled"] == "refined"
+                assert reference["outputs"]["plating_margin_v"] == -0.004
+            else:
+                assert reference == standard[job["case_id"]]
+    value = package_of(producer, source, fingerprint, 1)
+    _signed, payload = ak.verify(value, key.public_key)
+    assert payload["quiz"] == quiz
+    # A validator imports a quiz with refine counts.
+    adapter = battery_validator(tmp_path / "validator", import_only=True)
+    adapter.import_answer_key(*ak.verify(value, key.public_key))
+    assert adapter.target.store.quiz(fingerprint)["document"] == document
+    # The aggregates carry the UNRESOLVED share.
+    measured = battery_quiz.measure(REPOSITORY, {fingerprint: quiz}, quiz_oracle(quiz))
+    assert measured["pooled"]["q3"]["unresolved"] is not None
+    assert measured["batches"][fingerprint]["q3"]["unresolved"] is not None
+    for path in producer.directory.rglob("*"):
+        assert path.stat().st_mode & 0o077 == 0, path
+
+
+def quiz_oracle(quiz):
+    return {
+        c: r["outputs"]
+        for c, r in quiz["references"].items()
+        if r.get("status") == "OK"
+    }
+
+
+def test_a_tick_solves_the_refined_jobs_in_the_same_pass(tmp_path, small):
+    producer, source, _key = quiz_producer(tmp_path, edge=True)
+    report = producer.tick(100)[source.challenge_id]
+    assert (report["filled"], report["unfilled"]) == ([1], [])
+    assert not [e for e in producer.journal.entries() if e["event"] == "slot_unfilled"]
+
+
+def test_a_malformed_quiz_document_refine_is_refused():
+    document = qs.document("r", 1, [], [], {})
+    scenario = {"scenario_id": "s", "condition": [20.0, 0.2], "grid": []}
+    assert qs.check({**document, "q3": [scenario]})
+    good = {"refine_points": 1, "refined_ok": 0, "residual": 1}
+    assert qs.check({**document, "q3": [{**scenario, "refine": good}]})
+    for bad in (
+        {**good, "extra": 0},
+        {"refine_points": 1, "refined_ok": 0},
+        {**good, "residual": -1},
+        {**good, "residual": True},
+        [1, 0, 1],
+    ):
+        with pytest.raises(qs.QuizRefused):
+            qs.check({**document, "q3": [{**scenario, "refine": bad}]})
 
 
 # -- the validator's import -----------------------------------------------------------------
@@ -468,7 +572,12 @@ def test_the_quiz_is_reported_operator_only_and_changes_no_score(
         assert set(batch) == {"quiz_digest", "panel_version", "q2", "q3"}
         assert set(batch["q2"]) == {"false_feasible", "plating_fa", "false_infeasible"}
         assert len(batch["q3"]["outcomes"]) == 2
-    assert set(quiz["pooled"]["q3"]) >= {"false_feasible", "regret", "over_caution"}
+    assert set(quiz["pooled"]["q3"]) >= {
+        "false_feasible",
+        "regret",
+        "over_caution",
+        "unresolved",
+    }
     full = validators["quiz-a"].score_record(sid)
     assert full["quiz"] == quiz
     # Quiz cases never enter the accuracy rows or the scored predictions.
@@ -501,4 +610,5 @@ def test_the_quiz_is_reported_operator_only_and_changes_no_score(
     [row] = table["by_pool_version"][str(records["quiz-a"]["pool_version"])]
     assert row["state"] == "MEASURED" and row["panel_versions"] == [1]
     assert row["q2"] == quiz["pooled"]["q2"]
+    assert row["q3"]["unresolved"] == quiz["pooled"]["q3"]["unresolved"]
     assert hidden_score._quiz_table([records["plain"]])["by_pool_version"] == {}

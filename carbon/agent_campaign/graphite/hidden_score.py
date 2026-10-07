@@ -446,7 +446,15 @@ def _quiz_table(records):
                 ),
                 "q2": pooled.get("q2"),
                 "q3": (
-                    {k: q3.get(k) for k in ("false_feasible", "regret", "over_caution")}
+                    {
+                        k: q3.get(k)
+                        for k in (
+                            "false_feasible",
+                            "regret",
+                            "over_caution",
+                            "unresolved",
+                        )
+                    }
                     if q3
                     else None
                 ),

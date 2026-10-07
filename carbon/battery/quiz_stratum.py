@@ -19,9 +19,18 @@ it the same way:
   A condition within both `PROTECTED_T_C` and `PROTECTED_SOC` of a protected
   condition is refused and redrawn. Protected conditions are every scenario
   condition in the committed engineering-value contracts and the committed
-  practice decision set's (PRACTICE-SAFETY-01 B4). The first `quiz.Q3_K`
-  conditions whose 35-candidate reference grid holds a feasible design
-  (`quiz.q3_feasible`) are kept; the rest count as redraws.
+  practice decision set's (PRACTICE-SAFETY-01 B4). Each condition's grid is
+  the 117-point lattice (`quiz.q3_candidates`, quiz-registry-v7).
+- **Refine (quiz-registry-v8).** Once a condition's lattice is solved, every
+  point whose standard reference lies within one contract band of a limit
+  (`quiz.q3_refine_points`) gets a refined solve (`refined: true`, the same
+  pinned truth image). The answer key is the settled references
+  (`quiz.q3_settle`): refined truth where the refined solve is OK, the
+  standard reference otherwise. Selection, feasibility and judging all use
+  the settled references. The first `quiz.Q3_K` conditions whose settled
+  lattice holds a feasible design (`quiz.q3_feasible`) are kept; the rest
+  count as redraws. Each kept scenario records its refine counts
+  (`refine_summary`): counts only.
 - **The quiz document** names its role, the panel version and each case's
   inputs. It is private; only its digest and counts are committed to the
   seed journal (kind `quiz`, `seal`).
@@ -208,8 +217,111 @@ def solve_jobs(contract, q2, q3):
 
 
 def solved(records):
-    """Reference records by case id; FAILED_INFRA is not a solve."""
-    return {r["case_id"]: r for r in records if r.get("status") != STATUS_FAILED_INFRA}
+    """Standard reference records by case id. FAILED_INFRA is not a solve,
+    and a refined record (`refined: true`) is not a standard reference: it
+    shares its lattice point's case id (`refined`)."""
+    return {
+        r["case_id"]: r
+        for r in records
+        if r.get("status") != STATUS_FAILED_INFRA and r.get("refined") is not True
+    }
+
+
+def refined(records):
+    """Refined records (quiz-registry-v8) by case id; FAILED_INFRA is not a
+    solve (the truth service retries it)."""
+    return {
+        r["case_id"]: r
+        for r in records
+        if r.get("status") != STATUS_FAILED_INFRA and r.get("refined") is True
+    }
+
+
+# --- refine (quiz-registry-v8) ---------------------------------------------------------
+
+
+def refine_points(contract, conditions, refs):
+    """Each Q3 condition's refined-solve jobs (`quiz.q3_refine_points`), by
+    scenario id, from the standard references. Every lattice point must be
+    solved first, or the refine set would silently shrink."""
+    points = {}
+    for entry in conditions:
+        grid = quiz.q3_grid(contract, scenario(entry))
+        if any(job["case_id"] not in refs for job in grid):
+            raise QuizRefused("quiz_unsolved")
+        grid_refs = {job["case_id"]: refs[job["case_id"]] for job in grid}
+        points[entry["scenario_id"]] = quiz.q3_refine_points(
+            contract, scenario(entry), grid_refs
+        )
+    return points
+
+
+def refine_jobs(points):
+    """The refined-solve jobs, in scenario then lattice order."""
+    return [job for jobs in points.values() for job in jobs]
+
+
+def unrefined(points, refined_records):
+    """Refine jobs without a terminal refined record. A refined record must
+    have solved its own job's inputs."""
+    missing = []
+    for job in refine_jobs(points):
+        record = refined_records.get(job["case_id"])
+        if record is None:
+            missing.append(job)
+            continue
+        expected = {k: job[k] for k in ("c1", "c2", "t_amb_c", "soc0")}
+        if record.get("inputs") not in (None, expected):
+            raise QuizRefused("quiz_refined_records_mismatch")
+    return missing
+
+
+def settle(refs, points, refined_records):
+    """The answer key (`quiz.q3_settle`): the standard references, with each
+    refine point's refined truth where its refined solve is OK. A failed
+    refined solve keeps the standard reference."""
+    wanted = {job["case_id"] for job in refine_jobs(points)}
+    return quiz.q3_settle(
+        refs, [refined_records[c] for c in sorted(wanted) if c in refined_records]
+    )
+
+
+def refine_summary(contract, entry, jobs, refined_records, settled):
+    """A kept scenario's refine counts: `refine_points`, `refined_ok`, and
+    `residual`, the lattice points whose settled reference is still UNRESOLVED
+    under the contract's bands (`decision.assess_reference`, as
+    `quiz.q3_judge` judges it). Counts only."""
+    from .value import contract as ev
+    from .value import decision as d
+
+    candidates, s = quiz.q3_candidates(), scenario(entry)
+    refs = {}
+    for candidate in candidates:
+        case_id = ev.case_id(contract, s, candidate, 0)
+        if case_id in settled:
+            refs[(candidate["id"], 0)] = settled[case_id]
+    reference = d.assess_reference(contract, s, candidates, refs)
+    return {
+        "refine_points": len(jobs),
+        "refined_ok": sum(
+            refined_records.get(job["case_id"], {}).get("status") == "OK"
+            for job in jobs
+        ),
+        "residual": sum(r["status"] == d.UNRESOLVED for r in reference.values()),
+    }
+
+
+def with_refine(contract, chosen, points, refined_records, settled):
+    """The kept scenarios, each with its `refine` counts."""
+    return [
+        {
+            **s,
+            "refine": refine_summary(
+                contract, s, points[s["scenario_id"]], refined_records, settled
+            ),
+        }
+        for s in chosen
+    ]
 
 
 def q2_pool(contract, candidates, refs):
@@ -272,6 +384,7 @@ def document(role, panel_version, q2, q3, redraws):
                 "scenario_id": s["scenario_id"],
                 "condition": list(s["condition"]),
                 "grid": [dict(job) for job in s["grid"]],
+                **({"refine": dict(s["refine"])} if "refine" in s else {}),
             }
             for s in q3
         ],
@@ -333,7 +446,9 @@ def registered_panel(repository, version=None):
 
 def member_measures(contract, value, predictions, refs):
     """One model's quiz measures: Q2's (`quiz.q2_measures`), and Q3's over
-    the quiz's feasible scenarios (`quiz.q3_judge`, `quiz.q3_measures`)."""
+    the quiz's feasible scenarios (`quiz.q3_judge`, `quiz.q3_measures`,
+    which also gives the `unresolved` share). `refs` are the quiz's settled
+    references."""
     q2_ids = [c["case_id"] for c in value["q2"]]
     if any(case_id not in refs for case_id in q2_ids):
         raise QuizRefused("quiz_unsolved")
@@ -350,5 +465,5 @@ def member_measures(contract, value, predictions, refs):
         )
     return {
         "q2": quiz.q2_measures(contract, predictions, q2_ids, refs),
-        "q3": {**quiz.q3_measures(outcomes), "outcomes": outcomes},
+        "q3": {**quiz.q3_measures(outcomes, contract), "outcomes": outcomes},
     }
