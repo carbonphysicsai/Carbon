@@ -524,3 +524,77 @@ def test_an_injection_inside_a_card_is_data(tmp_path):
         assert request["tools"] == []
         assert injected["abstract"] not in request["instructions"]
     assert expansion_record.unrecorded() == {}
+
+
+# -- Climb sessions (the Test Lead, 2026-10-07: a declarative-only climb) ------
+
+
+def climb(tmp_path, levels=(2, 3), changes=None):
+    document = lp.brief(BATTERY, index=FIXTURE_INDEX, results=RESULTS, climb=True)
+    replies = {level: good_reply(document, level) for level in levels}
+    for level, change in (changes or {}).items():
+        replies[level] = change(replies[level])
+    script = [text(json.dumps(replies[level])) for level in levels]
+    job, model = planner(tmp_path, script)
+    summary = job.plan(
+        "climb-1",
+        BATTERY,
+        index=FIXTURE_INDEX,
+        results=RESULTS,
+        levels=levels,
+        climb=True,
+    )
+    return job, model, summary, document
+
+
+def test_a_climb_session_proposes_only_its_levels(tmp_path):
+    before = repository_proposals()
+    job, model, summary, _document = climb(tmp_path)
+    assert summary["status"] == "COMPLETED" and summary["mode"] == lp.CLIMB
+    assert [o["level"] for o in summary["levels"]] == [2, 3]
+    assert all(o["outcome"] == "PROPOSED" for o in summary["levels"])
+    assert len(model.requests) == 2
+    directory = job.task.run_dir("climb-1")
+    for level in (0, 1, 4, 5):
+        assert not proposals.path_for(BATTERY, level, root=directory).exists()
+    sent = [canonical(r).decode() for r in model.requests]
+    assert all("This is a climb" in r for r in sent)
+    assert "Level 3 is a declarative menu only" not in sent[0]
+    assert "Level 3 is a declarative menu only" in sent[1]
+    assert repository_proposals() == before
+
+
+def test_a_climb_never_re_lists_a_contract_capability(tmp_path):
+    def relist(reply):
+        reply["capabilities"][0]["id"] = "optimizer.optimizer_family"
+        return reply
+
+    _job, _model, summary, _document = climb(tmp_path, changes={2: relist})
+    outcome = summary["levels"][0]
+    assert outcome["outcome"] == "REJECTED"
+    assert outcome["code"] == "climb_capability_already_in_contract"
+    assert summary["levels"][1]["outcome"] == "PROPOSED"
+
+
+@pytest.mark.parametrize("levels", [(0,), (2, 4), (5,), ()])
+def test_a_climb_outside_levels_1_to_3_is_refused_before_any_call(tmp_path, levels):
+    job, model = planner(tmp_path, [])
+    with pytest.raises(lp.BriefRefused) as refused:
+        job.plan(
+            "climb-x",
+            BATTERY,
+            index=FIXTURE_INDEX,
+            results=RESULTS,
+            levels=levels,
+            climb=True,
+        )
+    assert refused.value.code == "levels_refused" and model.requests == []
+
+
+def test_a_climb_brief_is_its_own_session_and_a_plain_brief_is_unchanged():
+    plain = lp.brief(BATTERY, index=FIXTURE_INDEX, results=RESULTS)
+    climbing = lp.brief(BATTERY, index=FIXTURE_INDEX, results=RESULTS, climb=True)
+    assert "mode" not in plain and climbing["mode"] == lp.CLIMB
+    assert digest(canonical(plain)) != digest(canonical(climbing))
+    assert {k: v for k, v in climbing.items() if k != "mode"} == plain
+    assert lp.rules(2) == lp.rules(2, climb=False)

@@ -93,6 +93,15 @@ SETTINGS = {
     "timeout_seconds": 600,
 }
 ISOLATED = (4, 5)
+#: A climb session (the Test Lead, 2026-10-07, under the owner's approval of a
+#: declarative-only battery climb through Levels 2 and 3) asks for what a level
+#: adds beyond today's contract, for a development-only variant
+#: (OWNER-GRAPHITE-DEV-LEVELS-01). It runs only Levels 1-3: Level 0 is today's
+#: contract, and Levels 4-5 wait for the security owner's isolation acceptance.
+CLIMB = "climb"
+CLIMB_LEVELS = (1, 2, 3)
+#: Level 3 is a declarative menu only (OWNER-GRAPHITE-DEV-LEVELS-01 F2).
+MENU_ONLY_LEVEL = 3
 #: The grants a live planner session may run under: the executor proposes
 #: them and the owner approves them (OWNER-GRAPHITE-05). Each one's call cap
 #: covers MAX_CALLS at SETTINGS (see the grants README).
@@ -185,9 +194,10 @@ def _checked_results(results):
     return sorted(checked, key=lambda result: result["result_id"])
 
 
-def brief(challenge, *, index, results=(), card_ids=None):
+def brief(challenge, *, index, results=(), card_ids=None, climb=False):
     """Carbon's brief for one Challenge: its contract placed on its ladder map,
-    the chosen method cards and the permitted development results."""
+    the chosen method cards and the permitted development results. A climb
+    brief is marked as one, so its session is its own."""
     study, live = study_for(challenge)
     entries = []
     for item, document in zip(live.capabilities, live.document()["capabilities"]):
@@ -215,7 +225,7 @@ def brief(challenge, *, index, results=(), card_ids=None):
                 )
             },
         }
-    return {
+    document = {
         "schema": BRIEF_SCHEMA,
         "challenge": study.challenge,
         "contract_digest": live.digest,
@@ -247,14 +257,41 @@ def brief(challenge, *, index, results=(), card_ids=None):
         },
         "results": _checked_results(results),
     }
+    if climb:
+        document["mode"] = CLIMB
+    return document
 
 
-def rules(level):
+def _climbing(document):
+    return document.get("mode") == CLIMB
+
+
+def rules(level, *, climb=False):
     """Carbon's rules for one level, sent with the brief as data."""
     out = [
         "Propose capabilities for this level only.",
         "Every source resolves to the brief.",
     ]
+    if climb:
+        out += [
+            (
+                "This is a climb: propose what this level adds beyond today's "
+                "contract. Never re-list a capability already in "
+                "brief.capabilities; a capability id is never a contract id."
+            ),
+            (
+                "Each capability is for a development-only variant that is never "
+                "served to miners. It is declarative: a bounded setting or a fixed "
+                "menu of named options that Carbon implements; it runs no "
+                "participant code."
+            ),
+        ]
+        if level == MENU_ONLY_LEVEL:
+            out.append(
+                "Level 3 is a declarative menu only: each capability is one fixed "
+                "choice among named routines Carbon implements, and its bounds list "
+                "the whole menu and its default."
+            )
     if level > 0:
         out.append("Every capability cites at least one card or result.")
     if level in ISOLATED:
@@ -282,7 +319,7 @@ def item(document, level):
         "task": ITEM_TASK,
         "content_is_data": True,
         "level": level,
-        "rules": rules(level),
+        "rules": rules(level, climb=_climbing(document)),
         "brief": document,
     }
 
@@ -344,6 +381,10 @@ def proposal_from_reply(value, *, level, document, run_id, recorded_at, protocol
             return None, "source_not_in_brief"
         if level > 0 and not {"card", "result"} & set(kinds):
             return None, "capability_above_level_0_cites_no_card_or_result"
+        if _climbing(document) and capability["id"] in {
+            c["id"] for c in document["capabilities"]
+        }:
+            return None, "climb_capability_already_in_contract"
         capability = dict(capability)
         if level in ISOLATED:
             isolation = capability.pop("isolation")
@@ -432,9 +473,28 @@ class LevelPlanner:
         """Where a run's proposals are, in the repository's own layout."""
         return proposals.path_for("x", 0, root=self.task.run_dir(run_id)).parents[1]
 
-    def plan(self, run_id, challenge, *, index, results=(), card_ids=None):
-        """Run (or resume) one session; returns its typed summary."""
-        document = brief(challenge, index=index, results=results, card_ids=card_ids)
+    def plan(
+        self,
+        run_id,
+        challenge,
+        *,
+        index,
+        results=(),
+        card_ids=None,
+        levels=None,
+        climb=False,
+    ):
+        """Run (or resume) one session; returns its typed summary. `levels`
+        narrows the session to some levels (a climb is Levels 1-3 only)."""
+        levels = tuple(LEVELS) if levels is None else tuple(sorted(set(levels)))
+        if not levels or not set(levels) <= set(CLIMB_LEVELS if climb else LEVELS):
+            raise BriefRefused(
+                "levels_refused",
+                f"{list(levels)}; a climb takes Levels {list(CLIMB_LEVELS)} only",
+            )
+        document = brief(
+            challenge, index=index, results=results, card_ids=card_ids, climb=climb
+        )
         brief_digest = digest(canonical(document))
         session = self.task.session(run_id, brief_digest)
         # The largest level's exact request against the input bound (one
@@ -443,7 +503,7 @@ class LevelPlanner:
         bound = SETTINGS["max_input_tokens"] - CONTEXT_RESERVE_TOKENS
         largest = max(
             len(canonical(self.task.request(session.selection, item(document, level))))
-            for level in LEVELS
+            for level in levels
         )
         if largest > bound:
             raise BriefRefused(
@@ -456,7 +516,7 @@ class LevelPlanner:
         (directory / "rejections").mkdir(exist_ok=True, mode=0o700)
         token = document["challenge"]
         outcomes, stop = [], {"status": "COMPLETED"}
-        for level in LEVELS:
+        for level in levels:
             target = proposals.path_for(token, level, root=directory)
             rejected = directory / "rejections" / f"level-{level}.json"
             if target.exists():
@@ -518,6 +578,7 @@ class LevelPlanner:
             "contract_digest": document["contract_digest"],
             "literature_snapshot_digest": document["literature"]["snapshot_digest"],
             "levels": outcomes,
+            **({"mode": CLIMB} if climb else {}),
             **session.usage(),
         }
         (directory / "session.json").write_bytes(canonical(summary))
@@ -567,6 +628,12 @@ def main(argv=None, *, environ=None):
     parser.add_argument("--card-id", action="append", dest="card_ids")
     parser.add_argument("--run-id", default="level-plan-1")
     parser.add_argument("--adapter", default="engy-anthropic")
+    parser.add_argument(
+        "--climb",
+        action="store_true",
+        help="propose what each level adds beyond today's contract (Levels 1-3)",
+    )
+    parser.add_argument("--level", action="append", type=int, dest="levels")
     args = parser.parse_args(argv)
     try:
         root = phase2._root(args.root)
@@ -593,6 +660,8 @@ def main(argv=None, *, environ=None):
                 index=index,
                 results=tuple(results),
                 card_ids=args.card_ids,
+                levels=args.levels,
+                climb=args.climb,
             )
     except phase2.RunnerRefused:
         return 2  # it printed its typed refusal
