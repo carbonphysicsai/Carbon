@@ -1,0 +1,796 @@
+{
+ "adapter": "battery",
+ "allowlist": {
+  "digest": "sha256:3b2371ffb02275a1dc2dbbe8e8a97eb180b9c673c9149cc38d05ae99557971f7",
+  "version": "level4-allowlist-v1"
+ },
+ "environment": {
+  "jax": "0.10.2",
+  "jax_platforms": "cpu",
+  "jaxlib": "0.10.2",
+  "machine": "x86_64",
+  "neuraloperator": "2.0.0",
+  "python": "3.11.16",
+  "torch": "2.13.0+cpu"
+ },
+ "phase0_equivalence_v1": {
+  "batch_by_vmap": {
+   "panel_deeponet": {
+    "bit_identical": true,
+    "max_abs_difference": 0.0
+   },
+   "scaffold_mlp": {
+    "bit_identical": true,
+    "max_abs_difference": 0.0
+   }
+  },
+  "panel_deeponet": {
+   "bprime_matches_native": true,
+   "bprime_params_sha256": "d7938c2ae268d122e2fd68447265a2a118a07a08dd8c1b68c7ef193d5bd29b7a",
+   "graph_bytes": {
+    "forward": 20608,
+    "init": 28205
+   },
+   "loss": {
+    "bprime": [
+     6.834377765655518,
+     0.01673860102891922
+    ],
+    "native_final": 0.01673860102891922
+   },
+   "native_params_sha256": "d7938c2ae268d122e2fd68447265a2a118a07a08dd8c1b68c7ef193d5bd29b7a",
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "predictions_identical": true,
+   "predictions_sha256": {
+    "bprime": "22648afa593bfded455c63d0d619e6e0db62c5aef4c0800502891f5d68697f54",
+    "native": "22648afa593bfded455c63d0d619e6e0db62c5aef4c0800502891f5d68697f54"
+   },
+   "review_ops_in_graphs": {},
+   "steps": 6000
+  },
+  "panel_knn": {
+   "bit_identical": false,
+   "graph_bytes": 6066,
+   "max_abs_difference": 3.552713678800501e-15,
+   "path": "recipes.KNN.predict arithmetic (numpy float64) vs B' graph (JAX x64)",
+   "train_as_named_inputs_bytes": 796800
+  },
+  "panel_mlp": {
+   "bprime_matches_native": true,
+   "bprime_params_sha256": "1e2569d5aab305dbc08b9387e6d1fb9115e4905e19b3a3d6e79bd5cc8e701cbe",
+   "copy_matches_declarative": true,
+   "declarative_params_sha256": "1e2569d5aab305dbc08b9387e6d1fb9115e4905e19b3a3d6e79bd5cc8e701cbe",
+   "graph_bytes": {
+    "forward": 6014,
+    "init": 16336
+   },
+   "loss": {
+    "bprime": [
+     4.62322998046875,
+     0.002732544206082821
+    ],
+    "native": [
+     4.62322998046875,
+     0.002732544206082821
+    ]
+   },
+   "native_copy_params_sha256": "1e2569d5aab305dbc08b9387e6d1fb9115e4905e19b3a3d6e79bd5cc8e701cbe",
+   "path": "classic (recipes.MLP._fit_classic)",
+   "steps": 6000
+  },
+  "scaffold_mlp": {
+   "bprime_matches_native": true,
+   "bprime_params_sha256": "a908215e606a7dd863dc55f9c5a6de4a76b0e8af0355a14f31bbf233a34df07c",
+   "copy_matches_declarative": true,
+   "declarative_params_sha256": "a908215e606a7dd863dc55f9c5a6de4a76b0e8af0355a14f31bbf233a34df07c",
+   "graph_bytes": {
+    "forward": 5969,
+    "init": 16266
+   },
+   "loss": {
+    "bprime": [
+     4.6702704429626465,
+     0.07076755166053772
+    ],
+    "native": [
+     4.6702704429626465,
+     0.07076755166053772
+    ]
+   },
+   "native_copy_params_sha256": "a908215e606a7dd863dc55f9c5a6de4a76b0e8af0355a14f31bbf233a34df07c",
+   "path": "classic (recipes.MLP._fit_classic)",
+   "steps": 2000
+  },
+  "scaffold_mlp+relu (general path)": {
+   "bprime_matches_native": true,
+   "bprime_params_sha256": "9a1856d9855c74f467772885b0d95688880c4c1f2770e783dedd93ddecfcc6a2",
+   "graph_bytes": {
+    "forward": 2958,
+    "init": 15490
+   },
+   "loss": {
+    "bprime": [
+     5.69570779800415,
+     0.07167766243219376
+    ],
+    "native_final": 0.07167766243219376
+   },
+   "native_params_sha256": "9a1856d9855c74f467772885b0d95688880c4c1f2770e783dedd93ddecfcc6a2",
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "predictions_identical": true,
+   "predictions_sha256": {
+    "bprime": "6d3ef7dd95de3b0a9dfffb517728fbd628b8833415a940b5cebe4e2939955187",
+    "native": "6d3ef7dd95de3b0a9dfffb517728fbd628b8833415a940b5cebe4e2939955187"
+   },
+   "review_ops_in_graphs": {},
+   "steps": 2000
+  },
+  "scaffold_mlp+silu (general path)": {
+   "bprime_matches_native": true,
+   "bprime_params_sha256": "692c839626fd491e99658182265d2434a6053cc1ca2851ee11a8f6c069db007a",
+   "graph_bytes": {
+    "forward": 3853,
+    "init": 15490
+   },
+   "loss": {
+    "bprime": [
+     4.367374897003174,
+     0.08409640938043594
+    ],
+    "native_final": 0.08409640938043594
+   },
+   "native_params_sha256": "692c839626fd491e99658182265d2434a6053cc1ca2851ee11a8f6c069db007a",
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "predictions_identical": true,
+   "predictions_sha256": {
+    "bprime": "de1eef975cf85edd0b14abca74131500bbe482723fabfc58e51ee22800d1e725",
+    "native": "de1eef975cf85edd0b14abca74131500bbe482723fabfc58e51ee22800d1e725"
+   },
+   "review_ops_in_graphs": {},
+   "steps": 2000
+  },
+  "scaffold_mlp+softplus (general path)": {
+   "bprime_matches_native": true,
+   "bprime_params_sha256": "d1a96f27e96bd7878e58422b7242cdced4170adf59482a7e238dccdfc1c3b64b",
+   "graph_bytes": {
+    "forward": 3825,
+    "init": 15490
+   },
+   "loss": {
+    "bprime": [
+     13.56251049041748,
+     0.1836909055709839
+    ],
+    "native_final": 0.1836909055709839
+   },
+   "native_params_sha256": "d1a96f27e96bd7878e58422b7242cdced4170adf59482a7e238dccdfc1c3b64b",
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "predictions_identical": true,
+   "predictions_sha256": {
+    "bprime": "aaacce4faa3f9d38bc70af34023fc64a976b1da9fbab8057863a6f5ff14cecd8",
+    "native": "aaacce4faa3f9d38bc70af34023fc64a976b1da9fbab8057863a6f5ff14cecd8"
+   },
+   "review_ops_in_graphs": {},
+   "steps": 2000
+  },
+  "scaffold_mlp+tanh (general path)": {
+   "bprime_matches_native": true,
+   "bprime_params_sha256": "caf2b605721af3c76bc8c823dfbcd96427122a852f172315d487d32fcf6d1286",
+   "graph_bytes": {
+    "forward": 2934,
+    "init": 15490
+   },
+   "loss": {
+    "bprime": [
+     6.456679821014404,
+     0.10031509399414062
+    ],
+    "native_final": 0.10031509399414062
+   },
+   "native_params_sha256": "caf2b605721af3c76bc8c823dfbcd96427122a852f172315d487d32fcf6d1286",
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "predictions_identical": true,
+   "predictions_sha256": {
+    "bprime": "857a533808e0e5a5f247019f9641a93d75ddde753b8a6ba34008f838617c0edf",
+    "native": "857a533808e0e5a5f247019f9641a93d75ddde753b8a6ba34008f838617c0edf"
+   },
+   "review_ops_in_graphs": {},
+   "steps": 2000
+  }
+ },
+ "q1_gradients": {
+  "deeponet/gelu/layer_norm": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [],
+   "training_loss": true
+  },
+  "deeponet/gelu/none": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [],
+   "training_loss": true
+  },
+  "deeponet/relu/layer_norm": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [
+    "relu"
+   ],
+   "training_loss": true
+  },
+  "deeponet/relu/none": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [
+    "relu"
+   ],
+   "training_loss": true
+  },
+  "deeponet/relu/none/float64": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [
+    "relu"
+   ],
+   "training_loss": true
+  },
+  "deeponet/silu/layer_norm": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [],
+   "training_loss": true
+  },
+  "deeponet/silu/none": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [],
+   "training_loss": true
+  },
+  "deeponet/softplus/layer_norm": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [
+    "logaddexp"
+   ],
+   "training_loss": true
+  },
+  "deeponet/softplus/none": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [
+    "logaddexp"
+   ],
+   "training_loss": true
+  },
+  "deeponet/tanh/layer_norm": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [],
+   "training_loss": true
+  },
+  "deeponet/tanh/none": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [],
+   "training_loss": true
+  },
+  "mlp/gelu/layer_norm": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [],
+   "training_loss": true
+  },
+  "mlp/gelu/none": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [],
+   "training_loss": true
+  },
+  "mlp/relu/layer_norm": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [
+    "relu"
+   ],
+   "training_loss": true
+  },
+  "mlp/relu/none": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [
+    "relu"
+   ],
+   "training_loss": true
+  },
+  "mlp/relu/none/float64": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [
+    "relu"
+   ],
+   "training_loss": true
+  },
+  "mlp/silu/layer_norm": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [],
+   "training_loss": true
+  },
+  "mlp/silu/none": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [],
+   "training_loss": true
+  },
+  "mlp/softplus/layer_norm": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [
+    "logaddexp"
+   ],
+   "training_loss": true
+  },
+  "mlp/softplus/none": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [
+    "logaddexp"
+   ],
+   "training_loss": true
+  },
+  "mlp/tanh/layer_norm": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [],
+   "training_loss": true
+  },
+  "mlp/tanh/none": {
+   "init": true,
+   "level1_terms": true,
+   "named_functions": [],
+   "training_loss": true
+  }
+ },
+ "q1_training": {
+  "deeponet/gelu/layer_norm": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     29.209579467773438,
+     0.04259480535984039
+    ],
+    "native_final": 0.04259480535984039
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 6000
+  },
+  "deeponet/gelu/none": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     6.834377765655518,
+     0.01673860102891922
+    ],
+    "native_final": 0.01673860102891922
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 6000
+  },
+  "deeponet/relu/layer_norm": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     60.2350959777832,
+     0.02239058166742325
+    ],
+    "native_final": 0.02239058166742325
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 6000
+  },
+  "deeponet/relu/none": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     21.17245864868164,
+     0.01890045776963234
+    ],
+    "native_final": 0.01890045776963234
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 6000
+  },
+  "deeponet/relu/none/float64": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     10.030777111143985,
+     0.02169064978507994
+    ],
+    "native_final": 0.02169064978507994
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 6000
+  },
+  "deeponet/silu/layer_norm": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     23.547029495239258,
+     0.06504534929990768
+    ],
+    "native_final": 0.06504534929990768
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 6000
+  },
+  "deeponet/silu/none": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     5.207304954528809,
+     0.01963266357779503
+    ],
+    "native_final": 0.01963266357779503
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 6000
+  },
+  "deeponet/softplus/layer_norm": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     230.38502502441406,
+     0.30856433510780334
+    ],
+    "native_final": 0.30856433510780334
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 6000
+  },
+  "deeponet/softplus/none": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     461.4471435546875,
+     0.3271675705909729
+    ],
+    "native_final": 0.3271675705909729
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 6000
+  },
+  "deeponet/tanh/layer_norm": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     11.66879940032959,
+     0.11346571147441864
+    ],
+    "native_final": 0.11346571147441864
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 6000
+  },
+  "deeponet/tanh/none": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     9.47092342376709,
+     0.11319959908723831
+    ],
+    "native_final": 0.11319959908723831
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 6000
+  },
+  "mlp/gelu/layer_norm": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     6.407508850097656,
+     0.08574748784303665
+    ],
+    "native_final": 0.08574748784303665
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 2000
+  },
+  "mlp/gelu/none": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     4.6702704429626465,
+     0.07076755166053772
+    ],
+    "native": [
+     4.6702704429626465,
+     0.07076755166053772
+    ]
+   },
+   "path": "classic (recipes.MLP._fit_classic)",
+   "steps": 2000
+  },
+  "mlp/relu/layer_norm": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     7.283343315124512,
+     0.06378890573978424
+    ],
+    "native_final": 0.06378890573978424
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 2000
+  },
+  "mlp/relu/none": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     5.69570779800415,
+     0.07167766243219376
+    ],
+    "native_final": 0.07167766243219376
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 2000
+  },
+  "mlp/relu/none/float64": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     9.306518957536206,
+     0.07036784604759534
+    ],
+    "native_final": 0.07036784604759534
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 2000
+  },
+  "mlp/silu/layer_norm": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     5.77336311340332,
+     0.10449491441249847
+    ],
+    "native_final": 0.10449491441249847
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 2000
+  },
+  "mlp/silu/none": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     4.367374897003174,
+     0.08409640938043594
+    ],
+    "native_final": 0.08409640938043594
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 2000
+  },
+  "mlp/softplus/layer_norm": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     10.095942497253418,
+     0.18100979924201965
+    ],
+    "native_final": 0.18100979924201965
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 2000
+  },
+  "mlp/softplus/none": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     13.56251049041748,
+     0.1836909055709839
+    ],
+    "native_final": 0.1836909055709839
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 2000
+  },
+  "mlp/tanh/layer_norm": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     7.220690727233887,
+     0.10827496647834778
+    ],
+    "native_final": 0.10827496647834778
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 2000
+  },
+  "mlp/tanh/none": {
+   "bprime_matches_native": true,
+   "loss": {
+    "bprime": [
+     6.456679821014404,
+     0.10031509399414062
+    ],
+    "native_final": 0.10031509399414062
+   },
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "steps": 2000
+  }
+ },
+ "q3_carbon_init": {
+  "default_fno": {
+   "carbon_training": {
+    "loss": [
+     17.89190101623535,
+     0.795825719833374
+    ],
+    "optimizer": "optax.adam (spike demonstration only)",
+    "steps": 50
+   },
+   "document_independent_of_module_init": true,
+   "init_deterministic": true,
+   "init_sha256": "ad224581e584e0c562ed543ea3712c788f4daf62d06934d5ab1c0a46c418b415",
+   "parameters": 36
+  },
+  "torch_deeponet": {
+   "carbon_training": {
+    "loss": [
+     8.360852241516113,
+     0.9067292809486389
+    ],
+    "optimizer": "optax.adam (spike demonstration only)",
+    "steps": 50
+   },
+   "document_independent_of_module_init": true,
+   "init_deterministic": true,
+   "init_sha256": "eb53728f92eb07a68dad88795c1c84ffc8b92fad36a8ad514e0fee875956eb7d",
+   "parameters": 13
+  },
+  "torch_mlp": {
+   "carbon_training": {
+    "loss": [
+     5.0791335105896,
+     0.6320751309394836
+    ],
+    "optimizer": "optax.adam (spike demonstration only)",
+    "steps": 50
+   },
+   "document_independent_of_module_init": true,
+   "init_deterministic": true,
+   "init_sha256": "0574056207225c55ef35779546bdf942ceb62c622e5f2b54634adc2bc16e3aa0",
+   "parameters": 8
+  }
+ },
+ "schema": "carbon.development.level4-phase1-design-results.v0",
+ "seconds": 932.0,
+ "status": "DEVELOPMENT. CPU only. No caps chosen; every cap is HUMAN_INPUT.",
+ "torch_v1": {
+  "default_fno": {
+   "bprime_vs_torch": {
+    "bit_identical": false,
+    "forward_max_abs_difference": 4.76837158203125e-07,
+    "forward_max_abs_value": 1.8046033382415771,
+    "gradient_max_relative_difference": 1.760678060236387e-06
+   },
+   "lowering": {
+    "dropped_ops": {
+     "aten._assert_tensor_metadata.default": 34
+    },
+    "pruned": {
+     "constant_bytes": 16807432,
+     "constants": 32,
+     "graphs": 0,
+     "nodes": 3
+    }
+   }
+  },
+  "torch_deeponet": {
+   "bprime_vs_torch": {
+    "bit_identical": false,
+    "forward_max_abs_difference": 7.152557373046875e-06,
+    "forward_max_abs_value": 8.47537899017334,
+    "gradient_max_relative_difference": 5.272997327665507e-07
+   },
+   "lowering": {
+    "dropped_ops": {
+     "aten._assert_tensor_metadata.default": 2
+    },
+    "pruned": {
+     "constant_bytes": 0,
+     "constants": 0,
+     "graphs": 0,
+     "nodes": 0
+    }
+   }
+  },
+  "torch_mlp": {
+   "bprime_vs_torch": {
+    "bit_identical": false,
+    "forward_max_abs_difference": 2.86102294921875e-06,
+    "forward_max_abs_value": 3.5369510650634766,
+    "gradient_max_relative_difference": 3.338634826377529e-07
+   },
+   "lowering": {
+    "dropped_ops": {},
+    "pruned": {
+     "constant_bytes": 0,
+     "constants": 0,
+     "graphs": 0,
+     "nodes": 0
+    }
+   }
+  },
+  "torch_mlp+relu+layer_norm": {
+   "bprime_vs_torch": {
+    "bit_identical": false,
+    "forward_max_abs_difference": 2.1457672119140625e-06,
+    "forward_max_abs_value": 3.7032761573791504,
+    "gradient_max_relative_difference": 3.093874170190247e-07
+   },
+   "lowering": {
+    "dropped_ops": {},
+    "pruned": {
+     "constant_bytes": 0,
+     "constants": 0,
+     "graphs": 0,
+     "nodes": 0
+    }
+   }
+  },
+  "torch_mlp+silu+layer_norm": {
+   "bprime_vs_torch": {
+    "bit_identical": false,
+    "forward_max_abs_difference": 3.0994415283203125e-06,
+    "forward_max_abs_value": 3.1204705238342285,
+    "gradient_max_relative_difference": 2.420753446585877e-07
+   },
+   "lowering": {
+    "dropped_ops": {},
+    "pruned": {
+     "constant_bytes": 0,
+     "constants": 0,
+     "graphs": 0,
+     "nodes": 0
+    }
+   }
+  },
+  "torch_mlp+softplus+layer_norm": {
+   "bprime_vs_torch": {
+    "bit_identical": false,
+    "forward_max_abs_difference": 4.0531158447265625e-06,
+    "forward_max_abs_value": 4.7111945152282715,
+    "gradient_max_relative_difference": 2.709205091377953e-07
+   },
+   "lowering": {
+    "dropped_ops": {},
+    "pruned": {
+     "constant_bytes": 0,
+     "constants": 0,
+     "graphs": 0,
+     "nodes": 0
+    }
+   }
+  },
+  "torch_mlp+tanh+layer_norm": {
+   "bprime_vs_torch": {
+    "bit_identical": false,
+    "forward_max_abs_difference": 3.5762786865234375e-06,
+    "forward_max_abs_value": 3.365313768386841,
+    "gradient_max_relative_difference": 3.4494468081902596e-07
+   },
+   "lowering": {
+    "dropped_ops": {},
+    "pruned": {
+     "constant_bytes": 0,
+     "constants": 0,
+     "graphs": 0,
+     "nodes": 0
+    }
+   }
+  }
+ }
+}

@@ -1,0 +1,46 @@
+{
+ "schema": "carbon.battery.quiz-diagnostics-registry.v1",
+ "registered": "2026-10-07, before any tuning-set scoring (owner-approved: check design-test quality and gameability in real testing)",
+ "status": "REPORTED DIAGNOSTICS: none is a gate or enters any score",
+ "diagnostics": {
+  "a_optimizer_stability": {
+   "optimizers": [
+    {
+     "id": "OPT-A",
+     "rule": "EV4's fixed decision rules: exhaustive over the 35-point grid, the contract's tie rule and abstention (quiz.q3_judge)"
+    },
+    {
+     "id": "OPT-B",
+     "rule": "random-restart local search over the continuous design box (c1 0.5-2.0 C, c2 0.2-1.0 C) on the model's own predictions, 8 restarts, the pick snapped to the nearest grid point for judging; seeds 0-4"
+    }
+   ],
+   "report": "per member: the share of Q3 scenarios where OPT-A and OPT-B (each seed) pick the same grid point; the spread of the Q3 false-feasible and regret verdicts across optimizers and seeds"
+  },
+  "b_grid_resolution": {
+   "scope": "public stand-in only (EV4 verification scenarios with a feasible design)",
+   "refined_grid": "c1 and c2 at 0.125 C steps over the same box (13 x 9 = 117 points)",
+   "report": "per member: whether the model's pick (model-only, no reference) moves to a different coarse cell; on 2 scenarios, whether the reference verdict changes (about 234 public host solves, inside existing approvals, scheduled with the executor)"
+  },
+  "c_power_by_k": {
+   "k": [
+    1,
+    2,
+    3,
+    4,
+    6,
+    8
+   ],
+   "report": "detection AUC of the v5/v6 known-bad sets against the good set, mean and 5th percentile over draws (quiz-registry-v5/v6 method)"
+  },
+  "d_agreement_with_decision_value": {
+   "report": "Kendall tau-b and Spearman rho, with the one-seed-per-recipe band, between members' Q3 regret on the quiz scenarios and their ev4-dev-tuning-v1 development decision value"
+  },
+  "e_unresolved_rate": {
+   "registered": "2026-10-07, before any tuning-set scoring (Test Lead)",
+   "report": "per member, the share of its Q3 outcomes that are UNRESOLVED on the 117-point lattice (quiz.q3_measures 'unresolved'), and the panel mean",
+   "rule": "an UNRESOLVED pick earns neither pass nor credit (undetermined is not clean); if the rate cuts power, k rises, the lattice does not coarsen"
+  }
+ },
+ "lattice_ruling": "Test Lead 2026-10-07, before any tuning-set scoring: Q3 uses the 117-point lattice (quiz.q3_candidates) for tuning-v2 and the quiz batches; registry v4's leg q and diagnostics (a), (c), (d) are computed on it. (b) stays as the evidence for the change.",
+ "cost_ruling": "Test Lead 2026-10-07: Q3 at k = 8 on the 117-point lattice, about 21 CPU-h per batch on the VM (flat monthly cost, inside battery's 3.6 h rotation); no new spend"
+}

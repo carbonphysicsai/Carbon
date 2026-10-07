@@ -62,6 +62,11 @@ public values only: no case id, input, reference or score.
     registered panel's predictions only). When the source needs more draws
     (battery's Q3), the round is advanced and the batch stays PENDING, so
     the next tick solves the new round; a slot it misses is unfilled;
+  - when the source asks for refined solves first (battery's Q3 band-edge
+    points, quiz-registry-v8), they are stored owner-only
+    (`quiz-refine.json`) and added to `jobs.json`, and the batch stays
+    PENDING (`QUIZ_REFINE`) until the next `solve` and `seal` ingest them.
+    A tick runs that second solve and seal at once;
   - the commitment gains `quiz_digest`, `quiz_references_digest` and
     `quiz_panel_version`, and the package payload `quiz: {document,
     references}`. It rotates and retires with its batch.
@@ -358,6 +363,7 @@ class Producer:
 
     QUIZ_DRAWS = "quiz-draws.json"
     QUIZ_FILE = "quiz.json"
+    QUIZ_REFINE = "quiz-refine.json"
 
     def _has_quiz(self, challenge_id, fingerprint):
         drawn = self.journal.find("drawn", challenge_id, fingerprint)
@@ -378,12 +384,16 @@ class Producer:
         return value
 
     def _write_quiz_jobs(self, source, fingerprint, work, jobs, draws):
-        """`jobs.json`: the batch's jobs, then the quiz round's, so one solve
-        runs both. The solve is resumable, so a later round re-solves
-        nothing."""
+        """`jobs.json`: the batch's jobs, then the quiz round's, then any
+        refined solves the source asked for (`quiz-refine.json`), so one
+        solve runs them all. The solve is resumable, so a later round
+        re-solves nothing."""
         quiz_jobs = source.quiz_jobs(draws["draws"])
+        path = work / self.QUIZ_REFINE
+        refine = _read_private(path)["jobs"] if path.exists() else []
         _replace_private(
-            work / "jobs.json", {"fingerprint": fingerprint, "jobs": jobs + quiz_jobs}
+            work / "jobs.json",
+            {"fingerprint": fingerprint, "jobs": jobs + quiz_jobs + refine},
         )
         return len(quiz_jobs)
 
@@ -428,6 +438,17 @@ class Producer:
                     round=round_,
                 )
             return "QUIZ_NEXT_ROUND"
+        if "refine" in result:
+            jobs = result["refine"]
+            if type(jobs) is not list or not all(
+                type(job) is dict and job.get("refined") is True for job in jobs
+            ):
+                raise ProducerRefused("producer_quiz_malformed")
+            _replace_private(work / self.QUIZ_REFINE, {"jobs": jobs})
+            self._write_quiz_jobs(
+                source, fingerprint, work, source.jobs(fingerprint), draws
+            )
+            return "QUIZ_REFINE"
         if "pending" in result:
             return str(result["pending"])
         quiz = {"document": result["document"], "references": result["references"]}
@@ -698,7 +719,13 @@ class Producer:
             fingerprint = drawn["fingerprint"]
             if self.journal.find("sealed", challenge_id, fingerprint) is None:
                 self.solve(challenge_id, fingerprint)
-                if self.seal(challenge_id, fingerprint).get("state") == "PENDING":
+                result = self.seal(challenge_id, fingerprint)
+                if result.get("quiz") == "QUIZ_REFINE":
+                    # The quiz's refined solves were just added: solve them
+                    # now rather than leave the slot to the next tick.
+                    self.solve(challenge_id, fingerprint)
+                    result = self.seal(challenge_id, fingerprint)
+                if result.get("state") == "PENDING":
                     fingerprint = None
         if fingerprint is None:
             if not any(
