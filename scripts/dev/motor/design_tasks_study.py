@@ -187,11 +187,20 @@ def _records(path):
     return [json.loads(x) for x in path.read_text().splitlines() if x.strip()]
 
 
+def _screen_records(runs):
+    """The screen's records: the first launch's `screen/` and the
+    continuation `screen2/` (the remaining cases relaunched at a higher
+    concurrency; same plan, image and options)."""
+    return [
+        r for d in ("screen", "screen2") for r in _records(runs / d / "records.jsonl")
+    ]
+
+
 def screen_grid(runs):
     plan = json.loads((runs / "screen-plan.json").read_text())
     designs = {d["design_id"]: d for d in plan["designs"]}
     grid, inputs, statuses = {}, {}, {}
-    for r in _records(runs / "screen" / "records.jsonl"):
+    for r in _screen_records(runs):
         _, gid, cid = r["case_id"].split("-")
         statuses[r["status"]] = statuses.get(r["status"], 0) + 1
         inputs[(gid, cid)] = r["inputs"]
@@ -565,11 +574,7 @@ def main(argv=None):
             "v2_full_decision": v2,
             "value_check": value_check,
         }
-    walls = [
-        r["wall_s"]
-        for r in _records(args.runs / "screen" / "records.jsonl")
-        if r.get("wall_s")
-    ]
+    walls = [r["wall_s"] for r in _screen_records(args.runs) if r.get("wall_s")]
     median = statistics.median(walls) if walls else None
     document["cost"] = {
         "host_median_wall_s": median,
