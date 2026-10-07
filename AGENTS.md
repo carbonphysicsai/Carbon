@@ -23,6 +23,9 @@
 > with its own sheet before its training limit is set and before it pays
 > rewards. Readiness records enforce it; rules R1-R8 are frozen by digest.
 > Launch path v1.0.8.
+> Amended by OWNER-TRAINING-BUDGET-STUDY-02 (2026-10-06): the study also sets
+> each Challenge's TRAIN data size and validator capacity (R9-R11, frozen by
+> digest).
 
 > **OWNER-CHALLENGE-ADMISSION-01 (amended 2026-10-01):** an internal
 > development protocol, never mainnet; miners see only the final optimized

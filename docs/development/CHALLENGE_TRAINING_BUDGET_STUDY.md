@@ -14,6 +14,12 @@ The readiness records enforce it. Each record carries a required
 unless that study is `COMPLETE`, with a result and an owner decision
 (`carbon/challenge_readiness/record.py`).
 
+**Extended 2026-10-06 (OWNER-TRAINING-BUDGET-STUDY-02).** The study also
+decides each Challenge's **TRAIN data size** and the **validator capacity**
+its submission cadence needs. It adds questions 8-10, Phases G and H and rules
+R9-R11 (`training_budget_study/DECISION_RULES_R9_R11.md`). R1-R8 are
+unchanged. See [Extension: data size, screening and cadence](#extension-data-size-screening-and-cadence).
+
 **Order.** Battery runs it first, on testnet, with the values in its Battery
 sheet. New Challenges start from the New Challenge sheet. **Neither sheet is
 in the repository yet.** The Battery sheet's values stay open until it is
@@ -62,6 +68,13 @@ Each question is tied to a decision rule:
    proposed limit?
 7. **Gaming.** Can a recipe cost far more to rebuild than the formula
    predicts?
+
+8. **Data size.** How large must the TRAIN set be before more data stops
+   improving the best recipes? (R9)
+9. **Screening.** How small a rebuild budget still orders submissions well
+   enough that no finalist is screened out? (R10)
+10. **Cadence capacity.** How many GPUs does one validator need to rebuild
+    every submission at the Challenge's cadence? (R11)
 
 ## Scope and approvals
 
@@ -192,6 +205,11 @@ The rules are frozen, as written, in
 `docs/development/training_budget_study/DECISION_RULES.md`. Its digest is
 recorded in `.agent/DECISIONS.md`, and a test checks it.
 
+R9-R11 are frozen in
+`docs/development/training_budget_study/DECISION_RULES_R9_R11.md`. Its digest
+is recorded in `.agent/decisions/2026-10-06-OWNER-TRAINING-BUDGET-STUDY-02.md`,
+and a test checks it.
+
 ## Runbook
 
 Twelve steps, owned by the roles the testnet tracks already use: the owner,
@@ -271,6 +289,82 @@ study's own data. Both have hard stops.
 | Raised study ranges leak into the live contract | Uncapped recipes go live | A study-only contract id, never registered live, enforced by a test |
 | One Challenge's results are reused for another | Wrong limits elsewhere | Every Challenge runs its own study, per the standing requirement |
 | Spend overrun | It eats the testnet track's budget | The sheet's ceiling, with a pause at 80 % |
+
+## Extension: data size, screening and cadence
+
+**Authority.** OWNER-TRAINING-BUDGET-STUDY-02 (owner, 2026-10-06). The
+extension answers questions 8-10. It runs inside the same study, under the
+same sheet, spend ceiling, stop rules and non-claims.
+
+**Why.** The original study holds the TRAIN set fixed, so it finds where
+compute stops helping but not whether data is the real limit. Battery shows
+the gap: its contract trains full-batch on 400 TRAIN cases with up to 20,000
+steps, so a default recipe passes over each case thousands of times. Data is
+generated once and shared by every submission, while rebuild compute is paid
+for every submission, so data is often the cheaper way to raise scores. The
+study also measures one GPU's load (R8) but not how many GPUs the cadence
+needs.
+
+### Added phases
+
+| Phase | What varies | Answers |
+|---|---|---|
+| G. Data size | The three best recipes at L, on nested study TRAIN sets of 1/4, 1/2, 1, 2, 4 and 8 times the current TRAIN size, within the generation ceiling | Q8 |
+| H. Screening fidelity | The study panel at 1/64, 1/32, 1/16, 1/8 and 1/4 of L and at L | Q9 |
+
+- **Phase G runs after Phase C and before L is frozen** (runbook step 8). If
+  R9 moves the TRAIN size, Phase B is repeated for the three best recipes at
+  the new size before L is proposed.
+- **Study TRAIN sets** come from the Challenge's public generator and truth
+  service under the study seed root. They are nested: each smaller set is a
+  prefix of the next, so a difference between sizes is the size, not the
+  draw. They pass the same overlap checks as the study sets, and their
+  generation counts against the spend ceiling.
+- **The study panel** for Phase H is every distinct configuration from Phases
+  B and C plus the Challenge's legitimate admission panel, at least the
+  number the sheet sets, spanning every rebuildable family. Phase H uses 3
+  seeds per configuration.
+- **Phase H runs after L is frozen**, with Phases D and E (runbook step 10),
+  on the study evaluation set. The confirmation set stays reserved for D.
+
+### Cadence capacity
+
+R11 sizes one validator's GPUs from measured times:
+
+G = (N · (t_s + t_e) + k · (t_L + t_e)) / (τ · u)
+
+| Symbol | Meaning | Source |
+|---|---|---|
+| N | Submissions per tempo | Owner worst case: 256, every registered miner once per tempo; and the sheet's expected participation |
+| τ | Tempo | 72 minutes |
+| u | Target utilization, headroom so a queue never builds | Sheet |
+| s, k | Screening budget and survivors | R10 |
+| t_s, t_L | Rebuild time at s and at L, alone on one GPU | Phase E |
+| t_e | Grading time per submission | Phase E |
+
+Identical recipe digests are rebuilt once; the report states that G assumes
+no duplicates.
+
+### Added deliverables
+
+The results report also states:
+- **D**, the recommended TRAIN size, with its data-plateau curves and whether
+  data binds;
+- **passes per TRAIN case** at L and D (reported, not a threshold);
+- **s and k**, or that no screen is safe;
+- **G** at the worst case and at expected participation, against the
+  sheet's GPU ceiling.
+
+The readiness record's `training_budget_study` result carries D, L, s, k and
+G. A change to the Challenge's TRAIN size, like a change to its registry
+ranges, is a pull request opened only after the owner's decision.
+
+### Added approvals
+
+| Item | Who | Why |
+|---|---|---|
+| The generation ceiling for study TRAIN sets | Owner | Solver time comes out of the Challenge's track budget |
+| The sheet's target utilization, GPU ceiling, expected participation and minimum panel size | Owner | They set R11's inputs and Phase H's population |
 
 ## Owner decisions on the spec's open items (2026-09-29)
 
