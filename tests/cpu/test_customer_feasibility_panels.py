@@ -7,6 +7,7 @@ import json
 import math
 import runpy
 from copy import deepcopy
+from itertools import pairwise
 from pathlib import Path
 
 import pytest
@@ -116,7 +117,7 @@ def test_waveforms_have_complete_horizon_event_and_energy_accounting(api, sheet)
         assert segments[0][:2] == [0, 20]
         assert segments[-1][1] == 120
         assert all(end > start for start, end, _, _ in segments)
-        assert all(a[1] == b[0] for a, b in zip(segments, segments[1:]))
+        assert all(a[1] == b[0] for a, b in pairwise(segments))
         energy_above_base = sum(
             (end - start) * ((p0 + p1) / 2 - 20) for start, end, p0, p1 in segments
         )
