@@ -615,6 +615,12 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
             "f'level4_spike.adapters.{args.adapter}'",
         ),
         (
+            "scripts/dev/level4_spike/run_design.py",
+            "main",
+            "importlib.import_module",
+            "f'level4_spike.adapters.{args.adapter}'",
+        ),
+        (
             "tests/cpu/test_attack_authoritative_boundary.py",
             "test_every_adapter_reads_a_null_workspace_strategy_as_the_design",
             "importlib.import_module",
