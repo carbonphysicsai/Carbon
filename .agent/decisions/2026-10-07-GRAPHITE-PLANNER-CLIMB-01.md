@@ -41,6 +41,23 @@ exists.
    other rejection.
 4. **Level selection** (`levels`) also narrows the request-size check to the
    levels asked for.
+5. **A required Level 2 capability.** The owner approved this addition,
+   relayed by the Test Lead on 2026-10-07: Level 2's sampling includes data
+   selection from a fixed, pre-solved public pool.
+   - **The rule:** a Level 2 climb is told to propose `data.pool_selection`
+     (`CLIMB_REQUIRED`). A reply without it is rejected
+     (`climb_required_capability_missing`).
+   - **The owner's constraints, sent as data:**
+     - the same pool for everyone, with no new solves;
+     - reproducible from the recipe;
+     - the subset size counts against the compute budget, using the cost
+       calculator;
+     - disjoint from every hidden, tuning, confirmation, study and EV set,
+       checked with the validator's overlap check.
+   - **A missing pool:** if no such pool is published yet, the planner names it
+     in `left_out` as a dependency.
+   - **The planner's part:** the capability's content stays the planner's
+     proposal.
 
 **Running it** (the executor, on the operator host). The run uses the one
 planner grant, `GRAPHITE-GRANT-PLANNER-02`: its worst case per run is USD

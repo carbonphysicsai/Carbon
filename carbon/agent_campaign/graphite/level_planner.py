@@ -102,6 +102,25 @@ CLIMB = "climb"
 CLIMB_LEVELS = (1, 2, 3)
 #: Level 3 is a declarative menu only (OWNER-GRAPHITE-DEV-LEVELS-01 F2).
 MENU_ONLY_LEVEL = 3
+#: Capabilities a climb level must propose, by the owner's approval relayed by
+#: the Test Lead (2026-10-07): Level 2 is schedules, optimizers and sampling,
+#: and its sampling includes data selection from a fixed, pre-solved public
+#: pool. The reply must carry the id; its content stays the planner's.
+CLIMB_REQUIRED = {
+    2: {
+        "data.pool_selection": (
+            "Include the capability data.pool_selection: the recipe declaratively "
+            "selects a subset of, or weights over, a fixed, pre-solved public pool "
+            "that Carbon publishes, larger than TRAIN. The same pool for everyone; "
+            "no new solves; reproducible from the recipe alone; the selected "
+            "subset's size counts against the Challenge's compute budget, as the "
+            "cost calculator measures it. The pool is disjoint from every hidden, "
+            "tuning, confirmation, study and decision set, checked with the "
+            "validator's overlap check. If no such pool is published yet, say so "
+            "in left_out as a dependency."
+        )
+    }
+}
 #: The grants a live planner session may run under: the executor proposes
 #: them and the owner approves them (OWNER-GRAPHITE-05). Each one's call cap
 #: covers MAX_CALLS at SETTINGS (see the grants README).
@@ -292,6 +311,7 @@ def rules(level, *, climb=False):
                 "choice among named routines Carbon implements, and its bounds list "
                 "the whole menu and its default."
             )
+        out += list(CLIMB_REQUIRED.get(level, {}).values())
     if level > 0:
         out.append("Every capability cites at least one card or result.")
     if level in ISOLATED:
@@ -412,6 +432,12 @@ def proposal_from_reply(value, *, level, document, run_id, recorded_at, protocol
         return None, "needs_only_for_an_empty_isolated_level"
     if not written and not left_out:
         return None, "empty_level_without_reason"
+    if _climbing(document):
+        required = set(CLIMB_REQUIRED.get(level, {})) - {c["id"] for c in written}
+        if required:
+            return None, "climb_required_capability_missing: " + ", ".join(
+                sorted(required)
+            )
     if level == 0:
         gaps = _level0_gaps(written, left_out, document)
         if gaps:

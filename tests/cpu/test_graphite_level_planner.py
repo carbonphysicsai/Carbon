@@ -532,6 +532,11 @@ def test_an_injection_inside_a_card_is_data(tmp_path):
 def climb(tmp_path, levels=(2, 3), changes=None):
     document = lp.brief(BATTERY, index=FIXTURE_INDEX, results=RESULTS, climb=True)
     replies = {level: good_reply(document, level) for level in levels}
+    for level in levels:
+        for required in lp.CLIMB_REQUIRED.get(level, {}):
+            replies[level]["capabilities"].append(
+                {**replies[level]["capabilities"][0], "id": required}
+            )
     for level, change in (changes or {}).items():
         replies[level] = change(replies[level])
     script = [text(json.dumps(replies[level])) for level in levels]
@@ -598,3 +603,22 @@ def test_a_climb_brief_is_its_own_session_and_a_plain_brief_is_unchanged():
     assert digest(canonical(plain)) != digest(canonical(climbing))
     assert {k: v for k, v in climbing.items() if k != "mode"} == plain
     assert lp.rules(2) == lp.rules(2, climb=False)
+
+
+def test_a_level_2_climb_must_propose_pool_selection(tmp_path):
+    """The owner's approved addition: Level 2's sampling includes data
+    selection from a fixed, pre-solved public pool."""
+
+    def drop(reply):
+        reply["capabilities"] = [
+            c for c in reply["capabilities"] if c["id"] != "data.pool_selection"
+        ]
+        return reply
+
+    _job, model, summary, _document = climb(tmp_path, changes={2: drop})
+    outcome = summary["levels"][0]
+    assert outcome["outcome"] == "REJECTED"
+    assert outcome["code"] == "climb_required_capability_missing: data.pool_selection"
+    sent = canonical(model.requests[0]).decode()
+    assert "data.pool_selection" in sent and "no new solves" in sent
+    assert "data.pool_selection" not in canonical(model.requests[1]).decode()
