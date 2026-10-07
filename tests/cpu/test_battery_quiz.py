@@ -121,15 +121,16 @@ def test_q3_grid_judge_and_measures_on_the_lattice(ev4_refs):
             {"kind": "SELECTED_FEASIBLE", "decision_loss": 0.0},
             {"kind": "SELECTED_INFEASIBLE", "decision_loss": 10.0},
             {"kind": "SELECTED_UNRESOLVED", "decision_loss": None},
-        ]
+            {"kind": "ABSTENTION_UNRESOLVED", "decision_loss": None},
+        ],
+        CONTRACT,
     )
-    assert measures == {
-        "false_feasible": 0.5,
-        "regret": 5.0,
-        "over_caution": 0.0,
-        "unresolved": 1 / 3,
-    }
-    assert quiz.q3_measures([{"kind": "X", "decision_loss": None}])["regret"] is None
+    # quiz-registry-v7: UNRESOLVED is never clean.
+    assert measures["false_feasible"] == 0.5  # infeasible + unresolved pick
+    assert measures["false_feasible_resolved_only"] == 0.5
+    assert measures["regret"] == (0.0 + 10.0 + 10.0 + 1.0) / 4
+    assert measures["over_caution"] == 0.25 and measures["unresolved"] == 0.5
+    assert quiz.q3_measures([], CONTRACT)["regret"] is None
 
 
 def test_q3_an_all_infeasible_scenario_is_not_feasible(ev4_refs):
@@ -151,3 +152,19 @@ def test_the_q3_lattice_contains_ev4_s_grid_and_baseline():
     assert len(ids) == 117
     assert {c["id"] for c in ev.candidates(CONTRACT)} <= ids
     assert ev.candidate_id(CONTRACT["baseline"]["protocol"]) in ids
+
+
+def test_the_band_edge_seeker_is_caught_by_the_pessimistic_treatment(ev4_refs):
+    scenario = _ev4_scenario(CONTRACT, "V-T19-S0.22")
+    refs = _lattice_refs(ev4_refs, scenario)
+    grid = quiz.q3_grid(CONTRACT, scenario)
+    oracle = {j["case_id"]: refs[j["case_id"]]["outputs"] for j in grid}
+    seeker = {c: quiz.band_edge_seeker(CONTRACT, o) for c, o in oracle.items()}
+    judged = quiz.q3_judge(CONTRACT, scenario, seeker, refs)
+    assert judged["kind"] in ("SELECTED_UNRESOLVED", "SELECTED_INFEASIBLE")
+    measures = quiz.q3_measures([judged], CONTRACT)
+    assert measures["false_feasible"] == 1.0 and measures["regret"] >= 10.0
+    # Finding (reported to the Test Lead): EV4's selector takes the fastest
+    # design predicted feasible with no margin, so an exact oracle picks the
+    # same band-edge design here and is penalised the same way.
+    assert quiz.q3_judge(CONTRACT, scenario, oracle, refs) == judged

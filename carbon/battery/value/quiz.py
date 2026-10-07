@@ -209,28 +209,85 @@ def q3_judge(contract, scenario, grid_predictions, grid_refs):
     }
 
 
-def q3_measures(outcomes):
-    """Over a model's outcomes on feasible scenarios (resolved ones only):
-    `false_feasible` (picks the reference shows infeasible), `regret` (mean
-    decision loss) and `over_caution` (missed opportunities); None when no
-    outcome is resolved. An UNRESOLVED pick earns neither pass nor credit
-    (undetermined is not clean): it is left out of those three and counted in
-    `unresolved`, the share of all outcomes (a reported diagnostic,
-    quiz-diagnostics-v1 (e))."""
-    resolved = [o for o in outcomes if o["decision_loss"] is not None]
-    unresolved = (len(outcomes) - len(resolved)) / len(outcomes) if outcomes else None
-    if not resolved:
+def q3_measures(outcomes, contract=None):
+    """Over a model's outcomes on feasible scenarios (quiz-registry-v7).
+    UNRESOLVED is never clean:
+    - `regret`: mean decision loss, where an UNRESOLVED pick takes its
+      band-pessimistic value (a SELECTED_UNRESOLVED pick costs the false
+      acceptance cost, an ABSTENTION_UNRESOLVED the missed-opportunity cost);
+    - `false_feasible` (the gate default, variant (i)): picks the reference
+      shows infeasible or cannot clear, over all outcomes;
+      `false_feasible_resolved_only` (variant (ii)) excludes UNRESOLVED, for
+      sensitivity;
+    - `over_caution`: missed opportunities (an ABSTENTION_UNRESOLVED counts),
+      over all outcomes;
+    - `unresolved`: the share of outcomes that are UNRESOLVED (diagnostic
+      (e)).
+    `contract` supplies the mistake costs (EV4's when omitted)."""
+    if contract is None:
+        from pathlib import Path
+
+        contract, _ = ev.load(
+            Path(__file__).resolve().parent
+            / "contracts/ev4-charge-protocol-selection.v1.json"
+        )
+    costs = contract["mistake_costs"]
+    if not outcomes:
         return {
             "false_feasible": None,
+            "false_feasible_resolved_only": None,
             "regret": None,
             "over_caution": None,
-            "unresolved": unresolved,
+            "unresolved": None,
         }
+
+    def loss(o):
+        if o["decision_loss"] is not None:
+            return o["decision_loss"]
+        if o["kind"] == "ABSTENTION_UNRESOLVED":
+            return costs["missed_opportunity"]
+        return costs["false_acceptance"]
+
+    n = len(outcomes)
+    unresolved = [o for o in outcomes if o["decision_loss"] is None]
+    resolved = [o for o in outcomes if o["decision_loss"] is not None]
+    infeasible = sum(o["kind"] == "SELECTED_INFEASIBLE" for o in outcomes)
+    selected_unresolved = sum(o["kind"] == "SELECTED_UNRESOLVED" for o in outcomes)
     return {
-        "false_feasible": sum(o["kind"] == "SELECTED_INFEASIBLE" for o in resolved)
-        / len(resolved),
-        "regret": statistics.fmean(o["decision_loss"] for o in resolved),
-        "over_caution": sum(o["kind"] == "MISSED_OPPORTUNITY" for o in resolved)
-        / len(resolved),
-        "unresolved": unresolved,
+        "false_feasible": (infeasible + selected_unresolved) / n,
+        "false_feasible_resolved_only": (
+            sum(o["kind"] == "SELECTED_INFEASIBLE" for o in resolved) / len(resolved)
+            if resolved
+            else None
+        ),
+        "regret": statistics.fmean(loss(o) for o in outcomes),
+        "over_caution": sum(
+            o["kind"] in ("MISSED_OPPORTUNITY", "ABSTENTION_UNRESOLVED")
+            for o in outcomes
+        )
+        / n,
+        "unresolved": len(unresolved) / n,
     }
+
+
+def band_edge_seeker(contract, outputs):
+    """The band-edge-seeker constructed control (quiz-registry-v7):
+    wherever the true plating margin or peak temperature lies within its
+    contract band of the limit, it reports the case as just passing, so its
+    picks land inside the band; accurate elsewhere."""
+    import copy
+
+    bands = contract["reference"]["uncertainty"]["bands"]
+    out = copy.deepcopy(outputs)
+    margin = out["plating_margin_v"]
+    if abs(margin) <= bands["plating_margin_v"]:
+        out["plating_margin_v"] = 1e-6
+    temperatures = out["temperature_c"]
+    limit = next(
+        c["threshold"] for c in contract["constraints"] if c["id"] == "peak_temperature"
+    )
+    peak = max(temperatures)
+    if abs(peak - limit) <= bands["peak_temperature_c"]:
+        shift = (limit - 1e-3) - peak
+        out["temperature_c"] = [temperatures[0]] + [t + shift for t in temperatures[1:]]
+    return out
