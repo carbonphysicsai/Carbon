@@ -97,5 +97,10 @@
   "limit_sweep": "feasible designs and near points over min torque 1.0..8.0 N m (0.5 steps) x max ripple fraction 0.05..0.60 (0.05 steps), bands 10 % of each limit",
   "deferred": "Q3 (design-task) scenario selection is not finalised until the limits are confirmed; power and value results under the provisional limits are reported as provisional",
   "rerun": "the screen batch restarted with --keep all at 11:4x (the first launch discarded the coil and co-energy files); no result was read from the first launch"
+ },
+ "amendment_3": {
+  "registered": "2026-10-07, before these solves (Test Lead relay of the motor customer packet, #752)",
+  "cogging": "one zero-current solve per screened geometry (current_density_a_mm2 = 0, current_angle_deg = 0; inside INPUT_BOUNDS), standard options, the pinned image: 30 solves; cogging = torque pk-pk over the period",
+  "purpose": "measure how far the current design space sits from the packet's unpowered cogging cap; limit-free, reported against any cap"
  }
 }
