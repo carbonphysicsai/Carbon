@@ -449,6 +449,13 @@ NEXT_ACTIONS = {
         "The validator could not date this submission. Submit again; the "
         "frozen candidate is kept."
     ),
+    "commitment_contested": (
+        "Another hotkey committed this recipe's hash on chain first, so it counts "
+        "for that hotkey, not yours: the earliest commitment block, then the "
+        "earlier transaction in that block, decides (OWNER-COMMITMENT-POSTER-01 "
+        "D6). Recommitting the same hash cannot change that; build and freeze a "
+        "different candidate."
+    ),
     "commitment_reader_unavailable": (
         "This validator requires an on-chain commitment it cannot read yet; "
         "that is on its side. Submit again later, or to another validator; "

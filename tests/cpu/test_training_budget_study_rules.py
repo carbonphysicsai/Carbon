@@ -31,3 +31,27 @@ def test_an_edited_rule_would_no_longer_match():
     )
     assert edited != RULES.read_bytes()
     assert hashlib.sha256(edited).hexdigest() not in _recorded_digests()
+
+
+# R9-R11 (OWNER-TRAINING-BUDGET-STUDY-02) are frozen the same way, with their
+# digest recorded in that decision's own file.
+RULES_R9_R11 = ROOT / "docs/development/training_budget_study/DECISION_RULES_R9_R11.md"
+DECISION_02 = ROOT / ".agent/decisions/2026-10-06-OWNER-TRAINING-BUDGET-STUDY-02.md"
+
+
+def _recorded_digests_02():
+    return set(re.findall(r"\b[0-9a-f]{64}\b", DECISION_02.read_text()))
+
+
+def test_the_frozen_r9_r11_rules_match_the_digest_their_decision_records():
+    recorded = _recorded_digests_02()
+    assert len(recorded) == 1
+    assert hashlib.sha256(RULES_R9_R11.read_bytes()).hexdigest() in recorded
+
+
+def test_an_edited_r9_r11_rule_would_no_longer_match():
+    edited = RULES_R9_R11.read_bytes().replace(
+        b"less\n   than half", b"less\n   than a third"
+    )
+    assert edited != RULES_R9_R11.read_bytes()
+    assert hashlib.sha256(edited).hexdigest() not in _recorded_digests_02()

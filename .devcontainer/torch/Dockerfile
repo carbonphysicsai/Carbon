@@ -13,10 +13,15 @@ ARG TORCH_DETERMINISM_DIGEST
 USER root
 COPY --from=uv /uv /tmp/uv
 COPY .devcontainer/torch/torch-cpu-py311.txt /opt/carbon/torch-requirements.txt
+# Wheels only, except the exported packages PyPI ships only as a source
+# distribution (antlr4-python3-runtime, via hydra-core and omegaconf). Each is
+# still hash-pinned; the list is checked against uv.lock
+# (test_torch_gpu_worker_image).
 RUN test "sha256:$(sha256sum /opt/carbon/torch-requirements.txt | cut -d' ' -f1)" = "${TORCH_LOCK_DIGEST}" \
     && chmod -R u+w /opt/carbon-worker \
     && TMPDIR=/tmp /tmp/uv --no-cache pip install --python /opt/carbon-worker/bin/python \
        --require-hashes --only-binary=:all: --no-deps \
+       --no-binary antlr4-python3-runtime \
        --extra-index-url https://download.pytorch.org/whl/cpu --index-strategy unsafe-best-match \
        -r /opt/carbon/torch-requirements.txt \
     && rm /tmp/uv \

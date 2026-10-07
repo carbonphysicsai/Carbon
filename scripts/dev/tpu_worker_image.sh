@@ -7,7 +7,7 @@ repo_root="$(CDPATH= cd -- "${script_dir}/../.." && pwd -P)"
 [[ "$#" -le 1 ]] || { echo 'usage: tpu_worker_image.sh [output-manifest]' >&2; exit 2; }
 output="${1:-${repo_root}/.carbon-artifacts/tpu-worker-image.json}"
 parent_manifest="${repo_root}/.carbon-artifacts/tpu-parent-worker-image.json"
-bash "${script_dir}/c03_worker_image.sh" "${parent_manifest}"
+bash "${script_dir}/worker_parent_manifest.sh" "${parent_manifest}"
 parent="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["image_id"])' "${parent_manifest}")"
 source_digest="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["source_tree_digest"])' "${parent_manifest}")"
 [[ "${parent}" =~ ^sha256:[0-9a-f]{64}$ && "${source_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 2
