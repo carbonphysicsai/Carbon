@@ -36,11 +36,11 @@ action is needed.
    - Its stages come from a per-Challenge `OnboardAdapter` registry.
    - An unregistered Challenge fails closed with `onboard_no_adapter`.
 2. **Stages** (the battery adapter):
-   1. `truth`: materialize and verify the truth overlay or solver image
-      (battery: the step-4 overlay against the `worker-images` manifest).
-   2. `deployment`: write the deployment config from the operator's inputs
-      file, then `init` the root. An existing root is verified, never
-      re-initialized.
+   1. `truth`: verify the truth overlay or solver image, and materialize it
+      first when the verify refuses (battery: the step-4 overlay).
+   2. `deployment`: verify the operator-written deployment config; `init`
+      its root only when the status read refuses. An existing root is
+      never re-initialized.
    3. `pool`: run producer ticks until the first windowed pool batches are
       prepared, solved, ingested and open, with their quiz predictions.
    4. `tuning`: export the pool, seal the tuning set with its registered
@@ -82,10 +82,17 @@ action is needed.
    It never writes them outside the producer-owned paths the existing
    commands already use. A test asserts this over the captured output of a
    full fixture run.
-6. **Privilege.** It starts as root only to check and install the systemd
-   units and their ownership. Every stage that touches hidden material runs
-   as `carbon-producer`, through the same `sudo -u carbon-producer -H` entry
-   the sheets use.
+6. **Privilege.** It runs as `carbon-producer`, through the same
+   `sudo -u carbon-producer -H` entry the sheets use. `verify` only reads
+   systemd state (`systemctl is-enabled`, `is-active`, `show -p Result`); it
+   installs nothing, so it needs no root.
+7. **Inputs.** One owner-only JSON file (`carbon.challenge-validator.onboard-inputs.v1`)
+   names the paths and public values each stage needs: the deployment, the
+   overlay, the producer config, and the optional `dev_pool`, `tuning`,
+   `study` and `units` sections. A missing name or file is an owner stop.
+8. **Registry.** Battery is registered now. Motor joins in a follow-up once
+   VALIDATOR-21 (#751) merges. Cooling waits for the owner's scope decision
+   (#752).
 
 ## Cooling and motor (the first users after battery)
 
