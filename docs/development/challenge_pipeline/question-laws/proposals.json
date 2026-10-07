@@ -9,9 +9,18 @@
     "retired_publication_merge": "c3186fa4ad823c52e62f5636f3fdaab1dc8070b1",
     "optimizer_proposal_head": "ff495231c49abb0f234c8f933e3c4dd23d93a9c7",
     "optimizer_specification_merge": "11d77033cda4be4fb6303cb31a910cc6ef9d4633",
-    "tasks_proposal_head": "9cf25328bdc71b04188f60d448f82b1ee081c47d"
+    "tasks_proposal_head": "6dfe99692bf273ac7fac2453508fc023f90f7d1f",
+    "tasks_merge": "aebaf2311a3117ae0a0deff763848eea2726c753",
+    "feasibility_merge": "b9fa4950327a7d46ccc02b8747e368677be82c45",
+    "revision_main": "961f5fc227c9407a48254b46e806db1134dcb2d3"
   },
   "common": {
+    "variant_selection": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Retain grids as audit baseline; compare continuous supported intervals on public/retired banks and prefer continuous for learning if bank diversity/support permits. Owner selects before use."},
+    "continuous_P": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Same context masses as grid; independent uniform threshold densities on each proposed continuous_interval, except Motor peak absolute ripple remains twice holding cap. Support, units, precision and dependencies must be frozen before adoption."},
+    "continuous_Q": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "0.5 P plus 0.5 P conditioned on the prospectively defined positive-mass near-limit region B; retain density/normalizer and use P if B has zero mass. Not equal mass over unequal-volume cells or grid atoms."},
+    "continuous_w": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "P/Q density ratio for population-mean diagnostics only; do not adopt a score weight or change observed winner counts."},
+    "winner_expectation_method": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Integrate settled answer-region mass p_a or q_a from the eligible bank. iid k-draw benchmark: sum_a(1-(1-p_a)^k), excluding NONE_FEASIBLE and UNRESOLVED. For E-constrained/non-iid batches compute occupancy under the exact batch law; report integration error and no equal-winner-mass assumption."},
+    "close_call_method": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Report P/Q rates for any used-action limit-band crossing, decision-changing refinement demand, selected-action near-limit, unavailable reference and residual UNRESOLVED, with separate draw/covered/refinement denominators. Producer refines under separate authority or retains UNRESOLVED; thresholds/bands/budgets remain HUMAN_INPUT."},
     "P": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Uniform over each listed finite service-panel context and the Cartesian requirement grid; a synthetic buyer-job population, not a deployment-frequency claim."},
     "Q": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "0.5 P plus 0.5 uniform over registered near-limit question cells; if none exist use P and report unavailable enrichment. Freeze the conditioning, boundary metric and bank version before candidate evaluation."},
     "w": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "For a population-mean diagnostic use P(question)/Q(question), retain shared-bank clusters and report unweighted boundary diagnostics separately. No score weighting is adopted. Robust inner limits apply to every mandatory condition, not to a weighted mean."},
@@ -35,9 +44,9 @@
       "challenge": "battery", "family": "f05", "scope": "one pinned simulated cell, two-stage protocol, 30-cycle programme",
       "service_contexts": {"status": "HUMAN_INPUT", "registered": null, "recommendation": ["complete 5/15/25/35/40 degC ambient panel at SOC 0.10; 25/35 degC carry the warm-session time limit"]},
       "requirement_axes": [
-        {"quantity": "warm_session_time_max", "unit": "min", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [25, 30, 35, 40]},
-        {"quantity": "whole_programme_temperature_max", "unit": "degC", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [42.5, 45]},
-        {"quantity": "capacity_ratio_min", "unit": "1", "op": ">=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.99, 0.995]}
+        {"quantity": "warm_session_time_max", "unit": "min", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [25, 30, 35, 40], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [25, 40]}},
+        {"quantity": "whole_programme_temperature_max", "unit": "degC", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [42.5, 45], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [42.5, 45]}},
+        {"quantity": "capacity_ratio_min", "unit": "1", "op": ">=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.99, 0.995], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [0.99, 0.995]}}
       ],
       "mandatory_anchor": "Retain 0 V model plating floor over every charge and 4.2 V programme bound; no relaxation or real-cell safety claim.",
       "objective": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "min worst 25/35 degC session-start 10-80% time in min; secondary capacity loss, then frozen bank order"},
@@ -46,6 +55,7 @@
       "raw_question_grid_upper_bound": 16,
       "distinct_answer_changing_questions": null,
       "distinct_best_picks": null,
+      "continuous_variant": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Use the same supported bank/context/objective and the axes continuous_interval densities; no new geometry or renewed E.", "expected_distinct_winners_P": null, "expected_distinct_winners_Q": null, "close_call_rate_P": null, "close_call_rate_Q": null, "residual_unresolved_rate": null, "report_status": "NOT_DEMONSTRATED"},
       "solve_cost_status": "MEASURED_HISTORICAL_ONLY",
       "revised_bank_cpu_hours": null,
       "base_reference_work": "500 complete programme solves for a proposed 100-protocol x five-condition bank, plus refinement; revised scope cost UNMEASURED",
@@ -55,11 +65,11 @@
       "challenge": "motor", "family": "f09", "scope": "pinned revised 2D magnetic geometry; static precision/peak and zero-current cogging curves",
       "service_contexts": {"status": "HUMAN_INPUT", "registered": null, "recommendation": ["complete precision/peak/cogging command panel: J 8/10 and 12/15 with phase 0/15, plus J0 cogging; no thermal-duration rating"]},
       "requirement_axes": [
-        {"quantity": "precision_mean_torque_min", "unit": "N m", "op": ">=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [5, 6, 7]},
-        {"quantity": "peak_mean_torque_min", "unit": "N m", "op": ">=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [10, 12, 14]},
-        {"quantity": "precision_ripple_fraction_max", "unit": "1", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.04, 0.05, 0.06]},
-        {"quantity": "cogging_peak_to_peak_max", "unit": "N m", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.03, 0.05, 0.07]},
-        {"quantity": "precision_ripple_peak_to_peak_max", "unit": "N m", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.24, 0.30, 0.36]}
+        {"quantity": "precision_mean_torque_min", "unit": "N m", "op": ">=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [5, 6, 7], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [5, 7]}},
+        {"quantity": "peak_mean_torque_min", "unit": "N m", "op": ">=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [10, 12, 14], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [10, 14]}},
+        {"quantity": "precision_ripple_fraction_max", "unit": "1", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.04, 0.05, 0.06], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [0.04, 0.06]}},
+        {"quantity": "cogging_peak_to_peak_max", "unit": "N m", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.03, 0.05, 0.07], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [0.03, 0.07]}},
+        {"quantity": "precision_ripple_peak_to_peak_max", "unit": "N m", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.24, 0.30, 0.36], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [0.24, 0.36]}}
       ],
       "mandatory_anchor": "Peak ripple fraction uses the same proposed fraction cap; peak absolute ripple cap is twice precision cap. Original buyer anchor is 6/12 N m, 0.05 fraction, 0.30/0.60 N m ripple and 0.05 N m cogging. It is not replaced by easier questions.",
       "objective": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "min precision holding relative ripple; secondary lower holding current, then frozen bank order"},
@@ -68,6 +78,7 @@
       "raw_question_grid_upper_bound": 243,
       "distinct_answer_changing_questions": null,
       "distinct_best_picks": null,
+      "continuous_variant": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Use the same supported bank/context/objective and the axes continuous_interval densities; no new geometry or renewed E.", "expected_distinct_winners_P": null, "expected_distinct_winners_Q": null, "close_call_rate_P": null, "close_call_rate_Q": null, "residual_unresolved_rate": null, "report_status": "NOT_DEMONSTRATED"},
       "solve_cost_status": "UNMEASURED", "revised_bank_cpu_hours": null,
       "base_reference_work": "1800 command-curve solves for a proposed 200-geometry x nine-command bank, plus angular/mesh refinement; query-budget and bank-size identities differ",
       "support_gate": "#758 revised geometry and command/normalization contract; user-reported 246 old points have no feasible original robot-joint answer, which does not measure diversity of this new bank."
@@ -76,26 +87,27 @@
       "challenge": "cooling-cell", "family": "f04", "scope": "periodic cooling cell only; no full cold plate or manifold",
       "service_contexts": {"status": "HUMAN_INPUT", "registered": null, "recommendation": ["complete five supported nominal-flow cell cases: cold uniform, typical, warm uniform, warm central hotspot, warm outlet-side hotspot"]},
       "requirement_axes": [
-        {"quantity": "cell_TIM_proxy_temperature_max", "unit": "degC", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [80, 82.5, 85]},
-        {"quantity": "cell_pressure_drop_max", "unit": "Pa", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [20000, 25000, 30000]}
+        {"quantity": "cell_TIM_proxy_temperature_max", "unit": "degC", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [80, 82.5, 85], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [80, 85]}},
+        {"quantity": "cell_pressure_drop_max", "unit": "Pa", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [20000, 25000, 30000], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [20000, 30000]}}
       ],
       "mandatory_anchor": "85 degC remains the original thermal target. Pressure values are proposed CELL allocations, not the buyer's full-assembly 50 kPa/2.5 W contract. Nominal flow/action must remain in actual cell reference support.",
       "objective": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "min worst cell pressure drop in Pa; secondary worst supported cell TIM proxy in degC, then frozen bank order"},
       "bank_candidates": {"status": "HUMAN_INPUT", "registered": null, "recommendation": 200},
-      "questions_per_batch": {"status": "HUMAN_INPUT", "registered": null, "recommendation": 12},
+      "questions_per_batch": {"status": "HUMAN_INPUT", "registered": null, "recommendation": 8},
       "raw_question_grid_upper_bound": 9,
       "distinct_answer_changing_questions": null,
       "distinct_best_picks": null,
+      "continuous_variant": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Use the same supported bank/context/objective and the axes continuous_interval densities; no new geometry or renewed E.", "expected_distinct_winners_P": null, "expected_distinct_winners_Q": null, "close_call_rate_P": null, "close_call_rate_Q": null, "residual_unresolved_rate": null, "report_status": "NOT_DEMONSTRATED"},
       "solve_cost_status": "UNMEASURED", "revised_bank_cpu_hours": null,
-      "base_reference_work": "1000 cell solves for a proposed 200 geometry/flow-action x five-condition bank, plus refinement; a nine-question grid cannot supply twelve distinct questions without another covered context/bank or a separately approved finer grid",
+      "base_reference_work": "1000 cell solves for a proposed 200 geometry/flow-action x five-condition bank, plus refinement; initial k=8 for grid and continuous; raising k needs bank diversity, E, power evidence and owner choice, not more decimals",
       "support_gate": "#758 improved cell and local temperature observer. Unsupported reduced-supply scenario excluded. No assembly hydraulic W/port-pressure or 85 degC full-plate claim."
     },
     {
       "challenge": "burst-thermal", "family": "f02", "scope": "fixed layered solid; nine genuinely discrete burst schedules",
       "service_contexts": {"status": "HUMAN_INPUT", "registered": null, "recommendation": ["24 contexts: two prescribed convection regimes x two initial temperatures x two patch power splits x rectangular/ramp/two-pulse waveform families"]},
       "requirement_axes": [
-        {"quantity": "peak_temperature_max", "unit": "degC", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [90, 92.5, 95]},
-        {"quantity": "extra_delivered_energy_min", "unit": "J", "op": ">=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [300, 600, 900]}
+        {"quantity": "peak_temperature_max", "unit": "degC", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [90, 92.5, 95], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [90, 95]}},
+        {"quantity": "extra_delivered_energy_min", "unit": "J", "op": ">=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [300, 600, 900], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [300, 900]}}
       ],
       "mandatory_anchor": "Fixed layer/material/patch/convective laws, 20 W base, registered 120 s horizon; no coolant dynamics or off-lattice schedule invented.",
       "objective": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "max additional waveform-integrated energy in J under thermal and requested energy limits; frozen action order for ties"},
@@ -105,6 +117,7 @@
       "raw_question_grid_upper_bound": 216,
       "distinct_answer_changing_questions": null,
       "distinct_best_picks": null,
+      "continuous_variant": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Use the same supported bank/context/objective and the axes continuous_interval densities; no new geometry or renewed E.", "expected_distinct_winners_P": null, "expected_distinct_winners_Q": null, "close_call_rate_P": null, "close_call_rate_Q": null, "residual_unresolved_rate": null, "report_status": "NOT_DEMONSTRATED"},
       "solve_cost_status": "UNMEASURED", "revised_bank_cpu_hours": null,
       "base_reference_work": "216 transient solves = nine schedules x 24 contexts, plus controls/refinement; not 216 new solves per threshold question",
       "support_gate": "Pinned Elmer full-task observer/mesh/time adequacy; analytical RC screens do not establish a bank answer."
@@ -113,8 +126,8 @@
       "challenge": "grating-coupler", "family": "f06", "scope": "fixed synthetic 3D stack/port; five wavelengths x nine tolerance vectors",
       "service_contexts": {"status": "HUMAN_INPUT", "registered": null, "recommendation": ["complete nine-vector tolerance panel at 1530/1540/1550/1560/1570 nm; fixed stack, polarization and fiber convention"]},
       "requirement_axes": [
-        {"quantity": "coupled_power_fraction_min", "unit": "1", "op": ">=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.25, 0.30, 0.35]},
-        {"quantity": "reflected_power_fraction_max", "unit": "1", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.05, 0.10, 0.15]}
+        {"quantity": "coupled_power_fraction_min", "unit": "1", "op": ">=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.25, 0.30, 0.35], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [0.25, 0.35]}},
+        {"quantity": "reflected_power_fraction_max", "unit": "1", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.05, 0.10, 0.15], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [0.05, 0.15]}}
       ],
       "mandatory_anchor": "Both limits apply per tolerance/wavelength point; preserve manufacturability after perturbation. Discrete nodes are not a continuous spectral or yield guarantee.",
       "objective": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "max frozen 45-point p10 coupled fraction; producer observer defines quantile, then frozen bank order"},
@@ -123,6 +136,7 @@
       "raw_question_grid_upper_bound": 9,
       "distinct_answer_changing_questions": null,
       "distinct_best_picks": null,
+      "continuous_variant": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Use the same supported bank/context/objective and the axes continuous_interval densities; no new geometry or renewed E.", "expected_distinct_winners_P": null, "expected_distinct_winners_Q": null, "close_call_rate_P": null, "close_call_rate_Q": null, "residual_unresolved_rate": null, "report_status": "NOT_DEMONSTRATED"},
       "solve_cost_status": "UNMEASURED", "revised_bank_cpu_hours": null,
       "base_reference_work": "2304 vector solves for 256 masks x nine vectors ONLY IF one broadband solve resolves all five wavelengths; otherwise additional work, plus normalization/refinement",
       "support_gate": "3D full-wave bank, ports/normalization and tolerance adequacy; old photonic supermode timing is not grating timing."
@@ -131,9 +145,9 @@
       "challenge": "resonance-structure", "family": "f08", "scope": "fixed linear support/load/material; complete 80-600 Hz response at three damping values",
       "service_contexts": {"status": "HUMAN_INPUT", "registered": null, "recommendation": ["fixed root clamp and 1 N excitation; complete 0.005/0.01/0.02 damping panel in 80-600 Hz"]},
       "requirement_axes": [
-        {"quantity": "dynamic_compliance_max", "unit": "mm/N", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.10, 0.15, 0.20]},
-        {"quantity": "static_compliance_max", "unit": "mm/N", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.02, 0.03, 0.04]},
-        {"quantity": "mass_max", "unit": "kg", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.35, 0.45, 0.55]}
+        {"quantity": "dynamic_compliance_max", "unit": "mm/N", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.10, 0.15, 0.20], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [0.1, 0.2]}},
+        {"quantity": "static_compliance_max", "unit": "mm/N", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.02, 0.03, 0.04], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [0.02, 0.04]}},
+        {"quantity": "mass_max", "unit": "kg", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.35, 0.45, 0.55], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [0.35, 0.55]}}
       ],
       "mandatory_anchor": "Complete-band peaks, not sampled-node maxima; no nonlinear joints or settling-time claim.",
       "objective": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "min worst resolved dynamic compliance in mm/N; secondary mass in kg, then frozen bank order"},
@@ -142,6 +156,7 @@
       "raw_question_grid_upper_bound": 27,
       "distinct_answer_changing_questions": null,
       "distinct_best_picks": null,
+      "continuous_variant": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Use the same supported bank/context/objective and the axes continuous_interval densities; no new geometry or renewed E.", "expected_distinct_winners_P": null, "expected_distinct_winners_Q": null, "close_call_rate_P": null, "close_call_rate_Q": null, "residual_unresolved_rate": null, "report_status": "NOT_DEMONSTRATED"},
       "solve_cost_status": "UNMEASURED", "revised_bank_cpu_hours": null,
       "base_reference_work": "At least 1280 launches = 256 x (static + eigen + three harmonic processes), plus adaptive peak/mesh refinement",
       "support_gate": "Pinned CalculiX complete response extraction and resolved narrow-peak evidence; a coarse frequency sweep cannot settle near limits."
@@ -150,9 +165,9 @@
       "challenge": "compressor-silencer", "family": "f13", "scope": "no-flow linear passive acoustics, matched ends and fixed 500-2500 Hz band",
       "service_contexts": {"status": "HUMAN_INPUT", "registered": null, "recommendation": ["one complete matched-termination 500-2500 Hz response; fixed air properties and 50 mm ports"]},
       "requirement_axes": [
-        {"quantity": "band_p10_transmission_loss_min", "unit": "dB", "op": ">=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [3, 5, 7]},
-        {"quantity": "package_length_max", "unit": "mm", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [240, 270, 300]},
-        {"quantity": "package_diameter_max", "unit": "mm", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [120, 130, 140]}
+        {"quantity": "band_p10_transmission_loss_min", "unit": "dB", "op": ">=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [3, 5, 7], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [3, 7]}},
+        {"quantity": "package_length_max", "unit": "mm", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [240, 270, 300], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [240, 300]}},
+        {"quantity": "package_diameter_max", "unit": "mm", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [120, 130, 140], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [120, 140]}}
       ],
       "mandatory_anchor": "Port/neck/clearance validity unchanged; no mean flow, flow pressure loss or compressor noise source model.",
       "objective": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "max interval-weighted band p10 transmission loss in dB; frozen bank order"},
@@ -161,6 +176,7 @@
       "raw_question_grid_upper_bound": 27,
       "distinct_answer_changing_questions": null,
       "distinct_best_picks": null,
+      "continuous_variant": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Use the same supported bank/context/objective and the axes continuous_interval densities; no new geometry or renewed E.", "expected_distinct_winners_P": null, "expected_distinct_winners_Q": null, "close_call_rate_P": null, "close_call_rate_Q": null, "residual_unresolved_rate": null, "report_status": "NOT_DEMONSTRATED"},
       "solve_cost_status": "UNMEASURED", "revised_bank_cpu_hours": null,
       "base_reference_work": "At least 3216 frequency launches = 16 curves x 201 initial frequencies under the proposed separate-process route, plus adaptive frequencies/refinement",
       "support_gate": "Pinned full-curve Helmholtz adequacy; package variations must affect the bank's feasible set or one attenuation winner may dominate all questions."
@@ -169,9 +185,9 @@
       "challenge": "passive-micromixer", "family": "f17", "scope": "fixed channel/fluid/passive scalar; nine flow-diffusivity conditions",
       "service_contexts": {"status": "HUMAN_INPUT", "registered": null, "recommendation": ["complete flow 1/3/5 uL/min x diffusivity 0.5/1/2 x 1e-10 m2/s panel; no cherry-picked easy-flow action"]},
       "requirement_axes": [
-        {"quantity": "mixing_index_min", "unit": "1", "op": ">=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.75, 0.80, 0.85]},
-        {"quantity": "pressure_drop_max", "unit": "Pa", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [200, 250, 300]},
-        {"quantity": "residence_time_max", "unit": "s", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [15, 20, 25]}
+        {"quantity": "mixing_index_min", "unit": "1", "op": ">=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.75, 0.80, 0.85], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [0.75, 0.85]}},
+        {"quantity": "pressure_drop_max", "unit": "Pa", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [200, 250, 300], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [200, 300]}},
+        {"quantity": "residence_time_max", "unit": "s", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [15, 20, 25], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [15, 25]}}
       ],
       "mandatory_anchor": "Geometry validity and outlet definition fixed; backflow/positivity/conservation reference failures remain unresolved, not favorable mixing.",
       "objective": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "max worst mixing index across nine conditions; frozen bank order"},
@@ -180,6 +196,7 @@
       "raw_question_grid_upper_bound": 27,
       "distinct_answer_changing_questions": null,
       "distinct_best_picks": null,
+      "continuous_variant": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Use the same supported bank/context/objective and the axes continuous_interval densities; no new geometry or renewed E.", "expected_distinct_winners_P": null, "expected_distinct_winners_Q": null, "close_call_rate_P": null, "close_call_rate_Q": null, "residual_unresolved_rate": null, "report_status": "NOT_DEMONSTRATED"},
       "solve_cost_status": "UNMEASURED", "revised_bank_cpu_hours": null,
       "base_reference_work": "405 geometry-condition pairs; at least 810 flow/scalar launches before refinement if both processes run per pair; velocity reuse is not assumed",
       "support_gate": "Pinned coupled flow/scalar work and qualified flux-weighted observer; off-lattice truth needs additional solved geometry, not threshold reuse."

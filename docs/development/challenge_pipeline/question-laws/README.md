@@ -22,12 +22,19 @@ were inspected at `ff495231c49abb0f234c8f933e3c4dd23d93a9c7`, and
 `9cf25328bdc71b04188f60d448f82b1ee081c47d`. #759 subsequently merged as
 `11d77033cda4be4fb6303cb31a910cc6ef9d4633` during this ticket; its optimizer
 and buyer-job laws remain **SPECIFIED proposals with HUMAN_INPUT values**,
-not registered exam settings. #764 remains open at the last check. A changed
-interface needs renewed reconciliation before adoption.
+not registered exam settings. A changed interface needs renewed
+reconciliation before adoption.
 During drafting #764 advanced to `6dfe99692bf273ac7fac2453508fc023f90f7d1f`;
 its `tasks.py` blob remained exactly `f2daa4e825c2bda950cd2f48ee47848d2eb68c2e`.
 Main advanced to `17e4af24583bce0bdc7b1b37ee26b7776e7d288b` through the
 separate A40 harness PR #766; those launch changes are outside this proposal.
+For this revision, main was inspected at
+`961f5fc227c9407a48254b46e806db1134dcb2d3`. #764 merged as
+`aebaf2311a3117ae0a0deff763848eea2726c753`; the mapping below now concerns
+the merged `carbon/design_search/tasks.py`, whose inspected blob is unchanged.
+#758 merged as `b9fa4950327a7d46ccc02b8747e368677be82c45` from
+`bb003451afdbf30abec55cfdc08b40fdd3aaf5aa`. Its revised design-space proposal
+unblocks Part B drafting, not reference adequacy or a feasible-design claim.
 
 The [round-one customer packets](../round1/README.md),
 [Foundation Plan](../../../../Design_Specs/Eight_Challenge_Foundation_Plan.md),
@@ -50,8 +57,10 @@ questions. A finite-bank winner is not a global physical optimum.
 Separate three levels:
 
 - **Outer P_job:** synthetic population of buyer questions. Recommended first
-  law: uniform over the explicitly listed supported contexts and Cartesian
-  requirement grids. This is a testable synthetic law, not a measured fleet,
+  alternatives: uniform over the explicitly listed supported contexts and
+  either Cartesian requirement grids or the continuous intervals in §3a.
+  The owner selects the alternative before use. This is a synthetic law,
+  not a measured fleet,
   factory or customer frequency. Context count is one complete panel except
   f02's explicitly enumerated 24 contexts.
 - **Outer Q_job:** diagnostic sampling. Recommendation: `0.5 P_job + 0.5 B`,
@@ -185,11 +194,13 @@ objective and needs Test Lead/science-owner approval before implementation.
 
 Q enriches the **85 °C** thermal boundary and cell pressure edges; w as §2.
 A 200-action planning bank needs 1,000 cell solves before refinement.
-Propose a **12-question batch target only if another distinct covered
-context/bank or an approved finer requirement grid supplies enough genuine
-questions**. A single nine-question grid cannot supply twelve distinct
-questions, even before collapsing identical answers. Do not fill the gap
-with different seeds. Old cell temperatures above 85 °C do not demonstrate
+Propose **8 questions/batch** for both the grid baseline and the initial
+continuous alternative. A single nine-question grid cannot supply twelve distinct
+questions, even before collapsing identical answers. Continuous requirements
+remove that grid ceiling, not the bank's diversity or E limits; raising k
+needs demonstrated coverage/diversity/power and a prospective owner choice.
+Do not fill a shortage with different seeds. Old cell temperatures above
+85 °C do not demonstrate
 feasibility of the improved space, or justify replacing 85 °C with 100 °C.
 
 Likewise the owner's old-cell report places the ideal warm-uniform case at
@@ -291,6 +302,58 @@ reduce work later; it is not assumed here. Outlet/backflow/conservation and
 numerical diffusion must be resolved before a mixing verdict. No chemistry
 or clinical claim. A continuous off-lattice test needs newly covered truth.
 
+## 3a. Continuous requirements beside the auditable grids
+
+**HUMAN_INPUT recommendation:** retain each grid as the audit baseline and
+compare a continuous alternative on an eligible public/retired pilot bank.
+Recommend the continuous alternative for learning a distribution rather
+than memorizing fixed thresholds, subject to demonstrated bank support.
+**The owner picks grid or continuous; neither is adopted here.**
+
+Under continuous P_job, draw the same service context with the same mass,
+then each independent buyer threshold uniformly over its interval below.
+The endpoints reuse the grid's envelope; they are proposed bounds, **not
+evidence that the reference supports the interval**. Freeze applicability,
+units, numerical representation/precision, dependence and interval endpoints
+before use. Do not round back to three decision points or claim more
+measurement precision than the reference. Refuse unsupported regions rather
+than silently clipping draws or changing P. No geometry, material, observer,
+optimizer or mandatory service condition changes.
+
+| Challenge | Recommended continuous threshold intervals under P_job |
+| --- | --- |
+| Battery | Warm time cap [25,40] min; whole-programme temperature cap [42.5,45] °C; capacity-ratio floor [0.99,0.995] |
+| Motor | Holding torque floor [5,7] N·m; peak torque floor [10,14] N·m; shared ripple-fraction cap [0.04,0.06]; cogging cap [0.03,0.07] N·m; holding ripple peak-to-peak cap [0.24,0.36] N·m; peak absolute cap remains twice holding cap |
+| Cooling cell | Local TIM-proxy cap [80,85] °C; cell Δp allocation [20,30] kPa |
+| f02 | Peak temperature cap [90,95] °C; extra delivered-energy floor [300,900] J, conditional on one of the same 24 contexts |
+| f06 | Per-point coupled-fraction floor [0.25,0.35]; reflected-fraction cap [0.05,0.15] |
+| f08 | Dynamic compliance cap [0.10,0.20] mm/N; static compliance cap [0.02,0.04] mm/N; mass cap [0.35,0.55] kg |
+| f13 | Band p10 TL floor [3,7] dB; length cap [240,300] mm; diameter cap [120,140] mm |
+| f17 | Mixing-index floor [0.75,0.85]; Δp cap [200,300] Pa; residence cap [15,25] s |
+
+Recommendation: independent uniform draws **conditional on the context**
+except for the Motor peak/holding ripple dependency above. Other realistic
+requirement correlations remain HUMAN_INPUT, not observed buyer frequencies.
+The original buyer anchor is a separate diagnostic witness, not guaranteed
+to appear under a continuous law or replaced by an easier draw.
+
+Continuous Q_job recommendation: `0.5 P_job + 0.5 P_job(. | B)`, where B
+is the prospectively defined union of near-limit/refinement regions with
+positive P mass. This is **density over regions**, not equal mass over
+unequal-volume answer cells or atoms at grid points. Record B, its P mass,
+normalizer and context conditioning before candidate evaluation; if B has
+zero mass, Q=P and report no enrichment. For population-mean diagnostics,
+w is the corresponding **density ratio** P/Q; boundary-only reports remain
+separate. Q2 panel-disagreement selection is another diagnostic law (§7),
+not this P or Q by declaration.
+
+New thresholds over identical settled bank quantities require **no new
+physical solves**. A threshold through a reference uncertainty interval or
+a potentially winning unresolved action does require producer refinement
+under separate execution authority, or the answer stays UNRESOLVED. Higher
+numeric variety cannot repair the old Motor/Cooling space, certify a
+reference, renew E, or create infinitely many answers.
+
 ## 4. Quantifying real answer capacity, not just a Cartesian grid
 
 For each exact bank and context, audit its complete reference table
@@ -324,12 +387,83 @@ objective can make the actual answer count much smaller, even one.
 | --- | ---: | ---: | ---: | --- | ---: |
 | Battery | 16 | 100 | ≤16 | NOT_DEMONSTRATED | 8 |
 | Motor | 243 | 200 | ≤201 | NOT_DEMONSTRATED | 12 |
-| Cooling cell | 9 | 200 | ≤9 | NOT_DEMONSTRATED | 12, conditional extra coverage; current grid insufficient |
+| Cooling cell | 9 | 200 | ≤9 | NOT_DEMONSTRATED | 8 |
 | f02 | 216 (24×9 requirements) | 9 | ≤9 per context; ≤216 context-answer cells, not necessarily different action picks | NOT_DEMONSTRATED | 8 |
 | f06 | 9 | 256 | ≤9 | NOT_DEMONSTRATED | 8 |
 | f08 | 27 | 256 | ≤27 | NOT_DEMONSTRATED | 8 |
 | f13 | 27 | 16 | ≤17 | NOT_DEMONSTRATED | 8 |
 | f17 | 27 | 45 before validity filtering | ≤27 | NOT_DEMONSTRATED | 8 |
+
+### Expected winner diversity under either alternative
+
+For a fixed eligible bank, let p_a be the P mass of question regions whose
+**resolved** best pick is action a, using the frozen objective/tie rule.
+Compute those masses from bank truth: grid enumeration for the baseline;
+partition the continuous box at each action's reference/band boundaries and
+integrate each answer region's mass, or use a precommitted offline numerical
+integration with reported error. No new solves are needed for already
+settled quantities. Report NONE_FEASIBLE and UNRESOLVED masses separately;
+they are not winners and do not count as distinct good picks.
+
+For k independent draws with replacement from that fixed law/bank:
+
+`expected distinct resolved winners = sum_a [1 - (1 - p_a)^k]`.
+
+For draws under Q, replace p_a with q_a and report both expectations.
+Importance weighting does **not** change how many winners were observed.
+Do not assume winners have equal mass. Repeated picks can dominate even a
+continuous law. This expectation is bounded by min(k, number of eligible
+winning bank actions), not by the old grid size. Distinct verdict signatures
+can exceed the number of winners, but remain finite on settled fixed truth.
+
+| Challenge | Initial k recommendation | Continuous expected distinct winners under P / Q | Arithmetic maximum distinct winners per batch |
+| --- | ---: | --- | ---: |
+| Battery | 8 | NOT_DEMONSTRATED / NOT_DEMONSTRATED | ≤8 on proposed N=100 |
+| Motor | 12 | NOT_DEMONSTRATED / NOT_DEMONSTRATED | ≤12 on proposed N=200 |
+| Cooling cell | 8 | NOT_DEMONSTRATED / NOT_DEMONSTRATED | ≤8 on proposed N=200 |
+| f02 | 8 | NOT_DEMONSTRATED / NOT_DEMONSTRATED | ≤8 context-action picks; ≤9 action tokens per fixed context |
+| f06 | 8 | NOT_DEMONSTRATED / NOT_DEMONSTRATED | ≤8 on proposed N=256 |
+| f08 | 8 | NOT_DEMONSTRATED / NOT_DEMONSTRATED | ≤8 on proposed N=256 |
+| f13 | 8 | NOT_DEMONSTRATED / NOT_DEMONSTRATED | ≤8 on proposed N=16 |
+| f17 | 8 | NOT_DEMONSTRATED / NOT_DEMONSTRATED | ≤8 on proposed N≤45 |
+
+Actual expectations require the eligible bank's settled observables and
+remaining exposure, not just N. The proposal sheet leaves each P/Q result
+null. Conditional on the reported old Motor bank supporting the whole
+interval, its 8%-minimum ripple and 0.4-N·m minimum cogging still imply **zero
+expected winners**, under grid or continuous; this is not a revised-bank
+estimate. Counts of f02 context-action pairs and action tokens must be
+reported separately rather than calling different contexts independent designs.
+
+The formula is an **iid benchmark**, not an exposure grant. For without-
+replacement draws, law-conditioned bundles or changing eligible banks,
+compute occupancy under the exact registered batch law and residual-E
+schedule instead (enumeration or offline draws of the fixed public bank,
+with integration/sampling error reported). If E cannot support k, report
+the feasible batch size/shortage; do not pretend an iid batch was drawn.
+Clustering shared truth remains required for power estimates.
+
+### Close-call and refinement rates
+
+For both P and Q, report: probability/count of questions whose mandatory
+limit intersects any used action's reference interval; probability/count of
+questions needing refinement to determine the best pick (including an
+objective comparison between potentially winning actions); selected-action
+near-limit rate; reference-unavailable rate; refinement demand and terminal
+residual UNRESOLVED rate. Distinguish these from candidate prediction errors.
+Keep denominators for all draws, truth-covered draws, requested refinements
+and settled refinements, and retain the active quantity/role/context.
+
+Continuous draws can reveal crossings between grid points, but an increased
+close-call rate is an empirical comparison, **not guaranteed by continuity**.
+Exact equality has zero mass under a continuous density; finite reference
+bands have positive-width regions that must still be resolved or refused.
+Grid versus continuous P/Q rates and their integration error are
+NOT_DEMONSTRATED for all eight banks. Bands, acceptable residual rate,
+refinement rungs/budget and escalation thresholds remain HUMAN_INPUT.
+Recommendation: predeclare producer-only refinement when a decision can
+change, otherwise report UNRESOLVED without clean credit; no solver work
+is authorized by this content proposal.
 
 ### Exposure-limited capacity
 
@@ -350,10 +484,13 @@ draw. If question j depends on case set U_j and case i has residual capacity
 the largest admissible subset S satisfying `sum(j in S: i in U_j) <= e_i` for
 every case, additionally bounded by the relevant distinct-question/answer
 capacity. For one unchanged complete bank shared by all questions this gives
-`usable question draws <= min(R, min_i e_i)` and
+`usable distinct grid question draws <= min(R, min_i e_i)` and
 `answer-diverse draws <= min(D_answer, min_i e_i)` when requiring different
 answers. A batch may repeat an answer, but is not independent evidence merely
 because it has many threshold vectors.
+For continuous requirements, the raw-vector R ceiling disappears, but
+`usable draws <= min_i e_i` and the finite answer-capacity bound remain.
+Continuous decimals do not supply fresh exposure.
 
 Illustration only: an entirely synthetic bank with five distinct answers and
 residual E=2 supports at most two one-question draws, not five fresh hidden
@@ -394,6 +531,14 @@ answers NONE,A,A,B,B,C: **six** questions, **four** verdict/answer cells and
 buy no additional design diversity. If all these questions share cases with
 residual E=2 under the one-question recommendation, only two draws remain.
 
+On this **same arbitrary bank**, a continuous cap uniform on [78,90] has
+answer masses NONE=1/6, A=1/3, B=1/3, C=1/6. For an iid eight-draw benchmark,
+the expected distinct winners are approximately **2.6894**, not eight or
+infinitely many. Half-width 0.25 reference bands around 80/84/88 occupy
+1.5/12=**12.5%** of that interval, whereas none of the six listed grid caps
+intersects those bands. These are explicitly synthetic calculations, not
+Cooling uncertainty values, demonstrated P/Q rates or an E=8 grant.
+
 ## 5. Solve cost and questions per batch
 
 **Measured input supplied by the owner:** one Battery quiz batch had 2,684
@@ -407,7 +552,7 @@ Historical older 82-s/21-hour figures in #759 are not combined with it.
 | --- | ---: | --- | --- |
 | Battery | 8 | ~68 CPU-h historical whole quiz only; revised EV batch UNMEASURED | 100×5 =500 new-scope programmes |
 | Motor | 12 | **UNMEASURED** | 200×9 =1,800 command curves |
-| Cooling cell | 12 conditional; nine-vector grid alone insufficient | **UNMEASURED** | 200×5 =1,000 cell cases |
+| Cooling cell | 8 under either initial alternative | **UNMEASURED** | 200×5 =1,000 cell cases |
 | f02 | 8 | **UNMEASURED** | 9×24 =216 transients |
 | f06 | 8 | **UNMEASURED** | 256×9 =2,304 vector solves if broadband extraction suffices |
 | f08 | 8 | **UNMEASURED** | ≥256×5 =1,280 launches |
@@ -434,7 +579,8 @@ after adequate public/retired pilot evidence and the Test Lead's decisions.
 
 ## 6. Reconciliation with #764 task fields and #759 optimizer semantics
 
-This is a mapping to the **inspected proposal**, not proof of a merged API.
+This maps the merged **carbon/design_search/tasks.py** at #764's identity,
+not adoption of the proposed question law or future #779 optimizer work.
 
 | #764 field | Proposed use / limit |
 | --- | --- |
@@ -475,13 +621,16 @@ Specific seams, classified for the owning leads:
   grading questions. Continuous off-grid coverage, where legitimate,
   requires separate covered truth rather than threshold-only reuse.
 
-## 7. Part B gate, reuse and handoff
+## 7. Part B dependency and quiz content
 
 The owner explicitly gates Motor/cooling-cell quiz content on
 [#758](https://github.com/carbonphysicsai/Carbon/pull/758) **landing**.
 Do not treat a green check, test merge SHA or open repair head as a merge.
-The working ticket records this dependency; no Part B content is claimed
-complete until that gate is satisfied.
+That gate is satisfied by merge `b9fa4950327a7d46ccc02b8747e368677be82c45`.
+The [Motor and Cooling-cell quiz proposal](motor-cooling-quiz.md) now drafts
+Q2/Q3, behaviour-defined controls and diagnostics (a)–(e) in this same ticket.
+The merged design-space revision is a proposal, not a reference bank or proof
+that the robot joint/cell meets its buyer limits.
 
 KEEP the producer-only [Battery quiz source](../../../../carbon/challenge_validator/battery_quiz.py),
 [quiz evidence](../../evidence/battery-quiz-designs/README.md),
@@ -493,9 +642,8 @@ unresolved coverage. Battery's historical Q3 redraw of all-infeasible tasks
 is **not** copied into a new law that needs a none-feasible mix; that is a
 prospective sampling-policy difference for Test Lead to adopt.
 
-Next, after the dependency: draft Q2 torque/ripple/cogging and cell85 °C
-questions, Q3 draws under this proposal, behaviour-defined edge-optimist,
-over-cautious, sign-error and optimizer/lattice-aware controls; map all five
-diagnostics without adopting thresholds. Validators rebuild/score; they
+All proposed quiz sizes, bands, panel choices, diagnostics and acceptance
+policies remain HUMAN_INPUT for Test Lead; no runtime quiz is implemented.
+Validators rebuild/score; they
 never solve references. No content/fixture success earns reference adequacy,
 power, scientific qualification or reality claims.

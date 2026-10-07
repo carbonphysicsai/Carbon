@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PACKET = ROOT / "docs/development/challenge_pipeline/question-laws"
 SHEET = json.loads((PACKET / "proposals.json").read_text(encoding="utf-8"))
 TEXT = (PACKET / "README.md").read_text(encoding="utf-8")
+QUIZ = (PACKET / "motor-cooling-quiz.md").read_text(encoding="utf-8")
 
 
 def _recommendation(value):
@@ -55,6 +56,9 @@ def test_every_new_law_value_is_unregistered_and_capacity_is_not_invented(row):
         assert all(math.isfinite(value) for value in values)
         assert axis["op"] in ("<=", ">=")
         assert axis["unit"] and axis["quantity"]
+        interval = _recommendation(axis["continuous_interval"])
+        assert interval == [min(values), max(values)]
+        assert interval[0] < interval[1]
     raw = row.get("context_count", 1) * math.prod(
         len(axis["recommendation"]) for axis in row["requirement_axes"]
     )
@@ -63,6 +67,17 @@ def test_every_new_law_value_is_unregistered_and_capacity_is_not_invented(row):
     assert row["distinct_best_picks"] is None
     assert row["revised_bank_cpu_hours"] is None
     assert row["support_gate"]
+    continuous = row["continuous_variant"]
+    _recommendation(continuous)
+    assert continuous["report_status"] == "NOT_DEMONSTRATED"
+    for key in (
+        "expected_distinct_winners_P",
+        "expected_distinct_winners_Q",
+        "close_call_rate_P",
+        "close_call_rate_Q",
+        "residual_unresolved_rate",
+    ):
+        assert continuous[key] is None
 
 
 def test_one_historical_cost_never_prices_seven_other_or_revised_scopes():
@@ -80,12 +95,12 @@ def test_one_historical_cost_never_prices_seven_other_or_revised_scopes():
     assert len(statuses) == 7
 
 
-def test_cooling_is_cell_only_and_the_batch_capacity_shortfall_is_explicit():
+def test_cooling_is_cell_only_and_initial_batch_recommendation_is_eight():
     row = next(row for row in SHEET["challenges"] if row["challenge"] == "cooling-cell")
     assert "periodic cooling cell only" in row["scope"]
     assert "no full cold plate" in row["scope"]
     assert row["raw_question_grid_upper_bound"] == 9
-    assert _recommendation(row["questions_per_batch"]) == 12
+    assert _recommendation(row["questions_per_batch"]) == 8
     assert "cannot supply twelve distinct" in TEXT
     assert "UNMEASURED" in row["solve_cost_status"]
     assert "CELL allocations" in row["mandatory_anchor"]
@@ -158,9 +173,101 @@ def test_one_old_cell_result_is_not_proof_of_bank_wide_infeasibility():
     assert "mean wall temperature cannot stand in for local TIM peak" in normalized
 
 
-def test_part_b_is_explicitly_merge_gated_and_battery_reuse_is_not_scoring_adoption():
+def test_part_b_merge_dependency_is_satisfied_not_a_scoring_adoption():
     assert "**landing**" in TEXT
     assert "Q3 redraw of all-infeasible tasks" in TEXT
     assert "not** copied" in TEXT
     assert "Validators rebuild/score; they" in TEXT
     assert "never solve references" in TEXT
+    assert SHEET["basis"]["feasibility_merge"] in QUIZ
+    assert SHEET["basis"]["tasks_merge"] in QUIZ
+    assert "SPECIFIED only" in QUIZ
+
+
+def test_continuous_law_is_an_owner_choice_not_uniform_answer_cells():
+    for key in (
+        "variant_selection",
+        "continuous_P",
+        "continuous_Q",
+        "continuous_w",
+        "winner_expectation_method",
+        "close_call_method",
+    ):
+        _recommendation(SHEET["common"][key])
+    normalized = " ".join(TEXT.split())
+    for phrase in (
+        "owner picks grid or continuous",
+        "density over regions",
+        "peak absolute cap remains twice holding cap",
+        "not guaranteed by continuity",
+        "Continuous decimals do not supply fresh exposure",
+        "compute occupancy under the exact registered batch law",
+    ):
+        assert phrase in normalized
+
+
+def test_synthetic_continuous_occupancy_is_bank_bounded_not_decimal_count():
+    # Same arbitrary A/B/C example, continuous cap U[78,90]. No solver truth.
+    # NONE on [78,80), A on [80,84), B on [84,88), C on [88,90].
+    masses = {"NONE": 2 / 12, "A": 4 / 12, "B": 4 / 12, "C": 2 / 12}
+    assert sum(masses.values()) == pytest.approx(1)
+    k = 8
+    expected = sum(1 - (1 - masses[a]) ** k for a in ("A", "B", "C"))
+    assert expected == pytest.approx(2.6893950760)
+    assert expected <= min(k, 3)
+    # A diagnostic Q concentrated on A changes observed occupancy; weighting
+    # observations cannot make it equal to the P occupancy.
+    q_masses = {"A": 0.6, "B": 0.15, "C": 0.05, "NONE": 0.2}
+    q_expected = sum(1 - (1 - q_masses[a]) ** k for a in ("A", "B", "C"))
+    assert q_expected < expected
+    # NONE and unresolved coverage are not distinct resolved winners.
+    all_unresolved = {"UNRESOLVED": 1.0}
+    assert sum(1 - (1 - p) ** k for a, p in all_unresolved.items() if a == "A") == 0
+    # Requiring k draws does not create the missing residual E.
+    assert min([2, 4, 3]) < k
+
+
+def test_synthetic_close_call_rate_is_band_width_not_exact_equality():
+    # Arbitrary continuous cap U[78,90], temperature intervals around 80/84/88.
+    # Half-width .25 gives three disjoint .5-wide crossing regions.
+    interval_width = 90 - 78
+    rate = 3 * (2 * 0.25) / interval_width
+    assert rate == pytest.approx(0.125)
+    assert 0 < rate < 1
+    # No grid cap is in those bands; continuity need not change pick count.
+    assert all(
+        min(abs(cap - edge) for edge in (80, 84, 88)) > 0.25
+        for cap in (79, 81, 83, 85, 87, 89)
+    )
+    assert "reference-unavailable rate" in TEXT
+
+
+def test_both_quizzes_have_behavioural_controls_and_all_five_diagnostics():
+    normalized = " ".join(QUIZ.split())
+    for phrase in (
+        "Motor Q2 near-limit content",
+        "Cooling cell Q2 near-limit content",
+        "Holding torque floor",
+        "Peak torque floor",
+        "Zero-current cogging",
+        "Local TIM jump",
+        "Good accurate selector",
+        "Good calibrated uncertainty",
+        "Edge-optimist",
+        "Over-cautious",
+        "Localized sign-error",
+        "Optimizer or lattice aware",
+        "(a) Optimizer stability",
+        "(b) Grid resolution",
+        "(c) Power by k",
+        "(d) Agreement with decision value",
+        "(e) Unresolved rate",
+        "none becomes a gate or score input",
+        "No failed reference",
+        "Validators **never solve references**",
+        "Accurate edge optima are **not gaming**",
+        "no redraw until a convenient feasible set appears",
+        "count those composite actions explicitly",
+        "before answer-key access",
+    ):
+        assert phrase in normalized
