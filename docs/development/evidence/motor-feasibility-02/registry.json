@@ -1,0 +1,34 @@
+{
+ "schema": "carbon.motor.feasibility02-registry.v1",
+ "registered": "2026-10-07, before any study solve (two tooling smoke solves only: runner equivalence on train-0000 and a 3-point current-angle check)",
+ "authority": "CHALLENGE-CUSTOMER-FEASIBILITY-02, #758 at head 1ac5acfa69dd8f2af5d6b5d4f6a2ec52c5b9d975; motor customer packet #752 (round1/motor-precision-joint.md). Test Lead relay of the owner's handoff. DEVELOPMENT; free host CPU only; no paid dispatch.",
+ "maturity": "SPECIFIED (this file) -> IMPLEMENTED (scripts/dev/motor/feasibility02) -> EXECUTED (records) -> DEMONSTRATED only for what the refinement and cross-checks establish; no 3D, thermal, manufacturing or customer claim",
+ "limits": {
+  "holding": "mean >= 6.0 N m, pk-pk <= 0.30 N m and <= 5 % of |mean| at the precision command",
+  "peak": "mean >= 12 N m, pk-pk <= 0.60 N m and <= 5 % of |mean| at the peak command (reported; not part of the Test Lead's feasibility question)",
+  "unpowered": "zero-current cogging pk-pk <= 0.05 N m"
+ },
+ "design_space": {
+  "topologies": {"8p24s": "registered single-layer control (existing 246 public points and 30 zero-current solves are its evidence)", "10p12s": "double-layer tooth winding from the star of slots; fundamental winding factor 0.933 checked; current offset alpha0 = +15 electrical (registered deck: -120 for 8p24s), verified by a current-angle check"},
+  "grammar": {"magnet_mm": [1.5, 4.0], "coverage": [0.65, 0.95], "airgap_mm": [0.3, 1.0], "tooth_frac": [0.20, 0.40], "opening_frac": [0.03, 0.12], "slot_bottom_mm": [34.0, 42.0]},
+  "fixed": "registered frame: 92 mm stator OD, 25.6 mm rotor radius, 35 mm stack, Br 1.2 T, generic Brauer iron, tip 0.6 mm, wedge 0.34 mm",
+  "validity": "slot >= 1 mm per layer where the coil starts, opening clearance 0.2 mm, slot depth >= 1 mm, yoke >= 1 mm (geometric only)",
+  "skew": "three equal slices, offsets -s/2, 0, +s/2 mechanical, s in {0, 2, 4} degrees; slice k = 2D solve at rotor angle theta + d_k with current angle gamma - 5 d_k (same phase currents); each slice is full-stack-equivalent and the stack curve is their mean (1/3 each, once); ripple from the combined curve",
+  "not_run": "second-tier magnet-edge chamfer and tooth-tip notch (no frozen CAD grammar yet); 3D end and skew-edge effects"
+ },
+ "commands": {
+  "panel": "unpowered J 0; holding J {8, 10} x gamma {0, 15}; acceleration J {12, 15} x gamma {0, 15} (J in A/mm^2 over each coil region, the registered deck's convention)",
+  "selection_frozen": "precision command J 10, gamma 0; peak command J 15, gamma 0; all other commands are diagnostics"
+ },
+ "sampling": {"window": "one loaded period, 360/(6p): 12 degrees for 10p12s, plus its end point for the periodicity check", "standard": {"n_gap": 1440, "h_max": 1.0, "step_deg": 0.25}, "refined": [{"n_gap": 2880, "h_max": 0.5, "step_deg": 0.125}, {"n_gap": 5760, "h_max": 0.5, "step_deg": 0.0625}]},
+ "stages": {
+  "S1": "24 public 10p12s designs (topology.draw('MOTOR-FEAS02-10p12s', 24)) x {J0, J8g0, J8g15, J10g0, J10g15}, unskewed: 120 solves. Zero-current skew is exact from the J0 curve (pure shifts).",
+  "S2": "designs with best-span skewed cogging <= 0.10 N m and an unskewed holding mean >= 5.4 N m: skew variants gamma - 5 d for d in {-2, -1, +1, +2} for every holding command (16 solves per design)",
+  "S3": "designs whose skewed holding curve at some span is within margin (mean >= 5.9, pk-pk <= 0.32, fraction <= 0.055, cogging <= 0.07): refinement rungs on the precision command and J0 at the passing span, plus peak commands with skew at standard",
+  "resolution": "packet section 5: successive rungs change mean by <= 0.10 N m and pk-pk by <= 0.02 N m; zero-current Maxwell stress vs virtual work (co-energy) within those bounds; a value whose rung change straddles a limit is UNRESOLVED"
+ },
+ "outcomes_per_stratum": ["RESOLVED_FEASIBLE (2D)", "RESOLVED_INFEASIBLE", "REFERENCE_UNRESOLVED", "FAILED_INFRA"],
+ "near_misses": "kept and reported: every design within 2x of any limit",
+ "periodicity": "torque one window on repeats within 1e-3 of max |torque| or 1e-3 N m absolute (near-zero curves)",
+ "end_effects": "2D only: any feasible result is a 2D magnetic shortlist; end leakage, skew-edge and axial effects are UNRESOLVED until 3D witnesses"
+}
