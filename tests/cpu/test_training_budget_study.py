@@ -48,6 +48,8 @@ def sheet_for(challenge, **changes):
         "target_utilization": 0.5,
         "gpu_ceiling": 8,
         "expected_participation": 32,
+        "study_eval_size": 200,
+        "confirmation_size": 120,
     }
     document.update(changes)
     return sheets.parse(document, challenge)
@@ -305,3 +307,20 @@ def test_reconstruction_seeds_repeat_within_a_pair_and_differ_across_seeds():
     assert a.run_id != b.run_id
     assert st.reconstruction_seed("x", a) == st.reconstruction_seed("x", b)
     assert st.reconstruction_seed("x", a) != st.reconstruction_seed("x", c)
+
+
+def test_a_setting_off_by_default_ladders_from_a_sixteenth_of_its_top():
+    runs = st.plan_b(
+        [{"polish_steps": 0}],
+        {"polish_steps": {"default": 0, "integer": True}},
+        {"polish_steps": [0, 6000]},
+        1,
+    )
+    assert [r.parameters["polish_steps"] for r in runs] == [
+        0,
+        375,
+        750,
+        1500,
+        3000,
+        6000,
+    ]
