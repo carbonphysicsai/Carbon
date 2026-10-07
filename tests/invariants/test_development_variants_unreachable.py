@@ -120,11 +120,15 @@ def test_the_names_searched_for_are_the_modules_own():
     assert "def compile_development(" in text
 
 
-#: Walked statically only: importing it computes with numpy at module load
-#: (its exam rule's float32 epsilon), which the inert stand-in cannot do in a
-#: lane without numpy. The intake, which carries submissions to it, is
-#: imported at run time.
-STATIC_ONLY = frozenset({"carbon.battery.daemon"})
+#: Walked statically only: importing these computes with numpy at module load
+#: (battery's exam rule's float32 epsilon), which the inert stand-in cannot do
+#: in a lane without numpy (the contract-authority lane). The intake, which
+#: carries submissions to the daemon, is imported at run time. The producer's
+#: quiz source (`battery_quiz`) is producer-only and imports battery's quiz
+#: library, and through it the exam, at load.
+STATIC_ONLY = frozenset(
+    {"carbon.battery.daemon", "carbon.challenge_validator.battery_quiz"}
+)
 
 
 def _importable_modules():
