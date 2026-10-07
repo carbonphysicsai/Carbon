@@ -157,6 +157,7 @@ class Behaviour:
         self.driver, self.uuid = driver, uuid
         self.probe_fails, self.salt = probe_fails, salt
         self.polls = 0
+        self.go = False
 
 
 class Fleet:
@@ -166,6 +167,8 @@ class Fleet:
         self.fake, self.behaviours = fake, behaviours
         self.finish_after, self.crash_after = finish_after, crash_after
         self.total_polls = 0
+        self.go_calls = []
+        self.identity_served = {}
 
     def behaviour(self, pod_id):
         index = int(pod_id[-4:]) - 1
@@ -176,12 +179,13 @@ class Fleet:
     def files(self, pod_id, behaviour, config):
         uuid = behaviour.uuid or f"GPU-{pod_id}"
         files = {
+            "probe.json": {"ok": not behaviour.probe_fails},
             "identity.json": {
                 "index": 0,
                 "uuid": uuid,
                 "name": "NVIDIA A40",
                 "driver_version": behaviour.driver,
-            }
+            },
         }
         if behaviour.probe_fails:
             files["failure.json"] = {
@@ -208,6 +212,25 @@ class Fleet:
         files["results.json"] = {"complete": True, "rows": rows}
         return files
 
+    def post(self, url, token, timeout):
+        """The barrier release: only valid once two live pods of the backend
+        have both served their identity (and probe)."""
+        found = re.fullmatch(r"https://(\w+)-8001\.proxy\.runpod\.net/go", url)
+        assert found, url
+        pod_id = found.group(1)
+        pod = self.fake.pods[pod_id]
+        assert token == pod["env"]["GO_TOKEN"]
+        backend = json.loads(pod["env"]["PHASE_CONFIG"])["backend"]
+        seen = {
+            p
+            for p, b in self.identity_served.items()
+            if b == backend and p in self.fake.pods
+        }
+        assert len(seen) >= 2, "released before both identities were recorded"
+        self.behaviour(pod_id).go = True
+        self.go_calls.append(pod_id)
+        return 200, b""
+
     def __call__(self, url, token, timeout):
         found = re.fullmatch(r"https://(\w+)-8000\.proxy\.runpod\.net(/.*)", url)
         assert found, url
@@ -231,6 +254,8 @@ class Fleet:
                 else ("phase_failed" if behaviour.probe_fails else "done")
             )
         )
+        if stage == "done" and config.get("barrier") and not behaviour.go:
+            stage = "running_phase"  # waiting at the barrier, nothing rebuilt
         files = {}
         if stage != "fetching_code":
             files = self.files(pod_id, behaviour, config)
@@ -246,6 +271,8 @@ class Fleet:
             ]
             return 200, json.dumps(listing).encode()
         if path.startswith("/file/") and path[6:] in blobs:
+            if path == "/file/identity.json":
+                self.identity_served[pod_id] = config["backend"]
             return 200, blobs[path[6:]]
         return 404, b""
 
@@ -254,6 +281,7 @@ RECORD = {
     "schema": a40.RECORD_SCHEMA,
     "repeats": 2,
     "seed": 0,
+    "fno": {"id": "fno_defaults"},
     "picks": [
         {"role": "smallest", "id": "r1", "strategy": {}},
         {"role": "largest", "id": "r2", "strategy": {}},
@@ -274,6 +302,8 @@ SMOKE = {
     "rebuild_wall_seconds": 30.0,
     "booked_usd": "0.02",
 }
+
+SMOKES = {"jax": SMOKE, "pytorch": SMOKE}
 
 
 @pytest.fixture
@@ -298,10 +328,12 @@ def world(tmp_path):
             sleep=clock.advance,
             transport=transport,
             http=fleet,
+            post=fleet.post,
             balance_floor=lambda: 1.0,
             poll_seconds=15.0,
             run_id="t1",
         )
+        fake.fleet = fleet
         return runner, fleet
 
     yield make, fake, bodies
@@ -313,7 +345,7 @@ def run(world, behaviours, **options):
     make, fake, bodies = world
     runner, _fleet = make(behaviours, **options)
     try:
-        summary, results = a40.run_acceptance(runner, RECORD, SMOKE)
+        summary, results = a40.run_acceptance(runner, RECORD, SMOKES)
     finally:
         runner.close()
     return summary, results, fake, bodies
@@ -348,13 +380,21 @@ def test_clean_run_four_pods_each_terminated_and_verified(world):
     assert MOCK_KEY not in json.dumps(summary)
 
 
-def test_each_pod_is_booked_at_its_full_reservation(world):
+def test_each_pod_is_booked_at_its_full_reservation_with_its_backends_deadline(world):
     summary, _results, _fake, _bodies = run(world, [])
-    deadline = a40.pod_deadline_seconds(SMOKE, 6)  # the pytorch pod's six rebuilds
-    per_pod = a40.reservation_usd(deadline)
-    assert {p["booked_usd"] for p in summary["pods"]} == {str(per_pod)}
-    assert Decimal(summary["booked_usd"]) == per_pod * 4
-    assert summary["budget"]["deadline_seconds"] == deadline
+    for backend, rebuilds in (("jax", 4), ("pytorch", 6)):
+        deadline = a40.pod_deadline_seconds(SMOKE, rebuilds)
+        assert summary["budget"][backend]["deadline_seconds"] == deadline
+        booked = {p["booked_usd"] for p in summary["pods"] if p["backend"] == backend}
+        assert booked == {str(a40.reservation_usd(deadline))}
+
+
+def test_the_cap_gate_applies_per_backend():
+    slow_torch = {**SMOKE, "rebuild_wall_seconds": 3000.0}
+    with pytest.raises(a40.Refused, match="exceeds the cap"):
+        a40.plan(RECORD, {"jax": SMOKE, "pytorch": slow_torch})
+    plan = a40.plan(RECORD, SMOKES)
+    assert plan["jax"]["pods"] == 4 and plan["jax"]["replacements"] == 2
 
 
 def test_comparison_of_a_clean_run(world):
@@ -409,24 +449,37 @@ def test_driver_mismatch_replaces_the_second_host_once(world):
     assert {c["across_hosts"]["outcome"] for c in jax_cells} == {"AGREE"}
 
 
-def test_persistent_driver_mismatch_is_recorded_never_hidden(world):
+def test_persistent_driver_mismatch_releases_no_rebuild_and_is_recorded(world):
     odd = lambda: Behaviour(driver="580.159.04")
     summary, results, fake, _bodies = run(world, [Behaviour(), odd(), odd(), odd()])
     assert fake.creates() == 6  # 4 pods + the 2 replacements the grant allows
     assert summary["replacements_used"] == 2
-    flat = a40.pod_results([p for pods in results.values() for p in pods])
-    jax_cells = [c for c in a40.compare(flat)["cells"] if c["backend"] == "jax"]
-    for cell in jax_cells:
-        assert cell["across_hosts"]["outcome"] == "REFUSED_DRIVER_MISMATCH"
-        assert cell["driver_builds"] == ["580.159.03", "580.159.04"]
-        assert cell["within_host_equal"] is True
+    jax = [p for p in summary["pods"] if p["backend"] == "jax"]
+    assert {"REFUSED_DRIVER_MISMATCH", "REPLACED_DRIVER_MISMATCH"} <= {
+        p["outcome"] for p in jax
+    }
+    assert not [p for p in results["jax"] if p.outcome == "COMPLETE"]
+    # The barrier was never released for a jax pod: no rebuild ever started.
+    jax_ids = {p["pod_id"] for p in jax}
+    assert not jax_ids & set(fake.fleet.go_calls)
+    assert summary["driver_problems"][-1]["builds"] == ["580.159.03", "580.159.04"]
+
+
+def test_the_barrier_is_released_only_after_both_identities_match(world):
+    behaviours = [Behaviour(), Behaviour(driver="580.159.04")]
+    summary, _results, fake, _bodies = run(world, behaviours)
+    mismatched = next(
+        p for p in summary["pods"] if p["outcome"] == "REPLACED_DRIVER_MISMATCH"
+    )
+    assert mismatched["pod_id"] not in fake.fleet.go_calls
+    assert len(fake.fleet.go_calls) == 4  # two matching pods per backend
 
 
 def test_a_pod_never_outlives_a_crashed_operator(world):
     make, fake, _bodies = world
     runner, _fleet = make([], crash_after=3)
     with pytest.raises(RuntimeError, match="operator process died"):
-        a40.run_acceptance(runner, RECORD, SMOKE)
+        a40.run_acceptance(runner, RECORD, SMOKES)
     runner.close()
     assert fake.pods == {}  # the fixture asserts it again
 
@@ -443,7 +496,7 @@ def test_launch_refuses_below_the_balance_floor(world):
     runner, _fleet = make([])
     runner.balance_floor = lambda: 10**6
     with pytest.raises(a40.Refused, match="balance"):
-        a40.run_acceptance(runner, RECORD, SMOKE)
+        a40.run_acceptance(runner, RECORD, SMOKES)
     runner.close()
     assert fake.creates() == 0
 
@@ -453,7 +506,7 @@ def test_launch_refuses_an_offer_above_the_rate_ceiling(world):
     fake.rate = 0.60
     runner, _fleet = make([])
     with pytest.raises(a40.Refused, match="rate ceiling"):
-        a40.run_acceptance(runner, RECORD, SMOKE)
+        a40.run_acceptance(runner, RECORD, SMOKES)
     runner.close()
     assert fake.creates() == 0
 
@@ -463,7 +516,7 @@ def test_run_refuses_when_the_worst_case_exceeds_the_cap(world):
     runner, _fleet = make([])
     slow = {**SMOKE, "rebuild_wall_seconds": 3000.0}
     with pytest.raises(a40.Refused, match="exceeds the cap"):
-        a40.run_acceptance(runner, RECORD, slow)
+        a40.run_acceptance(runner, RECORD, {"jax": slow, "pytorch": slow})
     runner.close()
     assert fake.creates() == 0
 
@@ -486,11 +539,22 @@ def test_smoke_records_measured_seconds_on_one_pod(world, tmp_path):
     assert measured["pod"]["terminated_verified"] is True
 
 
+def test_pytorch_smoke_is_one_fno_rebuild(world, tmp_path):
+    make, fake, _bodies = world
+    runner, _fleet = make([])
+    measured = a40.smoke(runner, RECORD, backend="pytorch", out=tmp_path / "s.json")
+    runner.close()
+    assert measured["recipe_id"] == "fno_defaults" and fake.creates() == 1
+    assert measured["backend"] == "pytorch" and measured["outcome"] == "COMPLETE"
+
+
 def test_dry_run_creates_nothing(tmp_path, monkeypatch, capsys):
     record_path = tmp_path / "record.json"
     a40.write_record(RECORD, record_path)
     smoke_path = tmp_path / "smoke.json"
     smoke_path.write_text(json.dumps(SMOKE))
+    torch_path = tmp_path / "smoke-pytorch.json"
+    torch_path.write_text(json.dumps(SMOKE))
 
     def forbidden(*_a, **_k):
         raise AssertionError("a dry run must not build a pod runner")
@@ -504,6 +568,8 @@ def test_dry_run_creates_nothing(tmp_path, monkeypatch, capsys):
             str(record_path),
             "--smoke-record",
             str(smoke_path),
+            "--smoke-record-pytorch",
+            str(torch_path),
             "--work-dir",
             str(tmp_path / "w"),
             "--code-ref",
@@ -514,7 +580,9 @@ def test_dry_run_creates_nothing(tmp_path, monkeypatch, capsys):
     assert code == 0
     printed = json.loads(capsys.readouterr().out)
     assert printed["pods_created"] == 0 and printed["images"] == a40.IMAGES
-    assert printed["worst_case_usd"] and printed["deadline_seconds"] > 0
+    for backend in a40.BACKENDS:
+        assert printed["plan"][backend]["worst_case_usd"]
+        assert printed["plan"][backend]["deadline_seconds"] > 0
 
 
 # ----------------------------------------------------------------- comparison
@@ -694,6 +762,48 @@ def test_phase_stops_on_a_failed_probe_before_any_rebuild(tmp_path, monkeypatch)
     assert json.loads((tmp_path / phase.IDENTITY_FILE).read_text())["uuid"] == "GPU-1"
     assert json.loads((tmp_path / phase.PROBE_FILE).read_text())["ok"] is False
     assert not (tmp_path / "results.json").exists()
+
+
+def _ready_phase(monkeypatch, order):
+    from carbon.agent_campaign.graphite import pod_phase
+
+    device = {
+        "index": 0,
+        "uuid": "GPU-1",
+        "name": "NVIDIA A40",
+        "driver_version": "580.1",
+    }
+    monkeypatch.setattr(phase, "read_identity", lambda: (device, None))
+    monkeypatch.setattr(pod_phase, "probe_environment", lambda code=None: {"ok": True})
+    monkeypatch.setattr(
+        phase, "run_recipes", lambda *a, **k: order.append("rebuild") or []
+    )
+
+
+def test_phase_waits_at_the_barrier_and_runs_no_rebuild_unreleased(
+    tmp_path, monkeypatch
+):
+    order = []
+    _ready_phase(monkeypatch, order)
+    monkeypatch.setattr(
+        phase, "wait_for_go", lambda *a, **k: order.append("wait") or False
+    )
+    config = {**pod_config(), "barrier": True, "go_timeout_seconds": 1}
+    assert phase.run(config, tmp_path) == phase.EXIT_BARRIER
+    assert order == ["wait"]
+    assert json.loads((tmp_path / "failure.json").read_text())["stage"] == "barrier"
+    assert (tmp_path / phase.IDENTITY_FILE).exists()
+
+
+def test_phase_rebuilds_only_after_the_release(tmp_path, monkeypatch):
+    order = []
+    _ready_phase(monkeypatch, order)
+    monkeypatch.setattr(
+        phase, "wait_for_go", lambda *a, **k: order.append("wait") or True
+    )
+    config = {**pod_config(), "barrier": True, "go_timeout_seconds": 1}
+    phase.run(config, tmp_path)
+    assert order == ["wait", "rebuild"]
 
 
 def test_phase_uses_the_torch_probe_for_the_pytorch_image(tmp_path, monkeypatch):

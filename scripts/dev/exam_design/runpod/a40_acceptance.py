@@ -98,6 +98,11 @@ RECORD_SCHEMA = "carbon.a40-acceptance.run-record.v1"
 SMOKE_SCHEMA = "carbon.a40-acceptance.smoke-record.v1"
 COMPARISON_SCHEMA = "carbon.a40-acceptance.comparison.v1"
 CPU_LABEL = "harness-to-harness only; not comparable to capability-report state_sha256"
+SKIP_DIRECTIONS = {
+    "smallest": "toward larger n_params",
+    "lower_median": "toward larger n_params",
+    "largest": "toward smaller n_params",
+}
 NEURAL = ("mlp", "deeponet")
 PANEL = "ev4"
 SELECTION_RULE = (
@@ -459,6 +464,7 @@ def build_record(panel_name=PANEL, *, root=".", counter=actual_n_params):
             "recipe": fno_recipe.document(),
             "n_params_cpu_count": {"pytorch": fno_count},
         },
+        "skip_directions": SKIP_DIRECTIONS,
         "seed": SEED,
         "repeats": REPEATS,
     }
@@ -560,6 +566,8 @@ class Pod:
     finished: bool = False
     terminated: bool | None = None
     reason: str | None = None
+    go_token: str = ""
+    probe: dict | None = None
 
     def summary(self):
         return {
@@ -594,6 +602,7 @@ class PodRunner:
         sleep=time.sleep,
         transport=None,
         http=None,
+        post=None,
         balance_floor=None,
         poll_seconds=POLL_SECONDS,
         run_id=None,
@@ -625,6 +634,7 @@ class PodRunner:
         )
         self.service = ComputeService(self.store, self.adapter, clock=clock)
         self.http = http or _https_get
+        self.post = post or _https_post
         self.balance_floor = balance_floor
         self.boot = (
             self.repository / "scripts/dev/exam_design/runpod/bootstrap.py"
@@ -635,12 +645,13 @@ class PodRunner:
         self._n = 0
 
     # -- launching
-    def _env(self, backend, config, token, deadline_at):
+    def _env(self, backend, config, token, deadline_at, go_token):
         from carbon.agent_campaign.graphite import pods
         from scripts.dev.exam_design.runpod import pod_control
 
         env = {
             "PROBE_TOKEN": token,
+            "GO_TOKEN": go_token,
             "PROBE_DEADLINE": str(int(deadline_at + 60)),
             "PROBE_CA_GZ_B64": pods._ca_bundle(),
             "CODE_REF": self.code_ref,
@@ -680,6 +691,7 @@ class PodRunner:
         self._n += 1
         intent = f"a40-{self.run_id}-{backend}-{label.lower()}-{self._n}"
         token = secrets.token_urlsafe(24)
+        go_token = secrets.token_urlsafe(24)
         deadline_at = self.clock() + deadline_seconds
         spec = PodSpec(
             image=image,
@@ -687,8 +699,8 @@ class PodRunner:
             gpu_count=1,
             cloud_type="SECURE",
             container_disk_gb=DISK_GB,
-            ports=("8000/http",),
-            env=self._env(backend, config, token, deadline_at),
+            ports=("8000/http", "8001/http"),
+            env=self._env(backend, config, token, deadline_at, go_token),
             max_rate_usd_per_hr=POD_RATE_USD_PER_HR,
             storage_usd_per_gb_month=DISK_USD_PER_GB_MONTH,
             start_command=(PYTHON, "-I", "-c", self.boot),
@@ -714,6 +726,7 @@ class PodRunner:
             intent_id=intent,
             pod_id=resource.resource_id,
             token=token,
+            go_token=go_token,
             deadline_at=deadline_at,
             deadline_seconds=deadline_seconds,
             launched_at=launched_at,
@@ -759,6 +772,8 @@ class PodRunner:
                     pod.identity = json.loads(raw)
                 except ValueError:
                     pod.identity = None
+        if pod.probe is None and stage in ("running_phase", "phase_failed", "done"):
+            pod.probe = _json(self._small(pod, "probe.json")) or None
         if stage == "done":
             pod.outcome, pod.finished = "DONE", True
         elif stage in ("phase_failed", "bootstrap_failed"):
@@ -826,6 +841,15 @@ class PodRunner:
         pod.reason = reason
         return fresh
 
+    def _go(self, pods):
+        """Release the barrier: only after both drivers were seen to match."""
+        for pod in pods:
+            owned = self.service.owned(CAMPAIGN, pod.intent_id, pod.pod_id)
+            url = self.adapter.connect_url(owned, 8001) + "/go"
+            code, _body = self.post(url, pod.go_token, 60)
+            if code != 200:
+                raise Refused("the barrier release was not accepted")
+
     def _pair_check(self, group, config):
         """Driver builds across the two hosts of a backend: the preflight of
         `compare_units`. A differing build is recorded, never hidden; one
@@ -836,6 +860,7 @@ class PodRunner:
             [dict(p.identity, index=0) for p in group if p.identity]
         )
         if not problems:
+            self._go(group)
             return []
         record = {
             "backend": group[0].backend,
@@ -848,6 +873,10 @@ class PodRunner:
             second.outcome, second.finished = "REPLACED_DRIVER_MISMATCH", True
             self.terminate(second)
             return [self._replace(second, config, reason="driver mismatch")]
+        # No replacement left: nothing was released, so no rebuild ever ran.
+        for pod in group:
+            pod.outcome, pod.finished = "REFUSED_DRIVER_MISMATCH", True
+            self.terminate(pod)
         return []
 
     def drive(self, group, config):
@@ -874,6 +903,8 @@ class PodRunner:
                         p
                         for p in group
                         if p.identity
+                        and p.probe
+                        and p.probe.get("ok") is True
                         and p.outcome
                         not in ("FAILED_INFRA", "REPLACED_DRIVER_MISMATCH")
                     ]
@@ -941,8 +972,28 @@ def _https_get(url, token, timeout):
         return 0, b""
 
 
-def phase_config(backend, record):
+def _https_post(url, token, timeout):
+    import urllib.error
+    import urllib.request
+
+    request = urllib.request.Request(
+        url,
+        data=b"",
+        method="POST",
+        headers={"X-Probe-Token": token, "User-Agent": "carbon-a40-acceptance/1"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return response.status, response.read()
+    except urllib.error.HTTPError as refused:
+        return refused.code, b""
+    except Exception:  # noqa: BLE001 -- an unreachable pod is a typed status
+        return 0, b""
+
+
+def phase_config(backend, record, *, barrier=False):
     return {
+        "barrier": barrier,
         "backend": backend,
         "recipes": record["recipes_by_backend"][backend],
         "repeats": record["repeats"],
@@ -954,8 +1005,13 @@ def smoke(runner, record, *, backend="jax", out):
     """One rebuild (the record's largest pick on `backend`) on one pod; records
     the measured start-up and wall seconds that set every later deadline."""
     config = phase_config(backend, record)
-    largest = next(p for p in record["picks"] if p["role"] == "largest")
-    config["recipes"] = [r for r in config["recipes"] if r["id"] == largest["id"]]
+    # JAX: the largest pick. PyTorch: the single fno rebuild (the slowest).
+    target = (
+        record["fno"]["id"]
+        if backend == "pytorch"
+        else next(p for p in record["picks"] if p["role"] == "largest")["id"]
+    )
+    config["recipes"] = [r for r in config["recipes"] if r["id"] == target]
     config["repeats"] = 1
     deadline = SMOKE_DEADLINE_SECONDS
     budget_gate(deadline, pods=1, replacements=0, cap=DEFAULT_CAP_USD)
@@ -965,7 +1021,7 @@ def smoke(runner, record, *, backend="jax", out):
     measured = {
         "schema": SMOKE_SCHEMA,
         "backend": backend,
-        "recipe_id": largest["id"],
+        "recipe_id": target,
         "outcome": pod.outcome,
         "startup_seconds": round(
             (pod.first_running or runner.clock()) - pod.launched_at, 3
@@ -994,30 +1050,34 @@ def load_smoke(path):
     return smoke_record
 
 
-def plan(record, smoke_record, cap=DEFAULT_CAP_USD):
-    """The run's deadline and budget, with no pod: refused unless the worst
-    case fits the cap."""
-    rebuilds = max(
-        len(record["recipes_by_backend"][b]) * record["repeats"] for b in BACKENDS
-    )
-    deadline = pod_deadline_seconds(smoke_record, rebuilds)
-    gate = budget_gate(
-        deadline,
-        cap,
-        smoke_reserved=Decimal(smoke_record.get("booked_usd", "0")),
-    )
-    return {"rebuilds_per_pod_max": rebuilds, **gate}
+def plan(record, smokes, cap=DEFAULT_CAP_USD):
+    """Each backend's deadline (its own smoke x 1.5) and budget, with no pod.
+    The cap gate applies per backend with the 4 pods + 2 replacements
+    arithmetic; refused unless every backend fits."""
+    out = {}
+    for backend in BACKENDS:
+        rebuilds = len(record["recipes_by_backend"][backend]) * record["repeats"]
+        smoke_record = smokes[backend]
+        deadline = pod_deadline_seconds(smoke_record, rebuilds)
+        gate = budget_gate(
+            deadline,
+            cap,
+            smoke_reserved=Decimal(smoke_record.get("booked_usd", "0")),
+        )
+        out[backend] = {"rebuilds_per_pod": rebuilds, **gate}
+    return out
 
 
-def run_acceptance(runner, record, smoke_record, *, cap=DEFAULT_CAP_USD):
+def run_acceptance(runner, record, smokes, *, cap=DEFAULT_CAP_USD):
     """Two A40 hosts per backend. Backends one after the other (two pods at a
     time, the grant's concurrency). Returns the run summary and results."""
-    budget = plan(record, smoke_record, cap)
-    deadline = budget["deadline_seconds"]
+    budget = plan(record, smokes, cap)
     results = {}
     try:
         for backend in BACKENDS:
-            config = phase_config(backend, record)
+            deadline = budget[backend]["deadline_seconds"]
+            config = phase_config(backend, record, barrier=True)
+            config["go_timeout_seconds"] = deadline
             group = [
                 runner.launch(backend, "A", config, deadline),
                 runner.launch(backend, "B", config, deadline),
@@ -1354,12 +1414,17 @@ def _cmd_run(args):
         return 0 if dry["documents"] and complete else 1
     if args.smoke_record is None:
         raise Refused("refused: --smoke-record is required (run `smoke` first)")
-    smoke_record = load_smoke(args.smoke_record)
+    if args.smoke_record_pytorch is None:
+        raise Refused("refused: --smoke-record-pytorch is required")
+    smoke_record = {
+        "jax": load_smoke(args.smoke_record),
+        "pytorch": load_smoke(args.smoke_record_pytorch),
+    }
     cap = Decimal(args.cap)
     if args.dry_run:
         manifest = build_manifest(args.code_ref, Path(args.repository))
         print(json.dumps({"dry_run": True, "pods_created": 0, "images": IMAGES,
-                          "code_files": len(manifest), **plan(record, smoke_record, cap)}, indent=1))  # fmt: skip
+                          "code_files": len(manifest), "plan": plan(record, smoke_record, cap)}, indent=1))  # fmt: skip
         return 0
     plan(record, smoke_record, cap)  # refuse before touching the provider
     runner = _runner(args, record)
@@ -1431,6 +1496,7 @@ def main(argv=None):
         if name == "smoke":
             p.add_argument("--backend", choices=BACKENDS, default="jax")
         else:
+            p.add_argument("--smoke-record-pytorch", type=Path)
             p.add_argument("--dry-run", action="store_true")
             p.add_argument("--local-cpu-dry-run", action="store_true")
             p.add_argument("--no-docker", action="store_true")

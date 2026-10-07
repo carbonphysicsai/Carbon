@@ -43,7 +43,8 @@ from pathlib import Path
 PHASE = "a40_acceptance"
 SCHEMA = "carbon.a40-acceptance.pod-results.v1"
 IDENTITY_FILE, PROBE_FILE, RESULTS_FILE = "identity.json", "probe.json", "results.json"
-EXIT_ENVIRONMENT, EXIT_REBUILD = 6, 5
+EXIT_ENVIRONMENT, EXIT_REBUILD, EXIT_BARRIER = 6, 5, 7
+GO_PORT = 8001
 #: Engineering allowance for one rebuild child. The pod's own watchdog
 #: (`PROBE_DEADLINE`) is the real bound; this stops one hung child from
 #: consuming it silently.
@@ -147,6 +148,40 @@ def pinned_environment(backend, *, device=None):
         }
     )
     return env
+
+
+def wait_for_go(token, timeout, port=GO_PORT):
+    """The preflight barrier: block until the operator, having seen BOTH pods'
+    driver identities recorded and matching, POSTs /go with `token`. False on
+    timeout. Nothing else is accepted."""
+    import hmac
+    import http.server
+    import threading
+
+    released = threading.Event()
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_POST(self):
+            ok = (
+                token
+                and self.path == "/go"
+                and hmac.compare_digest(self.headers.get("X-Probe-Token", ""), token)
+            )
+            self.send_response(200 if ok else 404)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            if ok:
+                released.set()
+
+        def log_message(self, *args):
+            pass
+
+    server = http.server.ThreadingHTTPServer(("0.0.0.0", port), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        return released.wait(timeout)
+    finally:
+        server.shutdown()
 
 
 def read_identity():
@@ -280,6 +315,11 @@ def run(config, out, *, root="/tmp/carbon", python=None):
             {"stage": "environment", "error": probe.get("error_type", "probe")},
         )
         return EXIT_ENVIRONMENT
+    if config.get("barrier") and not wait_for_go(
+        os.environ.get("GO_TOKEN", ""), config.get("go_timeout_seconds", 1800)
+    ):
+        _write(out / "failure.json", {"stage": "barrier", "error": "not released"})
+        return EXIT_BARRIER
     rows = run_recipes(config, root, env, out=out, python=python)
     document = results_document(
         config, rows, device=device, environment_pins=sorted(env)

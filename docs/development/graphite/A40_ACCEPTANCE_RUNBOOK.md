@@ -39,3 +39,11 @@ Assumptions to confirm: the torch-gpu image has `/opt/carbon-worker/bin/python`
 largest pick, so the PyTorch fno at default settings may run longer than the
 x1.5 margin; six pods at the grant's 2.0 h do not fit USD 4.25, so the measured
 deadline must be under about 1.35 h.
+
+Rulings applied (Test Lead on #739): every pod waits at a barrier (POST /go on
+port 8001, per-pod token) until both pods of a backend have recorded identity and
+a good probe and their driver builds match; a persistent mismatch releases no
+rebuild. Deadlines are per backend: `smoke --backend jax` and `smoke --backend
+pytorch` (one fno rebuild); `run` takes `--smoke-record` and
+`--smoke-record-pytorch`, and the cap gate applies per backend with the
+4 pods + 2 replacements arithmetic. The run record states the skip directions.
