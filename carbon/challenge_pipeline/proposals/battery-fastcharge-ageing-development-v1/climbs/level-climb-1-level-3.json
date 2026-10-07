@@ -1,0 +1,54 @@
+{
+ "schema": "carbon.challenge-pipeline.level-proposal.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": 3,
+ "recorded_at": "2026-10-07T18:46:38Z",
+ "proposed_by": {
+  "agent": "graphite",
+  "role": "planner",
+  "session": "level-climb-1"
+ },
+ "capabilities": [
+  {
+   "adds": "A menu of quasi-Newton routines for the polish stage, extending the L-BFGS-only polish with full-memory BFGS, Self-Scaled BFGS and Self-Scaled Broyden",
+   "attack_surface": "Full-memory BFGS and self-scaled variants accumulate more curvature history than L-BFGS, so a corrupted or adversarial batch could inject a poor inverse-Hessian estimate that amplifies bad steps rather than damping them; the self-scaled variants can further magnify this because their scaling factor adapts to the same corrupted history",
+   "bounds": "Menu: lbfgs (memory-limited BFGS, the existing polish), bfgs (full-memory BFGS), ssbfgs (Self-Scaled BFGS), ssbroyden (Self-Scaled Broyden). Default: lbfgs. Each routine runs on the same step budget as stages.polish_steps.",
+   "id": "numerics.quasi_newton_family",
+   "rationale": "SSBFGS and SSBroyden dynamically rescale quasi-Newton updates from historical gradient information, achieving orders-of-magnitude accuracy improvements over standard L-BFGS for DeepONet operator learning; BFGS provides full-memory curvature for the small battery networks that fit in memory",
+   "reconstruction": "Carbon implements each quasi-Newton routine in JAX: full-memory BFGS with inverse-Hessian updates, memory-limited L-BFGS (already present), self-scaled BFGS with dynamic Oren-Luenberger scaling, and self-scaled Broyden with restricted Broyden-class updates; the selected routine replaces the L-BFGS call inside the stages.polish_steps loop; a unit test confirms each routine reduces loss on a fixed battery-DeepONet checkpoint",
+   "sources": [
+    "card:arxiv-2501.16371v6"
+   ]
+  },
+  {
+   "adds": "Line search strategy for the quasi-Newton polish step, controlling step-length selection along the quasi-Newton direction",
+   "attack_surface": "A line search that accepts longer steps on an adversarially perturbed loss landscape could overshoot stable minima; selecting 'none' removes the descent safeguard entirely, letting a bad curvature estimate produce an unchecked large step",
+   "bounds": "Menu: strong_wolfe (Wolfe conditions with curvature check), backtracking (Armijo backtracking), none (unit quasi-Newton step). Default: strong_wolfe.",
+   "id": "numerics.line_search",
+   "rationale": "The source evaluates BFGS and L-BFGS with different line search strategies and reports that the choice materially affects convergence and final accuracy; offering the line search as a separate declarative menu lets the polish phase trade step quality against cost",
+   "reconstruction": "Carbon implements strong Wolfe and backtracking line search in JAX for the quasi-Newton polish direction; 'none' accepts the unit step; the selected strategy is wired into every quasi-Newton routine from numerics.quasi_newton_family; a unit test checks Wolfe-condition satisfaction and Armijo descent on a fixed checkpoint",
+   "sources": [
+    "card:arxiv-2501.16371v6"
+   ]
+  },
+  {
+   "adds": "A spectral gradient preconditioner that decomposes matrix-valued parameter gradients into singular modes and applies mode-wise relaxed scalar auxiliary variable (RSAV) scaling before the optimizer update",
+   "attack_surface": "SVD-based preconditioning processes full gradient matrices, so a carefully crafted adversarial batch could concentrate energy in specific singular modes; the RSAV scaling would then amplify those modes' step sizes, steering the update along adversarial directions more effectively than a plain optimizer step",
+   "bounds": "Menu: none (no preconditioning, gradients pass through unchanged), specmuon (singular-mode decomposition with RSAV mode-wise step-size regulation). Default: none.",
+   "id": "numerics.spectral_preconditioner",
+   "rationale": "SpecMuon integrates Muon's orthogonalized geometry with RSAV, achieving faster convergence and improved stability for DeepONet training compared to Adam, AdamW and Muon on stiff multi-scale problems; framing the core SVD-plus-RSAV transform as a reusable preconditioner makes it applicable alongside any level-2 optimizer",
+   "reconstruction": "Carbon implements the SVD-based gradient decomposition for matrix-valued parameters and the RSAV mode-wise update in JAX as a gradient transformation applied before the selected optimizer's step; vector and bias parameters pass through unchanged; a unit test verifies that the preconditioned gradient has bounded mode-wise norms on a fixed battery-DeepONet gradient",
+   "sources": [
+    "card:arxiv-2602.16167v1"
+   ]
+  }
+ ],
+ "left_out": [
+  "PDE-residual-based numerical routines such as residual-adaptive sampling (RAMS) and multi-stage PDE-continuation training: the battery DFN model has no registered candidate-side governing equation, so these routines are not applicable",
+  "Participant-supplied numerical routines, preconditioner expressions or custom matrix operations: level 3 is a declarative menu of Carbon-implemented named routines only and runs no participant code",
+  "New optimizer family entries: SpecMuon's spectral decomposition is offered as a gradient preconditioner that wraps any existing level-2 optimizer, not as an additional optimizer_family choice",
+  "Exact Newton or trust-region methods with explicit Hessian computation: not supported by any card in the brief and disproportionately expensive for the small battery networks that fit in memory",
+  "Distributed or parallel preconditioning routines: out of scope for the single-worker development profile"
+ ],
+ "status": "PROPOSED"
+}
