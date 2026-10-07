@@ -341,7 +341,13 @@ def world(tmp_path):
             return 500, b'{"error": "There are no instances currently available"}'
         if method == "POST" and url.endswith("/v1/pods"):
             bodies.append(json.loads(body))
-        return fake(method, url, body=body, headers=headers, timeout=timeout)
+        reply = fake(method, url, body=body, headers=headers, timeout=timeout)
+        if method == "POST" and url.endswith("/v1/pods") and fake.pods:
+            newest = max(fake.pods)
+            fake.pods[newest].setdefault(
+                "machine", {"dataCenterId": f"DC-{len(bodies)}"}
+            )
+        return reply
 
     def make(behaviours, **fleet_options):
         fleet = Fleet(fake, behaviours, **fleet_options)
@@ -1113,3 +1119,12 @@ def test_the_phase_barrier_sees_the_marker_or_times_out(tmp_path):
     assert phase.wait_for_go(0.2, path=marker) is False
     marker.write_text("go")
     assert phase.wait_for_go(5, path=marker) is True
+
+
+def test_each_pods_datacenter_and_driver_build_are_recorded(world):
+    summary, results, _fake, _bodies = run(world, [])
+    assert all(p["datacenter"].startswith("DC-") for p in summary["pods"])
+    assert {p["driver_version"] for p in summary["pods"]} == {"580.159.03"}
+    flat = a40.pod_results([p for pods in results.values() for p in pods])
+    cell = a40.compare(flat)["cells"][0]
+    assert len(cell["datacenters"]) == 2 and cell["driver_builds"] == ["580.159.03"]

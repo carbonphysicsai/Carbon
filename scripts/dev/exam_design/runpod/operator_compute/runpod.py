@@ -450,6 +450,27 @@ class RunPodAdapter:
             now,
         )
 
+    def datacenter(self, resource_id: str) -> str | None:
+        """The datacenter id RunPod reports for a pod, or None when it reports
+        none. Reads the pod record only; the value is shape-checked."""
+        if not _POD_ID.fullmatch(resource_id):
+            raise ValueError("invalid pod id")
+        status, payload = self._send(
+            "status", "GET", f"{REST}/pods/{resource_id}", mutating=False
+        )
+        if status != 200 or not isinstance(payload, dict):
+            return None
+        machine = payload.get("machine")
+        value = (
+            (machine or {}).get("dataCenterId") if isinstance(machine, dict) else None
+        )
+        value = value or payload.get("dataCenterId")
+        return (
+            value
+            if isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,32}", value)
+            else None
+        )
+
     def list_resources(self) -> list[ListedResource]:
         status, payload = self._send("list", "GET", REST + "/pods", mutating=False)
         if status != 200 or not isinstance(payload, list):

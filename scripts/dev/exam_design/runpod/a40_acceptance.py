@@ -616,6 +616,7 @@ class Pod:
     terminated: bool | None = None
     reason: str | None = None
     probe: dict | None = None
+    datacenter: str | None = None
 
     def summary(self):
         return {
@@ -630,6 +631,8 @@ class Pod:
             "deadline_seconds": self.deadline_seconds,
             "booked_usd": str(reservation_usd(self.deadline_seconds)),
             "rate_usd_per_hr": self.rate,
+            "datacenter": self.datacenter,
+            "driver_version": (self.identity or {}).get("driver_version"),
         }
 
 
@@ -784,6 +787,10 @@ class PodRunner:
             recipes=len(config["recipes"]),
             replaces=replaces,
         )
+        try:
+            pod.datacenter = self.adapter.datacenter(pod.pod_id)
+        except ComputeError:
+            pod.datacenter = None
         self.pods.append(pod)
         return pod
 
@@ -1273,6 +1280,9 @@ def compare(pod_results, *, deviation=None, cpu=None):
                     "across_hosts": across,
                     "driver_builds": builds,
                     "device_ids": devices,
+                    "datacenters": sorted(
+                        {h.get("datacenter") for h in hosts if h.get("datacenter")}
+                    ),
                     "preflight_problems": problems,
                 }
             )
@@ -1326,6 +1336,7 @@ def pod_results(pods):
                 "backend": pod.backend,
                 "label": pod.label,
                 "identity": _json(pod.files.get("identity.json")) or None,
+                "datacenter": pod.datacenter,
                 "rows": results.get("rows", []),
             }
         )
