@@ -888,26 +888,64 @@ def test_a_failed_repeat_makes_the_results_incomplete():
     )
 
 
-def test_ship_list_never_ships_private_or_forbidden_paths(monkeypatch):
+def test_ship_list_excludes_protected_code_and_still_refuses_protected_data(
+    monkeypatch,
+):
     from carbon.agent_campaign.graphite import pods
 
-    monkeypatch.setattr(
-        pods,
-        "tracked",
-        lambda ref, prefixes, repository=None: [
-            "carbon/a.py",
-            "carbon/private/x.py",
-        ],
-    )
+    tracked = [
+        "carbon/a.py",
+        "carbon/private/x.py",
+        "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+        "carbon/challenge_validator/confirmation_sets/registry.json",
+    ]
+    monkeypatch.setattr(pods, "tracked", lambda ref, prefixes, repository=None: tracked)
     paths = a40.ship_paths("a" * 40)
-    assert "carbon/a.py" in paths and "carbon/private/x.py" not in paths
+    assert "carbon/a.py" in paths
+    assert not [p for p in paths if a40.is_protected(p) or "/private/" in p]
     assert set(a40.DATA_PATHS) <= set(paths) and set(a40.SHIPPED_FILES) <= set(paths)
-    monkeypatch.setattr(
-        pods, "tracked", lambda ref, prefixes, repository=None: ["carbon/sealed_x.py"]
+    monkeypatch.setattr(a40, "DATA_PATHS", ("docs/secret/train.jsonl.gz",))
+    with pytest.raises(a40.Refused, match="forbidden data path"):
+        a40.ship_paths("a" * 40)
+
+
+def test_the_real_tree_ships_without_a_refusal():
+    import subprocess
+
+    ref = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=a40.REPOSITORY,
+    ).stdout.strip()
+    paths = a40.ship_paths(ref)
+    assert not [p for p in paths if a40.is_protected(p)]
+    assert "carbon/battery/compile.py" in paths
+
+
+def test_a_rebuild_needs_none_of_the_excluded_files(tmp_path):
+    """Copy the shipped files only, and rebuild one tiny recipe from them."""
+    pytest.importorskip("jax")
+    import shutil
+    import subprocess
+
+    ref = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=a40.REPOSITORY,
+    ).stdout.strip()
+    for path in a40.ship_paths(ref):
+        target = tmp_path / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(a40.REPOSITORY / path, target)
+    strategy = a40._strategy("mlp", {"steps": 32, "width": 8, "depth": 1})
+    record = phase.run_repeat(
+        strategy, 0, tmp_path, phase.pinned_environment("jax", device=None)
     )
-    if any(f in "carbon/sealed_x.py" for f in pods.FORBIDDEN_DATA):
-        with pytest.raises(a40.Refused):
-            a40.ship_paths("a" * 40)
+    assert "error" not in record, record
 
 
 # ----------------------------------------------------------------- numerics (science stacks)

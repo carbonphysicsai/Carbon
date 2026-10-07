@@ -1,0 +1,28 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-07-training-budget-cost-calculator",
+ "recorded_at": "2026-10-07T03:00:00Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "claude/training-budget-s1 (TRAINING-BUDGET-01 slice 1, stacked on #727)",
+  "description": "Built the Challenge-neutral sheet and adapter types and the F0-F4 cost calculator for JAX and PyTorch, with battery's adapter as the first instance."
+ },
+ "expected": "Compile one training step on the pinned image, read XLA's FLOP estimate, and multiply by steps.",
+ "observed": "A Challenge's training code rarely exposes one step: battery jits the whole training loop as one scan, and XLA's cost analysis counts a loop body once whatever its trip count (a 1-, 10- and 100-step scan reported the same FLOPs). Capturing the jitted program the Challenge's own code builds, then compiling each scan body alone and counting it per iteration, gives a per-step cost with no change to pinned implementation code. The default battery recipe costs about 479M FLOPs per step, near 6 x parameters x cases per update.",
+ "keep": [
+  "Measure the program the Challenge's own code compiles; never re-implement its training to cost it.",
+  "A cost read from XLA counts each loop body once: expand loops by their trip count, and refuse loops without one.",
+  "Change only the measured quantity when measuring a recipe: a changed setting can switch the recipe onto another training path."
+ ],
+ "change": [
+  "The study fits each backend's conversion to seconds separately: XLA counts element-wise operations, PyTorch's counter counts matrix products."
+ ],
+ "protocol_elements": [
+  "training_budget.cost",
+  "training_budget.sheet"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
