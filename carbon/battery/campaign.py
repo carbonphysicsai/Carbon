@@ -42,6 +42,7 @@ import asyncio
 import json
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 from .challenge import CHALLENGE
 
@@ -1145,50 +1146,122 @@ def _failure_code(failure):
     return "intake_answer_unrecognised"
 
 
+def frozen_commitment(record, manifest):
+    """L1: the digest a miner commits on chain for this frozen candidate
+    (`selected-recipe.json`), as the validator recomputes it
+    (`daemon.commitment_digest`, through `commitment_poster.expected_digest`):
+    its Challenge, the contract it was frozen under and its strategy hash."""
+    from carbon.chain.commitment_poster import expected_digest
+
+    return expected_digest(
+        record["strategy"],
+        record.get("contract_digest") or manifest["contract_digest"],
+    )
+
+
+def commitment_due(args, root, epoch):
+    """Whether the commitment must read back on chain before this epoch's
+    candidate is sent: its first send through this Challenge's validator
+    intake. A deployment on this machine checks its own `require_commitment`;
+    a submission the intake already holds is polled, and any resend is the
+    intake's to refuse (`intake.RECEIVED_AGAIN`)."""
+    from . import remote_submission as rs
+
+    prepared = SimpleNamespace(args=args)
+    if evaluation_config(prepared) is not None or _intake(prepared) is None:
+        return False
+    return not rs._record_path(root, epoch).exists()
+
+
+async def _committed(gate, root, epoch, record, manifest, *, request, recommit=False):
+    """The commitment gate before a send: `OperationRefused` with its closed
+    code unless the frozen candidate's digest reads back as the hotkey's
+    commitment at the finalized head (`CommitmentGate.before_submit`)."""
+    from carbon.development_session.research_campaign import OperationRefused
+
+    try:
+        digest = frozen_commitment(record, manifest)
+    except (ValueError, KeyError, TypeError):
+        raise OperationRefused("commitment_digest_unavailable") from None
+    code = await asyncio.to_thread(
+        gate.before_submit,
+        root,
+        digest,
+        request=request,
+        epoch=epoch,
+        recommit=recommit,
+    )
+    if code is not None:
+        raise OperationRefused(code)
+
+
 async def _evaluate_through_intake(prepared, epoch, record, url):
     """One frozen candidate through the validator's intake; see
     `submit_through_intake`. The epoch is consumed only by a verdict: SCORED,
     or the daemon's INVALID_CONSTRUCTION or RECONSTRUCTION_FAILED. Anything
     else raises `OperationRefused` with a closed code (`intake_outcome`),
     including every way the trip itself can fail (`_failure_code`), so the
-    campaign keeps its frozen candidate instead of ending on an exception."""
+    campaign keeps its frozen candidate instead of ending on an exception.
+
+    With the Launchpad's commitment gate (`args.commitment_gate`,
+    LAUNCHPAD-ACCEPT-02), the candidate's first send waits for its
+    commitment to read back on chain (`_committed`). A campaign whose agent
+    selects asks for the commitment itself, and once for a recommit when the
+    validator answers `commitment_stale` (D10, L7); only the miner confirms
+    either, on the signer's terminal."""
     import http.client
 
+    from carbon.chain.commitment_poster import STALE
     from carbon.chain.external_signer import SignerFailure
     from carbon.development_session.research_campaign import OperationRefused
 
     from .intake_client import describe
     from .remote_submission import IntakeRefusal
 
-    try:
-        status, answer, submission_id = await asyncio.to_thread(
-            submit_through_intake,
-            url,
-            prepared.sdk.connection.miner_key,
-            root=prepared.ledger.root,
-            epoch=epoch,
-            strategy=record["strategy"],
-            contract_digest=record.get("contract_digest")
-            or prepared.manifest["contract_digest"],
-            receiver=_receiver(prepared),
-        )
-    except IntakeRefusal as refused:
-        raise OperationRefused(intake_code(refused.code)) from None
-    except (
-        SignerFailure,
-        OSError,
-        http.client.HTTPException,
-        ValueError,
-        KeyError,
-        TypeError,
-        AttributeError,
-    ) as failure:
-        raise OperationRefused(_failure_code(failure)) from None
-    state = answer.get("state")
-    if state == "REFUSED":
+    root = prepared.ledger.root
+    gate = getattr(prepared.args, "commitment_gate", None)
+    asks = getattr(prepared, "agent", "none") != "none"
+    if gate is not None and commitment_due(prepared.args, root, epoch):
+        await _committed(gate, root, epoch, record, prepared.manifest, request=asks)
+    recommitted = False
+    while True:
+        try:
+            status, answer, submission_id = await asyncio.to_thread(
+                submit_through_intake,
+                url,
+                prepared.sdk.connection.miner_key,
+                root=root,
+                epoch=epoch,
+                strategy=record["strategy"],
+                contract_digest=record.get("contract_digest")
+                or prepared.manifest["contract_digest"],
+                receiver=_receiver(prepared),
+            )
+        except IntakeRefusal as refused:
+            raise OperationRefused(intake_code(refused.code)) from None
+        except (
+            SignerFailure,
+            OSError,
+            http.client.HTTPException,
+            ValueError,
+            KeyError,
+            TypeError,
+            AttributeError,
+        ) as failure:
+            raise OperationRefused(_failure_code(failure)) from None
+        if answer.get("state") != "REFUSED":
+            break
         # Refused at admission and not received again: never a verdict.
-        failure = answer.get("failure") or {}
-        raise OperationRefused(intake_code(failure.get("code")))
+        code = intake_code((answer.get("failure") or {}).get("code"))
+        if code != STALE or gate is None or not asks or recommitted:
+            raise OperationRefused(code)
+        # The agent asks for the recommit; the intake then receives the same
+        # submission again (`intake.RECEIVED_AGAIN`), never a second one.
+        recommitted = True
+        await _committed(
+            gate, root, epoch, record, prepared.manifest, request=True, recommit=True
+        )
+    state = answer.get("state")
     if state == "FAILED_INFRA_EXHAUSTED":
         raise OperationRefused("evaluation_failed_infra")
     if state not in ("SCORED", "INVALID_CONSTRUCTION", "RECONSTRUCTION_FAILED"):

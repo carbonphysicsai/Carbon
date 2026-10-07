@@ -87,6 +87,16 @@ class ChallengeCampaign:
     practice_provenance: str | None = None
     #: Reconstruction backends this campaign may name in corrective feedback.
     backends: tuple = ()
+    #: (record, manifest) -> the `sha256:` digest a miner commits on chain for
+    #: a frozen candidate (`selected-recipe.json`) before its validator admits
+    #: it (OWNER-COMMITMENT-POSTER-01). None: the Challenge uses no commitment.
+    commitment: Callable | None = None
+    #: (args, root, epoch) -> whether that commitment must read back on chain
+    #: before this epoch's candidate is sent: its first send through the
+    #: Challenge's validator intake (LAUNCHPAD-ACCEPT-02). A deployment on
+    #: this machine checks its own setting; a submission the intake already
+    #: holds is not gated again.
+    commitment_due: Callable | None = None
 
     def remote_runner(self, runtime, machine, gpu_image):
         """The campaign's practice runner on the miner's own remote setup, or
@@ -168,6 +178,8 @@ def _battery():
         research_view=battery_view.research_view,
         practice_provenance="BATTERY_PUBLIC_PRACTICE",
         backends=tuple(BATTERY_BACKENDS),
+        commitment=battery.frozen_commitment,
+        commitment_due=battery.commitment_due,
     )
 
 

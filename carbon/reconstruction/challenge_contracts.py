@@ -48,7 +48,19 @@ ISSUE_MESSAGES = {
         "This names a development-only contract variant, which is never served "
         "to miners."
     ),
+    "budget.over_compute_budget": (
+        "This recipe's calculated compute cost is over the Challenge's compute "
+        "budget."
+    ),
+    "budget.cost_unmeasurable": (
+        "This recipe's compute cost cannot be calculated in the budget's unit."
+    ),
 }
+#: The contract envelope key a Challenge declares its compute budget under
+#: (OWNER-COMPUTE-BUDGET-01): `{"unit": <cost report key>, "value": <ceiling>}`.
+#: No live contract declares one yet; a Challenge switches on only after the
+#: owner's decision on its study (TRAINING-BUDGET-01).
+COMPUTE_BUDGET = "compute_budget"
 
 
 def _issue(code, path):
@@ -204,4 +216,41 @@ def compile_submission(strategy, *, contract_digest=None):
         # A registered construction contract without a compiler is a repository
         # defect, not a candidate refusal or a fallback to another Challenge.
         raise RuntimeError("no compiler for a registered contract") from None
+    check_compute_budget(item, strategy)
     return CompiledSubmission(challenge, item.digest, compiled, construction)
+
+
+def check_compute_budget(item, strategy):
+    """Refuse a recipe over the contract's declared compute budget.
+
+    Only a contract whose envelope declares `compute_budget` is checked; the
+    others keep their per-setting caps and nothing is computed. The cost is
+    the training budget calculator's (`carbon.training_budget.cost`), on this
+    host's image; the validator's figure on its pinned image decides. A cost
+    that cannot be calculated in the budget's unit is refused, never let
+    through."""
+    envelope = dict(item.document()["envelope"])
+    budget = envelope.get(COMPUTE_BUDGET)
+    if budget is None:
+        return None
+    if not (
+        type(budget) is dict
+        and set(budget) == {"unit", "value"}
+        and type(budget["unit"]) is str
+        and type(budget["value"]) in (int, float)
+        and budget["value"] > 0
+    ):
+        # A malformed declaration is a repository defect, not a refusal.
+        raise RuntimeError("malformed compute budget declaration")
+    from carbon.training_budget import cost as calculator
+
+    try:
+        report = calculator.cost(strategy["challenge_id"], strategy)
+    except calculator.CostRefused:
+        report = {}
+    value = report.get(budget["unit"])
+    if type(value) not in (int, float):
+        raise SubmissionRefused((_issue("budget.cost_unmeasurable", "/parameters"),))
+    if value > budget["value"]:
+        raise SubmissionRefused((_issue("budget.over_compute_budget", "/parameters"),))
+    return report

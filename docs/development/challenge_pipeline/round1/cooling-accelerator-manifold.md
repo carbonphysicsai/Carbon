@@ -106,6 +106,28 @@ scenario without averaging. Geometry is the independent selection unit;
 segments and channels are correlated. Deployment P, reference-missingness
 analysis and any official score weighting remain HUMAN_INPUT.
 
+### Prospective population of buyer design questions — `HUMAN_INPUT`
+
+The six heat/flow strata above fix **one module cooling question**. A future
+`P_job` can reuse a fully solved full-manifold design bank while varying the
+buyer's maximum die temperature, pressure-drop or hydraulic-power allowance,
+or a supported service-condition requirement. A thermal buyer recognizes the
+question from module power-map, rack/CDU envelope and acceptance sheet. Such
+requirement changes need no new solves if the bank stores the exact local
+temperature, port pressure and flow outputs, but must produce verified
+different best admissible designs. Other modules, chiplet layouts, coolant
+laws or inlet conditions are optional axes and may require new reference work.
+Each question still checks its complete declared service panel; hotspot
+pixels or repeated solver seeds are not extra questions.
+
+**Size recommendation, not a selected law:** catalogue twelve distinct
+condition/requirement question manifests for a development scoping pilot on
+supported full-manifold bank outputs. `HUMAN_INPUT`: eligible limits and
+contexts, `P_job`, protected `Q_job`, weights, shared-bank clustering,
+exposure and power-justified hidden `n`. Reusing the bank saves solves but
+does not reset its exposure count. Periodic-cell evidence cannot answer any
+full-manifold question.
+
 ## 4. Case contract
 
 Bind finite geometry, material/PG25/TIM definitions, complete heat-map
@@ -134,6 +156,45 @@ limits yields UNRESOLVED. Model-form/material adequacy is separate from
 these numerical checks and remains NOT_DEMONSTRATED for the new job.
 Invalid inputs/reference failures/FAILED_INFRA never become poor candidate
 scores. Retain attempts, logs and cost; no dispatch grant is created here.
+
+### Reference credibility target
+
+**Buyer tool:** Ansys Fluent, often through an Icepak electronics-thermal
+workflow, is the mock architect's assumed tool, not a market-share finding.
+[Icepak's vendor description](https://www.ansys.com/products/electronics/ansys-icepak)
+identifies its Fluent basis. **Carbon reference:** current pinned OpenFOAM
+periodic-cell conjugate heat transfer, **not the same tool**. Tier 1 would
+require the buyer's actual tool and exact settings, which are absent.
+
+**Target tier:** Tier 2 for **cell-level** simulator matching. Under the owner's
+latest “ignore the full cold plate” instruction, full-plate packaging, cost
+testing and composition witnesses are outside current work. Ongoing hidden
+truth stays cell-level; this target does not satisfy the older full-assembly
+85-°C/head/power demand. Tier 3 measured thermal/hydraulic cell evidence would
+be needed for a physical cell-performance claim. **Credibility evidence:
+NOT_DEMONSTRATED** for this buyer decision.
+
+**Benchmark cases:** published COMSOL
+[Thermal Modeling of a Microchannel Heat Sink](https://doc.comsol.com/6.3/doc/com.comsol.help.models.heat.microchannel_heat_sink/microchannel_heat_sink.html)
+is a candidate conjugate-transfer verification case, not a full-cold-plate
+task grant or a published OpenFOAM/Fluent agreement result. Its air/aluminum
+setup differs from PG25/copper. Reproduce its exact inputs in both tools only
+in a separately authorized benchmark stage, then use matched **periodic-cell**
+uniform-load, hotspot, low-flow and warm-inlet cases. Preserve transverse
+periodicity versus streamwise inlet/outlet definitions; do not substitute
+streamwise fully developed flow for the existing cell physics.
+
+**Acceptance tolerance: HUMAN_INPUT.** Recommend maximum cell die-side TIM
+proxy/profile difference ≤1.0 °C and cell pressure-drop/hydraulic-power
+differences ≤5% at declared nonzero flow/head. Match local heat flux and TIM
+convention, dimensional scaling, pressure stations and all extrema; absolute
+near-zero head/power floors remain HUMAN_INPUT. These are cell comparison
+bounds, not an allowance for unmeasured manifold error or assembly acceptance.
+
+**Claim boundary:** [common credibility contract](reference-credibility.md).
+After accepted evidence, say “matches the reference simulator” **for this
+cell scope**. No “matches reality”, plate-level thermal certification,
+distribution claim or qualified accelerator follows from cell parity.
 
 ## 6. Output and measurement contract
 

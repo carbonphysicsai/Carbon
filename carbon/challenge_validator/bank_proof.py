@@ -61,6 +61,12 @@ def proof(leaves, index):
     return path
 
 
+def selection_digest(case_ids):
+    """A window's selection digest: over its sorted case ids."""
+    body = _canonical(sorted(case_ids))
+    return "sha256:" + hashlib.sha256(body).hexdigest()
+
+
 def verify(case_id, inputs, reference, path, expected_root):
     """Whether `(case_id, inputs, reference)` proves into `expected_root`."""
     try:
@@ -77,4 +83,4 @@ def verify(case_id, inputs, reference, path, expected_root):
     return "sha256:" + value == expected_root
 
 
-__all__ = ["leaf", "proof", "root", "verify"]
+__all__ = ["leaf", "proof", "root", "selection_digest", "verify"]

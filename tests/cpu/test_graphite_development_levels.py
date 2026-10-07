@@ -109,8 +109,10 @@ def test_level_0_is_exactly_as_before(tmp_path):
 
 def check_unregistered_level_is_refused(tmp_path, capsys):
     tmp_path.mkdir(parents=True, exist_ok=True)
-    # Level 1 is registered in the shipped registry (GRAPHITE-L1-BUILD-01).
-    for level in (2, 3):
+    # Levels 1-3 are registered in the shipped registry (GRAPHITE-L1-BUILD-01,
+    # BATTERY-L2-SPECMUON-BUILD-01, BATTERY-L3-NUMERICS-BUILD-01); Level 4
+    # has no variant.
+    for level in (4,):
         with pytest.raises(SystemExit):
             phase3.development_variant_for(level, SCORING)
         assert _refusal(capsys) == UNREGISTERED
@@ -124,15 +126,23 @@ def check_unregistered_level_is_refused(tmp_path, capsys):
     with pytest.raises(SystemExit):
         phase3.main(
             ["run", "--root", str(tmp_path), "--challenge", BATTERY]
-            + ["--dry-run", "--level", "2"]
+            + ["--dry-run", "--level", "4"]
         )
     assert _refusal(capsys) == UNREGISTERED
     with pytest.raises(SystemExit):
         phase4.main(
             ["run", "--root", str(tmp_path), "--challenge", BATTERY]
-            + ["--dry-run", "--level", "3"]
+            + ["--dry-run", "--level", "4"]
         )
     assert _refusal(capsys) == UNREGISTERED
+    # Levels 2 and 3 are registered but have no attack adapter yet: the
+    # Attacker refuses them before anything runs.
+    with pytest.raises(SystemExit):
+        phase4.main(
+            ["run", "--root", str(tmp_path), "--challenge", BATTERY]
+            + ["--dry-run", "--level", "3"]
+        )
+    assert _refusal(capsys) == "no_attack_adapter_for_challenge_level"
     assert list(tmp_path.iterdir()) == []  # nothing was read, written or spent
 
 

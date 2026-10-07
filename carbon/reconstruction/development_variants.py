@@ -712,9 +712,14 @@ RECONSTRUCTIONS = {}
 
 
 def _register_shipped_reconstructions():
-    from carbon.battery import level1
+    from carbon.battery import level1, level2, level3
 
-    for key, build in level1.RECONSTRUCTIONS.items():
+    shipped = {
+        **level1.RECONSTRUCTIONS,
+        **level2.RECONSTRUCTIONS,
+        **level3.RECONSTRUCTIONS,
+    }
+    for key, build in shipped.items():
         RECONSTRUCTIONS.setdefault(key, build)
 
 

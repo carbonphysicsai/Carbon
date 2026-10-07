@@ -31,6 +31,25 @@ and refinement as caps permit. These shared conditions do not establish a
 customer fluid distribution or population reliability. High-Peclet behavior
 is explicitly reported, not filtered out as an inconvenient case.
 
+### Prospective population of buyer design questions — `HUMAN_INPUT`
+
+The three flows by three diffusivities are one cartridge operating panel.
+A future `P_job` can vary supported outlet-mixing, pressure-drop or residence
+limits and required throughput subsets against one fully solved groove bank.
+A lab-instrument buyer recognizes each question from its assay uniformity,
+pump and throughput acceptance sheet. Re-evaluating stored flow/scalar outputs
+needs no new solve if the whole requested panel is covered and the preferred
+groove demonstrably changes. New fluids, inlet chemistry or port interfaces
+are optional axes that may need new flow/scalar references. Outlet pixels,
+flow probes and solver seeds are not fresh questions by themselves.
+
+**Size recommendation, not a selected law:** catalogue eight distinct
+condition/requirement questions for a development scoping pilot on a
+reference-covered bank. `HUMAN_INPUT`: eligible requirements and panels,
+`P_job`, protected `Q_job`, weights, answer diversity, shared-assay clustering,
+exposure and power-justified hidden `n`. The complete 3 × 3 panel stays
+mandatory for any question that claims that service envelope.
+
 ## 4. Case contract
 
 Bind CAD, grooves, fluid/transport law, inlet profiles, units and outlet plane.
@@ -56,6 +75,41 @@ boundedness alone cannot establish low artificial diffusion. Keep raw c and
 variance; no clipping/renormalizing to pass. 40 launches/8 node-hours/$25 caps
 include velocity and scalar jobs separately: nine primary pairs consume18,
 leaving22 for controls/refinements. Failure/exhaustion leaves unresolved evidence.
+
+### Reference credibility target
+
+**Buyer tool:** COMSOL Microfluidics Module is the assumed cartridge designer's
+laminar-flow/passive-transport workflow, not verified market share. **Carbon
+reference:** proposed OpenFOAM flow plus scalar transport, **not the same
+tool**. Cooling's OpenFOAM build alone is not this groove/transport reference.
+Tier 1 requires the buyer's exact tool, fluid, geometry, inlet and observer settings.
+
+**Target tier:** Tier 2 for offline cartridge design against simulator outputs.
+Tier 3 calibrated dye/fluorescence and hydraulic measurements would be needed
+before claiming real-cartridge mixing; no chemistry/clinical validation is
+implied. **Credibility evidence: NOT_DEMONSTRATED** for this task.
+
+**Benchmark cases:** COMSOL's published
+[Split and Recombine Mixer Benchmark](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mfl.split_recombine_mixer/split_recombine_mixer.html)
+and [Micromixer](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mph.micromixer/micromixer.html),
+with their exact geometry/inlets/transport law reproduced in both tools.
+Their mixing measures/geometry are not automatically this packet's groove
+law or positive axial-flux weighted M. Add matched smooth-channel controls
+and grooved maximum-Péclet/flow-extreme witnesses; compute the **same** outlet
+mean/variance/M from both raw fields and check artificial diffusion independently.
+Never compare an area-weighted tutorial score directly to the flux-weighted buyer score.
+
+**Acceptance tolerance: HUMAN_INPUT.** Recommend absolute outlet M difference
+≤0.02, pressure-drop difference ≤5% at declared nonzero flow, and mean hydraulic
+residence difference ≤5% using identical fluid volume/flow definitions. Absolute
+near-zero pressure floors remain HUMAN_INPUT. Retain concentration/flux/balance
+checks and refinement above; bounded concentrations or coincidentally similar
+M can both conceal numerical smoothing. These are simulator-agreement targets,
+not reaction yield or laboratory fluid-property evidence.
+
+**Claim boundary:** [common credibility contract](reference-credibility.md).
+After accepted evidence, “matches the reference simulator” for the specified
+laminar passive transport, not “matches reality”, reagent performance or assay quality.
 
 ## 6. Output and measurement contract
 
