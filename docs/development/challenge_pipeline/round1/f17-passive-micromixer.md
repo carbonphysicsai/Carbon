@@ -31,6 +31,25 @@ and refinement as caps permit. These shared conditions do not establish a
 customer fluid distribution or population reliability. High-Peclet behavior
 is explicitly reported, not filtered out as an inconvenient case.
 
+### Prospective population of buyer design questions — `HUMAN_INPUT`
+
+The three flows by three diffusivities are one cartridge operating panel.
+A future `P_job` can vary supported outlet-mixing, pressure-drop or residence
+limits and required throughput subsets against one fully solved groove bank.
+A lab-instrument buyer recognizes each question from its assay uniformity,
+pump and throughput acceptance sheet. Re-evaluating stored flow/scalar outputs
+needs no new solve if the whole requested panel is covered and the preferred
+groove demonstrably changes. New fluids, inlet chemistry or port interfaces
+are optional axes that may need new flow/scalar references. Outlet pixels,
+flow probes and solver seeds are not fresh questions by themselves.
+
+**Size recommendation, not a selected law:** catalogue eight distinct
+condition/requirement questions for a development scoping pilot on a
+reference-covered bank. `HUMAN_INPUT`: eligible requirements and panels,
+`P_job`, protected `Q_job`, weights, answer diversity, shared-assay clustering,
+exposure and power-justified hidden `n`. The complete 3 × 3 panel stays
+mandatory for any question that claims that service envelope.
+
 ## 4. Case contract
 
 Bind CAD, grooves, fluid/transport law, inlet profiles, units and outlet plane.

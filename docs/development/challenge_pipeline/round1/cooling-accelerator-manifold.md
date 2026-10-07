@@ -106,6 +106,28 @@ scenario without averaging. Geometry is the independent selection unit;
 segments and channels are correlated. Deployment P, reference-missingness
 analysis and any official score weighting remain HUMAN_INPUT.
 
+### Prospective population of buyer design questions — `HUMAN_INPUT`
+
+The six heat/flow strata above fix **one module cooling question**. A future
+`P_job` can reuse a fully solved full-manifold design bank while varying the
+buyer's maximum die temperature, pressure-drop or hydraulic-power allowance,
+or a supported service-condition requirement. A thermal buyer recognizes the
+question from module power-map, rack/CDU envelope and acceptance sheet. Such
+requirement changes need no new solves if the bank stores the exact local
+temperature, port pressure and flow outputs, but must produce verified
+different best admissible designs. Other modules, chiplet layouts, coolant
+laws or inlet conditions are optional axes and may require new reference work.
+Each question still checks its complete declared service panel; hotspot
+pixels or repeated solver seeds are not extra questions.
+
+**Size recommendation, not a selected law:** catalogue twelve distinct
+condition/requirement question manifests for a development scoping pilot on
+supported full-manifold bank outputs. `HUMAN_INPUT`: eligible limits and
+contexts, `P_job`, protected `Q_job`, weights, shared-bank clustering,
+exposure and power-justified hidden `n`. Reusing the bank saves solves but
+does not reset its exposure count. Periodic-cell evidence cannot answer any
+full-manifold question.
+
 ## 4. Case contract
 
 Bind finite geometry, material/PG25/TIM definitions, complete heat-map

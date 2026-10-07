@@ -40,6 +40,27 @@ neck radius remains20 mm. Controls are outside that design-input law. The
 runner must publish its exact sparse panel/control allocation before reference
 access; missing full-band evidence remains explicit, not a reconstructed p10.
 
+### Prospective population of buyer design questions — `HUMAN_INPUT`
+
+The 500–2500-Hz curve and its refined nodes belong to one compressor/duct
+bank. A future `P_job` can vary the buyer's permitted attenuation target,
+minimum narrow-band loss, or supported operating band while asking for a
+different silencer from the **same complete curve bank**. A compressor OEM
+recognizes the question from its source spectrum, duct drawing and acoustic
+acceptance sheet. Re-evaluating stored curves needs no new solver launch if
+the whole requested band and valid geometry are covered, and the best design
+must demonstrably change. New duct terminations or media are optional axes
+requiring new acoustics truth. Pressure drop is not measured by the present
+reference and cannot become a mandatory limit through this variation.
+
+**Size recommendation, not a selected law:** catalogue four distinct
+condition/requirement questions first, then expand after a full-curve cost
+study. `HUMAN_INPUT`: eligible requirements, `P_job`, protected `Q_job`,
+weights, answer diversity, shared-bank clustering, exposure and powered
+hidden `n`. Frequency nodes are within-question evidence. The 16-design
+complete bank still implies at least 3,216 solver launches once; asking more
+questions of it does not reset its exposure limit.
+
 ## 4. Case contract
 
 Validate3D geometry, neck clearance, positive volumes and total≤300-mm length.

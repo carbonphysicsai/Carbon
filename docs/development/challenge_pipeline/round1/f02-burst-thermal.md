@@ -48,6 +48,27 @@ The offline selection is rectangular80 W/10 s (RC peak99.406 °C), ramp80 W/20 s
 These are preregistered probe actions, **not safe schedule recommendations**.
 Elmer must test actual spatial/time response; no RC value is imported as truth.
 
+### Prospective population of buyer design questions — `HUMAN_INPUT`
+
+The 24 cooling/initial/split/waveform scenarios are correlated conditions of
+the current package, but each can ask for its own schedule. A future `P_job`
+can vary supported scenario requirements, such as a temperature ceiling or
+minimum extra-energy need, against the same fully solved schedule/scenario
+bank. A package engineer recognizes these questions from workload power
+traces, thermal operating policy and cooling fixture limits. Requirement
+variation costs no new Elmer solve when the bank records spatial peak and
+energy for every eligible action; it must be checked for different right
+answers. New die stacks, contact laws or cooling regimes are optional axes
+requiring new reference support. Timestep samples and schedule order are not
+fresh questions.
+
+**Size recommendation, not a selected law:** catalogue eight distinct
+scenario/requirement questions for a development scoping pilot and preserve
+their common-package cluster. `HUMAN_INPUT`: eligible limits and conditions,
+`P_job`, protected `Q_job`, weights, answer diversity, bank exposure and
+power-justified hidden `n`. The existing 50-launch grant cannot create the
+full 216-solve physical bank; reusing a later solved bank does not reset `E`.
+
 ## 4. Case contract
 
 Canonical case includes complete stack, SI dimensions/materials, patch source,

@@ -93,6 +93,28 @@ mean can erase failed torque/cogging. Real deployment P and evidence weights
 for a registered exam remain HUMAN_INPUT. Geometry is the independent unit;
 angle probes and command curves on that geometry are correlated.
 
+### Prospective population of buyer design questions — `HUMAN_INPUT`
+
+The four service roles and command sweep above fix **one joint question**.
+A future `P_job` can reuse a fully solved geometry/command bank while varying
+buyer holding/peak torque floors, ripple/cogging allowances or required
+service role, provided the stored curves support every test. A robotics buyer
+would recognize different questions from its joint load sheet and motion-duty
+acceptance criteria. For illustration, a prospective 6-N·m versus 7-N·m
+holding floor may choose different bank designs; **7 N·m is HUMAN_INPUT, not
+adopted** and answer change must be demonstrated. Different joint envelopes,
+inertias or magnetic materials are optional extensions that can require new
+solves. Angle samples and command curves from one bank remain correlated;
+thermal/dynamic claims need separate references.
+
+**Size recommendation, not a selected law:** catalogue twelve distinct
+condition/requirement question manifests for a development scoping pilot on
+supported bank outputs, with multiple verified best-design identities or
+honest abstentions. `HUMAN_INPUT`: eligible limits and contexts, `P_job`,
+protected `Q_job`, weights, clustering, exposure and power-justified hidden
+`n`. Bank sharing saves solves but does not reset exposure or create independent
+physical truth; changing only the optimizer start is not a new question.
+
 ## 4. Case contract
 
 Bind geometry, current mapping, selected commands, angle convention, materials,

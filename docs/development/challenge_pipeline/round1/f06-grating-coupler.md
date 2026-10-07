@@ -38,6 +38,26 @@ and refinements within cap; no P-wide outcome from those four. For a later
 complete panel, w=1/45 per geometry, and p10 is the fifth ordered coupling
 value (nearest-rank rule). Wavelengths within a run are not independent trials.
 
+### Prospective population of buyer design questions — `HUMAN_INPUT`
+
+The nine tolerance vectors and five wavelengths are one mask/package
+robustness panel. A future `P_job` can vary supported coupling and reflection
+requirements or the required tolerance/wavelength service subset while
+reusing a full-wave bank that covers the whole panel. A photonics buyer
+recognizes each question from its link budget, fiber alignment and PDK
+acceptance sheet. Requirement re-evaluation needs no new solve if the bank
+stores all relevant coupling/reflection outputs and the best admissible mask
+really changes. Different process stacks, PDKs or package laws are optional
+axes requiring new qualified 3D truth. Wavelengths and offsets themselves
+are correlated measurements, not separate questions.
+
+**Size recommendation, not a selected law:** catalogue eight distinct
+condition/requirement questions for a development scoping pilot on a
+reference-covered bank. `HUMAN_INPUT`: eligible requirements and service
+subsets, `P_job`, protected `Q_job`, weights, answer diversity, clustering,
+exposure and hidden `n` after power and full-wave cost studies. Re-drawing an
+offset or seed without changing the buyer question is not freshness.
+
 ## 4. Case contract
 
 Apply tolerances to the geometry before validating features and positive residual
