@@ -31,6 +31,25 @@ report worst condition separately. Q feasibility uses three fixed geometries
 relief40 mm) at damping
 0.005 and0.02. No population estimate from six diagnostic cases.
 
+### Prospective population of buyer jobs — `HUMAN_INPUT`
+
+The three damping values and 80–600-Hz search belong to one support-design
+brief. A future `P_job` could vary stage footprint, payload mass/inertia,
+mount and clamp boundary, excitation spectrum, and stiffness/mass allowance.
+An automation buyer would recognize a brief from the machine CAD assembly,
+payload schedule, mount drawing and measured or specified vibration spectrum.
+Each brief receives one chosen support before its full modal/harmonic and
+stiffness panel is checked. Frequency samples, damping probes and modes of the
+same assembly are correlated, not independent jobs. Changed contact, damping
+or forcing physics require separately qualified reference support.
+
+**Size recommendation, not a selected law:** catalogue eight distinct briefs
+across at least four stage/payload classes and two mount/excitation contexts
+each for a development scoping pilot. `HUMAN_INPUT`: eligible assemblies,
+`P_job`, protected `Q_job`, job-level weights, exclusions and hidden `n` from
+power and measured full-band cost. Cluster shared frames and mounts; moving a
+frequency probe or optimizer start on one frame does not add a buyer task.
+
 ## 4. Case contract
 
 Bind complete CAD, material, clamp/load pad, damping, extraction coordinates

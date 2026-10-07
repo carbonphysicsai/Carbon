@@ -83,6 +83,29 @@ sets/whole independent experiments would be real generalization units;
 cycles and time samples from one simulated cell are correlated. Deployment P,
 batch laws and official evidence/score weighting remain HUMAN_INPUT.
 
+### Prospective population of buyer jobs — `HUMAN_INPUT`
+
+The present five-temperature, 30-cycle panel is **one** fleet charging job. A
+future `P_job` would draw a whole charging brief before a protocol is chosen:
+cell variant and calibrated parameter set, pack thermal path, fleet route and
+charger window, ambient exposure, and prior usage/ageing history. A fleet
+engineer would recognize each brief from the cell/BMS bill of materials,
+validated cell characterization, pack cooling design and vehicle/charger logs.
+The resulting job still requires **one protocol across its complete** service
+panel; temperatures, cycles, SOC probes and solver seeds within it are not
+additional jobs. Cell chemistry or ageing changes beyond a qualified PyBaMM
+parameterization require a new reference and observer contract.
+
+**Size recommendation, not a selected law:** catalogue six independently
+specified briefs for a development scoping pilot, spanning at least three
+cell/fleet configurations and two operational histories where rights and
+solver support permit. `HUMAN_INPUT`: eligible configurations, support bounds,
+`P_job`, protected sampling `Q_job`, job-level evidence weights, exclusions,
+and the eventual hidden-task count from power and reference-cost studies.
+Shared cells, packs or fleets must be clustered in analysis; re-seeding one
+brief does not increase independent `n`. No brief is admitted to a hidden bank
+until its parameterization, limits and feasible/reference coverage are checked.
+
 ## 4. Case contract
 
 Pin simulated cell/parameters, protocol termination, initial SOC/temperature,

@@ -126,17 +126,18 @@ automatic pass. Physical-unit regret is necessary to expose caution. Compare
 cheap transfer-matrix and retained-mode baselines under the same design/query
 budget; park this topology if those methods make the decision adequately.
 
-**Hidden-batch task count is HUMAN_INPUT, NOT_DEMONSTRATED.** This packet defines
-one fixed physical scenario, so there is no defensible independent-task power
-calculation yet. Test Lead should first obtain an owner-approved scenario law
-and strata, create behavior-defined good/bad constructions, then preregister
-the minimum task count from resampling *independent scenario units* with false
-feasible, false `NONE_FEASIBLE`, physical regret, and each attack subtype
-reported separately. **HUMAN_INPUT (recommended): pilot at eight independent
-scenarios only after that law exists**; this is a cost-planning start, not a
-claimed powered batch or an adopted score bar. Frequency nodes must stay
-clustered within scenario. Stratification by future termination/source regime
-would need its own physical contract; current packet cannot support it.
+**Hidden-batch task count is HUMAN_INPUT, NOT_DEMONSTRATED.** The packet now
+sketches duct/termination/compressor variation and recommends four briefs for
+an unsolved [requirements inventory](../round1/f13-compressor-silencer.md);
+the current reference still defines one fixed physical job. Test Lead must
+first obtain an owner-approved `P_job`/protected `Q_job`, supported reference
+contract and cost, then preregister good/bad constructions and the minimum
+task count using independent buyer-job units with shared machines clustered.
+Report false feasible, false `NONE_FEASIBLE`, physical regret and each attack
+subtype separately. **HUMAN_INPUT (recommended): eight eligible jobs for an
+initial power pilot only after that law and funding exist**; the four-brief
+inventory and eight-job pilot are neither a powered batch nor a score bar.
+Frequency nodes remain within-job measurements.
 
 The buyer-facing tool would take a pinned band, medium/source/termination,
 package envelope and approved geometry bank; return chosen CAD parameters,

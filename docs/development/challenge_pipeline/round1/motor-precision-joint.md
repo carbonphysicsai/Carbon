@@ -93,6 +93,28 @@ mean can erase failed torque/cogging. Real deployment P and evidence weights
 for a registered exam remain HUMAN_INPUT. Geometry is the independent unit;
 angle probes and command curves on that geometry are correlated.
 
+### Prospective population of buyer jobs — `HUMAN_INPUT`
+
+The four service roles and command sweep above describe **one** joint-design
+brief. A future `P_job` could cover different robot-joint envelopes, payload
+inertias, gear/transmission choices, holding loads, peak-acceleration duties,
+and cooling or supply limits. A robotics buyer would identify a job by its
+joint drawing, actuator/BOM specification, motion/load trace and duty-cycle
+acceptance sheet. Each job must pin its own geometry grammar and required
+precision/peak command roles before model search. Angle samples and several
+commands for that same joint are correlated checks, not new jobs. Mechanical
+dynamics, thermal duty and changed magnetics outside the present static
+reference are additional contracts, not implied by this proposal.
+
+**Size recommendation, not a selected law:** catalogue eight distinct joint
+briefs across at least four application/envelope classes and two independently
+specified load-duty briefs per class for a development scoping pilot.
+`HUMAN_INPUT`: supported joint classes and limits, `P_job`, protected `Q_job`,
+job-level weights, exclusions, and statistically/cost-justified hidden `n`.
+Shared actuator platforms or load traces are clusters; changing an optimizer
+seed or command on one joint does not increase independent `n`. Admission of
+each brief requires a feasible candidate/reference study under its own pins.
+
 ## 4. Case contract
 
 Bind geometry, current mapping, selected commands, angle convention, materials,

@@ -78,6 +78,24 @@ Quota/boundary feasibility panels cannot be treated as draws from P or as a
 population reliability trial. Reused curves, wavelengths and time probes are
 correlated within a case; model arms share the decision problem.
 
+Each packet now also names a **prospective population of buyer jobs** in §3.
+One job is a separately specified engineering brief with its own physical
+context, action grammar, constraints and complete within-job condition panel;
+it yields a committed design choice or decision rule and abstention semantics
+(f02 chooses a schedule separately for each scenario in the job). The current eight packets
+mostly describe one such brief each. Their proposed job axes and scoping
+inventory sizes are `HUMAN_INPUT` recommendations, not an adopted `P_job`,
+protected `Q_job`, evidence weighting, powered hidden batch or reference grant.
+Sampling many seeds, schedules, frequencies, wavelengths, angles, mesh cells or
+mesh points under one unchanged brief does not create independent buyer jobs.
+Where jobs share a platform, supplier, material lot or physical assembly,
+analysis must retain that clustering rather than claim independent draws.
+Before any hidden design-task test, the buyer/authoring owner must approve
+eligible job support and limits, the reference owner must demonstrate valid
+coverage and cost for each job class, and Test Lead must choose the sampling,
+attack and power contract. Job/context variation cannot silently alter the
+registered Challenge or turn a current fixture into a deployment claim.
+
 Public generated TRAIN and intentionally incomplete PRACTICE may be exposed
 after implementation. Protected EVAL/STRESS, their seeds and labels, and final
 sealed confirmation stay operator-side. No hidden batch is being created here.

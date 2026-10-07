@@ -119,18 +119,17 @@ Physical-unit regret and false `NONE_FEASIBLE` expose over-caution; hard-limit
 violations expose optimism. Do not count nine correlated conditions as nine
 independent tasks.
 
-**Hidden-batch task count is HUMAN_INPUT, NOT_DEMONSTRATED.** The current packet
-defines one nine-condition panel and no independent customer scenario law.
-Test Lead must obtain an owner-approved law for whole-panel scenarios or a
-prospective set of genuine flow/diffusivity strata, then preregister behavior-
-defined good/bad controls and size the batch by resampling independent
-scenario units. Report power against each bad subtype, false-feasible,
-false `NONE_FEASIBLE`, and worst-M regret, including maximum-Péclet coverage.
-**HUMAN_INPUT (recommended): pilot eight independent scenario panels only
-after that law and reference budget exist**; this is a planning start, not a
-powered or approved hidden batch. Stratification is needed if later scenarios
-vary the transport regime; the current fixed 3 × 3 panel already requires
-complete within-task coverage and cannot be substituted by a random subset.
+**Hidden-batch task count is HUMAN_INPUT, NOT_DEMONSTRATED.** The packet now
+sketches [fluid/assay/cartridge job variation](../round1/f17-passive-micromixer.md)
+and an eight-brief scoping inventory; the current reference still defines one
+nine-condition buyer job and no adopted `P_job`/protected `Q_job`. Test Lead
+must approve eligible whole-job contexts, reference support and behavior-
+defined good/bad controls, then size the batch by resampling distinct jobs
+with shared assay/platform clusters retained. Report each bad subtype, false
+feasible, false `NONE_FEASIBLE`, and worst-M regret, including maximum-Péclet
+coverage. **HUMAN_INPUT (recommended): pilot eight eligible jobs only after
+the law and reference budget exist**; this is neither a powered nor approved
+hidden batch. The fixed 3 × 3 panel stays complete within every supported job.
 
 The buyer-facing tool would take the pinned channel/inlet/fluid/flow/
 diffusivity contract and approved groove bank, and return groove parameters,

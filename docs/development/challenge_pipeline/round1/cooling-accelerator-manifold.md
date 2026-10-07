@@ -106,6 +106,28 @@ scenario without averaging. Geometry is the independent selection unit;
 segments and channels are correlated. Deployment P, reference-missingness
 analysis and any official score weighting remain HUMAN_INPUT.
 
+### Prospective population of buyer jobs — `HUMAN_INPUT`
+
+The six heat/flow strata above are one accelerator-module cooling brief. A
+future `P_job` could vary module/package footprint, chiplet power map and
+placement, cold-plate interface, plant inlet schedule, coolant specification,
+and rack pressure/pump allowance. A thermal buyer would distinguish jobs by
+module drawings, power-map exports, CDU/rack interface specifications and
+measured operating traces. Each job selects one manifold/flow action that
+must survive its **whole** registered service panel. Multiple channels, mesh
+cells, hotspot locations or repeated runs of one module are not new jobs.
+Changes beyond the qualified full-manifold reference or cell composition
+domain require their own validation before inclusion.
+
+**Size recommendation, not a selected law:** catalogue six distinct module
+briefs across at least three package/plant configurations and two independently
+specified power histories each for a development scoping pilot.
+`HUMAN_INPUT`: admissible modules and fluids, support bounds, `P_job`,
+protected `Q_job`, job-level weights, exclusions and hidden `n` after power and
+full-plate cost measurements. Cluster shared module platforms and plant
+conditions; a new heat-map seed on one unchanged module is not independent
+buyer evidence. No job enters a hidden bank on periodic-cell evidence alone.
+
 ## 4. Case contract
 
 Bind finite geometry, material/PG25/TIM definitions, complete heat-map

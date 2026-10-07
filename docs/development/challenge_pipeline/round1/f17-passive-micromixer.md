@@ -31,6 +31,26 @@ and refinement as caps permit. These shared conditions do not establish a
 customer fluid distribution or population reliability. High-Peclet behavior
 is explicitly reported, not filtered out as an inconvenient case.
 
+### Prospective population of buyer jobs — `HUMAN_INPUT`
+
+The three flows by three diffusivities are one cartridge brief's operating
+panel. A future `P_job` could vary reagent/fluid pair, inlet composition,
+required throughput range, port/footprint interface and allowed pump burden.
+A lab-instrument or process buyer would recognize a brief from its assay/fluid
+specification, cartridge drawing, pump curve and delivery-uniformity criterion.
+Each brief selects one groove geometry before its full operating panel is
+verified. Flow/diffusivity points, outlet pixels and repeated solver seeds on
+one fluid system are correlated checks, not new jobs. Fluid-law changes beyond
+the qualified flow/scalar model require new reference and measurement support.
+
+**Size recommendation, not a selected law:** catalogue eight separately specified
+briefs across at least four fluid/assay systems and two throughput/interface
+requirements each for a development scoping pilot. `HUMAN_INPUT`: admissible
+fluid laws and limits, `P_job`, protected `Q_job`, job-level weights,
+exclusions and hidden `n` from power and measured full-bank cost. Cluster
+briefs sharing one assay or cartridge platform; nine conditions are not nine
+independent buyer decisions.
+
 ## 4. Case contract
 
 Bind CAD, grooves, fluid/transport law, inlet profiles, units and outlet plane.
