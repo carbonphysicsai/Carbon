@@ -1,0 +1,24 @@
+{
+ "schema": "carbon.quiz-bank-policy.v1",
+ "status": "TESTING VALUES (DEVELOPMENT). Owner approval of the bank plan relayed by the Test Lead, 2026-10-07; not LIVE policy",
+ "basis": "docs/development/evidence/battery-quiz-designs/quiz-load-v1/README.md section 3 (public stand-in)",
+ "rule": {
+  "draws": "every quiz and every pool batch is a fresh random draw of n from the live bank (without replacement within a batch)",
+  "pool_bank": "a faithful draw from the Challenge's registered population P (Q = P)",
+  "quiz_banks": "steered strata (near-limit Q2; condition-stratified Q3), each reported per stratum",
+  "retirement": "a case retires after E appearances in scored batches, is published to training through the release path, and is replaced by a fresh draw from the same stratum",
+  "replenishment": "n / E new cases per batch at steady state"
+ },
+ "classes": {
+  "cheap": {"examples": ["battery pool (n 120)", "battery Q2 (n 80)", "battery Q3 (n 8 scenarios, stratified)"], "B_over_n": 20, "E": 5},
+  "motor_like": {"examples": ["motor pool (n 60)", "motor Q3 (shared geometry bank x the recorded conditions)"], "B_over_n": 10, "E": 10},
+  "cfd_class": {"examples": ["cooling pool (n 60)"], "B_over_n": 5, "E": 20, "also": "canary detector (quiz-load-v1 section 1): a disjoint unreported near-limit canary per submission; one-sided Fisher of quiz vs canary false-feasible; alpha HUMAN_INPUT"}
+ },
+ "diagnostics": {
+  "coverage": "the P mass of the registered strata the live bank occupies, per stratum, recomputed at every retirement and replenishment",
+  "exposure": "per case: appearances, first and last batch, retirement batch; per bank: the share seen after N draws (expected 1 - (1 - n/B)^N)",
+  "turnover": "days for the bank to turn over per validator, E B / (n x batches per day)",
+  "fit_vs_learn_gap": "the bank-fitting ceiling (false-feasible on fresh P cases with full knowledge of the bank), re-estimated on public stand-in when B, E or the strata change"
+ },
+ "human_input": ["B, E per Challenge for LIVE", "canary alpha", "cadence (batches per day) per Challenge", "stratum definitions per Challenge"]
+}
