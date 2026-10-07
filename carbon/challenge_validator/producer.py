@@ -139,6 +139,16 @@ def source_for(challenge_id, spec, *, repository=REPOSITORY):
 
     require_approval(spec.get("approval"), repository=repository)
 
+    if challenge_id == BATTERY_CHALLENGE and "bank" in spec:
+        # Rule v2-bank (VALIDATOR-23 slice 2): windows drawn from the bank.
+        from .battery_bank import BankedBatterySource
+
+        return BankedBatterySource.from_deployment(
+            spec["deployment"],
+            spec["bank"],
+            overlay=spec.get("overlay"),
+            repository=repository,
+        )
     if challenge_id == BATTERY_CHALLENGE:
         # Battery's source with its quiz (slice Q, part 2): it draws a quiz
         # only for a producer configured with one.
@@ -241,7 +251,7 @@ def load_config(path, *, account=None):
         or any(
             type(spec) is not dict
             or not {"deployment", "approval"} <= set(spec)
-            or set(spec) - {"deployment", "overlay", "approval"}
+            or set(spec) - {"deployment", "overlay", "approval", "bank"}
             for spec in config["sources"].values()
         )
     ):
@@ -573,6 +583,13 @@ class Producer:
             # Set by rotation (slice 3) from the Challenge's cadence, which is
             # HUMAN_INPUT; null until then.
             "window": None,
+            # A window drawn from a bank (VALIDATOR-23) names its tranches and
+            # selection; a source without a bank adds nothing.
+            **(
+                {"bank": source.bank_commitment(fingerprint)}
+                if hasattr(source, "bank_commitment")
+                else {}
+            ),
         }
 
     def publish(self, challenge_id, fingerprint):
