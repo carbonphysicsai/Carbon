@@ -150,10 +150,27 @@ class DistributionService:
         nonces,
         log,
         clock_ns=time.time_ns,
+        training=None,
     ):
         self.inbox, self.receiver = inbox, receiver
         self.verifier, self.permits = verifier, permits
         self.nonces, self.log, self.clock_ns = nonces, log, clock_ns
+        #: The public training pool (OWNER-AUTO-PUBLISH-RETIRED-01): retired
+        #: cases only, read-only, to anyone. None serves nothing.
+        self.training = training
+
+    def handle_training(self, path):
+        """`(status, answer)` for one public `GET` of the training pool. No
+        authentication: it serves only signed files of retired cases."""
+        if self.training is None:
+            return 404, {"refused": "training_not_served"}
+        status, answer = self.training.answer(path)
+        self.log.note(
+            hotkey=None,
+            verdict="TRAINING_SERVED" if status == 200 else "TRAINING_REFUSED",
+            path=path[:200],
+        )
+        return status, answer
 
     def handle(self, headers, body):
         """`(status, answer)` for one request."""
@@ -296,6 +313,13 @@ def make_server(service, config, *, repository=REPOSITORY):
             self.end_headers()
             self.wfile.write(body)
 
+        def do_GET(self):
+            from .training_pool import TRAINING_PATH
+
+            if not self.path.startswith(TRAINING_PATH):
+                return self._answer(404, {"refused": "not_found"})
+            return self._answer(*service.handle_training(self.path))
+
         def do_POST(self):
             if self.path != PATH:
                 return self._answer(404, {"refused": "not_found"})
@@ -321,6 +345,8 @@ def build(config):
     from carbon.chain.models import ChainContext
     from carbon.chain.permits import ValidatorPermitReader
 
+    from .training_pool import TrainingPool
+
     return DistributionService(
         Inbox(config["inbox"], config["producer_public_key"]),
         receiver=config["receiver"],
@@ -328,6 +354,10 @@ def build(config):
         permits=ValidatorPermitReader(ChainContext(**config["chain"])),
         nonces=NonceStore(config["nonces"]),
         log=FetchLog(config["fetch_log"]),
+        # The producer pushes `training/<challenge>/` beside the packages.
+        training=TrainingPool(
+            Path(config["inbox"]) / "training", config["producer_public_key"]
+        ),
     )
 
 
