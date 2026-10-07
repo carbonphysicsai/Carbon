@@ -1,0 +1,349 @@
+{
+ "Q2": {
+  "by_bank": {
+   "B=10n": {
+    "bank": 800,
+    "ceiling_gain_median": 0.0334812187070455,
+    "coverage_of_P_median": 0.968,
+    "days_one_hotkey": 100.925,
+    "gain_median": 0.028545520367634195,
+    "gate_fail_when_exploiting": 0.0925,
+    "probes_median": 2018.5,
+    "repeats_per_pass": 29
+   },
+   "B=1n": {
+    "bank": 80,
+    "ceiling_gain_median": 0.3474975556335588,
+    "coverage_of_P_median": 0.5186666666666666,
+    "days_one_hotkey": 5.175,
+    "gain_median": 0.3374599423626877,
+    "gate_fail_when_exploiting": 0.0,
+    "probes_median": 103.5,
+    "repeats_per_pass": 1
+   },
+   "B=20n": {
+    "bank": 1600,
+    "ceiling_gain_median": 0.012583541120272285,
+    "coverage_of_P_median": 0.989,
+    "days_one_hotkey": 192.075,
+    "gain_median": 0.008916269210386858,
+    "gate_fail_when_exploiting": 0.0,
+    "probes_median": 3841.5,
+    "repeats_per_pass": 59
+   },
+   "B=2n": {
+    "bank": 160,
+    "ceiling_gain_median": 0.2182757247765948,
+    "coverage_of_P_median": 0.7301666666666666,
+    "days_one_hotkey": 18.75,
+    "gain_median": 0.21647282504932222,
+    "gate_fail_when_exploiting": 0.5,
+    "probes_median": 375.0,
+    "repeats_per_pass": 5
+   },
+   "B=5n": {
+    "bank": 400,
+    "ceiling_gain_median": 0.08963260449204224,
+    "coverage_of_P_median": 0.9096666666666666,
+    "days_one_hotkey": 53.1,
+    "gain_median": 0.08580419858231161,
+    "gate_fail_when_exploiting": 0.2,
+    "probes_median": 1062.0,
+    "repeats_per_pass": 14
+   }
+  },
+  "cells": "4^4",
+  "n": 80
+ },
+ "Q3": {
+  "by_bank": {
+   "B=10n": {
+    "bank": 80,
+    "ceiling_free_share_median": 0.73046875,
+    "days_one_hotkey": 195.65,
+    "free_condition_share_median": 0.73828125,
+    "gate_fail_when_exploiting": 0.3175,
+    "probes_median": 3913.0,
+    "repeats_per_pass": 29
+   },
+   "B=1n": {
+    "bank": 8,
+    "ceiling_free_share_median": 0.96875,
+    "days_one_hotkey": 3.2,
+    "free_condition_share_median": 0.96875,
+    "gate_fail_when_exploiting": 0.0,
+    "probes_median": 64.0,
+    "repeats_per_pass": 1
+   },
+   "B=20n": {
+    "bank": 160,
+    "ceiling_free_share_median": 0.5390625,
+    "days_one_hotkey": 428.075,
+    "free_condition_share_median": 0.55859375,
+    "gate_fail_when_exploiting": 0.2725,
+    "probes_median": 8561.5,
+    "repeats_per_pass": 59
+   },
+   "B=2n": {
+    "bank": 16,
+    "ceiling_free_share_median": 0.9375,
+    "days_one_hotkey": 17.25,
+    "free_condition_share_median": 0.94140625,
+    "gate_fail_when_exploiting": 0.505,
+    "probes_median": 345.0,
+    "repeats_per_pass": 5
+   },
+   "B=5n": {
+    "bank": 40,
+    "ceiling_free_share_median": 0.8515625,
+    "days_one_hotkey": 74.05,
+    "free_condition_share_median": 0.859375,
+    "gate_fail_when_exploiting": 0.5,
+    "probes_median": 1481.0,
+    "repeats_per_pass": 14
+   }
+  },
+  "cells": "16^2",
+  "n": 8
+ },
+ "exposure": {
+  "by_bank": {
+   "B=10n": {
+    "days_to_k_appearances": {
+     "10": 5.0,
+     "20": 10.0,
+     "3": 1.5,
+     "5": 2.5
+    },
+    "mean_appearances_per_case_per_day": 2.0,
+    "seen_after_draws": {
+     "1": 0.09999999999999998,
+     "140": 0.9999996073990722,
+     "20": 0.8784233454094307,
+     "5": 0.40950999999999993,
+     "600": 1.0
+    }
+   },
+   "B=20n": {
+    "days_to_k_appearances": {
+     "10": 10.0,
+     "20": 20.0,
+     "3": 3.0,
+     "5": 5.0
+    },
+    "mean_appearances_per_case_per_day": 1.0,
+    "seen_after_draws": {
+     "1": 0.050000000000000044,
+     "140": 0.9992391400218882,
+     "20": 0.6415140775914581,
+     "5": 0.22621906250000023,
+     "600": 0.9999999999999569
+    }
+   },
+   "B=2n": {
+    "days_to_k_appearances": {
+     "10": 1.0,
+     "20": 2.0,
+     "3": 0.3,
+     "5": 0.5
+    },
+    "mean_appearances_per_case_per_day": 10.0,
+    "seen_after_draws": {
+     "1": 0.5,
+     "140": 1.0,
+     "20": 0.9999990463256836,
+     "5": 0.96875,
+     "600": 1.0
+    }
+   },
+   "B=5n": {
+    "days_to_k_appearances": {
+     "10": 2.5,
+     "20": 5.0,
+     "3": 0.75,
+     "5": 1.25
+    },
+    "mean_appearances_per_case_per_day": 4.0,
+    "seen_after_draws": {
+     "1": 0.19999999999999996,
+     "140": 0.9999999999999729,
+     "20": 0.9884707849539315,
+     "5": 0.6723199999999999,
+     "600": 1.0
+    }
+   }
+  },
+  "draws_per_day_per_validator": 20,
+  "rule": "retire a case after k appearances, then publish it to training; steady state needs n / k new cases per draw"
+ },
+ "near_pool": 392,
+ "pool": {
+  "by_bank": {
+   "B=10n": {
+    "bank": 1200,
+    "ceiling_gain_median": 0.032662723723271524,
+    "coverage_of_P_median": 0.9861666666666666,
+    "days_one_hotkey": 182.85,
+    "gain_median": 0.03547290526209386,
+    "gate_fail_when_exploiting": 0.1675,
+    "probes_median": 3657.0,
+    "repeats_per_pass": 29
+   },
+   "B=1n": {
+    "bank": 120,
+    "ceiling_gain_median": 0.15682025419054157,
+    "coverage_of_P_median": 0.39749999999999996,
+    "days_one_hotkey": 5.275,
+    "gain_median": 0.15682025419054157,
+    "gate_fail_when_exploiting": 0.0,
+    "probes_median": 105.5,
+    "repeats_per_pass": 1
+   },
+   "B=20n": {
+    "bank": 2400,
+    "ceiling_gain_median": 0.012814474280837214,
+    "coverage_of_P_median": 0.9996666666666667,
+    "days_one_hotkey": 362.825,
+    "gain_median": 0.014313371324772171,
+    "gate_fail_when_exploiting": 0.065,
+    "probes_median": 7256.5,
+    "repeats_per_pass": 59
+   },
+   "B=2n": {
+    "bank": 240,
+    "ceiling_gain_median": 0.12359275930497071,
+    "coverage_of_P_median": 0.6351666666666667,
+    "days_one_hotkey": 23.325,
+    "gain_median": 0.12854775543000735,
+    "gate_fail_when_exploiting": 0.5025,
+    "probes_median": 466.5,
+    "repeats_per_pass": 5
+   },
+   "B=5n": {
+    "bank": 600,
+    "ceiling_gain_median": 0.06845620770595506,
+    "coverage_of_P_median": 0.8928333333333334,
+    "days_one_hotkey": 84.175,
+    "gain_median": 0.07359094743872538,
+    "gate_fail_when_exploiting": 0.3675,
+    "probes_median": 1683.5,
+    "repeats_per_pass": 14
+   }
+  },
+  "cells": "4^4",
+  "n": 120
+ },
+ "population": 1588,
+ "power_pooled": {
+  "fixed": {
+   "W1": 0.6415,
+   "W16": 0.6095,
+   "W2": 0.6,
+   "W4": 0.6175,
+   "W8": 0.5615
+  },
+  "honest_ff": 0.053631284916201116,
+  "random": {
+   "W1": 0.611,
+   "W16": 0.848,
+   "W2": 0.652,
+   "W4": 0.714,
+   "W8": 0.7755
+  },
+  "subtle_ff": 0.0659217877094972
+ },
+ "schema": "carbon.battery.quiz-bank.v1",
+ "sizing": {
+  "battery_Q2": {
+   "bank_solves": {
+    "10": 800,
+    "20": 1600,
+    "5": 400
+   },
+   "n": 80,
+   "note": "quiz-registry v3/v5",
+   "replenish_solves_per_day_per_validator": {
+    "10": 160.0,
+    "20": 80.0,
+    "5": 320.0
+   },
+   "solves_per_item": 1
+  },
+  "battery_Q3": {
+   "bank_solves": {
+    "10": 9360,
+    "20": 18720,
+    "5": 4680
+   },
+   "n": 8,
+   "note": "117-point lattice; 52-62 with coarse-then-refine",
+   "replenish_solves_per_day_per_validator": {
+    "10": 1872.0,
+    "20": 936.0,
+    "5": 3744.0
+   },
+   "solves_per_item": 117
+  },
+  "battery_pool": {
+   "bank_solves": {
+    "10": 1200,
+    "20": 2400,
+    "5": 600
+   },
+   "n": 120,
+   "note": "confirmation set size; 1 solve per case",
+   "replenish_solves_per_day_per_validator": {
+    "10": 240.0,
+    "20": 120.0,
+    "5": 480.0
+   },
+   "solves_per_item": 1
+  },
+  "cooling_pool": {
+   "bank_solves": {
+    "10": 600,
+    "20": 1200,
+    "5": 300
+   },
+   "n": 60,
+   "note": "confirmation set size; cooling quiz not yet defined",
+   "replenish_solves_per_day_per_validator": {
+    "10": 120.0,
+    "20": 60.0,
+    "5": 240.0
+   },
+   "solves_per_item": 1
+  },
+  "motor_Q3": {
+   "bank_solves": {
+    "10": 3840,
+    "20": 7680,
+    "5": 1920
+   },
+   "n": 8,
+   "note": "8 candidates x 6 conditions per task",
+   "replenish_solves_per_day_per_validator": {
+    "10": 768.0,
+    "20": 384.0,
+    "5": 1536.0
+   },
+   "solves_per_item": 48
+  },
+  "motor_pool": {
+   "bank_solves": {
+    "10": 600,
+    "20": 1200,
+    "5": 300
+   },
+   "n": 60,
+   "note": "confirmation set size",
+   "replenish_solves_per_day_per_validator": {
+    "10": 120.0,
+    "20": 60.0,
+    "5": 240.0
+   },
+   "solves_per_item": 1
+  }
+ },
+ "source": "PUBLIC_STANDIN (see module docstring)"
+}
