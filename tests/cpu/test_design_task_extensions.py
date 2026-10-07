@@ -166,6 +166,51 @@ def test_public_action_space_sorts_away_frozen_neighbor_order():
     assert public["action_space"]["variables"][1]["values"] == ["left", "right"]
 
 
+def test_registered_condition_quantile_is_frozen_and_uses_left_inverse_cdf():
+    base = toy_task()
+    conditions = [{"id": f"c{i}", "stratum": "s"} for i in range(3)]
+
+    def make(probability, rule=tasks.QUANTILE_RULE):
+        return tasks.task(
+            "q",
+            identity=base["identity"],
+            conditions=conditions,
+            strata={"s": {"p": 1, "q": 1, "w": 1}},
+            candidates=["x"],
+            objective={
+                "quantity": "loss",
+                "unit": "W",
+                "sense": "min",
+                "aggregate": "quantile",
+                "probability": probability,
+                "rule": rule,
+            },
+            limits=[],
+        )
+
+    values = {
+        ("x", "c0"): {"loss": 9},
+        ("x", "c1"): {"loss": 1},
+        ("x", "c2"): {"loss": 5},
+    }
+    assert tasks.assess(make(0.5), values)["x"]["objective"] == 5
+    assert tasks.assess(make(0.1), values)["x"]["objective"] == 1
+    assert tasks.assess(make(1), values)["x"]["objective"] == 9
+    assert task_projection.miner_projection(make(0.5))["objective"] == {
+        "quantity": "loss",
+        "unit": "W",
+        "sense": "min",
+        "aggregate": "quantile",
+        "probability": 0.5,
+        "rule": tasks.QUANTILE_RULE,
+    }
+    assert make(0.5)["task_digest"] != make(0.1)["task_digest"]
+    with pytest.raises(tasks.TaskError):
+        make(0.5, "unregistered")
+    with pytest.raises(tasks.TaskError):
+        make(1.1)
+
+
 def outcome(kind, regret=None):
     return {"kind": kind, "regret": regret, "unit": "W"}
 
@@ -192,6 +237,23 @@ def test_per_stratum_p_and_q_never_mix_and_quantile_is_registered():
             strata={"a": {"p": 1, "q": 1, "w": 1}},
             aggregate={"schema": task_measures.AGGREGATE_SCHEMA, "probability": 0.5},
         )
+
+
+def test_evidence_weight_changes_each_view_without_substituting_q_for_p():
+    report = task_measures.per_stratum_measures(
+        [
+            {"stratum": "a", "outcome": outcome("SELECTED_INFEASIBLE")},
+            {"stratum": "b", "outcome": outcome("SELECTED_FEASIBLE", 0)},
+        ],
+        strata={
+            "a": {"p": 0.8, "q": 0.2, "w": 2},
+            "b": {"p": 0.2, "q": 0.8, "w": 1},
+        },
+        aggregate={"schema": task_measures.AGGREGATE_SCHEMA, "probability": 0.5},
+    )
+    assert report["P"]["false_feasible"] == pytest.approx(0.8)
+    assert report["Q"]["false_feasible"] == pytest.approx(0.2)
+    assert report["weighted_Q"]["false_feasible"] == pytest.approx(0.4 / 1.2)
 
 
 def test_unresolved_reference_question_is_reported_even_with_a_feasible_pick():

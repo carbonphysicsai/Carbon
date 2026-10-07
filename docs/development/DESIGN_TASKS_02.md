@@ -12,13 +12,22 @@ the inputs miners may see; a private task record is never serialized directly.
 
 `task_measures.per_stratum_measures` accepts judged **job-stratum** outcomes,
 registered P mass, diagnostic Q mass, evidence weight w and a registered
-quantile probability. It reports each stratum plus separate P and Q views.
+quantile probability. It reports each stratum plus separate raw P, raw Q and
+Q-times-w evidence views. It never applies w to P a second time.
 Each stratum's mass is divided over its observed jobs, so uneven diagnostic
 sample counts do not silently change P. Rates show their all/resolved/priced
 mass denominators. `UNRESOLVED` reference states are retained even when a
 particular selected action is known feasible. Quantiles use the left-continuous
 weighted inverse CDF with no interpolation. This computes diagnostics only;
 Test Lead owns score use and power.
+
+The task's objective or secondary may separately register `aggregate:
+quantile`, a probability in `[0,1]`, and rule `inverse_cdf_left.v1`.
+`tasks.assess` then takes that ordered quantile of the complete condition
+panel; a missing condition leaves the aggregate unresolved. This is an
+unweighted condition quantile. Frequency-interval weighting or a qualified
+observer-derived p10 needs its own registered observer and is not inferred
+from this generic arithmetic.
 
 The producer runs:
 

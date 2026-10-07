@@ -44,10 +44,10 @@ def _quantile(values, probability):
     return max(value for value, weight in values if weight > 0)
 
 
-def _view(rows, masses, strata, probability):
+def _view(rows, masses, strata, probability, *, evidence_weighted, basis):
     weighted = []
     for name, outcome in rows:
-        mass = masses[name] * strata[name]["w"]
+        mass = masses[name] * (strata[name]["w"] if evidence_weighted else 1)
         weighted.append((outcome, mass))
     all_mass = sum(weight for _, weight in weighted)
     decided = [(r, weight) for r, weight in weighted if _resolved(r)]
@@ -59,7 +59,7 @@ def _view(rows, masses, strata, probability):
     ]
     priced_mass = sum(weight for _, weight in priced)
     return {
-        "basis": "registered stratum mass times evidence weight; equal within-stratum jobs",
+        "basis": basis + "; equal within-stratum jobs",
         "all_mass": all_mass,
         "resolved_mass": decided_mass,
         "priced_mass": priced_mass,
@@ -194,11 +194,23 @@ def per_stratum_measures(records, *, strata, aggregate):
             {n: checked[n]["p"] / len(grouped[n]) for n in checked},
             checked,
             probability,
+            evidence_weighted=False,
+            basis="registered P mass",
         ),
         "Q": _view(
             flat,
             {n: checked[n]["q"] / len(grouped[n]) for n in checked},
             checked,
             probability,
+            evidence_weighted=False,
+            basis="registered Q mass",
+        ),
+        "weighted_Q": _view(
+            flat,
+            {n: checked[n]["q"] / len(grouped[n]) for n in checked},
+            checked,
+            probability,
+            evidence_weighted=True,
+            basis="registered Q mass times evidence w",
         ),
     }

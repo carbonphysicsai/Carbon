@@ -40,12 +40,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import statistics
 
 SCHEMA = "carbon.design-task.v1"
 COMMIT_SCHEMA = "carbon.design-task.commitment.v1"
 SENSES = ("min", "max")
-AGGREGATES = ("worst", "mean")
+AGGREGATES = ("worst", "mean", "quantile")
+QUANTILE_RULE = "inverse_cdf_left.v1"
 OPS = ("<=", ">=")
 TIE_RULES = ("secondary_then_bank_order",)
 REFERENCE_STATES = ("FEASIBLE_EXISTS", "NONE_FEASIBLE", "UNRESOLVED")
@@ -80,9 +82,24 @@ def digest(value):
 
 def _quantity(spec, where):
     if spec.get("sense") not in SENSES or spec.get("aggregate") not in AGGREGATES:
-        raise TaskError(f"{where}: sense must be min|max, aggregate worst|mean")
+        raise TaskError(
+            f"{where}: sense must be min|max, aggregate worst|mean|quantile"
+        )
     if not spec.get("quantity") or "unit" not in spec:
         raise TaskError(f"{where}: quantity and unit are required")
+    if spec["aggregate"] == "quantile":
+        probability = spec.get("probability")
+        if (
+            type(probability) not in (int, float)
+            or not math.isfinite(probability)
+            or not 0 <= probability <= 1
+            or spec.get("rule") != QUANTILE_RULE
+        ):
+            raise TaskError(
+                f"{where}: quantile needs probability in [0,1] and registered rule"
+            )
+    elif "probability" in spec or "rule" in spec:
+        raise TaskError(f"{where}: quantile fields require quantile aggregation")
     return dict(spec)
 
 
@@ -146,6 +163,9 @@ def task(
 def _aggregate(spec, values):
     if spec["aggregate"] == "mean":
         return statistics.fmean(values)
+    if spec["aggregate"] == "quantile":
+        index = max(0, math.ceil(spec["probability"] * len(values)) - 1)
+        return sorted(values)[index]
     return max(values) if spec["sense"] == "min" else min(values)
 
 

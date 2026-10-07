@@ -25,7 +25,18 @@ def _pick(row, fields):
 def _public_quantity(row):
     if any(type(row.get(key)) is not str for key in QUANTITY_FIELDS):
         raise tasks.TaskError("public quantity fields must be strings")
-    return _pick(row, QUANTITY_FIELDS)
+    public = _pick(row, QUANTITY_FIELDS)
+    if row["aggregate"] == "quantile":
+        probability = row.get("probability")
+        if (
+            type(probability) not in (int, float)
+            or not math.isfinite(probability)
+            or not 0 <= probability <= 1
+            or row.get("rule") != tasks.QUANTILE_RULE
+        ):
+            raise tasks.TaskError("public quantile registration invalid")
+        public.update({"probability": probability, "rule": row["rule"]})
+    return public
 
 
 def _public_limit(row):
