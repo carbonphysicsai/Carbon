@@ -105,9 +105,7 @@ def plan(out):
             r = json.loads(line)
             if r.get("status") == "OK":
                 d = r["derived"]
-                pooled.append(
-                    (distance(d["mean_nm"], d["ripple_pk_pk_nm"]), name, r)
-                )
+                pooled.append((distance(d["mean_nm"], d["ripple_pk_pk_nm"]), name, r))
     pooled.sort(key=lambda t: (t[0], t[1], t[2]["case_id"]))
     repeat = [
         {

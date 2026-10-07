@@ -89,5 +89,13 @@
   },
   "repeatability_reason": "full 15 degree period at the standard 60 angles, so the periodicity check holds and the derived mean and pk-pk compare like for like with the committed standard references; the motor-pilot-v1 options (angle_steps 120, positions 31) cover only a 3.75 degree window. Angle-sampling error on the ripple peak is not measured by this study and is reported as such.",
   "tooling": "scripts/dev/motor/design_screen.py plan"
+ },
+ "amendment_2": {
+  "registered": "2026-10-07, after the screen launch and before any screen result (Test Lead relay)",
+  "limits": "4.0 N m and 0.30 are TRAIN medians, not a customer specification; the owner may replace them with a mock-customer specification. Every limit-dependent output takes the limits and bands as arguments and is recomputed from the continuous points with no new solve",
+  "continuous_outputs": "per point: the 60-angle torque curve (record), and GetDP's per-step coil vector potential (flux linkage) and co-energy kept in the case directories (meshes trimmed); mean torque, ripple pk-pk and ripple fraction in the study's points table. GetDP here is magnetostatic: no loss or thermal quantity is computed",
+  "limit_sweep": "feasible designs and near points over min torque 1.0..8.0 N m (0.5 steps) x max ripple fraction 0.05..0.60 (0.05 steps), bands 10 % of each limit",
+  "deferred": "Q3 (design-task) scenario selection is not finalised until the limits are confirmed; power and value results under the provisional limits are reported as provisional",
+  "rerun": "the screen batch restarted with --keep all at 11:4x (the first launch discarded the coil and co-energy files); no result was read from the first launch"
  }
 }

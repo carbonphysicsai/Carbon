@@ -33,8 +33,13 @@ V2_RESULT = (
     ROOT / "docs/development/evidence/motor-decision-counted-v2/evaluation/result.json"
 )
 POOLS = ROOT / "docs/development/evidence/motor-pools-v1"
+#: Provisional limits: TRAIN medians, not a customer specification (Test
+#: Lead, 2026-10-07). Every limit-dependent output is recomputed from the
+#: continuous points by `configure`, with no new solve.
 LIMIT_T, LIMIT_R = 4.0, 0.30
 BAND_T, BAND_R = 0.4, 0.03
+SWEEP_T = tuple(round(1.0 + 0.5 * i, 2) for i in range(15))
+SWEEP_R = tuple(round(0.05 * i, 2) for i in range(1, 13))
 GEOMETRY = (
     "magnet_mm",
     "embrace",
@@ -69,8 +74,67 @@ DRAWS = 1000
 KS = (1, 2, 4, 8)
 
 
+def configure(limit_t, limit_r, band_t, band_r):
+    """Set the limits and near bands every limit-dependent output uses."""
+    global LIMIT_T, LIMIT_R, BAND_T, BAND_R
+    LIMIT_T, LIMIT_R, BAND_T, BAND_R = limit_t, limit_r, band_t, band_r
+    CONSTRAINTS[0]["limit"], CONSTRAINTS[1]["limit"] = limit_t, limit_r
+
+
 def rf(mean, ripple):
     return ripple / abs(mean) if mean else float("inf")
+
+
+def points(designs, grid):
+    """The limit-free continuous outputs per solved point."""
+    return [
+        {
+            "design_id": g,
+            "condition_id": c,
+            "drawn": designs[g]["drawn"],
+            "mean_torque_nm": m,
+            "ripple_pk_pk_nm": p,
+            "ripple_fraction": rf(m, p),
+        }
+        for (g, c), (m, p) in sorted(grid.items())
+    ]
+
+
+def limit_sweep(designs, grid):
+    """Feasible designs (all conditions) and near points over a grid of
+    limits, at bands of 10 % of each limit; for choosing or replacing the
+    limits with no new solve."""
+    conds = conditions()
+    complete = [g for g in sorted(designs) if all((g, c) in grid for c in conds)]
+    rows = []
+    for t in SWEEP_T:
+        for r in SWEEP_R:
+            ok = [
+                g
+                for g in complete
+                if all(grid[(g, c)][0] >= t and rf(*grid[(g, c)]) <= r for c in conds)
+            ]
+            near_points = sum(
+                abs(m - t) <= 0.1 * t or abs(rf(m, p) - r) <= 0.1 * r
+                for (g, _c), (m, p) in grid.items()
+                if g in complete
+            )
+            rows.append(
+                {
+                    "min_torque_nm": t,
+                    "max_ripple_fraction": r,
+                    "feasible_designs": len(ok),
+                    "feasible_uniform_designs": sum(
+                        designs[g]["drawn"] == "uniform" for g in ok
+                    ),
+                    "near_points": near_points,
+                }
+            )
+    return {
+        "complete_designs": len(complete),
+        "band": "10 % of each limit",
+        "rows": rows,
+    }
 
 
 def quantities(mean, ripple):
@@ -434,7 +498,17 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog="design_tasks_study")
     parser.add_argument("--runs", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--min-torque-nm", type=float, default=LIMIT_T)
+    parser.add_argument("--max-ripple-fraction", type=float, default=LIMIT_R)
+    parser.add_argument("--band-torque-nm", type=float, default=BAND_T)
+    parser.add_argument("--band-ripple-fraction", type=float, default=BAND_R)
     args = parser.parse_args(argv)
+    configure(
+        args.min_torque_nm,
+        args.max_ripple_fraction,
+        args.band_torque_nm,
+        args.band_ripple_fraction,
+    )
     designs, grid, inputs, statuses = screen_grid(args.runs)
     members = (*GOOD, *BAD, CAUTIOUS, *MODELS)
     mg = model_grids(inputs, sorted(grid))
@@ -444,7 +518,17 @@ def main(argv=None):
     document = {
         "schema": "carbon.design-tasks-study.v1",
         "registry": "docs/development/evidence/motor-design-tasks-v1/registry.json",
+        "limits": {
+            "min_torque_nm": LIMIT_T,
+            "max_ripple_fraction": LIMIT_R,
+            "band_torque_nm": BAND_T,
+            "band_ripple_fraction": BAND_R,
+            "status": "PROVISIONAL: TRAIN medians, not a customer specification; "
+            "Q3 scenario selection waits for confirmed limits",
+        },
         "screen_statuses": statuses,
+        "points": points(designs, grid),
+        "limit_sweep": limit_sweep(designs, grid),
         "screening": screening_map(designs, grid),
         "repeatability": repeatability(args.runs),
         "objectives": {},
