@@ -43,8 +43,8 @@ python -m carbon.miner_mcp.standard_cli \
   accepted as the same choices; a new `autonomous` launch is refused
   `autonomous_agent_replaced`, and one recorded before Graphite replaced it
   still replays), `carbon_observe`, `carbon_practice`,
-  `carbon_freeze_candidate`, `carbon_submit`, `carbon_halt`, `carbon_resume`,
-  and the Graphite Library's `carbon_library_search`, `carbon_library_card`,
+  `carbon_freeze_candidate`, `carbon_commit`, `carbon_submit`, `carbon_halt`,
+  `carbon_resume`, and the Graphite Library's `carbon_library_search`, `carbon_library_card`,
   `carbon_library_list`, `carbon_library_pin` / `unpin` / `ban` / `unban`,
   `carbon_library_import`, `carbon_plan_list`, `carbon_plan_get` and
   `carbon_plan_edit`, which change only your own library and start no work -
@@ -81,6 +81,29 @@ local development service, with nothing written to the chain. Official
 submission is not an operation on either door. A campaign an MCP session
 launched with Graphite is carried out by the campaigns' supervisor, not the
 session; closing the Control Center pauses it, and resume continues it.
+
+A validator that requires an on-chain commitment admits a submission only
+against your hotkey's commitment of the frozen candidate's digest
+(OWNER-COMMITMENT-POSTER-01). Before the first send through such an intake,
+`carbon_submit` reads that commitment, read-only, and is refused
+`commitment_required` before anything is signed or sent unless it matches.
+`carbon_commit` (browser: `POST /api/v1/operations/commit`) commits it:
+- It answers with the plan: the digest, which is the frozen candidate's own;
+  your hotkey's current commitment and its block; and the warning that it
+  replaces it.
+- Your `carbon-miner-signer` then asks you in its own terminal.
+  `carbon_observe`'s `commitment` reads `human_action_required:
+  confirm_commitment` until you type the digest's last 8 characters there.
+  No tool and no agent can confirm it.
+- Then it shows the digest, block and extrinsic id read back at finality.
+- A post whose outcome is unknown is never sent again: it reads
+  `RECONCILING` while the chain is read.
+- A validator's `commitment_stale` is answered by `carbon_commit` with
+  `recommit=true`.
+- The signer's and the poster's refusals come back as their closed codes,
+  each with its next step.
+- A Graphite campaign asks for its own commitment when it submits, and only
+  you confirm it.
 
 What a miner can and cannot do today: a campaign can be launched,
 practised, observed, and stopped or paused on any Challenge.
