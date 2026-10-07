@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-first-three-customer-source-constant-check",
+  "recorded_at": "2026-10-07T17:08:22Z",
+  "challenge": "eight-challenge-foundation-development",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-CUSTOMER-PACKETS-01 first canonical packet/pipeline check",
+    "description": "Three new buyer packets, dimensional planning sheet and existing round1/pipeline tests"
+  },
+  "expected": "Read public source limits without importing or executing a scientific reference",
+  "observed": "64 passed, 1 failed and 1 existing optional-numpy skip. The test AST reader tried literal_eval on the whole Battery SPEC, whose spec_version refers to SPEC_VERSION; no requirement or scientific check failed.",
+  "keep": [
+    "Keep source-linked checks of the existing input bounds and initial rest without invoking the solver.",
+    "Keep buyer requirements independent of current scores and existing exam semantics."
+  ],
+  "change": [
+    "Read only the required literal fields from the public SPEC AST; do not evaluate source or pretend referenced names are literal values.",
+    "Retain explicit prospective Battery all-cycle and Cooling local TIM observation gaps surfaced by read-only review."
+  ],
+  "protocol_elements": ["challenge.design-packet.f1", "challenge.pipeline.lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

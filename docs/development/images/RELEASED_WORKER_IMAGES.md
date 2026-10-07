@@ -50,8 +50,16 @@ not run yet.
 ## What the release publishes
 
 The workflow is `.github/workflows/release-worker-images.yml`. It runs on
-manual dispatch only, with the release tag as input. It attaches these assets
-to the tag's GitHub release:
+manual dispatch only, with the release tag as input.
+
+**Before dispatch:** the `Release rehearsal` workflow
+(`.github/workflows/release-rehearsal.yml`) must have passed on the exact
+commit the release tag points to. Run it with `workflow_dispatch` on that
+commit if no pull-request run covers it. The rehearsal pushes the C-03 worker
+to a throwaway local registry and builds a child and the analysis image FROM
+the served digest. It is not in the Merge gate; this step is what requires it.
+
+The release attaches these assets to the tag's GitHub release:
 
 - `<kind>-worker-image.json`: the build's exact `carbon.c03.worker-image.v1`
   manifest;

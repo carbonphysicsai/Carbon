@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-operator-cpu-exact-type",
+  "recorded_at": "2026-10-07T02:10:00Z",
+  "challenge": "protocol",
+  "stage": "protocol",
+  "execution": {
+    "kind": "test_run",
+    "ref": "canonical --focused tests/cpu/test_graphite_operator_runpod.py tests/cpu/test_challenge_pipeline.py",
+    "description": "Final CPU placement regressions including a subclass that bypasses constructor validation"
+  },
+  "expected": "Refuse raw and bypassed placement objects before provider contact while retaining normal CPU lifecycle behavior.",
+  "observed": "67 passed, 1 skipped in 3.77 seconds. The skip is an existing optional-numpy pipeline test in the dev-only environment; the earlier science-jax compatibility run exercised the pipeline without that skip. PodSpec requires exact CPUPlacement type, so subclass construction cannot bypass validation.",
+  "keep": ["The consumer requires the validated concrete type, not merely an instance of a base class."],
+  "change": [],
+  "protocol_elements": ["validated request construction", "CPU placement", "mock provider isolation"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

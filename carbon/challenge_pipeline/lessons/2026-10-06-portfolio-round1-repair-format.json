@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-portfolio-round1-repair-format",
+  "recorded_at": "2026-10-06T21:31:24Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "build", "ref": "Black26.5.1 after round-one budget/RC review repairs", "description": "Format repaired screen and its added regression cases"},
+  "expected": "Atomic cooling regimes, preregistered RC selection and fixed resource maxima use canonical formatting.",
+  "observed": "Both Python files were reformatted. Functional repairs still require the next canonical check.",
+  "keep": ["Spend/resource accounting must include baselines and controls, not just primary cases."],
+  "change": [],
+  "protocol_elements": ["challenge.pipeline.lessons", "challenge.reference.resource-ceilings"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

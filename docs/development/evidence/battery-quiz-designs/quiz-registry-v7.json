@@ -1,0 +1,15 @@
+{
+ "schema": "carbon.battery.quiz-design-registry.v1",
+ "registered": "2026-10-07, before any scoring (Test Lead correction to a13e25db: undetermined must not equal clean)",
+ "extends": "quiz-registry-v6.json; supersedes a13e25db's exclusion of UNRESOLVED Q3 picks",
+ "unresolved_treatment": {
+  "regret": "an UNRESOLVED pick takes its band-pessimistic value: the worst consistent with the reference band. A SELECTED_UNRESOLVED pick takes the false-acceptance cost, and an ABSTENTION_UNRESOLVED the missed-opportunity cost (the contract's mistake costs)",
+  "false_feasible": "UNRESOLVED stays in the denominator. Variant (i), the gate default: a SELECTED_UNRESOLVED pick counts as false-feasible (the model called it safe). Variant (ii): excluded from numerator and denominator (the a13e25db behaviour), reported for sensitivity",
+  "over_caution": "UNRESOLVED stays in the denominator and earns no credit; an ABSTENTION_UNRESOLVED counts as over-caution",
+  "unresolved_rate": "kept: quiz-diagnostics-v1 (e)"
+ },
+ "known_bad": [
+  "control-band_edge_seeker (constructed: wherever a reference lies within its contract band of a plating or thermal limit, it reports the case as just passing, so it steers picks into the band; accurate elsewhere)"
+ ],
+ "status": "DEVELOPMENT"
+}

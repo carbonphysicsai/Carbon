@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-first-three-customer-final-validation",
+  "recorded_at": "2026-10-07T17:21:31Z",
+  "challenge": "eight-challenge-foundation-development",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-CUSTOMER-PACKETS-01 final canonical packet/pipeline/quality execution",
+    "description": "Pinned Linux wrapper; intended non-executable test mode; three focused pytest files; pipeline validation; Ruff, Black and diff checks"
+  },
+  "expected": "Independent customer requirements remain dimensionally consistent and isolated from scientific/execution authority",
+  "observed": "65 passed, 1 existing optional-numpy skip; protocol DEFINING, 7 records valid, 405 existing lessons valid, 0 awaiting a decision; Ruff passed, Black left the new test unchanged, diff hygiene passed. No solver or provider ran. This final lesson is recorded after that execution, not counted among its 405 validated lessons.",
+  "keep": [
+    "Freeze buyer value and requirements before score/gate tuning, with unsupported scopes unresolved rather than weakened after results.",
+    "Retain Motor's command-role/cogging split, Cooling's full-manifold and local-interface observers, and Battery's prospective SOC/timing and all-cycle coverage gaps.",
+    "Keep Battery EV5, sealed journal sequence 14, existing contracts and five-family allowances unchanged."
+  ],
+  "change": [
+    "Hand off one tested packet PR; let Test Lead and Carbon Validator integrate the buyer decision contract in separate versioned tickets."
+  ],
+  "protocol_elements": ["challenge.design-packet.f1", "challenge.pipeline.lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

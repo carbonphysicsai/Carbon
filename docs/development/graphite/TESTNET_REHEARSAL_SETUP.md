@@ -44,10 +44,10 @@ Every host runs the same release tag (§2 of the record).
    push. The first tick fills the next slot (screening plus finalist). That
    takes the truth solves' time, about 100 solves per batch.
 
-## Part 2. The distribution host (Hetzner Cloud CX23, the owner's spend)
+## Part 2. The distribution host (Hetzner Cloud CPX12, the owner's spend)
 
-1. **Create the server:** Ubuntu 24.04 with only Ryan's own SSH key
-   (FIDO2), plus `ufw` (allow OpenSSH and 443) and `fail2ban`, as
+1. **Create the server:** a Hetzner Cloud CPX12, Ubuntu 24.04, with only
+   Ryan's admin key (`carbon-vm`, kept in Windows), plus `ufw` (allow OpenSSH and 443) and `fail2ban`, as
    `HIDDEN_HOST_SETUP.md` §1.
 2. **Accounts:** `carbon-dist` and its `rrsync` inbox
    (`ANSWER_KEY_OPERATIONS.md` §2), plus the producer's push key.

@@ -1,0 +1,1486 @@
+{
+ "aten_core": {
+  "aten._assert_tensor_metadata.default": {
+   "category": "debug",
+   "default": "review",
+   "lowering": "dropped",
+   "note": "a trace-time metadata assertion with no result; dropped by lowering"
+  },
+  "aten._fft_c2r.default": {
+   "category": "spectral",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "trailing dims only; XLA's 1/n convention undone explicitly"
+  },
+  "aten._fft_r2c.default": {
+   "category": "spectral",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "trailing dims, onesided only; torch normalization mapped explicitly"
+  },
+  "aten._local_scalar_dense.default": {
+   "category": "host_or_dynamic",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "host synchronization or a data-dependent shape"
+  },
+  "aten._to_copy.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten._unsafe_view.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.add.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.addmm.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.alias.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.arange.start_step": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.bernoulli.p": {
+   "category": "rng",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "RNG in inference is refused"
+  },
+  "aten.bmm.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.cat.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.clone.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.convolution.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.copy.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.div.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.exp.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.expand.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.full.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.gelu.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.gt.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.gt.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.item.default": {
+   "category": "host_or_dynamic",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "host synchronization or a data-dependent shape"
+  },
+  "aten.log1p.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.lt.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.lt.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.mean.dim": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.mm.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.mul.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.native_dropout.default": {
+   "category": "rng",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "RNG in inference is refused"
+  },
+  "aten.nonzero.default": {
+   "category": "host_or_dynamic",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "host synchronization or a data-dependent shape"
+  },
+  "aten.normal.Tensor_float": {
+   "category": "rng",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "RNG in inference is refused"
+  },
+  "aten.permute.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.rand.default": {
+   "category": "rng",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "RNG in inference is refused"
+  },
+  "aten.randn.default": {
+   "category": "rng",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "RNG in inference is refused"
+  },
+  "aten.relu.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.repeat.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.reshape.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.select.int": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.sigmoid.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.slice.Tensor": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.slice_scatter.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.sqrt.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.squeeze.dim": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.squeeze.dims": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.sub.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.t.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.tanh.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.uniform.default": {
+   "category": "rng",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "RNG in inference is refused"
+  },
+  "aten.unsqueeze.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.var.correction": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.view.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.view_as_complex.default": {
+   "category": "elementwise",
+   "default": "review",
+   "lowering": "emitted",
+   "note": "complex64 weights (FNO spectral layers)"
+  },
+  "aten.where.self": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  }
+ },
+ "carbon_ops": {
+  "abs": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "add": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "after_all": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "all_gather": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "all_to_all": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "and": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "argmax": {
+   "category": "reduction",
+   "default": "allow",
+   "params": {
+    "axes": "int_tuple",
+    "index_dtype": "dtype"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "argmin": {
+   "category": "reduction",
+   "default": "allow",
+   "params": {
+    "axes": "int_tuple",
+    "index_dtype": "dtype"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "axis_index": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "bitcast_convert_type": {
+   "category": "bitwise",
+   "default": "allow",
+   "note": "threefry uniform sampling; init only",
+   "params": {
+    "new_dtype": "dtype"
+   },
+   "roles": [
+    "init"
+   ],
+   "v0_interpreter": true
+  },
+  "broadcast_in_dim": {
+   "category": "shape",
+   "default": "allow",
+   "params": {
+    "broadcast_dimensions": "int_tuple",
+    "shape": "int_tuple",
+    "sharding": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "closed_call": {
+   "category": "nested_call",
+   "default": "allow",
+   "note": "validated recursively",
+   "params": {
+    "call_jaxpr": "graph"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "complex": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "concatenate": {
+   "category": "shape",
+   "default": "allow",
+   "params": {
+    "dimension": "int"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "cond": {
+   "category": "control_flow",
+   "default": "allow",
+   "note": "needed by no family traced in Phase 0; not yet in the v0 interpreter",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": false
+  },
+  "conj": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "input_dtype": "dtype"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "conv_general_dilated": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "params": {
+    "batch_group_count": "int",
+    "dimension_numbers": "conv_dimension_numbers",
+    "feature_group_count": "int",
+    "lhs_dilation": "int_tuple",
+    "out_sharding": "none",
+    "padding": "int_pairs",
+    "precision": "none",
+    "preferred_element_type": "dtype_or_none",
+    "rhs_dilation": "int_tuple",
+    "window_strides": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "convert_element_type": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "new_dtype": "dtype",
+    "sharding": "none",
+    "weak_type": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "cos": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "create_token": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "cumsum": {
+   "category": "reduction",
+   "default": "review",
+   "note": "check GPU determinism (R1)",
+   "params": {
+    "axis": "int",
+    "reverse": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "custom_call": {
+   "category": "escape",
+   "default": "refuse",
+   "note": "escape to Python or native code",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "custom_jvp_call": {
+   "category": "custom_differentiation",
+   "default": "review",
+   "note": "primal body validated and kept; the custom rule is a Python callable and is NOT carried, so Carbon differentiates the primal (relu, softplus)",
+   "params": {
+    "call_jaxpr": "graph",
+    "jvp_jaxpr_fun": "custom_rule_dropped",
+    "num_consts": "int",
+    "symbolic_zeros": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "custom_vjp_call": {
+   "category": "custom_differentiation",
+   "default": "review",
+   "note": "forward and backward are Python callables; v0 cannot carry them",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": false
+  },
+  "debug_callback": {
+   "category": "escape",
+   "default": "refuse",
+   "note": "escape to Python or native code",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "debug_print": {
+   "category": "debug",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "device_put": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "div": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "dot_general": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "params": {
+    "dimension_numbers": "dot_dimension_numbers",
+    "out_sharding": "none",
+    "precision": "none",
+    "preferred_element_type": "dtype_or_none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "dynamic_slice": {
+   "category": "shape",
+   "default": "allow",
+   "note": "start indices are clamped into range by XLA",
+   "params": {
+    "slice_sizes": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "dynamic_update_slice": {
+   "category": "shape",
+   "default": "allow",
+   "note": "start indices are clamped into range by XLA",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "eq": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "erf": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "erf_inv": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "exp": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "expm1": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "ffi_call": {
+   "category": "escape",
+   "default": "refuse",
+   "note": "escape to Python or native code",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "fft": {
+   "category": "spectral",
+   "default": "allow",
+   "note": "FNO layers and spectral loss terms",
+   "params": {
+    "fft_lengths": "int_tuple",
+    "fft_type": "fft_type"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "gather": {
+   "category": "shape",
+   "default": "review",
+   "note": "bounded by slice_sizes; its gradient is a scatter-add, nondeterministic on GPU (R1)",
+   "params": {
+    "dimension_numbers": "gather_dimension_numbers",
+    "fill_value": "fill_value",
+    "indices_are_sorted": "bool",
+    "mode": "gather_mode",
+    "slice_sizes": "int_tuple",
+    "unique_indices": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "ge": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "gt": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "imag": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "infeed": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "integer_pow": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "y": "int"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "io_callback": {
+   "category": "escape",
+   "default": "refuse",
+   "note": "escape to Python or native code",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "iota": {
+   "category": "shape",
+   "default": "allow",
+   "params": {
+    "dimension": "int",
+    "dtype": "dtype",
+    "shape": "int_tuple",
+    "sharding": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "jit": {
+   "category": "nested_call",
+   "default": "allow",
+   "note": "validated recursively and evaluated inline; metadata must be default (no donation, no compiler options, no mesh)",
+   "params": {
+    "compiler_options_kvs": "call_metadata",
+    "ctx_mesh": "call_metadata",
+    "donated_invars": "call_metadata",
+    "in_layouts": "call_metadata",
+    "in_shardings": "call_metadata",
+    "inline": "call_metadata",
+    "jaxpr": "graph",
+    "keep_unused": "call_metadata",
+    "name": "call_metadata",
+    "out_layouts": "call_metadata",
+    "out_shardings": "call_metadata"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "le": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "log": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "log1p": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "logistic": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "lt": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "max": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "min": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "mul": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "out_dtype": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "ne": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "neg": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "not": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "or": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "outfeed": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "pad": {
+   "category": "shape",
+   "default": "allow",
+   "params": {
+    "padding_config": "padding_config"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "pow": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "ppermute": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "psum": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "pure_callback": {
+   "category": "escape",
+   "default": "refuse",
+   "note": "escape to Python or native code",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "random_bits": {
+   "category": "rng",
+   "default": "allow",
+   "note": "init graph only, from Carbon's key; refused in forward and loss",
+   "params": {
+    "bit_width": "int",
+    "shape": "int_tuple"
+   },
+   "roles": [
+    "init"
+   ],
+   "v0_interpreter": true
+  },
+  "random_fold_in": {
+   "category": "rng",
+   "default": "allow",
+   "note": "init graph only, from Carbon's key; refused in forward and loss",
+   "params": {},
+   "roles": [
+    "init"
+   ],
+   "v0_interpreter": false
+  },
+  "random_seed": {
+   "category": "rng",
+   "default": "refuse",
+   "note": "not keyed by Carbon",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "random_split": {
+   "category": "rng",
+   "default": "allow",
+   "note": "init graph only, from Carbon's key; refused in forward and loss",
+   "params": {
+    "shape": "int_tuple"
+   },
+   "roles": [
+    "init"
+   ],
+   "v0_interpreter": true
+  },
+  "random_unwrap": {
+   "category": "rng",
+   "default": "allow",
+   "note": "init graph only, from Carbon's key; refused in forward and loss",
+   "params": {},
+   "roles": [
+    "init"
+   ],
+   "v0_interpreter": true
+  },
+  "random_wrap": {
+   "category": "rng",
+   "default": "allow",
+   "note": "init graph only, from Carbon's key; refused in forward and loss",
+   "params": {
+    "impl": "prng_impl"
+   },
+   "roles": [
+    "init"
+   ],
+   "v0_interpreter": true
+  },
+  "real": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce_max": {
+   "category": "reduction",
+   "default": "allow",
+   "params": {
+    "axes": "int_tuple",
+    "out_sharding": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce_min": {
+   "category": "reduction",
+   "default": "allow",
+   "params": {
+    "axes": "int_tuple",
+    "out_sharding": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce_sum": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "check GPU determinism (R1)",
+   "params": {
+    "axes": "int_tuple",
+    "out_sharding": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "remat2": {
+   "category": "nested_call",
+   "default": "review",
+   "note": "checkpointing is a training-memory choice Carbon owns",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": false
+  },
+  "reshape": {
+   "category": "shape",
+   "default": "allow",
+   "params": {
+    "dimensions": "int_tuple_or_none",
+    "new_sizes": "int_tuple",
+    "sharding": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "rev": {
+   "category": "shape",
+   "default": "allow",
+   "params": {
+    "dimensions": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "rng_bit_generator": {
+   "category": "rng",
+   "default": "refuse",
+   "note": "not keyed by Carbon",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "rng_uniform": {
+   "category": "rng",
+   "default": "refuse",
+   "note": "not keyed by Carbon",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "rsqrt": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "scan": {
+   "category": "control_flow",
+   "default": "allow",
+   "note": "static length only; needed by no family traced in Phase 0; not yet in the v0 interpreter",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": false
+  },
+  "scatter_add": {
+   "category": "shape",
+   "default": "review",
+   "note": "nondeterministic on GPU; needed by no forward or loss graph traced in Phase 0",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": false
+  },
+  "select_n": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "sharding_constraint": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "shift_right_logical": {
+   "category": "bitwise",
+   "default": "allow",
+   "note": "threefry uniform sampling; init only",
+   "params": {},
+   "roles": [
+    "init"
+   ],
+   "v0_interpreter": true
+  },
+  "sign": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "sin": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "slice": {
+   "category": "shape",
+   "default": "allow",
+   "params": {
+    "limit_indices": "int_tuple",
+    "start_indices": "int_tuple",
+    "strides": "int_tuple_or_none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "sort": {
+   "category": "reduction",
+   "default": "review",
+   "note": "kNN only",
+   "params": {
+    "dimension": "int",
+    "is_stable": "bool",
+    "num_keys": "int"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "split": {
+   "category": "shape",
+   "default": "allow",
+   "params": {
+    "axis": "int",
+    "sizes": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "sqrt": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "square": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "squeeze": {
+   "category": "shape",
+   "default": "allow",
+   "params": {
+    "dimensions": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "stop_gradient": {
+   "category": "custom_differentiation",
+   "default": "review",
+   "note": "changes what Carbon's autodiff computes",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": false
+  },
+  "sub": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "tanh": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "threefry2x32": {
+   "category": "rng",
+   "default": "allow",
+   "note": "init graph only, from Carbon's key; refused in forward and loss",
+   "params": {},
+   "roles": [
+    "init"
+   ],
+   "v0_interpreter": false
+  },
+  "top_k": {
+   "category": "reduction",
+   "default": "review",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": false
+  },
+  "transpose": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "params": {
+    "permutation": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "while": {
+   "category": "unbounded_loop",
+   "default": "refuse",
+   "note": "data-dependent trip count: compute cannot be counted statically",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  }
+ },
+ "framework_pins": {
+  "jax": "0.10.2",
+  "jaxlib": "0.10.2",
+  "neuraloperator": "2.0.0",
+  "torch": "2.13.0"
+ },
+ "rule": "Any op not listed is refused. Refused entries are listed to record the decision. Review entries are admitted for development only and flagged; each needs a decision before Level 4 v1. Roles: forward (inference graph), init (parameter construction from Carbon's key), loss.",
+ "schema": "carbon.development.level4-allowlist.v0",
+ "status": "DEVELOPMENT SPIKE (Level 4 Phase 0). Not a contract, not in CONTRACTS, not miner-facing. No cap or limit is chosen here.",
+ "version": "level4-allowlist-v0"
+}

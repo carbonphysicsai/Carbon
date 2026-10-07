@@ -1,0 +1,18 @@
+{
+ "pool": [
+  "V-T9-S0.40",
+  "V-T19-S0.06",
+  "V-T19-S0.22",
+  "V-T19-S0.40",
+  "V-T29-S0.06",
+  "V-T29-S0.22",
+  "V-T29-S0.40",
+  "V-T38-S0.22",
+  "V-T38-S0.40"
+ ],
+ "reference_judged": [
+  "V-T19-S0.22",
+  "V-T19-S0.06"
+ ],
+ "rule": "the pool scenarios with the most coarse candidates within 1 band of a limit; ties to the lower id; fixed before any solve"
+}
