@@ -9,6 +9,7 @@ find this adapter through `carbon/training_budget/adapters.json`.
 from __future__ import annotations
 
 from functools import cached_property
+from typing import ClassVar
 
 import numpy as np
 
@@ -24,7 +25,7 @@ def _leaf_count(tree):
 class BatteryAdapter:
     challenge_id = CHALLENGE
     #: Named record items (`module:attribute`), resolved on demand.
-    records = {
+    records: ClassVar[dict] = {
         "worker": "carbon.battery.compile:rebuild",
         "exam": "carbon.battery.exam:evaluate",
         "equivalence_margin": "carbon.battery.exam:ComparisonRule",

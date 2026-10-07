@@ -7,6 +7,7 @@ runs the real recipes on pinned TRAIN v1 without training them.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import ClassVar
 
 import pytest
 
@@ -33,7 +34,7 @@ class Synthetic:
 
     program: Program
     challenge_id: str = "synthetic"
-    records = {}
+    records: ClassVar[dict] = {}
 
     def contract(self):
         return None
