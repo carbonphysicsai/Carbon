@@ -117,6 +117,9 @@ class Retired:
 
 
 REGISTRY_EVIDENCE = "carbon.reconstruction.capability_registry:public_registry"
+#: The compute-cost calculator (OWNER-COMPUTE-BUDGET-01): every Challenge with
+#: a training budget adapter offers it under "train".
+COST_EVIDENCE = "carbon.training_budget.cost:cost"
 
 ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
     "burgers-dynamics-v1": Retired(
@@ -152,13 +155,17 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
             (
                 "carbon.battery.research:implementation_files",
                 "carbon.battery.practice:staged_files",
+                COST_EVIDENCE,
             ),
             "training.py and the PyTorch trainer (torch_training.py, "
             "torch_families.py) are published and staged byte-identical in "
             "practice. Practice runs a recipe in its own backend; PyTorch "
             "recipes need the PyTorch worker image "
             "(scripts/dev/torch_worker_image.sh) as the miner's worker image "
-            "(OWNER-PYTORCH-BACKEND-01).",
+            "(OWNER-PYTORCH-BACKEND-01). The cost calculator "
+            "(`python -m carbon.training_budget.cost`) is the validator's own, "
+            "so a miner sees a recipe's cost and the budget before submitting "
+            "(OWNER-COMPUTE-BUDGET-01).",
         ),
         "generate": Provided(
             (

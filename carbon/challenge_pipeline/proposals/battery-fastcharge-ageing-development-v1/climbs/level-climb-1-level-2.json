@@ -1,0 +1,61 @@
+{
+ "schema": "carbon.challenge-pipeline.level-proposal.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": 2,
+ "recorded_at": "2026-10-07T18:43:42Z",
+ "proposed_by": {
+  "agent": "graphite",
+  "role": "planner",
+  "session": "level-climb-1"
+ },
+ "capabilities": [
+  {
+   "adds": "Declarative selection of a subset of, or weighting over, a fixed, pre-solved public pool that Carbon publishes, larger than TRAIN v1; the recipe specifies which pool cases to include and how to weight them, reproducible from the recipe alone",
+   "attack_surface": "If the pool overlaps with hidden evaluation sets, a recipe could memorize evaluation cases; if pool cases are correlated with hidden cases, selection weighting could leak information about the evaluation distribution; the overlap check mitigates the first risk but not the second; a published pool also gives attackers knowledge of the training data distribution",
+   "bounds": "Same pool for everyone; no new solves; reproducible from the recipe alone; the selected subset's size counts against the Challenge's compute budget as the cost calculator measures it; the pool is disjoint from every hidden, tuning, confirmation, study and decision set, checked with the validator's overlap check; selection is deterministic given the recipe seed; applies to mlp, deeponet and fno",
+   "id": "data.pool_selection",
+   "rationale": "Access to a larger pre-solved pool than TRAIN v1 lets the recipe sample diverse operating conditions (charge rates, temperatures, SOCs), improving generalization of battery surrogates; the PE-FNO battery study trained on four current families and full SOC range, and the Bayesian multi-fidelity study showed adaptive data acquisition from a larger candidate set consistently outperforms random sampling",
+   "reconstruction": "Carbon publishes the pre-solved public pool (cases beyond TRAIN v1, solved with the same PyBaMM reference solver and JAX validation), implements the declarative selection and weighting interface in the recipe, runs the validator's overlap check against all hidden, tuning, confirmation, study and decision sets, and wires the cost calculator to measure the selected subset's size against the compute budget",
+   "sources": [
+    "card:arxiv-2508.08087v1",
+    "card:arxiv-2502.00550v2",
+    "contract:training_data.train_fraction"
+   ]
+  },
+  {
+   "adds": "Choice of quasi-Newton method for the polish steps: L-BFGS (default, the current contract), SSBFGS (self-scaled BFGS), or SSBroyden (self-scaled Broyden); these methods dynamically rescale updates based on historical gradient information",
+   "attack_surface": "Minimal: the polish optimizer is a fixed Carbon-implemented routine with no participant code; the only risk is that a quasi-Newton method with aggressive line search could overfit the training set in the final steps, but this is bounded by the step budget and the existing evaluation protocol",
+   "bounds": "Applies only when stages.polish_steps is greater than zero; the chosen optimizer runs for the number of steps specified by stages.polish_steps, drawn from the same step budget; available for mlp, deeponet and fno; implemented in JAX for the default backend and PyTorch for the PyTorch backend; no participant code runs",
+   "id": "stages.polish_optimizer",
+   "rationale": "Self-scaled quasi-Newton methods (SSBFGS, SSBroyden) dynamically rescale updates based on historical gradient information and have been shown to achieve orders-of-magnitude accuracy improvements over standard BFGS and L-BFGS on DeepONet architectures for data-driven operator learning, directly relevant to the battery DeepONet and FNO model families",
+   "reconstruction": "Carbon implements SSBFGS and SSBroyden quasi-Newton optimizers in JAX and PyTorch with line search, wires them as selectable options for the polish stage alongside the existing L-BFGS, and tests that a recipe using each optimizer reproduces the card's reported convergence behavior on a battery DeepONet configuration",
+   "sources": [
+    "card:arxiv-2501.16371v6",
+    "contract:stages.polish_steps"
+   ]
+  },
+  {
+   "adds": "Spectral-aware variant of the Muon optimizer: decomposes matrix-valued gradients into singular modes and applies mode-wise relaxed scalar auxiliary variable (RSAV) updates that adaptively regulate step sizes per spectral direction while preserving Muon's scale-balancing orthogonalized geometry",
+   "attack_surface": "Minimal: the optimizer is a fixed Carbon-implemented routine with no participant code; the RSAV mechanism adds internal optimizer state but does not expose any new input channel to participants; the only risk is that spectral step regulation could interact unexpectedly with gradient clipping, which Carbon tests during reconstruction",
+   "bounds": "Applies only when optimizer.optimizer_family is set to 'muon'; uses the same learning_rate, beta1, beta2, weight_decay and clip_norm settings as the base optimizer; available for mlp, deeponet and fno; implemented in JAX and PyTorch; no participant code runs",
+   "id": "optimizer.muon_spectral",
+   "rationale": "SpecMuon was shown to achieve faster convergence and improved stability compared with Adam, AdamW, and the original Muon optimizer on DeepONets and physics-informed neural networks, making it a promising optimizer variant for the battery DeepONet and FNO model families; the spectral-aware step regulation is particularly relevant for multi-scale battery trajectories with both fast voltage transients and slow capacity fade",
+   "reconstruction": "Carbon implements the SpecMuon optimizer in JAX and PyTorch with singular-mode decomposition and RSAV updates, wires it as a variant selectable when optimizer_family is 'muon', and tests that a recipe using it reproduces the card's reported convergence improvement over standard Muon on a battery DeepONet configuration",
+   "sources": [
+    "card:arxiv-2602.16167v1",
+    "contract:optimizer.optimizer_family"
+   ]
+  }
+ ],
+ "left_out": [
+  "No fixed, pre-solved public pool larger than TRAIN v1 is published yet; data.pool_selection is proposed but depends on Carbon publishing such a pool, validated against all hidden, tuning, confirmation, study and decision sets with the validator's overlap check.",
+  "Physics-informed training approaches (PDE residual loss via objective.pde_weight, physics warmup via stages.physics_warmup_steps) remain research_only because no candidate-side governing equation is registered for the battery DFN model.",
+  "Data augmentation that leaves TRAIN support (training_data.support_leaving_augmentation) remains an owner_decision and is not proposed at this level.",
+  "Exact symmetry augmentation (training_data.exact_symmetry_augmentation) remains research_only because no exact symmetry of the battery cycling protocol is registered.",
+  "Multi-fidelity training (combining high- and low-fidelity data) is not proposed because it requires additional data sources not available in the Challenge and would change the evidence design.",
+  "DeltaPhi residual learning is not proposed because it changes the learning objective rather than providing a declarative training setting, and would require changes at the objective level.",
+  "RAMS adaptive sampling is not proposed because it targets PDE-residual-based physics-informed training, which is not applicable to the battery Challenge.",
+  "Physics-guided data augmentation (PGDA) and inverse evolution data augmentation are not proposed because they generate new data points outside TRAIN support, which is an owner_decision."
+ ],
+ "status": "PROPOSED"
+}
