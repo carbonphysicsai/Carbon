@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-customer-feasibility-host-diagnostics",
+  "recorded_at": "2026-10-07T19:09:58Z",
+  "challenge": "eight-challenge-foundation-development",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-CUSTOMER-FEASIBILITY-02 noncanonical standalone diagnostic execution",
+    "description": "Windows host pytest for new static recipes, bundled Python panel/pipeline check and host Black after formatting repair"
+  },
+  "expected": "Thirty distinct complete-task recipes per family with null costs, no solver calls and preserved caps",
+  "observed": "12 new tests passed, all three generators returned 30 recipes, and Black reported two files unchanged. Pipeline diagnostic remained DEFINING with 7 valid records, 404 then-present lessons and zero awaiting a decision. The earlier combined host run failed collection because the host lacked repository import setup; it is not relabelled as green. Initial Black differences were repaired. These are host diagnostics, not canonical acceptance or measured solver timings.",
+  "keep": ["Keep buyer limits and expand versioned design actions; retain no-solution outcomes and phase-specific evidence."],
+  "change": ["Send this candidate to required pinned CI rather than claim an unrun local canonical candidate passed."],
+  "protocol_elements": ["challenge.reference.adequacy", "challenge.design-packet.f1", "challenge.pipeline.lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
