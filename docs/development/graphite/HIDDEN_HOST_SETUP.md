@@ -52,6 +52,14 @@ The filled-in, copy-paste sheet for the first run is
 4. **Every VM block starts with `cd /opt/carbon`,** and runs Carbon as
    `sudo -u carbon-producer -H /opt/carbon/.venv/bin/python -m ...`.
    Every module resolves its repository from `/opt/carbon`.
+5. **PC-side Carbon commands run from a checkout of the release tag:**
+   - fetched with a forced refspec, so a stale local tag is replaced:
+     `git fetch origin +refs/tags/<tag>:refs/tags/<tag>`;
+   - checked with `git rev-parse '<tag>^{commit}'` against the expected SHA;
+   - run as `cd <worktree> && uv run --frozen python -m carbon....`.
+
+   Never use `PYTHONPATH=<worktree>` with another checkout's virtualenv: its
+   editable install takes precedence and resolves the old code.
 
 ## 0. Discard the `carbon`-owned pool on the PC
 
