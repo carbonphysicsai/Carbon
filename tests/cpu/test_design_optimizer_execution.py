@@ -97,9 +97,7 @@ def test_local_search_uses_predictions_without_gradient_access():
 
 def test_malformed_registered_starts_are_refused():
     with pytest.raises(dt.TaskError):
-        make(
-            optimizer={"class": "multi_start_local", "version": "v1", "starts": [{}]}
-        )
+        make(optimizer={"class": "multi_start_local", "version": "v1", "starts": [{}]})
 
 
 def test_exhaustive_budget_stops_before_incomplete_panel():
