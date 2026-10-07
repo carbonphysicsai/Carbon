@@ -10,7 +10,7 @@ that run. Nothing here imports, unpickles or executes miner-supplied code.
 
 from __future__ import annotations
 
-from . import graph, params
+from . import graph, named, params
 from .lower_jax import CALL_OPS
 
 
@@ -76,6 +76,8 @@ def rebuild(doc, allowlist):
             if node["op"] in CALL_OPS:
                 ref = next(iter(graph.graph_refs(node["params"])))
                 outs = run(ref, ins)
+            elif node["op"] == "named_function":
+                outs = named.call(bound["name"], ins)
             else:
                 primitive = _PRIMITIVES[node["op"]]
                 out = primitive.bind(*ins, **bound)

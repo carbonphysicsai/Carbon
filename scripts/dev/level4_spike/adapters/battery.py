@@ -473,14 +473,14 @@ def equivalence_general(allowlist, strategy_, *, steps=None, seed=7, max_bytes):
     # `_fit_general`'s final-loss measure, at the B' initial parameters.
     from carbon.battery.recipes import features
 
-    z = rebuilt._encode(rebuilt.layout.targets(m.train)).astype(np.float32)
-    gw = rebuilt._group_weights(z.shape[1]).astype(np.float32)
-    f = features(m.train.x, rebuilt.rich).astype(np.float32)
-    _, p0 = documents["init_fn"](jax.random.PRNGKey(seed))
-    initial = float(
-        np.mean((np.asarray(documents["apply_fn"](p0, f)) - z) ** 2 * gw[None, :])
-        * gw.size
-    )
+    dtype = np.float64 if rebuilt.x64 else np.float32
+    z = rebuilt._encode(rebuilt.layout.targets(m.train)).astype(dtype)
+    gw = rebuilt._group_weights(z.shape[1]).astype(dtype)
+    f = features(m.train.x, rebuilt.rich).astype(dtype)
+    with jax.enable_x64(rebuilt.x64):
+        _, p0 = documents["init_fn"](jax.random.PRNGKey(seed))
+        zhat = np.asarray(documents["apply_fn"](p0, f))
+    initial = float(np.mean((zhat - z) ** 2 * gw[None, :]) * gw.size)
     review = {}
     for name in ("forward", "init"):
         for g in documents[name]["graphs"].values():
@@ -568,12 +568,16 @@ def batch(m):
     return len(m.train.case_ids)
 
 
-def _activations():
+def _choices(capability_id):
     document = json.loads((REPOSITORY / EXPANSION).read_text())["contract_document"]
     for capability in document["capabilities"]:
-        if capability["id"] == "architecture.activation":
+        if capability["id"] == capability_id:
             return capability["surface"][2]
-    raise ValueError("battery declares no activation surface")
+    raise ValueError("battery declares no surface " + capability_id)
+
+
+def _activations():
+    return _choices("architecture.activation")
 
 
 def _knn_columns(m):
@@ -744,3 +748,227 @@ def equivalence(allowlist, *, steps=None, max_bytes):
         "graph_bytes": len(raw),
     }
     return out
+
+
+# --- Phase 1 design: gradient matrix (Q1) and Carbon-built init (Q3) ----------
+
+
+def _targets(model, m):
+    """`fit`'s preprocessing: normalized targets and the group weights."""
+
+    y = model.layout.targets(m.train)
+    model.mu, model.sd = y.mean(0), y.std(0) + 1e-9
+    z = model._encode(y)
+    return z, model._group_weights(z.shape[1])
+
+
+def gradient_cases():
+    """Every trainable JAX family at every surface activation and
+    normalization, in float32, plus float64 for each family."""
+    level0 = level0_strategies()
+    bases = {"mlp": level0["scaffold_mlp"], "deeponet": level0["panel_deeponet"]}
+    for family, base in bases.items():
+        for act in _activations():
+            for norm in _choices("architecture.normalization"):
+                parameters = {
+                    **base["parameters"],
+                    "activation": act,
+                    "normalization": norm,
+                }
+                yield f"{family}/{act}/{norm}", strategy(family, parameters)
+        parameters = {
+            **base["parameters"],
+            "precision": "float64",
+            "activation": "relu",
+        }
+        yield f"{family}/relu/none/float64", strategy(family, parameters)
+
+
+def training_equivalence(allowlist, strategy_, *, steps=None, max_bytes):
+    """B' inside whichever path battery itself trains the recipe through."""
+    s = _steps(strategy_, steps)
+    m = material()
+    _, model = _model(s, m.train)
+    if model.family == "mlp" and model._classic(batch(m)):
+        result = equivalence_classic(allowlist, s, max_bytes=max_bytes)
+    else:
+        result = equivalence_general(allowlist, s, max_bytes=max_bytes)
+    return {k: result[k] for k in ("path", "steps", "bprime_matches_native", "loss")}
+
+
+def gradient_equivalence(allowlist, strategy_, *, max_bytes):
+    """Gradients of battery's training loss and of every Level 1 loss term,
+    native against B', bit for bit; and the rebuilt init."""
+    import jax
+    import jax.numpy as jnp
+    import numpy as np
+
+    from carbon.battery.recipes import features
+
+    from .. import interpret
+
+    m = material()
+    x64 = strategy_["parameters"].get("precision") == "float64"
+    with jax.enable_x64(x64):
+        net = jax_network(strategy_, m.train)
+        model, dtype = net["model"], net["dtype"]
+        z, gw = _targets(model, m)
+        z, gw = jnp.asarray(z.astype(dtype)), jnp.asarray(gw.astype(dtype))
+        f = jnp.asarray(features(m.train.x, model.rich).astype(dtype))
+        key = jax.random.PRNGKey(7)
+        _, p = net["init"](key)
+        leaves = jax.tree_util.tree_leaves(p)
+        rebuilt, doc, _ = interpret.through_bprime(
+            net["apply"],
+            (p, f),
+            role="forward",
+            allowlist=allowlist,
+            input_names=_flat_names(len(leaves)) + ["inputs/features"],
+            max_bytes=max_bytes,
+        )
+        rinit, _, _ = interpret.through_bprime(
+            net["init"],
+            (key,),
+            role="init",
+            allowlist=allowlist,
+            input_names=["carbon/key"],
+            max_bytes=max_bytes,
+        )
+        terms = loss_function(model)
+
+        def native(q):
+            return net["apply"](q, f)
+
+        def graph_(q):
+            return rebuilt(*q, f)[0]
+
+        def train_loss(forward, q):
+            return jnp.mean(jnp.sum((forward(q) - z) ** 2 * gw[None, :], axis=1))
+
+        def term_loss(forward, q):
+            return terms(forward(q), z, gw)
+
+        out = {
+            "named_functions": sorted(
+                {
+                    n["params"]["name"]
+                    for g in doc["graphs"].values()
+                    for n in g["nodes"]
+                    if n["op"] == "named_function"
+                }
+            )
+        }
+        for label, loss in (("training_loss", train_loss), ("level1_terms", term_loss)):
+            gn = jax.jit(jax.grad(lambda q, _l=loss: _l(native, q)))(p)
+            gb = jax.jit(jax.grad(lambda q, _l=loss: _l(graph_, q)))(leaves)
+            out[label] = all(
+                np.array_equal(np.asarray(a), np.asarray(b))
+                for a, b in zip(jax.tree_util.tree_leaves(gn), gb)
+            )
+        init_leaves = jax.tree_util.tree_leaves(net["init"](key))
+        out["init"] = all(
+            np.array_equal(np.asarray(a), np.asarray(b))
+            for a, b in zip(init_leaves, rinit(key))
+        )
+    return out
+
+
+def torch_init_spec(doc):
+    """A declaration a miner might write for battery's PyTorch families:
+    dense weights (in, out) he_normal over axis 0; convolution weights
+    (out, in, k) he_normal over (in, k); spectral weights held as real views
+    (in, out, modes, 2) glorot_normal over (in) and (out); vectors zeros."""
+    from .. import graph, initializers
+
+    entries = []
+    for i in doc["graphs"][doc["entry"]]["inputs"]:
+        if not i["name"].startswith("params/"):
+            continue
+        rank = len(i["shape"])
+        fan_in, fan_out, name = {
+            1: ([], [], "zeros"),
+            2: ([0], [1], "he_normal"),
+            3: ([1, 2], [0], "he_normal"),
+            4: ([0], [1], "glorot_normal"),
+        }[rank]
+        entries.append(
+            {
+                "input": i["name"],
+                "initializer": name,
+                "fan_in_axes": fan_in,
+                "fan_out_axes": fan_out,
+            }
+        )
+    return {
+        "schema": initializers.SCHEMA,
+        "graph": graph.digest(doc),
+        "parameters": entries,
+    }
+
+
+def torch_carbon_init(allowlist, strategy_, *, steps, max_bytes):
+    """Q3: a PyTorch-authored graph initialized by Carbon and trained by
+    Carbon's own `jax.grad`, with the module's own initialization unable to
+    reach the document."""
+    import hashlib
+
+    import jax
+    import jax.numpy as jnp
+    import numpy as np
+    import optax
+    import torch
+
+    from carbon.battery.recipes import features
+
+    from .. import graph, initializers, interpret, lower_torch
+
+    m = material()
+    documents = []
+    for seed in (7, 8):
+        params, net, _ = torch_network(strategy_, m.train, seed=seed)
+        _, model = _model(strategy_, m.train)
+        f = torch.tensor(features(m.train.x, model.rich).astype(np.float32))
+        _, core = lower_torch.export(net, params, f)
+        doc, _ = lower_torch.lower(core, allowlist=allowlist)
+        documents.append(graph.parse(graph.dumps(doc), max_bytes=max_bytes))
+    doc = documents[0]
+    raw_spec = graph.dumps(torch_init_spec(doc))
+    init = initializers.build(initializers.parse(raw_spec, max_bytes=max_bytes), doc)
+    rebuilt = interpret.rebuild(doc, allowlist)
+    z, gw = _targets(model, m)
+    z, gw = jnp.asarray(z.astype(np.float32)), jnp.asarray(gw.astype(np.float32))
+    jf = jnp.asarray(f.numpy())
+
+    def loss(q):
+        return jnp.mean(jnp.sum((rebuilt(*q, jf)[0] - z) ** 2 * gw[None, :], axis=1))
+
+    tx = optax.adam(1e-3)
+    p = init(jax.random.PRNGKey(7))
+    again = init(jax.random.PRNGKey(7))
+    state = tx.init(p)
+
+    @jax.jit
+    def step(q, s):
+        value, g = jax.value_and_grad(loss)(q)
+        updates, s = tx.update(g, s, q)
+        return optax.apply_updates(q, updates), s, value
+
+    first = float(jax.jit(loss)(p))
+    for _ in range(steps):
+        p, state, _ = step(p, state)
+    blob = b"".join(np.asarray(a).tobytes() for a in again)
+    return {
+        "document_independent_of_module_init": graph.digest(documents[0])
+        == graph.digest(documents[1]),
+        "init_deterministic": all(
+            np.array_equal(np.asarray(a), np.asarray(b))
+            for a, b in zip(init(jax.random.PRNGKey(7)), again)
+        ),
+        "init_sha256": hashlib.sha256(blob).hexdigest(),
+        "parameters": len(again),
+        "carbon_training": {
+            "optimizer": "optax.adam (spike demonstration only)",
+            "steps": steps,
+            "loss": [first, float(jax.jit(loss)(p))],
+        },
+    }

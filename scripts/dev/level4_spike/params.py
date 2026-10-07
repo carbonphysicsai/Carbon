@@ -10,8 +10,11 @@ precision overrides and accuracy hints stay at the framework default in v0.
 from __future__ import annotations
 
 import math
+import re
 
 from .graph import DTYPES, GraphRefused
+
+_NAME = re.compile(r"[a-z][a-z0-9_]{0,63}\Z")
 
 
 def _ints(value):
@@ -130,6 +133,11 @@ def _decode(kind, value):
         if value is not None:
             raise GraphRefused("parameter_not_default")
         return None
+    if kind == "name":
+        # Membership is the allowlist's check; the kind bounds the string.
+        if type(value) is not str or not _NAME.match(value):
+            raise GraphRefused("parameter_kind_mismatch")
+        return value
     if kind == "int":
         if type(value) is not int:
             raise GraphRefused("parameter_kind_mismatch")

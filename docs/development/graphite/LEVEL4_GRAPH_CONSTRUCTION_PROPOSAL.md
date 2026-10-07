@@ -4,6 +4,9 @@
 **From:** Fitz (owner direction), drafted with Claude, 2026-10-07
 **Status:** proposal. Nothing here is accepted, implemented or open to
 miners. It asks for the decisions in §11 and proposes the test plan in §10.
+**Update 2026-10-07:** the owner approved D1 (OWNER-LEVEL4-GRAPH-ONLY-01,
+roadmap rev 2.3). D2–D6 remain open. The Phase 0 report and the Phase 1 plan
+are in `docs/development/graphite/level4/`.
 **Read with:** `Design_Specs/Challenge_Admission.md` §3 (the ladder and Track
 A), `Design_Specs/Challenge_Roadmap.md` (climb procedure, Track A admission),
 `docs/development/graphite/ISOLATION_READINESS_L4_L5.md`, and PR #727 (the

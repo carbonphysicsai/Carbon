@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import collections
 
-from . import graph, params
+from . import graph, named, params
 
 #: Ops whose parameter of kind "graph" is evaluated inline as a nested graph.
 CALL_OPS = ("jit", "closed_call", "custom_jvp_call")
@@ -121,8 +121,17 @@ def lower(closed, *, role, allowlist, input_names):
         for i, eqn in enumerate(jaxpr.eqns):
             where = f"{name}.nodes[{i}]"
             op = eqn.primitive.name
-            spec = allowlist.admit(op, role, where)
-            encoded = params.encode(spec, eqn.params, lower_graph)
+            kernel = None
+            if op == "custom_jvp_call" and allowlist.named:
+                kernel = named.recognize(eqn, allowlist)
+            if kernel is not None:
+                # A registered kernel: one node; Carbon supplies its rule.
+                allowlist.admit("named_function", role, where)
+                allowlist.admit_named(kernel, role, where)
+                op, encoded = "named_function", {"name": kernel}
+            else:
+                spec = allowlist.admit(op, role, where)
+                encoded = params.encode(spec, eqn.params, lower_graph)
             ins = [use(a) for a in eqn.invars]
             outs = [{"value": new(v), **_aval(v.aval, where)} for v in eqn.outvars]
             nodes.append({"op": op, "in": ins, "out": outs, "params": encoded})

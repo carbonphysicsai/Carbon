@@ -38,6 +38,7 @@ DTYPES = {
     "bool": 1,
     "uint8": 1,
     "uint32": 4,
+    "uint64": 8,
     "int32": 4,
     "int64": 8,
     "bfloat16": 2,

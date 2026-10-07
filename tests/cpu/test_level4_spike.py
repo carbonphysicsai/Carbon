@@ -48,11 +48,14 @@ def allowlist():
     return allowlist_module.load()
 
 
-def test_allowlist_is_versioned_and_classified(allowlist):
-    assert allowlist.version == "level4-allowlist-v0"
+@pytest.mark.parametrize("version", ["v0", "v1"])
+def test_allowlist_is_versioned_and_classified(version):
+    path = allowlist_module.DIRECTORY / f"allowlist_{version}.json"
+    allowlist = allowlist_module.load(path)
+    assert allowlist.version == f"level4-allowlist-{version}"
     assert allowlist.digest.startswith("sha256:")
     kinds = set(re.findall(r'kind == "([a-z_]+)"', (SPIKE / "params.py").read_text()))
-    kinds |= {"none", "call_metadata", "custom_rule_dropped", "dtype_or_none"}
+    kinds |= {"none", "call_metadata", "custom_rule_dropped", "dtype_or_none", "name"}
     for name, entry in allowlist.ops.items():
         assert entry["default"] in ("allow", "review", "refuse"), name
         if entry["default"] == "refuse":

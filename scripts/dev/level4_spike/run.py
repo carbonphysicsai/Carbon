@@ -98,7 +98,7 @@ def jax_section(adapter, allowlist):
     return rows, classified, first_forward
 
 
-def torch_section(adapter, allowlist, max_bytes):
+def torch_section(adapter, allowlist, max_bytes, *, include_largest=True):
     import jax
     import jax.numpy as jnp
     import numpy as np
@@ -108,6 +108,8 @@ def torch_section(adapter, allowlist, max_bytes):
 
     rows, union, serialization = [], {}, None
     for label, strategy, largest in adapter.torch_cases():
+        if largest and not include_largest:
+            continue
         (params, net, _), (rparams, rnet, _), f = adapter.torch_build(strategy)
         started = time.perf_counter()
         raw_program, core = lower_torch.export(net, params, f)
@@ -178,7 +180,7 @@ def main(argv=None):
     from level4_spike import probes, specimens
 
     adapter = importlib.import_module(f"level4_spike.adapters.{args.adapter}")
-    allowlist = allowlist_module.load()
+    allowlist = allowlist_module.load(allowlist_module.PATH_V0)  # the Phase 0 record
     started = time.perf_counter()
     record = {
         "schema": SCHEMA,

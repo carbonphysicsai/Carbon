@@ -333,6 +333,10 @@ def _emit(b, node, env):
             )
         return out
     if target == "aten.relu.default":
+        if "relu" in b.allowlist.named:
+            # Carbon's relu and its rule (zero gradient at zero, as torch).
+            b.allowlist.admit_named("relu", "forward", target)
+            return b.emit("named_function", [x], dtype, shape, name="relu")
         return b.emit("max", [x, b.broadcast(b.scalar(0, dtype), shape)], dtype, shape)
     if target == "aten.mm.default":
         y = env[args[1]]

@@ -1,6 +1,8 @@
-"""Allowlist v0: which ops a graph may hold, in which roles, with which
-parameters. Data lives in `docs/development/graphite/level4/allowlist_v0.json`
-and is bound by digest; this module only reads it.
+"""The allowlist: which ops a graph may hold, in which roles, with which
+parameters. Data lives in `docs/development/graphite/level4/allowlist_v*.json`
+and is bound by digest; this module only reads it. v1 (the default) adds
+named functions (`named.py`) and refuses unregistered custom derivative
+rules; v0 stays loadable for the Phase 0 record.
 
 `check` is the spike's G4 subset: op membership and role, parameter kinds,
 and typed-key dtypes only where RNG is admitted. Caps (constant bytes, graph
@@ -16,9 +18,9 @@ from pathlib import Path
 
 from . import graph, params
 
-PATH = Path(__file__).resolve().parents[3] / (
-    "docs/development/graphite/level4/allowlist_v0.json"
-)
+DIRECTORY = Path(__file__).resolve().parents[3] / "docs/development/graphite/level4"
+PATH_V0 = DIRECTORY / "allowlist_v0.json"
+PATH = DIRECTORY / "allowlist_v1.json"
 HUMAN_INPUT = "HUMAN_INPUT"
 #: D6's per-Challenge values. None is chosen here.
 CAPS = {
@@ -38,6 +40,22 @@ class Allowlist:
         self.digest = "sha256:" + hashlib.sha256(raw).hexdigest()
         self.ops = self.document["carbon_ops"]
         self.aten = self.document.get("aten_core", {})
+        self.named = self.document.get("named_functions", {})
+
+    def admit_named(self, name, role, where=""):
+        """A named function's entry in `role`, or `GraphRefused`."""
+        from . import named
+
+        entry = self.named.get(name)
+        if entry is None:
+            raise graph.GraphRefused("named_function_not_allowlisted", where)
+        if entry["default"] == "refuse":
+            raise graph.GraphRefused("named_function_refused", where)
+        if name not in named.kernels():
+            raise graph.GraphRefused("named_function_not_allowlisted", where)
+        if role not in entry["roles"]:
+            raise graph.GraphRefused("op_not_allowed_in_role", where)
+        return entry
 
     def admit(self, op, role, where=""):
         """The parameter spec of `op` in `role`, or `GraphRefused`."""
@@ -68,7 +86,14 @@ class Allowlist:
             for i, node in enumerate(g["nodes"]):
                 where = f"{name}.nodes[{i}]"
                 spec = self.admit(node["op"], doc["role"], where)
-                params.decode(spec, node["params"])
+                decoded = params.decode(spec, node["params"])
+                if node["op"] == "named_function":
+                    entry = self.admit_named(decoded["name"], doc["role"], where)
+                    if len(node["in"]) != entry["arity"]:
+                        raise graph.GraphRefused("named_function_arity", where)
+                    if entry["default"] == "review":
+                        key = "named_function:" + decoded["name"]
+                        flags[key] = flags.get(key, 0) + 1
                 for out in node["out"]:
                     if out["dtype"] in graph.KEY_DTYPES and not rng_role:
                         raise graph.GraphRefused("key_dtype_outside_init", where)
