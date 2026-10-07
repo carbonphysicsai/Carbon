@@ -52,8 +52,18 @@ most about 3 % false-feasible).
        its stratum.
      - The draw is stored once per window; a redraw differently is refused.
    - **Exposure.** Each window draw adds one exposure per case. At E the
-     case retires: it leaves the live set and enters the existing release
-     queue (HUMAN_INPUT, unchanged).
+     case retires: it leaves the live set and enters the release queue.
+   - **Automatic publication** (OWNER-AUTO-PUBLISH-RETIRED-01): once every
+     window that drew a retired case has ended and is revealed
+     (`window_revealed` journals its case ids, which digest to its
+     selection digest), the case publishes into the Challenge's public
+     training pool. It goes out as a training file signed with the producer
+     key, each case with its tranche root and Merkle proof, served
+     read-only by the distribution host (`training_pool`).
+     - An unretired case is refused (`bank_case_not_retired`), as is an
+       unrevealed window (`bank_window_not_revealed`).
+     - Only `pool`, `q2`, `q3:<stratum>` and `canary` are bankable, so
+       tuning, confirmation, study and EV material can never publish.
    - **Top-up.** When the live set falls below B, a new tranche of the
      deficit is drawn from the same stratum. While it is unsealed, draws use
      what is live. A bank with fewer than n live cases cannot fill a window,
@@ -118,7 +128,6 @@ most about 3 % false-feasible).
 
 ## Out of scope
 
-- Publishing retired cases (the release decision stays HUMAN_INPUT).
 - The canary's alpha.
 - LIVE values.
 - Cooling (on hold, #752).
