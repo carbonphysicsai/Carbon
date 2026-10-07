@@ -104,7 +104,8 @@ most about 3 % false-feasible).
 - **Rule `v2-bank`** (`exam.DEVELOPMENT_RULE_V2_BANK`): v2, unchanged, plus
   `bank.pool`:
   - `window_cases` 98, with v2's 2 hidden duplicates added;
-  - `size` 4,000: 20n for each of the screening and finalist window kinds;
+  - `size` 2,000: 20n, with n = 100 cases per window. The screening and
+    finalist windows share the one bank.
   - `retire_at` 5.
 
   Battery's current v2 deployments are unaffected. A deployment moves onto
