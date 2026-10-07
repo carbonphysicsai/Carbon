@@ -31,3 +31,23 @@ the cause, and the slice or PR that fixes it. The plan is
   `c07_development_vertical.sh` and `tpu_worker_image.sh` are 100644.
   - The first two have usage lines that say to run them directly.
   - No miner path runs them.
+
+## LA-F2: the installer leaves the analysis image and GPU worker dangling
+
+- **Cell:** F01 run 2, on `carbon-fresh`, 2026-10-07, revision `f1dd652debdf`.
+- **Observed:** the installer recorded the analysis image `2872bb294218` and
+  the GPU worker `8776a915560b` by image id, and tagged neither.
+  `docker images -f dangling=true` lists both. The C-03 worker parent is
+  tagged (`carbon-cw1d4-parent:<id>`).
+- **Risk:** a `docker image prune` deletes both images without a prompt, and
+  so does Docker Desktop's "clean up". Both are routine disk-space steps.
+  Setup would then find the images missing and need a reinstall. A remote
+  `ssh-docker` send-worker would also have nothing to send.
+- **Proposed fix:** a Launchpad slice tags each image the installer builds
+  with a content-addressed name, as the worker parent already is:
+  - `carbon-analysis:<id>`;
+  - `carbon-gpu-worker:<id>`.
+
+  Verification stays by image id, and a test asserts that no recorded image
+  is dangling.
+- **Status:** open.
