@@ -78,9 +78,16 @@ The producer pushes; the distribution host never connects back.
    files into the inbox: OpenSSH's `rrsync`, restricted to one directory.
 
    ```bash
-   sudo useradd --system --create-home --home-dir /var/lib/carbon-dist --shell /usr/sbin/nologin carbon-dist
+   sudo useradd --system --create-home --home-dir /var/lib/carbon-dist --shell /bin/sh carbon-dist
    sudo install -d -m 0700 -o carbon-dist -g carbon-dist /var/lib/carbon-dist/inbox
    ```
+
+   `carbon-dist` needs a real shell (`/bin/sh`): sshd runs even the forced
+   `rrsync` command through the account's login shell, and `nologin` would
+   refuse it (rsync then fails with "protocol version mismatch"). It stays
+   confined: its one key is `restrict`ed to the forced `rrsync -wo` into the
+   inbox, the sshd `Match User carbon-dist` block allows no TTY and no
+   forwarding, and it has no password.
 
 2. **Authorize the producer's key.** In
    `/var/lib/carbon-dist/.ssh/authorized_keys`, add one line for the

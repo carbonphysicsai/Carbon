@@ -383,3 +383,34 @@ apply to every hidden batch and to `graphite-tuning-v2`.
   (#692 with commit 404559e). Six existing tests fail on main for this. The
   fix decides whether a variant ranks across device classes, so it is left
   to its owner.
+
+**Built: 117-point lattice and band-edge refine (quiz-registry-v7/v8)**
+(branch `claude/q3-refine-producer`, on #736's `value/quiz.py`). Drawn and
+reported only; it gates nothing.
+- **Lattice.** Every Q3 scenario is solved on `quiz.q3_candidates()`'s
+  117-point lattice (it contains EV4's 35-point grid and baseline).
+- **Refine.** Once a scenario's lattice is solved, every point within one
+  contract band of the plating or thermal limit (`quiz.q3_refine_points`)
+  gets a refined solve (`refined: true`, the same pinned truth image). The
+  answer key is the settled references (`quiz.q3_settle`): refined truth
+  where the refined solve is OK, the standard reference otherwise.
+  Feasibility, selection and judging use the settled references.
+- **Tuning:** new `quiz-refine --work Q` writes `Q/refine/jobs.json`
+  (owner-only) and prints refine counts per scenario and the total; then
+  `solve --work Q/refine`. `quiz-select` refuses with
+  `tuning_quiz_needs_refine` until every refine point has a terminal
+  refined record. `score --quiz` judges against the settled references.
+- **Producer:** `BatteryQuizSource.quiz_select` asks for the refined solves
+  (`{"refine": jobs}`). The producer stores them (`quiz-refine.json`), adds
+  them to the batch's `jobs.json`, and keeps the batch PENDING
+  (`QUIZ_REFINE`) until they are ingested. A tick runs that second solve and
+  seal at once. The package's quiz references are the settled ones.
+- **Counts only.** Each kept scenario records `refine: {refine_points,
+  refined_ok, residual}`, where residual is the lattice points still
+  UNRESOLVED after settling. `quiz_document.check` accepts it as optional,
+  so earlier quizzes still import.
+- **`unresolved`** (`quiz.q3_measures`) is in `quiz-scores.json`, the
+  validator's quiz report (per batch and pooled) and `hidden_score`'s quiz
+  table.
+- **Scope:** refined truth in a mainnet answer key stays the owner's
+  decision at rule v3 adoption (quiz-registry-v8).

@@ -17,6 +17,7 @@ from scripts.dev.exam_design.runpod.operator_compute import (
     ComputeError,
     ComputeService,
     ComputeStore,
+    CPUPlacement,
     Execution,
     FileCredentialProvider,
     IntentState,
@@ -106,6 +107,129 @@ def test_intent_is_durable_before_the_provider_request(env):
     assert fake.pods[record.resource_id]["name"] == f"carbon-{tag}"
     assert fake.pods[record.resource_id]["env"]["CARBON_OWNERSHIP_TAG"] == tag
     assert intent_state(root)[0] == IntentState.BOUND
+
+
+def test_cpu_request_pins_one_flavor_and_vcpu_count_without_fallback(env, monkeypatch):
+    clock, fake, _store, adapter, service, _root = env
+    req = request(
+        clock, gpu_type_id=None, gpu_count=0, cpu_placement=CPUPlacement("cpu5c", 16)
+    )
+    body = adapter.create_body(req.spec, "a" * 24)
+    assert body["computeType"] == "CPU"
+    assert body["cpuFlavorIds"] == ["cpu5c"]
+    assert body["cpuFlavorPriority"] == "custom"
+    assert body["vcpuCount"] == 16
+    assert not {"gpuTypeIds", "gpuCount", "allowedCudaVersions"} & body.keys()
+    assert req.spec.canonical()["cpu_placement"] == {
+        "flavor_id": "cpu5c",
+        "vcpu_count": 16,
+    }
+    sent = []
+
+    def capture(method, url, *, body, headers, timeout):
+        if method == "POST" and url.endswith("/v1/pods"):
+            sent.append(json.loads(body))
+        return fake(method, url, body=body, headers=headers, timeout=timeout)
+
+    monkeypatch.setattr(adapter, "_transport", capture)
+    assert service.provision(req).resource_id in fake.pods
+    assert fake.creates() == 1
+    assert len(sent) == 1
+    assert sent[0]["cpuFlavorIds"] == ["cpu5c"]
+    assert sent[0]["cpuFlavorPriority"] == "custom"
+    assert sent[0]["vcpuCount"] == 16
+
+
+@pytest.mark.parametrize("count", [0, -1, True, 16.0, "16", None])
+def test_cpu_placement_refuses_invalid_allocation(count):
+    with pytest.raises(ValueError, match="positive integer"):
+        CPUPlacement("cpu5c", count)
+
+
+@pytest.mark.parametrize("flavor", ["", "cpu5c,cpu3c", "cpu5c\n", "gpu", None, []])
+def test_cpu_placement_refuses_invalid_or_multiple_flavors(flavor):
+    with pytest.raises(ValueError, match="unsupported CPU"):
+        CPUPlacement(flavor, 16)
+
+
+@pytest.mark.parametrize("placement", [None, {"flavor_id": "cpu5c", "vcpu_count": 16}])
+def test_cpu_request_refuses_implicit_or_raw_placement(placement):
+    with pytest.raises(ValueError, match="validated CPUPlacement"):
+        spec(gpu_type_id=None, gpu_count=0, cpu_placement=placement)
+
+
+def test_cpu_request_refuses_a_subclass_that_skips_placement_validation():
+    class UnvalidatedPlacement(CPUPlacement):
+        def __post_init__(self):
+            pass
+
+    with pytest.raises(ValueError, match="validated CPUPlacement"):
+        spec(
+            gpu_type_id=None,
+            gpu_count=0,
+            cpu_placement=UnvalidatedPlacement("not-a-flavor", -1),
+        )
+
+
+def test_mixed_cpu_gpu_or_cpu_cuda_requests_are_refused():
+    with pytest.raises(ValueError, match="GPU requests"):
+        spec(cpu_placement=CPUPlacement("cpu5c", 16))
+    with pytest.raises(ValueError, match="CPU requests cannot carry"):
+        spec(
+            gpu_type_id=None,
+            gpu_count=0,
+            cpu_placement=CPUPlacement("cpu5c", 16),
+            allowed_cuda_versions=("13.0",),
+        )
+
+
+def test_gpu_canonical_identity_and_payload_keep_their_prior_shape(env):
+    _clock, _fake, _store, adapter, _service, _root = env
+    gpu = spec()
+    assert gpu.canonical() == {
+        "image": IMAGE,
+        "gpu_type_id": "NVIDIA A40",
+        "gpu_count": 1,
+        "cloud_type": "SECURE",
+        "container_disk_gb": 20,
+        "volume_gb": 0,
+        "ports": [],
+        "env": [],
+        "max_rate_usd_per_hr": 0.49,
+        "storage_usd_per_gb_month": 0.10,
+    }
+    body = adapter.create_body(gpu, "b" * 24)
+    assert body["computeType"] == "GPU"
+    assert not {"cpuFlavorIds", "cpuFlavorPriority", "vcpuCount"} & body.keys()
+
+
+@pytest.mark.parametrize(
+    "placement", [CPUPlacement("cpu3c", 16), CPUPlacement("cpu5c", 8)]
+)
+def test_changed_cpu_placement_changes_identity_and_refuses_redispatch(env, placement):
+    clock, fake, _store, _adapter, service, _root = env
+    req = request(
+        clock, gpu_type_id=None, gpu_count=0, cpu_placement=CPUPlacement("cpu5c", 16)
+    )
+    service.provision(req)
+    changed = request(clock, gpu_type_id=None, gpu_count=0, cpu_placement=placement)
+    assert req.digest() != changed.digest()
+    with pytest.raises(ComputeError, match="different request"):
+        service.provision(changed)
+    assert fake.creates() == 1
+
+
+def test_cpu_lost_create_response_reconciles_without_a_second_create(env):
+    clock, fake, store, adapter, service, _root = env
+    req = request(
+        clock, gpu_type_id=None, gpu_count=0, cpu_placement=CPUPlacement("cpu5c", 16)
+    )
+    fake.lose_next_create_response = True
+    with pytest.raises(ComputeError):
+        service.provision(req)
+    report = reconcile(store, adapter, clock=clock)
+    assert len(report.adopted) == 1 and fake.creates() == 1
+    assert service.provision(req).discovered_via == "tag_reconcile"
 
 
 def test_lost_create_response_is_adopted_by_tag_without_a_second_create(env):

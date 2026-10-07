@@ -9,8 +9,11 @@ security call under AGENTS.md §13. It supplements OWNER-SHARED-ANSWER-KEY-01,
 VALIDATOR-18's two-host design and OWNER-REHEARSAL-AND-RELEASE-01.
 
 **Scope.** It permits exactly this public bind (`intake.require_exposure`):
-1. **The host:** one Hetzner Cloud CX23 at `answers.carbonphysics.ai`,
-   about €5.49/month (the owner's spend). Its TLS certificate comes from
+1. **The host:** one Hetzner Cloud server at `answers.carbonphysics.ai`, the
+   owner's spend. It was first approved as a CX23, about €5.49/month. The
+   owner then approved a **CPX12** (1 vCPU, 2 GB, x86, Ubuntu 24.04, IPv4 and
+   IPv6, about USD 13.49/month), because CX23 to CX53 were out of stock
+   (2026-10-07, relayed by the Test Lead). Its TLS certificate comes from
    certbot.
 2. **Access:** public HTTPS on 443 only (`distribution serve`). Every
    request must be `btauth/1`-signed and come from a hotkey that holds a
@@ -28,3 +31,9 @@ VALIDATOR-18's two-host design and OWNER-REHEARSAL-AND-RELEASE-01.
 **Not permitted here:** any other service, port or host, and serving any
 producer-only set (tuning or confirmation). A change to this scope needs a
 new owner record.
+
+**Amendment, 2026-10-07 (host type only).** The host is a Hetzner Cloud CPX12.
+The scope above, items 2 to 5, is unchanged: public HTTPS on 443 only,
+permit-holder `btauth/1` fetches, per-hotkey logs, no root, solver or private
+key on the host, and push-only from the producer. The producer pushes over
+key-only SSH on the public interface; Hetzner's private network is not used.

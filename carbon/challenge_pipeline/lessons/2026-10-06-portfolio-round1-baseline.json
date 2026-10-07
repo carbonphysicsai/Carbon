@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-portfolio-round1-baseline",
+  "recorded_at": "2026-10-06T21:22:08Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "main 7f4f6936a: canonical.sh python -m pytest -q tests/cpu/test_challenge_pipeline.py", "description": "Existing pipeline baseline before the first customer-round package"},
+  "expected": "The existing queue, protocol and lessons behavior remains intact.",
+  "observed": "Pinned Ubuntu24.04/CPython3.11.16/uv0.12.7: 27 passed, 1 existing skip; no new solver or paid compute was used.",
+  "keep": ["Separate new DEVELOPMENT requirement choices from protocol transition and observed reference adequacy."],
+  "change": [],
+  "protocol_elements": ["challenge.pipeline.state", "challenge.pipeline.lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

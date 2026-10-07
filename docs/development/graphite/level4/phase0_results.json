@@ -1,0 +1,4251 @@
+{
+ "adapter": "battery",
+ "allowlist": {
+  "digest": "sha256:dc88c4b0d8d758eb1ae01d4ec567f81e64d71bc8a653a9eff5281f839ae8c488",
+  "version": "level4-allowlist-v0"
+ },
+ "caps": {
+  "call_depth": "HUMAN_INPUT",
+  "constant_bytes": "HUMAN_INPUT",
+  "document_bytes": "HUMAN_INPUT",
+  "largest_intermediate_bytes": "HUMAN_INPUT",
+  "nodes_executed": "HUMAN_INPUT"
+ },
+ "environment": {
+  "jax": "0.10.2",
+  "jax_platforms": "cpu",
+  "jaxlib": "0.10.2",
+  "machine": "x86_64",
+  "neuraloperator": "2.0.0",
+  "python": "3.11.16",
+  "torch": "2.13.0+cpu"
+ },
+ "equivalence": {
+  "batch_by_vmap": {
+   "panel_deeponet": {
+    "bit_identical": true,
+    "max_abs_difference": 0.0
+   },
+   "scaffold_mlp": {
+    "bit_identical": true,
+    "max_abs_difference": 0.0
+   }
+  },
+  "panel_deeponet": {
+   "bprime_matches_native": true,
+   "bprime_params_sha256": "d7938c2ae268d122e2fd68447265a2a118a07a08dd8c1b68c7ef193d5bd29b7a",
+   "graph_bytes": {
+    "forward": 20608,
+    "init": 28205
+   },
+   "loss": {
+    "bprime": [
+     6.834377765655518,
+     0.01673860102891922
+    ],
+    "native_final": 0.01673860102891922
+   },
+   "native_params_sha256": "d7938c2ae268d122e2fd68447265a2a118a07a08dd8c1b68c7ef193d5bd29b7a",
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "predictions_identical": true,
+   "predictions_sha256": {
+    "bprime": "22648afa593bfded455c63d0d619e6e0db62c5aef4c0800502891f5d68697f54",
+    "native": "22648afa593bfded455c63d0d619e6e0db62c5aef4c0800502891f5d68697f54"
+   },
+   "review_ops_in_graphs": {},
+   "steps": 6000
+  },
+  "panel_knn": {
+   "bit_identical": false,
+   "graph_bytes": 6066,
+   "max_abs_difference": 3.552713678800501e-15,
+   "path": "recipes.KNN.predict arithmetic (numpy float64) vs B' graph (JAX x64)",
+   "train_as_named_inputs_bytes": 796800
+  },
+  "panel_mlp": {
+   "bprime_matches_native": true,
+   "bprime_params_sha256": "1e2569d5aab305dbc08b9387e6d1fb9115e4905e19b3a3d6e79bd5cc8e701cbe",
+   "copy_matches_declarative": true,
+   "declarative_params_sha256": "1e2569d5aab305dbc08b9387e6d1fb9115e4905e19b3a3d6e79bd5cc8e701cbe",
+   "graph_bytes": {
+    "forward": 6014,
+    "init": 16336
+   },
+   "loss": {
+    "bprime": [
+     4.62322998046875,
+     0.002732544206082821
+    ],
+    "native": [
+     4.62322998046875,
+     0.002732544206082821
+    ]
+   },
+   "native_copy_params_sha256": "1e2569d5aab305dbc08b9387e6d1fb9115e4905e19b3a3d6e79bd5cc8e701cbe",
+   "path": "classic (recipes.MLP._fit_classic)",
+   "steps": 6000
+  },
+  "scaffold_mlp": {
+   "bprime_matches_native": true,
+   "bprime_params_sha256": "a908215e606a7dd863dc55f9c5a6de4a76b0e8af0355a14f31bbf233a34df07c",
+   "copy_matches_declarative": true,
+   "declarative_params_sha256": "a908215e606a7dd863dc55f9c5a6de4a76b0e8af0355a14f31bbf233a34df07c",
+   "graph_bytes": {
+    "forward": 5969,
+    "init": 16266
+   },
+   "loss": {
+    "bprime": [
+     4.6702704429626465,
+     0.07076755166053772
+    ],
+    "native": [
+     4.6702704429626465,
+     0.07076755166053772
+    ]
+   },
+   "native_copy_params_sha256": "a908215e606a7dd863dc55f9c5a6de4a76b0e8af0355a14f31bbf233a34df07c",
+   "path": "classic (recipes.MLP._fit_classic)",
+   "steps": 2000
+  },
+  "scaffold_mlp+relu (general path)": {
+   "bprime_matches_native": false,
+   "bprime_params_sha256": "4a84f41a0f0f8fcde92aabb431e940e7efdd7fbf6d5add36c4895c5d4f17890a",
+   "graph_bytes": {
+    "forward": 4711,
+    "init": 15490
+   },
+   "loss": {
+    "bprime": [
+     5.69570779800415,
+     0.07167644053697586
+    ],
+    "native_final": 0.07167766243219376
+   },
+   "native_params_sha256": "9a1856d9855c74f467772885b0d95688880c4c1f2770e783dedd93ddecfcc6a2",
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "predictions_identical": false,
+   "predictions_sha256": {
+    "bprime": "4dab62727a9057317cbf4c91c1918cdfdfcba52583614035008816a9fcca9d32",
+    "native": "6d3ef7dd95de3b0a9dfffb517728fbd628b8833415a940b5cebe4e2939955187"
+   },
+   "review_ops_in_graphs": {
+    "custom_jvp_call": 3
+   },
+   "steps": 2000
+  },
+  "scaffold_mlp+silu (general path)": {
+   "bprime_matches_native": true,
+   "bprime_params_sha256": "692c839626fd491e99658182265d2434a6053cc1ca2851ee11a8f6c069db007a",
+   "graph_bytes": {
+    "forward": 3853,
+    "init": 15490
+   },
+   "loss": {
+    "bprime": [
+     4.367374897003174,
+     0.08409640938043594
+    ],
+    "native_final": 0.08409640938043594
+   },
+   "native_params_sha256": "692c839626fd491e99658182265d2434a6053cc1ca2851ee11a8f6c069db007a",
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "predictions_identical": true,
+   "predictions_sha256": {
+    "bprime": "de1eef975cf85edd0b14abca74131500bbe482723fabfc58e51ee22800d1e725",
+    "native": "de1eef975cf85edd0b14abca74131500bbe482723fabfc58e51ee22800d1e725"
+   },
+   "review_ops_in_graphs": {},
+   "steps": 2000
+  },
+  "scaffold_mlp+softplus (general path)": {
+   "bprime_matches_native": false,
+   "bprime_params_sha256": "401649a49414ccf1e2354d53852c625594945fffb49d8842c2e9def52b9acc36",
+   "graph_bytes": {
+    "forward": 5008,
+    "init": 15490
+   },
+   "loss": {
+    "bprime": [
+     13.56251049041748,
+     0.1836581826210022
+    ],
+    "native_final": 0.1836909055709839
+   },
+   "native_params_sha256": "d1a96f27e96bd7878e58422b7242cdced4170adf59482a7e238dccdfc1c3b64b",
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "predictions_identical": false,
+   "predictions_sha256": {
+    "bprime": "54e841d59b105e826a9b5e2e17a1d4167648e1fea83b09d74bf7b33cf19558bf",
+    "native": "aaacce4faa3f9d38bc70af34023fc64a976b1da9fbab8057863a6f5ff14cecd8"
+   },
+   "review_ops_in_graphs": {
+    "custom_jvp_call": 1
+   },
+   "steps": 2000
+  },
+  "scaffold_mlp+tanh (general path)": {
+   "bprime_matches_native": true,
+   "bprime_params_sha256": "caf2b605721af3c76bc8c823dfbcd96427122a852f172315d487d32fcf6d1286",
+   "graph_bytes": {
+    "forward": 2934,
+    "init": 15490
+   },
+   "loss": {
+    "bprime": [
+     6.456679821014404,
+     0.10031509399414062
+    ],
+    "native_final": 0.10031509399414062
+   },
+   "native_params_sha256": "caf2b605721af3c76bc8c823dfbcd96427122a852f172315d487d32fcf6d1286",
+   "path": "general (recipes.MLP._fit_general -> training.train)",
+   "predictions_identical": true,
+   "predictions_sha256": {
+    "bprime": "857a533808e0e5a5f247019f9641a93d75ddde753b8a6ba34008f838617c0edf",
+    "native": "857a533808e0e5a5f247019f9641a93d75ddde753b8a6ba34008f838617c0edf"
+   },
+   "review_ops_in_graphs": {},
+   "steps": 2000
+  }
+ },
+ "jax": {
+  "graphs": [
+   {
+    "graph": {
+     "call_depth": 1,
+     "constant_bytes": 48,
+     "constant_count": 12,
+     "distinct_ops": 6,
+     "document_bytes": 5969,
+     "graphs": 1,
+     "input_bytes": 104660,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 392000,
+     "nodes_executed": 36,
+     "nodes_stored": 36,
+     "op_counts": {
+      "add": 10,
+      "broadcast_in_dim": 4,
+      "dot_general": 4,
+      "integer_pow": 3,
+      "mul": 12,
+      "tanh": 3
+     }
+    },
+    "inventory": {
+     "nesting_depth": 1,
+     "parameters": {
+      "add": [],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "dot_general": [
+       "dimension_numbers",
+       "out_sharding",
+       "precision",
+       "preferred_element_type"
+      ],
+      "integer_pow": [
+       "y"
+      ],
+      "mul": [
+       "out_dtype"
+      ],
+      "tanh": [
+       "accuracy"
+      ]
+     },
+     "primitives": {
+      "add": 10,
+      "broadcast_in_dim": 4,
+      "dot_general": 4,
+      "integer_pow": 3,
+      "mul": 12,
+      "tanh": 3
+     }
+    },
+    "label": "scaffold_mlp",
+    "role": "forward"
+   },
+   {
+    "graph": {
+     "call_depth": 4,
+     "constant_bytes": 104,
+     "constant_count": 26,
+     "distinct_ops": 16,
+     "document_bytes": 15490,
+     "graphs": 10,
+     "input_bytes": 8,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 62720,
+     "nodes_executed": 104,
+     "nodes_stored": 89,
+     "op_counts": {
+      "add": 3,
+      "bitcast_convert_type": 3,
+      "broadcast_in_dim": 10,
+      "erf_inv": 3,
+      "jit": 10,
+      "max": 3,
+      "mul": 10,
+      "or": 3,
+      "random_bits": 3,
+      "random_split": 4,
+      "random_unwrap": 4,
+      "random_wrap": 8,
+      "shift_right_logical": 3,
+      "slice": 8,
+      "squeeze": 8,
+      "sub": 6
+     }
+    },
+    "inventory": {
+     "nesting_depth": 4,
+     "parameters": {
+      "add": [],
+      "bitcast_convert_type": [
+       "new_dtype"
+      ],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "erf_inv": [],
+      "jit": [
+       "compiler_options_kvs",
+       "ctx_mesh",
+       "donated_invars",
+       "in_layouts",
+       "in_shardings",
+       "inline",
+       "jaxpr",
+       "keep_unused",
+       "name",
+       "out_layouts",
+       "out_shardings"
+      ],
+      "max": [],
+      "mul": [
+       "out_dtype"
+      ],
+      "or": [],
+      "random_bits": [
+       "bit_width",
+       "shape"
+      ],
+      "random_split": [
+       "shape"
+      ],
+      "random_unwrap": [],
+      "random_wrap": [
+       "impl"
+      ],
+      "shift_right_logical": [],
+      "slice": [
+       "limit_indices",
+       "start_indices",
+       "strides"
+      ],
+      "squeeze": [
+       "dimensions"
+      ],
+      "sub": []
+     },
+     "primitives": {
+      "add": 4,
+      "bitcast_convert_type": 4,
+      "broadcast_in_dim": 12,
+      "erf_inv": 4,
+      "jit": 12,
+      "max": 4,
+      "mul": 12,
+      "or": 4,
+      "random_bits": 4,
+      "random_split": 4,
+      "random_unwrap": 4,
+      "random_wrap": 8,
+      "shift_right_logical": 4,
+      "slice": 8,
+      "squeeze": 8,
+      "sub": 8
+     }
+    },
+    "label": "scaffold_mlp",
+    "role": "init"
+   },
+   {
+    "graph": {
+     "call_depth": 2,
+     "constant_bytes": 268,
+     "constant_count": 67,
+     "distinct_ops": 15,
+     "document_bytes": 38806,
+     "graphs": 7,
+     "input_bytes": 784980,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 392000,
+     "nodes_executed": 348,
+     "nodes_stored": 254,
+     "op_counts": {
+      "abs": 2,
+      "add": 36,
+      "broadcast_in_dim": 23,
+      "concatenate": 3,
+      "convert_element_type": 6,
+      "div": 36,
+      "fft": 1,
+      "integer_pow": 22,
+      "iota": 3,
+      "jit": 16,
+      "mul": 22,
+      "reduce_sum": 41,
+      "reshape": 6,
+      "slice": 26,
+      "sub": 11
+     }
+    },
+    "inventory": {
+     "nesting_depth": 2,
+     "parameters": {
+      "abs": [],
+      "add": [],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "concatenate": [
+       "dimension"
+      ],
+      "convert_element_type": [
+       "new_dtype",
+       "sharding",
+       "weak_type"
+      ],
+      "div": [],
+      "fft": [
+       "fft_lengths",
+       "fft_type"
+      ],
+      "integer_pow": [
+       "y"
+      ],
+      "iota": [
+       "dimension",
+       "dtype",
+       "shape",
+       "sharding"
+      ],
+      "jit": [
+       "compiler_options_kvs",
+       "ctx_mesh",
+       "donated_invars",
+       "in_layouts",
+       "in_shardings",
+       "inline",
+       "jaxpr",
+       "keep_unused",
+       "name",
+       "out_layouts",
+       "out_shardings"
+      ],
+      "mul": [
+       "out_dtype"
+      ],
+      "reduce_sum": [
+       "axes",
+       "out_sharding"
+      ],
+      "reshape": [
+       "dimensions",
+       "new_sizes",
+       "sharding"
+      ],
+      "slice": [
+       "limit_indices",
+       "start_indices",
+       "strides"
+      ],
+      "sub": []
+     },
+     "primitives": {
+      "abs": 2,
+      "add": 43,
+      "broadcast_in_dim": 30,
+      "concatenate": 10,
+      "convert_element_type": 20,
+      "div": 53,
+      "fft": 2,
+      "integer_pow": 22,
+      "iota": 10,
+      "jit": 16,
+      "mul": 36,
+      "reduce_sum": 41,
+      "reshape": 20,
+      "slice": 32,
+      "sub": 31
+     }
+    },
+    "label": "scaffold_mlp",
+    "role": "loss"
+   },
+   {
+    "graph": {
+     "call_depth": 3,
+     "constant_bytes": 56,
+     "constant_count": 14,
+     "distinct_ops": 14,
+     "document_bytes": 11192,
+     "graphs": 7,
+     "input_bytes": 104660,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 392000,
+     "nodes_executed": 90,
+     "nodes_stored": 58,
+     "op_counts": {
+      "add": 7,
+      "broadcast_in_dim": 10,
+      "convert_element_type": 2,
+      "custom_jvp_call": 3,
+      "div": 8,
+      "dot_general": 4,
+      "gt": 1,
+      "jit": 7,
+      "max": 1,
+      "reduce_sum": 5,
+      "select_n": 1,
+      "sqrt": 3,
+      "square": 1,
+      "sub": 5
+     }
+    },
+    "inventory": {
+     "nesting_depth": 3,
+     "parameters": {
+      "add": [],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "convert_element_type": [
+       "new_dtype",
+       "sharding",
+       "weak_type"
+      ],
+      "custom_jvp_call": [
+       "call_jaxpr",
+       "jvp_jaxpr_fun",
+       "num_consts",
+       "symbolic_zeros"
+      ],
+      "div": [],
+      "dot_general": [
+       "dimension_numbers",
+       "out_sharding",
+       "precision",
+       "preferred_element_type"
+      ],
+      "gt": [],
+      "jit": [
+       "compiler_options_kvs",
+       "ctx_mesh",
+       "donated_invars",
+       "in_layouts",
+       "in_shardings",
+       "inline",
+       "jaxpr",
+       "keep_unused",
+       "name",
+       "out_layouts",
+       "out_shardings"
+      ],
+      "max": [],
+      "reduce_sum": [
+       "axes",
+       "out_sharding"
+      ],
+      "select_n": [],
+      "sqrt": [
+       "accuracy"
+      ],
+      "square": [],
+      "sub": []
+     },
+     "primitives": {
+      "add": 7,
+      "broadcast_in_dim": 16,
+      "convert_element_type": 6,
+      "custom_jvp_call": 3,
+      "div": 12,
+      "dot_general": 4,
+      "gt": 3,
+      "jit": 9,
+      "max": 3,
+      "reduce_sum": 9,
+      "select_n": 3,
+      "sqrt": 3,
+      "square": 3,
+      "sub": 9
+     }
+    },
+    "label": "scaffold_mlp+relu+layer_norm",
+    "role": "forward"
+   },
+   {
+    "graph": {
+     "call_depth": 3,
+     "constant_bytes": 52,
+     "constant_count": 13,
+     "distinct_ops": 13,
+     "document_bytes": 9415,
+     "graphs": 3,
+     "input_bytes": 104660,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 392000,
+     "nodes_executed": 84,
+     "nodes_stored": 54,
+     "op_counts": {
+      "add": 7,
+      "broadcast_in_dim": 10,
+      "convert_element_type": 2,
+      "div": 8,
+      "dot_general": 4,
+      "gt": 1,
+      "jit": 4,
+      "reduce_sum": 5,
+      "select_n": 1,
+      "sqrt": 3,
+      "square": 1,
+      "sub": 5,
+      "tanh": 3
+     }
+    },
+    "inventory": {
+     "nesting_depth": 3,
+     "parameters": {
+      "add": [],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "convert_element_type": [
+       "new_dtype",
+       "sharding",
+       "weak_type"
+      ],
+      "div": [],
+      "dot_general": [
+       "dimension_numbers",
+       "out_sharding",
+       "precision",
+       "preferred_element_type"
+      ],
+      "gt": [],
+      "jit": [
+       "compiler_options_kvs",
+       "ctx_mesh",
+       "donated_invars",
+       "in_layouts",
+       "in_shardings",
+       "inline",
+       "jaxpr",
+       "keep_unused",
+       "name",
+       "out_layouts",
+       "out_shardings"
+      ],
+      "reduce_sum": [
+       "axes",
+       "out_sharding"
+      ],
+      "select_n": [],
+      "sqrt": [
+       "accuracy"
+      ],
+      "square": [],
+      "sub": [],
+      "tanh": [
+       "accuracy"
+      ]
+     },
+     "primitives": {
+      "add": 7,
+      "broadcast_in_dim": 16,
+      "convert_element_type": 6,
+      "div": 12,
+      "dot_general": 4,
+      "gt": 3,
+      "jit": 6,
+      "reduce_sum": 9,
+      "select_n": 3,
+      "sqrt": 3,
+      "square": 3,
+      "sub": 9,
+      "tanh": 3
+     }
+    },
+    "label": "scaffold_mlp+tanh+layer_norm",
+    "role": "forward"
+   },
+   {
+    "graph": {
+     "call_depth": 3,
+     "constant_bytes": 52,
+     "constant_count": 13,
+     "distinct_ops": 14,
+     "document_bytes": 10334,
+     "graphs": 4,
+     "input_bytes": 104660,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 392000,
+     "nodes_executed": 90,
+     "nodes_stored": 56,
+     "op_counts": {
+      "add": 7,
+      "broadcast_in_dim": 10,
+      "convert_element_type": 2,
+      "div": 8,
+      "dot_general": 4,
+      "gt": 1,
+      "jit": 7,
+      "logistic": 1,
+      "mul": 1,
+      "reduce_sum": 5,
+      "select_n": 1,
+      "sqrt": 3,
+      "square": 1,
+      "sub": 5
+     }
+    },
+    "inventory": {
+     "nesting_depth": 3,
+     "parameters": {
+      "add": [],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "convert_element_type": [
+       "new_dtype",
+       "sharding",
+       "weak_type"
+      ],
+      "div": [],
+      "dot_general": [
+       "dimension_numbers",
+       "out_sharding",
+       "precision",
+       "preferred_element_type"
+      ],
+      "gt": [],
+      "jit": [
+       "compiler_options_kvs",
+       "ctx_mesh",
+       "donated_invars",
+       "in_layouts",
+       "in_shardings",
+       "inline",
+       "jaxpr",
+       "keep_unused",
+       "name",
+       "out_layouts",
+       "out_shardings"
+      ],
+      "logistic": [
+       "accuracy"
+      ],
+      "mul": [
+       "out_dtype"
+      ],
+      "reduce_sum": [
+       "axes",
+       "out_sharding"
+      ],
+      "select_n": [],
+      "sqrt": [
+       "accuracy"
+      ],
+      "square": [],
+      "sub": []
+     },
+     "primitives": {
+      "add": 7,
+      "broadcast_in_dim": 16,
+      "convert_element_type": 6,
+      "div": 12,
+      "dot_general": 4,
+      "gt": 3,
+      "jit": 9,
+      "logistic": 3,
+      "mul": 3,
+      "reduce_sum": 9,
+      "select_n": 3,
+      "sqrt": 3,
+      "square": 3,
+      "sub": 9
+     }
+    },
+    "label": "scaffold_mlp+silu+layer_norm",
+    "role": "forward"
+   },
+   {
+    "graph": {
+     "call_depth": 3,
+     "constant_bytes": 56,
+     "constant_count": 14,
+     "distinct_ops": 19,
+     "document_bytes": 11489,
+     "graphs": 5,
+     "input_bytes": 104660,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 392000,
+     "nodes_executed": 117,
+     "nodes_stored": 65,
+     "op_counts": {
+      "abs": 1,
+      "add": 9,
+      "broadcast_in_dim": 10,
+      "convert_element_type": 2,
+      "custom_jvp_call": 1,
+      "div": 8,
+      "dot_general": 4,
+      "exp": 1,
+      "gt": 1,
+      "jit": 7,
+      "log1p": 1,
+      "max": 1,
+      "ne": 1,
+      "neg": 1,
+      "reduce_sum": 5,
+      "select_n": 2,
+      "sqrt": 3,
+      "square": 1,
+      "sub": 6
+     }
+    },
+    "inventory": {
+     "nesting_depth": 3,
+     "parameters": {
+      "abs": [],
+      "add": [],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "convert_element_type": [
+       "new_dtype",
+       "sharding",
+       "weak_type"
+      ],
+      "custom_jvp_call": [
+       "call_jaxpr",
+       "jvp_jaxpr_fun",
+       "num_consts",
+       "symbolic_zeros"
+      ],
+      "div": [],
+      "dot_general": [
+       "dimension_numbers",
+       "out_sharding",
+       "precision",
+       "preferred_element_type"
+      ],
+      "exp": [
+       "accuracy"
+      ],
+      "gt": [],
+      "jit": [
+       "compiler_options_kvs",
+       "ctx_mesh",
+       "donated_invars",
+       "in_layouts",
+       "in_shardings",
+       "inline",
+       "jaxpr",
+       "keep_unused",
+       "name",
+       "out_layouts",
+       "out_shardings"
+      ],
+      "log1p": [
+       "accuracy"
+      ],
+      "max": [],
+      "ne": [],
+      "neg": [],
+      "reduce_sum": [
+       "axes",
+       "out_sharding"
+      ],
+      "select_n": [],
+      "sqrt": [
+       "accuracy"
+      ],
+      "square": [],
+      "sub": []
+     },
+     "primitives": {
+      "abs": 3,
+      "add": 13,
+      "broadcast_in_dim": 16,
+      "convert_element_type": 6,
+      "custom_jvp_call": 3,
+      "div": 12,
+      "dot_general": 4,
+      "exp": 3,
+      "gt": 3,
+      "jit": 9,
+      "log1p": 3,
+      "max": 3,
+      "ne": 3,
+      "neg": 3,
+      "reduce_sum": 9,
+      "select_n": 6,
+      "sqrt": 3,
+      "square": 3,
+      "sub": 12
+     }
+    },
+    "label": "scaffold_mlp+softplus+layer_norm",
+    "role": "forward"
+   },
+   {
+    "graph": {
+     "call_depth": 1,
+     "constant_bytes": 48,
+     "constant_count": 12,
+     "distinct_ops": 6,
+     "document_bytes": 6014,
+     "graphs": 1,
+     "input_bytes": 789716,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 409600,
+     "nodes_executed": 36,
+     "nodes_stored": 36,
+     "op_counts": {
+      "add": 10,
+      "broadcast_in_dim": 4,
+      "dot_general": 4,
+      "integer_pow": 3,
+      "mul": 12,
+      "tanh": 3
+     }
+    },
+    "inventory": {
+     "nesting_depth": 1,
+     "parameters": {
+      "add": [],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "dot_general": [
+       "dimension_numbers",
+       "out_sharding",
+       "precision",
+       "preferred_element_type"
+      ],
+      "integer_pow": [
+       "y"
+      ],
+      "mul": [
+       "out_dtype"
+      ],
+      "tanh": [
+       "accuracy"
+      ]
+     },
+     "primitives": {
+      "add": 10,
+      "broadcast_in_dim": 4,
+      "dot_general": 4,
+      "integer_pow": 3,
+      "mul": 12,
+      "tanh": 3
+     }
+    },
+    "label": "panel_mlp",
+    "role": "forward"
+   },
+   {
+    "graph": {
+     "call_depth": 4,
+     "constant_bytes": 104,
+     "constant_count": 26,
+     "distinct_ops": 16,
+     "document_bytes": 15560,
+     "graphs": 10,
+     "input_bytes": 8,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 262144,
+     "nodes_executed": 104,
+     "nodes_stored": 89,
+     "op_counts": {
+      "add": 3,
+      "bitcast_convert_type": 3,
+      "broadcast_in_dim": 10,
+      "erf_inv": 3,
+      "jit": 10,
+      "max": 3,
+      "mul": 10,
+      "or": 3,
+      "random_bits": 3,
+      "random_split": 4,
+      "random_unwrap": 4,
+      "random_wrap": 8,
+      "shift_right_logical": 3,
+      "slice": 8,
+      "squeeze": 8,
+      "sub": 6
+     }
+    },
+    "inventory": {
+     "nesting_depth": 4,
+     "parameters": {
+      "add": [],
+      "bitcast_convert_type": [
+       "new_dtype"
+      ],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "erf_inv": [],
+      "jit": [
+       "compiler_options_kvs",
+       "ctx_mesh",
+       "donated_invars",
+       "in_layouts",
+       "in_shardings",
+       "inline",
+       "jaxpr",
+       "keep_unused",
+       "name",
+       "out_layouts",
+       "out_shardings"
+      ],
+      "max": [],
+      "mul": [
+       "out_dtype"
+      ],
+      "or": [],
+      "random_bits": [
+       "bit_width",
+       "shape"
+      ],
+      "random_split": [
+       "shape"
+      ],
+      "random_unwrap": [],
+      "random_wrap": [
+       "impl"
+      ],
+      "shift_right_logical": [],
+      "slice": [
+       "limit_indices",
+       "start_indices",
+       "strides"
+      ],
+      "squeeze": [
+       "dimensions"
+      ],
+      "sub": []
+     },
+     "primitives": {
+      "add": 4,
+      "bitcast_convert_type": 4,
+      "broadcast_in_dim": 12,
+      "erf_inv": 4,
+      "jit": 12,
+      "max": 4,
+      "mul": 12,
+      "or": 4,
+      "random_bits": 4,
+      "random_split": 4,
+      "random_unwrap": 4,
+      "random_wrap": 8,
+      "shift_right_logical": 4,
+      "slice": 8,
+      "squeeze": 8,
+      "sub": 8
+     }
+    },
+    "label": "panel_mlp",
+    "role": "init"
+   },
+   {
+    "graph": {
+     "call_depth": 2,
+     "constant_bytes": 268,
+     "constant_count": 67,
+     "distinct_ops": 15,
+     "document_bytes": 38806,
+     "graphs": 7,
+     "input_bytes": 784980,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 392000,
+     "nodes_executed": 348,
+     "nodes_stored": 254,
+     "op_counts": {
+      "abs": 2,
+      "add": 36,
+      "broadcast_in_dim": 23,
+      "concatenate": 3,
+      "convert_element_type": 6,
+      "div": 36,
+      "fft": 1,
+      "integer_pow": 22,
+      "iota": 3,
+      "jit": 16,
+      "mul": 22,
+      "reduce_sum": 41,
+      "reshape": 6,
+      "slice": 26,
+      "sub": 11
+     }
+    },
+    "inventory": {
+     "nesting_depth": 2,
+     "parameters": {
+      "abs": [],
+      "add": [],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "concatenate": [
+       "dimension"
+      ],
+      "convert_element_type": [
+       "new_dtype",
+       "sharding",
+       "weak_type"
+      ],
+      "div": [],
+      "fft": [
+       "fft_lengths",
+       "fft_type"
+      ],
+      "integer_pow": [
+       "y"
+      ],
+      "iota": [
+       "dimension",
+       "dtype",
+       "shape",
+       "sharding"
+      ],
+      "jit": [
+       "compiler_options_kvs",
+       "ctx_mesh",
+       "donated_invars",
+       "in_layouts",
+       "in_shardings",
+       "inline",
+       "jaxpr",
+       "keep_unused",
+       "name",
+       "out_layouts",
+       "out_shardings"
+      ],
+      "mul": [
+       "out_dtype"
+      ],
+      "reduce_sum": [
+       "axes",
+       "out_sharding"
+      ],
+      "reshape": [
+       "dimensions",
+       "new_sizes",
+       "sharding"
+      ],
+      "slice": [
+       "limit_indices",
+       "start_indices",
+       "strides"
+      ],
+      "sub": []
+     },
+     "primitives": {
+      "abs": 2,
+      "add": 43,
+      "broadcast_in_dim": 30,
+      "concatenate": 10,
+      "convert_element_type": 20,
+      "div": 53,
+      "fft": 2,
+      "integer_pow": 22,
+      "iota": 10,
+      "jit": 16,
+      "mul": 36,
+      "reduce_sum": 41,
+      "reshape": 20,
+      "slice": 32,
+      "sub": 31
+     }
+    },
+    "label": "panel_mlp",
+    "role": "loss"
+   },
+   {
+    "graph": {
+     "call_depth": 1,
+     "constant_bytes": 1104,
+     "constant_count": 38,
+     "distinct_ops": 9,
+     "document_bytes": 20608,
+     "graphs": 1,
+     "input_bytes": 1138132,
+     "largest_constant_bytes": 480,
+     "largest_intermediate_bytes": 409600,
+     "nodes_executed": 121,
+     "nodes_stored": 121,
+     "op_counts": {
+      "add": 31,
+      "broadcast_in_dim": 13,
+      "concatenate": 2,
+      "dot_general": 14,
+      "integer_pow": 9,
+      "mul": 36,
+      "slice": 5,
+      "tanh": 9,
+      "transpose": 2
+     }
+    },
+    "inventory": {
+     "nesting_depth": 1,
+     "parameters": {
+      "add": [],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "concatenate": [
+       "dimension"
+      ],
+      "dot_general": [
+       "dimension_numbers",
+       "out_sharding",
+       "precision",
+       "preferred_element_type"
+      ],
+      "integer_pow": [
+       "y"
+      ],
+      "mul": [
+       "out_dtype"
+      ],
+      "slice": [
+       "limit_indices",
+       "start_indices",
+       "strides"
+      ],
+      "tanh": [
+       "accuracy"
+      ],
+      "transpose": [
+       "permutation"
+      ]
+     },
+     "primitives": {
+      "add": 31,
+      "broadcast_in_dim": 13,
+      "concatenate": 2,
+      "dot_general": 14,
+      "integer_pow": 9,
+      "mul": 36,
+      "slice": 5,
+      "tanh": 9,
+      "transpose": 2
+     }
+    },
+    "label": "panel_deeponet",
+    "role": "forward"
+   },
+   {
+    "graph": {
+     "call_depth": 4,
+     "constant_bytes": 188,
+     "constant_count": 47,
+     "distinct_ops": 16,
+     "document_bytes": 28205,
+     "graphs": 16,
+     "input_bytes": 8,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 262144,
+     "nodes_executed": 209,
+     "nodes_stored": 164,
+     "op_counts": {
+      "add": 5,
+      "bitcast_convert_type": 5,
+      "broadcast_in_dim": 19,
+      "erf_inv": 5,
+      "jit": 18,
+      "max": 5,
+      "mul": 18,
+      "or": 5,
+      "random_bits": 5,
+      "random_split": 8,
+      "random_unwrap": 8,
+      "random_wrap": 16,
+      "shift_right_logical": 5,
+      "slice": 16,
+      "squeeze": 16,
+      "sub": 10
+     }
+    },
+    "inventory": {
+     "nesting_depth": 4,
+     "parameters": {
+      "add": [],
+      "bitcast_convert_type": [
+       "new_dtype"
+      ],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "erf_inv": [],
+      "jit": [
+       "compiler_options_kvs",
+       "ctx_mesh",
+       "donated_invars",
+       "in_layouts",
+       "in_shardings",
+       "inline",
+       "jaxpr",
+       "keep_unused",
+       "name",
+       "out_layouts",
+       "out_shardings"
+      ],
+      "max": [],
+      "mul": [
+       "out_dtype"
+      ],
+      "or": [],
+      "random_bits": [
+       "bit_width",
+       "shape"
+      ],
+      "random_split": [
+       "shape"
+      ],
+      "random_unwrap": [],
+      "random_wrap": [
+       "impl"
+      ],
+      "shift_right_logical": [],
+      "slice": [
+       "limit_indices",
+       "start_indices",
+       "strides"
+      ],
+      "squeeze": [
+       "dimensions"
+      ],
+      "sub": []
+     },
+     "primitives": {
+      "add": 8,
+      "bitcast_convert_type": 8,
+      "broadcast_in_dim": 25,
+      "erf_inv": 8,
+      "jit": 24,
+      "max": 8,
+      "mul": 24,
+      "or": 8,
+      "random_bits": 8,
+      "random_split": 8,
+      "random_unwrap": 8,
+      "random_wrap": 16,
+      "shift_right_logical": 8,
+      "slice": 16,
+      "squeeze": 16,
+      "sub": 16
+     }
+    },
+    "label": "panel_deeponet",
+    "role": "init"
+   },
+   {
+    "graph": {
+     "call_depth": 2,
+     "constant_bytes": 268,
+     "constant_count": 67,
+     "distinct_ops": 15,
+     "document_bytes": 38806,
+     "graphs": 7,
+     "input_bytes": 784980,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 392000,
+     "nodes_executed": 348,
+     "nodes_stored": 254,
+     "op_counts": {
+      "abs": 2,
+      "add": 36,
+      "broadcast_in_dim": 23,
+      "concatenate": 3,
+      "convert_element_type": 6,
+      "div": 36,
+      "fft": 1,
+      "integer_pow": 22,
+      "iota": 3,
+      "jit": 16,
+      "mul": 22,
+      "reduce_sum": 41,
+      "reshape": 6,
+      "slice": 26,
+      "sub": 11
+     }
+    },
+    "inventory": {
+     "nesting_depth": 2,
+     "parameters": {
+      "abs": [],
+      "add": [],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "concatenate": [
+       "dimension"
+      ],
+      "convert_element_type": [
+       "new_dtype",
+       "sharding",
+       "weak_type"
+      ],
+      "div": [],
+      "fft": [
+       "fft_lengths",
+       "fft_type"
+      ],
+      "integer_pow": [
+       "y"
+      ],
+      "iota": [
+       "dimension",
+       "dtype",
+       "shape",
+       "sharding"
+      ],
+      "jit": [
+       "compiler_options_kvs",
+       "ctx_mesh",
+       "donated_invars",
+       "in_layouts",
+       "in_shardings",
+       "inline",
+       "jaxpr",
+       "keep_unused",
+       "name",
+       "out_layouts",
+       "out_shardings"
+      ],
+      "mul": [
+       "out_dtype"
+      ],
+      "reduce_sum": [
+       "axes",
+       "out_sharding"
+      ],
+      "reshape": [
+       "dimensions",
+       "new_sizes",
+       "sharding"
+      ],
+      "slice": [
+       "limit_indices",
+       "start_indices",
+       "strides"
+      ],
+      "sub": []
+     },
+     "primitives": {
+      "abs": 2,
+      "add": 43,
+      "broadcast_in_dim": 30,
+      "concatenate": 10,
+      "convert_element_type": 20,
+      "div": 53,
+      "fft": 2,
+      "integer_pow": 22,
+      "iota": 10,
+      "jit": 16,
+      "mul": 36,
+      "reduce_sum": 41,
+      "reshape": 20,
+      "slice": 32,
+      "sub": 31
+     }
+    },
+    "label": "panel_deeponet",
+    "role": "loss"
+   },
+   {
+    "compile_bprime": {
+     "argument_bytes": 5792792,
+     "bytes_accessed": 26634392.0,
+     "compile_seconds": 0.036,
+     "flops": 1164181632.0,
+     "generated_code_bytes": 0,
+     "output_bytes": 393600,
+     "process_peak_rss_mb": 497.3,
+     "stablehlo_text_bytes": 10562,
+     "temp_bytes": 1638400
+    },
+    "compile_native": {
+     "argument_bytes": 5792792,
+     "bytes_accessed": 26634392.0,
+     "compile_seconds": 0.038,
+     "flops": 1164181632.0,
+     "generated_code_bytes": 0,
+     "output_bytes": 393600,
+     "process_peak_rss_mb": 495.1,
+     "stablehlo_text_bytes": 10557,
+     "temp_bytes": 1638400
+    },
+    "graph": {
+     "call_depth": 1,
+     "constant_bytes": 96,
+     "constant_count": 24,
+     "distinct_ops": 6,
+     "document_bytes": 11215,
+     "graphs": 1,
+     "input_bytes": 5792792,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 819200,
+     "nodes_executed": 69,
+     "nodes_stored": 69,
+     "op_counts": {
+      "add": 19,
+      "broadcast_in_dim": 7,
+      "dot_general": 7,
+      "integer_pow": 6,
+      "mul": 24,
+      "tanh": 6
+     }
+    },
+    "inventory": {
+     "nesting_depth": 1,
+     "parameters": {
+      "add": [],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "dot_general": [
+       "dimension_numbers",
+       "out_sharding",
+       "precision",
+       "preferred_element_type"
+      ],
+      "integer_pow": [
+       "y"
+      ],
+      "mul": [
+       "out_dtype"
+      ],
+      "tanh": [
+       "accuracy"
+      ]
+     },
+     "primitives": {
+      "add": 19,
+      "broadcast_in_dim": 7,
+      "dot_general": 7,
+      "integer_pow": 6,
+      "mul": 24,
+      "tanh": 6
+     }
+    },
+    "label": "largest_mlp",
+    "role": "forward"
+   },
+   {
+    "graph": {
+     "call_depth": 4,
+     "constant_bytes": 128,
+     "constant_count": 32,
+     "distinct_ops": 16,
+     "document_bytes": 20528,
+     "graphs": 10,
+     "input_bytes": 8,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 1048576,
+     "nodes_executed": 182,
+     "nodes_stored": 122,
+     "op_counts": {
+      "add": 3,
+      "bitcast_convert_type": 3,
+      "broadcast_in_dim": 13,
+      "erf_inv": 3,
+      "jit": 13,
+      "max": 3,
+      "mul": 13,
+      "or": 3,
+      "random_bits": 3,
+      "random_split": 7,
+      "random_unwrap": 7,
+      "random_wrap": 14,
+      "shift_right_logical": 3,
+      "slice": 14,
+      "squeeze": 14,
+      "sub": 6
+     }
+    },
+    "inventory": {
+     "nesting_depth": 4,
+     "parameters": {
+      "add": [],
+      "bitcast_convert_type": [
+       "new_dtype"
+      ],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "erf_inv": [],
+      "jit": [
+       "compiler_options_kvs",
+       "ctx_mesh",
+       "donated_invars",
+       "in_layouts",
+       "in_shardings",
+       "inline",
+       "jaxpr",
+       "keep_unused",
+       "name",
+       "out_layouts",
+       "out_shardings"
+      ],
+      "max": [],
+      "mul": [
+       "out_dtype"
+      ],
+      "or": [],
+      "random_bits": [
+       "bit_width",
+       "shape"
+      ],
+      "random_split": [
+       "shape"
+      ],
+      "random_unwrap": [],
+      "random_wrap": [
+       "impl"
+      ],
+      "shift_right_logical": [],
+      "slice": [
+       "limit_indices",
+       "start_indices",
+       "strides"
+      ],
+      "squeeze": [
+       "dimensions"
+      ],
+      "sub": []
+     },
+     "primitives": {
+      "add": 7,
+      "bitcast_convert_type": 7,
+      "broadcast_in_dim": 21,
+      "erf_inv": 7,
+      "jit": 21,
+      "max": 7,
+      "mul": 21,
+      "or": 7,
+      "random_bits": 7,
+      "random_split": 7,
+      "random_unwrap": 7,
+      "random_wrap": 14,
+      "shift_right_logical": 7,
+      "slice": 14,
+      "squeeze": 14,
+      "sub": 14
+     }
+    },
+    "label": "largest_mlp",
+    "role": "init"
+   },
+   {
+    "graph": {
+     "call_depth": 2,
+     "constant_bytes": 284,
+     "constant_count": 71,
+     "distinct_ops": 15,
+     "document_bytes": 44065,
+     "graphs": 12,
+     "input_bytes": 788184,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 393600,
+     "nodes_executed": 348,
+     "nodes_stored": 288,
+     "op_counts": {
+      "abs": 2,
+      "add": 38,
+      "broadcast_in_dim": 25,
+      "concatenate": 5,
+      "convert_element_type": 10,
+      "div": 38,
+      "fft": 2,
+      "integer_pow": 22,
+      "iota": 5,
+      "jit": 16,
+      "mul": 26,
+      "reduce_sum": 41,
+      "reshape": 10,
+      "slice": 32,
+      "sub": 16
+     }
+    },
+    "inventory": {
+     "nesting_depth": 2,
+     "parameters": {
+      "abs": [],
+      "add": [],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "concatenate": [
+       "dimension"
+      ],
+      "convert_element_type": [
+       "new_dtype",
+       "sharding",
+       "weak_type"
+      ],
+      "div": [],
+      "fft": [
+       "fft_lengths",
+       "fft_type"
+      ],
+      "integer_pow": [
+       "y"
+      ],
+      "iota": [
+       "dimension",
+       "dtype",
+       "shape",
+       "sharding"
+      ],
+      "jit": [
+       "compiler_options_kvs",
+       "ctx_mesh",
+       "donated_invars",
+       "in_layouts",
+       "in_shardings",
+       "inline",
+       "jaxpr",
+       "keep_unused",
+       "name",
+       "out_layouts",
+       "out_shardings"
+      ],
+      "mul": [
+       "out_dtype"
+      ],
+      "reduce_sum": [
+       "axes",
+       "out_sharding"
+      ],
+      "reshape": [
+       "dimensions",
+       "new_sizes",
+       "sharding"
+      ],
+      "slice": [
+       "limit_indices",
+       "start_indices",
+       "strides"
+      ],
+      "sub": []
+     },
+     "primitives": {
+      "abs": 2,
+      "add": 43,
+      "broadcast_in_dim": 30,
+      "concatenate": 10,
+      "convert_element_type": 20,
+      "div": 53,
+      "fft": 2,
+      "integer_pow": 22,
+      "iota": 10,
+      "jit": 16,
+      "mul": 36,
+      "reduce_sum": 41,
+      "reshape": 20,
+      "slice": 32,
+      "sub": 31
+     }
+    },
+    "label": "largest_mlp",
+    "role": "loss"
+   },
+   {
+    "compile_native": {
+     "argument_bytes": 6187376,
+     "bytes_accessed": 135385824.0,
+     "compile_seconds": 0.249,
+     "flops": 3506408704.0,
+     "generated_code_bytes": 0,
+     "output_bytes": 5778516,
+     "process_peak_rss_mb": 572.9,
+     "stablehlo_text_bytes": 97517,
+     "temp_bytes": 13263808
+    },
+    "inventory": {
+     "nesting_depth": 4,
+     "parameters": {
+      "abs": [],
+      "add": [],
+      "add_any": [],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "complex": [],
+      "concatenate": [
+       "dimension"
+      ],
+      "conj": [
+       "input_dtype"
+      ],
+      "convert_element_type": [
+       "new_dtype",
+       "sharding",
+       "weak_type"
+      ],
+      "div": [],
+      "dot_general": [
+       "dimension_numbers",
+       "out_sharding",
+       "precision",
+       "preferred_element_type"
+      ],
+      "dynamic_update_slice": [],
+      "eq": [],
+      "fft": [
+       "fft_lengths",
+       "fft_type"
+      ],
+      "integer_pow": [
+       "y"
+      ],
+      "iota": [
+       "dimension",
+       "dtype",
+       "shape",
+       "sharding"
+      ],
+      "jit": [
+       "compiler_options_kvs",
+       "ctx_mesh",
+       "donated_invars",
+       "in_layouts",
+       "in_shardings",
+       "inline",
+       "jaxpr",
+       "keep_unused",
+       "name",
+       "out_layouts",
+       "out_shardings"
+      ],
+      "mul": [
+       "out_dtype"
+      ],
+      "neg": [],
+      "pad": [
+       "padding_config"
+      ],
+      "reduce_sum": [
+       "axes",
+       "out_sharding"
+      ],
+      "reshape": [
+       "dimensions",
+       "new_sizes",
+       "sharding"
+      ],
+      "select_n": [],
+      "slice": [
+       "limit_indices",
+       "start_indices",
+       "strides"
+      ],
+      "sub": [],
+      "tanh": [
+       "accuracy"
+      ],
+      "transpose": [
+       "permutation"
+      ]
+     },
+     "primitives": {
+      "abs": 2,
+      "add": 62,
+      "add_any": 40,
+      "broadcast_in_dim": 73,
+      "complex": 2,
+      "concatenate": 10,
+      "conj": 4,
+      "convert_element_type": 22,
+      "div": 81,
+      "dot_general": 20,
+      "dynamic_update_slice": 3,
+      "eq": 2,
+      "fft": 4,
+      "integer_pow": 34,
+      "iota": 10,
+      "jit": 26,
+      "mul": 177,
+      "neg": 6,
+      "pad": 20,
+      "reduce_sum": 55,
+      "reshape": 27,
+      "select_n": 2,
+      "slice": 32,
+      "sub": 51,
+      "tanh": 6,
+      "transpose": 7
+     }
+    },
+    "label": "largest_mlp",
+    "role": "carbon_train_step"
+   },
+   {
+    "compile_bprime": {
+     "argument_bytes": 11081752,
+     "bytes_accessed": 51477124.0,
+     "compile_seconds": 0.073,
+     "flops": 1800566528.0,
+     "generated_code_bytes": 0,
+     "output_bytes": 393600,
+     "process_peak_rss_mb": 583.7,
+     "stablehlo_text_bytes": 34986,
+     "temp_bytes": 2377728
+    },
+    "compile_native": {
+     "argument_bytes": 11081752,
+     "bytes_accessed": 51477124.0,
+     "compile_seconds": 0.072,
+     "flops": 1800566528.0,
+     "generated_code_bytes": 0,
+     "output_bytes": 393600,
+     "process_peak_rss_mb": 579.2,
+     "stablehlo_text_bytes": 34981,
+     "temp_bytes": 2377728
+    },
+    "graph": {
+     "call_depth": 1,
+     "constant_bytes": 1252,
+     "constant_count": 74,
+     "distinct_ops": 9,
+     "document_bytes": 36115,
+     "graphs": 1,
+     "input_bytes": 11081752,
+     "largest_constant_bytes": 484,
+     "largest_intermediate_bytes": 819200,
+     "nodes_executed": 220,
+     "nodes_stored": 220,
+     "op_counts": {
+      "add": 58,
+      "broadcast_in_dim": 22,
+      "concatenate": 2,
+      "dot_general": 23,
+      "integer_pow": 18,
+      "mul": 72,
+      "slice": 5,
+      "tanh": 18,
+      "transpose": 2
+     }
+    },
+    "inventory": {
+     "nesting_depth": 1,
+     "parameters": {
+      "add": [],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "concatenate": [
+       "dimension"
+      ],
+      "dot_general": [
+       "dimension_numbers",
+       "out_sharding",
+       "precision",
+       "preferred_element_type"
+      ],
+      "integer_pow": [
+       "y"
+      ],
+      "mul": [
+       "out_dtype"
+      ],
+      "slice": [
+       "limit_indices",
+       "start_indices",
+       "strides"
+      ],
+      "tanh": [
+       "accuracy"
+      ],
+      "transpose": [
+       "permutation"
+      ]
+     },
+     "primitives": {
+      "add": 58,
+      "broadcast_in_dim": 22,
+      "concatenate": 2,
+      "dot_general": 23,
+      "integer_pow": 18,
+      "mul": 72,
+      "slice": 5,
+      "tanh": 18,
+      "transpose": 2
+     }
+    },
+    "label": "largest_deeponet",
+    "role": "forward"
+   },
+   {
+    "graph": {
+     "call_depth": 4,
+     "constant_bytes": 236,
+     "constant_count": 59,
+     "distinct_ops": 16,
+     "document_bytes": 38337,
+     "graphs": 16,
+     "input_bytes": 8,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 1048576,
+     "nodes_executed": 365,
+     "nodes_stored": 230,
+     "op_counts": {
+      "add": 5,
+      "bitcast_convert_type": 5,
+      "broadcast_in_dim": 25,
+      "erf_inv": 5,
+      "jit": 24,
+      "max": 5,
+      "mul": 24,
+      "or": 5,
+      "random_bits": 5,
+      "random_split": 14,
+      "random_unwrap": 14,
+      "random_wrap": 28,
+      "shift_right_logical": 5,
+      "slice": 28,
+      "squeeze": 28,
+      "sub": 10
+     }
+    },
+    "inventory": {
+     "nesting_depth": 4,
+     "parameters": {
+      "add": [],
+      "bitcast_convert_type": [
+       "new_dtype"
+      ],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "erf_inv": [],
+      "jit": [
+       "compiler_options_kvs",
+       "ctx_mesh",
+       "donated_invars",
+       "in_layouts",
+       "in_shardings",
+       "inline",
+       "jaxpr",
+       "keep_unused",
+       "name",
+       "out_layouts",
+       "out_shardings"
+      ],
+      "max": [],
+      "mul": [
+       "out_dtype"
+      ],
+      "or": [],
+      "random_bits": [
+       "bit_width",
+       "shape"
+      ],
+      "random_split": [
+       "shape"
+      ],
+      "random_unwrap": [],
+      "random_wrap": [
+       "impl"
+      ],
+      "shift_right_logical": [],
+      "slice": [
+       "limit_indices",
+       "start_indices",
+       "strides"
+      ],
+      "squeeze": [
+       "dimensions"
+      ],
+      "sub": []
+     },
+     "primitives": {
+      "add": 14,
+      "bitcast_convert_type": 14,
+      "broadcast_in_dim": 43,
+      "erf_inv": 14,
+      "jit": 42,
+      "max": 14,
+      "mul": 42,
+      "or": 14,
+      "random_bits": 14,
+      "random_split": 14,
+      "random_unwrap": 14,
+      "random_wrap": 28,
+      "shift_right_logical": 14,
+      "slice": 28,
+      "squeeze": 28,
+      "sub": 28
+     }
+    },
+    "label": "largest_deeponet",
+    "role": "init"
+   },
+   {
+    "graph": {
+     "call_depth": 2,
+     "constant_bytes": 284,
+     "constant_count": 71,
+     "distinct_ops": 15,
+     "document_bytes": 44065,
+     "graphs": 12,
+     "input_bytes": 788184,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 393600,
+     "nodes_executed": 348,
+     "nodes_stored": 288,
+     "op_counts": {
+      "abs": 2,
+      "add": 38,
+      "broadcast_in_dim": 25,
+      "concatenate": 5,
+      "convert_element_type": 10,
+      "div": 38,
+      "fft": 2,
+      "integer_pow": 22,
+      "iota": 5,
+      "jit": 16,
+      "mul": 26,
+      "reduce_sum": 41,
+      "reshape": 10,
+      "slice": 32,
+      "sub": 16
+     }
+    },
+    "inventory": {
+     "nesting_depth": 2,
+     "parameters": {
+      "abs": [],
+      "add": [],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "concatenate": [
+       "dimension"
+      ],
+      "convert_element_type": [
+       "new_dtype",
+       "sharding",
+       "weak_type"
+      ],
+      "div": [],
+      "fft": [
+       "fft_lengths",
+       "fft_type"
+      ],
+      "integer_pow": [
+       "y"
+      ],
+      "iota": [
+       "dimension",
+       "dtype",
+       "shape",
+       "sharding"
+      ],
+      "jit": [
+       "compiler_options_kvs",
+       "ctx_mesh",
+       "donated_invars",
+       "in_layouts",
+       "in_shardings",
+       "inline",
+       "jaxpr",
+       "keep_unused",
+       "name",
+       "out_layouts",
+       "out_shardings"
+      ],
+      "mul": [
+       "out_dtype"
+      ],
+      "reduce_sum": [
+       "axes",
+       "out_sharding"
+      ],
+      "reshape": [
+       "dimensions",
+       "new_sizes",
+       "sharding"
+      ],
+      "slice": [
+       "limit_indices",
+       "start_indices",
+       "strides"
+      ],
+      "sub": []
+     },
+     "primitives": {
+      "abs": 2,
+      "add": 43,
+      "broadcast_in_dim": 30,
+      "concatenate": 10,
+      "convert_element_type": 20,
+      "div": 53,
+      "fft": 2,
+      "integer_pow": 22,
+      "iota": 10,
+      "jit": 16,
+      "mul": 36,
+      "reduce_sum": 41,
+      "reshape": 20,
+      "slice": 32,
+      "sub": 31
+     }
+    },
+    "label": "largest_deeponet",
+    "role": "loss"
+   },
+   {
+    "compile_native": {
+     "argument_bytes": 11476336,
+     "bytes_accessed": 257901648.0,
+     "compile_seconds": 0.337,
+     "flops": 5423033856.0,
+     "generated_code_bytes": 0,
+     "output_bytes": 11067596,
+     "process_peak_rss_mb": 613.4,
+     "stablehlo_text_bytes": 165881,
+     "temp_bytes": 20614720
+    },
+    "inventory": {
+     "nesting_depth": 4,
+     "parameters": {
+      "abs": [],
+      "add": [],
+      "add_any": [],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "complex": [],
+      "concatenate": [
+       "dimension"
+      ],
+      "conj": [
+       "input_dtype"
+      ],
+      "convert_element_type": [
+       "new_dtype",
+       "sharding",
+       "weak_type"
+      ],
+      "div": [],
+      "dot_general": [
+       "dimension_numbers",
+       "out_sharding",
+       "precision",
+       "preferred_element_type"
+      ],
+      "dynamic_update_slice": [],
+      "eq": [],
+      "fft": [
+       "fft_lengths",
+       "fft_type"
+      ],
+      "integer_pow": [
+       "y"
+      ],
+      "iota": [
+       "dimension",
+       "dtype",
+       "shape",
+       "sharding"
+      ],
+      "jit": [
+       "compiler_options_kvs",
+       "ctx_mesh",
+       "donated_invars",
+       "in_layouts",
+       "in_shardings",
+       "inline",
+       "jaxpr",
+       "keep_unused",
+       "name",
+       "out_layouts",
+       "out_shardings"
+      ],
+      "mul": [
+       "out_dtype"
+      ],
+      "neg": [],
+      "pad": [
+       "padding_config"
+      ],
+      "reduce_sum": [
+       "axes",
+       "out_sharding"
+      ],
+      "reshape": [
+       "dimensions",
+       "new_sizes",
+       "sharding"
+      ],
+      "select_n": [],
+      "slice": [
+       "limit_indices",
+       "start_indices",
+       "strides"
+      ],
+      "split": [
+       "axis",
+       "sizes"
+      ],
+      "sub": [],
+      "tanh": [
+       "accuracy"
+      ],
+      "transpose": [
+       "permutation"
+      ]
+     },
+     "primitives": {
+      "abs": 2,
+      "add": 101,
+      "add_any": 92,
+      "broadcast_in_dim": 88,
+      "complex": 2,
+      "concatenate": 12,
+      "conj": 4,
+      "convert_element_type": 22,
+      "div": 81,
+      "dot_general": 66,
+      "dynamic_update_slice": 3,
+      "eq": 2,
+      "fft": 4,
+      "integer_pow": 58,
+      "iota": 10,
+      "jit": 26,
+      "mul": 348,
+      "neg": 6,
+      "pad": 25,
+      "reduce_sum": 85,
+      "reshape": 42,
+      "select_n": 2,
+      "slice": 37,
+      "split": 2,
+      "sub": 78,
+      "tanh": 18,
+      "transpose": 27
+     }
+    },
+    "label": "largest_deeponet",
+    "role": "carbon_train_step"
+   },
+   {
+    "graph": {
+     "call_depth": 2,
+     "constant_bytes": 40,
+     "constant_count": 6,
+     "distinct_ops": 17,
+     "document_bytes": 6066,
+     "graphs": 4,
+     "input_bytes": 809600,
+     "largest_constant_bytes": 8,
+     "largest_intermediate_bytes": 5120000,
+     "nodes_executed": 30,
+     "nodes_stored": 30,
+     "op_counts": {
+      "add": 3,
+      "broadcast_in_dim": 4,
+      "convert_element_type": 2,
+      "div": 2,
+      "dot_general": 1,
+      "gather": 2,
+      "iota": 1,
+      "jit": 3,
+      "lt": 2,
+      "mul": 1,
+      "reduce_sum": 2,
+      "reshape": 1,
+      "select_n": 2,
+      "slice": 1,
+      "sort": 1,
+      "sqrt": 1,
+      "sub": 1
+     }
+    },
+    "inventory": {
+     "nesting_depth": 2,
+     "parameters": {
+      "add": [],
+      "broadcast_in_dim": [
+       "broadcast_dimensions",
+       "shape",
+       "sharding"
+      ],
+      "convert_element_type": [
+       "new_dtype",
+       "sharding",
+       "weak_type"
+      ],
+      "div": [],
+      "dot_general": [
+       "dimension_numbers",
+       "out_sharding",
+       "precision",
+       "preferred_element_type"
+      ],
+      "gather": [
+       "dimension_numbers",
+       "fill_value",
+       "indices_are_sorted",
+       "mode",
+       "slice_sizes",
+       "unique_indices"
+      ],
+      "iota": [
+       "dimension",
+       "dtype",
+       "shape",
+       "sharding"
+      ],
+      "jit": [
+       "compiler_options_kvs",
+       "ctx_mesh",
+       "donated_invars",
+       "in_layouts",
+       "in_shardings",
+       "inline",
+       "jaxpr",
+       "keep_unused",
+       "name",
+       "out_layouts",
+       "out_shardings"
+      ],
+      "lt": [],
+      "mul": [
+       "out_dtype"
+      ],
+      "reduce_sum": [
+       "axes",
+       "out_sharding"
+      ],
+      "reshape": [
+       "dimensions",
+       "new_sizes",
+       "sharding"
+      ],
+      "select_n": [],
+      "slice": [
+       "limit_indices",
+       "start_indices",
+       "strides"
+      ],
+      "sort": [
+       "dimension",
+       "is_stable",
+       "num_keys"
+      ],
+      "sqrt": [
+       "accuracy"
+      ],
+      "sub": []
+     },
+     "primitives": {
+      "add": 3,
+      "broadcast_in_dim": 4,
+      "convert_element_type": 2,
+      "div": 2,
+      "dot_general": 1,
+      "gather": 2,
+      "iota": 1,
+      "jit": 3,
+      "lt": 2,
+      "mul": 1,
+      "reduce_sum": 2,
+      "reshape": 1,
+      "select_n": 2,
+      "slice": 1,
+      "sort": 1,
+      "sqrt": 1,
+      "sub": 1
+     }
+    },
+    "label": "panel_knn",
+    "role": "forward"
+   }
+  ],
+  "primitive_union": {
+   "abs": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "forward": 3,
+     "loss": 10
+    }
+   },
+   "add": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "forward": 165,
+     "init": 37,
+     "loss": 215
+    }
+   },
+   "bitcast_convert_type": {
+    "allowlist": "allow",
+    "category": "bitwise",
+    "roles": {
+     "init": 37
+    }
+   },
+   "broadcast_in_dim": {
+    "allowlist": "allow",
+    "category": "shape",
+    "roles": {
+     "forward": 118,
+     "init": 113,
+     "loss": 150
+    }
+   },
+   "concatenate": {
+    "allowlist": "allow",
+    "category": "shape",
+    "roles": {
+     "forward": 4,
+     "loss": 50
+    }
+   },
+   "convert_element_type": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "forward": 26,
+     "loss": 100
+    }
+   },
+   "custom_jvp_call": {
+    "allowlist": "review",
+    "category": "custom_differentiation",
+    "roles": {
+     "forward": 6
+    }
+   },
+   "div": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "forward": 50,
+     "loss": 265
+    }
+   },
+   "dot_general": {
+    "allowlist": "allow",
+    "category": "linear_algebra",
+    "roles": {
+     "forward": 69
+    }
+   },
+   "erf_inv": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "init": 37
+    }
+   },
+   "exp": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "forward": 3
+    }
+   },
+   "fft": {
+    "allowlist": "allow",
+    "category": "spectral",
+    "roles": {
+     "loss": 10
+    }
+   },
+   "gather": {
+    "allowlist": "review",
+    "category": "shape",
+    "roles": {
+     "forward": 2
+    }
+   },
+   "gt": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "forward": 12
+    }
+   },
+   "integer_pow": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "forward": 39,
+     "loss": 110
+    }
+   },
+   "iota": {
+    "allowlist": "allow",
+    "category": "shape",
+    "roles": {
+     "forward": 1,
+     "loss": 50
+    }
+   },
+   "jit": {
+    "allowlist": "allow",
+    "category": "nested_call",
+    "roles": {
+     "forward": 36,
+     "init": 111,
+     "loss": 80
+    }
+   },
+   "log1p": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "forward": 3
+    }
+   },
+   "logistic": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "forward": 3
+    }
+   },
+   "lt": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "forward": 2
+    }
+   },
+   "max": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "forward": 6,
+     "init": 37
+    }
+   },
+   "mul": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "forward": 160,
+     "init": 111,
+     "loss": 180
+    }
+   },
+   "ne": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "forward": 3
+    }
+   },
+   "neg": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "forward": 3
+    }
+   },
+   "or": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "init": 37
+    }
+   },
+   "random_bits": {
+    "allowlist": "allow",
+    "category": "rng",
+    "roles": {
+     "init": 37
+    }
+   },
+   "random_split": {
+    "allowlist": "allow",
+    "category": "rng",
+    "roles": {
+     "init": 37
+    }
+   },
+   "random_unwrap": {
+    "allowlist": "allow",
+    "category": "rng",
+    "roles": {
+     "init": 37
+    }
+   },
+   "random_wrap": {
+    "allowlist": "allow",
+    "category": "rng",
+    "roles": {
+     "init": 74
+    }
+   },
+   "reduce_sum": {
+    "allowlist": "allow",
+    "category": "reduction",
+    "roles": {
+     "forward": 38,
+     "loss": 205
+    }
+   },
+   "reshape": {
+    "allowlist": "allow",
+    "category": "shape",
+    "roles": {
+     "forward": 1,
+     "loss": 100
+    }
+   },
+   "select_n": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "forward": 17
+    }
+   },
+   "shift_right_logical": {
+    "allowlist": "allow",
+    "category": "bitwise",
+    "roles": {
+     "init": 37
+    }
+   },
+   "slice": {
+    "allowlist": "allow",
+    "category": "shape",
+    "roles": {
+     "forward": 11,
+     "init": 74,
+     "loss": 160
+    }
+   },
+   "sort": {
+    "allowlist": "review",
+    "category": "reduction",
+    "roles": {
+     "forward": 1
+    }
+   },
+   "sqrt": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "forward": 13
+    }
+   },
+   "square": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "forward": 12
+    }
+   },
+   "squeeze": {
+    "allowlist": "allow",
+    "category": "shape",
+    "roles": {
+     "init": 74
+    }
+   },
+   "sub": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "forward": 40,
+     "init": 74,
+     "loss": 155
+    }
+   },
+   "tanh": {
+    "allowlist": "allow",
+    "category": "elementwise",
+    "roles": {
+     "forward": 42
+    }
+   },
+   "transpose": {
+    "allowlist": "allow",
+    "category": "linear_algebra",
+    "roles": {
+     "forward": 4
+    }
+   }
+  }
+ },
+ "schema": "carbon.development.level4-phase0-results.v0",
+ "seconds": 207.7,
+ "serialization": {
+  "jax_export": {
+   "export_of_pure_callback": "refused: NotImplementedError",
+   "in_memory_has_vjp": true,
+   "serialize": {
+    "available": false,
+    "reason": "Please install 'flatbuffers' in order to use Exported serialization"
+   },
+   "stablehlo_text": {
+    "bytes": 7814,
+    "ops": [
+     "builtin.module",
+     "func.func",
+     "func.return",
+     "stablehlo.add",
+     "stablehlo.broadcast_in_dim",
+     "stablehlo.constant",
+     "stablehlo.dot_general",
+     "stablehlo.multiply",
+     "stablehlo.tanh"
+    ],
+    "parsed_by": "MLIR C++ parser in jaxlib (ir.Module.parse)"
+   }
+  },
+  "torch_export": {
+   "archive_bytes": 33982625,
+   "entries": [
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_0"
+    },
+    {
+     "bytes": 4718592,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_1"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_2"
+    },
+    {
+     "bytes": 4718592,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_3"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_4"
+    },
+    {
+     "bytes": 4718592,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_5"
+    },
+    {
+     "bytes": 262144,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_6"
+    },
+    {
+     "bytes": 262144,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_7"
+    },
+    {
+     "bytes": 262144,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_8"
+    },
+    {
+     "bytes": 131072,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_9"
+    },
+    {
+     "bytes": 512,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_10"
+    },
+    {
+     "bytes": 131072,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_11"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_12"
+    },
+    {
+     "bytes": 131072,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_13"
+    },
+    {
+     "bytes": 512,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_14"
+    },
+    {
+     "bytes": 131072,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_15"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_16"
+    },
+    {
+     "bytes": 131072,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_17"
+    },
+    {
+     "bytes": 512,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_18"
+    },
+    {
+     "bytes": 131072,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_19"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_20"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_21"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_22"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_23"
+    },
+    {
+     "bytes": 10240,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_24"
+    },
+    {
+     "bytes": 2048,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_25"
+    },
+    {
+     "bytes": 524288,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_26"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_27"
+    },
+    {
+     "bytes": 524288,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_28"
+    },
+    {
+     "bytes": 2048,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_29"
+    },
+    {
+     "bytes": 4096,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_30"
+    },
+    {
+     "bytes": 8,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_31"
+    },
+    {
+     "bytes": 4096,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_32"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_33"
+    },
+    {
+     "bytes": 5120,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_34"
+    },
+    {
+     "bytes": 20,
+     "kind": "bytes",
+     "name": "archive/data/weights/weight_35"
+    },
+    {
+     "bytes": 11196,
+     "kind": "json",
+     "name": "archive/data/weights/model_weights_config.json",
+     "strict_json": "ok"
+    },
+    {
+     "bytes": 4718592,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_0"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_1"
+    },
+    {
+     "bytes": 4718592,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_2"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_3"
+    },
+    {
+     "bytes": 4718592,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_4"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_5"
+    },
+    {
+     "bytes": 262144,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_6"
+    },
+    {
+     "bytes": 262144,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_7"
+    },
+    {
+     "bytes": 262144,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_8"
+    },
+    {
+     "bytes": 131072,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_9"
+    },
+    {
+     "bytes": 512,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_10"
+    },
+    {
+     "bytes": 131072,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_11"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_12"
+    },
+    {
+     "bytes": 131072,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_13"
+    },
+    {
+     "bytes": 512,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_14"
+    },
+    {
+     "bytes": 131072,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_15"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_16"
+    },
+    {
+     "bytes": 131072,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_17"
+    },
+    {
+     "bytes": 512,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_18"
+    },
+    {
+     "bytes": 131072,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_19"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_20"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_21"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_22"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_23"
+    },
+    {
+     "bytes": 10240,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_24"
+    },
+    {
+     "bytes": 2048,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_25"
+    },
+    {
+     "bytes": 524288,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_26"
+    },
+    {
+     "bytes": 1024,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_27"
+    },
+    {
+     "bytes": 524288,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_28"
+    },
+    {
+     "bytes": 2048,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_29"
+    },
+    {
+     "bytes": 4096,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_30"
+    },
+    {
+     "bytes": 8,
+     "kind": "bytes",
+     "name": "archive/data/constants/tensor_31"
+    },
+    {
+     "bytes": 10410,
+     "kind": "json",
+     "name": "archive/data/constants/model_constants_config.json",
+     "strict_json": "ok"
+    },
+    {
+     "bytes": 312195,
+     "kind": "json",
+     "name": "archive/models/model.json",
+     "strict_json": "ok"
+    },
+    {
+     "bytes": 7977,
+     "kind": "zip",
+     "name": "archive/data/sample_inputs/model.pt",
+     "pickle_members": [
+      "archive/data.pkl"
+     ]
+    },
+    {
+     "bytes": 3,
+     "kind": "bytes",
+     "name": "archive/archive_format"
+    },
+    {
+     "bytes": 1,
+     "kind": "bytes",
+     "name": "archive/archive_version"
+    },
+    {
+     "bytes": 2,
+     "kind": "bytes",
+     "name": "archive/.data/version"
+    },
+    {
+     "bytes": 6,
+     "kind": "bytes",
+     "name": "archive/byteorder"
+    },
+    {
+     "bytes": 40,
+     "kind": "bytes",
+     "name": "archive/.data/serialization_id"
+    }
+   ],
+   "torch_load_calls_on_load": [
+    {
+     "weights_only": true
+    }
+   ]
+  }
+ },
+ "specimens": {
+  "constants": [
+   {
+    "caps": {
+     "call_depth": "blocked_human_input",
+     "constant_bytes": "blocked_human_input",
+     "document_bytes": "blocked_human_input",
+     "largest_intermediate_bytes": "blocked_human_input",
+     "nodes_executed": "blocked_human_input"
+    },
+    "constant_bytes": 16384,
+    "constant_count": 1,
+    "specimen": "embedded table"
+   },
+   {
+    "caps": {
+     "call_depth": "blocked_human_input",
+     "constant_bytes": "blocked_human_input",
+     "document_bytes": "blocked_human_input",
+     "largest_intermediate_bytes": "blocked_human_input",
+     "nodes_executed": "blocked_human_input"
+    },
+    "constant_bytes": 2048,
+    "constant_count": 512,
+    "specimen": "table split into scalars"
+   }
+  ],
+  "documents": [
+   {
+    "expected": "json_duplicate_key",
+    "observed": "json_duplicate_key",
+    "specimen": "duplicate key"
+   },
+   {
+    "expected": "json_non_finite_value",
+    "observed": "json_non_finite_value",
+    "specimen": "non-finite number"
+   },
+   {
+    "expected": "json_strategy_nesting_too_deep",
+    "observed": "json_strategy_nesting_too_deep",
+    "specimen": "nesting bomb"
+   },
+   {
+    "expected": "json_strategy_not_json",
+    "observed": "json_strategy_not_json",
+    "specimen": "not JSON"
+   },
+   {
+    "expected": "op_not_allowlisted",
+    "observed": "op_not_allowlisted",
+    "specimen": "unknown op"
+   },
+   {
+    "expected": "op_refused",
+    "observed": "op_refused",
+    "specimen": "op swapped for a callback"
+   },
+   {
+    "expected": "parameters_not_allowlisted",
+    "observed": "parameters_not_allowlisted",
+    "specimen": "extra parameter"
+   },
+   {
+    "expected": "parameter_not_default",
+    "observed": "parameter_not_default",
+    "specimen": "non-default parameter"
+   },
+   {
+    "expected": "constant_bytes_mismatch",
+    "observed": "constant_bytes_mismatch",
+    "specimen": "constant byte count lie"
+   },
+   {
+    "expected": "value_undefined",
+    "observed": "value_undefined",
+    "specimen": "value used before definition"
+   },
+   {
+    "expected": "key_dtype_outside_init",
+    "observed": "key_dtype_outside_init",
+    "specimen": "key dtype in a forward graph"
+   },
+   {
+    "expected": "allowlist_version_mismatch",
+    "observed": "allowlist_version_mismatch",
+    "specimen": "allowlist version mismatch"
+   },
+   {
+    "expected": "graph_call_cycle",
+    "observed": "graph_call_cycle",
+    "specimen": "call cycle"
+   },
+   {
+    "expected": "parameter_not_default",
+    "observed": "parameter_not_default",
+    "specimen": "compiler options smuggled into a call"
+   },
+   {
+    "expected": "declared_aval_mismatch",
+    "observed": "declared_aval_mismatch",
+    "specimen": "declared shape lie"
+   }
+  ],
+  "programs": [
+   {
+    "expected": "op_refused",
+    "observed": "op_refused",
+    "specimen": "callback: pure_callback"
+   },
+   {
+    "expected": "op_refused",
+    "observed": "op_refused",
+    "specimen": "callback: io_callback"
+   },
+   {
+    "expected": "op_refused",
+    "observed": "op_refused",
+    "specimen": "callback: debug print"
+   },
+   {
+    "expected": "op_refused",
+    "observed": "op_refused",
+    "specimen": "callback nested in jit"
+   },
+   {
+    "expected": "op_refused",
+    "observed": "op_refused",
+    "specimen": "callback inside custom_jvp"
+   },
+   {
+    "expected": "op_refused",
+    "observed": "op_refused",
+    "specimen": "unbounded while loop"
+   },
+   {
+    "expected": "op_refused",
+    "observed": "op_refused",
+    "specimen": "RNG seeded inside the graph"
+   },
+   {
+    "expected": "op_not_allowed_in_role",
+    "observed": "op_not_allowed_in_role",
+    "specimen": "RNG from a wrapped key in inference"
+   },
+   {
+    "expected": "op_not_allowed_in_role",
+    "observed": "op_not_allowed_in_role",
+    "specimen": "RNG from a wrapped key in the loss"
+   },
+   {
+    "expected": "op_not_supported_v0",
+    "observed": "op_not_supported_v0",
+    "specimen": "custom_vjp rule"
+   },
+   {
+    "expected": "op_not_supported_v0",
+    "observed": "op_not_supported_v0",
+    "specimen": "stop_gradient"
+   },
+   {
+    "expected": "op_not_supported_v0",
+    "observed": "op_not_supported_v0",
+    "specimen": "static scan (not yet in v0)"
+   },
+   {
+    "expected": "framework_refused",
+    "observed": "framework_refused",
+    "specimen": "nested jit with compiler options"
+   }
+  ]
+ },
+ "status": "DEVELOPMENT SPIKE. CPU only. No caps chosen; every cap is HUMAN_INPUT.",
+ "torch": {
+  "core_aten_union": {
+   "aten._assert_tensor_metadata.default": {
+    "allowlist": "review",
+    "count": 94,
+    "lowering": "dropped"
+   },
+   "aten._fft_c2r.default": {
+    "allowlist": "allow",
+    "count": 9,
+    "lowering": "emitted"
+   },
+   "aten._fft_r2c.default": {
+    "allowlist": "allow",
+    "count": 9,
+    "lowering": "emitted"
+   },
+   "aten._to_copy.default": {
+    "allowlist": "allow",
+    "count": 4,
+    "lowering": "emitted"
+   },
+   "aten.add.Tensor": {
+    "allowlist": "allow",
+    "count": 75,
+    "lowering": "emitted"
+   },
+   "aten.alias.default": {
+    "allowlist": "allow",
+    "count": 9,
+    "lowering": "emitted"
+   },
+   "aten.arange.start_step": {
+    "allowlist": "allow",
+    "count": 2,
+    "lowering": "emitted"
+   },
+   "aten.bmm.default": {
+    "allowlist": "allow",
+    "count": 9,
+    "lowering": "emitted"
+   },
+   "aten.cat.default": {
+    "allowlist": "allow",
+    "count": 6,
+    "lowering": "emitted"
+   },
+   "aten.convolution.default": {
+    "allowlist": "allow",
+    "count": 35,
+    "lowering": "emitted"
+   },
+   "aten.copy.default": {
+    "allowlist": "allow",
+    "count": 9,
+    "lowering": "emitted"
+   },
+   "aten.div.Tensor": {
+    "allowlist": "allow",
+    "count": 12,
+    "lowering": "emitted"
+   },
+   "aten.exp.default": {
+    "allowlist": "allow",
+    "count": 3,
+    "lowering": "emitted"
+   },
+   "aten.expand.default": {
+    "allowlist": "allow",
+    "count": 4,
+    "lowering": "emitted"
+   },
+   "aten.full.default": {
+    "allowlist": "allow",
+    "count": 9,
+    "lowering": "emitted"
+   },
+   "aten.gelu.default": {
+    "allowlist": "allow",
+    "count": 38,
+    "lowering": "emitted"
+   },
+   "aten.gt.Scalar": {
+    "allowlist": "allow",
+    "count": 3,
+    "lowering": "emitted"
+   },
+   "aten.log1p.default": {
+    "allowlist": "allow",
+    "count": 3,
+    "lowering": "emitted"
+   },
+   "aten.lt.Scalar": {
+    "allowlist": "allow",
+    "count": 2,
+    "lowering": "emitted"
+   },
+   "aten.mean.dim": {
+    "allowlist": "allow",
+    "count": 12,
+    "lowering": "emitted"
+   },
+   "aten.mm.default": {
+    "allowlist": "allow",
+    "count": 35,
+    "lowering": "emitted"
+   },
+   "aten.mul.Tensor": {
+    "allowlist": "allow",
+    "count": 16,
+    "lowering": "emitted"
+   },
+   "aten.permute.default": {
+    "allowlist": "allow",
+    "count": 47,
+    "lowering": "emitted"
+   },
+   "aten.relu.default": {
+    "allowlist": "allow",
+    "count": 3,
+    "lowering": "emitted"
+   },
+   "aten.repeat.default": {
+    "allowlist": "allow",
+    "count": 4,
+    "lowering": "emitted"
+   },
+   "aten.select.int": {
+    "allowlist": "allow",
+    "count": 4,
+    "lowering": "emitted"
+   },
+   "aten.sigmoid.default": {
+    "allowlist": "allow",
+    "count": 3,
+    "lowering": "emitted"
+   },
+   "aten.slice.Tensor": {
+    "allowlist": "allow",
+    "count": 28,
+    "lowering": "emitted"
+   },
+   "aten.slice_scatter.default": {
+    "allowlist": "allow",
+    "count": 9,
+    "lowering": "emitted"
+   },
+   "aten.sqrt.default": {
+    "allowlist": "allow",
+    "count": 12,
+    "lowering": "emitted"
+   },
+   "aten.sub.Tensor": {
+    "allowlist": "allow",
+    "count": 16,
+    "lowering": "emitted"
+   },
+   "aten.tanh.default": {
+    "allowlist": "allow",
+    "count": 3,
+    "lowering": "emitted"
+   },
+   "aten.unsqueeze.default": {
+    "allowlist": "allow",
+    "count": 24,
+    "lowering": "emitted"
+   },
+   "aten.var.correction": {
+    "allowlist": "allow",
+    "count": 12,
+    "lowering": "emitted"
+   },
+   "aten.view.default": {
+    "allowlist": "allow",
+    "count": 56,
+    "lowering": "emitted"
+   },
+   "aten.view_as_complex.default": {
+    "allowlist": "review",
+    "count": 9,
+    "lowering": "emitted"
+   },
+   "aten.where.self": {
+    "allowlist": "allow",
+    "count": 5,
+    "lowering": "emitted"
+   }
+  },
+  "programs": [
+   {
+    "bprime_vs_torch": {
+     "bit_identical": false,
+     "forward_max_abs_difference": 4.76837158203125e-07,
+     "forward_max_abs_value": 1.8046033382415771,
+     "gradient_max_relative_difference": 1.760678060236387e-06
+    },
+    "core_inventory": {
+     "aten._assert_tensor_metadata.default": 34,
+     "aten._fft_c2r.default": 3,
+     "aten._fft_r2c.default": 3,
+     "aten._to_copy.default": 2,
+     "aten.add.Tensor": 12,
+     "aten.alias.default": 3,
+     "aten.arange.start_step": 1,
+     "aten.bmm.default": 3,
+     "aten.cat.default": 2,
+     "aten.convolution.default": 13,
+     "aten.copy.default": 3,
+     "aten.expand.default": 2,
+     "aten.full.default": 3,
+     "aten.gelu.default": 10,
+     "aten.lt.Scalar": 1,
+     "aten.mm.default": 2,
+     "aten.mul.Tensor": 5,
+     "aten.permute.default": 15,
+     "aten.repeat.default": 2,
+     "aten.select.int": 2,
+     "aten.slice.Tensor": 9,
+     "aten.slice_scatter.default": 3,
+     "aten.sub.Tensor": 2,
+     "aten.unsqueeze.default": 9,
+     "aten.view.default": 19,
+     "aten.view_as_complex.default": 3,
+     "aten.where.self": 1
+    },
+    "export_seconds": 2.879,
+    "graph": {
+     "call_depth": 1,
+     "constant_bytes": 228,
+     "constant_count": 54,
+     "distinct_ops": 18,
+     "document_bytes": 45077,
+     "graphs": 1,
+     "input_bytes": 16824092,
+     "largest_constant_bytes": 8,
+     "largest_intermediate_bytes": 99123200,
+     "nodes_executed": 253,
+     "nodes_stored": 253,
+     "op_counts": {
+      "add": 32,
+      "broadcast_in_dim": 66,
+      "complex": 3,
+      "concatenate": 2,
+      "conv_general_dilated": 13,
+      "convert_element_type": 5,
+      "dot_general": 5,
+      "dynamic_update_slice": 3,
+      "erf": 10,
+      "fft": 6,
+      "iota": 1,
+      "lt": 1,
+      "mul": 41,
+      "reshape": 33,
+      "select_n": 1,
+      "slice": 14,
+      "sub": 2,
+      "transpose": 15
+     }
+    },
+    "label": "default_fno",
+    "lowering": {
+     "dropped_ops": {
+      "aten._assert_tensor_metadata.default": 34
+     },
+     "pruned": {
+      "constant_bytes": 16807432,
+      "constants": 32,
+      "graphs": 0,
+      "nodes": 3
+     }
+    },
+    "parameter_bytes": 16817692,
+    "raw_inventory": {
+     "<built-in function getitem>": 33,
+     "aten._assert_tensor_metadata.default": 2,
+     "aten._has_compatible_shallow_copy_type.default": 64,
+     "aten.add.Tensor": 11,
+     "aten.alias.default": 3,
+     "aten.cat.default": 2,
+     "aten.conv1d.default": 13,
+     "aten.copy_.default": 3,
+     "aten.einsum.default": 3,
+     "aten.expand.default": 1,
+     "aten.fft_irfftn.default": 3,
+     "aten.fft_rfftn.default": 3,
+     "aten.gelu.default": 10,
+     "aten.linspace.default": 1,
+     "aten.matmul.default": 2,
+     "aten.meshgrid.indexing": 1,
+     "aten.mul.Tensor": 3,
+     "aten.repeat.default": 2,
+     "aten.select.int": 2,
+     "aten.slice.Tensor": 9,
+     "aten.to.dtype": 1,
+     "aten.to.dtype_layout": 1,
+     "aten.unsqueeze.default": 3,
+     "aten.view.default": 6,
+     "aten.view_as_complex.default": 3,
+     "aten.zeros.default": 3,
+     "wrap_with_set_grad_enabled": 32
+    }
+   },
+   {
+    "bprime_vs_torch": {
+     "bit_identical": false,
+     "forward_max_abs_difference": 2.86102294921875e-06,
+     "forward_max_abs_value": 3.5369510650634766,
+     "gradient_max_relative_difference": 3.338634826377529e-07
+    },
+    "core_inventory": {
+     "aten.add.Tensor": 4,
+     "aten.gelu.default": 3,
+     "aten.mm.default": 4
+    },
+    "export_seconds": 0.355,
+    "graph": {
+     "call_depth": 1,
+     "constant_bytes": 36,
+     "constant_count": 9,
+     "distinct_ops": 5,
+     "document_bytes": 6308,
+     "graphs": 1,
+     "input_bytes": 789716,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 409600,
+     "nodes_executed": 36,
+     "nodes_stored": 36,
+     "op_counts": {
+      "add": 7,
+      "broadcast_in_dim": 13,
+      "dot_general": 4,
+      "erf": 3,
+      "mul": 9
+     }
+    },
+    "label": "torch_mlp",
+    "lowering": {
+     "dropped_ops": {},
+     "pruned": {
+      "constant_bytes": 0,
+      "constants": 0,
+      "graphs": 0,
+      "nodes": 0
+     }
+    },
+    "parameter_bytes": 783316,
+    "raw_inventory": {
+     "aten.add.Tensor": 4,
+     "aten.gelu.default": 3,
+     "aten.matmul.default": 4
+    }
+   },
+   {
+    "bprime_vs_torch": {
+     "bit_identical": false,
+     "forward_max_abs_difference": 7.152557373046875e-06,
+     "forward_max_abs_value": 8.47537899017334,
+     "gradient_max_relative_difference": 5.272997327665507e-07
+    },
+    "core_inventory": {
+     "aten._assert_tensor_metadata.default": 2,
+     "aten.add.Tensor": 10,
+     "aten.cat.default": 2,
+     "aten.gelu.default": 6,
+     "aten.mm.default": 11,
+     "aten.permute.default": 2,
+     "aten.slice.Tensor": 5
+    },
+    "export_seconds": 0.304,
+    "graph": {
+     "call_depth": 1,
+     "constant_bytes": 1032,
+     "constant_count": 20,
+     "distinct_ops": 8,
+     "document_bytes": 16034,
+     "graphs": 1,
+     "input_bytes": 611796,
+     "largest_constant_bytes": 480,
+     "largest_intermediate_bytes": 409600,
+     "nodes_executed": 88,
+     "nodes_stored": 88,
+     "op_counts": {
+      "add": 16,
+      "broadcast_in_dim": 28,
+      "concatenate": 2,
+      "dot_general": 11,
+      "erf": 6,
+      "mul": 18,
+      "slice": 5,
+      "transpose": 2
+     }
+    },
+    "label": "torch_deeponet",
+    "lowering": {
+     "dropped_ops": {
+      "aten._assert_tensor_metadata.default": 2
+     },
+     "pruned": {
+      "constant_bytes": 0,
+      "constants": 0,
+      "graphs": 0,
+      "nodes": 0
+     }
+    },
+    "parameter_bytes": 605396,
+    "raw_inventory": {
+     "aten._assert_tensor_metadata.default": 2,
+     "aten.add.Tensor": 10,
+     "aten.cat.default": 2,
+     "aten.gelu.default": 6,
+     "aten.matmul.default": 11,
+     "aten.numpy_T.default": 2,
+     "aten.slice.Tensor": 5,
+     "aten.to.dtype_layout": 2
+    }
+   },
+   {
+    "bprime_vs_torch": {
+     "bit_identical": false,
+     "forward_max_abs_difference": 2.1457672119140625e-06,
+     "forward_max_abs_value": 3.7032761573791504,
+     "gradient_max_relative_difference": 3.093874170190247e-07
+    },
+    "core_inventory": {
+     "aten.add.Tensor": 7,
+     "aten.div.Tensor": 3,
+     "aten.mean.dim": 3,
+     "aten.mm.default": 4,
+     "aten.relu.default": 3,
+     "aten.sqrt.default": 3,
+     "aten.sub.Tensor": 3,
+     "aten.var.correction": 3
+    },
+    "export_seconds": 0.404,
+    "graph": {
+     "call_depth": 1,
+     "constant_bytes": 60,
+     "constant_count": 15,
+     "distinct_ops": 10,
+     "document_bytes": 12906,
+     "graphs": 1,
+     "input_bytes": 789716,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 409600,
+     "nodes_executed": 84,
+     "nodes_stored": 84,
+     "op_counts": {
+      "add": 7,
+      "broadcast_in_dim": 28,
+      "div": 12,
+      "dot_general": 4,
+      "integer_pow": 3,
+      "max": 3,
+      "reduce_sum": 9,
+      "reshape": 9,
+      "sqrt": 3,
+      "sub": 6
+     }
+    },
+    "label": "torch_mlp+relu+layer_norm",
+    "lowering": {
+     "dropped_ops": {},
+     "pruned": {
+      "constant_bytes": 0,
+      "constants": 0,
+      "graphs": 0,
+      "nodes": 0
+     }
+    },
+    "parameter_bytes": 783316,
+    "raw_inventory": {
+     "aten.add.Tensor": 7,
+     "aten.div.Tensor": 3,
+     "aten.matmul.default": 4,
+     "aten.mean.dim": 3,
+     "aten.relu.default": 3,
+     "aten.sqrt.default": 3,
+     "aten.sub.Tensor": 3,
+     "aten.var.dim": 3
+    }
+   },
+   {
+    "bprime_vs_torch": {
+     "bit_identical": false,
+     "forward_max_abs_difference": 3.5762786865234375e-06,
+     "forward_max_abs_value": 3.365313768386841,
+     "gradient_max_relative_difference": 3.4494468081902596e-07
+    },
+    "core_inventory": {
+     "aten.add.Tensor": 7,
+     "aten.div.Tensor": 3,
+     "aten.mean.dim": 3,
+     "aten.mm.default": 4,
+     "aten.sqrt.default": 3,
+     "aten.sub.Tensor": 3,
+     "aten.tanh.default": 3,
+     "aten.var.correction": 3
+    },
+    "export_seconds": 0.233,
+    "graph": {
+     "call_depth": 1,
+     "constant_bytes": 48,
+     "constant_count": 12,
+     "distinct_ops": 10,
+     "document_bytes": 12231,
+     "graphs": 1,
+     "input_bytes": 789716,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 409600,
+     "nodes_executed": 81,
+     "nodes_stored": 81,
+     "op_counts": {
+      "add": 7,
+      "broadcast_in_dim": 25,
+      "div": 12,
+      "dot_general": 4,
+      "integer_pow": 3,
+      "reduce_sum": 9,
+      "reshape": 9,
+      "sqrt": 3,
+      "sub": 6,
+      "tanh": 3
+     }
+    },
+    "label": "torch_mlp+tanh+layer_norm",
+    "lowering": {
+     "dropped_ops": {},
+     "pruned": {
+      "constant_bytes": 0,
+      "constants": 0,
+      "graphs": 0,
+      "nodes": 0
+     }
+    },
+    "parameter_bytes": 783316,
+    "raw_inventory": {
+     "aten.add.Tensor": 7,
+     "aten.div.Tensor": 3,
+     "aten.matmul.default": 4,
+     "aten.mean.dim": 3,
+     "aten.sqrt.default": 3,
+     "aten.sub.Tensor": 3,
+     "aten.tanh.default": 3,
+     "aten.var.dim": 3
+    }
+   },
+   {
+    "bprime_vs_torch": {
+     "bit_identical": false,
+     "forward_max_abs_difference": 3.0994415283203125e-06,
+     "forward_max_abs_value": 3.1204705238342285,
+     "gradient_max_relative_difference": 2.420753446585877e-07
+    },
+    "core_inventory": {
+     "aten.add.Tensor": 7,
+     "aten.div.Tensor": 3,
+     "aten.mean.dim": 3,
+     "aten.mm.default": 4,
+     "aten.mul.Tensor": 3,
+     "aten.sigmoid.default": 3,
+     "aten.sqrt.default": 3,
+     "aten.sub.Tensor": 3,
+     "aten.var.correction": 3
+    },
+    "export_seconds": 0.267,
+    "graph": {
+     "call_depth": 1,
+     "constant_bytes": 48,
+     "constant_count": 12,
+     "distinct_ops": 11,
+     "document_bytes": 12582,
+     "graphs": 1,
+     "input_bytes": 789716,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 409600,
+     "nodes_executed": 84,
+     "nodes_stored": 84,
+     "op_counts": {
+      "add": 7,
+      "broadcast_in_dim": 25,
+      "div": 12,
+      "dot_general": 4,
+      "integer_pow": 3,
+      "logistic": 3,
+      "mul": 3,
+      "reduce_sum": 9,
+      "reshape": 9,
+      "sqrt": 3,
+      "sub": 6
+     }
+    },
+    "label": "torch_mlp+silu+layer_norm",
+    "lowering": {
+     "dropped_ops": {},
+     "pruned": {
+      "constant_bytes": 0,
+      "constants": 0,
+      "graphs": 0,
+      "nodes": 0
+     }
+    },
+    "parameter_bytes": 783316,
+    "raw_inventory": {
+     "aten.add.Tensor": 7,
+     "aten.div.Tensor": 3,
+     "aten.matmul.default": 4,
+     "aten.mean.dim": 3,
+     "aten.silu.default": 3,
+     "aten.sqrt.default": 3,
+     "aten.sub.Tensor": 3,
+     "aten.var.dim": 3
+    }
+   },
+   {
+    "bprime_vs_torch": {
+     "bit_identical": false,
+     "forward_max_abs_difference": 4.0531158447265625e-06,
+     "forward_max_abs_value": 4.7111945152282715,
+     "gradient_max_relative_difference": 2.709205091377953e-07
+    },
+    "core_inventory": {
+     "aten.add.Tensor": 7,
+     "aten.div.Tensor": 3,
+     "aten.exp.default": 3,
+     "aten.gt.Scalar": 3,
+     "aten.log1p.default": 3,
+     "aten.mean.dim": 3,
+     "aten.mm.default": 4,
+     "aten.sqrt.default": 3,
+     "aten.sub.Tensor": 3,
+     "aten.var.correction": 3,
+     "aten.where.self": 3
+    },
+    "export_seconds": 0.468,
+    "graph": {
+     "call_depth": 1,
+     "constant_bytes": 60,
+     "constant_count": 15,
+     "distinct_ops": 13,
+     "document_bytes": 13871,
+     "graphs": 1,
+     "input_bytes": 789716,
+     "largest_constant_bytes": 4,
+     "largest_intermediate_bytes": 409600,
+     "nodes_executed": 93,
+     "nodes_stored": 93,
+     "op_counts": {
+      "add": 7,
+      "broadcast_in_dim": 28,
+      "div": 12,
+      "dot_general": 4,
+      "exp": 3,
+      "gt": 3,
+      "integer_pow": 3,
+      "log1p": 3,
+      "reduce_sum": 9,
+      "reshape": 9,
+      "select_n": 3,
+      "sqrt": 3,
+      "sub": 6
+     }
+    },
+    "label": "torch_mlp+softplus+layer_norm",
+    "lowering": {
+     "dropped_ops": {},
+     "pruned": {
+      "constant_bytes": 0,
+      "constants": 0,
+      "graphs": 0,
+      "nodes": 0
+     }
+    },
+    "parameter_bytes": 783316,
+    "raw_inventory": {
+     "aten.add.Tensor": 7,
+     "aten.div.Tensor": 3,
+     "aten.matmul.default": 4,
+     "aten.mean.dim": 3,
+     "aten.softplus.default": 3,
+     "aten.sqrt.default": 3,
+     "aten.sub.Tensor": 3,
+     "aten.var.dim": 3
+    }
+   },
+   {
+    "bprime_vs_torch": {
+     "bit_identical": false,
+     "forward_max_abs_difference": 1.1920928955078125e-06,
+     "forward_max_abs_value": 2.520273208618164,
+     "gradient_max_relative_difference": 1.7078515384127968e-06
+    },
+    "compile_bprime": {
+     "argument_bytes": 406995036,
+     "bytes_accessed": 16346192896.0,
+     "compile_seconds": 0.154,
+     "flops": 459895668736.0,
+     "generated_code_bytes": 0,
+     "output_bytes": 393600,
+     "process_peak_rss_mb": 12084.1,
+     "stablehlo_text_bytes": 57386,
+     "temp_bytes": 902774592
+    },
+    "core_inventory": {
+     "aten._assert_tensor_metadata.default": 58,
+     "aten._fft_c2r.default": 6,
+     "aten._fft_r2c.default": 6,
+     "aten._to_copy.default": 2,
+     "aten.add.Tensor": 21,
+     "aten.alias.default": 6,
+     "aten.arange.start_step": 1,
+     "aten.bmm.default": 6,
+     "aten.cat.default": 2,
+     "aten.convolution.default": 22,
+     "aten.copy.default": 6,
+     "aten.expand.default": 2,
+     "aten.full.default": 6,
+     "aten.gelu.default": 19,
+     "aten.lt.Scalar": 1,
+     "aten.mm.default": 2,
+     "aten.mul.Tensor": 8,
+     "aten.permute.default": 30,
+     "aten.repeat.default": 2,
+     "aten.select.int": 2,
+     "aten.slice.Tensor": 14,
+     "aten.slice_scatter.default": 6,
+     "aten.sub.Tensor": 2,
+     "aten.unsqueeze.default": 15,
+     "aten.view.default": 37,
+     "aten.view_as_complex.default": 6,
+     "aten.where.self": 1
+    },
+    "export_seconds": 4.07,
+    "graph": {
+     "call_depth": 1,
+     "constant_bytes": 420,
+     "constant_count": 99,
+     "distinct_ops": 18,
+     "document_bytes": 79162,
+     "graphs": 1,
+     "input_bytes": 406995036,
+     "largest_constant_bytes": 8,
+     "largest_intermediate_bytes": 198246400,
+     "nodes_executed": 444,
+     "nodes_stored": 444,
+     "op_counts": {
+      "add": 56,
+      "broadcast_in_dim": 114,
+      "complex": 6,
+      "concatenate": 2,
+      "conv_general_dilated": 22,
+      "convert_element_type": 8,
+      "dot_general": 8,
+      "dynamic_update_slice": 6,
+      "erf": 19,
+      "fft": 12,
+      "iota": 1,
+      "lt": 1,
+      "mul": 77,
+      "reshape": 57,
+      "select_n": 1,
+      "slice": 22,
+      "sub": 2,
+      "transpose": 30
+     }
+    },
+    "label": "largest_fno",
+    "lowering": {
+     "dropped_ops": {
+      "aten._assert_tensor_metadata.default": 58
+     },
+     "pruned": {
+      "constant_bytes": 406949896,
+      "constants": 56,
+      "graphs": 0,
+      "nodes": 6
+     }
+    },
+    "parameter_bytes": 406980636,
+    "raw_inventory": {
+     "<built-in function getitem>": 57,
+     "aten._assert_tensor_metadata.default": 2,
+     "aten._has_compatible_shallow_copy_type.default": 112,
+     "aten.add.Tensor": 20,
+     "aten.alias.default": 6,
+     "aten.cat.default": 2,
+     "aten.conv1d.default": 22,
+     "aten.copy_.default": 6,
+     "aten.einsum.default": 6,
+     "aten.expand.default": 1,
+     "aten.fft_irfftn.default": 6,
+     "aten.fft_rfftn.default": 6,
+     "aten.gelu.default": 19,
+     "aten.linspace.default": 1,
+     "aten.matmul.default": 2,
+     "aten.meshgrid.indexing": 1,
+     "aten.mul.Tensor": 6,
+     "aten.repeat.default": 2,
+     "aten.select.int": 2,
+     "aten.slice.Tensor": 14,
+     "aten.to.dtype": 1,
+     "aten.to.dtype_layout": 1,
+     "aten.unsqueeze.default": 3,
+     "aten.view.default": 12,
+     "aten.view_as_complex.default": 6,
+     "aten.zeros.default": 6,
+     "wrap_with_set_grad_enabled": 56
+    }
+   }
+  ]
+ }
+}

@@ -12,10 +12,16 @@ are held (`custody`). It calls each Challenge's own code unchanged:
 
 A law a source serves is only available: a registered set uses it only when
 a recorded owner decision names it in the set's document.
+
+A source may also serve the training-budget study's sets (`study_sets`):
+`study_root`, `study_seed_pin`, `study_draws` (per index, so sets nest) and
+`study_solve_command`. Battery serves them; a source without them refuses.
 """
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 from pathlib import Path
 
@@ -25,6 +31,13 @@ from .confirmation import (
     overlap_check,
 )
 from .interface import canonical_role
+
+#: A study set's seed-pin scoring binding (TRAINING-BUDGET-01 slice 2b). It
+#: names the study, not an exam rule: study draws are never scored as a pool.
+STUDY_SCORING = (
+    "sha256:"
+    + hashlib.sha256(b"carbon.training-budget.study-set.v1/no-exam-rule").hexdigest()
+)
 
 
 def _numeric_cases(value, names):
@@ -186,6 +199,52 @@ class BatterySource:
             )
         duplicates = dict(batch.duplicates)
         return [dict(x) for case_id, x in batch.cases if case_id not in duplicates]
+
+    # --- study sets (TRAINING-BUDGET-01 slice 2b, `study_sets`) -------------
+
+    def study_root(self, path, *, create=False):
+        """The study's own operator-held root (`seeds.PrivateRoot`), never a
+        deployment's: created once, owner-only, or loaded and checked."""
+        from carbon.battery import seeds
+
+        return (
+            seeds.PrivateRoot.create(path) if create else seeds.PrivateRoot.load(path)
+        )
+
+    def study_seed_pin(self, repository):
+        """The pin a study root's draws are bound to, recorded once in the study
+        journal: the reference generator's identity, and a scoring binding
+        that names the study, since no exam rule scores a study set."""
+        from carbon.battery import seeds
+
+        return seeds.seed_pin(seeds.generator_digest(repository), STUDY_SCORING)
+
+    def study_draws(self, root, pin, role, count):
+        """Draws `0..count-1` under `role`, each an opaque case id and one
+        uniform draw (`seeds.draw_inputs`, per index), so a smaller count is
+        always a prefix of a larger one."""
+        from carbon.battery import seeds
+
+        if type(root) is not seeds.PrivateRoot:
+            raise TypeError("an operator-held PrivateRoot is required")
+        key = hmac.new(
+            root._bytes, b"study-case-ids/" + role.encode(), hashlib.sha256
+        ).digest()
+        context = seeds._context(root, pin)
+
+        def opaque(index):
+            label = f"draw/{index}".encode()
+            return f"{role}-{hmac.new(key, label, hashlib.sha256).hexdigest()[:16]}"
+
+        return [(opaque(i), seeds.draw_inputs(context, role, i)) for i in range(count)]
+
+    def study_solve_command(self, overlay, work, *, repository, workers, timeout_s):
+        """The pinned truth solve of `work/jobs.json` (`truth_env.solve_command`)."""
+        from carbon.battery import truth_env
+
+        return truth_env.solve_command(
+            overlay, work, repository=repository, workers=workers, timeout_s=timeout_s
+        )
 
     def seal(self, item, sets, config, private, repository):
         """Seal `item` in the deployment `config`'s seed journal."""

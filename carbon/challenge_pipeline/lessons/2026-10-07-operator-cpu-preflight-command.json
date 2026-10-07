@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-operator-cpu-preflight-command",
+  "recorded_at": "2026-10-07T02:03:58Z",
+  "challenge": "protocol",
+  "stage": "protocol",
+  "execution": {
+    "kind": "test_run",
+    "ref": "./scripts/dev/canonical.sh --preflight",
+    "description": "Incorrect canonical command invocation, before quality execution"
+  },
+  "expected": "Run the repository preflight.",
+  "observed": "The canonical wrapper bootstrapped successfully but refused the nonexistent --preflight command. No quality pass was established. Correct invocation is ./scripts/dev/canonical.sh ./scripts/dev/preflight.sh.",
+  "keep": ["Preserve failed setup attempts instead of reporting an intended check as executed."],
+  "change": ["Use the documented wrapper command form, not an invented option."],
+  "protocol_elements": ["canonical validation command identity"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
