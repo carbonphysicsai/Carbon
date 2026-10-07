@@ -39,14 +39,14 @@ So:
 ## Operator conventions (the first operational run, 2026-10-07)
 
 The filled-in, copy-paste sheet for the first run is
-`/home/carbon/shared/operator/HETZNER_PART2.md`, on release
+`~carbon/shared/operator/HETZNER_PART2.md`, on release
 `worker-images-v1`. These conventions bind this document too:
 1. **Every `scp` or `ssh` to or from the VM runs from Windows PowerShell,**
    with `-i $HOME\.ssh\carbon-vm`. WSL files are reached as
    `\\wsl.localhost\Ubuntu-24.04\home\carbon\...`. Ryan's admin key lives
    only in Windows and is never copied into WSL, where agent sessions run.
 2. **The tuning curves** (`curves.json`, `curves.md`, aggregates only) land
-   directly in `/home/carbon/shared/tuning-inputs/`. Nothing else leaves the
+   directly in `~carbon/shared/tuning-inputs/`. Nothing else leaves the
    VM.
 3. **Graphite runs (§7) are the executor's job,** not Ryan's.
 4. **Every VM block starts with `cd /opt/carbon`,** and runs Carbon as
@@ -348,7 +348,7 @@ agent-readable. That section stays on HOLD.
      $HOME\.ssh\carbon-vm`, from `\\wsl.localhost\...`), and then runs
      `shred -u` on the PC copies. The sheet's step 10 has the exact commands.
 - **The curves** from `tuning_rescore --q3-regret` are copied from PowerShell
-  straight into `/home/carbon/shared/tuning-inputs/`. They are aggregates
+  straight into `~carbon/shared/tuning-inputs/`. They are aggregates
   only.
 - **Why not move the testnet deployment to the VM instead:**
   - The export adds no exposure, because those cases are already reachable
