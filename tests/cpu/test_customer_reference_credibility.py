@@ -34,6 +34,14 @@ def normalized(text: str) -> str:
     return " ".join(text.replace("**", "").split())
 
 
+def companion_section(title: str) -> str:
+    body = (PACKETS / "reference-credibility.md").read_text(encoding="utf-8")
+    heading = f"## {title}\n"
+    assert body.count(heading) == 1
+    section = body.split(heading, 1)[1].split("\n## ", 1)[0]
+    return normalized(section)
+
+
 def subsection(filename: str) -> tuple[str, str]:
     body = (PACKETS / filename).read_text(encoding="utf-8")
     title = "### Reference credibility target"
@@ -110,6 +118,62 @@ def test_companion_keeps_targets_separate_from_claims_gates_and_execution() -> N
         assert required.lower() in text.lower(), required
     index = (PACKETS / "README.md").read_text("utf-8")
     assert "[shared credibility contract](reference-credibility.md)" in index
+
+
+def test_decision_agreement_reports_verdicts_picks_regret_and_missing_basis() -> None:
+    text = companion_section("Decision agreement alongside pointwise agreement")
+    for required in (
+        "each of the eight Challenges",
+        "Neither measure replaces the other",
+        "Feasibility verdict per design",
+        "agreement counts with denominators",
+        "two unresolved verdicts are not evidence of feasibility agreement",
+        "Best-in-bank pick and regret",
+        "both tools' selected design identities",
+        "packet's buyer units",
+        "under each tool separately",
+        "verdict mismatch rather than a fabricated finite regret",
+        "not a successful agreement between absent picks",
+        "Decision-agreement thresholds: HUMAN_INPUT",
+        "do not invent an objective or score weight",
+    ):
+        assert required in text, required
+
+
+def test_witness_custody_excludes_protected_cases_and_preserves_population() -> None:
+    text = companion_section("Witness sourcing and custody")
+    for required in (
+        "outside the producer's custody boundary",
+        "separate, non-hidden draw from the same task distribution",
+        "retired, published bank cases",
+        "Retirement alone does not authorize disclosure",
+        "Witnesses never come from hidden EVAL, STRESS, quiz or tuning cases",
+        "protected seeds, labels or reconstruction-sensitive derivatives",
+        "Renaming or anonymizing a protected case",
+        "near-limit and decision-flipping regions",
+        "rather than protected quiz/tuning cases or outcomes",
+        "retain all selected cases, failures and results",
+        "Q is distinct from population P",
+        "do not infer P-weighted reliability",
+    ):
+        assert required in text, required
+
+
+def test_reference_findings_only_revise_future_batches_not_sealed_results() -> None:
+    text = companion_section("Reference disagreement and prospective revision")
+    for required in (
+        "reference finding, never a candidate failure",
+        "both reference identities",
+        "without declaring either tool true by default",
+        "versioned reference revision for future batches",
+        "reference owner's authority",
+        "renewed agreement evidence before the revised reference is used",
+        "UNRESOLVED, not a candidate penalty",
+        "Already-sealed results keep their original reference identity",
+        "not silently re-scored",
+        "without rewriting sealed evidence",
+    ):
+        assert required in text, required
 
 
 def test_battery_experiment_and_cooling_cell_boundaries_are_not_erased() -> None:
