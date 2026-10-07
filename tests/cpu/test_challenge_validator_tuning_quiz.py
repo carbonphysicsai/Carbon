@@ -170,10 +170,10 @@ def test_v2_is_registered_reserved_and_v1_stays_reserved():
     # Sealed on the hidden host: every prior is an owner-only file, so no
     # sealed role is regenerated there (HIDDEN_HOST_SETUP §6).
     assert item.required_prior_roles == ()
+    # graphite-confirmation-v1 was never sealed: no cases, so no prior.
     assert item.required_private_priors == (
         "graphite-hidden-battery-v1-pool",
         "ev5-confirmation",
-        "graphite-confirmation-v1",
     )
     assert item.sealable and not item.human_input
     stratum = item.skeleton()["quiz_stratum"]
