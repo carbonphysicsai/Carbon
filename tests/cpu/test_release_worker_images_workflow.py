@@ -17,6 +17,7 @@ read from the file:
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -161,8 +162,18 @@ CHILDREN = (
 )
 
 
+def clean_environment():
+    """The caller's environment (its PATH finds `python3`, as on the release
+    runner and in the dev container) without any release parent setting."""
+    return {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith("CARBON_WORKER_PARENT_")
+    }
+
+
 def parent_ref(*args, repository=None):
-    env = {"PATH": "/usr/bin:/bin"}
+    env = clean_environment()
     if repository is not None:
         env["CARBON_WORKER_PARENT_REPOSITORY"] = repository
     return subprocess.run(
@@ -268,7 +279,7 @@ def c03_manifest(path, image=PARENT_ID):
 
 
 def parent_manifest(out, *, released=None, repository=None):
-    env = {"PATH": "/usr/bin:/bin"}
+    env = clean_environment()
     if released is not None:
         env["CARBON_WORKER_PARENT_MANIFEST"] = str(released)
     if repository is not None:
