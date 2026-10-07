@@ -132,10 +132,7 @@ def require_approval(approval, *, repository=REPOSITORY):
 def source_for(challenge_id, spec, *, repository=REPOSITORY):
     """The registered `BatchSource` for one configured, owner-approved
     Challenge."""
-    from carbon.reconstruction.capability_registry import (
-        BATTERY_CHALLENGE,
-        MOTOR_CHALLENGE,
-    )
+    from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 
     require_approval(spec.get("approval"), repository=repository)
 
@@ -147,14 +144,6 @@ def source_for(challenge_id, spec, *, repository=REPOSITORY):
         return BatteryQuizSource.from_deployment(
             spec["deployment"], overlay=spec.get("overlay"), repository=repository
         )
-    if challenge_id == MOTOR_CHALLENGE:
-        # Motor's hidden pool (VALIDATOR-21): its solver image is pinned by
-        # its hidden rule, so it takes no overlay.
-        if "overlay" in spec:
-            raise ProducerRefused("producer_config_malformed")
-        from .motor_source import MotorBatchSource
-
-        return MotorBatchSource(spec["deployment"], repository=repository)
     raise ProducerRefused("producer_no_source")
 
 
@@ -781,12 +770,11 @@ class Producer:
             finalists = {"filled": [], "unfilled": []}
             taken = self._scheduled(challenge_id)
             final_taken = self._scheduled(challenge_id, "finalist")
-            finals = "finalist" in self.sources[challenge_id].kinds()
             for slot in range(current + 1, current + 1 + lead_slots):
                 if slot not in taken:
                     result = self._fill(challenge_id, slot, block, role_prefix)
                     (filled if result else unfilled).append(slot)
-                if finals and slot not in final_taken:
+                if slot not in final_taken:
                     result = self._fill(
                         challenge_id, slot, block, self.FINALIST_PREFIX, "finalist"
                     )
