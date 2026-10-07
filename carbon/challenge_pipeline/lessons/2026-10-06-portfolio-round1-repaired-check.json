@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-portfolio-round1-repaired-check",
+  "recorded_at": "2026-10-06T21:34:22Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "d5b70de8b canonical screen/focused pipeline/quality commands", "description": "Verify concrete budget, atomic-regime, observer and preflight repairs"},
+  "expected": "Repaired planning caps and analytical selection fail closed without claiming solver adequacy.",
+  "observed": "51 passed,1 existing skip; pipeline valid, Ruff/Black passed. Five grants total202 launches/736 allocated vCPU-hours/$160. RC probes are80W10s rectangular,80W20s ramp,140W5s two-pulse; these are screen-only.10-nm bare optical geometry is573 million-1.20 billion cells, so memory feasibility remains unresolved. F1's unrelated hidden-score CI assertions were separately sent to PR Lead/Carbon Validator.",
+  "keep": ["Preserve diagnostic and qualified evidence distinctions; do not infer full-band scores from sparse preflight or physical truth from an RC screen."],
+  "change": [],
+  "protocol_elements": ["challenge.reference.adequacy", "challenge.reference.resource-ceilings", "challenge.pipeline.lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-operator-cpu-gpu-compatibility",
+  "recorded_at": "2026-10-07T01:58:42Z",
+  "challenge": "protocol",
+  "stage": "protocol",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CARBON_UV_GROUPS=science-jax ./scripts/dev/canonical.sh --focused tests/cpu/test_graphite_operator_runpod.py tests/cpu/test_graphite_pod_gpu_probe.py",
+    "description": "Corrected locked-group compatibility regression for the explicit CPU placement candidate"
+  },
+  "expected": "Both selected files collect and pass with no live provider contact.",
+  "observed": "107 tests passed in 32.18 seconds in the pinned Linux runtime. The earlier dev-only collection failure remains recorded separately. Paid dispatch, observed CPU/RAM capacity and reference adequacy remain unverified.",
+  "keep": ["Preserve established GPU payloads and canonical digests when adding CPU request fields."],
+  "change": [],
+  "protocol_elements": ["operator placement compatibility", "canonical validation", "reference authority separation"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

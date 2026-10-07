@@ -74,11 +74,20 @@ OUTCOME_REQUIRED = (
 #:   near-limit quiz stratum (VALIDATOR-17's amendment; VALIDATOR-19 slice Q),
 #:   scored repeatedly for score development and never seen by an agent or
 #:   miner.
-#: Each is registered in `confirmation_sets/` (`confirmation.load_sets`).
+#: Each of those is registered in `confirmation_sets/` (`confirmation.load_sets`).
+#: The training-budget study's three sets are reserved too, though they are
+#: not confirmation sets and are never registered there (`STUDY_ROLES`):
+#: - `study-train`, `study-eval`, `study-confirm`: drawn under a separate
+#:   study root on the producer host only (TRAINING-BUDGET-01 slice 2b,
+#:   `study_sets`; OWNER-COMPUTE-BUDGET-01).
 COOLING_CONFIRMATION_ROLE = "cooling-graphite-confirmation-v1"
 MOTOR_CONFIRMATION_ROLE = "motor-graphite-confirmation-v1"
 BATTERY_TUNING_ROLE_V1 = "graphite-tuning-v1"
 BATTERY_TUNING_ROLE = "graphite-tuning-v2"
+STUDY_TRAIN_ROLE = "study-train"
+STUDY_EVAL_ROLE = "study-eval"
+STUDY_CONFIRM_ROLE = "study-confirm"
+STUDY_ROLES = frozenset({STUDY_TRAIN_ROLE, STUDY_EVAL_ROLE, STUDY_CONFIRM_ROLE})
 RESERVED_SEED_ROLES = frozenset(
     {
         "ev5-confirmation",
@@ -87,6 +96,7 @@ RESERVED_SEED_ROLES = frozenset(
         MOTOR_CONFIRMATION_ROLE,
         BATTERY_TUNING_ROLE_V1,
         BATTERY_TUNING_ROLE,
+        *STUDY_ROLES,
     }
 )
 
@@ -361,6 +371,7 @@ __all__ = [
     "OUTCOME_REQUIRED",
     "RESERVED_SEED_ROLES",
     "STATES",
+    "STUDY_ROLES",
     "TERMINAL_STATES",
     "Admitted",
     "CandidateFault",

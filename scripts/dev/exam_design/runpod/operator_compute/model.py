@@ -20,6 +20,7 @@ from enum import StrEnum
 
 __all__ = [
     "OWNERSHIP_NAME_PATTERN",
+    "CPUPlacement",
     "CarbonOwnedResource",
     "IntentState",
     "Offer",
@@ -36,6 +37,7 @@ __all__ = [
 OWNERSHIP_NAME_PATTERN = re.compile(r"^carbon-([0-9a-f]{24})$")
 _ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 _CUDA_VERSION = re.compile(r"^[0-9]{1,2}\.[0-9]{1,2}$")
+_CPU_FLAVORS = frozenset({"cpu3c", "cpu3g", "cpu3m", "cpu5c", "cpu5g", "cpu5m"})
 
 
 def new_ownership_tag() -> str:
@@ -93,6 +95,23 @@ def _checked_id(value: str, what: str) -> str:
 
 
 @dataclass(frozen=True)
+class CPUPlacement:
+    """One explicit CPU flavor and allocation; no availability fallback.
+
+    This pins the request, not observed hardware or a spend authorization.
+    """
+
+    flavor_id: str
+    vcpu_count: int
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.flavor_id, str) or self.flavor_id not in _CPU_FLAVORS:
+            raise ValueError("unsupported CPU flavor")
+        if type(self.vcpu_count) is not int or self.vcpu_count <= 0:
+            raise ValueError("CPU vCPU count must be a positive integer")
+
+
+@dataclass(frozen=True)
 class PodSpec:
     """What to provision. Rates are caller-supplied observations, never defaults."""
 
@@ -112,6 +131,7 @@ class PodSpec:
     #: The host CUDA versions the provider may place the pod on (RunPod's
     #: `allowedCudaVersions`); empty leaves the choice to the provider.
     allowed_cuda_versions: tuple[str, ...] = ()
+    cpu_placement: CPUPlacement | None = None
 
     def __post_init__(self) -> None:
         if not self.image or "@sha256:" not in self.image:
@@ -122,6 +142,13 @@ class PodSpec:
             raise ValueError("gpu_type_id and gpu_count must agree")
         if self.cloud_type not in {"SECURE", "COMMUNITY"}:
             raise ValueError("cloud_type must be SECURE or COMMUNITY")
+        if self.gpu_count:
+            if self.cpu_placement is not None:
+                raise ValueError("GPU requests cannot carry CPU placement")
+        elif type(self.cpu_placement) is not CPUPlacement:
+            raise ValueError("CPU requests require validated CPUPlacement")
+        elif self.allowed_cuda_versions:
+            raise ValueError("CPU requests cannot carry allowed CUDA versions")
         for key, _ in self.env:
             if key.startswith("CARBON_OWNERSHIP"):
                 raise ValueError("ownership env is Carbon-assigned")
@@ -144,6 +171,10 @@ class PodSpec:
         cuda = value.pop("allowed_cuda_versions")
         if cuda:
             value["allowed_cuda_versions"] = list(cuda)
+        # No new null field in historical GPU intent identities.
+        placement = value.pop("cpu_placement")
+        if placement is not None:
+            value["cpu_placement"] = placement
         return value
 
 

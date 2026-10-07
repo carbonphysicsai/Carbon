@@ -48,7 +48,10 @@ def refused(call, code):
 
 def test_the_registry_holds_the_recorded_decisions_and_every_role_is_reserved():
     sets = cf.load_sets()
-    assert set(sets) == set(interface.RESERVED_SEED_ROLES)
+    # Every reserved role is a registered confirmation set, except the
+    # training-budget study's own roles, which are never registered here.
+    assert set(sets) | interface.STUDY_ROLES == set(interface.RESERVED_SEED_ROLES)
+    assert not set(sets) & interface.STUDY_ROLES
     for role, item in sets.items():
         assert interface.role_reserved(role.upper())
         assert item.skeleton()["set_digest"] == item.digest

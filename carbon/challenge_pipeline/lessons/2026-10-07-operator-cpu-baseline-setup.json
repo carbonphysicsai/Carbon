@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-operator-cpu-baseline-setup",
+  "recorded_at": "2026-10-07T01:51:00Z",
+  "challenge": "protocol",
+  "stage": "protocol",
+  "execution": {
+    "kind": "test_run",
+    "ref": "./scripts/dev/canonical.sh --focused tests/cpu/test_graphite_operator_runpod.py tests/cpu/test_graphite_pod_gpu_probe.py",
+    "description": "Selected baseline in the pinned local Linux validation copy with only the dev dependency group"
+  },
+  "expected": "Both operator and GPU probe tests collect without any provider contact.",
+  "observed": "Collection failed because the GPU probe imports Graphite's numpy-dependent research module. No baseline test pass was established. No paid resource or solver was launched.",
+  "keep": ["Canonical isolated validation and fake-provider isolation."],
+  "change": ["Declare the existing locked science-jax dependency group for the GPU compatibility regression rather than adding an ad-hoc dependency."],
+  "protocol_elements": ["operator compute validation", "canonical dependency declaration"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
