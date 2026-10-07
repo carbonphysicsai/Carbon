@@ -1,0 +1,73 @@
+{
+ "q2": {
+  "infeasible_near": 25,
+  "n12": {
+   "draws_short": 29,
+   "mean": 0.8409886714727086,
+   "p05": 0.7
+  },
+  "n24": {
+   "draws_short": 999,
+   "mean": 0.7833333333333333,
+   "p05": 0.7833333333333333
+  },
+  "n48": {
+   "draws_short": 1000
+  },
+  "near_band_cases": 33,
+  "pool": 180,
+  "pooled_n12": {
+   "draws_short": 0,
+   "mean": 0.8392166666666667,
+   "p05": 0.7
+  },
+  "pooled_n24": {
+   "draws_short": 0,
+   "mean": 0.8449833333333333,
+   "p05": 0.7166666666666667
+  },
+  "pooled_n32": {
+   "draws_short": 0,
+   "mean": 0.8487166666666665,
+   "p05": 0.7833333333333333
+  }
+ },
+ "q3": {
+  "conditions": 6,
+  "designs": 8,
+  "false_feasible_all": {
+   "boundary_optimist": 0.0,
+   "infeasible_edge_seeker": 0.0,
+   "localized_sign_error": 0.0,
+   "noisy0": 0.0,
+   "noisy1": 0.0,
+   "noisy2": 0.0,
+   "noisy3": 0.0,
+   "noisy4": 0.0,
+   "noisy5": 0.0,
+   "noisy6": 0.0,
+   "noisy7": 0.0,
+   "noisy8": 0.0,
+   "oracle": 0.0
+  },
+  "k1": {
+   "mean": 0.5,
+   "p05": 0.5
+  },
+  "k2": {
+   "mean": 0.5,
+   "p05": 0.5
+  },
+  "k4": {
+   "mean": 0.5,
+   "p05": 0.5
+  },
+  "k8": {
+   "mean": 0.5,
+   "p05": 0.5
+  },
+  "pseudo_scenarios": 69
+ },
+ "registry_commit": "ed095dd7",
+ "schema": "carbon.motor.quiz-standin.v1"
+}
