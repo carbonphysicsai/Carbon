@@ -102,7 +102,10 @@ class Inbox:
         # Challenge (VALIDATOR-21); a flat inbox from earlier pushes still
         # serves.
         paths = [*self.directory.glob("*.json"), *self.directory.glob("*/*.json")]
+        withdrawn = {m["fingerprint"] for m, _ in self._withdrawals(challenge_id)}
         for path in sorted(paths):
+            if path.parent.name in ("withdrawals", "training"):
+                continue
             try:
                 value = read_private(path)
                 commitment, _ = verify(value, self.producer_public_key)
@@ -110,6 +113,9 @@ class Inbox:
                 skipped += 1
                 continue
             if commitment["challenge_id"] != challenge_id:
+                continue
+            if commitment["fingerprint"] in withdrawn:
+                # Withdrawn (VALIDATOR-24): never served, even if pushed.
                 continue
             window = commitment.get("window")
             if block is not None and (
@@ -119,6 +125,29 @@ class Inbox:
                 continue
             found[commitment["fingerprint"]] = value
         return found, skipped
+
+    def _withdrawals(self, challenge_id):
+        """`[(manifest, notice)]`, each verified against the producer key."""
+        from .answer_key import verify_withdrawal
+
+        found = []
+        paths = [
+            *self.directory.glob("withdrawals/*.json"),
+            *self.directory.glob("*/withdrawals/*.json"),
+        ]
+        for path in sorted(paths):
+            try:
+                value = read_private(path)
+                manifest = verify_withdrawal(value, self.producer_public_key)
+            except (AnswerKeyRefused, OSError, ValueError):
+                continue
+            if manifest["challenge_id"] == challenge_id:
+                found.append((manifest, value))
+        return found
+
+    def withdrawals(self, challenge_id):
+        """The verified withdrawal notices for `challenge_id`."""
+        return [value for _, value in self._withdrawals(challenge_id)]
 
 
 class FetchLog:
@@ -231,7 +260,8 @@ class DistributionService:
                 hotkey=hotkey, block=block, fingerprint=None, verdict="LISTED"
             )
             return 200, {
-                "packages": [listing_entry(packages[f]) for f in sorted(packages)]
+                "packages": [listing_entry(packages[f]) for f in sorted(packages)],
+                "withdrawals": self.inbox.withdrawals(request["challenge_id"]),
             }
         if fingerprint not in packages:
             return refuse(404, "answer_key_unknown_batch", block)

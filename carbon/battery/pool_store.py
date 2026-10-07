@@ -85,6 +85,11 @@ CREATE TABLE IF NOT EXISTS pool_clock(
 CREATE TABLE IF NOT EXISTS batch_salts(
   fingerprint TEXT PRIMARY KEY,
   salt TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS withdrawn_batches(
+    fingerprint TEXT PRIMARY KEY,
+    reason TEXT NOT NULL,
+    block INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS batch_windows(
   fingerprint TEXT PRIMARY KEY,
   slot INTEGER NOT NULL,
@@ -715,10 +720,50 @@ class PoolStore:
                 "SELECT w.fingerprint FROM batch_windows w JOIN batches b "
                 "ON b.fingerprint = w.fingerprint WHERE b.kind='screening' "
                 "AND b.references_state='COMPLETE' AND w.activate_block <= ? "
-                "AND ? < w.retire_block ORDER BY w.activate_block, w.fingerprint",
+                "AND ? < w.retire_block AND w.fingerprint NOT IN "
+                "(SELECT fingerprint FROM withdrawn_batches) "
+                "ORDER BY w.activate_block, w.fingerprint",
                 (block, block),
             )
         ]
+
+    @staticmethod
+    def _withdrawn_set(db):
+        return {
+            row[0] for row in db.execute("SELECT fingerprint FROM withdrawn_batches")
+        }
+
+    def withdraw_batch(self, fingerprint, reason, block):
+        """Record a producer withdrawal (VALIDATOR-24): the batch never
+        activates again, leaves the active pool at the next rotation step, and
+        is never imported again. Recorded even before the batch is held.
+        Idempotent; a different reason or block for the same batch is
+        refused."""
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT reason, block FROM withdrawn_batches WHERE fingerprint=?",
+                (fingerprint,),
+            ).fetchone()
+            if row is not None:
+                if tuple(row) != (reason, block):
+                    raise StateError("withdrawal_changed")
+                return False
+            db.execute(
+                "INSERT INTO withdrawn_batches VALUES(?,?,?)",
+                (fingerprint, reason, block),
+            )
+            self._event(
+                db,
+                "batch_withdrawn",
+                {"fingerprint": fingerprint, "reason": reason, "block": block},
+            )
+            if self.windowed:
+                self._windowed_rotate(db)
+            return True
+
+    def batch_withdrawn(self, fingerprint):
+        with self.db() as db:
+            return fingerprint in self._withdrawn_set(db)
 
     def window(self, fingerprint):
         with self.db() as db:
@@ -741,6 +786,12 @@ class PoolStore:
             return None
         active = self._windows_at(db, latest)
         pool = self._pool_row(db)
+        if not active:
+            # No window covers the block: the current batches keep scoring,
+            # except a withdrawn one, which leaves at once (VALIDATOR-24).
+            withdrawn = self._withdrawn_set(db)
+            if any(f in withdrawn for f in pool["active"]):
+                active = [f for f in pool["active"] if f not in withdrawn]
         if active == pool["active"]:
             return None
         if not active:
@@ -1299,6 +1350,8 @@ class PoolStore:
                         "ON w.fingerprint = b.fingerprint WHERE b.kind='finalist' "
                         "AND b.state='PREPARED' AND b.references_state='COMPLETE' "
                         "AND w.activate_block <= ? AND ? < w.retire_block "
+                        "AND b.fingerprint NOT IN "
+                        "(SELECT fingerprint FROM withdrawn_batches) "
                         "ORDER BY w.activate_block, b.fingerprint LIMIT 1",
                         (latest, latest),
                     ).fetchone()

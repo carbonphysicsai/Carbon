@@ -575,6 +575,46 @@ class Producer:
             "window": None,
         }
 
+    def withdraw(self, challenge_id, fingerprint, reason, *, block):
+        """Withdraw one batch window (VALIDATOR-24): journaled, its package
+        out of the outbox (the next push removes it from the distribution
+        host), and a signed notice in `outbox/<challenge>/withdrawals/` that
+        every validator applies before importing anything. Never undone, and
+        never republished. Idempotent."""
+        from .answer_key import AnswerKeyRefused, withdrawal_notice, write_private
+
+        if self.signing_key is None:
+            raise ProducerRefused("producer_no_signing_key")
+        if self.journal.find("drawn", challenge_id, fingerprint) is None:
+            raise ProducerRefused("producer_not_drawn")
+        earlier = self.journal.find("withdrawn", challenge_id, fingerprint)
+        if earlier is not None:
+            reason, block = earlier["reason"], earlier["block"]
+        try:
+            value = withdrawal_notice(
+                self.signing_key, challenge_id, fingerprint, reason, block
+            )
+        except AnswerKeyRefused as refused:
+            raise ProducerRefused(refused.code) from None
+        if earlier is None:
+            self.journal.append(
+                "withdrawn",
+                challenge_id=challenge_id,
+                fingerprint=fingerprint,
+                reason=reason,
+                block=block,
+            )
+        name = fingerprint.removeprefix("sha256:") + ".json"
+        package = self.directory / "outbox" / challenge_id / name
+        if package.exists():
+            os.replace(package, self._private_dir("withdrawn", challenge_id) / name)
+        notices = self._private_dir("outbox", challenge_id, "withdrawals")
+        write_private(notices / name, value)
+        return {"fingerprint": fingerprint, "reason": reason, "notice": name}
+
+    def _withdrawn(self, challenge_id, fingerprint):
+        return self.journal.find("withdrawn", challenge_id, fingerprint) is not None
+
     def publish(self, challenge_id, fingerprint):
         """Sign a sealed batch's answer-key package into the outbox, for the
         operator to push to the distribution host. Idempotent: the signature
@@ -586,6 +626,8 @@ class Producer:
         sealed = self.journal.find("sealed", challenge_id, fingerprint)
         if sealed is None:
             raise ProducerRefused("producer_not_sealed")
+        if self._withdrawn(challenge_id, fingerprint):
+            raise ProducerRefused("producer_withdrawn")
         source = self._source(challenge_id)
         # Re-checked, so a batch changed after its seal is never published.
         source.check(fingerprint)
@@ -659,6 +701,8 @@ class Producer:
         sealed = self.journal.find("sealed", challenge_id, fingerprint)
         if sealed is None:
             raise ProducerRefused("producer_not_sealed")
+        if self._withdrawn(challenge_id, fingerprint):
+            raise ProducerRefused("producer_withdrawn")
         kind = sealed["commitment"]["kind"]
         window = self.window(self._cadence(challenge_id), slot)
         earlier = self.journal.find("scheduled", challenge_id, fingerprint)
@@ -723,6 +767,7 @@ class Producer:
             and e["challenge_id"] == challenge_id
             and e["commitment"]["kind"] == kind
             and e["fingerprint"] not in scheduled
+            and not self._withdrawn(challenge_id, e["fingerprint"])
         ]
         fingerprint = sealed[0] if sealed else None
         if fingerprint is None:
@@ -829,11 +874,13 @@ def finalized_block(chain):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="carbon.challenge_validator.producer")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("draw", "solve", "seal", "publish", "tick", "status"):
+    for name in ("draw", "solve", "seal", "publish", "withdraw", "tick", "status"):
         command = sub.add_parser(name)
         command.add_argument("--config", required=True)
-        if name == "tick":
+        if name in ("tick", "withdraw"):
             command.add_argument("--block", type=int)
+        if name == "withdraw":
+            command.add_argument("--reason", required=True)
         if name in ("status", "tick"):
             continue
         command.add_argument("--challenge", required=True)
@@ -855,6 +902,13 @@ def main(argv=None):
         elif args.command == "solve":
             result = producer.solve(
                 args.challenge, args.fingerprint, workers=args.workers
+            )
+        elif args.command == "withdraw":
+            block = args.block
+            if block is None:
+                block = finalized_block(load_config(args.config).get("chain"))
+            result = producer.withdraw(
+                args.challenge, args.fingerprint, args.reason, block=block
             )
         elif args.command == "seal":
             result = producer.seal(args.challenge, args.fingerprint)
