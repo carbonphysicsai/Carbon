@@ -534,8 +534,18 @@ def load_record(path):
 
 
 # ------------------------------------------------------------------ the code ship
+def is_protected(path):
+    """A path the pod-ship guard names (`pods.FORBIDDEN_DATA`, by fragment)."""
+    from carbon.agent_campaign.graphite import pods
+
+    return any(fragment in path.lower() for fragment in pods.FORBIDDEN_DATA)
+
+
 def ship_paths(ref, repository=REPOSITORY):
-    """Every tracked file the pod needs, never a forbidden or `private` path."""
+    """Every tracked file the pod needs. Code files the guard names (sealed
+    confirmation sets, EV4 contracts, `private` directories) are not shipped;
+    the rebuild path imports none of them (a test rebuilds without them). The
+    guard itself is unchanged: a protected DATA path is still refused."""
     from carbon.agent_campaign.graphite import pods
 
     code = [
@@ -543,12 +553,12 @@ def ship_paths(ref, repository=REPOSITORY):
         for path in pods.tracked(ref, SHIP_TREES, repository)
         if not {part.lower() for part in Path(path).parts[:-1]}
         & pods.UNSHIPPED_DIRECTORIES
+        and not is_protected(path)
     ]
-    paths = list(dict.fromkeys(code + list(SHIPPED_FILES) + list(DATA_PATHS)))
-    for path in paths:
-        if any(fragment in path.lower() for fragment in pods.FORBIDDEN_DATA):
+    for path in (*SHIPPED_FILES, *DATA_PATHS):
+        if is_protected(path):
             raise Refused("refused: forbidden data path " + path)
-    return paths
+    return list(dict.fromkeys(code + list(SHIPPED_FILES) + list(DATA_PATHS)))
 
 
 def build_manifest(ref, repository=REPOSITORY):
