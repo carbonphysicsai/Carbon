@@ -1,0 +1,37 @@
+{
+ "anchors": "coarse-grid oracle optimum (re-anchored on the refined optimum until stable where references allow), every other member's pick (leave-one-out panel), coarse points within 1 band of a limit",
+ "radii": {
+  "r1": "lattice points within one coarse step (0.25 C, 0.2 C)",
+  "r_half": "lattice points within one lattice step (0.125 C, 0.1 C)"
+ },
+ "results": {
+  "r1": {
+   "decisions": 234,
+   "full_lattice": 117,
+   "judged": {
+    "decisions": 52,
+    "optimum_matches": 52,
+    "uncovered": [],
+    "verdict_matches": 52
+   },
+   "pick_coverage_leave_one_out": 1.0,
+   "solves_per_condition_max": 84,
+   "solves_per_condition_mean": 62.111111111111114
+  },
+  "r_half": {
+   "decisions": 234,
+   "full_lattice": 117,
+   "judged": {
+    "decisions": 52,
+    "optimum_matches": 52,
+    "uncovered": [],
+    "verdict_matches": 52
+   },
+   "pick_coverage_leave_one_out": 0.9957264957264957,
+   "solves_per_condition_max": 71,
+   "solves_per_condition_mean": 52.22222222222222
+  }
+ },
+ "schema": "carbon.battery.quiz-coarse-refine.v1",
+ "source": "PUBLIC_STANDIN: quiz-diagnostics-v1 (b) data; EV4's 9 verification scenarios with a feasible design; 26 members' 117-point picks; full 117 references on the 2 judged scenarios"
+}

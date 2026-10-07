@@ -1,0 +1,94 @@
+{
+ "canary_detector": {
+  "fitted_attacker": {
+   "flag_rate": 0.923
+  },
+  "honest_p0.05": {
+   "flag_rate": 0.0015
+  },
+  "honest_p0.20": {
+   "flag_rate": 0.003
+  },
+  "quiz_infeasible_cases": 44
+ },
+ "optimist_damage_cases": 123,
+ "pool": 392,
+ "pool_infeasible": 217,
+ "q2": {
+  "cells_2^4": {
+   "cells_with_pool_cases": 16,
+   "defective_cells_median": 8.0,
+   "exam_false_feasible_gained_median": 0.0718397459225196,
+   "fresh_quiz_false_feasible_median": 0.06976744186046512,
+   "info_bound_bits_median": 13.481799431665754,
+   "probes_median": 24.0,
+   "probes_p90": 28.0
+  },
+  "cells_3^4": {
+   "cells_with_pool_cases": 61,
+   "defective_cells_median": 16.5,
+   "exam_false_feasible_gained_median": 0.23595505617977527,
+   "fresh_quiz_false_feasible_median": 0.23404255319148937,
+   "info_bound_bits_median": 48.22926364424984,
+   "probes_median": 67.0,
+   "probes_p90": 76.1
+  },
+  "cells_4^4": {
+   "cells_with_pool_cases": 141,
+   "defective_cells_median": 21.0,
+   "exam_false_feasible_gained_median": 0.3806818181818182,
+   "fresh_quiz_false_feasible_median": 0.3902439024390244,
+   "info_bound_bits_median": 82.19975317722661,
+   "probes_median": 107.5,
+   "probes_p90": 123.0
+  },
+  "cells_6^4": {
+   "cells_with_pool_cases": 277,
+   "defective_cells_median": 24.0,
+   "exam_false_feasible_gained_median": 0.5176470588235295,
+   "fresh_quiz_false_feasible_median": 0.5227272727272727,
+   "info_bound_bits_median": 114.21220032104948,
+   "probes_median": 148.0,
+   "probes_p90": 170.0
+  },
+  "cells_8^4": {
+   "cells_with_pool_cases": 348,
+   "defective_cells_median": 25.0,
+   "exam_false_feasible_gained_median": 0.5472724285244824,
+   "fresh_quiz_false_feasible_median": 0.5408333333333333,
+   "info_bound_bits_median": 126.11811218932934,
+   "probes_median": 161.5,
+   "probes_p90": 188.1
+  }
+ },
+ "q3": {
+  "cells_16^2": {
+   "free_condition_share_median": 0.96875,
+   "probes_median": 66.0,
+   "probes_p90": 73.0
+  },
+  "cells_32^2": {
+   "free_condition_share_median": 0.9921875,
+   "probes_median": 91.0,
+   "probes_p90": 98.0
+  },
+  "cells_4^2": {
+   "free_condition_share_median": 0.5625,
+   "probes_median": 22.0,
+   "probes_p90": 25.0
+  },
+  "cells_8^2": {
+   "free_condition_share_median": 0.875,
+   "probes_median": 43.0,
+   "probes_p90": 49.0
+  }
+ },
+ "schema": "carbon.battery.quiz-load-probe.v1",
+ "shared_quiz": {
+  "correct_order_paired": 1.0,
+  "correct_order_unpaired": 0.9645,
+  "members": "boundary_optimist vs the same made optimistic on 70 % of its damage cases (pool false-feasible 0.567 vs 0.396)"
+ },
+ "source": "PUBLIC_STANDIN: the scoring set's near-limit pool (4 bands); quiz = 80 random pool cases (the panel split is not modelled); attacker = boundary_optimist, accurate elsewhere; gate = no false-feasible on the quiz (tau = 0; tau > 0 only helps the attacker)",
+ "tempos_per_day_per_hotkey": 20
+}
