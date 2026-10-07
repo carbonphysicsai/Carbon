@@ -309,6 +309,7 @@ def _validate_runnable(identity, candidates, actions):
         set(optimizer) != {"class", "version", "starts"}
         or not isinstance(optimizer["starts"], list)
         or not optimizer["starts"]
+        or any(not isinstance(start, str) for start in optimizer["starts"])
         or len(set(optimizer["starts"])) != len(optimizer["starts"])
         or not set(optimizer["starts"]) <= set(candidates)
     ):
