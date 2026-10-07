@@ -90,6 +90,16 @@ CREATE TABLE IF NOT EXISTS batch_windows(
   slot INTEGER NOT NULL,
   activate_block INTEGER NOT NULL,
   retire_block INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS batch_quizzes(
+  fingerprint TEXT PRIMARY KEY,
+  document TEXT NOT NULL,
+  refs TEXT NOT NULL,
+  quiz_digest TEXT NOT NULL,
+  references_digest TEXT NOT NULL,
+  panel_version INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS quiz_reports(
+  submission_id TEXT PRIMARY KEY,
+  body TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS submissions(
   submission_id TEXT PRIMARY KEY,
   request_digest TEXT NOT NULL,
@@ -600,6 +610,86 @@ class PoolStore:
                     raise StateError("batch_salt_conflict")
                 return
             db.execute("INSERT INTO batch_salts VALUES(?,?)", (fingerprint, salt))
+
+    def set_quiz(self, fingerprint, quiz):
+        """Record an imported batch's quiz (VALIDATOR-19 slice Q), verified
+        against its commitment by the importer; idempotent. Private: its
+        cases are never scored, disclosed or released here."""
+        self.batch(fingerprint)
+        values = (
+            canonical(quiz["document"]),
+            canonical(quiz["references"]),
+            quiz["quiz_digest"],
+            quiz["quiz_references_digest"],
+            quiz["panel_version"],
+        )
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT document, refs, quiz_digest, references_digest, panel_version "
+                "FROM batch_quizzes WHERE fingerprint=?",
+                (fingerprint,),
+            ).fetchone()
+            if row is not None:
+                if tuple(row) != values:
+                    raise StateError("batch_quiz_conflict")
+                return
+            db.execute(
+                "INSERT INTO batch_quizzes VALUES(?,?,?,?,?,?)", (fingerprint, *values)
+            )
+            self._event(
+                db,
+                "batch_quiz",
+                {
+                    "fingerprint": fingerprint,
+                    "quiz_digest": quiz["quiz_digest"],
+                    "panel_version": quiz["panel_version"],
+                },
+            )
+
+    def quiz(self, fingerprint):
+        """A batch's quiz, or None (a batch without one)."""
+        with self.db() as db:
+            row = db.execute(
+                "SELECT document, refs, quiz_digest, references_digest, panel_version "
+                "FROM batch_quizzes WHERE fingerprint=?",
+                (fingerprint,),
+            ).fetchone()
+        if row is None:
+            return None
+        return {
+            "document": json.loads(row[0]),
+            "references": json.loads(row[1]),
+            "quiz_digest": row[2],
+            "quiz_references_digest": row[3],
+            "panel_version": row[4],
+        }
+
+    def record_quiz_report(self, submission_id, body):
+        """Store a scored submission's operator-only quiz report. A measured
+        report is kept; only a FAILED_INFRA one may be replaced."""
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT body FROM quiz_reports WHERE submission_id=?", (submission_id,)
+            ).fetchone()
+            if row is not None and json.loads(row[0]).get("state") != "FAILED_INFRA":
+                return json.loads(row[0])
+            db.execute(
+                "INSERT OR REPLACE INTO quiz_reports VALUES(?,?)",
+                (submission_id, _json(body)),
+            )
+            self._event(
+                db,
+                "quiz_reported",
+                {"submission_id": submission_id, "state": body.get("state")},
+            )
+        return json.loads(_json(body))
+
+    def quiz_report(self, submission_id):
+        with self.db() as db:
+            row = db.execute(
+                "SELECT body FROM quiz_reports WHERE submission_id=?", (submission_id,)
+            ).fetchone()
+        return None if row is None else json.loads(row[0])
 
     def salts(self, fingerprints):
         with self.db() as db:
@@ -1184,10 +1274,29 @@ class PoolStore:
                 raise StateError("unknown_final")
             if row[0]:
                 return row[0]
-            nxt = db.execute(
-                "SELECT fingerprint FROM batches WHERE kind='finalist' AND "
-                "state='PREPARED' AND references_state='COMPLETE' ORDER BY sequence LIMIT 1"
-            ).fetchone()
+            if self.windowed:
+                # Import-only: the earliest live producer window, then the
+                # fingerprint, so every validator claims the same set for
+                # the same final, whatever order it imported in.
+                latest = self._latest_block(db)
+                nxt = (
+                    None
+                    if latest is None
+                    else db.execute(
+                        "SELECT b.fingerprint FROM batches b JOIN batch_windows w "
+                        "ON w.fingerprint = b.fingerprint WHERE b.kind='finalist' "
+                        "AND b.state='PREPARED' AND b.references_state='COMPLETE' "
+                        "AND w.activate_block <= ? AND ? < w.retire_block "
+                        "ORDER BY w.activate_block, b.fingerprint LIMIT 1",
+                        (latest, latest),
+                    ).fetchone()
+                )
+            else:
+                nxt = db.execute(
+                    "SELECT fingerprint FROM batches WHERE kind='finalist' AND "
+                    "state='PREPARED' AND references_state='COMPLETE' "
+                    "ORDER BY sequence LIMIT 1"
+                ).fetchone()
             if nxt is None:
                 return None
             db.execute(

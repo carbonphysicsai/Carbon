@@ -186,6 +186,15 @@ Carbon draws and solves.
     names the hotkeys, the run is blocked, fail closed; everything above
     runs in process.
 
+- **Finalists** (for the dress rehearsal, OWNER-REHEARSAL-AND-RELEASE-01):
+  - Each slot carries one finalist batch (`pfinal-S<slot>`) beside its
+    screening batch, under the same signed window.
+  - Import-only validators claim a final's set by the earliest live
+    producer window, then the fingerprint, never by their own import order.
+    Every validator therefore judges the same final on the same fresh cases.
+  - **Gap fixed:** the claim used to follow each validator's local journal
+    sequence.
+
 ## Operator setup (Ryan; exact steps, run once per host)
 
 ```bash
@@ -321,3 +330,56 @@ apply to every hidden batch and to `graphite-tuning-v2`.
   `quiz-scores.json` and `q3-regret.json`.
 - **Not yet:** the producer's quiz (part 2) and the gate (rule v3, the
   owner's).
+
+**Built (part 2): the quiz inside every hidden batch** (branch
+`claude/validator-19-quiz-hidden`). Drawn and reported only; it gates nothing.
+- **Producer:** an optional config `quiz: {"panel": PATH}`. Without it,
+  batches seal exactly as before.
+  - With it, each screening batch's draw also draws its quiz, from the
+    producer root under the batch's own role (`BatteryBatchSource.quiz_draw`,
+    quiz_stratum's reserved indices). The quiz jobs share the batch's
+    `jobs.json` and `solve`.
+  - `seal` selects the quiz as the tuning set does: k = 8 feasible Q3
+    scenarios, protected and infeasible redraws counted, then Q2's ~320-case
+    pool and 80 cases by the registered panel's predictions only.
+  - The panel is rebuilt once per version and cached owner-only
+    (`quiz-panel/<challenge>/v<N>`); each batch only infers.
+  - A short Q3 round journals `quiz_round` and keeps the batch PENDING, so the
+    next tick solves the new round (slot-unfilled logic unchanged).
+  - The commitment gains `quiz_digest`, `quiz_references_digest` and
+    `quiz_panel_version`, and the payload `quiz: {document, references}`. The
+    quiz digest is also sealed to the producer's seed journal (kind `quiz`).
+  - Finalist batches, and batches drawn without the config, carry no quiz.
+- **Import:** `BatteryAdapter.import_answer_key` re-derives both digests
+  (`producer.quiz_digests`), the panel version, the role and the reference
+  set, and refuses a mismatch (`answer_key_quiz_mismatch` / `_malformed`). The
+  quiz is stored per batch (`batch_quizzes`). A package without one imports as
+  before.
+- **Report:** after a score commits, the daemon infers the retained model on
+  its active batches' quiz inputs. The predictions are stored under
+  `quiz/<submission>`, never a scored key.
+  - It stores `q2_measures` and Q3 judged outcomes and measures, per batch and
+    pooled, in `quiz_reports`.
+  - `BatteryAdapter.score_record` and `HiddenPool._operator_record` carry it
+    as `quiz`; `hidden_score.report` adds a per-pool-version quiz table.
+  - A quiz inference failure is the quiz's own `FAILED_INFRA` (retried by
+    the next `quiz_report` call). The submission's state, score, nomination
+    and outcome are untouched.
+- **Kept off the miner closure.** The miner edition reaches the daemon and
+  `challenge_validator/battery.py` through `intake_client`. `quiz_stratum` and
+  `value.quiz` reach `value.panel → track_a → attack`. So:
+  - The quiz's science lives only in the operator module
+    `challenge_validator/battery_quiz.py`. It holds `BatteryQuizSource`, which
+    `producer.source_for` builds, and `install`, which injects
+    `target.quiz_measures` as `development_compiler` is injected.
+  - Graphite's `HiddenPool` installs it. A validator run without it measures
+    nothing until `python -m carbon.challenge_validator.battery_quiz report`.
+  - The importer reads `battery/quiz_document.py` (shape, digest, inputs) and
+    `challenge_validator/batch_source.py` (the neutral contract, re-exported
+    by `producer`).
+- **Tests:** `tests/cpu/test_challenge_validator_quiz_hidden.py`.
+- **Found, not fixed:** `hidden_score.report` raises for any primary record
+  on main, because `_variant_ranking` is handed the device-class map
+  (#692 with commit 404559e). Six existing tests fail on main for this. The
+  fix decides whether a variant ranks across device classes, so it is left
+  to its owner.

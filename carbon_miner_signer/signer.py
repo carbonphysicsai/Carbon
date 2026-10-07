@@ -9,9 +9,20 @@ Wire protocol, one request per connection, one JSON object per line:
     <- {"ok": true, "signature": "0x<hex>"}
     <- {"ok": false, "refusal": "<Refusal>"}
 
-The payload is the exact ``btauth/1`` byte string the verifier rebuilds
-(``bittensor.http_auth.build_payload``). The signer parses it only to decide
-whether to sign; it never signs anything but these bytes.
+    -> {"protocol": PROTOCOL, "op": "commit", "netuid": 567,
+        "digest": "sha256:<64 hex>", "unsigned": {...}, "fee": {...}}
+    <- {"ok": true, "signature": "0x<hex>", "call": "0x<hex>",
+        "fee_ceiling_rao": <int>, "tempo_index": <int>}
+    <- {"ok": false, "refusal": "<CommitRefusal>"}
+
+The ``sign`` payload is the exact ``btauth/1`` byte string the verifier
+rebuilds (``bittensor.http_auth.build_payload``). The signer parses it only to
+decide whether to sign; that op never signs anything but these bytes.
+
+``commit`` (OWNER-COMMITMENT-POSTER-01) is the one chain extrinsic: a strategy
+commitment, rebuilt and checked by ``commitment.check_request``, and signed
+only after the miner types the digest's last 8 characters on this process's
+own terminal. Nothing on the socket can confirm it.
 """
 
 from __future__ import annotations
@@ -29,6 +40,8 @@ import threading
 import time
 from enum import Enum
 from pathlib import Path
+
+from . import commitment as cm
 
 PROTOCOL = "carbon.miner-signer.v1"
 #: The one request target Carbon's miner session signs for.
@@ -132,6 +145,9 @@ class SignerServer:
         receivers=None,
         log=None,
         clock=time.time_ns,
+        commit_policy=None,
+        confirm=None,
+        wall_clock=None,
     ):
         if keypair.crypto_type not in SCHEMES:
             raise ValueError("unsupported key type")
@@ -145,6 +161,17 @@ class SignerServer:
         self._listener = None
         self._slots = threading.BoundedSemaphore(MAX_CONNECTIONS)
         self._signing = threading.Lock()
+        #: None refuses every commit (COMMITMENT_NOT_PINNED).
+        self.commit_policy = commit_policy
+        #: Asks the miner on this process's terminal; tests inject one.
+        self._confirm = cm.tty_confirm if confirm is None else confirm
+        self._now = wall_clock or (lambda: datetime.datetime.now(datetime.UTC))
+        #: One commit at a time: a second one while the miner is being asked
+        #: is refused, never queued.
+        self._committing = threading.Lock()
+        self.ledger = cm.CommitLedger(
+            self.socket_path.parent / (self.hotkey + ".commitments.jsonl")
+        )
 
     def __repr__(self):
         # Never the keypair.
@@ -224,6 +251,8 @@ class SignerServer:
                 "hotkey": self.hotkey,
                 "crypto_type": self._keypair.crypto_type,
             }
+        if request.get("op") == "commit":
+            return self.commit(request)
         if (
             request.get("op") != "sign"
             or set(request) != {"protocol", "op", "payload"}
@@ -248,6 +277,49 @@ class SignerServer:
         )
         return {"ok": True, "signature": "0x" + signature.hex()}
 
+    def commit(self, request) -> dict:
+        """One strategy commitment: check, ask the miner, record, sign."""
+        if not self._committing.acquire(blocking=False):
+            return self._refuse(cm.CommitRefusal.COMMIT_IN_FLIGHT)
+        try:
+            checked = cm.check_request(self.commit_policy, request)
+            policy = self.commit_policy
+            tempo = self.ledger.check(policy, checked["era_current"])
+            now = self._now()
+            text = cm.prompt_text(policy, self.hotkey, checked, self.ledger.today(now))
+            if not self._confirm(text, checked["digest"][-8:]):
+                raise cm.Refused(cm.CommitRefusal.NOT_CONFIRMED)
+            self.ledger.append(
+                {
+                    "digest": checked["digest"],
+                    "netuid": policy.netuid,
+                    "genesis_hash": policy.genesis_hash,
+                    "nonce": checked["nonce"],
+                    "era_current": checked["era_current"],
+                    "era_period": checked["era_period"],
+                    "tempo_index": tempo,
+                    "fee_rao": checked["fee_rao"],
+                    "signed_at": now.astimezone(datetime.UTC).isoformat(),
+                }
+            )
+            with self._signing:
+                signature = bytes(self._keypair.sign(checked["payload"]))
+        except cm.Refused as refused:
+            return self._refuse(refused.refusal)
+        finally:
+            self._committing.release()
+        self._note(
+            f"signed commitment {checked['digest']} for netuid {policy.netuid}, "
+            f"nonce {checked['nonce']}, tempo {tempo}"
+        )
+        return {
+            "ok": True,
+            "signature": "0x" + signature.hex(),
+            "call": "0x" + checked["call"].hex(),
+            "fee_ceiling_rao": policy.fee_ceiling_rao,
+            "tempo_index": tempo,
+        }
+
     def close(self):
         listener, self._listener = self._listener, None
         if listener is not None:
@@ -271,13 +343,23 @@ class SignerServer:
         except ValueError:
             return None
 
-    def _refuse(self, refusal: Refusal) -> dict:
+    def _refuse(self, refusal) -> dict:
         self._note("refused a request: " + refusal.value)
         return {"ok": False, "refusal": refusal.value}
 
     def _note(self, text):
         stamp = datetime.datetime.now(datetime.UTC).strftime("%H:%M:%SZ")
         print(f"{stamp} {text}", file=self._log, flush=True)
+
+
+def key_path(*, wallet=None, hotkey=None, wallet_path=None, key_file=None) -> Path:
+    """The hotkey file the signer opens: ``key_file``, or the wallet's."""
+    if key_file is not None:
+        return Path(key_file).expanduser()
+    from bittensor.wallet import DEFAULT_WALLET_PATH
+
+    root = Path(wallet_path or DEFAULT_WALLET_PATH).expanduser()
+    return root / wallet / "hotkeys" / hotkey
 
 
 def load_hotkey(*, wallet=None, hotkey=None, wallet_path=None, key_file=None):
@@ -290,12 +372,11 @@ def load_hotkey(*, wallet=None, hotkey=None, wallet_path=None, key_file=None):
     """
     try:
         from bittensor.keyfiles import Keyfile
-        from bittensor.wallet import DEFAULT_WALLET_PATH
 
-        if key_file is None:
-            root = Path(wallet_path or DEFAULT_WALLET_PATH).expanduser()
-            key_file = root / wallet / "hotkeys" / hotkey
-        keypair = Keyfile(Path(key_file).expanduser()).get_keypair()
+        path = key_path(
+            wallet=wallet, hotkey=hotkey, wallet_path=wallet_path, key_file=key_file
+        )
+        keypair = Keyfile(path).get_keypair()
     except KeyboardInterrupt:
         raise
     except Exception:  # noqa: BLE001 - never show the SDK's error text
@@ -337,6 +418,19 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if (args.key_file is None) == (args.wallet is None or args.hotkey is None):
         parser.error("give either --wallet and --hotkey, or --key-file")
+    # D8: refuse a key file others can read, before it is opened.
+    problem = cm.key_file_problem(
+        key_path(
+            wallet=args.wallet,
+            hotkey=args.hotkey,
+            wallet_path=args.wallet_path,
+            key_file=args.key_file,
+        )
+    )
+    if problem is not None:
+        raise SystemExit(problem)
+    # The network, netuid and every commit bound are fixed here, at start.
+    policy, unpinned = cm.load_policy()
     keypair = load_hotkey(
         wallet=args.wallet,
         hotkey=args.hotkey,
@@ -349,6 +443,7 @@ def main(argv=None):
         keypair,
         args.socket or default_socket(keypair.ss58_address),
         receivers=args.receiver,
+        commit_policy=policy,
     )
     del keypair
     server.bind()
@@ -359,6 +454,18 @@ def main(argv=None):
         "Ctrl-C stops signing.",
         flush=True,
     )
+    if policy is None:
+        print(
+            "On-chain commitments are off until these are recorded: "
+            + ", ".join(unpinned),
+            flush=True,
+        )
+    else:
+        print(
+            f"On-chain commitments: {policy.network} netuid {policy.netuid}; each "
+            "one asks you here first.",
+            flush=True,
+        )
     try:
         server.serve_forever()
     except KeyboardInterrupt:

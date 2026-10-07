@@ -38,9 +38,15 @@ import json
 from pathlib import Path
 
 from . import seeds
+from .quiz_document import (  # noqa: F401 - re-exported
+    SCHEMA,
+    QuizRefused,
+    check,
+    digest,
+    inputs,
+)
 from .value import quiz
 
-SCHEMA = "carbon.battery.quiz-stratum.v1"
 JOURNAL_KIND = "quiz"
 CONTRACT = "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json"
 CONTRACTS = "carbon/battery/value/contracts"
@@ -62,22 +68,6 @@ Q3_BASE = 2 << 40
 #: Refused draws a condition may take before the box is called unreachable.
 Q3_ATTEMPTS_PER_CONDITION = 1000
 STATUS_FAILED_INFRA = "FAILED_INFRA"
-
-
-class QuizRefused(ValueError):
-    """A typed refusal; its code names no case, input, output or root."""
-
-    def __init__(self, code):
-        super().__init__(code)
-        self.code = code
-
-
-def _canonical(value):
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
-
-
-def digest(value):
-    return "sha256:" + hashlib.sha256(_canonical(value).encode()).hexdigest()
 
 
 def contract(repository):
@@ -287,38 +277,6 @@ def document(role, panel_version, q2, q3, redraws):
         ],
         "redraws": dict(redraws),
     }
-
-
-def check(value):
-    """A quiz document, checked for shape, or refused."""
-    if (
-        type(value) is not dict
-        or set(value) != {"schema", "role", "panel_version", "q2", "q3", "redraws"}
-        or value["schema"] != SCHEMA
-        or type(value["role"]) is not str
-        or type(value["panel_version"]) is not int
-        or type(value["q2"]) is not list
-        or type(value["q3"]) is not list
-        or type(value["redraws"]) is not dict
-        or not all(
-            type(c) is dict and set(c) == {"case_id", "inputs"} for c in value["q2"]
-        )
-        or not all(
-            type(s) is dict and set(s) == {"scenario_id", "condition", "grid"}
-            for s in value["q3"]
-        )
-    ):
-        raise QuizRefused("quiz_document_malformed")
-    return value
-
-
-def inputs(value):
-    """Every case the quiz asks a model to predict: case id to inputs."""
-    found = {c["case_id"]: dict(c["inputs"]) for c in value["q2"]}
-    for s in value["q3"]:
-        for job in s["grid"]:
-            found[job["case_id"]] = {k: job[k] for k in ("c1", "c2", "t_amb_c", "soc0")}
-    return found
 
 
 def public_entry(value):
