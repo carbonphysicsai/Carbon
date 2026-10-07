@@ -169,7 +169,7 @@ def package_of(producer, source, fingerprint, slot):
 def test_the_producer_seals_a_screening_batch_with_its_quiz(tmp_path, small):
     producer, source, key = quiz_producer(tmp_path)
     drawn, commitment = sealed(producer, source, "pscreen-Q01")
-    assert drawn["quiz_jobs"] == qz.Q2_POOL * 4 + (qz.Q3_K + 4) * 35
+    assert drawn["quiz_jobs"] == qz.Q2_POOL * 4 + (qz.Q3_K + 4) * len(qz.q3_candidates())
     work = producer._work(source.challenge_id, drawn["fingerprint"])
     quiz = producer._quiz(source.challenge_id, drawn["fingerprint"])
     document = quiz["document"]
