@@ -401,6 +401,27 @@ def import_local(adapter, producer_public_key, outbox):
     return {"challenge_id": adapter.challenge_id, "packages": results}
 
 
+def adapter_for(deployment):
+    """The validator adapter a deployment file names: motor's hidden pool by
+    its schema (VALIDATOR-21), otherwise battery's deployment."""
+    from .motor_hidden import DEPLOYMENT_SCHEMA, MotorHiddenAdapter
+
+    try:
+        schema = json.loads(Path(deployment).read_text()).get("schema")
+    except (OSError, ValueError, AttributeError):
+        schema = None
+    if schema == DEPLOYMENT_SCHEMA:
+        from .motor import MotorAdapterError
+
+        try:
+            return MotorHiddenAdapter.from_deployment(deployment, repository=REPOSITORY)
+        except MotorAdapterError as refused:
+            raise AnswerKeyRefused("answer_key_" + refused.code) from None
+    from .battery import BatteryAdapter
+
+    return BatteryAdapter.from_deployment(deployment, repository=REPOSITORY)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="carbon.challenge_validator.answer_key")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -413,11 +434,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         if args.command == "import":
-            from .battery import BatteryAdapter
-
-            adapter = BatteryAdapter.from_deployment(
-                args.deployment, repository=REPOSITORY
-            )
+            adapter = adapter_for(args.deployment)
             result = import_local(adapter, args.producer_public_key, args.outbox)
         elif args.command == "keygen":
             key = ProducerKey.create(args.out)
@@ -425,16 +442,12 @@ def main(argv=None):
         else:
             from carbon.chain.external_signer import connect_signer
 
-            from .battery import BatteryAdapter
-
             config = load_fetch_config(args.config)
             socket = config.get("signer_socket")
             signer = connect_signer(
                 config["hotkey"], socket_path=None if socket is None else Path(socket)
             )
-            adapter = BatteryAdapter.from_deployment(
-                config["deployment"], repository=REPOSITORY
-            )
+            adapter = adapter_for(config["deployment"])
             fetcher = Fetcher(
                 config["url"], signer, config["receiver"], ca=config.get("ca")
             )
