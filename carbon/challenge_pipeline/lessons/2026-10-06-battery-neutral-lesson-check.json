@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-battery-neutral-lesson-check",
+  "recorded_at": "2026-10-06T19:02:02Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "canonical lessons at ebb2e0d14",
+    "description": "canonical lessons schema regression for Battery verification evidence"
+  },
+  "expected": "The execution lesson passes the registered lessons validator",
+  "observed": "28 tests passed in 2.38 seconds on the pinned Ubuntu-24.04 runtime.",
+  "keep": ["Validate the evidence record schema before PR handoff."],
+  "change": [],
+  "protocol_elements": ["challenge.pipeline.lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
