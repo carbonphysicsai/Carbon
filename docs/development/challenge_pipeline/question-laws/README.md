@@ -189,13 +189,15 @@ questions, even before collapsing identical answers. Do not fill the gap
 with different seeds. Old cell temperatures above 85 °C do not demonstrate
 feasibility of the improved space, or justify replacing 85 °C with 100 °C.
 
-Likewise the owner's old-cell report places even the ideal warm-uniform case
-at about89 °C. If that quantity is the same required cell temperature observer,
-the complete-panel grid's maximum85 °C gives **one NONE_FEASIBLE answer and
-zero distinct picks** across all nine questions on that old bank. Check the
-observer match first; a mean wall temperature cannot stand in for local TIM
-peak. The improved-cell bank, not new threshold decimals, must provide the
-missing feasible designs.
+Likewise the owner's old-cell report places the ideal warm-uniform case at
+about89 °C. **If the report bounds every member of the retained old bank**
+under the same required cell temperature observer, the complete-panel grid's
+maximum85 °C gives **one NONE_FEASIBLE answer and zero distinct picks**
+across all nine questions on that old bank. One reported cell solve alone
+cannot establish that bank-wide premise or mathematical infeasibility of
+the whole geometry space. Check coverage and observer identity first; a
+mean wall temperature cannot stand in for local TIM peak. A diverse improved
+bank, not new threshold decimals, must supply the missing feasible designs.
 
 ### f02 burst thermal — useful work inside a thermal envelope
 

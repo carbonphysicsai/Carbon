@@ -151,6 +151,13 @@ def test_one_dominating_answer_and_missing_truth_are_different_failures():
     assert "reference/infrastructure failure remains typed" in " ".join(TEXT.split())
 
 
+def test_one_old_cell_result_is_not_proof_of_bank_wide_infeasibility():
+    normalized = " ".join(TEXT.split())
+    assert "report bounds every member of the retained old bank" in normalized
+    assert "One reported cell solve alone cannot establish" in normalized
+    assert "mean wall temperature cannot stand in for local TIM peak" in normalized
+
+
 def test_part_b_is_explicitly_merge_gated_and_battery_reuse_is_not_scoring_adoption():
     assert "**landing**" in TEXT
     assert "Q3 redraw of all-infeasible tasks" in TEXT
