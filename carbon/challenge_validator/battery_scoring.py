@@ -170,6 +170,14 @@ class BatteryScoring(ChallengeScoring):
             if loss is not None:
                 files = {**base, **level1_worker.staged(loss)}
                 program = level1_worker.program()
+            from carbon.battery import level3_worker
+
+            numerics = level3_worker.numerics_record(
+                getattr(admitted, "reconstruction", None)
+            )
+            if numerics is not None:
+                files = {**base, **level3_worker.staged(numerics)}
+                program = level3_worker.program(program)
         record = {
             "schema": BUILT_SCHEMA,
             "challenge": recipe.document()["challenge"],
@@ -190,6 +198,9 @@ class BatteryScoring(ChallengeScoring):
             # Until GPU identity is measured (Test Lead Q6), a Level-1 result
             # says its rebuild is verified on CPU only.
             record["rebuild"] = level1_worker.REBUILD_LABEL
+        if development is not None and numerics is not None:
+            # A Level-3 rebuild is CPU_ONLY_DEV until the A40 R1 leg passes it.
+            record["rebuild"] = level3_worker.REBUILD_LABEL
         return record, files, program
 
     def refusal(self, error):
