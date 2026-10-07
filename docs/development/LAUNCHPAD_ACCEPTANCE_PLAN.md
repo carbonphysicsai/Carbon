@@ -241,9 +241,37 @@ The Launchpad is accepted for launch when all of these hold:
 4. A1 to A4 are PASS;
 5. no `UNVERIFIED` marker is left in `mcp_connect`;
 6. every `FINDINGS.md` entry is fixed or explicitly accepted by the owner.
+7. the release check (§3.7) passes: every option offered on either door is
+   PASS, or hidden, or labelled "untested".
 
 Tier-2 compute cells (C6 to C9) are launch-desirable but not launch-blocking.
-They verify per-provider notes, and the owner chooses whether to fund them.
+They verify per-provider notes. The owner funded them
+(OWNER-LAUNCHPAD-ACCEPTANCE-GRANT-01); each one runs where the owner holds
+that provider's account.
+
+### 3.7 Release check: nothing untested is offered as tested
+
+The owner set this launch rule on 2026-10-07, through the Test Lead. At
+launch, the Launchpad hides any option whose matrix cell is not PASS, or
+labels it "untested". That covers:
+- every compute option and remote provider card (`REMOTE_GUIDES`);
+- every inference provider (`INFERENCE_ORDER`);
+- every agent and MCP client snippet.
+
+- **The check runs before every release.** It compares the options the
+  Launchpad offers on both doors (setup `choices()`, `REMOTE_GUIDES`,
+  `INFERENCE_ORDER`, the agent choices, `mcp_connect`'s snippets) with the
+  latest cell results under `docs/development/evidence/launchpad-acceptance-*/`.
+- **An option with no PASS cell** at the release's revision, or an earlier
+  revision the cell names, must be:
+  - hidden, or
+  - shown with the "untested" label on both doors, carried as a closed field
+    the MCP door returns too. Copy alone does not count.
+- **A BLOCKED or FAIL cell is never shown as tested.** The release is refused
+  until the option is labelled.
+- **Building the check** is a slice of LAUNCHPAD-ACCEPT-01. The default it
+  starts from is "untested" for every option. That is truthful for today's
+  main, and passes flip options to tested one cell at a time.
 
 ---
 
@@ -380,10 +408,11 @@ Launchpad: freeze → commit → submit → status, as on mainnet.
 
 ---
 
-## 7. Grant proposal (for the Test Lead to bring to the owner)
+## 7. Grant
 
-Nothing below is approved. Nothing spends until the owner approves it and a
-grant record is on main. The controller's ceilings bind per OWNER-GRAPHITE-05.
+**Approved in full, USD 13.55:** OWNER-LAUNCHPAD-ACCEPTANCE-GRANT-01,
+2026-10-07. Tier 2 lines run only where the owner holds the account. Nothing
+spends until that record is on main. The ceilings bind per OWNER-GRAPHITE-05.
 
 **Rates.** Rate ceilings are taken from published rates read on 2026-10-07,
 rounded up:
@@ -436,14 +465,14 @@ by SSH.
 
 ## 8. Owner decisions and actions this plan needs
 
-**Decisions:**
-1. Approve the grant: tier 1 only (USD 6.55), or full (USD 13.55).
-2. Whether the AX42 door gets a public TLS exposure, so that an endpoint can
-   be published in `published_endpoints.json` for every miner. Until then,
-   the tunnel target serves the owner's own rehearsal miners only, and the
-   published list stays empty, truthfully. This is an exposure decision
-   (OWNER-INTAKE-EXPOSURE-01 covered the PC's battery intake, not the
-   AX42's).
+**Decisions, answered 2026-10-07** ("grant full, AX42 stays private, approve
+all"):
+1. **The grant:** full, USD 13.55 (OWNER-LAUNCHPAD-ACCEPTANCE-GRANT-01).
+2. **The AX42 door stays private (OWNER-AX42-DOOR-PRIVATE-01).**
+   - `published_endpoints.json` stays empty.
+   - The tunnel target serves the owner's own rehearsal miners only.
+   - A future public testnet door goes on a separate, validator-only host,
+     after a security review. The Test Lead brings it to the owner after 3a.
 
 **Actions:**
 - create the `carbon-fresh` distro, and turn off its Docker Desktop
