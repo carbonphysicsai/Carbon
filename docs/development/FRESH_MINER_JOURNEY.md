@@ -40,8 +40,14 @@ with the fields in [Record](#record).
     (OWNER-INTAKE-EXPOSURE-01), Carbon publishes it in
     `scripts/dev/miner_launchpad/published_endpoints.json`, and setup's Review
     writes it into your profile. You type nothing. The receiver hotkey listed
-    beside it is for reference: nothing checks it yet, and your signer signs
-    for the receiver the intake reports when you submit.
+    beside it is binding (LAUNCHPAD-ACCEPT-03): Review pins it in your
+    profile, and before your signer signs a submission, a resend or a status
+    request, Carbon checks that the intake reports that receiver. An intake
+    reporting another is refused `intake_receiver_mismatch`, with nothing
+    signed or sent.
+  - **A profile written before receivers were pinned** keeps submitting,
+    unchecked; setup's Evaluation step and the prelaunch review warn
+    (`intake_receiver_not_pinned`). Review again to pin it.
   - **Until one is published,** setup and the prelaunch review say so: your
     profile can practise and freeze, but cannot submit. Run the validator on
     this machine, tunnel to its loopback yourself, or give setup your own
@@ -101,7 +107,9 @@ with the fields in [Record](#record).
 7. **Review.** Write the profile. Review writes the evaluation endpoint
    Carbon publishes for each Challenge. It warns, and setup's Evaluation step
    keeps saying, when none is published. To use an intake you run yourself,
-   give its URL; setup reads its public facts first.
+   give its URL and its validator's public receiver hotkey (required); setup
+   reads its public facts first and refuses `intake_receiver_mismatch` when
+   the intake reports another receiver.
 8. **Choose a Challenge and launch.** Under Challenges, read each one's
    description and research environment, and choose an implemented one. For
    Carbon's agent, launch from Campaigns with finite ceilings. For Hermes, run `hermes -p carbon chat` and ask it to launch,
