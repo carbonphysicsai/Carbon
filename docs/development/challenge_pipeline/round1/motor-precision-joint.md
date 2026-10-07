@@ -93,27 +93,27 @@ mean can erase failed torque/cogging. Real deployment P and evidence weights
 for a registered exam remain HUMAN_INPUT. Geometry is the independent unit;
 angle probes and command curves on that geometry are correlated.
 
-### Prospective population of buyer jobs — `HUMAN_INPUT`
+### Prospective population of buyer design questions — `HUMAN_INPUT`
 
-The four service roles and command sweep above describe **one** joint-design
-brief. A future `P_job` could cover different robot-joint envelopes, payload
-inertias, gear/transmission choices, holding loads, peak-acceleration duties,
-and cooling or supply limits. A robotics buyer would identify a job by its
-joint drawing, actuator/BOM specification, motion/load trace and duty-cycle
-acceptance sheet. Each job must pin its own geometry grammar and required
-precision/peak command roles before model search. Angle samples and several
-commands for that same joint are correlated checks, not new jobs. Mechanical
-dynamics, thermal duty and changed magnetics outside the present static
-reference are additional contracts, not implied by this proposal.
+The four service roles and command sweep above fix **one joint question**.
+A future `P_job` can reuse a fully solved geometry/command bank while varying
+buyer holding/peak torque floors, ripple/cogging allowances or required
+service role, provided the stored curves support every test. A robotics buyer
+would recognize different questions from its joint load sheet and motion-duty
+acceptance criteria. For illustration, a prospective 6-N·m versus 7-N·m
+holding floor may choose different bank designs; **7 N·m is HUMAN_INPUT, not
+adopted** and answer change must be demonstrated. Different joint envelopes,
+inertias or magnetic materials are optional extensions that can require new
+solves. Angle samples and command curves from one bank remain correlated;
+thermal/dynamic claims need separate references.
 
-**Size recommendation, not a selected law:** catalogue eight distinct joint
-briefs across at least four application/envelope classes and two independently
-specified load-duty briefs per class for a development scoping pilot.
-`HUMAN_INPUT`: supported joint classes and limits, `P_job`, protected `Q_job`,
-job-level weights, exclusions, and statistically/cost-justified hidden `n`.
-Shared actuator platforms or load traces are clusters; changing an optimizer
-seed or command on one joint does not increase independent `n`. Admission of
-each brief requires a feasible candidate/reference study under its own pins.
+**Size recommendation, not a selected law:** catalogue twelve distinct
+condition/requirement question manifests for a development scoping pilot on
+supported bank outputs, with multiple verified best-design identities or
+honest abstentions. `HUMAN_INPUT`: eligible limits and contexts, `P_job`,
+protected `Q_job`, weights, clustering, exposure and power-justified hidden
+`n`. Bank sharing saves solves but does not reset exposure or create independent
+physical truth; changing only the optimizer start is not a new question.
 
 ## 4. Case contract
 

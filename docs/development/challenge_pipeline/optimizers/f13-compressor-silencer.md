@@ -127,17 +127,16 @@ cheap transfer-matrix and retained-mode baselines under the same design/query
 budget; park this topology if those methods make the decision adequately.
 
 **Hidden-batch task count is HUMAN_INPUT, NOT_DEMONSTRATED.** The packet now
-sketches duct/termination/compressor variation and recommends four briefs for
-an unsolved [requirements inventory](../round1/f13-compressor-silencer.md);
-the current reference still defines one fixed physical job. Test Lead must
-first obtain an owner-approved `P_job`/protected `Q_job`, supported reference
-contract and cost, then preregister good/bad constructions and the minimum
-task count using independent buyer-job units with shared machines clustered.
+sketches [acoustic target/band questions](../round1/f13-compressor-silencer.md)
+over a complete solved curve bank and recommends four for a scoping inventory.
+Test Lead must first obtain an approved `P_job`/protected `Q_job`, supported
+reference contract, answer diversity, exposure and cost, then preregister
+good/bad constructions and minimum task count with shared-bank clustering.
 Report false feasible, false `NONE_FEASIBLE`, physical regret and each attack
-subtype separately. **HUMAN_INPUT (recommended): eight eligible jobs for an
-initial power pilot only after that law and funding exist**; the four-brief
-inventory and eight-job pilot are neither a powered batch nor a score bar.
-Frequency nodes remain within-job measurements.
+subtype separately. **HUMAN_INPUT (recommended): eight eligible, unexposed
+questions for an initial power pilot only after that law and funding exist**;
+neither the four-question inventory nor eight-question pilot is a powered
+batch or score bar. Frequency nodes remain within-question measurements.
 
 The buyer-facing tool would take a pinned band, medium/source/termination,
 package envelope and approved geometry bank; return chosen CAD parameters,

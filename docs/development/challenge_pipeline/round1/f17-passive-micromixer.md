@@ -31,25 +31,24 @@ and refinement as caps permit. These shared conditions do not establish a
 customer fluid distribution or population reliability. High-Peclet behavior
 is explicitly reported, not filtered out as an inconvenient case.
 
-### Prospective population of buyer jobs — `HUMAN_INPUT`
+### Prospective population of buyer design questions — `HUMAN_INPUT`
 
-The three flows by three diffusivities are one cartridge brief's operating
-panel. A future `P_job` could vary reagent/fluid pair, inlet composition,
-required throughput range, port/footprint interface and allowed pump burden.
-A lab-instrument or process buyer would recognize a brief from its assay/fluid
-specification, cartridge drawing, pump curve and delivery-uniformity criterion.
-Each brief selects one groove geometry before its full operating panel is
-verified. Flow/diffusivity points, outlet pixels and repeated solver seeds on
-one fluid system are correlated checks, not new jobs. Fluid-law changes beyond
-the qualified flow/scalar model require new reference and measurement support.
+The three flows by three diffusivities are one cartridge operating panel.
+A future `P_job` can vary supported outlet-mixing, pressure-drop or residence
+limits and required throughput subsets against one fully solved groove bank.
+A lab-instrument buyer recognizes each question from its assay uniformity,
+pump and throughput acceptance sheet. Re-evaluating stored flow/scalar outputs
+needs no new solve if the whole requested panel is covered and the preferred
+groove demonstrably changes. New fluids, inlet chemistry or port interfaces
+are optional axes that may need new flow/scalar references. Outlet pixels,
+flow probes and solver seeds are not fresh questions by themselves.
 
-**Size recommendation, not a selected law:** catalogue eight separately specified
-briefs across at least four fluid/assay systems and two throughput/interface
-requirements each for a development scoping pilot. `HUMAN_INPUT`: admissible
-fluid laws and limits, `P_job`, protected `Q_job`, job-level weights,
-exclusions and hidden `n` from power and measured full-bank cost. Cluster
-briefs sharing one assay or cartridge platform; nine conditions are not nine
-independent buyer decisions.
+**Size recommendation, not a selected law:** catalogue eight distinct
+condition/requirement questions for a development scoping pilot on a
+reference-covered bank. `HUMAN_INPUT`: eligible requirements and panels,
+`P_job`, protected `Q_job`, weights, answer diversity, shared-assay clustering,
+exposure and power-justified hidden `n`. The complete 3 × 3 panel stays
+mandatory for any question that claims that service envelope.
 
 ## 4. Case contract
 

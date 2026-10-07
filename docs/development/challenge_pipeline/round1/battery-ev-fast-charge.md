@@ -83,28 +83,29 @@ sets/whole independent experiments would be real generalization units;
 cycles and time samples from one simulated cell are correlated. Deployment P,
 batch laws and official evidence/score weighting remain HUMAN_INPUT.
 
-### Prospective population of buyer jobs — `HUMAN_INPUT`
+### Prospective population of buyer design questions — `HUMAN_INPUT`
 
-The present five-temperature, 30-cycle panel is **one** fleet charging job. A
-future `P_job` would draw a whole charging brief before a protocol is chosen:
-cell variant and calibrated parameter set, pack thermal path, fleet route and
-charger window, ambient exposure, and prior usage/ageing history. A fleet
-engineer would recognize each brief from the cell/BMS bill of materials,
-validated cell characterization, pack cooling design and vehicle/charger logs.
-The resulting job still requires **one protocol across its complete** service
-panel; temperatures, cycles, SOC probes and solver seeds within it are not
-additional jobs. Cell chemistry or ageing changes beyond a qualified PyBaMM
-parameterization require a new reference and observer contract.
+The present five-temperature, 30-cycle panel and limits fix **one customer
+question**. A future `P_job` can keep the same characterized cell and solved
+design bank while varying the buyer's charging-time target, temperature limit
+or plating margin; these are distinct requirements only if the reference
+outputs support them and the best admissible protocol actually changes.
+Supported condition variation could include ambient mix, initial SOC and
+ageing state. It needs new solves unless the bank already covers the exact
+state and observer. A fleet engineer would recognize each question from BMS
+specifications, route/charger logs, pack thermal design and ageing records.
+One protocol still serves its complete declared panel; cycles and time probes
+inside it are correlated evidence. A different cell is an optional future
+axis, **not a prerequisite** for fresh questions.
 
-**Size recommendation, not a selected law:** catalogue six independently
-specified briefs for a development scoping pilot, spanning at least three
-cell/fleet configurations and two operational histories where rights and
-solver support permit. `HUMAN_INPUT`: eligible configurations, support bounds,
-`P_job`, protected sampling `Q_job`, job-level evidence weights, exclusions,
-and the eventual hidden-task count from power and reference-cost studies.
-Shared cells, packs or fleets must be clustered in analysis; re-seeding one
-brief does not increase independent `n`. No brief is admitted to a hidden bank
-until its parameterization, limits and feasible/reference coverage are checked.
+**Size recommendation, not a selected law:** catalogue at least eight distinct
+question manifests for a development scoping pilot, using supported condition
+and requirement combinations and retaining their physical-bank cluster. This
+is comparable in count to the existing eight-draw Q3 quiz, but neither that
+quiz's power nor its truth transfers to this new buyer decision. `HUMAN_INPUT`:
+eligible condition/requirement support, `P_job`, protected `Q_job`, weights,
+answer-diversity test, exposure accounting and hidden `n` from Test Lead
+power/cost studies. Re-seeding one unchanged question is not fresh evidence.
 
 ## 4. Case contract
 

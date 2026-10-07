@@ -31,24 +31,24 @@ report worst condition separately. Q feasibility uses three fixed geometries
 relief40 mm) at damping
 0.005 and0.02. No population estimate from six diagnostic cases.
 
-### Prospective population of buyer jobs — `HUMAN_INPUT`
+### Prospective population of buyer design questions — `HUMAN_INPUT`
 
-The three damping values and 80–600-Hz search belong to one support-design
-brief. A future `P_job` could vary stage footprint, payload mass/inertia,
-mount and clamp boundary, excitation spectrum, and stiffness/mass allowance.
-An automation buyer would recognize a brief from the machine CAD assembly,
-payload schedule, mount drawing and measured or specified vibration spectrum.
-Each brief receives one chosen support before its full modal/harmonic and
-stiffness panel is checked. Frequency samples, damping probes and modes of the
-same assembly are correlated, not independent jobs. Changed contact, damping
-or forcing physics require separately qualified reference support.
+The three damping values and 80–600-Hz search belong to one support bank.
+A future `P_job` can vary supported peak-motion, stiffness or mass limits and
+the required excitation/damping service panel if the solved bank covers it.
+An automation buyer recognizes the question from its stage acceptance sheet,
+payload schedule and vibration specification. Reapplying different limits to
+stored peak, stiffness and mass outputs needs no new solve, but the
+reference-best support must demonstrably change. New payloads, clamp
+boundaries, contact or damping laws are optional axes requiring new qualified
+reference work. Modes, frequency samples and optimizer starts are not fresh
+buyer questions.
 
-**Size recommendation, not a selected law:** catalogue eight distinct briefs
-across at least four stage/payload classes and two mount/excitation contexts
-each for a development scoping pilot. `HUMAN_INPUT`: eligible assemblies,
-`P_job`, protected `Q_job`, job-level weights, exclusions and hidden `n` from
-power and measured full-band cost. Cluster shared frames and mounts; moving a
-frequency probe or optimizer start on one frame does not add a buyer task.
+**Size recommendation, not a selected law:** catalogue eight distinct
+condition/requirement questions for a development scoping pilot on a
+complete-band bank. `HUMAN_INPUT`: eligible limits and panels, `P_job`,
+protected `Q_job`, weights, answer diversity, shared-frame clustering,
+exposure and hidden `n` from power and measured reference cost.
 
 ## 4. Case contract
 

@@ -108,8 +108,11 @@ The Test Lead-owned attack set should include (1) an edge-optimist that makes
 a truly failing M/pressure/residence boundary look passing, (2) an
 over-cautious model that suppresses a better feasible mixer, (3) sign errors
 in pressure gradient or concentration-variance-to-M conversion, and (4) an
-optimizer-aware model accurate on public bank points but wrong on hidden
-whole-geometry or condition probes. Compare against diffusion-scaling,
+optimizer-aware model accurate on the public exhaustive geometry lattice but
+wrong on off-lattice geometries if the registered action is continuous. The
+separate accuracy leg must probe the approved continuous geometry population
+off-lattice; a producer-drawn hidden lattice offset is optional only with
+valid grammar and solved truth. Compare against diffusion-scaling,
 smooth-channel/network and transport-ROM baselines under the same complete
 flow-plus-scalar charges. A second, differently ordered or local registered
 optimizer with Carbon-owned hidden starts can diagnose path-specific gaming;
@@ -120,16 +123,16 @@ violations expose optimism. Do not count nine correlated conditions as nine
 independent tasks.
 
 **Hidden-batch task count is HUMAN_INPUT, NOT_DEMONSTRATED.** The packet now
-sketches [fluid/assay/cartridge job variation](../round1/f17-passive-micromixer.md)
-and an eight-brief scoping inventory; the current reference still defines one
-nine-condition buyer job and no adopted `P_job`/protected `Q_job`. Test Lead
-must approve eligible whole-job contexts, reference support and behavior-
-defined good/bad controls, then size the batch by resampling distinct jobs
-with shared assay/platform clusters retained. Report each bad subtype, false
-feasible, false `NONE_FEASIBLE`, and worst-M regret, including maximum-Péclet
-coverage. **HUMAN_INPUT (recommended): pilot eight eligible jobs only after
-the law and reference budget exist**; this is neither a powered nor approved
-hidden batch. The fixed 3 × 3 panel stays complete within every supported job.
+sketches [mixing/pressure/residence requirement questions](../round1/f17-passive-micromixer.md)
+over a solved groove bank and an eight-question inventory; no `P_job` or
+protected `Q_job` is adopted. Test Lead must approve eligible question
+support, answer diversity, exposure and behavior-defined good/bad controls,
+then size the batch with shared-assay/bank clustering retained. Report each
+bad subtype, false feasible, false `NONE_FEASIBLE`, and worst-M regret,
+including maximum-Péclet coverage. **HUMAN_INPUT (recommended): pilot eight
+eligible, unexposed questions only after the law and reference budget exist**;
+this is neither powered nor approved. The fixed 3 × 3 panel stays complete
+within every question that claims the full service envelope.
 
 The buyer-facing tool would take the pinned channel/inlet/fluid/flow/
 diffusivity contract and approved groove bank, and return groove parameters,

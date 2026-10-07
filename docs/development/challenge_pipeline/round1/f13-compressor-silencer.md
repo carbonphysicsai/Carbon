@@ -40,27 +40,26 @@ neck radius remains20 mm. Controls are outside that design-input law. The
 runner must publish its exact sparse panel/control allocation before reference
 access; missing full-band evidence remains explicit, not a reconstructed p10.
 
-### Prospective population of buyer jobs — `HUMAN_INPUT`
+### Prospective population of buyer design questions — `HUMAN_INPUT`
 
 The 500–2500-Hz curve and its refined nodes belong to one compressor/duct
-brief. A future `P_job` could vary duct and termination geometry, compressor
-operating spectrum, packaging envelope and permitted pressure-loss/interface
-constraints. A compressor OEM would identify a brief from the duct/connection
-drawing, source spectrum over its duty points and installation envelope.
-Each job chooses one silencer and verifies the **whole** applicable band;
-201 grid frequencies or added resonance solves are not independent jobs.
-The current transmission-loss reference does not evaluate pressure drop or
-new impedance/termination laws; those requirements need their own validated
-contract before they can be mandatory.
+bank. A future `P_job` can vary the buyer's permitted attenuation target,
+minimum narrow-band loss, or supported operating band while asking for a
+different silencer from the **same complete curve bank**. A compressor OEM
+recognizes the question from its source spectrum, duct drawing and acoustic
+acceptance sheet. Re-evaluating stored curves needs no new solver launch if
+the whole requested band and valid geometry are covered, and the best design
+must demonstrably change. New duct terminations or media are optional axes
+requiring new acoustics truth. Pressure drop is not measured by the present
+reference and cannot become a mandatory limit through this variation.
 
-**Size recommendation, not a selected law:** catalogue four distinct briefs
-from different compressor/duct/termination contexts for an initial scoping
-pilot, then expand only after a measured full-curve cost study. `HUMAN_INPUT`:
-eligible context limits, `P_job`, protected `Q_job`, job-level weights,
-exclusions and statistically justified hidden `n`. Cluster machines sharing
-the same acoustic path. Four is a requirements inventory, not a powered exam;
-the currently proposed 16-design bank already implies at least 3,216 solver
-launches for **one** job under the separate-frequency plan.
+**Size recommendation, not a selected law:** catalogue four distinct
+condition/requirement questions first, then expand after a full-curve cost
+study. `HUMAN_INPUT`: eligible requirements, `P_job`, protected `Q_job`,
+weights, answer diversity, shared-bank clustering, exposure and powered
+hidden `n`. Frequency nodes are within-question evidence. The 16-design
+complete bank still implies at least 3,216 solver launches once; asking more
+questions of it does not reset its exposure limit.
 
 ## 4. Case contract
 

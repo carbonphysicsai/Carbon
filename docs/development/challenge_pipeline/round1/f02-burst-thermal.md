@@ -48,26 +48,26 @@ The offline selection is rectangular80 W/10 s (RC peak99.406 °C), ramp80 W/20 s
 These are preregistered probe actions, **not safe schedule recommendations**.
 Elmer must test actual spatial/time response; no RC value is imported as truth.
 
-### Prospective population of buyer jobs — `HUMAN_INPUT`
+### Prospective population of buyer design questions — `HUMAN_INPUT`
 
-The 24 cooling/initial/split/waveform conditions are a controlled panel for
-the **same** package. A future `P_job` could cover different die/stack/contact
-builds, power-map locations, cooling assemblies, and product workload or burst
-windows. The package thermal engineer would recognize a job from its package
-drawing and materials record, power telemetry, cooling fixture and allowable
-burst policy. Within each job, the optimizer may choose a schedule **for each
-declared scenario** before that choice is reference-checked; the resulting 24
-decisions are clustered within one package job. The 216 action/case solves do
-not supply 216 independent buyer jobs. New stacks, contact laws or cooling regimes
-need qualified Elmer inputs and numerical controls before use.
+The 24 cooling/initial/split/waveform scenarios are correlated conditions of
+the current package, but each can ask for its own schedule. A future `P_job`
+can vary supported scenario requirements, such as a temperature ceiling or
+minimum extra-energy need, against the same fully solved schedule/scenario
+bank. A package engineer recognizes these questions from workload power
+traces, thermal operating policy and cooling fixture limits. Requirement
+variation costs no new Elmer solve when the bank records spatial peak and
+energy for every eligible action; it must be checked for different right
+answers. New die stacks, contact laws or cooling regimes are optional axes
+requiring new reference support. Timestep samples and schedule order are not
+fresh questions.
 
-**Size recommendation, not a selected law:** catalogue eight separately
-specified briefs across at least four package/cooling assemblies and two
-workload policies each for a development scoping pilot. `HUMAN_INPUT`:
-eligible assemblies and limits, `P_job`, protected `Q_job`, job-level weights,
-exclusions and hidden `n` from power and measured solve cost. Cluster briefs
-that share one physical package; varying only the waveform or solver seed is
-within-job evidence. The existing 50-launch grant does not fund this bank.
+**Size recommendation, not a selected law:** catalogue eight distinct
+scenario/requirement questions for a development scoping pilot and preserve
+their common-package cluster. `HUMAN_INPUT`: eligible limits and conditions,
+`P_job`, protected `Q_job`, weights, answer diversity, bank exposure and
+power-justified hidden `n`. The existing 50-launch grant cannot create the
+full 216-solve physical bank; reusing a later solved bank does not reset `E`.
 
 ## 4. Case contract
 

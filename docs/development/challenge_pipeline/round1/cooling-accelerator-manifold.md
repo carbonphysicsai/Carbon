@@ -106,27 +106,27 @@ scenario without averaging. Geometry is the independent selection unit;
 segments and channels are correlated. Deployment P, reference-missingness
 analysis and any official score weighting remain HUMAN_INPUT.
 
-### Prospective population of buyer jobs — `HUMAN_INPUT`
+### Prospective population of buyer design questions — `HUMAN_INPUT`
 
-The six heat/flow strata above are one accelerator-module cooling brief. A
-future `P_job` could vary module/package footprint, chiplet power map and
-placement, cold-plate interface, plant inlet schedule, coolant specification,
-and rack pressure/pump allowance. A thermal buyer would distinguish jobs by
-module drawings, power-map exports, CDU/rack interface specifications and
-measured operating traces. Each job selects one manifold/flow action that
-must survive its **whole** registered service panel. Multiple channels, mesh
-cells, hotspot locations or repeated runs of one module are not new jobs.
-Changes beyond the qualified full-manifold reference or cell composition
-domain require their own validation before inclusion.
+The six heat/flow strata above fix **one module cooling question**. A future
+`P_job` can reuse a fully solved full-manifold design bank while varying the
+buyer's maximum die temperature, pressure-drop or hydraulic-power allowance,
+or a supported service-condition requirement. A thermal buyer recognizes the
+question from module power-map, rack/CDU envelope and acceptance sheet. Such
+requirement changes need no new solves if the bank stores the exact local
+temperature, port pressure and flow outputs, but must produce verified
+different best admissible designs. Other modules, chiplet layouts, coolant
+laws or inlet conditions are optional axes and may require new reference work.
+Each question still checks its complete declared service panel; hotspot
+pixels or repeated solver seeds are not extra questions.
 
-**Size recommendation, not a selected law:** catalogue six distinct module
-briefs across at least three package/plant configurations and two independently
-specified power histories each for a development scoping pilot.
-`HUMAN_INPUT`: admissible modules and fluids, support bounds, `P_job`,
-protected `Q_job`, job-level weights, exclusions and hidden `n` after power and
-full-plate cost measurements. Cluster shared module platforms and plant
-conditions; a new heat-map seed on one unchanged module is not independent
-buyer evidence. No job enters a hidden bank on periodic-cell evidence alone.
+**Size recommendation, not a selected law:** catalogue twelve distinct
+condition/requirement question manifests for a development scoping pilot on
+supported full-manifold bank outputs. `HUMAN_INPUT`: eligible limits and
+contexts, `P_job`, protected `Q_job`, weights, shared-bank clustering,
+exposure and power-justified hidden `n`. Reusing the bank saves solves but
+does not reset its exposure count. Periodic-cell evidence cannot answer any
+full-manifold question.
 
 ## 4. Case contract
 
