@@ -611,6 +611,11 @@ def stages(own):
                 "code": refused["code"],
                 "next_action": refused["next_action"],
                 "kind": refused["kind"],
+                **(
+                    {"intake_outcome": refused["intake_outcome"]}
+                    if "intake_outcome" in refused
+                    else {}
+                ),
             }
         out.append(stage)
     return out
@@ -755,6 +760,8 @@ def controls(own, *, fixture):
 
 
 _REFUSAL_CODE = re.compile(r"[a-z][a-z0-9_]{0,63}|[A-Z][A-Z0-9_]{0,63}")
+#: `runner.INTAKE_OUTCOMES`, restated so this view imports no runner.
+INTAKE_OUTCOMES = ("QUEUED", "UNAVAILABLE", "REFUSED")
 
 
 def last_refusal(own):
@@ -769,7 +776,7 @@ def last_refusal(own):
         or isinstance(value.get("at"), bool)
     ):
         return None
-    return {
+    shown = {
         "code": value["code"],
         "next_action": clean_text(value.get("next_action"), 512),
         "at": value["at"],
@@ -780,6 +787,11 @@ def last_refusal(own):
             else "refused"
         ),
     }
+    # A submit through a validator intake that was not a verdict: queued,
+    # the validator's side, or the miner's to act on (LAUNCHPAD-ACCEPT-04).
+    if value.get("intake_outcome") in INTAKE_OUTCOMES:
+        shown["intake_outcome"] = value["intake_outcome"]
+    return shown
 
 
 def in_flight(own):
@@ -1037,9 +1049,23 @@ def outcomes(own, view, mode):
             shown = {"state": _str(result.get("state"), 64)}
             if fields is not None:
                 outcome_fields, screening_fields = fields
-                for key in ("submission_id", "evidence", "nominated", "waiting"):
+                for key in (
+                    "submission_id",
+                    "evidence",
+                    "nominated",
+                    "waiting",
+                    # The public identity every mode discloses
+                    # (LAUNCHPAD-ACCEPT-04), as observe shows it.
+                    "rule",
+                    "recipe_digest",
+                    "contract_digest",
+                    "reconstruction",
+                    "failure",
+                ):
                     if key in outcome_fields and key in result:
                         shown[key] = result[key]
+                if type(result.get("sealed")) is bool:
+                    shown["sealed"] = result["sealed"]
                 if "finals" in outcome_fields and type(result.get("finals")) is list:
                     shown["finals"] = result["finals"]
                 screening = result.get("screening")

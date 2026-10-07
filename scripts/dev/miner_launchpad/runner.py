@@ -520,6 +520,31 @@ def evaluation_refusal(cfg, manifest):
     return "evaluation_unavailable"
 
 
+#: How a submit through a validator intake ended, when it was not a verdict
+#: (LAUNCHPAD-ACCEPT-04): the validator holds it, the validator's side could
+#: not serve, or the miner acts.
+INTAKE_OUTCOMES = ("QUEUED", "UNAVAILABLE", "REFUSED")
+
+
+def _intake_outcome(refusal, root):
+    """`QUEUED`, `UNAVAILABLE` or `REFUSED` for a campaign's last submit
+    refusal that a trip through its Challenge's intake reported, read from
+    the Challenge's own campaign (`intake_outcome`); None otherwise. This
+    runner names no Challenge's module, so a Challenge with no intake, or a
+    code that is not an intake's, is None."""
+    from carbon.challenge_registry.campaigns import campaign_for_manifest
+
+    if refusal is None or refusal.get("operation") != "submit":
+        return None
+    try:
+        manifest = json.loads((Path(root) / "campaign-manifest.json").read_bytes())
+        classify = campaign_for_manifest(manifest).intake_outcome
+        found = classify(refusal["code"]) if classify is not None else None
+    except Exception:  # noqa: BLE001 - not readable: not shown, never guessed
+        return None
+    return found if found in INTAKE_OUTCOMES else None
+
+
 def validated_profile(cfg):
     """A runner profile v2, closed, or the reason it is not one.
 
@@ -4306,6 +4331,9 @@ class RunnerAdapter:
         value = project(row, root)
         # A retired-grant row has no such column: never refused here.
         value["last_refusal"] = supervision.read_refusal(row.get("last_refusal"))
+        outcome = _intake_outcome(value["last_refusal"], root)
+        if outcome is not None:
+            value["last_refusal"]["intake_outcome"] = outcome
         value["in_flight"] = self._in_flight(identity)
         # Only what can succeed: nothing resumes a retired-grant campaign or
         # one on a retired Challenge (`_control`), so neither is offered it.
