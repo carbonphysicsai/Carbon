@@ -77,6 +77,7 @@ def test_miner_projection_drops_every_unlisted_field_and_digest():
         "challenge": "toy",
         "contract_version": "v1",
         "action_grammar_version": "grammar.v1",
+        "action_space": None,
         "condition_count": 1,
         "objective": {
             "quantity": "loss",
@@ -132,6 +133,39 @@ def test_projection_refuses_nested_payload_inside_public_scalar():
         task_projection.miner_projection(registered)
 
 
+def test_public_action_space_sorts_away_frozen_neighbor_order():
+    grammar = {
+        "schema": "carbon.action-grammar.v1",
+        "version": "toy-grid.v1",
+        "variables": [
+            {"name": "z", "type": "enum", "values": ["right", "left"]},
+            {"name": "a", "type": "integer", "min": 0, "max": 2, "step": 1},
+        ],
+        "rules": [{"kind": "linear", "coefficients": {"a": 1}, "op": "<=", "value": 2}],
+    }
+    first = toy_task()
+    first["identity"]["action_grammar"] = grammar
+    first["task_digest"] = tasks.digest(
+        {k: v for k, v in first.items() if k != "task_digest"}
+    )
+    second = toy_task()
+    second["identity"]["action_grammar"] = {
+        **grammar,
+        "variables": [
+            grammar["variables"][1],
+            {**grammar["variables"][0], "values": ["left", "right"]},
+        ],
+    }
+    second["task_digest"] = tasks.digest(
+        {k: v for k, v in second.items() if k != "task_digest"}
+    )
+    public = task_projection.miner_projection(first)
+    assert public == task_projection.miner_projection(second)
+    assert first["task_digest"] != second["task_digest"]
+    assert [v["name"] for v in public["action_space"]["variables"]] == ["a", "z"]
+    assert public["action_space"]["variables"][1]["values"] == ["left", "right"]
+
+
 def outcome(kind, regret=None):
     return {"kind": kind, "regret": regret, "unit": "W"}
 
@@ -177,6 +211,21 @@ def test_unresolved_reference_question_is_reported_even_with_a_feasible_pick():
     assert report["per_stratum"]["only"]["unresolved"] == 1
     assert report["P"]["unresolved_rate"] == 1
     assert report["P"]["false_feasible"] is None
+    partial = task_measures.per_stratum_measures(
+        [
+            {
+                "stratum": "only",
+                "outcome": {
+                    **outcome("SELECTED_FEASIBLE"),
+                    "reference_state": "FEASIBLE_EXISTS",
+                    "reference_resolved": False,
+                },
+            }
+        ],
+        strata={"only": {"p": 1, "q": 1, "w": 1}},
+        aggregate={"schema": task_measures.AGGREGATE_SCHEMA, "probability": 0.5},
+    )
+    assert partial["P"]["unresolved_rate"] == 1
 
 
 def test_query_cost_ledger_charges_invalid_and_failed_attempts():
@@ -207,8 +256,10 @@ def producer_inputs(kind="grid"):
         {
             "schema": diversity.BANK_SCHEMA,
             "sealed": True,
-            "exposure_limit": 10,
-            "exposures_used": 3,
+            "exposure": [
+                {"support_case": "secret-support-a", "limit": 10, "used": 3},
+                {"support_case": "secret-support-b", "limit": 9, "used": 1},
+            ],
             "cases": [
                 {
                     "case": "secret-1",
@@ -277,6 +328,7 @@ def test_diversity_report_only_aggregates(kind):
     for secret in (
         "secret-1",
         "secret-A",
+        "secret-support-a",
         "toy-exact",
         "seal_digest",
         "registration_digest",
@@ -294,9 +346,9 @@ def test_diversity_refuses_unsealed_or_unregistered_inputs():
 
 def test_exposure_shortage_suppresses_batch_diversity_claim():
     bank, law = producer_inputs()
-    exhausted = diversity.seal_bank(
-        {**{k: v for k, v in bank.items() if k != "seal_digest"}, "exposures_used": 9}
-    )
+    body = {k: v for k, v in bank.items() if k != "seal_digest"}
+    body["exposure"] = [{**body["exposure"][0], "used": 9}, body["exposure"][1]]
+    exhausted = diversity.seal_bank(body)
     report = diversity.diversity_report(exhausted, law)
     assert report["exposure_remaining"] == 1
     assert report["exposure_shortage"] == 1

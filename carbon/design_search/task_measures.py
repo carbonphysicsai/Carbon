@@ -20,6 +20,7 @@ def _resolved(outcome):
     return (
         outcome["kind"] not in UNRESOLVED
         and outcome.get("reference_state") != "UNRESOLVED"
+        and outcome.get("reference_resolved") is not False
     )
 
 

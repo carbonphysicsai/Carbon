@@ -95,16 +95,28 @@ def diversity_report(bank, law):
     if law["kind"] == "grid" and error_bound != 0:
         raise tasks.TaskError("enumerated grid masses require zero integration error")
     k = law.get("batch_size")
-    limit, used = bank.get("exposure_limit"), bank.get("exposures_used")
-    if (
-        type(k) is not int
-        or k <= 0
-        or type(limit) is not int
-        or limit <= 0
-        or type(used) is not int
-        or not 0 <= used <= limit
-    ):
-        raise tasks.TaskError("batch and exposure registration invalid")
+    if type(k) is not int or k <= 0:
+        raise tasks.TaskError("positive registered batch size required")
+    exposure = bank.get("exposure")
+    if type(exposure) is not list or not exposure:
+        raise tasks.TaskError("sealed bank exposure ledger required")
+    remaining_by_support = []
+    seen_support = set()
+    for row in exposure:
+        if (
+            type(row) is not dict
+            or set(row) != {"support_case", "limit", "used"}
+            or type(row["support_case"]) is not str
+            or not row["support_case"]
+            or row["support_case"] in seen_support
+            or type(row["limit"]) is not int
+            or row["limit"] <= 0
+            or type(row["used"]) is not int
+            or not 0 <= row["used"] <= row["limit"]
+        ):
+            raise tasks.TaskError("sealed bank exposure row invalid")
+        seen_support.add(row["support_case"])
+        remaining_by_support.append(row["limit"] - row["used"])
     cases = {}
     for row in bank["cases"]:
         if (
@@ -143,7 +155,7 @@ def diversity_report(bank, law):
     for key in ("p_mass", "q_mass"):
         if not math.isclose(sum(b[key] for b in checked), 1.0, abs_tol=1e-9):
             raise tasks.TaskError("question-law masses must sum to one")
-    remaining = limit - used
+    remaining = min(remaining_by_support)
     drawable = remaining >= k
     return {
         "schema": REPORT_SCHEMA,
@@ -154,7 +166,7 @@ def diversity_report(bank, law):
         "basis": {
             "bank_cases": len(cases),
             "law_bins": len(checked),
-            "exposure_limit": limit,
+            "support_cases": len(remaining_by_support),
             "mass_l1_error_bound": error_bound,
             "expected_distinct_error_bound": k * error_bound if drawable else None,
         },

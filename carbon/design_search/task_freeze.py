@@ -23,7 +23,7 @@ DESIGN_TASK_CODE = (
 )
 
 
-def with_design_task(adapter, registered_task):
+def _with_design_task(adapter, registered_task):
     """Return an adapter whose contract and code pins include one task.
 
     `experiment.freeze` hashes every `code_path` and `pilot` rechecks those
@@ -52,12 +52,12 @@ def with_design_task(adapter, registered_task):
 
 def freeze(adapter, registered_task, **kwargs):
     """Create a task-bound manifest through the existing experiment freeze."""
-    return experiment.freeze(with_design_task(adapter, registered_task), **kwargs)
+    return experiment.freeze(_with_design_task(adapter, registered_task), **kwargs)
 
 
 def pilot(manifest, adapter, registered_task, **kwargs):
     """Verify the same task and all pinned code before the existing pilot."""
-    bound = with_design_task(adapter, registered_task)
+    bound = _with_design_task(adapter, registered_task)
     if manifest.get("decision_contract") != bound.contract_digest:
         raise experiment.ExperimentError("design_task_identity_changed")
     return experiment.pilot(manifest, bound, **kwargs)

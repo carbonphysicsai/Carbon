@@ -5,7 +5,9 @@ miner-visible task summary from a positive field list. It includes the buyer's
 objective and hard-limit values, but omits the task digest, candidate and
 condition IDs, bank contents/order, seed, starts, search order, reference data
 and all unlisted registration fields. It is not a commitment identity. A
-Challenge's separately approved public action/condition contract supplies
+versioned public grammar shows typed variables, bounds and validity rules in
+sorted order, without revealing the registered neighbor order. A Challenge's
+separately approved public action/condition contract supplies
 the inputs miners may see; a private task record is never serialized directly.
 
 `task_measures.per_stratum_measures` accepts judged **job-stratum** outcomes,
@@ -25,7 +27,8 @@ python -m carbon.design_search diversity-report --bank sealed-bank.json --law re
 ```
 
 The bank input uses schema `carbon.design-search.sealed-bank.v1`, `sealed: true`,
-`exposure_limit`, `exposures_used`, and `cases`. Each case has internal `case`,
+`exposure` rows (`support_case`, `limit`, `used`) for every underlying shared
+support case, and `cases`. Each question case has internal `case`,
 `state` (`FEASIBLE_EXISTS`, `NONE_FEASIBLE`, or `UNRESOLVED`), `winner` (only for
 a fully settled feasible best-in-bank result), `close_call`, and
 `refinement_demand`. The producer's integrity digest is `seal_digest` over the
@@ -54,6 +57,8 @@ error bound for the winner expectation. The output is a closed aggregate
 schema: no case IDs, winners, requirement vectors, reference values, law
 digest or protected identity is printed. It is a producer-side diagnostic,
 not a qualified population estimate or permission to draw a batch.
+Exposure remaining is the minimum across the shared support cases; different
+support sets need separate reports or an exact registered batch law.
 
 `task_freeze.freeze` and `task_freeze.pilot` wrap the existing experiment
 entrypoints with the task digest and all new code paths. Pilot requires the
