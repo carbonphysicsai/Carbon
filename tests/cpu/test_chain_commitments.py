@@ -43,7 +43,14 @@ def reader(answer):
             raise answer
         return answer(hotkey) if callable(answer) else answer
 
-    return ChainCommitmentReader(CONTEXT, fetch=fetch)
+    async def fetch_all(context):
+        # The listing D6's cross-hotkey priority reads: hk1's commitment only.
+        if isinstance(answer, Exception):
+            raise answer
+        value = answer("hk1") if callable(answer) else answer
+        return [] if value is None else [("hk1", value[0], value[1])]
+
+    return ChainCommitmentReader(CONTEXT, fetch=fetch, fetch_all=fetch_all)
 
 
 def test_a_digest_commitment_is_read_with_its_block():
@@ -147,3 +154,107 @@ def test_admission_through_the_deployment(
     assert refused.value.code == outcome
     # Nothing is recorded against the miner either way.
     assert target.store.pending_submissions() == []
+
+
+def test_holders_lists_every_hotkey_showing_a_digest_earliest_first():
+    rows = [
+        ("hkB", DIGEST, 140),
+        ("hkA", DIGEST, 100),
+        ("hkC", "sha256:" + "c" * 64, 90),
+        ("hkD", None, 80),  # a sealed timelocked commitment shows no content
+    ]
+
+    async def fetch_all(context):
+        return rows
+
+    found = ChainCommitmentReader(CONTEXT, fetch_all=fetch_all).holders(DIGEST)
+    assert found == [("hkA", 100), ("hkB", 140)]
+
+
+@pytest.mark.parametrize(
+    "failure", [ChainFailure(FailureCode.UNAVAILABLE), RuntimeError("x")]
+)
+def test_a_holders_failure_is_infrastructure(failure):
+    async def fetch_all(context):
+        raise failure
+
+    with pytest.raises(CommitmentUnavailable):
+        ChainCommitmentReader(CONTEXT, fetch_all=fetch_all).holders(DIGEST)
+
+
+def test_commitment_positions_read_both_event_shapes():
+    from carbon.chain.commitments import commitment_positions
+
+    records = [
+        {  # py-substrate-interface shape
+            "extrinsic_idx": 4,
+            "event": {
+                "module_id": "Commitments",
+                "event_id": "Commitment",
+                "attributes": {"netuid": 567, "who": "5A"},
+            },
+        },
+        {  # a phase-tagged shape with positional data
+            "phase": {"ApplyExtrinsic": 2},
+            "event": {
+                "pallet": "Commitments",
+                "name": "Commitment",
+                "data": [567, "5B"],
+            },
+        },
+        {  # another subnet, and an unrelated event
+            "extrinsic_idx": 1,
+            "event": {
+                "module_id": "Commitments",
+                "event_id": "Commitment",
+                "attributes": {"netuid": 1, "who": "5C"},
+            },
+        },
+        {"extrinsic_idx": 0, "event": {"module_id": "System", "event_id": "X"}},
+        "garbage",
+    ]
+    assert commitment_positions(records, 567) == {"5A": 4, "5B": 2}
+
+
+def test_positions_failure_is_infrastructure():
+    async def fetch_events(context, block):
+        raise RuntimeError("x")
+
+    with pytest.raises(CommitmentUnavailable):
+        ChainCommitmentReader(CONTEXT, fetch_events=fetch_events).positions(5)
+
+
+#: A real decoded `Commitments.Commitment` record, as `substrate.events`
+#: returns it under the pinned SDK (testnet block 6655904, read-only, taken by
+#: the Test Engineer). Kept byte for byte except `who` (a third party's hotkey,
+#: replaced by //Bob's public address) and `netuid` (this subnet's).
+BOB = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+REAL_RECORD = {
+    "phase": "ApplyExtrinsic",
+    "extrinsic_idx": 6,
+    "event": {
+        "event_index": "1200",
+        "module_id": "Commitments",
+        "event_id": "Commitment",
+        "attributes": {"netuid": 567, "who": BOB},
+    },
+    "event_index": 18,
+    "module_id": "Commitments",
+    "event_id": "Commitment",
+    "attributes": {"netuid": 567, "who": BOB},
+    "topics": [],
+}
+
+
+def test_the_real_record_shape_gives_its_extrinsic_index():
+    from carbon.chain.commitments import commitment_positions
+
+    assert commitment_positions([REAL_RECORD], 567) == {BOB: 6}
+
+
+def test_a_record_outside_an_extrinsic_is_never_given_index_zero():
+    from carbon.chain.commitments import commitment_positions
+
+    finalization = {k: v for k, v in REAL_RECORD.items() if k != "extrinsic_idx"}
+    finalization["phase"] = "Finalization"
+    assert commitment_positions([finalization], 567) == {}
