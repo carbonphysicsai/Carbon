@@ -196,6 +196,12 @@ sudo useradd --system --create-home --home-dir /var/lib/carbon-tunnel --shell /u
 sudo install -d -m 0700 -o carbon-tunnel -g carbon-tunnel /var/lib/carbon-tunnel/.ssh
 ```
 
+`carbon-tunnel` keeps `nologin`: its client runs `ssh -N`, which asks for no
+command, so the login shell never starts. The forced `/bin/false` and
+`PermitTTY no` cover any attempt that does. (`carbon-dist` on the
+distribution host is different: its forced `rrsync` command runs through the
+login shell, so it needs `/bin/sh`; see `ANSWER_KEY_OPERATIONS.md` §2.)
+
 Add the following to `/etc/ssh/sshd_config.d/50-carbon.conf`, then run
 `sudo sshd -t && sudo systemctl reload ssh`. It keeps the tunnel account to
 one local forward even if its `authorized_keys` line is wrong. **Keep your
