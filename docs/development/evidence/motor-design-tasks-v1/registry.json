@@ -1,0 +1,39 @@
+{
+ "schema": "carbon.design-tasks-registry.v1",
+ "registered": "2026-10-07, before any computation (owner go via the Test Lead: 'go motor redesign. Make the design interface as useful as we can to more score=value')",
+ "scope": "public generator draws and public references only; never exam material. DEVELOPMENT.",
+ "interface": {
+  "name": "carbon.design_tasks (Challenge-neutral; motor first, battery and cooling to adopt)",
+  "task": {"conditions": "the operating points the design must satisfy", "design_space": "a finite candidate set (designs as input dicts)", "objective": "a physical quantity, sense and unit, aggregated over conditions (worst or mean)", "constraints": "hard limits on physical quantities, every condition", "secondary": "optional tie-break or trade-off quantity"},
+  "optimizer": "fixed and registered: exhaustive over the candidate set on the model's predictions; feasible only if every constraint holds at every condition; best objective, ties by the secondary then candidate id; abstain if none is predicted feasible",
+  "judge": "reference truth per (candidate, condition); outcome kind as quiz.q3 (SELECTED_FEASIBLE, SELECTED_INFEASIBLE, MISSED_OPPORTUNITY, CORRECT_ABSTENTION); regret in the objective's physical units against the best reference-feasible candidate; an infeasible pick is a false-feasible and carries no physical regret (reported separately)"
+ },
+ "motor_tasks": {
+  "limits": {"min_mean_torque_nm": 4.0, "max_ripple_fraction": 0.30, "source": "OWNER-GRAPHITE-TEST-WAVE-01 section 6"},
+  "conditions": "study V2's six recorded conditions (r01-r04 REPRESENTATIVE, b01-b02 BOUNDARY_STRESS)",
+  "objectives": [
+   {"id": "MOTOR-RIPPLE", "primary": true, "objective": "minimise worst-condition ripple fraction", "secondary": "maximise worst-condition mean torque", "basis": "study V2's recorded decision rule"},
+   {"id": "MOTOR-TORQUE", "primary": false, "objective": "maximise worst-condition mean torque (N m)", "secondary": "minimise worst-condition ripple fraction", "basis": "the owner's example; reported beside MOTOR-RIPPLE"}
+  ],
+  "candidates_per_task": 8
+ },
+ "screening": {
+  "geometries": 30, "conditions": 6, "solves": 180,
+  "draw": "valid geometries uniform over carbon.motor.domain.INPUT_BOUNDS (geometry inputs), numpy PCG64 seeded with sha256('MOTOR-SCREEN-V1')[:8]",
+  "split": "15 uniform; 15 from 2000 uniform draws, those the public learned-krr-v1 model predicts nearest a limit (min over conditions of |mean - 4.0|/0.4 and |ripple fraction - 0.30|/0.03)",
+  "runner": "scripts/dev/motor/reference/run_batch.py in the pinned image ghcr.io/carbonphysicsai/carbon-motor-reference (main-75330721, sha256:599521e7...), 2 CPUs per case, operator host CPU, no spend"
+ },
+ "repeatability": {
+  "cases": "the 20 public TRAIN/PRACTICE cases nearest a limit (same distance as above, on the reference)",
+  "refined_options": {"n_gap": 2880, "h_max": 0.5, "angle_steps": 120, "positions": 31},
+  "band": "per quantity, the largest |refined - standard| shift (battery's band basis); reported as a measured candidate to replace the 10 % HUMAN_INPUT recommendation"
+ },
+ "strata": {
+  "near_limit": "tasks whose 8 candidates include at least 2 within the near band of a limit at some condition (from the screened grids)",
+  "typical_use": "tasks whose 8 candidates are drawn from P(x): valid geometries uniform over INPUT_BOUNDS (the registered population)",
+  "combination": "HUMAN_INPUT weight; recommended 0.5/0.5; both strata and the combination reported"
+ },
+ "power": {"k": [1, 2, 4, 8], "known_bad": ["edge_optimist (near-band: mean +0.5 N m, ripple x 0.8)", "localized_sign_error", "infeasible_edge_seeker"], "value_control": "over_cautious (the edge-optimist's mirror)", "known_good": "oracle and 9 noisy oracles (stand-in, sigma 3 % mean, 10 % ripple); analytic-v1 and learned-krr-v1 reported", "metric": "AUC of decision false-feasible (safety) and of physical regret (value), mean and p05 over 1000 draws, seed 20261007"},
+ "value_check": "Kendall tau-b and Spearman rho between members' design-task regret and their study-V2 decision regret (the full decision value)",
+ "cost": "per task 8 x 6 = 48 GetDP solves; AX42 (16 threads, 8 concurrent) wall per batch reported"
+}
