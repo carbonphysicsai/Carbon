@@ -902,6 +902,18 @@ class PoolStore:
 
     # --- admissions ------------------------------------------------------------
 
+    def last_admission_block(self, hotkey, *, excluding):
+        """The newest receipt block of this hotkey's admissions other than
+        `excluding`, or None. Refusals are not admissions."""
+        with self.db() as db:
+            row = db.execute(
+                "SELECT MAX(json_extract(binding, '$.receipt.block')) FROM "
+                "submissions WHERE hotkey=? AND submission_id!=? AND "
+                "state!='INVALID_CONSTRUCTION'",
+                (hotkey, excluding),
+            ).fetchone()
+        return None if row is None else row[0]
+
     def admit(
         self,
         submission_id,
