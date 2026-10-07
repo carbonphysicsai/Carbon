@@ -37,3 +37,10 @@ The scope above, items 2 to 5, is unchanged: public HTTPS on 443 only,
 permit-holder `btauth/1` fetches, per-hotkey logs, no root, solver or private
 key on the host, and push-only from the producer. The producer pushes over
 key-only SSH on the public interface; Hetzner's private network is not used.
+
+**Amendment, 2026-10-07 (the public training pool).** OWNER-AUTO-PUBLISH-RETIRED-01
+adds one public, read-only path to this host: `GET /carbon/v1/training/<challenge>[/<file>]`.
+It serves only signed training files of retired bank cases, each verified
+before it is served, with every request logged. Items 2 to 5 are unchanged
+for answer-key packages: they still go only to permit holders, signed and
+logged per hotkey.
