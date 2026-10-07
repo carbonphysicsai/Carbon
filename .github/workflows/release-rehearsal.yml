@@ -12,6 +12,7 @@ on:
     paths:
       - ".github/workflows/release-rehearsal.yml"
       - ".github/workflows/release-worker-images.yml"
+      - "docs/development/images/RELEASED_WORKER_IMAGES.md"
       - "scripts/dev/release_worker_images.sh"
       - "scripts/dev/release_c03_parent.sh"
       - "scripts/dev/release_parent_rehearsal.sh"
