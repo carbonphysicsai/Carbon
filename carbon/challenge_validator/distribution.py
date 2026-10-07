@@ -98,7 +98,11 @@ class Inbox:
         if not stat.S_ISDIR(info.st_mode) or info.st_mode & 0o077:
             raise AnswerKeyRefused("answer_key_inbox_not_owner_only")
         found, skipped = {}, 0
-        for path in sorted(self.directory.glob("*.json")):
+        # The producer pushes its whole outbox: one subdirectory per
+        # Challenge (VALIDATOR-21); a flat inbox from earlier pushes still
+        # serves.
+        paths = [*self.directory.glob("*.json"), *self.directory.glob("*/*.json")]
+        for path in sorted(paths):
             try:
                 value = read_private(path)
                 commitment, _ = verify(value, self.producer_public_key)
