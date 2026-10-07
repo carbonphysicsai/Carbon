@@ -104,6 +104,8 @@ class BatchSource(abc.ABC):
     def quiz_select(self, draws, records, *, panel, cache):
         """The quiz from its solved draws: `{"document", "references"}`; or
         `{"next_round": N}` when round N must be drawn and solved first; or
+        `{"refine": jobs}` when these further solves (shaped as `jobs`) must
+        be solved first; or
         `{"pending": code}` when it cannot be selected yet (unsolved, or the
         panel's infrastructure failed). `panel` is the configured panel file
         and `cache` an owner-only directory the source may keep its panel

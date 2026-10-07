@@ -13,8 +13,8 @@ loop call it, so a quiz case or verdict means one thing everywhere.
   (`q2_select`). Each candidate model is then measured on them
   (`q2_measures`).
 - **Q3.** One operating condition per scenario, decided by the candidate
-  model inside EV4's fixed decision rules over a pre-solved 35-candidate
-  reference grid (`q3_grid`, `q3_judge`). Scenarios whose grid has no
+  model inside EV4's fixed decision rules over a pre-solved 117-point
+  reference lattice (`q3_candidates`) (`q3_grid`, `q3_judge`). Scenarios whose grid has no
   feasible design are excluded (`q3_feasible`, quiz-registry-v5).
   `q3_measures` gives decision false-feasible, regret and over-caution.
 
@@ -41,6 +41,20 @@ Q2_POOL = 320
 Q3_K = 8
 #: The disagreement panel is versioned (disagreement-panel-v1.json).
 PANEL_VERSION = 1
+#: The Q3 lattice (Test Lead ruling 2026-10-07, after quiz-diagnostics (b)):
+#: c1 in 0.125 C steps over 0.5-2.0 (13) x c2 in 0.1 C steps over 0.2-1.0 (9)
+#: = 117 points. It contains EV4's 35-point grid and its baseline.
+Q3_C1 = tuple(round(0.5 + 0.125 * i, 3) for i in range(13))
+Q3_C2 = tuple(round(0.2 + 0.1 * j, 3) for j in range(9))
+
+
+def q3_candidates():
+    """The Q3 lattice's candidates, c1-major (the contract's tie order)."""
+    return [
+        {"id": f"c1={c1:g},c2={c2:g}", "c1": c1, "c2": c2}
+        for c1 in Q3_C1
+        for c2 in Q3_C2
+    ]
 
 
 def _feasible_call(contract, outputs, bands=None):
@@ -144,12 +158,12 @@ def q3_grid(contract, scenario):
             "t_amb_c": float(t_amb_c),
             "soc0": float(soc0),
         }
-        for candidate in ev.candidates(contract)
+        for candidate in q3_candidates()
     ]
 
 
 def _reference(contract, scenario, grid_refs):
-    candidates = ev.candidates(contract)
+    candidates = q3_candidates()
     refs = {}
     for candidate in candidates:
         case_id = ev.case_id(contract, scenario, candidate, 0)
@@ -195,18 +209,132 @@ def q3_judge(contract, scenario, grid_predictions, grid_refs):
     }
 
 
-def q3_measures(outcomes):
-    """Over a model's outcomes on feasible scenarios (resolved ones only):
-    `false_feasible` (picks the reference shows infeasible), `regret` (mean
-    decision loss) and `over_caution` (missed opportunities). None when no
-    outcome is resolved."""
+def q3_measures(outcomes, contract=None):
+    """Over a model's outcomes on feasible scenarios (quiz-registry-v7).
+    UNRESOLVED is never clean:
+    - `regret`: mean decision loss, where an UNRESOLVED pick takes its
+      band-pessimistic value (a SELECTED_UNRESOLVED pick costs the false
+      acceptance cost, an ABSTENTION_UNRESOLVED the missed-opportunity cost);
+    - `false_feasible` (the gate default, variant (i)): picks the reference
+      shows infeasible or cannot clear, over all outcomes;
+      `false_feasible_resolved_only` (variant (ii)) excludes UNRESOLVED, for
+      sensitivity;
+    - `over_caution`: missed opportunities (an ABSTENTION_UNRESOLVED counts),
+      over all outcomes;
+    - `unresolved`: the share of outcomes that are UNRESOLVED (diagnostic
+      (e)).
+    `contract` supplies the mistake costs (EV4's when omitted)."""
+    if contract is None:
+        from pathlib import Path
+
+        contract, _ = ev.load(
+            Path(__file__).resolve().parent
+            / "contracts/ev4-charge-protocol-selection.v1.json"
+        )
+    costs = contract["mistake_costs"]
+    if not outcomes:
+        return {
+            "false_feasible": None,
+            "false_feasible_resolved_only": None,
+            "regret": None,
+            "over_caution": None,
+            "unresolved": None,
+        }
+
+    def loss(o):
+        if o["decision_loss"] is not None:
+            return o["decision_loss"]
+        if o["kind"] == "ABSTENTION_UNRESOLVED":
+            return costs["missed_opportunity"]
+        return costs["false_acceptance"]
+
+    n = len(outcomes)
+    unresolved = [o for o in outcomes if o["decision_loss"] is None]
     resolved = [o for o in outcomes if o["decision_loss"] is not None]
-    if not resolved:
-        return {"false_feasible": None, "regret": None, "over_caution": None}
+    infeasible = sum(o["kind"] == "SELECTED_INFEASIBLE" for o in outcomes)
+    selected_unresolved = sum(o["kind"] == "SELECTED_UNRESOLVED" for o in outcomes)
     return {
-        "false_feasible": sum(o["kind"] == "SELECTED_INFEASIBLE" for o in resolved)
-        / len(resolved),
-        "regret": statistics.fmean(o["decision_loss"] for o in resolved),
-        "over_caution": sum(o["kind"] == "MISSED_OPPORTUNITY" for o in resolved)
-        / len(resolved),
+        "false_feasible": (infeasible + selected_unresolved) / n,
+        "false_feasible_resolved_only": (
+            sum(o["kind"] == "SELECTED_INFEASIBLE" for o in resolved) / len(resolved)
+            if resolved
+            else None
+        ),
+        "regret": statistics.fmean(loss(o) for o in outcomes),
+        "over_caution": sum(
+            o["kind"] in ("MISSED_OPPORTUNITY", "ABSTENTION_UNRESOLVED")
+            for o in outcomes
+        )
+        / n,
+        "unresolved": len(unresolved) / n,
     }
+
+
+def _band_margins(contract, outputs):
+    """Signed distance to each limit in contract bands (positive = passing):
+    plating margin and thermal headroom."""
+    bands = contract["reference"]["uncertainty"]["bands"]
+    limit = next(
+        c["threshold"] for c in contract["constraints"] if c["id"] == "peak_temperature"
+    )
+    return {
+        "no_plating_onset": outputs["plating_margin_v"] / bands["plating_margin_v"],
+        "peak_temperature": (limit - max(outputs["temperature_c"]))
+        / bands["peak_temperature_c"],
+    }
+
+
+def q3_refine_points(contract, scenario, grid_refs):
+    """The producer's refined-solve jobs for a scenario (quiz-registry-v8):
+    every lattice point whose standard reference lies within one contract band
+    of the plating or thermal limit. A missing or failed reference is not a
+    refine point (the point is unavailable, never a candidate failure)."""
+    jobs = []
+    for job in q3_grid(contract, scenario):
+        record = grid_refs.get(job["case_id"])
+        if not record or record.get("status") != "OK" or not record.get("outputs"):
+            continue
+        if (
+            min(abs(v) for v in _band_margins(contract, record["outputs"]).values())
+            <= 1.0
+        ):
+            jobs.append({**job, "refined": True})
+    return jobs
+
+
+def q3_settle(grid_refs, refined_records):
+    """The answer key: standard references overlaid by refined truth where a
+    refined solve succeeded. Originals are never altered; a failed refined
+    solve changes nothing (the point keeps the pessimistic backstop)."""
+    out = dict(grid_refs)
+    for record in refined_records:
+        if (
+            record.get("refined") is True
+            and record.get("status") == "OK"
+            and record["case_id"] in out
+        ):
+            out[record["case_id"]] = {**record, "settled": "refined"}
+    return out
+
+
+def infeasible_edge_seeker(contract, truth_outputs):
+    """The infeasible-edge-seeker constructed control (quiz-registry-v8):
+    where the truth is infeasible but within one contract band of a limit,
+    it reports the case as just passing; accurate elsewhere. Refined truth
+    must catch its picks."""
+    import copy
+
+    margins_b = _band_margins(contract, truth_outputs)
+    out = copy.deepcopy(truth_outputs)
+    if -1.0 <= margins_b["no_plating_onset"] < 0:
+        out["plating_margin_v"] = 1e-6
+    if -1.0 <= margins_b["peak_temperature"] < 0:
+        limit = next(
+            c["threshold"]
+            for c in contract["constraints"]
+            if c["id"] == "peak_temperature"
+        )
+        temperatures = out["temperature_c"]
+        shift = (limit - 1e-3) - max(temperatures)
+        out["temperature_c"] = [temperatures[0]] + [t + shift for t in temperatures[1:]]
+    return out

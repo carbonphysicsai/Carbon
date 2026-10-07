@@ -1,0 +1,88 @@
+name: Release rehearsal
+
+# IMAGE-RELEASE-01. Rehearses the worker-image release's C-03 parent chain
+# against a throwaway local registry on every change to the release path:
+# push the C-03 worker, name it by the registry's digest, and build a real
+# child and the analysis image FROM that digest. Two release runs failed in
+# this chain where unit tests with a fake Docker CLI passed. Nothing leaves
+# the runner: the registry is a local container.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/release-rehearsal.yml"
+      - ".github/workflows/release-worker-images.yml"
+      - "docs/development/images/RELEASED_WORKER_IMAGES.md"
+      - "scripts/dev/release_worker_images.sh"
+      - "scripts/dev/release_c03_parent.sh"
+      - "scripts/dev/release_parent_rehearsal.sh"
+      - "scripts/dev/worker_parent_ref.sh"
+      - "scripts/dev/worker_parent_manifest.sh"
+      - "scripts/dev/c03_worker_image.sh"
+      - "scripts/dev/torch_worker_image.sh"
+      - "scripts/dev/torch_gpu_worker_image.sh"
+      - "scripts/dev/accelerator_worker_image.sh"
+      - "carbon/development_session/research_image.py"
+      - ".devcontainer/Dockerfile.reconstruction-worker"
+      - ".devcontainer/torch/**"
+      - ".devcontainer/accelerators/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-rehearsal-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  rehearse:
+    name: Rehearse the C-03 parent chain on a local registry
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out the candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Free runner disk
+        run: |
+          set -euo pipefail
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL /usr/share/swift /usr/local/share/powershell
+          df -h /
+      - name: Use the containerd image store
+        # As the release workflow does: a released image is named by its
+        # registry digest, which is the image ID only under this store.
+        run: |
+          set -euo pipefail
+          sudo python3 - <<'PY'
+          import json
+          import pathlib
+
+          path = pathlib.Path("/etc/docker/daemon.json")
+          config = json.loads(path.read_text()) if path.exists() else {}
+          config.setdefault("features", {})["containerd-snapshotter"] = True
+          path.write_text(json.dumps(config, indent=2))
+          PY
+          sudo systemctl restart docker
+          docker info --format '{{json .DriverStatus}}' | grep -q io.containerd.snapshotter
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.7"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Bootstrap locked controller environment
+        env:
+          CARBON_UV_GROUPS: "chain archive science-jax mcp"
+        run: ./scripts/dev/bootstrap.sh
+      - name: Start a throwaway local registry
+        # registry 2.8.3, pinned by its index digest.
+        run: docker run --detach --name rehearsal-registry --publish 127.0.0.1:5000:5000 docker.io/library/registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373
+      - name: Rehearse the parent chain
+        run: ./scripts/dev/release_parent_rehearsal.sh localhost:5000/rehearsal
+      - name: Stop the registry
+        if: always()
+        run: docker rm --force rehearsal-registry

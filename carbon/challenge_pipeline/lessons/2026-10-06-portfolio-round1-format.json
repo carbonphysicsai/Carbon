@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-portfolio-round1-format",
+  "recorded_at": "2026-10-06T21:22:08Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "build", "ref": "Black26.5.1: portfolio_round1_screen.py and its focused tests", "description": "Pinned formatter applied to two new Python files"},
+  "expected": "The offline screen and focused tests match the repository formatter.",
+  "observed": "Two files were reformatted. This was a formatting operation, not canonical validation or solver evidence.",
+  "keep": ["Use the exact formatter version; do not infer scientific maturity from source formatting."],
+  "change": [],
+  "protocol_elements": ["challenge.pipeline.lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

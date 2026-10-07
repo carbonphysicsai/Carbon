@@ -36,6 +36,36 @@ So:
   - option A's tunnel key, which reaches only the door;
   - the VM's pinned host key, or option B's public certificate.
 
+## Operator conventions (the first operational run, 2026-10-07)
+
+The filled-in, copy-paste sheet for the first run is
+`~carbon/shared/operator/HETZNER_PART2.md`, on release
+`worker-images-v1`. These conventions bind this document too:
+1. **Every `scp` or `ssh` to or from the VM runs from Windows PowerShell,**
+   with `-i $HOME\.ssh\carbon-vm`. WSL files are reached as
+   `\\wsl.localhost\Ubuntu-24.04\home\carbon\...`. Ryan's admin key lives
+   only in Windows and is never copied into WSL, where agent sessions run.
+2. **The tuning curves** (`curves.json`, `curves.md`, aggregates only) land
+   directly in `~carbon/shared/tuning-inputs/`. Nothing else leaves the
+   VM.
+3. **Graphite runs (§7) are the executor's job,** not Ryan's.
+4. **Every VM block starts with `cd /opt/carbon`,** and runs Carbon as
+   `sudo -u carbon-producer -H /opt/carbon/.venv/bin/python -m ...`.
+   Every module resolves its repository from `/opt/carbon`.
+5. **PC-side Carbon commands run from a checkout of the release tag:**
+   - fetched with a forced refspec, so a stale local tag is replaced:
+     `git fetch origin +refs/tags/<tag>:refs/tags/<tag>`;
+   - checked with `git rev-parse '<tag>^{commit}'` against the expected SHA;
+   - run as `cd <worktree> && uv run --frozen --group archive python -m carbon....`
+     (`archive` carries `cryptography`; keygen needs only that);
+   - `export-prior` also needs numpy and the chain models:
+     `uv run --frozen --group chain --group science-jax --group archive python -m carbon.challenge_validator.confirmation export-prior ...`.
+     All three groups were dry-run end to end in a fresh worktree of the tag
+     on 2026-10-07.
+
+   Never use `PYTHONPATH=<worktree>` with another checkout's virtualenv: its
+   editable install takes precedence and resolves the old code.
+
 ## 0. Discard the `carbon`-owned pool on the PC
 
 It holds a root (key) and a root-only journal, and no batch was ever drawn
@@ -80,14 +110,17 @@ sudo install -d -m 0700 -o carbon-producer -g carbon-producer /var/lib/carbon-pr
 
 ## 3. Install Carbon and the released worker image (never build on the VM)
 
-```bash
-sudo git clone --branch <release tag> --depth 1 https://github.com/carbonphysicsai/Carbon.git /opt/carbon
-sudo chown -R root:root /opt/carbon
-```
-
-Then **pull release `<tag>`** with the release's pull-by-digest script. This
-step is filled in when the Test Engineer's released-image work lands. The
-manifest goes in `/var/lib/carbon-producer/etc/`.
+The release's exact steps (`worker-images-v1`) are in the sheet, steps 1–4:
+1. Docker's containerd image store, which the pull requires.
+2. uv 0.12.7, with Python 3.11.16 under `/opt/uv-python`.
+3. The checkout at the tag, in `/opt/carbon`, with
+   `uv sync --frozen --group chain --group science-jax --group science-torch --group archive`
+   (`archive` carries `cryptography`, which the door and every key need).
+   Everything is owned by root and read-only to `carbon-producer`.
+4. `scripts/dev/worker_image_release.py pull` against the release's
+   `c03-worker-image.release.json`, writing the manifest to
+   `/var/lib/carbon-producer/etc/c03-worker-image.json`.
+5. `operate truth-materialize` for the reference solver's overlay.
 
 ## 4. Configure the hidden deployment
 
@@ -162,6 +195,12 @@ account.
 sudo useradd --system --create-home --home-dir /var/lib/carbon-tunnel --shell /usr/sbin/nologin carbon-tunnel
 sudo install -d -m 0700 -o carbon-tunnel -g carbon-tunnel /var/lib/carbon-tunnel/.ssh
 ```
+
+`carbon-tunnel` keeps `nologin`: its client runs `ssh -N`, which asks for no
+command, so the login shell never starts. The forced `/bin/false` and
+`PermitTTY no` cover any attempt that does. (`carbon-dist` on the
+distribution host is different: its forced `rrsync` command runs through the
+login shell, so it needs `/bin/sh`; see `ANSWER_KEY_OPERATIONS.md` §2.)
 
 Add the following to `/etc/ssh/sshd_config.d/50-carbon.conf`, then run
 `sudo sshd -t && sudo systemctl reload ssh`. It keeps the tunnel account to
@@ -261,8 +300,8 @@ The firewall also allows TCP 8468 (`sudo ufw allow 8468/tcp`).
 2. **Copy only `tls.crt` (public) to the PC,** from a WSL shell as `carbon`
    with your own SSH session:
 
-   ```bash
-   ssh <VM_IP> sudo cat /var/lib/carbon-producer/etc/tls.crt > ~/.config/carbon/hidden-host.crt
+   ```powershell
+   ssh -i $HOME\.ssh\carbon-vm root@<VM_IP> cat /var/lib/carbon-producer/etc/tls.crt > \\wsl.localhost\Ubuntu-24.04\home\carbon\.config\carbon\hidden-host.crt
    ```
 
    Graphite trusts that certificate and nothing else (`--hidden-ca`). Any
@@ -285,8 +324,34 @@ sudo -u carbon-producer python -m carbon.battery.dev_submit serve --config /var/
 
 ## 6. Batches and the tuning set: all on the VM, as `carbon-producer`
 
-**Pool batches:** follow `HIDDEN_POOL_AND_TUNING_RUNBOOK.md` section A,
-prefixing every command with `sudo -u carbon-producer`.
+**Pool batches, first run:** follow `HIDDEN_POOL_AND_TUNING_RUNBOOK.md`
+section A (the sheet's step 9: 4 screening + 2 finalist), as
+`carbon-producer`. These draw their own batches and carry no quiz.
+
+**Pool batches with the quiz, from the next rotation** (the Test Lead's
+ruling, 2026-10-07; the mainnet path):
+1. Carbon's producer runs on this host with its own deployment and root
+   (`TESTNET_REHEARSAL_SETUP.md` Part 1, with its `quiz: {panel}` config).
+   Its `tick` draws, solves, seals with the quiz, and publishes into
+   `producer/outbox/<challenge>/`.
+2. The development deployment gains `"batch_source": "answer_key"`. It stays
+   `development_only`.
+3. After each tick, import the outbox directly. There is no distribution host
+   on the same host:
+
+   ```bash
+   cd /opt/carbon
+   sudo -u carbon-producer -H /opt/carbon/.venv/bin/python -m carbon.challenge_validator.answer_key import \
+     --deployment /var/lib/carbon-producer/etc/graphite-hidden-battery-v1.json \
+     --producer-public-key <the producer key's public key> \
+     --outbox /var/lib/carbon-producer/producer/outbox/battery-fastcharge-ageing-development-v1
+   ```
+
+   Every package is verified as a fetched one is; a bad one is refused by
+   code and the rest still import.
+4. The open pool keeps scoring its own batches until a producer window
+   covers the newest block. It then scores on the producer's batches and
+   never stalls.
 
 **The tuning set is never sealed on the PC.** Runbook §B seals it in the
 testnet deployment, whose root is on the PC, so its cases would be
@@ -297,10 +362,14 @@ agent-readable. That section stays on HOLD.
   priors are owner-only files:
   1. **The rotating pool:** `tuning export-pool` on the VM.
   2. **EV5 and `graphite-confirmation-v1`:** these are sealed under the
-     testnet root on the PC. Ryan exports their case inputs there, copies
-     them to `/var/lib/carbon-producer/etc/` with `scp`, and then runs
-     `shred -u` on the PC copies. The export command (`confirmation
-     export-prior`) and v2's registration land together with slice Q.
+     testnet root on the PC. Ryan exports their case inputs there
+     (`confirmation export-prior`), copies them to
+     `/var/lib/carbon-producer/etc/` with `scp` from PowerShell (`-i
+     $HOME\.ssh\carbon-vm`, from `\\wsl.localhost\...`), and then runs
+     `shred -u` on the PC copies. The sheet's step 10 has the exact commands.
+- **The curves** from `tuning_rescore --q3-regret` are copied from PowerShell
+  straight into `~carbon/shared/tuning-inputs/`. They are aggregates
+  only.
 - **Why not move the testnet deployment to the VM instead:**
   - The export adds no exposure, because those cases are already reachable
     from the PC root.
@@ -308,9 +377,10 @@ agent-readable. That section stays on HOLD.
   - Moving the running testnet validator and its chain wallet is a larger,
     separate owner decision.
 
-## 7. Graphite runs
+## 7. Graphite runs (the executor's job)
 
-On the PC, with option A's tunnel up:
+The Graphite executor session runs these, never Ryan. On the PC, with option
+A's tunnel up:
 
 ```bash
 python -m carbon.agent_campaign.graphite.phase3 run ... --hidden-endpoint http://127.0.0.1:18468 \
@@ -323,7 +393,8 @@ With option B: `--hidden-endpoint https://<VM_IP>:8468 --hidden-ca
 The run's hidden report is read on the VM only:
 
 ```bash
-sudo -u carbon-producer python -m carbon.battery.dev_submit report --config /var/lib/carbon-producer/etc/dev-submit.json --run <run id>
+cd /opt/carbon
+sudo -u carbon-producer -H /opt/carbon/.venv/bin/python -m carbon.battery.dev_submit report --config /var/lib/carbon-producer/etc/dev-submit.json --run <run id>
 ```
 
 ## 8. The acceptance check
