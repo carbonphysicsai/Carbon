@@ -19,8 +19,11 @@ merged as `c3186fa4ad823c52e62f5636f3fdaab1dc8070b1`.
 The [#759 optimizer proposals](https://github.com/carbonphysicsai/Carbon/pull/759)
 were inspected at `ff495231c49abb0f234c8f933e3c4dd23d93a9c7`, and
 [#764 tasks.py](https://github.com/carbonphysicsai/Carbon/pull/764) at
-`9cf25328bdc71b04188f60d448f82b1ee081c47d`. Neither is asserted merged by this
-document. A changed interface needs renewed reconciliation before adoption.
+`9cf25328bdc71b04188f60d448f82b1ee081c47d`. #759 subsequently merged as
+`11d77033cda4be4fb6303cb31a910cc6ef9d4633` during this ticket; its optimizer
+and buyer-job laws remain **SPECIFIED proposals with HUMAN_INPUT values**,
+not registered exam settings. #764 remains open at the last check. A changed
+interface needs renewed reconciliation before adoption.
 During drafting #764 advanced to `6dfe99692bf273ac7fac2453508fc023f90f7d1f`;
 its `tasks.py` blob remained exactly `f2daa4e825c2bda950cd2f48ee47848d2eb68c2e`.
 Main advanced to `17e4af24583bce0bdc7b1b37ee26b7776e7d288b` through the
