@@ -20,6 +20,14 @@ its submission cadence needs. It adds questions 8-10, Phases G and H and rules
 R9-R11 (`training_budget_study/DECISION_RULES_R9_R11.md`). R1-R8 are
 unchanged. See [Extension: data size, screening and cadence](#extension-data-size-screening-and-cadence).
 
+**One study for every Challenge (OWNER-COMPUTE-BUDGET-01).** Every
+Challenge runs this same study with the same Challenge-neutral code. A
+Challenge supplies only its sheet and its adapter
+(`training_budget_study/SHEET_TEMPLATE.md`); battery is the first instance,
+never the design. The intended outcome for each Challenge is **one compute
+budget**, the same for every recipe and spent in any ratio, adopted once R5
+passes for that Challenge. The build is ticket TRAINING-BUDGET-01.
+
 **Order.** Battery runs it first, on testnet, with the values in its Battery
 sheet. New Challenges start from the New Challenge sheet. **Neither sheet is
 in the repository yet.** The Battery sheet's values stay open until it is
@@ -297,8 +305,8 @@ extension answers questions 8-10. It runs inside the same study, under the
 same sheet, spend ceiling, stop rules and non-claims.
 
 **Why.** The original study holds the TRAIN set fixed, so it finds where
-compute stops helping but not whether data is the real limit. Battery shows
-the gap: its contract trains full-batch on 400 TRAIN cases with up to 20,000
+compute stops helping but not whether data is the real limit. Battery, the
+first instance, shows the gap: its contract trains full-batch on 400 TRAIN cases with up to 20,000
 steps, so a default recipe passes over each case thousands of times. Data is
 generated once and shared by every submission, while rebuild compute is paid
 for every submission, so data is often the cheaper way to raise scores. The
