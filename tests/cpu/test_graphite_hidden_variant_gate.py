@@ -87,14 +87,18 @@ def record(sid, score, gate, version="1"):
 
 
 def test_the_report_ranks_under_the_variant_with_a_gate_fail_last():
-    ranked = hidden_score.report(
-        [
-            record("low", 0.40, "PASS"),
-            record("failed", 0.95, "FAIL"),
-            record("high", 0.80, "PASS"),
-            record("none", None, "PASS"),
-        ]
-    )["score_variant"]["1"]
+    """Per pool version and device class, as the primary ranking is."""
+    from carbon.battery.rebuild_identity import device_class
+
+    records = [
+        record("low", 0.40, "PASS"),
+        record("failed", 0.95, "FAIL"),
+        record("high", 0.80, "PASS"),
+        record("none", None, "PASS"),
+    ]
+    by_class = hidden_score.report(records)["score_variant"]["1"]
+    assert list(by_class) == [device_class(records[0])]
+    ranked = by_class[device_class(records[0])]
     assert ranked["score_variant"] == VERSION
     assert [r["submission_id"] for r in ranked["ranking"]] == [
         "high",
@@ -186,3 +190,19 @@ def test_only_the_runners_flag_sets_the_variant_never_the_agents_strategy(
     body = sent[0]["body"]
     assert "score_variant" not in body
     assert body["strategy"] == hostile  # only ever inside the strategy
+
+
+def test_the_variant_ranking_never_crosses_device_classes():
+    """TORCH-GPU-01: CPU and GPU rebuilds are never ranked together, under the
+    variant as in the primary table (the Test Engineer's case)."""
+    gpu = record("gpu", 0.99, "PASS")
+    gpu["rebuild"] = {
+        "schema": "carbon.battery.rebuild-identity.v1",
+        "device_class": "gpu:NVIDIA GeForce RTX 3060",
+    }
+    ranked = hidden_score.report([record("cpu", 0.40, "PASS"), gpu])["score_variant"]
+    assert set(ranked) == {"1"}
+    assert set(ranked["1"]) == {"cpu", "gpu:NVIDIA GeForce RTX 3060"}
+    assert [r["submission_id"] for r in ranked["1"]["cpu"]["ranking"]] == ["cpu"]
+    gpu_rows = ranked["1"]["gpu:NVIDIA GeForce RTX 3060"]["ranking"]
+    assert [r["submission_id"] for r in gpu_rows] == ["gpu"]

@@ -27,6 +27,12 @@ scored and never counted.
 
 The score, the admitted count and any due rotation are committed together.
 
+**The quiz report** (VALIDATOR-19 slice Q, part 2): once a score is
+committed, the retained model infers the quizzes its active batches carry,
+and an operator-only report is stored beside the score (`quiz_report`), with
+measures an operator entry point injects. It gates nothing and never reaches
+a miner outcome.
+
 **Finalist comparison** (`process_finals`) runs only for a nominee:
 1. freeze the comparison rule and both identities;
 2. assign a prepared set of fresh private cases;
@@ -318,6 +324,10 @@ class BatteryValidator:
         # Its pool rotates by the producer's windows, never its own clock.
         self.store.windowed = self.import_only
         self.development_compiler = None
+        #: The near-limit quiz's measures (VALIDATOR-19 slice Q), injected by
+        #: an operator entry point (`challenge_validator.battery_quiz.install`);
+        #: None measures nothing. They never touch a score.
+        self.quiz_measures = None
         self.material = PublicMaterial.load(repository)
         self.tol, self.scales = frozen_calibration(repository)
         self.pin = journal.root_pin(root)
@@ -971,8 +981,119 @@ class BatteryValidator:
                     continue  # the pool or incumbent moved; screen again
                 raise
             break
+        # After the score is committed, and apart from it: never a gate, and
+        # nothing it raises reaches the submission.
+        try:
+            self.quiz_report(submission_id)
+        except Exception as failure:  # noqa: BLE001 - recorded, never scored
+            self.store.note(
+                "quiz_report_failed",
+                {"submission_id": submission_id, "failure": type(failure).__name__},
+            )
         self._settle()
         return self.outcome(submission_id)
+
+    # --- the near-limit quiz (VALIDATOR-19 slice Q, part 2) ------------------------------
+
+    #: Quiz predictions are stored under this prefix plus the submission id,
+    #: never a scored model's id, so they never collide with a scored case.
+    QUIZ_PREDICTIONS = "quiz/"
+    QUIZ_REPORT_SCHEMA = "carbon.battery.quiz-report.v1"
+
+    def quiz_report(self, submission_id):
+        """The operator-only quiz report for a scored submission, on the
+        quizzes its score's active batches carry; None when none carries one,
+        or when this validator was given no quiz measures.
+
+        The measures are injected (`quiz_measures`, set by
+        `challenge_validator.battery_quiz.install` on operator entry points):
+        this module never names the quiz's science, which loads the
+        value-analysis code no miner surface may reach.
+
+        The retained model infers each quiz's inputs (Q2 cases and every Q3
+        grid candidate) through the backend, then the measures give Q2's and
+        Q3's per batch and pooled. The report gates nothing and never reaches
+        a miner outcome: the score, state, nomination and finals are already
+        committed and never read it (rule v3 is the owner's). A quiz
+        inference failure is the quiz's own FAILED_INFRA, retried by the next
+        call."""
+        from .quiz_document import QuizRefused, inputs
+
+        stored = self.store.quiz_report(submission_id)
+        if stored is not None and stored.get("state") != "FAILED_INFRA":
+            return stored
+        score = self.store.score(submission_id)
+        if score is None or self.quiz_measures is None:
+            return None
+        batches = list(score["record"]["active_batches"])
+        quizzes = {f: self.store.quiz(f) for f in batches}
+        quizzes = {f: q for f, q in quizzes.items() if q is not None}
+        if not quizzes:
+            return None
+        report = {
+            "schema": self.QUIZ_REPORT_SCHEMA,
+            "submission_id": submission_id,
+            "pool_version": score["pool_version"],
+            # Drawn and reported only: no gate, threshold or margin applies
+            # until the owner adopts rule v3 (HUMAN_INPUT).
+            "gates": "NONE",
+            "batches": {
+                f: {
+                    "quiz_digest": q["quiz_digest"],
+                    "panel_version": q["panel_version"],
+                }
+                for f, q in quizzes.items()
+            },
+        }
+        asked = {}
+        for quiz in quizzes.values():
+            asked.update(inputs(quiz["document"]))
+        try:
+            predictions = self._quiz_predictions(
+                submission_id, asked, f"v{score['pool_version']}"
+            )
+            measures = self.quiz_measures(quizzes, predictions)
+        except WorkerFailure as failure:
+            return self.store.record_quiz_report(
+                submission_id,
+                {
+                    **report,
+                    "state": "FAILED_INFRA",
+                    "code": failure.code,
+                    "candidate": bool(failure.candidate),
+                },
+            )
+        except (StateError, QuizRefused) as refused:
+            return self.store.record_quiz_report(
+                submission_id, {**report, "state": "REFUSED", "code": refused.code}
+            )
+        for fingerprint, found in measures["batches"].items():
+            report["batches"][fingerprint].update(found)
+        return self.store.record_quiz_report(
+            submission_id, {**report, "state": "MEASURED", "pooled": measures["pooled"]}
+        )
+
+    def _quiz_predictions(self, submission_id, inputs, tag):
+        """The retained model's predictions on the quiz inputs, through the
+        backend's `infer` as scoring uses it, stored apart from every scored
+        prediction (`QUIZ_PREDICTIONS`)."""
+        key = self.QUIZ_PREDICTIONS + submission_id
+        have = self.store.predictions(key, list(inputs))
+        missing = [c for c in inputs if c not in have]
+        if missing:
+            state = self.store.model_state(submission_id)
+            if state is None:
+                raise StateError("model_not_retained", submission_id)
+            predictions = self.backend.infer(
+                f"quiz-{submission_id}-{tag}",
+                state["state"],
+                {c: inputs[c] for c in missing},
+            )
+            if incomplete(predictions, missing):
+                raise WorkerFailure("prediction_cases_differ", candidate=True)
+            self.store.store_predictions(key, predictions)
+            have.update(predictions)
+        return have
 
     def _public_score(self, record):
         return {

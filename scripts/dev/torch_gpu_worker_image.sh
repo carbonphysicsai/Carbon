@@ -15,7 +15,7 @@ bash "${script_dir}/c03_worker_image.sh" "${parent_manifest}"
 parent="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["image_id"])' "${parent_manifest}")"
 source_digest="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["source_tree_digest"])' "${parent_manifest}")"
 [[ "${parent}" =~ ^sha256:[0-9a-f]{64}$ && "${source_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 2
-parent_ref="carbon-c03-worker:${source_digest:7:16}@${parent}"
+parent_ref="$(bash "${script_dir}/worker_parent_ref.sh" "${parent}" "${source_digest}")"
 recipe="${repo_root}/.devcontainer/torch/Dockerfile.gpu"
 recipe_digest="sha256:$(sha256sum "${recipe}" | cut -d' ' -f1)"
 lock_digest="sha256:$(sha256sum "${repo_root}/.devcontainer/torch/torch-cu130-py311.txt" | cut -d' ' -f1)"
