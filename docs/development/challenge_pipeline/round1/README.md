@@ -1,14 +1,19 @@
 # First customer-shaped DEVELOPMENT round
 
 **Authority:** [OWNER-PORTFOLIO-DEV-ROUND-01](../../../../.agent/decisions/2026-10-06-OWNER-PORTFOLIO-DEV-ROUND-01.md),
-the owner's direct rolling delegation on 2026-10-06. These five hypothetical
-buyers define useful decisions, not five claims of paid customer demand.
-Core limits and grant numbers in [requirements.json](requirements.json) are **selected first-round
+the owner's direct rolling delegation on 2026-10-06, extended prospectively
+to the first three buyer briefs by
+[OWNER-FIRST-THREE-CUSTOMER-ROUND-01](../../../../.agent/decisions/2026-10-07-OWNER-FIRST-THREE-CUSTOMER-ROUND-01.md).
+These eight hypothetical buyers define useful decisions, not paid customer demand.
+The five new families' core limits and grants in [requirements.json](requirements.json) are **selected first-round
 DEVELOPMENT requirements**, not unanswered proposals, measured material laws,
 or production tolerances. Material constants are explicitly synthetic fixtures.
 
 | Packet | What the buyer wants Carbon to choose | Why a wrong decision costs them | Main new work / reuse |
 | --- | --- | --- | --- |
+| [Motor precision joint](motor-precision-joint.md) | A geometry/command pair providing 6-N·m holding and smooth torque | Commissioning stop or geometry/prototype redo | Reuse 60-angle reference; new command-role/cogging decision policy; no thermal/dynamic joint certification |
+| [Cooling full manifold](cooling-accelerator-manifold.md) | A plate/manifold and flow meeting 85 °C / 50 kPa / 2.5 W | Prototype redo or a thermally interrupted module | Reuse periodic assets, not periodic truth as full-manifold evidence |
+| [Battery EV fast charge](battery-ev-fast-charge.md) | A cell protocol meeting warm 30-min turnaround and 45-°C / 0-V model constraints | Lost driver time or investigation/replacement burden | Retain 30 cycles; prospective SOC/timing observer; no EV5/live-contract change |
 | [f02 burst thermal](f02-burst-thermal.md) | The highest-energy permitted burst that stays under 95 °C | Throttling or a thermal-limit breach | New transient solid reference; reuse thermal representations/custody, not steady CFD truth |
 | [f06 grating coupler](f06-grating-coupler.md) | A TE coupling geometry robust to the declared offsets over 1530–1570 nm | A mask with poor coupling or excess reflection | New 3D grating/mode overlap; keep old supermode asset only as a baseline/control |
 | [f08 resonant structure](f08-resonance-structure.md) | A light support with low worst-band motion and adequate stiffness | Precision loss from a missed resonant peak | New CAD/modal/harmonic adapter; reuse generic case/evidence contracts |
@@ -22,6 +27,12 @@ owns grades, and readiness/admission/design-search retain their roles. New
 domain adapters wait for their authorized stage; planning labels are not IDs.
 The Battery-led protocol remains **DEFINING**. These packets do not move its
 queue, lock it, register Challenges or alter the original three contracts.
+The first three now have independent buyer briefs in the same format;
+[first-three-requirements.json](first-three-requirements.json) is their
+separate planning sheet. It grants no execution or money and is not imported
+by runtime scoring. Their new numerical reference criteria are demands to
+verify, not a reinterpretation of existing adequacy/study outcomes. Test Lead
+and Carbon Validator own later versioned gate/quiz/tuning integration.
 
 ## Selected reference-feasibility allowances
 
@@ -36,7 +47,8 @@ queue, lock it, register Challenges or alter the original three contracts.
 
 The packets complete geometry, observation and sampling conventions not
 encoded in the core numeric sheet; a runnable adapter must bind both.
-These are owner-delegated, non-transferable first feasibility grants, **not
+These five-family allowances are unchanged by the three added buyer briefs.
+They are owner-delegated, non-transferable first feasibility grants, **not
 estimated cost or an enforced runner**. One 16-vCPU CPU allocation, one solver
 process at a time, no GPU, no automatic retries. A solver launch reserves an
 attempt before dispatch; each separate normalization/static/eigen/harmonic
