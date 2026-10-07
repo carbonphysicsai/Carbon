@@ -76,6 +76,12 @@ def test_validators_claim_the_same_finalist_set_whatever_their_import_order(
         store.freeze_final("f1", challenger="s1", incumbent="s0", frozen={"x": 1})
         claims.append(store.claim_finalist_set("f1"))
     assert claims[0] is not None and claims[0] == claims[1]
-    # The earliest live window's set: slot 1's, before slot 2's.
-    first = ak.verify(packages(made, "finalist")[0], made["key"].public_key)[0]
-    assert first["window"]["slot"] == 1 and claims[0] == first["fingerprint"]
+    # The earliest live window's set: slot 1's, before slot 2's. Packages are
+    # named by fingerprint (random roots), so slot 1's is found by its window,
+    # never by file order.
+    commitments = [
+        ak.verify(value, made["key"].public_key)[0]
+        for value in packages(made, "finalist")
+    ]
+    [first] = [c for c in commitments if c["window"]["slot"] == 1]
+    assert claims[0] == first["fingerprint"]
