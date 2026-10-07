@@ -1,0 +1,16 @@
+{
+ "schema": "carbon.battery.feasibility02-registry.v1",
+ "registered": "2026-10-07, before any study solve (two smoke solves only; one exposed the earlier estimate's flaw, below)",
+ "authority": "CHALLENGE-CUSTOMER-FEASIBILITY-02, #758 at head 1ac5acfa69dd8f2af5d6b5d4f6a2ec52c5b9d975 (battery: keep the complete-programme ceiling; add cooling as an action); battery packet #752 round1/battery-ev-fast-charge.md; owner approved the overlay download in chat. DEVELOPMENT; free host CPU; rule v2 untouched",
+ "environment": "registered battery reference model, parameters, protocol and solver in the pinned truth image with the verified PyBaMM 26.8.0.0 overlay (lock sha256 6267e033...); network none",
+ "actions": {"protocols": "c1 {1.25, 1.5, 1.75, 2.0} C x c2 {0.4, 0.7, 1.0} C, switch 4.0 V, CV at 4.2 V to C/20 (registered)", "cooling": "lumped total heat-transfer coefficient x {1, 2, 4} (h0 = 10 W/m2K, area 0.00531 m2), the same through charge, CV, rests and discharge"},
+ "strata": "initial SOC 0.10; ambient 5, 15, 25, 35, 40 C; the 30-min speed goal at 25 and 35 C only; every limit at all five",
+ "limits": {"session_10_80": "<= 30 min from session start including the 120 s rest (25 and 35 C)", "temperature": "<= 45 C over the complete 30-cycle programme incl. rests and discharge", "plating": "overpotential minimum >= 0 V over every charge step", "voltage": "<= 4.2 V", "retention": "Q30/Q1 >= 0.99"},
+ "observers": "per cycle and phase: T and V extrema with times, plating minimum, charge, cooling removal hA(T - T_amb) peak and energy; whole-programme extrema with phase/cycle/time; SOC clock = SOC0 + charge integral / nominal 5 Ah from session start to the first 0.80, interpolated, NOT_REACHED if not reached on the first charge",
+ "separation": "a charge-time miss (SOC clock > 30 min) is reported apart from a thermal failure, and a thermal failure is split into charging-phase and non-charging (rest/discharge)-phase maxima",
+ "controls": "the earlier public-reference cases reported as 26.9, 27.1, 29.1 and 35.6 min, re-solved with their own inputs at h x 1 to check the earlier voltage-probe estimate",
+ "correction": "the earlier 10-80 % times (Data Collection to Test Lead, 2026-10-07) used 30 s voltage probes; the 4.0 V switch falls between probes (the voltage drops when the current steps down), so the estimate wrongly continued the first stage. The smoke control (c1 1.25, c2 0.4, SOC0 0.06, 29 C) reaches 80 % at 63.3 min, not 35.6",
+ "resolution_check": "any case within 1 min, 0.5 C, 2 mV or 0.25 % of a limit is re-solved with the registered refined settings (mesh 40, rtol 1e-6); packet section 5 convergence demands; a straddle is REFERENCE_UNRESOLVED",
+ "outcomes_per_stratum": ["RESOLVED_FEASIBLE", "RESOLVED_INFEASIBLE (charge-time miss / thermal-charging / thermal-non-charging / plating / retention)", "REFERENCE_UNRESOLVED", "FAILED_INFRA"],
+ "tier2": "only if no cooled case meets 30 min: c2 0.5-2 C with c2 <= c1 and switch 4.00/4.05/4.10/4.15 V, registered separately before solving"
+}
