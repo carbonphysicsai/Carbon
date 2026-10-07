@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-reference-credibility-utf8-repair",
+  "recorded_at": "2026-10-07T20:12:45+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-REFERENCE-CREDIBILITY-01 UTF-8 native diagnostic repair",
+    "description": "python -X utf8 -m pytest -q tests/cpu/test_challenge_pipeline.py::test_the_ladder_is_challenge_admission_section_3; python -X utf8 -m carbon.challenge_pipeline validate"
+  },
+  "expected": "Explicit UTF-8 resolves only the host's decoding failure, leaving source and assertions unchanged; existing protocol data stays valid.",
+  "observed": "The unchanged failed test passed in 2.31s with UTF-8. Pipeline validation reported DEFINING, 7 valid records, 408 valid lessons at enumeration time, zero awaiting a decision, and 3 controllers designated/3 pending identity. These native diagnostics do not establish canonical CI or reference credibility.",
+  "keep": ["All 18 new static credibility checks and the existing packet/screen assertions; the original failed run remains recorded separately."],
+  "change": ["Use explicit UTF-8 in future Windows diagnostic commands; leave canonical acceptance to the pinned Linux CI environment."],
+  "protocol_elements": ["host-versus-canonical-validation", "lessons-log", "claim-basis"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

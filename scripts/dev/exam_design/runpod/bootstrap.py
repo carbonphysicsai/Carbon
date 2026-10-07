@@ -58,6 +58,7 @@ PHASE_MODULE = os.environ.get("PHASE_MODULE", "scripts.dev.exam_design.runner")
 # passed on to the phase.
 os.environ.pop("CARBON_BOOT", None)
 ROOT, OVL, OUT = "/tmp/carbon", "/tmp/overlay", "/tmp/out"
+GO_FILE = os.environ.get("GO_FILE", "/tmp/carbon-go")
 CTX = ssl.create_default_context(cadata=CA) if CA else ssl.create_default_context()
 STATE = {
     "schema": "carbon.exam-design.pod-status.v1",
@@ -191,7 +192,22 @@ class H(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    do_HEAD = do_POST = do_PUT = do_DELETE = lambda self: (
+    def do_POST(self):
+        """The only write: POST /go with the matching token drops a marker file
+        outside the served results directory (the A40 acceptance barrier); any
+        other POST is 404 as before."""
+        ok = (
+            TOKEN
+            and self.path == "/go"
+            and hmac.compare_digest(self.headers.get("X-Probe-Token", ""), TOKEN)
+        )
+        if ok:
+            Path(GO_FILE).write_text("go")
+        self.send_response(200 if ok else 404)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    do_HEAD = do_PUT = do_DELETE = lambda self: (
         self.send_response(404),
         self.end_headers(),
     )
