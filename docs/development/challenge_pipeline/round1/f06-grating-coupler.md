@@ -91,6 +91,41 @@ coupler's memory is not transferable. If it cannot fit, this round is coarse
 feasibility only, with fine-rung adequacy unresolved. Insufficient memory
 or time means UNRESOLVED, not permission to skip the fine rung or buy a GPU.
 
+### Reference credibility target
+
+**Buyer tool:** Ansys Lumerical FDTD is the assumed silicon-photonics design
+workflow; this is a role-play choice, not an adoption statistic. **Carbon
+reference:** proposed Meep full-3D FDTD/mode overlap, **not the same tool**.
+The old symmetric supermode reference is not this grating reference. Tier 1
+would need the buyer's actual tool and exact stack/source/mesh/settings.
+
+**Target tier:** Tier 2 for simulator-matched mask shortlisting. Tier 3 measured
+coupling/reflection plus fabrication metrology is required only before physical
+device-performance reliance; yield additionally needs a real process law and
+its own evidence. **Credibility evidence: NOT_DEMONSTRATED** for this task.
+
+**Benchmark cases:** Ansys's published
+[Grating coupler](https://optics.ansys.com/hc/en-us/articles/360042305334-Grating-coupler)
+**3D** project and [Inverse design of grating coupler — 3D](https://optics.ansys.com/hc/en-us/articles/1500000306621-Inverse-design-of-grating-coupler-3D).
+Freeze one published geometry and source in both tools; independently
+optimized masks are not matched benchmarks. The tutorial's 2D stage alone
+cannot establish 3D parity. Add packet-stack band-edge, alignment-offset,
+etch/pitch and low-coupling witnesses using identical fiber mode, overlap
+plane and non-overlapping power normalization, not incomparable port metrics.
+
+**Acceptance tolerance: HUMAN_INPUT.** Recommend per-condition absolute
+coupling-power fraction difference ≤0.01 and reflected-guided-power fraction
+difference ≤0.01 (one percentage point each), spectral peak location difference
+≤2 nm on a refined wavelength grid. Apply to every declared perturbation and
+the same interval/p10 definition; five samples alone cannot locate a narrow
+peak. Near-zero reflection uses absolute fraction error, not relative percent.
+These allocate decision error around 0.30/0.10 buyer limits, not process yield.
+
+**Claim boundary:** [common credibility contract](reference-credibility.md).
+After accepted Tier 2 evidence, “matches the reference simulator” for this
+stack, geometry, spectral band and perturbations; no “matches reality”,
+fabricated-device or manufacturing-yield claim without corresponding evidence.
+
 ## 6. Output and measurement contract
 
 Five wavelengths: coupled fiber power / incident guided power, reflected guided

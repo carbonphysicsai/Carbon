@@ -88,6 +88,42 @@ cannot finish even one full201-point curve; complete-band/p10 adequacy is
 explicitly deferred to a separately costed stage. Stop and
 report exactly which checks/cases are unresolved, never skip tough resonances.
 
+### Reference credibility target
+
+**Buyer tool:** COMSOL Acoustics Module is the assumed skid designer's
+linear-acoustics workflow, not an adoption finding. **Carbon reference:**
+proposed Elmer 3D Helmholtz finite elements, **not the same tool**; the exact
+task environment/deck/extractor remains unproven packaging. Tier 1 requires
+the buyer's own tool and exact ports, impedance, mesh and power conventions.
+
+**Target tier:** Tier 2 for offline passive-silencer simulation selection.
+Tier 3 calibrated duct-rig transmission measurements would be required before
+purchasing against a physical attenuation promise. Operating-flow/source-noise
+or regulatory claims remain separate. **Credibility evidence: NOT_DEMONSTRATED**.
+
+**Benchmark cases:** COMSOL's published
+[Absorptive Muffler](https://doc.comsol.com/6.3/doc/com.comsol.help.models.aco.absorptive_muffler/absorptive_muffler.html)
+**unlined reactive variant**, plus the packet's straight-duct and coaxial
+single-chamber transfer-matrix controls. Freeze medium, rigid walls, port
+conditions and geometry in both tools. Do not import porous-liner absorption
+into this lossless scope. Add matched offset two-chamber witnesses above the
+chamber-mode cutoffs across the complete adaptive band; a three-frequency
+preflight cannot establish TL p10. Perforated/shell/flow muffler examples or
+their lab comparisons do not confer evidence for this different model.
+
+**Acceptance tolerance: HUMAN_INPUT.** Recommend pointwise transmission-loss
+difference ≤1.0 dB on the resolved common band, interval-weighted p10/minimum
+differences ≤1.0 dB and resonance-location difference ≤10 Hz. At transmission
+zeros/deep notches, a separately accepted absolute transmitted-power floor and
+complex-transfer comparison are HUMAN_INPUT; retain the raw notch instead of
+clipping dB to force agreement. A 1-dB error allocation is not permission to
+lower the 5-dB buyer target or count non-passive solutions as credible.
+
+**Claim boundary:** [common credibility contract](reference-credibility.md).
+Accepted Tier 2 permits “matches the reference simulator” for these passive
+transmission cases, never “matches reality”, compressor noise reduction,
+operating pressure economics or compliance without the relevant evidence.
+
 ## 6. Output and measurement contract
 
 Complex R/T at fixed port planes; incident/reflected/transmitted acoustic
