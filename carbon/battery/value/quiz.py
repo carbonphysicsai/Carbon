@@ -13,8 +13,8 @@ loop call it, so a quiz case or verdict means one thing everywhere.
   (`q2_select`). Each candidate model is then measured on them
   (`q2_measures`).
 - **Q3.** One operating condition per scenario, decided by the candidate
-  model inside EV4's fixed decision rules over a pre-solved 35-candidate
-  reference grid (`q3_grid`, `q3_judge`). Scenarios whose grid has no
+  model inside EV4's fixed decision rules over a pre-solved 117-point
+  reference lattice (`q3_candidates`) (`q3_grid`, `q3_judge`). Scenarios whose grid has no
   feasible design are excluded (`q3_feasible`, quiz-registry-v5).
   `q3_measures` gives decision false-feasible, regret and over-caution.
 
@@ -41,6 +41,20 @@ Q2_POOL = 320
 Q3_K = 8
 #: The disagreement panel is versioned (disagreement-panel-v1.json).
 PANEL_VERSION = 1
+#: The Q3 lattice (Test Lead ruling 2026-10-07, after quiz-diagnostics (b)):
+#: c1 in 0.125 C steps over 0.5-2.0 (13) x c2 in 0.1 C steps over 0.2-1.0 (9)
+#: = 117 points. It contains EV4's 35-point grid and its baseline.
+Q3_C1 = tuple(round(0.5 + 0.125 * i, 3) for i in range(13))
+Q3_C2 = tuple(round(0.2 + 0.1 * j, 3) for j in range(9))
+
+
+def q3_candidates():
+    """The Q3 lattice's candidates, c1-major (the contract's tie order)."""
+    return [
+        {"id": f"c1={c1:g},c2={c2:g}", "c1": c1, "c2": c2}
+        for c1 in Q3_C1
+        for c2 in Q3_C2
+    ]
 
 
 def _feasible_call(contract, outputs, bands=None):
@@ -144,12 +158,12 @@ def q3_grid(contract, scenario):
             "t_amb_c": float(t_amb_c),
             "soc0": float(soc0),
         }
-        for candidate in ev.candidates(contract)
+        for candidate in q3_candidates()
     ]
 
 
 def _reference(contract, scenario, grid_refs):
-    candidates = ev.candidates(contract)
+    candidates = q3_candidates()
     refs = {}
     for candidate in candidates:
         case_id = ev.case_id(contract, scenario, candidate, 0)

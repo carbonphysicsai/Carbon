@@ -81,19 +81,40 @@ def _ev4_scenario(contract, sid):
     return scenario
 
 
-def test_q3_grid_judge_and_measures_on_ev4_references(ev4_refs):
-    # EV4's verification scenario V-T9-S0.40 has a feasible design; V-T9-S0.06
-    # has none (the committed references).
-    feasible = _ev4_scenario(CONTRACT, "V-T9-S0.40")
-    none = _ev4_scenario(CONTRACT, "V-T9-S0.06")
-    grid = quiz.q3_grid(CONTRACT, feasible)
-    assert len(grid) == 35 and all("V-T9-S0.40" in j["case_id"] for j in grid)
-    assert quiz.q3_feasible(CONTRACT, feasible, ev4_refs)
-    assert not quiz.q3_feasible(CONTRACT, none, ev4_refs)
-    oracle = {j["case_id"]: ev4_refs[j["case_id"]]["outputs"] for j in grid}
-    judged = quiz.q3_judge(CONTRACT, feasible, oracle, ev4_refs)
-    assert judged["kind"] == "SELECTED_FEASIBLE" and judged["decision_loss"] == 0.0
-    missing = quiz.q3_judge(CONTRACT, feasible, {}, ev4_refs)
+def _lattice_refs(ev4_refs, scenario):
+    """V-T19-S0.22's full 117-point reference lattice: EV4's committed 35
+    plus the 82 solved for quiz-diagnostics (b), under quiz case ids."""
+    path = (
+        ROOT
+        / "docs/development/evidence/battery-quiz-designs/grid-resolution-v1"
+        / "refined-references.jsonl.gz"
+    )
+    out = dict(ev4_refs)
+    for line in gzip.decompress(path.read_bytes()).decode().splitlines():
+        if line.strip():
+            record = json.loads(line)
+            _grid, sid, candidate, index = record["case_id"].split(":")
+            if sid == scenario["id"]:
+                out[ev.case_id(CONTRACT, scenario, {"id": candidate}, int(index))] = (
+                    record
+                )
+    return out
+
+
+def test_q3_grid_judge_and_measures_on_the_lattice(ev4_refs):
+    scenario = _ev4_scenario(CONTRACT, "V-T19-S0.22")
+    refs = _lattice_refs(ev4_refs, scenario)
+    grid = quiz.q3_grid(CONTRACT, scenario)
+    assert len(grid) == 117 and all(j["case_id"] in refs for j in grid)
+    assert quiz.q3_feasible(CONTRACT, scenario, refs)
+    oracle = {j["case_id"]: refs[j["case_id"]]["outputs"] for j in grid}
+    judged = quiz.q3_judge(CONTRACT, scenario, oracle, refs)
+    # The oracle picks the fastest design that passes without a band; on the
+    # lattice that design can sit inside the reference band (UNRESOLVED),
+    # but it is never judged infeasible.
+    assert judged["kind"] in ("SELECTED_FEASIBLE", "SELECTED_UNRESOLVED")
+    assert judged["decision_loss"] in (0.0, None)
+    missing = quiz.q3_judge(CONTRACT, scenario, {}, refs)
     assert missing["kind"] == "MODEL_OUTPUT_MISSING"
     measures = quiz.q3_measures(
         [judged, {"kind": "SELECTED_INFEASIBLE", "decision_loss": 10.0}]
@@ -102,7 +123,22 @@ def test_q3_grid_judge_and_measures_on_ev4_references(ev4_refs):
     assert quiz.q3_measures([{"kind": "X", "decision_loss": None}])["regret"] is None
 
 
+def test_q3_an_all_infeasible_scenario_is_not_feasible(ev4_refs):
+    # EV4's V-T9-S0.06 has no feasible design on its committed grid, and the
+    # lattice adds no reference there: nothing can be claimed feasible.
+    assert not quiz.q3_feasible(
+        CONTRACT, _ev4_scenario(CONTRACT, "V-T9-S0.06"), ev4_refs
+    )
+
+
 def test_q3_scenario_is_one_condition():
     scenario = quiz.q3_scenario("Q3-opaque", (12.5, 0.33))
     assert scenario == {"id": "Q3-opaque", "conditions": [[12.5, 0.33]]}
-    assert len(quiz.q3_grid(CONTRACT, scenario)) == 35
+    assert len(quiz.q3_grid(CONTRACT, scenario)) == 117
+
+
+def test_the_q3_lattice_contains_ev4_s_grid_and_baseline():
+    ids = {c["id"] for c in quiz.q3_candidates()}
+    assert len(ids) == 117
+    assert {c["id"] for c in ev.candidates(CONTRACT)} <= ids
+    assert ev.candidate_id(CONTRACT["baseline"]["protocol"]) in ids

@@ -35,5 +35,6 @@
   "d_agreement_with_decision_value": {
    "report": "Kendall tau-b and Spearman rho, with the one-seed-per-recipe band, between members' Q3 regret on the quiz scenarios and their ev4-dev-tuning-v1 development decision value"
   }
- }
+ },
+ "lattice_ruling": "Test Lead 2026-10-07, before any tuning-set scoring: Q3 uses the 117-point lattice (quiz.q3_candidates) for tuning-v2 and the quiz batches; registry v4's leg q and diagnostics (a), (c), (d) are computed on it. (b) stays as the evidence for the change."
 }
