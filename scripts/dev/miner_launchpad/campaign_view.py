@@ -712,7 +712,19 @@ STAGE_OF_OPERATION = {
     "practice": "practice",
     "freeze_candidate": "candidate",
     "submit": "submit",
+    # The strategy commitment comes before the submit (LAUNCHPAD-ACCEPT-02).
+    "commit": "submit",
 }
+
+
+def commitment(own):
+    """The campaign's strategy commitment (`commitment.view`), already a
+    closed document of digests, blocks, closed codes and fixed text; None
+    when none was requested."""
+    from scripts.dev.miner_launchpad.commitment import SCHEMA as COMMITMENT
+
+    value = own.get("commitment")
+    return value if type(value) is dict and value.get("schema") == COMMITMENT else None
 
 
 #: States Resume acts on. PAUSE_REQUESTED too: resuming cancels a pause that
@@ -1421,6 +1433,10 @@ def build(
         "last_refusal": last_refusal(own),
         "in_flight": in_flight(own),
         "recovery": recovery(own),
+        # The frozen candidate's on-chain commitment: what the miner is asked
+        # to confirm in their signer's terminal, and what read back
+        # (LAUNCHPAD-ACCEPT-02). Null when none was requested.
+        "commitment": commitment(own),
         # Model calls whose outcome was unknown: what Reconcile settled at
         # the full reservation and what still awaits it (LP-PROD-W2).
         "reconciliation": reconciliation(own),
