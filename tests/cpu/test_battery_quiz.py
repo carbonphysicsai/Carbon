@@ -117,7 +117,11 @@ def test_q3_grid_judge_and_measures_on_the_lattice(ev4_refs):
     missing = quiz.q3_judge(CONTRACT, scenario, {}, refs)
     assert missing["kind"] == "MODEL_OUTPUT_MISSING"
     measures = quiz.q3_measures(
-        [judged, {"kind": "SELECTED_INFEASIBLE", "decision_loss": 10.0}]
+        [
+            {"kind": "SELECTED_FEASIBLE", "decision_loss": 0.0},
+            {"kind": "SELECTED_INFEASIBLE", "decision_loss": 10.0},
+            {"kind": "SELECTED_UNRESOLVED", "decision_loss": None},
+        ]
     )
     assert measures == {"false_feasible": 0.5, "regret": 5.0, "over_caution": 0.0}
     assert quiz.q3_measures([{"kind": "X", "decision_loss": None}])["regret"] is None
