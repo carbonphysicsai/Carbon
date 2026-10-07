@@ -1,0 +1,11 @@
+{
+  "schema": "carbon.training-budget.adapters.v1",
+  "adapters": {
+    "battery-fastcharge-ageing-development-v1": "carbon.battery.training_budget:BatteryAdapter"
+  },
+  "gaps": {
+    "burgers-dynamics-v1": "no adapter yet: its trainer is the vendored per-step Trainer, and its contract has no train_cases",
+    "chip-cold-plate": "no adapter yet: kernel_ridge only, which trains no stepped program",
+    "electric-motor-magnetics": "no adapter yet: kernel_ridge only, which trains no stepped program"
+  }
+}
