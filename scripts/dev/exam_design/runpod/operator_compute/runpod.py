@@ -177,6 +177,21 @@ def _refuse_non_owned(target: object, operation: str) -> CarbonOwnedResource:
     )
 
 
+_SECRET_SHAPES = re.compile(
+    r"(?i)(bearer\s+\S+|rpa_\w+|[A-Za-z0-9+/=_-]{24,}|[0-9a-f]{16,})"
+)
+
+
+def provider_text(payload, limit: int = 200) -> str:
+    """The provider's own reply text for a failed create: the response BODY only
+    (never a header or a request echo), key- or token-shaped runs redacted, cut
+    to `limit` characters (EV4's `pod_control` keeps 300 the same way)."""
+    if payload is None:
+        return "no JSON body"
+    text = payload if isinstance(payload, str) else json.dumps(payload, sort_keys=True)
+    return _SECRET_SHAPES.sub("[redacted]", text)[:limit]
+
+
 class RunPodAdapter:
     name = "runpod"
 
@@ -392,7 +407,7 @@ class RunPodAdapter:
         definitive = status in {400, 401, 403, 404, 422}
         raise ComputeError(
             operation="provision",
-            failed="provider did not return a resource id",
+            failed="provider did not return a resource id: " + provider_text(payload),
             execution=Execution.EXECUTED if definitive else Execution.MAY_HAVE_EXECUTED,
             resources_may_remain=not definitive,
             retry_safe=False,
