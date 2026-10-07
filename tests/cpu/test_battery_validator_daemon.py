@@ -429,6 +429,13 @@ def test_commitments_are_required_when_configured(tmp_path, refs, backend):
         def read(self, hotkey):
             return self.values.get(hotkey)
 
+        def holders(self, digest):
+            return sorted(
+                (hk, v["block"])
+                for hk, v in self.values.items()
+                if v["digest"] == digest
+            )
+
     chain = Chain()
     validator = make(
         tmp_path, refs, backend, require_commitment=True, commitments=chain
@@ -821,3 +828,164 @@ def test_the_service_key_signs_only_registered_weight_intent_shapes(tmp_path):
     ):
         with pytest.raises(ValueError):
             key.sign("weight_intent", tampered)
+
+
+def test_a_commitment_counts_once_after_the_previous_admission(tmp_path, refs, backend):
+    """OWNER-COMMITMENT-POSTER-01 D6: a matching commitment counts only when
+    posted after this hotkey's previous admission; a replay is not refused."""
+    import dataclasses
+
+    from carbon.battery.compile import compile_recipe
+    from carbon.battery.daemon import CommitmentStale
+
+    class Chain:
+        def __init__(self):
+            self.values = {}
+
+        def read(self, hotkey):
+            return self.values.get(hotkey)
+
+        def holders(self, digest):
+            return sorted(
+                (hk, v["block"])
+                for hk, v in self.values.items()
+                if v["digest"] == digest
+            )
+
+    chain = Chain()
+    validator = make(
+        tmp_path, refs, backend, require_commitment=True, commitments=chain
+    )
+
+    def at(sub, block):
+        return dataclasses.replace(sub, receipt={**sub.receipt, "block": block})
+
+    def commit(sub, block):
+        _, recipe = compile_recipe(sub.strategy)
+        chain.values[sub.hotkey] = {
+            "digest": commitment_digest(BATTERY, DIGEST, recipe.strategy_hash),
+            "block": block,
+        }
+
+    first = submission("hk1", neighbours=8)
+    commit(first, 90)
+    admitted = validator.admit(at(first, 100))
+    # The same submission again is a replay, never a stale commitment.
+    assert validator.admit(at(first, 100))["submission_id"] == admitted["submission_id"]
+    second = submission("hk1", neighbours=3)
+    commit(second, 95)  # posted before the previous admission's block 100
+    with pytest.raises(CommitmentStale):
+        validator.admit(at(second, 500))
+    commit(second, 150)
+    assert (
+        validator.admit(at(second, 500))["submission_id"] != admitted["submission_id"]
+    )
+
+
+def test_the_earliest_commitment_of_a_digest_has_priority_across_hotkeys(
+    tmp_path, refs, backend
+):
+    """D6 across hotkeys: the digest is not bound to a hotkey, so a copy of
+    another hotkey's strategy, committed later, is refused; a same-block tie
+    is refused (no rule settles it)."""
+    import dataclasses
+
+    from carbon.battery.compile import compile_recipe
+    from carbon.battery.daemon import CommitmentContested
+
+    class Chain:
+        def __init__(self):
+            self.values = {}
+
+        def read(self, hotkey):
+            return self.values.get(hotkey)
+
+        def holders(self, digest):
+            return sorted(
+                (hk, v["block"])
+                for hk, v in self.values.items()
+                if v["digest"] == digest
+            )
+
+    chain = Chain()
+    validator = make(
+        tmp_path, refs, backend, require_commitment=True, commitments=chain
+    )
+    original = submission("hkA", neighbours=8)
+    _, recipe = compile_recipe(original.strategy)
+    digest = commitment_digest(BATTERY, DIGEST, recipe.strategy_hash)
+    chain.values["hkA"] = {"digest": digest, "block": 100}
+    chain.values["hkB"] = {"digest": digest, "block": 140}
+    copy = dataclasses.replace(original, hotkey="hkB")
+    with pytest.raises(CommitmentContested):
+        validator.admit(copy)
+    # The original admits, whichever arrives first.
+    assert validator.admit(original)["state"] != "INVALID_CONSTRUCTION"
+    # A same-block tie whose positions cannot be established: both refused.
+    chain.values["hkC"] = {"digest": digest, "block": 100}
+    tied = dataclasses.replace(original, hotkey="hkC")
+    with pytest.raises(CommitmentContested):
+        validator.admit(tied)
+
+
+def test_within_a_block_the_earlier_transaction_wins(tmp_path, refs, backend):
+    """OWNER-COMMITMENT-D6-TIE-01: two hotkeys commit one digest in the same
+    block; the one whose transaction comes first in the block has priority."""
+    import dataclasses
+
+    from carbon.battery.compile import compile_recipe
+    from carbon.battery.daemon import CommitmentContested
+
+    class Chain:
+        def __init__(self):
+            self.values, self.order = {}, {}
+
+        def read(self, hotkey):
+            return self.values.get(hotkey)
+
+        def holders(self, digest):
+            return sorted(
+                (hk, v["block"])
+                for hk, v in self.values.items()
+                if v["digest"] == digest
+            )
+
+        def positions(self, block):
+            return dict(self.order)
+
+    chain = Chain()
+    validator = make(
+        tmp_path, refs, backend, require_commitment=True, commitments=chain
+    )
+    first = submission("hkE", neighbours=5)
+    _, recipe = compile_recipe(first.strategy)
+    digest = commitment_digest(BATTERY, DIGEST, recipe.strategy_hash)
+    chain.values = {
+        "hkE": {"digest": digest, "block": 200},
+        "hkF": {"digest": digest, "block": 200},
+    }
+    chain.order = {"hkF": 7, "hkE": 3}
+    with pytest.raises(CommitmentContested):
+        validator.admit(dataclasses.replace(first, hotkey="hkF"))
+    assert validator.admit(first)["state"] != "INVALID_CONSTRUCTION"
+
+
+def test_a_reader_that_cannot_list_holders_is_infrastructure(tmp_path, refs, backend):
+    from carbon.battery.compile import compile_recipe
+    from carbon.chain.commitments import CommitmentUnavailable
+
+    sub = submission("hk1")
+    _, recipe = compile_recipe(sub.strategy)
+
+    class OldChain:
+        def read(self, hotkey):
+            return {
+                "digest": commitment_digest(BATTERY, DIGEST, recipe.strategy_hash),
+                "block": 5,
+            }
+
+    validator = make(
+        tmp_path, refs, backend, require_commitment=True, commitments=OldChain()
+    )
+    with pytest.raises(CommitmentUnavailable):
+        validator.admit(sub)
