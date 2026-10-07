@@ -72,6 +72,12 @@ class BatchSource(abc.ABC):
         `role`, `kind`, `journal_sequence`, `cases` and `references_digest`.
         None while any reference is pending."""
 
+    def kinds(self):
+        """The served kinds this Challenge's validators use. The producer
+        draws and rotates only these: a Challenge without finals is never
+        given finalist batches it would solve and never score."""
+        return SERVED_KINDS
+
     def cadence(self):
         """`{"every_blocks", "active"}` from the Challenge's own registered
         rule, or None: then no batch is scheduled (the cadence is
