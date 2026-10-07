@@ -21,8 +21,7 @@
   "required_prior_roles": [],
   "required_private_priors": [
     "graphite-hidden-battery-v1-pool",
-    "ev5-confirmation",
-    "graphite-confirmation-v1"
+    "ev5-confirmation"
   ],
   "quiz_stratum": {
     "description": "a near-limit quiz stratum drawn beside the 200 + 4 uniform main set, under this role at its own draw indices: Q2, the cases the registered disagreement panel splits most evenly on, from the near-limit pool of a uniform oversample; Q3, decision scenarios at uniformly drawn conditions (protected conditions redrawn), each a pre-solved 35-candidate grid judged by EV4's fixed rules, all-infeasible scenarios redrawn. Its private document's digest is committed to the same seed journal (kind quiz). Quiz cases never enter the main set's accuracy rows; the quiz feeds G-FEAS, G-PLATE, false-infeasible and Q3 decision measures only, and gates nothing until the owner adopts a rule",
@@ -36,7 +35,8 @@
       "OWNER-GRAPHITE-TEST-WAVE-05 \u00a74: the Level 0 population is one uniform law with no strata (NONE_UNIFORM_LAW)",
       "The owner, 2026-10-06 ('Yes make the quiz questions maximally effective'; VALIDATOR-19 slice Q, VALIDATOR-17's amendment): graphite-tuning-v1 is superseded unsealed by this v2, which adds the near-limit quiz stratum with the sizes agreed by Data Collection and the Test Lead",
       "HIDDEN_HOST_SETUP section 6: sealed on the hidden host in the hidden deployment's journal; the rotating pool (tuning export-pool), EV5 and graphite-confirmation-v1 (confirmation export-prior on the PC, copied owner-only) are owner-only private priors, so no sealed role is regenerated on the hidden host",
-      "TRAIN and PRACTICE are checked as published cases (daemon.published_inputs) and every committed engineering-value study's decision cases as public_decision; the practice decision set (B4) is re-checked after the seal (tuning recheck), and on any overlap B4 is reselected, never the sealed tuning set"
+      "TRAIN and PRACTICE are checked as published cases (daemon.published_inputs) and every committed engineering-value study's decision cases as public_decision; the practice decision set (B4) is re-checked after the seal (tuning recheck), and on any overlap B4 is reselected, never the sealed tuning set",
+      "The Test Lead, 2026-10-07, before any seal of this set: graphite-confirmation-v1 was registered but never sealed, so it has no cases and WAVE-08 \u00a71's no-overlap requirement with it holds without a prior; it is dropped from the required private priors. graphite-confirmation-v2, sealed later on the hidden host, checks its own overlap with this set."
     ],
     "human_input": []
   }
