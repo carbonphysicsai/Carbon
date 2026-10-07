@@ -10,6 +10,11 @@
    "challenge": "battery-fastcharge-ageing-development-v1",
    "level": 1,
    "version": "battery-l1-loss-expressions-signed-v1"
+  },
+  {
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "level": 3,
+   "version": "battery-l3-numerics-v1"
   }
  ],
  "rule": "A development-only contract variant is a registered, versioned policy (OWNER-GRAPHITE-TEST-WAVE-03 section 1; OWNER-GRAPHITE-DEV-LEVELS-01). A new variant is a new document <version>.json in this directory plus its pinned digest in versions; making it the variant a (challenge, level) runs under is a change to current. A version, once registered, is never removed or re-pinned, so every miner-facing door keeps refusing it by name. Real Level 1-3 surfaces are added only after the Test Lead reviews them; no fixture variant is ever registered here.",
@@ -17,6 +22,7 @@
  "scope": "DEVELOPMENT_ONLY_NEVER_SERVED_TO_MINERS",
  "versions": {
   "battery-l1-loss-expressions-signed-v1": "sha256:53c630f41388907d2c57875dd98af2b26998ca791f2e9e3ebfbe4114a91a16a9",
-  "battery-l1-loss-expressions-v1": "sha256:34153f41641e3f45077e2752b1cae6d2e1c0ae4327d2cb780526e084a241c854"
+  "battery-l1-loss-expressions-v1": "sha256:34153f41641e3f45077e2752b1cae6d2e1c0ae4327d2cb780526e084a241c854",
+  "battery-l3-numerics-v1": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9"
  }
 }
