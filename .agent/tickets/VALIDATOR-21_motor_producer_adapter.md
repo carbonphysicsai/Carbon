@@ -75,6 +75,10 @@ it handles hidden cases and references, so it needs a dedicated review.
      - `seed_pin` is the pin above.
    - **Cadence** comes from the hidden rule (item 3). It is `None` while that
      rule's values are HUMAN_INPUT, so nothing is scheduled.
+   - **Screening only.** Motor has no finals, so `kinds()` is screening
+     only. A finalist draw is refused, and the producer's tick fills no
+     finalist slot for motor (a new `BatchSource.kinds()` hook, which
+     defaults to both kinds, so battery is unchanged).
    - **No quiz.** Motor's quiz is item 4 below; until then the base class
      refuses with `producer_quiz_unsupported`.
 2. **A Challenge-neutral `HiddenBatchStore`**
@@ -91,13 +95,14 @@ it handles hidden cases and references, so it needs a dedicated review.
      - the existing exam (gates, components, aggregate, TRAIN scales);
      - the population version;
      - the reference outcomes that exclude a case from scoring.
-   - **HUMAN_INPUT, null until the owner sets them:**
+   - **Owner-set values** (OWNER-MOTOR-HIDDEN-POOL-01):
      - `every_blocks` and `active_batches` (the cadence);
      - `batch_cases` (the size);
      - `scored_per_window` (the per-hotkey cap).
-   - **Proposed** to the owner, mirroring battery rule v2: 1080 blocks, 3
-     active, 30 cases (the PRACTICE size, about 9 core-hours per batch), one
-     scored submission per hotkey per 360 blocks.
+   - The owner chose battery rule v2's values: 1080 blocks, 3 active, 30
+     cases (the PRACTICE size, about 9 core-hours per batch), one scored
+     submission per hotkey per 360 blocks.
+   - A rule with any of these null schedules nothing and draws nothing.
 4. **Validator import and scoring** (`MotorAdapter`, with a hidden mode
    selected by its deployment).
    - **`import_answer_key` and `holds_answer_key`**, as battery's:
@@ -116,9 +121,8 @@ it handles hidden cases and references, so it needs a dedicated review.
    - **The miner outcome** stays the allow-listed
      `{score, eligible, n_cases, n_scored, n_gate_failed}`. Case ids,
      inputs, references and per-case rows stay operator-only.
-5. **Producer wiring.** `source_for` registers motor under its approval
-   record. This ticket drafts OWNER-MOTOR-HIDDEN-POOL-01 for the owner; the
-   approval itself is the owner's.
+5. **Producer wiring.** `source_for` registers motor under
+   OWNER-MOTOR-HIDDEN-POOL-01, pinned by sha256.
 
 ## Slices (one PR, final-tree review)
 
@@ -128,6 +132,10 @@ it handles hidden cases and references, so it needs a dedicated review.
 4. Motor import and hidden-mode `evaluate`.
 5. Producer registration, the deployment config and the `onboard` adapter
    entry (VALIDATOR-20).
+
+## Operator page
+
+`docs/development/graphite/MOTOR_HIDDEN_POOL.md`.
 
 ## Tests
 
@@ -159,8 +167,8 @@ IMPLEMENTED and TESTED, with fixture solves and the real image on a small
 smoke batch. It is not SECURITY_QUALIFIED or SCIENTIFICALLY_QUALIFIED, and
 it carries no LIVE authority.
 
-## Human input required
+## Human input
 
-1. **Approval** of OWNER-MOTOR-HIDDEN-POOL-01: hidden motor batches on the
-   producer for testnet.
-2. **The four hidden-rule values** (proposed in item 3).
+Resolved by OWNER-MOTOR-HIDDEN-POOL-01 (2026-10-07): approval of hidden motor
+batches for testnet, with the four values mirroring battery rule v2 (1080,
+3, 30, 360). Nothing else is open.
