@@ -212,15 +212,25 @@ def q3_judge(contract, scenario, grid_predictions, grid_refs):
 def q3_measures(outcomes):
     """Over a model's outcomes on feasible scenarios (resolved ones only):
     `false_feasible` (picks the reference shows infeasible), `regret` (mean
-    decision loss) and `over_caution` (missed opportunities). None when no
-    outcome is resolved."""
+    decision loss) and `over_caution` (missed opportunities); None when no
+    outcome is resolved. An UNRESOLVED pick earns neither pass nor credit
+    (undetermined is not clean): it is left out of those three and counted in
+    `unresolved`, the share of all outcomes (a reported diagnostic,
+    quiz-diagnostics-v1 (e))."""
     resolved = [o for o in outcomes if o["decision_loss"] is not None]
+    unresolved = (len(outcomes) - len(resolved)) / len(outcomes) if outcomes else None
     if not resolved:
-        return {"false_feasible": None, "regret": None, "over_caution": None}
+        return {
+            "false_feasible": None,
+            "regret": None,
+            "over_caution": None,
+            "unresolved": unresolved,
+        }
     return {
         "false_feasible": sum(o["kind"] == "SELECTED_INFEASIBLE" for o in resolved)
         / len(resolved),
         "regret": statistics.fmean(o["decision_loss"] for o in resolved),
         "over_caution": sum(o["kind"] == "MISSED_OPPORTUNITY" for o in resolved)
         / len(resolved),
+        "unresolved": unresolved,
     }
