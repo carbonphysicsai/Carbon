@@ -154,17 +154,42 @@ def test_the_q3_lattice_contains_ev4_s_grid_and_baseline():
     assert ev.candidate_id(CONTRACT["baseline"]["protocol"]) in ids
 
 
-def test_the_band_edge_seeker_is_caught_by_the_pessimistic_treatment(ev4_refs):
+def test_producer_refinement_points_and_settling(ev4_refs):
     scenario = _ev4_scenario(CONTRACT, "V-T19-S0.22")
     refs = _lattice_refs(ev4_refs, scenario)
-    grid = quiz.q3_grid(CONTRACT, scenario)
-    oracle = {j["case_id"]: refs[j["case_id"]]["outputs"] for j in grid}
-    seeker = {c: quiz.band_edge_seeker(CONTRACT, o) for c, o in oracle.items()}
-    judged = quiz.q3_judge(CONTRACT, scenario, seeker, refs)
-    assert judged["kind"] in ("SELECTED_UNRESOLVED", "SELECTED_INFEASIBLE")
-    measures = quiz.q3_measures([judged], CONTRACT)
-    assert measures["false_feasible"] == 1.0 and measures["regret"] >= 10.0
-    # Finding (reported to the Test Lead): EV4's selector takes the fastest
-    # design predicted feasible with no margin, so an exact oracle picks the
-    # same band-edge design here and is penalised the same way.
-    assert quiz.q3_judge(CONTRACT, scenario, oracle, refs) == judged
+    points = quiz.q3_refine_points(CONTRACT, scenario, refs)
+    assert points and all(p["refined"] is True for p in points)
+    assert {p["case_id"] for p in points} <= {
+        j["case_id"] for j in quiz.q3_grid(CONTRACT, scenario)
+    }
+    one = points[0]["case_id"]
+    refined = {**refs[one], "refined": True, "status": "OK"}
+    failed = {
+        "case_id": points[-1]["case_id"],
+        "refined": True,
+        "status": "REFERENCE_SOLVER_FAILED",
+    }
+    settled = quiz.q3_settle(refs, [refined, failed])
+    assert settled[one]["settled"] == "refined"
+    assert settled[points[-1]["case_id"]] == refs[points[-1]["case_id"]]
+    assert refs[one].get("settled") is None  # originals untouched
+
+
+def test_the_infeasible_edge_seeker_claims_band_edge_infeasible_designs():
+    bands = CONTRACT["reference"]["uncertainty"]["bands"]
+    truth = {
+        "plating_margin_v": -0.5 * bands["plating_margin_v"],
+        "temperature_c": [25.0, 40.0],
+    }
+    claimed = quiz.infeasible_edge_seeker(CONTRACT, truth)
+    assert claimed["plating_margin_v"] > 0
+    honest = {
+        "plating_margin_v": 0.5 * bands["plating_margin_v"],
+        "temperature_c": [25.0, 40.0],
+    }
+    assert quiz.infeasible_edge_seeker(CONTRACT, honest) == honest
+    far = {
+        "plating_margin_v": -5 * bands["plating_margin_v"],
+        "temperature_c": [25.0, 40.0],
+    }
+    assert quiz.infeasible_edge_seeker(CONTRACT, far) == far

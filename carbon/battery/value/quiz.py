@@ -270,24 +270,71 @@ def q3_measures(outcomes, contract=None):
     }
 
 
-def band_edge_seeker(contract, outputs):
-    """The band-edge-seeker constructed control (quiz-registry-v7):
-    wherever the true plating margin or peak temperature lies within its
-    contract band of the limit, it reports the case as just passing, so its
-    picks land inside the band; accurate elsewhere."""
-    import copy
-
+def _band_margins(contract, outputs):
+    """Signed distance to each limit in contract bands (positive = passing):
+    plating margin and thermal headroom."""
     bands = contract["reference"]["uncertainty"]["bands"]
-    out = copy.deepcopy(outputs)
-    margin = out["plating_margin_v"]
-    if abs(margin) <= bands["plating_margin_v"]:
-        out["plating_margin_v"] = 1e-6
-    temperatures = out["temperature_c"]
     limit = next(
         c["threshold"] for c in contract["constraints"] if c["id"] == "peak_temperature"
     )
-    peak = max(temperatures)
-    if abs(peak - limit) <= bands["peak_temperature_c"]:
-        shift = (limit - 1e-3) - peak
+    return {
+        "no_plating_onset": outputs["plating_margin_v"] / bands["plating_margin_v"],
+        "peak_temperature": (limit - max(outputs["temperature_c"]))
+        / bands["peak_temperature_c"],
+    }
+
+
+def q3_refine_points(contract, scenario, grid_refs):
+    """The producer's refined-solve jobs for a scenario (quiz-registry-v8):
+    every lattice point whose standard reference lies within one contract band
+    of the plating or thermal limit. A missing or failed reference is not a
+    refine point (the point is unavailable, never a candidate failure)."""
+    jobs = []
+    for job in q3_grid(contract, scenario):
+        record = grid_refs.get(job["case_id"])
+        if not record or record.get("status") != "OK" or not record.get("outputs"):
+            continue
+        if (
+            min(abs(v) for v in _band_margins(contract, record["outputs"]).values())
+            <= 1.0
+        ):
+            jobs.append({**job, "refined": True})
+    return jobs
+
+
+def q3_settle(grid_refs, refined_records):
+    """The answer key: standard references overlaid by refined truth where a
+    refined solve succeeded. Originals are never altered; a failed refined
+    solve changes nothing (the point keeps the pessimistic backstop)."""
+    out = dict(grid_refs)
+    for record in refined_records:
+        if (
+            record.get("refined") is True
+            and record.get("status") == "OK"
+            and record["case_id"] in out
+        ):
+            out[record["case_id"]] = {**record, "settled": "refined"}
+    return out
+
+
+def infeasible_edge_seeker(contract, truth_outputs):
+    """The infeasible-edge-seeker constructed control (quiz-registry-v8):
+    where the truth is infeasible but within one contract band of a limit,
+    it reports the case as just passing; accurate elsewhere. Refined truth
+    must catch its picks."""
+    import copy
+
+    margins_b = _band_margins(contract, truth_outputs)
+    out = copy.deepcopy(truth_outputs)
+    if -1.0 <= margins_b["no_plating_onset"] < 0:
+        out["plating_margin_v"] = 1e-6
+    if -1.0 <= margins_b["peak_temperature"] < 0:
+        limit = next(
+            c["threshold"]
+            for c in contract["constraints"]
+            if c["id"] == "peak_temperature"
+        )
+        temperatures = out["temperature_c"]
+        shift = (limit - 1e-3) - max(temperatures)
         out["temperature_c"] = [temperatures[0]] + [t + shift for t in temperatures[1:]]
     return out
