@@ -76,6 +76,41 @@ node-hour, RAM and spend caps are unchanged. Baselines cover the2 cooling×2
 source-split regimes; initial temperature does not affect this linear steady
 problem. Incomplete checks at any cap remain unresolved.
 
+### Reference credibility target
+
+**Buyer tool:** Ansys Icepak/Mechanical transient thermal workflow, a
+mock-customer assumption, not verified market share. **Carbon reference:**
+proposed Elmer transient solid conduction, **not the same tool**; its task
+image/deck/extractor is not yet a demonstrated runnable reference. Tier 1
+requires the buyer's exact model/settings, not similar thermal equations.
+
+**Target tier:** Tier 2 for offline burst-envelope simulation decisions.
+Tier 3 calibrated heater/stack sensor evidence is needed before real package
+thermal-limit or hardware-control reliance. No chip/hardware actuation is
+included. **Credibility evidence: NOT_DEMONSTRATED** for this buyer job.
+
+**Benchmark cases:** the published IcepakFEA
+[Transient Thermal Solution — Power Resistor](https://ansyshelp.ansys.com/public/Views/Secured/Electronics/v261/en/Subsystems/IcepakFEA/Content/GettingStarted/IcepakFEAGettingStartedGuides.htm)
+case and the packet's analytic slab step/pulse and equilibrium controls.
+The vendor tutorial intentionally changes heat capacities for instructional
+speed; freeze those values for reproducing it, not as empirical package laws.
+That example does not establish the two-patch stack response. Add matched
+three-layer rectangular/ramp/two-pulse witnesses, hot initial state and both
+Robin-cooling conditions in Elmer and the buyer tool, with identical source
+power/area and contact assumptions.
+
+**Acceptance tolerance: HUMAN_INPUT.** Recommend maximum temperature-curve/
+top-spatial-peak difference ≤0.5 °C, first 95-°C crossing and recovery-time
+differences ≤0.5 s, and integrated energy imbalance ≤1%. A crossing or recovery
+found by only one tool is UNRESOLVED, not a finite zero error. These recommendations
+preserve the buyer's near-limit decision resolution; they do not certify the
+synthetic material law or replace the selected numerical controls above.
+
+**Claim boundary:** [common credibility contract](reference-credibility.md).
+After accepted Tier 2 evidence, “matches the reference simulator” for the
+specified stack/excitations; never “matches reality” or a safe silicon power
+rating without the appropriate Tier 3 and separate deployment authority.
+
 ## 6. Output and measurement contract
 
 Both patch-center temperatures and top-die spatial maximum at t=0:0.5:120 s,

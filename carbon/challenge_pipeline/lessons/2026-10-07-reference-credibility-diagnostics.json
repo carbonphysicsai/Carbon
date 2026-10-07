@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-reference-credibility-diagnostics",
+  "recorded_at": "2026-10-07T20:10:53+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-REFERENCE-CREDIBILITY-01 static packet and pipeline diagnostics",
+    "description": "Native python -m pytest -q: test_customer_reference_credibility.py, test_first_three_customer_packets.py, test_portfolio_f1_packet.py, test_portfolio_round1_screen.py and test_challenge_pipeline.py"
+  },
+  "expected": "All eight new section-5 targets preserve ten-section structure, primary source links, unearned tiers and HUMAN_INPUT tolerances, with existing regressions unchanged.",
+  "observed": "85 passed, 1 failed in 131.50s. All 18 new credibility checks and the existing packet/screen checks passed. The unchanged pipeline test_the_ladder_is_challenge_admission_section_3 failed decoding Challenge_Roadmap.md under the Windows cp1252 default, not from a packet change. No solver, benchmark comparison or qualification ran. A separate redundant read-only count probe failed shell quoting before executing; it is not a validation result.",
+  "keep": ["Static document checks are not empirical reference evidence; retain the original failing diagnostic rather than relabel it green."],
+  "change": ["Use explicit Python UTF-8 mode for native diagnostics; rerun the failed unchanged test without weakening its assertions. Canonical acceptance remains in the pinned Linux environment."],
+  "protocol_elements": ["reference-policy", "claim-basis", "host-versus-canonical-validation"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

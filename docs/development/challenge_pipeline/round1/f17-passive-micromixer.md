@@ -57,6 +57,41 @@ variance; no clipping/renormalizing to pass. 40 launches/8 node-hours/$25 caps
 include velocity and scalar jobs separately: nine primary pairs consume18,
 leaving22 for controls/refinements. Failure/exhaustion leaves unresolved evidence.
 
+### Reference credibility target
+
+**Buyer tool:** COMSOL Microfluidics Module is the assumed cartridge designer's
+laminar-flow/passive-transport workflow, not verified market share. **Carbon
+reference:** proposed OpenFOAM flow plus scalar transport, **not the same
+tool**. Cooling's OpenFOAM build alone is not this groove/transport reference.
+Tier 1 requires the buyer's exact tool, fluid, geometry, inlet and observer settings.
+
+**Target tier:** Tier 2 for offline cartridge design against simulator outputs.
+Tier 3 calibrated dye/fluorescence and hydraulic measurements would be needed
+before claiming real-cartridge mixing; no chemistry/clinical validation is
+implied. **Credibility evidence: NOT_DEMONSTRATED** for this task.
+
+**Benchmark cases:** COMSOL's published
+[Split and Recombine Mixer Benchmark](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mfl.split_recombine_mixer/split_recombine_mixer.html)
+and [Micromixer](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mph.micromixer/micromixer.html),
+with their exact geometry/inlets/transport law reproduced in both tools.
+Their mixing measures/geometry are not automatically this packet's groove
+law or positive axial-flux weighted M. Add matched smooth-channel controls
+and grooved maximum-Péclet/flow-extreme witnesses; compute the **same** outlet
+mean/variance/M from both raw fields and check artificial diffusion independently.
+Never compare an area-weighted tutorial score directly to the flux-weighted buyer score.
+
+**Acceptance tolerance: HUMAN_INPUT.** Recommend absolute outlet M difference
+≤0.02, pressure-drop difference ≤5% at declared nonzero flow, and mean hydraulic
+residence difference ≤5% using identical fluid volume/flow definitions. Absolute
+near-zero pressure floors remain HUMAN_INPUT. Retain concentration/flux/balance
+checks and refinement above; bounded concentrations or coincidentally similar
+M can both conceal numerical smoothing. These are simulator-agreement targets,
+not reaction yield or laboratory fluid-property evidence.
+
+**Claim boundary:** [common credibility contract](reference-credibility.md).
+After accepted evidence, “matches the reference simulator” for the specified
+laminar passive transport, not “matches reality”, reagent performance or assay quality.
+
 ## 6. Output and measurement contract
 
 At x=10 mm, positive axial-flux weighted c mean/variance; inlet variance0.25.

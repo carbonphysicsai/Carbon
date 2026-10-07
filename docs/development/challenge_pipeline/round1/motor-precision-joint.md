@@ -132,6 +132,43 @@ Keep invalid inputs, reference nonconvergence and infrastructure failure
 separate from candidate failure. No solver/spend grant is added. Exact
 refinement campaigns require their own pins, controls, custody and approval.
 
+### Reference credibility target
+
+**Buyer tool:** Ansys Maxwell 2D/3D for the mock integrator's magnetic design
+workflow; this is a role-play assumption, not measured adoption. Maxwell's
+[official capability description](https://www.ansys.com/products/electronics/ansys-maxwell)
+supports the workflow, not Carbon agreement. **Carbon reference:** current
+Gmsh/GetDP, **not the same tool**. Neither a shared formulation nor a future
+Maxwell run establishes Tier 1 without the buyer's exact model/settings.
+
+**Target tier:** Tier 2 for magnetic design shortlisting. Tier 3 torque-angle/
+current bench evidence would be required before relying on physical cogging
+or robot-joint performance; thermal, end effects and controller response need
+their own scope. **Credibility evidence: NOT_DEMONSTRATED** for this buyer job.
+
+**Benchmark cases:** COMSOL's published
+[Permanent Magnet Motor in 2D](https://doc.comsol.com/6.4/doc/com.comsol.help.models.acdc.pm_motor_2d_introduction/pm_motor_2d_introduction.html)
+and [Permanent Magnet Motor in Steady State](https://doc.comsol.com/6.4/doc/com.comsol.help.models.acdc.pmm_steady_state/pmm_steady_state.html),
+recreated with identical published inputs in GetDP and the chosen buyer tool.
+The first example is 10-pole/12-slot, not today's 8-pole/24-slot deck; neither
+is a published cross-tool pass for Carbon. Add matched buyer-grammar zero-current,
+holding, peak-current and saturation witnesses, including any prospectively
+adopted skew slices with the same stack/torque normalization. No topology or
+solver change is implemented by this subsection.
+
+**Acceptance tolerance: HUMAN_INPUT.** Recommended initial cross-tool limits:
+mean torque difference ≤1% at nonzero holding/peak commands; maximum absolute
+torque-curve difference ≤0.03 N·m; energized peak-to-peak difference ≤0.015 N·m;
+zero-current cogging peak-to-peak difference ≤0.005 N·m. These allocate a small
+part of the buyer's ripple/cogging budget; resolve angle extrema and refinement
+before comparison, with no relative cogging error about a zero mean. The older
+numerical criteria above are not silently tightened by this recommendation.
+
+**Claim boundary:** [the common credibility contract](reference-credibility.md)
+applies. After accepted Tier 2 evidence, say “matches the reference simulator”
+for the stated magnetic cases/bounds, not “matches reality” or qualified joint
+precision. Target selection itself earns no agreement or Tier 3 evidence.
+
 ## 6. Output and measurement contract
 
 Report the signed torque curve in N·m, its mechanical-angle coordinates,

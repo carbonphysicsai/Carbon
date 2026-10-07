@@ -60,6 +60,42 @@ eigen solves between damping settings and use8; four additional modal-retention
 and two frequency-refinement harmonic launches use6. Missing rungs mean
 unresolved reference, not a claimed adequate grid or silently higher damping.
 
+### Reference credibility target
+
+**Buyer tool:** Ansys Mechanical modal/harmonic analysis is the assumed stage
+designer's workflow, not a verified adoption claim. **Carbon reference:**
+proposed CalculiX static/eigen/harmonic solves, **not the same tool**; exact
+task build/decks remain packaging work. Tier 1 requires the buyer's actual
+model, materials, supports, damping, mesh and extraction settings.
+
+**Target tier:** Tier 2 for linear structural-design shortlisting. Tier 3
+measured modal frequencies and force/response curves are required before
+assembled-support precision reliance; full-machine settling, joints and
+nonlinear dynamics remain excluded. **Credibility evidence: NOT_DEMONSTRATED**.
+
+**Benchmark cases:** published NAFEMS **P18.FV4** (cantilever with off-centre
+point masses), **P18.FV73** (cantilevered thin square plate) and **R0016.5H**
+(deep simply supported beam, harmonic forced response), identified in
+[NAFEMS's code-verification catalogue](https://www.nafems.org/publications/code-verification/nastran-code-verification/).
+Run the same benchmark definitions in CalculiX and Mechanical and compare
+published reference quantities; the catalogue is not a Carbon/tool pass.
+Add matched ribbed/relieved-plate static and harmonic witnesses at both damping
+extremes, with identical force normalization/probes and adaptive resonance
+resolution. Eigenfrequency agreement alone cannot establish FRF peak accuracy.
+
+**Acceptance tolerance: HUMAN_INPUT.** Recommend eigen/peak frequency difference
+≤1%, static-compliance difference ≤2%, mass difference ≤0.5%, and
+peak-location difference ≤min(2 Hz, 1% of peak frequency), peak
+displacement-per-force difference ≤5%, and wrapped phase difference ≤5° at
+resolved nonzero peaks. An absolute response floor for phase/relative error
+away from peaks remains HUMAN_INPUT. Resolve the same resonance and output
+convention; do not increase damping or smooth away a missed peak to pass.
+These bound simulator decision error, not unknown physical joint damping.
+
+**Claim boundary:** [common credibility contract](reference-credibility.md).
+After accepted evidence, “matches the reference simulator” for this linear
+support/forcing scope, not “matches reality” or full-machine positioning.
+
 ## 6. Output and measurement contract
 
 Complex z displacement / N at tip-pad centroid and on a2×2-mm solid top-surface
