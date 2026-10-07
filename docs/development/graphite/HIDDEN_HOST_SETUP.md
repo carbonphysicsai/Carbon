@@ -56,7 +56,9 @@ The filled-in, copy-paste sheet for the first run is
    - fetched with a forced refspec, so a stale local tag is replaced:
      `git fetch origin +refs/tags/<tag>:refs/tags/<tag>`;
    - checked with `git rev-parse '<tag>^{commit}'` against the expected SHA;
-   - run as `cd <worktree> && uv run --frozen python -m carbon....`.
+   - run as `cd <worktree> && uv run --frozen --group archive python -m carbon....`
+     (`archive` carries `cryptography`: keygen, and `export-prior` loading a
+     deployment's service key, need it).
 
    Never use `PYTHONPATH=<worktree>` with another checkout's virtualenv: its
    editable install takes precedence and resolves the old code.
@@ -109,7 +111,8 @@ The release's exact steps (`worker-images-v1`) are in the sheet, steps 1–4:
 1. Docker's containerd image store, which the pull requires.
 2. uv 0.12.7, with Python 3.11.16 under `/opt/uv-python`.
 3. The checkout at the tag, in `/opt/carbon`, with
-   `uv sync --frozen --group chain --group science-jax --group science-torch`.
+   `uv sync --frozen --group chain --group science-jax --group science-torch --group archive`
+   (`archive` carries `cryptography`, which the door and every key need).
    Everything is owned by root and read-only to `carbon-producer`.
 4. `scripts/dev/worker_image_release.py pull` against the release's
    `c03-worker-image.release.json`, writing the manifest to
