@@ -57,8 +57,11 @@ The filled-in, copy-paste sheet for the first run is
      `git fetch origin +refs/tags/<tag>:refs/tags/<tag>`;
    - checked with `git rev-parse '<tag>^{commit}'` against the expected SHA;
    - run as `cd <worktree> && uv run --frozen --group archive python -m carbon....`
-     (`archive` carries `cryptography`: keygen, and `export-prior` loading a
-     deployment's service key, need it).
+     (`archive` carries `cryptography`; keygen needs only that);
+   - `export-prior` also needs numpy and the chain models:
+     `uv run --frozen --group chain --group science-jax --group archive python -m carbon.challenge_validator.confirmation export-prior ...`.
+     All three groups were dry-run end to end in a fresh worktree of the tag
+     on 2026-10-07.
 
    Never use `PYTHONPATH=<worktree>` with another checkout's virtualenv: its
    editable install takes precedence and resolves the old code.
