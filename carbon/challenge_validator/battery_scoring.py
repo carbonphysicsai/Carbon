@@ -178,6 +178,14 @@ class BatteryScoring(ChallengeScoring):
             if numerics is not None:
                 files = {**base, **level3_worker.staged(numerics)}
                 program = level3_worker.program(program)
+            from carbon.battery import level2_worker
+
+            spectral = level2_worker.spectral_record(
+                getattr(admitted, "reconstruction", None)
+            )
+            if spectral is not None:
+                files = {**base, **level2_worker.staged(spectral)}
+                program = level2_worker.program(program)
         record = {
             "schema": BUILT_SCHEMA,
             "challenge": recipe.document()["challenge"],
@@ -201,6 +209,9 @@ class BatteryScoring(ChallengeScoring):
         if development is not None and numerics is not None:
             # A Level-3 rebuild is CPU_ONLY_DEV until the A40 R1 leg passes it.
             record["rebuild"] = level3_worker.REBUILD_LABEL
+        if development is not None and spectral is not None:
+            # A Level-2 SpecMuon rebuild is CPU_ONLY_DEV likewise (its SVD).
+            record["rebuild"] = level2_worker.REBUILD_LABEL
         return record, files, program
 
     def refusal(self, error):

@@ -125,6 +125,17 @@ def _rebuild_level1(recipe, record, material, seed):
     return model, {**with_state(model, stats), "trainer": "level1"}
 
 
+def _rebuild_level2(recipe, record, material, seed):
+    """In-process Level-2 SpecMuon rebuild on pinned public TRAIN v1."""
+    from .compile import with_state
+    from .level2_worker import build_in_process
+    from .recipes import Structure
+
+    model = build_in_process(recipe, record)
+    stats = model.fit(material.train, Structure(material.ocv_soc, material.ocv_v), seed)
+    return model, {**with_state(model, stats), "trainer": "level2"}
+
+
 def _rebuild_level3(recipe, record, material, seed):
     """In-process Level-3 rebuild on pinned public TRAIN v1, as
     `compile.rebuild` rebuilds Level 0."""
@@ -466,7 +477,7 @@ class CarrierBackend:
         program, files = RECONSTRUCT_PROGRAM, reconstruct_files(self.root, recipe, seed)
         trainer = None
         if development is not None:
-            from . import level3_worker
+            from . import level2_worker, level3_worker
 
             if level3_worker.is_numerics(development):
                 # A Level-3 recipe: the same program with its one build line
@@ -474,6 +485,12 @@ class CarrierBackend:
                 program = level3_worker.program(RECONSTRUCT_PROGRAM)
                 files = {**files, **level3_worker.staged(development)}
                 trainer = "level3"
+            elif level2_worker.is_spectral(development):
+                # A Level-2 SpecMuon recipe: the same program with its one
+                # build line replaced, and Carbon's SpecMuon staged.
+                program = level2_worker.program(RECONSTRUCT_PROGRAM)
+                files = {**files, **level2_worker.staged(development)}
+                trainer = "level2"
             else:
                 # A Level-1 recipe (VALIDATOR-13): the same program with its
                 # one build line replaced, and the loss expression staged.
@@ -530,13 +547,15 @@ class DirectBackend:
         from .recipes import state_bytes
 
         self.calls["reconstruct"] += 1
-        from . import level3_worker
+        from . import level2_worker, level3_worker
 
         try:
             if development is None:
                 model, stats = rebuild(recipe, self.material, seed)
             elif level3_worker.is_numerics(development):
                 model, stats = _rebuild_level3(recipe, development, self.material, seed)
+            elif level2_worker.is_spectral(development):
+                model, stats = _rebuild_level2(recipe, development, self.material, seed)
             else:
                 model, stats = _rebuild_level1(recipe, development, self.material, seed)
         except ImportError as missing:  # Carbon's environment, never the candidate
