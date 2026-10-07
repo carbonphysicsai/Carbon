@@ -108,9 +108,14 @@ class SubmitterKey:
 
     @staticmethod
     def create(path):
+        raw = os.urandom(32)
+        # Built before the file exists: a missing `cryptography` (the
+        # `archive` dependency group) fails here and leaves no key file
+        # behind to block a rerun.
+        SubmitterKey(raw)
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(fd, "wb") as handle:
-            handle.write(os.urandom(32))
+            handle.write(raw)
         return SubmitterKey.load(path)
 
     @staticmethod

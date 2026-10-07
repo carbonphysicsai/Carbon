@@ -451,10 +451,15 @@ def launch_browser(
         ]
         with log_path.open("wb") as log_file:
             try:
-                # An unreachable session bus is not an error for a headless
-                # smoke run: tell Chrome there is none rather than let it
-                # retry a bus it cannot parse.
-                environment = {**os.environ, "DBUS_SESSION_BUS_ADDRESS": "disabled:"}
+                # A hosted runner has no session bus. Remove the variable
+                # rather than set a placeholder: "disabled:" is itself an
+                # unknown address type, which Chrome reports as the same
+                # parse error this was meant to silence.
+                environment = {
+                    key: value
+                    for key, value in os.environ.items()
+                    if key != "DBUS_SESSION_BUS_ADDRESS"
+                }
                 process = subprocess.Popen(
                     command,
                     stdout=subprocess.DEVNULL,

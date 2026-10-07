@@ -27,6 +27,7 @@ from .credentials import (
 from .errors import ComputeError, Execution
 from .model import (
     CarbonOwnedResource,
+    CPUPlacement,
     IntentState,
     Offer,
     PodSpec,
@@ -42,6 +43,7 @@ from .store import ComputeStore
 
 __all__ = [
     "BalanceObservation",
+    "CPUPlacement",
     "CarbonOwnedResource",
     "ComputeError",
     "ComputeProvider",

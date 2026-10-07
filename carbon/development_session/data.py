@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -36,17 +37,32 @@ from .profile import CHALLENGE, canonical, digest, profile_digest, profile_docum
 
 
 def write_once(path: Path, payload: bytes):
+    """Write `path` once, owner-only; an existing file must hold exactly
+    `payload`. The file appears whole or not at all: the bytes are written
+    and synced beside it, then linked into place, which never replaces an
+    existing file. A reader that sees the path never reads it half-written
+    (a reader once read an empty campaign manifest between its creation and
+    its write)."""
     if path.is_symlink():
         raise ValueError("symlink rejected")
     if path.exists():
         if path.read_bytes() != payload:
             raise ValueError("immutable session artifact conflict")
         return
-    with path.open("xb") as stream:
-        stream.write(payload)
-        stream.flush()
-        os.fsync(stream.fileno())
-    path.chmod(0o600)
+    descriptor, staged = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.chmod(staged, 0o600)
+        try:
+            os.link(staged, path)
+        except FileExistsError:
+            if path.is_symlink() or path.read_bytes() != payload:
+                raise ValueError("immutable session artifact conflict") from None
+    finally:
+        os.unlink(staged)
 
 
 def context(root: Path) -> MockContext:

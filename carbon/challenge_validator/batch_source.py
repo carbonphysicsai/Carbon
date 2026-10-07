@@ -72,6 +72,12 @@ class BatchSource(abc.ABC):
         `role`, `kind`, `journal_sequence`, `cases` and `references_digest`.
         None while any reference is pending."""
 
+    def kinds(self):
+        """The served kinds this Challenge's validators use. The producer
+        draws and rotates only these: a Challenge without finals is never
+        given finalist batches it would solve and never score."""
+        return SERVED_KINDS
+
     def cadence(self):
         """`{"every_blocks", "active"}` from the Challenge's own registered
         rule, or None: then no batch is scheduled (the cadence is
@@ -104,6 +110,8 @@ class BatchSource(abc.ABC):
     def quiz_select(self, draws, records, *, panel, cache):
         """The quiz from its solved draws: `{"document", "references"}`; or
         `{"next_round": N}` when round N must be drawn and solved first; or
+        `{"refine": jobs}` when these further solves (shaped as `jobs`) must
+        be solved first; or
         `{"pending": code}` when it cannot be selected yet (unsolved, or the
         panel's infrastructure failed). `panel` is the configured panel file
         and `cache` an owner-only directory the source may keep its panel

@@ -58,14 +58,14 @@ def test_the_tuning_set_is_registered_reserved_and_sized_as_decided():
     assert item.strata == ()
     assert item.sealable is True
     # v2 (VALIDATOR-17's amendment) is sealed on the hidden host, where EV5
-    # and graphite-confirmation-v1 are owner-only exported priors, not
-    # regenerated roles. The practice decision set (B4) is public: it is
-    # re-checked after the seal, never a prior that blocks it.
+    # is an owner-only exported prior, not a regenerated role.
+    # graphite-confirmation-v1 was never sealed, so it has no cases to avoid
+    # (the Test Lead, 2026-10-07). The practice decision set (B4) is public:
+    # it is re-checked after the seal, never a prior that blocks it.
     assert item.required_prior_roles == ()
     assert item.required_private_priors == (
         "graphite-hidden-battery-v1-pool",
         "ev5-confirmation",
-        "graphite-confirmation-v1",
     )
     assert BATTERY_TUNING_ROLE in RESERVED_SEED_ROLES
     assert role_reserved("GRAPHITE-TUNING-V2")
