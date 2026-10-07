@@ -4,13 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric.ed25519 import (
-    Ed25519PrivateKey,
-    Ed25519PublicKey,
-)
-
 from .model import (
     SIGNING_SCOPE,
     AuditCode,
@@ -85,6 +78,11 @@ class DevelopmentReceiptSigner:
     ) -> None:
         if type(private_key) is not bytes or len(private_key) != 32:
             raise AuditFailure(AuditCode.INVALID)
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+            Ed25519PrivateKey,
+        )
+
         try:
             key = Ed25519PrivateKey.from_private_bytes(private_key)
             public = key.public_key().public_bytes(
@@ -154,6 +152,9 @@ def verify_signed_receipt(
         or not key.permits(receipt.finished_at_micros, verified_at_micros)
     ):
         raise AuditFailure(AuditCode.STALE_KEY)
+    from cryptography.exceptions import InvalidSignature
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
     try:
         Ed25519PublicKey.from_public_bytes(key.public_key).verify(
             signed.signature, receipt.canonical_bytes

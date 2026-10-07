@@ -11,21 +11,34 @@ deleted image is re-pulled, never rebuilt.**
 | `c03` | `ghcr.io/carbonphysicsai/carbon-c03-worker` | `scripts/dev/c03_worker_image.sh` | JAX CPU |
 | `accelerator` | `ghcr.io/carbonphysicsai/carbon-accelerator-worker` | `scripts/dev/accelerator_worker_image.sh` | JAX GPU (CUDA 13), on `c03` |
 | `torch` | `ghcr.io/carbonphysicsai/carbon-torch-worker` | `scripts/dev/torch_worker_image.sh` | PyTorch CPU, on `c03` |
+| `torch-gpu` | `ghcr.io/carbonphysicsai/carbon-torch-gpu-worker` | `scripts/dev/torch_gpu_worker_image.sh` | PyTorch GPU (CUDA 13), on `c03`, its own environment |
+| `analysis` | `ghcr.io/carbonphysicsai/carbon-miner-analysis` | `python -m carbon.development_session.research_image` (as `install_miner.sh`) | the Launchpad's miner analysis image (`analysis_image_manifest`), on `c03` |
 
-There is no PyTorch GPU image yet. The owner put PyTorch GPU rebuilds in
-scope (OWNER-SHARED-ANSWER-KEY-01), but the repository has no CUDA PyTorch
-lock and no CUDA rebuild path, and adding them is a contract revision that is
-the owner's call. A draft development expansion (0002) designs it.
+The PyTorch GPU worker (TORCH-GPU-01) installs the exact-hashed
+`.devcontainer/torch/torch-cu130-py311.txt` (torch 2.13.0+cu130) on the C-03
+worker. It does not share the JAX accelerator image: torch 2.13.0+cu130 needs
+cuDNN 9.20.0.48 and the JAX CUDA 13 lock pins 9.12.0.46, so the two do not
+resolve together. JAX's lock is unchanged. The image build refuses if the
+cu130 install changes any C-03 distribution's version. It runs the way the
+JAX accelerator worker runs: the controller's accelerator overlay sets the
+platform (`JAX_PLATFORMS=cuda`), the bound device kind and the CUDA library
+controls at run time, and battery implementation 2.0 rebuilds a PyTorch
+recipe there under the GPU determinism settings (the recipe never chooses the
+device). The validator path's accelerator dispatch stays disabled in the
+repository, for JAX and PyTorch alike, so neither image is yet a scored
+rebuild path.
 
 PyTorch determinism is pinned as two profiles with separate identities
 (`carbon/reconstruction/torch_profile.py`):
 - `CPU_DETERMINISM`: deterministic algorithms, 2 threads, explicit-generator
   seeds. The PyTorch CPU image carries its digest as the
   `carbon.torch.determinism` label.
-- `GPU_DETERMINISM`: the CPU settings plus cuDNN deterministic, no cuDNN
-  benchmark and `CUBLAS_WORKSPACE_CONFIG=:4096:8`. It has its own digest and
-  `carbon.torch.gpu-determinism` label, and is applied by the GPU-only module
-  `carbon/reconstruction/torch_gpu.py`.
+- `GPU_DETERMINISM`: the CPU settings, PyTorch's in-process CUDA settings
+  (`accelerators.GPU_DETERMINISM_TORCH`, beside JAX's XLA flags) and JAX's
+  CUDA library controls (`accelerators.GPU_DETERMINISM_ENVIRONMENT`). It is
+  pinned inside the PyTorch GPU accelerator profile, which the image carries
+  under JAX's labels (`carbon.accelerator.profile`, `.environment`), and is
+  applied by `carbon/reconstruction/torch_gpu.py`.
 
 The CPU torch environment and every Level-0 pin are unchanged.
 
@@ -62,13 +75,24 @@ The default path is `.carbon-artifacts/<kind>-worker-image.json`, which the
 validator, the battery service and the Launchpad already read. An existing
 different file is never overwritten.
 
+The analysis image (`analysis`) is pulled the same way. Its identity labels
+are the `d4` pair that `research_image.verify_image` checks; its default path
+is `.carbon-artifacts/analysis-image.json`. Name that file as the Launchpad's
+`analysis_image_manifest` (`python -m scripts.dev.miner_launchpad.installed
+write --analysis-image-manifest ...`) and as prelive's
+`--analysis-image-manifest`. Pull the C-03 worker first: the containment
+check inspects the analysis image's C-03 parent. `verify_image` binds the
+image to the analysis builder's own sources, so it verifies from a checkout
+at the release tag.
+
 **Host requirement:** Docker on the containerd image store. On that store an
 image's ID is its registry digest, so one `image_id` names the image on every
 host. The operator host already uses it. A host on the classic store is
 refused with `image_id_mismatch`.
 
-New GHCR packages start private. Until the owner makes `carbon-c03-worker`
-and `carbon-torch-worker` public, a host needs its own `docker login ghcr.io`
+New GHCR packages start private. Until the owner makes `carbon-c03-worker`,
+`carbon-torch-worker`, `carbon-torch-gpu-worker` and `carbon-miner-analysis`
+public, a host needs its own `docker login ghcr.io`
 with read access. The pull never logs in.
 
 ## Capability matrix
@@ -82,7 +106,7 @@ UNVERIFIED or FAILED.
 | JAX CPU (`c03`) | imports, CPU devices, lock versions (`uv.lock`), one recipe rebuilt through the validator carrier | - |
 | JAX GPU (`accelerator`) | imports, lock versions (`uv.lock`, `cuda13-py311.txt`), the pinned XLA flags accepted by the image's jaxlib | GPU devices, the flags active on a device, a GPU rebuild (validator accelerator dispatch is disabled in the repository) |
 | PyTorch CPU (`torch`) | imports, CPU devices, lock versions (`uv.lock`, the science-torch export), deterministic algorithms and thread count in force, one recipe rebuilt through the validator carrier | - |
-| PyTorch GPU | nothing | every check: no PyTorch GPU image exists yet (draft expansion 0002) |
+| PyTorch GPU (`torch-gpu`) | imports (a CUDA torch build), lock versions (`uv.lock`, `torch-cu130-py311.txt`) | GPU devices, the GPU determinism profile in force on a device; a CUDA rebuild stays UNVERIFIED even on a GPU while accelerator dispatch is disabled |
 
 On a GPU host, `--gpus` (and optionally `--expect-device-kind`) runs the GPU
 device checks. The release workflow never passes them.

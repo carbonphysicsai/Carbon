@@ -75,6 +75,8 @@ def published(tmp_path):
     drawn = producer.draw(challenge, "pscreen-K01", kind="screening", size=SIZE)
     producer.solve(challenge, drawn["fingerprint"])
     producer.seal(challenge, drawn["fingerprint"])
+    # Rule v2's cadence: slot 1 is blocks [1080, 4320), scheduled at block 0.
+    producer.schedule(challenge, drawn["fingerprint"], 1, block=0)
     result = producer.publish(challenge, drawn["fingerprint"])
     path = tmp_path / "producer" / "outbox" / challenge / result["file"]
     return {
@@ -93,13 +95,13 @@ def test_a_published_package_verifies_and_is_owner_only(published):
     key = published["key"]
     commitment, payload = ak.verify(published["value"], key.public_key)
     assert commitment["kind"] == "screening"
-    assert set(payload) == {"document", "references"}
+    assert set(payload) == {"document", "references", "reconstruction_salt"}
     assert os.lstat(published["path"]).st_mode & 0o077 == 0
     # Publishing again writes the same bytes and journals nothing new.
     producer, source = published["producer"], published["source"]
     producer.publish(source.challenge_id, commitment["fingerprint"])
     events = [e["event"] for e in producer.journal.entries()]
-    assert events == ["drawn", "sealed", "published"]
+    assert events == ["drawn", "sealed", "scheduled", "published"]
 
 
 def tampered(value, change):

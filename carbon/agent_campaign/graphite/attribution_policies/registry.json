@@ -8,10 +8,12 @@
   "rule": "A new attribution policy is a new document in this directory plus a registered entry here (and, to make it current, a change to its current pointer), never an edit to scoring code. Every attributed outcome records the version and digest it was typed under.",
   "candidate_faults": {
     "current_by_challenge": {
-      "chip-cold-plate": "cooling-candidate-fault-v1"
+      "chip-cold-plate": "cooling-candidate-fault-v1",
+      "electric-motor-magnetics": "motor-candidate-fault-v1"
     },
     "versions": {
-      "cooling-candidate-fault-v1": "sha256:95559ffad483a13d7dd1650fa99f6bb178de55d0f8f4b24e5ece3af03e8cac1f"
+      "cooling-candidate-fault-v1": "sha256:95559ffad483a13d7dd1650fa99f6bb178de55d0f8f4b24e5ece3af03e8cac1f",
+      "motor-candidate-fault-v1": "sha256:1ab3d26e24326c22cb245b63dcc896e90d1701a96331ced8f3ede5844bdf3aed"
     }
   }
 }

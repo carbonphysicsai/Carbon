@@ -111,6 +111,11 @@ def best_improvement(records):
         and r["status"] == "SCORED"
         and (r.get("against_baseline") or {}).get("outcome") == "IMPROVEMENT"
         and r["frozen_rule"]["eligible"]
+        # Never across device classes (TORCH-GPU-01): a comparison the
+        # partition withheld is not a deliverable improvement.
+        and ((r.get("against_baseline") or {}).get("device_class") or {}).get(
+            "comparable", True
+        )
     ]
     if not found:
         return None
@@ -238,14 +243,20 @@ def deliver(experiment, directory, *, selection=None, proposals=()):
     }
 
 
-def clean_rebuild(directory, *, repository=ex.REPOSITORY):
-    """Rebuild a bundle from its files alone. Never reads the run that made it."""
+def verified_files(directory):
+    """`(manifest, differences)`: the bundle's manifest and every way its
+    files differ from it, `[]` when each named file is present with its
+    manifest digest and nothing else is. Reads the bundle's files only; the
+    one integrity check `clean_rebuild` and the submission converter
+    (`bundle_submission`) share."""
     folder = Path(directory)
     differences = []
     try:
         manifest = json.loads((folder / "manifest.json").read_bytes())
     except (OSError, ValueError):
-        return _rebuild_result(["manifest_unreadable"], None)
+        return None, ["manifest_unreadable"]
+    if type(manifest) is not dict:
+        return None, ["manifest_unreadable"]
     present = sorted(
         p.name for p in folder.iterdir() if p.is_file() and p.name != "manifest.json"
     )
@@ -259,6 +270,13 @@ def clean_rebuild(directory, *, repository=ex.REPOSITORY):
             differences.append("missing:" + name)
         elif digest(path.read_bytes()) != expected:
             differences.append("digest:" + name)
+    return manifest, differences
+
+
+def clean_rebuild(directory, *, repository=ex.REPOSITORY):
+    """Rebuild a bundle from its files alone. Never reads the run that made it."""
+    folder = Path(directory)
+    manifest, differences = verified_files(folder)
     if differences:
         return _rebuild_result(differences, manifest)
     strategy = json.loads((folder / "strategy.json").read_bytes())

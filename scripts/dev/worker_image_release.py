@@ -75,6 +75,19 @@ KINDS = {
         "torch-worker-image.json",
         ("org.opencontainers.image.carbon.torch.determinism",),
     ),
+    # The Launchpad's `analysis_image_manifest`: the miner analysis image
+    # (`carbon.development_session.research_image`) on the released C-03
+    # worker. Its manifest is the analysis schema and its identity labels the
+    # `d4` pair (`research_image.verify_image`), not the C-03 set.
+    "analysis": ("analysis-image.json", ()),
+    # Labelled as the JAX accelerator worker is: profile and environment.
+    "torch-gpu": (
+        "torch-gpu-worker-image.json",
+        (
+            "org.opencontainers.image.carbon.accelerator.profile",
+            "org.opencontainers.image.carbon.accelerator.environment",
+        ),
+    ),
 }
 MANIFEST_FIELDS = (
     "image_id",
@@ -131,8 +144,26 @@ def canonical(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n"
 
 
-def check_manifest(value):
-    """An exact `carbon.c03.worker-image.v1` manifest, as the validator loads it."""
+ANALYSIS = "analysis"
+ANALYSIS_SCHEMA = "carbon.autoresearch.analysis-image.v1"
+ANALYSIS_FIELDS = ("image_id", "parent_image", "runtime_digest")
+
+
+def check_manifest(value, kind="c03"):
+    """An exact manifest of `kind`, as its reader loads it: the analysis
+    schema (`research_image.load_analysis_image`) for the analysis image, the
+    `carbon.c03.worker-image.v1` schema (the validator's) for every worker."""
+    if kind == ANALYSIS:
+        if (
+            type(value) is not dict
+            or value.get("schema") != ANALYSIS_SCHEMA
+            or set(value) != {"schema", *ANALYSIS_FIELDS}
+        ):
+            raise Refused("manifest_invalid", "not an exact analysis image manifest")
+        for field in ANALYSIS_FIELDS:
+            if type(value[field]) is not str or not DIGEST.fullmatch(value[field]):
+                raise Refused("manifest_invalid", field)
+        return value
     if (
         type(value) is not dict
         or value.get("schema") != MANIFEST_SCHEMA
@@ -147,9 +178,14 @@ def check_manifest(value):
     return value
 
 
-def identity_labels(manifest):
-    """The C-03 identity labels every released worker image carries, from its
-    manifest (the same set the worker doctor checks)."""
+def identity_labels(manifest, kind="c03"):
+    """The identity labels a released image carries, from its manifest: the
+    C-03 set the worker doctor checks, or the analysis image's `d4` pair."""
+    if kind == ANALYSIS:
+        return {
+            LABEL + "d4.runtime": manifest["runtime_digest"],
+            LABEL + "d4.parent": manifest["parent_image"],
+        }
     return {
         LABEL + "c03.scope": SCOPE,
         LABEL + "c03.source-tree": manifest["source_tree_digest"],
@@ -188,14 +224,14 @@ def check_record(value):
         raise Refused("record_invalid", "scope or security_acceptance")
     if value["image_store"] != IMAGE_STORE:
         raise Refused("record_invalid", "image_store")
-    manifest = check_manifest(value["manifest"])
+    manifest = check_manifest(value["manifest"], value["kind"])
     if value["registry_digest"] != manifest["image_id"]:
         raise Refused(
             "record_invalid", "registry_digest is not the manifest's image_id"
         )
     labels = value["labels"]
     extras = KINDS[value["kind"]][1]
-    expected = identity_labels(manifest)
+    expected = identity_labels(manifest, value["kind"])
     if (
         type(labels) is not dict
         or set(labels) != set(expected) | set(extras)
@@ -291,7 +327,9 @@ def record(args):
     if not TAG.fullmatch(args.tag) or not COMMIT.fullmatch(args.commit):
         raise Refused("release_invalid", "tag or commit")
     try:
-        manifest = check_manifest(json.loads(Path(args.manifest).read_text("utf-8")))
+        manifest = check_manifest(
+            json.loads(Path(args.manifest).read_text("utf-8")), args.kind
+        )
     except (OSError, ValueError):
         raise Refused("manifest_invalid", str(args.manifest)) from None
     value = inspect(manifest["image_id"])
@@ -321,7 +359,10 @@ def record(args):
         "scope": SCOPE,
         "security_acceptance": SECURITY_ACCEPTANCE,
         "image_store": IMAGE_STORE,
-        "labels": {**identity_labels(manifest), **{k: labels.get(k) for k in extras}},
+        "labels": {
+            **identity_labels(manifest, args.kind),
+            **{k: labels.get(k) for k in extras},
+        },
         "manifest": manifest,
     }
     check_record(released)

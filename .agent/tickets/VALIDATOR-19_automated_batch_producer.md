@@ -123,6 +123,23 @@ Carbon draws and solves.
     and the push channel's operator steps.
 - **S3: rotation and retirement.** A finalized-block tick, the cadence gate,
   the release-queue hook, and the new-Challenge owner-approval argument.
+  - **Built:**
+    - `producer tick`: slots and windows from each Challenge's registered
+      rule (battery v2: 1,080 blocks, 3 live). It fills slots ahead of
+      their windows, never late; records `slot_unfilled`; and on retirement
+      moves the package out of the outbox and records
+      `release: HUMAN_INPUT`.
+    - Each source needs an `approval` record pinned by sha256.
+    - Windows are signed into the package commitment.
+    - The distribution host never serves an unwindowed or retired package.
+    - Import-only validators activate exactly the windows covering their
+      newest finalized block, never by their own clock. Two validators
+      agree whatever order they imported in, and they never stall.
+    - Operator steps (tick timer, `rrsync` push, distribution, validator
+      sync): `docs/development/graphite/ANSWER_KEY_OPERATIONS.md`.
+  - **Gap fixed:** rule v2's rotation started each validator's clock at its
+    own first admission, so validators sharing batches rotated at different
+    blocks.
 - **S4: service accounts and the testnet acceptance test.**
   - Testnet UIDs 0, 1 and 2 run as three validators under separate OS
     accounts.
@@ -135,6 +152,48 @@ Carbon draws and solves.
        validator, because the key is identical.
     2. **A miner gets a validator permit** (by staking) and fetches the active
        key itself. Measure the expected exposure for each rotation window.
+  - **Built (in process):**
+    - `acceptance.parity`: held batches, references, windows and salt
+      digests, and the active set at every block, across validators.
+    - `acceptance.score_parity`: one submission at one block gets the same
+      active batches, references and aggregate on every validator.
+    - `distribution.fetchers` / `leak-narrowing`: a leaked batch narrows to
+      the hotkeys served it in a block range (leak 1).
+    - `acceptance.permit_exposure`: what a permit holder can fetch, counted
+      from the cadence (leak 2).
+    - Three import-only validators with separate roots and import orders
+      agree on all of it (`test_challenge_validator_acceptance.py`).
+  - **Gap found and fixed:** the reconstruction seed came from each
+    validator's own private root, as did the finals' seeds. So validators
+    sharing batches rebuilt a seed-sensitive construction differently, and
+    scored the same submission differently.
+    - The producer now ships a secret per-batch `reconstruction_salt`
+      inside the signed package (`seeds.reconstruction_salt`).
+    - Import-only validators derive every seed from their active batches'
+      salts (`seeds.shared_seed`): the same for every validator holding
+      those batches, and unpredictable to miners.
+    - Deployments that draw their own batches are unchanged.
+  - **Not yet measured:** leak 1's score advantage. A Level-0 miner holding a
+    leaked batch can only select hyperparameters against it (a declarative
+    recipe carries no data). The harness is here; the live measurement runs
+    with the testnet acceptance run.
+  - **The live testnet run needs the owner's choice of hotkeys.** The ticket
+    names UIDs 0, 1 and 2, but:
+    - UID 1's hotkey is not in the WSL wallet, and the owner asked for it
+      to be left alone;
+    - UID 2 is the hotkey Graphite mines with.
+    Each validator also needs a validator permit on 567. Until the owner
+    names the hotkeys, the run is blocked, fail closed; everything above
+    runs in process.
+
+- **Finalists** (for the dress rehearsal, OWNER-REHEARSAL-AND-RELEASE-01):
+  - Each slot carries one finalist batch (`pfinal-S<slot>`) beside its
+    screening batch, under the same signed window.
+  - Import-only validators claim a final's set by the earliest live
+    producer window, then the fingerprint, never by their own import order.
+    Every validator therefore judges the same final on the same fresh cases.
+  - **Gap fixed:** the claim used to follow each validator's local journal
+    sequence.
 
 ## Operator setup (Ryan; exact steps, run once per host)
 
@@ -249,3 +308,78 @@ apply to every hidden batch and to `graphite-tuning-v2`.
 - **Still open:** these sizes come from the public stand-in, and the tuning
   set confirms them before any rule v3 adoption (the owner's). The margin
   stays HUMAN_INPUT and swept.
+
+**Built, part 1: the tuning set's quiz path** (branch
+`claude/validator-19-quiz-tuning`, stacked on #702's `value/quiz.py`).
+- `carbon/battery/quiz_stratum.py` draws and assembles a quiz from a private
+  root. It applies Data Collection's rulings:
+  - **Draws** are uniform `seeds.draw_inputs` under the reserved tuning role,
+    at draw indices above any main-set draw.
+  - **Q3 refusals:** a condition within both 2 °C and 0.03 soc0 of a
+    protected condition is redrawn. Protected means every committed
+    contract's scenario conditions plus the committed practice decision set
+    (B4, `practice-decision-set-v2`, read through its pins).
+  - **Q2 pool:** near-limit candidates in draw order, capped at 320.
+    `q2_select` reads only the registered panel's predictions.
+  - **Q3 selection:** the first 8 feasible scenarios. The quiz records its
+    redraws and its panel version.
+- **Tuning commands:** `quiz-jobs [--round N]`, `quiz-select` (refuses with
+  `tuning_quiz_needs_more_q3:--round N` when fewer than 8 are feasible), and
+  `quiz-seal` (a `quiz` seed-journal entry carrying only the digest, counts
+  and panel version). Also `predict --quiz` and `score --quiz`, which write
+  `quiz-scores.json` and `q3-regret.json`.
+- **Not yet:** the producer's quiz (part 2) and the gate (rule v3, the
+  owner's).
+
+**Built (part 2): the quiz inside every hidden batch** (branch
+`claude/validator-19-quiz-hidden`). Drawn and reported only; it gates nothing.
+- **Producer:** an optional config `quiz: {"panel": PATH}`. Without it,
+  batches seal exactly as before.
+  - With it, each screening batch's draw also draws its quiz, from the
+    producer root under the batch's own role (`BatteryBatchSource.quiz_draw`,
+    quiz_stratum's reserved indices). The quiz jobs share the batch's
+    `jobs.json` and `solve`.
+  - `seal` selects the quiz as the tuning set does: k = 8 feasible Q3
+    scenarios, protected and infeasible redraws counted, then Q2's ~320-case
+    pool and 80 cases by the registered panel's predictions only.
+  - The panel is rebuilt once per version and cached owner-only
+    (`quiz-panel/<challenge>/v<N>`); each batch only infers.
+  - A short Q3 round journals `quiz_round` and keeps the batch PENDING, so the
+    next tick solves the new round (slot-unfilled logic unchanged).
+  - The commitment gains `quiz_digest`, `quiz_references_digest` and
+    `quiz_panel_version`, and the payload `quiz: {document, references}`. The
+    quiz digest is also sealed to the producer's seed journal (kind `quiz`).
+  - Finalist batches, and batches drawn without the config, carry no quiz.
+- **Import:** `BatteryAdapter.import_answer_key` re-derives both digests
+  (`producer.quiz_digests`), the panel version, the role and the reference
+  set, and refuses a mismatch (`answer_key_quiz_mismatch` / `_malformed`). The
+  quiz is stored per batch (`batch_quizzes`). A package without one imports as
+  before.
+- **Report:** after a score commits, the daemon infers the retained model on
+  its active batches' quiz inputs. The predictions are stored under
+  `quiz/<submission>`, never a scored key.
+  - It stores `q2_measures` and Q3 judged outcomes and measures, per batch and
+    pooled, in `quiz_reports`.
+  - `BatteryAdapter.score_record` and `HiddenPool._operator_record` carry it
+    as `quiz`; `hidden_score.report` adds a per-pool-version quiz table.
+  - A quiz inference failure is the quiz's own `FAILED_INFRA` (retried by
+    the next `quiz_report` call). The submission's state, score, nomination
+    and outcome are untouched.
+- **Kept off the miner closure.** The miner edition reaches the daemon and
+  `challenge_validator/battery.py` through `intake_client`. `quiz_stratum` and
+  `value.quiz` reach `value.panel → track_a → attack`. So:
+  - The quiz's science lives only in the operator module
+    `challenge_validator/battery_quiz.py`. It holds `BatteryQuizSource`, which
+    `producer.source_for` builds, and `install`, which injects
+    `target.quiz_measures` as `development_compiler` is injected.
+  - Graphite's `HiddenPool` installs it. A validator run without it measures
+    nothing until `python -m carbon.challenge_validator.battery_quiz report`.
+  - The importer reads `battery/quiz_document.py` (shape, digest, inputs) and
+    `challenge_validator/batch_source.py` (the neutral contract, re-exported
+    by `producer`).
+- **Tests:** `tests/cpu/test_challenge_validator_quiz_hidden.py`.
+- **Found, not fixed:** `hidden_score.report` raises for any primary record
+  on main, because `_variant_ranking` is handed the device-class map
+  (#692 with commit 404559e). Six existing tests fail on main for this. The
+  fix decides whether a variant ranks across device classes, so it is left
+  to its owner.

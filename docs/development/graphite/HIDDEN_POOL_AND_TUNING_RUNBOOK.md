@@ -93,6 +93,9 @@ burn the testnet pool.
 
 ## B. Seal and solve the tuning set, `graphite-tuning-v1`
 
+> **Superseded by B2.** `graphite-tuning-v1` is never sealed (VALIDATOR-17's
+> v2 amendment). Use B2, on the hidden VM only.
+
 The tuning set is sealed in the **testnet** deployment, which holds EV5 and
 `graphite-confirmation-v1`. That lets the seal check both by regeneration. It
 is also checked against:
@@ -141,6 +144,73 @@ is also checked against:
     - On `OVERLAP_RESELECT_PUBLIC_SET`, B4 is reselected, never the tuning set.
     - Record the verdict, the B4 file's SHA-256 and the date in the tuning
       set's record (`.agent/tickets/VALIDATOR-17_battery_tuning_set.md`).
+
+## B2. Seal and solve `graphite-tuning-v2`, with its quiz (on the hidden VM only)
+
+The tuning set and its quiz are never sealed on the PC
+(`HIDDEN_HOST_SETUP.md` §6). Run every command on the VM as `carbon-producer`,
+against the hidden deployment `H`
+(`/var/lib/carbon-producer/etc/graphite-hidden-battery-v1.json`). Each
+`<…>` directory is owner-only and outside the checkout.
+
+1. **The priors** (VALIDATOR-17 v2):
+   - **The rotating pool,** on the VM:
+     `python -m carbon.challenge_validator.tuning export-pool --config H --out <P>/hidden-pool.json`.
+   - **EV5 and `graphite-confirmation-v1`,** on the PC, by Ryan only, from
+     the testnet deployment that holds them:
+
+     ```bash
+     python -m carbon.challenge_validator.confirmation export-prior --role ev5-confirmation --config <TESTNET C1> --out <file>
+     python -m carbon.challenge_validator.confirmation export-prior --role graphite-confirmation-v1 --config <TESTNET C1> --out <file>
+     ```
+
+     `scp` both to `<P>/` on the VM, then `shred -u` the PC copies.
+2. **Seal the main set** (200 + 4, uniform), with each prior as a `--prior
+   name=FILE` (the names `graphite-tuning-v2.json` registers):
+
+   ```bash
+   python -m carbon.challenge_validator.confirmation seal --role graphite-tuning-v2 --config H --prior ...
+   ```
+
+   Save the printed commitment as `<P>/tuning-commitment.json`.
+3. **Draw the quiz,** in its own work directory `<Q>`, separate from the
+   tuning work directory `<W>`:
+
+   ```bash
+   python -m carbon.challenge_validator.tuning quiz-jobs --config H --work <Q>
+   python -m carbon.challenge_validator.tuning solve --work <Q> --overlay <TRUTH_OVERLAY>
+   python -m carbon.challenge_validator.tuning quiz-select --work <Q> --panel docs/development/evidence/battery-quiz-designs/disagreement-panel-v1.json
+   ```
+
+   - **If `quiz-select` refuses with `tuning_quiz_needs_more_q3`:** run
+     `quiz-jobs --round <N>` with the round it names, `solve` again, and
+     `quiz-select` again. Each round adds 4 Q3 conditions; infeasible ones
+     are redrawn and counted.
+   - **`tuning_quiz_panel_incomplete`:** rerun `quiz-select`, which retries
+     the panel members that failed to rebuild.
+   - **`tuning_quiz_q2_pool_short`:** stop and tell the Test Lead. Q2 is
+     never redrawn.
+4. **Seal the quiz:**
+   `python -m carbon.challenge_validator.tuning quiz-seal --config H --work <Q>`.
+   It journals the quiz's digest, counts and panel version, and prints
+   `{digest, journal_sequence}`.
+5. **Solve, predict and score the main set and the quiz together:**
+
+   ```bash
+   python -m carbon.challenge_validator.tuning jobs --config H --commitment <P>/tuning-commitment.json --work <W>
+   python -m carbon.challenge_validator.tuning solve --work <W> --overlay <TRUTH_OVERLAY>
+   python -m carbon.challenge_validator.tuning predict --work <W> --panel <PANEL>.json --quiz <Q>
+   python -m carbon.challenge_validator.tuning score --work <W> --quiz <Q>
+   ```
+
+   `score` writes these, owner-only, in `<W>`:
+   - `scores.json` and `rows/`;
+   - `quiz-scores.json`: each member's Q2 and Q3 measures;
+   - `q3-regret.json`: each member's mean Q3 decision regret over the
+     feasible scenarios. Ryan passes it to Data Collection's `tuning_rescore
+     --q3-regret`.
+
+   Nothing leaves the VM except aggregates.
 
 ## C. Graphite Level 0 runs through the real validator
 

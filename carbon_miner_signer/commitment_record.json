@@ -1,0 +1,70 @@
+{
+  "schema": "carbon.miner-signer.commitment-record.v1",
+  "authority": "OWNER-COMMITMENT-POSTER-01 (.agent/decisions/2026-10-06-OWNER-COMMITMENT-POSTER-01.md), D1-D10",
+  "sdk": {
+    "package": "bittensor",
+    "version": "11.1.0",
+    "generated_spec_version": 445
+  },
+  "call": {
+    "pallet": "Commitments",
+    "function": "set_commitment",
+    "pallet_index": 18,
+    "pallet_index_source": "bittensor/_generated/errors.py:243 (module errors (18, n) are the Commitments pallet's); re-checked by the localnet round trip",
+    "call_index": 0,
+    "data_variant": "Raw71",
+    "data_tag": 72,
+    "measured": "localnet round trip at 1dc22a3c1 (2026-10-06); testnet 567 composes the same call prefix 0x1200"
+  },
+  "extensions": [
+    "CheckNonZeroSender",
+    "CheckSpecVersion",
+    "CheckTxVersion",
+    "CheckGenesis",
+    "CheckMortality",
+    "CheckNonce",
+    "CheckWeight",
+    "ChargeTransactionPayment",
+    "SudoTransactionExtension",
+    "CheckShieldedTxValidity",
+    "SubtensorTransactionExtension",
+    "DrandPriority",
+    "CheckMetadataHash"
+  ],
+  "zero_sized_extensions": [
+    "SudoTransactionExtension",
+    "CheckShieldedTxValidity",
+    "SubtensorTransactionExtension",
+    "DrandPriority"
+  ],
+  "network": {
+    "name": "testnet",
+    "genesis_hash": "0x8f9cf856bf558a14440e75569c9e58594757048d7b3a84b5d25f6bd978263105",
+    "genesis_source": "carbon/development_testnet/operator.py:39",
+    "netuid": 567,
+    "tempo_blocks": 360,
+    "tempo_source": "carbon/battery/exam.py:81 (rule v2 per_hotkey window_blocks, aligned to multiples of 360)"
+  },
+  "era": {
+    "sdk_default_period": 128,
+    "max_period": 128,
+    "rule": "D9: the SDK's default mortal era (bittensor/settings.py:22), capped at one tempo"
+  },
+  "fee": {
+    "status": "MEASURED",
+    "rule": "D3: ceiling = multiplier x (measured partial fee + measured deposit) from a localnet round trip; paid by the hotkey's owning coldkey (bittensor/fee_filters.py:30)",
+    "multiplier": 2,
+    "measured_fee_rao": 0,
+    "measured_deposit_rao": 0,
+    "ceiling_rao": 0,
+    "measurement": {
+      "block": 290,
+      "deposit_rao": 0,
+      "estimated_partial_fee_rao": 0,
+      "genesis_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+      "network": "localnet",
+      "paid_fee_rao": 0,
+      "testnet_567_read": "2026-10-06, read-only: estimated fee 0, Commitments InitialDeposit 0 and FieldDeposit 0, the same 13 signed extensions in the same order"
+    }
+  }
+}

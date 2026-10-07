@@ -16,12 +16,15 @@ and sealed seed-role guard, and an operator-only score record.
 
 from __future__ import annotations
 
+import hashlib
 import json
 
+from .batch_source import BatchSource, ProducerRefused
 from .interface import ChallengeAdapter, Unavailable
-from .producer import BatchSource, ProducerRefused
 
-SCORE_RECORD_SCHEMA = "carbon.battery.operator-score-record.v1"
+#: v2 adds `rebuild` (worker image and device class, TORCH-GPU-01); a
+#: stored record without it reads as the legacy CPU identity.
+SCORE_RECORD_SCHEMA = "carbon.battery.operator-score-record.v2"
 
 
 def _plain(value):
@@ -132,7 +135,7 @@ class BatteryAdapter(ChallengeAdapter):
     # --- operator side ------------------------------------------------------
 
     def score_record(self, submission_id):
-        from carbon.battery import exam
+        from carbon.battery import exam, rebuild_identity
 
         store = self.target.store
         score = store.score(submission_id)
@@ -152,7 +155,7 @@ class BatteryAdapter(ChallengeAdapter):
         aggregate = _plain(aggregate)
         if any(record.get(k) != v for k, v in aggregate.items()):
             raise ScoreReplayMismatch(submission_id)
-        return {
+        out = {
             "schema": SCORE_RECORD_SCHEMA,
             "submission_id": submission_id,
             "pool_version": record["pool_version"],
@@ -161,9 +164,16 @@ class BatteryAdapter(ChallengeAdapter):
             "active_batches": batches,
             "aggregate": aggregate,
             "nomination": record["nomination"],
+            "rebuild": rebuild_identity.of(record),
             "cases": _plain(rows),
             "predictions": _plain(predictions),
         }
+        quiz = store.quiz_report(submission_id)
+        if quiz is not None:
+            # Operator-only and reported, gating nothing (slice Q, part 2):
+            # present only when an active batch carried a quiz.
+            out["quiz"] = quiz
+        return out
 
     def sealed_roles(self):
         return self.target.sealed_roles()
@@ -195,10 +205,68 @@ class BatteryAdapter(ChallengeAdapter):
             row = self.target.store.batch(commitment["fingerprint"])
         except StateError:
             return False
+        quiz = self.target.store.quiz(commitment["fingerprint"])
         return (
             row["references_state"] == "COMPLETE"
             and row["references_digest"] == commitment["references_digest"]
+            and self.target.store.window(commitment["fingerprint"])
+            == commitment.get("window")
+            and (
+                commitment.get("quiz_digest")
+                == (None if quiz is None else quiz["quiz_digest"])
+            )
         )
+
+    @staticmethod
+    def _checked_quiz(commitment, payload, batch):
+        """The package's quiz, verified, or None for a package without one:
+        - quiz fields in the commitment and payload together, or neither;
+        - a screening batch only, drawn under the batch's own role;
+        - the document's shape, and its digest, its references' digest and its
+          panel version against the commitment, computed as the producer
+          computes them (`batch_source.quiz_digests`);
+        - references for exactly the quiz's cases."""
+        from carbon.battery import quiz_document as qs
+
+        from .answer_key import AnswerKeyRefused
+        from .batch_source import QUIZ_COMMITMENT_FIELDS, quiz_digests
+
+        present = [k in commitment for k in QUIZ_COMMITMENT_FIELDS]
+        if not any(present) and "quiz" not in payload:
+            return None
+        if not all(present) or "quiz" not in payload:
+            raise AnswerKeyRefused("answer_key_quiz_mismatch")
+        if commitment["kind"] != "screening":
+            raise AnswerKeyRefused("answer_key_quiz_mismatch")
+        quiz = payload["quiz"]
+        try:
+            if type(quiz) is not dict or set(quiz) != {"document", "references"}:
+                raise ValueError
+            document = qs.check(quiz["document"])
+            references = quiz["references"]
+            if type(references) is not dict:
+                raise ValueError
+            digests = quiz_digests(quiz)
+        except (qs.QuizRefused, TypeError, ValueError):
+            raise AnswerKeyRefused("answer_key_quiz_malformed") from None
+        if (
+            digests["quiz_digest"] != commitment["quiz_digest"]
+            or digests["quiz_references_digest"] != commitment["quiz_references_digest"]
+            or document["panel_version"] != commitment["quiz_panel_version"]
+            or document["role"] != batch.role
+        ):
+            raise AnswerKeyRefused("answer_key_quiz_mismatch")
+        cases = set(qs.inputs(document))
+        if set(references) != cases or any(
+            type(r) is not dict or r.get("case_id") != c for c, r in references.items()
+        ):
+            raise AnswerKeyRefused("answer_key_quiz_mismatch")
+        return {
+            "document": document,
+            "references": references,
+            **digests,
+            "panel_version": document["panel_version"],
+        }
 
     def import_answer_key(self, commitment, payload):
         """Import a producer batch, verified in full first:
@@ -206,10 +274,11 @@ class BatteryAdapter(ChallengeAdapter):
         - the document reproduces the committed fingerprint and case count;
         - the references are exactly the batch's distinct cases, and digest
           to the committed references digest, computed as `PoolStore` does.
+        - a quiz, when the package carries one, against its committed digests
+          and panel version (`_checked_quiz`).
         Only then is the batch committed to this validator's own seed journal
-        (which also refuses a published case) and its references stored."""
-        import hashlib
-
+        (which also refuses a published case) and its references stored, with
+        its quiz, which this validator keeps private and never scores."""
         from carbon.battery.daemon import PublishedCaseRefused
         from carbon.battery.pool_store import StateError, canonical
         from carbon.battery.seeds import PrivateBatch
@@ -222,10 +291,24 @@ class BatteryAdapter(ChallengeAdapter):
             or commitment["rule_digest"] != identities["rule_digest"]
         ):
             raise AnswerKeyRefused("answer_key_identity_mismatch")
+        window = commitment.get("window")
+        if (
+            type(window) is not dict
+            or set(window) != {"slot", "activate_block", "retire_block"}
+            or any(type(v) is not int or v < 0 for v in window.values())
+            or window["activate_block"] >= window["retire_block"]
+        ):
+            # Activation is by the producer's window only (slice 3).
+            raise AnswerKeyRefused("answer_key_no_window")
         try:
             batch = PrivateBatch.from_document(payload["document"])
             references = payload["references"]
-            if set(payload) != {"document", "references"}:
+            salt = payload["reconstruction_salt"]
+            if set(payload) - {"quiz"} != {
+                "document",
+                "references",
+                "reconstruction_salt",
+            } or (type(salt) is not str or len(salt) != 64):
                 raise ValueError
         except (KeyError, TypeError, ValueError):
             raise AnswerKeyRefused("answer_key_malformed") from None
@@ -245,12 +328,17 @@ class BatteryAdapter(ChallengeAdapter):
         digest = "sha256:" + hashlib.sha256(canonical(rows).encode()).hexdigest()
         if digest != commitment["references_digest"]:
             raise AnswerKeyRefused("answer_key_references_mismatch")
+        quiz = self._checked_quiz(commitment, payload, batch)
         try:
             with self._writer():
                 fingerprint = self.target.import_batch(batch, kind=commitment["kind"])
                 complete = self.target.ingest_references(
                     fingerprint, [references[c] for c in needed]
                 )
+                self.target.store.set_window(fingerprint, window)
+                self.target.store.set_salt(fingerprint, salt)
+                if quiz is not None:
+                    self.target.store.set_quiz(fingerprint, quiz)
         except StateError as refused:
             raise AnswerKeyRefused("answer_key_" + refused.code) from None
         except PublishedCaseRefused:
@@ -268,6 +356,10 @@ class BatteryBatchSource(BatchSource):
     validator's own (`prepare_batch`, `SeedJournal`, `complete_references`),
     so a producer batch is exactly what a validator would have drawn and
     solved. Solves run in the pinned truth image with no network.
+
+    Its quiz (slice Q, part 2) is the producer-only subclass
+    `battery_quiz.BatteryQuizSource`, never named here: this module is a
+    validator surface.
     """
 
     def __init__(self, adapter, *, overlay=None, repository=None, runner=None):
@@ -347,7 +439,23 @@ class BatteryBatchSource(BatchSource):
                 raise ProducerRefused("producer_references_changed") from None
             raise ProducerRefused(refused.code) from None
 
+    def cadence(self):
+        """Rule v2's own rotation (OWNER-BATTERY-SCORING-WINDOW-01): a fresh
+        screening batch every `rotation.every_blocks` finalized blocks, with
+        `active_batches` live at once. Rule v1 rotates by admissions, not
+        blocks: None, so nothing is scheduled."""
+        rule = self.adapter.target.rule
+        rotation = rule.get("rotation")
+        if not rotation or rotation.get("basis") != "finalized_block":
+            return None
+        return {
+            "every_blocks": rotation["every_blocks"],
+            "active": rule["active_batches"],
+        }
+
     def export(self, fingerprint):
+        from carbon.battery.seeds import reconstruction_salt
+
         row = self._row(fingerprint)
         if row["references_state"] != "COMPLETE":
             raise ProducerRefused("producer_references_pending")
@@ -356,6 +464,10 @@ class BatteryBatchSource(BatchSource):
         return {
             "document": row["document"],
             "references": {c: stored[c] for c in store.needed_cases(fingerprint)},
+            # Shared with validators only: they seed reconstructions from it.
+            "reconstruction_salt": reconstruction_salt(
+                self.adapter.target.root, fingerprint
+            ),
         }
 
     def sealed(self, fingerprint):

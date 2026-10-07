@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-motor-validator-ruff-import-check",
+  "recorded_at": "2026-10-06T17:39:16Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "pinned Ruff check of changed Python",
+    "description": "pinned Ruff check of changed Python"
+  },
+  "expected": "No lint findings",
+  "observed": "Ruff found one I001 import-order finding in the Motor test file.",
+  "keep": [
+    "Preserve the focused lint finding and fix the actual line."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.validator.interface-v1",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

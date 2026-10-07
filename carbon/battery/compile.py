@@ -148,11 +148,13 @@ def rebuild_issues(family, values, supplied):
     return tuple(issues)
 
 
-def compile_recipe(strategy, *, contracts=None):
-    """Raises `RecipeRejected`, carrying every named issue."""
-    compiled = (battery_contracts() if contracts is None else contracts).compile(
-        strategy
-    )
+def compile_recipe(strategy, *, contracts=None, implementation=None):
+    """Raises `RecipeRejected`, carrying every named issue. `implementation`
+    names a registered implementation version (the current one by default):
+    a record made under an earlier version recompiles under it."""
+    if contracts is None:
+        contracts = battery_contracts(implementation)
+    compiled = contracts.compile(strategy)
     if type(compiled) is not CompileAccepted:
         raise RecipeRejected(compiled)
     plan = compiled.construction_plan

@@ -423,6 +423,12 @@ def launch_browser(
             str(browser),
             "--headless=new",
             "--disable-gpu",
+            # A hosted CI runner has no D-Bus session bus and no sandbox
+            # namespace. Without these, Chrome dies before it writes
+            # DevToolsActivePort and every caller reads it as a timeout.
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-features=DBusMenu,GlobalShortcutsPortal",
             "--disable-background-networking",
             "--disable-component-update",
             "--disable-default-apps",
@@ -445,10 +451,15 @@ def launch_browser(
         ]
         with log_path.open("wb") as log_file:
             try:
+                # An unreachable session bus is not an error for a headless
+                # smoke run: tell Chrome there is none rather than let it
+                # retry a bus it cannot parse.
+                environment = {**os.environ, "DBUS_SESSION_BUS_ADDRESS": "disabled:"}
                 process = subprocess.Popen(
                     command,
                     stdout=subprocess.DEVNULL,
                     stderr=log_file,
+                    env=environment,
                 )
             except OSError as exc:
                 raise SmokeFailure(

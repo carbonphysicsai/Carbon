@@ -82,6 +82,24 @@ CREATE TABLE IF NOT EXISTS pool(
 CREATE TABLE IF NOT EXISTS pool_clock(
   id INTEGER PRIMARY KEY CHECK(id = 1),
   block INTEGER);
+CREATE TABLE IF NOT EXISTS batch_salts(
+  fingerprint TEXT PRIMARY KEY,
+  salt TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS batch_windows(
+  fingerprint TEXT PRIMARY KEY,
+  slot INTEGER NOT NULL,
+  activate_block INTEGER NOT NULL,
+  retire_block INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS batch_quizzes(
+  fingerprint TEXT PRIMARY KEY,
+  document TEXT NOT NULL,
+  refs TEXT NOT NULL,
+  quiz_digest TEXT NOT NULL,
+  references_digest TEXT NOT NULL,
+  panel_version INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS quiz_reports(
+  submission_id TEXT PRIMARY KEY,
+  body TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS submissions(
   submission_id TEXT PRIMARY KEY,
   request_digest TEXT NOT NULL,
@@ -173,6 +191,12 @@ class HotkeyWindowUsed(PermissionError):
 
 class PoolStore:
     """Transactional access to the validator's durable battery state."""
+
+    #: Import-only deployments (VALIDATOR-19 slice 3): the active pool is the
+    #: imported screening batches whose producer window covers the newest
+    #: finalized block, so every validator holding the same batches rotates
+    #: at the same blocks. Set by the daemon; False keeps rule v1/v2 rotation.
+    windowed = False
 
     def __init__(self, path, *, clock=time.time, rule=None):
         self.path = Path(path)
@@ -492,10 +516,16 @@ class PoolStore:
         """Activate the first three complete screening batches (once).
 
         Refused with `pool_incomplete` until three screening batches have
-        complete references: the pool never starts short.
+        complete references: the pool never starts short. A windowed pool
+        opens empty (`ROTATION_PENDING`); its first window activates it.
         """
         with self.transaction() as db:
             if db.execute("SELECT 1 FROM pool WHERE id=1").fetchone():
+                return self._pool_row(db)
+            if self.windowed:
+                db.execute("INSERT INTO pool VALUES(1, 0, 0, '[]', 'ROTATION_PENDING')")
+                self._event(db, "pool_opened", {"version": 0, "active": []})
+                self._try_rotate(db)
                 return self._pool_row(db)
             ready = [
                 r[0]
@@ -546,9 +576,224 @@ class PoolStore:
                 inputs[case["case_id"]] = dict(case["inputs"])
         return inputs
 
+    def set_window(self, fingerprint, window):
+        """Record an imported batch's producer window (idempotent)."""
+        self.batch(fingerprint)
+        values = (window["slot"], window["activate_block"], window["retire_block"])
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT slot, activate_block, retire_block FROM batch_windows "
+                "WHERE fingerprint=?",
+                (fingerprint,),
+            ).fetchone()
+            if row is not None:
+                if tuple(row) != values:
+                    raise StateError("batch_window_conflict")
+                return
+            db.execute(
+                "INSERT INTO batch_windows VALUES(?,?,?,?)", (fingerprint, *values)
+            )
+            self._event(
+                db, "batch_window", {"fingerprint": fingerprint, "window": window}
+            )
+
+    def set_salt(self, fingerprint, salt):
+        """Record an imported batch's shared reconstruction salt (idempotent).
+        Private: it seeds every reconstruction while the batch is active."""
+        self.batch(fingerprint)
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT salt FROM batch_salts WHERE fingerprint=?", (fingerprint,)
+            ).fetchone()
+            if row is not None:
+                if row[0] != salt:
+                    raise StateError("batch_salt_conflict")
+                return
+            db.execute("INSERT INTO batch_salts VALUES(?,?)", (fingerprint, salt))
+
+    def set_quiz(self, fingerprint, quiz):
+        """Record an imported batch's quiz (VALIDATOR-19 slice Q), verified
+        against its commitment by the importer; idempotent. Private: its
+        cases are never scored, disclosed or released here."""
+        self.batch(fingerprint)
+        values = (
+            canonical(quiz["document"]),
+            canonical(quiz["references"]),
+            quiz["quiz_digest"],
+            quiz["quiz_references_digest"],
+            quiz["panel_version"],
+        )
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT document, refs, quiz_digest, references_digest, panel_version "
+                "FROM batch_quizzes WHERE fingerprint=?",
+                (fingerprint,),
+            ).fetchone()
+            if row is not None:
+                if tuple(row) != values:
+                    raise StateError("batch_quiz_conflict")
+                return
+            db.execute(
+                "INSERT INTO batch_quizzes VALUES(?,?,?,?,?,?)", (fingerprint, *values)
+            )
+            self._event(
+                db,
+                "batch_quiz",
+                {
+                    "fingerprint": fingerprint,
+                    "quiz_digest": quiz["quiz_digest"],
+                    "panel_version": quiz["panel_version"],
+                },
+            )
+
+    def quiz(self, fingerprint):
+        """A batch's quiz, or None (a batch without one)."""
+        with self.db() as db:
+            row = db.execute(
+                "SELECT document, refs, quiz_digest, references_digest, panel_version "
+                "FROM batch_quizzes WHERE fingerprint=?",
+                (fingerprint,),
+            ).fetchone()
+        if row is None:
+            return None
+        return {
+            "document": json.loads(row[0]),
+            "references": json.loads(row[1]),
+            "quiz_digest": row[2],
+            "quiz_references_digest": row[3],
+            "panel_version": row[4],
+        }
+
+    def record_quiz_report(self, submission_id, body):
+        """Store a scored submission's operator-only quiz report. A measured
+        report is kept; only a FAILED_INFRA one may be replaced."""
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT body FROM quiz_reports WHERE submission_id=?", (submission_id,)
+            ).fetchone()
+            if row is not None and json.loads(row[0]).get("state") != "FAILED_INFRA":
+                return json.loads(row[0])
+            db.execute(
+                "INSERT OR REPLACE INTO quiz_reports VALUES(?,?)",
+                (submission_id, _json(body)),
+            )
+            self._event(
+                db,
+                "quiz_reported",
+                {"submission_id": submission_id, "state": body.get("state")},
+            )
+        return json.loads(_json(body))
+
+    def quiz_report(self, submission_id):
+        with self.db() as db:
+            row = db.execute(
+                "SELECT body FROM quiz_reports WHERE submission_id=?", (submission_id,)
+            ).fetchone()
+        return None if row is None else json.loads(row[0])
+
+    def salts(self, fingerprints):
+        with self.db() as db:
+            rows = dict(
+                db.execute(
+                    "SELECT fingerprint, salt FROM batch_salts WHERE fingerprint IN "
+                    "(" + ",".join("?" * len(fingerprints)) + ")",
+                    tuple(fingerprints),
+                ).fetchall()
+            )
+        return [rows[f] for f in fingerprints if f in rows]
+
+    def windowed_active(self, block):
+        """The screening batches whose producer window covers `block`. Read
+        only: what an import-only pool activates at that block."""
+        with self.db() as db:
+            return self._windows_at(db, block)
+
+    def _windows_at(self, db, block):
+        return [
+            row[0]
+            for row in db.execute(
+                "SELECT w.fingerprint FROM batch_windows w JOIN batches b "
+                "ON b.fingerprint = w.fingerprint WHERE b.kind='screening' "
+                "AND b.references_state='COMPLETE' AND w.activate_block <= ? "
+                "AND ? < w.retire_block ORDER BY w.activate_block, w.fingerprint",
+                (block, block),
+            )
+        ]
+
+    def window(self, fingerprint):
+        with self.db() as db:
+            row = db.execute(
+                "SELECT slot, activate_block, retire_block FROM batch_windows "
+                "WHERE fingerprint=?",
+                (fingerprint,),
+            ).fetchone()
+        if row is None:
+            return None
+        return dict(zip(("slot", "activate_block", "retire_block"), row, strict=True))
+
+    def _windowed_rotate(self, db):
+        """The active pool from producer windows at the newest finalized block
+        a submission was received against. Never stalls: when no window covers
+        it, the current batches keep scoring and the overdue rotation is
+        recorded."""
+        latest = self._latest_block(db)
+        if latest is None:
+            return None
+        active = self._windows_at(db, latest)
+        pool = self._pool_row(db)
+        if active == pool["active"]:
+            return None
+        if not active:
+            if (
+                pool["active"]
+                and not db.execute(
+                    "SELECT 1 FROM events WHERE kind='rotation_overdue' AND body=?",
+                    (_json({"version": pool["version"]}),),
+                ).fetchone()
+            ):
+                self._event(db, "rotation_overdue", {"version": pool["version"]})
+            return None
+        version = pool["version"] + 1
+        retired = [f for f in pool["active"] if f not in active]
+        activated = [f for f in active if f not in pool["active"]]
+        for fingerprint in retired:
+            db.execute(
+                "UPDATE batches SET state='RETIRED', retired_version=? "
+                "WHERE fingerprint=?",
+                (version, fingerprint),
+            )
+            db.execute(
+                "INSERT OR IGNORE INTO operations VALUES(?, 'journal_retire', "
+                "'PENDING', ?)",
+                ("retire:" + fingerprint, canonical({"fingerprint": fingerprint})),
+            )
+        for fingerprint in activated:
+            db.execute(
+                "UPDATE batches SET state='ACTIVE', activated_version=? "
+                "WHERE fingerprint=?",
+                (version, fingerprint),
+            )
+        db.execute(
+            "UPDATE pool SET version=?, admitted=0, active=?, status='OPEN' WHERE id=1",
+            (version, canonical(active)),
+        )
+        self._event(
+            db,
+            "rotated",
+            {
+                "version": version,
+                "retired": retired,
+                "activated": activated,
+                "block": latest,
+            },
+        )
+        return retired[0] if retired else None
+
     def _try_rotate(self, db):
         """Rotate if due and possible; else mark ROTATION_PENDING. Returns the
         retired fingerprint when a rotation happened."""
+        if self.windowed:
+            return self._windowed_rotate(db)
         pool = self._pool_row(db)
         rotation = self.rule.get("rotation")
         if rotation is None:
@@ -1041,10 +1286,29 @@ class PoolStore:
                 raise StateError("unknown_final")
             if row[0]:
                 return row[0]
-            nxt = db.execute(
-                "SELECT fingerprint FROM batches WHERE kind='finalist' AND "
-                "state='PREPARED' AND references_state='COMPLETE' ORDER BY sequence LIMIT 1"
-            ).fetchone()
+            if self.windowed:
+                # Import-only: the earliest live producer window, then the
+                # fingerprint, so every validator claims the same set for
+                # the same final, whatever order it imported in.
+                latest = self._latest_block(db)
+                nxt = (
+                    None
+                    if latest is None
+                    else db.execute(
+                        "SELECT b.fingerprint FROM batches b JOIN batch_windows w "
+                        "ON w.fingerprint = b.fingerprint WHERE b.kind='finalist' "
+                        "AND b.state='PREPARED' AND b.references_state='COMPLETE' "
+                        "AND w.activate_block <= ? AND ? < w.retire_block "
+                        "ORDER BY w.activate_block, b.fingerprint LIMIT 1",
+                        (latest, latest),
+                    ).fetchone()
+                )
+            else:
+                nxt = db.execute(
+                    "SELECT fingerprint FROM batches WHERE kind='finalist' AND "
+                    "state='PREPARED' AND references_state='COMPLETE' "
+                    "ORDER BY sequence LIMIT 1"
+                ).fetchone()
             if nxt is None:
                 return None
             db.execute(

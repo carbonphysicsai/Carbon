@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-motor-validator-pycompile-check",
+  "recorded_at": "2026-10-06T17:35:06Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "Motor adapter syntax check",
+    "description": "Motor adapter syntax check"
+  },
+  "expected": "New Motor and extracted store modules compile",
+  "observed": "Python 3.9 py_compile exited zero for Motor, Cooling, shared store and focused test source; git diff --check exited zero.",
+  "keep": [
+    "Check syntax before full canonical tests; this is not canonical runtime evidence."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.validator.interface-v1",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

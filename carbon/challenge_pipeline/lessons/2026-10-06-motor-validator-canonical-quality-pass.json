@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-motor-validator-canonical-quality-pass",
+  "recorded_at": "2026-10-06T17:49:56Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "canonical quality at 94bb3927b",
+    "description": "canonical quality at 94bb3927b"
+  },
+  "expected": "Ruff and Black pass at the repaired exact head",
+  "observed": "Ruff found 0 issues across 776 files; Black found 0 issues across 68 changed Python files.",
+  "keep": ["Run canonical repo-relative quality after host checks."],
+  "change": [],
+  "protocol_elements": ["challenge.validator.interface-v1", "challenge.pipeline.lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

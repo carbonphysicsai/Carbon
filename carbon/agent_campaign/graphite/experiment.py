@@ -1500,10 +1500,14 @@ class Experiment:
         rows, summary = scorer.score(predictions)
         write_once(folder / "rows.json", canonical(rows))
         fit = _object(files.get("fit.json")) or {}
+        from carbon.battery import rebuild_identity as ri
+
         record = {
             **common,
             "status": "SCORED",
             "scored": True,
+            # The device class the pod rebuilt on (TORCH-GPU-01).
+            "rebuild": ri.from_runtime(_object(files.get("runtime.json"))),
             "rule": scorer.identity,
             "built_digest": digest(canonical(built)),
             "frozen_rule": frozen_rule_view(summary, len(rows)),
@@ -1533,23 +1537,9 @@ class Experiment:
                 comparison = scorer.compare(
                     baseline_rows, rows, bool(summary.get("eligible"))
                 )
-                record["against_baseline"] = {
-                    key: comparison.get(key)
-                    for key in (
-                        "outcome",
-                        "reason",
-                        "promotable",
-                        "n",
-                        "mean_delta",
-                        "ci",
-                        "overall",
-                        "important",
-                    )
-                }
-                if comparison.get("interpretation") is not None:
-                    record["against_baseline"]["interpretation"] = comparison[
-                        "interpretation"
-                    ]
+                record["against_baseline"] = against_baseline(
+                    comparison, _rebuilt(baseline), record
+                )
                 if "score_variant" in record:
                     record["against_baseline"]["score_variant"] = (
                         scorer.compare_variant(
@@ -1936,6 +1926,60 @@ def retry_intent(intent_id, attempt=1):
 #: only through the raw claim's digest (a pod's own text, hostile at Levels
 #: 4-5; VALIDATOR-01 security review, finding 6).
 MAX_STAGE = 32
+
+
+#: What a proposal's comparison with its baseline keeps.
+COMPARISON_FIELDS = (
+    "outcome",
+    "reason",
+    "promotable",
+    "n",
+    "mean_delta",
+    "ci",
+    "overall",
+    "important",
+)
+
+
+def against_baseline(comparison, baseline, record):
+    """A proposal's comparison with the session's baseline (TORCH-GPU-01).
+
+    The fault, gate and regression comparison always runs and its outcome is
+    always kept: a selective fault is a REGRESSION whatever device class is
+    recorded. The device-class partition comes after it and only withholds
+    promotion - a proposal rebuilt on another class than its baseline (or on
+    one never recorded) is never promotable and never delivered
+    (`delivery.best_improvement`) - it never replaces the outcome."""
+    from carbon.battery import rebuild_identity as ri
+
+    kept = {key: comparison.get(key) for key in COMPARISON_FIELDS}
+    if comparison.get("interpretation") is not None:
+        kept["interpretation"] = comparison["interpretation"]
+    if not ri.comparable(baseline, record):
+        kept["promotable"] = False
+        kept["device_class"] = {
+            "comparable": False,
+            "baseline": ri.device_class(baseline),
+            "proposal": ri.device_class(record),
+        }
+    return kept
+
+
+def _rebuilt(record):
+    """A scored record's rebuild identity; a record made before the field
+    existed reads as unrecorded (a pod may have rebuilt it on a GPU)."""
+    from carbon.battery import rebuild_identity as ri
+
+    if "rebuild" in record:
+        return record
+    return {
+        **record,
+        "rebuild": {
+            "schema": ri.SCHEMA,
+            "worker_image": None,
+            "device_class": ri.UNRECORDED,
+        },
+    }
 
 
 def _object(body):

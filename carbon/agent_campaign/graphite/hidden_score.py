@@ -26,7 +26,9 @@ That is exactly what a mainnet miner sees.
 - the replay-verified aggregate;
 - the pool version and active batch fingerprints;
 - the nomination;
-- whether the pool version's rotation was overdue.
+- whether the pool version's rotation was overdue;
+- the near-limit quiz's measures, when the active batches carry a quiz
+  (VALIDATOR-19 slice Q), reported per pool version and gating nothing.
 
 It is written only under the run's private root. Cases and predictions stay
 in the validator's own state.
@@ -51,9 +53,12 @@ import hashlib
 from carbon.development_session.profile import canonical, digest
 
 VIEW_SCHEMA = "carbon.graphite.hidden-score.v1"
-OPERATOR_SCHEMA = "carbon.graphite.hidden-score-operator.v1"
+#: v2 records carry `rebuild` (TORCH-GPU-01); a v1 record reads as the
+#: legacy CPU identity.
+OPERATOR_SCHEMA = "carbon.graphite.hidden-score-operator.v2"
 RERUN_SCHEMA = "carbon.graphite.hidden-fresh-rerun.v1"
-REPORT_SCHEMA = "carbon.graphite.hidden-pool-report.v1"
+#: v2 ranks within one pool version and one device class.
+REPORT_SCHEMA = "carbon.graphite.hidden-pool-report.v2"
 #: Rerun states that are final; any other is retried later.
 RERUN_FINAL = ("SCORED", "CANDIDATE_FAILED")
 EVIDENCE = "DEVELOPMENT_HIDDEN_POOL"
@@ -94,6 +99,11 @@ class HiddenPool:
             raise HiddenPoolRefused("hidden_run_id_missing")
         self.target = target
         self.adapter = BatteryAdapter(target)  # refuses a target without its lock
+        # The near-limit quiz's operator-only measures (VALIDATOR-19 slice Q):
+        # reported beside each hidden score, gating nothing.
+        from carbon.challenge_validator.battery_quiz import install
+
+        install(target)
         self.run_id = run_id
         self.clock = clock
         self.challenge_id = self.adapter.challenge_id
@@ -213,6 +223,7 @@ class HiddenPool:
             "active_batches": full["active_batches"],
             "aggregate": full["aggregate"],
             "nomination": full["nomination"],
+            "rebuild": full["rebuild"],
             "rotation_overdue": overdue,
             "level": 0 if self.variant is None else self.variant.level,
             "variant_digest": None if self.variant is None else self.variant.digest,
@@ -221,6 +232,9 @@ class HiddenPool:
             ),
             "replay": "REPRODUCED",
             "score_variant": self._variant_result(full),
+            # The near-limit quiz (VALIDATOR-19 slice Q): reported, gating
+            # nothing; None when no active batch carried one.
+            "quiz": full.get("quiz"),
             "score_record_digest": digest(canonical(full)),
         }
 
@@ -291,25 +305,38 @@ def report(records):
     """A run's hidden-pool report from its operator records (in proposal
     order).
 
-    Scores are comparable only within one pool version, so the primary
-    ranking is per pool version: eligible first, then by score (lower is
-    better). A score taken on an overdue pool was adaptively over-exposed
+    Scores are comparable only within one pool version and one rebuild
+    device class (TORCH-GPU-01: CPU and GPU rebuilds differ), so the primary
+    ranking is per pool version and device class: eligible first, then by
+    score (lower is better). A record without a device class is the legacy
+    CPU class (`carbon.battery.rebuild_identity`). A development level's
+    table is keyed the same way under its level: nothing is ranked across
+    levels, pool versions or device classes. A score taken on an overdue
+    pool was adaptively over-exposed
     (the Test Lead's ruling of 2026-10-05). Such scores are reported
     separately, counted, with their overdue margin, as descriptive evidence
     only. They never enter the primary ranking, an alignment result or a
     promotion claim. A record whose score did not replay is listed by
     submission and never ranked.
     """
+    from carbon.battery.rebuild_identity import device_class
+
     reproduced = [r for r in records if r.get("replay") == "REPRODUCED"]
     primary, development = {}, {}
     for record in reproduced:
         if record["rotation_overdue"]:
             continue
+        # Never ranked across levels, pool versions or device classes.
+        cls = device_class(record)
         if record.get("level", 0):
             # A development level is its own table: never ranked with Level 0.
-            development.setdefault(str(record["level"]), []).append(record)
+            development.setdefault(str(record["level"]), {}).setdefault(
+                str(record["pool_version"]), {}
+            ).setdefault(cls, []).append(record)
         else:
-            primary.setdefault(str(record["pool_version"]), []).append(record)
+            primary.setdefault(str(record["pool_version"]), {}).setdefault(
+                cls, []
+            ).append(record)
 
     def rank_key(record):
         score = record["aggregate"].get("score")
@@ -327,20 +354,29 @@ def report(records):
         }
 
     overdue = [r for r in reproduced if r["rotation_overdue"]]
+    # Like the primary ranking, never across pool versions or device classes.
     variant = {
-        version: _variant_ranking(rows) for version, rows in sorted(primary.items())
+        version: {
+            cls: ranking
+            for cls, rows in sorted(classes.items())
+            if (ranking := _variant_ranking(rows))
+        }
+        for version, classes in sorted(primary.items())
     }
     return {
         "schema": REPORT_SCHEMA,
         "evidence": EVIDENCE,
         # Under the run's development score variant, beside the rule's own
-        # ranking: closest to 1 best, a gate FAIL last (the EV5 ruling).
-        # Empty without a variant.
+        # ranking, per pool version and device class: closest to 1 best, a
+        # gate FAIL last (the EV5 ruling). Empty without a variant.
         "score_variant": {k: v for k, v in variant.items() if v},
         "primary": {
             "by_pool_version": {
-                version: [row(r) for r in sorted(rows, key=rank_key)]
-                for version, rows in sorted(primary.items(), key=lambda i: int(i[0]))
+                version: {
+                    cls: [row(r) for r in sorted(rows, key=rank_key)]
+                    for cls, rows in sorted(classes.items())
+                }
+                for version, classes in sorted(primary.items(), key=lambda i: int(i[0]))
             },
         },
         "overdue": {
@@ -350,6 +386,7 @@ def report(records):
                 {
                     **row(r),
                     "pool_version": r["pool_version"],
+                    "device_class": device_class(r),
                     "overdue_margin_blocks": r.get("overdue_margin_blocks"),
                 }
                 for r in overdue
@@ -358,20 +395,67 @@ def report(records):
         "development_levels": {
             level: {
                 "never_ranked_with_level_0": True,
-                "rows": [
-                    {
-                        **row(r),
-                        "pool_version": r["pool_version"],
-                        "variant_digest": r.get("variant_digest"),
+                "by_pool_version": {
+                    version: {
+                        cls: [
+                            {
+                                **row(r),
+                                "pool_version": r["pool_version"],
+                                "variant_digest": r.get("variant_digest"),
+                            }
+                            for r in sorted(rows, key=rank_key)
+                        ]
+                        for cls, rows in sorted(classes.items())
                     }
-                    for r in sorted(rows, key=rank_key)
-                ],
+                    for version, classes in sorted(
+                        versions.items(), key=lambda i: int(i[0])
+                    )
+                },
             }
-            for level, rows in sorted(development.items())
+            for level, versions in sorted(development.items())
         },
+        "quiz": _quiz_table(reproduced),
         "replay_mismatch": [
             r["submission_id"] for r in records if r.get("replay") == "MISMATCH"
         ],
+    }
+
+
+def _quiz_table(records):
+    """The quiz measures per pool version (VALIDATOR-19 slice Q): one row per
+    record whose active batches carried a quiz, in proposal order. Descriptive
+    only: never ranked and never a gate until the owner adopts rule v3. A
+    quiz that could not be measured is listed with its state and code."""
+    table = {}
+    for record in records:
+        quiz = record.get("quiz")
+        if not quiz:
+            continue
+        pooled = quiz.get("pooled") or {}
+        q3 = pooled.get("q3") or {}
+        table.setdefault(str(record["pool_version"]), []).append(
+            {
+                "proposal_id": record.get("proposal_id"),
+                "kind": record.get("kind"),
+                "submission_id": record["submission_id"],
+                "level": record.get("level", 0),
+                "state": quiz.get("state"),
+                "code": quiz.get("code"),
+                "panel_versions": sorted(
+                    {b["panel_version"] for b in quiz.get("batches", {}).values()}
+                ),
+                "q2": pooled.get("q2"),
+                "q3": (
+                    {k: q3.get(k) for k in ("false_feasible", "regret", "over_caution")}
+                    if q3
+                    else None
+                ),
+            }
+        )
+    return {
+        "descriptive_only": True,
+        "gates": "NONE",
+        "by_pool_version": dict(sorted(table.items(), key=lambda i: int(i[0]))),
     }
 
 

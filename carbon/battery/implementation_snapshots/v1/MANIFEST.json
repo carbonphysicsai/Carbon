@@ -1,0 +1,13 @@
+{
+  "implementation_digest": "sha256:e4c4f12958ba4cbbe5e088190eaeba19cc4a8e23378c8b119ca2bbaae96cc417",
+  "modules": {
+    "domain.py": "sha256:4268c9a222ab9082a15bf9d34202b4db0a6d7eb943c91840543f3317491e9da4",
+    "recipes.py": "sha256:115209fc1ab4cd3a62f50ad6d1c2d12eb8e77e71553ad29aef5ff9b450d7da5e",
+    "torch_families.py": "sha256:2ace6e955ce03adaaea0993d39f0e86fbd54af381c0a6a98d8844711b93453b5",
+    "torch_training.py": "sha256:cb7a34e078511d0389fd77e7468918e19a4d56db3e99fc2ad71667627b20c0fa",
+    "training.py": "sha256:421b8f36a1e90156240ff3a1ede07acac316f821c554be9a400a25de15f70338"
+  },
+  "schema": "carbon.battery-implementation-snapshot.v1",
+  "source": "git HEAD carbon/battery/<module>, the implementation main shipped up to TORCH-GPU-01",
+  "version": "1.0"
+}

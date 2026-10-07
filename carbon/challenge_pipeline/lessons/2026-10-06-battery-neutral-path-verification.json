@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-battery-neutral-path-verification",
+  "recorded_at": "2026-10-06T18:58:56Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "canonical Battery neutral-path verification at d12b14f79",
+    "description": "Battery neutral replay, contract, scoring boundary and readiness tests"
+  },
+  "expected": "The existing Battery adapter remains equivalent to direct DEVELOPMENT evaluation without leaking protected material",
+  "observed": "156 selected canonical tests passed in 99.56 seconds on the exact main source tree; readiness remains PROPOSED_DEVELOPMENT_DESIGN.",
+  "keep": [
+    "Keep direct-versus-neutral byte-identical replay as a regression guard.",
+    "Keep published DEVELOPMENT evidence separate from protected qualification."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.validator.interface-v1",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

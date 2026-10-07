@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-battery-neutral-final-lessons-check",
+  "recorded_at": "2026-10-06T19:14:44Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "canonical lessons at reconciled report head 03125bb58",
+    "description": "lesson-schema regression after Validator-19 reconciliation"
+  },
+  "expected": "The reconciled pass and failed-environment lessons satisfy the registered schema",
+  "observed": "28 tests passed in 2.28 seconds in the pinned Ubuntu-24.04 runtime.",
+  "keep": ["Record failed setup attempts alongside the corrected passing evidence."],
+  "change": [],
+  "protocol_elements": ["challenge.pipeline.lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

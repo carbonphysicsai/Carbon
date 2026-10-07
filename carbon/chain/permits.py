@@ -102,3 +102,43 @@ async def _fetch(context, hotkey):
         return (True, permits[member.uid] is True, block)
     finally:
         await client.close()
+
+
+def finalized_block(context, *, fetch=None):
+    """The chain's finalized head (genesis-checked), for the producer's
+    rotation tick. Raises `PermitUnavailable` on any provider failure."""
+    if type(context) is not ChainContext:
+        raise TypeError("a ChainContext is required")
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            block = pool.submit(asyncio.run, (fetch or _fetch_head)(context)).result()
+    except ChainFailure as failure:
+        raise PermitUnavailable(str(failure)) from None
+    except Exception:  # noqa: BLE001 -- any provider error is infrastructure
+        raise PermitUnavailable("head_read_failed") from None
+    if type(block) is not int or block < 0:
+        raise PermitUnavailable("head_read_malformed")
+    return block
+
+
+async def _fetch_head(context):
+    if version("bittensor") != SDK_VERSION:
+        raise ChainFailure(FailureCode.UNSUPPORTED)
+    import bittensor as bt
+
+    substrate = bt.RpcSubstrate(
+        context.endpoint,
+        fallback_endpoints=[],
+        archive_endpoints=[],
+        retry_forever=False,
+    )
+    client = bt.Client(context.endpoint, substrate=substrate)
+    try:
+        await substrate.connect()
+        if hash256(await substrate.block_hash(0)) != context.genesis_hash:
+            raise ChainFailure(FailureCode.IDENTITY)
+        async with aclosing(client.blocks(finalized=True)) as headers:
+            header = await anext(headers)
+        return uint(header.number)
+    finally:
+        await client.close()
