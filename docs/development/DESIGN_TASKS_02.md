@@ -55,9 +55,9 @@ schema: no case IDs, winners, requirement vectors, reference values, law
 digest or protected identity is printed. It is a producer-side diagnostic,
 not a qualified population estimate or permission to draw a batch.
 
-`task_freeze.with_design_task` wraps a `SearchAdapter` with the task digest
-and all new code paths. Calling the existing `experiment.freeze` and `pilot`
-with that wrapped adapter pins and rechecks the code. Legacy Motor V2 and
+`task_freeze.freeze` and `task_freeze.pilot` wrap the existing experiment
+entrypoints with the task digest and all new code paths. Pilot requires the
+same registered task identity and rechecks every pinned file. Legacy Motor V2 and
 cooling adapter paths remain unchanged, preserving their historical freeze
 identities. `query_cost.QueryCostRecorder` appends one measured
 allocated-core-seconds charge per attempted optimizer query, including invalid

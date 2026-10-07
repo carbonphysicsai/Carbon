@@ -48,3 +48,16 @@ def with_design_task(adapter, registered_task):
         ),
         code_paths=tuple(dict.fromkeys((*adapter.code_paths, *DESIGN_TASK_CODE))),
     )
+
+
+def freeze(adapter, registered_task, **kwargs):
+    """Create a task-bound manifest through the existing experiment freeze."""
+    return experiment.freeze(with_design_task(adapter, registered_task), **kwargs)
+
+
+def pilot(manifest, adapter, registered_task, **kwargs):
+    """Verify the same task and all pinned code before the existing pilot."""
+    bound = with_design_task(adapter, registered_task)
+    if manifest.get("decision_contract") != bound.contract_digest:
+        raise experiment.ExperimentError("design_task_identity_changed")
+    return experiment.pilot(manifest, bound, **kwargs)

@@ -368,21 +368,38 @@ def test_task_aware_freeze_and_pilot_pin_new_code_without_changing_legacy(tmp_pa
         "proposals": {},
     }
     legacy = experiment.freeze(adapter, **common)
-    task_adapter = task_freeze.with_design_task(adapter, toy_task())
-    frozen = experiment.freeze(task_adapter, **common)
+    frozen = task_freeze.freeze(adapter, toy_task(), **common)
     assert legacy["schema"] == experiment.FREEZE_SCHEMA
     assert not set(task_freeze.DESIGN_TASK_CODE) & set(legacy["code"])
     assert set(task_freeze.DESIGN_TASK_CODE) <= set(frozen["code"])
     assert frozen["decision_contract"] != legacy["decision_contract"]
-    result = experiment.pilot(
+    result = task_freeze.pilot(
         frozen,
-        task_adapter,
+        adapter,
+        toy_task(),
         repository=REPOSITORY,
         models={"m": lambda *args: None},
         reference=None,
         directory=tmp_path,
     )
     assert result["freeze_digest"] == frozen["freeze_digest"]
+    changed_task = toy_task()
+    changed_task["identity"]["seed"] = "another-seed"
+    changed_task["task_digest"] = tasks.digest(
+        {k: v for k, v in changed_task.items() if k != "task_digest"}
+    )
+    with pytest.raises(
+        experiment.ExperimentError, match="design_task_identity_changed"
+    ):
+        task_freeze.pilot(
+            frozen,
+            adapter,
+            changed_task,
+            repository=REPOSITORY,
+            models={"m": lambda *args: None},
+            reference=None,
+            directory=tmp_path,
+        )
     with pytest.raises(experiment.ExperimentError, match="frozen_code_changed"):
         experiment.check_frozen(frozen, adapter, REPOSITORY)
     copied = tmp_path / "repo"
@@ -398,9 +415,10 @@ def test_task_aware_freeze_and_pilot_pin_new_code_without_changing_legacy(tmp_pa
         "# drift", encoding="utf-8"
     )
     with pytest.raises(experiment.ExperimentError, match="frozen_code_changed"):
-        experiment.pilot(
+        task_freeze.pilot(
             frozen,
-            task_adapter,
+            adapter,
+            toy_task(),
             repository=copied,
             models={"m": lambda *args: None},
             reference=None,
