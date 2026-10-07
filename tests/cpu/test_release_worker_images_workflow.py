@@ -16,6 +16,7 @@ read from the file:
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 from pathlib import Path
@@ -221,14 +222,140 @@ def test_every_c03_child_takes_its_from_reference_from_the_one_helper(child):
 def test_the_release_pushes_the_c03_parent_before_building_on_it():
     script = SCRIPT.read_text()
     c03 = script.index('bash "${script_dir}/c03_worker_image.sh"')
-    push = script.index('docker push --quiet "${c03_repository}:${tag}"')
-    checked = script.index('*" ${c03_repository}@${c03_parent} "*')
-    export = script.index('export CARBON_WORKER_PARENT_REPOSITORY="${c03_repository}"')
+    pushed = script.index(
+        'bash "${script_dir}/release_c03_parent.sh" "${c03_repository}"'
+    )
+    repository = script.index(
+        'export CARBON_WORKER_PARENT_REPOSITORY="${c03_repository}"'
+    )
+    manifest = script.index(
+        'export CARBON_WORKER_PARENT_MANIFEST="${artifacts}/c03-worker-image.json"'
+    )
     first_child = min(
         script.index(f'bash "${{script_dir}}/{child}"') for child in CHILDREN[:3]
     )
-    assert c03 < push < checked < export < first_child
+    assert c03 < pushed < repository < first_child
+    assert pushed < manifest < first_child
     assert 'c03_repository="${registry}/carbon-c03-worker"' in script
+    assert script.count('bash "${script_dir}/c03_worker_image.sh"') == 1
+
+
+PARENT_MANIFEST = REPOSITORY / "scripts" / "dev" / "worker_parent_manifest.sh"
+C03_PUSH = REPOSITORY / "scripts" / "dev" / "release_c03_parent.sh"
+
+
+@pytest.mark.parametrize("child", CHILDREN)
+def test_no_c03_child_rebuilds_its_parent_itself(child):
+    """Release run 37550120018: a child's own C-03 rebuild had the same
+    platform manifest but a new attestation, so a new image ID that was never
+    pushed. Every child takes its parent through the one helper."""
+    text = (REPOSITORY / "scripts" / "dev" / child).read_text()
+    assert 'bash "${script_dir}/worker_parent_manifest.sh" "${parent_manifest}"' in text
+    assert "c03_worker_image.sh" not in text
+
+
+def c03_manifest(path, image=PARENT_ID):
+    path.write_text(
+        json.dumps(
+            {
+                "schema": "carbon.c03.worker-image.v1",
+                "image_id": image,
+                "source_tree_digest": SOURCE,
+            }
+        )
+    )
+    return path
+
+
+def parent_manifest(out, *, released=None, repository=None):
+    env = {"PATH": "/usr/bin:/bin"}
+    if released is not None:
+        env["CARBON_WORKER_PARENT_MANIFEST"] = str(released)
+    if repository is not None:
+        env["CARBON_WORKER_PARENT_REPOSITORY"] = repository
+    return subprocess.run(
+        ["bash", str(PARENT_MANIFEST), str(out)],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=env,
+    )
+
+
+def test_a_release_child_takes_the_released_manifest_without_a_rebuild(tmp_path):
+    released = c03_manifest(tmp_path / "c03.json")
+    out = tmp_path / "out" / "parent.json"
+    done = parent_manifest(
+        out, released=released, repository="ghcr.io/x/carbon-c03-worker"
+    )
+    assert done.returncode == 0, done.stderr
+    assert out.read_bytes() == released.read_bytes()
+
+
+@pytest.mark.parametrize(
+    ("released", "repository"),
+    [
+        ("c03.json", None),
+        (None, "ghcr.io/x/carbon-c03-worker"),
+        ("missing.json", "ghcr.io/x/carbon-c03-worker"),
+        ("bad.json", "ghcr.io/x/carbon-c03-worker"),
+    ],
+)
+def test_a_half_set_or_malformed_release_parent_is_refused(
+    tmp_path, released, repository
+):
+    c03_manifest(tmp_path / "c03.json")
+    c03_manifest(tmp_path / "bad.json", image="carbon-c03-worker:latest")
+    out = tmp_path / "parent.json"
+    done = parent_manifest(
+        out,
+        released=None if released is None else tmp_path / released,
+        repository=repository,
+    )
+    assert done.returncode == 2 and not out.exists()
+
+
+def test_the_pushed_parent_is_named_by_the_registrys_digest():
+    """The reference comes from what the registry serves after the push: it
+    must be the manifest's image ID, and it must pull back."""
+    text = C03_PUSH.read_text()
+    push = text.index('docker push --quiet "${repository}:${tag}"')
+    served = text.index('docker buildx imagetools inspect "${repository}:${tag}"')
+    checked = text.index('[[ "${served}" == "${image}" ]]')
+    pulled = text.index('docker pull --quiet "${repository}@${served}"')
+    printed = text.index('"${repository}" "${served}"', pulled)
+    assert push < served < checked < pulled < printed
+
+
+def test_ci_rehearses_the_parent_chain_on_a_local_registry():
+    rehearsal = yaml.safe_load(
+        (REPOSITORY / ".github" / "workflows" / "release-rehearsal.yml").read_text()
+    )
+    on = rehearsal.get("on", rehearsal.get(True))
+    paths = on["pull_request"]["paths"]
+    for path in (
+        "scripts/dev/release_worker_images.sh",
+        "scripts/dev/release_c03_parent.sh",
+        "scripts/dev/worker_parent_ref.sh",
+        "scripts/dev/worker_parent_manifest.sh",
+        "carbon/development_session/research_image.py",
+    ):
+        assert path in paths
+    assert rehearsal["permissions"] == {"contents": "read"}
+    steps = rehearsal["jobs"]["rehearse"]["steps"]
+    runs = "\n".join(s.get("run", "") for s in steps)
+    assert "registry@sha256:" in runs and "127.0.0.1:5000:5000" in runs
+    assert "release_parent_rehearsal.sh localhost:5000/rehearsal" in runs
+    script = (
+        REPOSITORY / "scripts" / "dev" / "release_parent_rehearsal.sh"
+    ).read_text()
+    for step in (
+        "release_c03_parent.sh",
+        "torch_worker_image.sh",
+        "--parent-repository",
+        "RootFS.Layers",
+    ):
+        assert step in script
 
 
 class _BuildCLI:

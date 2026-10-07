@@ -137,7 +137,8 @@ def test_the_recipe_layers_on_c03_never_the_accelerator_image():
     assert "COPY .devcontainer/torch/torch-cu130-py311.txt" in text
     assert "cuda13-py311.txt" not in text
     script = SCRIPT.read_text()
-    assert 'bash "${script_dir}/c03_worker_image.sh"' in script
+    # Its parent is the C-03 worker, built or (in a release) the pushed one.
+    assert 'bash "${script_dir}/worker_parent_manifest.sh"' in script
     assert "accelerator_worker_image.sh" not in script
 
 
