@@ -1,0 +1,14 @@
+{
+ "schema": "carbon.motor.quiz-standin-registry.v1",
+ "registered": "2026-10-07, before any computation (Test Lead: estimate motor's quiz power on public data before the owner decides)",
+ "limits": {"min_mean_torque_nm": 4.0, "max_ripple_fraction": 0.30, "source": "OWNER-GRAPHITE-TEST-WAVE-01 section 6"},
+ "near_band": {"torque_nm": 0.4, "ripple_fraction": 0.03, "status": "HUMAN_INPUT recommendation (10 % of each limit); used here only to size the stand-in"},
+ "q2": {"pool": "the 180 public TRAIN + PRACTICE references (motor-pools-v1)", "batch": "each draw: a random half of the pool", "n": [12, 24, 48], "selection": "random from the near-band cases of the batch"},
+ "q3": {"pool": "pseudo-scenarios: every 4-design subset of study V2's 8 designs at its 6 conditions (the only public complete grid; 70 subsets), all-infeasible subsets excluded", "rule": "V2 decision rule: feasible iff every condition meets both limits; minimise worst-condition ripple fraction, ties to higher worst mean torque; abstain if none predicted feasible", "k": [1, 2, 4]},
+ "known_bad": ["boundary_optimist: within the near band, mean +0.5 N m and ripple x 0.8", "localized_sign_error: within 0.4 N m of the torque limit, mean reflected about 4.0", "infeasible_edge_seeker: where truly infeasible within the near band, reports just passing (mean 4.001, ripple fraction 0.299)"],
+ "known_good_standin": "oracle plus 9 noisy oracles (multiplicative lognormal noise, sigma 3 % on mean torque and 10 % on ripple pk-pk, seeds 0-8): a STAND-IN construction, not a recorded value, because motor has only two real models",
+ "value_control": "near_limit_cautious (the optimist's mirror), reported as over-caution",
+ "metric": "AUC over 1000 draws (numpy PCG64, seed 20261007): P(measure of known-bad > measure of known-good); mean and 5th percentile. Q2 measure: false-feasible; Q3 measure: decision false-feasible",
+ "pooling": {"option": "a hotkey's quiz verdict pools its outcomes over its last W batches (same construction identity only)", "W": "HUMAN_INPUT, recommended 4", "stand_in": "power reported at effective sizes n x W and k x W"},
+ "cadence": "AX42, 16 threads; GetDP at 2 CPUs per case, so 8 concurrent; median 1,366 s per case (counted campaign)"
+}
