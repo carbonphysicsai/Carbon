@@ -63,7 +63,22 @@ CUDA_VERSIONS = ("13.0",)
 POD_RATE_USD_PER_HR = 0.49
 DISK_GB = 20
 DISK_USD_PER_GB_MONTH = 0.10
-RATE_CEILING_USD_PER_HR = Decimal("0.492739726")
+GRANT_RECORD = ".agent/decisions/2026-10-06-OWNER-A40-ACCEPTANCE-GRANT-01.md"
+
+
+def grant_rate(repository=REPOSITORY):
+    """The pod-hour rate ceiling, read from the committed grant record (the
+    `Rate ceiling` row of its decision table), never restated here."""
+    import re
+
+    text = (Path(repository) / GRANT_RECORD).read_text()
+    found = re.search(r"\|\s*Rate ceiling\s*\|\s*USD\s+([0-9.]+)\s+per pod-hour", text)
+    if found is None:
+        raise RuntimeError("the grant record names no rate ceiling")
+    return Decimal(found.group(1))
+
+
+RATE_CEILING_USD_PER_HR = grant_rate()
 CLEANUP_RESERVE_USD = Decimal("0.25")
 DEFAULT_CAP_USD = Decimal("4.25")
 PODS, REPLACEMENTS = 4, 2

@@ -289,7 +289,7 @@ def _write(path, value):
     Path(path).write_text(json.dumps(value, sort_keys=True, indent=1))
 
 
-def run(config, out, *, root="/tmp/carbon", python=None):
+def _run(config, out, *, root="/tmp/carbon", python=None):
     """The pod phase. Returns the exit code."""
     from carbon.agent_campaign.graphite import pod_phase
 
@@ -330,6 +330,17 @@ def run(config, out, *, root="/tmp/carbon", python=None):
         return EXIT_REBUILD
     _write(out / "DONE.json", {"phase": PHASE, "exit": 0})
     return 0
+
+
+def run(config, out, *, root="/tmp/carbon", python=None):
+    """The pod phase. The pinned environment is applied to this process for the
+    probe only and restored on return: nothing here may leak into a caller."""
+    saved = dict(os.environ)
+    try:
+        return _run(config, out, root=root, python=python)
+    finally:
+        os.environ.clear()
+        os.environ.update(saved)
 
 
 def local_cpu_run(config, root, out, *, python=None):

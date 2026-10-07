@@ -51,6 +51,29 @@ def test_released_images_are_the_briefs_digests():
     assert a40.IMAGES == {"jax": RELEASED_ACCELERATOR, "pytorch": RELEASED_TORCH}
 
 
+def test_rate_ceiling_derives_from_the_committed_grant():
+    from pathlib import Path
+
+    grant = Path(a40.REPOSITORY, a40.GRANT_RECORD).read_text()
+    assert a40.RATE_CEILING_USD_PER_HR == Decimal(
+        re.search(r"Rate ceiling \| USD ([0-9.]+) per pod-hour", grant).group(1)
+    )
+    assert a40.RATE_CEILING_USD_PER_HR == a40.grant_rate()
+
+
+def test_the_pod_phase_leaves_the_process_environment_untouched(tmp_path, monkeypatch):
+    import os
+
+    from carbon.agent_campaign.graphite import pod_phase
+
+    device = {"index": 0, "uuid": "GPU-1", "name": "NVIDIA A40", "driver_version": "1"}
+    monkeypatch.setattr(phase, "read_identity", lambda: (device, None))
+    monkeypatch.setattr(pod_phase, "probe_environment", lambda code=None: {"ok": False})
+    before = dict(os.environ)
+    phase.run(pod_config(), tmp_path)
+    assert dict(os.environ) == before
+
+
 def test_rate_is_the_grants_rate():
     assert a40.hourly_rate() == Decimal("0.492739726")
 
