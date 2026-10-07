@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-reference-credibility-baseline",
+  "recorded_at": "2026-10-07T20:00:10+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-REFERENCE-CREDIBILITY-01 baseline on cd9d0bb253",
+    "description": "Native diagnostic: python -m pytest -q tests/cpu/test_first_three_customer_packets.py tests/cpu/test_portfolio_f1_packet.py tests/cpu/test_portfolio_round1_screen.py"
+  },
+  "expected": "Preserve all existing packet structure and selected numeric requirements before adding credibility prose.",
+  "observed": "40 passed in 0.32s on the Windows host; this is not canonical acceptance or solver/reference evidence. A prior pytest launcher invocation returned no visible result and is not counted as a pass.",
+  "keep": ["Ten-section packets, original numeric sheets and static-only tests; buyer credibility targets separate from earned reference evidence."],
+  "change": ["Use the explicit python -m pytest interpreter to obtain visible diagnostic results; new cross-tool tolerances stay HUMAN_INPUT."],
+  "protocol_elements": ["reference-policy", "claim-basis", "customer-design-packet"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -58,7 +58,7 @@ from .near import near_cases
 REGISTRY_SCHEMA = "carbon.battery.score-tuning-registry.v1"
 RESULT_SCHEMA = "carbon.battery.score-tuning-result.v1"
 LEGS = ("a", "r", "g", "m", "n", "p", "q")
-GATES = ("near", "envelope", "feasibility", "plating_fa")
+GATES = ("near", "envelope", "feasibility", "plating_fa", "error")
 #: A registered threshold sweep expands to one candidate per cutoff (`load_registry`).
 SWEEP_KIND = "gate_sweep"
 DECIDING = "control-exam-v1"
@@ -232,6 +232,10 @@ def member_legs(contract, predictions, store, case_ids, decision_regret=None):
                 contract, predictions, case_ids, store.refs
             ),
             "plating_fa": _plating_fa(contract, predictions, near, store.refs),
+            # Accuracy as a gate (registry v4's design-primary family): the
+            # exam error E, higher is worse; an ineligible member is
+            # unmeasured, so a set gate fails it.
+            "error": component["E"] if component["eligible"] else None,
         },
     }
 

@@ -17,6 +17,11 @@ import json
 SCHEMA = "carbon.battery.quiz-stratum.v1"
 #: The candidate inputs a Q3 grid job carries.
 GRID_INPUTS = ("c1", "c2", "t_amb_c", "soc0")
+#: A Q3 scenario's refine counts (quiz-registry-v8), counts only: lattice
+#: points refined, refined solves that succeeded, and points whose settled
+#: reference is still UNRESOLVED. Optional, so a quiz selected before v8
+#: still checks.
+REFINE_COUNTS = ("refine_points", "refined_ok", "residual")
 
 
 class QuizRefused(ValueError):
@@ -49,13 +54,27 @@ def check(value):
         or not all(
             type(c) is dict and set(c) == {"case_id", "inputs"} for c in value["q2"]
         )
-        or not all(
-            type(s) is dict and set(s) == {"scenario_id", "condition", "grid"}
-            for s in value["q3"]
-        )
+        or not all(_scenario(s) for s in value["q3"])
     ):
         raise QuizRefused("quiz_document_malformed")
     return value
+
+
+def _scenario(s):
+    if type(s) is not dict or set(s) - {"refine"} != {
+        "scenario_id",
+        "condition",
+        "grid",
+    }:
+        return False
+    if "refine" not in s:
+        return True
+    refine = s["refine"]
+    return (
+        type(refine) is dict
+        and set(refine) == set(REFINE_COUNTS)
+        and all(type(v) is int and v >= 0 for v in refine.values())
+    )
 
 
 def inputs(value):

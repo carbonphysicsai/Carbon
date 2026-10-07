@@ -1,0 +1,69 @@
+{
+ "schema": "carbon.challenge-pipeline.climb-disposition.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "session": "level-climb-1",
+ "reviewed_by": "test-lead",
+ "reviewed_on": "2026-10-07",
+ "authority": "OWNER-GRAPHITE-DEV-LEVELS-01 F1 (development-only variants: the Test Lead reviews; the construction contract owner decides only at LOCK)",
+ "scope": "DEVELOPMENT_ONLY_NEVER_SERVED_TO_MINERS",
+ "levels": {
+  "2": {
+   "data.pool_selection": {
+    "disposition": "ACCEPTED_WITH_CHANGES",
+    "changes": [
+     "The pool is Carbon's published pool and it is dynamic: TRAIN plus PRACTICE plus every bank case that auto-retires and is published (OWNER-BANK-ARCHITECTURE-01).",
+     "The pool is versioned by its published-set digest; a recipe pins the pool version it selects from.",
+     "Disjoint from every hidden, tuning, confirmation, study and decision set, checked with the validator's overlap check.",
+     "The selected subset's size counts in the training budget cost calculator."
+    ]
+   },
+   "optimizer.muon_spectral": {
+    "disposition": "ACCEPTED",
+    "changes": [
+     "SpecMuon as a muon-family variant."
+    ]
+   },
+   "stages.polish_optimizer": {
+    "disposition": "DROPPED",
+    "changes": [
+     "It duplicates Level 3's numerics.quasi_newton_family; polish numerics belong at Level 3."
+    ]
+   }
+  },
+  "3": {
+   "numerics.quasi_newton_family": {
+    "disposition": "ACCEPTED",
+    "changes": [
+     "Menu lbfgs, bfgs, ssbfgs, ssbroyden; default lbfgs."
+    ]
+   },
+   "numerics.line_search": {
+    "disposition": "ACCEPTED",
+    "changes": [
+     "Menu strong_wolfe, backtracking, none; 'none' is the miner's own risk, bounded by the step budget."
+    ]
+   },
+   "numerics.spectral_preconditioner": {
+    "disposition": "DROPPED",
+    "changes": [
+     "It duplicates Level 2's optimizer.muon_spectral; revisit after Level 2 data."
+    ]
+   }
+  }
+ },
+ "conditions": [
+  "Reconstruction tests prove determinism (R1 on CPU), a loss decrease on a fixed battery checkpoint, and default equivalence: the default choice is byte-identical to today. A test never claims a paper's reported improvement; that is a science claim, not a build gate.",
+  "The training budget cost calculator counts each new routine's real cost (an SVD per step, full-memory BFGS), and Phase F of the budget study stress-tests them.",
+  "SVD and BFGS are flagged as GPU-nondeterminism risks for the A40 R1 leg.",
+  "Development-only variants live outside CONTRACTS; miner surfaces refuse them; findings block LOCK, not exploration."
+ ],
+ "guards": {
+  "bfgs_memory": "Full-memory BFGS is O(p^2): refused at compile when p^2 x dtype bytes exceeds the sheet's memory ceiling, or above a parameter threshold (HUMAN_INPUT, measured in Phase 0 / Phase F). A pre-run refusal, never an out-of-memory at rebuild.",
+  "line_search_evaluations": "Strong-Wolfe and backtracking make a variable number of loss evaluations per step: each routine has a fixed, recorded cap on evaluations per step, and the cost calculator counts the cap as the worst case.",
+  "svd_cost": "SpecMuon's per-step SVD is counted at the full matrix size in the cost calculator.",
+  "candidate_fault": "Divergence or NaN under line_search none or a quasi-Newton routine is a candidate fault (bounded rebuild, scored as failed) under the existing candidate-fault policy, never FAILED_INFRA, so diverging buys no free retry.",
+  "gpu_determinism": "SVD and BFGS options are refused on the scored GPU lane until the A40 R1 leg passes them; recorded CPU_ONLY_DEV until then.",
+  "pool_integrity": "Each pool version is immutable and digest-pinned, and old versions stay retrievable so old recipes reproduce; a refusal list withdraws a pool case found mis-solved from new versions; selection weights are capped or normalised so weighting cannot emulate repetition beyond the step budget."
+ },
+ "guards_rule": "Each guard ships with a mutation test (the Test Lead's attack review, 2026-10-07)."
+}

@@ -125,6 +125,18 @@ def _rebuild_level1(recipe, record, material, seed):
     return model, {**with_state(model, stats), "trainer": "level1"}
 
 
+def _rebuild_level3(recipe, record, material, seed):
+    """In-process Level-3 rebuild on pinned public TRAIN v1, as
+    `compile.rebuild` rebuilds Level 0."""
+    from .compile import with_state
+    from .level3_worker import build_in_process
+    from .recipes import Structure
+
+    model = build_in_process(recipe, record)
+    stats = model.fit(material.train, Structure(material.ocv_soc, material.ocv_v), seed)
+    return model, {**with_state(model, stats), "trainer": "level3"}
+
+
 INFER_PROGRAM = r'''"""Carbon battery validator inference: predict query inputs from a state.
 
 Fixed by Carbon. Only a retained model state and query inputs are staged.
@@ -452,13 +464,24 @@ class CarrierBackend:
 
     def reconstruct(self, identity, recipe, seed, development=None):
         program, files = RECONSTRUCT_PROGRAM, reconstruct_files(self.root, recipe, seed)
+        trainer = None
         if development is not None:
-            # A Level-1 recipe (VALIDATOR-13): the same program with its one
-            # build line replaced, and the loss expression staged as data.
-            from . import level1_worker
+            from . import level3_worker
 
-            program = level1_reconstruct_program()
-            files = {**files, **level1_worker.staged(development)}
+            if level3_worker.is_numerics(development):
+                # A Level-3 recipe: the same program with its one build line
+                # replaced, and the menu choices staged as data.
+                program = level3_worker.program(RECONSTRUCT_PROGRAM)
+                files = {**files, **level3_worker.staged(development)}
+                trainer = "level3"
+            else:
+                # A Level-1 recipe (VALIDATOR-13): the same program with its
+                # one build line replaced, and the loss expression staged.
+                from . import level1_worker
+
+                program = level1_reconstruct_program()
+                files = {**files, **level1_worker.staged(development)}
+                trainer = "level1"
         out = self._call(
             identity,
             program,
@@ -467,8 +490,8 @@ class CarrierBackend:
             recipe.settings.get("backend", "jax"),
         )
         stats = json.loads(out["fit.json"])
-        if development is not None:
-            stats["trainer"] = "level1"
+        if trainer is not None:
+            stats["trainer"] = trainer
         return out["state.npz"], stats
 
     def infer(self, identity, state, inputs):
@@ -507,11 +530,20 @@ class DirectBackend:
         from .recipes import state_bytes
 
         self.calls["reconstruct"] += 1
+        from . import level3_worker
+
         try:
             if development is None:
                 model, stats = rebuild(recipe, self.material, seed)
+            elif level3_worker.is_numerics(development):
+                model, stats = _rebuild_level3(recipe, development, self.material, seed)
             else:
                 model, stats = _rebuild_level1(recipe, development, self.material, seed)
+        except ImportError as missing:  # Carbon's environment, never the candidate
+            raise WorkerFailure(
+                "environment_failed:" + (str(missing) or type(missing).__name__),
+                candidate=False,
+            ) from None
         except Exception as failure:  # noqa: BLE001 - the candidate's own build
             raise WorkerFailure(
                 "reconstruction_failed:" + type(failure).__name__, candidate=True

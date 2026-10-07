@@ -735,8 +735,12 @@ class BatteryValidator:
         ):
             raise StateError("artifact_mismatch", "development recompile differs")
         from .level1_worker import expression_record
+        from .level3_worker import numerics_record
 
-        return compiled.construction, expression_record(compiled.reconstruction)
+        record = expression_record(compiled.reconstruction)
+        if record is None:
+            record = numerics_record(compiled.reconstruction)
+        return compiled.construction, record
 
     # --- screening --------------------------------------------------------------------
 
@@ -1064,6 +1068,9 @@ class BatteryValidator:
     #: Quiz predictions are stored under this prefix plus the submission id,
     #: never a scored model's id, so they never collide with a scored case.
     QUIZ_PREDICTIONS = "quiz/"
+    #: Leak detection's own predictions on batches a score did not use
+    #: (`challenge_validator.leak_detection`), apart from every scored one.
+    LEAK_PREDICTIONS = "leak/"
     QUIZ_REPORT_SCHEMA = "carbon.battery.quiz-report.v1"
 
     def quiz_report(self, submission_id):
@@ -1139,11 +1146,22 @@ class BatteryValidator:
             submission_id, {**report, "state": "MEASURED", "pooled": measures["pooled"]}
         )
 
-    def _quiz_predictions(self, submission_id, inputs, tag):
+    def leak_predictions(self, submission_id, inputs, tag):
+        """The retained model's predictions on cases of batches its score did
+        not use, for the operator's leak detection: through the backend's
+        `infer` as scoring uses it, stored apart from every scored prediction
+        (`LEAK_PREDICTIONS`). Never read by scoring, nomination or finals."""
+        return self._quiz_predictions(
+            submission_id, inputs, "leak-" + tag, namespace=self.LEAK_PREDICTIONS
+        )
+
+    def _quiz_predictions(self, submission_id, inputs, tag, namespace=None):
         """The retained model's predictions on the quiz inputs, through the
         backend's `infer` as scoring uses it, stored apart from every scored
-        prediction (`QUIZ_PREDICTIONS`)."""
-        key = self.QUIZ_PREDICTIONS + submission_id
+        prediction (`QUIZ_PREDICTIONS`, or `namespace`)."""
+        key = (self.QUIZ_PREDICTIONS if namespace is None else namespace) + (
+            submission_id
+        )
         have = self.store.predictions(key, list(inputs))
         missing = [c for c in inputs if c not in have]
         if missing:

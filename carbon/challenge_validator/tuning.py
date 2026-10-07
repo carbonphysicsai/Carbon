@@ -18,6 +18,8 @@ Operator steps, all on the hidden host (HIDDEN_HOST_SETUP §6):
     python -m carbon.challenge_validator.tuning solve --work DIR --overlay DIR
     python -m carbon.challenge_validator.tuning quiz-jobs --config HIDDEN.json --work Q
     python -m carbon.challenge_validator.tuning solve --work Q --overlay DIR
+    python -m carbon.challenge_validator.tuning quiz-refine --work Q
+    python -m carbon.challenge_validator.tuning solve --work Q/refine --overlay DIR
     python -m carbon.challenge_validator.tuning quiz-select --work Q --panel PANEL.json
     python -m carbon.challenge_validator.tuning quiz-seal --config HIDDEN.json --work Q
     python -m carbon.challenge_validator.tuning predict --work DIR --panel PANEL.json \\
@@ -49,17 +51,31 @@ directory Q):
 - **`quiz-jobs`** draws, from the hidden deployment's root, Q2's oversample
   (`Q2_POOL * 4` candidates) and `Q3_K + 4` Q3 conditions (protected ones
   redrawn), and writes their solve jobs. `--round N` adds 4 Q3 conditions per
-  round; Q2 is never redrawn. `solve --work Q` solves them.
-- **`quiz-select`** keeps Q2's near-limit pool, rebuilds the registered
+  round; Q2 is never redrawn. `solve --work Q` solves them. Each Q3 grid is
+  the 117-point lattice (`quiz.q3_candidates`).
+- **`quiz-refine`** (quiz-registry-v8), after the lattice solve: every drawn
+  Q3 condition's band-edge points (`quiz.q3_refine_points`) are written as
+  `Q/refine/jobs.json` (owner-only, `refined: true`), and `solve --work
+  Q/refine` runs their refined solves in the same pinned truth image. It
+  prints the refine count per scenario, in draw order, and the total. Rerun
+  it after a new `--round`; the solve keeps every earlier record.
+- **`quiz-select`** settles each Q3 lattice (`quiz.q3_settle`: refined truth
+  where the refined solve is OK, the standard reference otherwise) and
+  refuses with `tuning_quiz_needs_refine` while a refine point has no
+  refined record. It keeps Q2's near-limit pool, rebuilds the registered
   disagreement panel once (its predictions cached under Q), picks Q2's cases
-  from the panel's predictions only, and keeps the first `Q3_K` feasible
-  scenarios. With fewer, it refuses and names the next `--round`.
+  from the panel's predictions only, and keeps the first `Q3_K` scenarios
+  whose settled lattice is feasible. With fewer, it refuses and names the
+  next `--round`. Each kept scenario records `refine: {refine_points,
+  refined_ok, residual}` (counts only; `residual` is the lattice points
+  still UNRESOLVED after settling).
 - **`quiz-seal`** commits the quiz's digest and counts to the deployment's
   seed journal (kind `quiz`).
 - **`predict --quiz Q`** also predicts the quiz's inputs, and **`score --quiz
-  Q`** writes each member's quiz measures (`quiz-scores.json`) and
-  `q3-regret.json` (member to mean Q3 decision regret, for
-  `tuning_rescore --q3-regret`). Quiz cases never enter the accuracy rows.
+  Q`** writes each member's quiz measures (`quiz-scores.json`, Q3's with
+  `unresolved`) and `q3-regret.json` (member to mean Q3 decision regret,
+  for `tuning_rescore --q3-regret`), judged against the settled references.
+  Quiz cases never enter the accuracy rows.
 
 Every file is owner-only and lives outside the repository. DEVELOPMENT only:
 no qualification, weight, reward or LIVE authority.
@@ -144,14 +160,29 @@ def _records(work):
     so it is not a reference)."""
     from carbon.battery.quiz_stratum import solved
 
-    path = Path(work) / "records.jsonl"
+    return solved(_record_lines(Path(work) / "records.jsonl"))
+
+
+def _record_lines(path):
     if not path.exists():
-        return {}
+        return []
     info = os.lstat(path)
     if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:
         raise TuningRefused("tuning_file_not_owner_only")
-    lines = path.read_text().splitlines()
-    return solved(json.loads(line) for line in lines if line.strip())
+    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+
+
+#: The quiz's refined solves (quiz-registry-v8) live in their own work
+#: directory under the quiz's, solved by `solve --work Q/refine`.
+REFINE_DIR = "refine"
+
+
+def _refined_records(work):
+    """A quiz work directory's refined records by case id (`refined: true`;
+    FAILED_INFRA is retried, so it is not one)."""
+    from carbon.battery.quiz_stratum import refined
+
+    return refined(_record_lines(Path(work) / REFINE_DIR / "records.jsonl"))
 
 
 def _tuning_set():
@@ -487,7 +518,8 @@ def score(work, repository=REPOSITORY, *, quiz=None):
 
 def score_quiz(work, quiz, repository=REPOSITORY):
     """Every member's quiz measures, from its stored quiz predictions and the
-    quiz's references, with the panel's synthetic controls added. Owner-only:
+    quiz's settled references (`quiz_references`), with the panel's
+    synthetic controls added. Owner-only:
     `quiz-scores.json` (Q2 and Q3 measures and Q3 outcomes per member) and
     `q3-regret.json` (member to mean Q3 decision regret over the quiz's
     feasible scenarios, None when unmeasured). Accuracy is never computed on
@@ -498,8 +530,8 @@ def score_quiz(work, quiz, repository=REPOSITORY):
     work = _owner_only_dir(work)
     document = load_quiz(quiz)
     quiz_digest = qs.digest(document)
-    ids = set(qs.inputs(document))
-    refs = {c: r for c, r in _records(quiz).items() if c in ids}
+    contract = qs.contract(repository)
+    refs = quiz_references(quiz, document, contract)
     predictions, kinds = {}, {}
     folder = work / "quiz-predictions"
     for path in sorted(folder.glob("*.json")) if folder.exists() else ():
@@ -511,7 +543,6 @@ def score_quiz(work, quiz, repository=REPOSITORY):
     for kind in pn.CONTROLS:
         predictions["control-" + kind] = pn.control_predictions(kind, refs)
         kinds["control-" + kind] = "SYNTHETIC_CONTROL"
-    contract = qs.contract(repository)
     members = {}
     with _quiz_refusals():
         for member, member_predictions in sorted(predictions.items()):
@@ -576,6 +607,72 @@ def _draws(root, pin, role, round_, repository):
             "q2": qs.q2_candidates(root, pin, role, qs.q2_draws()),
             "q3": qs.q3_conditions(root, pin, role, qs.q3_draws(round_), points),
         }
+
+
+def _quiz_draws(work):
+    """The quiz work directory's draws (`quiz-jobs`), checked."""
+    if not (Path(work) / "draws.json").exists():
+        raise TuningRefused("tuning_quiz_jobs_missing")
+    draws = _read_private(Path(work) / "draws.json")
+    if draws.get("schema") != QUIZ_DRAWS_SCHEMA or draws["role"] != _tuning_set().role:
+        raise TuningRefused("tuning_quiz_draws_malformed")
+    return draws
+
+
+def _settled(work, contract, conditions):
+    """`(standard refs, refine points, refined records, settled refs)` for
+    the Q3 `conditions` of a quiz work directory. Refused while a lattice
+    point is unsolved (`tuning_quiz_unsolved`) or a refine point has no
+    terminal refined record (`tuning_quiz_needs_refine`)."""
+    from carbon.battery import quiz_stratum as qs
+
+    refs, refined = _records(work), _refined_records(work)
+    with _quiz_refusals():
+        points = qs.refine_points(contract, conditions, refs)
+        missing = qs.unrefined(points, refined)
+    if missing:
+        raise TuningRefused("tuning_quiz_needs_refine")
+    return refs, points, refined, qs.settle(refs, points, refined)
+
+
+def quiz_references(quiz, document, contract):
+    """The selected quiz's settled references, by case id: what `score`
+    judges against."""
+    from carbon.battery import quiz_stratum as qs
+
+    ids = set(qs.inputs(document))
+    _refs, _points, _refined, settled = _settled(quiz, contract, document["q3"])
+    return {c: r for c, r in settled.items() if c in ids}
+
+
+def quiz_refine(work, repository=REPOSITORY):
+    """Write the refined-solve jobs (quiz-registry-v8) for every drawn Q3
+    condition's band-edge lattice points, as `refine/jobs.json` (owner-only;
+    the shape `solve` reads). Rerunnable: refined records already solved are
+    kept by the solve. Prints counts only."""
+    from carbon.battery import quiz_stratum as qs
+
+    work = _quiz_dir(work)
+    if (work / "quiz.json").exists():
+        raise TuningRefused("tuning_quiz_already_selected")
+    draws = _quiz_draws(work)
+    contract = qs.contract(repository)
+    with _quiz_refusals():
+        points = qs.refine_points(contract, draws["q3"], _records(work))
+    jobs = qs.refine_jobs(points)
+    refine = _owner_only_dir(work / REFINE_DIR)
+    _replace_private(
+        refine / "jobs.json", {"fingerprint": qs.digest(draws), "jobs": jobs}
+    )
+    if not (refine / "records.jsonl").exists():
+        (refine / "records.jsonl").touch(mode=0o600)
+    return {
+        "round": draws["round"],
+        "refine_points_per_scenario": [
+            len(points[entry["scenario_id"]]) for entry in draws["q3"]
+        ],
+        "refine_jobs": len(jobs),
+    }
 
 
 def quiz_jobs(config_path, work, round_=1, repository=REPOSITORY):
@@ -647,24 +744,22 @@ def _panel_predictions(members, inputs, cache, backend):
 
 
 def quiz_select(work, panel_path, *, backend=None, repository=REPOSITORY):
-    """Select the quiz from the solved draws: Q3's first `Q3_K` feasible
-    scenarios (refused, naming the next `--round`, when fewer are), then Q2's
-    near-limit pool and the panel's pick. Writes owner-only `quiz.json`."""
+    """Select the quiz from the solved draws: each Q3 lattice settled with
+    its refined solves (refused with `tuning_quiz_needs_refine` until they
+    are in), Q3's first `Q3_K` feasible scenarios (refused, naming the next
+    `--round`, when fewer are), then Q2's near-limit pool and the panel's
+    pick. Writes owner-only `quiz.json`."""
     from carbon.battery import quiz_stratum as qs
     from carbon.battery.value import quiz as qz
 
     work = _quiz_dir(work)
     if (work / "quiz.json").exists():
         raise TuningRefused("tuning_quiz_already_selected")
-    if not (work / "draws.json").exists():
-        raise TuningRefused("tuning_quiz_jobs_missing")
-    draws = _read_private(work / "draws.json")
-    if draws.get("schema") != QUIZ_DRAWS_SCHEMA or draws["role"] != _tuning_set().role:
-        raise TuningRefused("tuning_quiz_draws_malformed")
-    refs = _records(work)
+    draws = _quiz_draws(work)
     contract = qs.contract(repository)
+    refs, points, refined, settled = _settled(work, contract, draws["q3"])
     with _quiz_refusals():
-        q3, redraws = qs.q3_select(contract, draws["q3"], refs)
+        q3, redraws = qs.q3_select(contract, draws["q3"], settled)
         if len(q3) < qz.Q3_K:
             raise TuningRefused(
                 f"tuning_quiz_needs_more_q3:--round {draws['round'] + 1}"
@@ -682,6 +777,7 @@ def quiz_select(work, panel_path, *, backend=None, repository=REPOSITORY):
     if len(panel) != len(members):
         raise TuningRefused("tuning_quiz_panel_incomplete")
     chosen = qs.q2_choose(contract, pool, panel)
+    q3 = qs.with_refine(contract, q3, points, refined, settled)
     document = qs.document(
         draws["role"],
         qz.PANEL_VERSION,
@@ -697,6 +793,10 @@ def quiz_select(work, panel_path, *, backend=None, repository=REPOSITORY):
         "q2_pool": len(pool),
         "q2_cases": len(chosen),
         "q3_scenarios": len(q3),
+        "q3_refine": {
+            k: sum(s["refine"][k] for s in q3)
+            for k in ("refine_points", "refined_ok", "residual")
+        },
         "redraws": redraws,
     }
 
@@ -804,6 +904,10 @@ def main(argv=None):
     solved = sub.add_parser("solve")
     solved.add_argument("--work", required=True)
     solved.add_argument("--overlay", required=True)
+    # Parallel truth solves on the producer host: an engineering value, never
+    # a scientific one. The default keeps every earlier run unchanged.
+    solved.add_argument("--workers", type=int, default=7)
+    solved.add_argument("--timeout-s", type=float, default=1200.0)
     predicted = sub.add_parser("predict")
     predicted.add_argument("--work", required=True)
     predicted.add_argument("--panel", required=True)
@@ -818,6 +922,7 @@ def main(argv=None):
     drawn.add_argument("--config", required=True)
     drawn.add_argument("--work", required=True)
     drawn.add_argument("--round", type=int, default=1)
+    sub.add_parser("quiz-refine").add_argument("--work", required=True)
     selected = sub.add_parser("quiz-select")
     selected.add_argument("--work", required=True)
     selected.add_argument("--panel", required=True)
@@ -831,13 +936,20 @@ def main(argv=None):
         elif args.command == "jobs":
             result = jobs(args.config, args.commitment, args.work)
         elif args.command == "solve":
-            result = solve(args.work, args.overlay)
+            result = solve(
+                args.work,
+                args.overlay,
+                workers=args.workers,
+                timeout_s=args.timeout_s,
+            )
         elif args.command == "predict":
             result = predict(args.work, args.panel, quiz=args.quiz)
         elif args.command == "recheck":
             result = recheck(args.config, args.commitment, args.public, args.work)
         elif args.command == "quiz-jobs":
             result = quiz_jobs(args.config, args.work, args.round)
+        elif args.command == "quiz-refine":
+            result = quiz_refine(args.work)
         elif args.command == "quiz-select":
             result = quiz_select(args.work, args.panel)
         elif args.command == "quiz-seal":

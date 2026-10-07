@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-portfolio-round1-first-check",
+  "recorded_at": "2026-10-06T21:31:17Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "bd8a1a72e canonical screen + focused/pipeline tests + pipeline validate + Ruff/Black", "description": "First canonical dimensional screen and focused regression"},
+  "expected": "The five planning sheets reconcile and named analytic estimates carry their limits.",
+  "observed": "44 passed, 1 existing skip; pipeline valid; Ruff passed and Black unchanged. Re=0.083-0.416 and Pe=833-16667 expose high-Pe smoothing risk. Follow-up review found missing thermal baseline reservations, an undefined structural probe/convergence subset, a silencer full-band budget mismatch and mutable per-task cap validation; these require repair before handoff.",
+  "keep": ["Green calculation tests do not demonstrate reference adequacy or a coherent full evidence budget."],
+  "change": ["Reserve all baseline/control work explicitly; expose uncompleted band evidence; pin per-task ceilings independently of aggregate totals."],
+  "protocol_elements": ["challenge.reference.adequacy", "challenge.pipeline.lessons", "challenge.reference.resource-ceilings"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

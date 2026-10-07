@@ -32,7 +32,7 @@ ROOT = Path(__file__).resolve().parents[3]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-REGISTRY = ROOT / "docs/development/evidence/battery-score-tuning/registry-v3.json"
+REGISTRY = ROOT / "docs/development/evidence/battery-score-tuning/registry-v4.json"
 CONTRACT = ROOT / "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json"
 UNSAFE = ("graphite-run5-p-1d4aaff5d292-s3718551111",)
 #: EV5's adversarial FAIL (conditions.json, #661): the 8 top-half infeasible

@@ -15,6 +15,7 @@ battery, run in priority order across 26 simulation families.
 
 | Rev | Date | Change |
 | --- | --- | --- |
+| 2.3 | 10-07 | Owner decision (OWNER-LEVEL4-GRAPH-ONLY-01): Level 4 admission is graph-only. At Level 4 Carbon accepts only the math graph a submission produces, refused unless every operation is on the Challenge's allowlist and the graph fits the budget; no miner code runs at training, inference or grading. Wording from `docs/development/graphite/LEVEL4_GRAPH_CONSTRUCTION_PROPOSAL.md` §7, in "Construction and solver access" and Track A admission item 1. No live contract changes. |
 | 2.2 | 10-02 | Owner amendments (OWNER-CHALLENGE-ROADMAP-03): the construction ladder (Challenge Admission §3, Levels 0-5) is the spine of construction iteration; every Challenge starts at Level 0 and climbs one level at a time, and battery's Phase 1 includes its first climb. Graphite proposes the capabilities for every level of every Challenge, and the construction contract owner accepts them. The protocol is Challenge-neutral and improves through recorded revisions, with a lessons entry after every execution. Graphite is the testing agent. Corrects rev 2.1's backend wording: JAX and PyTorch are where Carbon rebuilds a declarative recipe, not executable submissions. |
 | 2.1 | 10-02 | Owner amendments (OWNER-CHALLENGE-ROADMAP-02): admission and rebuilds accept every backend the construction contract supports (JAX and PyTorch); the reference timing hardware is approved by the technical owner alone and is a RunPod CPU pod, flavor cpu5c, 16 vCPU. |
 | 2.0 | 10-02 | Rebuilt around one pipeline: Prioritize → Design → Test/iterate → Rank for deployment. Battery defines the protocol with Graphite. In-house challenges only; customer track, Workbench and commercial gates removed. Deployment leaderboard added. |
@@ -390,7 +391,9 @@ place of the shared ones.
    executable content at a level that admits none (submissions are
    declarative below Level 4; Carbon rebuilds the recipe in a backend the
    construction contract supports, JAX or PyTorch) and disguised executable
-   content.
+   content. At Level 4, refuse any submission whose graph fails graph
+   validation (G4), and any executable content that survives into the graph
+   (callbacks, `custom_call`).
 2. **Execution isolation:** block unauthorized filesystem, network, process,
    credential and cross-job access.
 3. **Protected-data separation:** test whether a producer can observe or
@@ -581,7 +584,11 @@ construction level. Below Level 4 a submission is a declarative recipe and
 the digest of the contract it was written against. Carbon rebuilds it in a
 backend the construction contract supports (JAX or PyTorch), and the
 validator pin carries the contract and the reconstruction code every rebuild
-needs. Launchpad ships the pinned
+needs. At Level 4, a submission may include source in a supported framework.
+Carbon accepts only the graph it produces, refused unless every operation is
+on the Challenge's allowlist and the graph fits the budget. No miner code runs
+at training, inference or grading (OWNER-LEVEL4-GRAPH-ONLY-01). Launchpad
+ships the pinned
 reference solver for each active challenge so miners can generate their own
 training and test data; they never see exam cases or the sealed pool. Keeping
 that build identical to the validator's is part of Design. OpenFOAM,
