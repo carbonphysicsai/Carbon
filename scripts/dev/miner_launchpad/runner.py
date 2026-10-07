@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import datetime
 import json
 import math
 import os
@@ -302,6 +303,47 @@ def signer_ready(cfg):
         public["hotkey"],
         socket_path=Path(socket_path) if socket_path is not None else None,
     )
+
+
+def miner_hotkey(cfg):
+    """The profile's public hotkey; never a key."""
+    return json.loads(Path(cfg["paths"]["miner_public"]).read_bytes())["hotkey"]
+
+
+def sdk_commitment_chain(cfg):
+    """The commitment's chain side for the profile's network
+    (`commitment_poster.SdkCommitmentChain`): reads at the finalized head,
+    prepares, estimates and broadcasts. It never signs."""
+    from carbon.chain.commitment_poster import SdkCommitmentChain
+    from carbon.development_session.miner_network import binding
+
+    config = binding(
+        operator_config=cfg["paths"].get("operator_config"),
+        miner_network=cfg["paths"].get("miner_network"),
+    )
+    return SdkCommitmentChain(config.context)
+
+
+def signer_commit(cfg):
+    """`sign(request)` through the miner's own signer (D2): it rebuilds the
+    call, asks the miner on its own terminal and signs. Carbon holds no key."""
+    from carbon.chain.external_signer import request_commitment
+
+    def sign(request):
+        return request_commitment(signer_ready(cfg), request)
+
+    return sign
+
+
+class _UnreadableGate:
+    """A campaign's commitment gate when the profile's chain could not be
+    reached: every submit it gates is refused, nothing sent (fail closed)."""
+
+    @staticmethod
+    def before_submit(*_, **__):
+        from carbon.chain.commitment_poster import UNREADABLE
+
+        return UNREADABLE
 
 
 def runner_database(cfg):
@@ -1428,6 +1470,8 @@ class RunnerAdapter:
         registration=None,
         signer=None,
         role=supervision.INLINE,
+        commitment_chain=None,
+        commitment_signer=None,
     ):
         if role not in supervision.ROLES:
             raise ValueError("unknown runner role")
@@ -1459,6 +1503,20 @@ class RunnerAdapter:
         # that stubs the chain stubs this too; the signing itself still needs
         # a real `ExternalSigner`, which nothing here can construct.
         self.signer = signer or (signer_ready if registration is None else None)
+        #: The strategy commitment (LAUNCHPAD-ACCEPT-02): `cfg -> chain` and
+        #: `cfg -> sign`, each from the profile. A test that stubs the chain
+        #: names its own or none; a host with none reads no commitment and
+        #: gates no submit (the validator still refuses one it requires).
+        self.commitment_chain = commitment_chain or (
+            sdk_commitment_chain if registration is None else None
+        )
+        self.commitment_signer = commitment_signer or (
+            signer_commit if registration is None else None
+        )
+        #: The poster's never-resend records, one per hotkey, beside the
+        #: runner database, so every process of this principal shares them.
+        self.commitment_dir = Path(database).parent / "commitments"
+        self._posters = {}
         self.threads = {}
         #: What each campaign thread here carries out: "run" or an operation.
         self.thread_operations = {}
@@ -2272,9 +2330,11 @@ class RunnerAdapter:
             if operation == "run":
                 self._start(identity, cfg, root, None, None, item)
                 return
-            work = self._work(operation, json.loads(item["params"]))
             admitted = SimpleNamespace(
                 campaign={**dict(row), "kind": kind}, profile=cfg
+            )
+            function, args = self._dispatch_target(
+                operation, admitted, json.loads(item["params"])
             )
             with self.lock:
                 previous = self.threads.get(identity)
@@ -2282,7 +2342,7 @@ class RunnerAdapter:
                     raise Rejected("campaign_busy", 409)
                 thread = threading.Thread(
                     target=self._tracked,
-                    args=(item, self._operation_thread, admitted, work),
+                    args=(item, function, *args),
                     daemon=True,
                 )
                 self.threads[identity] = thread
@@ -3489,7 +3549,210 @@ class RunnerAdapter:
         self._admissible(admitted)
         self._require_frozen(admitted)
         self._require_evaluation(admitted)
+        self._require_commitment(admitted)
         return self._background(admitted, "submit", {}, "SUBMITTING", request)
+
+    def _require_commitment(self, admitted):
+        """`commitment_required` now, before anything is signed or sent, when
+        the frozen candidate's first send through its Challenge's validator
+        intake needs its commitment on chain and the hotkey's commitment at
+        the finalized head is another (LAUNCHPAD-ACCEPT-02). Read-only: the
+        hotkey's tempo window is not spent. `commitment_reader_unavailable`
+        when that read fails: nothing is sent unread (fail closed). A host
+        that reads no chain (a fixture) gates nothing here; the campaign's
+        own submit asks the same gate again (`battery.campaign._committed`)."""
+        from carbon.chain import commitment_poster as cp
+        from carbon.challenge_registry.campaigns import campaign_for_manifest
+        from scripts.dev.miner_launchpad.commitment import frozen_candidate
+
+        if self.commitment_chain is None:
+            return
+        root = Path(admitted.campaign["root"])
+        epoch, record, manifest = frozen_candidate(root)
+        campaign = campaign_for_manifest(manifest)
+        if campaign.commitment is None or campaign.commitment_due is None:
+            return
+        if not campaign.commitment_due(
+            campaign_args(admitted.profile, root=root), root, epoch
+        ):
+            return
+        try:
+            digest = campaign.commitment(record, manifest)
+        except (ValueError, KeyError, TypeError):
+            raise Rejected("commitment_digest_unavailable", 409) from None
+        try:
+            poster = self._poster(admitted.profile)
+        except Exception:  # noqa: BLE001 - its closed code, never its text
+            raise Rejected(cp.UNREADABLE, 503) from None
+        code = cp.check(poster.chain, poster.hotkey, digest)
+        if code is not None:
+            raise Rejected(code, 503 if code == cp.UNREADABLE else 409)
+
+    # -- The strategy commitment (OWNER-COMMITMENT-POSTER-01, LAUNCHPAD-ACCEPT-02)
+
+    def _poster(self, cfg):
+        """The one poster for the profile's hotkey in this process, so one
+        post at a time per hotkey; None on a host that reads no chain."""
+        from carbon.chain.commitment_poster import CommitmentPoster
+
+        if self.commitment_chain is None:
+            return None
+        hotkey = miner_hotkey(cfg)
+        with self.lock:
+            poster = self._posters.get(hotkey)
+            if poster is None:
+                poster = CommitmentPoster(
+                    hotkey=hotkey,
+                    chain=self.commitment_chain(cfg),
+                    sign=self.commitment_signer(cfg),
+                    state_dir=self.commitment_dir,
+                )
+                self._posters[hotkey] = poster
+            return poster
+
+    def _campaign_gate(self, cfg):
+        """The commitment gate a campaign's submit asks before its first send
+        (`battery.campaign._committed`): None on a host that reads no chain;
+        one that refuses every send when the profile's chain side cannot be
+        built (fail closed)."""
+        from carbon.chain.commitment_poster import CommitmentGate
+
+        if self.commitment_chain is None:
+            return None
+        try:
+            return CommitmentGate(self._poster(cfg))
+        except Exception:  # noqa: BLE001 - refused by code, never by text
+            return _UnreadableGate()
+
+    def _candidate_digest(self, root):
+        """`(epoch, digest)`: the open epoch's frozen candidate and the digest
+        its Challenge commits (`ChallengeCampaign.commitment`, L1)."""
+        from carbon.challenge_registry.campaigns import campaign_for_manifest
+        from scripts.dev.miner_launchpad.commitment import frozen_candidate
+
+        root = Path(root)
+        path = root / "campaign-manifest.json"
+        if not path.exists():
+            raise Rejected("campaign_not_prepared", 409)
+        try:
+            campaign = campaign_for_manifest(json.loads(path.read_bytes()))
+        except Exception:  # noqa: BLE001 - a retired or unknown Challenge
+            raise Rejected("commitment_not_offered", 409) from None
+        if campaign.commitment is None:
+            raise Rejected("commitment_not_offered", 409)
+        epoch, record, manifest = frozen_candidate(root)
+        try:
+            return epoch, campaign.commitment(record, manifest)
+        except (ValueError, KeyError, TypeError):
+            raise Rejected("commitment_digest_unavailable", 409) from None
+
+    def _queued_digests(self, identity):
+        """The frozen candidates' digests of this principal's other campaigns
+        with a submit admitted and not done: what a new commitment would
+        strand (L2)."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT DISTINCT c.root FROM launchpad_dispatch d JOIN launchpad_campaigns c ON c.id=d.campaign WHERE d.principal=? AND d.state!=? AND d.operation='submit' AND d.campaign!=?",
+                (self.principal, supervision.DONE, identity),
+            ).fetchall()
+        found = []
+        for (root,) in rows:
+            with contextlib.suppress(Exception):
+                found.append(self._candidate_digest(root)[1])
+        return found
+
+    def commit_admitted(self, admitted, request):
+        """Commit the frozen candidate's digest on chain (LAUNCHPAD-ACCEPT-02).
+
+        The digest is the candidate's own (L1); no request field names one.
+        Answered at once with the plan (L2: the digest, the hotkey's current
+        commitment and its block, the replacement warning and any queued
+        submit it would strand), read at the finalized head. The same digest
+        already on chain is not posted again (L3) unless `recommit`. The post
+        itself runs on the supervisor's queue, because the miner's signer
+        waits on its own terminal: observe shows `human_action_required:
+        confirm_commitment` until the miner types there, then what reads back
+        at finality (`commitment.view`). No door can confirm it (D10).
+        """
+        from carbon.chain import commitment_poster as cp
+
+        recommit = request.get("recommit", False)
+        if type(recommit) is not bool:
+            raise Rejected("recommit_boolean_required")
+        self._admissible(admitted)
+        identity = admitted.campaign["id"]
+        root = Path(admitted.campaign["root"])
+        epoch, digest = self._candidate_digest(root)
+        try:
+            poster = self._poster(admitted.profile)
+        except Exception:  # noqa: BLE001 - its closed code, never its text
+            raise Rejected(cp.UNREADABLE, 503) from None
+        if poster is None:
+            raise Rejected(cp.UNREADABLE, 503)
+        plan = poster.plan(digest, queued=self._queued_digests(identity))
+        if "code" in plan:
+            raise Rejected(plan["code"], 503 if plan["code"] == cp.UNREADABLE else 409)
+        fields = {
+            "hotkey": poster.hotkey,
+            "digest": digest,
+            "epoch": epoch,
+            "recommit": recommit,
+            "by": "miner",
+            "plan": plan,
+            "at": datetime.datetime.now(datetime.UTC).isoformat(),
+        }
+        if not plan["needed"] and not recommit:
+            # L3: already the hotkey's commitment; nothing is asked or sent.
+            cp.write_request(root, **fields, outcome=cp.PostCode.ALREADY_ON_CHAIN.value)
+            return self.get(identity)
+        path = root / cp.REQUEST_FILE
+        previous = path.read_bytes() if path.exists() else None
+        cp.write_request(root, **fields)
+        try:
+            return self._background(
+                admitted,
+                "commit",
+                {"digest": digest, "recommit": recommit},
+                None,
+                request,
+                probe_lock=False,
+            )
+        except BaseException:
+            # Not admitted: the campaign's earlier request stands.
+            if previous is None:
+                path.unlink(missing_ok=True)
+            else:
+                path.write_bytes(previous)
+            raise
+
+    def _commit_thread(self, admitted, params):
+        """One commitment post, on its own thread. The poster's record is its
+        outcome, which observe shows; a post that did not commit is also the
+        campaign's `last_refusal`, by its closed code. Never resent."""
+        from carbon.chain import commitment_poster as cp
+
+        identity = admitted.campaign["id"]
+        try:
+            poster = self._poster(admitted.profile)
+            if poster is None:
+                raise Rejected(cp.UNREADABLE, 503)
+            result = poster.post(params["digest"], recommit=params["recommit"] is True)
+        except Rejected as refused:
+            self._refused(identity, refused.code, "commit")
+            return
+        except Exception as exc:  # noqa: BLE001 - its closed code, never its text
+            self._refused(
+                identity, exception_code(exc) or "operation_refused", "commit"
+            )
+            return
+        if result["code"] not in cp.DONE:
+            self._refused(identity, cp.closed_code(result["code"]), "commit")
+
+    def _dispatch_target(self, operation, admitted, params):
+        """The thread body for one admitted miner operation, and its arguments."""
+        if operation == "commit":
+            return self._commit_thread, (admitted, params)
+        return self._operation_thread, (admitted, self._work(operation, params))
 
     @staticmethod
     def _require_evaluation(admitted):
@@ -3559,7 +3822,7 @@ class RunnerAdapter:
             return False
         return item["state"] == supervision.QUEUED or self._supervisor_running()
 
-    def _background(self, admitted, operation, params, state, request):
+    def _background(self, admitted, operation, params, state, request, probe_lock=True):
         """Run a long miner operation on its own thread; observe reports it.
 
         A keyed request is claimed in the same critical section that starts
@@ -3567,6 +3830,10 @@ class RunnerAdapter:
         and replays, and a refused request (busy) records nothing. A host
         that does not supervise queues the operation instead, for the
         supervisor to start (LP-PROD-C).
+
+        `state` None leaves the campaign's state as it is; `probe_lock` False
+        is for an operation that never takes the campaign's ownership lock (a
+        commit touches no campaign record but its own request).
         """
         identity = admitted.campaign["id"]
         key = request.get("idempotency_key")
@@ -3592,7 +3859,8 @@ class RunnerAdapter:
             # Held by an attached agent, the page's tools or Carbon's agent:
             # refused now, rather than answered PRACTICING and refused on the
             # thread (D11).
-            self._probe_lock(Path(admitted.campaign["root"]))
+            if probe_lock:
+                self._probe_lock(Path(admitted.campaign["root"]))
             if key is not None:
                 with self.db() as db:
                     try:
@@ -3619,26 +3887,24 @@ class RunnerAdapter:
                 self._record(
                     identity, operation, params, admitted.profile, supervision.QUEUED
                 )
-                self._state(identity, state)
+                if state is not None:
+                    self._state(identity, state)
                 if self.role == supervision.SUPERVISOR:
                     self.delegated.add(identity)
             else:
                 item = self._record(
                     identity, operation, params, admitted.profile, supervision.RUNNING
                 )
+                function, args = self._dispatch_target(operation, admitted, params)
                 thread = threading.Thread(
                     target=self._tracked,
-                    args=(
-                        item,
-                        self._operation_thread,
-                        admitted,
-                        self._work(operation, params),
-                    ),
+                    args=(item, function, *args),
                     daemon=True,
                 )
                 self.threads[identity] = thread
                 self.thread_operations[identity] = operation
-                self._state(identity, state)
+                if state is not None:
+                    self._state(identity, state)
                 thread.start()
         if delegating:
             self._wake()
@@ -3798,6 +4064,7 @@ class RunnerAdapter:
             if credential is not None:
                 args.api_key_file = credential
             self._graphite_args(args, root)
+            args.commitment_gate = self._campaign_gate(cfg)
 
             async def run():
                 prepared = await prepare(args, ledger=ledger)
@@ -3980,6 +4247,8 @@ class RunnerAdapter:
                     # read again, from the profile, for the frozen provider.
                     args.api_key_file = credential
                 self._graphite_args(args, root, product)
+                # Graphite's selection asks for its own commitment (D10).
+                args.commitment_gate = self._campaign_gate(cfg)
                 outcome = interrupted = None
                 try:
                     outcome = asyncio.run(execute(args, ledger=ledger))
@@ -4342,6 +4611,16 @@ class RunnerAdapter:
             value["in_flight"],
             resumable=kind == "product" and not retired_challenge(root),
         )
+        # The strategy commitment, from the campaign's request and the
+        # poster's record; no chain read (LAUNCHPAD-ACCEPT-02). Null when none
+        # was ever requested.
+        from scripts.dev.miner_launchpad.commitment import view as commitment_view
+
+        value["commitment"] = None
+        with contextlib.suppress(Exception):
+            value["commitment"] = commitment_view(
+                root, self.commitment_dir, value["in_flight"]
+            )
         return value
 
     def _in_flight(self, identity):

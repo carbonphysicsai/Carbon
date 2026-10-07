@@ -139,8 +139,17 @@ with the fields in [Record](#record).
    Record two practices. For a remote setup, check afterwards that no
    `carbon-job-*` container or `/tmp/carbon-job-*` directory is left on it,
    then stop it yourself.
-10. **Freeze and submit.** Record the submission and its verdict. When the
-    validator runs elsewhere, also record the intake URL and the submission id.
+10. **Freeze, commit and submit.** Record the submission and its verdict.
+    When the validator runs elsewhere, also record the intake URL and the
+    submission id. An intake whose validator requires an on-chain commitment
+    refuses a submit `commitment_required`, before anything is sent, until
+    the frozen candidate's digest is your hotkey's commitment:
+    - Commit it with `carbon_commit` (or `POST /api/v1/operations/commit`).
+    - Type the digest's last 8 characters in your signer's terminal when it
+      asks; observe shows `confirm_commitment` meanwhile.
+    - Record the digest, block and extrinsic id that observe shows read back.
+    - Then submit. A `commitment_stale` refusal is answered by committing
+      again with `recommit=true`.
     Observe and the campaign view show the same readback on both doors:
     - the submission id;
     - for a submit that was not a verdict, its refusal with `intake_outcome`

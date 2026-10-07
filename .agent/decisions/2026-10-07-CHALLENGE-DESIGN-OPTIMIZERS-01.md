@@ -1,0 +1,21 @@
+# CHALLENGE-DESIGN-OPTIMIZERS-01 — eight buyer-decision optimizer proposals
+
+**Date:** 2026-10-07. **Origin:** direct user task to design one Carbon-owned optimizer specification for each of the eight round-one Challenges. **Status:** DEVELOPMENT working design decision; no registered optimizer or approved scientific/production value. **Base inspected:** `upstream/main` `a4f01a1fe73d34c9ef57ff9b7767abf23f1b8149`. **Primary files:** [optimizer index](../../docs/development/challenge_pipeline/optimizers/README.md) and its eight linked specifications.
+
+## Problem and recommendation
+
+The [customer packets](../../docs/development/challenge_pipeline/round1/README.md) define engineering decisions but do not provide a single frozen, Challenge-neutral optimizer registration and reference-judged design-task plan. Recommend the conditional classes and bounded model-query proposals in the index: exhaustive finite lattices for Battery (only after its revision), f02 and f17; deterministic multi-start local search snapped to a registered lattice/bank for Motor, Cooling, f06, f08 and f13. Use producer-owned starts, one precommitted rule per task, common query budgets, commitment before reference access, and independent reference outcome. The same versioned decision rule can be offered as an offline buyer tool only within its qualified scope.
+
+**HUMAN_INPUT values remain recommendations, not adopted exam settings.** In particular, Battery/Motor/Cooling revised feasible spaces, every new bank size, reference cost/cadence, scientific uncertainty interval, distinct hidden task law, power target, real deployment context and product reliance remain open. No reference adequacy is established by a packet or optimizer proposal. A reference/infra failure is never a candidate failure; mandatory hard-limit failure cannot be compensated by an objective gain.
+
+## Alternatives and boundaries
+
+Rejected as a default: allowing a miner to choose optimizer/starts; using model predictions or two-optimizer agreement as truth; treating an unbounded continuous optimum as known from a finite bank; using a cheap periodic-cell/RC/transfer-matrix model as full reference truth before qualification; assigning gradient search only to differentiable miners with a different search opportunity; treating correlated conditions or time/frequency samples as independent hidden tasks; or importing historical Battery/Motor/Cooling study values as a new buyer contract.
+
+KEEP the current [Challenge-neutral search freeze/commit pattern](../../carbon/design_search/experiment.py), [finite design/reference pattern](../../carbon/design_search/track_b.py), and domain reference custody. WRAP them prospectively with typed buyer actions, condition panels, objectives, hard limits, uncertainty, abstention and bank identity. `carbon/design_search/tasks.py`, named in the user task, is absent on this base; no code interface is created in this documentation task. Test Lead separately owns score use, attack implementation and batch power; Carbon Validator owns official grade binding. The proposal changes no grader, pool, validator, LIVE contract or miner surface and creates no spending/deployment authority.
+
+## Reversibility and follow-up
+
+These files can be superseded prospectively after design-space revisions, measured reference costs and behavior-defined pilot results. Once a task is run, retain its exact decision/optimizer/bank/reference identities and do not silently reinterpret outcomes. The smallest change to alter a class or budget is a new version of the affected optimizer spec and summary, followed by its owning registration/testing ticket. The smallest change to establish adequacy is an independent numerical/physical evidence record, not changing a status word here.
+
+Scientific truth, official population and statistical thresholds, qualification, security acceptance, customer rights, deployment and live economics remain human-owned. Material science visibility to the technical lead should accompany any future registration/implementation; this documentation record does not itself send a message or claim acknowledgement. The current repository says the Development Hub is retired, so no Hub source or derived output changes accompany these proposed specs.
