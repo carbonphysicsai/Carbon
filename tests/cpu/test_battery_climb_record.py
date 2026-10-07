@@ -74,3 +74,16 @@ def test_the_contract_proposals_are_untouched_by_the_climb():
         c.capability_id == "data.pool_selection"
         for c in cr.contract(BATTERY).capabilities
     )
+
+
+def test_the_attack_review_guards_are_recorded():
+    record = disposition()
+    assert set(record["guards"]) == {
+        "bfgs_memory",
+        "line_search_evaluations",
+        "svd_cost",
+        "candidate_fault",
+        "gpu_determinism",
+        "pool_integrity",
+    }
+    assert "mutation test" in record["guards_rule"]

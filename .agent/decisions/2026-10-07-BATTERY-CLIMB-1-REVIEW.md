@@ -46,6 +46,29 @@ a contract decision.
 4. **Placement:** development-only variants outside CONTRACTS. Miner surfaces
    refuse them, and findings block LOCK, not exploration.
 
+**Guards, from the Test Lead's attack review (2026-10-07).** Each guard ships
+with a mutation test.
+1. **BFGS memory.** Full-memory BFGS is O(p²). It is refused at compile when
+   p² × dtype bytes exceeds the sheet's memory ceiling, or when p is above a
+   parameter threshold (HUMAN_INPUT, measured in Phase 0 or Phase F). The
+   refusal comes before the run, never as an out-of-memory during a rebuild.
+2. **Line-search evaluations.** A fixed, recorded cap on loss evaluations per
+   step for each routine. The cost calculator counts the cap as the worst
+   case.
+3. **SVD cost.** SpecMuon's per-step SVD is counted at the full matrix size.
+4. **Attribution.** Divergence or NaN under `line_search: none` or a
+   quasi-Newton routine is a candidate fault under the existing policy, never
+   FAILED_INFRA, so diverging buys no free retry.
+5. **GPU determinism.** The SVD and BFGS options are refused on the scored GPU
+   lane until the A40 R1 leg passes them. They are CPU-only for development
+   until then.
+6. **Pool integrity.**
+   - Each pool version is immutable and digest-pinned.
+   - Old versions stay retrievable, so old recipes reproduce.
+   - A refusal list withdraws a mis-solved case from new versions.
+   - Selection weights are capped or normalised, so weighting cannot stand
+     in for repetition beyond the step budget.
+
 **Next.** The development-only variants follow the #611 pattern, in JAX and
 PyTorch, one PR each: Level 3's numerics, Level 2's SpecMuon, and Level 2's
 pool selection (which needs the published, versioned pool).
