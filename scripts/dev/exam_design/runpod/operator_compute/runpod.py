@@ -359,6 +359,12 @@ class RunPodAdapter:
         if spec.gpu_count:
             body["gpuTypeIds"] = [spec.gpu_type_id]
             body["gpuCount"] = spec.gpu_count
+        else:
+            placement = spec.cpu_placement
+            assert placement is not None  # PodSpec construction enforces this.
+            body["cpuFlavorIds"] = [placement.flavor_id]
+            body["cpuFlavorPriority"] = "custom"
+            body["vcpuCount"] = placement.vcpu_count
         if spec.allowed_cuda_versions:
             # REST v1 pod create: the host CUDA versions the pod may land on
             # (EV4's `pod_control` sends the same field).

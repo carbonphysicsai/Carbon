@@ -280,7 +280,7 @@ def test_quiz_jobs_draw_the_agreed_sizes_owner_only(tmp_path):
     result = tuning.quiz_jobs(config, work)
     assert result["q2_candidates"] == qz.Q2_POOL * 4 == 1280
     assert result["q3_conditions"] == qz.Q3_K + 4 == 12
-    assert result["solve_jobs"] == 1280 + 12 * 117
+    assert result["solve_jobs"] == 1280 + 12 * len(qz.q3_candidates())
     jobs = json.loads((work / "jobs.json").read_text())["jobs"]
     assert len({j["case_id"] for j in jobs}) == len(jobs)
     # The output names no case, input or condition.
@@ -395,7 +395,7 @@ def test_infeasible_scenarios_are_redrawn_and_a_short_round_names_the_next(
     kept = [s["scenario_id"] for s in document["q3"]]
     assert kept == [s["scenario_id"] for s in again["q3"][5:8]]
     for s in document["q3"]:
-        assert len(s["grid"]) == 117
+        assert len(s["grid"]) == len(qz.q3_candidates())
         # The scripted truth has no band-edge point: nothing was refined.
         assert s["refine"] == {"refine_points": 0, "refined_ok": 0, "residual": 0}
         assert tuple(s["condition"]) not in infeasible

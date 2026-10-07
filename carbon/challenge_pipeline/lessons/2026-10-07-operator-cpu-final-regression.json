@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-operator-cpu-final-regression",
+  "recorded_at": "2026-10-07T02:03:57Z",
+  "challenge": "protocol",
+  "stage": "protocol",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CARBON_UV_GROUPS=science-jax ./scripts/dev/canonical.sh --focused tests/cpu/test_graphite_operator_runpod.py tests/cpu/test_graphite_pod_gpu_probe.py tests/cpu/test_challenge_pipeline.py",
+    "description": "Final serialized CPU payload observation and lesson-schema regression"
+  },
+  "expected": "Assert fields actually sent to the fake provider as well as pure body construction, and validate recorded lessons.",
+  "observed": "135 tests passed in 33.87 seconds in the pinned canonical runtime. The subsequently corrected import order is cosmetic. No live create, solver run or paid allocation occurred.",
+  "keep": ["Check actual serialized requests rather than only the helper's returned dictionary."],
+  "change": [],
+  "protocol_elements": ["operator CPU placement", "challenge pipeline lessons", "no-spend validation"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
