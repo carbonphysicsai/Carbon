@@ -56,7 +56,7 @@ def params(case):
     if abs(steps_per - round(steps_per)) > 1e-9:
         raise ValueError("the window must be a whole number of gap steps")
     stride = options.get("stride", 1)
-    steps = list(range(0, int(round(steps_per)) + 1, stride))
+    steps = list(range(0, round(steps_per) + 1, stride))
     if "positions" in options:
         steps = steps[: options["positions"]]
     if case.get("geometry"):

@@ -24,7 +24,7 @@ def test_skew_combination_is_a_mean_of_shifted_slices():
     curve = [0.0, 1.0, 0.0, -1.0]
     slices = [tp.slice_curve(curve, d) for d in (-1, 0, 1)]
     assert slices[0] == [-1.0, 0.0, 1.0, 0.0]
-    assert tp.stack_curve(slices) == pytest.approx([-1 / 3, 1 / 3, 1 / 3, -1 / 3])
+    assert tp.stack_curve(slices) == pytest.approx([0.0, 1 / 3, 0.0, -1 / 3])
     m = tp.metrics([5.9, 6.1])
     assert m["pk_pk_nm"] == pytest.approx(0.2) and m["mean_nm"] == pytest.approx(6.0)
 
