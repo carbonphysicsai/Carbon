@@ -25,6 +25,8 @@ results:
 
     python -m carbon.challenge_validator.answer_key keygen --out PRODUCER.key
     python -m carbon.challenge_validator.answer_key sync --config FETCH.json
+    python -m carbon.challenge_validator.answer_key import --deployment DEPLOYMENT.json \\
+        --producer-public-key HEX --outbox PRODUCER_DIR/outbox/CHALLENGE
 
 A package carries hidden cases and references: it is owner-only everywhere.
 DEVELOPMENT only: no qualification, weight, reward or LIVE authority.
@@ -137,9 +139,14 @@ class ProducerKey:
 
     @staticmethod
     def create(path):
+        raw = os.urandom(32)
+        # Built before the file exists: a missing `cryptography` (the
+        # `archive` dependency group) fails here and leaves no key file
+        # behind to block a rerun.
+        ProducerKey(raw)
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(fd, "wb") as handle:
-            handle.write(os.urandom(32))
+            handle.write(raw)
         return ProducerKey.load(path)
 
     @staticmethod
@@ -358,14 +365,61 @@ def sync(adapter, fetcher, producer_public_key, challenge_id):
     return {"challenge_id": challenge_id, "packages": results}
 
 
+def import_local(adapter, producer_public_key, outbox):
+    """Import every package in a same-host producer's `outbox` directory: the
+    development pool on the producer host (the Test Lead's ruling,
+    2026-10-07), without a distribution host or a network hop.
+
+    Each package is verified in full exactly as a fetched one is (`verify`,
+    then the adapter's own re-derivation of fingerprint, references, quiz and
+    identities); a package that fails is refused by code and imports nothing,
+    and the rest still import. Public values only: fingerprints and
+    verdicts."""
+    directory = Path(outbox)
+    try:
+        info = os.lstat(directory)
+    except FileNotFoundError:
+        raise AnswerKeyRefused("answer_key_outbox_missing") from None
+    if not stat.S_ISDIR(info.st_mode) or info.st_mode & 0o077:
+        raise AnswerKeyRefused("answer_key_outbox_not_owner_only")
+    results = []
+    for path in sorted(directory.glob("*.json")):
+        try:
+            commitment, payload = verify(read_private(path), producer_public_key)
+            if commitment["challenge_id"] != adapter.challenge_id:
+                raise AnswerKeyRefused("answer_key_wrong_challenge")
+            if adapter.holds_answer_key(commitment):
+                state = "HELD"
+            else:
+                adapter.import_answer_key(commitment, payload)
+                state = "IMPORTED"
+            results.append({"fingerprint": commitment["fingerprint"], "state": state})
+        except AnswerKeyRefused as refused:
+            results.append(
+                {"file": path.name, "state": "REFUSED", "code": refused.code}
+            )
+    return {"challenge_id": adapter.challenge_id, "packages": results}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="carbon.challenge_validator.answer_key")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("keygen").add_argument("--out", required=True)
     sub.add_parser("sync").add_argument("--config", required=True)
+    local = sub.add_parser("import")
+    local.add_argument("--deployment", required=True)
+    local.add_argument("--producer-public-key", required=True)
+    local.add_argument("--outbox", required=True)
     args = parser.parse_args(argv)
     try:
-        if args.command == "keygen":
+        if args.command == "import":
+            from .battery import BatteryAdapter
+
+            adapter = BatteryAdapter.from_deployment(
+                args.deployment, repository=REPOSITORY
+            )
+            result = import_local(adapter, args.producer_public_key, args.outbox)
+        elif args.command == "keygen":
             key = ProducerKey.create(args.out)
             result = {"public_key": key.public_key, "key_id": key_id(key.public_key)}
         else:

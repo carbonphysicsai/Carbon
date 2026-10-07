@@ -98,21 +98,45 @@ def truth(job, infeasible):
     return outputs(1500.0, q2_margin(job), 30.0)
 
 
-def scripted_solve(work, infeasible=()):
-    """Solve `work/jobs.json` into `work/records.jsonl`, resumably."""
+#: The band-edge column of the scripted Q3 lattice (`solved`, `edge=True`).
+EDGE_C1 = 1.375
+
+
+def solved(job, infeasible=(), edge=False):
+    """A scripted terminal solve: `{"status", "outputs"}`. With `edge`, a Q3
+    lattice point at c1 = EDGE_C1 has a standard plating margin half a band
+    above the limit (a refine point). Its refined solve finds it plating
+    beyond the band, except at c2 = 0.2, where the refined solve fails."""
+    outputs = truth(job, set(infeasible))
+    if edge and job["case_id"].startswith("ev4:") and job["c1"] == EDGE_C1:
+        if not job.get("refined"):
+            outputs["plating_margin_v"] = 0.001
+        elif job["c2"] == 0.2:
+            return {"status": "REFERENCE_SOLVER_FAILED"}
+        else:
+            outputs["plating_margin_v"] = -0.004
+    return {"status": "OK", "outputs": outputs}
+
+
+def _key(record):
+    return record["case_id"] + ("/R" if record.get("refined") else "")
+
+
+def scripted_solve(work, infeasible=(), edge=False):
+    """Solve `work/jobs.json` into `work/records.jsonl`, resumably, keyed as
+    the truth service keys a solve (a refined job is its own key)."""
     jobs = json.loads((work / "jobs.json").read_text())["jobs"]
     path = work / "records.jsonl"
-    done = {json.loads(line)["case_id"] for line in path.read_text().splitlines()}
+    done = {_key(json.loads(line)) for line in path.read_text().splitlines()}
     with path.open("a") as out:
         for job in jobs:
-            if job["case_id"] in done:
+            if _key(job) in done:
                 continue
             record = {
                 "case_id": job["case_id"],
-                "refined": False,
+                "refined": job.get("refined", False),
                 "inputs": {k: job[k] for k in ("c1", "c2", "t_amb_c", "soc0")},
-                "status": "OK",
-                "outputs": truth(job, set(infeasible)),
+                **solved(job, infeasible, edge),
             }
             out.write(json.dumps(record) + "\n")
 
@@ -170,10 +194,10 @@ def test_v2_is_registered_reserved_and_v1_stays_reserved():
     # Sealed on the hidden host: every prior is an owner-only file, so no
     # sealed role is regenerated there (HIDDEN_HOST_SETUP §6).
     assert item.required_prior_roles == ()
+    # graphite-confirmation-v1 was never sealed: no cases, so no prior.
     assert item.required_private_priors == (
         "graphite-hidden-battery-v1-pool",
         "ev5-confirmation",
-        "graphite-confirmation-v1",
     )
     assert item.sealable and not item.human_input
     stratum = item.skeleton()["quiz_stratum"]
@@ -256,7 +280,7 @@ def test_quiz_jobs_draw_the_agreed_sizes_owner_only(tmp_path):
     result = tuning.quiz_jobs(config, work)
     assert result["q2_candidates"] == qz.Q2_POOL * 4 == 1280
     assert result["q3_conditions"] == qz.Q3_K + 4 == 12
-    assert result["solve_jobs"] == 1280 + 12 * 35
+    assert result["solve_jobs"] == 1280 + 12 * len(qz.q3_candidates())
     jobs = json.loads((work / "jobs.json").read_text())["jobs"]
     assert len({j["case_id"] for j in jobs}) == len(jobs)
     # The output names no case, input or condition.
@@ -273,12 +297,12 @@ def test_quiz_jobs_draw_the_agreed_sizes_owner_only(tmp_path):
 # --- selection --------------------------------------------------------------------------
 
 
-def _drawn(tmp_path, config, infeasible_first=0):
+def _drawn(tmp_path, config, infeasible_first=0, edge=False):
     work = tmp_path / "quiz"
     tuning.quiz_jobs(config, work)
     draws = tuning._read_private(work / "draws.json")
     infeasible = {tuple(s["condition"]) for s in draws["q3"][:infeasible_first]}
-    scripted_solve(work, infeasible)
+    scripted_solve(work, infeasible, edge)
     return work, draws, infeasible
 
 
@@ -371,9 +395,108 @@ def test_infeasible_scenarios_are_redrawn_and_a_short_round_names_the_next(
     kept = [s["scenario_id"] for s in document["q3"]]
     assert kept == [s["scenario_id"] for s in again["q3"][5:8]]
     for s in document["q3"]:
-        assert len(s["grid"]) == 35
+        assert len(s["grid"]) == len(qz.q3_candidates())
+        # The scripted truth has no band-edge point: nothing was refined.
+        assert s["refine"] == {"refine_points": 0, "refined_ok": 0, "residual": 0}
         assert tuple(s["condition"]) not in infeasible
     assert document["redraws"] == result["redraws"]
+    assert_owner_only(work)
+
+
+# --- refine (quiz-registry-v8) ----------------------------------------------------------
+
+
+def test_quiz_refine_writes_jobs_only_for_band_edge_points(tmp_path, small):
+    config, _root = minimal_deployment(tmp_path / "hidden")
+    work = tmp_path / "quiz"
+    tuning.quiz_jobs(config, work)
+    # Before the lattice solve there is nothing to refine from.
+    refused(lambda: tuning.quiz_refine(work), "tuning_quiz_unsolved")
+    scripted_solve(work, edge=True)
+    draws = tuning._read_private(work / "draws.json")
+    result = tuning.quiz_refine(work)
+    # Each scenario's band-edge column, 9 points (c2 = 0.2 .. 1.0), only.
+    assert result["refine_points_per_scenario"] == [9] * len(draws["q3"])
+    assert result["refine_jobs"] == 9 * len(draws["q3"])
+    text = json.dumps(result)
+    assert "q3-" not in text and "ev4:" not in text and "inputs" not in text
+    written = tuning._read_private(work / "refine" / "jobs.json")
+    assert set(written) == {"fingerprint", "jobs"}
+    assert written["fingerprint"] == qs.digest(draws)
+    jobs = written["jobs"]
+    assert len(jobs) == result["refine_jobs"]
+    assert all(j["refined"] is True and j["c1"] == EDGE_C1 for j in jobs)
+    lattice = {
+        j["case_id"]: j for j in json.loads((work / "jobs.json").read_text())["jobs"]
+    }
+    for job in jobs:
+        assert {k: v for k, v in job.items() if k != "refined"} == lattice[
+            job["case_id"]
+        ]
+    assert_owner_only(work)
+    # Rerunnable: the same jobs, and solved refined records are kept.
+    assert tuning.quiz_refine(work) == result
+
+
+def test_quiz_select_needs_refined_records_and_judges_the_settled_lattice(
+    tmp_path, small, rebuilds
+):
+    config, _root = minimal_deployment(tmp_path / "hidden")
+    work, _draws, _ = _drawn(tmp_path, config, edge=True)
+    panel = panel_file(tmp_path)
+    # Refine points exist but no refined record: refused, before any rebuild.
+    refused(
+        lambda: tuning.quiz_select(work, panel, backend=object()),
+        "tuning_quiz_needs_refine",
+    )
+    tuning.quiz_refine(work)
+    refused(
+        lambda: tuning.quiz_select(work, panel, backend=object()),
+        "tuning_quiz_needs_refine",
+    )
+    assert rebuilds == []
+    scripted_solve(work / "refine", edge=True)
+    result = tuning.quiz_select(work, panel, backend=object())
+    # 9 refined per scenario; the c2 = 0.2 refined solve failed, so that
+    # point keeps its standard reference and stays UNRESOLVED.
+    assert result["q3_refine"] == {
+        "refine_points": 9 * qz.Q3_K,
+        "refined_ok": 8 * qz.Q3_K,
+        "residual": qz.Q3_K,
+    }
+    document = tuning._read_private(work / "quiz.json")
+    for s in document["q3"]:
+        assert s["refine"] == {"refine_points": 9, "refined_ok": 8, "residual": 1}
+    contract = qs.contract(REPOSITORY)
+    standard = tuning._records(work)
+    settled = tuning.quiz_references(work, document, contract)
+    assert set(settled) == set(qs.inputs(document))
+    replaced = kept = 0
+    for s in document["q3"]:
+        for job in s["grid"]:
+            case_id, reference = job["case_id"], settled[job["case_id"]]
+            if job["c1"] == EDGE_C1 and job["c2"] != 0.2:
+                # Refined truth replaces the standard reference.
+                assert reference["settled"] == "refined" and reference["refined"]
+                assert reference["outputs"]["plating_margin_v"] == -0.004
+                assert standard[case_id]["outputs"]["plating_margin_v"] == 0.001
+                replaced += 1
+            else:
+                # A failed refined solve, or no refine point: the original.
+                assert reference == standard[case_id]
+                kept += job["c1"] == EDGE_C1
+    assert (replaced, kept) == (8 * qz.Q3_K, qz.Q3_K)
+    # quiz-refine after selection is refused; the quiz is fixed.
+    refused(lambda: tuning.quiz_refine(work), "tuning_quiz_already_selected")
+    # A refined record that solved another job's inputs is refused.
+    path = work / "refine" / "records.jsonl"
+    records = [json.loads(line) for line in path.read_text().splitlines()]
+    records[0]["inputs"] = {**records[0]["inputs"], "c2": 0.9}
+    path.write_text("".join(json.dumps(r) + "\n" for r in records))
+    refused(
+        lambda: tuning.quiz_references(work, document, contract),
+        "tuning_quiz_refined_records_mismatch",
+    )
     assert_owner_only(work)
 
 
@@ -529,6 +652,8 @@ def test_score_writes_quiz_measures_and_q3_regret(
     assert oracle["q3"]["false_feasible"] == 0.0
     assert optimist["q3"]["false_feasible"] == 1.0
     assert scores["members"]["pessimist"]["q3"]["over_caution"] == 1.0
+    # The UNRESOLVED share is reported (quiz-registry-v7); none here.
+    assert all(row["q3"]["unresolved"] == 0.0 for row in scores["members"].values())
     assert [o["kind"] for o in optimist["q3"]["outcomes"]] == [
         "SELECTED_INFEASIBLE"
     ] * 2

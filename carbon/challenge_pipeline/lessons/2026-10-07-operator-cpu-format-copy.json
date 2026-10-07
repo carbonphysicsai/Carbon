@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-operator-cpu-format-copy",
+  "recorded_at": "2026-10-07T01:52:00Z",
+  "challenge": "protocol",
+  "stage": "protocol",
+  "execution": {
+    "kind": "test_run",
+    "ref": "canonical python -m black on operator_compute model/runpod/exports and selected test",
+    "description": "Pinned Black formatting diagnostic in the isolated canonical validation copy"
+  },
+  "expected": "Determine formatting changes without changing shared Git metadata.",
+  "observed": "Black reformatted one test file and left three implementation files unchanged inside the copy. Those edits do not flow back to the host worktree; the corresponding source formatting was applied explicitly. No provider contact occurred.",
+  "keep": ["The validation copy cannot silently edit the source tree."],
+  "change": ["Check source formatting after applying the copy's diagnostic; do not count copy-only formatting as a host repair."],
+  "protocol_elements": ["canonical isolated validation", "source evidence identity"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

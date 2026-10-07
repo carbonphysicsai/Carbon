@@ -99,6 +99,20 @@ def score_parity(submitters, strategy):
     }
 
 
+def leak_measurement(adapter, *, seed_band=None):
+    """Leak family member 1, measured (the owner, 2026-10-07): the leak
+    detector's report over one validator's scored submissions
+    (`leak_detection`). A leaked batch shows as an advantage on the scored
+    batches over fresh, retired and published ones. Descriptive only."""
+    from . import leak_detection
+
+    return leak_detection.report(
+        adapter.leak_profiles(),
+        lower_is_better=adapter.lower_is_better,
+        seed_band=seed_band,
+    )
+
+
 def permit_exposure(cadence, held_blocks):
     """What a permit held for `held_blocks` can fetch, under a cadence of one
     batch per `every_blocks` with `active` live at once. It is the worst case

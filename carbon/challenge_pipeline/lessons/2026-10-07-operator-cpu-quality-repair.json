@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-operator-cpu-quality-repair",
+  "recorded_at": "2026-10-07T02:04:00Z",
+  "challenge": "protocol",
+  "stage": "protocol",
+  "execution": {
+    "kind": "test_run",
+    "ref": "QUALITY_BASE_SHA=ec1f7948ddc575897d22da8f7a4ad0e5d2423d0e ./scripts/dev/canonical.sh ./scripts/dev/preflight.sh",
+    "description": "Quality ratchet on the CPU placement candidate before import repair"
+  },
+  "expected": "No new quality diagnostics or diff-hygiene defects.",
+  "observed": "Quality failed with two real import-order diagnostics, repaired in source, and EXE002 diagnostics because DrvFS exposed ordinary tracked files as executable. Black reported zero. No quality pass was established; no lint rule was disabled.",
+  "keep": ["Repair real import defects."],
+  "change": ["Restore Git-recorded modes only in the disposable validation copy to distinguish host metadata from committed modes."],
+  "protocol_elements": ["operator validation", "canonical file-mode provenance"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

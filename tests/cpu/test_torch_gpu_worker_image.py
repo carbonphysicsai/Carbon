@@ -137,7 +137,8 @@ def test_the_recipe_layers_on_c03_never_the_accelerator_image():
     assert "COPY .devcontainer/torch/torch-cu130-py311.txt" in text
     assert "cuda13-py311.txt" not in text
     script = SCRIPT.read_text()
-    assert 'bash "${script_dir}/c03_worker_image.sh"' in script
+    # Its parent is the C-03 worker, built or (in a release) the pushed one.
+    assert 'bash "${script_dir}/worker_parent_manifest.sh"' in script
     assert "accelerator_worker_image.sh" not in script
 
 
@@ -214,3 +215,29 @@ def test_the_constraints_are_the_cpu_export_without_torch():
     constraints = requirements(CONSTRAINTS)
     cpu = requirements(CPU_EXPORT)
     assert constraints == {k: v for k, v in cpu.items() if k != "torch"}
+
+
+def test_the_cpu_recipe_builds_from_source_exactly_the_exports_without_wheels():
+    """Release rehearsal on #725: the PyTorch CPU image never built, because
+    its export pins antlr4-python3-runtime, which PyPI ships only as a source
+    distribution, and the recipe installed wheels only. The recipe's
+    `--no-binary` list is exactly the exported packages uv.lock has no wheel
+    for; every other package stays wheels only."""
+    import tomllib
+
+    lock = tomllib.loads((REPOSITORY / "uv.lock").read_text())
+    wheels = {
+        (p["name"].lower().replace("_", "-"), p["version"]): bool(p.get("wheels"))
+        for p in lock["package"]
+        if "version" in p
+    }
+    exported = requirements(CPU_EXPORT)
+    without = {
+        name
+        for name, version in exported.items()
+        if not wheels[(name.replace("_", "-"), version)]
+    }
+    recipe = (REPOSITORY / ".devcontainer/torch/Dockerfile").read_text()
+    assert "--require-hashes --only-binary=:all: --no-deps" in recipe
+    listed = set(re.findall(r"--no-binary ([A-Za-z0-9._-]+)", recipe))
+    assert without and listed == without

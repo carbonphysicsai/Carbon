@@ -224,6 +224,23 @@ def submission_identity(submission):
 class CommitmentRequired(PermissionError):
     """The miner has not committed this submission on chain."""
 
+    code = "commitment_required"
+
+
+class CommitmentStale(CommitmentRequired):
+    """The matching commitment was posted before this hotkey's previous
+    admission, so it was already spent (OWNER-COMMITMENT-POSTER-01 D6)."""
+
+    code = "commitment_stale"
+
+
+class CommitmentContested(CommitmentRequired):
+    """Another hotkey committed the same digest at an earlier block, or the
+    same one: D6 gives the earliest commitment priority, and a same-block tie
+    has no rule, so it is refused (fail closed)."""
+
+    code = "commitment_contested"
+
 
 class BackendNotServed(PermissionError):
     """This validator has no worker image for the recipe's backend.
@@ -599,7 +616,26 @@ class BatteryValidator:
                 raise CommitmentRequired(
                     "commit " + expected + " on chain before submitting"
                 )
-            commitment = {"digest": expected, "block": observed.get("block")}
+            # D6: a commitment counts only when fresh, posted after this
+            # hotkey's previous admission (it is read at the finalized head,
+            # so it was posted before this submission). The chain keeps one
+            # commitment per hotkey, so the earliest-qualifying rule needs no
+            # choice here. A replay of this same submission is not "previous".
+            previous = self.store.last_admission_block(
+                submission.hotkey, excluding=submission_id
+            )
+            posted = observed.get("block")
+            if previous is not None and not (type(posted) is int and posted > previous):
+                raise CommitmentStale(
+                    "commit " + expected + " again after block " + str(previous)
+                )
+            # D6, across hotkeys: the digest is not bound to a hotkey, so a copy
+            # of another's strategy would match. The earliest commitment block
+            # has priority; within one block, the earlier transaction
+            # (OWNER-COMMITMENT-D6-TIE-01). A position that cannot be
+            # established refuses both (fail closed).
+            self._commitment_priority(submission.hotkey, expected, posted)
+            commitment = {"digest": expected, "block": posted}
         identities = self.identities()
         binding = {
             **{
@@ -640,6 +676,36 @@ class BatteryValidator:
             submission_id, binding=binding, window=window, **base
         )
         return self.outcome(row["submission_id"])
+
+    def _commitment_priority(self, hotkey, expected, posted):
+        """Refuse (`CommitmentContested`) unless this hotkey's commitment of
+        `expected` is the earliest: by block, then by transaction order
+        within the block."""
+        from carbon.chain.commitments import CommitmentUnavailable, same_account
+
+        holders = getattr(self.commitments, "holders", None)
+        if not callable(holders):
+            raise CommitmentUnavailable("commitment_holders_unreadable")
+        others = [(h, b) for h, b in holders(expected) if h != hotkey]
+        if any(block < posted for _h, block in others):
+            raise CommitmentContested("another hotkey committed " + expected + " first")
+        tied = [h for h, block in others if block == posted]
+        if not tied:
+            return
+        positions = getattr(self.commitments, "positions", None)
+        found = positions(posted) if callable(positions) else {}
+
+        def index(account):
+            matches = [i for who, i in found.items() if same_account(who, account)]
+            return matches[0] if len(matches) == 1 else None
+
+        mine = index(hotkey)
+        for other in tied:
+            theirs = index(other)
+            if mine is None or theirs is None or theirs < mine:
+                raise CommitmentContested(
+                    "another hotkey committed " + expected + " first in its block"
+                )
 
     def _serves_development(self, hotkey):
         """Whether this deployment admits a development variant from `hotkey`:
@@ -998,6 +1064,9 @@ class BatteryValidator:
     #: Quiz predictions are stored under this prefix plus the submission id,
     #: never a scored model's id, so they never collide with a scored case.
     QUIZ_PREDICTIONS = "quiz/"
+    #: Leak detection's own predictions on batches a score did not use
+    #: (`challenge_validator.leak_detection`), apart from every scored one.
+    LEAK_PREDICTIONS = "leak/"
     QUIZ_REPORT_SCHEMA = "carbon.battery.quiz-report.v1"
 
     def quiz_report(self, submission_id):
@@ -1073,11 +1142,22 @@ class BatteryValidator:
             submission_id, {**report, "state": "MEASURED", "pooled": measures["pooled"]}
         )
 
-    def _quiz_predictions(self, submission_id, inputs, tag):
+    def leak_predictions(self, submission_id, inputs, tag):
+        """The retained model's predictions on cases of batches its score did
+        not use, for the operator's leak detection: through the backend's
+        `infer` as scoring uses it, stored apart from every scored prediction
+        (`LEAK_PREDICTIONS`). Never read by scoring, nomination or finals."""
+        return self._quiz_predictions(
+            submission_id, inputs, "leak-" + tag, namespace=self.LEAK_PREDICTIONS
+        )
+
+    def _quiz_predictions(self, submission_id, inputs, tag, namespace=None):
         """The retained model's predictions on the quiz inputs, through the
         backend's `infer` as scoring uses it, stored apart from every scored
-        prediction (`QUIZ_PREDICTIONS`)."""
-        key = self.QUIZ_PREDICTIONS + submission_id
+        prediction (`QUIZ_PREDICTIONS`, or `namespace`)."""
+        key = (self.QUIZ_PREDICTIONS if namespace is None else namespace) + (
+            submission_id
+        )
         have = self.store.predictions(key, list(inputs))
         missing = [c for c in inputs if c not in have]
         if missing:

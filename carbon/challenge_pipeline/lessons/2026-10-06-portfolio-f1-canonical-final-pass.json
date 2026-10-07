@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-portfolio-f1-canonical-final-pass",
+  "recorded_at": "2026-10-06T20:55:34Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "F1 canonical final affected checks at 5e2f3d557", "description": "Validate pipeline, affected tests and quality in pinned Linux container"},
+  "expected": "Pipeline, packet conformance, affected subsystem and quality checks pass",
+  "observed": "Protocol DEFINING; 7 records and 375 lessons valid; 29 tests passed, 1 existing skip; Ruff and Black passed. Local Ruff excluded EXE002 only because DrvFS reports Git mode 100644 test file as executable.",
+  "keep": ["Use exact-head CI on a normal Linux checkout for delivery acceptance and keep the new five Challenge scopes documentation-only until their gates are approved."],
+  "change": [],
+  "protocol_elements": ["challenge.pipeline.lessons", "portfolio.f1.packet"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-portfolio-f1-windows-worktree-refusal",
+  "recorded_at": "2026-10-06T20:29:25Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "F1 canonical focused attempt 2", "description": "Run new static packet test through WSL canonical wrapper"},
+  "expected": "Canonical focused test starts",
+  "observed": "Wrapper rejected repository root because the Windows-created linked worktree .git points to a Windows path unreadable by WSL git.",
+  "keep": ["The linked worktree and handed-off Battery branch were not modified to force validation."],
+  "change": ["Use an environment-only Git override for diagnostic retry."],
+  "protocol_elements": ["challenge.pipeline.lessons", "portfolio.f1.packet"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

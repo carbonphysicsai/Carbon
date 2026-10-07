@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-operator-cpu-placement-tests",
+  "recorded_at": "2026-10-07T01:54:00Z",
+  "challenge": "protocol",
+  "stage": "protocol",
+  "execution": {
+    "kind": "test_run",
+    "ref": "./scripts/dev/canonical.sh --focused tests/cpu/test_graphite_operator_runpod.py",
+    "description": "CPU placement and existing ownership/lifecycle tests using fake Runpod only"
+  },
+  "expected": "Refuse unvalidated placement, preserve GPU identity and recover lost CPU create responses without duplicate dispatch.",
+  "observed": "39 tests passed in 4.00 seconds on pinned Ubuntu 24.04, CPython 3.11.16 and uv 0.12.7. This checks request construction and fake lifecycle, not actual hardware allocation, enforced portfolio budgets or paid readiness.",
+  "keep": ["Validate an immutable placement before provider contact.", "Keep the existing intent/tag recovery and credential boundary."],
+  "change": [],
+  "protocol_elements": ["operator CPU placement", "idempotent intent identity", "no-spend preparation"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
