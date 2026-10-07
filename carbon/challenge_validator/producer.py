@@ -845,6 +845,9 @@ def main(argv=None):
             command.add_argument("--fingerprint", required=True)
         if name == "solve":
             command.add_argument("--workers", type=int, default=7)
+            # Unset keeps each source's own default (battery 1,200 s, motor
+            # 7,200 s).
+            command.add_argument("--timeout-s", type=float)
     args = parser.parse_args(argv)
     try:
         producer = Producer.from_config(args.config)
@@ -853,9 +856,10 @@ def main(argv=None):
                 args.challenge, args.role, kind=args.kind, size=args.size
             )
         elif args.command == "solve":
-            result = producer.solve(
-                args.challenge, args.fingerprint, workers=args.workers
-            )
+            options = {"workers": args.workers}
+            if args.timeout_s is not None:
+                options["timeout_s"] = args.timeout_s
+            result = producer.solve(args.challenge, args.fingerprint, **options)
         elif args.command == "seal":
             result = producer.seal(args.challenge, args.fingerprint)
         elif args.command == "publish":
