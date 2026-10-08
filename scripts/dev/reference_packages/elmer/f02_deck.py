@@ -307,7 +307,7 @@ Simulation
 {timing}  Steady State Max Iterations = 1
 End
 {bodies_text}Initial Condition 1
-  Temperature = {case['initial_c'] + 273.15!r}
+  Temperature = {case["initial_c"] + 273.15!r}
 End
 {mats}Equation 1
   Active Solvers(1) = 1

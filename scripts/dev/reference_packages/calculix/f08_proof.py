@@ -349,6 +349,11 @@ def peak(curve):
 def oscillators(image, out):
     deck, _ = oscillator_deck()
     steps, run = run_ccx(image, out / "oscillators", "osc", deck)
+    return {"run": run, **oscillator_check(steps)}
+
+
+def oscillator_check(steps):
+    """Mass normalisation and constant-zeta FRFs against the analytic oscillators."""
     params = osc_params()
     eig = steps[0]["eigen"]
     shapes = mode_shapes(steps[0])
@@ -383,7 +388,7 @@ def oscillators(image, out):
                 worst_phase = max(worst_phase, phase_deg(got, exact) or 0.0)
         damping[f"zeta_{zeta}"] = {"frequencies": len(harmonic(step)), "max_rel_err_vs_analytic": worst,
                                    "max_phase_err_deg": worst_phase, "unretained_max_abs": zero}  # fmt: skip
-    return {"run": run, "modes": norm, "damping": damping}
+    return {"modes": norm, "damping": damping}
 
 
 def plate(image, out):
