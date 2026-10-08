@@ -15,6 +15,7 @@ DESIGN_TASK_CODE = (
     "carbon/design_search/tasks.py",
     "carbon/design_search/indexed.py",
     "carbon/design_search/indexed_power.py",
+    "carbon/design_search/score_bridge.py",
     "carbon/design_search/optimizer.py",
     "carbon/design_search/cost.py",
     "carbon/design_search/query_cost.py",
