@@ -28,6 +28,7 @@
 | 6 | `specimens.attack_suite`: one specimen per row of §8.1 and §8.3 under non-production fixture caps; rows no graph gate can test are recorded with their owner |
 | 4 | G0 `intake.py` (bounds `HUMAN_INPUT`; an unset bound blocks) with G3's isolated parse (`_parse_worker`: CPU, memory and file limits; a crash or overrun is the submission's refusal, a worker that cannot start is `FAILED_INFRA`); the miner-side CLI `python -m carbon.level4.tooling lower` for the Launchpad |
 | 5 | G7 `grade.py`: padded inference, non-finite cases named (the exam's gates type them), inference cost measured from the compiled graph (rule `HUMAN_INPUT`); battery `grade_graph` on public PRACTICE with battery's exam code unchanged. A trained Level 0 graph gets exactly the declarative path's exam verdict |
+| 7 | G5 `compile.py`: Carbon's own lane program compiles the rebuilt forward graph, a gradient step and the init graph in the C-03 Carbon lane from staged bytes only; a deadline or in-lane failure is the submission's refusal, any other lane failure `FAILED_INFRA`; the deadline is `HUMAN_INPUT`; the profile is recorded as awaiting the security owner (D3) |
 
 **Q5 answered (plan PR 3).** Per-case graphs batched by Carbon's `vmap` run
 forward bit-identically, but they do **not** train bit-identically for every
