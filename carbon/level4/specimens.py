@@ -352,3 +352,347 @@ def summary(results):
     return json.dumps(
         [r for r in results if r["expected"] != r["observed"]], sort_keys=True
     )
+
+
+# --- One specimen per attack row (proposal §8.1 and §8.3) ---------------------
+
+#: Caps for the cap-gated specimens ONLY: small enough that the specimen
+#: crosses one, generous enough that the honest control passes. These are
+#: test fixtures, NOT values for any Challenge; every real cap stays
+#: HUMAN_INPUT (`allowlist.CAPS`).
+FIXTURE_CAPS = {
+    "constant_bytes": 4096,
+    "nodes_executed": 10**6,
+    "call_depth": 8,
+    "document_bytes": 10**8,
+    "largest_intermediate_bytes": 10**9,
+}
+
+
+def _program(fn, args, role="forward"):
+    return ("program", (fn, args, role))
+
+
+def _swapped(op):
+    """A Carbon-side document whose one op a hostile miner replaced."""
+    return ("document_op", op)
+
+
+def _recorded(owner):
+    return ("recorded", owner)
+
+
+def _attack_rows():
+    import jax
+    import jax.numpy as jnp
+    import numpy as np
+    from jax import lax
+
+    x = _x()
+    shape = jax.ShapeDtypeStruct(x.shape, x.dtype)
+    asset = np.linspace(0.0, 1.0, 4096, dtype=np.float32)  # 16 KB "weights file"
+    pieces = [np.float32(i) for i in range(2048)]
+    wrapped = jnp.zeros(2, jnp.uint32)
+
+    def callback(v):
+        return jax.pure_callback(lambda a: a, shape, v)
+
+    @jax.custom_jvp
+    def hidden(v):
+        return callback(v)
+
+    hidden.defjvp(lambda p, t: (hidden(*p), t[0]))
+
+    def loaded(v):
+        return v + jnp.asarray(asset)[: v.shape[1]]
+
+    def split(v):
+        total = v
+        for piece in pieces:
+            total = total + piece
+        return total
+
+    def nested(v, depth=12):
+        f = lambda a: a + 1.0
+        for _ in range(depth):
+            f = jax.jit(lambda a, _f=f: _f(a) * 1.0)
+        return f(v)
+
+    def procedural(v):
+        return v + jnp.sin(jnp.arange(v.shape[1], dtype=v.dtype) * 3.7)
+
+    def residue(key):
+        return [jax.random.normal(key, (2,)), jnp.asarray(asset[:8])]
+
+    def fixed_weights(key):
+        return [jax.random.normal(key, (2,)), jnp.cos(jnp.arange(8.0))]
+
+    def widened(v):
+        return jnp.concatenate([v, v[:, :1] * 1e-7], axis=1)
+
+    def gathered(v):
+        return jnp.take_along_axis(v, jnp.argsort(v, axis=1), axis=1)
+
+    rng = jax.random.wrap_key_data
+    return [
+        (
+            "8.1",
+            "Network access, undeclared dependencies",
+            "io_callback node",
+            _swapped("io_callback"),
+            "op_refused",
+        ),
+        (
+            "8.1",
+            "Model loaders, hidden assets",
+            "a loaded weights file as one constant",
+            _program(loaded, (x,)),
+            "cap_exceeded:constant_bytes",
+        ),
+        (
+            "8.1",
+            "Embedded weights or tables",
+            "a table split into 2,048 scalars",
+            _program(split, (x,)),
+            "cap_exceeded:constant_bytes",
+        ),
+        (
+            "8.1",
+            "Child processes, resource escapes",
+            "ffi_call node",
+            _swapped("ffi_call"),
+            "op_refused",
+        ),
+        (
+            "8.1",
+            "Caches, checkpoints, cross-attempt residue",
+            "init returning a stored table",
+            _program(residue, (jax.random.PRNGKey(0),), "init"),
+            "init_output_not_keyed",
+        ),
+        (
+            "8.1",
+            "Run identification, timing feedback",
+            "RNG in the forward graph",
+            _program(lambda v: v + jax.random.normal(rng(wrapped), v.shape), (x,)),
+            "op_not_allowed_in_role",
+        ),
+        (
+            "8.1",
+            "Construction-to-evaluator access, answer-key exfiltration",
+            "custom_call node",
+            _swapped("custom_call"),
+            "op_refused",
+        ),
+        (
+            "8.1",
+            "Hidden preprocessing, inference/solver hybrids",
+            "pure_callback wrapping a solver",
+            _program(callback, (x,)),
+            "op_refused",
+        ),
+        (
+            "8.1",
+            "Malformed outputs, nonfinite values, parser abuse",
+            "nesting bomb document",
+            ("raw", b'{"schema":' + b"[" * 40 + b"]" * 40 + b"}"),
+            "json_strategy_nesting_too_deep",
+        ),
+        (
+            "8.1",
+            "Malformed outputs, nonfinite values (outputs)",
+            "NaN on selected cases",
+            _recorded("G7 (plan PR 5)"),
+            None,
+        ),
+        (
+            "8.3",
+            "Callback smuggling",
+            "pure_callback inside custom_jvp",
+            _program(hidden, (x,)),
+            "op_refused",
+        ),
+        (
+            "8.3",
+            "Constant splitting",
+            "the same table spread across nested calls",
+            _program(lambda v: jax.jit(split)(v), (x,)),
+            "cap_exceeded:constant_bytes",
+        ),
+        (
+            "8.3",
+            "Procedural tables",
+            "iota arithmetic regenerating a table",
+            _program(procedural, (x,)),
+            "not_refused",
+        ),
+        (
+            "8.3",
+            "Unbounded loop",
+            "data-dependent while",
+            _program(
+                lambda v: lax.while_loop(
+                    lambda a: a.sum() < 100.0, lambda a: a * 2.0, v
+                ),
+                (x,),
+            ),
+            "op_refused",
+        ),
+        (
+            "8.3",
+            "Compute under-counting",
+            "denormal- or gather-heavy graph",
+            _recorded("R6/R7, plan Phase 4"),
+            None,
+        ),
+        (
+            "8.3",
+            "Compile bomb",
+            "calls nested 12 deep",
+            _program(nested, (x,)),
+            "cap_exceeded:call_depth",
+        ),
+        (
+            "8.3",
+            "Compiler exploit",
+            "a crafted XLA bug trigger",
+            _recorded("G5 isolation; security owner (D3)"),
+            None,
+        ),
+        (
+            "8.3",
+            "Trace-time divergence",
+            "code that differs when traced",
+            _recorded("not applicable on Carbon hosts: only the graph is trained"),
+            None,
+        ),
+        (
+            "8.3",
+            "Nondeterminism",
+            "gather and sort (scatter-add gradient on GPU)",
+            _program(gathered, (x,)),
+            "review_flagged",
+        ),
+        (
+            "8.3",
+            "RNG leakage",
+            "keyed RNG in the loss",
+            _program(
+                lambda v: jnp.sum(v * jax.random.uniform(rng(wrapped), v.shape)),
+                (x,),
+                "loss",
+            ),
+            "op_not_allowed_in_role",
+        ),
+        (
+            "8.3",
+            "Interface abuse",
+            "an extra output column carrying signal",
+            ("interface", widened),
+            "interface_shape",
+        ),
+        (
+            "8.3",
+            "Initializer abuse",
+            "init building fixed weights without the key",
+            _program(fixed_weights, (jax.random.PRNGKey(0),), "init"),
+            "init_output_not_keyed",
+        ),
+        (
+            "control",
+            "Honest graph",
+            "tanh(x @ w) under the fixture caps",
+            ("honest", None),
+            "admitted",
+        ),
+    ]
+
+
+def _observe(kind, payload, allowlist, max_bytes):
+    """The code a specimen produces at Carbon's gates (G3, G4)."""
+    import jax.numpy as jnp
+
+    from . import validate
+
+    try:
+        if kind == "program":
+            fn, args, role = payload
+            closed = lower_jax.trace(fn, *args)
+            names = (
+                ["carbon/key"]
+                if role == "init"
+                else [f"inputs/{i}" for i in range(len(closed.jaxpr.invars))]
+            )
+            doc = lower_jax.lower(
+                closed, role=role, allowlist=allowlist, input_names=names
+            )
+            raw = graph.dumps(doc)
+        elif kind == "document_op":
+            doc = _small_document(allowlist)
+            node = next(n for n in doc["graphs"]["main"]["nodes"] if n["op"] == "tanh")
+            node.update(op=payload, params={})
+            raw = graph.dumps(doc)
+        elif kind == "raw":
+            raw = payload
+        elif kind == "interface":
+            from .tooling import through_bprime
+
+            _, doc, raw = through_bprime(
+                payload,
+                (_x(),),
+                role="forward",
+                allowlist=allowlist,
+                input_names=["inputs/x"],
+                max_bytes=max_bytes,
+            )
+            interface = validate.Interface(
+                inputs=(("inputs/x", "float32", (3,)),), outputs=(("float32", (3,)),)
+            )
+            validate.validate(
+                graph.parse(raw, max_bytes=max_bytes), allowlist, interface=interface
+            )
+            return "not_refused"
+        else:  # honest control
+            raw = graph.dumps(_small_document(allowlist))
+        doc = graph.parse(raw, max_bytes=max_bytes)
+        verdict = validate.validate(doc, allowlist, caps=FIXTURE_CAPS)
+        if kind == "honest":
+            interpret.rebuild(doc, allowlist)(jnp.ones((3, 2), jnp.float32), _x())
+            return verdict["status"]
+        if verdict["review_flags"]:
+            return "review_flagged"
+        return "not_refused"
+    except graph.GraphRefused as refused:
+        if refused.code == "cap_exceeded":
+            return f"cap_exceeded:{refused.where}"
+        return refused.code
+
+
+def attack_suite(allowlist, *, max_bytes):
+    """One row per attack family: what was tried, the gate, the code seen.
+    `recorded` rows name the owner of a family no graph gate can test."""
+    rows = []
+    for section, family, specimen, (kind, payload), expected in _attack_rows():
+        if kind == "recorded":
+            rows.append(
+                {
+                    "section": section,
+                    "family": family,
+                    "specimen": specimen,
+                    "status": "recorded",
+                    "owner": payload,
+                }
+            )
+            continue
+        observed = _observe(kind, payload, allowlist, max_bytes)
+        rows.append(
+            {
+                "section": section,
+                "family": family,
+                "specimen": specimen,
+                "expected": expected,
+                "observed": observed,
+                "status": "pass" if observed == expected else "FINDING",
+            }
+        )
+    return rows
