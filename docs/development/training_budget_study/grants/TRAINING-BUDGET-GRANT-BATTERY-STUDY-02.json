@@ -1,0 +1,16 @@
+{
+ "schema": "carbon.agent-campaign.spending-grant.v1",
+ "grant_id": "TRAINING-BUDGET-GRANT-BATTERY-STUDY-02",
+ "provider": "vast",
+ "account": "Carbon-Account",
+ "granted_by": "owner",
+ "expires_at": "2026-12-31T23:59:59Z",
+ "currency": "USD",
+ "monetary_ceiling": "34.80",
+ "cleanup_allowance": "0.25",
+ "worst_case_run_cost": "18.24",
+ "permitted_runs": 10,
+ "max_concurrency": 1,
+ "max_runtime_s": 136800,
+ "max_submissions": 10
+}
