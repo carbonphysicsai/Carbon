@@ -15,8 +15,9 @@ each HUMAN_INPUT value bounds:
 Nothing here chooses a value. `docs/development/graphite/level4/
 LEVEL4_VALUES_PROPOSAL.md` reads this file's output and proposes them.
 
-Usage: python scripts/dev/level4_spike/values_evidence.py --adapter battery
-       [--adapter motor] --out FILE
+Usage: python scripts/dev/level4_spike/values_evidence.py --adapter NAME
+       [--adapter NAME ...] --out FILE
+(each NAME selects a Challenge's adapter module, `carbon.<NAME>.level4`.)
 """
 
 from __future__ import annotations

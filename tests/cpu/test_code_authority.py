@@ -609,6 +609,12 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
             "module_name",
         ),
         (
+            "scripts/dev/level4_spike/g3_memory_probe.py",
+            "main",
+            "importlib.import_module",
+            "f'carbon.{args.adapter}.level4'",
+        ),
+        (
             "scripts/dev/level4_spike/run.py",
             "main",
             "importlib.import_module",

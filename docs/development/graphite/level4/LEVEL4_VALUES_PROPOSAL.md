@@ -17,8 +17,8 @@ legitimate value, and the stated headroom. Sources:
 - `phase1_e1_results.json`: E1, battery's Level 0 families trained through
   the gates, bit-identical to declarative training.
 - `g3_memory_probe.json` (`scripts/dev/level4_spike/g3_memory_probe.py`):
-  the real isolated parse worker on the two largest submissions, at limits
-  from 96 to 512 MiB.
+  the real isolated parse worker on the three largest submissions (the
+  largest MLP, DeepONet and FNO), at limits from 96 to 512 MiB.
 
 **What was measured on.** CPU only: WSL x86_64 with 20 CPUs, JAX 0.10.2. The
 real C-03 lane adds container start-up, and GPU numbers come with the A40 R1
@@ -38,7 +38,7 @@ contract's architecture maxima (`largest_strategies`).
 | Bound | Largest measured | Recommended | Headroom | Why |
 |---|---|---|---|---|
 | `parse_seconds` (CPU) | 0.087 s in process; ≤ 0.64 s wall isolated, start-up included | **10 s** | 15× over isolated wall | Parsing is linear in bytes; at 1 MiB per document this stays well under 10 s. |
-| `parse_memory_bytes` (`RLIMIT_AS`) | the real worker parses the largest DeepONet and FNO submissions at 96 MiB | **512 MiB** | 5× | The bound covers the interpreter as well as the parse, so it is set by the worker's footprint, not the graph's. |
+| `parse_memory_bytes` (`RLIMIT_AS`) | the real worker parses the largest MLP, DeepONet and FNO submissions at 96 MiB | **512 MiB** | 5× | The bound covers the interpreter as well as the parse, so it is set by the worker's footprint, not the graph's. |
 
 ## 3. G4 caps (`carbon/level4/allowlist.py` `CAPS`)
 
