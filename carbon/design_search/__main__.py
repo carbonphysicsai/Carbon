@@ -43,11 +43,13 @@ def main(argv=None):
         "power-report", help="aggregate producer control separation"
     )
     power.add_argument("--bank", type=Path)
+    power.add_argument("--panel-export", type=Path)
     power.add_argument("--battery-work", type=Path)
     power.add_argument("--journal", type=Path)
     power.add_argument("--law", type=Path)
     power.add_argument("--grid-law", type=Path)
     power.add_argument("--continuous-law", type=Path)
+    power.add_argument("--accumulation", type=Path)
     power.add_argument("--controls", type=Path)
     power.add_argument("--good-predictor", type=Path)
     power.add_argument("--alpha", required=True, type=float)
@@ -93,6 +95,8 @@ def main(argv=None):
                     for name in (
                         "grid_law",
                         "continuous_law",
+                        "accumulation",
+                        "panel_export",
                         "controls",
                         "good_predictor",
                         "simulation_seed",
@@ -115,25 +119,72 @@ def main(argv=None):
                     for name in ("edge", "caution", "sign", "path")
                 },
             )
+        elif args.panel_export is not None:
+            from carbon.design_search import producer_panels
+
+            if any(
+                getattr(args, name) is not None
+                for name in (
+                    "bank",
+                    "battery_work",
+                    "journal",
+                    "law",
+                    "grid_law",
+                    "continuous_law",
+                    "good_predictor",
+                    "bootstrap_seed",
+                    "interval_level",
+                )
+            ) or any(
+                getattr(args, name) is None
+                for name in (
+                    "controls",
+                    "accumulation",
+                    "simulation_seed",
+                    "max_questions",
+                )
+            ):
+                parser.error("producer panel power registration is incomplete")
+            read = lambda path: json.loads(path.read_text(encoding="utf-8"))
+            result = producer_panels.panel_power_report(
+                read(args.panel_export),
+                read(args.controls),
+                read(args.accumulation),
+                alpha=args.alpha,
+                power_target=args.power_target,
+                simulation_seed=args.simulation_seed,
+                replicates=args.replicates,
+                max_questions=args.max_questions,
+            )
         else:
             if any(
                 getattr(args, name) is None
                 for name in (
                     "bank",
-                    "grid_law",
-                    "continuous_law",
                     "controls",
                     "good_predictor",
                     "max_questions",
                     "simulation_seed",
                 )
-            ):
+            ) or not (args.grid_law or args.continuous_law or args.law):
                 parser.error("generic power registration is incomplete")
             read = lambda path: json.loads(path.read_text(encoding="utf-8"))
+            if args.law is not None and (args.grid_law or args.continuous_law):
+                parser.error("use --law or separate --grid-law/--continuous-law")
+            grid = read(args.grid_law) if args.grid_law else None
+            continuous = read(args.continuous_law) if args.continuous_law else None
+            if args.law is not None:
+                one = read(args.law)
+                if one.get("kind") == "grid":
+                    grid = one
+                elif one.get("kind") == "continuous":
+                    continuous = one
+                else:
+                    parser.error("registered grid or continuous law required")
             result = power_report(
                 read(args.bank),
-                read(args.grid_law),
-                read(args.continuous_law),
+                grid,
+                continuous,
                 read(args.controls),
                 read(args.good_predictor),
                 alpha=args.alpha,
@@ -141,6 +192,7 @@ def main(argv=None):
                 simulation_seed=args.simulation_seed,
                 replicates=args.replicates,
                 max_questions=args.max_questions,
+                accumulation=read(args.accumulation) if args.accumulation else None,
             )
     except (OSError, ValueError, KeyError, TypeError, tasks.TaskError):
         parser.error("invalid producer report registration or sealed bank")
