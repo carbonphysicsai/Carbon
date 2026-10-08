@@ -21,7 +21,10 @@ promises without running Docker:
   Docker's images needs room for both, a plain reinstall rebuilds the GPU
   worker too, an `--update` to an installer without `--update` stops before
   the checkout moves, the service log is owner-only before the service
-  starts, and the launcher's session token reaches a file while it runs.
+  starts, and the launcher's session token reaches a file while it runs;
+- after the 2026-10-07 acceptance run (LA-F6): with the service, the
+  systemd user manager itself must reach Docker, or the install stops in
+  step 1 with the fix.
 """
 
 from __future__ import annotations
@@ -119,6 +122,14 @@ FAKE_TOOLS = {
     "uv": '#!/bin/sh\necho "uv 0.12.7"\n',
     "curl": '#!/bin/sh\necho "curl ran" >&2\nexit 9\n',
     "systemctl": '#!/bin/sh\necho "systemctl $*" >> "$CARBON_TEST_LOG"\n',
+    # The user manager's own view of Docker (LA-F6): it reaches Docker unless
+    # the test says the manager lacks the docker group.
+    "systemd-run": (
+        '#!/bin/sh\necho "systemd-run $*" >> "$CARBON_TEST_LOG"\n'
+        'if [ "$CARBON_TEST_MANAGER_DOCKER" = "denied" ]; then\n'
+        '  echo "permission denied while trying to connect to the docker API" >&2\n'
+        "  exit 1\nfi\necho 27.0.0\n"
+    ),
     "df": (
         "#!/bin/sh\necho 'Filesystem 1024-blocks Used Available Capacity Mounted on'\n"
         "echo 'fixture 1073741824 0 1073741824 0% /'\n"
@@ -565,6 +576,63 @@ def test_the_service_option_writes_and_starts_the_user_unit(sandbox):
     assert (
         sandbox.logged()[-1] == "systemctl --user restart carbon-control-center.service"
     )
+
+
+#: How the installer asks the user manager itself to reach Docker (LA-F6).
+MANAGER_DOCKER_CHECK = "systemd-run --user --wait --quiet --collect --pipe"
+
+
+def test_the_service_checks_docker_from_the_user_manager_before_anything(sandbox):
+    """LA-F6: the service runs under the systemd user manager, so the
+    installer asks the manager, not this shell, to reach Docker, in step 1
+    before anything is synced or built. A plain install asks nothing."""
+    assert sandbox.run("--no-start").returncode == 0
+    assert not any(line.startswith("systemd-run") for line in sandbox.logged())
+    completed = sandbox.run("--service")
+    assert completed.returncode == 0, completed.stderr
+    log = sandbox.logged()
+    asked = [i for i, line in enumerate(log) if line.startswith(MANAGER_DOCKER_CHECK)]
+    assert len(asked) == 1
+    assert log[asked[0]].endswith("/docker info --format {{.ServerVersion}}")
+    synced = [i for i, line in enumerate(log) if line.startswith("bootstrap")]
+    assert asked[0] < synced[-1]
+
+
+@pytest.mark.parametrize(
+    "environment,fix",
+    [
+        (
+            {"WSL_DISTRO_NAME": "carbon-fresh"},
+            "From Windows, run: wsl --terminate carbon-fresh, then open the distro again",
+        ),
+        ({}, "sudo systemctl restart user@"),
+    ],
+)
+def test_a_user_manager_without_docker_stops_the_service_install_first(
+    sandbox, environment, fix
+):
+    """LA-F6, as the fresh WSL distro met it: the docker group was added after
+    the user manager started, so this shell reaches Docker and the manager
+    does not. The install stops in step 1 with the fix and what it stops;
+    nothing is synced, built or written, and no unit is enabled or started."""
+    before = sandbox.head()
+    completed = sandbox.run(
+        "--service", CARBON_TEST_MANAGER_DOCKER="denied", **environment
+    )
+    assert completed.returncode == 2
+    assert "Docker answers this shell but not your systemd user manager" in (
+        completed.stderr
+    )
+    assert fix in completed.stderr
+    assert "That stops" in completed.stderr or "that stops" in completed.stderr
+    assert "Nothing was changed" in completed.stderr
+    assert sandbox.head() == before
+    log = sandbox.logged()
+    assert len(log) == 2
+    assert log[0] == "systemctl --user show-environment"
+    assert log[1].startswith(MANAGER_DOCKER_CHECK)
+    unit = sandbox.tmp / "home/.config/systemd/user/carbon-control-center.service"
+    assert not unit.exists()
 
 
 # --- carbon-control-center (LP-PROD-E) -----------------------------------------

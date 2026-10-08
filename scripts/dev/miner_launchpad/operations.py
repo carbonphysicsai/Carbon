@@ -403,6 +403,7 @@ REFUSAL_FIELDS = {
     "graphite_field_not_used_by_mode": "graphite_mode",
     "research_share_invalid": "research_share",
     "graphite_limits_invalid": "limits",
+    "graphite_ceilings_required": "budget",
     "hunt_query_invalid": "hunt",
     "plan_not_found": "plan",
     # The library and plans (S4).
@@ -574,6 +575,25 @@ OPERATIONS = {
             "workspace and workflow tools with their MCP names, rebuildable "
             "families, what the validator rebuilds with, and this host's "
             "lanes. Reads only.",
+            frozenset({"challenge"}),
+            frozenset({"challenge_version"}),
+            ("request", "profile"),
+            admits_work=False,
+        ),
+        # A Challenge's construction levels (LAUNCHPAD-LEVELS-01 S1), read
+        # from its ladder record, level proposals and development-variant
+        # registry. Display only: no level is chosen or submitted here.
+        Operation(
+            "ladder",
+            "One Challenge's construction levels, read from its data: each "
+            "level's text and ladder state; who it is for (MINER_FACING only "
+            "where the ladder names it chosen, DEVELOPMENT only above a named "
+            "deployment's own level, otherwise NOT_OFFERED); its capabilities "
+            "from the accepted proposal, with the surface and bounds a "
+            "registered development variant widens; the variant's name, "
+            "digest and arm, or the registry's refusal; what the level leaves "
+            "out; and the contract's compute budget, or NOT_SET. Reads only; "
+            "nothing here can be submitted.",
             frozenset({"challenge"}),
             frozenset({"challenge_version"}),
             ("request", "profile"),

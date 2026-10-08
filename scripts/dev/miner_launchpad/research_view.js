@@ -718,7 +718,56 @@
       // machine code a status sentence stands for).
       const own = [...card.querySelectorAll(":scope > details")].pop();
       if (own) card.insertBefore(box, own); else card.append(box);
+      // Its construction levels (LAUNCHPAD-LEVELS-01 S1), read when opened:
+      // one generic table, the same for every level and every Challenge.
+      const levels = el("details", undefined, "rs-ladder");
+      levels.append(el("summary", "Construction levels"));
+      const levelsBody = el("div", undefined, "detail-body");
+      levels.append(levelsBody);
+      levels.addEventListener("toggle", async () => {
+        if (!levels.open || levelsBody.dataset.loaded) return;
+        levelsBody.dataset.loaded = "1";
+        levelsBody.replaceChildren(el("p", "Reading the construction levels…", "hint"));
+        try {
+          const view = await CC.api("/api/v1/operations/ladder", {challenge: card.dataset.challenge}, undefined, 20000);
+          levelsBody.replaceChildren(); renderLadder(levelsBody, view);
+        } catch (error) { levelsBody.replaceChildren(el("p", "Not available: " + words(error.message) + ". It needs a runner profile on this controller.", "hint")); levelsBody.dataset.loaded = ""; }
+      });
+      if (own) card.insertBefore(levels, own); else card.append(levels);
     }
+  }
+  // A Challenge's construction levels, read only (LAUNCHPAD-LEVELS-01 S1).
+  // Every level is drawn by the same code from the same keys.
+  function renderLadder(parent, view) {
+    if (!view || view.status === "UNAVAILABLE") { para(parent, "The construction levels could not be read" + (view?.reason ? ": " + words(view.reason) : "") + ".", "hint"); return; }
+    para(parent, view.status === "ON_LADDER" ? "On the ladder at Level " + view.ladder.level + "; chosen level: " + (view.ladder.chosen === null ? "none yet" : view.ladder.chosen) + "." : "Not yet on the construction ladder.", "lede");
+    para(parent, view.read_only, "hint");
+    para(parent, view.audience_basis, "hint");
+    const wrap = el("div", undefined, "table-wrap"); const table = el("table", undefined, "metrics-table");
+    const head = el("tr"); for (const n of ["Level", "State", "For", "Variant", "Capabilities", "Left out", "Compute budget"]) head.append(el("th", n)); table.append(head);
+    for (const row of view.levels) {
+      const tr = el("tr");
+      const level = el("td"); level.append(el("strong", String(row.level)), el("span", " " + row.text, "hint"));
+      const variant = row.variant ? row.variant.name + (row.variant.refusal ? " · " + words(row.variant.refusal) : "") + (row.arms.length ? " · arms: " + row.arms.map(a => a.arm).join(", ") : "") : (row.variant_refusal ? words(row.variant_refusal) : "–");
+      const caps = el("td");
+      if (row.capabilities.length) {
+        const box = el("details"); box.append(el("summary", String(row.capabilities.length)));
+        const list = el("ul", undefined, "rs-list");
+        for (const c of row.capabilities) {
+          const li = el("li"); li.append(el("strong", c.id), el("span", " " + (c.summary || ""), "hint"));
+          for (const w of c.widened) li.append(el("span", " Widened by " + w.variant + (w.arm ? " (arm " + w.arm + ")" : "") + ": " + JSON.stringify(w.surface) + " " + JSON.stringify(w.bounds), "hint"));
+          if (c.proposal) li.append(el("span", " Bounds: " + c.proposal.bounds, "hint"));
+          list.append(li);
+        }
+        box.append(list); caps.append(box);
+      } else caps.textContent = "none";
+      const left = el("td");
+      if (row.left_out.length) { const box = el("details"); box.append(el("summary", String(row.left_out.length))); const list = el("ul", undefined, "rs-list"); for (const t of row.left_out) list.append(el("li", t)); box.append(list); left.append(box); } else left.textContent = "–";
+      const budget = row.compute_budget.status === "SET" ? row.compute_budget.value + " " + row.compute_budget.unit : words(row.compute_budget.status);
+      tr.append(level, el("td", words(row.state)), el("td", words(row.audience)), el("td", variant), caps, left, el("td", budget));
+      table.append(tr);
+    }
+    wrap.append(table); parent.append(wrap);
   }
   function metricsTable(parent, doc) {
     const c = doc.comparison;
@@ -878,7 +927,8 @@
     fact("Contract digest", c.contract_digest || "unavailable");
     fact("Exam rule", [c.exam.rule.status, c.exam.rule.authority].filter(Boolean).map(words).join(" · ") || "unavailable");
     fact("Feedback mode", (c.feedback_mode?.frozen || "FULL") + " · " + (c.feedback_mode?.basis || ""));
-    fact("Construction level", c.construction_level.level === null ? "Not yet defined. " + c.construction_level.basis : String(c.construction_level.level));
+    const cl = c.construction_level;
+    fact("Construction level", cl.level === null ? "Not yet defined. " + cl.basis : ["Level " + cl.level, cl.text, cl.state && words(cl.state), cl.audience && words(cl.audience)].filter(Boolean).join(" · ") + ". " + (cl.basis || ""));
     top.append(facts);
     const models = section(panel, "Rebuildable models", c.rebuildable_models.length + " families");
     const ml = el("ul", undefined, "rs-list");

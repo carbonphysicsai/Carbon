@@ -51,7 +51,14 @@ FIELDS = {
     "target_utilization": ("R11",),
     "gpu_ceiling": ("R11",),
     "expected_participation": ("R11",),
+    # The study sets' sizes, which the producer draws (#738).
+    "study_eval_size": ("A", "B", "C", "E", "F", "G", "H"),
+    "confirmation_size": ("D",),
 }
+#: A sheet's own record of what it is. Every value of a sheet that is not
+#: production says so; no production sheet exists yet.
+STATUSES = ("TEAM_PROPOSED_OWNER_APPROVED_FOR_TESTING",)
+META = ("status", "authority", "rationale")
 
 #: The template's default ladder: multiples of the current TRAIN size.
 DEFAULT_TRAIN_SIZE_LADDER = (0.25, 0.5, 1, 2, 4, 8)
@@ -133,7 +140,7 @@ def _check(field, value):
         ok = type(value) is list and bool(value) and all(_positive(x) for x in value)
     elif field == "target_utilization":
         ok = type(value) in (int, float) and 0 < value <= 1
-    elif field == "gpu_ceiling":
+    elif field in ("gpu_ceiling", "study_eval_size", "confirmation_size"):
         ok = type(value) is int and value >= 1
     elif field in (
         "spend_ceiling",
@@ -151,10 +158,12 @@ def _check(field, value):
 
 @dataclass(frozen=True)
 class Sheet:
-    """One Challenge's sheet. `values` holds only set values."""
+    """One Challenge's sheet. `values` holds only set values; `status` says
+    what the values are (never production yet)."""
 
     challenge_id: str
     values: dict
+    status: str | None = None
 
     def get(self, field):
         if field not in FIELDS:
@@ -185,9 +194,17 @@ def parse(document, challenge_id):
     """A sheet from its JSON document. Unknown fields are refused."""
     if type(document) is not dict or document.get("schema") != SCHEMA:
         raise SheetInvalid("schema", "not " + SCHEMA)
-    unknown = sorted(set(document) - set(FIELDS) - {"schema"})
+    unknown = sorted(set(document) - set(FIELDS) - set(META) - {"schema"})
     if unknown:
         raise SheetInvalid(unknown[0], "unknown field")
+    status = document.get("status")
+    if status is not None and status not in STATUSES:
+        raise SheetInvalid("status", "not a known sheet status")
+    rationale = document.get("rationale", {})
+    if type(rationale) is not dict or not all(
+        k in FIELDS and type(v) is str and v.strip() for k, v in rationale.items()
+    ):
+        raise SheetInvalid("rationale", "a one-line reason per sheet field")
     values = {}
     for field in FIELDS:
         value = document.get(field)
@@ -197,7 +214,11 @@ def parse(document, challenge_id):
         values[field] = value
     if values.get("challenge_id", challenge_id) != challenge_id:
         raise SheetInvalid("challenge_id", "the sheet is another Challenge's")
-    return Sheet(challenge_id, values)
+    if status is not None:
+        unexplained = sorted(set(values) - set(rationale) - {"challenge_id"})
+        if unexplained:
+            raise SheetInvalid(unexplained[0], "a set value has no rationale")
+    return Sheet(challenge_id, values, status)
 
 
 def load(challenge_id, root=SHEETS):

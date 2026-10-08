@@ -44,6 +44,16 @@ import time
 from pathlib import Path
 from types import SimpleNamespace
 
+# What an agent campaign must cap before any model call (`AGENT_BUDGET_KEYS`):
+# the miner's (or operator's) own ceilings, never a default supplied here. The
+# registry's one definition and predicate, which the launch doors read too
+# (LA-F4).
+from carbon.challenge_registry.agent_plan import (
+    AGENT_BUDGET_KEYS,
+    CeilingsRequired,
+    finite_ceilings,
+)
+
 from .challenge import CHALLENGE
 
 REPOSITORY = Path(__file__).resolve().parents[2]
@@ -55,9 +65,6 @@ REPLICAS = {
     "reconstructions_per_submission": 1,
     "seed": "Carbon-derived from the evaluation deployment's private root",
 }
-#: What an autonomous battery campaign must cap before any model call: the
-#: miner's (or operator's) own ceilings, never a default supplied here.
-AGENT_BUDGET_KEYS = ("provider_attempts", "provider_nanodollars")
 
 
 def provider_plan(agent, budget, selection=None, graphite=None):
@@ -176,12 +183,15 @@ def graphite_plan(budget, selection, graphite):
         TOOLS_RULE,
     )
 
-    ceilings = (budget or {}).get("ceilings") or {}
-    if any(type(ceilings.get(k)) is not int for k in AGENT_BUDGET_KEYS):
-        raise ValueError(
+    # The launch doors' own predicate (LA-F4): admission refuses a launch
+    # without these, by code, before it is queued; one that still reaches
+    # here is typed, so its interruption carries the code.
+    if not finite_ceilings(budget):
+        raise CeilingsRequired(
             "a Graphite battery campaign needs finite provider_attempts and "
             "provider_nanodollars ceilings"
         )
+    ceilings = budget["ceilings"]
     if graphite is None:
         raise ValueError("a Graphite plan freezes its launch block")
     block = edition.check_block(graphite)

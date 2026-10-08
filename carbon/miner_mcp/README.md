@@ -114,6 +114,20 @@ submit is refused `evaluation_unavailable` before anything is sent, and the
 frozen candidate is kept; review setup again once one is published, or name
 an intake you run yourself, then submit again.
 
+A Challenge's construction levels are a read, outside any campaign:
+`carbon_ladder` (browser: `POST /api/v1/operations/ladder`, and each
+Challenge card's Construction levels) takes `challenge` and an optional
+`challenge_version` (LAUNCHPAD-LEVELS-01 S1). For each level 0 to 5 it gives
+the ladder's text and state; who the level is for (`MINER_FACING` only where
+the ladder record names it chosen, `DEVELOPMENT` only above a named
+deployment's own level, otherwise `NOT_OFFERED`); its capabilities from
+Graphite's accepted proposal, with the surface and bounds a registered
+development variant widens; that variant's name, digest and arm, or the
+registry's refusal (Levels 4 and 5 are refused until isolation is accepted);
+what the level leaves out; and the contract's `compute_budget`, or
+`NOT_SET`. Everything is read from repository data. Nothing in it can be
+chosen or submitted yet: launching at a level is the ticket's S2.
+
 ## Starting without a campaign
 
 A miner who has not registered yet has no profile and no campaign, so
