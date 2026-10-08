@@ -10,6 +10,10 @@ command's console output), and `.path` is never read at all.
 import ast
 from pathlib import Path
 
+import pytest
+
+pytestmark = pytest.mark.invariant
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
