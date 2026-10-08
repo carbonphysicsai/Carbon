@@ -435,6 +435,19 @@ class MotorHiddenAdapter(MotorAdapter):
             and self.store.window(commitment["fingerprint"]) == commitment.get("window")
         )
 
+    def withdraw_answer_key(self, manifest):
+        """Apply a verified producer withdrawal (VALIDATOR-24)."""
+        from .answer_key import AnswerKeyRefused
+
+        try:
+            return self.store.withdraw(
+                manifest["fingerprint"], manifest["reason"], manifest["block"]
+            )
+        except MotorAdapterError as refused:
+            raise AnswerKeyRefused(
+                "answer_key_" + refused.code.removeprefix("motor_")
+            ) from None
+
     def import_answer_key(self, commitment, payload):
         """Import one producer batch, verified in full first:
         - the commitment's contract and rule are this validator's;
@@ -454,6 +467,8 @@ class MotorHiddenAdapter(MotorAdapter):
             or commitment["rule_digest"] != identities["rule_digest"]
         ):
             raise AnswerKeyRefused("answer_key_identity_mismatch")
+        if self.store.withdrawn(commitment["fingerprint"]):
+            raise AnswerKeyRefused("answer_key_withdrawn")
         window = commitment.get("window")
         if (
             type(window) is not dict
