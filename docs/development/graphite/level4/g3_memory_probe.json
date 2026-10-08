@@ -1,0 +1,73 @@
+{
+ "limits_mib": [
+  96,
+  128,
+  192,
+  256,
+  384,
+  512
+ ],
+ "rows": {
+  "largest_deeponet@128MiB": {
+   "submission_bytes": 74702,
+   "verdict": "ok",
+   "wall_seconds": 0.151
+  },
+  "largest_deeponet@192MiB": {
+   "submission_bytes": 74702,
+   "verdict": "ok",
+   "wall_seconds": 0.295
+  },
+  "largest_deeponet@256MiB": {
+   "submission_bytes": 74702,
+   "verdict": "ok",
+   "wall_seconds": 0.192
+  },
+  "largest_deeponet@384MiB": {
+   "submission_bytes": 74702,
+   "verdict": "ok",
+   "wall_seconds": 0.268
+  },
+  "largest_deeponet@512MiB": {
+   "submission_bytes": 74702,
+   "verdict": "ok",
+   "wall_seconds": 0.192
+  },
+  "largest_deeponet@96MiB": {
+   "submission_bytes": 74702,
+   "verdict": "ok",
+   "wall_seconds": 0.179
+  },
+  "largest_fno@128MiB": {
+   "submission_bytes": 84888,
+   "verdict": "ok",
+   "wall_seconds": 0.142
+  },
+  "largest_fno@192MiB": {
+   "submission_bytes": 84888,
+   "verdict": "ok",
+   "wall_seconds": 0.296
+  },
+  "largest_fno@256MiB": {
+   "submission_bytes": 84888,
+   "verdict": "ok",
+   "wall_seconds": 0.413
+  },
+  "largest_fno@384MiB": {
+   "submission_bytes": 84888,
+   "verdict": "ok",
+   "wall_seconds": 0.264
+  },
+  "largest_fno@512MiB": {
+   "submission_bytes": 84888,
+   "verdict": "ok",
+   "wall_seconds": 0.17
+  },
+  "largest_fno@96MiB": {
+   "submission_bytes": 84888,
+   "verdict": "ok",
+   "wall_seconds": 0.222
+  }
+ },
+ "schema": "carbon.development.level4-g3-memory-probe.v1"
+}

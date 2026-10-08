@@ -621,6 +621,12 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
             "f'carbon.{args.adapter}.level4'",
         ),
         (
+            "scripts/dev/level4_spike/values_evidence.py",
+            "_rows",
+            "importlib.import_module",
+            "f'carbon.{adapter_name}.level4'",
+        ),
+        (
             "tests/cpu/test_attack_authoritative_boundary.py",
             "test_every_adapter_reads_a_null_workspace_strategy_as_the_design",
             "importlib.import_module",
