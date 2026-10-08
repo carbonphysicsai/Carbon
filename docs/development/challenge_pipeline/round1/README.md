@@ -1,5 +1,18 @@
 # First customer-shaped DEVELOPMENT round
 
+> **Current Battery/Cooling versions (2026-10-08):** use
+> [Battery v2](battery-ev-fast-charge-v2.md) (minimise admissible session time;
+> no hard 30-minute limit; charging 45 C, test-discharge diagnostics) and
+> [Cooling cell v2](cooling-cell-v2.md) (post-spreader interface heat map,
+> stated buyer properties; no selected TIM/ratio/inlet alternative).
+> [Planning amendment v2](first-three-requirements-v2.json) and
+> [#776 law/quiz impacts](../question-laws/quiz-impact-v2.md) record the changes.
+> The first-three v1 rows/packets/sheet and feasibility follow-up below are
+> **historical**, not the current Battery/Cooling brief. The 35.6-min probe
+> report is explicitly corrected to a 63.3-min charge-integral observation,
+> distinct from the reported 32.9-min best within limits. No historical rescore.
+> Motor and the five new-family packets are unchanged.
+
 **Authority:** [OWNER-PORTFOLIO-DEV-ROUND-01](../../../../.agent/decisions/2026-10-06-OWNER-PORTFOLIO-DEV-ROUND-01.md),
 the owner's direct rolling delegation on 2026-10-06, extended prospectively
 to the first three buyer briefs by

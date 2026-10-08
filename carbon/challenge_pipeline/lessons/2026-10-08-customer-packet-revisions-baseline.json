@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-customer-packet-revisions-baseline",
+  "recorded_at": "2026-10-08T10:45:06+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-CUSTOMER-PACKETS-02 baseline main 689692c0694ad4d184ef6bd58ce5decc811d4d4a",
+    "description": "Native Windows py -3.11 -X utf8 pytest of first-three packets, question laws, credibility and feasibility panels; public static consistency only."
+  },
+  "expected": "Existing v1 planning artifacts remain internally consistent before adding owner-approved prospective versions.",
+  "observed": "67 passed in 2.34 s. No reference solver, hidden data, Docker mutation or spend. Native diagnostics are not canonical acceptance.",
+  "keep": ["Keep v1 observations and requirements as history; new owner scopes need distinct packet and law versions."],
+  "change": ["Remove the Battery deadline only in v2; require post-spreader Cooling heat-map identity rather than relabelling old hotspots."],
+  "protocol_elements": ["versioned buyer requirements", "measurement definition separate from evidence", "prospective question laws"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

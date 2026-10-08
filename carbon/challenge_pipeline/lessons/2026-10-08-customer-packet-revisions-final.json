@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-customer-packet-revisions-final",
+  "recorded_at": "2026-10-08T11:00:47+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-CUSTOMER-PACKETS-02 final native diagnostic batch",
+    "description": "py -3.11 -X utf8 pytest of v2 revisions, historical packets/laws, credibility, feasibility and challenge pipeline; Ruff, Black and pipeline validation."
+  },
+  "expected": "Ready prospective documentation passes focused consistency and pipeline checks without changing runtime or claiming physical validation.",
+  "observed": "109 tests passed in16.18 s; Ruff passed; Black would leave the new test unchanged. Pipeline validation passed: DEFINING,7 records,443 lessons,0 awaiting decisions,3 controllers/3 pending identities before this entry. These are native Windows diagnostics, not pinned CI or reference adequacy.",
+  "keep": ["Separate exact scope/history tests from solver evidence; phase-scoped charging safety precedes time ranking, and input-plane changes require new physical truth."],
+  "change": ["Test Lead/Carbon Validator must version Q2/Q3 keys and role/map projections in their own work; no old answer key or reported uniform pass can satisfy v2 automatically."],
+  "protocol_elements": ["prospective requirements", "reference custody", "unresolved coverage", "no silent rescore"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
