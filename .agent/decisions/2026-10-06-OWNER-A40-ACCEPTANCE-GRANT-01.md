@@ -46,3 +46,5 @@ owner's launch validator part, the NVIDIA A40 (OWNER-SHARED-ANSWER-KEY-01).
 in the repository.
 
 Community allowed per owner direction 2026-10-08
+
+Vast.ai A40 allowed, owner-rented, per owner direction 2026-10-08
