@@ -32,13 +32,6 @@ rebuild runs under the pinned GPU determinism profile
 evidence and are not required to match. On the CPU every change from
 implementation 1.0 is the identity.
 
-Device follow (implementation 3.0, BATTERY-IMPL-3): a network built from
-library modules (`Network.modules`) places every tensor those modules hold
-on the device it is called on, before each call: parameters, buffers, and
-tensors a library caches as plain attributes, which `Module.to` does not
-move. Training on CUDA and predicting on the CPU therefore read one device,
-for every family. On one device it is the identity.
-
 Determinism: all randomness comes from Carbon's reconstruction seed through an
 explicit `torch.Generator`. Training runs with
 `torch.use_deterministic_algorithms(True)` and a fixed CPU thread count
@@ -168,42 +161,15 @@ def apply_stack(params, h, activation, normalization):
     return h @ w + b
 
 
-def follow_device(module, device):
-    """Place every tensor `module` holds on `device`: its parameters and
-    buffers, and the tensors its submodules keep as plain attributes (a
-    library's cached grid, say), which `Module.to` leaves where they were
-    built. Already on `device`, every tensor is kept as it is."""
-    module.to(device)
-    for sub in module.modules():
-        for name, value in list(vars(sub).items()):
-            if isinstance(value, torch.Tensor):
-                vars(sub)[name] = value.to(device)
-            elif isinstance(value, (list, tuple)) and any(
-                isinstance(v, torch.Tensor) for v in value
-            ):
-                vars(sub)[name] = type(value)(
-                    v.to(device) if isinstance(v, torch.Tensor) else v for v in value
-                )
-
-
 class Network:
     """A battery network as a flat, ordered list of tensors and an `apply`.
 
     The parameter order is fixed by construction, so a model state is the
-    list itself: no module tree, no pickle. `modules` are the library modules
-    `apply` calls; each call first places them on the inputs' device
-    (`follow_device`), so no family keeps a tensor on another device.
+    list itself: no module tree, no pickle.
     """
 
-    def __init__(self, params, apply, modules=()):
-        self.params, self.modules = params, tuple(modules)
-
-        def placed(p, f):
-            for module in self.modules:
-                follow_device(module, f.device)
-            return apply(p, f)
-
-        self._apply = placed if self.modules else apply
+    def __init__(self, params, apply):
+        self.params, self._apply = params, apply
 
     def __call__(self, params, f):
         return self._apply(params, f)
