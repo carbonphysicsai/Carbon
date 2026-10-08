@@ -1,0 +1,371 @@
+{
+ "adapters": {
+  "battery": [
+   {
+    "documents": {
+     "forward": {
+      "call_depth": 1,
+      "constant_bytes": 48,
+      "constant_count": 12,
+      "distinct_ops": 6,
+      "document_bytes": 5969,
+      "graphs": 1,
+      "input_bytes": 104660,
+      "largest_constant_bytes": 4,
+      "largest_intermediate_bytes": 392000,
+      "nodes_executed": 36,
+      "nodes_stored": 36,
+      "parse_peak_bytes": 41914,
+      "parse_seconds": 0.0069383379886858165,
+      "validate_seconds": 0.0061381970008369535
+     },
+     "init": {
+      "call_depth": 4,
+      "constant_bytes": 104,
+      "constant_count": 26,
+      "distinct_ops": 18,
+      "document_bytes": 16266,
+      "graphs": 10,
+      "input_bytes": 8,
+      "largest_constant_bytes": 4,
+      "largest_intermediate_bytes": 62720,
+      "nodes_executed": 110,
+      "nodes_stored": 95,
+      "parse_peak_bytes": 125469,
+      "parse_seconds": 0.01665189498453401,
+      "validate_seconds": 0.01325582098797895
+     }
+    },
+    "g5": {
+     "forward_flops": 20091600.0,
+     "forward_seconds": 0.30368292500497773,
+     "forward_temp_bytes": 102400,
+     "init_seconds": 2.1837891270115506,
+     "lane_peak_rss_bytes": 333115392,
+     "lane_wall_seconds": 6.030529455980286,
+     "train_step_seconds": 0.4725658439856488
+    },
+    "label": "scaffold_mlp",
+    "manifest_bytes": 511,
+    "submission_bytes": 22746
+   },
+   {
+    "documents": {
+     "forward": {
+      "call_depth": 1,
+      "constant_bytes": 48,
+      "constant_count": 12,
+      "distinct_ops": 6,
+      "document_bytes": 6014,
+      "graphs": 1,
+      "input_bytes": 789716,
+      "largest_constant_bytes": 4,
+      "largest_intermediate_bytes": 409600,
+      "nodes_executed": 36,
+      "nodes_stored": 36,
+      "parse_peak_bytes": 41919,
+      "parse_seconds": 0.006257261004066095,
+      "validate_seconds": 0.006497155991382897
+     },
+     "init": {
+      "call_depth": 4,
+      "constant_bytes": 104,
+      "constant_count": 26,
+      "distinct_ops": 18,
+      "document_bytes": 16336,
+      "graphs": 10,
+      "input_bytes": 8,
+      "largest_constant_bytes": 4,
+      "largest_intermediate_bytes": 262144,
+      "nodes_executed": 110,
+      "nodes_stored": 95,
+      "parse_peak_bytes": 125499,
+      "parse_seconds": 0.01704070100095123,
+      "validate_seconds": 0.012889931997051463
+     }
+    },
+    "g5": {
+     "forward_flops": 158715600.0,
+     "forward_seconds": 0.21904395901947282,
+     "forward_temp_bytes": 819200,
+     "init_seconds": 2.407420169998659,
+     "lane_peak_rss_bytes": 357150720,
+     "lane_wall_seconds": 4.416711008001585,
+     "train_step_seconds": 0.2935098010057118
+    },
+    "label": "panel_mlp",
+    "manifest_bytes": 511,
+    "submission_bytes": 22861
+   },
+   {
+    "documents": {
+     "forward": {
+      "call_depth": 1,
+      "constant_bytes": 1104,
+      "constant_count": 38,
+      "distinct_ops": 9,
+      "document_bytes": 20608,
+      "graphs": 1,
+      "input_bytes": 1138132,
+      "largest_constant_bytes": 480,
+      "largest_intermediate_bytes": 409600,
+      "nodes_executed": 121,
+      "nodes_stored": 121,
+      "parse_peak_bytes": 157110,
+      "parse_seconds": 0.02079360600328073,
+      "validate_seconds": 0.015161293995333835
+     },
+     "init": {
+      "call_depth": 4,
+      "constant_bytes": 188,
+      "constant_count": 47,
+      "distinct_ops": 16,
+      "document_bytes": 27949,
+      "graphs": 16,
+      "input_bytes": 8,
+      "largest_constant_bytes": 4,
+      "largest_intermediate_bytes": 262144,
+      "nodes_executed": 207,
+      "nodes_stored": 162,
+      "parse_peak_bytes": 212435,
+      "parse_seconds": 0.03433534799842164,
+      "validate_seconds": 0.01971402601338923
+     }
+    },
+    "g5": {
+     "forward_flops": 153522800.0,
+     "forward_seconds": 0.43052727699978277,
+     "forward_temp_bytes": 942080,
+     "init_seconds": 2.1383452849986497,
+     "lane_peak_rss_bytes": 397291520,
+     "lane_wall_seconds": 5.1582922479719855,
+     "train_step_seconds": 0.9343692609982099
+    },
+    "label": "panel_deeponet",
+    "manifest_bytes": 511,
+    "submission_bytes": 49068
+   },
+   {
+    "label": "panel_knn",
+    "not_lowered": "AttributeError"
+   },
+   {
+    "label": "default_fno",
+    "not_lowered": "KeyError"
+   },
+   {
+    "documents": {
+     "forward": {
+      "call_depth": 1,
+      "constant_bytes": 96,
+      "constant_count": 24,
+      "distinct_ops": 6,
+      "document_bytes": 11215,
+      "graphs": 1,
+      "input_bytes": 5792792,
+      "largest_constant_bytes": 4,
+      "largest_intermediate_bytes": 819200,
+      "nodes_executed": 69,
+      "nodes_stored": 69,
+      "parse_peak_bytes": 89164,
+      "parse_seconds": 0.010661958018317819,
+      "validate_seconds": 0.012164835003204644
+     },
+     "init": {
+      "call_depth": 4,
+      "constant_bytes": 128,
+      "constant_count": 32,
+      "distinct_ops": 18,
+      "document_bytes": 22090,
+      "graphs": 10,
+      "input_bytes": 8,
+      "largest_constant_bytes": 4,
+      "largest_intermediate_bytes": 1048576,
+      "nodes_executed": 194,
+      "nodes_stored": 134,
+      "parse_peak_bytes": 176618,
+      "parse_seconds": 0.02644257602514699,
+      "validate_seconds": 0.019157028989866376
+     }
+    },
+    "g5": {
+     "forward_flops": 1164181632.0,
+     "forward_seconds": 0.2530342880054377,
+     "forward_temp_bytes": 1638400,
+     "init_seconds": 1.6571938870183658,
+     "lane_peak_rss_bytes": 436940800,
+     "lane_wall_seconds": 4.097795940004289,
+     "train_step_seconds": 0.6055143549747299
+    },
+    "label": "largest_mlp",
+    "manifest_bytes": 511,
+    "submission_bytes": 33816
+   },
+   {
+    "documents": {
+     "forward": {
+      "call_depth": 1,
+      "constant_bytes": 1252,
+      "constant_count": 74,
+      "distinct_ops": 9,
+      "document_bytes": 36115,
+      "graphs": 1,
+      "input_bytes": 11081752,
+      "largest_constant_bytes": 484,
+      "largest_intermediate_bytes": 819200,
+      "nodes_executed": 220,
+      "nodes_stored": 220,
+      "parse_peak_bytes": 302235,
+      "parse_seconds": 0.0433379239984788,
+      "validate_seconds": 0.028338353004073724
+     },
+     "init": {
+      "call_depth": 4,
+      "constant_bytes": 236,
+      "constant_count": 59,
+      "distinct_ops": 16,
+      "document_bytes": 38076,
+      "graphs": 16,
+      "input_bytes": 8,
+      "largest_constant_bytes": 4,
+      "largest_intermediate_bytes": 1048576,
+      "nodes_executed": 363,
+      "nodes_stored": 228,
+      "parse_peak_bytes": 310440,
+      "parse_seconds": 0.03872023199801333,
+      "validate_seconds": 0.03349176800111309
+     }
+    },
+    "g5": {
+     "forward_flops": 1800566528.0,
+     "forward_seconds": 0.380539712990867,
+     "forward_temp_bytes": 2377728,
+     "init_seconds": 2.1891439800092485,
+     "lane_peak_rss_bytes": 488714240,
+     "lane_wall_seconds": 4.946261267992668,
+     "train_step_seconds": 0.8514290140010417
+    },
+    "label": "largest_deeponet",
+    "manifest_bytes": 511,
+    "submission_bytes": 74702
+   },
+   {
+    "label": "largest_fno",
+    "not_lowered": "KeyError"
+   },
+   {
+    "documents": {
+     "forward": {
+      "call_depth": 1,
+      "constant_bytes": 228,
+      "constant_count": 54,
+      "distinct_ops": 18,
+      "document_bytes": 45077,
+      "graphs": 1,
+      "input_bytes": 16824092,
+      "largest_constant_bytes": 8,
+      "largest_intermediate_bytes": 99123200,
+      "nodes_executed": 253,
+      "nodes_stored": 253,
+      "parse_peak_bytes": 357150,
+      "parse_seconds": 0.08749963500304148,
+      "validate_seconds": 0.07138781101093628
+     },
+     "init_spec": {
+      "document_bytes": 3170
+     }
+    },
+    "g5": {
+     "forward_flops": 68707303424.0,
+     "forward_seconds": 1.0118157480028458,
+     "forward_temp_bytes": 264351552,
+     "lane_peak_rss_bytes": 960544768,
+     "lane_wall_seconds": 5.534464775992092,
+     "train_step_seconds": 2.0532688129751477
+    },
+    "label": "default_fno",
+    "manifest_bytes": 516,
+    "submission_bytes": 48763
+   },
+   {
+    "documents": {
+     "forward": {
+      "call_depth": 1,
+      "constant_bytes": 420,
+      "constant_count": 99,
+      "distinct_ops": 18,
+      "document_bytes": 79162,
+      "graphs": 1,
+      "input_bytes": 406995036,
+      "largest_constant_bytes": 8,
+      "largest_intermediate_bytes": 198246400,
+      "nodes_executed": 444,
+      "nodes_stored": 444,
+      "parse_peak_bytes": 651424,
+      "parse_seconds": 0.07448656400083564,
+      "validate_seconds": 0.12278026400599629
+     },
+     "init_spec": {
+      "document_bytes": 5210
+     }
+    },
+    "g5": {
+     "forward_flops": 459895668736.0,
+     "forward_seconds": 1.0134119449940044,
+     "forward_temp_bytes": 902774592,
+     "lane_peak_rss_bytes": 3592671232,
+     "lane_wall_seconds": 6.0252931080176495,
+     "train_step_seconds": 2.4624376189894974
+    },
+    "label": "largest_fno",
+    "manifest_bytes": 516,
+    "submission_bytes": 84888
+   }
+  ],
+  "motor": [
+   {
+    "documents": {
+     "forward": {
+      "call_depth": 2,
+      "constant_bytes": 48,
+      "constant_count": 6,
+      "distinct_ops": 16,
+      "document_bytes": 4935,
+      "graphs": 2,
+      "input_bytes": 83584,
+      "largest_constant_bytes": 8,
+      "largest_intermediate_bytes": 19200,
+      "nodes_executed": 29,
+      "nodes_stored": 29,
+      "parse_peak_bytes": 32864,
+      "parse_seconds": 0.008638380008051172,
+      "validate_seconds": 0.005200963991228491
+     },
+     "init_spec": {
+      "document_bytes": 460
+     }
+    },
+    "g5": {
+     "forward_flops": 346874.0,
+     "forward_seconds": 0.5722305679810233,
+     "forward_temp_bytes": 20352,
+     "lane_peak_rss_bytes": null,
+     "lane_wall_seconds": 4.2835817110026255,
+     "train_step_seconds": 0.815100984997116
+    },
+    "label": "level0",
+    "manifest_bytes": 500,
+    "submission_bytes": 5895
+   }
+  ]
+ },
+ "environment": {
+  "cpus": 20,
+  "jax": "0.10.2",
+  "jax_platforms": "cpu",
+  "machine": "x86_64",
+  "python": "3.11.16"
+ },
+ "schema": "carbon.development.level4-values-evidence.v1",
+ "seconds": 164.38713891498628
+}
