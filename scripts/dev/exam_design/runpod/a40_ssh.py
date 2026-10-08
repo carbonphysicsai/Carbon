@@ -41,7 +41,7 @@ from scripts.dev.exam_design.runpod import a40_acceptance as a40
 from scripts.dev.exam_design.runpod import a40_pod_phase as phase
 
 CLOUD = "VAST_SSH"
-GPU_NAME_FRAGMENT = "A40"
+TARGETS = a40.TARGET_DEVICES
 REMOTE_ROOT = "/tmp/a40-ssh"
 SKIPPED_FNO = {
     "fno": {
@@ -123,9 +123,11 @@ class Box:
 
 
 # ------------------------------------------------------------------ 1. pre-flight
-def preflight(box):
-    """Exactly one A40 and a readable driver build, else refuse. Returns the
-    device identity in the shape `compare` reads plus what the box exposes."""
+def preflight(box, target="A40"):
+    """Exactly one GPU of the target device and a readable driver build, else
+    refuse. A40: the name must contain 'A40'. RTX 4090: the name must be exactly
+    'NVIDIA GeForce RTX 4090'. The exact name is recorded as the device kind.
+    Returns the identity in the shape `compare` reads plus what the box exposes."""
     _rc, out, _err = box.sh(
         "nvidia-smi --query-gpu=name,driver_version,uuid --format=csv,noheader"
     )
@@ -137,8 +139,9 @@ def preflight(box):
     if len(rows) != 1 or len(rows[0]) != 3:
         raise SshRefused(f"refused: expected exactly one GPU, found {len(rows)}")
     name, driver, uuid = rows[0]
-    if GPU_NAME_FRAGMENT not in name:
-        raise SshRefused("refused: the GPU is not an A40: " + name[:60])
+    wrong = name != TARGETS["RTX 4090"] if target == "RTX 4090" else "A40" not in name
+    if target not in TARGETS or wrong:
+        raise SshRefused(f"refused: the GPU is not the target {target}: " + name[:60])
     if not driver or not uuid:
         raise SshRefused("refused: driver build or GPU uuid is unreadable")
     _rc, host_info, _err = box.sh(
@@ -146,7 +149,14 @@ def preflight(box):
         check=False,
     )
     return {
-        "identity": {"index": 0, "uuid": uuid, "name": name, "driver_version": driver},
+        "identity": {
+            "index": 0,
+            "uuid": uuid,
+            "name": name,
+            "driver_version": driver,
+            "device_kind": name,
+            "target_device": target,
+        },
         "host": [line.strip() for line in host_info.splitlines()][:3],
         # A rented box exposes no datacenter field; recorded as unknown, not guessed.
         "datacenter": None,
@@ -315,12 +325,15 @@ def run_backend(box, backend, record, device, code, run_id, remote_out, counter)
 
 
 # ------------------------------------------------------------------ 5. the run
-def run_all(box, record, ref, repository, out, *, files=None, run_id=None):
+def run_all(
+    box, record, ref, repository, out, *, files=None, run_id=None, target="A40"
+):
     run_id = run_id or hashlib.sha256(str(time.time()).encode()).hexdigest()[:8]
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     summary = {
         "cloud": CLOUD,
+        "target_device": target,
         "run_id": run_id,
         "skipped": SKIPPED_FNO,
         "status": "COMPLETE",
@@ -330,7 +343,9 @@ def run_all(box, record, ref, repository, out, *, files=None, run_id=None):
     counter = [0]
     results = []
     try:
-        info = preflight(box)
+        info = preflight(box, target)
+        summary["device_kind"] = info["identity"]["device_kind"]
+        summary["driver_version"] = info["identity"]["driver_version"]
         summary["identity"], summary["host"], summary["datacenter"] = (
             info["identity"], info["host"], info["datacenter"],
         )  # fmt: skip
@@ -363,6 +378,9 @@ def run_all(box, record, ref, repository, out, *, files=None, run_id=None):
                     "identity": info["identity"],
                     "datacenter": None,
                     "cloud": CLOUD,
+                    "target_device": target,
+                    "device_kind": info["identity"]["device_kind"],
+                    "driver_version": info["identity"]["driver_version"],
                     "rows": leg["rows"],
                 }
             )
@@ -413,6 +431,12 @@ def main(argv=None):
     parser.add_argument("--repository", default=str(a40.REPOSITORY))
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--deadline-minutes", type=int, required=True)
+    parser.add_argument(
+        "--target-device",
+        choices=sorted(TARGETS),
+        default="A40",
+        help="A40 (default) or RTX 4090 (an unqualified development device)",
+    )
     args = parser.parse_args(argv)
     try:
         record = a40.load_record(args.record)
@@ -424,7 +448,12 @@ def main(argv=None):
         deadline_at=time.monotonic() + args.deadline_minutes * 60,
     )  # fmt: skip
     summary, _results = run_all(
-        box, record, args.code_ref, Path(args.repository), args.out
+        box,
+        record,
+        args.code_ref,
+        Path(args.repository),
+        args.out,
+        target=args.target_device,
     )
     print(json.dumps(summary, indent=1, sort_keys=True))
     return 0 if summary["status"] == "COMPLETE" else 1

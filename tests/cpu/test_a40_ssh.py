@@ -150,7 +150,8 @@ def test_preflight_refuses_anything_but_one_readable_a40(smi, tmp_path):
 def test_preflight_records_the_identity_and_the_driver_build():
     info = ssh.preflight(box(FakeSsh()))
     assert info["identity"] == {
-        "index": 0, "uuid": "GPU-aaaa-bbbb", "name": "NVIDIA A40", "driver_version": "580.159.03"
+        "index": 0, "uuid": "GPU-aaaa-bbbb", "name": "NVIDIA A40", "driver_version": "580.159.03",
+        "device_kind": "NVIDIA A40", "target_device": "A40",
     }  # fmt: skip
     assert info["datacenter"] is None and info["host"][0] == "box1"
 
@@ -332,3 +333,86 @@ def test_the_run_lists_what_it_left_and_never_touches_the_rental(tmp_path):
 def test_the_cli_requires_a_matching_run_record(tmp_path):
     with pytest.raises(a40.Refused):
         a40.load_record(tmp_path / "none.json")
+
+
+# ----------------------------------------------------------------- target device
+RTX = "NVIDIA GeForce RTX 4090"
+RTX_ROW = f"{RTX}, 580.159.03, GPU-4090-aaaa\n"
+
+
+def run_target(fake, tmp_path, target):
+    return ssh.run_all(
+        box(fake), RECORD, "a" * 40, Path("."), tmp_path,
+        files=FILES, run_id="t1", target=target,
+    )  # fmt: skip
+
+
+def test_the_default_target_is_the_a40_and_refuses_a_4090(tmp_path):
+    summary, _ = run_target(FakeSsh(smi=RTX_ROW), tmp_path, "A40")
+    assert summary["status"] == "REFUSED"
+
+
+@pytest.mark.parametrize(
+    "row",
+    [
+        "NVIDIA A40, 580.1, GPU-1\n",
+        "NVIDIA GeForce RTX 3090, 580.1, GPU-1\n",
+        "NVIDIA GeForce RTX 4090 Ti, 580.1, GPU-1\n",
+        "geforce rtx 4090, 580.1, GPU-1\n",
+        RTX_ROW + RTX_ROW,
+        f"{RTX}, , GPU-1\n",
+    ],
+)
+def test_the_4090_target_requires_exactly_one_gpu_with_the_exact_name(row, tmp_path):
+    summary, results = run_target(FakeSsh(smi=row), tmp_path, "RTX 4090")
+    assert summary["status"] == "REFUSED" and results == []
+
+
+def test_a_4090_run_records_kind_driver_cloud_and_target(tmp_path):
+    fake = FakeSsh(smi=RTX_ROW)
+    summary, results = run_target(fake, tmp_path, "RTX 4090")
+    assert summary["status"] == "COMPLETE"
+    for doc in (summary, *results):
+        assert doc["cloud"] == "VAST_SSH" and doc["target_device"] == "RTX 4090"
+        assert doc["device_kind"] == RTX and doc["driver_version"] == "580.159.03"
+    assert summary["identity"]["device_kind"] == RTX
+    on_disk = json.loads((tmp_path / "summary.json").read_text())
+    assert on_disk["device_kind"] == RTX and on_disk["target_device"] == "RTX 4090"
+    assert json.loads((tmp_path / "results.json").read_text())[0]["device_kind"] == RTX
+    rebuild = next(r for r in fake.remotes if "--gpus" in r)
+    assert f"CARBON_ACCELERATOR_DEVICE_KIND={RTX}" in shlex.quote(rebuild) or (
+        "CARBON_ACCELERATOR_DEVICE_KIND='NVIDIA GeForce RTX 4090'" in rebuild
+    )
+
+
+def test_an_unqualified_4090_passes_the_torch_device_binding():
+    """The PyTorch GPU rebuild only requires the device name to equal the kind
+    the run is bound to; it never consults the qualified-parts list."""
+    from carbon.reconstruction import torch_gpu
+    from scripts.dev.exam_design.runpod import a40_pod_phase as phase
+
+    env = phase.pinned_environment("pytorch", device={"uuid": "GPU-1", "name": RTX})
+    assert env["CARBON_ACCELERATOR_DEVICE_KIND"] == RTX
+    assert torch_gpu.expected_device_kind(env) == RTX
+
+    class Cuda:
+        @staticmethod
+        def is_available():
+            return True
+
+        @staticmethod
+        def get_device_name(index):
+            return RTX
+
+    class Torch:
+        cuda = Cuda()
+
+    import os
+
+    saved = dict(os.environ)
+    try:
+        os.environ.update(env)
+        torch_gpu.require_ready(Torch())  # raises EnvironmentIneligible on a mismatch
+    finally:
+        os.environ.clear()
+        os.environ.update(saved)
