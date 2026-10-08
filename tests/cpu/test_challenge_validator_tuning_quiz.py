@@ -366,7 +366,8 @@ def test_an_unsolved_candidate_or_an_unregistered_panel_is_refused(
         lambda: tuning.quiz_select(
             work, panel_file(tmp_path, PANEL[:-1]), backend=object()
         ),
-        "tuning_quiz_panel_not_registered",
+        # The operator's panel lacks a registered member: named (2026-10-07).
+        "tuning_quiz_panel_missing:" + PANEL[-1],
     )
     assert rebuilds == []
 
