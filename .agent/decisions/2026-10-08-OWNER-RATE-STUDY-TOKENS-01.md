@@ -36,9 +36,14 @@ in place after use).
 2. SUBMISSION-RATE-STUDY-01's `freeze-manifest.json` is on main, its
    `measures-v1.json` is `status: FROZEN`, and its digest is recorded in the
    Test Lead's freeze decision file (`RATE-STUDY-FREEZE-01`);
-3. the runner binds this grant to the study's route (a code change by the Carbon
-   Validator or Test Engineer: `grant_binding` registers phase-3/phase-4 grants by
-   Challenge and does not know this one; the grant file alone spends nothing).
+3. the runner binds this grant to the study's route. The mechanism is
+   `grant_binding.STUDY_GRANTS` / `check_study_grant`, reached through the existing
+   Graphite phase-3/4 runner with `--study SUBMISSION-RATE-STUDY-01`; it enforces the
+   ceiling, the per-run cap, 6 runs, 39,600 s per run, and a submission cap of at
+   most 144 from the freeze manifest. **Pending (Test Engineer); not on main**
+   (verified when this note was written). `grant_binding` registers phase-3/phase-4
+   grants by Challenge and does not know this one; the grant file alone spends
+   nothing.
 
 No G-sealed run starts before all three. Arms H and the scripted probers need no
 grant. If the freeze finds the adversary needs an LLM call per scored submission,
