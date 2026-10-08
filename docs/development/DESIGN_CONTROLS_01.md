@@ -17,8 +17,9 @@ negative means violating. Edge optimism mirrors near-negative margins to the
 passing side; over-caution mirrors near-positive margins to the failing side;
 localized sign error flips the margin within a predeclared action/stratum
 region; and path or lattice awareness is accurate on registered search points
-and optimistic elsewhere. Each severity and selected limit quantity is a
-registered input. The path is obtained from a known-good run of the frozen
+and optimistic elsewhere. Each controlled limit quantity has its own
+positive severity in that limit's registered unit. A missing quantity or
+unit mismatch is refused. The path is obtained from a known-good run of the frozen
 optimizer, never from a caller-supplied start.
 
 `power-report` accepts one sealed bank containing task registrations and
@@ -67,10 +68,12 @@ This first implementation requires the known-good table to equal the full
 reference panel exactly. It is an oracle control for the diagnostic, not a
 claim that any learned model is perfect. A missing or altered row is refused.
 
-The control file has schema `carbon.design-search.controls.v1`, a `controls`
+The control file has schema `carbon.design-search.controls.v2`, a `controls`
 list and a `registration_digest`. Each control declares schema
-`carbon.design-search.control.v1`, a private `name`, `kind`, positive finite
-`severity`, and `limit_quantities`. A localized sign error also declares a
+`carbon.design-search.control.v2`, a private `name`, `kind`, `severity` map,
+and `limit_quantities`. The map has exactly one entry per controlled quantity,
+each shaped as `{"value": 0.2, "unit": "toy"}` in this toy example. Its unit
+must equal the task's registered hard-limit unit. A localized sign error also declares a
 nonempty `region` with `action` selectors and `strata`; the awareness control
 declares `scope: registered_search_path` or `registered_lattice`.
 `register_controls` and `register_good_predictor` construct the two digests.

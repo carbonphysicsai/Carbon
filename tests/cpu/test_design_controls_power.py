@@ -70,10 +70,46 @@ def _control(name, kind, severity, **extra):
         "schema": controls.CONTROL_SCHEMA,
         "name": name,
         "kind": kind,
-        "severity": severity,
+        "severity": {"safety": {"value": severity, "unit": "toy"}},
         "limit_quantities": ["safety"],
         **extra,
     }
+
+
+def test_control_severity_requires_each_quantity_and_matching_unit():
+    task = _task("two-units", "bank", 0.0)
+    task["limits"].append(
+        {"quantity": "temperature", "unit": "degC", "op": "<=", "value": 45.0}
+    )
+    task["task_digest"] = tasks.digest(
+        {key: value for key, value in task.items() if key != "task_digest"}
+    )
+    spec = _control("edge", "edge_optimist", 0.2)
+    spec["limit_quantities"].append("temperature")
+    spec["severity"]["temperature"] = {"value": 0.5, "unit": "degC"}
+    controls.validate_controls(controls.register_controls([spec]), task=task)
+    predicted = controls.task_control_prediction(
+        task,
+        spec,
+        {"x": 1},
+        task["conditions"][0],
+        {"cost": 0.0, "safety": -0.1, "temperature": 45.3},
+    )
+    assert predicted["safety"] > 0
+    assert predicted["temperature"] < 45
+
+    wrong_unit = json.loads(json.dumps(spec))
+    wrong_unit["severity"]["safety"]["unit"] = "degC"
+    with pytest.raises(tasks.TaskError, match="unit does not match"):
+        controls.validate_controls(controls.register_controls([wrong_unit]), task=task)
+    missing = json.loads(json.dumps(spec))
+    del missing["severity"]["temperature"]
+    with pytest.raises(tasks.TaskError, match="one severity per controlled"):
+        controls.register_controls([missing])
+    scalar = json.loads(json.dumps(spec))
+    scalar["severity"] = 0.5
+    with pytest.raises(tasks.TaskError, match="one severity per controlled"):
+        controls.register_controls([scalar])
 
 
 def _fixture(*, clusters=("sealed-bank-1", "sealed-bank-2")):
@@ -371,6 +407,11 @@ def test_unresolved_question_stays_in_draw_mass_but_not_resolved_evidence():
 
 def test_power_inputs_fail_closed_and_cli_prints_aggregates_only(tmp_path, capsys):
     bank, grid, continuous, specs, good = _fixture()
+    wrong_unit = json.loads(json.dumps(specs))
+    wrong_unit["controls"][0]["severity"]["safety"]["unit"] = "degC"
+    wrong_unit = controls.register_controls(wrong_unit["controls"])
+    with pytest.raises(tasks.TaskError, match="unit does not match"):
+        _report((bank, grid, continuous, wrong_unit, good))
     tampered = json.loads(json.dumps(good))
     tampered["cases"][0]["predictions"][0]["values"]["safety"] = 999
     with pytest.raises(tasks.TaskError):

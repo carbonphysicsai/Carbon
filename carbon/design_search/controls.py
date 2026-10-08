@@ -12,8 +12,8 @@ from decimal import Decimal
 
 from carbon.design_search import tasks
 
-CONTROL_SCHEMA = "carbon.design-search.control.v1"
-CONTROL_SET_SCHEMA = "carbon.design-search.controls.v1"
+CONTROL_SCHEMA = "carbon.design-search.control.v2"
+CONTROL_SET_SCHEMA = "carbon.design-search.controls.v2"
 KINDS = (
     "edge_optimist",
     "over_cautious",
@@ -129,7 +129,18 @@ def _validate_control(spec, task):
         or len(set(spec["limit_quantities"])) != len(spec["limit_quantities"])
     ):
         raise tasks.TaskError("invalid behaviour-defined control")
-    _finite_positive(spec["severity"], "control severity")
+    severity = spec["severity"]
+    if type(severity) is not dict or set(severity) != set(spec["limit_quantities"]):
+        raise tasks.TaskError("one severity per controlled quantity required")
+    for quantity, entry in severity.items():
+        if (
+            type(entry) is not dict
+            or set(entry) != {"value", "unit"}
+            or type(entry["unit"]) is not str
+            or not entry["unit"]
+        ):
+            raise tasks.TaskError("control severity needs a value and unit")
+        _finite_positive(entry["value"], f"{quantity} severity")
     if kind == "localized_sign_error":
         _validate_region(spec["region"], task)
     if kind == "optimizer_or_lattice_aware" and spec["scope"] not in (
@@ -143,6 +154,12 @@ def _validate_control(spec, task):
             raise tasks.TaskError("control requires unique hard-limit quantities")
         if not set(spec["limit_quantities"]) <= set(limits):
             raise tasks.TaskError("control uses unregistered hard limit")
+        units = {limit["quantity"]: limit["unit"] for limit in task["limits"]}
+        if any(
+            severity[quantity]["unit"] != units[quantity]
+            for quantity in spec["limit_quantities"]
+        ):
+            raise tasks.TaskError("control severity unit does not match hard limit")
 
 
 def _inside_region(region, action, condition):
@@ -185,9 +202,11 @@ def task_control_prediction(
             and tasks.snap_action(task["identity"]["action_grammar"], action) == action
         ):
             return result
-    severity = _finite_positive(spec["severity"], "control severity")
     limits = {limit["quantity"]: limit for limit in task["limits"]}
     for quantity in spec["limit_quantities"]:
+        severity = _finite_positive(
+            spec["severity"][quantity]["value"], f"{quantity} severity"
+        )
         if quantity not in result:
             raise tasks.TaskError("reference row lacks controlled quantity")
         limit = limits[quantity]
