@@ -1212,3 +1212,128 @@ def graph_equivalence(
         out["predictions_identical"] = native_digest == result["predictions_sha256"]
         out["identical"] = out["identical"] and out["predictions_identical"]
     return out
+
+
+# --- The development-only Level 4 variant (LEVEL4-DEV-VARIANT-01) -------------
+
+LEVEL = 4
+VERSION = "battery-l4-graph-v1"
+CAPABILITY = "hybrid.composition_graphs"
+FIELD = "composition_graphs"
+AUTHORITY = (
+    "OWNER-LEVEL4-GRAPH-ONLY-01 (D1); OWNER-GRAPHITE-TEST-WAVE-03 section 1; "
+    "OWNER-GRAPHITE-DEV-LEVELS-01 F1; LEVEL4-DEV-VARIANT-01"
+)
+REVIEW = {
+    "reviewer": "Test Lead",
+    "record": (
+        "Test Lead ruling 2026-10-08 (Level 4 PR 8): the Level 4 surface is the "
+        "allowlist, the constant caps, the compute budget and gates G0-G7, at "
+        "maximum freedom; the drafted surface is "
+        "docs/development/graphite/level4/LEVEL4_CAPABILITY_DRAFT.md"
+    ),
+}
+_SUMMARY = (
+    "A graph-only submission: the math graph a miner's JAX or PyTorch model "
+    "lowers to (carbon.level4 format), admitted only through gates G0-G7; "
+    "Carbon initializes, trains and grades it, and no miner code runs"
+)
+_GATES = [
+    "G0 intake (carbon.level4.intake)",
+    "G3 isolated parse (carbon.level4._parse_worker)",
+    "G4 validation (carbon.level4.validate)",
+    "G5 compile in isolation (carbon.level4.compile): fail-closed until D3",
+    "G6 Carbon trains (carbon.level4.train)",
+    "G7 Carbon grades (carbon.level4.grade)",
+]
+
+
+def _bounds(allowlist):
+    from ..level4 import allowlist as allowlist_module
+    from ..level4 import submission
+
+    return {
+        "admission": "graph_only",
+        "allowlist": {"version": allowlist.version, "digest": allowlist.digest},
+        "submission_schema": submission.SCHEMA,
+        "gates": list(_GATES),
+        "caps": {name: value for name, value in allowlist_module.CAPS.items()},
+        "compute_budget": "TRAINING-BUDGET-01 compute budget; HUMAN_INPUT until battery's sheet sets it",
+        "interface": "the Level 0 network boundary in development (battery.level4.interface)",
+        "training": "Carbon's key, battery's own loop and optimizer menu, TRAIN v1 only",
+    }
+
+
+def variant_document(version=VERSION, *, base=None):
+    """Battery's Level 4 variant document, built from the shipped allowlist
+    and gates so the registered policy and the code cannot drift apart."""
+    from ..level4 import allowlist as allowlist_module
+    from ..reconstruction import expansion_record
+    from ..reconstruction.capability_registry import contract
+
+    challenge = challenge_id()
+    if base is None:
+        records = expansion_record.records(challenge)
+        base = {
+            "digest": contract(challenge).digest,
+            "record_sequence": records[-1]["sequence"],
+        }
+    return {
+        "schema": "carbon.construction-development-variant.v1",
+        "version": version,
+        "challenge": challenge,
+        "level": LEVEL,
+        "scope": "DEVELOPMENT_ONLY_NEVER_SERVED_TO_MINERS",
+        "status": "REGISTERED_DEVELOPMENT_POLICY",
+        "authority": AUTHORITY,
+        "review": dict(REVIEW),
+        "base_contract": dict(base),
+        "participant_code": False,
+        "widened": [
+            {
+                "id": CAPABILITY,
+                "summary": _SUMMARY,
+                "surface": None,
+                "applies_to": None,
+                "bounds": _bounds(allowlist_module.load()),
+            }
+        ],
+    }
+
+
+def reconstruct(value, admitted, granted):
+    """Carbon's reconstruction of `hybrid.composition_graphs`
+    (`development_variants.RECONSTRUCTIONS`): the submission's digest, pinned
+    with the allowlist it is judged under. The documents themselves arrive
+    through the Launchpad slot and are verified by `carbon.level4.intake`."""
+    del admitted, granted
+    from ..level4 import allowlist as allowlist_module
+    from ..reconstruction import development_variants as dv
+    from . import level4_worker
+
+    if not (
+        isinstance(value, str)
+        and len(value) == 71
+        and value.startswith("sha256:")
+        and all(c in "0123456789abcdef" for c in value[7:])
+    ):
+        raise dv.VariantRefused(
+            dv.PARAMETER_REFUSED,
+            issues=[("development.level4.submission_digest", "/parameters/" + FIELD)],
+        )
+    allowlist = allowlist_module.load()
+    return {
+        "schema": level4_worker.SCHEMA,
+        "submission": value,
+        "allowlist": {"version": allowlist.version, "digest": allowlist.digest},
+        "lane": level4_worker.BLOCKED,
+    }
+
+
+def _reconstructions():
+    from ..reconstruction.capability_registry import BATTERY_CHALLENGE
+
+    return {(BATTERY_CHALLENGE, CAPABILITY): reconstruct}
+
+
+RECONSTRUCTIONS = _reconstructions()

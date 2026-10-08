@@ -1,0 +1,28 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-08-level4-graph-batch-lowering",
+ "recorded_at": "2026-10-08T06:00:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "claude/level4-g6 (Level 4 Phase 1 slice 2, PR #792); claude/level4-dev-variant (PR 8)",
+  "description": "Built G6 for graph-only Level 4 and tested whether a graph lowered for one case and batched by Carbon's vmap trains like the native batched model, for battery's Level 0 MLP (classic loop) and DeepONet (training.train)."
+ },
+ "expected": "A per-case graph batched by vmap is equivalent to the native batched model, as its forward pass is (Phase 0: forward outputs bit-identical on CPU), so the interface could fix one case and let Carbon batch.",
+ "observed": "Forward passes matched bit for bit, but training did not for every family. The classic MLP trained bit-identically through vmap. DeepONet did not: same final loss to print precision, different parameter digest, because vmap changes the order in which gradients accumulate across the batch. Bit-identity in the forward pass does not carry to training.",
+ "keep": [
+  "Lower a Level 4 graph at the recipe's own training batch and pin that batch at G4; train at it; pad inference into blocks of it, which keeps every case's result the declared graph's.",
+  "Test equivalence on training (parameter digests after the full step count), never only on the forward pass."
+ ],
+ "change": [
+  "Any interface that fixes one case per graph needs its own R1 training evidence per family before it is used.",
+  "Run the same training-equivalence check on the GPU lane (the A40 R1 leg) before any Level 4 claim beyond CPU."
+ ],
+ "protocol_elements": [
+  "development_variant.level4",
+  "climb.equivalence"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

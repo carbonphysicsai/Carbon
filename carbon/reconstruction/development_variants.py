@@ -11,7 +11,7 @@ policy, in the pattern of `carbon.battery.exam.RULES` and of Graphite's
 registered attribution policies (`attribution_policies/*.json` plus a
 `registry.json` that pins each version's digest). Its document
 (`carbon.construction-development-variant.v1`) names:
-- the Challenge and the level (1-3);
+- the Challenge and the level (1-4; Level 4 graph-only);
 - the base: the miner-facing contract's digest and the expansion record that
   pins it;
 - the widened capabilities, each with its surface and its bounds;
@@ -35,8 +35,15 @@ miner surface, the validator or the intake imports this module
   needed for internal use; opening any surface to miners still needs it.
 - F2: Level 3 is a declarative menu only: every widened surface is a fixed
   `choice` menu, as data. No level runs participant code
-  (`participant_code` is always false), and Levels 4-5 are refused until the
+  (`participant_code` is always false), and Level 5 is refused until the
   security owner accepts isolation.
+- OWNER-LEVEL4-GRAPH-ONLY-01 (D1): Level 4 admits only a math graph, never
+  participant code, and only on a development variant. A Level 4 variant
+  widens exactly `hybrid.composition_graphs`, with no surface, and its
+  bounds pin graph-only admission and the allowlist (version and digest)
+  every graph must meet (`carbon.level4`). Compiling or training a
+  submitted graph stays fail-closed until the security owner accepts the
+  G5 profile (D3): LEVEL4-DEV-VARIANT-01.
 
 **The climb procedure still applies.** A variant is used only once a
 development expansion record pins it (`expansions/<token>/dev/NNNN.json`,
@@ -88,9 +95,13 @@ REGISTERED = "REGISTERED_DEVELOPMENT_POLICY"
 FIXTURE = "FIXTURE_NOT_PRODUCTION"
 STATUSES = (REGISTERED, FIXTURE)
 #: The levels a variant may serve. Level 0 is the miner-facing contract
-#: itself; Levels 4-5 run participant code, which waits for the security
-#: owner's isolation acceptance (OWNER-GRAPHITE-DEV-LEVELS-01 F2).
-LEVELS = (1, 2, 3)
+#: itself; Level 5 runs participant code, which waits for the security
+#: owner's isolation acceptance (OWNER-GRAPHITE-DEV-LEVELS-01 F2). Level 4 is
+#: graph-only (OWNER-LEVEL4-GRAPH-ONLY-01): no participant code runs.
+LEVELS = (1, 2, 3, 4)
+#: Level 4 widens only the graph slot, graph-only (D1).
+GRAPH_ONLY_LEVEL = 4
+GRAPH_ONLY_CAPABILITIES = frozenset({"hybrid.composition_graphs"})
 #: Level 3 is a declarative menu only (F2): every widened surface a `choice`.
 MENU_ONLY_LEVEL = 3
 #: Development records live in this subfolder of a Challenge's expansion
@@ -112,6 +123,7 @@ LEVEL_INVALID = "development_variant_level_invalid"
 NEEDS_ISOLATION = "development_variant_level_requires_isolation"
 PARTICIPANT_CODE = "development_variant_participant_code_refused"
 MENU_ONLY = "development_variant_level3_is_a_declarative_menu"
+GRAPH_ONLY = "development_variant_level4_is_graph_only"
 WIDENS_NOTHING = "development_variant_widens_nothing"
 FIXTURE_SHIPPED = "development_variant_fixture_in_shipped_registry"
 RECONSTRUCTION_MISSING = "development_reconstruction_missing"
@@ -339,6 +351,20 @@ def _surface(value, label):
     return surface
 
 
+def _graph_only_bounds(bounds):
+    """A Level 4 widening's bounds pin graph-only admission and the
+    allowlist every graph must meet."""
+    allowlist = bounds.get("allowlist")
+    return (
+        bounds.get("admission") == "graph_only"
+        and type(allowlist) is dict
+        and set(allowlist) == {"version", "digest"}
+        and _text(allowlist["version"])
+        and type(allowlist["digest"]) is str
+        and _DIGEST.fullmatch(allowlist["digest"]) is not None
+    )
+
+
 def _widened(entries, challenge, level):
     if type(entries) is not list or not entries:
         raise VariantRefused(WIDENS_NOTHING, "widened is a non-empty list")
@@ -387,6 +413,10 @@ def _widened(entries, challenge, level):
         surface = _surface(entry["surface"], capability_id)
         if level == MENU_ONLY_LEVEL and (surface is None or surface.kind != "choice"):
             raise VariantRefused(MENU_ONLY, capability_id)
+        if level == GRAPH_ONLY_LEVEL and (
+            capability_id not in GRAPH_ONLY_CAPABILITIES or surface is not None
+        ):
+            raise VariantRefused(GRAPH_ONLY, capability_id)
         applies_to = entry["applies_to"]
         if applies_to is not None:
             if (
@@ -401,6 +431,8 @@ def _widened(entries, challenge, level):
         bounds = entry["bounds"]
         if type(bounds) is not dict or not bounds:
             raise VariantRefused(MALFORMED, capability_id + ": bounds are stated")
+        if level == GRAPH_ONLY_LEVEL and not _graph_only_bounds(bounds):
+            raise VariantRefused(GRAPH_ONLY, capability_id + ": bounds")
         try:
             bounds_json = _canonical(bounds)
         except ValueError:
@@ -712,12 +744,13 @@ RECONSTRUCTIONS = {}
 
 
 def _register_shipped_reconstructions():
-    from carbon.battery import level1, level2, level3
+    from carbon.battery import level1, level2, level3, level4
 
     shipped = {
         **level1.RECONSTRUCTIONS,
         **level2.RECONSTRUCTIONS,
         **level3.RECONSTRUCTIONS,
+        **level4.RECONSTRUCTIONS,
     }
     for key, build in shipped.items():
         RECONSTRUCTIONS.setdefault(key, build)

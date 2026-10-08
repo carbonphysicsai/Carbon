@@ -1,0 +1,52 @@
+{
+ "authority": "OWNER-LEVEL4-GRAPH-ONLY-01 (D1); OWNER-GRAPHITE-TEST-WAVE-03 section 1; OWNER-GRAPHITE-DEV-LEVELS-01 F1; LEVEL4-DEV-VARIANT-01",
+ "base_contract": {
+  "digest": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e",
+  "record_sequence": 1
+ },
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": 4,
+ "participant_code": false,
+ "review": {
+  "record": "Test Lead ruling 2026-10-08 (Level 4 PR 8): the Level 4 surface is the allowlist, the constant caps, the compute budget and gates G0-G7, at maximum freedom; the drafted surface is docs/development/graphite/level4/LEVEL4_CAPABILITY_DRAFT.md",
+  "reviewer": "Test Lead"
+ },
+ "schema": "carbon.construction-development-variant.v1",
+ "scope": "DEVELOPMENT_ONLY_NEVER_SERVED_TO_MINERS",
+ "status": "REGISTERED_DEVELOPMENT_POLICY",
+ "version": "battery-l4-graph-v1",
+ "widened": [
+  {
+   "applies_to": null,
+   "bounds": {
+    "admission": "graph_only",
+    "allowlist": {
+     "digest": "sha256:3b2371ffb02275a1dc2dbbe8e8a97eb180b9c673c9149cc38d05ae99557971f7",
+     "version": "level4-allowlist-v1"
+    },
+    "caps": {
+     "call_depth": "HUMAN_INPUT",
+     "constant_bytes": "HUMAN_INPUT",
+     "document_bytes": "HUMAN_INPUT",
+     "largest_intermediate_bytes": "HUMAN_INPUT",
+     "nodes_executed": "HUMAN_INPUT"
+    },
+    "compute_budget": "TRAINING-BUDGET-01 compute budget; HUMAN_INPUT until battery's sheet sets it",
+    "gates": [
+     "G0 intake (carbon.level4.intake)",
+     "G3 isolated parse (carbon.level4._parse_worker)",
+     "G4 validation (carbon.level4.validate)",
+     "G5 compile in isolation (carbon.level4.compile): fail-closed until D3",
+     "G6 Carbon trains (carbon.level4.train)",
+     "G7 Carbon grades (carbon.level4.grade)"
+    ],
+    "interface": "the Level 0 network boundary in development (battery.level4.interface)",
+    "submission_schema": "carbon.development.level4-submission.v0",
+    "training": "Carbon's key, battery's own loop and optimizer menu, TRAIN v1 only"
+   },
+   "id": "hybrid.composition_graphs",
+   "summary": "A graph-only submission: the math graph a miner's JAX or PyTorch model lowers to (carbon.level4 format), admitted only through gates G0-G7; Carbon initializes, trains and grades it, and no miner code runs",
+   "surface": null
+  }
+ ]
+}

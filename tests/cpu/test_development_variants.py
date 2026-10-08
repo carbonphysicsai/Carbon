@@ -272,7 +272,9 @@ def _surface(level, surface):
 @pytest.mark.parametrize(
     ("changes", "code"),
     [
-        ({"level": 4}, dv.NEEDS_ISOLATION),
+        # Level 4 is graph-only (OWNER-LEVEL4-GRAPH-ONLY-01): a Level 4 document
+        # widening anything but the graph slot is refused as such.
+        ({"level": 4}, dv.GRAPH_ONLY),
         ({"level": 5}, dv.NEEDS_ISOLATION),
         ({"level": 0}, dv.LEVEL_INVALID),
         ({"level": "1"}, dv.LEVEL_INVALID),
@@ -290,6 +292,43 @@ def test_the_owners_bounds_are_enforced(changes, code):
     with pytest.raises(dv.VariantRefused) as refused:
         dv.DevContractVariant.from_document({**fixture_document(1), **changes})
     assert refused.value.code == code
+
+
+def _graph_entry(**changes):
+    entry = {
+        "id": "hybrid.composition_graphs",
+        "summary": "a graph-only submission",
+        "surface": None,
+        "applies_to": None,
+        "bounds": {
+            "admission": "graph_only",
+            "allowlist": {
+                "version": "level4-allowlist-v1",
+                "digest": "sha256:" + "a" * 64,
+            },
+        },
+    }
+    entry.update(changes)
+    return entry
+
+
+def test_level_4_is_graph_only():
+    base = {**fixture_document(1), "level": 4}
+    dv.DevContractVariant.from_document({**base, "widened": [_graph_entry()]})
+    for entry in (
+        _graph_entry(surface=["model", "uint", 1, 4, 1]),
+        _graph_entry(bounds={"admission": "code"}),
+        _graph_entry(bounds={"admission": "graph_only"}),
+        _graph_entry(bounds={"admission": "graph_only", "allowlist": {"version": "v"}}),
+    ):
+        with pytest.raises(dv.VariantRefused) as refused:
+            dv.DevContractVariant.from_document({**base, "widened": [entry]})
+        assert refused.value.code == dv.GRAPH_ONLY
+    with pytest.raises(dv.VariantRefused) as refused:
+        dv.DevContractVariant.from_document(
+            {**base, "widened": [_graph_entry()], "participant_code": True}
+        )
+    assert refused.value.code == dv.PARTICIPANT_CODE
 
 
 def test_level_3_is_a_declarative_menu_only():
