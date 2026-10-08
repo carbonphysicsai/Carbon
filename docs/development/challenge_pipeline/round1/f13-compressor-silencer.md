@@ -156,6 +156,15 @@ Operating-flow extensions are a new contract, not a first-round grant.
 
 ## 10. Readiness and claim record
 
+**Before any new hidden bank:** the owner-selected [four-check value prerequisite](../question-laws/value-check-v1.md)
+requires per-stratum discrimination and meaningful buyer-unit spread, one
+complete feasible action, and changing best/equivalent answers. Numeric
+thresholds remain HUMAN_INPUT recommendations; receipt **NOT_DEMONSTRATED**.
+For this buyer, report interval-weighted full-band p10/packaging margins; sparse frequencies or
+incomplete multi-frequency curves cannot establish design value.
+No favorable redraw, exposure reset, solver grant or qualification follows.
+
+
 Selected requirements and an analytical mode-cutoff screen only. 3D acoustic
 reference adequacy is NOT_DEMONSTRATED. Next: exact impedance/power conventions,
 CAD and analytic controls under stage permission. No source-noise reduction,

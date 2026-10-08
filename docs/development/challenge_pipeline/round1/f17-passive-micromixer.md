@@ -146,6 +146,15 @@ contracts, not this reference-feasibility allowance.
 
 ## 10. Readiness and claim record
 
+**Before any new hidden bank:** the owner-selected [four-check value prerequisite](../question-laws/value-check-v1.md)
+requires per-stratum discrimination and meaningful buyer-unit spread, one
+complete feasible action, and changing best/equivalent answers. Numeric
+thresholds remain HUMAN_INPUT recommendations; receipt **NOT_DEMONSTRATED**.
+For this buyer, report flux-weighted M, pressure and residence margins on the complete flow/diffusivity
+panel; artificial scalar smoothing cannot supply value.
+No favorable redraw, exposure reset, solver grant or qualification follows.
+
+
 Selected requirements and smooth-channel dimensional screens only. Groove flow/
 transport and reference adequacy NOT_DEMONSTRATED. Next: exact CAD/inlets/
 extractor and analytical/numerical-diffusion controls under stage permission.

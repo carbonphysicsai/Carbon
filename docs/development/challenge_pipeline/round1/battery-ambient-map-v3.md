@@ -140,6 +140,14 @@ their own evidence. No new solves occur here.
 
 ## 10. Readiness and next gate
 
+Before a new hidden bank, require the [four-check value prerequisite](../question-laws/value-check-v1.md).
+The public with-cooling study has resolved pass fractions 7.3/28.2/12.2/
+11.4/8.3% in 5/15/25/35/40 C bands: only 15 C meets the recommended
+20–80% range. Complete-map existence passes C at those study inputs; B and
+settled D remain NOT_DEMONSTRATED. A complete action is the five-band map,
+not one shared protocol. Numeric thresholds and 0.5-min spread remain
+HUMAN_INPUT, not new safety/score rules. Full v3 law readiness is held.
+
 The ambient map and buyer-mix value are owner-selected DEVELOPMENT semantics.
 Numeric law, action bank, value resolution, reference adequacy, score-use,
 power and executable map/observer integration are not adopted by a green

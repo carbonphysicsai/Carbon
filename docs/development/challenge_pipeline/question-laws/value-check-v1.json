@@ -1,0 +1,223 @@
+{
+  "schema": "carbon.design-value-readiness.specification.v1",
+  "ticket": "CHALLENGE-DESIGN-VALUE-01",
+  "authority": "OWNER-DESIGN-VALUE-01",
+  "maturity": "SPECIFIED",
+  "prerequisite": "OWNER_REQUIRED_BEFORE_NEW_HIDDEN_BANK_CONSTRUCTION",
+  "runtime_enforced": false,
+  "dispatch_ready": false,
+  "runtime_registration": false,
+  "protected_material": false,
+  "historical_rescore": false,
+  "spend_grant": null,
+  "validator_permit": null,
+  "accepted_value_receipt": null,
+  "numeric_acceptance": {
+    "status": "HUMAN_INPUT",
+    "registered_pass_fraction_range": null,
+    "pass_fraction_recommendation": [
+      0.2,
+      0.8
+    ],
+    "cooling_margin_spread_recommendation_k": 5,
+    "registered_minimum_coverage": null,
+    "registered_answer_change_threshold": null,
+    "near_band_policy": null,
+    "note": "All recommendations remain non-production; report study and strict denominators with NEAR and unresolved rates."
+  },
+  "checks": {
+    "A": "DISCRIMINATION_EACH_STRATUM",
+    "B": "MEANINGFUL_BUYER_UNIT_SPREAD_EACH_STRATUM",
+    "C": "ONE_COMPLETE_ACTION_FEASIBLE_ACROSS_ALL_MANDATORY_STRATA",
+    "D": "MEANINGFUL_BEST_EQUIVALENT_ANSWER_CHANGES_ACROSS_STRATA_OR_QUESTION_DRAWS"
+  },
+  "custody": {
+    "witness_source": "SEPARATE_PUBLIC_NON_HIDDEN_OR_RETIRED_PUBLISHED_BANK",
+    "hidden_tuning_allowed": false,
+    "redraw_none_feasible": false,
+    "threshold_variation_resets_exposure": false
+  },
+  "cooling_owner_selection": {
+    "status": "OWNER_SELECTED_DEVELOPMENT_CONDITIONAL_ON_VALUE",
+    "limit_c": 85,
+    "plane": "LID_SIDE_TIM2_INTERFACE",
+    "lid_class": "VAPOUR_CHAMBER",
+    "die_tim1_role": "DIAGNOSTIC",
+    "final_parameters": null
+  },
+  "cooling_preflight": {
+    "owner": "DATA_COLLECTION",
+    "route": "EXISTING_PUBLIC_RESULTS_AND_CHEAP_LID_MODEL_PRE_SOLVE",
+    "new_large_cfd_allowed": false,
+    "requested_inlet_range_c": [
+      25,
+      45
+    ],
+    "current_pg25_inlet_support_min_c": 30,
+    "registered_search_inlet_range_c": [
+      30,
+      45
+    ],
+    "below_support_outcome": "UNSUPPORTED_NOT_CLAMPED",
+    "candidate_count_recommendation": [
+      2,
+      3
+    ],
+    "final_parameter_owner": "HUMAN_OWNER",
+    "evidence_head": "aa30efb0cb2edc37c535d32f58f7d64a57fe8a30",
+    "evidence_path": "docs/development/evidence/cooling-feasibility-02/value-search-registry.json",
+    "accepted_spreading_receipt": null,
+    "accepted_value_receipt": null,
+    "old_panel_logical_jobs": 53,
+    "panel_hold": "HOLD_SPREADING_AND_VALUE_CHECK",
+    "panel_release": null,
+    "failure_action": "CODEX_PREPARES_CASE_PLANE_BUYER_LEVERS_FOR_OWNER"
+  },
+  "audit": {
+    "source_head": "aa30efb0cb2edc37c535d32f58f7d64a57fe8a30",
+    "source_kind": "PUBLIC_REPORTED_DIAGNOSTIC_NOT_NEW_SOLVES_OR_ACCEPTED_REFERENCE_INTERVALS",
+    "battery_v3": {
+      "source_path": "docs/development/evidence/battery-feasibility-02/ambient-indexed.json",
+      "lane": "with_cooling",
+      "bands": [
+        {
+          "band_c": 5,
+          "actions": 42,
+          "feasible": 3,
+          "unresolved": 1,
+          "resolved": 41
+        },
+        {
+          "band_c": 15,
+          "actions": 42,
+          "feasible": 11,
+          "unresolved": 3,
+          "resolved": 39
+        },
+        {
+          "band_c": 25,
+          "actions": 147,
+          "feasible": 16,
+          "unresolved": 16,
+          "resolved": 131
+        },
+        {
+          "band_c": 35,
+          "actions": 147,
+          "feasible": 15,
+          "unresolved": 15,
+          "resolved": 132
+        },
+        {
+          "band_c": 40,
+          "actions": 36,
+          "feasible": 3,
+          "unresolved": 0,
+          "resolved": 36
+        }
+      ],
+      "A": "MISSES_RECOMMENDED_RANGE_IN_FOUR_BANDS",
+      "B": "NOT_DEMONSTRATED",
+      "C": "REPORTED_COMPLETE_FEASIBLE_MAP_AT_STUDY_INPUTS_NOT_ENTIRE_CONTINUOUS_LAW",
+      "D": "FOUR_NOMINAL_ACTION_IDENTITIES_NOT_SETTLED_VALUE_EQUIVALENT_DIVERSITY",
+      "complete_action": "FIVE_BAND_MAP_NOT_ONE_SHARED_PROTOCOL",
+      "whole_gate": "NOT_DEMONSTRATED",
+      "mix_only_pick_changes": 0
+    },
+    "motor": {
+      "source_path": "docs/development/evidence/motor-feasibility-02/registry.json",
+      "old_bank": "8P24S_REPORTED_ZERO_FEASIBLE_ORIGINAL_BUYER_ANSWERS",
+      "revised_bank": "10P12S_MULTI_SLICE_SKEW",
+      "current_evidence": "REGISTRY_AND_S3_PLAN_NO_PUBLISHED_FINAL_OUTCOME_SUMMARY",
+      "checks": {
+        "A": "NOT_DEMONSTRATED",
+        "B": "NOT_DEMONSTRATED",
+        "C": "NOT_DEMONSTRATED",
+        "D": "NOT_DEMONSTRATED"
+      },
+      "whole_gate": "NOT_DEMONSTRATED"
+    }
+  },
+  "challenges": [
+    {
+      "challenge": "battery",
+      "packet": "battery-ambient-map-v3.md",
+      "value_unit": "min",
+      "spread_recommendation": 0.5,
+      "numeric_status": "HUMAN_INPUT",
+      "registered_spread": null,
+      "accepted_value_receipt": null,
+      "readiness": "NOT_DEMONSTRATED"
+    },
+    {
+      "challenge": "motor",
+      "packet": "motor-precision-joint-v2.md",
+      "value_unit": "absolute_ripple_fraction",
+      "spread_recommendation": 0.01,
+      "numeric_status": "HUMAN_INPUT",
+      "registered_spread": null,
+      "accepted_value_receipt": null,
+      "readiness": "NOT_DEMONSTRATED"
+    },
+    {
+      "challenge": "cooling-cell",
+      "packet": "cooling-cell-v3.md",
+      "value_unit": "K",
+      "spread_recommendation": 5,
+      "numeric_status": "HUMAN_INPUT",
+      "registered_spread": null,
+      "accepted_value_receipt": null,
+      "readiness": "NOT_DEMONSTRATED"
+    },
+    {
+      "challenge": "burst-thermal",
+      "packet": "f02-burst-thermal.md",
+      "value_unit": "J",
+      "spread_recommendation": 100,
+      "numeric_status": "HUMAN_INPUT",
+      "registered_spread": null,
+      "accepted_value_receipt": null,
+      "readiness": "NOT_DEMONSTRATED"
+    },
+    {
+      "challenge": "grating-coupler",
+      "packet": "f06-grating-coupler.md",
+      "value_unit": "absolute_coupling_fraction",
+      "spread_recommendation": 0.02,
+      "numeric_status": "HUMAN_INPUT",
+      "registered_spread": null,
+      "accepted_value_receipt": null,
+      "readiness": "NOT_DEMONSTRATED"
+    },
+    {
+      "challenge": "resonance-structure",
+      "packet": "f08-resonance-structure.md",
+      "value_unit": "mm_per_N",
+      "spread_recommendation": 0.03,
+      "numeric_status": "HUMAN_INPUT",
+      "registered_spread": null,
+      "accepted_value_receipt": null,
+      "readiness": "NOT_DEMONSTRATED"
+    },
+    {
+      "challenge": "compressor-silencer",
+      "packet": "f13-compressor-silencer.md",
+      "value_unit": "dB",
+      "spread_recommendation": 0.5,
+      "numeric_status": "HUMAN_INPUT",
+      "registered_spread": null,
+      "accepted_value_receipt": null,
+      "readiness": "NOT_DEMONSTRATED"
+    },
+    {
+      "challenge": "passive-micromixer",
+      "packet": "f17-passive-micromixer.md",
+      "value_unit": "M",
+      "spread_recommendation": 0.05,
+      "numeric_status": "HUMAN_INPUT",
+      "registered_spread": null,
+      "accepted_value_receipt": null,
+      "readiness": "NOT_DEMONSTRATED"
+    }
+  ]
+}

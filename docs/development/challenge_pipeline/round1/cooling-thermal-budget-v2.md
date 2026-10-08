@@ -5,8 +5,10 @@
 85-C requirement is the **lid-side TIM2 interface**, not the die junction.
 The proposed stack does miss 85 C at the die-side proxy in this budget, but
 that is not the same conclusion as failing the current interface requirement.
-The owner must choose the plane before any release. Motor and other family
-laws are unchanged.
+The owner has selected this plane and a buyer-stated vapour-chamber lid;
+final inputs and the [spreading/value prerequisite](../question-laws/value-check-v1.md)
+are pending. All copper calculations below are preserved conditional history,
+not vapour-chamber performance or a release. Numerical question laws are unchanged.
 
 ## Inputs and measurement basis
 
@@ -114,17 +116,18 @@ is selected by this budget.
 
 ## Release condition and Data Collection return
 
-**Hold all 53 jobs**, including solver verification/witness jobs. Paper
-arithmetic may continue. The owner must confirm the temperature plane and
-inputs; a reviewed analytical map/budget must exhibit possible feasibility
-with an explicit uncertainty allowance, not merely assume uniform spreading.
-Then stack/package/map support and the separately required execution authority
-must be present. None of these pins or releases is supplied here.
+**Hold all 53 jobs**, including the old recipe's controls/witnesses. The owner
+has resolved 85 C at TIM2 and the vapour-chamber lid class. Data Collection's
+separate cheap existing-results/lid-pre-solve stage is the directed next step;
+it is not dispatch of this recipe. Return raw/post maps, candidate boundary
+response, case-temperature intervals, support and the four-check value report
+in every stratum. Roughly 20–80% and about 5 K remain recommendations.
 
-If the owner chooses 85 C at the die/junction, request a buyer-level lever
-before the panel. If the owner retains 85 C at TIM2, first supply the
-candidate-specific conservative conduction calculation and a credible local
-plate-response/spreading bound within its allowed uncertainty. Return the
-plane, cell/TIM decomposition, raw/post fluxes, applicability and budget
-receipt. A permit going live elsewhere does not automatically release this
-held panel. Reference failure remains separate from candidate failure.
+Return 2–3 buyer-realistic candidate input sets, or none. The owner chooses
+the final one. Failed value triggers Codex's case-plane buyer-lever options,
+not automatic inlet/power changes or importing die-side break-even values.
+The copper recipe must be revised/bound to the accepted lid/input/reference
+identities before execution. Stack/package/map support, approved value
+thresholds/evidence and existing stage authority remain required; no release
+is supplied here. A valV3 or other permit cannot release this held panel by
+implication. Reference failure remains separate from candidate failure.

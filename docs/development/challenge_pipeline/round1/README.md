@@ -1,13 +1,22 @@
 # First customer-shaped DEVELOPMENT round
 
+> **Current owner readiness amendment:** [design-value prerequisite](../question-laws/value-check-v1.md)
+> applies before new hidden-bank construction across all eight. See each
+> current packet's readiness section and the public Battery v3/Motor audit.
+> Cooling uses [cell v3](cooling-cell-v3.md), 85 C at lid-side TIM2 with a
+> buyer-stated vapour-chamber lid. Final parameters remain owner-pending.
+> [Motor v2](motor-precision-joint-v2.md) adds readiness without changing buyer
+> limits. Earlier pinned packets remain history; no hidden bank is released.
+
 > **Current follow-up to #817:** [Battery ambient-map v3](battery-ambient-map-v3.md)
 > supersedes the shared-protocol decision: one protocol/switch/cooling action
 > per band, band-local hard limits and buyer-mix-weighted minutes. Use its
 > [continuous law](../question-laws/battery-ambient-indexed-v3.md) and
 > [optimizer](../optimizers/battery-ambient-map-v3.md). Numerical distributions,
 > action/observer support and value resolution remain explicit seams.
-> Cooling's 53-job recipe is **ON HOLD** pending the
-> [analytic budget and temperature-plane decision](cooling-thermal-budget-v2.md).
+> Cooling's 53-job recipe is **ON HOLD** pending spreading/value evidence
+> and final owner inputs. The [analytic copper budget](cooling-thermal-budget-v2.md)
+> remains history; the temperature plane is now owner-selected.
 > Earlier supplements below are preserved prospective history where superseded.
 
 > **Historical #817 input proposals:** [Cooling v2 spreader/TIM inputs and panel](cooling-spreader-v2.md)
@@ -41,9 +50,9 @@ or production tolerances. Material constants are explicitly synthetic fixtures.
 
 | Packet | What the buyer wants Carbon to choose | Why a wrong decision costs them | Main new work / reuse |
 | --- | --- | --- | --- |
-| [Motor precision joint](motor-precision-joint.md) | A geometry/command pair providing 6-N·m holding and smooth torque | Commissioning stop or geometry/prototype redo | Reuse 60-angle reference; new command-role/cogging decision policy; no thermal/dynamic joint certification |
-| [Cooling full manifold](cooling-accelerator-manifold.md) | A plate/manifold and flow meeting 85 °C / 50 kPa / 2.5 W | Prototype redo or a thermally interrupted module | Reuse periodic assets, not periodic truth as full-manifold evidence |
-| [Battery EV fast charge](battery-ev-fast-charge.md) | A cell protocol meeting warm 30-min turnaround and 45-°C / 0-V model constraints | Lost driver time or investigation/replacement burden | Retain 30 cycles; prospective SOC/timing observer; no EV5/live-contract change |
+| [Motor precision joint v2](motor-precision-joint-v2.md) | A geometry/command pair providing 6-N·m holding and smooth torque | Commissioning stop or geometry/prototype redo | Revised-space value evidence pending; no thermal/dynamic joint certification |
+| [Cooling cell v3](cooling-cell-v3.md) | A cell geometry/flow meeting 85 °C at the buyer vapour-chamber lid-side TIM2 interface | Prototype redo or a thermally interrupted module | Preflight/value check and final buyer settings before any 53-job panel; no full plate |
+| [Battery ambient map v3](battery-ambient-map-v3.md) | Five band-specific protocol/cooling choices minimizing fleet-weighted safe session minutes | Lost driver time or investigation/replacement burden | Retain 30 cycles; no time cap; no EV5/live-contract change |
 | [f02 burst thermal](f02-burst-thermal.md) | The highest-energy permitted burst that stays under 95 °C | Throttling or a thermal-limit breach | New transient solid reference; reuse thermal representations/custody, not steady CFD truth |
 | [f06 grating coupler](f06-grating-coupler.md) | A TE coupling geometry robust to the declared offsets over 1530–1570 nm | A mask with poor coupling or excess reflection | New 3D grating/mode overlap; keep old supermode asset only as a baseline/control |
 | [f08 resonant structure](f08-resonance-structure.md) | A light support with low worst-band motion and adequate stiffness | Precision loss from a missed resonant peak | New CAD/modal/harmonic adapter; reuse generic case/evidence contracts |
