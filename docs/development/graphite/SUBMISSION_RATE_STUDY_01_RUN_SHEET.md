@@ -101,6 +101,17 @@ nothing frozen (nothing is frozen yet) and is rerun.
   run-5 constructions): the file, its digest, and the random order's seed (study-only,
   not a hidden seed).
 
+## F. Stage 1 entry point (for later; not part of Stage 0)
+
+The G-sealed arms start through the existing Graphite phase-3/4 runner with
+`--study SUBMISSION-RATE-STUDY-01`. The runner's grant check for that flag is
+`grant_binding.STUDY_GRANTS` / `check_study_grant`: it must enforce the 30.00 USD
+ceiling, the per-run cap, 6 runs, 39,600 s per run, and a submission cap of at
+most 144 read from the frozen `freeze-manifest.json`. **Status: pending (Test
+Engineer); not on main** at the time of writing (verified). Until it is on
+main the grant (OWNER-RATE-STUDY-TOKENS-01) binds nothing, and no G-sealed run may
+start.
+
 ## E. Checklist the owner runs
 
 1. Confirm the three preconditions hold.
