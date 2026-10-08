@@ -28,6 +28,8 @@ from carbon.battery import remote_submission as rs
 
 URL = "https://validator.example.org"
 FACTS = {"receiver": "5Validator", "snapshot": {"id": "snap-1"}}
+#: A well-formed public ss58 address (the well-known development account).
+RECEIVER = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
 
 
 class Intake:
@@ -72,7 +74,7 @@ def signed(monkeypatch):
     )
 
 
-def run(tmp_path, intake, *, epoch=1, wait_s=600.0):
+def run(tmp_path, intake, *, epoch=1, wait_s=600.0, **pinned):
     tmp_path.chmod(0o700)
     ticks = iter(range(0, 10_000, 30))
     return rs.submit_and_wait(
@@ -87,6 +89,7 @@ def run(tmp_path, intake, *, epoch=1, wait_s=600.0):
         clock=lambda: next(ticks),
         sleep=lambda _: None,
         wait_s=wait_s,
+        **pinned,
     )
 
 
@@ -358,6 +361,101 @@ def test_a_changed_signer_sends_nothing(tmp_path, signed, monkeypatch):
     assert intake.sent.count("battery_submit") == 1
 
 
+# --- LAUNCHPAD-ACCEPT-03: the pinned receiver, checked before any signing -----------
+
+
+@pytest.fixture
+def signings(signed, monkeypatch):
+    """Every signing the miner's signer would do, recorded: nothing may be
+    signed for an intake reporting another receiver."""
+    calls = []
+
+    def sign(signer, facts, body):
+        calls.append(json.loads(body)["call"]["tool"])
+        return {"X-Fixture-Signed": signer}
+
+    monkeypatch.setattr(rs, "_signed", sign)
+    return calls
+
+
+def test_a_mismatched_receiver_refuses_the_submit_before_signing(tmp_path, signings):
+    intake = Intake()
+    with pytest.raises(rs.IntakeRefusal) as refused:
+        run(tmp_path, intake, receiver="5AnotherValidator")
+    assert refused.value.code == "intake_receiver_mismatch"
+    assert refused.value.description == rs.intake_client.explain(
+        "intake_receiver_mismatch"
+    )
+    assert signings == [] and intake.sent == []  # nothing signed or sent
+    assert not (tmp_path / "intake-submission-epoch-1.json").exists()
+
+
+def test_a_mismatched_receiver_refuses_the_status_poll_before_signing(
+    tmp_path, signings
+):
+    run(tmp_path, Intake(), receiver=FACTS["receiver"])  # submitted, recorded
+    signings.clear()
+    again = Intake()
+    with pytest.raises(rs.IntakeRefusal) as refused:
+        run(tmp_path, again, receiver="5AnotherValidator")
+    assert refused.value.code == "intake_receiver_mismatch"
+    assert signings == [] and again.sent == []
+
+
+def test_a_mismatched_receiver_refuses_the_resend_before_signing(signings):
+    from carbon.battery import campaign
+
+    sent = []
+    io = {
+        "read": lambda url: {**FACTS, "snapshot": {"id": "s", "finalized_block": 9}},
+        "post": lambda *args: sent.append(args),
+    }
+    sid = rs.intake_client.submission_id(SIGNER.ss58_address, {"b": 1}, DIGEST)
+    with pytest.raises(rs.IntakeRefusal) as refused:
+        campaign._resend(URL, SIGNER, sid, None, {"b": 1}, DIGEST, io, "5Another")
+    assert refused.value.code == "intake_receiver_mismatch"
+    assert signings == [] and sent == []
+
+
+def test_a_matching_receiver_proceeds_and_signs_every_request(tmp_path, signings):
+    intake = Intake()
+    status, answer, _ = run(tmp_path, intake, receiver=FACTS["receiver"])
+    assert (status, answer["state"]) == (200, "SCORED")
+    assert signings == ["battery_submit", *["battery_status"] * 3]
+
+
+def test_a_profile_without_a_pinned_receiver_is_not_refused(tmp_path, signings):
+    """A legacy profile (no `receivers`) keeps submitting, unchecked: setup
+    and the prelaunch review warn about it instead."""
+    assert run(tmp_path, Intake())[1]["state"] == "SCORED"
+
+
+def test_the_campaign_refuses_a_mismatched_receiver_as_refused(
+    tmp_path, signed, monkeypatch
+):
+    """Through the campaign: the profile's pinned receiver reaches the check,
+    and the refusal keeps the epoch (REFUSED, the miner acts)."""
+    from carbon.battery import campaign
+    from carbon.development_session.research_campaign import OperationRefused
+
+    intake = Admission([])
+    through(intake, monkeypatch)
+    value = prepared(tmp_path)
+    value.args.receivers = {"battery-fastcharge-ageing-development-v1": "5Another"}
+    with pytest.raises(OperationRefused) as refused:
+        asyncio.run(
+            campaign.evaluate_candidate(value, 1, {"strategy": {"backbone": "knn"}})
+        )
+    assert refused.value.code == "intake_receiver_mismatch"
+    assert campaign.intake_outcome(refused.value.code) == "REFUSED"
+    assert intake.sent == []
+    value.args.receivers = {"battery-fastcharge-ageing-development-v1": "5Validator"}
+    feedback = asyncio.run(
+        campaign.evaluate_candidate(value, 1, {"strategy": {"backbone": "knn"}})
+    )
+    assert feedback["outcome"]["state"] == "SCORED"
+
+
 # --- every way the trip can fail is a closed code -----------------------------------
 
 
@@ -560,7 +658,7 @@ def test_setup_checks_the_intake_and_writes_it_to_the_profile(tmp_path):
     def intake(self, url, campaign=None):
         assert campaign.intake_check is not None  # the Challenge's own check
         calls.append(url)
-        return {"receiver": "5V"}
+        return {"receiver": RECEIVER}
 
     Checks.intake = intake
     try:
@@ -578,11 +676,15 @@ def test_setup_checks_the_intake_and_writes_it_to_the_profile(tmp_path):
         with pytest.raises(SetupRefused) as refused:
             setup.review({"confirm": True, "intakes": {"nowhere": URL}})
         assert refused.value.field == "intakes"
-        # A legacy `battery_intake` is read as the battery Challenge's intake.
-        setup.review({"confirm": True, "battery_intake": URL})
+        # A legacy `battery_intake` is read as the battery Challenge's intake,
+        # with its receiver named beside it (LAUNCHPAD-ACCEPT-03).
+        setup.review(
+            {"confirm": True, "battery_intake": URL, "receiver_hotkey": RECEIVER}
+        )
     finally:
         del Checks.intake
     assert calls == [URL]
     cfg = runner.validated_profile(json.loads(setup.profile_path.read_bytes()))
     assert cfg["intakes"] == {"battery-fastcharge-ageing-development-v1": URL}
     assert runner.intakes(cfg) == cfg["intakes"]
+    assert cfg["receivers"] == {"battery-fastcharge-ageing-development-v1": RECEIVER}

@@ -872,11 +872,13 @@
         const note = item.receiver_hotkey_note;
         if (typeof note === "string" && note) row.append(el("p", note[0].toUpperCase() + note.slice(1), "hint"));
       }
+      // A profile from before receivers were pinned (LAUNCHPAD-ACCEPT-03).
+      if (item.receiver_hotkey_warning) row.append(el("p", item.receiver_hotkey_warning, "reason"));
       if (item.note) row.append(el("p", item.note, item.intake ? "hint" : "reason"));
       if (item.set_aside_intake) {
         row.append(el("p", "Your own intake, set aside by the update: " + item.set_aside_intake, "status-line"));
         const again = el("button", "Name it again"); again.type = "button"; again.dataset.nameAgain = item.id;
-        again.addEventListener("click", () => nameAgain(item.id, item.set_aside_intake));
+        again.addEventListener("click", () => nameAgain(item.id, item.set_aside_intake, item.set_aside_receiver || ""));
         row.append(again);
       }
       box.append(row);
@@ -1521,10 +1523,13 @@
     const intakeChallenges = offered.intake_challenges || [];
     const intakeChallenge = setupSelect(reviewMore, "intake_challenge", "Validator intake for", intakeChallenges.map(item => [item.id, item.title + " · v" + item.version]));
     const intake = setupField(reviewMore, "intake_url", "Validator intake URL (optional; https, or loopback)");
-    intakeChallenge.disabled = intake.disabled = !intakeChallenges.length;
-    evaluationSection(evaluationBox, steps.evaluation, (challengeId, url) => {
+    // Pinned in the profile: nothing is signed for an intake that reports
+    // another receiver (LAUNCHPAD-ACCEPT-03). Required with an intake URL.
+    const receiver = setupField(reviewMore, "receiver_hotkey", "The validator's receiver hotkey (its public ss58 address; required with an intake URL)");
+    intakeChallenge.disabled = intake.disabled = receiver.disabled = !intakeChallenges.length;
+    evaluationSection(evaluationBox, steps.evaluation, (challengeId, url, hotkey) => {
       // Review writes only the intakes it is given: this one, again.
-      intakeChallenge.value = challengeId; intake.value = url;
+      intakeChallenge.value = challengeId; intake.value = url; receiver.value = hotkey;
       reviewMore.parentNode.open = true;
       $("setup-result").replaceChildren(setupLine("Your intake is named again below. Write your profile to keep it."));
     });
@@ -1540,7 +1545,10 @@
     review.addEventListener("submit", async event => {
       event.preventDefault();
       const request = {confirm: true};
-      if (intake.value.trim() && intakeChallenge.value) request.intakes = {[intakeChallenge.value]: intake.value.trim()};
+      if (intake.value.trim() && intakeChallenge.value) {
+        request.intakes = {[intakeChallenge.value]: intake.value.trim()};
+        if (receiver.value.trim()) request.receiver_hotkey = receiver.value.trim();
+      }
       await setupCall("review", request);
     });
     applySetupStep();
@@ -2004,7 +2012,7 @@
     if (/^registration_/.test(code)) return {label: "Check your registration", href: "#setup/register"};
     if (/^model_provider_|^model_selection_/.test(code)) return {label: "Set up inference", href: "#setup/inference"};
     if (/^research_profile_|^runner_profile_/.test(code)) return {label: "Continue setup", href: "#setup/review"};
-    if (code === "evaluation_unavailable") return {label: "Review evaluation in setup", href: "#setup/review"};
+    if (code === "evaluation_unavailable" || code === "intake_receiver_mismatch") return {label: "Review evaluation in setup", href: "#setup/review"};
     // Graphite's own (OWNER-GRAPHITE-MINER-01): where each is put right.
     if (code === "autonomous_agent_replaced") return {label: "Choose Graphite", href: "#launch"};
     if (code === "graphite_not_offered_for_challenge") return {label: "Choose a Challenge", href: "#challenges"};

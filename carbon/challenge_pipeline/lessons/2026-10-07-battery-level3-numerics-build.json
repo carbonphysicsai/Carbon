@@ -1,0 +1,29 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-07-battery-level3-numerics-build",
+ "recorded_at": "2026-10-07T18:00:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "claude/battery-l3-numerics (BATTERY-L3-NUMERICS-BUILD-01, stacked on #757)",
+  "description": "Built battery's Level-3 development variant from level-climb-1: the polish stage's quasi-Newton routine and line search as a declarative menu, in JAX, on the #611 pattern, with the Test Lead's attack-review guards."
+ },
+ "expected": "A second development level reuses Level 1's mechanism unchanged.",
+ "observed": "Three Level-1-specific seams surfaced. The variant mechanism only accepted contract dimensions, and Level 3 had none (numerics was added). Every dispatch site keyed on Level 1's loss-expression record, so a Level-3 record would have rebuilt silently as Level 0. A level test assumed Levels 2 and 3 were unregistered. A state key named 'grad' in a custom optax transform also collided with the line search's own state, which optax looks up by key name.",
+ "keep": [
+  "A level's default choice leaves no development record, so its rebuild is Level 0's byte for byte; test that, not just behaviour.",
+  "A new development level is dispatched explicitly at every rebuild site, with a test that the default stays Level 0.",
+  "Device-lane refusals are raised as Carbon's environment (ImportError in the staged program), never the candidate's fault."
+ ],
+ "change": [
+  "Give the development-record dispatch one shared helper per Challenge rather than per-level branches at each site, before Level 2's variant lands.",
+  "Wire the recorded line-search evaluation caps into the training budget adapter once TRAINING-BUDGET-01 is on main."
+ ],
+ "protocol_elements": [
+  "development_variant.level3",
+  "climb.numerics"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

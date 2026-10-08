@@ -109,6 +109,42 @@ most about 3 % false-feasible).
 4. **Motor** (motor-like class), once its design space is revised.
 5. **The canary,** with the first CFD-class Challenge.
 
+## Slice 2, as built (battery's pool bank)
+
+- **Rule `v2-bank`** (`exam.DEVELOPMENT_RULE_V2_BANK`): v2, unchanged, plus
+  `bank.pool`:
+  - `window_cases` 98, with v2's 2 hidden duplicates added;
+  - `size` 2,000: 20n, with n = 100 cases per window. The screening and
+    finalist windows share the one bank.
+  - `retire_at` 5.
+
+  Battery's current v2 deployments are unaffected. A deployment moves onto
+  the bank only by naming the rule.
+- **`battery_bank.BankedBatterySource`** (producer-only), selected by the
+  producer config's new optional `bank` key.
+  - **Tranches** are drawn with `seeds.make_batch` from the producer
+    deployment's own root (duplicate dropped, published cases refused),
+    solved in the pinned truth image and sealed.
+  - **Windows:** each slot role (`pscreen-S<n>`, `pfinal-S<n>`) draws from
+    the bank, disjoint from every window of the slots still active. The
+    hidden duplicates are root-derived. The window becomes a `PrivateBatch`
+    imported into the producer deployment, with its references from the
+    bank, so seal, export and check are battery's own.
+  - **Top-up:** when a window finds the bank short, the deficit is drawn,
+    solved and sealed first. `battery_bank fill` does the first fill.
+- **The v2 commitment** adds `bank` (`{bank, rule, tranches, selection_digest}`),
+  and the package adds `bank.proofs`.
+- **The validator** (`BatteryAdapter._checked_bank`) refuses unless:
+  - the bank values are its rule's;
+  - the selection digest is the drawn ids';
+  - every drawn case's id, inputs and reference prove into a committed
+    tranche root.
+
+  It also refuses a bank package under a rule without a bank. The codes are
+  `answer_key_bank_{missing,mismatch,proof}`.
+- **Not yet:** the tick reveals ended windows and auto-publishes retired
+  cases once #760 merges (slice 2b).
+
 ## Tests (slice 1)
 
 - Tranche seal: Merkle roots and proofs verify, and a changed case,

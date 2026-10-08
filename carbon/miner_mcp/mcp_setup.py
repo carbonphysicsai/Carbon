@@ -67,7 +67,11 @@ Loop until launch:
    endpoint, the miner's own intake, or none yet, with a `note` saying what
    to do. At review, `next.options.name_again` maps each Challenge whose own
    intake an update set aside to that intake: send it as `intakes` to keep
-   it. Review's result lists `warnings`; tell the miner each one.
+   it, with `next.options.receivers_again` as `receivers`. An intake of the
+   miner's own needs its validator's public receiver hotkey beside it
+   (`receiver_hotkey`); ask the miner for it. Nothing is signed for an
+   intake reporting another. Review's result lists `warnings`; tell the
+   miner each one.
 
 Order: start your signer, register on the subnet, who researches, inference
 (skipped for your own agent: it uses its own model), compute, review and

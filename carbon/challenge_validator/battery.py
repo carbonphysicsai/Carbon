@@ -355,6 +355,51 @@ class BatteryAdapter(ChallengeAdapter):
             "panel_version": document["panel_version"],
         }
 
+    def _checked_bank(self, commitment, payload, batch, references, needed):
+        """Under a bank rule (`v2-bank`, VALIDATOR-23), every drawn case must
+        prove into a sealed tranche the commitment names: its id, inputs and
+        reference, by Merkle proof. The commitment's bank values must be this
+        validator's rule's, and its selection digest the drawn ids'. A
+        package with a bank under a rule without one is refused too."""
+        from . import bank_proof
+        from .answer_key import AnswerKeyRefused
+
+        rule = (self.target.rule.get("bank") or {}).get("pool")
+        held = "bank" in commitment, "bank" in payload
+        if rule is None:
+            if any(held):
+                raise AnswerKeyRefused("answer_key_bank_mismatch")
+            return
+        if not all(held):
+            raise AnswerKeyRefused("answer_key_bank_missing")
+        bank, proofs = commitment["bank"], payload["bank"].get("proofs")
+        try:
+            roots = {
+                t["tranche"]: t["root"]
+                for t in bank["tranches"]
+                if type(t.get("root")) is str
+            }
+            if (
+                bank["rule"] != rule
+                or type(proofs) is not dict
+                or sorted(proofs) != needed
+                or bank["selection_digest"] != bank_proof.selection_digest(needed)
+            ):
+                raise ValueError
+        except (KeyError, TypeError, ValueError, AttributeError):
+            raise AnswerKeyRefused("answer_key_bank_mismatch") from None
+        inputs = dict(batch.cases)
+        for case_id in needed:
+            proof = proofs[case_id]
+            if type(proof) is not dict or not bank_proof.verify(
+                case_id,
+                dict(inputs[case_id]),
+                references[case_id],
+                proof.get("proof"),
+                roots.get(proof.get("tranche")),
+            ):
+                raise AnswerKeyRefused("answer_key_bank_proof")
+
     def withdraw_answer_key(self, manifest):
         """Apply a verified producer withdrawal (VALIDATOR-24): the batch
         stops scoring at once and is never imported again. Typed, never a
@@ -409,7 +454,7 @@ class BatteryAdapter(ChallengeAdapter):
             batch = PrivateBatch.from_document(payload["document"])
             references = payload["references"]
             salt = payload["reconstruction_salt"]
-            if set(payload) - {"quiz"} != {
+            if set(payload) - {"quiz", "bank"} != {
                 "document",
                 "references",
                 "reconstruction_salt",
@@ -434,6 +479,7 @@ class BatteryAdapter(ChallengeAdapter):
         if digest != commitment["references_digest"]:
             raise AnswerKeyRefused("answer_key_references_mismatch")
         quiz = self._checked_quiz(commitment, payload, batch)
+        self._checked_bank(commitment, payload, batch, references, needed)
         try:
             with self._writer():
                 fingerprint = self.target.import_batch(batch, kind=commitment["kind"])
