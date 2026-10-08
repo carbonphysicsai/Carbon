@@ -645,9 +645,12 @@ def mcp_connect(state_dir=None) -> dict:
                 "snippets": [
                     {
                         "label": "Add it",
-                        "text": "claude mcp add --transport stdio --env "
+                        # The server name before --env: Claude Code's --env
+                        # takes several values and would swallow the name
+                        # (LA-F12, Claude Code 2.1.294).
+                        "text": "claude mcp add --transport stdio carbon --env "
                         + shlex.quote("PYTHONPATH=" + repo)
-                        + " carbon -- "
+                        + " -- "
                         + command,
                     },
                     {"label": "Or in .mcp.json", "text": json.dumps(claude, indent=2)},
