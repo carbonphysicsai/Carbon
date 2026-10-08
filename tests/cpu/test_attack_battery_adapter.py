@@ -763,6 +763,23 @@ def test_higher_level_families_are_not_run_seams_with_nothing_to_execute():
             assert "reserved: security owner" in seam.reason
 
 
+def test_a_seam_names_the_registered_variant_it_waits_on():
+    """A seam at a level whose development variant is registered names that
+    variant and why the level is still not run; it never claims the level
+    has no proposal (the Level 2 reason did, after battery-l2-spectral-v1)."""
+    from carbon.reconstruction import development_variants as dv
+
+    registry = dv.load()
+    for seam in A.level_families():
+        found = registry.current.get((b.CHALLENGE_ID, seam.level))
+        if found is None or seam.level == dv.GRAPH_ONLY_LEVEL:
+            # Level 4's seam is replaced by its own adapter, battery_level4.
+            continue
+        assert dv.variant(b.CHALLENGE_ID, seam.level).version in seam.reason
+        assert "no attack adapter" in seam.reason
+        assert "no Level" not in seam.reason
+
+
 def test_a_research_tool_call_maps_to_the_family_it_probes():
     from carbon.development_session.research_tools import PREFIX
 
