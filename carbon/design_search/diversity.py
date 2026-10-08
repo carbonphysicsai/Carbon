@@ -11,10 +11,11 @@ import hashlib
 import json
 import math
 
-from carbon.design_search import tasks
+from carbon.design_search import power_accumulation, tasks
 
 BANK_SCHEMA = "carbon.design-search.sealed-bank.v1"
 LAW_SCHEMA = "carbon.design-search.question-law.v1"
+LAW_SCHEMA_V2 = "carbon.design-search.question-law.v2"
 REPORT_SCHEMA = "carbon.design-search.diversity-report.v1"
 STATES = ("FEASIBLE_EXISTS", "NONE_FEASIBLE", "UNRESOLVED")
 
@@ -77,7 +78,9 @@ def diversity_report(bank, law):
     integration and evidence; this code does not infer it from grid atoms.
     """
     _registered(bank, BANK_SCHEMA, "seal_digest")
-    _registered(law, LAW_SCHEMA, "registration_digest")
+    if type(law) is not dict or law.get("schema") not in (LAW_SCHEMA, LAW_SCHEMA_V2):
+        raise tasks.TaskError("registered question law required")
+    _registered(law, law["schema"], "registration_digest")
     if (
         bank.get("sealed") is not True
         or type(bank.get("cases")) is not list
@@ -97,26 +100,34 @@ def diversity_report(bank, law):
     k = law.get("batch_size")
     if type(k) is not int or k <= 0:
         raise tasks.TaskError("positive registered batch size required")
+    exposure_unit = bank.get("exposure_unit", "question_draws")
+    if exposure_unit not in (
+        "question_draws",
+        "batch_windows",
+        power_accumulation.EXPOSURE_UNIT,
+    ):
+        raise tasks.TaskError("registered exposure unit is invalid")
     exposure = bank.get("exposure")
-    if type(exposure) is not list or not exposure:
-        raise tasks.TaskError("sealed bank exposure ledger required")
     remaining_by_support = []
     seen_support = set()
-    for row in exposure:
-        if (
-            type(row) is not dict
-            or set(row) != {"support_case", "limit", "used"}
-            or type(row["support_case"]) is not str
-            or not row["support_case"]
-            or row["support_case"] in seen_support
-            or type(row["limit"]) is not int
-            or row["limit"] <= 0
-            or type(row["used"]) is not int
-            or not 0 <= row["used"] <= row["limit"]
-        ):
-            raise tasks.TaskError("sealed bank exposure row invalid")
-        seen_support.add(row["support_case"])
-        remaining_by_support.append(row["limit"] - row["used"])
+    if exposure_unit != power_accumulation.EXPOSURE_UNIT:
+        if type(exposure) is not list or not exposure:
+            raise tasks.TaskError("sealed bank exposure ledger required")
+        for row in exposure:
+            if (
+                type(row) is not dict
+                or set(row) != {"support_case", "limit", "used"}
+                or type(row["support_case"]) is not str
+                or not row["support_case"]
+                or row["support_case"] in seen_support
+                or type(row["limit"]) is not int
+                or row["limit"] <= 0
+                or type(row["used"]) is not int
+                or not 0 <= row["used"] <= row["limit"]
+            ):
+                raise tasks.TaskError("sealed bank exposure row invalid")
+            seen_support.add(row["support_case"])
+            remaining_by_support.append(row["limit"] - row["used"])
     cases = {}
     for row in bank["cases"]:
         if (
@@ -137,41 +148,72 @@ def diversity_report(bank, law):
     bins = law.get("bins")
     if type(bins) is not list or not bins:
         raise tasks.TaskError("registered question bins required")
+    population_registered = (
+        law["schema"] == LAW_SCHEMA or law.get("population_status") == "REGISTERED"
+    )
+    if law["schema"] == LAW_SCHEMA_V2 and law.get("population_status") not in (
+        "REGISTERED",
+        "UNREGISTERED",
+    ):
+        raise tasks.TaskError("question law must declare population status")
     checked = []
     for bin_ in bins:
         if (
             type(bin_) is not dict
-            or set(bin_) != {"case", "p_mass", "q_mass"}
+            or set(bin_)
+            != (
+                {"case", "p_mass", "q_mass"}
+                if population_registered
+                else {"case", "q_mass"}
+            )
             or bin_["case"] not in cases
         ):
             raise tasks.TaskError("question bin does not map to sealed bank")
         checked.append(
             {
                 "case": bin_["case"],
-                "p_mass": _mass(bin_["p_mass"]),
+                "p_mass": _mass(bin_["p_mass"]) if population_registered else None,
                 "q_mass": _mass(bin_["q_mass"]),
             }
         )
-    for key in ("p_mass", "q_mass"):
+    for key in (("p_mass", "q_mass") if population_registered else ("q_mass",)):
         if not math.isclose(sum(b[key] for b in checked), 1.0, abs_tol=1e-9):
             raise tasks.TaskError("question-law masses must sum to one")
-    remaining = min(remaining_by_support)
-    drawable = remaining >= k
+    if exposure_unit == power_accumulation.EXPOSURE_UNIT:
+        by_case = power_accumulation.validate_case_exposure(
+            bank.get("case_exposure"), cases
+        )
+        available = sum(count > 0 for count in by_case.values())
+        remaining = sum(by_case.values())
+        drawable = available >= k
+        shortage = max(0, k - available)
+    else:
+        available = None
+        remaining = min(remaining_by_support)
+        needed = k if exposure_unit == "question_draws" else 1
+        drawable = remaining >= needed
+        shortage = max(0, needed - remaining)
     return {
         "schema": REPORT_SCHEMA,
         "material": "DEVELOPMENT",
         "law_kind": law["kind"],
         "draw_model": law["draw_model"],
         "batch_size": k,
+        "exposure_unit": exposure_unit,
+        "available_questions": available,
         "basis": {
             "mass_l1_error_bound": error_bound,
             "expected_distinct_error_bound": k * error_bound if drawable else None,
         },
-        "P": _law_view(checked, cases, "p_mass", k, drawable=drawable),
+        "P": (
+            _law_view(checked, cases, "p_mass", k, drawable=drawable)
+            if population_registered
+            else None
+        ),
         "Q": _law_view(checked, cases, "q_mass", k, drawable=drawable),
         "exposure_remaining": remaining,
         "batch_drawable": drawable,
-        "exposure_shortage": max(0, k - remaining),
+        "exposure_shortage": shortage,
         "claims": {"power_demonstrated": False, "scientifically_qualified": False},
     }
 

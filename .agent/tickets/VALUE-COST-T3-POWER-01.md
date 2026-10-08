@@ -3,9 +3,9 @@
 **Status:** DEVELOPMENT implementation in progress under the owner's
 2026-10-08 value-and-cost direction. One PR to PR Lead, starting from main
 `bc650fd53826aaf752d1e9e96e1ead4328b653df`. Primary Development Hub
-`map_ref`: `carbon/design_search`. The Hub's retired navigation entry already
-places this code and its producer-only boundary; no Hub source change is
-planned.
+`map_ref`: `SYSTEM/DEVELOPMENT-SEQUENCING` for historical navigation only.
+Current `AGENTS.md` and `DELIVERY_PROTOCOL.md` retire the Hub and freeze its
+files; this ticket makes no Hub source or generated-output change.
 
 ## Scope and authority
 
@@ -21,8 +21,11 @@ change, score-policy decision, or Challenge-specific physical default.
 Extend the power estimate from one batch to a registered grid of questions
 per batch and accumulated windows. Draws retain the shared-bank cluster in
 every window: repeated questions from one reference bank never become
-independent sign-test evidence. Exposures cap eligible combinations, with
-their unit explicitly registered. The report prints aggregate detection
+independent sign-test evidence. The merged design-bank ledger counts E per
+question, selects distinct live questions within a window, and retires each
+question at its own E. The registered sequential-window simulation follows
+those rules on a finite sealed bank and reports bank-short paths explicitly;
+it does not project future top-ups or overlapping active windows. The report prints aggregate detection
 probabilities, Monte Carlo uncertainty, and feasibility/abstention/regret
 summaries only. P and Q remain separate. An unregistered P must be absent,
 not copied from Q.
@@ -49,8 +52,8 @@ is an owner-provided untracked workspace note, not a runtime authority file.
    open one DEVELOPMENT PR for PR Lead. CI supplies exact-head acceptance.
 
 Expected paths: `carbon/design_search/` producer adapter and power modules,
-its CLI, this contract, a short producer runbook and toy tests under
-`tests/cpu/`. No files under `carbon/challenge_validator` are in scope.
+its CLI, this contract, a short producer runbook, and toy tests under `tests/cpu/`. No files under
+`carbon/challenge_validator` are in scope.
 
 ## Working decisions and open seam
 
