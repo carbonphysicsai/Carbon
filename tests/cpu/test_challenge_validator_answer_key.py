@@ -23,6 +23,7 @@ from carbon.battery import exam, seeds, worker
 from carbon.battery.daemon import BatteryValidator, rule_digest
 from carbon.battery.pool_store import PoolStore, StateError
 from carbon.chain.auth import AuthCode, AuthenticatedHotkey, AuthFailure
+from carbon.chain.external_signer import SignerFailure
 from carbon.chain.models import ChainContext, ChainFailure, FailureCode
 from carbon.chain.permits import PermitUnavailable, ValidatorPermitReader
 from carbon.challenge_validator import answer_key as ak
@@ -297,6 +298,52 @@ def test_an_import_only_validator_imports_the_shared_batch(tmp_path, host, publi
     with pytest.raises(StateError) as refused:
         adapter.target.prepare_batch("pscreen-own", kind="screening", count=SIZE)
     assert refused.value.code == "batch_import_only"
+
+
+def test_sync_runs_through_the_real_signer_and_verifier(tmp_path, published):
+    """3a at r2: `answer_key sync` signs with the validator's own signer,
+    started for the answer-key fetch to the distribution host's receiver, and
+    the host checks it with the real `btauth/1` verifier. No signing or
+    verifying is scripted here."""
+    from _signer_harness import in_thread_signer
+    from bittensor.keyfiles import Keypair
+
+    from carbon.chain.auth import BittensorHotkeyVerifier
+
+    validator = Keypair.create_from_uri("//carbon-answer-key-validator")
+    receiver = Keypair.create_from_uri("//carbon-answer-key-host").ss58_address
+    inbox = tmp_path / "inbox"
+    inbox.mkdir(mode=0o700)
+    (inbox / published["path"].name).write_text(json.dumps(published["value"]))
+    (inbox / published["path"].name).chmod(0o600)
+    service = dist.DistributionService(
+        dist.Inbox(inbox, published["key"].public_key),
+        receiver=receiver,
+        verifier=BittensorHotkeyVerifier(),
+        permits=Permits({validator.ss58_address: True}),
+        nonces=dist.NonceStore(tmp_path / "nonces.sqlite3"),
+        log=dist.FetchLog(tmp_path / "fetch.jsonl"),
+    )
+
+    def post(url, body, headers):
+        return service.handle(headers, body)
+
+    adapter = battery_validator(tmp_path / "validator", import_only=True)
+    challenge = published["source"].challenge_id
+    key = published["key"].public_key
+    with in_thread_signer(
+        validator, receivers=[receiver], requests=["answer-key"]
+    ) as signer:
+        asker = ak.Fetcher("http://127.0.0.1:1", signer, receiver, post=post)
+        synced = ak.sync(adapter, asker, key, challenge)
+        assert [p["state"] for p in synced["packages"]] == ["IMPORTED"]
+        assert signer.issued >= 2  # the listing, then the package
+    # A signer started as a miner's (the default) refuses the fetch by name.
+    with in_thread_signer(validator) as miners_default:
+        asker = ak.Fetcher("http://127.0.0.1:1", miners_default, receiver, post=post)
+        with pytest.raises(SignerFailure) as refused:
+            ak.sync(adapter, asker, key, challenge)
+        assert refused.value.refusal == "NOT_A_CARBON_REQUEST"
 
 
 def resigned(published, *, commitment=None, payload=None):
