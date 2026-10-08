@@ -1,0 +1,17 @@
+{
+ "schema": "carbon.battery.feasibility02-tier4-registry.v1",
+ "registered": "2026-10-08, before any tier-4 solve",
+ "authority": "Test Lead relay of #846 (owner-approved scorecards), 2026-10-08: battery v3 boundary coverage on local free CPU, no paid compute. DIAGNOSTIC fact-finding for the contested-decisions check; no packet change",
+ "question": "do the ambient-indexed v3 decision's 5 C and 40 C bands hold >= 5 FEASIBLE and >= 5 near-limit INFEASIBLE buyer-plausible actions",
+ "fixed": "packet-v2 hard limits and bands (charging-leg T <= 45 C with 0.5 C band, plating >= 0 V with 2 mV band, 4.2 V, Q30/Q1 >= 0.99); SOC0 0.10; switch 4.0 V; 30 cycles; verdict and refined-settling rule from feasibility02_v2",
+ "action_space": "charge rates c1, c2 in 0.01 C steps with c2 <= c1; cooling multiplier h in 0.1 steps from 1 to 8 (coolant-flow settings; the packet's x1/x2/x4 are a subset). Proposed as buyer-plausible; the owner may restrict it",
+ "stage_a": {
+  "T5": "cooling x1; c1 {0.25, 0.5, 0.75, 1.0, 1.125, 1.375} x c2 {0.25, 0.4, 0.5, 0.6}, c2 <= c1 (17 new solves)",
+  "T40": "c1 {0.5, 0.75, 1.0} x c2 {0.4, 0.7, 1.0}, c2 <= c1, x h {1, 2, 4} (18); c1 {1.25, 1.5} x c2 {0.4, 0.7, 1.0} x h {3, 6} (12)",
+  "count": 47
+ },
+ "stage_b": "from every solve so far at T5 (h 1) and T40: along each row (fixed c1 along c2 and fixed c2 along c1 at T5; fixed protocol along 1/h and fixed (c2, h) along c1 at T40), linear interpolation of each crossing of the targets plating -3/-4/+3/+6 mV (T5) or charging T 45.75/46.0/44.25/43.5 C (T40), rounded to the grid; new actions only",
+ "refinement": "every T5/T40 solve within one band of a limit gets the registered refined re-solve (mesh 40, rtol 1e-6)",
+ "near_limit": "an INFEASIBLE action counts as near when its only failures are plating/temperature and its overshoot is within 2 bands (INFEASIBLE already means beyond 1 band); counts within 5 bands are reported too",
+ "report": "per band: actions, FEASIBLE, INFEASIBLE, near within 2 and 5 bands, UNRESOLVED and its rate, the pass fraction (reported, not gated), the best (minimum 10-80 % time) action"
+}
