@@ -255,11 +255,15 @@ def canary_hotkeys():
     return frozenset(CANARY_HOTKEYS)
 
 
-def build(target, *, key, hotkey, network):
-    """The signed feed for this validator's deployment, stored as a new
-    version when it changed. Returns the feed."""
+def build(target, *, key, hotkey, network, device_class="cpu"):
+    """The signed feed for this validator's deployment and one device class,
+    stored as a new version when it changed. Returns the feed. Scores of
+    another class never appear in it (`rebuild_identity.require_one_class`):
+    CPU and GPU are never ranked together."""
     if network not in ("testnet", "mainnet"):
         raise FeedRefused("feed_network_unknown")
+    if type(device_class) is not str or not device_class:
+        raise FeedRefused("feed_device_class_malformed")
     store = target.store
     identities = target.identities()
     rule = target.rule
@@ -270,6 +274,8 @@ def build(target, *, key, hotkey, network):
     for row in store.scored_submissions():
         windows = list(row["record"].get("active_batches") or [])
         if not windows or not set(windows) <= set(released):
+            continue
+        if row["record"].get("device_class", "cpu") != device_class:
             continue
         if row["hotkey"] in canaries:
             excluded += 1
@@ -343,6 +349,7 @@ def build(target, *, key, hotkey, network):
             "version": identities["challenge"]["version"],
             "rule_digest": identities["rule_digest"],
         },
+        "device_class": device_class,
         "values": VALUES,
         "sections": SECTION_META,
         "release": {
@@ -437,6 +444,7 @@ def main(argv=None):
     built.add_argument("--hotkey", required=True)
     built.add_argument("--network", required=True, choices=("testnet", "mainnet"))
     built.add_argument("--out", help="the signed feed file the door serves")
+    built.add_argument("--device-class", default="cpu")
     args = parser.parse_args(argv)
     try:
         if args.command == "keygen":
@@ -467,6 +475,7 @@ def main(argv=None):
                     key=FeedKey.load(args.key),
                     hotkey=args.hotkey,
                     network=args.network,
+                    device_class=args.device_class,
                 )
             if args.out:
                 write_feed(args.out, feed)

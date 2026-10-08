@@ -177,6 +177,16 @@ def test_only_released_submissions_appear_rounded_and_signed(
         "5Other",
         "5Miner",
     ]
+    assert both["device_class"] == "cpu"
+    # Another class's feed carries none of these CPU scores.
+    gpu = sf.build(
+        validator["target"],
+        key=key,
+        hotkey="5Val",
+        network="mainnet",
+        device_class="gpu:NVIDIA A40",
+    )
+    assert gpu["submissions"] == [] and gpu["leaderboard"]["standing"] == []
 
 
 def test_the_feed_key_is_owner_only_and_never_printed(tmp_path):
