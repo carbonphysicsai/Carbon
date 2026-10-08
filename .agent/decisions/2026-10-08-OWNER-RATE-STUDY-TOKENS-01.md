@@ -31,6 +31,15 @@ real cap is the arm's scored-submission cap recorded in the frozen
 different number, a new grant version replaces the file (grants are never edited
 in place after use).
 
+**Per-run cap semantics.** The controller counts SUBMITTED per ledger, so
+`max_submissions` caps the total across runs that share one controller root. The
+cap in the frozen manifest is per run, so **each of the 6 runs uses its own controller
+root** (a run-sheet requirement in `SUBMISSION_RATE_STUDY_01_RUN_SHEET.md` section F).
+Sharing one root would make this file's cap a total across all 6 runs and would need a
+different grant value; that is a Test Lead decision, not taken here. The study binding
+takes the per-run cap as `--study-submission-cap` from the frozen manifest and never
+above this file's value.
+
 **When the grant binds spend.** Only when all of these hold:
 1. this record and the grant file are on main;
 2. SUBMISSION-RATE-STUDY-01's `freeze-manifest.json` is on main, its
