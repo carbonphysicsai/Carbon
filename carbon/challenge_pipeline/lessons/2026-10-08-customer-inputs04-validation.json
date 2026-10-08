@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-customer-inputs04-validation",
+  "recorded_at": "2026-10-08T15:05:05+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-CUSTOMER-INPUTS-04 prospective specs", "description": "Native static/arithmetic and synthetic map checks plus customer packet, law, credibility, pipeline and task regressions; no solver calls."},
+  "expected": "A prospective packet preserves historical identities, prevents temperature-plane substitution and keeps mandatory per-band safety separate from weighted value.",
+  "observed": "147 tests passed in 20.34s across eight files. After clarifying owner-selected SOC support/observable, 22 focused tests passed in 2.75s. After reconciling the proposed scored-regret rule with the active #820 indexed-task contract, 74 focused v4/v3/packet-revision/question-law tests passed in 14.51s. Black initially requested formatting of the added assertions; formatting was applied and the final Black check and Ruff passed. Test exits were captured as zero. Pipeline validation remained DEFINING with 7 records, 452 valid lessons, no awaiting lessons and 3 pending controller identities. Windows output is diagnostic only; pinned GitHub CI supplies canonical acceptance after retargeting the stacked follow-up to main.",
+  "keep": ["Remove the old postprocessed TIM before using a bare-cell anchor; coolant rise is already included.", "Version the buyer decision, action/observer support and scoring separately; preserve historical evidence.", "Use per-band hard gates before buyer-mix aggregation and count diversity per band."],
+  "change": ["Keep the 53 Cooling jobs held until the owner chooses the temperature plane and a reviewed uncertainty-aware budget shows possible feasibility.", "Do not count mixture-only redraws as new answers in a separable charge-map decision.", "Align the proposed scored regret with #820's zero-within/full-difference-outside rule; excess minutes above the value band is a separate diagnostic."],
+  "protocol_elements": ["prospective identity", "reference applicability", "admissibility before ranking", "P Q w separation", "exposure linkage"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

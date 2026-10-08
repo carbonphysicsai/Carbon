@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-customer-inputs04-baseline",
+  "recorded_at": "2026-10-08T14:33:37+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-CUSTOMER-INPUTS-04 baseline", "description": "Native static/synthetic customer-inputs v3, packet revisions, question laws, first-three packets and credibility regressions."},
+  "expected": "Existing versioned specifications remain consistent before prospective amendment.",
+  "observed": "87 passed in 7.08s; captured shell exit0. Windows native diagnostics only, not canonical or physical evidence.",
+  "keep": ["Preserve old versions and add new buyer decisions prospectively."],
+  "change": ["Map v3 needs per-band diversity and explicit mixture weighting, not shared-protocol semantics."],
+  "protocol_elements": ["prospective identity", "mock isolation"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

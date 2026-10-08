@@ -1,13 +1,23 @@
 # First customer-shaped DEVELOPMENT round
 
-> **Input proposals after #804:** [Cooling v2 spreader/TIM inputs and panel](cooling-spreader-v2.md)
+> **Current follow-up to #817:** [Battery ambient-map v3](battery-ambient-map-v3.md)
+> supersedes the shared-protocol decision: one protocol/switch/cooling action
+> per band, band-local hard limits and buyer-mix-weighted minutes. Use its
+> [continuous law](../question-laws/battery-ambient-indexed-v3.md) and
+> [optimizer](../optimizers/battery-ambient-map-v3.md). Numerical distributions,
+> action/observer support and value resolution remain explicit seams.
+> Cooling's 53-job recipe is **ON HOLD** pending the
+> [analytic budget and temperature-plane decision](cooling-thermal-budget-v2.md).
+> Earlier supplements below are preserved prospective history where superseded.
+
+> **Historical #817 input proposals:** [Cooling v2 spreader/TIM inputs and panel](cooling-spreader-v2.md)
 > await owner approval; the [panel recipe](cooling-spreader-panel-v2.json) has
 > no dispatch authority. Battery uses the [continuous-primary law proposal](../question-laws/battery-continuous-v3.md)
 > and [prospective optimizer v2](../optimizers/battery-ev-fast-charge-v2.md).
 > Numeric distributions/aggregation and variable-SOC/restart support remain
 > explicit owner/reference seams. Earlier packet versions are preserved.
 
-> **Current Battery/Cooling versions (2026-10-08):** use
+> **Historical #804 Battery/Cooling versions (2026-10-08):**
 > [Battery v2](battery-ev-fast-charge-v2.md) (minimise admissible session time;
 > no hard 30-minute limit; charging 45 C, test-discharge diagnostics) and
 > [Cooling cell v2](cooling-cell-v2.md) (post-spreader interface heat map,
