@@ -56,6 +56,25 @@ rehearsal 3a runs more than one validator.
    - containment uses `producer withdraw`;
    - a leaked bank uses `quarantine_tranche`.
 
+## Slice 2, as built (the Test Lead's ruling, 2026-10-07)
+
+- **VOID** is a new terminal submission state: non-scientific, like
+  `FAILED_INFRA` (invariant 7), never scored as zero or failed.
+  `PoolStore.withdraw_batch` voids every submission scored on a pool version
+  the withdrawn screening batch was active in. Scores stay in the record
+  (invariant 10). The miner outcome is `VOID` with `window_withdrawn`.
+- **The tempo slot is restored:** the per-hotkey window counts neither
+  `INVALID_CONSTRUCTION` nor `VOID`.
+- **Never ranked or weighted:**
+  - a final frozen by a voided challenger, or run on the withdrawn finalist
+    batch, is decided as withdrawn;
+  - a promotion it already made is undone, and the incumbent returns to the
+    one it beat;
+  - a first incumbent set by a voided submission is cleared, so the weights
+    source sees no promotion.
+- **One outcome on every validator:** each validator applies the same signed
+  notice to its own records.
+
 ## Slices
 
 1. Quarantine; the producer's withdraw and notice; the distribution host's

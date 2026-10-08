@@ -145,3 +145,127 @@ def test_a_withdrawal_before_import_still_refuses_the_batch(
     with pytest.raises(ak.AnswerKeyRefused) as refused:
         adapter.import_answer_key(value["manifest"]["commitment"], value["payload"])
     assert refused.value.code == "answer_key_withdrawn"
+
+
+# --- slice 2: a withdrawn window's submissions are VOID -----------------------------------
+
+
+def scored(store, submission_id, hotkey, block, *, nomination=None):
+    """Admit one submission at `block` and record a screening score on the
+    pool version active then."""
+    store.admit(
+        submission_id,
+        request_digest="r-" + submission_id,
+        hotkey=hotkey,
+        challenge="battery",
+        strategy={"s": submission_id},
+        binding={
+            "receipt": {"block": block},
+            "backend": {"backend": "direct", "validator_path": False},
+        },
+        window=(block - block % 360, block - block % 360 + 360, 1),
+    )
+    store.rotate_if_ready()
+    version = store.pool()["version"]
+    return store.record_score(
+        submission_id,
+        {"nomination": {"nominated": False}},
+        {"score": 0.5},
+        expected_version=version,
+        nomination=nomination,
+    )
+
+
+def imported(tmp_path, published, name="validator"):  # noqa: F811
+    adapter = battery_validator(tmp_path / name, import_only=True)
+    value = published["value"]
+    adapter.import_answer_key(value["manifest"]["commitment"], value["payload"])
+    adapter.target.store.open_pool()
+    return adapter
+
+
+def notice_for(published):  # noqa: F811
+    _fingerprint, notice = withdraw(published)
+    return ak.verify_withdrawal(
+        json.loads(notice.read_text()), published["key"].public_key
+    )
+
+
+def test_a_withdrawn_windows_submissions_are_void_never_failed(
+    tmp_path, published  # noqa: F811
+):
+    adapter = imported(tmp_path, published)
+    store = adapter.target.store
+    scored(store, "sub-a", "5Miner", 2000)
+    assert store.submission("sub-a")["state"] == "SCORED"
+    adapter.withdraw_answer_key(notice_for(published))
+    row = store.submission("sub-a")
+    assert row["state"] == "VOID" and row["failure"] == {"code": "window_withdrawn"}
+    # The score stays in the record (invariant 10); the outcome says VOID.
+    assert store.score("sub-a")["public"] == {"score": 0.5}
+    outcome = adapter.target.outcome("sub-a")
+    assert (
+        outcome["state"] == "VOID" and outcome["failure"]["code"] == "window_withdrawn"
+    )
+    assert "screening" not in outcome
+    voided = [e["body"] for e in store.events("submission_voided")]
+    assert [v["submission_id"] for v in voided] == ["sub-a"]
+
+
+def test_a_void_submission_does_not_use_the_hotkeys_slot(
+    tmp_path, published  # noqa: F811
+):
+    from carbon.battery.pool_store import HotkeyWindowUsed
+
+    adapter = imported(tmp_path, published)
+    store = adapter.target.store
+    scored(store, "sub-a", "5Miner", 2000)
+    with pytest.raises(HotkeyWindowUsed):
+        scored(store, "sub-b", "5Miner", 2001)
+    adapter.withdraw_answer_key(notice_for(published))
+    store.admit(
+        "sub-b",
+        request_digest="r-sub-b",
+        hotkey="5Miner",
+        challenge="battery",
+        strategy={"s": "sub-b"},
+        binding={
+            "receipt": {"block": 2001},
+            "backend": {"backend": "direct", "validator_path": False},
+        },
+        window=(1800, 2160, 1),
+    )
+    assert store.submission("sub-b")["state"] == "ADMITTED"
+
+
+def test_every_validator_voids_the_same_window(tmp_path, published):  # noqa: F811
+    notice = None
+    states = []
+    for name in ("first", "second"):
+        adapter = imported(tmp_path, published, name)
+        scored(adapter.target.store, "sub-a", "5Miner", 2000)
+        notice = notice or notice_for(published)
+        adapter.withdraw_answer_key(notice)
+        states.append(adapter.target.store.submission("sub-a")["state"])
+        assert adapter.target.store.windowed_active(2000) == []
+    assert states == ["VOID", "VOID"]
+
+
+def test_a_void_first_incumbent_is_cleared_and_never_weighted(
+    tmp_path, published  # noqa: F811
+):
+    from carbon.rewards.winner_eligibility import battery_promotion
+
+    adapter = imported(tmp_path, published)
+    store = adapter.target.store
+    scored(
+        store,
+        "sub-a",
+        "5Miner",
+        2000,
+        nomination={"kind": "first_incumbent", "reason": "first_eligible"},
+    )
+    assert store.incumbent()["model_id"] == "sub-a"
+    adapter.withdraw_answer_key(notice_for(published))
+    assert store.incumbent() is None
+    assert battery_promotion(adapter.target) is None
