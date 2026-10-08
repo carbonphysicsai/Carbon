@@ -291,13 +291,28 @@ plan only proposes it.
   sets need their own `fresh` bank (12 tranches of 98, roles `fresh-w01`...`fresh-w12`),
   because v2-bank's `producer draw` takes windows from the pool bank; the fresh bank is
   never drawable by a window and is read only by the non-consuming fresh-set scorer.
-- **O7c (library size vs rate; VALIDATOR-30 dependency, found in run sheet D.1):** the
-  frozen arm-H library has 89 distinct recipes (library-v1), but m = 4 needs 144
-  scored submissions per run, so the library cycles and 55 recipes are resubmitted.
-  The route must **rebuild and score a repeat submission, not refuse or cache it**;
-  otherwise arm H at m = 4 is only 89 scored submissions. This must be settled
-  before Stage 0 sizes are confirmed (the Carbon Validator was told directly). Arm H
-  at m = 1 and 2 (36, 72) is within the library.
+- **O7c (library size vs rate), RESOLVED by a library fix, not a route change:** the
+  frozen arm-H library has 89 distinct recipes, but m = 4 needs 144 scored submissions
+  per run (12 windows x 12). The Carbon Validator answered that the route does **not**
+  rebuild or rescore a repeat: `daemon.submission_identity` digests hotkey, challenge,
+  strategy and contract digest (the receipt block is excluded), so a resubmitted recipe
+  is the same submission and admission returns the stored outcome (it counts 89 scored
+  submissions at m = 4, not 144). The Validator will not change identity semantics for
+  the study. Its two options:
+  1. **Grow the library to at least 144 distinct recipes**, so every scored submission
+     is a genuinely different model (cleanest).
+  2. A registered, study-only, pre-declared variation for repeats (for example a
+     repeat's own registered training seed), fixed in the frozen library before the
+     run, never conditioned on results, living in the library file and digest, not in
+     the route.
+  Either way the runner counts any REPEATED outcome separately and never as a scored
+  submission. Checked against the recipe grammar: battery's contract has **no
+  recipe-level seed field** ("Carbon-assigned reconstruction seed; never
+  miner-chosen"), so option 2 would have to change a real recipe field, which is a
+  different recipe; it is option 1 in disguise. **Recommendation: option 1.** The
+  library's digest (library-v1, sha256:31cea3b2...) changes, and that must happen before
+  the Stage 0 sizes are confirmed. The choice is the Test Engineer's and the Test
+  Lead's.
 - **O3 (corrected):** the candidate library, scripted prober and adversary brief are the
   Test Engineer's (run sheet section D), not Data Collection's.
 
