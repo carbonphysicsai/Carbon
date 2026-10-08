@@ -16,6 +16,11 @@ Claims tested:
    calculator refuses development recipes (M1's finding).
 5. Rebuild compiles a strategy under the level's variant, labelled
    "CPU-verified only"; a recipe outside the variant is unrebuildable.
+6. M2 and N2's classification (Test Lead, 2026-10-08): a NaN or Inf injected
+   into the trainer's network output, test-only and outside the miner
+   surface, ends as the candidate's own failure: a candidate `WorkerFailure`,
+   or non-finite predictions the frozen rule makes ineligible with no case
+   FAILED_INFRA. Never Carbon's.
 """
 
 from __future__ import annotations
@@ -109,6 +114,44 @@ def test_seams_say_why_they_are_not_run(level):
         assert "M2" in seams["l2_divergence"].reason
     else:
         assert "N2" in seams["l3_instability"].reason
+
+
+@pytest.mark.parametrize("fault", ["nan", "inf"])
+def test_injected_nonfinite_is_the_candidates_own(level, fault, monkeypatch):
+    import jax
+
+    from carbon.agent_campaign.graphite import experiment
+    from carbon.battery import development_rebuild, level2_training, level3_training
+    from carbon.battery.practice import PracticeSet
+    from carbon.battery.worker import WorkerFailure
+
+    trainer = {2: level2_training, 3: level3_training}[level]
+    original = trainer.train
+    scale = float(fault)
+
+    def faulty(*, apply, **rest):
+        def injected(*args, **kwargs):
+            out = apply(*args, **kwargs)
+            return jax.tree_util.tree_map(lambda o: o * scale, out)
+
+        return original(apply=injected, **rest)
+
+    monkeypatch.setattr(trainer, "train", faulty)
+    honest = next(iter(LEVELS[level]._families().values())).trained
+    found = d._dv().compile_development(honest, d.variant(level))
+    record = development_rebuild.record(found.reconstruction)
+    backend = d._backend()
+    practice = PracticeSet.load(experiment.REPOSITORY)
+    inputs = {c: r["inputs"] for c, r in zip(practice.case_ids, practice.records)}
+    try:
+        state, _stats = backend.reconstruct(None, found.construction, d.SEED, record)
+        predictions = backend.infer(None, state, inputs)
+    except WorkerFailure as failure:
+        assert failure.candidate is True, failure.code
+        return
+    rows, summary = b._frozen_rule().score(predictions)
+    assert not summary["eligible"]
+    assert all(row["state"] != "FAILED_INFRA" for row in rows)
 
 
 def test_rebuild_and_surface(level):

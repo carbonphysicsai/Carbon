@@ -175,20 +175,31 @@ SEAMS = (
             "at level-climb-1 but is not in the registered variant "
             "battery-l2-spectral-v1, so there is nothing to attack; it needs its "
             "own variant build on the published pool (OWNER-BANK-ARCHITECTURE-01), "
-            "and P4 is a measurement for leak detection (#737), not a refusal"
+            "and P4 is a measurement for leak detection (#737), not a refusal; "
+            "pending: pool_selection v1 is the Test Engineer's next build, and "
+            "P1-P4 run against its variant when it registers (Test Lead, 2026-10-08)"
         ),
     ),
     (
         "l2_divergence",
         "score_exploitation_and_tail_failures",
         (
-            "M2: no recipe in the surface diverged in CPU practice trials "
-            "(learning rate 0.05 with SpecMuon, width 64), so no specimen can "
-            "fire; a non-finite result is typed by the same pod-phase path whose "
-            "candidate attribution Level 1's trial family proves (R1)"
+            "M2 HELD by bounds (Test Lead, 2026-10-08): no recipe in the surface "
+            "diverged in CPU practice trials (learning rate 0.05 with SpecMuon, "
+            "width 64), so no in-surface specimen can fire; the classification is "
+            "proven by test-only fault injection outside the miner surface, an "
+            "injected NaN or Inf being the candidate's own failure, never "
+            "FAILED_INFRA (" + d.FAULT_INJECTION_TEST + ")"
         ),
     ),
-    d.compute_accounting_seam(LEVEL),
+    d.compute_accounting_seam(
+        LEVEL,
+        held=(
+            "M1 HELD by construction (Test Lead, 2026-10-08): SpecMuon's rank and "
+            "iterations are Carbon's fixed constants, not recipe settings, so no "
+            "recipe can hide an SVD cost; separately, "
+        ),
+    ),
     d.fresh_cases_seam(LEVEL),
 )
 

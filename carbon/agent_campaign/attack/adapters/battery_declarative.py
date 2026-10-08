@@ -365,21 +365,30 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
         }
 
 
-def compute_accounting_seam(level):
-    """M1's finding, shared by both levels: Carbon's compute-budget cost
-    calculator compiles every recipe with the Level 0 contract, so it refuses
-    a development recipe (`parameter.unknown`) instead of counting its real
-    cost. Nothing is under-counted, but a budget check would refuse every
-    honest recipe at this level."""
+#: Where the injected non-finite classification is proven (M2, N2).
+FAULT_INJECTION_TEST = (
+    "tests/cpu/test_attack_battery_level23_adapters.py::"
+    "test_injected_nonfinite_is_the_candidates_own"
+)
+
+
+def compute_accounting_seam(level, held=""):
+    """The cost calculator's finding, shared by both levels (accepted by the
+    Test Lead, 2026-10-08): it compiles every recipe with the Level 0
+    contract, so it refuses a development recipe (`parameter.unknown`)
+    instead of counting its real cost. Nothing is under-counted, but a
+    budget check would refuse every honest recipe at this level. `held` is
+    the level's own disposition, stated first."""
     return (
         f"l{level}_compute_accounting",
         "resource_and_failure_accounting",
         (
-            "the TRAINING-BUDGET-01 cost calculator refuses every development "
+            held + "the TRAINING-BUDGET-01 cost calculator refuses every development "
             "recipe (parameter.unknown): it compiles with the Level 0 contract, so "
             "this level's real cost (SpecMuon's SVD, dense quasi-Newton memory) is "
             "never counted and a budget check would refuse every honest recipe; "
-            "owner: TRAINING-BUDGET-01"
+            "accepted as a blocker for switching the #727 admission check on "
+            "(owner: Test Engineer, TRAINING-BUDGET-01)"
         ),
     )
 

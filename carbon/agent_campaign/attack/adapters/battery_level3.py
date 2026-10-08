@@ -198,10 +198,14 @@ SEAMS = (
         "l3_instability",
         "score_exploitation_and_tail_failures",
         (
-            "N2: no recipe in the surface went non-finite in CPU practice trials "
-            "(ssbroyden, bfgs and lbfgs with unit steps, learning rate 0.05), so "
-            "no specimen can fire; a non-finite polish is typed by the exam's "
-            "finite-shape gate, the candidate's own (BATTERY-L3-NUMERICS-BUILD-01)"
+            "N2 HELD by bounds (Test Lead, 2026-10-08): no recipe in the surface "
+            "went non-finite in CPU practice trials (ssbroyden, bfgs and lbfgs "
+            "with unit steps, learning rate 0.05), so no in-surface specimen can "
+            "fire; the classification is proven by test-only fault injection "
+            "outside the miner surface, an injected NaN or Inf being the "
+            "candidate's own failure, never FAILED_INFRA ("
+            + d.FAULT_INJECTION_TEST
+            + ")"
         ),
     ),
     (
