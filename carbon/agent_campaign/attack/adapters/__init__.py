@@ -50,6 +50,14 @@ BUILTIN = {
         "battery-fastcharge-ageing-development-v1",
         1,
     ): "carbon.agent_campaign.attack.adapters.battery_level1",
+    (
+        "battery-fastcharge-ageing-development-v1",
+        2,
+    ): "carbon.agent_campaign.attack.adapters.battery_level2",
+    (
+        "battery-fastcharge-ageing-development-v1",
+        3,
+    ): "carbon.agent_campaign.attack.adapters.battery_level3",
     ("chip-cold-plate", 0): "carbon.agent_campaign.attack.adapters.cooling",
     ("electric-motor-magnetics", 0): "carbon.agent_campaign.attack.adapters.motor",
 }

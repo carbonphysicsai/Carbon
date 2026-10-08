@@ -319,11 +319,11 @@ def _short(construction):
 
 
 @functools.lru_cache(maxsize=64)
-def _trial(body, arm):
+def _trial(body, arm, level=LEVEL, label=REBUILD_LABEL):
     from carbon.agent_campaign.graphite import experiment, pod_phase
 
     construction = json.loads(body)
-    found = variant(arm)
+    found = _dv().variant(CHALLENGE_ID, level, arm)
     try:
         record, _files, _program = pod_phase.development_built_record(
             construction,
@@ -341,7 +341,7 @@ def _trial(body, arm):
         return {
             "stage": "host_compile",
             "refused": refusal[0],
-            "rebuild": REBUILD_LABEL,
+            "rebuild": label,
         }
     config = {
         "strategy": construction,
@@ -357,7 +357,7 @@ def _trial(body, arm):
         result = {
             "stage": "trained",
             "exit": code,
-            "rebuild": REBUILD_LABEL,
+            "rebuild": label,
             "record_rebuild": record.get("rebuild"),
         }
         if (out / "failure.json").is_file():
@@ -413,6 +413,13 @@ def trial(construction, arm=None):
     `TRIAL_STEPS` updates, its predictions scored by the frozen rule. No pod,
     no GPU, no spend."""
     return _trial(json.dumps(_short(construction), sort_keys=True), arm)
+
+
+def trial_at(construction, level, label):
+    """The same CPU practice trial under the registered variant of another
+    development level (the pod phase routes every level's record through
+    `development_rebuild`); `label` is that level's rebuild label."""
+    return _trial(json.dumps(_short(construction), sort_keys=True), None, level, label)
 
 
 def candidate_owned(result):
