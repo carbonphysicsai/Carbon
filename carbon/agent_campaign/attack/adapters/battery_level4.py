@@ -19,8 +19,10 @@ Lead's; this module supplies the boundaries and the evidence.
 * **The attacks are generated** from the shipped allowlist (every refused
   op) and the Level 4 specimens, so the families follow what Carbon refuses.
 * **Rebuild** compiles a strategy under the variant to its graph record. No
-  graph is compiled or trained here: that is G5's profile and waits for the
-  security owner (D3); the rebuild label says so.
+  graph is compiled or trained here: G5's profile is accepted for development
+  and testnet (OWNER-L4-G5-COMPILE-ISOLATION-01), but a record names only the
+  submission's digest and no transport stages its documents into the rebuild
+  worker yet; the rebuild label says so.
 
 Nothing here is served to a miner, and nothing runs participant code.
 """
@@ -379,7 +381,9 @@ SEAMS = (
     (
         "l4_compile_isolation",
         "construction_evaluation_isolation",
-        "G5 compile in isolation: the profile awaits the security owner (D3)",
+        "G5 compile in isolation: the profile is accepted for development and "
+        "testnet (OWNER-L4-G5-COMPILE-ISOLATION-01); no adversarial compile runs "
+        "here, and mainnet needs its security review",
     ),
     (
         "l4_procedural_tables",
@@ -399,7 +403,8 @@ SEAMS = (
     (
         "l4_nonfinite_outputs",
         "score_exploitation_and_tail_failures",
-        "outputs typed by the exam's gates at G7 (tests/cpu/test_level4_grade.py); no training runs here until D3",
+        "outputs typed by the exam's gates at G7 (tests/cpu/test_level4_grade.py); "
+        "no training runs here until the submission's documents reach the rebuild worker",
     ),
 )
 
@@ -495,7 +500,7 @@ class BatteryLevel4Adapter(b.BatteryLevel0Adapter):
 
     def rebuild(self, construction):
         """The strategy compiled under the variant to its graph record. No
-        graph is compiled or trained here (G5 waits for D3)."""
+        graph is compiled or trained here (the documents are not staged)."""
         from carbon.reconstruction import development_variants as dv
 
         strategy = construction
