@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-question-laws-report-coverage",
+  "recorded_at": "2026-10-07T21:41:23+00:00",
+  "challenge": "protocol", "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-QUESTION-LAWS-01 report coverage repair", "description": "Native Windows: 16 focused question-law tests and Black check after narrowing the old Cooling report's inference."},
+  "expected": "Reported-source arithmetic remains conditional on full bank coverage and matching observables, not a mathematical feasibility claim from one solve.",
+  "observed": "16 passed in 0.13 s; Black passed. Documentation now explicitly requires bank-wide coverage before inferring all-none Cooling answers. No solver or hidden data access occurred; canonical acceptance and Part B remain pending.",
+  "keep": ["Keep observed-point evidence separate from universal design-space claims."],
+  "change": ["Do not convert one ideal-cell report into proof that every bank member or all possible geometries are infeasible."],
+  "protocol_elements": ["reference-coverage", "answer-diversity", "claim-discipline"],
+  "proposed_revision": null, "status": "RECORDED"
+}

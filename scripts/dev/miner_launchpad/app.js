@@ -872,11 +872,13 @@
         const note = item.receiver_hotkey_note;
         if (typeof note === "string" && note) row.append(el("p", note[0].toUpperCase() + note.slice(1), "hint"));
       }
+      // A profile from before receivers were pinned (LAUNCHPAD-ACCEPT-03).
+      if (item.receiver_hotkey_warning) row.append(el("p", item.receiver_hotkey_warning, "reason"));
       if (item.note) row.append(el("p", item.note, item.intake ? "hint" : "reason"));
       if (item.set_aside_intake) {
         row.append(el("p", "Your own intake, set aside by the update: " + item.set_aside_intake, "status-line"));
         const again = el("button", "Name it again"); again.type = "button"; again.dataset.nameAgain = item.id;
-        again.addEventListener("click", () => nameAgain(item.id, item.set_aside_intake));
+        again.addEventListener("click", () => nameAgain(item.id, item.set_aside_intake, item.set_aside_receiver || ""));
         row.append(again);
       }
       box.append(row);
@@ -1521,10 +1523,13 @@
     const intakeChallenges = offered.intake_challenges || [];
     const intakeChallenge = setupSelect(reviewMore, "intake_challenge", "Validator intake for", intakeChallenges.map(item => [item.id, item.title + " · v" + item.version]));
     const intake = setupField(reviewMore, "intake_url", "Validator intake URL (optional; https, or loopback)");
-    intakeChallenge.disabled = intake.disabled = !intakeChallenges.length;
-    evaluationSection(evaluationBox, steps.evaluation, (challengeId, url) => {
+    // Pinned in the profile: nothing is signed for an intake that reports
+    // another receiver (LAUNCHPAD-ACCEPT-03). Required with an intake URL.
+    const receiver = setupField(reviewMore, "receiver_hotkey", "The validator's receiver hotkey (its public ss58 address; required with an intake URL)");
+    intakeChallenge.disabled = intake.disabled = receiver.disabled = !intakeChallenges.length;
+    evaluationSection(evaluationBox, steps.evaluation, (challengeId, url, hotkey) => {
       // Review writes only the intakes it is given: this one, again.
-      intakeChallenge.value = challengeId; intake.value = url;
+      intakeChallenge.value = challengeId; intake.value = url; receiver.value = hotkey;
       reviewMore.parentNode.open = true;
       $("setup-result").replaceChildren(setupLine("Your intake is named again below. Write your profile to keep it."));
     });
@@ -1540,7 +1545,10 @@
     review.addEventListener("submit", async event => {
       event.preventDefault();
       const request = {confirm: true};
-      if (intake.value.trim() && intakeChallenge.value) request.intakes = {[intakeChallenge.value]: intake.value.trim()};
+      if (intake.value.trim() && intakeChallenge.value) {
+        request.intakes = {[intakeChallenge.value]: intake.value.trim()};
+        if (receiver.value.trim()) request.receiver_hotkey = receiver.value.trim();
+      }
       await setupCall("review", request);
     });
     applySetupStep();
@@ -1978,6 +1986,11 @@
   // (refused, interrupted or paused)}, shown when present and well formed,
   // ignored otherwise.
   const REFUSAL_KINDS = {refused: "Refused", interrupted: "Interrupted", paused: "Paused"};
+  const INTAKE_OUTCOMES = {
+    QUEUED: "queued, no verdict yet",
+    UNAVAILABLE: "unavailable on the validator's side; not a verdict on your recipe",
+    REFUSED: "refused before evaluation; yours to act on",
+  };
   function lastRefusal(...sources) {
     for (const source of sources) {
       const value = source?.last_refusal ?? source?.campaign?.last_refusal;
@@ -1988,6 +2001,7 @@
           at: typeof value.at === "number" || typeof value.at === "string" ? value.at : null,
           operation: typeof value.operation === "string" && value.operation ? value.operation.slice(0, 32) : null,
           kind: typeof value.kind === "string" && Object.hasOwn(REFUSAL_KINDS, value.kind) ? value.kind : "refused",
+          intake_outcome: typeof value.intake_outcome === "string" && Object.hasOwn(INTAKE_OUTCOMES, value.intake_outcome) ? value.intake_outcome : null,
         };
       }
     }
@@ -2004,7 +2018,7 @@
     if (/^registration_/.test(code)) return {label: "Check your registration", href: "#setup/register"};
     if (/^model_provider_|^model_selection_/.test(code)) return {label: "Set up inference", href: "#setup/inference"};
     if (/^research_profile_|^runner_profile_/.test(code)) return {label: "Continue setup", href: "#setup/review"};
-    if (code === "evaluation_unavailable") return {label: "Review evaluation in setup", href: "#setup/review"};
+    if (code === "evaluation_unavailable" || code === "intake_receiver_mismatch") return {label: "Review evaluation in setup", href: "#setup/review"};
     // Graphite's own (OWNER-GRAPHITE-MINER-01): where each is put right.
     if (code === "autonomous_agent_replaced") return {label: "Choose Graphite", href: "#launch"};
     if (code === "graphite_not_offered_for_challenge") return {label: "Choose a Challenge", href: "#challenges"};
@@ -2020,6 +2034,9 @@
     box.setAttribute("role", "status");
     const at = when(refusal.at);
     box.append(el("p", (REFUSAL_KINDS[refusal.kind] || "Refused") + ": " + words(refusal.code) + (refusal.operation ? " (" + words(refusal.operation) + ")" : "") + (at ? " · " + at : ""), "status-line"));
+    // A submit through a validator intake that was not a verdict
+    // (LAUNCHPAD-ACCEPT-04): queued, the validator's side, or yours to act on.
+    if (refusal.intake_outcome) box.append(el("p", "Validator intake: " + INTAKE_OUTCOMES[refusal.intake_outcome], "hint"));
     if (refusal.next_action) box.append(el("p", (compact ? "" : "What to do: ") + refusal.next_action, compact ? "hint" : "refusal-next"));
     const fix = refusalFix(refusal.code);
     if (fix && !compact) box.append(link(fix, "button fix"));
@@ -2393,10 +2410,13 @@
     const cases = s && s.cases && typeof s.cases === "object" ? Object.entries(s.cases).map(([k, v]) => words(k) + " " + v).join(", ") : "unavailable";
     const lines = [
       "Validator outcome, epoch " + result.epoch + ": " + o.state + (o.waiting ? " · waiting: " + o.waiting : ""),
-      "Submission: " + (o.submission_id || "unavailable"),
-      s ? "Screening on pool version " + (s.pool_version ?? "?") + ": " + (s.eligible === true ? "eligible" : s.eligible === false ? "not eligible" : "eligibility unavailable") + " · gates failed: " + ((s.gates_failed || []).join(", ") || "none") + " · cases: " + cases : "Screening: not shown in this feedback mode.",
-      s && typeof s.score === "number" ? "Score: " + s.score + (typeof s.important_score === "number" ? " · important region: " + s.important_score : "") : "Score: not shown in this feedback mode.",
-      "Nominated for a final: " + (o.nominated === true ? "yes" : o.nominated === false ? "no" : "unavailable") + ((o.finals || []).length ? " · finals: " + o.finals.map(f => f.state + (f.promoted ? " (promoted)" : "")).join(", ") : ""),
+      "Submission: " + (o.submission_id || "unavailable") + (o.rule ? " · exam rule: " + o.rule : "") + (o.reconstruction?.backend ? " · rebuilt on " + o.reconstruction.backend : ""),
+      ...(o.failure?.code ? ["Reason: " + words(o.failure.code) + ((o.failure.issues || []).length ? " (" + o.failure.issues.map(i => i.code + (i.path?.length ? " at " + i.path.join("/") : "")).join("; ") + ")" : "")] : []),
+      // Sealed by the exam rule (LAUNCHPAD-ACCEPT-04): nothing computed on
+      // hidden cases reaches a miner, so nothing is shown or inferred.
+      o.sealed === true ? "Sealed: under this exam rule its results are computed on hidden cases and shown to no miner until Carbon releases those cases." : s ? "Screening on pool version " + (s.pool_version ?? "?") + ": " + (s.eligible === true ? "eligible" : s.eligible === false ? "not eligible" : "eligibility unavailable") + " · gates failed: " + ((s.gates_failed || []).join(", ") || "none") + " · cases: " + cases : "Screening: not shown in this feedback mode.",
+      s && typeof s.score === "number" ? "Score: " + s.score + (typeof s.important_score === "number" ? " · important region: " + s.important_score : "") : o.sealed === true ? "Score: sealed." : "Score: not shown in this feedback mode.",
+      o.sealed === true ? "Nomination and finals: sealed." : "Nominated for a final: " + (o.nominated === true ? "yes" : o.nominated === false ? "no" : "unavailable") + ((o.finals || []).length ? " · finals: " + o.finals.map(f => f.state + (f.promoted ? " (promoted)" : "")).join(", ") : ""),
       (o.evidence || "DEVELOPMENT") + ": no qualification, no reward, no chain write.",
     ];
     for (const line of lines) researchNote(panel, line, "development-result");

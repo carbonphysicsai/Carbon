@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-question-laws-02-static-content",
+  "recorded_at": "2026-10-07T23:38:16+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-QUESTION-LAWS-02 working content",
+    "description": "py -3.9 -m unittest discover -s tests/cpu -p test_foundation_quiz_content.py -v"
+  },
+  "expected": "Static five-family proposal/packet/law consistency, non-runtime recommendations, no-redraw semantics and launch/memory accounting; no physics execution.",
+  "observed": "17 native diagnostic tests passed. They compare 12 packet anchors, the five #776 grid/continuous laws, four controls per family, diagnostics a-e, null costs/diversity, custody boundaries and the forward Battery exception. Arithmetic confirms f13 201/3216/6030 frequency work and f06's ceiling is not measured fit. This does not establish solver/reference adequacy, measured power, canonical acceptance or qualification.",
+  "keep": ["Tie quiz content to buyer-unit decisions and explicit source values; preserve NONE_FEASIBLE and reference failure separation."],
+  "change": ["Keep frequency work and fine-grid memory constraints visible before any future reference production; do not infer CPU-hours or fit from allowances."],
+  "protocol_elements": ["buyer-decision-value", "P-Q-w-separation", "reference-coverage", "no-redraw", "claim-basis"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

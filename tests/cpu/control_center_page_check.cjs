@@ -1061,10 +1061,13 @@ scenario("Review shows each Challenge's evaluation and names a set-aside intake 
   await page.press([...row.querySelectorAll("button")].find(b => b.textContent === "Name it again"));
   assert.equal(page.$("setup-review-intake_challenge").value, item.id);
   assert.equal(page.$("setup-review-intake_url").value, item.set_aside_intake);
+  // With the receiver its Review pinned (LAUNCHPAD-ACCEPT-03).
+  assert.ok(item.set_aside_receiver, "the set-aside intake's pinned receiver");
+  assert.equal(page.$("setup-review-receiver_hotkey").value, item.set_aside_receiver);
   clean(page);
 });
 
-scenario("Review's answer names what it could not do; Carbon's endpoint shows its receiver, for reference", async () => {
+scenario("Review's answer names what it could not do; Carbon's endpoint shows its binding receiver", async () => {
   const state = launchable(world({setup: copy(fx.setups.none)}));
   const page = await open(state);
   page.go("#setup/review");
@@ -1078,7 +1081,8 @@ scenario("Review's answer names what it could not do; Carbon's endpoint shows it
   await page.press([...all(page, "#setup-body form[data-step=review] button")].find(b => /Write my profile/.test(b.textContent)));
   assert.deepEqual(lastPost(state, "/api/v1/setup/review").body, {confirm: true});
   for (const warning of answer.warnings) assert.ok(page.text("setup-result").includes(warning.message), warning.code);
-  // Carbon's published endpoint: whose it is, and its receiver for reference.
+  // Carbon's published endpoint: whose it is, and its receiver, now binding
+  // (LAUNCHPAD-ACCEPT-03).
   const published = fx.setups.published.steps.evaluation.challenges[0];
   assert.equal(published.source, "published");
   const second = launchable(world({setup: copy(fx.setups.published)}));
@@ -1088,7 +1092,7 @@ scenario("Review's answer names what it could not do; Carbon's endpoint shows it
   const text = other.text("setup-evaluation");
   assert.match(text, /Carbon's endpoint/);
   assert.ok(text.includes(published.intake) && text.includes("Receiver hotkey: " + published.receiver_hotkey));
-  assert.ok(text.includes("For reference" + published.receiver_hotkey_note.slice("for reference".length)));
+  assert.ok(text.includes("Binding" + published.receiver_hotkey_note.slice("binding".length)));
   clean(page);
   clean(other);
 });

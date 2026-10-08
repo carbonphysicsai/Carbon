@@ -238,11 +238,11 @@ class Fleet:
     def post(self, url, token, timeout):
         """The barrier release: only valid once two live pods of the backend
         have both served their identity (and probe)."""
-        found = re.fullmatch(r"https://(\w+)-8001\.proxy\.runpod\.net/go", url)
+        found = re.fullmatch(r"https://(\w+)-8000\.proxy\.runpod\.net/go", url)
         assert found, url
         pod_id = found.group(1)
         pod = self.fake.pods[pod_id]
-        assert token == pod["env"]["GO_TOKEN"]
+        assert token == pod["env"]["PROBE_TOKEN"]
         backend = json.loads(pod["env"]["PHASE_CONFIG"])["backend"]
         seen = {
             p
@@ -333,12 +333,21 @@ SMOKES = {"jax": SMOKE, "pytorch": SMOKE}
 def world(tmp_path):
     clock = Clock()
     fake = FakeRunPod(rate=0.40)
+    fake.always_fail = False
     bodies = []
 
     def transport(method, url, *, body, headers, timeout):
+        if method == "POST" and url.endswith("/v1/pods") and fake.always_fail:
+            return 500, b'{"error": "There are no instances currently available"}'
         if method == "POST" and url.endswith("/v1/pods"):
             bodies.append(json.loads(body))
-        return fake(method, url, body=body, headers=headers, timeout=timeout)
+        reply = fake(method, url, body=body, headers=headers, timeout=timeout)
+        if method == "POST" and url.endswith("/v1/pods") and fake.pods:
+            newest = max(fake.pods)
+            fake.pods[newest].setdefault(
+                "machine", {"dataCenterId": f"DC-{len(bodies)}"}
+            )
+        return reply
 
     def make(behaviours, **fleet_options):
         fleet = Fleet(fake, behaviours, **fleet_options)
@@ -985,3 +994,137 @@ def test_one_rebuild_hashes_weights_and_predictions_in_a_fresh_interpreter(tmp_p
         assert re.fullmatch(r"[0-9a-f]{64}", first[key])
         assert first[key] == second[key]
     assert first["backend"] == "jax"
+
+
+# ----------------------------------------------------------------- launch diagnostics
+def _runner_and_clock(world):
+    make, fake, _bodies = world
+    runner, _fleet = make([])
+    return runner, fake
+
+
+def test_ports_are_exactly_the_bootstrap_port(world):
+    _summary, _results, _fake, bodies = run(world, [])
+    assert {tuple(b["ports"]) for b in bodies} == {("8000/http",)}
+    assert not any("GO_TOKEN" in b["env"] for b in bodies)
+
+
+def test_provider_text_redacts_key_shapes_and_is_bounded():
+    from scripts.dev.exam_design.runpod.operator_compute.runpod import provider_text
+
+    body = {
+        "error": f"no instances; key {MOCK_KEY} Bearer abcdef0123 "
+        + "A1b2C3d4" * 6
+        + " x" * 300
+    }
+    text = provider_text(body)
+    assert len(text) <= 200
+    assert MOCK_KEY not in text and "abcdef0123" not in text
+    assert "A1b2C3d4" * 3 not in text
+    assert "[redacted]" in text and "no instances" in text
+    assert provider_text(None) == "no JSON body"
+
+
+def test_create_failure_carries_status_and_redacted_body(world):
+    from scripts.dev.exam_design.runpod.operator_compute import ComputeError
+
+    runner, fake = _runner_and_clock(world)
+    fake.fail_next_create_with = 400
+    with pytest.raises(a40.LaunchFailed) as caught:
+        runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    runner.close()
+    assert caught.value.status == 400 and "mock refusal" in caught.value.message
+    assert MOCK_KEY not in str(caught.value)
+    assert ComputeError  # the typed error is what the adapter raised
+
+
+def test_definitive_failure_stops_at_once_and_the_intent_is_rejected(world):
+    runner, fake = _runner_and_clock(world)
+    fake.fail_next_create_with = 400
+    with pytest.raises(a40.LaunchFailed):
+        runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    assert len(runner.launch_attempts) == 1
+    assert runner.launch_attempts[0]["capacity"] is False
+    state = runner.store.intent("a40-acceptance", "a40-t1-jax-a-1").state
+    runner.close()
+    assert str(state) == "rejected"
+
+
+def test_capacity_failure_is_retried_every_ten_minutes_then_succeeds(world):
+    runner, fake = _runner_and_clock(world)
+    fake.fail_next_create_with = 500
+    config = {"recipes": [], "repeats": 1, "seed": 0}
+    start = runner.clock()
+    pod = runner.launch("jax", "A", config, 600)
+    assert pod.pod_id and fake.creates() == 2  # the refused create, then one more
+    [attempt] = runner.launch_attempts
+    assert attempt["status"] == 500 and attempt["capacity"] is True
+    assert runner.clock() - start == a40.RETRY_SECONDS
+    runner.terminate(pod)
+    runner.close()
+
+
+def test_capacity_retry_is_bounded_to_two_hours_with_one_create_in_flight(world):
+    runner, fake = _runner_and_clock(world)
+    fake.always_fail = True
+    start = runner.clock()
+    with pytest.raises(a40.LaunchFailed, match="no instances"):
+        runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    runner.close()
+    assert runner.clock() - start == a40.RETRY_LIMIT_SECONDS
+    assert len(runner.launch_attempts) == 13  # every 10 minutes, 0 to 120
+    assert all(a["capacity"] and a["status"] == 500 for a in runner.launch_attempts)
+    assert fake.creates() == 0
+
+
+def test_the_bootstrap_accepts_post_go_only_with_the_token(tmp_path, monkeypatch):
+    import http.server
+    import importlib.util
+    import threading
+    import urllib.error
+    import urllib.request
+
+    marker = tmp_path / "go"
+    monkeypatch.setenv("PROBE_TOKEN", "tok-123")
+    monkeypatch.setenv("GO_FILE", str(marker))
+    spec = importlib.util.spec_from_file_location(
+        "a40_bootstrap_under_test",
+        a40.REPOSITORY / "scripts/dev/exam_design/runpod/bootstrap.py",
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    server = http.server.HTTPServer(("127.0.0.1", 0), module.H)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{server.server_address[1]}"
+
+    def post(path, token):
+        request = urllib.request.Request(
+            base + path, data=b"", method="POST", headers={"X-Probe-Token": token}
+        )
+        try:
+            return urllib.request.urlopen(request, timeout=10).status
+        except urllib.error.HTTPError as refused:
+            return refused.code
+
+    try:
+        assert post("/go", "wrong") == 404 and not marker.exists()
+        assert post("/other", "tok-123") == 404 and not marker.exists()
+        assert post("/go", "tok-123") == 200 and marker.exists()
+    finally:
+        server.shutdown()
+
+
+def test_the_phase_barrier_sees_the_marker_or_times_out(tmp_path):
+    marker = tmp_path / "go"
+    assert phase.wait_for_go(0.2, path=marker) is False
+    marker.write_text("go")
+    assert phase.wait_for_go(5, path=marker) is True
+
+
+def test_each_pods_datacenter_and_driver_build_are_recorded(world):
+    summary, results, _fake, _bodies = run(world, [])
+    assert all(p["datacenter"].startswith("DC-") for p in summary["pods"])
+    assert {p["driver_version"] for p in summary["pods"]} == {"580.159.03"}
+    flat = a40.pod_results([p for pods in results.values() for p in pods])
+    cell = a40.compare(flat)["cells"][0]
+    assert len(cell["datacenters"]) == 2 and cell["driver_builds"] == ["580.159.03"]

@@ -34,6 +34,22 @@ by runtime scoring. Their new numerical reference criteria are demands to
 verify, not a reinterpretation of existing adequacy/study outcomes. Test Lead
 and Carbon Validator own later versioned gate/quiz/tuning integration.
 
+## Buyer reference credibility targets
+
+Each packet's Reference policy now states the assumed buyer tool, Carbon's
+current/proposed reference, target tier, published benchmark candidates and
+HUMAN_INPUT agreement recommendations. The [shared credibility contract](reference-credibility.md)
+defines the three tiers, evidence custody and claim boundary. Targets are
+not earned evidence; no benchmark comparison or lab test ran for this addition.
+Battery's real EV-use target needs Tier 3; the other seven offline simulator
+design jobs target Tier 2, with hardware claims requiring the named later lab
+evidence. Same solver name alone cannot establish Tier 1.
+
+Latest owner scope: ignore full-cold-plate packaging/cost work. Cooling's new
+credibility recommendation is cell-level only; the older full-assembly brief
+remains deferred, not satisfied by a green periodic-cell result. None of the
+new recommendations edits numeric sheets, grants, scorers or existing evidence.
+
 ## Selected reference-feasibility allowances
 
 | Task | Maximum allocated node-hours | vCPU-hours ceiling | RAM ceiling (GiB) | Solver launches, including failed/refinement/control work | All-in USD cap |
@@ -77,6 +93,31 @@ declares synthetic `P_dev`, diagnostic `Q` and the interpretation of `w`.
 Quota/boundary feasibility panels cannot be treated as draws from P or as a
 population reliability trial. Reused curves, wavelengths and time probes are
 correlated within a case; model arms share the decision problem.
+
+Each packet now also names a **prospective population of buyer design
+questions** in §3. A question fixes the physical context, service conditions,
+buyer requirement vector, allowed actions and a committed choice or abstention
+rule; f02 chooses a schedule separately for each declared scenario. Different
+questions may use the **same physical design/reference bank** when that bank
+already resolves all needed conditions and quantitative outputs. Varying a
+requirement can change the reference-best admissible design without a new
+solver run; the eligible range and answer diversity must be verified, not
+assumed. Changing only a seed, grid order or probe on an unchanged question
+does not create a fresh answer. Questions sharing a cell, assembly or bank
+remain clustered for power and exposure accounting.
+
+Each Challenge still has **one quiz per batch**. Its design questions must be
+fresh draws from a registered `P_job`/protected `Q_job`, with their bank exposure
+counted under the bank lifecycle; a retired or published question cannot return
+to hidden use. The current eight packets mostly fix one question each. Their
+proposed question axes and scoping inventory sizes are `HUMAN_INPUT`
+recommendations, not an adopted law, powered hidden batch or reference grant.
+Before scoring, the buyer/authoring owner must approve eligible conditions and
+requirements, the reference owner must demonstrate bank coverage and cost, and
+Test Lead must establish sufficient unexposed questions, answer diversity,
+attack separation and clustering. Otherwise the design leg is diagnostic.
+Question variation cannot silently alter the registered Challenge or turn a
+fixture into a deployment claim.
 
 Public generated TRAIN and intentionally incomplete PRACTICE may be exposed
 after implementation. Protected EVAL/STRESS, their seeds and labels, and final

@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-reference-credibility-final-packets",
+  "recorded_at": "2026-10-07T20:16:47+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-REFERENCE-CREDIBILITY-01 final focused packet diagnostics",
+    "description": "python -X utf8 -m pytest -q tests/cpu/test_customer_reference_credibility.py tests/cpu/test_first_three_customer_packets.py tests/cpu/test_portfolio_f1_packet.py tests/cpu/test_portfolio_round1_screen.py"
+  },
+  "expected": "All eight credibility subsections retain the common format, named sources, explicit unearned evidence, units, HUMAN_INPUT recommendations and narrow cell/EV claim boundaries.",
+  "observed": "58 passed in 3.30s, including all 18 new static checks and 40 existing packet/screen checks. This is native documentation consistency, not canonical acceptance, completed solver parity or lab evidence. Black passed separately; Ruff was unavailable on this host interpreter.",
+  "keep": ["Published benchmark candidates and matched task witnesses are distinct; tool identity, numerical convergence and empirical credibility are separate evidence."],
+  "change": ["Obtain actual buyer/tool settings and accepted comparison thresholds before running evidence; do not turn a documented target into an earned tier or a compute grant."],
+  "protocol_elements": ["reference-policy", "buyer-credibility", "claim-basis"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

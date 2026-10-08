@@ -83,6 +83,30 @@ sets/whole independent experiments would be real generalization units;
 cycles and time samples from one simulated cell are correlated. Deployment P,
 batch laws and official evidence/score weighting remain HUMAN_INPUT.
 
+### Prospective population of buyer design questions — `HUMAN_INPUT`
+
+The present five-temperature, 30-cycle panel and limits fix **one customer
+question**. A future `P_job` can keep the same characterized cell and solved
+design bank while varying the buyer's charging-time target, temperature limit
+or plating margin; these are distinct requirements only if the reference
+outputs support them and the best admissible protocol actually changes.
+Supported condition variation could include ambient mix, initial SOC and
+ageing state. It needs new solves unless the bank already covers the exact
+state and observer. A fleet engineer would recognize each question from BMS
+specifications, route/charger logs, pack thermal design and ageing records.
+One protocol still serves its complete declared panel; cycles and time probes
+inside it are correlated evidence. A different cell is an optional future
+axis, **not a prerequisite** for fresh questions.
+
+**Size recommendation, not a selected law:** catalogue at least eight distinct
+question manifests for a development scoping pilot, using supported condition
+and requirement combinations and retaining their physical-bank cluster. This
+is comparable in count to the existing eight-draw Q3 quiz, but neither that
+quiz's power nor its truth transfers to this new buyer decision. `HUMAN_INPUT`:
+eligible condition/requirement support, `P_job`, protected `Q_job`, weights,
+answer-diversity test, exposure accounting and hidden `n` from Test Lead
+power/cost studies. Re-seeding one unchanged question is not fresh evidence.
+
 ## 4. Case contract
 
 Pin simulated cell/parameters, protocol termination, initial SOC/temperature,
@@ -113,6 +137,49 @@ Real-cell parameter adequacy, sensor uncertainty and empirical plating
 corroboration remain NOT_DEMONSTRATED for this buyer. Reference failure is
 missing truth, not candidate scientific failure. No paid/counting/fresh
 campaign or alteration of EV5 evidence occurs here.
+
+### Reference credibility target
+
+**Buyer tool:** COMSOL Battery Design Module, or a buyer-owned DFN workflow,
+is the role-play assumption for the cell-calibration engineer. Actual tool/
+settings need confirmation. **Carbon reference:** pinned PyBaMM 26.8.0.0
+DFN/OKane2022, **not the same tool** as COMSOL. If the actual buyer uses PyBaMM,
+Tier 1 still needs their exact parameters, options, mesh, solver and observers;
+the library name alone is insufficient.
+
+**Target tier:** Tier 3 before EV-use reliance on real cell charging/temperature/
+degradation. Tier 2 is an interim simulator-screening target only; it cannot
+establish plating absence or safe charging. **Credibility evidence:
+NOT_DEMONSTRATED** for this EV buyer job; no lab grant or EV5 change follows.
+
+**Benchmark cases:** COMSOL's published
+[1D Isothermal Lithium-Ion Battery](https://doc.comsol.com/6.4/doc/com.comsol.help.models.battery.li_battery_1d/li_battery_1d.html)
+and [1D Lithium-Ion Battery for Thermal Models](https://doc.comsol.com/6.3/doc/com.comsol.help.models.battery.li_battery_1d_for_thermal_models/li_battery_1d_for_thermal_models.html)
+provide DFN/electrothermal verification candidates. Match their published
+chemistry and boundary data first; they are not OKane2022 warm ageing/plating
+benchmarks. Add matched cell-parameter charge/discharge/rest and complete
+30-cycle witnesses in both tools. For an initial Tier 3 rung use the authors'
+[Chen 2020 LG M50 cycling data](https://zenodo.org/records/4032561), separating
+parameter identification from held-out validation. Those data do not alone
+cover the five temperature strata, 30-cycle warm fast charging or plating.
+The buyer additionally requires identified-cell/batch voltage, temperature,
+10–80% timing and capacity tests at the declared conditions; physical plating
+needs an independently accepted measurement, not the model's 0-V diagnostic.
+
+**Acceptance tolerance: HUMAN_INPUT.** Recommend Tier 2 maximum voltage-curve
+difference ≤10 mV, temperature-curve/whole-programme peak difference ≤0.5 °C,
+10–80% crossing-time difference ≤30 s, Q30/Q1 difference ≤0.002 absolute,
+and charging plating-observer difference ≤2 mV only for identical definitions.
+Recommend Tier 3 voltage ≤20 mV, measured temperature ≤1.0 °C, session time
+≤60 s and Q30/Q1 ≤0.005 absolute, after sensor/parameter uncertainty is
+accounted for. These are corroboration error allocations, not permission to
+exceed 45 °C or 0 V. Near-boundary uncertainty stays UNRESOLVED. No experimental
+plating tolerance is fabricated; measurement/acceptance remains HUMAN_INPUT.
+
+**Claim boundary:** [common credibility contract](reference-credibility.md).
+Tier 2 supports only “matches the reference simulator” with exact scope.
+Never “matches reality” unless Tier 3 is met; even then claim agreement with
+the named measured observables, not internal plating truth, pack safety or life.
 
 ## 6. Output and measurement contract
 

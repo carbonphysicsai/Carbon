@@ -40,12 +40,33 @@ with the fields in [Record](#record).
     (OWNER-INTAKE-EXPOSURE-01), Carbon publishes it in
     `scripts/dev/miner_launchpad/published_endpoints.json`, and setup's Review
     writes it into your profile. You type nothing. The receiver hotkey listed
-    beside it is for reference: nothing checks it yet, and your signer signs
-    for the receiver the intake reports when you submit.
+    beside it is binding (LAUNCHPAD-ACCEPT-03): Review pins it in your
+    profile, and before your signer signs a submission, a resend or a status
+    request, Carbon checks that the intake reports that receiver. An intake
+    reporting another is refused `intake_receiver_mismatch`, with nothing
+    signed or sent.
+  - **A profile written before receivers were pinned** keeps submitting,
+    unchecked; setup's Evaluation step and the prelaunch review warn
+    (`intake_receiver_not_pinned`). Review again to pin it.
   - **Until one is published,** setup and the prelaunch review say so: your
     profile can practise and freeze, but cannot submit. Run the validator on
     this machine, tunnel to its loopback yourself, or give setup your own
     intake's URL under Review.
+  - **A validator through a tunnel (LAUNCHPAD-ACCEPT-04).** A validator that
+    binds its own loopback is reached from your machine as a loopback intake,
+    for example `ssh -N -L 18467:127.0.0.1:8467 <validator host>` and then
+    `http://127.0.0.1:18467`. Name it at Review as your own intake, with the
+    validator's public receiver hotkey: `carbon_setup_review` with
+    `intakes.<challenge>` and `receiver_hotkey`, or the browser's Review
+    step under "Advanced: a validator's intake". Review reads its public facts
+    first. The network must be Carbon's testnet, netuid 567, for the
+    Challenge you named, or Review refuses
+    `intake_serves_another_chain_or_challenge`; the receiver must be the one
+    you named (`intake_receiver_mismatch`). If nothing answers, the refusal
+    is `intake_unreachable`: start the tunnel or the validator, since Carbon
+    cannot tell which is down. Such an address works only on a machine that
+    holds the tunnel's key, so Carbon never publishes it
+    (`published_endpoints.json` stays empty).
 
 ## Steps
 
@@ -56,6 +77,11 @@ with the fields in [Record](#record).
    - It checks the machine, its free disk, and that the checkout is clean.
      A checkout with local changes stops it before anything changes, with
      the `git stash` command that sets them aside.
+   - With `--service`, it also checks that your systemd user manager, which
+     runs the service, reaches Docker. If you joined the `docker` group after
+     the manager started, the install stops here (LA-F6). On WSL, run
+     `wsl --terminate <distro>` from Windows and reopen it; elsewhere, run
+     `sudo systemctl restart user@$(id -u).service`. Then install again.
    - It installs the locked environment, builds the worker and analysis
      images (and the GPU worker) locally, records them for setup, and checks
      setup against them.
@@ -101,7 +127,9 @@ with the fields in [Record](#record).
 7. **Review.** Write the profile. Review writes the evaluation endpoint
    Carbon publishes for each Challenge. It warns, and setup's Evaluation step
    keeps saying, when none is published. To use an intake you run yourself,
-   give its URL; setup reads its public facts first.
+   give its URL and its validator's public receiver hotkey (required); setup
+   reads its public facts first and refuses `intake_receiver_mismatch` when
+   the intake reports another receiver.
 8. **Choose a Challenge and launch.** Under Challenges, read each one's
    description and research environment, and choose an implemented one. For
    Carbon's agent, launch from Campaigns with finite ceilings. For Hermes, run `hermes -p carbon chat` and ask it to launch,
@@ -116,8 +144,25 @@ with the fields in [Record](#record).
    Record two practices. For a remote setup, check afterwards that no
    `carbon-job-*` container or `/tmp/carbon-job-*` directory is left on it,
    then stop it yourself.
-10. **Freeze and submit.** Record the submission and its verdict. When the
-    validator runs elsewhere, also record the intake URL and the submission id.
+10. **Freeze, commit and submit.** Record the submission and its verdict.
+    When the validator runs elsewhere, also record the intake URL and the
+    submission id. An intake whose validator requires an on-chain commitment
+    refuses a submit `commitment_required`, before anything is sent, until
+    the frozen candidate's digest is your hotkey's commitment:
+    - Commit it with `carbon_commit` (or `POST /api/v1/operations/commit`).
+    - Type the digest's last 8 characters in your signer's terminal when it
+      asks; observe shows `confirm_commitment` meanwhile.
+    - Record the digest, block and extrinsic id that observe shows read back.
+    - Then submit. A `commitment_stale` refusal is answered by committing
+      again with `recommit=true`.
+    Observe and the campaign view show the same readback on both doors:
+    - the submission id;
+    - for a submit that was not a verdict, its refusal with `intake_outcome`
+      (`QUEUED`, `UNAVAILABLE` or `REFUSED`);
+    - a verdict's public fields: its state, exam rule, recipe and contract
+      digests, and how it was rebuilt.
+    Under a sealed rule (v2) a scored outcome is `sealed`: no screening,
+    score, nomination or finals are shown.
 
 ## Updating
 

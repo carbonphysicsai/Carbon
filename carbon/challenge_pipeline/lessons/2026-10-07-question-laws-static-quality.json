@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-question-laws-static-quality",
+  "recorded_at": "2026-10-07T21:28:30+00:00",
+  "challenge": "protocol", "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-QUESTION-LAWS-01 Part A quality", "description": "Native Windows: Black formatted then checked test_challenge_question_laws.py; python -X utf8 -m carbon.challenge_pipeline validate."},
+  "expected": "Static test formatting and the existing protocol/lesson schema remain valid without changing the active queue or protocol.",
+  "observed": "Black passed after formatting one file; pipeline reported DEFINING, 7 records and 409 valid lessons, zero awaiting a decision. Host diagnostics only; no reference or provider execution.",
+  "keep": ["Keep lesson records one file each and proposals outside runtime authority.", "Keep the current tasks.py mapping pinned: refreshed #764 contains the same inspected implementation blob."],
+  "change": ["No change to pipeline state, active family queue, live contracts or scoring."],
+  "protocol_elements": ["canonical-validation", "proposal-identity", "lessons"],
+  "proposed_revision": null, "status": "RECORDED"
+}

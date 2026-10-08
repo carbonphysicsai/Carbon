@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-question-laws-current-baseline",
+  "recorded_at": "2026-10-07T21:28:00+00:00",
+  "challenge": "protocol", "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-QUESTION-LAWS-01 current-main baseline", "description": "Native Windows diagnostic in the new isolated worktree: python -X utf8 -m pytest tests/cpu/test_portfolio_f1_packet.py tests/cpu/test_first_three_customer_packets.py -q."},
+  "expected": "Current-main customer/foundation packet consistency passes without executing solvers or private bank code.",
+  "observed": "16 passed in 0.13 s. Native host diagnostics only; exact-head canonical CI is still required. The refreshed #764 head has the identical tasks.py blob f2daa4e825c2bda950cd2f48ee47848d2eb68c2e, so its field mapping does not change.",
+  "keep": ["Keep immutable source pins and distinguish interface proposal identity from runtime adoption."],
+  "change": ["A raw nine-question Cooling grid cannot fill a twelve-distinct-question batch; require covered extra context or a prospective grid revision, never repeated seeds."],
+  "protocol_elements": ["design-question-population", "answer-diversity", "canonical-validation"],
+  "proposed_revision": null, "status": "RECORDED"
+}

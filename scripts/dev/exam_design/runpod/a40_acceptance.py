@@ -570,6 +570,30 @@ def build_manifest(ref, repository=REPOSITORY):
 
 
 # ------------------------------------------------------------------ the operator side
+#: Capacity retry: every 10 minutes for up to 2 hours.
+RETRY_SECONDS = 600
+RETRY_LIMIT_SECONDS = 7200
+DEFINITIVE_STATUSES = frozenset({400, 401, 403, 404, 422})
+
+
+class LaunchFailed(Refused):
+    """A refused create, with the provider's status and redacted message."""
+
+    def __init__(self, failure, intent_id):
+        self.status = failure.http_status
+        self.message = failure.failed
+        self.intent_id = intent_id
+        text = self.message.lower()
+        self.capacity = (
+            self.status not in DEFINITIVE_STATUSES
+            and (self.status is None or self.status >= 500 or "no instances" in text)
+            and failure.execution is not None
+        )
+        super().__init__(
+            f"launch failed: {self.message} (HTTP {self.status}); next={failure.next_action}"
+        )
+
+
 @dataclass
 class Pod:
     label: str  # "A" or "B": the host within a backend pair
@@ -591,8 +615,8 @@ class Pod:
     finished: bool = False
     terminated: bool | None = None
     reason: str | None = None
-    go_token: str = ""
     probe: dict | None = None
+    datacenter: str | None = None
 
     def summary(self):
         return {
@@ -607,6 +631,8 @@ class Pod:
             "deadline_seconds": self.deadline_seconds,
             "booked_usd": str(reservation_usd(self.deadline_seconds)),
             "rate_usd_per_hr": self.rate,
+            "datacenter": self.datacenter,
+            "driver_version": (self.identity or {}).get("driver_version"),
         }
 
 
@@ -667,16 +693,16 @@ class PodRunner:
         self.pods: list[Pod] = []
         self.replacements_used = 0
         self.driver_problems: list[dict] = []
+        self.launch_attempts: list[dict] = []
         self._n = 0
 
     # -- launching
-    def _env(self, backend, config, token, deadline_at, go_token):
+    def _env(self, backend, config, token, deadline_at):
         from carbon.agent_campaign.graphite import pods
         from scripts.dev.exam_design.runpod import pod_control
 
         env = {
             "PROBE_TOKEN": token,
-            "GO_TOKEN": go_token,
             "PROBE_DEADLINE": str(int(deadline_at + 60)),
             "PROBE_CA_GZ_B64": pods._ca_bundle(),
             "CODE_REF": self.code_ref,
@@ -697,7 +723,7 @@ class PodRunner:
         if Decimal(str(balance)) - reserve < Decimal(str(floor)):
             raise Refused("refused: balance would fall below the floor")
 
-    def launch(self, backend, label, config, deadline_seconds, *, replaces=None):
+    def _launch_once(self, backend, label, config, deadline_seconds, *, replaces=None):
         from scripts.dev.exam_design.runpod.operator_compute import (
             ComputeError,
             PodSpec,
@@ -716,7 +742,6 @@ class PodRunner:
         self._n += 1
         intent = f"a40-{self.run_id}-{backend}-{label.lower()}-{self._n}"
         token = secrets.token_urlsafe(24)
-        go_token = secrets.token_urlsafe(24)
         deadline_at = self.clock() + deadline_seconds
         spec = PodSpec(
             image=image,
@@ -724,8 +749,8 @@ class PodRunner:
             gpu_count=1,
             cloud_type="SECURE",
             container_disk_gb=DISK_GB,
-            ports=("8000/http", "8001/http"),
-            env=self._env(backend, config, token, deadline_at, go_token),
+            ports=("8000/http",),
+            env=self._env(backend, config, token, deadline_at),
             max_rate_usd_per_hr=POD_RATE_USD_PER_HR,
             storage_usd_per_gb_month=DISK_USD_PER_GB_MONTH,
             start_command=(PYTHON, "-I", "-c", self.boot),
@@ -744,14 +769,13 @@ class PodRunner:
                 )
             )
         except ComputeError as failure:
-            raise Refused("launch failed: " + failure.failed) from None
+            raise LaunchFailed(failure, intent) from None
         pod = Pod(
             label=label,
             backend=backend,
             intent_id=intent,
             pod_id=resource.resource_id,
             token=token,
-            go_token=go_token,
             deadline_at=deadline_at,
             deadline_seconds=deadline_seconds,
             launched_at=launched_at,
@@ -763,10 +787,54 @@ class PodRunner:
             recipes=len(config["recipes"]),
             replaces=replaces,
         )
+        try:
+            pod.datacenter = self.adapter.datacenter(pod.pod_id)
+        except ComputeError:
+            pod.datacenter = None
         self.pods.append(pod)
         return pod
 
     # -- talking to a pod
+    def launch(self, backend, label, config, deadline_seconds, *, replaces=None):
+        """One create in flight. A capacity-type refusal (a non-definitive
+        provider status that is a 5xx, or says no instances) is retried every
+        RETRY_SECONDS for up to RETRY_LIMIT_SECONDS, reconciling the failed
+        intent by ownership tag before every retry and recording each attempt;
+        any other failure stops at once. Never widens cloud type or CUDA."""
+        started = self.clock()
+        while True:
+            try:
+                return self._launch_once(
+                    backend, label, config, deadline_seconds, replaces=replaces
+                )
+            except LaunchFailed as failed:
+                self.launch_attempts.append(
+                    {
+                        "at": self.clock(),
+                        "backend": backend,
+                        "label": label,
+                        "status": failed.status,
+                        "message": failed.message,
+                        "capacity": failed.capacity,
+                    }
+                )
+                self._reconcile_intent(failed.intent_id)
+                waited = self.clock() - started
+                if not failed.capacity or waited + RETRY_SECONDS > RETRY_LIMIT_SECONDS:
+                    raise
+                self.sleep(RETRY_SECONDS)
+                self._reconcile_intent(failed.intent_id)
+
+    def _reconcile_intent(self, intent_id):
+        """Recover the failed create by ownership tag; a pod that turned up is
+        terminated (cancel_provisioning), so none is left or double-created."""
+        from scripts.dev.exam_design.runpod.operator_compute import ComputeError
+
+        try:
+            self.service.cancel_provisioning(CAMPAIGN, intent_id)
+        except ComputeError:
+            pass  # unresolved until the grace period; recover again later
+
     def _get(self, pod, path, timeout=60):
         owned = self.service.owned(CAMPAIGN, pod.intent_id, pod.pod_id)
         base = self.adapter.connect_url(owned, 8000)
@@ -870,8 +938,8 @@ class PodRunner:
         """Release the barrier: only after both drivers were seen to match."""
         for pod in pods:
             owned = self.service.owned(CAMPAIGN, pod.intent_id, pod.pod_id)
-            url = self.adapter.connect_url(owned, 8001) + "/go"
-            code, _body = self.post(url, pod.go_token, 60)
+            url = self.adapter.connect_url(owned, 8000) + "/go"
+            code, _body = self.post(url, pod.token, 60)
             if code != 200:
                 raise Refused("the barrier release was not accepted")
 
@@ -1056,6 +1124,7 @@ def smoke(runner, record, *, backend="jax", out):
         "device": _json(pod.files.get("identity.json")) or None,
         "booked_usd": str(reservation_usd(deadline)),
         "pod": pod.summary(),
+        "launch_attempts": runner.launch_attempts,
         "reconciliation": runner.reconcile(),
     }
     Path(out).write_text(json.dumps(measured, indent=1, sort_keys=True) + "\n")
@@ -1119,6 +1188,7 @@ def run_acceptance(runner, record, smokes, *, cap=DEFAULT_CAP_USD):
         "pods": [p.summary() for p in runner.pods],
         "replacements_used": runner.replacements_used,
         "driver_problems": runner.driver_problems,
+        "launch_attempts": runner.launch_attempts,
         "reconciliation": reconciliation,
         "booked_usd": str(
             sum((reservation_usd(p.deadline_seconds) for p in runner.pods), Decimal(0))
@@ -1210,6 +1280,9 @@ def compare(pod_results, *, deviation=None, cpu=None):
                     "across_hosts": across,
                     "driver_builds": builds,
                     "device_ids": devices,
+                    "datacenters": sorted(
+                        {h.get("datacenter") for h in hosts if h.get("datacenter")}
+                    ),
                     "preflight_problems": problems,
                 }
             )
@@ -1263,6 +1336,7 @@ def pod_results(pods):
                 "backend": pod.backend,
                 "label": pod.label,
                 "identity": _json(pod.files.get("identity.json")) or None,
+                "datacenter": pod.datacenter,
                 "rows": results.get("rows", []),
             }
         )
