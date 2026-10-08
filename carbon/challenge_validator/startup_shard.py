@@ -139,25 +139,71 @@ def code_commit(repository):
 # --- the custody gate ---------------------------------------------------------------
 
 
-def require_custody(record_file, host_key, *, repository=REPOSITORY):
-    """The owner's custody record names this host's key. Returns its
+def require_custody(record_file, host_keys, *, repository=REPOSITORY):
+    """The owner's custody record for this startup names every host's key
+    (one or more hosts; a single key is accepted as a string). Returns its
     sha256."""
-    if type(host_key) is not str or not HOST_KEY.fullmatch(host_key):
-        raise ProducerRefused("startup_host_key_malformed")
+    if type(host_keys) is str:
+        host_keys = [host_keys]
     if (
-        type(record_file) is not str
-        or "/" in record_file
-        or not record_file.endswith(".md")
+        type(host_keys) not in (list, tuple)
+        or not host_keys
+        or len(set(host_keys)) != len(host_keys)
+        or any(type(k) is not str or not HOST_KEY.fullmatch(k) for k in host_keys)
     ):
+        raise ProducerRefused("startup_host_key_malformed")
+    if type(record_file) is not str or not record_file:
+        raise ProducerRefused("startup_custody_unrecorded")
+    if record_file.startswith("/"):
+        return _startup_hosts_file(record_file, host_keys, repository)
+    if "/" in record_file or not record_file.endswith(".md"):
         raise ProducerRefused("startup_custody_unrecorded")
     path = Path(repository) / ".agent" / "decisions" / record_file
     try:
         body = path.read_bytes()
     except OSError:
         raise ProducerRefused("startup_custody_unrecorded") from None
-    if CUSTODY_RECORD.encode() not in body or host_key.encode() not in body:
+    if CUSTODY_RECORD.encode() not in body or any(
+        k.encode() not in body for k in host_keys
+    ):
         raise ProducerRefused("startup_custody_unrecorded")
     return "sha256:" + hashlib.sha256(body).hexdigest()
+
+
+def _standing_record(repository):
+    """The repository's standing custody record (the procedure's approval),
+    or None."""
+    for path in sorted((Path(repository) / ".agent" / "decisions").glob("*.md")):
+        body = path.read_bytes()
+        if b"## " in body and CUSTODY_RECORD.encode() in body.split(b"\n", 1)[0]:
+            return body
+    return None
+
+
+def _startup_hosts_file(path, host_keys, repository):
+    """A per-startup hosts file the owner writes on the producer host, under
+    the repository's standing record (hourly startup hosts, created per
+    startup). It must name the record and every host key, and be a regular
+    file only root can write. Returns the sha256 over the standing record
+    and the file."""
+    import os
+    import stat
+
+    standing = _standing_record(repository)
+    if standing is None:
+        raise ProducerRefused("startup_custody_unrecorded")
+    try:
+        info = os.lstat(path)
+        body = Path(path).read_bytes()
+    except OSError:
+        raise ProducerRefused("startup_custody_unrecorded") from None
+    if not stat.S_ISREG(info.st_mode) or info.st_uid != 0 or info.st_mode & 0o022:
+        raise ProducerRefused("startup_custody_file_not_owner_written")
+    if CUSTODY_RECORD.encode() not in body or any(
+        k.encode() not in body for k in host_keys
+    ):
+        raise ProducerRefused("startup_custody_unrecorded")
+    return "sha256:" + hashlib.sha256(standing + b"\0" + body).hexdigest()
 
 
 # --- the work directory ----------------------------------------------------------
@@ -234,7 +280,8 @@ def split(
     if type(shards) is not int or shards < 1:
         raise ProducerRefused("startup_shards_malformed")
     adapter = adapter_for(challenge_id)
-    custody_sha = require_custody(custody, host_key, repository=repository)
+    hosts = [host_key] if type(host_key) is str else list(host_key)
+    custody_sha = require_custody(custody, hosts, repository=repository)
     work = Path(work)
     jobs_file = _read_json(work / "jobs.json")
     solved = _terminal_by_case(work, adapter.terminal)
@@ -248,7 +295,6 @@ def split(
         "work_fingerprint": jobs_file.get("fingerprint"),
         "code": commit if commit is not None else code_commit(repository),
         **adapter.pins(repository, overlay),
-        "host_key": host_key,
         "custody_sha256": custody_sha,
         "challenge_id": challenge_id,
     }
@@ -261,6 +307,9 @@ def split(
         manifest = {
             "schema": MANIFEST_SCHEMA,
             **pins,
+            # Shards go to the startup's hosts round-robin; each manifest
+            # pins the one host it is for.
+            "host_key": hosts[k % len(hosts)],
             "shard": k,
             "shards": shards,
             "jobs": len(mine),
@@ -284,7 +333,14 @@ def split(
             _append_journal(
                 work, "shard_written", manifest_digest=digest, shard=k, jobs=len(mine)
             )
-        summaries.append({"shard": k, "jobs": len(mine), "manifest_digest": digest})
+        summaries.append(
+            {
+                "shard": k,
+                "jobs": len(mine),
+                "host_key": manifest["host_key"],
+                "manifest_digest": digest,
+            }
+        )
     return summaries
 
 
@@ -363,6 +419,33 @@ def merge(
     return {k: entry[k] for k in entry if k != "event"}
 
 
+#: The custody transfers the startup runbook journals, in order.
+TRANSFER_EVENTS = ("pushed", "pulled", "wiped", "deleted")
+
+
+def note(work, event, *, host_key, manifest_digest=None, nbytes=None):
+    """Journal one custody transfer (the startup runbook, slice 2): a shard
+    or the overlay pushed to a startup host, its records pulled back, the
+    host's copies wiped, the server deleted. Public values only."""
+    if event not in TRANSFER_EVENTS:
+        raise ProducerRefused("startup_event_unknown")
+    if type(host_key) is not str or not HOST_KEY.fullmatch(host_key):
+        raise ProducerRefused("startup_host_key_malformed")
+    if manifest_digest is not None and not any(
+        e["event"] == "shard_written" and e["manifest_digest"] == manifest_digest
+        for e in _journal(work)
+    ):
+        raise ProducerRefused("startup_shard_not_from_this_work")
+    if nbytes is not None and (type(nbytes) is not int or nbytes < 0):
+        raise ProducerRefused("startup_bytes_malformed")
+    fields = {"host_key": host_key}
+    if manifest_digest is not None:
+        fields["manifest_digest"] = manifest_digest
+    if nbytes is not None:
+        fields["bytes"] = nbytes
+    return _append_journal(work, event, **fields)
+
+
 def status(work):
     """Public counts per shard."""
     written, merged = {}, {}
@@ -391,8 +474,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog="carbon.challenge_validator.startup_shard")
     sub = parser.add_subparsers(dest="command", required=True)
     s = sub.add_parser("split")
-    for name in ("--work", "--out", "--challenge", "--custody", "--host-key"):
+    for name in ("--work", "--out", "--challenge", "--custody"):
         s.add_argument(name, required=True)
+    # One per startup host (CCX63s, created per startup): repeatable.
+    s.add_argument("--host-key", required=True, action="append")
     s.add_argument("--shards", type=int, required=True)
     s.add_argument("--overlay")
     m = sub.add_parser("merge")
@@ -400,6 +485,12 @@ def main(argv=None):
         m.add_argument(name, required=True)
     m.add_argument("--overlay")
     sub.add_parser("status").add_argument("--work", required=True)
+    n = sub.add_parser("note")
+    n.add_argument("--work", required=True)
+    n.add_argument("--event", required=True, choices=TRANSFER_EVENTS)
+    n.add_argument("--host-key", required=True)
+    n.add_argument("--manifest-digest")
+    n.add_argument("--bytes", type=int)
     args = parser.parse_args(argv)
     try:
         if args.command == "split":
@@ -411,6 +502,14 @@ def main(argv=None):
                 custody=args.custody,
                 host_key=args.host_key,
                 overlay=args.overlay,
+            )
+        elif args.command == "note":
+            result = note(
+                args.work,
+                args.event,
+                host_key=args.host_key,
+                manifest_digest=args.manifest_digest,
+                nbytes=args.bytes,
             )
         elif args.command == "merge":
             result = merge(args.work, args.shard, args.challenge, overlay=args.overlay)
@@ -427,4 +526,4 @@ if __name__ == "__main__":
     sys.exit(main())
 
 
-__all__ = ["merge", "require_custody", "split", "status"]
+__all__ = ["merge", "note", "require_custody", "split", "status"]
