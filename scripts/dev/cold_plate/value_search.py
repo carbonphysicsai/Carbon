@@ -150,13 +150,17 @@ def evaluate(designs, n_designs, point):
     }
 
 
+def _ratio(q):
+    return float(q.max() / q.mean())
+
+
 def main(cfeas, out):
     designs, n_designs = load(cfeas)
     h_med = float(np.median([d["h"] for d in designs.values()]))
     step1 = {}
     for name in MAPS:
         step1[name] = {
-            f"k{k:g}": {f"t{t:g}": float((lambda q: q.max() / q.mean())(post_map(name, k, t, h_med, 1500.0)))
+            f"k{k:g}": {f"t{t:g}": _ratio(post_map(name, k, t, h_med, 1500.0))
                         for t in (1.5, 2.0, 3.0)}
             for k in (391.0, 2000.0, 3000.0, 4000.0, 5000.0)
         }  # fmt: skip
