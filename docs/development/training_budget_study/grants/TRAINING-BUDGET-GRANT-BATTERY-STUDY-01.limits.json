@@ -1,0 +1,12 @@
+{
+ "schema": "carbon.training-budget.study-spend-limits.v1",
+ "grant_id": "TRAINING-BUDGET-GRANT-BATTERY-STUDY-01",
+ "challenge_id": "battery-fastcharge-ageing-development-v1",
+ "gpu_model": "nvidia-a40",
+ "rate_cap_usd_per_hour": "0.492739726",
+ "pod_hours": 64,
+ "pause_at_usd": "25.23",
+ "reestimate_after_phase": "A",
+ "runs": ["A", "B", "C", "F", "G", "B-repeat", "D", "E", "H"],
+ "generation": "the producer host (AX42), at no pod cost"
+}
