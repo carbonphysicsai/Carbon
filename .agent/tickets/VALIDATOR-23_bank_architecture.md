@@ -219,3 +219,37 @@ No LIVE authority.
   cross-batch per-miner evidence.
 - **3d:** the indexed law for battery v3, after the owner approves its
   question law.
+
+### Slice 3b, as built
+
+- **Rule `v2-bank-design`** (`exam.DEVELOPMENT_RULE_V2_BANK_DESIGN`): `v2-bank`,
+  unchanged, plus `design: {bank: "design:battery-q3", k: 8, retire_at: 5}`.
+  - `v2-bank` and its deployments, including the running bank startup, are
+    untouched. The disclosure stays v2's: SEALED.
+  - The producer refuses a rule whose k and E differ from the bank's
+    registration (`producer_design_rule_mismatch`).
+- **The producer** (`BankedBatterySource`, config key `design`: the design
+  bank's directory):
+  - Each **screening** window draws `k` questions with the window's slot key,
+    disjoint from the other live screening windows. A finalist window draws
+    none.
+  - A short bank is topped up first, with up to three tranches, since not
+    every drawn question is live. Then it refuses `producer_design_bank_short`.
+- **The commitment** gains `design: {bank, k, tranches, selection_digest}`.
+  **The package** gains `design.questions`: per question, its inputs, its
+  reference, its tranche and its Merkle proof.
+- **The validator** (`BatteryAdapter._checked_design`), under a design rule:
+  - a screening window carries exactly `k` questions, and nothing else
+    carries any;
+  - bank and k equal the rule's, and the selection digest equals the ids';
+  - each task digest re-derives, and each reference is `OK`;
+  - each question proves into a committed sealed tranche.
+
+  The questions are then stored privately (`PoolStore.set_design`).
+  `design_counts` reports the active pool's windows and questions (public
+  counts). Q3 has one stratum (`all`), so the per-stratum split arrives with
+  strata.
+- **Startup cost.** One Q3 question is about 125 truth solves (the lattice
+  plus refine). B = 160 live therefore needs roughly 25–30k solves, about
+  700–800 CPU-h at 91 CPU-s each. That is CCX63 startup territory, and it
+  goes to the Test Lead's sizing.

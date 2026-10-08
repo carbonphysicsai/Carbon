@@ -96,6 +96,10 @@ CREATE TABLE IF NOT EXISTS withdrawn_batches(
     reason TEXT NOT NULL,
     block INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS batch_design(
+  fingerprint TEXT PRIMARY KEY,
+  bank TEXT NOT NULL,
+  questions TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS batch_windows(
   fingerprint TEXT PRIMARY KEY,
   slot INTEGER NOT NULL,
@@ -621,6 +625,44 @@ class PoolStore:
                     raise StateError("batch_salt_conflict")
                 return
             db.execute("INSERT INTO batch_salts VALUES(?,?)", (fingerprint, salt))
+
+    def set_design(self, fingerprint, bank, questions):
+        """Store a screening batch's verified design questions (slice 3b):
+        private, once; the same questions again are a no-op."""
+        body = canonical(questions)
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT bank, questions FROM batch_design WHERE fingerprint=?",
+                (fingerprint,),
+            ).fetchone()
+            if row is not None:
+                if (row[0], row[1]) != (bank, body):
+                    raise StateError("design_questions_changed")
+                return
+            db.execute(
+                "INSERT INTO batch_design VALUES(?,?,?)", (fingerprint, bank, body)
+            )
+
+    def design(self, fingerprint):
+        """`{"bank", "questions"}` for a batch, or None. Private."""
+        with self.db() as db:
+            row = db.execute(
+                "SELECT bank, questions FROM batch_design WHERE fingerprint=?",
+                (fingerprint,),
+            ).fetchone()
+        return (
+            None if row is None else {"bank": row[0], "questions": json.loads(row[1])}
+        )
+
+    def design_counts(self):
+        """Public counts: design questions held by the active pool's batches."""
+        pool = self.pool()
+        active = [] if pool is None else pool["active"]
+        held = [self.design(f) for f in active]
+        return {
+            "windows": sum(1 for d in held if d is not None),
+            "questions": sum(len(d["questions"]) for d in held if d is not None),
+        }
 
     def set_quiz(self, fingerprint, quiz):
         """Record an imported batch's quiz (VALIDATOR-19 slice Q), verified

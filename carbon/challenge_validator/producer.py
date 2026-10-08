@@ -148,6 +148,7 @@ def source_for(challenge_id, spec, *, repository=REPOSITORY):
             spec["bank"],
             overlay=spec.get("overlay"),
             repository=repository,
+            design_dir=spec.get("design"),
         )
     if challenge_id == BATTERY_CHALLENGE:
         # Battery's source with its quiz (slice Q, part 2): it draws a quiz
@@ -251,7 +252,7 @@ def load_config(path, *, account=None):
         or any(
             type(spec) is not dict
             or not {"deployment", "approval"} <= set(spec)
-            or set(spec) - {"deployment", "overlay", "approval", "bank"}
+            or set(spec) - {"deployment", "overlay", "approval", "bank", "design"}
             for spec in config["sources"].values()
         )
     ):
@@ -597,6 +598,11 @@ class Producer:
                 **quiz_digests(value),
                 "quiz_panel_version": value["document"]["panel_version"],
             }
+        design = (
+            source.design_commitment(fingerprint)
+            if hasattr(source, "design_commitment")
+            else None
+        )
         return {
             **quiz,
             "schema": COMMITMENT_SCHEMA,
@@ -620,6 +626,9 @@ class Producer:
                 if hasattr(source, "bank_commitment")
                 else {}
             ),
+            # A screening window under a design rule (slice 3b) names its
+            # design tranches and selection.
+            **({"design": design} if design is not None else {}),
         }
 
     def withdraw(self, challenge_id, fingerprint, reason, *, block):

@@ -110,11 +110,30 @@ DEVELOPMENT_RULE_V2_BANK = {
     },
 }
 
+#: Rule `v2-bank-design` (VALIDATOR-23 slice 3b): `v2-bank`, unchanged,
+#: plus design questions on every screening window, drawn from a sealed
+#: design bank (`design:<id>`) without replacement and disjoint from the
+#: active windows. `k` questions per window; each draw is one exposure, and a
+#: question retires after `retire_at`. Development working values (the Test
+#: Lead's slice 3 decision D2): a single window's k questions cannot separate
+#: a bad control on their own, so evidence accumulates across windows. The
+#: questions are carried and verified; scoring them is slice 3c.
+DEVELOPMENT_RULE_V2_BANK_DESIGN = {
+    **DEVELOPMENT_RULE_V2_BANK,
+    "authority": (
+        DEVELOPMENT_RULE_V2_BANK["authority"]
+        + "; design questions: VALIDATOR-23 slice 3, the Test Lead's D1-D3 "
+        "(2026-10-08), development working values"
+    ),
+    "design": {"bank": "design:battery-q3", "k": 8, "retire_at": 5},
+}
+
 #: The rules a deployment may run, by the name its configuration gives.
 RULES = {
     "v1": DEVELOPMENT_RULE,
     "v2": DEVELOPMENT_RULE_V2,
     "v2-bank": DEVELOPMENT_RULE_V2_BANK,
+    "v2-bank-design": DEVELOPMENT_RULE_V2_BANK_DESIGN,
 }
 
 #: OWNER-BATTERY-3B-AND-EXPOSURE-01 (2026-10-01): what a miner may see, by
