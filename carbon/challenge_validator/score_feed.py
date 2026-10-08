@@ -43,6 +43,7 @@ DEVELOPMENT only: no qualification, weight, reward or LIVE authority.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -62,6 +63,22 @@ VALUES = {
     # record (it would reverse the SEALED disclosure).
     "live": None,
 }
+#: The registered public showcase task (VALIDATOR-29 showcase; the Test
+#: Lead, 2026-10-08): EV4's public synthetic decision contract, its
+#: development scenarios, pinned by the contract file's sha256. The leader's
+#: rebuilt model is queried on these public inputs only; the dashboard runs
+#: Carbon's optimizer on the panel against the public reference truth.
+SHOWCASE = {
+    "task_id": "ev4-charge-protocol-selection.v1:development",
+    "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+    "contract_sha256": "fc6f504f3ff69b3add10099056b7a652a28112d3ca1d63ada2fb194aac2d3e18",
+    "split": "development",
+    "data_scope": "PUBLIC_SYNTHETIC",
+    "registered": "Test Lead, 2026-10-08 (VALIDATOR-29 showcase)",
+}
+SHOWCASE_SCHEMA = "carbon.validator.showcase-panel.v1"
+#: Showcase predictions are stored apart from every scored, quiz and design one.
+SHOWCASE_PREDICTIONS = "showcase/"
 SECTIONS = ("accuracy", "design_q", "near_limit")
 #: How a dashboard shows each section: its name, unit and sense (battery's
 #: scores are lower-is-better; the design q is higher-is-better).
@@ -247,6 +264,67 @@ def _sections(target, row, released):
     }
 
 
+def showcase(target, incumbent, repository=REPOSITORY):
+    """The released incumbent's predictions on the registered public
+    showcase task, or None when no incumbent is released. Public inputs only;
+    the panel carries the model's identity digest and predicted quantities,
+    never its recipe. An inference failure is the showcase's own state."""
+    from carbon.battery.pool_store import StateError
+    from carbon.battery.value import contract as ev
+    from carbon.battery.worker import WorkerFailure
+    from carbon.design_search import battery_q3_v8 as v8
+
+    if incumbent is None:
+        return None
+    path = Path(repository) / SHOWCASE["contract"]
+    if hashlib.sha256(path.read_bytes()).hexdigest() != SHOWCASE["contract_sha256"]:
+        raise FeedRefused("feed_showcase_contract_changed")
+    contract, contract_digest = ev.load(path)
+    if (contract.get("data_scope") or {}).get("classification") != SHOWCASE[
+        "data_scope"
+    ]:
+        raise FeedRefused("feed_showcase_not_public")
+    jobs = ev.decision_cases(contract, SHOWCASE["split"])
+    inputs = {
+        job["case_id"]: {k: job[k] for k in ("c1", "c2", "t_amb_c", "soc0")}
+        for job in jobs
+    }
+    model_id = incumbent["submission_id"]
+    head = {
+        "schema": SHOWCASE_SCHEMA,
+        "task": SHOWCASE,
+        "contract_digest": contract_digest,
+        "model": {"hotkey": incumbent["hotkey"], "submission_id": model_id},
+    }
+    try:
+        state = target.store.model_state(model_id)
+        if state is None:
+            return {**head, "state": "UNAVAILABLE", "code": "model_not_retained"}
+        predictions = target._quiz_predictions(
+            model_id, inputs, "showcase", namespace=SHOWCASE_PREDICTIONS
+        )
+    except WorkerFailure as failure:
+        return {**head, "state": "UNAVAILABLE", "code": failure.code}
+    except StateError as refused:
+        return {**head, "state": "UNAVAILABLE", "code": refused.code}
+    # Each public case's predicted quantities, projected as v8 projects
+    # truth (`battery_q3_v8._projection`): what the dashboard's replay feeds
+    # Carbon's optimizer. A case the model gave no output for is left out.
+    found = {}
+    for job in jobs:
+        values = v8._projection(
+            contract, {"status": "OK", "outputs": predictions[job["case_id"]]}
+        )
+        if values is not None:
+            found[job["case_id"]] = values
+    return {
+        **head,
+        "state": "PREDICTED",
+        "model": {**head["model"], "state_digest": state["digest"]},
+        "predictions": found,
+    }
+
+
 def canary_hotkeys():
     """The registered canary hotkeys (OWNER-CANARY-LIST-01): excluded from
     every feed field. Empty until the record names them."""
@@ -255,7 +333,7 @@ def canary_hotkeys():
     return frozenset(CANARY_HOTKEYS)
 
 
-def build(target, *, key, hotkey, network, device_class="cpu"):
+def build(target, *, key, hotkey, network, device_class="cpu", with_showcase=False):
     """The signed feed for this validator's deployment and one device class,
     stored as a new version when it changed. Returns the feed. Scores of
     another class never appear in it (`rebuild_identity.require_one_class`):
@@ -350,7 +428,7 @@ def build(target, *, key, hotkey, network, device_class="cpu"):
             "rule_digest": identities["rule_digest"],
         },
         "device_class": device_class,
-        "values": VALUES,
+        "values": {**VALUES, "showcase_task": SHOWCASE["task_id"]},
         "sections": SECTION_META,
         "release": {
             "predicate": "every case a window drew is retired and published",
@@ -372,6 +450,9 @@ def build(target, *, key, hotkey, network, device_class="cpu"):
         },
         "excluded": {"canary_hotkeys": excluded},
     }
+    if with_showcase:
+        # Driven by the released incumbent only: no new disclosure.
+        document["showcase"] = showcase(target, incumbent_view)
     import datetime
 
     version = store.record_feed(document)
@@ -445,6 +526,11 @@ def main(argv=None):
     built.add_argument("--network", required=True, choices=("testnet", "mainnet"))
     built.add_argument("--out", help="the signed feed file the door serves")
     built.add_argument("--device-class", default="cpu")
+    built.add_argument(
+        "--showcase",
+        action="store_true",
+        help="query the released incumbent on the public showcase task",
+    )
     args = parser.parse_args(argv)
     try:
         if args.command == "keygen":
@@ -476,6 +562,7 @@ def main(argv=None):
                     hotkey=args.hotkey,
                     network=args.network,
                     device_class=args.device_class,
+                    with_showcase=args.showcase,
                 )
             if args.out:
                 write_feed(args.out, feed)

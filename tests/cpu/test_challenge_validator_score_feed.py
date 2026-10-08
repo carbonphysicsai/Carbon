@@ -229,3 +229,69 @@ def test_the_door_serves_only_a_verified_feed(tmp_path, monkeypatch):
     assert door.score_feed() == ib.Answer(503, {"refused": "feed_unavailable"})
     assert sf.read_feed(path, "another-challenge") is None
     assert route == "/carbon/v1/feed/" + CHALLENGE.challenge_id
+
+
+def test_the_showcase_is_the_released_incumbents_panel_on_public_inputs(
+    validator, tmp_path, monkeypatch
+):
+    """The released incumbent's rebuilt model, queried on EV4's public
+    development scenarios only; the panel carries its identity digest and
+    predicted quantities, never a recipe. No released incumbent: no panel."""
+    from carbon.battery.value import contract as ev
+
+    store, w = validator["store"], validator["windows"]
+    insert_scored(store, "s1", "5Miner", [w["screening"]], score=0.2, block=101)
+    with store.transaction() as db_:
+        db_.execute("INSERT INTO incumbent VALUES(1, 's1', 'first', 0)")
+        db_.execute(
+            "INSERT INTO models VALUES(?,?,?,?,?,?)",
+            (
+                "s1",
+                "sha256:" + "a" * 64,
+                0,
+                "sha256:" + __import__("hashlib").sha256(b"state").hexdigest(),
+                b"state",
+                "{}",
+            ),
+        )
+    asked = []
+
+    def predict(sid, inputs, tag, namespace=None):
+        asked.append((sid, namespace, len(inputs)))
+        return {
+            c: {
+                "voltage_v": [3.5, 3.9, 4.1, 4.2],
+                "temperature_c": [25.0, 30.0],
+                "plating_margin_v": 0.01,
+            }
+            for c in inputs
+        }
+
+    monkeypatch.setattr(validator["target"], "_quiz_predictions", predict)
+    key = sf.FeedKey.create(tmp_path / "feed.key")
+    hidden = sf.build(
+        validator["target"], key=key, hotkey="5V", network="testnet", with_showcase=True
+    )
+    assert hidden["showcase"] is None and asked == []  # not yet released
+    store.record_published("file-1", validator["drawn"]["screening"])
+    feed = sf.build(
+        validator["target"], key=key, hotkey="5V", network="testnet", with_showcase=True
+    )
+    shown = feed["showcase"]
+    contract, digest = ev.load(REPOSITORY / sf.SHOWCASE["contract"])
+    jobs = ev.decision_cases(contract, "development")
+    assert shown["state"] == "PREDICTED" and shown["schema"] == sf.SHOWCASE_SCHEMA
+    assert shown["contract_digest"] == digest
+    assert set(shown["predictions"]) == {job["case_id"] for job in jobs}
+    assert asked == [("s1", sf.SHOWCASE_PREDICTIONS, len(jobs))]
+    assert shown["model"]["hotkey"] == "5Miner"
+    assert shown["model"]["submission_id"] == "s1"
+    first = next(iter(shown["predictions"].values()))
+    assert set(first) == {
+        "time_to_cv_onset_s",
+        "reach_class",
+        "plating_margin_v",
+        "peak_temperature_c",
+    }
+    assert feed["values"]["showcase_task"] == sf.SHOWCASE["task_id"]
+    assert "recipe" not in json.dumps(shown) and sf.verify_feed(feed)
