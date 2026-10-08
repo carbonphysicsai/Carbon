@@ -29,6 +29,18 @@ CEILINGS = {  # #787 grant proposal, per family
     "f13": {"node_hours": 4, "cpu_hours": 32, "launches": 20},
 }
 CPUS, MEMORY, PIDS, CASE_TIMEOUT_S = 8, "24g", 16, 7200
+#: Run order within a family: the primary measurements first, so a family
+#: ceiling can only censor refinements, never a primary.
+PRIORITY = (
+    "primary",
+    "primary_sweeps",
+    "controls",
+    "steady_baselines",
+    "separate_frequency_smoke",
+    "mesh_and_time",
+    "fine_sweeps",
+    "cold_repeat",
+)
 
 
 def _sha(path):
@@ -58,7 +70,12 @@ def run(decks, family, ledger, image, run_ref=None, dry_run=False):
     if Path(ledger).exists():
         done = {json.loads(x)["case"] for x in Path(ledger).read_text().splitlines()}
     cap = CEILINGS[family]
-    for entry in (e for e in manifest["cases"] if e["family"] == family):
+    order = {r: i for i, r in enumerate(PRIORITY)}
+    entries = [e for e in manifest["cases"] if e["family"] == family]
+    entries.sort(
+        key=lambda e: (order.get(e["reservation"], len(order)), "mesh2" in e["case"])
+    )
+    for entry in entries:
         if entry["case"] in done:
             continue
         used = _used(ledger, family)
