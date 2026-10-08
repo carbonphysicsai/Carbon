@@ -181,7 +181,7 @@ against the hidden deployment `H`
    python -m carbon.challenge_validator.tuning solve --work <Q> --overlay <TRUTH_OVERLAY>
    python -m carbon.challenge_validator.tuning quiz-refine --work <Q>
    python -m carbon.challenge_validator.tuning solve --work <Q>/refine --overlay <TRUTH_OVERLAY>
-   python -m carbon.challenge_validator.tuning quiz-select --work <Q> --panel docs/development/evidence/battery-quiz-designs/disagreement-panel-v1.json
+   python -m carbon.challenge_validator.tuning quiz-select --work <Q> --panel <P>/panel.json
    ```
 
    - Each Q3 scenario is solved on the 117-point lattice.

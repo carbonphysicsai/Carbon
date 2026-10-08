@@ -11,7 +11,7 @@ that run. Nothing here imports, unpickles or executes miner-supplied code.
 from __future__ import annotations
 
 from . import graph, named, params
-from .lower_jax import CALL_OPS
+from .graph import CALL_OPS
 
 
 def _primitives():
@@ -99,29 +99,3 @@ def rebuild(doc, allowlist):
         return run(doc["entry"], list(inputs))
 
     return fn
-
-
-def through_bprime(fn, example_args, *, role, allowlist, input_names, max_bytes):
-    """Lower `fn` at `example_args`, write the canonical JSON bytes, parse
-    them back with the strict parser and rebuild: the whole B' round trip.
-
-    Returns `(rebuilt(*flat_inputs) -> list, document, raw_bytes)`."""
-    import jax
-
-    from . import lower_jax
-
-    flat, _ = jax.tree_util.tree_flatten(example_args)
-
-    def flat_fn(*leaves):
-        args = jax.tree_util.tree_unflatten(
-            jax.tree_util.tree_structure(example_args), leaves
-        )
-        return fn(*args)
-
-    closed = lower_jax.trace(flat_fn, *flat)
-    doc = lower_jax.lower(
-        closed, role=role, allowlist=allowlist, input_names=input_names
-    )
-    raw = graph.dumps(doc)
-    parsed = graph.parse(raw, max_bytes=max_bytes)
-    return rebuild(parsed, allowlist), parsed, raw

@@ -349,7 +349,10 @@ NEXT_ACTIONS = {
     ),
     "intake_unreachable": (
         "The validator intake could not be reached. The frozen candidate is "
-        "kept; submit again later."
+        "kept. For an intake on this machine's loopback (a tunnel to a "
+        "validator), start the tunnel or the validator, since Carbon cannot "
+        "tell which is not running; otherwise check the address and your "
+        "connection. Then submit again."
     ),
     # Every other closed code a submission through a validator intake can
     # end with (`carbon.battery.campaign.intake_code`: the intake's and its
@@ -1058,6 +1061,13 @@ NEXT_ACTIONS = {
         "Send limits with only calls_per_epoch, trials_per_epoch and "
         "planner_calls, each a whole number from 1 to 100000, or omit them: "
         "your campaign ceilings still bind."
+    ),
+    "graphite_ceilings_required": (
+        "Graphite calls a paid model, so its budget must cap both "
+        "provider_attempts (model calls) and provider_nanodollars (model "
+        "spend) as whole numbers. Launch again with budget.ceilings setting "
+        "both; nothing was called. A campaign launched without them cannot "
+        "run, so resuming it does not help."
     ),
     "hunt_query_invalid": (
         "Send hunt as {queries?, max_records?}: up to 8 queries of 1 to 6 "

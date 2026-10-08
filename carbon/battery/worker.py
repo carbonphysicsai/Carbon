@@ -113,39 +113,19 @@ def level1_reconstruct_program():
     )
 
 
-def _rebuild_level1(recipe, record, material, seed):
-    """In-process Level-1 rebuild on pinned public TRAIN v1, as `compile.rebuild`
-    rebuilds Level 0."""
+def _rebuild_development(recipe, record, material, seed):
+    """In-process development rebuild (Levels 1-3) on pinned public TRAIN v1,
+    as `compile.rebuild` rebuilds Level 0."""
+    from . import development_rebuild
     from .compile import with_state
-    from .level1_worker import build_in_process
     from .recipes import Structure
 
-    model = build_in_process(recipe, record)
+    model = development_rebuild.build_in_process(recipe, record)
     stats = model.fit(material.train, Structure(material.ocv_soc, material.ocv_v), seed)
-    return model, {**with_state(model, stats), "trainer": "level1"}
-
-
-def _rebuild_level2(recipe, record, material, seed):
-    """In-process Level-2 SpecMuon rebuild on pinned public TRAIN v1."""
-    from .compile import with_state
-    from .level2_worker import build_in_process
-    from .recipes import Structure
-
-    model = build_in_process(recipe, record)
-    stats = model.fit(material.train, Structure(material.ocv_soc, material.ocv_v), seed)
-    return model, {**with_state(model, stats), "trainer": "level2"}
-
-
-def _rebuild_level3(recipe, record, material, seed):
-    """In-process Level-3 rebuild on pinned public TRAIN v1, as
-    `compile.rebuild` rebuilds Level 0."""
-    from .compile import with_state
-    from .level3_worker import build_in_process
-    from .recipes import Structure
-
-    model = build_in_process(recipe, record)
-    stats = model.fit(material.train, Structure(material.ocv_soc, material.ocv_v), seed)
-    return model, {**with_state(model, stats), "trainer": "level3"}
+    return model, {
+        **with_state(model, stats),
+        "trainer": development_rebuild.kind(record),
+    }
 
 
 INFER_PROGRAM = r'''"""Carbon battery validator inference: predict query inputs from a state.
@@ -475,30 +455,13 @@ class CarrierBackend:
 
     def reconstruct(self, identity, recipe, seed, development=None):
         program, files = RECONSTRUCT_PROGRAM, reconstruct_files(self.root, recipe, seed)
-        trainer = None
-        if development is not None:
-            from . import level2_worker, level3_worker
+        # A development recipe (Levels 1-3): the same program with its one
+        # build line replaced, and its record staged (`development_rebuild`).
+        from . import development_rebuild
 
-            if level3_worker.is_numerics(development):
-                # A Level-3 recipe: the same program with its one build line
-                # replaced, and the menu choices staged as data.
-                program = level3_worker.program(RECONSTRUCT_PROGRAM)
-                files = {**files, **level3_worker.staged(development)}
-                trainer = "level3"
-            elif level2_worker.is_spectral(development):
-                # A Level-2 SpecMuon recipe: the same program with its one
-                # build line replaced, and Carbon's SpecMuon staged.
-                program = level2_worker.program(RECONSTRUCT_PROGRAM)
-                files = {**files, **level2_worker.staged(development)}
-                trainer = "level2"
-            else:
-                # A Level-1 recipe (VALIDATOR-13): the same program with its
-                # one build line replaced, and the loss expression staged.
-                from . import level1_worker
-
-                program = level1_reconstruct_program()
-                files = {**files, **level1_worker.staged(development)}
-                trainer = "level1"
+        program, files, trainer = development_rebuild.stage(
+            development, program, files, level1_program=level1_reconstruct_program
+        )
         out = self._call(
             identity,
             program,
@@ -547,17 +510,13 @@ class DirectBackend:
         from .recipes import state_bytes
 
         self.calls["reconstruct"] += 1
-        from . import level2_worker, level3_worker
-
         try:
             if development is None:
                 model, stats = rebuild(recipe, self.material, seed)
-            elif level3_worker.is_numerics(development):
-                model, stats = _rebuild_level3(recipe, development, self.material, seed)
-            elif level2_worker.is_spectral(development):
-                model, stats = _rebuild_level2(recipe, development, self.material, seed)
             else:
-                model, stats = _rebuild_level1(recipe, development, self.material, seed)
+                model, stats = _rebuild_development(
+                    recipe, development, self.material, seed
+                )
         except ImportError as missing:  # Carbon's environment, never the candidate
             raise WorkerFailure(
                 "environment_failed:" + (str(missing) or type(missing).__name__),

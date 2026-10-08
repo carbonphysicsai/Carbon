@@ -734,15 +734,9 @@ class BatteryValidator:
             or compiled.construction.recipe_digest != row["binding"]["recipe_digest"]
         ):
             raise StateError("artifact_mismatch", "development recompile differs")
-        from .level1_worker import expression_record
-        from .level2_worker import spectral_record
-        from .level3_worker import numerics_record
+        from .development_rebuild import record as development_record
 
-        record = expression_record(compiled.reconstruction)
-        if record is None:
-            record = numerics_record(compiled.reconstruction)
-        if record is None:
-            record = spectral_record(compiled.reconstruction)
+        record = development_record(compiled.reconstruction)
         return compiled.construction, record
 
     # --- screening --------------------------------------------------------------------

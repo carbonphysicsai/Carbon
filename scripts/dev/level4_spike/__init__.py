@@ -1,23 +1,14 @@
-"""Level 4 Phase 0 spike: graph-only construction (development only).
+"""Level 4 measurement runners (development only).
 
-LEVEL4-PHASE0 spike for `docs/development/graphite/LEVEL4_GRAPH_CONSTRUCTION_PROPOSAL.md`
-§10 Phase 0 and Appendix B (B'). CPU only. No pods, no hidden data, no miner
-code, no chain, nothing in `CONTRACTS`, no miner-facing surface.
+The Phase 0 spike's code now lives in `carbon.level4` (Carbon side) and
+`carbon.level4.tooling` (miner side); each Challenge's adapter is
+`carbon/<challenge>/level4.py`. What stays here reproduces the recorded
+development evidence in `docs/development/graphite/level4/`:
 
-Shared, Challenge-neutral modules:
+* `run.py`: the Phase 0 record (allowlist v0);
+* `run_design.py`: the Phase 1 design record (Q1, Q3);
+* `probes.py`: primitive inventories, D6 measurements, serialization probes.
 
-* `graph`: the Carbon graph format v0 (strict JSON) and its measurements;
-* `allowlist`: allowlist v0, loaded from
-  `docs/development/graphite/level4/allowlist_v0.json`;
-* `params`: per-parameter codecs the allowlist names;
-* `lower_jax`: jaxpr -> Carbon graph;
-* `lower_torch`: `torch.export` Core ATen -> Carbon graph;
-* `interpret`: Carbon graph -> a JAX function Carbon differentiates itself;
-* `probes`: primitive inventories, D6 measurements, serialization probes.
-
-A Challenge supplies only an adapter (`adapters/<challenge>.py`). A Challenge
-literal in a shared module is a defect (tested).
-
-No cap or limit is chosen anywhere here: every value the proposal reserves
-(§6.2, §6.3, D6) stays `HUMAN_INPUT`.
+CPU only. No pods, no hidden data, no miner code, no chain, nothing in
+`CONTRACTS`. No cap or limit is chosen: they stay `HUMAN_INPUT`.
 """

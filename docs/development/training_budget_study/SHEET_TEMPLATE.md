@@ -27,6 +27,12 @@ the harness fails closed.
 | `target_utilization` | R11 | Headroom so a queue never builds |
 | `gpu_ceiling` | R11 | GPUs one validator can have |
 | `expected_participation` | R11 | Submissions per tempo, besides the worst case |
+| `study_eval_size` | A-C, E-H | The study evaluation set's size (drawn on the producer, #738) |
+| `confirmation_size` | D | The sealed confirmation set's size, used once in Phase D |
+
+A sheet also states its `status` and, per value, a one-line `rationale`.
+No production sheet exists yet: a sheet's status names what its values are
+for (today only `TEAM_PROPOSED_OWNER_APPROVED_FOR_TESTING`).
 
 The cadence worst case is network-wide, not per sheet: 256 submissions per
 72-minute tempo (OWNER-TRAINING-BUDGET-STUDY-02).

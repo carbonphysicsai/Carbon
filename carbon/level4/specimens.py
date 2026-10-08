@@ -10,7 +10,8 @@ from __future__ import annotations
 import copy
 import json
 
-from . import graph, interpret, lower_jax
+from . import graph, interpret
+from .tooling import lower_jax
 
 
 def _x():

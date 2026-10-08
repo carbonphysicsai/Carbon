@@ -45,6 +45,8 @@ def complete(**changes):
         "target_utilization": 0.5,
         "gpu_ceiling": 8,
         "expected_participation": 32,
+        "study_eval_size": 200,
+        "confirmation_size": 120,
     }
     document.update(changes)
     return document
@@ -126,13 +128,36 @@ def test_a_sheet_file_is_loaded_by_challenge(tmp_path):
     assert sheet.load(CHALLENGE, root=tmp_path).get("gpu_ceiling") == 8
 
 
-def test_no_battery_sheet_is_committed_yet():
-    """The battery sheet is owner input: until it lands, its study fails
-    closed."""
+def test_the_battery_sheet_is_for_testing_and_explains_every_value():
+    """OWNER-BATTERY-STUDY-SHEET-01: team-proposed, owner-approved for testing,
+    never production; every set value carries its reason. Its study seed root
+    stays unset until the producer records the commitment, so every phase is
+    blocked until then."""
     battery = capability_registry.BATTERY_CHALLENGE
-    assert not (sheet.SHEETS / f"{battery}.json").exists()
-    with pytest.raises(sheet.SheetIncomplete):
-        sheet.load(battery).require("A")
+    loaded = sheet.load(battery)
+    assert loaded.status == "TEAM_PROPOSED_OWNER_APPROVED_FOR_TESTING"
+    document = json.loads((sheet.SHEETS / f"{battery}.json").read_text())
+    assert set(loaded.values) - {"challenge_id"} <= set(document["rationale"])
+    assert loaded.get("study_seed_root") is None
+    for phase in "ABCDEFGH":
+        with pytest.raises(sheet.SheetIncomplete) as refused:
+            loaded.require(phase)
+        assert refused.value.fields == ("study_seed_root",)
+    for phase in ("R3", "R9", "R11", "stop"):
+        loaded.require(phase)
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"status": "PRODUCTION"},
+        {"status": "TEAM_PROPOSED_OWNER_APPROVED_FOR_TESTING", "rationale": {}},
+        {"rationale": {"not_a_field": "x"}},
+    ],
+)
+def test_a_sheet_status_and_rationale_are_checked(changes):
+    with pytest.raises(sheet.SheetInvalid):
+        sheet.parse(complete(**changes), CHALLENGE)
 
 
 def test_every_contract_has_an_adapter_or_a_named_gap():

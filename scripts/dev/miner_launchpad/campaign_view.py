@@ -143,6 +143,7 @@ def research_view_for(challenge):
 def _contract(challenge_id, version):
     from carbon.challenge_registry import registry
     from carbon.reconstruction.capability_registry import public_registry
+    from scripts.dev.miner_launchpad.ladder_view import construction_slot
 
     described = registry.describe(challenge_id, version)
     capabilities = public_registry(challenge_id)
@@ -209,16 +210,10 @@ def _contract(challenge_id, version):
                 },
                 "limits": described.get("limits") or {},
                 "authority": described.get("authority"),
-                # RSURF-D10: filled from data when the construction ladder is
-                # merged; empty until then, never inferred.
-                "construction_level": {
-                    "level": None,
-                    "status": "NOT_YET_DEFINED",
-                    "basis": (
-                        "The construction ladder is not part of this build. "
-                        "This slot is filled from the Challenge's data when it is."
-                    ),
-                },
+                # RSURF-D10: filled from the Challenge's ladder data
+                # (LAUNCHPAD-LEVELS-01 S1); NOT_YET_DEFINED without it, never
+                # inferred. Its keys only grow.
+                "construction_level": construction_slot(challenge_id),
             },
             allow_nan=False,
         )
@@ -611,6 +606,11 @@ def stages(own):
                 "code": refused["code"],
                 "next_action": refused["next_action"],
                 "kind": refused["kind"],
+                **(
+                    {"intake_outcome": refused["intake_outcome"]}
+                    if "intake_outcome" in refused
+                    else {}
+                ),
             }
         out.append(stage)
     return out
@@ -767,6 +767,8 @@ def controls(own, *, fixture):
 
 
 _REFUSAL_CODE = re.compile(r"[a-z][a-z0-9_]{0,63}|[A-Z][A-Z0-9_]{0,63}")
+#: `runner.INTAKE_OUTCOMES`, restated so this view imports no runner.
+INTAKE_OUTCOMES = ("QUEUED", "UNAVAILABLE", "REFUSED")
 
 
 def last_refusal(own):
@@ -781,7 +783,7 @@ def last_refusal(own):
         or isinstance(value.get("at"), bool)
     ):
         return None
-    return {
+    shown = {
         "code": value["code"],
         "next_action": clean_text(value.get("next_action"), 512),
         "at": value["at"],
@@ -792,6 +794,11 @@ def last_refusal(own):
             else "refused"
         ),
     }
+    # A submit through a validator intake that was not a verdict: queued,
+    # the validator's side, or the miner's to act on (LAUNCHPAD-ACCEPT-04).
+    if value.get("intake_outcome") in INTAKE_OUTCOMES:
+        shown["intake_outcome"] = value["intake_outcome"]
+    return shown
 
 
 def in_flight(own):
@@ -1049,9 +1056,23 @@ def outcomes(own, view, mode):
             shown = {"state": _str(result.get("state"), 64)}
             if fields is not None:
                 outcome_fields, screening_fields = fields
-                for key in ("submission_id", "evidence", "nominated", "waiting"):
+                for key in (
+                    "submission_id",
+                    "evidence",
+                    "nominated",
+                    "waiting",
+                    # The public identity every mode discloses
+                    # (LAUNCHPAD-ACCEPT-04), as observe shows it.
+                    "rule",
+                    "recipe_digest",
+                    "contract_digest",
+                    "reconstruction",
+                    "failure",
+                ):
                     if key in outcome_fields and key in result:
                         shown[key] = result[key]
+                if type(result.get("sealed")) is bool:
+                    shown["sealed"] = result["sealed"]
                 if "finals" in outcome_fields and type(result.get("finals")) is list:
                     shown["finals"] = result["finals"]
                 screening = result.get("screening")
