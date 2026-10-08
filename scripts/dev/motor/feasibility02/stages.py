@@ -36,7 +36,9 @@ def _records(dirs):
             for line in path.read_text().splitlines():
                 if line.strip():
                     r = json.loads(line)
-                    out[r["case_id"]] = r
+                    # An OK record is never displaced by a later failed one.
+                    if out.get(r["case_id"], {}).get("status") != "OK":
+                        out[r["case_id"]] = r
     return out
 
 
@@ -100,6 +102,10 @@ def s2_plan(s1_dir, s1_plan, out):
             for j, gamma in S2_COMMANDS:
                 for d in (-2.0, -1.0, 1.0, 2.0):
                     g = gamma - PP * d
+                    # Commands share variants (gamma 0 at d -1 is gamma 15
+                    # at d +2): one solve serves both.
+                    if any(c["case_id"] == cid(i, j, g, "s2") for c in cases):
+                        continue
                     cases.append(
                         {
                             "case_id": cid(i, j, g, "s2"),
