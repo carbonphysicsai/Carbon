@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-reference-routes-pipeline",
+  "recorded_at": "2026-10-08T03:12:46+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-REFERENCE-ROUTES-01 final proposal and pipeline diagnostics",
+    "description": "py -3.11 -X utf8 -m pytest -q tests/cpu/test_reference_route_proposals.py tests/cpu/test_challenge_pipeline.py"
+  },
+  "expected": "Explicit host encoding removes the infrastructure-only failure without changing runtime, roadmap or protocol semantics.",
+  "observed": "42 passed in 19.40s on native Windows/Anaconda Python 3.11.4. Native diagnostics only; pinned canonical CI is still required. No solver, model, reference-cost measurement or hidden access occurred.",
+  "keep": ["Lesson schema and generated pipeline checks exercise actual records; RECORDED lessons do not change the generated view or family queue."],
+  "change": ["Separate host diagnostics from canonical CI and cost measurements in the PR handoff."],
+  "protocol_elements": ["canonical-validation", "lesson-recording", "claim-basis"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-reference-routes-static",
+  "recorded_at": "2026-10-08T03:07:46+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-REFERENCE-ROUTES-01 candidate specification",
+    "description": "py -3.11 -m pytest -q tests/cpu/test_reference_route_proposals.py tests/cpu/test_foundation_quiz_content.py tests/cpu/test_customer_reference_credibility.py tests/cpu/test_customer_feasibility_panels.py"
+  },
+  "expected": "Static recipes and cost reservations preserve buyer limits and cannot authorize solver dispatch or reference adoption.",
+  "observed": "64 passed in 2.81s on native Windows/Anaconda Python 3.11.4. Diagnostics only; no canonical acceptance, solver execution or measured route cost.",
+  "keep": ["Separate process launches from frequency systems and whole-case CPU time from allocated node time.", "Predeclare all contenders in each small public witness bank; null accepted pins and thresholds remain explicit."],
+  "change": ["Use total cgroup memory for the enforcement cap; sampled RSS is a separate measurement, not the same metric.", "A memory refusal or capped incomplete panel remains unresolved; it cannot establish a cheaper adequate route."],
+  "protocol_elements": ["reference-policy", "reference-cost", "resource-accounting", "claim-basis"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

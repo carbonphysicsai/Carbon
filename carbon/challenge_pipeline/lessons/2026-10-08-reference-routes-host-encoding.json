@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-reference-routes-host-encoding",
+  "recorded_at": "2026-10-08T03:11:55+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-REFERENCE-ROUTES-01 pipeline integration diagnostics",
+    "description": "py -3.11 -m pytest -q tests/cpu/test_reference_route_proposals.py tests/cpu/test_challenge_pipeline.py"
+  },
+  "expected": "The new records validate against the existing lesson schema and leave the protocol and derived view unchanged.",
+  "observed": "41 passed, 1 failed in 18.20s. The pre-existing roadmap test used native Windows cp1252 and could not decode its UTF-8 file. The route tests and lesson/view checks passed; the run as a whole failed.",
+  "keep": ["Report the failing check and environment instead of treating 41 passing checks as full acceptance."],
+  "change": ["Use explicit UTF-8 for these native host diagnostics; do not modify the unrelated roadmap or weaken its test."],
+  "protocol_elements": ["canonical-validation", "claim-basis"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
