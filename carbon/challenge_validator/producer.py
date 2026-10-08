@@ -303,6 +303,34 @@ class ProducerJournal:
         return None
 
 
+# --- one command at a time -------------------------------------------------------------
+
+#: The lock file every state-changing command holds for its whole run.
+LOCK_FILE = "producer.lock"
+#: The commands that change the producer's state (all but `status`).
+MUTATING = ("draw", "solve", "seal", "publish", "withdraw", "tick")
+
+
+def exclusive(directory):
+    """Take the producer directory's exclusive lock, or refuse
+    `producer_already_running`. Returns the open descriptor; closing it (or
+    the process ending) releases the lock.
+
+    Two commands never change one producer at once: at 3a, enabling the tick
+    timer started a tick at once while a manual tick was still running."""
+    import fcntl
+
+    fd = os.open(
+        Path(directory) / LOCK_FILE, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600
+    )
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        os.close(fd)
+        raise ProducerRefused("producer_already_running") from None
+    return fd
+
+
 # --- the producer ---------------------------------------------------------------------
 
 
@@ -913,8 +941,23 @@ def main(argv=None):
             # 7,200 s).
             command.add_argument("--timeout-s", type=float)
     args = parser.parse_args(argv)
+    lock = None
     try:
         producer = Producer.from_config(args.config)
+        if args.command in MUTATING:
+            try:
+                lock = exclusive(producer.directory)
+            except ProducerRefused:
+                if args.command != "tick":
+                    raise
+                # Not a failure: the running tick does this rotation's work,
+                # so the timer's unit succeeds and never error-loops.
+                print(
+                    json.dumps(
+                        {"refused": "producer_tick_already_running", "state": "NOT_RUN"}
+                    )
+                )
+                return 0
         if args.command == "draw":
             result = producer.draw(
                 args.challenge, args.role, kind=args.kind, size=args.size
@@ -945,6 +988,9 @@ def main(argv=None):
     except ProducerRefused as refused:
         print(json.dumps(refused.record()))
         return 2
+    finally:
+        if lock is not None:
+            os.close(lock)
     print(json.dumps(result, sort_keys=True))
     return 0
 
