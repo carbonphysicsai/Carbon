@@ -1,0 +1,67 @@
+{
+  "schema": "carbon.mock-customer-planning.first-three.v2",
+  "ticket": "CHALLENGE-CUSTOMER-PACKETS-02",
+  "authority": "OWNER-BATTERY-COOLING-PACKETS-02",
+  "effective_scope": "PROSPECTIVE_MOCK_DEVELOPMENT_ONLY",
+  "maturity": "SPECIFIED",
+  "purpose": "MOCK_CUSTOMER_REQUIREMENTS_NOT_EXECUTION_AUTHORITY",
+  "base": {
+    "file": "first-three-requirements.json",
+    "sha256_lf_utf8": "6335c5ea7d00af30cb52efc3a9f157c5ed159251effef88df99e37d3c3b87189",
+    "main": "689692c0694ad4d184ef6bd58ce5decc811d4d4a",
+    "inheritance": "Motor unchanged. Battery/Cooling v2 replace affected v1 scopes; excluded assembly/time/discharge rules must not leak through inheritance. No runtime loader exists."
+  },
+  "dispatch_ready": false,
+  "official_scoring": false,
+  "scientific_qualification": false,
+  "protocol_transition": false,
+  "spend_grant": null,
+  "historical_rescore": false,
+  "protected_material": false,
+  "packets": {
+    "motor": {"version": "v1", "file": "motor-precision-joint.md", "change": "NONE"},
+    "battery": {
+      "version": "v2",
+      "file": "battery-ev-fast-charge-v2.md",
+      "objective": {"quantity": "session_start_10_80_time", "unit": "min", "sense": "min", "authority": "OWNER_APPROVED_DEVELOPMENT", "hard_max": null},
+      "hard_limits": {
+        "charging_temperature_c_max": 45,
+        "charging_temperature_scope": "ALL_CC_CV_CHARGE_LEGS_IN_DECLARED_PROGRAMME",
+        "every_charge_plating_reaction_overpotential_v_min": 0,
+        "programme_terminal_voltage_v_max": 4.2,
+        "q30_over_q1_min": 0.99
+      },
+      "diagnostics": ["test_discharge_temperature_extrema", "rest_temperature_extrema", "whole_programme_temperature_extrema_with_phase_cycle_time", "session_time_by_ambient"],
+      "rest_hard_thermal_policy": "HUMAN_INPUT_IF_REQUESTED_NOT_WHOLE_PROGRAMME_DEFAULT",
+      "optional_cooling": {"role": "OPTIONAL_REPORTED_ACTION", "selected_multiplier": null, "model_and_hardware_mapping": "HUMAN_INPUT", "required_reports": ["baseline_or_action_identity", "effective_conductance_and_environment", "phase_schedule", "peak_heat_removal", "removed_thermal_energy", "unsupported_electrical_cost_model"]},
+      "timing": {"initial_soc": 0.1, "target_soc": 0.8, "initial_rest_s_included": 120, "observer": "PINNED_CHARGE_INTEGRAL_SOC_CROSSING_NOT_VOLTAGE_PROBES", "missing_crossing": "NOT_REACHED_UNRESOLVED_OBJECTIVE"},
+      "reported_feasibility": {"source_kind": "OWNER_REPORTED_PUBLIC_DATA_COLLECTION_NOT_REPLAYED_BY_CODEX", "branch": "claude/motor-feasibility-02", "head": "031284d1a6f8c56f1355606908feaa737b5b9a86", "artifact_directory": "battery-feasibility-02/", "solves": 435, "ambient_c": 25, "old_brief_verdict": "NO_VERIFIED_FEASIBLE_PROTOCOL", "best_within_limits_min": 32.9, "superseded_voltage_probe_report_min": 35.6, "probe_interval_s": 30, "corrected_charge_integral_observation_min": 63.3, "corrected_observation_is_bank_minimum": false},
+      "reference_adequacy": "NOT_DEMONSTRATED_FOR_V2_COMPLETE_BUYER_DECISION"
+    },
+    "cooling-cell": {
+      "version": "v2",
+      "file": "cooling-cell-v2.md",
+      "scope": "PERIODIC_CELL_ONLY_NO_FULL_COLD_PLATE_OR_MANIFOLD",
+      "hard_thermal_limit_c": 85,
+      "thermal_quantity": "MAX_COLD_PLATE_HEATED_FACE_PLUS_LOCAL_TIM_JUMP_AT_POST_SPREADER_MAP",
+      "thermal_claim": "SPREADER_SIDE_TIM_INTERFACE_ESTIMATE_NOT_DIE_JUNCTION",
+      "heat_map_plane": "COLD_PLATE_INTERFACE_AFTER_DIE_SIDE_SPREADER_OR_LID",
+      "required_buyer_inputs": ["spreader_geometry_and_thickness", "conductivity_anisotropy_temperature_law", "contacts_and_interfaces", "raw_source_layout_and_total_load", "post_spreader_flux_map_and_plane", "normalization_units_and_characterization_provenance"],
+      "spreader_properties": null,
+      "post_spreader_heat_map_manifest": null,
+      "missing_buyer_input_outcome": "HUMAN_INPUT_UNRESOLVED_NOT_GUESSED",
+      "alternative_policy": "REPORT_TIM_RATIO_INLET_ALTERNATIVES_WITHOUT_SELECTING",
+      "selected_alternatives": {"tim_areal_m2_k_w": null, "post_spreader_hotspot_ratio": null, "inlet_c": null},
+      "cell_pressure_allocations": "HUMAN_INPUT_QUESTION_LAW_RECOMMENDATIONS_ONLY",
+      "assembly_limits_inherited": false,
+      "reported_feasibility": {"source_kind": "OWNER_REPORTED_PUBLIC_DATA_COLLECTION_NOT_REPLAYED_BY_CODEX", "head": "3ab30becb6dcee0a2ec43272883c2800fb32a64a", "artifact_directory": "cooling-feasibility-02/", "solves": 128, "uniform_best_c": 81.2, "uniform_stratum_feasible": true, "reported_hotspot_minimum_c": 117, "hotspot_minimum_op": ">=", "ratio_context": 3, "approximate_local_tim_jump_k": 25, "inlet_context_c": 45, "approximate_available_plate_rise_k": 15, "approximate_best_plate_rise_k": 28, "complete_panel_feasibility_demonstrated": false, "post_spreader_truth_demonstrated": false},
+      "reference_adequacy": "NOT_DEMONSTRATED_FOR_V2_COMPLETE_BUYER_DECISION"
+    }
+  },
+  "unchanged_historical_files": [
+    {"file": "first-three-requirements.json", "sha256_lf_utf8": "6335c5ea7d00af30cb52efc3a9f157c5ed159251effef88df99e37d3c3b87189"},
+    {"file": "battery-ev-fast-charge.md", "sha256_lf_utf8": "a5954d0b8d1162a744ac906706fcfd9818611ecf2f26aa2f8dcfa189c55c89a7"},
+    {"file": "cooling-accelerator-manifold.md", "sha256_lf_utf8": "6098b122514b7975d388ed6999466531c2ae462fceec0137283fc45d963e8fb4"},
+    {"file": "customer-feasibility-revisions.md", "sha256_lf_utf8": "196672d46eb793d59463db94be0f1ef5b422841cab551ed30433a1fa484cf8d7"}
+  ]
+}
