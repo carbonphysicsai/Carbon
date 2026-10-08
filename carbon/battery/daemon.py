@@ -345,6 +345,11 @@ class BatteryValidator:
         #: an operator entry point (`challenge_validator.battery_quiz.install`);
         #: None measures nothing. They never touch a score.
         self.quiz_measures = None
+        #: The design questions' measures (VALIDATOR-23 slice 3c), injected by
+        #: an operator entry point (`challenge_validator.design_scoring.install`):
+        #: `inputs(designs)` and `measure(designs, predictions)`. None measures
+        #: nothing; they never touch a score.
+        self.design_measures = None
         self.material = PublicMaterial.load(repository)
         self.tol, self.scales = frozen_calibration(repository)
         self.pin = journal.root_pin(root)
@@ -1058,6 +1063,13 @@ class BatteryValidator:
                 "quiz_report_failed",
                 {"submission_id": submission_id, "failure": type(failure).__name__},
             )
+        try:
+            self.design_report(submission_id)
+        except Exception as failure:  # noqa: BLE001 - recorded, never scored
+            self.store.note(
+                "design_report_failed",
+                {"submission_id": submission_id, "failure": type(failure).__name__},
+            )
         self._settle()
         return self.outcome(submission_id)
 
@@ -1142,6 +1154,71 @@ class BatteryValidator:
             report["batches"][fingerprint].update(found)
         return self.store.record_quiz_report(
             submission_id, {**report, "state": "MEASURED", "pooled": measures["pooled"]}
+        )
+
+    #: Design-question predictions, apart from every scored and quiz one.
+    DESIGN_PREDICTIONS = "design/"
+    DESIGN_REPORT_SCHEMA = "carbon.battery.design-report.v1"
+
+    def design_report(self, submission_id):
+        """The operator-only design-question report for a scored submission
+        (VALIDATOR-23 slice 3c), on the design questions its score's active
+        batches carry; None when none carries any, or when this validator was
+        given no design measures.
+
+        The retained model infers each question's truth jobs through the
+        backend, and the measures score each window's questions through the
+        neutral design score (#827) under its registered rule. The report
+        gates nothing and never reaches a miner outcome: rule v3 (VALIDATOR-26)
+        decides its score use. A prediction failure is the report's own
+        FAILED_INFRA (retried by the next call); a reference failure is the
+        bridge's VOID, never a penalty."""
+        stored = self.store.design_report(submission_id)
+        if stored is not None and stored.get("state") != "FAILED_INFRA":
+            return stored
+        score = self.store.score(submission_id)
+        if score is None or self.design_measures is None:
+            return None
+        batches = list(score["record"]["active_batches"])
+        designs = {f: self.store.design(f) for f in batches}
+        designs = {f: d for f, d in designs.items() if d is not None}
+        if not designs:
+            return None
+        report = {
+            "schema": self.DESIGN_REPORT_SCHEMA,
+            "submission_id": submission_id,
+            "pool_version": score["pool_version"],
+            "gates": "NONE",
+            "batches": {f: {"bank": d["bank"]} for f, d in designs.items()},
+        }
+        try:
+            asked = self.design_measures.inputs(designs)
+            predictions = self._quiz_predictions(
+                submission_id,
+                asked,
+                f"design-v{score['pool_version']}",
+                namespace=self.DESIGN_PREDICTIONS,
+            )
+            measures = self.design_measures.measure(designs, predictions)
+        except WorkerFailure as failure:
+            return self.store.record_design_report(
+                submission_id,
+                {
+                    **report,
+                    "state": "FAILED_INFRA",
+                    "code": failure.code,
+                    "candidate": bool(failure.candidate),
+                },
+            )
+        except StateError as refused:
+            return self.store.record_design_report(
+                submission_id, {**report, "state": "REFUSED", "code": refused.code}
+            )
+        for fingerprint, found in measures["batches"].items():
+            report["batches"][fingerprint].update(found)
+        return self.store.record_design_report(
+            submission_id,
+            {**report, "state": "MEASURED", "rule": measures["rule"]},
         )
 
     def leak_predictions(self, submission_id, inputs, tag):

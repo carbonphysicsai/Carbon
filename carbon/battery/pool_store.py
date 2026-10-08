@@ -96,6 +96,9 @@ CREATE TABLE IF NOT EXISTS withdrawn_batches(
     reason TEXT NOT NULL,
     block INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS design_reports(
+  submission_id TEXT PRIMARY KEY,
+  body TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS batch_design(
   fingerprint TEXT PRIMARY KEY,
   bank TEXT NOT NULL,
@@ -736,6 +739,45 @@ class PoolStore:
                 {"submission_id": submission_id, "state": body.get("state")},
             )
         return json.loads(_json(body))
+
+    def record_design_report(self, submission_id, body):
+        """Store a scored submission's operator-only design-question report
+        (VALIDATOR-23 slice 3c). A measured report is kept; only a
+        FAILED_INFRA one may be replaced."""
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT body FROM design_reports WHERE submission_id=?",
+                (submission_id,),
+            ).fetchone()
+            if row is not None and json.loads(row[0]).get("state") != "FAILED_INFRA":
+                return json.loads(row[0])
+            db.execute(
+                "INSERT OR REPLACE INTO design_reports VALUES(?,?)",
+                (submission_id, _json(body)),
+            )
+            self._event(
+                db,
+                "design_reported",
+                {"submission_id": submission_id, "state": body.get("state")},
+            )
+        return json.loads(_json(body))
+
+    def design_report(self, submission_id):
+        with self.db() as db:
+            row = db.execute(
+                "SELECT body FROM design_reports WHERE submission_id=?",
+                (submission_id,),
+            ).fetchone()
+        return None if row is None else json.loads(row[0])
+
+    def design_reports(self):
+        """Every stored design-question report, oldest submission first.
+        Operator-only."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM design_reports ORDER BY submission_id"
+            ).fetchall()
+        return [json.loads(row[0]) for row in rows]
 
     def quiz_report(self, submission_id):
         with self.db() as db:

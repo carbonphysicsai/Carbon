@@ -253,3 +253,34 @@ No LIVE authority.
   plus refine). B = 160 live therefore needs roughly 25–30k solves, about
   700–800 CPU-h at 91 CPU-s each. That is CCX63 startup territory, and it
   goes to the Test Lead's sizing.
+
+### Slice 3c, as built (report-only)
+
+- **The rule** (`design_scoring.battery_q3_rule`, version `battery-q3-v8-q.v1`)
+  is the q leg of OWNER-BATTERY-SCORE-RULE-01: battery v8 Q3 decision regret
+  through #827's bridge. Its costs are read from EV4's contract. Registered by
+  the Test Lead, 2026-10-08 (D3), with the record `RULE_RECORD`.
+  - **Its q equals `score_tuning`'s exactly** (q3_judge, then q3_measures,
+    then member_legs) for a perfect and a flawed model. The bank's
+    references are settled truth, so v8's refined truth is included, and
+    UNRESOLVED is priced pessimistically.
+- **The daemon** (`design_report`, after `quiz_report`; injected
+  `design_measures`):
+  - the retained model predicts each question's lattice jobs, rebuilt from
+    the stored proven `draw`, under the namespace `design/`;
+  - each window is scored through the bridge and stored in
+    `design_reports`.
+  - **Failures:** a candidate's missing prediction is `INELIGIBLE`; a
+    reference failure is `VOID`; infrastructure is `FAILED_INFRA`, retried.
+
+  It gates nothing.
+- **Cross-window evidence** (`evidence`, `design_scoring evidence --hotkey`):
+  per miner, the loss minus the good reference's loss (the exhaustive
+  optimizer on the settled reference), summed per question. The one-sided
+  exact sign test runs over the question clusters
+  (`one-sided-exact-sign-test-by-shared-bank.v1`). A diagnostic only.
+- **Score use:** a window's own q, from VALIDATOR-26's rule v3. The pooled
+  evidence awaits the owner.
+- **The first tranche is partial:** `design_bank fill --live 24` (3 windows of
+  k = 8), with the target B = 160 unchanged (the Test Lead, 2026-10-08).
+
