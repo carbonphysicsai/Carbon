@@ -56,7 +56,7 @@ LIVE_STATUS = "OK"
 #: canary. Tuning, confirmation, study and EV material live in their own
 #: custodies and can never be banked here, so they can never be published
 #: from here.
-BANK_NAME = re.compile(r"(pool|q2|canary|q3:[a-z0-9_-]{1,40})")
+BANK_NAME = re.compile(r"(pool|q2|canary|q3:[a-z0-9_-]{1,40}|design:[a-z0-9_-]{1,40})")
 
 
 def _canonical(value):
