@@ -42,10 +42,18 @@ It applies from rehearsal 3b. 3a stays on the rule in force.
    - `score = A-Q(a, q)`;
    - eligible only if `feasibility ≤ 0.05`;
    - a gate failure is `eligible: false`, ranked last, never offset;
-   - a `q` the quiz cannot measure (no feasible decision scenario) is
-     `UNRESOLVED`, typed, and the submission is not eligible on an
-     unmeasured leg. That last rule is a working decision, recorded in the
-     PR for the Test Lead.
+   - an unmeasured `q` is split by cause (invariant 7; the Test Lead,
+     2026-10-08):
+     - **Caused by the candidate:** the model fails, or returns non-finite
+       or invalid predictions on the Q3 inputs. This is the candidate's own
+       typed failure (`q_candidate_failed`), and it is ineligible.
+     - **Caused by a reference or by infrastructure:** a quiz reference
+       unavailable, a solver failure, a missing batch quiz. This is never a
+       miner penalty. The submission is `FAILED_INFRA`, retried, with its
+       slot not consumed. Where the window itself is unusable, it is `VOID`
+       with the slot restored, the same semantics as VALIDATOR-24's
+       withdrawn windows. Otherwise the batch is scored once its quiz is
+       restored.
 4. **Nomination, finals and the incumbent** follow the v3 score and
    eligibility. Finals compare `A-Q` on the finalist batch and its quiz.
 5. **Miner disclosure** is unchanged: sealed under v2's term.
@@ -62,6 +70,11 @@ It applies from rehearsal 3b. 3a stays on the rule in force.
 - **Parity:** the v3 score and eligibility equal `score_tuning`'s `G-FEAS/A-Q`
   at 0.05 on the same stored predictions, for a fixture panel.
 - **Gate:** a model over 0.05 is ineligible and ranked last.
-- **UNRESOLVED:** `q` with no feasible scenario is typed and never eligible.
+- **`q` failures, by cause:**
+  - a candidate's non-finite Q3 predictions are `q_candidate_failed` and
+    ineligible;
+  - a missing quiz reference, a solver failure or a missing batch quiz is
+    `FAILED_INFRA` or `VOID`, with the hotkey's slot not consumed, never
+    ineligible.
 - **Prospective:** v2 and v2-bank records are unchanged and never rescored.
 - **Quiz required:** a v3 validator refuses a quizless package.
