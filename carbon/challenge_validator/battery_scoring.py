@@ -158,34 +158,18 @@ class BatteryScoring(ChallengeScoring):
         )
         files = {**base, **extra}
         development = getattr(admitted, "development", None)
-        loss = None
+        found = None
         if development is not None:
-            # A Level-1 loss expression (Graphite only) is staged with its
-            # operation set and trained by the Level-1 program.
-            from carbon.battery import level1_worker
+            # A development construction (Graphite only, Levels 1-3) is staged
+            # with its record and trained by its level's program.
+            from carbon.battery import development_rebuild, level1_worker
 
-            loss = level1_worker.expression_record(
+            found = development_rebuild.record(
                 getattr(admitted, "reconstruction", None)
             )
-            if loss is not None:
-                files = {**base, **level1_worker.staged(loss)}
-                program = level1_worker.program()
-            from carbon.battery import level3_worker
-
-            numerics = level3_worker.numerics_record(
-                getattr(admitted, "reconstruction", None)
+            program, files, _trainer = development_rebuild.stage(
+                found, program, files, level1_program=level1_worker.program
             )
-            if numerics is not None:
-                files = {**base, **level3_worker.staged(numerics)}
-                program = level3_worker.program(program)
-            from carbon.battery import level2_worker
-
-            spectral = level2_worker.spectral_record(
-                getattr(admitted, "reconstruction", None)
-            )
-            if spectral is not None:
-                files = {**base, **level2_worker.staged(spectral)}
-                program = level2_worker.program(program)
         record = {
             "schema": BUILT_SCHEMA,
             "challenge": recipe.document()["challenge"],
@@ -202,16 +186,10 @@ class BatteryScoring(ChallengeScoring):
             # A development construction (Graphite only) carries its variant
             # binding beside the base fields; a Level 0 record never does.
             record["development"] = development
-        if loss is not None:
-            # Until GPU identity is measured (Test Lead Q6), a Level-1 result
-            # says its rebuild is verified on CPU only.
-            record["rebuild"] = level1_worker.REBUILD_LABEL
-        if development is not None and numerics is not None:
-            # A Level-3 rebuild is CPU_ONLY_DEV until the A40 R1 leg passes it.
-            record["rebuild"] = level3_worker.REBUILD_LABEL
-        if development is not None and spectral is not None:
-            # A Level-2 SpecMuon rebuild is CPU_ONLY_DEV likewise (its SVD).
-            record["rebuild"] = level2_worker.REBUILD_LABEL
+        if found is not None:
+            # Until GPU identity is measured (Test Lead Q6), a development
+            # rebuild says it is verified on CPU only.
+            record["rebuild"] = development_rebuild.rebuild_label(found)
         return record, files, program
 
     def refusal(self, error):
