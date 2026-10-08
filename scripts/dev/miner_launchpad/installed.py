@@ -5,6 +5,11 @@
 paths here, owner-only, in the Control Center's state directory, so setup can
 fill them in rather than asking a miner to find them. A record names local
 paths only; nothing in it is secret, and setup still verifies every image.
+
+With `--release TAG` the installer pulls Carbon's released images by digest
+instead of building them (OWNER-WORKER-IMAGES-V2-01), and also records the
+GPU worker's release record, so remote setup can name the released reference
+a container is started from (`released_gpu`).
 """
 
 from __future__ import annotations
@@ -17,6 +22,11 @@ from pathlib import Path
 SCHEMA = "carbon.launchpad.installed-images.v1"
 FILE = "installed-images.json"
 FIELDS = ("image_manifest", "analysis_image_manifest", "gpu_image_manifest")
+#: The released GPU worker's record (`carbon.worker-image-release.v1`), kept
+#: beside the image manifests but never read as one: `read` returns FIELDS only.
+GPU_RELEASE_RECORD = "gpu_release_record"
+#: The release kind of the GPU worker remote setup uses.
+GPU_RELEASE_KIND = "accelerator"
 #: Where `scripts/dev/accelerator_worker_image.sh` writes the GPU worker's
 #: manifest by default. A miner whose controller has no GPU builds it with
 #: that script for their remote setup (`install_miner.sh --gpu` checks for a
@@ -32,27 +42,37 @@ BUILD = {
 
 
 def write(
-    state_dir, *, image_manifest, analysis_image_manifest, gpu_image_manifest=None
+    state_dir,
+    *,
+    image_manifest,
+    analysis_image_manifest,
+    gpu_image_manifest=None,
+    gpu_release_record=None,
 ):
     from scripts.dev.miner_launchpad.environment_setup import write_private
 
     record = {"schema": SCHEMA}
     for field, value in zip(
-        FIELDS, (image_manifest, analysis_image_manifest, gpu_image_manifest)
+        (*FIELDS, GPU_RELEASE_RECORD),
+        (
+            image_manifest,
+            analysis_image_manifest,
+            gpu_image_manifest,
+            gpu_release_record,
+        ),
     ):
         if value is None:
             continue
         path = Path(value).resolve()
         if not path.is_file():
-            raise SystemExit(f"{field}: no image manifest at {path}")
+            raise SystemExit(f"{field}: no file at {path}")
         record[field] = str(path)
     return write_private(
         Path(state_dir) / FILE, json.dumps(record, sort_keys=True).encode()
     )
 
 
-def read(state_dir):
-    """The recorded image manifests that still exist, or None."""
+def _recorded(state_dir, fields):
     path = Path(state_dir) / FILE
     try:
         if path.is_symlink() or path.stat().st_size > 8192:
@@ -64,12 +84,44 @@ def read(state_dir):
         return None
     found = {
         field: record[field]
-        for field in FIELDS
+        for field in fields
         if type(record.get(field)) is str
         and Path(record[field]).is_absolute()
         and Path(record[field]).is_file()
     }
     return found or None
+
+
+def read(state_dir):
+    """The recorded image manifests that still exist, or None."""
+    return _recorded(state_dir, FIELDS)
+
+
+def released_gpu(state_dir, gpu_manifest) -> dict | None:
+    """The released GPU worker a container can be started from, or None.
+
+    Named only when the installer recorded the GPU worker's release record,
+    the record passes every check `worker_image_release` makes, and
+    `gpu_manifest`, the GPU worker setup found, is byte-for-byte that
+    release's manifest: so the reference names the very worker setup checks
+    the container's build identity against. Anything else is None, and setup
+    offers the push helper as before.
+    """
+    from scripts.dev import worker_image_release as release
+
+    path = (_recorded(state_dir, (GPU_RELEASE_RECORD,)) or {}).get(GPU_RELEASE_RECORD)
+    if path is None or gpu_manifest is None:
+        return None
+    try:
+        record = release.check_record(json.loads(Path(path).read_text("utf-8")))
+        manifest = Path(gpu_manifest).read_text("utf-8")
+    except (OSError, ValueError, release.Refused):
+        return None
+    if record["kind"] != GPU_RELEASE_KIND or manifest != release.canonical(
+        record["manifest"]
+    ):
+        return None
+    return {"release_tag": record["release_tag"], "reference": record["reference"]}
 
 
 def found(state_dir, repo) -> dict:
@@ -104,12 +156,14 @@ def main(argv=None):
     record.add_argument("--image-manifest", required=True)
     record.add_argument("--analysis-image-manifest", required=True)
     record.add_argument("--gpu-image-manifest")
+    record.add_argument("--gpu-release-record")
     args = parser.parse_args(argv)
     path = write(
         args.state_dir,
         image_manifest=args.image_manifest,
         analysis_image_manifest=args.analysis_image_manifest,
         gpu_image_manifest=args.gpu_image_manifest,
+        gpu_release_record=args.gpu_release_record,
     )
     print(f"Recorded the installed images for setup: {path}")
 

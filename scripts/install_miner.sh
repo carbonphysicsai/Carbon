@@ -5,6 +5,8 @@
 #   git clone https://github.com/carbonphysicsai/Carbon.git ~/carbon
 #   ~/carbon/scripts/install_miner.sh            # add --gpu for GPU practice
 #   ~/carbon/scripts/install_miner.sh --update   # later: the latest main
+#   ~/carbon/scripts/install_miner.sh --release worker-images-vN
+#                                                # Carbon's released images
 #
 # What it does, in order, and nothing else:
 #   1. checks this machine: Linux x86-64, git, curl, a running Docker (for
@@ -22,7 +24,12 @@
 #   4. builds the pinned worker and analysis images on this machine, and the
 #      GPU worker with --gpu or whenever one was built here before (every
 #      install moves the checkout, so an old GPU worker would no longer match
-#      it); Carbon publishes no image registry;
+#      it). With --release TAG it builds none: step 2 moves the checkout to
+#      that release tag, cut from main, and this step pulls each image the
+#      release's records name from ghcr.io/carbonphysicsai, by digest, and
+#      checks it (scripts/dev/worker_image_release.py pull). A failed pull
+#      stops the install and names the command that builds them instead
+#      (OWNER-WORKER-IMAGES-V2-01);
 #   5. records where those images are, owner-only, for setup to fill in, and
 #      checks setup against them: a compute check made at another revision or
 #      with other images is set aside and checked again where it can be, and
@@ -45,6 +52,15 @@ GPU=0
 START=1
 UPDATE=0
 SERVICE=0
+REF_GIVEN=0
+RELEASE=""
+#: Where each release's records are published: the assets of its GitHub
+#: release (.github/workflows/release-worker-images.yml). Public; no login.
+RELEASE_URL="${CARBON_RELEASE_URL:-https://github.com/carbonphysicsai/Carbon/releases/download}"
+#: The release records this install fetches: the worker, the analysis image
+#: and the GPU worker, whose reference remote setup names even when this
+#: machine does not pull it.
+RELEASE_KINDS=(c03 analysis accelerator)
 #: The free space an install needs, in GiB. Measured on 2026-10-03: the
 #: locked environment is about 0.75 GiB, with uv's cache beside it; the
 #: worker image about 1 GiB, the analysis image up to 4.4 GiB, and the GPU
@@ -58,8 +74,8 @@ UNIT="${XDG_CONFIG_HOME:-${HOME}/.config}/systemd/user/${SERVICE_NAME}"
 
 usage() {
   cat <<'EOF'
-usage: scripts/install_miner.sh [--update] [--gpu] [--ref REF] [--no-start]
-                                [--service] [--port PORT]
+usage: scripts/install_miner.sh [--update] [--gpu] [--ref REF | --release TAG]
+                                [--no-start] [--service] [--port PORT]
 
   --update     update an installed checkout: move it to REF (default: the
                latest main), rebuild its images, check setup's compute again
@@ -68,6 +84,12 @@ usage: scripts/install_miner.sh [--update] [--gpu] [--ref REF] [--no-start]
                NVIDIA Container Toolkit)
   --ref REF    the Carbon ref to install, a branch, tag or commit in main
                (default: main, or $CARBON_REF)
+  --release TAG
+               install a release of Carbon's worker images instead of
+               building them: move the checkout to the release tag TAG
+               (worker-images-vN, cut from main) and pull each image its
+               release records name, by digest. With --update, TAG must be
+               this install's revision or newer
   --no-start   build everything, but do not start the Control Center
   --service    run the Control Center as a systemd user service
                (carbon-control-center), so this terminal stays free
@@ -80,7 +102,8 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --update) UPDATE=1 ;;
     --gpu) GPU=1 ;;
-    --ref) REF="${2:?--ref needs a value}"; shift ;;
+    --ref) REF="${2:?--ref needs a value}"; REF_GIVEN=1; shift ;;
+    --release) RELEASE="${2:?--release needs a value}"; shift ;;
     --no-start) START=0 ;;
     --service) SERVICE=1 ;;
     --port) PORT="${2:?--port needs a value}"; shift ;;
@@ -96,6 +119,39 @@ fail() { printf 'Carbon install stopped: %s\n' "$*" >&2; exit 2; }
 repo_root="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 self="${repo_root}/scripts/install_miner.sh"
 self_digest="$(sha256sum < "${self}" | cut -d' ' -f1)"
+artifacts="${repo_root}/.carbon-artifacts"
+
+if [[ -n "${RELEASE}" ]]; then
+  # A release names its own revision: its tag.
+  [[ "${REF_GIVEN}" == 0 ]] \
+    || fail "name one of --ref and --release: a release installs its own tag."
+  [[ "${RELEASE}" =~ ^worker-images-v[0-9]+(\.[0-9]+)*$ ]] \
+    || fail "--release ${RELEASE} is not a release of Carbon's worker images; they are tagged worker-images-vN (for example worker-images-v2). Nothing was changed."
+  REF="${RELEASE}"
+fi
+release_dir="${artifacts}/releases/${RELEASE}"
+
+#: fetch_release_records COMMIT: download each of ${RELEASE}'s records into
+#: ${release_dir} and refuse any that is not that kind's record for that tag
+#: at COMMIT. The release workflow publishes them as canonical JSON; the pull
+#: (worker_image_release.py) checks every field again before it trusts one.
+fetch_release_records() {
+  local commit="$1" kind file field
+  mkdir -p "${release_dir}"
+  for kind in "${RELEASE_KINDS[@]}"; do
+    file="${release_dir}/${kind}-worker-image.release.json"
+    rm -f "${file}.part"
+    curl --fail --silent --show-error --location --proto '=https' \
+      --output "${file}.part" "${RELEASE_URL}/${RELEASE}/${kind}-worker-image.release.json" \
+      || fail "could not download the ${kind} release record of ${RELEASE} from ${RELEASE_URL}/${RELEASE}/ (above): its images are not published there. Nothing was pulled or built. To build the images on this machine instead, run without --release: ${self} --ref ${RELEASE}"
+    for field in "\"kind\":\"${kind}\"" "\"release_tag\":\"${RELEASE}\"" \
+      "\"source_commit\":\"${commit}\""; do
+      grep -qF -- "${field}" "${file}.part" \
+        || fail "the ${kind} release record of ${RELEASE} is not for ${RELEASE} at ${commit:0:12} (it lacks ${field}). Nothing was pulled or built."
+    done
+    mv -f "${file}.part" "${file}"
+  done
+}
 
 #: How the miner stops the Control Center this install would replace.
 stop_hint() {
@@ -221,13 +277,22 @@ then run this again. git -C ${repo_root} stash pop brings them back."
   previous="$(git rev-parse HEAD)"
   git fetch --quiet origin "+refs/heads/main:refs/remotes/origin/main" \
     || fail "could not fetch Carbon's main from origin."
-  if [[ "${REF}" == "main" || "${REF}" == "origin/main" ]]; then
+  if [[ -n "${RELEASE}" ]]; then
+    # Origin's tag itself, never a branch or a local tag of that name.
+    git fetch --quiet origin "+refs/tags/${RELEASE}:refs/tags/${RELEASE}" 2>/dev/null \
+      || fail "--release ${RELEASE}: origin has no such release tag. Nothing was changed."
+    target="$(git rev-parse --verify "refs/tags/${RELEASE}^{commit}")"
+  elif [[ "${REF}" == "main" || "${REF}" == "origin/main" ]]; then
     target="$(git rev-parse --verify 'refs/remotes/origin/main^{commit}')"
   elif git fetch --quiet origin "${REF}" 2>/dev/null; then
     target="$(git rev-parse --verify 'FETCH_HEAD^{commit}')"
   else
     target="$(git rev-parse --verify --quiet "${REF}^{commit}")" \
       || fail "--ref ${REF}: origin has no such branch, tag or commit."
+  fi
+  if [[ -n "${RELEASE}" ]]; then
+    git merge-base --is-ancestor "${target}" refs/remotes/origin/main \
+      || fail "--release ${RELEASE} (${target:0:12}) is not in Carbon's main, so it is not a release: releases are cut from main (clean_accepted_checkout_required). Nothing was changed."
   fi
   git merge-base --is-ancestor "${target}" refs/remotes/origin/main \
     || fail "--ref ${REF} (${target:0:12}) is not in Carbon's main, and setup accepts only a revision in main (clean_accepted_checkout_required). Use --ref main, or a commit or tag on main."
@@ -240,6 +305,24 @@ then run this again. git -C ${repo_root} stash pop brings them back."
     update_label="--update"
     [[ "${target_installer}" == *"${update_label})"* ]] \
       || fail "the installer at ${target:0:12} has no --update. Run it without --update: ${self} --ref ${REF}"
+  fi
+  if [[ -n "${RELEASE}" ]]; then
+    # The release's own installer carries on (below), so it must know
+    # --release, as with --update above. Releases before this option cannot
+    # be installed this way; they can be built.
+    target_installer="$(git show "${target}:scripts/install_miner.sh" 2>/dev/null || true)"
+    release_label="--release"
+    [[ "${target_installer}" == *"${release_label})"* ]] \
+      || fail "the installer at ${RELEASE} (${target:0:12}) has no --release, so this release cannot be pulled by it. Nothing was changed. Build its images on this machine instead: ${self} --ref ${RELEASE}"
+    # --update moves forward only: to this install's revision or a newer
+    # release, never back. Going back is a plain install, named on purpose.
+    if [[ "${UPDATE}" == 1 && "${target}" != "${previous}" ]] \
+      && git merge-base --is-ancestor "${target}" "${previous}"; then
+      fail "--update moves forward only, and ${RELEASE} (${target:0:12}) is older than this install (${previous:0:12}). Nothing was changed. Name a newer release, or install this one without --update: ${self} --release ${RELEASE}"
+    fi
+    # Every record is fetched and checked before the checkout moves.
+    fetch_release_records "${target}"
+    echo "Release ${RELEASE}: its records name ${#RELEASE_KINDS[@]} images, each by digest."
   fi
   if [[ "${target}" != "${previous}" ]]; then
     git checkout --quiet --detach "${target}"
@@ -272,23 +355,54 @@ setup_cli=("${python}" -m scripts.dev.miner_launchpad.environment_setup)
 gpu_build="${GPU}"
 if [[ "${GPU}" == 0 ]] \
   && [[ "$("${setup_cli[@]}" gpu-installed --state-dir "${STATE_DIR}")" == "yes" ]]; then
-  echo "A GPU worker was built here before; this install rebuilds it too."
+  if [[ -n "${RELEASE}" ]]; then
+    echo "A GPU worker was built here before; this install pulls it too."
+  else
+    echo "A GPU worker was built here before; this install rebuilds it too."
+  fi
   gpu_build=1
 fi
 
-step "4/6 Building the pinned images on this machine"
-artifacts="${repo_root}/.carbon-artifacts"
-./scripts/dev/c03_worker_image.sh "${artifacts}/c03-worker-image.json"
-analysis="$(
-  "${python}" -m carbon.development_session.research_image \
-    --parent-manifest "${artifacts}/c03-worker-image.json" \
-    --root "${artifacts}/research-images" \
-  | "${python}" -c 'import json, sys; print(json.load(sys.stdin)["manifest"])'
-)"
+worker_manifest="${artifacts}/c03-worker-image.json"
 gpu_manifest=""
-if [[ "${gpu_build}" == 1 ]]; then
-  ./scripts/dev/accelerator_worker_image.sh "${artifacts}/accelerator-worker-image.json"
-  gpu_manifest="${artifacts}/accelerator-worker-image.json"
+gpu_release_record=""
+if [[ -n "${RELEASE}" ]]; then
+  step "4/6 Pulling the released images of ${RELEASE} by digest"
+  # Fetched again at the revision this installer runs at: a carried-on
+  # installer did not run step 2 itself.
+  fetch_release_records "$(git rev-parse HEAD)"
+  kinds=(c03 analysis)
+  rebuild="${self} --ref ${RELEASE}"
+  if [[ "${gpu_build}" == 1 ]]; then
+    kinds+=(accelerator)
+    rebuild+=" --gpu"
+  fi
+  for kind in "${kinds[@]}"; do
+    "${python}" -m scripts.dev.worker_image_release pull \
+      --record "${release_dir}/${kind}-worker-image.release.json" \
+      --out "${release_dir}/${kind}-worker-image.json" \
+      || fail "could not pull or verify the released ${kind} image of ${RELEASE} (above). Nothing was built, and nothing was recorded for setup. To build the images on this machine instead, run without --release: ${rebuild}"
+  done
+  echo "Pulled and verified ${kinds[*]} of ${RELEASE}; nothing was built."
+  worker_manifest="${release_dir}/c03-worker-image.json"
+  analysis="${release_dir}/analysis-worker-image.json"
+  if [[ "${gpu_build}" == 1 ]]; then
+    gpu_manifest="${release_dir}/accelerator-worker-image.json"
+  fi
+  gpu_release_record="${release_dir}/accelerator-worker-image.release.json"
+else
+  step "4/6 Building the pinned images on this machine"
+  ./scripts/dev/c03_worker_image.sh "${artifacts}/c03-worker-image.json"
+  analysis="$(
+    "${python}" -m carbon.development_session.research_image \
+      --parent-manifest "${artifacts}/c03-worker-image.json" \
+      --root "${artifacts}/research-images" \
+    | "${python}" -c 'import json, sys; print(json.load(sys.stdin)["manifest"])'
+  )"
+  if [[ "${gpu_build}" == 1 ]]; then
+    ./scripts/dev/accelerator_worker_image.sh "${artifacts}/accelerator-worker-image.json"
+    gpu_manifest="${artifacts}/accelerator-worker-image.json"
+  fi
 fi
 
 step "5/6 Recording the images and checking setup against them"
@@ -296,9 +410,10 @@ mkdir -p "${STATE_DIR}"
 chmod 700 "${STATE_DIR}"
 "${python}" -m scripts.dev.miner_launchpad.installed write \
   --state-dir "${STATE_DIR}" \
-  --image-manifest "${artifacts}/c03-worker-image.json" \
+  --image-manifest "${worker_manifest}" \
   --analysis-image-manifest "${analysis}" \
-  ${gpu_manifest:+--gpu-image-manifest "${gpu_manifest}"}
+  ${gpu_manifest:+--gpu-image-manifest "${gpu_manifest}"} \
+  ${gpu_release_record:+--gpu-release-record "${gpu_release_record}"}
 "${setup_cli[@]}" after-install --state-dir "${STATE_DIR}"
 
 cat <<EOF
