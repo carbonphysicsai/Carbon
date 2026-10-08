@@ -18,9 +18,9 @@ from pathlib import Path
 
 from . import graph, params
 
-DIRECTORY = Path(__file__).resolve().parents[3] / "docs/development/graphite/level4"
-PATH_V0 = DIRECTORY / "allowlist_v0.json"
-PATH = DIRECTORY / "allowlist_v1.json"
+#: The current allowlist, shipped with the package. v0 is the Phase 0 record
+#: (`docs/development/graphite/level4/allowlist_v0.json`).
+PATH = Path(__file__).with_name("allowlist_v1.json")
 HUMAN_INPUT = "HUMAN_INPUT"
 #: D6's per-Challenge values. None is chosen here.
 CAPS = {

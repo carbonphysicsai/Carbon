@@ -1,4 +1,6 @@
-"""Battery, the first Level 4 spike adapter (public development data only).
+"""Battery's Level 4 adapter, the first (development only; public data only).
+
+`carbon.level4` is Challenge-neutral; this module supplies what is battery's.
 
 Everything battery-specific lives here: the families (k-nearest-neighbour,
 MLP, DeepONet in JAX; FNO in PyTorch), Level 0 recipes taken from battery's
@@ -16,7 +18,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-REPOSITORY = Path(__file__).resolve().parents[4]
+REPOSITORY = Path(__file__).resolve().parents[2]
 EXPANSION = "carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/0001.json"
 FAMILIES_JAX = ("mlp", "deeponet")
 
@@ -125,6 +127,25 @@ def _dims(model):
     if model.pca:
         return n_in, 2 * model.pca + 1 + lay.k
     return n_in, lay.nv + lay.nt + 1 + lay.k
+
+
+def interface(strategy_):
+    """The development interface for a recipe: the Level 0 network boundary,
+    battery's features in and normalized outputs out, both float32 per case.
+
+    Development only. Battery's Level 4 interface itself (raw inputs and
+    trajectories with units, or this boundary with Carbon's featurization and
+    decoding) is a Challenge design choice for Graphite's Level 4 proposal
+    under the climb procedure; nothing here fixes it."""
+    from ..level4.validate import Interface
+
+    _, model = _model(strategy_, material().train)
+    n_in, n_out = _dims(model)
+    dtype = "float64" if model.settings["precision"] == "float64" else "float32"
+    return Interface(
+        inputs=(("inputs/features", dtype, (n_in,)),),
+        outputs=((dtype, (n_out,)),),
+    )
 
 
 def jax_network(strategy_, train):
@@ -356,7 +377,7 @@ def equivalence_classic(allowlist, strategy_, *, steps=None, seed=7, max_bytes):
 
     from carbon.battery.recipes import features
 
-    from .. import interpret
+    from ..level4 import tooling
 
     s = _steps(strategy_, steps)
     m = material()
@@ -371,7 +392,7 @@ def equivalence_classic(allowlist, strategy_, *, steps=None, seed=7, max_bytes):
     make = classic_params(model)
     example = make(jax.random.PRNGKey(0), n_in, n_out)
     count = len(jax.tree_util.tree_leaves(example))
-    net_b, _, net_raw = interpret.through_bprime(
+    net_b, _, net_raw = tooling.through_bprime(
         classic_net(),
         (example, f),
         role="forward",
@@ -379,7 +400,7 @@ def equivalence_classic(allowlist, strategy_, *, steps=None, seed=7, max_bytes):
         input_names=_flat_names(count) + ["inputs/features"],
         max_bytes=max_bytes,
     )
-    init_b, _, init_raw = interpret.through_bprime(
+    init_b, _, init_raw = tooling.through_bprime(
         lambda key: make(key, n_in, n_out),
         (jax.random.PRNGKey(0),),
         role="init",
@@ -421,7 +442,7 @@ def equivalence_general(allowlist, strategy_, *, steps=None, seed=7, max_bytes):
     import jax
     import numpy as np
 
-    from .. import interpret
+    from ..level4 import tooling
 
     s = _steps(strategy_, steps)
     m = material()
@@ -434,7 +455,7 @@ def equivalence_general(allowlist, strategy_, *, steps=None, seed=7, max_bytes):
         _, example = init(jax.random.PRNGKey(0))
         leaves = jax.tree_util.tree_leaves(example)
         f = np.zeros((len(m.train.case_ids), n_in), dtype)
-        apply_b, doc, raw = interpret.through_bprime(
+        apply_b, doc, raw = tooling.through_bprime(
             apply,
             (example, f),
             role="forward",
@@ -442,7 +463,7 @@ def equivalence_general(allowlist, strategy_, *, steps=None, seed=7, max_bytes):
             input_names=_flat_names(len(leaves)) + ["inputs/features"],
             max_bytes=max_bytes,
         )
-        init_b, idoc, iraw = interpret.through_bprime(
+        init_b, idoc, iraw = tooling.through_bprime(
             init,
             (jax.random.PRNGKey(0),),
             role="init",
@@ -518,14 +539,14 @@ def per_case_vmap(allowlist, strategy_, *, max_bytes):
 
     from carbon.battery.recipes import features
 
-    from .. import interpret
+    from ..level4 import tooling
 
     m = material()
     net = jax_network(strategy_, m.train)
     _, p = net["init"](jax.random.PRNGKey(7))
     leaves = jax.tree_util.tree_leaves(p)
     f = jnp.asarray(features(m.train.x, net["model"].rich).astype(net["dtype"]))
-    one, _, _ = interpret.through_bprime(
+    one, _, _ = tooling.through_bprime(
         net["apply"],
         (p, f[:1]),
         role="forward",
@@ -698,7 +719,7 @@ def equivalence(allowlist, *, steps=None, max_bytes):
     import jax
     import numpy as np
 
-    from .. import interpret
+    from ..level4 import tooling
 
     level0 = level0_strategies()
     out = {
@@ -725,7 +746,7 @@ def equivalence(allowlist, *, steps=None, max_bytes):
     m = material()
     model, u_train, y_train, u, native = knn_native(level0["panel_knn"], m)
     with jax.enable_x64(True):
-        rebuilt, _, raw = interpret.through_bprime(
+        rebuilt, _, raw = tooling.through_bprime(
             knn_jax(model.k),
             (u_train, y_train, u),
             role="forward",
@@ -805,7 +826,7 @@ def gradient_equivalence(allowlist, strategy_, *, max_bytes):
 
     from carbon.battery.recipes import features
 
-    from .. import interpret
+    from ..level4 import tooling
 
     m = material()
     x64 = strategy_["parameters"].get("precision") == "float64"
@@ -818,7 +839,7 @@ def gradient_equivalence(allowlist, strategy_, *, max_bytes):
         key = jax.random.PRNGKey(7)
         _, p = net["init"](key)
         leaves = jax.tree_util.tree_leaves(p)
-        rebuilt, doc, _ = interpret.through_bprime(
+        rebuilt, doc, _ = tooling.through_bprime(
             net["apply"],
             (p, f),
             role="forward",
@@ -826,7 +847,7 @@ def gradient_equivalence(allowlist, strategy_, *, max_bytes):
             input_names=_flat_names(len(leaves)) + ["inputs/features"],
             max_bytes=max_bytes,
         )
-        rinit, _, _ = interpret.through_bprime(
+        rinit, _, _ = tooling.through_bprime(
             net["init"],
             (key,),
             role="init",
@@ -878,7 +899,7 @@ def torch_init_spec(doc):
     dense weights (in, out) he_normal over axis 0; convolution weights
     (out, in, k) he_normal over (in, k); spectral weights held as real views
     (in, out, modes, 2) glorot_normal over (in) and (out); vectors zeros."""
-    from .. import graph, initializers
+    from ..level4 import graph, initializers
 
     entries = []
     for i in doc["graphs"][doc["entry"]]["inputs"]:
@@ -920,7 +941,8 @@ def torch_carbon_init(allowlist, strategy_, *, steps, max_bytes):
 
     from carbon.battery.recipes import features
 
-    from .. import graph, initializers, interpret, lower_torch
+    from ..level4 import graph, initializers, interpret
+    from ..level4.tooling import lower_torch
 
     m = material()
     documents = []

@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import os
 import re
-import sys
 from pathlib import Path
 
 import pytest
@@ -34,11 +33,10 @@ import pytest
 pytest.importorskip("jax")
 os.environ.setdefault("JAX_PLATFORMS", "cpu")
 REPOSITORY = Path(__file__).resolve().parents[2]
-SPIKE = REPOSITORY / "scripts" / "dev" / "level4_spike"
-sys.path.insert(0, str(SPIKE.parent))
-
-from level4_spike import allowlist as allowlist_module
-from level4_spike import graph, interpret, params, specimens
+PACKAGE = REPOSITORY / "carbon" / "level4"
+RECORDS = REPOSITORY / "docs" / "development" / "graphite" / "level4"
+from carbon.level4 import allowlist as allowlist_module
+from carbon.level4 import graph, interpret, params, specimens, tooling
 
 MAX_BYTES = 1 << 26  # the tests' parser bound; not a G3 limit
 
@@ -50,11 +48,11 @@ def allowlist():
 
 @pytest.mark.parametrize("version", ["v0", "v1"])
 def test_allowlist_is_versioned_and_classified(version):
-    path = allowlist_module.DIRECTORY / f"allowlist_{version}.json"
+    path = (RECORDS if version == "v0" else PACKAGE) / f"allowlist_{version}.json"
     allowlist = allowlist_module.load(path)
     assert allowlist.version == f"level4-allowlist-{version}"
     assert allowlist.digest.startswith("sha256:")
-    kinds = set(re.findall(r'kind == "([a-z_]+)"', (SPIKE / "params.py").read_text()))
+    kinds = set(re.findall(r'kind == "([a-z_]+)"', (PACKAGE / "params.py").read_text()))
     kinds |= {"none", "call_metadata", "custom_rule_dropped", "dtype_or_none", "name"}
     for name, entry in allowlist.ops.items():
         assert entry["default"] in ("allow", "review", "refuse"), name
@@ -121,7 +119,7 @@ def test_bprime_round_trip_trains_bit_identically(allowlist):
     y = jnp.sin(x[:, :2])
     p = init(key)
     names = [f"params/{i}" for i in range(6)] + ["inputs/x"]
-    rebuilt, doc, raw = interpret.through_bprime(
+    rebuilt, doc, raw = tooling.through_bprime(
         apply,
         (p, x),
         role="forward",
@@ -129,7 +127,7 @@ def test_bprime_round_trip_trains_bit_identically(allowlist):
         input_names=names,
         max_bytes=MAX_BYTES,
     )
-    rinit, _, _ = interpret.through_bprime(
+    rinit, _, _ = tooling.through_bprime(
         init,
         (key,),
         role="init",
@@ -204,7 +202,7 @@ def test_parameter_codec_refuses_unknown_kind_and_extras():
 
 
 def test_battery_level0_equivalence_on_cpu(allowlist):
-    from level4_spike.adapters import battery
+    from carbon.battery import level4 as battery
 
     level0 = battery.level0_strategies()
     classic = battery.equivalence_classic(
@@ -227,8 +225,9 @@ def test_battery_torch_lowering_agrees_with_torch(allowlist):
     import jax.numpy as jnp
     import numpy as np
     import torch
-    from level4_spike import lower_torch
-    from level4_spike.adapters import battery
+
+    from carbon.battery import level4 as battery
+    from carbon.level4.tooling import lower_torch
 
     for strategy in (
         battery.level0_strategies()["default_fno"],
@@ -264,7 +263,8 @@ def test_shared_modules_carry_no_challenge_literal():
     banned = re.compile(
         r"battery|fastcharge|PublicMaterial|carbon\.battery", re.IGNORECASE
     )
-    shared = [p for p in SPIKE.glob("*.py")]
+    spike = REPOSITORY / "scripts" / "dev" / "level4_spike"
+    shared = sorted(PACKAGE.rglob("*.py")) + sorted(spike.glob("*.py"))
     shared.append(allowlist_module.PATH)
     assert shared
     for path in shared:

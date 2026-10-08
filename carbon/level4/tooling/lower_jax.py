@@ -13,10 +13,9 @@ from __future__ import annotations
 
 import collections
 
-from . import graph, named, params
+from .. import graph, named, params
 
-#: Ops whose parameter of kind "graph" is evaluated inline as a nested graph.
-CALL_OPS = ("jit", "closed_call", "custom_jvp_call")
+CALL_OPS = graph.CALL_OPS
 
 
 def trace(fn, *args):
