@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-question-laws-continuous-quality-pass",
+  "recorded_at": "2026-10-07T22:46:30+00:00",
+  "challenge": "protocol", "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-QUESTION-LAWS-01 static quality", "description": "Native Black --check on the changed test file, pipeline --help discovery, and WSL git diff --check of the current patch."},
+  "expected": "Confirm changed-test formatting and patch hygiene; discover the non-destructive pipeline validation command without running any campaign.",
+  "observed": "Black check passed (one file unchanged), pipeline help returned the validation command, and diff check passed. Ruff is not installed locally and no Ruff pass is claimed. Canonical exact-ready-head CI remains the acceptance source.",
+  "keep": ["Do not mistake static checks or command discovery for science or canonical execution."],
+  "change": ["Use the applicable pinned CI for acceptance; no repeated unavailable Docker attempt."],
+  "protocol_elements": ["quality", "validation-basis"],
+  "proposed_revision": null, "status": "RECORDED"
+}

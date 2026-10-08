@@ -40,13 +40,15 @@ def evaluation(cfg):
     is submitted, never here."""
     from scripts.dev.miner_launchpad.environment_setup import (
         NO_ENDPOINT,
+        RECEIVER_NOT_PINNED,
         intake_challenges,
         published_endpoints,
     )
-    from scripts.dev.miner_launchpad.runner import intakes, validators
+    from scripts.dev.miner_launchpad.runner import intakes, receivers, validators
 
     published = published_endpoints()["endpoints"]
     configured = intakes(cfg)
+    pinned = receivers(cfg)
     local = validators(cfg) if type(cfg.get("paths")) is dict else {}
     challenges = []
     for challenge in intake_challenges():
@@ -59,7 +61,18 @@ def evaluation(cfg):
                 status="INTAKE_CONFIGURED",
                 source="YOURS" if mine else "PUBLISHED",
                 **({} if mine else {"intake": url}),
+                # Whether the intake's receiver is checked before anything is
+                # signed for it (LAUNCHPAD-ACCEPT-03). The hotkey itself is
+                # the profile's; only the fact is shown.
+                receiver_pinned=type(pinned.get(challenge["id"])) is str,
             )
+            if not item["receiver_pinned"]:
+                # A profile from before receivers were pinned keeps working,
+                # unchecked: said plainly, never refused.
+                item.update(
+                    warning="intake_receiver_not_pinned",
+                    next_step=RECEIVER_NOT_PINNED.format(title=challenge["title"]),
+                )
         elif challenge["id"] in local:
             item.update(status="VALIDATOR_ON_THIS_MACHINE", source="YOURS")
         elif entry is not None:

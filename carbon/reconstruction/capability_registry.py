@@ -48,6 +48,9 @@ class Dimension(str, Enum):
     HYBRID = "hybrid"
     PREDICTION = "prediction"
     INFERENCE = "inference"
+    #: Training-time numerical routines (Admission section 3, Level 3); used by
+    #: development-only variants (BATTERY-CLIMB-1-REVIEW).
+    NUMERICS = "numerics"
 
 
 class Status(str, Enum):

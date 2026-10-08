@@ -1,0 +1,120 @@
+{
+ "authority": "OWNER-GRAPHITE-TEST-WAVE-03 section 1; OWNER-GRAPHITE-DEV-LEVELS-01; engineering choices GRAPHITE-DEV-VARIANTS-01",
+ "base_contract": {
+  "contract_digest": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e",
+  "sequence": 1
+ },
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": 3,
+ "recorded_on": "2026-10-07",
+ "schema": "carbon.construction-development-expansion-record.v1",
+ "scope": "DEVELOPMENT_ONLY_NEVER_SERVED_TO_MINERS",
+ "sequence": 2,
+ "variant_digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+ "variant_document": {
+  "authority": "OWNER-GRAPHITE-TEST-WAVE-03 section 1; OWNER-GRAPHITE-DEV-LEVELS-01 F1 and F2; the Test Lead's review of level-climb-1 (BATTERY-CLIMB-1-REVIEW)",
+  "base_contract": {
+   "digest": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e",
+   "record_sequence": 1
+  },
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "level": 3,
+  "participant_code": false,
+  "review": {
+   "record": "carbon/challenge_pipeline/proposals/battery-fastcharge-ageing-development-v1/climbs/level-climb-1-disposition.json (2026-10-07)",
+   "reviewer": "Test Lead"
+  },
+  "schema": "carbon.construction-development-variant.v1",
+  "scope": "DEVELOPMENT_ONLY_NEVER_SERVED_TO_MINERS",
+  "status": "REGISTERED_DEVELOPMENT_POLICY",
+  "version": "battery-l3-numerics-v1",
+  "widened": [
+   {
+    "applies_to": [
+     "deeponet",
+     "mlp"
+    ],
+    "bounds": {
+     "broyden_phi_and_self_scaling": {
+      "bfgs": [
+       1.0,
+       false
+      ],
+      "ssbfgs": [
+       1.0,
+       true
+      ],
+      "ssbroyden": [
+       0.5,
+       true
+      ]
+     },
+     "default": "lbfgs",
+     "dense": [
+      "bfgs",
+      "ssbfgs",
+      "ssbroyden"
+     ],
+     "dense_memory": "p^2 x float size <= the worker's memory bound",
+     "lane": "CPU_ONLY_DEV",
+     "menu": [
+      "lbfgs",
+      "bfgs",
+      "ssbfgs",
+      "ssbroyden"
+     ],
+     "requires": "polish_steps > 0"
+    },
+    "id": "numerics.quasi_newton_family",
+    "summary": "The polish stage's quasi-Newton routine: memory-limited L-BFGS (today's), full-memory BFGS, self-scaled BFGS or self-scaled Broyden.",
+    "surface": [
+     "train",
+     "choice",
+     [
+      "lbfgs",
+      "bfgs",
+      "ssbfgs",
+      "ssbroyden"
+     ],
+     null,
+     "lbfgs"
+    ]
+   },
+   {
+    "applies_to": [
+     "deeponet",
+     "mlp"
+    ],
+    "bounds": {
+     "default": "strong_wolfe",
+     "line_search_steps_cap": {
+      "backtracking": 15,
+      "none": 0,
+      "strong_wolfe": 20
+     },
+     "menu": [
+      "strong_wolfe",
+      "backtracking",
+      "none"
+     ],
+     "requires": "polish_steps > 0"
+    },
+    "id": "numerics.line_search",
+    "summary": "The polish stage's line search: strong Wolfe (today's), Armijo backtracking, or none (the unit quasi-Newton step).",
+    "surface": [
+     "train",
+     "choice",
+     [
+      "strong_wolfe",
+      "backtracking",
+      "none"
+     ],
+     null,
+     "strong_wolfe"
+    ]
+   }
+  ]
+ },
+ "variant_version": "battery-l3-numerics-v1",
+ "what": "Level 3 (training-time numerics, a declarative menu): the polish stage's quasi-Newton routine (lbfgs, bfgs, ssbfgs, ssbroyden) and line search (strong_wolfe, backtracking, none), per the Test Lead's review of level-climb-1; CPU only."
+}

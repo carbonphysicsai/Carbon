@@ -82,8 +82,40 @@ DEVELOPMENT_RULE_V2 = {
     "rotation": {"basis": "finalized_block", "every_blocks": 1080},
 }
 
+#: OWNER-BANK-ARCHITECTURE-01 (2026-10-07): rule v2 with every window drawn
+#: from a pre-solved bank (VALIDATOR-23). Scoring, rotation, the per-hotkey
+#: cap and miner disclosure are v2's, unchanged. Only how a batch's cases are
+#: sourced changes: each screening or finalist window draws its
+#: `window_cases` distinct cases (plus v2's two hidden duplicates) without
+#: replacement from the live pool bank. A case retires after `retire_at`
+#: draws, and the bank is kept at `size` live cases. These are the owner's
+#: cheap-class testing values (B = 20n with n = 100 cases per window,
+#: E = 5; screening and finalist windows share the one bank), not
+#: production values. Battery's current v2 deployments are unaffected: a
+#: deployment moves onto the bank only by naming this rule.
+DEVELOPMENT_RULE_V2_BANK = {
+    **DEVELOPMENT_RULE_V2,
+    "authority": (
+        "OWNER-BATTERY-TESTNET-01 OD-2, amended by "
+        "OWNER-BATTERY-SCORING-WINDOW-01 and OWNER-BANK-ARCHITECTURE-01"
+    ),
+    "bank": {
+        "class": "cheap",
+        "pool": {
+            "window_cases": DEVELOPMENT_RULE_V2["screening_batch_size"] - 2,
+            "hidden_duplicates": 2,
+            "size": 20 * DEVELOPMENT_RULE_V2["screening_batch_size"],
+            "retire_at": 5,
+        },
+    },
+}
+
 #: The rules a deployment may run, by the name its configuration gives.
-RULES = {"v1": DEVELOPMENT_RULE, "v2": DEVELOPMENT_RULE_V2}
+RULES = {
+    "v1": DEVELOPMENT_RULE,
+    "v2": DEVELOPMENT_RULE_V2,
+    "v2-bank": DEVELOPMENT_RULE_V2_BANK,
+}
 
 #: OWNER-BATTERY-3B-AND-EXPOSURE-01 (2026-10-01): what a miner may see, by
 #: rule version. A hidden batch, and everything computed from it

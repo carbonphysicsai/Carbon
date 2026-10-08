@@ -153,6 +153,7 @@ def test_every_released_kind_flows_through_every_job():
 
 PARENT_REF = REPOSITORY / "scripts" / "dev" / "worker_parent_ref.sh"
 PARENT_ID = "sha256:" + "5c" * 32
+BUILT_ID = "sha256:" + "b" * 64
 SOURCE = "sha256:" + "f07e01414c6600f0" + "0" * 48
 CHILDREN = (
     "accelerator_worker_image.sh",
@@ -374,16 +375,19 @@ class _BuildCLI:
 
     def __init__(self):
         self.calls = []
+        self.tags = {}
 
     def run(self, args, timeout=None):
         self.calls.append(list(args))
         if args[0] == "build":
-            return SimpleNamespace(stdout=b"sha256:" + b"b" * 64)
+            return SimpleNamespace(stdout=BUILT_ID.encode())
+        if args[0] == "tag":
+            self.tags[args[2]] = args[1]
         return SimpleNamespace(stdout=b"")
 
     def json(self, args):
         self.calls.append(list(args))
-        return {"Id": PARENT_ID}
+        return {"Id": self.tags.get(args[2], PARENT_ID)}
 
 
 @pytest.fixture
@@ -417,6 +421,49 @@ def test_the_miner_path_keeps_its_checked_local_parent_tag(analysis):
     assert first == f"FROM {tag}"
     assert ["tag", PARENT_ID, tag] in calls
     assert image.parent_image == PARENT_ID
+
+
+def test_the_miner_path_names_its_analysis_image_so_prune_keeps_it(analysis):
+    """LA-F2: an untagged analysis image is dangling, and `docker image
+    prune` deletes it. A miner host names it by its own id and checks the
+    name points at it."""
+    image, _, calls = analysis()
+    tag = "carbon-analysis:" + BUILT_ID[7:]
+    assert image.image_id == BUILT_ID
+    assert ["tag", BUILT_ID, tag] in calls
+    assert ["image", "inspect", tag, "--format", "{{json .}}"] in calls
+
+
+def test_a_local_tag_that_names_another_image_is_refused():
+    from carbon.development_session import research_image
+
+    cli = _BuildCLI()
+    cli.run = lambda args, timeout=None: SimpleNamespace(stdout=b"")
+    with pytest.raises(ValueError, match="local image tag identity changed"):
+        research_image.local_tag(cli, BUILT_ID, "carbon-analysis")
+
+
+def test_an_existing_untagged_analysis_image_is_named_on_the_next_install(analysis):
+    analysis()
+    _, _, calls = analysis()
+    tag = "carbon-analysis:" + BUILT_ID[7:]
+    assert [call for call in calls if call[0] == "tag" and call[2] == tag] == [
+        ["tag", BUILT_ID, tag],
+        ["tag", BUILT_ID, tag],
+    ]
+
+
+def test_the_gpu_worker_build_names_its_image_and_checks_the_name():
+    script = (
+        REPOSITORY / "scripts" / "dev" / "accelerator_worker_image.sh"
+    ).read_text()
+    assert 'local_tag="carbon-gpu-worker:${image#sha256:}"' in script
+    assert 'docker tag "${image}" "${local_tag}"' in script
+    tagged = script.index('docker tag "${image}" "${local_tag}"')
+    assert (
+        script.index("docker image inspect --format '{{.Id}}' \"${local_tag}\"")
+        > tagged
+    )
 
 
 def test_a_release_builds_the_analysis_image_on_the_pushed_parent(analysis):

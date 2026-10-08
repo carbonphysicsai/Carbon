@@ -113,16 +113,19 @@ def level1_reconstruct_program():
     )
 
 
-def _rebuild_level1(recipe, record, material, seed):
-    """In-process Level-1 rebuild on pinned public TRAIN v1, as `compile.rebuild`
-    rebuilds Level 0."""
+def _rebuild_development(recipe, record, material, seed):
+    """In-process development rebuild (Levels 1-3) on pinned public TRAIN v1,
+    as `compile.rebuild` rebuilds Level 0."""
+    from . import development_rebuild
     from .compile import with_state
-    from .level1_worker import build_in_process
     from .recipes import Structure
 
-    model = build_in_process(recipe, record)
+    model = development_rebuild.build_in_process(recipe, record)
     stats = model.fit(material.train, Structure(material.ocv_soc, material.ocv_v), seed)
-    return model, {**with_state(model, stats), "trainer": "level1"}
+    return model, {
+        **with_state(model, stats),
+        "trainer": development_rebuild.kind(record),
+    }
 
 
 INFER_PROGRAM = r'''"""Carbon battery validator inference: predict query inputs from a state.
@@ -452,13 +455,13 @@ class CarrierBackend:
 
     def reconstruct(self, identity, recipe, seed, development=None):
         program, files = RECONSTRUCT_PROGRAM, reconstruct_files(self.root, recipe, seed)
-        if development is not None:
-            # A Level-1 recipe (VALIDATOR-13): the same program with its one
-            # build line replaced, and the loss expression staged as data.
-            from . import level1_worker
+        # A development recipe (Levels 1-3): the same program with its one
+        # build line replaced, and its record staged (`development_rebuild`).
+        from . import development_rebuild
 
-            program = level1_reconstruct_program()
-            files = {**files, **level1_worker.staged(development)}
+        program, files, trainer = development_rebuild.stage(
+            development, program, files, level1_program=level1_reconstruct_program
+        )
         out = self._call(
             identity,
             program,
@@ -467,8 +470,8 @@ class CarrierBackend:
             recipe.settings.get("backend", "jax"),
         )
         stats = json.loads(out["fit.json"])
-        if development is not None:
-            stats["trainer"] = "level1"
+        if trainer is not None:
+            stats["trainer"] = trainer
         return out["state.npz"], stats
 
     def infer(self, identity, state, inputs):
@@ -511,7 +514,14 @@ class DirectBackend:
             if development is None:
                 model, stats = rebuild(recipe, self.material, seed)
             else:
-                model, stats = _rebuild_level1(recipe, development, self.material, seed)
+                model, stats = _rebuild_development(
+                    recipe, development, self.material, seed
+                )
+        except ImportError as missing:  # Carbon's environment, never the candidate
+            raise WorkerFailure(
+                "environment_failed:" + (str(missing) or type(missing).__name__),
+                candidate=False,
+            ) from None
         except Exception as failure:  # noqa: BLE001 - the candidate's own build
             raise WorkerFailure(
                 "reconstruction_failed:" + type(failure).__name__, candidate=True
