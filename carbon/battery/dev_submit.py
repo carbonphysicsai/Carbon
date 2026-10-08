@@ -400,15 +400,11 @@ def serve(service, config, *, repository):
 def make_server(service, config, *, repository):
     """The door's server, not yet serving. Loopback unless the owner's
     exposure record and TLS are configured (`intake.require_exposure`)."""
-    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-
-    from .intake import require_exposure, tls_context
+    from .intake import LoggedHandler, hardened_listener, require_exposure
 
     require_exposure(config, repository=repository)
 
-    class Handler(BaseHTTPRequestHandler):
-        def log_message(self, *args):  # never log a peer, path or body
-            return
+    class Handler(LoggedHandler):  # never logs a peer, path or body
 
         def _answer(self, status, value):
             body = _canonical(value)
@@ -432,11 +428,7 @@ def make_server(service, config, *, repository):
             except ValueError:
                 return self._answer(400, {"refused": "dev_submit_malformed"})
 
-    server = ThreadingHTTPServer((config["host"], config["port"]), Handler)
-    context = tls_context(config)
-    if context is not None:
-        server.socket = context.wrap_socket(server.socket, server_side=True)
-    return server
+    return hardened_listener(config, Handler, service="battery-dev-submit")
 
 
 def main(argv=None):

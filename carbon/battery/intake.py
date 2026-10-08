@@ -1014,10 +1014,9 @@ def worker(inbox, target, wake, *, stop, idle_s=30.0, out=None):
 
 
 def _handler(intake):
-    class Handler(BaseHTTPRequestHandler):
+    class Handler(LoggedHandler):
         server_version = "carbon-battery-intake"
         sys_version = ""
-        timeout = SOCKET_TIMEOUT_S
 
         def _answer(self, answer):
             payload = json.dumps(answer.body, sort_keys=True).encode()
@@ -1127,21 +1126,44 @@ class ConnectionSlots:
             return sum(self._open.values())
 
 
+#: Connections the kernel queues before this listener accepts them. The
+#: socketserver default of 5 is a full queue at the sixth waiting client.
+LISTEN_BACKLOG = 128
+
+
+class LoggedHandler(BaseHTTPRequestHandler):
+    """The base of every Carbon public door's handler: each read or write
+    waits at most `timeout`, the base class's own log stays silent, and a
+    connection that times out is one structured line (event only)."""
+
+    timeout = SOCKET_TIMEOUT_S
+
+    def log_message(self, *_args):
+        return
+
+    def log_error(self, format, *args):
+        if format.startswith("Request timed out"):
+            log("connection_timed_out", service=self.server.service)
+
+
 class _Server(ThreadingHTTPServer):
     """The listener. A connection that fails outside a request (a TLS
     handshake that never completes or is malformed) is logged by exception
     type only: the base class would print the peer's address and a trace.
-    Connections beyond `ConnectionSlots` are closed at once, so no address
-    can hold every thread."""
+    Connections beyond `ConnectionSlots` are closed at once, and logged, so
+    no address can hold every thread."""
 
     daemon_threads = True
+    request_queue_size = LISTEN_BACKLOG
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, address, handler, *, service=SERVICE):
         self.slots = ConnectionSlots()
-        super().__init__(*args, **kwargs)
+        self.service = service
+        super().__init__(address, handler)
 
     def process_request(self, request, client_address):
         if not self.slots.acquire(client_address[0]):
+            log("connection_refused", service=self.service, reason="busy")
             self.shutdown_request(request)
             return
         try:
@@ -1157,24 +1179,38 @@ class _Server(ThreadingHTTPServer):
             self.slots.release(client_address[0])
 
     def handle_error(self, request, client_address):
-        log("connection_failed", type=getattr(sys.exc_info()[0], "__name__", None))
+        log(
+            "connection_failed",
+            service=self.service,
+            type=getattr(sys.exc_info()[0], "__name__", None),
+        )
 
 
-def listener(config, intake):
-    """Bind the configured address; with TLS, wrap it so each connection's
-    handshake runs in that connection's own thread, under its socket timeout.
+def hardened_listener(config, handler, *, service=SERVICE):
+    """Bind the configured address for `handler` (a `LoggedHandler`); with
+    TLS, wrap it so each connection's handshake runs in that connection's own
+    thread, under its socket timeout.
 
     Wrapping with the default `do_handshake_on_connect` would run every
     handshake inside `accept`, in the single serving thread: one client that
-    connects and sends nothing would stop the intake for everyone.
+    connects and sends nothing would stop the door for everyone. Every
+    Carbon public door listens through this: the intake, the answer-key
+    distribution host and the development submission door.
     """
+    if not issubclass(handler, LoggedHandler):
+        raise TypeError("a public door's handler is a LoggedHandler")
     tls = tls_context(config)
-    httpd = _Server((config["host"], config["port"]), _handler(intake))
+    httpd = _Server((config["host"], config["port"]), handler, service=service)
     if tls is not None:
         httpd.socket = tls.wrap_socket(
             httpd.socket, server_side=True, do_handshake_on_connect=False
         )
     return httpd
+
+
+def listener(config, intake):
+    """The intake's listener (`hardened_listener`)."""
+    return hardened_listener(config, _handler(intake))
 
 
 def serve_lock_path(config):
