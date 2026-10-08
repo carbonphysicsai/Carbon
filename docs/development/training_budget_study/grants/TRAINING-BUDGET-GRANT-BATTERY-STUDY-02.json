@@ -1,7 +1,7 @@
 {
  "schema": "carbon.agent-campaign.spending-grant.v1",
  "grant_id": "TRAINING-BUDGET-GRANT-BATTERY-STUDY-02",
- "provider": "vast",
+ "provider": "runpod",
  "account": "Carbon-Account",
  "granted_by": "owner",
  "expires_at": "2026-12-31T23:59:59Z",

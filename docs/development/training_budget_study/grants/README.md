@@ -58,16 +58,27 @@ producer host at no pod cost.
 
 ## TRAINING-BUDGET-GRANT-BATTERY-STUDY-02
 
-**Authority:** the owner approved it directly in the Test Engineer's session
-on 2026-10-08: "I approve the TRAINING-BUDGET-01 study on RTX 4090: cap USD
-34.80, pause at USD 27.84, re-issued as grant -02". The move from the A40 came
-first (the owner, relayed by the Test Lead): RunPod could not allocate an A40,
-and Vast listed none. Decision OWNER-BATTERY-STUDY-4090-01.
+**Authority:**
+- **The move from the A40** came first (the owner, relayed by the Test Lead):
+  RunPod's Secure Cloud could not allocate an A40.
+- **The figure.** The owner approved it directly in the Test Engineer's
+  session on 2026-10-08: "I approve the TRAINING-BUDGET-01 study on RTX 4090:
+  cap USD 34.80, pause at USD 27.84, re-issued as grant -02".
+- **The provider.** The owner told PR Head "Yes on runpod". In the Test
+  Engineer's session the owner then chose RunPod Community Cloud at USD 34.80,
+  over Secure Cloud at a higher figure and over Vast.
+- Decision OWNER-BATTERY-STUDY-4090-01.
 
-**Rates:** Vast's public offers on 2026-10-08, verified hosts, on demand, one
-GPU:
-- **RTX 4090 (24 GB):** 31 offers, median USD 0.456 an hour.
-- **A100 (80 GB):** 7 offers, about USD 0.87-1.19 an hour.
+**Rates:** RunPod's public list prices on 2026-10-08, on demand, one GPU:
+
+| GPU | Community | Secure |
+|---|---|---|
+| RTX 4090 (24 GB) | USD 0.34 an hour | USD 0.74 an hour |
+| A100 80 GB, PCIe | USD 1.19 an hour | USD 1.59 an hour |
+
+The caps fit Community only. The A100 leg is tight: USD 1.19 plus disk
+against a USD 1.20 cap. If no A100 offer fits under the cap, run S is
+refused and goes back to the owner. The cap is never widened in place.
 
 **Arithmetic** (an estimate, not a measurement; no battery rebuild has been
 timed on a 4090):
@@ -86,7 +97,7 @@ timed on a 4090):
     80% of 34.80   = USD 27.84 (the pause)
 
 **Limits:**
-- **Rate caps, verified hosts only:**
+- **Rate caps, RunPod Community Cloud only:**
   - one RTX 4090 at no more than USD 0.48 an hour, disk and bandwidth
     included;
   - for run S only, one A100 80 GB at no more than USD 1.20 an hour.
@@ -104,7 +115,7 @@ timed on a 4090):
   worker-images-v3 is released, because v2's PyTorch GPU image fails every
   FNO rebuild (#826).
 - **The study seed root** (#738).
-- **The pod runner.** Slice 2c must bind provider `vast`.
+- **The pod runner.** Slice 2c must bind provider `runpod` and Community Cloud.
 - **Level 1-4 recipes** enter Phase H only once TRAINING-BUDGET-02 (#806)
   prices them.
 

@@ -38,14 +38,14 @@ def battery():
 
 def test_the_grant_loads_and_matches_the_sheets_ceiling():
     grant, limits = load()
-    assert grant.provider == "vast"
+    assert grant.provider == "runpod"
     assert grant.monetary_ceiling == cents(str(battery().get("spend_ceiling")))
     assert limits["grant_id"] == grant.grant_id == GRANT
     assert limits["challenge_id"] == battery().challenge_id
     assert limits["gpu_model"] == battery().get("gpu_model") == "nvidia-rtx-4090"
     assert limits["legs"][0]["gpu_model"] == limits["gpu_model"]
     assert limits["supersedes"] == SUPERSEDED
-    assert limits["verified_hosts_only"] is True
+    assert limits["cloud_type"] == "COMMUNITY"
 
 
 def test_the_ceiling_is_each_legs_pod_hours_at_its_rate_cap_and_the_pause_is_80():

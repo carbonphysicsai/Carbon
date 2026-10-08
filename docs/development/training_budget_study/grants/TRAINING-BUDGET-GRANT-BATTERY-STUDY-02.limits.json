@@ -33,7 +33,7 @@
  ],
  "pause_at_usd": "27.84",
  "reestimate_after_phase": "A",
- "verified_hosts_only": true,
+ "cloud_type": "COMMUNITY",
  "supersedes": "TRAINING-BUDGET-GRANT-BATTERY-STUDY-01",
  "generation": "the producer host (AX42), at no pod cost"
 }
