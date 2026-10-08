@@ -1164,6 +1164,10 @@ def test_the_decision_record_names_its_allowances_and_changes_no_figure():
     lines = [line.strip() for line in text.splitlines()]
     assert "Community allowed per owner direction 2026-10-08" in lines
     assert "Vast.ai A40 allowed, owner-rented, per owner direction 2026-10-08" in lines
+    assert (
+        "2026-10-08, owner: target device RTX 4090 (A40 unallocatable); "
+        "ceiling and cap unchanged"
+    ) in lines
     assert "0.492739726" in text and "4.25" in text
 
 

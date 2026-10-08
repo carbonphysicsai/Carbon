@@ -50,3 +50,5 @@ Community allowed per owner direction 2026-10-08
 Vast.ai A40 allowed, owner-rented, per owner direction 2026-10-08
 
 2026-10-08, owner: ceiling 0.65/h, cap USD 8
+
+2026-10-08, owner: target device RTX 4090 (A40 unallocatable); ceiling and cap unchanged
