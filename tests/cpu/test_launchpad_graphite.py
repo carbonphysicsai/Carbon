@@ -314,12 +314,18 @@ def join(host):
         assert not thread.is_alive()
 
 
+#: Fixture ceilings only, never a production budget: a Graphite launch must
+#: cap both provider ceilings to be admitted (LA-F4).
+FIXTURE_BUDGET = {"ceilings": {"provider_attempts": 80, "provider_nanodollars": 10**9}}
+
+
 def launch_request(g, key=KEY, **fields):
     return {
         "agent": "graphite",
         "challenge": g.challenge["id"],
         "challenge_version": g.challenge["version"],
         "idempotency_key": key,
+        "budget": FIXTURE_BUDGET,
         **fields,
     }
 
@@ -629,6 +635,80 @@ def test_a_graphite_choice_that_cannot_run_is_refused_before_the_chain(
         perform(graphite, "launch", launch_request(graphite, **fields))
     assert refused.value.code == code
     assert graphite.chain.reads == 0 and graphite.host.recent() == []
+
+
+@pytest.mark.parametrize(
+    "budget",
+    [
+        None,
+        {},
+        # LA-F4, as the acceptance run sent it: admitted and queued, then the
+        # run died in the plan with a bare ValueError.
+        {"ceilings": {"epochs": 1, "provider_nanodollars": 500000000}},
+        {"ceilings": {"provider_attempts": 5}},
+        {"elapsed_seconds": 600},
+    ],
+)
+def test_a_graphite_launch_without_both_ceilings_is_refused_before_it_is_queued(
+    graphite, budget
+):
+    """LA-F4: a Graphite plan freezes only finite provider_attempts and
+    provider_nanodollars ceilings (`agent_plan.finite_ceilings`), so the
+    launch door refuses one without both, by code, before the chain is read
+    or anything is recorded or queued; the MCP body names the budget and a
+    next step that names both ceilings."""
+    from scripts.dev.miner_launchpad.operations import refusal
+
+    request = launch_request(graphite)
+    if budget is None:
+        del request["budget"]
+    else:
+        request["budget"] = budget
+    with pytest.raises(Rejected) as refused:
+        perform(graphite, "launch", request)
+    assert refused.value.code == "graphite_ceilings_required"
+    assert graphite.chain.reads == 0 and graphite.host.recent() == []
+    body = refusal(refused.value.code)
+    assert body["field"] == "budget"
+    assert "provider_attempts" in body["next_step"]
+    assert "provider_nanodollars" in body["next_step"]
+    # The specimen: the same launch with both ceilings is admitted.
+    request["budget"] = FIXTURE_BUDGET
+    assert perform(graphite, "launch", request)["id"]
+    join(graphite.host)
+
+
+def test_the_launch_door_and_the_plan_read_one_ceilings_predicate():
+    """LA-F4: the door's predicate is the plans'; a plan that still meets a
+    budget without both ceilings raises the typed refusal, whose closed code
+    an interruption records."""
+    from carbon.battery import campaign as battery
+    from carbon.challenge_registry import agent_plan
+    from scripts.dev.miner_launchpad.runner import exception_code
+
+    assert battery.AGENT_BUDGET_KEYS is agent_plan.AGENT_BUDGET_KEYS
+    assert agent_plan.finite_ceilings(FIXTURE_BUDGET)
+    for budget in (None, {}, {"ceilings": {"provider_nanodollars": 5}}):
+        assert not agent_plan.finite_ceilings(budget)
+        for plan in (battery.graphite_plan, agent_plan.graphite_plan):
+            with pytest.raises(agent_plan.CeilingsRequired) as raised:
+                plan(budget, None, None)
+            assert exception_code(raised.value) == "graphite_ceilings_required"
+    assert not agent_plan.finite_ceilings(
+        {"ceilings": {"provider_attempts": True, "provider_nanodollars": 5}}
+    )
+
+
+def test_an_interruption_by_missing_ceilings_records_its_code(tmp_path):
+    """LA-F4 (b): reached at run time, the interruption keeps the closed code,
+    not only `builtins.ValueError` with code null."""
+    from carbon.challenge_registry.agent_plan import CeilingsRequired
+    from scripts.dev.miner_launchpad.runner import record_interruption
+
+    record_interruption(tmp_path, "run", CeilingsRequired("no ceilings"))
+    entry = json.loads((tmp_path / "interruptions.jsonl").read_text())
+    assert entry["code"] == "graphite_ceilings_required"
+    assert entry["error_type"].endswith("CeilingsRequired")
 
 
 def test_the_bounds_themselves_are_admitted():

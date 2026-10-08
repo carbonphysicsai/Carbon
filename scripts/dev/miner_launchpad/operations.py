@@ -403,6 +403,7 @@ REFUSAL_FIELDS = {
     "graphite_field_not_used_by_mode": "graphite_mode",
     "research_share_invalid": "research_share",
     "graphite_limits_invalid": "limits",
+    "graphite_ceilings_required": "budget",
     "hunt_query_invalid": "hunt",
     "plan_not_found": "plan",
     # The library and plans (S4).
