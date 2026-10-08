@@ -1123,8 +1123,11 @@ def hunt_estimate(cfg):
 def graphite_options(cfg):
     """What a Graphite launch may choose, for the launch form and an agent:
     the modes, the research share, a hunt's shape and planning cost, the
-    optional limits, and the Challenges Graphite runs on."""
+    optional limits, the input-window advisory (LA-F8) and the Challenges
+    Graphite runs on."""
     from carbon.challenge_registry.campaigns import implemented_campaigns
+    from carbon.development_session.model_provider import DEFAULT_SETTINGS
+    from scripts.dev.miner_launchpad.supervisor import next_action
 
     return {
         "agent": GRAPHITE,
@@ -1169,6 +1172,15 @@ def graphite_options(cfg):
             "minimum": 1,
             "maximum": LIMIT_MAX,
             "omitted": "only your campaign ceilings - money, attempts, trials, time - bind",
+        },
+        # LA-F8: said before a launch spends, not after. Advisory only: no
+        # default changes and nothing is refused (capabilities' input_window
+        # lists each model's published context).
+        "input_window": {
+            "launch_field": "model_settings.max_input_tokens",
+            "default": DEFAULT_SETTINGS.max_input_tokens,
+            "advisory": "graphite_input_window_too_small",
+            "next_step": next_action("graphite_input_window_too_small"),
         },
         "offered_for": [
             {"id": entry.challenge_id, "version": entry.version}

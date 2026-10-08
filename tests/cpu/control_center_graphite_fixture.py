@@ -211,6 +211,13 @@ def _implemented():
     ]
 
 
+def _next_step(code):
+    """The refusal catalog's next step for `code` (`supervisor.next_action`)."""
+    from scripts.dev.miner_launchpad.supervisor import next_action
+
+    return next_action(code)
+
+
 def hunt_estimate():
     """S4's `runner.hunt_estimate` for a profile that chose no model in
     setup: the pinned default selection's price."""
@@ -278,6 +285,13 @@ def graphite_options():
             # S3's edition.max_limit() (S4 1bb9c7a2b).
             "maximum": 100000,
             "omitted": "only your campaign ceilings - money, attempts, trials, time - bind",
+        },
+        # LAUNCHPAD-FINDINGS-F8-F9 (LA-F8): the input-window advisory.
+        "input_window": {
+            "launch_field": "model_settings.max_input_tokens",
+            "default": 65536,
+            "advisory": "graphite_input_window_too_small",
+            "next_step": _next_step("graphite_input_window_too_small"),
         },
         "offered_for": _implemented(),
     }

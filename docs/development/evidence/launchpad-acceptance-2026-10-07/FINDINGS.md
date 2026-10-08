@@ -159,3 +159,187 @@ the cause, and the slice or PR that fixes it. The plan is
 - **LA-F2's fix fits the rule:** it names the images, so they can be kept
   or removed by tag; it never prunes.
 - **Status:** guard added.
+
+## LA-F8: Graphite on the default Engy model stops at the context ceiling before it plans
+
+- **Cell:** the Launchpad smoke run on `carbon-fresh`, 2026-10-08 (install
+  `f1dd652de`). Campaign `14d573bb4c425ecf12c185dd223f7ece`: Graphite,
+  `graphite_mode: BUILD` with no plan, `engy-chat` /
+  `deepseek-v4-flash-0731`, CPU practice, ceilings `{epochs: 1,
+  provider_nanodollars: 500000000, provider_attempts: 100}`, no
+  `model_settings`.
+- **Failure:**
+  - The campaign COMPLETED after 34 provider attempts, USD 0.0189 and 12
+    research trials, but both Graphite stages ended STOPPED with code
+    `context_ceiling`. No plan was written and nothing was frozen.
+  - `plan` stopped before its third turn. Turn 0 reported 10,274 input
+    tokens and turn 1 13,562. Turn 1 made five calls whose results came to
+    78,501 bytes: the `capabilities` (30,388), `roadmap` (22,411),
+    `objective` (12,177) and `reference_method` (9,203) documents and a
+    `lit_search` (4,322). Compaction could not apply: it needs more than
+    six turns.
+  - `build` ran 31 turns and compacted once, before turn 14. Turn 30 (46,535
+    input tokens) read the 22,411-byte `roadmap` again. Before turn 31 a
+    compaction was due, but the compaction request itself did not fit:
+    "context admission ceiling: the compaction request does not fit; no
+    history silently discarded".
+- **Cause:**
+  - The limit is Carbon's default `max_input_tokens`, 65,536
+    (`model_provider.DEFAULT_SETTINGS`), not the model's capacity. The miner
+    set no `model_settings`, so the admission ceiling was 65,536 - 4,096 =
+    61,440 tokens and the compaction trigger 85% of it, 52,224.
+  - The loop bounds a request at the provider's last reported count plus one
+    token for every byte added since (`research_agent.input_token_bound`).
+    The bound is sound for any tokenizer, but on this content it is about six
+    times the real growth: the build's turn 1 added about 59.5 KB of results
+    and the reported count rose by 9,414 tokens. The plan's third request
+    would have been about 26,000 real tokens; the bound put it above 61,440.
+  - One turn can add more bytes than the 9,216 tokens between the trigger
+    and the ceiling: Graphite reads whole discovery documents, several per
+    turn under the parallel-call rule. A compaction request carries the whole
+    history plus its note, so after such a turn it cannot fit either.
+  - The model's figure is right. Engy publishes a 1,048,576-token context
+    for `deepseek-v4-flash-0731`, recorded on 2026-10-04 (GRAPHITE-D34). The
+    budget arithmetic is as designed (GRAPHITE-MINER-S1).
+  - This is GRAPHITE-D34's defect again. Internal Graphite hit it in phase 3
+    session 2, and the owner's ruling gave its whole-context roles the
+    model's whole published window. The miner edition runs on the miner's own
+    selection, so it never got that window.
+- **Fix in this PR** (engineering, additive; no default changes and nothing
+  new is refused):
+  - The published context table is one record in the miner-facing provider
+    registry (`model_provider.ENGY_CONTEXT_TOKENS`, `published_context`).
+    Internal Graphite's `roles` re-exports it with its values unchanged.
+  - Before a launch spends, the capability document's model block now
+    carries `input_window`: the launch field, its bounds, the default, the
+    admission ceiling at the default, and each offered model's published
+    context. The launch options' `graphite` block carries the same advisory.
+    Both use the closed code `graphite_input_window_too_small`, and the
+    refusal catalog gives its next step: set
+    `model_settings.max_input_tokens` higher, up to the model's published
+    context, knowing each call is reserved at that window.
+  - The stop code `context_ceiling` now has its own next step in the catalog
+    instead of the generic fallback.
+  - Tests: `tests/cpu/test_launchpad_findings_f8_f9.py`.
+- **Open, owner decision:** whether a Graphite launch should get a larger
+  input window by default, and how large.
+  - A miner can set `model_settings.max_input_tokens` today, up to 1,048,576.
+    With the default 131,072-token output cap, 917,504 keeps a request and
+    its reply inside the model's context.
+  - Giving Graphite that window by default, as D34 did internally, raises
+    each call's reservation on the default model from about USD 0.0147 to
+    about USD 0.053. A FULL launch at the default 10% research share would
+    then be refused `research_share_too_small` below a budget of about USD
+    0.53.
+  - The other routes are to require the miner to choose a window before a
+    Graphite launch, or a compaction rule v2 that bounds how many bytes one
+    turn may add. Each changes behaviour or a frozen rule, so none is taken
+    here.
+  - Decision: `.agent/decisions/2026-10-08-LAUNCHPAD-FINDINGS-F8-F9.md`.
+- **Status:** advisory fixed in the PR that carries this entry. The default
+  window is open and needs an owner decision.
+
+## LA-F9: every practice result was withheld from Graphite as protected material
+
+- **Cell:** the same campaign as LA-F8.
+- **Failure:** the campaign's refusals list holds five
+  `REFUSED_PROTECTED_MATERIAL_IN_RESULT` entries, at note sequences 16, 23,
+  26, 30 and 44. Each was the Constructor's
+  `carbon_research_v2__start_research_task`:
+
+  | Seq | Call | What it asked | Result withheld |
+  |---|---|---|---|
+  | 16 | `epoch-1-tool-008` | practice, the scaffold MLP | 3,525 bytes |
+  | 23 | `epoch-1-tool-012` | practice, a larger MLP | 4,071 bytes |
+  | 26 | `epoch-1-tool-014` | practice, a minimal MLP | 3,464 bytes |
+  | 30 | `epoch-1-tool-018` | `read_file` of its own practice trial file | 3,906 bytes |
+  | 44 | `epoch-1-tool-026` | practice, to see if practice still worked | 4,071 bytes |
+
+  - Each practice ran and spent its trial slot; only its result was
+    withheld. Every result is `carbon.battery.practice-feedback.v3` with
+    fields `adaptively_seen`, `backbone`, `backend`, `challenge`,
+    `final_exam` (false), `fit`, `official_eligible` (false), `provenance`,
+    `recipe`, `recipe_digest`, `safety`, `schema`,
+    `scientific_qualification` (false), `seed_source`, `summary` and
+    `worker`. The `read_file` result carried the same document as text.
+- **Cause: false positives.**
+  - The classifier is Graphite's shared check
+    (`graphite.protected_material.protected`), run by the miner toolbox on
+    every result. It refuses any string that names a Graphite marker or
+    matches the checkout deny rule (`boundaries._denied`).
+  - In all five results the one match was the deny prefix
+    `docs/development/evidence/`, at `safety.material.path`. That field
+    holds the public PRACTICE set's own repository path,
+    `docs/development/evidence/exam-design-2026-09-24/refs-a-part2/out/records.jsonl`,
+    with its sha256 (`battery.practice.PRACTICE_SOURCE_PATH`). No marker
+    matched.
+  - That file is committed in the public repository. It holds the 200
+    public practice references, adaptively seen practice evidence that is
+    not the exam (invariant 12); the exam's private pools come from the seed
+    service. The result names its path and digest, not its content. The
+    check's own `result_material` classes the match `attack_target`, not
+    protected material.
+  - The motor and cold-plate practice results pin their practice paths the
+    same way, so every Challenge's practice results were withheld.
+  - The agent was starved of its own results. It re-ran practice to see
+    whether practice was blocked, then read the same trial files through
+    `run_python`, whose printed text did not trip the prefix rule.
+- **Fix in this PR:**
+  - `protected_material.PUBLIC_PRACTICE_PATHS` names the three public
+    practice paths. A string exactly equal to one is exempt from the
+    checkout deny rule, and only from that rule.
+  - Still refused: every Graphite marker (seeds, draw ids, hidden cases, the
+    sealed tuning set, verification references, validator state, canaries);
+    any other path under the evidence prefix, including the battery
+    reference pools and EV5; the public path with anything before or after
+    it, or in another case; and every other deny rule.
+  - A test holds each exempt path to its Challenge's own constant. Re-run
+    read-only over the campaign's 31 recorded research results, the fixed
+    check withholds none of them; the old check withheld exactly the five
+    above.
+  - Follow-up, not changed here: the result refusal says `dispatched:
+    false` although the practice ran and spent its slot. Carbon's attack
+    analysis reads `dispatched: false` as Graphite's own refusal, so
+    changing it needs its own review.
+  - Security: the change narrows a disclosure filter, so it needs
+    security review before merge.
+  - Decision: `.agent/decisions/2026-10-08-LAUNCHPAD-FINDINGS-F8-F9.md`.
+- **Status:** fixed in the PR that carries this entry, pending security
+  review.
+
+## LA-F10: the Launchpad cannot practise on Carbon's released worker images
+
+- **Cause:**
+  - Both remote and local setup accept a worker only when it was built from
+    the install's exact source revision. `research_campaign.verify_current_worker`
+    compares the worker's source-tree digest with the install's.
+  - `scripts/dev/worker_image_release.py pull` exists, but no miner install
+    path calls it.
+  - So an install on current main refuses the released, mainnet-shaped
+    images (`worker-images-v1`), which were built from an earlier revision.
+- **Proposed fix:** `install_miner.sh --release <tag>`, which checks out the
+  release tag and pulls the images by digest. Local builds remain the
+  fallback.
+- **Status:** open. It needs a release cut after the commit operation
+  merges.
+
+## LA-F11: own-agent campaigns refuse every practice for a model key they never use
+
+- **Cell:** C3 on `carbon-fresh`, 2026-10-08. An own-agent campaign
+  (`agent: none`, id `9cd07892c064f4b9f4f40e8ac1297a7d`) refused both of its
+  practices with `model_provider_credential_not_configured`.
+- **Cause:**
+  - Setup wrote the Engy key as `provider_credentials.engy-chat` and also as
+    `paths.api_key_file`.
+  - A campaign with no selection schema gets the pinned default provider's
+    rule in `runner.RunnerAdapter._frozen_credential`. There
+    `foreign_default_key(cfg)` is true, so the check refuses.
+  - Yet an `agent: none` campaign calls no model, and
+    `battery.campaign.prepare` opens no key for it.
+- **Impact:** any miner who set up a non-default provider is blocked on the
+  whole own-agent and MCP-client path: A3, A4 and the first real submit, A5.
+- **Fix:** for agent `none`, the credential check returns no key, read from
+  the frozen manifest or, before it freezes, from the admitted launch.
+  Campaigns whose Carbon agent calls a model keep the refusal. It is written
+  and tested (107 passed) but not yet committed.
+- **Status:** fix pending.

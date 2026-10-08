@@ -1083,6 +1083,26 @@ NEXT_ACTIONS = {
         "provider_attempts ceiling, raise research_share, cap the model's "
         "output, or launch BUILD."
     ),
+    # LA-F8 (LAUNCHPAD-FINDINGS-F8-F9): the input window, before a launch
+    # (the options' `input_window` advisory) and after a stop at it.
+    "graphite_input_window_too_small": (
+        "Graphite reads whole discovery documents, several in one turn, and "
+        "Carbon admits a request only while it stays under max_input_tokens "
+        "minus 4,096, counting one token for every byte added since the "
+        "provider's last count. At the default 65,536 Graphite's first reading "
+        "turns pass that bound. Set model_settings.max_input_tokens higher, up "
+        "to your model's published context (input_window lists it), before you "
+        "launch. Each call is reserved at that window, so a larger one holds "
+        "more of your provider_nanodollars ceiling per call."
+    ),
+    "context_ceiling": (
+        "The agent stopped because its next request could pass your model's "
+        "input window as Carbon bounds it; no history was silently dropped. "
+        "Launch a new campaign with model_settings.max_input_tokens set "
+        "higher, up to your model's published context (input_window lists "
+        "it). Each call is reserved at that window, so check your "
+        "provider_nanodollars ceiling too."
+    ),
     "too_many_pins": (
         "You pinned more cards than one plan can consider (64), and the "
         "Planner must consider each pin. Unpin some (carbon_library_unpin), "
