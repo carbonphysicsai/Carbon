@@ -321,7 +321,9 @@ def exclusive(directory):
     import fcntl
 
     fd = os.open(
-        Path(directory) / LOCK_FILE, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600
+        _owner_only_dir(directory) / LOCK_FILE,
+        os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW,
+        0o600,
     )
     try:
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -943,11 +945,14 @@ def main(argv=None):
     args = parser.parse_args(argv)
     lock = None
     try:
-        producer = Producer.from_config(args.config)
         if args.command in MUTATING:
+            # Taken from the configuration, before anything is built: the
+            # lock guards the directory, whatever object a command uses.
             try:
-                lock = exclusive(producer.directory)
-            except ProducerRefused:
+                lock = exclusive(load_config(args.config)["producer_dir"])
+            except ProducerRefused as refused:
+                if refused.code != "producer_already_running":
+                    raise
                 if args.command != "tick":
                     raise
                 # Not a failure: the running tick does this rotation's work,
@@ -958,6 +963,7 @@ def main(argv=None):
                     )
                 )
                 return 0
+        producer = Producer.from_config(args.config)
         if args.command == "draw":
             result = producer.draw(
                 args.challenge, args.role, kind=args.kind, size=args.size

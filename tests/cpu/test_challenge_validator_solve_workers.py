@@ -61,7 +61,7 @@ def test_the_solve_command_carries_the_worker_count(tmp_path):
     assert command[command.index("--workers") + 1] == "12"
 
 
-def test_producer_solve_passes_workers_and_timeout(monkeypatch):
+def test_producer_solve_passes_workers_and_timeout(monkeypatch, tmp_path):
     from carbon.challenge_validator import producer as pr
 
     seen = {}
@@ -74,6 +74,8 @@ def test_producer_solve_passes_workers_and_timeout(monkeypatch):
     monkeypatch.setattr(
         pr.Producer, "from_config", classmethod(lambda cls, path: Fake())
     )
+    # `main` takes the producer directory's lock from the configuration.
+    monkeypatch.setattr(pr, "load_config", lambda path: {"producer_dir": tmp_path})
     argv = ["solve", "--config", "x", "--challenge", "c", "--fingerprint", "f"]
     assert pr.main(argv + ["--workers", "12", "--timeout-s", "900"]) == 0
     assert seen == {"workers": 12, "timeout_s": 900.0}

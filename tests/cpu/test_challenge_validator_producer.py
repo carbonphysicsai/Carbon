@@ -313,6 +313,9 @@ def test_two_ticks_never_run_at_once(producer, monkeypatch, capsys):
         return {"block": block}
 
     monkeypatch.setattr(pr.Producer, "from_config", staticmethod(lambda path: producer))
+    monkeypatch.setattr(
+        pr, "load_config", lambda path: {"producer_dir": producer.directory}
+    )
     monkeypatch.setattr(producer, "tick", slow_tick)
     first = []
     thread = threading.Thread(
