@@ -75,6 +75,8 @@ UNKNOWN_SPEND = (
 
 #: The output caps a selection may carry (`select`), inclusive.
 OUTPUT_TOKEN_BOUNDS = (256, 131072)
+#: The input windows (`max_input_tokens`) a selection may carry, inclusive.
+INPUT_TOKEN_BOUNDS = (16384, 1048576)
 
 
 @dataclass(frozen=True)
@@ -357,6 +359,20 @@ ENGY_MODELS = {
 ENGY_LADDER = tuple(ENGY_MODELS)
 ENGY_DEFAULT_MODEL = "deepseek-v4-flash-0731"
 ENGY_MODELS_URL = "https://api.engy.ai/v1/models"
+#: Engy's published context window of each model on the owner's ladder, in
+#: tokens: `context_length`, equal to `max_model_len`, in Engy's public model
+#: list (`ENGY_MODELS_URL`), read without a key on `ENGY_CONTEXT_OBSERVED`.
+#: Provider facts, recorded like a price and never guessed (GRAPHITE-D34). A
+#: model not listed here has no recorded context. Internal Graphite's
+#: whole-context roles read it as `graphite.roles.ENGY_CONTEXT_TOKENS`.
+ENGY_CONTEXT_TOKENS = {
+    "deepseek-v4-flash-0731": 1048576,
+    "qwen3.8-27b": 1001536,
+    "glm-5.3-flash": 262144,
+    "glm-5.2": 262144,
+    "kimi-k3": 1113088,
+}
+ENGY_CONTEXT_OBSERVED = "2026-10-04"
 ENGY_OUTPUT = OutputMaximum(
     tokens=OUTPUT_TOKEN_BOUNDS[1],
     reference="Engy published list, " + ENGY_MODELS_URL,
@@ -807,6 +823,30 @@ def output_maximum(provider_id, model_id, *, adapters=None):
     }
 
 
+#: The context windows Carbon records, by provider adapter: each adapter that
+#: serves Engy's ladder reads Engy's published list. No other adapter's
+#: context is recorded here, and none is guessed.
+PUBLISHED_CONTEXT_TOKENS = {
+    "engy-anthropic": ENGY_CONTEXT_TOKENS,
+    "engy-chat": ENGY_CONTEXT_TOKENS,
+}
+
+
+def published_context(provider_id, model_id):
+    """The model's published context window as Carbon records it
+    (`PUBLISHED_CONTEXT_TOKENS`): `{"tokens", "reference", "observed"}`, or
+    None when Carbon records none. A provider fact, never a choice: it bounds
+    what a miner may usefully set as `max_input_tokens`, and sets nothing."""
+    tokens = PUBLISHED_CONTEXT_TOKENS.get(provider_id, {}).get(model_id)
+    if tokens is None:
+        return None
+    return {
+        "tokens": tokens,
+        "reference": ENGY_MODELS_URL,
+        "observed": ENGY_CONTEXT_OBSERVED,
+    }
+
+
 def select(
     *,
     provider_id,
@@ -860,7 +900,7 @@ def select(
         raise ModelSelectionRefused("unsupported reasoning effort")
     resolved = Settings(
         max_input_tokens=_int(
-            chosen["max_input_tokens"], 16384, 1048576, "max_input_tokens"
+            chosen["max_input_tokens"], *INPUT_TOKEN_BOUNDS, "max_input_tokens"
         ),
         max_output_tokens=_int(
             chosen["max_output_tokens"], *OUTPUT_TOKEN_BOUNDS, "max_output_tokens"

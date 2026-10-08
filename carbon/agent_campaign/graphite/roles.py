@@ -27,7 +27,12 @@ from __future__ import annotations
 import enum
 from dataclasses import dataclass
 
-from carbon.development_session.model_provider import ENGY_LADDER, ENGY_MODELS_URL
+from carbon.development_session.model_provider import (
+    ENGY_CONTEXT_OBSERVED,  # noqa: F401 - re-exported with the table
+    ENGY_CONTEXT_TOKENS,
+    ENGY_LADDER,
+    ENGY_MODELS_URL,
+)
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_agent import CONTEXT_RESERVE_TOKENS
 from carbon.development_session.research_agent_policy import (
@@ -210,19 +215,11 @@ PARALLEL_RULES = {name: PARALLEL_CALLS_V2 for name in RoleName}
 
 
 #: Engy's published context window of each model on the owner's ladder, in
-#: tokens: `context_length`, equal to `max_model_len`, in Engy's public model
-#: list, read without a key on `ENGY_CONTEXT_OBSERVED`. Provider facts,
-#: recorded like a price and never guessed (GRAPHITE-D34). A model not listed
-#: here has no recorded context.
-ENGY_CONTEXT_TOKENS = {
-    "deepseek-v4-flash-0731": 1048576,
-    "qwen3.8-27b": 1001536,
-    "glm-5.3-flash": 262144,
-    "glm-5.2": 262144,
-    "kimi-k3": 1113088,
-}
+#: tokens (GRAPHITE-D34). The one record is the miner-facing provider
+#: registry's (`model_provider.ENGY_CONTEXT_TOKENS`, LAUNCHPAD-FINDINGS-F8-F9),
+#: so the Launchpad's options and these roles read the same provider facts. A
+#: model not listed there has no recorded context.
 ENGY_CONTEXT_SOURCE = ENGY_MODELS_URL
-ENGY_CONTEXT_OBSERVED = "2026-10-04"
 #: The most input tokens `model_provider.select` accepts.
 SELECT_MAX_INPUT_TOKENS = 1048576
 #: The provider timeout of a whole-context session (the Constructor's, and

@@ -534,6 +534,56 @@ def _output_cap(providers):
     }
 
 
+#: The closed advisory code the input window carries for Graphite (LA-F8).
+GRAPHITE_INPUT_WINDOW = "graphite_input_window_too_small"
+
+
+def _input_window(providers):
+    """The launch's optional input window (`model_settings.max_input_tokens`,
+    LAUNCHPAD-FINDINGS-F8-F9, LA-F8): its bounds, the default a launch that
+    sets none gets, and for each offered model the context its provider
+    publishes where Carbon records one (`model_provider.published_context`)
+    - a provider fact, never a choice. Graphite's advisory says up front what
+    LA-F8 found after spending: at the default, its first reading turns pass
+    Carbon's admission bound. It changes no default and refuses nothing; the
+    runner validates the launch and has the last word."""
+    from carbon.development_session.model_provider import (
+        DEFAULT_SETTINGS,
+        INPUT_TOKEN_BOUNDS,
+        published_context,
+    )
+    from carbon.development_session.research_agent import CONTEXT_RESERVE_TOKENS
+    from scripts.dev.miner_launchpad.supervisor import next_action
+
+    published = {}
+    for row in providers:
+        for model in row["models"]:
+            recorded = published_context(row["id"], model["id"])
+            if recorded is not None:
+                published.setdefault(row["id"], {})[model["id"]] = recorded
+    low, high = INPUT_TOKEN_BOUNDS
+    default = DEFAULT_SETTINGS.max_input_tokens
+    return {
+        "launch_field": "model_settings.max_input_tokens",
+        "bounds": [low, high],
+        "default": default,
+        "admission_ceiling_at_default": default - CONTEXT_RESERVE_TOKENS,
+        "published_context": published,
+        "graphite_advisory": {
+            "code": GRAPHITE_INPUT_WINDOW,
+            "next_step": next_action(GRAPHITE_INPUT_WINDOW),
+        },
+        "basis": (
+            "Optional. Blank: "
+            f"{default:,} tokens. Carbon admits a request only while it stays "
+            f"under this window minus {CONTEXT_RESERVE_TOKENS:,} tokens, and "
+            "each call is reserved at the window. Keep it at most the model's "
+            "published context. Sent only with a provider and model, and "
+            "validated by the runner at launch."
+        ),
+    }
+
+
 def _model(options, refusal, cfg=None):
     """Model providers the miner can choose, each with its own credential.
 
@@ -584,6 +634,7 @@ def _model(options, refusal, cfg=None):
         "setup_choice": setup,
         "launch_field": ["model_provider", "model"],
         "output_cap": _output_cap(providers),
+        "input_window": _input_window(providers),
         "selection": (
             "The launch carries model_provider and model. The key file is the "
             "one your runner profile configures for that provider; a provider "
