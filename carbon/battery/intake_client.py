@@ -358,6 +358,13 @@ def describe(status, answer):
             f"Submitted as {answer['submission_id']}. Ask for its status in a "
             "few minutes; rebuilding and scoring take several."
         )
+    if state == "VOID":
+        return (
+            "Void: the hidden window it was scored on was withdrawn after an "
+            "incident. That is not a result about your model: it was never a "
+            "score, it is not ranked or weighted, and it does not use your "
+            "scoring slot. Submit again when you are ready."
+        )
     if state == "SCORED" and "screening" not in answer:
         return (
             "Scored. Under this exam rule its results are sealed: they are "

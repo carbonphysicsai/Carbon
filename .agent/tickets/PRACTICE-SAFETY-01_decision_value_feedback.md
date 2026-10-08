@@ -11,6 +11,7 @@
 1. **Feedback only.** A metric enters NO score, gate, ranking, promotion, frontier event or settlement. Every computed field carries `"feedback_only": true`.
 2. **Public practice material only.**
    - **Allowed:** each Challenge's committed practice cases and their committed reference records.
+   - **Also allowed (PRACTICE-QUIZ-01, the Test Lead's rulings of 2026-10-06):** a hidden batch Carbon has retired and released into the training data pool (`CARBON_COMMIT_TO_TRAINING_POOL`), which is public once released; and committed TRAIN cases in the practice quiz's public near-limit set.
    - **Never read:** scoring sets, hidden or private pools, sealed or confirmation batches, the EV decision conditions (EV1/2/4/5 and the protected grids), or the motor and cooling counted-study points.
 3. **No Track B data.**
    - A decision-level metric uses a separate **practice decision set**. It is registered before use and drawn from public practice conditions.

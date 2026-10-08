@@ -142,4 +142,10 @@ def test_the_fixture_draws_the_whole_surface():
     assert doc["per_case"]["status"] == "AVAILABLE"
     assert [s["state"] for s in doc["stages"]] == ["done", "current", "done", "done"]
     assert doc["candidates"] and doc["outcomes"] and doc["journal"]["entries"]
-    assert doc["contract"]["construction_level"]["level"] is None
+    # Filled from the fixture Challenge's ladder data (LAUNCHPAD-LEVELS-01
+    # S1): the campaign's own level, never inferred.
+    from scripts.dev.miner_launchpad.ladder_view import construction_slot
+
+    slot = doc["contract"]["construction_level"]
+    assert slot == construction_slot(doc["contract"]["challenge"]["id"])
+    assert slot["level"] == 0 and slot["status"] == "DEFINED"

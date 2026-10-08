@@ -866,6 +866,7 @@ class BatteryValidator:
             "INVALID_CONSTRUCTION",
             "RECONSTRUCTION_FAILED",
             "FAILED_INFRA_EXHAUSTED",
+            "VOID",
         ):
             return self.outcome(submission_id)
         self._settle()

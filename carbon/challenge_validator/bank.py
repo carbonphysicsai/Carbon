@@ -316,8 +316,8 @@ class BankLedger:
             ).fetchone()
             if state is None:
                 raise BankRefused("bank_unknown_tranche")
-            if state["state"] == "SEALED":
-                raise BankRefused("bank_tranche_sealed")
+            if state["state"] in ("SEALED", "QUARANTINED"):
+                raise BankRefused("bank_tranche_" + state["state"].lower())
             for record in records:
                 case_id = record.get("case_id") if type(record) is dict else None
                 row = db.execute(
@@ -372,6 +372,8 @@ class BankLedger:
                     "SELECT * FROM tranches WHERE role = ?", (tranche,)
                 ).fetchone()
             )
+        if found["state"] == "QUARANTINED":
+            raise BankRefused("bank_tranche_quarantined")
         if found["state"] == "SEALED":
             if (found["root"], found["references_digest"]) != (root, references):
                 raise BankRefused("bank_tranche_changed")
@@ -561,6 +563,58 @@ class BankLedger:
                 "SELECT bank, COUNT(*) FROM release GROUP BY bank ORDER BY bank"
             ).fetchall()
         return {bank: count for bank, count in rows}
+
+    def quarantine_tranche(self, tranche, slot, reason):
+        """Take a tranche out of service at once (VALIDATOR-24): it is never
+        drawn again, and every solved case of it retires into the release
+        queue at `slot`, so it publishes through the normal path once every
+        window that drew it is revealed. `reason` is a public code, never a
+        case. Idempotent; the bank tops up as usual."""
+        if type(reason) is not str or not re.fullmatch(r"[a-z0-9_]{1,64}", reason):
+            raise BankRefused("bank_reason_malformed")
+        with self._db() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute(
+                "SELECT bank, state FROM tranches WHERE role = ?", (tranche,)
+            ).fetchone()
+            if row is None:
+                raise BankRefused("bank_unknown_tranche")
+            if row["state"] == "QUARANTINED":
+                return None
+            db.execute(
+                "UPDATE tranches SET state = 'QUARANTINED' WHERE role = ?", (tranche,)
+            )
+            # Only a sealed tranche's cases can be proven, so only they
+            # release; an unsealed tranche's cases were never drawn.
+            cases = (
+                [
+                    r["case_id"]
+                    for r in db.execute(
+                        "SELECT case_id FROM cases WHERE tranche = ? AND reference "
+                        "IS NOT NULL AND retired_slot IS NULL ORDER BY case_id",
+                        (tranche,),
+                    )
+                ]
+                if row["state"] == "SEALED"
+                else []
+            )
+            for case_id in cases:
+                db.execute(
+                    "UPDATE cases SET retired_slot = ? WHERE case_id = ?",
+                    (slot, case_id),
+                )
+                db.execute(
+                    "INSERT OR IGNORE INTO release(case_id, bank, slot) VALUES (?, ?, ?)",
+                    (case_id, row["bank"], slot),
+                )
+        return self._append(
+            "tranche_quarantined",
+            bank=row["bank"],
+            tranche=tranche,
+            slot=slot,
+            reason=reason,
+            retired=len(cases),
+        )
 
     # --- reveal and publication (OWNER-AUTO-PUBLISH-RETIRED-01) ---------------
 

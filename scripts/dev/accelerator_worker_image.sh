@@ -45,5 +45,11 @@ payload = {**build, "schema": "carbon.c03.worker-image.v1",
            "image_id": sys.argv[1], "config_digest": sys.argv[1]}
 pathlib.Path(sys.argv[3]).write_text(json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n")
 PY
+# Name the image by its own id, so `docker image prune` never deletes it as
+# dangling (LA-F2). Everything still verifies it by image id.
+local_tag="carbon-gpu-worker:${image#sha256:}"
+docker tag "${image}" "${local_tag}"
+[[ "$(docker image inspect --format '{{.Id}}' "${local_tag}")" == "${image}" ]] \
+  || { echo 'local GPU worker tag identity changed' >&2; exit 2; }
 echo "NVIDIA DEVELOPMENT worker: ${image}"
 echo "Image manifest: ${output}"

@@ -282,6 +282,38 @@ RECEIVER_ONE_STEP = (
 )
 
 
+#: What a miner does when Review cannot read an intake's public facts
+#: (LAUNCHPAD-ACCEPT-04). A loopback address is usually the near end of a
+#: tunnel to a validator that binds its own loopback.
+LOOPBACK_UNREACHABLE_STEP = (
+    "nothing answered at this loopback address: start your tunnel to the "
+    "validator (for example ssh -N -L <local port>:127.0.0.1:<intake port> "
+    "<validator host>) or the validator itself, then review again; Carbon "
+    "cannot tell which of them is not running"
+)
+INTAKE_UNREACHABLE_STEP = (
+    "the intake did not answer as a battery intake: check its address and "
+    "your connection, then review again"
+)
+#: What a miner does when the intake serves another network, subnet or
+#: Challenge than the one it is named for.
+INTAKE_MISMATCH_STEP = (
+    "this intake serves another network, subnet or Challenge: name the "
+    "intake of a validator on Carbon's testnet (netuid 567) for this "
+    "Challenge, then review again"
+)
+
+
+def _loopback(url) -> bool:
+    """Whether an intake URL names this machine's loopback."""
+    from urllib.parse import urlsplit
+
+    try:
+        return urlsplit(url).hostname in ("127.0.0.1", "localhost")
+    except ValueError:
+        return False
+
+
 def _named_receivers(value, intakes, unpinned=frozenset()) -> dict:
     """The receiver hotkey a Review request names for each of the miner's
     own `intakes` (LAUNCHPAD-ACCEPT-03): `receiver_hotkey` beside exactly one,
@@ -1279,10 +1311,23 @@ class LiveChecks:
             facts = campaign.intake_check(url)
         except IntakeMismatch:
             raise SetupRefused(
-                "intakes", "intake_serves_another_chain_or_challenge"
+                "intakes",
+                "intake_serves_another_chain_or_challenge",
+                next_step=INTAKE_MISMATCH_STEP,
             ) from None
         except (OSError, ValueError, KeyError, TypeError):
-            raise SetupRefused("intakes", "intake_unreachable") from None
+            # A loopback intake is usually a tunnel to a validator's loopback
+            # door (LAUNCHPAD-ACCEPT-04): its tunnel or the validator is not
+            # running, and Carbon cannot tell which.
+            raise SetupRefused(
+                "intakes",
+                "intake_unreachable",
+                next_step=(
+                    LOOPBACK_UNREACHABLE_STEP
+                    if _loopback(url)
+                    else INTAKE_UNREACHABLE_STEP
+                ),
+            ) from None
         return {"receiver": facts["receiver"], "snapshot": facts["snapshot"]["id"]}
 
     def agent(self, hotkey: str, socket_path: Path | None = None) -> dict:

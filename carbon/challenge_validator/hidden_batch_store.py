@@ -81,6 +81,11 @@ class HiddenBatchStore:
         PRIMARY KEY(fingerprint, case_id),
         FOREIGN KEY(fingerprint) REFERENCES batches(fingerprint)
     );
+    CREATE TABLE IF NOT EXISTS withdrawn(
+        fingerprint TEXT PRIMARY KEY,
+        reason TEXT NOT NULL,
+        block INTEGER NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS windows(
         fingerprint TEXT PRIMARY KEY,
         slot INTEGER NOT NULL,
@@ -320,7 +325,9 @@ class HiddenBatchStore:
                 "SELECT w.fingerprint FROM windows w JOIN batches b "
                 "ON b.fingerprint = w.fingerprint WHERE b.kind = ? "
                 "AND b.state = 'COMPLETE' AND w.activate_block <= ? "
-                "AND ? < w.retire_block ORDER BY w.activate_block, w.fingerprint",
+                "AND ? < w.retire_block AND w.fingerprint NOT IN "
+                "(SELECT fingerprint FROM withdrawn) "
+                "ORDER BY w.activate_block, w.fingerprint",
                 (kind, block, block),
             ).fetchall()
         return [row["fingerprint"] for row in rows]
@@ -335,11 +342,39 @@ class HiddenBatchStore:
             row = database.execute(
                 "SELECT MAX(w.activate_block) FROM windows w JOIN batches b "
                 "ON b.fingerprint = w.fingerprint WHERE b.kind = ? "
-                "AND b.state = 'COMPLETE' AND w.activate_block <= ?",
+                "AND b.state = 'COMPLETE' AND w.activate_block <= ? "
+                "AND w.fingerprint NOT IN (SELECT fingerprint FROM withdrawn)",
                 (kind, block),
             ).fetchone()
         latest = row[0]
         return [] if latest is None else self.active(latest, kind=kind)
+
+    def withdraw(self, fingerprint, reason, block):
+        """Record a producer withdrawal (VALIDATOR-24): the batch is never
+        active again and never imported again. Idempotent."""
+        with self._db() as database:
+            database.execute("BEGIN IMMEDIATE")
+            row = database.execute(
+                "SELECT reason, block FROM withdrawn WHERE fingerprint = ?",
+                (fingerprint,),
+            ).fetchone()
+            if row is not None:
+                if (row["reason"], row["block"]) != (reason, block):
+                    raise self._fail("withdrawal_changed")
+                return False
+            database.execute(
+                "INSERT INTO withdrawn VALUES (?, ?, ?)", (fingerprint, reason, block)
+            )
+        return True
+
+    def withdrawn(self, fingerprint):
+        with self._db() as database:
+            return (
+                database.execute(
+                    "SELECT 1 FROM withdrawn WHERE fingerprint = ?", (fingerprint,)
+                ).fetchone()
+                is not None
+            )
 
     # --- submissions --------------------------------------------------------
 

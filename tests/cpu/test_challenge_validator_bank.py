@@ -320,3 +320,66 @@ def test_the_distribution_host_serves_the_pool_without_authentication(tmp_path):
         None, receiver="r", verifier=None, permits=None, nonces=None, log=Log()
     )
     assert bare.handle_training(tp.TRAINING_PATH + "x")[0] == 404
+
+
+# --- quarantine (VALIDATOR-24) -----------------------------------------------------------
+
+
+def test_a_quarantined_tranche_is_never_drawn_and_publishes_after_reveal(
+    tmp_path, ledger
+):
+    first = fill(ledger, "pool", 10)
+    second = fill(ledger, "pool", 10)
+    drawn = ledger.draw_window("pool", 1, {"all": 5}, retire_at=5)
+    entry = ledger.quarantine_tranche(first["tranche"], 1, "bank_copy_leaked")
+    assert entry["event"] == "tranche_quarantined" and entry["retired"] == 10
+    assert ledger.quarantine_tranche(first["tranche"], 1, "bank_copy_leaked") is None
+    window = ledger.window_cases("pool", 1)["cases"]
+    second_ids = {
+        c for c, case in window.items() if case["tranche"] == second["tranche"]
+    }
+    later = set(
+        ledger.draw_window("pool", 2, {"all": 5}, active_slots=(1,), retire_at=5)
+    )
+    assert all(
+        ledger.window_cases("pool", 2)["cases"][c]["tranche"] == second["tranche"]
+        for c in later
+    )
+    assert not later & set(drawn)
+    # Its cases retire now; those a window drew publish only after reveal.
+    ready = ledger.publishable()
+    assert len(ready) == 10 - len(set(drawn) - second_ids)
+    ledger.reveal_window("pool", 1)
+    assert len(ledger.publishable()) == 10
+    with pytest.raises(BankRefused) as refused:
+        ledger.seal(first["tranche"])
+    assert refused.value.code == "bank_tranche_quarantined"
+    assert ledger.deficit("pool", 20) == 10
+
+
+@pytest.mark.parametrize("reason", ["", "Has Spaces", "x" * 65])
+def test_a_quarantine_reason_is_a_public_code(ledger, reason):
+    first = fill(ledger, "pool", 3)
+    with pytest.raises(BankRefused) as refused:
+        ledger.quarantine_tranche(first["tranche"], 1, reason)
+    assert refused.value.code == "bank_reason_malformed"
+
+
+def test_a_withdrawn_motor_batch_is_never_active(tmp_path):
+    from carbon.challenge_validator.motor import MotorAdapterError
+    from carbon.challenge_validator.motor_hidden import open_store
+
+    store = open_store(tmp_path / "store")
+    fingerprint = store.add(
+        {"cases": [{"case_id": "a"}]}, role="r", kind="screening", sequence=1
+    )
+    assert store.ingest(
+        fingerprint, [{"case_id": "a", "status": "OK"}], terminal=("OK",)
+    )
+    store.set_window(fingerprint, {"slot": 1, "activate_block": 10, "retire_block": 40})
+    assert store.active(20) == [fingerprint]
+    assert store.withdraw(fingerprint, "leak_suspected", 15) is True
+    assert store.active(20) == [] and store.latest_active(50) == []
+    with pytest.raises(MotorAdapterError) as refused:
+        store.withdraw(fingerprint, "other", 15)
+    assert refused.value.code == "motor_withdrawal_changed"
