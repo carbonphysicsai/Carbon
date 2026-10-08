@@ -1,0 +1,2872 @@
+{
+ "cases": [
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u01-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 119.67502727300001,
+   "geometry": {
+    "base_mm": 0.7423567686076862,
+    "channel_depth_mm": 5.41120036448214,
+    "channel_width_mm": 0.5823792874122276,
+    "fin_width_mm": 0.262663873143922
+   },
+   "hydraulic_power_w": 0.0270766771249997,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 541.5335424999939,
+   "re_outlet": 470.6600061877112,
+   "reasons": [
+    "outside applicability: fluid reaches 119.68 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 159.13796349311082,
+   "wall_s": 1474.5
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u00-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 112.65897986200002,
+   "geometry": {
+    "base_mm": 0.7395423244574381,
+    "channel_depth_mm": 4.7312985114470525,
+    "channel_width_mm": 0.5227590770306116,
+    "fin_width_mm": 0.3168854315874581
+   },
+   "hydraulic_power_w": 0.04285487557500019,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 857.0975115000037,
+   "re_outlet": 536.3824874220256,
+   "reasons": [
+    "outside applicability: fluid reaches 112.66 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 150.99936302571217,
+   "wall_s": 1532.7
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u01-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 98.583207609,
+   "geometry": {
+    "base_mm": 0.7423567686076862,
+    "channel_depth_mm": 5.41120036448214,
+    "channel_width_mm": 0.5823792874122276,
+    "fin_width_mm": 0.262663873143922
+   },
+   "hydraulic_power_w": 0.02686327736500025,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 537.265547300005,
+   "re_outlet": 470.65715965831566,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 112.32402017221739,
+   "wall_s": 1579.5
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u01-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 126.34583876800002,
+   "geometry": {
+    "base_mm": 0.7423567686076862,
+    "channel_depth_mm": 5.41120036448214,
+    "channel_width_mm": 0.5823792874122276,
+    "fin_width_mm": 0.262663873143922
+   },
+   "hydraulic_power_w": 0.028188387800000058,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 563.7677560000011,
+   "re_outlet": 470.662845073938,
+   "reasons": [
+    "outside applicability: fluid reaches 126.35 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 165.48592426759916,
+   "wall_s": 1613.3
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u00-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 94.02358027300005,
+   "geometry": {
+    "base_mm": 0.7395423244574381,
+    "channel_depth_mm": 4.7312985114470525,
+    "channel_width_mm": 0.5227590770306116,
+    "fin_width_mm": 0.3168854315874581
+   },
+   "hydraulic_power_w": 0.04251642126000006,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 850.3284252000012,
+   "re_outlet": 536.3798705817273,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 107.25502386273104,
+   "wall_s": 1614.5
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u00-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 118.47987956000003,
+   "geometry": {
+    "base_mm": 0.7395423244574381,
+    "channel_depth_mm": 4.7312985114470525,
+    "channel_width_mm": 0.5227590770306116,
+    "fin_width_mm": 0.3168854315874581
+   },
+   "hydraulic_power_w": 0.044587685084999974,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 891.7537016999995,
+   "re_outlet": 536.3856349430871,
+   "reasons": [
+    "outside applicability: fluid reaches 118.48 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 156.62704041304863,
+   "wall_s": 1631.3
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u01-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 137.06949582200002,
+   "geometry": {
+    "base_mm": 0.7423567686076862,
+    "channel_depth_mm": 5.41120036448214,
+    "channel_width_mm": 0.5823792874122276,
+    "fin_width_mm": 0.262663873143922
+   },
+   "hydraulic_power_w": 0.010008901365625206,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 320.2848437000066,
+   "re_outlet": 321.533572420613,
+   "reasons": [
+    "outside applicability: fluid reaches 137.07 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 174.8882685685992,
+   "wall_s": 1695.9
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u00-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 127.69332475100003,
+   "geometry": {
+    "base_mm": 0.7395423244574381,
+    "channel_depth_mm": 4.7312985114470525,
+    "channel_width_mm": 0.5227590770306116,
+    "fin_width_mm": 0.3168854315874581
+   },
+   "hydraulic_power_w": 0.015790253859374843,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 505.288123499995,
+   "re_outlet": 366.2525712856958,
+   "reasons": [
+    "outside applicability: fluid reaches 127.69 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 164.98921840804866,
+   "wall_s": 1709.8
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u03-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 83.81324537400002,
+   "geometry": {
+    "base_mm": 0.9969787410891499,
+    "channel_depth_mm": 3.9421934062052695,
+    "channel_width_mm": 0.228941626534671,
+    "fin_width_mm": 0.2759255440889758
+   },
+   "hydraulic_power_w": 0.34600600606500015,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 6920.120121300002,
+   "re_outlet": 401.633478593356,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 122.40543395435651,
+   "wall_s": 1087.2
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u03-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 71.75263963600003,
+   "geometry": {
+    "base_mm": 0.9969787410891499,
+    "channel_depth_mm": 3.9421934062052695,
+    "channel_width_mm": 0.228941626534671,
+    "fin_width_mm": 0.2759255440889758
+   },
+   "hydraulic_power_w": 0.34536930939000016,
+   "outcome": "NEAR_PENDING_REFINEMENT",
+   "pressure_drop_pa": 6907.3861878000025,
+   "re_outlet": 401.632182469976,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 85.11604757560355,
+   "wall_s": 1213.6
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u02-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 119.895635776,
+   "geometry": {
+    "base_mm": 0.7476072506435787,
+    "channel_depth_mm": 5.579925055835643,
+    "channel_width_mm": 0.876522483165348,
+    "fin_width_mm": 0.26846870562153735
+   },
+   "hydraulic_power_w": 0.011285036889999902,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 225.70073779999802,
+   "re_outlet": 588.7419655400065,
+   "reasons": [
+    "outside applicability: fluid reaches 119.90 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 134.8124160371168,
+   "wall_s": 1355.9
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u03-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 86.64468497200005,
+   "geometry": {
+    "base_mm": 0.9969787410891499,
+    "channel_depth_mm": 3.9421934062052695,
+    "channel_width_mm": 0.228941626534671,
+    "fin_width_mm": 0.2759255440889758
+   },
+   "hydraulic_power_w": 0.35875566068499976,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 7175.113213699995,
+   "re_outlet": 401.63567295925935,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 125.10852748745577,
+   "wall_s": 1219.5
+  },
+  {
+   "at_x_mm": 15.450000000000001,
+   "case_id": "u02-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 150.60802319200002,
+   "geometry": {
+    "base_mm": 0.7476072506435787,
+    "channel_depth_mm": 5.579925055835643,
+    "channel_width_mm": 0.876522483165348,
+    "fin_width_mm": 0.26846870562153735
+   },
+   "hydraulic_power_w": 0.011426117839999642,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 228.52235679999285,
+   "re_outlet": 588.7451053146858,
+   "reasons": [
+    "outside applicability: fluid reaches 150.61 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 190.09433976278302,
+   "wall_s": 1398.8
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u03-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 91.80989462900004,
+   "geometry": {
+    "base_mm": 0.9969787410891499,
+    "channel_depth_mm": 3.9421934062052695,
+    "channel_width_mm": 0.228941626534671,
+    "fin_width_mm": 0.2759255440889758
+   },
+   "hydraulic_power_w": 0.13288148521250015,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 4252.207526800004,
+   "re_outlet": 274.5300502324618,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 129.9495856714558,
+   "wall_s": 1232.2
+  },
+  {
+   "at_x_mm": 25.65,
+   "case_id": "u02-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 184.10976073200004,
+   "geometry": {
+    "base_mm": 0.7476072506435787,
+    "channel_depth_mm": 5.579925055835643,
+    "channel_width_mm": 0.876522483165348,
+    "fin_width_mm": 0.26846870562153735
+   },
+   "hydraulic_power_w": 0.004207703393749853,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 134.6465085999953,
+   "re_outlet": 402.40578564572183,
+   "reasons": [
+    "outside applicability: fluid reaches 184.11 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 222.0424432723915,
+   "wall_s": 1381.7
+  },
+  {
+   "at_x_mm": 25.65,
+   "case_id": "u02-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 166.69873644200004,
+   "geometry": {
+    "base_mm": 0.7476072506435787,
+    "channel_depth_mm": 5.579925055835643,
+    "channel_width_mm": 0.876522483165348,
+    "fin_width_mm": 0.26846870562153735
+   },
+   "hydraulic_power_w": 0.012179334684999777,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 243.58669369999552,
+   "re_outlet": 588.7489074870047,
+   "reasons": [
+    "outside applicability: fluid reaches 166.70 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 205.49056292739152,
+   "wall_s": 1507.7
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u04-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 82.99633792900005,
+   "geometry": {
+    "base_mm": 0.5974340546925183,
+    "channel_depth_mm": 4.361138490557315,
+    "channel_width_mm": 0.36816690030122196,
+    "fin_width_mm": 0.35372586751502244
+   },
+   "hydraulic_power_w": 0.10908737296499968,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 2181.7474592999934,
+   "re_outlet": 509.2433614872554,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 95.06667638776213,
+   "wall_s": 1398.0
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u05-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 86.86436900800004,
+   "geometry": {
+    "base_mm": 0.6026425400499713,
+    "channel_depth_mm": 4.540840690655125,
+    "channel_width_mm": 0.23931860249988085,
+    "fin_width_mm": 0.3341105086046665
+   },
+   "hydraulic_power_w": 0.29691623623999985,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 5938.324724799997,
+   "re_outlet": 397.7028656833343,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 121.6927848303705,
+   "wall_s": 1186.3
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u04-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 99.647310081,
+   "geometry": {
+    "base_mm": 0.5974340546925183,
+    "channel_depth_mm": 4.361138490557315,
+    "channel_width_mm": 0.36816690030122196,
+    "fin_width_mm": 0.35372586751502244
+   },
+   "hydraulic_power_w": 0.10968876882999976,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 2193.775376599995,
+   "re_outlet": 509.2454581748732,
+   "reasons": [
+    "outside applicability: fluid reaches 99.65 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 135.27379189671018,
+   "wall_s": 1366.3
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u05-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 72.69669038700005,
+   "geometry": {
+    "base_mm": 0.6026425400499713,
+    "channel_depth_mm": 4.540840690655125,
+    "channel_width_mm": 0.23931860249988085,
+    "fin_width_mm": 0.3341105086046665
+   },
+   "hydraulic_power_w": 0.29630686336,
+   "outcome": "NEAR_PENDING_REFINEMENT",
+   "pressure_drop_pa": 5926.1372672,
+   "re_outlet": 397.70144339257257,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 84.47090722661977,
+   "wall_s": 1317.4
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u05-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 89.44623283200002,
+   "geometry": {
+    "base_mm": 0.6026425400499713,
+    "channel_depth_mm": 4.540840690655125,
+    "channel_width_mm": 0.23931860249988085,
+    "fin_width_mm": 0.3341105086046665
+   },
+   "hydraulic_power_w": 0.3080150610500001,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 6160.3012210000015,
+   "re_outlet": 397.70502480311944,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 124.15356697538829,
+   "wall_s": 1320.2
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u04-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 103.59329676600004,
+   "geometry": {
+    "base_mm": 0.5974340546925183,
+    "channel_depth_mm": 4.361138490557315,
+    "channel_width_mm": 0.36816690030122196,
+    "fin_width_mm": 0.35372586751502244
+   },
+   "hydraulic_power_w": 0.11419052681500035,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 2283.810536300007,
+   "re_outlet": 509.2483094401545,
+   "reasons": [
+    "outside applicability: fluid reaches 103.59 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 139.08356525625902,
+   "wall_s": 1548.5
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u04-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 110.64582761100002,
+   "geometry": {
+    "base_mm": 0.5974340546925183,
+    "channel_depth_mm": 4.361138490557315,
+    "channel_width_mm": 0.36816690030122196,
+    "fin_width_mm": 0.35372586751502244
+   },
+   "hydraulic_power_w": 0.04127744284375012,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 1320.878171000004,
+   "re_outlet": 347.9141605558893,
+   "reasons": [
+    "outside applicability: fluid reaches 110.65 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 145.676094613259,
+   "wall_s": 1577.0
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u05-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 94.751752866,
+   "geometry": {
+    "base_mm": 0.6026425400499713,
+    "channel_depth_mm": 4.540840690655125,
+    "channel_width_mm": 0.23931860249988085,
+    "fin_width_mm": 0.3341105086046665
+   },
+   "hydraulic_power_w": 0.11402279583124983,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 3648.7294665999943,
+   "re_outlet": 271.86528398107646,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 129.1417683763883,
+   "wall_s": 1469.2
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u06-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 109.59811174500004,
+   "geometry": {
+    "base_mm": 0.5642414040651713,
+    "channel_depth_mm": 5.279076384092131,
+    "channel_width_mm": 0.48778422757318407,
+    "fin_width_mm": 0.42931944255250726
+   },
+   "hydraulic_power_w": 0.05060042463999999,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 1012.0084927999997,
+   "re_outlet": 534.3882963408287,
+   "reasons": [
+    "outside applicability: fluid reaches 109.60 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 146.13226769076635,
+   "wall_s": 1454.3
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u06-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 90.99003992500002,
+   "geometry": {
+    "base_mm": 0.5642414040651713,
+    "channel_depth_mm": 5.279076384092131,
+    "channel_width_mm": 0.48778422757318407,
+    "fin_width_mm": 0.42931944255250726
+   },
+   "hydraulic_power_w": 0.050245555215000064,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 1004.9111043000012,
+   "re_outlet": 534.3856805453512,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 103.36087470869438,
+   "wall_s": 1584.2
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u06-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 114.817535856,
+   "geometry": {
+    "base_mm": 0.5642414040651713,
+    "channel_depth_mm": 5.279076384092131,
+    "channel_width_mm": 0.48778422757318407,
+    "fin_width_mm": 0.42931944255250726
+   },
+   "hydraulic_power_w": 0.052653468835000244,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 1053.0693767000048,
+   "re_outlet": 534.3914703988677,
+   "reasons": [
+    "outside applicability: fluid reaches 114.82 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 151.17312915521177,
+   "wall_s": 1644.9
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u06-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 123.16043319000005,
+   "geometry": {
+    "base_mm": 0.5642414040651713,
+    "channel_depth_mm": 5.279076384092131,
+    "channel_width_mm": 0.48778422757318407,
+    "fin_width_mm": 0.42931944255250726
+   },
+   "hydraulic_power_w": 0.018729091584375055,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 599.3309307000018,
+   "re_outlet": 364.85270200692986,
+   "reasons": [
+    "outside applicability: fluid reaches 123.16 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 158.86486996521177,
+   "wall_s": 1701.8
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u07-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 103.48811419500004,
+   "geometry": {
+    "base_mm": 0.8978633055719321,
+    "channel_depth_mm": 3.5332945683774555,
+    "channel_width_mm": 0.6193861519471668,
+    "fin_width_mm": 0.34873714570664593
+   },
+   "hydraulic_power_w": 0.04424739533999964,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 884.9479067999928,
+   "re_outlet": 790.3383246622561,
+   "reasons": [
+    "outside applicability: fluid reaches 103.49 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 117.3592793708014,
+   "wall_s": 1712.1
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u07-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 120.18363964500003,
+   "geometry": {
+    "base_mm": 0.8978633055719321,
+    "channel_depth_mm": 3.5332945683774555,
+    "channel_width_mm": 0.6193861519471668,
+    "fin_width_mm": 0.34873714570664593
+   },
+   "hydraulic_power_w": 0.044755319774999955,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 895.106395499999,
+   "re_outlet": 790.3407287328299,
+   "reasons": [
+    "outside applicability: fluid reaches 120.18 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 159.44799375357502,
+   "wall_s": 1678.8
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u07-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 128.880825141,
+   "geometry": {
+    "base_mm": 0.8978633055719321,
+    "channel_depth_mm": 3.5332945683774555,
+    "channel_width_mm": 0.6193861519471668,
+    "fin_width_mm": 0.34873714570664593
+   },
+   "hydraulic_power_w": 0.046563465539999745,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 931.2693107999949,
+   "re_outlet": 790.3452844236923,
+   "reasons": [
+    "outside applicability: fluid reaches 128.88 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 167.52425701555575,
+   "wall_s": 1775.7
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u07-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 142.28951038500003,
+   "geometry": {
+    "base_mm": 0.8978633055719321,
+    "channel_depth_mm": 3.5332945683774555,
+    "channel_width_mm": 0.6193861519471668,
+    "fin_width_mm": 0.34873714570664593
+   },
+   "hydraulic_power_w": 0.01588183621874987,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 508.21875899999577,
+   "re_outlet": 539.1771522499228,
+   "reasons": [
+    "outside applicability: fluid reaches 142.29 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 179.65838092855574,
+   "wall_s": 1843.9
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u08-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 138.91725765200005,
+   "geometry": {
+    "base_mm": 0.6524377994648424,
+    "channel_depth_mm": 5.24142967700724,
+    "channel_width_mm": 0.8432242106039081,
+    "fin_width_mm": 0.4415761951722888
+   },
+   "hydraulic_power_w": 0.015646275774999958,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 312.92551549999916,
+   "re_outlet": 705.4052647529697,
+   "reasons": [
+    "outside applicability: fluid reaches 138.92 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 177.30815361514595,
+   "wall_s": 1889.4
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u08-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 114.94592840600001,
+   "geometry": {
+    "base_mm": 0.6524377994648424,
+    "channel_depth_mm": 5.24142967700724,
+    "channel_width_mm": 0.8432242106039081,
+    "fin_width_mm": 0.4415761951722888
+   },
+   "hydraulic_power_w": 0.015441450400000032,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 308.8290080000006,
+   "re_outlet": 705.4022591684102,
+   "reasons": [
+    "outside applicability: fluid reaches 114.95 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 128.77046726706902,
+   "wall_s": 2042.2
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u09-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 107.26849959700002,
+   "geometry": {
+    "base_mm": 0.8915931703592341,
+    "channel_depth_mm": 5.546553101818879,
+    "channel_width_mm": 0.729372814626797,
+    "fin_width_mm": 0.3504882016572036
+   },
+   "hydraulic_power_w": 0.01811958161500006,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 362.3916323000012,
+   "re_outlet": 581.3957398093823,
+   "reasons": [
+    "outside applicability: fluid reaches 107.27 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 121.91865736607036,
+   "wall_s": 1826.4
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u09-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 127.174913833,
+   "geometry": {
+    "base_mm": 0.8915931703592341,
+    "channel_depth_mm": 5.546553101818879,
+    "channel_width_mm": 0.729372814626797,
+    "fin_width_mm": 0.3504882016572036
+   },
+   "hydraulic_power_w": 0.018301457325000228,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 366.0291465000046,
+   "re_outlet": 581.3986950053944,
+   "reasons": [
+    "outside applicability: fluid reaches 127.17 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 168.30952649028046,
+   "wall_s": 1867.4
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u08-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 152.906038341,
+   "geometry": {
+    "base_mm": 0.6524377994648424,
+    "channel_depth_mm": 5.24142967700724,
+    "channel_width_mm": 0.8432242106039081,
+    "fin_width_mm": 0.4415761951722888
+   },
+   "hydraulic_power_w": 0.01651426963999984,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 330.28539279999677,
+   "re_outlet": 705.4097691644465,
+   "reasons": [
+    "outside applicability: fluid reaches 152.91 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 189.96352335030582,
+   "wall_s": 2086.5
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u08-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 168.78161148100003,
+   "geometry": {
+    "base_mm": 0.6524377994648424,
+    "channel_depth_mm": 5.24142967700724,
+    "channel_width_mm": 0.8432242106039081,
+    "fin_width_mm": 0.4415761951722888
+   },
+   "hydraulic_power_w": 0.005611370709375024,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 179.56386270000075,
+   "re_outlet": 481.86841855900985,
+   "reasons": [
+    "outside applicability: fluid reaches 168.78 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 205.1187970203058,
+   "wall_s": 1990.3
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u09-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 152.147801969,
+   "geometry": {
+    "base_mm": 0.8915931703592341,
+    "channel_depth_mm": 5.546553101818879,
+    "channel_width_mm": 0.729372814626797,
+    "fin_width_mm": 0.3504882016572036
+   },
+   "hydraulic_power_w": 0.006612581568750102,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 211.60261020000326,
+   "re_outlet": 396.7500108933177,
+   "reasons": [
+    "outside applicability: fluid reaches 152.15 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 190.59342039490673,
+   "wall_s": 1923.2
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u09-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 138.10219778500004,
+   "geometry": {
+    "base_mm": 0.8915931703592341,
+    "channel_depth_mm": 5.546553101818879,
+    "channel_width_mm": 0.729372814626797,
+    "fin_width_mm": 0.3504882016572036
+   },
+   "hydraulic_power_w": 0.019110657925000125,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 382.21315850000246,
+   "re_outlet": 581.4024590985115,
+   "reasons": [
+    "outside applicability: fluid reaches 138.10 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 177.99791408990677,
+   "wall_s": 2067.5
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u10-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 118.18179128000003,
+   "geometry": {
+    "base_mm": 0.7127600109039771,
+    "channel_depth_mm": 5.555764528666952,
+    "channel_width_mm": 0.6184677311788067,
+    "fin_width_mm": 0.4632541254817722
+   },
+   "hydraulic_power_w": 0.028909944934999657,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 578.1988986999932,
+   "re_outlet": 591.1289515330589,
+   "reasons": [
+    "outside applicability: fluid reaches 118.18 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 157.02032699242972,
+   "wall_s": 1777.4
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u10-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 99.58469027200005,
+   "geometry": {
+    "base_mm": 0.7127600109039771,
+    "channel_depth_mm": 5.555764528666952,
+    "channel_width_mm": 0.6184677311788067,
+    "fin_width_mm": 0.4632541254817722
+   },
+   "hydraulic_power_w": 0.028659039219999977,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 573.1807843999995,
+   "re_outlet": 591.1260907380641,
+   "reasons": [
+    "outside applicability: fluid reaches 99.58 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 112.96021992793095,
+   "wall_s": 1862.1
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u11-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 84.07181650200005,
+   "geometry": {
+    "base_mm": 0.7375523875707042,
+    "channel_depth_mm": 4.4776683886137505,
+    "channel_width_mm": 0.20913031632782594,
+    "fin_width_mm": 0.480222467397773
+   },
+   "hydraulic_power_w": 0.5416247446100002,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 10832.494892200004,
+   "re_outlet": 490.07722408655206,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 120.04450081203544,
+   "wall_s": 1578.1
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u10-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 125.54236591400002,
+   "geometry": {
+    "base_mm": 0.7127600109039771,
+    "channel_depth_mm": 5.555764528666952,
+    "channel_width_mm": 0.6184677311788067,
+    "fin_width_mm": 0.4632541254817722
+   },
+   "hydraulic_power_w": 0.030070493770000033,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 601.4098754000006,
+   "re_outlet": 591.1327011557363,
+   "reasons": [
+    "outside applicability: fluid reaches 125.54 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 163.98732049614244,
+   "wall_s": 1755.9
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u11-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 71.72440172800003,
+   "geometry": {
+    "base_mm": 0.7375523875707042,
+    "channel_depth_mm": 4.4776683886137505,
+    "channel_width_mm": 0.20913031632782594,
+    "fin_width_mm": 0.480222467397773
+   },
+   "hydraulic_power_w": 0.5406246442750002,
+   "outcome": "NEAR_PENDING_REFINEMENT",
+   "pressure_drop_pa": 10812.492885500003,
+   "re_outlet": 490.07596419876467,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 83.9802281703142,
+   "wall_s": 1718.1
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u11-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 92.02628100800001,
+   "geometry": {
+    "base_mm": 0.7375523875707042,
+    "channel_depth_mm": 4.4776683886137505,
+    "channel_width_mm": 0.20913031632782594,
+    "fin_width_mm": 0.480222467397773
+   },
+   "hydraulic_power_w": 0.207608917653125,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 6643.4853649,
+   "re_outlet": 334.85852621437624,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 127.5471291992929,
+   "wall_s": 1660.5
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u11-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 86.86297185200004,
+   "geometry": {
+    "base_mm": 0.7375523875707042,
+    "channel_depth_mm": 4.4776683886137505,
+    "channel_width_mm": 0.20913031632782594,
+    "fin_width_mm": 0.480222467397773
+   },
+   "hydraulic_power_w": 0.56196984228,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 11239.3968456,
+   "re_outlet": 490.0799414746172,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 122.68759060529288,
+   "wall_s": 1682.1
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u10-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 136.569596498,
+   "geometry": {
+    "base_mm": 0.7127600109039771,
+    "channel_depth_mm": 5.555764528666952,
+    "channel_width_mm": 0.6184677311788067,
+    "fin_width_mm": 0.4632541254817722
+   },
+   "hydraulic_power_w": 0.010488114009374841,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 335.6196482999949,
+   "re_outlet": 403.44342682794525,
+   "reasons": [
+    "outside applicability: fluid reaches 136.57 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 173.6612794971424,
+   "wall_s": 2082.8
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u12-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 104.32218639900003,
+   "geometry": {
+    "base_mm": 0.6150051738595763,
+    "channel_depth_mm": 3.5438429770408786,
+    "channel_width_mm": 0.4015756152139893,
+    "fin_width_mm": 0.25741849751176527
+   },
+   "hydraulic_power_w": 0.09761439695000008,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 1952.2879390000016,
+   "re_outlet": 556.3307461771245,
+   "reasons": [
+    "outside applicability: fluid reaches 104.32 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 140.1197054955532,
+   "wall_s": 1475.9
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u12-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 86.61069041500002,
+   "geometry": {
+    "base_mm": 0.6150051738595763,
+    "channel_depth_mm": 3.5438429770408786,
+    "channel_width_mm": 0.4015756152139893,
+    "fin_width_mm": 0.25741849751176527
+   },
+   "hydraulic_power_w": 0.09689145577000018,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 1937.8291154000035,
+   "re_outlet": 556.3286445439709,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 98.82578519348465,
+   "wall_s": 1551.3
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u12-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 108.54364924400005,
+   "geometry": {
+    "base_mm": 0.6150051738595763,
+    "channel_depth_mm": 3.5438429770408786,
+    "channel_width_mm": 0.4015756152139893,
+    "fin_width_mm": 0.25741849751176527
+   },
+   "hydraulic_power_w": 0.10166055898499982,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 2033.2111796999961,
+   "re_outlet": 556.3338032026377,
+   "reasons": [
+    "outside applicability: fluid reaches 108.54 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 144.22521537915003,
+   "wall_s": 1626.1
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u12-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 116.52974292000005,
+   "geometry": {
+    "base_mm": 0.6150051738595763,
+    "channel_depth_mm": 3.5438429770408786,
+    "channel_width_mm": 0.4015756152139893,
+    "fin_width_mm": 0.25741849751176527
+   },
+   "hydraulic_power_w": 0.03641426664375012,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 1165.256532600004,
+   "re_outlet": 380.1391924309688,
+   "reasons": [
+    "outside applicability: fluid reaches 116.53 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 151.69006911915005,
+   "wall_s": 1575.9
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u13-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 103.36137931100001,
+   "geometry": {
+    "base_mm": 0.6965359962693396,
+    "channel_depth_mm": 4.200399908701609,
+    "channel_width_mm": 0.633985309469393,
+    "fin_width_mm": 0.284458016323539
+   },
+   "hydraulic_power_w": 0.031191943829999947,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 623.8388765999989,
+   "re_outlet": 637.6035875000122,
+   "reasons": [
+    "outside applicability: fluid reaches 103.36 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 116.74328638813427,
+   "wall_s": 1586.0
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u13-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 124.19484274300004,
+   "geometry": {
+    "base_mm": 0.6965359962693396,
+    "channel_depth_mm": 4.200399908701609,
+    "channel_width_mm": 0.633985309469393,
+    "fin_width_mm": 0.284458016323539
+   },
+   "hydraulic_power_w": 0.03154420226000002,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 630.8840452000004,
+   "re_outlet": 637.6063148342856,
+   "reasons": [
+    "outside applicability: fluid reaches 124.19 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 162.53891729684966,
+   "wall_s": 1523.5
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u13-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 132.36475961000002,
+   "geometry": {
+    "base_mm": 0.6965359962693396,
+    "channel_depth_mm": 4.200399908701609,
+    "channel_width_mm": 0.633985309469393,
+    "fin_width_mm": 0.284458016323539
+   },
+   "hydraulic_power_w": 0.03286749127000003,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 657.3498254000006,
+   "re_outlet": 637.610005697416,
+   "reasons": [
+    "outside applicability: fluid reaches 132.36 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 170.02111848973158,
+   "wall_s": 1517.6
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u13-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 145.76907864100002,
+   "geometry": {
+    "base_mm": 0.6965359962693396,
+    "channel_depth_mm": 4.200399908701609,
+    "channel_width_mm": 0.633985309469393,
+    "fin_width_mm": 0.284458016323539
+   },
+   "hydraulic_power_w": 0.011386280340625035,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 364.3609709000011,
+   "re_outlet": 435.37338309007595,
+   "reasons": [
+    "outside applicability: fluid reaches 145.77 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 182.11305051573157,
+   "wall_s": 1671.4
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u14-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 82.69993870000002,
+   "geometry": {
+    "base_mm": 0.6902421694012423,
+    "channel_depth_mm": 3.368952291311789,
+    "channel_width_mm": 0.20444966767447748,
+    "fin_width_mm": 0.2730561068940049
+   },
+   "hydraulic_power_w": 0.5427264295950001,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 10854.528591900002,
+   "re_outlet": 445.7117407440305,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 117.86648181017239,
+   "wall_s": 1346.1
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u14-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 70.228537969,
+   "geometry": {
+    "base_mm": 0.6902421694012423,
+    "channel_depth_mm": 3.368952291311789,
+    "channel_width_mm": 0.20444966767447748,
+    "fin_width_mm": 0.2730561068940049
+   },
+   "hydraulic_power_w": 0.5415683952350002,
+   "outcome": "RESOLVED_FEASIBLE_CELL",
+   "pressure_drop_pa": 10831.367904700004,
+   "re_outlet": 445.71061109656324,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 82.16872836052431,
+   "wall_s": 1401.5
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u14-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 85.019436074,
+   "geometry": {
+    "base_mm": 0.6902421694012423,
+    "channel_depth_mm": 3.368952291311789,
+    "channel_width_mm": 0.20444966767447748,
+    "fin_width_mm": 0.2730561068940049
+   },
+   "hydraulic_power_w": 0.5628863403050004,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 11257.726806100007,
+   "re_outlet": 445.7141400611461,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 120.07445478321051,
+   "wall_s": 1458.6
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u14-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 90.157811348,
+   "geometry": {
+    "base_mm": 0.6902421694012423,
+    "channel_depth_mm": 3.368952291311789,
+    "channel_width_mm": 0.20444966767447748,
+    "fin_width_mm": 0.2730561068940049
+   },
+   "hydraulic_power_w": 0.20865919308125014,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 6677.094178600004,
+   "re_outlet": 304.5154368179762,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 124.91246836221052,
+   "wall_s": 1445.7
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u15-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 81.631937085,
+   "geometry": {
+    "base_mm": 0.5119931491709275,
+    "channel_depth_mm": 4.851728924654653,
+    "channel_width_mm": 0.35580374837601697,
+    "fin_width_mm": 0.38176438966946397
+   },
+   "hydraulic_power_w": 0.11044330297999987,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 2208.8660595999972,
+   "re_outlet": 473.808093236554,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 93.37262590942368,
+   "wall_s": 1424.9
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u15-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 98.74893515100001,
+   "geometry": {
+    "base_mm": 0.5119931491709275,
+    "channel_depth_mm": 4.851728924654653,
+    "channel_width_mm": 0.35580374837601697,
+    "fin_width_mm": 0.38176438966946397
+   },
+   "hydraulic_power_w": 0.11095855198499995,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 2219.171039699999,
+   "re_outlet": 473.8101781090347,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 133.62754435125356,
+   "wall_s": 1303.8
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u15-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 102.41951738900002,
+   "geometry": {
+    "base_mm": 0.5119931491709275,
+    "channel_depth_mm": 4.851728924654653,
+    "channel_width_mm": 0.35580374837601697,
+    "fin_width_mm": 0.38176438966946397
+   },
+   "hydraulic_power_w": 0.11546349678499974,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 2309.2699356999947,
+   "re_outlet": 473.81282540766966,
+   "reasons": [
+    "outside applicability: fluid reaches 102.42 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 137.1674110432868,
+   "wall_s": 1463.7
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u15-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 109.11343474,
+   "geometry": {
+    "base_mm": 0.5119931491709275,
+    "channel_depth_mm": 4.851728924654653,
+    "channel_width_mm": 0.35580374837601697,
+    "fin_width_mm": 0.38176438966946397
+   },
+   "hydraulic_power_w": 0.04194435920624983,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 1342.2194945999945,
+   "re_outlet": 323.6247799996209,
+   "reasons": [
+    "outside applicability: fluid reaches 109.11 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 143.42549474928677,
+   "wall_s": 1416.0
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u16-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 113.453970347,
+   "geometry": {
+    "base_mm": 0.7144092138298961,
+    "channel_depth_mm": 4.409139744308226,
+    "channel_width_mm": 0.5222119191571212,
+    "fin_width_mm": 0.30969372264258377
+   },
+   "hydraulic_power_w": 0.04507128414499967,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 901.4256828999933,
+   "re_outlet": 557.2227318680303,
+   "reasons": [
+    "outside applicability: fluid reaches 113.45 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 151.36628312790123,
+   "wall_s": 1476.6
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u16-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 94.73796235700001,
+   "geometry": {
+    "base_mm": 0.7144092138298961,
+    "channel_depth_mm": 4.409139744308226,
+    "channel_width_mm": 0.5222119191571212,
+    "fin_width_mm": 0.30969372264258377
+   },
+   "hydraulic_power_w": 0.04468569481500017,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 893.7138963000034,
+   "re_outlet": 557.2201038230041,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 107.80787885282564,
+   "wall_s": 1590.2
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u16-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 128.94742556200003,
+   "geometry": {
+    "base_mm": 0.7144092138298961,
+    "channel_depth_mm": 4.409139744308226,
+    "channel_width_mm": 0.5222119191571212,
+    "fin_width_mm": 0.30969372264258377
+   },
+   "hydraulic_power_w": 0.016566718790625146,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 530.1350013000047,
+   "re_outlet": 381.03865539310493,
+   "reasons": [
+    "outside applicability: fluid reaches 128.95 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 165.7614928984894,
+   "wall_s": 1463.4
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u17-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 106.49604493800001,
+   "geometry": {
+    "base_mm": 0.7494386068578305,
+    "channel_depth_mm": 3.7370653758036134,
+    "channel_width_mm": 0.6580348405194921,
+    "fin_width_mm": 0.4337527745620525
+   },
+   "hydraulic_power_w": 0.03903899359499992,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 780.7798718999984,
+   "re_outlet": 831.5849089034817,
+   "reasons": [
+    "outside applicability: fluid reaches 106.50 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 119.80239640383627,
+   "wall_s": 1498.7
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u16-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 119.31420992300002,
+   "geometry": {
+    "base_mm": 0.7144092138298961,
+    "channel_depth_mm": 4.409139744308226,
+    "channel_width_mm": 0.5222119191571212,
+    "fin_width_mm": 0.30969372264258377
+   },
+   "hydraulic_power_w": 0.04692475320500016,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 938.4950641000032,
+   "re_outlet": 557.2260140569031,
+   "reasons": [
+    "outside applicability: fluid reaches 119.31 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 157.0227891454894,
+   "wall_s": 1601.2
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u17-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 124.014999026,
+   "geometry": {
+    "base_mm": 0.7494386068578305,
+    "channel_depth_mm": 3.7370653758036134,
+    "channel_width_mm": 0.6580348405194921,
+    "fin_width_mm": 0.4337527745620525
+   },
+   "hydraulic_power_w": 0.03952910104999974,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 790.5820209999947,
+   "re_outlet": 831.5874254960727,
+   "reasons": [
+    "outside applicability: fluid reaches 124.01 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 162.07575767447014,
+   "wall_s": 1602.2
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u17-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 148.33955382100004,
+   "geometry": {
+    "base_mm": 0.7494386068578305,
+    "channel_depth_mm": 3.7370653758036134,
+    "channel_width_mm": 0.6580348405194921,
+    "fin_width_mm": 0.4337527745620525
+   },
+   "hydraulic_power_w": 0.013971173465624816,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 447.0775508999941,
+   "re_outlet": 567.9600792882179,
+   "reasons": [
+    "outside applicability: fluid reaches 148.34 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 184.2785567318707,
+   "wall_s": 1480.3
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u17-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 133.67899851000004,
+   "geometry": {
+    "base_mm": 0.7494386068578305,
+    "channel_depth_mm": 3.7370653758036134,
+    "channel_width_mm": 0.6580348405194921,
+    "fin_width_mm": 0.4337527745620525
+   },
+   "hydraulic_power_w": 0.0412084024900003,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 824.168049800006,
+   "re_outlet": 831.592321583754,
+   "reasons": [
+    "outside applicability: fluid reaches 133.68 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 170.8400029938707,
+   "wall_s": 1734.9
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u18-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 105.89568141800004,
+   "geometry": {
+    "base_mm": 0.7053277614616666,
+    "channel_depth_mm": 5.651113751087529,
+    "channel_width_mm": 0.6991156222896971,
+    "fin_width_mm": 0.3050588436416496
+   },
+   "hydraulic_power_w": 0.018542356570000265,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 370.8471314000053,
+   "re_outlet": 534.8681981364073,
+   "reasons": [
+    "outside applicability: fluid reaches 105.90 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 119.8472489175852,
+   "wall_s": 1367.0
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u18-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 128.699351417,
+   "geometry": {
+    "base_mm": 0.7053277614616666,
+    "channel_depth_mm": 5.651113751087529,
+    "channel_width_mm": 0.6991156222896971,
+    "fin_width_mm": 0.3050588436416496
+   },
+   "hydraulic_power_w": 0.018730047395000293,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 374.60094790000585,
+   "re_outlet": 534.8712526887538,
+   "reasons": [
+    "outside applicability: fluid reaches 128.70 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 168.40500093309652,
+   "wall_s": 1512.0
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u18-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 138.38823753900004,
+   "geometry": {
+    "base_mm": 0.7053277614616666,
+    "channel_depth_mm": 5.651113751087529,
+    "channel_width_mm": 0.6991156222896971,
+    "fin_width_mm": 0.3050588436416496
+   },
+   "hydraulic_power_w": 0.019549374910000188,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 390.98749820000376,
+   "re_outlet": 534.8745594931664,
+   "reasons": [
+    "outside applicability: fluid reaches 138.39 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 176.99773937826,
+   "wall_s": 1652.9
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u18-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 152.20018926200004,
+   "geometry": {
+    "base_mm": 0.7053277614616666,
+    "channel_depth_mm": 5.651113751087529,
+    "channel_width_mm": 0.6991156222896971,
+    "fin_width_mm": 0.3050588436416496
+   },
+   "hydraulic_power_w": 0.006826377031250104,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 218.44406500000332,
+   "re_outlet": 364.9656463599315,
+   "reasons": [
+    "outside applicability: fluid reaches 152.20 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 189.39030497426006,
+   "wall_s": 1856.1
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u19-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 84.65677752100004,
+   "geometry": {
+    "base_mm": 0.6371044385125397,
+    "channel_depth_mm": 5.215587038252417,
+    "channel_width_mm": 0.40277869615056966,
+    "fin_width_mm": 0.3715058094412149
+   },
+   "hydraulic_power_w": 0.07484458072999987,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 1496.8916145999974,
+   "re_outlet": 462.08276706048076,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 97.11119854326256,
+   "wall_s": 1812.3
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u19-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 102.03687189700003,
+   "geometry": {
+    "base_mm": 0.6371044385125397,
+    "channel_depth_mm": 5.215587038252417,
+    "channel_width_mm": 0.40277869615056966,
+    "fin_width_mm": 0.3715058094412149
+   },
+   "hydraulic_power_w": 0.07521700388500031,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 1504.340077700006,
+   "re_outlet": 462.08506096860486,
+   "reasons": [
+    "outside applicability: fluid reaches 102.04 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 138.6512020956115,
+   "wall_s": 1726.6
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u19-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 106.32239348300004,
+   "geometry": {
+    "base_mm": 0.6371044385125397,
+    "channel_depth_mm": 5.215587038252417,
+    "channel_width_mm": 0.40277869615056966,
+    "fin_width_mm": 0.3715058094412149
+   },
+   "hydraulic_power_w": 0.07826003692500016,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 1565.2007385000034,
+   "re_outlet": 462.0877193203876,
+   "reasons": [
+    "outside applicability: fluid reaches 106.32 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 142.78738329958895,
+   "wall_s": 1839.0
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u19-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 113.36008228000003,
+   "geometry": {
+    "base_mm": 0.6371044385125397,
+    "channel_depth_mm": 5.215587038252417,
+    "channel_width_mm": 0.40277869615056966,
+    "fin_width_mm": 0.3715058094412149
+   },
+   "hydraulic_power_w": 0.028304656615624937,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 905.7490116999979,
+   "re_outlet": 315.55013136477965,
+   "reasons": [
+    "outside applicability: fluid reaches 113.36 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 149.33963764158898,
+   "wall_s": 1767.3
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u20-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 111.88972529100005,
+   "geometry": {
+    "base_mm": 0.5421777607723499,
+    "channel_depth_mm": 3.97021246356648,
+    "channel_width_mm": 0.7464422607649175,
+    "fin_width_mm": 0.35639427201619267
+   },
+   "hydraulic_power_w": 0.02569604163999975,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 513.920832799995,
+   "re_outlet": 776.0893358224904,
+   "reasons": [
+    "outside applicability: fluid reaches 111.89 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 124.83433652973275,
+   "wall_s": 2357.2
+  },
+  {
+   "at_x_mm": 15.450000000000001,
+   "case_id": "u20-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 135.846816311,
+   "geometry": {
+    "base_mm": 0.5421777607723499,
+    "channel_depth_mm": 3.97021246356648,
+    "channel_width_mm": 0.7464422607649175,
+    "fin_width_mm": 0.35639427201619267
+   },
+   "hydraulic_power_w": 0.026070991335000144,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 521.4198267000029,
+   "re_outlet": 776.0921281603428,
+   "reasons": [
+    "outside applicability: fluid reaches 135.85 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 172.4540407140246,
+   "wall_s": 2245.9
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u21-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 127.04841292600003,
+   "geometry": {
+    "base_mm": 0.5082146131835257,
+    "channel_depth_mm": 5.503638315497482,
+    "channel_width_mm": 0.9283769337406929,
+    "fin_width_mm": 0.22004011174484422
+   },
+   "hydraulic_power_w": 0.009882145209999726,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 197.64290419999452,
+   "re_outlet": 591.2505185384139,
+   "reasons": [
+    "outside applicability: fluid reaches 127.05 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 141.5503593410661,
+   "wall_s": 2251.5
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u20-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 147.43393391400002,
+   "geometry": {
+    "base_mm": 0.5421777607723499,
+    "channel_depth_mm": 3.97021246356648,
+    "channel_width_mm": 0.7464422607649175,
+    "fin_width_mm": 0.35639427201619267
+   },
+   "hydraulic_power_w": 0.02737791362499993,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 547.5582724999986,
+   "re_outlet": 776.096645697174,
+   "reasons": [
+    "outside applicability: fluid reaches 147.43 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 182.98742644657455,
+   "wall_s": 2595.8
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u20-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 163.36970943800003,
+   "geometry": {
+    "base_mm": 0.5421777607723499,
+    "channel_depth_mm": 3.97021246356648,
+    "channel_width_mm": 0.7464422607649175,
+    "fin_width_mm": 0.35639427201619267
+   },
+   "hydraulic_power_w": 0.009301394193750184,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 297.6446142000059,
+   "re_outlet": 530.4686624478946,
+   "reasons": [
+    "outside applicability: fluid reaches 163.37 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 198.29277127857455,
+   "wall_s": 2390.1
+  },
+  {
+   "at_x_mm": 15.450000000000001,
+   "case_id": "u21-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 170.06717188600004,
+   "geometry": {
+    "base_mm": 0.5082146131835257,
+    "channel_depth_mm": 5.503638315497482,
+    "channel_width_mm": 0.9283769337406929,
+    "fin_width_mm": 0.22004011174484422
+   },
+   "hydraulic_power_w": 0.010028143080000156,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 200.5628616000031,
+   "re_outlet": 591.2537575962016,
+   "reasons": [
+    "outside applicability: fluid reaches 170.07 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 208.73859991822263,
+   "wall_s": 2286.7
+  },
+  {
+   "at_x_mm": 25.65,
+   "case_id": "u21-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 210.34866659800002,
+   "geometry": {
+    "base_mm": 0.5082146131835257,
+    "channel_depth_mm": 5.503638315497482,
+    "channel_width_mm": 0.9283769337406929,
+    "fin_width_mm": 0.22004011174484422
+   },
+   "hydraulic_power_w": 0.003818563275000088,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 122.19402480000281,
+   "re_outlet": 404.21404132927375,
+   "reasons": [
+    "outside applicability: fluid reaches 210.35 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 247.33002817621593,
+   "wall_s": 2234.2
+  },
+  {
+   "at_x_mm": 25.65,
+   "case_id": "u21-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 188.935887588,
+   "geometry": {
+    "base_mm": 0.5082146131835257,
+    "channel_depth_mm": 5.503638315497482,
+    "channel_width_mm": 0.9283769337406929,
+    "fin_width_mm": 0.22004011174484422
+   },
+   "hydraulic_power_w": 0.010954367015000025,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 219.0873403000005,
+   "re_outlet": 591.2573236873174,
+   "reasons": [
+    "outside applicability: fluid reaches 188.94 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 226.63380964621592,
+   "wall_s": 2340.2
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u22-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 83.38870645600002,
+   "geometry": {
+    "base_mm": 0.9165059791857365,
+    "channel_depth_mm": 5.1289149964867455,
+    "channel_width_mm": 0.21128937633095335,
+    "fin_width_mm": 0.48262239424696
+   },
+   "hydraulic_power_w": 0.45764623437999985,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 9152.924687599996,
+   "re_outlet": 430.5512009097208,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 121.3192757427716,
+   "wall_s": 1660.1
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u22-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 71.495179807,
+   "geometry": {
+    "base_mm": 0.9165059791857365,
+    "channel_depth_mm": 5.1289149964867455,
+    "channel_width_mm": 0.21128937633095335,
+    "fin_width_mm": 0.48262239424696
+   },
+   "hydraulic_power_w": 0.45705233927500016,
+   "outcome": "NEAR_PENDING_REFINEMENT",
+   "pressure_drop_pa": 9141.046785500002,
+   "re_outlet": 430.5499157020619,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 84.56637244709253,
+   "wall_s": 1787.6
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u22-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 86.34811193900003,
+   "geometry": {
+    "base_mm": 0.9165059791857365,
+    "channel_depth_mm": 5.1289149964867455,
+    "channel_width_mm": 0.21128937633095335,
+    "fin_width_mm": 0.48262239424696
+   },
+   "hydraulic_power_w": 0.4742501127399999,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 9485.002254799998,
+   "re_outlet": 430.5536144889461,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 124.12401961666001,
+   "wall_s": 1752.4
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "u23-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 86.36677586600001,
+   "geometry": {
+    "base_mm": 0.7337895566379427,
+    "channel_depth_mm": 5.200329889738116,
+    "channel_width_mm": 0.24106381791846784,
+    "fin_width_mm": 0.3742099983433213
+   },
+   "hydraulic_power_w": 0.27413592330500036,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 5482.7184661000065,
+   "re_outlet": 377.93217101975955,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 122.70890391605735,
+   "wall_s": 1748.6
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u22-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 91.34046633100002,
+   "geometry": {
+    "base_mm": 0.9165059791857365,
+    "channel_depth_mm": 5.1289149964867455,
+    "channel_width_mm": 0.21128937633095335,
+    "fin_width_mm": 0.48262239424696
+   },
+   "hydraulic_power_w": 0.17564606742812522,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 5620.674157700007,
+   "re_outlet": 294.335401967647,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 128.81497187065997,
+   "wall_s": 1797.0
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "u23-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 72.71862177700001,
+   "geometry": {
+    "base_mm": 0.7337895566379427,
+    "channel_depth_mm": 5.200329889738116,
+    "channel_width_mm": 0.24106381791846784,
+    "fin_width_mm": 0.3742099983433213
+   },
+   "hydraulic_power_w": 0.27370063684499985,
+   "outcome": "NEAR_PENDING_REFINEMENT",
+   "pressure_drop_pa": 5474.0127368999965,
+   "re_outlet": 377.930730632249,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 85.11272077387508,
+   "wall_s": 1829.3
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u23-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 89.16292281600005,
+   "geometry": {
+    "base_mm": 0.7337895566379427,
+    "channel_depth_mm": 5.200329889738116,
+    "channel_width_mm": 0.24106381791846784,
+    "fin_width_mm": 0.3742099983433213
+   },
+   "hydraulic_power_w": 0.28408752032999984,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 5681.7504065999965,
+   "re_outlet": 377.9342386130634,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 125.36122446210214,
+   "wall_s": 1687.9
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "u23-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 94.32049722000005,
+   "geometry": {
+    "base_mm": 0.7337895566379427,
+    "channel_depth_mm": 5.200329889738116,
+    "channel_width_mm": 0.24106381791846784,
+    "fin_width_mm": 0.3742099983433213
+   },
+   "hydraulic_power_w": 0.10528021630625017,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 3368.9669218000054,
+   "re_outlet": 258.1584454104563,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 130.20329615810215,
+   "wall_s": 1744.9
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "c0-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 84.46335539500001,
+   "geometry": {
+    "base_mm": 0.5,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.2,
+    "fin_width_mm": 0.2
+   },
+   "hydraulic_power_w": 0.27395643325499985,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 5479.128665099997,
+   "re_outlet": 215.224538525601,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 118.51659677955519,
+   "wall_s": 1707.6
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "c0-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 70.163871374,
+   "geometry": {
+    "base_mm": 0.5,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.2,
+    "fin_width_mm": 0.2
+   },
+   "hydraulic_power_w": 0.2736375638149999,
+   "outcome": "RESOLVED_FEASIBLE_CELL",
+   "pressure_drop_pa": 5472.751276299998,
+   "re_outlet": 215.22349375170225,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 81.6415496679395,
+   "wall_s": 1740.9
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "c0-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 86.55363092200002,
+   "geometry": {
+    "base_mm": 0.5,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.2,
+    "fin_width_mm": 0.2
+   },
+   "hydraulic_power_w": 0.28220837316000036,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 5644.167463200007,
+   "re_outlet": 215.22564858439074,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 120.49953097578373,
+   "wall_s": 1828.6
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "c1-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 81.93286221100004,
+   "geometry": {
+    "base_mm": 1.0,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.2,
+    "fin_width_mm": 0.2
+   },
+   "hydraulic_power_w": 0.27381533225500027,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 5476.306645100005,
+   "re_outlet": 215.2244780141213,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 121.02986248643941,
+   "wall_s": 1627.3
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "c0-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 91.517884272,
+   "geometry": {
+    "base_mm": 0.5,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.2,
+    "fin_width_mm": 0.2
+   },
+   "hydraulic_power_w": 0.10602920869375021,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 3392.9346782000066,
+   "re_outlet": 147.0412988312062,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 125.22943206078372,
+   "wall_s": 1693.2
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "c1-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 70.060047542,
+   "geometry": {
+    "base_mm": 1.0,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.2,
+    "fin_width_mm": 0.2
+   },
+   "hydraulic_power_w": 0.27357305504000035,
+   "outcome": "NEAR_PENDING_REFINEMENT",
+   "pressure_drop_pa": 5471.4611008000065,
+   "re_outlet": 215.2234355361145,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 83.64332961754519,
+   "wall_s": 1852.8
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "c1-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 84.52909060500002,
+   "geometry": {
+    "base_mm": 1.0,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.2,
+    "fin_width_mm": 0.2
+   },
+   "hydraulic_power_w": 0.2819409177050002,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 5638.8183541000035,
+   "re_outlet": 215.22561867570866,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 123.50729348239122,
+   "wall_s": 2016.0
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "c1-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 89.39863412200003,
+   "geometry": {
+    "base_mm": 1.0,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.2,
+    "fin_width_mm": 0.2
+   },
+   "hydraulic_power_w": 0.10587608616875013,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 3388.0347574000043,
+   "re_outlet": 147.0412505823168,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 128.09097214439123,
+   "wall_s": 1941.3
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "c2-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 83.65365586300004,
+   "geometry": {
+    "base_mm": 0.5,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.2,
+    "fin_width_mm": 0.35
+   },
+   "hydraulic_power_w": 0.37108387112499985,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 7421.677422499997,
+   "re_outlet": 295.0899666996091,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 117.4377608725552,
+   "wall_s": 1754.4
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "c2-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 69.823174731,
+   "geometry": {
+    "base_mm": 0.5,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.2,
+    "fin_width_mm": 0.35
+   },
+   "hydraulic_power_w": 0.3707028690400002,
+   "outcome": "RESOLVED_FEASIBLE_CELL",
+   "pressure_drop_pa": 7414.0573808000045,
+   "re_outlet": 295.0887894139379,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 81.1890078349395,
+   "wall_s": 1833.9
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "c3-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 81.35244572300002,
+   "geometry": {
+    "base_mm": 1.0,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.2,
+    "fin_width_mm": 0.35
+   },
+   "hydraulic_power_w": 0.37089210277500023,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 7417.842055500005,
+   "re_outlet": 295.0898943961038,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 120.2271326764394,
+   "wall_s": 1629.9
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "c3-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 69.73280311900004,
+   "geometry": {
+    "base_mm": 1.0,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.2,
+    "fin_width_mm": 0.35
+   },
+   "hydraulic_power_w": 0.3706155936000003,
+   "outcome": "NEAR_PENDING_REFINEMENT",
+   "pressure_drop_pa": 7412.311872000006,
+   "re_outlet": 295.08873457231545,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 83.20266114354519,
+   "wall_s": 1789.2
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "c2-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 85.863148384,
+   "geometry": {
+    "base_mm": 0.5,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.2,
+    "fin_width_mm": 0.35
+   },
+   "hydraulic_power_w": 0.3832086952149999,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 7664.173904299998,
+   "re_outlet": 295.09153707444455,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 119.50941508678375,
+   "wall_s": 1808.9
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "c2-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 90.655720917,
+   "geometry": {
+    "base_mm": 0.5,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.2,
+    "fin_width_mm": 0.35
+   },
+   "hydraulic_power_w": 0.14325622099375004,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 4584.199071800002,
+   "re_outlet": 201.658035088174,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 124.06350474578375,
+   "wall_s": 1951.6
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "c3-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 88.75665802600003,
+   "geometry": {
+    "base_mm": 1.0,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.2,
+    "fin_width_mm": 0.35
+   },
+   "hydraulic_power_w": 0.143040158625,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 4577.285076,
+   "re_outlet": 201.6579875724011,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 127.20588091139126,
+   "wall_s": 1803.9
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "c3-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 84.05326056800004,
+   "geometry": {
+    "base_mm": 1.0,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.2,
+    "fin_width_mm": 0.35
+   },
+   "hydraulic_power_w": 0.382816749575,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 7656.3349915,
+   "re_outlet": 295.09150928133846,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 122.78289963939125,
+   "wall_s": 1973.7
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "c4-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 107.615121864,
+   "geometry": {
+    "base_mm": 0.5,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.2
+   },
+   "hydraulic_power_w": 0.051855061744999695,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 1037.1012348999939,
+   "re_outlet": 314.5491571263202,
+   "reasons": [
+    "outside applicability: fluid reaches 107.62 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 144.0738987565552,
+   "wall_s": 1638.5
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "c4-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 85.70096178800003,
+   "geometry": {
+    "base_mm": 0.5,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.2
+   },
+   "hydraulic_power_w": 0.05166705876499982,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 1033.3411752999964,
+   "re_outlet": 314.54696890953335,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 98.06436418293947,
+   "wall_s": 1792.3
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "c5-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 85.50769794800004,
+   "geometry": {
+    "base_mm": 1.0,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.2
+   },
+   "hydraulic_power_w": 0.05164317250500026,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 1032.8634501000051,
+   "re_outlet": 314.5468188526992,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 99.96942191954514,
+   "wall_s": 1782.9
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "c5-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 103.00579752800002,
+   "geometry": {
+    "base_mm": 1.0,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.2
+   },
+   "hydraulic_power_w": 0.051790368294999646,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 1035.8073658999929,
+   "re_outlet": 314.5489290833188,
+   "reasons": [
+    "outside applicability: fluid reaches 103.01 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 143.9037514794394,
+   "wall_s": 1689.3
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "c4-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 118.049189942,
+   "geometry": {
+    "base_mm": 0.5,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.2
+   },
+   "hydraulic_power_w": 0.019794864821874855,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 633.4356742999953,
+   "re_outlet": 214.78699188297315,
+   "reasons": [
+    "outside applicability: fluid reaches 118.05 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 153.92197838678374,
+   "wall_s": 1902.2
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "c4-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 111.14492503900004,
+   "geometry": {
+    "base_mm": 0.5,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.2
+   },
+   "hydraulic_power_w": 0.053843749574999676,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 1076.8749914999935,
+   "re_outlet": 314.550849778927,
+   "reasons": [
+    "outside applicability: fluid reaches 111.14 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 147.51784768678374,
+   "wall_s": 2125.2
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "c5-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 107.74549262000005,
+   "geometry": {
+    "base_mm": 1.0,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.2
+   },
+   "hydraulic_power_w": 0.05373254712499984,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 1074.6509424999967,
+   "re_outlet": 314.55076285326606,
+   "reasons": [
+    "outside applicability: fluid reaches 107.75 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 148.55774210239122,
+   "wall_s": 1847.1
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "c5-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 114.382800159,
+   "geometry": {
+    "base_mm": 1.0,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.2
+   },
+   "hydraulic_power_w": 0.019735727796874925,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 631.5432894999976,
+   "re_outlet": 214.7868456918715,
+   "reasons": [
+    "outside applicability: fluid reaches 114.38 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 154.67043228339122,
+   "wall_s": 1853.2
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "c6-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 103.38015532400004,
+   "geometry": {
+    "base_mm": 0.5,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.35
+   },
+   "hydraulic_power_w": 0.06277357677999972,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 1255.4715355999942,
+   "re_outlet": 386.520052013327,
+   "reasons": [
+    "outside applicability: fluid reaches 103.38 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 139.0431105605552,
+   "wall_s": 1746.6
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "c6-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 84.17718367000003,
+   "geometry": {
+    "base_mm": 0.5,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.35
+   },
+   "hydraulic_power_w": 0.06251737225499965,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 1250.347445099993,
+   "re_outlet": 386.5176652593259,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 96.20270949993949,
+   "wall_s": 1978.8
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "c6-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 107.263424912,
+   "geometry": {
+    "base_mm": 0.5,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.35
+   },
+   "hydraulic_power_w": 0.06530674743499985,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 1306.134948699997,
+   "re_outlet": 386.522304030428,
+   "reasons": [
+    "outside applicability: fluid reaches 107.26 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 142.79189145578374,
+   "wall_s": 1654.8
+  },
+  {
+   "at_x_mm": 15.15,
+   "case_id": "c7-warm_central_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 99.57042377100004,
+   "geometry": {
+    "base_mm": 1.0,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.35
+   },
+   "hydraulic_power_w": 0.06269583945999985,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 1253.9167891999969,
+   "re_outlet": 386.5198070669857,
+   "reasons": [
+    "outside applicability: fluid reaches 99.57 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_central_hotspot",
+   "tim_interface_peak_c": 139.82518736543938,
+   "wall_s": 1425.7
+  },
+  {
+   "at_x_mm": 29.85,
+   "case_id": "c7-warm_uniform",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 84.00515745900003,
+   "geometry": {
+    "base_mm": 1.0,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.35
+   },
+   "hydraulic_power_w": 0.06248753618999981,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "pressure_drop_pa": 1249.7507237999962,
+   "re_outlet": 386.51752896966144,
+   "reasons": [],
+   "status": "OK",
+   "stratum": "warm_uniform",
+   "tim_interface_peak_c": 98.11050376054516,
+   "wall_s": 1650.0
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "c6-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 114.05137598800002,
+   "geometry": {
+    "base_mm": 0.5,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.35
+   },
+   "hydraulic_power_w": 0.02379530384687496,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 761.4497230999987,
+   "re_outlet": 264.3440779106843,
+   "reasons": [
+    "outside applicability: fluid reaches 114.05 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 149.11019388478377,
+   "wall_s": 1755.2
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "c7-warm_outlet_hotspot",
+   "flow_lpm_per_kw": 2.0,
+   "fluid_max_c": 104.45511784900003,
+   "geometry": {
+    "base_mm": 1.0,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.35
+   },
+   "hydraulic_power_w": 0.06517348587000016,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 1303.469717400003,
+   "re_outlet": 386.52221793949127,
+   "reasons": [
+    "outside applicability: fluid reaches 104.46 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "warm_outlet_hotspot",
+   "tim_interface_peak_c": 144.5705644173912,
+   "wall_s": 1399.6
+  },
+  {
+   "at_x_mm": 25.35,
+   "case_id": "c7-reduced_flow_outlet_hotspot",
+   "flow_lpm_per_kw": 1.25,
+   "fluid_max_c": 111.04664622800004,
+   "geometry": {
+    "base_mm": 1.0,
+    "channel_depth_mm": 6.0,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.35
+   },
+   "hydraulic_power_w": 0.02372524482500012,
+   "outcome": "REFERENCE_UNRESOLVED_APPLICABILITY",
+   "pressure_drop_pa": 759.2078344000038,
+   "re_outlet": 264.34392691052943,
+   "reasons": [
+    "outside applicability: fluid reaches 111.05 C; the PG25 fits and the coolant model end at 99 C"
+   ],
+   "status": "REFERENCE_INVALID",
+   "stratum": "reduced_flow_outlet_hotspot",
+   "tim_interface_peak_c": 150.66630682539125,
+   "wall_s": 1289.5
+  }
+ ],
+ "counts": {
+  "reduced_flow_outlet_hotspot": {
+   "REFERENCE_UNRESOLVED_APPLICABILITY": 22,
+   "RESOLVED_INFEASIBLE": 10
+  },
+  "warm_central_hotspot": {
+   "REFERENCE_UNRESOLVED_APPLICABILITY": 21,
+   "RESOLVED_INFEASIBLE": 11
+  },
+  "warm_outlet_hotspot": {
+   "REFERENCE_UNRESOLVED_APPLICABILITY": 22,
+   "RESOLVED_INFEASIBLE": 10
+  },
+  "warm_uniform": {
+   "NEAR_PENDING_REFINEMENT": 7,
+   "REFERENCE_UNRESOLVED_APPLICABILITY": 10,
+   "RESOLVED_FEASIBLE_CELL": 3,
+   "RESOLVED_INFEASIBLE": 12
+  }
+ },
+ "near_for_refinement": [
+  "u03-warm_uniform",
+  "u05-warm_uniform",
+  "u11-warm_uniform",
+  "u22-warm_uniform",
+  "u23-warm_uniform",
+  "c1-warm_uniform",
+  "c3-warm_uniform"
+ ],
+ "pr": "#758 @ 1ac5acfa"
+}
