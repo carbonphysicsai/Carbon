@@ -308,7 +308,7 @@ def main(argv=None):
             result = {}
         result["status"] = source.ledger.status()
     except ProducerRefused as refused:
-        print(json.dumps({"refused": refused.code}))
+        print(json.dumps(refused.record()))
         return 2
     print(json.dumps(result, sort_keys=True))
     return 0

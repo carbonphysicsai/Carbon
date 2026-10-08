@@ -184,7 +184,7 @@ def _owner_only_dir(path):
     path.mkdir(mode=0o700, parents=True, exist_ok=True)
     info = os.lstat(path)
     if not stat.S_ISDIR(info.st_mode) or info.st_mode & 0o077:
-        raise ProducerRefused("producer_dir_not_owner_only")
+        raise ProducerRefused("producer_dir_not_owner_only", path=path)
     return path
 
 
@@ -943,7 +943,7 @@ def main(argv=None):
         else:
             result = producer.status()
     except ProducerRefused as refused:
-        print(json.dumps({"refused": refused.code}))
+        print(json.dumps(refused.record()))
         return 2
     print(json.dumps(result, sort_keys=True))
     return 0

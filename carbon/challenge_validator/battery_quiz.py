@@ -172,7 +172,7 @@ class BatteryQuizSource(BatteryBatchSource):
         directory = cache / f"v{qz.PANEL_VERSION}"
         directory.mkdir(mode=0o700, exist_ok=True)
         if os.lstat(directory).st_mode & 0o077:
-            raise ProducerRefused("producer_dir_not_owner_only")
+            raise ProducerRefused("producer_dir_not_owner_only", path=directory)
         label = hashlib.sha256(json.dumps(sorted(inputs)).encode()).hexdigest()[:16]
         found = {}
         for member in members:

@@ -22,11 +22,23 @@ SERVED_KINDS = ("screening", "finalist")
 
 
 class ProducerRefused(ValueError):
-    """A typed refusal; its code carries no private case, input or output."""
+    """A typed refusal; its code carries no private case, input or output.
 
-    def __init__(self, code):
+    `path` names the operator's own file or directory at fault when that is
+    the fix (for example a directory another account can read): a local
+    path, never a case value."""
+
+    def __init__(self, code, *, path=None):
         super().__init__(code)
         self.code = code
+        self.path = None if path is None else str(path)
+
+    def record(self):
+        """What a command prints when it refuses."""
+        found = {"refused": self.code}
+        if self.path is not None:
+            found["path"] = self.path
+        return found
 
 
 # --- one Challenge's batches ----------------------------------------------------------
