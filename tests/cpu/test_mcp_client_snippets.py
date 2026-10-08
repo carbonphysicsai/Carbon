@@ -26,9 +26,9 @@ import os
 import shlex
 import subprocess
 import sys
+import tomllib
 
 import pytest
-import tomllib
 import yaml
 
 from scripts.dev.miner_launchpad import environment_setup
@@ -107,11 +107,10 @@ def test_a_foreign_checkout_cwd_cannot_shadow_this_checkout(tmp_path):
     for package in ("carbon", "scripts"):
         (tmp_path / package).mkdir()
         (tmp_path / package / "__init__.py").write_text("FOREIGN = True\n")
-    python, *args = _safe_path_command(connect)
+    _python, *args = _safe_path_command(connect)
     flags = args[: args.index("-m")]
     probe = (
-        "import carbon, scripts, sys; "
-        "print(carbon.__file__); print(scripts.__file__)"
+        "import carbon, scripts, sys; print(carbon.__file__); print(scripts.__file__)"
     )
     env = {**os.environ, "PYTHONPATH": connect["cwd"]}
     done = subprocess.run(
