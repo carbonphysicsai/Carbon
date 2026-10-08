@@ -159,4 +159,3 @@ the cause, and the slice or PR that fixes it. The plan is
 - **LA-F2's fix fits the rule:** it names the images, so they can be kept
   or removed by tag; it never prunes.
 - **Status:** guard added.
-
