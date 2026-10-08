@@ -1,0 +1,936 @@
+{
+ "elmer_crosscheck": {
+  "case": "central band, nominal",
+  "image": "sha256:8bcd864dd60be0a80be9769c1a95c67db76eca9e718212f63dd0460cf3a08fc6",
+  "mean_flux_w_m2": 1666666.6762756524,
+  "mesh": "600 x 30 quads, 1.5 mm lid",
+  "peak_over_mean_analytic": 1.7549002347646323,
+  "peak_over_mean_elmer": 1.7548292068667488
+ },
+ "lid_needed_for_1.2": {
+  "note": "central band, nominal R2 and median h_cell: copper (k 391) needs about 5 mm (1.26 at 5.0 mm); effective k about 2,000 W/mK reaches 1.27 at 1.5 mm and 1.13 at 3.2 mm; k >= 5,000 (vapour-chamber class) gives 1.06-1.12, floored by coolant warming along the flow"
+ },
+ "nominal": {
+  "R1": 5.14e-06,
+  "R2": 6e-06,
+  "k": 391.0,
+  "t_mm": 1.5
+ },
+ "reading": {
+  "hotspot_strata": "every resolved design fails both ratio-3 strata by 12.7-23.4 K; the complete five-stratum decision is NONE_FEASIBLE for every design",
+  "panel_recommendation": "do not release the 53-job panel as specified: its hotspot strata would confirm NONE_FEASIBLE; needs a buyer lever first",
+  "registered_rule": "VALUABLE (warm_uniform and typical_uniform each have passing and failing/near designs)"
+ },
+ "schema": "carbon.cooling.lid-spreading-presolve.v1",
+ "step1": {
+  "coolant_rise_k": 7.482447726026248,
+  "h_cell_w_m2k": {
+   "designs": 22,
+   "max": 84814.69781670849,
+   "median": 55209.96161380621,
+   "min": 36362.2015142458
+  },
+  "maps": {
+   "central_15mm": {
+    "corners_min_max": [
+     1.3307316167689787,
+     1.9150691400116182
+    ],
+    "nominal": {
+     "peak_over_mean": 1.7549002347646323,
+     "peak_x_mm": 14.995,
+     "tim2_jump_peak_k": 17.549002347646777
+    },
+    "raw_peak_over_mean": 2.999994943845654,
+    "sensitivity": {
+     "R2": {
+      "4e-06": 1.7856484729659736,
+      "6e-06": 1.7549002347646323,
+      "8e-06": 1.726705586608212
+     },
+     "h_cell": {
+      "36362": 1.6397983867260197,
+      "55210": 1.7549002347646323,
+      "84815": 1.8629350685110304
+     },
+     "k": {
+      "380.0": 1.7650243824898482,
+      "391.0": 1.7549002347646323,
+      "400.0": 1.7468354964992598
+     },
+     "t_mm": {
+      "1.5": 1.7549002347646323,
+      "2.0": 1.6274876597934789,
+      "2.5": 1.5307131739333508,
+      "3.2": 1.4279049223471114
+     }
+    },
+    "target_at_nominal_R2": 1.2
+   },
+   "outlet_24mm": {
+    "corners_min_max": [
+     1.5274147955660968,
+     1.9864326885656172
+    ],
+    "nominal": {
+     "peak_over_mean": 1.8639887662611776,
+     "peak_x_mm": 24.395,
+     "tim2_jump_peak_k": 18.63988801454893
+    },
+    "raw_peak_over_mean": 2.9999948981235263,
+    "sensitivity": {
+     "R2": {
+      "4e-06": 1.8870667309219868,
+      "6e-06": 1.8639887662611776,
+      "8e-06": 1.8429288218705537
+     },
+     "h_cell": {
+      "36362": 1.7782001235210245,
+      "55210": 1.8639887662611776,
+      "84815": 1.945837977355886
+     },
+     "k": {
+      "380.0": 1.871720234350153,
+      "391.0": 1.8639887662611776,
+      "400.0": 1.8578342484237103
+     },
+     "t_mm": {
+      "1.5": 1.8639887662611776,
+      "2.0": 1.7657984607355792,
+      "2.5": 1.6909778811851675,
+      "3.2": 1.6099090405333545
+     }
+    },
+    "target_at_nominal_R2": 1.2
+   }
+  }
+ },
+ "step2": {
+  "cold_uniform": {
+   "counts": {
+    "FAIL": 0,
+    "NEAR": 0,
+    "PASS": 22,
+    "UNRESOLVED": 10
+   },
+   "designs": {
+    "c0": {
+     "interface_peak_c": 42.762915008299956,
+     "margin_k": 42.237084991700044,
+     "verdict": "PASS"
+    },
+    "c1": {
+     "interface_peak_c": 43.43169016303508,
+     "margin_k": 41.56830983696492,
+     "verdict": "PASS"
+    },
+    "c2": {
+     "interface_peak_c": 42.612656717192614,
+     "margin_k": 42.387343282807386,
+     "verdict": "PASS"
+    },
+    "c3": {
+     "interface_peak_c": 43.28561953097568,
+     "margin_k": 41.71438046902432,
+     "verdict": "PASS"
+    },
+    "c4": {
+     "interface_peak_c": 48.23468479807874,
+     "margin_k": 36.76531520192126,
+     "verdict": "PASS"
+    },
+    "c5": {
+     "interface_peak_c": 48.873572666886844,
+     "margin_k": 36.126427333113156,
+     "verdict": "PASS"
+    },
+    "c6": {
+     "interface_peak_c": 47.61066951011234,
+     "margin_k": 37.38933048988766,
+     "verdict": "PASS"
+    },
+    "c7": {
+     "interface_peak_c": 48.2541945261543,
+     "margin_k": 36.7458054738457,
+     "verdict": "PASS"
+    },
+    "u00": {
+     "interface_peak_c": 51.298001833553975,
+     "margin_k": 33.701998166446025,
+     "verdict": "PASS"
+    },
+    "u01": {
+     "interface_peak_c": 52.98719505527038,
+     "margin_k": 32.01280494472962,
+     "verdict": "PASS"
+    },
+    "u02": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u03": {
+     "interface_peak_c": 43.9230200290559,
+     "margin_k": 41.0769799709441,
+     "verdict": "PASS"
+    },
+    "u04": {
+     "interface_peak_c": 47.23601202881582,
+     "margin_k": 37.76398797118418,
+     "verdict": "PASS"
+    },
+    "u05": {
+     "interface_peak_c": 43.70703458896611,
+     "margin_k": 41.29296541103389,
+     "verdict": "PASS"
+    },
+    "u06": {
+     "interface_peak_c": 49.99193575786694,
+     "margin_k": 35.00806424213306,
+     "verdict": "PASS"
+    },
+    "u07": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u08": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u09": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u10": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u11": {
+     "interface_peak_c": 43.54419890956952,
+     "margin_k": 41.45580109043048,
+     "verdict": "PASS"
+    },
+    "u12": {
+     "interface_peak_c": 48.4888590665293,
+     "margin_k": 36.5111409334707,
+     "verdict": "PASS"
+    },
+    "u13": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u14": {
+     "interface_peak_c": 42.939805101689046,
+     "margin_k": 42.060194898310954,
+     "verdict": "PASS"
+    },
+    "u15": {
+     "interface_peak_c": 46.66895866279981,
+     "margin_k": 38.33104133720019,
+     "verdict": "PASS"
+    },
+    "u16": {
+     "interface_peak_c": 51.48160069459982,
+     "margin_k": 33.51839930540018,
+     "verdict": "PASS"
+    },
+    "u17": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u18": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u19": {
+     "interface_peak_c": 47.91760058995851,
+     "margin_k": 37.08239941004149,
+     "verdict": "PASS"
+    },
+    "u20": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u21": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u22": {
+     "interface_peak_c": 43.740227470155695,
+     "margin_k": 41.259772529844305,
+     "verdict": "PASS"
+    },
+    "u23": {
+     "interface_peak_c": 43.92174905125571,
+     "margin_k": 41.07825094874429,
+     "verdict": "PASS"
+    }
+   },
+   "margin_range_k": [
+    32.01280494472962,
+    42.387343282807386
+   ],
+   "non_trivial": false
+  },
+  "typical_uniform": {
+   "counts": {
+    "FAIL": 0,
+    "NEAR": 1,
+    "PASS": 21,
+    "UNRESOLVED": 10
+   },
+   "designs": {
+    "c0": {
+     "interface_peak_c": 65.52583001659991,
+     "margin_k": 19.47416998340009,
+     "verdict": "PASS"
+    },
+    "c1": {
+     "interface_peak_c": 66.86338032607016,
+     "margin_k": 18.136619673929843,
+     "verdict": "PASS"
+    },
+    "c2": {
+     "interface_peak_c": 65.22531343438523,
+     "margin_k": 19.774686565614772,
+     "verdict": "PASS"
+    },
+    "c3": {
+     "interface_peak_c": 66.57123906195136,
+     "margin_k": 18.42876093804864,
+     "verdict": "PASS"
+    },
+    "c4": {
+     "interface_peak_c": 76.46936959615748,
+     "margin_k": 8.530630403842522,
+     "verdict": "PASS"
+    },
+    "c5": {
+     "interface_peak_c": 77.74714533377369,
+     "margin_k": 7.2528546662263125,
+     "verdict": "PASS"
+    },
+    "c6": {
+     "interface_peak_c": 75.22133902022468,
+     "margin_k": 9.778660979775324,
+     "verdict": "PASS"
+    },
+    "c7": {
+     "interface_peak_c": 76.5083890523086,
+     "margin_k": 8.491610947691399,
+     "verdict": "PASS"
+    },
+    "u00": {
+     "interface_peak_c": 82.59600366710795,
+     "margin_k": 2.4039963328920493,
+     "verdict": "PASS"
+    },
+    "u01": {
+     "interface_peak_c": 85.97439011054075,
+     "margin_k": -0.9743901105407531,
+     "verdict": "NEAR"
+    },
+    "u02": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u03": {
+     "interface_peak_c": 67.8460400581118,
+     "margin_k": 17.153959941888203,
+     "verdict": "PASS"
+    },
+    "u04": {
+     "interface_peak_c": 74.47202405763164,
+     "margin_k": 10.527975942368357,
+     "verdict": "PASS"
+    },
+    "u05": {
+     "interface_peak_c": 67.41406917793222,
+     "margin_k": 17.58593082206778,
+     "verdict": "PASS"
+    },
+    "u06": {
+     "interface_peak_c": 79.98387151573388,
+     "margin_k": 5.016128484266119,
+     "verdict": "PASS"
+    },
+    "u07": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u08": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u09": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u10": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u11": {
+     "interface_peak_c": 67.08839781913905,
+     "margin_k": 17.911602180860953,
+     "verdict": "PASS"
+    },
+    "u12": {
+     "interface_peak_c": 76.9777181330586,
+     "margin_k": 8.022281866941398,
+     "verdict": "PASS"
+    },
+    "u13": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u14": {
+     "interface_peak_c": 65.87961020337809,
+     "margin_k": 19.120389796621907,
+     "verdict": "PASS"
+    },
+    "u15": {
+     "interface_peak_c": 73.33791732559962,
+     "margin_k": 11.66208267440038,
+     "verdict": "PASS"
+    },
+    "u16": {
+     "interface_peak_c": 82.96320138919964,
+     "margin_k": 2.0367986108003606,
+     "verdict": "PASS"
+    },
+    "u17": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u18": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u19": {
+     "interface_peak_c": 75.83520117991702,
+     "margin_k": 9.164798820082979,
+     "verdict": "PASS"
+    },
+    "u20": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u21": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u22": {
+     "interface_peak_c": 67.48045494031139,
+     "margin_k": 17.51954505968861,
+     "verdict": "PASS"
+    },
+    "u23": {
+     "interface_peak_c": 67.84349810251142,
+     "margin_k": 17.15650189748858,
+     "verdict": "PASS"
+    }
+   },
+   "margin_range_k": [
+    -0.9743901105407531,
+    19.774686565614772
+   ],
+   "non_trivial": true
+  },
+  "warm_central_band": {
+   "counts": {
+    "FAIL": 11,
+    "NEAR": 0,
+    "PASS": 0,
+    "UNRESOLVED": 21
+   },
+   "designs": {
+    "c0": {
+     "interface_peak_c": 98.25904647661858,
+     "margin_k": -13.259046476618579,
+     "verdict": "FAIL"
+    },
+    "c1": {
+     "interface_peak_c": 99.97031364539203,
+     "margin_k": -14.970313645392025,
+     "verdict": "FAIL"
+    },
+    "c2": {
+     "interface_peak_c": 97.7485765644343,
+     "margin_k": -12.748576564434302,
+     "verdict": "FAIL"
+    },
+    "c3": {
+     "interface_peak_c": 99.58698612718237,
+     "margin_k": -14.58698612718237,
+     "verdict": "FAIL"
+    },
+    "c4": {
+     "post_peak_over_mean": 1.7218349883644628,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "c5": {
+     "post_peak_over_mean": 1.7041489800816674,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "c6": {
+     "post_peak_over_mean": 1.736629521604065,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "c7": {
+     "post_peak_over_mean": 1.7183522833015872,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "u00": {
+     "post_peak_over_mean": 1.6699752656660354,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "u01": {
+     "post_peak_over_mean": 1.6397983867260197,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "u02": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u03": {
+     "interface_peak_c": 101.10939022290147,
+     "margin_k": -16.109390222901467,
+     "verdict": "FAIL"
+    },
+    "u04": {
+     "post_peak_over_mean": 1.749292354641036,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "u05": {
+     "interface_peak_c": 100.59404993784305,
+     "margin_k": -15.594049937843053,
+     "verdict": "FAIL"
+    },
+    "u06": {
+     "post_peak_over_mean": 1.6930629078058657,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "u07": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u08": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u09": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u10": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u11": {
+     "interface_peak_c": 99.74813191410703,
+     "margin_k": -14.748131914107034,
+     "verdict": "FAIL"
+    },
+    "u12": {
+     "post_peak_over_mean": 1.7269564786856129,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "u13": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u14": {
+     "interface_peak_c": 98.22691698311195,
+     "margin_k": -13.226916983111948,
+     "verdict": "FAIL"
+    },
+    "u15": {
+     "interface_peak_c": 108.36052293065245,
+     "margin_k": -23.36052293065245,
+     "verdict": "FAIL"
+    },
+    "u16": {
+     "post_peak_over_mean": 1.6691708779772687,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "u17": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u18": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u19": {
+     "post_peak_over_mean": 1.7311363483040958,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "u20": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u21": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u22": {
+     "interface_peak_c": 100.50950050542428,
+     "margin_k": -15.509500505424285,
+     "verdict": "FAIL"
+    },
+    "u23": {
+     "interface_peak_c": 101.24946013269485,
+     "margin_k": -16.24946013269485,
+     "verdict": "FAIL"
+    }
+   },
+   "margin_range_k": [
+    -23.36052293065245,
+    -12.748576564434302
+   ],
+   "non_trivial": false
+  },
+  "warm_outlet_band": {
+   "counts": {
+    "FAIL": 10,
+    "NEAR": 0,
+    "PASS": 0,
+    "UNRESOLVED": 22
+   },
+   "designs": {
+    "c0": {
+     "interface_peak_c": 102.28910796742778,
+     "margin_k": -17.289107967427782,
+     "verdict": "FAIL"
+    },
+    "c1": {
+     "interface_peak_c": 104.44206983877736,
+     "margin_k": -19.442069838777357,
+     "verdict": "FAIL"
+    },
+    "c2": {
+     "interface_peak_c": 101.67147622870104,
+     "margin_k": -16.67147622870104,
+     "verdict": "FAIL"
+    },
+    "c3": {
+     "interface_peak_c": 103.94954468471819,
+     "margin_k": -18.94954468471819,
+     "verdict": "FAIL"
+    },
+    "c4": {
+     "post_peak_over_mean": 1.839297080334945,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "c5": {
+     "post_peak_over_mean": 1.826123800774637,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "c6": {
+     "post_peak_over_mean": 1.8503328004247868,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "c7": {
+     "post_peak_over_mean": 1.8367021444854914,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "u00": {
+     "post_peak_over_mean": 1.8006896540101058,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "u01": {
+     "post_peak_over_mean": 1.7782001235210245,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "u02": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u03": {
+     "interface_peak_c": 105.81828255633384,
+     "margin_k": -20.81828255633384,
+     "verdict": "FAIL"
+    },
+    "u04": {
+     "post_peak_over_mean": 1.8597940102696595,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "u05": {
+     "interface_peak_c": 105.13963274787845,
+     "margin_k": -20.13963274787845,
+     "verdict": "FAIL"
+    },
+    "u06": {
+     "post_peak_over_mean": 1.8178717095530625,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "u07": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u08": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u09": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u10": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u11": {
+     "interface_peak_c": 104.28124790228338,
+     "margin_k": -19.281247902283383,
+     "verdict": "FAIL"
+    },
+    "u12": {
+     "post_peak_over_mean": 1.8431159017150875,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "u13": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u14": {
+     "interface_peak_c": 102.35873649358484,
+     "margin_k": -17.358736493584843,
+     "verdict": "FAIL"
+    },
+    "u15": {
+     "post_peak_over_mean": 1.8680836335965505,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "u16": {
+     "post_peak_over_mean": 1.8000909751768042,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "u17": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u18": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u19": {
+     "post_peak_over_mean": 1.8462331807214567,
+     "verdict": "UNRESOLVED",
+     "why": "hotspot cell outside reference applicability"
+    },
+    "u20": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u21": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u22": {
+     "interface_peak_c": 105.14907284538818,
+     "margin_k": -20.149072845388176,
+     "verdict": "FAIL"
+    },
+    "u23": {
+     "interface_peak_c": 105.92623180291105,
+     "margin_k": -20.926231802911047,
+     "verdict": "FAIL"
+    }
+   },
+   "margin_range_k": [
+    -20.926231802911047,
+    -16.67147622870104
+   ],
+   "non_trivial": false
+  },
+  "warm_uniform": {
+   "counts": {
+    "FAIL": 12,
+    "NEAR": 9,
+    "PASS": 1,
+    "UNRESOLVED": 10
+   },
+   "designs": {
+    "c0": {
+     "interface_peak_c": 83.28874502489987,
+     "margin_k": 1.7112549751001325,
+     "verdict": "NEAR"
+    },
+    "c1": {
+     "interface_peak_c": 85.29507048910523,
+     "margin_k": -0.29507048910522826,
+     "verdict": "NEAR"
+    },
+    "c2": {
+     "interface_peak_c": 82.83797015157785,
+     "margin_k": 2.1620298484221507,
+     "verdict": "PASS"
+    },
+    "c3": {
+     "interface_peak_c": 84.85685859292704,
+     "margin_k": 0.1431414070729602,
+     "verdict": "NEAR"
+    },
+    "c4": {
+     "interface_peak_c": 99.70405439423621,
+     "margin_k": -14.70405439423621,
+     "verdict": "FAIL"
+    },
+    "c5": {
+     "interface_peak_c": 101.62071800066053,
+     "margin_k": -16.62071800066053,
+     "verdict": "FAIL"
+    },
+    "c6": {
+     "interface_peak_c": 97.83200853033702,
+     "margin_k": -12.83200853033702,
+     "verdict": "FAIL"
+    },
+    "c7": {
+     "interface_peak_c": 99.76258357846291,
+     "margin_k": -14.762583578462909,
+     "verdict": "FAIL"
+    },
+    "u00": {
+     "interface_peak_c": 108.89400550066193,
+     "margin_k": -23.894005500661933,
+     "verdict": "FAIL"
+    },
+    "u01": {
+     "interface_peak_c": 113.96158516581113,
+     "margin_k": -28.96158516581113,
+     "verdict": "FAIL"
+    },
+    "u02": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u03": {
+     "interface_peak_c": 86.7690600871677,
+     "margin_k": -1.769060087167702,
+     "verdict": "NEAR"
+    },
+    "u04": {
+     "interface_peak_c": 96.70803608644746,
+     "margin_k": -11.708036086447464,
+     "verdict": "FAIL"
+    },
+    "u05": {
+     "interface_peak_c": 86.12110376689833,
+     "margin_k": -1.1211037668983295,
+     "verdict": "NEAR"
+    },
+    "u06": {
+     "interface_peak_c": 104.97580727360082,
+     "margin_k": -19.97580727360082,
+     "verdict": "FAIL"
+    },
+    "u07": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u08": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u09": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u10": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u11": {
+     "interface_peak_c": 85.63259672870856,
+     "margin_k": -0.6325967287085632,
+     "verdict": "NEAR"
+    },
+    "u12": {
+     "interface_peak_c": 100.4665771995879,
+     "margin_k": -15.466577199587903,
+     "verdict": "FAIL"
+    },
+    "u13": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u14": {
+     "interface_peak_c": 83.81941530506714,
+     "margin_k": 1.1805846949328611,
+     "verdict": "NEAR"
+    },
+    "u15": {
+     "interface_peak_c": 95.00687598839943,
+     "margin_k": -10.006875988399429,
+     "verdict": "FAIL"
+    },
+    "u16": {
+     "interface_peak_c": 109.44480208379946,
+     "margin_k": -24.44480208379946,
+     "verdict": "FAIL"
+    },
+    "u17": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u18": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u19": {
+     "interface_peak_c": 98.75280176987553,
+     "margin_k": -13.752801769875532,
+     "verdict": "FAIL"
+    },
+    "u20": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u21": {
+     "verdict": "UNRESOLVED",
+     "why": "warm uniform cell outside reference applicability"
+    },
+    "u22": {
+     "interface_peak_c": 86.22068241046708,
+     "margin_k": -1.2206824104670773,
+     "verdict": "NEAR"
+    },
+    "u23": {
+     "interface_peak_c": 86.76524715376712,
+     "margin_k": -1.7652471537671204,
+     "verdict": "NEAR"
+    }
+   },
+   "margin_range_k": [
+    -28.96158516581113,
+    2.1620298484221507
+   ],
+   "non_trivial": true
+  }
+ },
+ "valuable": true
+}
