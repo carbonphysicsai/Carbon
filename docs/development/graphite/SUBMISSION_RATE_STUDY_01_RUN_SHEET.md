@@ -260,8 +260,8 @@ seed, input, reference or score appears in this file.
 - **By construction.** The study root is distinct from the live producer's
   root and from every campaign root. The study bank and the `fresh` bank are
   distinct tranches of one ledger, so a case belongs to exactly one tranche.
-- **By content** *(to build; Data Collection can write it, and the operator
-  runs it)*. Each study and fresh case gets a canonical case-input digest,
+- **By content** (`scripts/dev/rate_study/disjointness.py`, operator-run;
+  it stands in for H2's missing overlap check for this study, plan O6). Each study and fresh case gets a canonical case-input digest,
   computed from the case's physical inputs and ignoring ids and seeds. That
   digest set is checked for exact matches against the live, retired and
   published pool cases and against TRAIN, PRACTICE, EV5 (journal sequence 14),
@@ -270,8 +270,15 @@ seed, input, reference or score appears in this file.
   the digest of the study digest set and the digest of the script; no case or
   digest list leaves the host. A near-duplicate tolerance would be a
   scientific choice and stays `HUMAN_INPUT`. Until it is set, only exact
-  matches are checked, and the record says so. Record:
-  `<recorded: per set, matches = 0, script digest, date>`.
+  matches are checked, and the record says so. Command (one `--against` per set; a bank ledger takes `#bank`):
+
+  ```bash
+  P scripts/dev/rate_study/disjointness.py --study pool=<study bank.sqlite3>#pool --study fresh=<study bank.sqlite3>#fresh --against live=<live bank.sqlite3> --against ev5=<…> --against train=<…> --against practice=<…> --against confirmation=<…> --against tuning=<…> --out /var/lib/carbon-producer/rate-study/disjointness.json
+  ```
+
+  It exits 0 only when every study set is disjoint from every other set and
+  from each other. Record:
+  `<recorded: per set, matches = 0, set digest, script digest, date>`.
 
 ### C.4 Host window, queue and measured cost
 
