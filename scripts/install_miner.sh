@@ -24,7 +24,10 @@
 #   4. builds the pinned worker and analysis images on this machine, and the
 #      GPU worker with --gpu or whenever one was built here before (every
 #      install moves the checkout, so an old GPU worker would no longer match
-#      it). With --release TAG it builds none: step 2 moves the checkout to
+#      it). A worker already built here from this exact source tree, which
+#      Docker still holds, is used again rather than rebuilt, so installs
+#      sharing one checkout keep the same images (LA-F16). With --release
+#      TAG it builds none: step 2 moves the checkout to
 #      that release tag, cut from main, and this step pulls each image the
 #      release's records name from ghcr.io/carbonphysicsai, by digest, and
 #      checks it (scripts/dev/worker_image_release.py pull). A failed pull
@@ -36,7 +39,8 @@
 #      a runner profile written before is written again. It prints what
 #      changed;
 #   6. starts the Control Center on 127.0.0.1, in this terminal or, with
-#      --service, as a systemd user service, and prints how to start it again.
+#      --service, as this state directory's own systemd user service, and
+#      prints how to start, stop and follow it (LA-F15).
 #
 # It never asks for, reads or stores a key, seed phrase or password. Your
 # hotkey stays in your own wallet and `carbon-miner-signer`; registration on
@@ -46,8 +50,10 @@ set -euo pipefail
 
 UV_VERSION="0.12.7"
 REF="${CARBON_REF:-main}"
-STATE_DIR="${CARBON_STATE_DIR:-${HOME}/.carbon/development-launchpad}"
+DEFAULT_STATE_DIR="${HOME}/.carbon/development-launchpad"
+STATE_DIR="${CARBON_STATE_DIR:-${DEFAULT_STATE_DIR}}"
 PORT="${CARBON_PORT:-8788}"
+PORT_GIVEN=$([[ -n "${CARBON_PORT:-}" ]] && echo 1 || echo 0)
 GPU=0
 START=1
 UPDATE=0
@@ -69,8 +75,10 @@ RELEASE_KINDS=(c03 analysis accelerator)
 CHECKOUT_GIB=5
 IMAGES_GIB=12
 GPU_GIB=12
-SERVICE_NAME="carbon-control-center.service"
-UNIT="${XDG_CONFIG_HOME:-${HOME}/.config}/systemd/user/${SERVICE_NAME}"
+#: The user service of the default state directory. Every other state
+#: directory has its own (LA-F15, below).
+DEFAULT_SERVICE="carbon-control-center.service"
+UNITS="${XDG_CONFIG_HOME:-${HOME}/.config}/systemd/user"
 
 usage() {
   cat <<'EOF'
@@ -78,7 +86,8 @@ usage: scripts/install_miner.sh [--update] [--gpu] [--ref REF | --release TAG]
                                 [--no-start] [--service] [--port PORT]
 
   --update     update an installed checkout: move it to REF (default: the
-               latest main), rebuild its images, check setup's compute again
+               latest main), build its images again (or use the ones already
+               built from that exact source tree), check setup's compute again
                and rewrite your runner profile, then say what changed
   --gpu        also build the GPU worker (needs an NVIDIA GPU and the
                NVIDIA Container Toolkit)
@@ -91,8 +100,11 @@ usage: scripts/install_miner.sh [--update] [--gpu] [--ref REF | --release TAG]
                release records name, by digest. With --update, TAG must be
                this install's revision or newer
   --no-start   build everything, but do not start the Control Center
-  --service    run the Control Center as a systemd user service
-               (carbon-control-center), so this terminal stays free
+  --service    run the Control Center as a systemd user service, so this
+               terminal stays free: carbon-control-center for the default
+               state directory, and carbon-control-center-NAME-HASH for any
+               other CARBON_STATE_DIR. An install never writes, starts or
+               stops another state directory's service
   --port PORT  the Control Center's local port (default 8788)
 EOF
 }
@@ -106,7 +118,7 @@ while [[ $# -gt 0 ]]; do
     --release) RELEASE="${2:?--release needs a value}"; shift ;;
     --no-start) START=0 ;;
     --service) SERVICE=1 ;;
-    --port) PORT="${2:?--port needs a value}"; shift ;;
+    --port) PORT="${2:?--port needs a value}"; PORT_GIVEN=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; exit 2 ;;
   esac
@@ -120,6 +132,45 @@ repo_root="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 self="${repo_root}/scripts/install_miner.sh"
 self_digest="$(sha256sum < "${self}" | cut -d' ' -f1)"
 artifacts="${repo_root}/.carbon-artifacts"
+
+# Each state directory has its own user service (LA-F15). Two installs can
+# share one checkout, each with its own CARBON_STATE_DIR; with one shared
+# unit, the second install rewrote the first one's service to run its own
+# state directory. The default state directory keeps carbon-control-center,
+# so existing installs and the docs' commands stay as they were; any other
+# is named after its directory, with a hash of its full path. Made absolute
+# before step 2 changes directory, so a relative CARBON_STATE_DIR names the
+# same directory throughout.
+STATE_DIR="$(realpath -ms -- "${STATE_DIR}")"
+state_real="$(realpath -m -- "${STATE_DIR}")"
+if [[ "${state_real}" == "$(realpath -m -- "${DEFAULT_STATE_DIR}")" ]]; then
+  SERVICE_NAME="${DEFAULT_SERVICE}"
+else
+  state_label="$(printf '%s' "$(basename -- "${state_real}")" | tr -c 'A-Za-z0-9_-' '_' | cut -c1-32)"
+  state_hash="$(printf '%s' "${state_real}" | sha256sum | cut -c1-12)"
+  SERVICE_NAME="carbon-control-center-${state_label}-${state_hash}.service"
+fi
+UNIT="${UNITS}/${SERVICE_NAME}"
+
+#: The state directory a unit file runs (its ExecStart's --state-dir), as a
+#: full path, or nothing.
+unit_state_dir() {
+  local dir
+  dir="$(sed -n 's/^ExecStart=.* --state-dir \([^ ]*\) .*$/\1/p' -- "$1" 2>/dev/null | head -n 1)"
+  [[ -n "${dir}" ]] && realpath -m -- "${dir}"
+}
+
+# This install runs as a service when the miner says --service, or when its
+# own unit, written by an earlier --service install, runs this very state
+# directory. A unit file is written only then, and only this install's own.
+own_unit=0
+if [[ -f "${UNIT}" && "$(unit_state_dir "${UNIT}" || true)" == "${state_real}" ]]; then
+  own_unit=1
+fi
+service_mode=0
+if [[ "${SERVICE}" == 1 || "${own_unit}" == 1 ]]; then
+  service_mode=1
+fi
 
 if [[ -n "${RELEASE}" ]]; then
   # A release names its own revision: its tag.
@@ -200,7 +251,7 @@ docker info >/dev/null 2>&1 \
 # here while the service is refused, and the worker doctor then fails as
 # "accepted numerical host unavailable". Checked before anything changes.
 # A machine without the user manager is refused at step 6, as before.
-if [[ "${SERVICE}" == 1 || -f "${UNIT}" ]] && command -v systemctl >/dev/null 2>&1 \
+if [[ "${service_mode}" == 1 ]] && command -v systemctl >/dev/null 2>&1 \
   && systemctl --user show-environment >/dev/null 2>&1; then
   command -v systemd-run >/dev/null 2>&1 \
     || fail "--service needs systemd-run (part of systemd) to check that the service can reach Docker."
@@ -349,6 +400,12 @@ CARBON_UV_GROUPS="science-jax chain archive mcp" ./scripts/dev/bootstrap.sh
 python="${repo_root}/.venv/bin/python"
 setup_cli=("${python}" -m scripts.dev.miner_launchpad.environment_setup)
 
+#: current_image MANIFEST: whether MANIFEST names a worker built from this
+#: checkout's exact source tree that Docker still holds (installed.current).
+current_image() {
+  [[ "$("${python}" -m scripts.dev.miner_launchpad.installed current --manifest "$1" 2>/dev/null)" == "yes" ]]
+}
+
 # Every install, not only --update: a plain run moves the checkout to the
 # latest main too, and an old GPU worker would then be checked again, and
 # written into the profile, beside images of the new revision.
@@ -392,7 +449,17 @@ if [[ -n "${RELEASE}" ]]; then
   gpu_release_record="${release_dir}/accelerator-worker-image.release.json"
 else
   step "4/6 Building the pinned images on this machine"
-  ./scripts/dev/c03_worker_image.sh "${artifacts}/c03-worker-image.json"
+  # Another install sharing this checkout may have built them at this very
+  # source tree already (LA-F16). A rebuild would be a new image with a new
+  # id, written over the manifest that install recorded, and its analysis
+  # image and compute check would no longer match. So a worker whose
+  # manifest names this exact source tree, and whose image Docker still
+  # holds, is used again; the analysis image built on it then is too.
+  if current_image "${artifacts}/c03-worker-image.json"; then
+    echo "The worker image built here from this exact source tree is still present; using it again."
+  else
+    ./scripts/dev/c03_worker_image.sh "${artifacts}/c03-worker-image.json"
+  fi
   analysis="$(
     "${python}" -m carbon.development_session.research_image \
       --parent-manifest "${artifacts}/c03-worker-image.json" \
@@ -400,7 +467,11 @@ else
     | "${python}" -c 'import json, sys; print(json.load(sys.stdin)["manifest"])'
   )"
   if [[ "${gpu_build}" == 1 ]]; then
-    ./scripts/dev/accelerator_worker_image.sh "${artifacts}/accelerator-worker-image.json"
+    if current_image "${artifacts}/accelerator-worker-image.json"; then
+      echo "The GPU worker built here from this exact source tree is still present; using it again."
+    else
+      ./scripts/dev/accelerator_worker_image.sh "${artifacts}/accelerator-worker-image.json"
+    fi
     gpu_manifest="${artifacts}/accelerator-worker-image.json"
   fi
 fi
@@ -436,9 +507,31 @@ launcher=("${repo_root}/.venv/bin/carbon-control-center")
   || launcher=("${python}" "${repo_root}/scripts/dev/miner_launchpad/controller.py")
 start_command="${launcher[*]} --state-dir ${STATE_DIR} --port ${PORT}"
 
-if [[ "${SERVICE}" == 1 || -f "${UNIT}" ]]; then
-  # The miner chose the service (now or at an earlier install): this
-  # install rewrites its unit and starts it, unless --no-start.
+# Units written before LA-F15 all had the default service's name, so one may
+# run another state directory than its name's. This install never rewrites
+# such a unit unless it is this install's own name and the miner says
+# --service; it says what it found instead.
+if [[ "${service_mode}" == 0 && -f "${UNIT}" ]]; then
+  echo "Note: the user service ${SERVICE_NAME%.service} runs the Control Center of $(unit_state_dir "${UNIT}" || echo 'another state directory'), not this install's ${STATE_DIR}. This install left it alone. To run this install as that service instead, install again with --service."
+fi
+default_unit="${UNITS}/${DEFAULT_SERVICE}"
+if [[ "${SERVICE_NAME}" != "${DEFAULT_SERVICE}" && -f "${default_unit}" ]] \
+  && [[ "$(unit_state_dir "${default_unit}" || true)" == "${state_real}" ]]; then
+  echo "Note: the user service ${DEFAULT_SERVICE%.service} runs this install's state directory, but that service belongs to the default state directory ${DEFAULT_STATE_DIR}: an installer from before LA-F15 rewrote it. This install left it alone; its own service is ${SERVICE_NAME%.service}. If you no longer use the default install's service, stop it with: systemctl --user disable --now ${DEFAULT_SERVICE%.service}. Otherwise run the default install again with --service, which gives it back its own state directory."
+fi
+
+if [[ "${service_mode}" == 1 ]]; then
+  # The miner chose the service for this state directory, now or at an
+  # earlier install: this install rewrites its own unit and starts it,
+  # unless --no-start. An earlier unit's port is kept unless --port or
+  # CARBON_PORT names another.
+  if [[ "${own_unit}" == 1 && "${PORT_GIVEN}" == 0 ]]; then
+    unit_port="$(sed -n 's/^ExecStart=.* --port \([0-9]*\)$/\1/p' -- "${UNIT}" | head -n 1)"
+    if [[ -n "${unit_port}" ]]; then
+      PORT="${unit_port}"
+      start_command="${launcher[*]} --state-dir ${STATE_DIR} --port ${PORT}"
+    fi
+  fi
   command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1 \
     || fail "--service needs systemd's user manager (systemctl --user). On WSL, turn systemd on in /etc/wsl.conf; or start it yourself with: ${start_command}"
   mkdir -p "$(dirname -- "${UNIT}")"
@@ -460,11 +553,13 @@ if [[ "${SERVICE}" == 1 || -f "${UNIT}" ]]; then
     echo "The Control Center is installed as the user service ${SERVICE_NAME%.service}; it was not started."
   fi
   cat <<EOF
+  This install's own service: ${SERVICE_NAME%.service} (state directory ${STATE_DIR}).
   Your session token (paste it into the page):
     grep 'Local session token' ${STATE_DIR}/control-center.log | tail -n 1
   Restart it:  systemctl --user restart ${SERVICE_NAME%.service}
   Stop it:     systemctl --user stop ${SERVICE_NAME%.service}
-  Its output:  ${STATE_DIR}/control-center.log
+  Its state:   systemctl --user status ${SERVICE_NAME%.service}
+  Its output:  tail -f ${STATE_DIR}/control-center.log
 EOF
   exit 0
 fi
