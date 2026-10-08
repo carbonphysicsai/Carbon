@@ -80,7 +80,7 @@ def run_optimizer(task, predictor, *, model_id, cost_recorder=None):
 
     def proposal(action):
         nonlocal attempted, invalid, model_failures, stopped_for_budget
-        validation_started = time.perf_counter()
+        validation_started = time.perf_counter() if cost_recorder is not None else 0.0
         raw_key = dt.digest(action)
         if raw_key in seen:
             return index.get(raw_key)
@@ -113,7 +113,7 @@ def run_optimizer(task, predictor, *, model_id, cost_recorder=None):
         rows = {}
         for condition in conditions:
             attempted += 1
-            query_started = time.perf_counter()
+            query_started = time.perf_counter() if cost_recorder is not None else 0.0
             try:
                 value = predictor(dict(canonical), dict(condition))
                 if not isinstance(value, dict) or not needed <= set(value):
