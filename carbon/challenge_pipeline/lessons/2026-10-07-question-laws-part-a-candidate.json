@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-question-laws-part-a-candidate",
+  "recorded_at": "2026-10-07T21:40:00+00:00",
+  "challenge": "protocol", "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-QUESTION-LAWS-01 Part A candidate", "description": "Native Windows: focused question-law/foundation/customer/pipeline pytest suite; pipeline validate; Black check."},
+  "expected": "The complete Part A proposal and current pipeline pass static diagnostics without claiming Part B or canonical acceptance.",
+  "observed": "59 tests passed in 36.25 s; protocol DEFINING, 7 records and 412 lessons valid, zero awaiting a decision; Black passed. #758 remained open at bb003451afdbf30abec55cfdc08b40fdd3aaf5aa. No solver, model, hidden material or spend; Part B remains explicitly merge-gated.",
+  "keep": ["Use one draft PR for the complete requested ticket, without running ready-revision canonical acceptance on incomplete content.", "Preserve null registered values and explicit scope/observer limitations."],
+  "change": ["Finish Motor/cell quiz content in the same PR only after #758 lands, then hand the completed candidate to PR Lead."],
+  "protocol_elements": ["dependency-gates", "canonical-validation", "design-question-population"],
+  "proposed_revision": null, "status": "RECORDED"
+}

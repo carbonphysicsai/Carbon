@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-question-laws-continuous-regressions",
+  "recorded_at": "2026-10-07T22:46:30+00:00",
+  "challenge": "protocol", "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-QUESTION-LAWS-01 continuous and quiz regressions", "description": "Native Windows pytest: test_challenge_question_laws.py, test_portfolio_round1_screen.py and test_challenge_pipeline.py."},
+  "expected": "Validate all eight unregistered alternatives, synthetic occupancy/close-call arithmetic, cell k=8, Motor/cell quiz control/diagnostic coverage and existing packet/pipeline boundaries.",
+  "observed": "72 tests passed in 7.47 s. The repaired synthetic occupancy example and all Part B static checks passed. No solver, model, hidden-bank or provider execution occurred. Results are host diagnostics, not canonical acceptance or scientific qualification.",
+  "keep": ["Use bank answer masses, not decimal threshold count, to estimate distinct winners.", "Keep candidate missing predictions separate from reference UNRESOLVED and retain missed-opportunity judgments on settled truth."],
+  "change": ["Owner must choose grid or continuous and register actual supported intervals before use; bank expectations/rates remain NOT_DEMONSTRATED."],
+  "protocol_elements": ["question-laws", "quiz-content", "mock-isolation", "reference-failure-separation"],
+  "proposed_revision": null, "status": "RECORDED"
+}

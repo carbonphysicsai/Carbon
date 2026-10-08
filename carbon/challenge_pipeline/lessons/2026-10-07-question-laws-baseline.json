@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-question-laws-baseline",
+  "recorded_at": "2026-10-07T21:22:00+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-QUESTION-LAWS-01 baseline", "description": "Native Windows diagnostic: python -X utf8 -m pytest tests/cpu/test_portfolio_f1_packet.py tests/cpu/test_first_three_customer_packets.py tests/cpu/test_challenge_validator_bank.py -q, from the existing source worktree before candidate tests."},
+  "expected": "Packet consistency passes; bank tests require POSIX owner-only directory semantics and canonical Linux acceptance.",
+  "observed": "16 passed; one failed and eight setup errors in bank tests because Windows mode bits reject owner-only bank directories. No bank inputs, solver, protected material or provider execution occurred. This is host diagnostics, not canonical acceptance.",
+  "keep": ["Keep the bank owner-only refusal; do not weaken POSIX custody checks to make Windows tests green.", "Count stored window draws, not threshold IDs, as current exposure units."],
+  "change": ["Keep new proposal tests pure/static; rely on exact-head canonical CI for bank regression acceptance."],
+  "protocol_elements": ["design-question-population", "bank-exposure", "canonical-validation"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
