@@ -1,0 +1,29 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-08-battery-level23-attack-adapters",
+ "recorded_at": "2026-10-08T18:00:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "coverage_run",
+  "ref": "claude/battery-l23-adapters (battery Level 2 and Level 3 attack adapters)",
+  "description": "Built battery's Level 2 (SpecMuon) and Level 3 (polish numerics) attack adapters to the Test Lead's L2/L3 design and ran every family against Carbon's real boundaries: the variant compile, the miner-facing contract and the CPU rebuild."
+ },
+ "expected": "Every design row would have a surface to attack: pool selection (P1-P4) and SpecMuon's rank or iteration settings (M1) at Level 2, and a recipe in the surface that diverges or goes unstable (M2, N2).",
+ "observed": "Nine families held, each specimen fired and each control passed. Four design rows had nothing to attack. data.pool_selection was accepted at level-climb-1 but is not in the registered variant. SpecMuon's rank and iterations are Carbon's fixed constants, not recipe settings. No in-surface recipe diverged in CPU practice trials. And Carbon's compute-budget cost calculator refuses every development recipe (parameter.unknown), because it compiles with the Level 0 contract: it under-counts nothing, but a budget check would refuse every honest Level 1-4 recipe.",
+ "keep": [
+  "Before building an attack row, check that the registered variant exposes the surface the row targets; record a row with no surface as a NOT_RUN seam that says why, never as a family whose specimen cannot fire.",
+  "Type the refusals that a variant compile passes through (the contract's SubmissionRefused, the catalog's RecipeRejected) as refusals, and let only untyped errors crash."
+ ],
+ "change": [
+  "The cost calculator should cost a development recipe through the variant compile and the shared development rebuild dispatch, so each level's real cost (an SVD per step, dense quasi-Newton memory) is counted (owner: TRAINING-BUDGET-01).",
+  "data.pool_selection needs its own development variant on the published pool before P1-P4 can run."
+ ],
+ "protocol_elements": [
+  "attack.track_a",
+  "development_variant.level2",
+  "development_variant.level3"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

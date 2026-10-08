@@ -86,6 +86,9 @@ draws, solves, seals, schedules and publishes the next slot's batch into
 per Challenge. In `/usr/local/bin/carbon-push`, set
 `OUT=/var/lib/carbon-producer/producer/outbox`, the parent of the
 per-Challenge directories. `--delete` still removes retired packages.
+Keep the script's `umask 077` and `install -d -m 0700 "$OUT"`: the
+producer refuses an outbox another account can read
+(`producer_dir_not_owner_only`, with its `path`).
 
 **5. Validators.**
 - A validator deployment is `{"schema": "carbon.motor.hidden-deployment.v1", "store": DIR}`,

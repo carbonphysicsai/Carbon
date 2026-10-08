@@ -148,6 +148,10 @@ def graphite_plan(budget, selection, graphite):
     }
     if not selection.is_historical_default:
         plan["model_selection"] = selection.record()
+    window = getattr(selection, "input_window", None)
+    if window is not None:
+        # OWNER-GRAPHITE-MINER-INPUT-WINDOW-01: how the window was chosen.
+        plan["input_window"] = window
     return plan
 
 

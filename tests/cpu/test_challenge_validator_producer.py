@@ -267,3 +267,31 @@ def test_the_producer_dir_stays_outside_the_repository():
     with pytest.raises(pr.ProducerRefused) as refused:
         pr.Producer(REPOSITORY / "tmp" / "producer", [])
     assert refused.value.code == "producer_dir_inside_repository"
+
+
+def test_a_directory_others_can_read_is_refused_by_path(tmp_path, capsys, monkeypatch):
+    """3a at r2: `carbon-push` had made the outbox 0755 under the default
+    umask. The refusal is right; it now names the directory to fix."""
+    from carbon.challenge_validator.batch_source import ProducerRefused
+
+    outbox = tmp_path / "producer" / "outbox"
+    outbox.mkdir(parents=True)
+    outbox.chmod(0o755)
+    with pytest.raises(ProducerRefused) as refused:
+        pr._owner_only_dir(outbox)
+    assert refused.value.code == "producer_dir_not_owner_only"
+    assert refused.value.record() == {
+        "refused": "producer_dir_not_owner_only",
+        "path": str(outbox),
+    }
+    assert ProducerRefused("producer_slot_started").record() == {
+        "refused": "producer_slot_started"
+    }
+
+    def refuse(*args, **kwargs):
+        raise ProducerRefused("producer_dir_not_owner_only", path=outbox)
+
+    monkeypatch.setattr(pr.Producer, "from_config", staticmethod(refuse))
+    assert pr.main(["status", "--config", str(tmp_path / "producer.json")]) == 2
+    printed = json.loads(capsys.readouterr().out)
+    assert printed == {"refused": "producer_dir_not_owner_only", "path": str(outbox)}

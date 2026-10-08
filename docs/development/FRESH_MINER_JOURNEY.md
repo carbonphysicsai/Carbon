@@ -91,6 +91,28 @@ with the fields in [Record](#record).
      images (and the GPU worker) locally, records them for setup, and checks
      setup against them.
    - It prints how to start the Control Center again, then starts it.
+   - **Or install Carbon's released images (LA-F10,
+     OWNER-WORKER-IMAGES-V2-01):** add `--release worker-images-vN`, for
+     example `~/carbon/scripts/install_miner.sh --release worker-images-v2`.
+     - The installer moves the checkout to that release tag. The tag must be
+       on main.
+     - It downloads the release's records from its GitHub release, then pulls
+       each image they name from `ghcr.io/carbonphysicsai` by digest: the
+       worker, the analysis image, and the GPU worker with `--gpu`. It checks
+       each image against its record and builds nothing.
+     - Setup accepts these images because the checkout is at the revision
+       they were built from.
+     - A tag that is not a release on main, a release without its records,
+       or a failed pull stops the install before anything is recorded. The
+       message names the command that builds the images locally instead
+       (`--ref <tag>`, without `--release`).
+     - Releases from before `--release` existed (`worker-images-v1`) cannot
+       be pulled this way. Build them with `--ref`.
+     - `--update --release <tag>` moves to that release only if it is at this
+       install's revision or newer. To go back to an older release, run
+       `--release <tag>` without `--update`.
+     - Registry access is your own machine's. The public images need no
+       login, and Carbon reads no credential.
    Record its output.
 2. **Start your signer.** In your own terminal, run
    `~/carbon/.venv/bin/carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey>`
@@ -113,8 +135,9 @@ with the fields in [Record](#record).
      ([MINER_REMOTE_SETUP.md](MINER_REMOTE_SETUP.md)).
      - Choose the transport: `ssh-docker` for a machine with Docker and the
        NVIDIA Container Toolkit; `ssh-container` for a container you started
-       from the pinned GPU worker, pushed with
-       `scripts/dev/push_worker_image.sh`.
+       from the pinned GPU worker. After a `--release` install, setup names
+       the released `repository@sha256:...` reference. Otherwise, push the
+       worker with `scripts/dev/push_worker_image.sh`.
      - Give the SSH destination and port, the GPU worker manifest and the
        Challenge.
      - The check uses only your SSH and starts nothing.

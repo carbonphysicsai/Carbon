@@ -1,5 +1,31 @@
 # Eight-Challenge design-question laws — DEVELOPMENT proposal
 
+> **Current Battery map v3:** [ambient-indexed continuous law](battery-ambient-indexed-v3.md)
+> / [sheet](battery-ambient-indexed-v3.json) supersedes the single-protocol
+> supplement below. Owner selects a five-band protocol/cooling map and
+> buyer-mix-weighted value. Diversity is per band; mixture-only draws change
+> value, not independent band picks. Numeric laws/resolution remain HUMAN_INPUT.
+> The four-vector grid is an audit baseline with a new map identity; old grids
+> remain history. Motor, Cooling and five-family question laws are unchanged.
+
+> **Historical #817 single-protocol supplement:** [v3 law and support/quiz impact](battery-continuous-v3.md)
+> / [sheet](battery-continuous-v3.json) supersedes Battery's v2 recommendations.
+> Continuous-primary is owner selected; numeric laws/aggregation remain
+> HUMAN_INPUT. Four-vector v2 grid is audit only. Variable-SOC timing and
+> arbitrary initial ageing need explicit observer/reference support. Cooling
+> receives a [spreader proposal](../round1/cooling-spreader-v2.md), not a changed
+> question law. Motor and five-family laws are unchanged.
+
+> **Prospective v2 amendment (2026-10-08):** the Battery/Cooling descriptions
+> below and `proposals.json` are the preserved #776 **v1 history**. For current
+> proposed law semantics use [proposals-v2.json](proposals-v2.json) and
+> [Q2/Q3 impact v2](quiz-impact-v2.md). Battery drops the time-cap axis,
+> minimises admissible session time and separates charging thermal constraints
+> from discharge diagnostics (four grid vectors, not16). Cooling binds the
+> post-spreader interface map and stated buyer properties. The other six rows
+> and common P/Q/w, exposure and NONE_FEASIBLE policies are unchanged.
+> No sampler, task or answer key is adopted by either version.
+
 **CHALLENGE-QUESTION-LAWS-01 / SPECIFIED only.** This proposes contracts; it
 does not register a sampler, change `tasks.py`, produce a quiz bank, adopt
 scoring, run a solver or authorize spend. **Every new value and selection

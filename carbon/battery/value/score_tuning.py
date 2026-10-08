@@ -146,15 +146,39 @@ def load_registry(path, *, repository=None):
     }
     if repository is not None:
         root = Path(repository)
+        # The producer reads a root-owned checkout (/opt/carbon) as its own
+        # service account; git refuses that as "dubious ownership" unless the
+        # checkout is named safe for this one call (2026-10-08, AX42 step 12).
         rel = str(path.resolve().relative_to(root.resolve()))
         dirty = subprocess.run(
-            ["git", "-C", str(root), "status", "--porcelain", "--", rel],
+            [
+                "git",
+                "-c",
+                "safe.directory=" + str(root.resolve()),
+                "-C",
+                str(root),
+                "status",
+                "--porcelain",
+                "--",
+                rel,
+            ],
             capture_output=True,
             text=True,
             check=True,
         ).stdout.strip()
         commit = subprocess.run(
-            ["git", "-C", str(root), "log", "-1", "--format=%H", "--", rel],
+            [
+                "git",
+                "-c",
+                "safe.directory=" + str(root.resolve()),
+                "-C",
+                str(root),
+                "log",
+                "-1",
+                "--format=%H",
+                "--",
+                rel,
+            ],
             capture_output=True,
             text=True,
             check=False,  # a repository with no commit yet: unregistered

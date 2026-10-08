@@ -361,6 +361,30 @@ def product_agent(root):
     return json.loads(manifest.read_bytes()).get("agent", "autonomous")
 
 
+#: The launch doors' names for "no Carbon agent": the miner selects, or their
+#: own agent over MCP does, on its own model.
+_NO_CARBON_AGENT = frozenset({"none", "own-agent"})
+
+
+def _selects_without_carbon_model(root, row=None):
+    """Whether Carbon calls no model in this campaign (LA-F11): its frozen
+    manifest's agent, or before one exists its admitted launch's, is `none`.
+    Anything unreadable is not taken for `none`, so a key check still runs."""
+    try:
+        agent = product_agent(root)
+    except (OSError, ValueError):
+        # A manifest mid-write reads as nothing here; the key check decides.
+        return False
+    if agent is None and row is not None:
+        stored = row.get("launch_request")
+        try:
+            recorded = json.loads(stored) if type(stored) in (str, bytes) else None
+        except ValueError:
+            recorded = None
+        agent = recorded.get("agent") if type(recorded) is dict else None
+    return agent in _NO_CARBON_AGENT
+
+
 def waits_for_its_miner(root):
     """Whether the campaign at `root`, once nothing holds it, settles READY:
     `research_campaign.waits_for_its_miner` - no agent, or a retained
@@ -742,7 +766,7 @@ MODEL_SELECTION_FIELDS = frozenset(
 )
 
 
-def setup_selection(cfg, *, settings=None, output_default=None):
+def setup_selection(cfg, *, settings=None, output_default=None, input_default=None):
     """The profile's setup choice as a validated selection, with its key file.
 
     Raises `ModelSelectionRefused` when it does not validate.
@@ -755,6 +779,7 @@ def setup_selection(cfg, *, settings=None, output_default=None):
         credential={"kind": "file", "reference": path or "unset"},
         settings=settings,
         output_default=output_default,
+        input_default=input_default,
         **chosen,
     )
 
@@ -1120,10 +1145,73 @@ def hunt_estimate(cfg):
     }
 
 
+def graphite_default_selection(cfg):
+    """The selection a Graphite launch naming no model and no model settings
+    runs with (setup's choice, or the pinned default), exactly as its
+    campaign's builder chooses it: the model's own maximum output
+    (OWNER-LAUNCHPAD-PROD-02) and its published context less that output
+    (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01). None when it does not validate."""
+    from carbon.development_session.model_provider import (
+        DEFAULT_SELECTION,
+        INPUT_DEFAULT_V2,
+        OUTPUT_DEFAULT_V2,
+        ModelSelectionRefused,
+        select,
+    )
+
+    try:
+        if "model_selection" in cfg:
+            return setup_selection(
+                cfg, output_default=OUTPUT_DEFAULT_V2, input_default=INPUT_DEFAULT_V2
+            )
+        return select(
+            provider_id=DEFAULT_SELECTION.provider_id,
+            model_id=DEFAULT_SELECTION.model_id,
+            credential={"kind": "file", "reference": "unset"},
+            output_default=OUTPUT_DEFAULT_V2,
+            input_default=INPUT_DEFAULT_V2,
+        )
+    except (ModelSelectionRefused, KeyError, TypeError, ValueError):
+        return None
+
+
+def graphite_input_window(cfg):
+    """The input window a Graphite launch gets, said before it spends (LA-F8,
+    OWNER-GRAPHITE-MINER-INPUT-WINDOW-01): for a launch naming no model and
+    no window, the window its campaign will freeze, what each call reserves
+    at it and the least provider_nanodollars ceiling a FULL launch at the
+    default research share needs (`driver.launch_window`), and whether the
+    advisory applies. The advisory applies when that window, or the
+    max_input_tokens a miner sets, is at most `advised_at_or_below`."""
+    from carbon.agent_campaign.graphite.miner import driver
+    from carbon.development_session.model_provider import INPUT_DEFAULT_V2
+    from scripts.dev.miner_launchpad.supervisor import next_action
+
+    selection = graphite_default_selection(cfg)
+    window = None if selection is None else driver.launch_window(selection)
+    return {
+        "launch_field": "model_settings.max_input_tokens",
+        "default_rule": INPUT_DEFAULT_V2,
+        "default": None if window is None else window["max_input_tokens"],
+        "launch_default": (
+            None
+            if window is None
+            else {
+                "model": selection.provider_id + ":" + selection.model_id,
+                **window,
+            }
+        ),
+        "advised_at_or_below": driver.INPUT_WINDOW_ADVISED_AT_OR_BELOW,
+        "advisory": "graphite_input_window_too_small",
+        "next_step": next_action("graphite_input_window_too_small"),
+    }
+
+
 def graphite_options(cfg):
     """What a Graphite launch may choose, for the launch form and an agent:
     the modes, the research share, a hunt's shape and planning cost, the
-    optional limits, and the Challenges Graphite runs on."""
+    optional limits, the input window and its advisory (LA-F8) and the
+    Challenges Graphite runs on."""
     from carbon.challenge_registry.campaigns import implemented_campaigns
 
     return {
@@ -1170,6 +1258,10 @@ def graphite_options(cfg):
             "maximum": LIMIT_MAX,
             "omitted": "only your campaign ceilings - money, attempts, trials, time - bind",
         },
+        # LA-F8: said before a launch spends, not after. Advisory only;
+        # nothing is refused (capabilities' input_window lists each model's
+        # published context and Graphite default).
+        "input_window": graphite_input_window(cfg),
         "offered_for": [
             {"id": entry.challenge_id, "version": entry.version}
             for entry, _campaign in implemented_campaigns()
@@ -2590,6 +2682,7 @@ class RunnerAdapter:
         chooses (the model's own maximum, OWNER-LAUNCHPAD-PROD-02)."""
         from carbon.development_session.model_provider import (
             ADAPTERS,
+            INPUT_DEFAULT_V2,
             OUTPUT_DEFAULT_V2,
             ModelSelectionRefused,
             check_budget,
@@ -2597,6 +2690,10 @@ class RunnerAdapter:
         )
         from carbon.development_session.product_campaign import miner_budget
 
+        # A Graphite launch's unset input window is its model's published
+        # context less its output cap (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01),
+        # as the campaign's own builder will choose it.
+        input_default = INPUT_DEFAULT_V2 if request.get("agent") == GRAPHITE else None
         mode = request.get("feedback_mode")
         if mode is not None:
             if type(mode) is not str or mode not in feedback_modes():
@@ -2643,7 +2740,10 @@ class RunnerAdapter:
                 # campaign's own builder will choose it.
                 selection = (
                     setup_selection(
-                        cfg, settings=settings, output_default=OUTPUT_DEFAULT_V2
+                        cfg,
+                        settings=settings,
+                        output_default=OUTPUT_DEFAULT_V2,
+                        input_default=input_default,
                     )
                     if same_as_setup
                     else select(
@@ -2652,6 +2752,7 @@ class RunnerAdapter:
                         credential={"kind": "file", "reference": path},
                         settings=settings,
                         output_default=OUTPUT_DEFAULT_V2,
+                        input_default=input_default,
                     )
                 )
                 budget = miner_budget(request.get("budget"))
@@ -4161,7 +4262,15 @@ class RunnerAdapter:
         only: before the campaign's manifest exists, the provider its
         admitted launch recorded (`launch_provider`) is the one checked, as
         the run that then carries the launch out uses it (LA-F5). Without a
-        record, or one naming no provider, the pinned default's rule stands."""
+        record, or one naming no provider, the pinned default's rule stands.
+
+        A campaign whose agent is `none` needs no key: the miner, or the
+        miner's own agent on its own model, selects, and Carbon calls no model
+        for it (the battery campaign opens no key then either). Its practice,
+        freeze and submit were refused for another provider's key before
+        LA-F11."""
+        if _selects_without_carbon_model(root, row):
+            return None
         provider = frozen_provider(root)
         if provider is None and row is not None:
             provider = launch_provider(cfg, row)

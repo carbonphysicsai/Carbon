@@ -173,7 +173,8 @@ def checked_identity(stdout: bytes, image) -> dict:
             "worker_identity_mismatch",
             (
                 "start your container from the pinned GPU worker image this "
-                "checkout built (push it with scripts/dev/push_worker_image.sh), "
+                "checkout installed (the released reference setup names, or "
+                "push it with scripts/dev/push_worker_image.sh), "
                 "then retry"
             ),
         )

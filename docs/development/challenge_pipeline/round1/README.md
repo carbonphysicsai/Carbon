@@ -1,5 +1,35 @@
 # First customer-shaped DEVELOPMENT round
 
+> **Current follow-up to #817:** [Battery ambient-map v3](battery-ambient-map-v3.md)
+> supersedes the shared-protocol decision: one protocol/switch/cooling action
+> per band, band-local hard limits and buyer-mix-weighted minutes. Use its
+> [continuous law](../question-laws/battery-ambient-indexed-v3.md) and
+> [optimizer](../optimizers/battery-ambient-map-v3.md). Numerical distributions,
+> action/observer support and value resolution remain explicit seams.
+> Cooling's 53-job recipe is **ON HOLD** pending the
+> [analytic budget and temperature-plane decision](cooling-thermal-budget-v2.md).
+> Earlier supplements below are preserved prospective history where superseded.
+
+> **Historical #817 input proposals:** [Cooling v2 spreader/TIM inputs and panel](cooling-spreader-v2.md)
+> await owner approval; the [panel recipe](cooling-spreader-panel-v2.json) has
+> no dispatch authority. Battery uses the [continuous-primary law proposal](../question-laws/battery-continuous-v3.md)
+> and [prospective optimizer v2](../optimizers/battery-ev-fast-charge-v2.md).
+> Numeric distributions/aggregation and variable-SOC/restart support remain
+> explicit owner/reference seams. Earlier packet versions are preserved.
+
+> **Historical #804 Battery/Cooling versions (2026-10-08):**
+> [Battery v2](battery-ev-fast-charge-v2.md) (minimise admissible session time;
+> no hard 30-minute limit; charging 45 C, test-discharge diagnostics) and
+> [Cooling cell v2](cooling-cell-v2.md) (post-spreader interface heat map,
+> stated buyer properties; no selected TIM/ratio/inlet alternative).
+> [Planning amendment v2](first-three-requirements-v2.json) and
+> [#776 law/quiz impacts](../question-laws/quiz-impact-v2.md) record the changes.
+> The first-three v1 rows/packets/sheet and feasibility follow-up below are
+> **historical**, not the current Battery/Cooling brief. The 35.6-min probe
+> report is explicitly corrected to a 63.3-min charge-integral observation,
+> distinct from the reported 32.9-min best within limits. No historical rescore.
+> Motor and the five new-family packets are unchanged.
+
 **Authority:** [OWNER-PORTFOLIO-DEV-ROUND-01](../../../../.agent/decisions/2026-10-06-OWNER-PORTFOLIO-DEV-ROUND-01.md),
 the owner's direct rolling delegation on 2026-10-06, extended prospectively
 to the first three buyer briefs by

@@ -19,7 +19,10 @@ version is registered.
 
 Version 1.0 is the implementation main shipped up to TORCH-GPU-01 (CPU-only
 PyTorch). Version 2.0 adds the PyTorch CUDA rebuild device; its CPU numerics
-are version 1.0's.
+are version 1.0's. Version 3.0 (BATTERY-IMPL-3) makes every tensor a PyTorch
+family's module holds follow the device it is called on, including tensors a
+library caches as plain attributes; its numbers are version 2.0's wherever
+2.0 ran.
 
 Pure data and the standard library: importing this module initializes no
 numerical runtime.
@@ -42,11 +45,12 @@ MODULES = (
     "torch_training.py",
     "torch_families.py",
 )
-CURRENT = "2.0"
+CURRENT = "3.0"
 #: Each retained version's implementation digest. A retained version is never
 #: re-pinned: a different digest is a new version.
 PINNED = {
     "1.0": "sha256:e4c4f12958ba4cbbe5e088190eaeba19cc4a8e23378c8b119ca2bbaae96cc417",
+    "2.0": "sha256:01ff1d6adca47cf0b9b1aaff885f77126538f5b8f1fb131b64c40c5b3d5450c2",
 }
 VERSIONS = (*PINNED, CURRENT)
 
