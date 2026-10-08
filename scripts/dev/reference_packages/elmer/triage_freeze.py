@@ -151,10 +151,16 @@ def freeze(out):
         "mesh_image_f13": f13.MESH_IMAGE,
         "cases": entries,
         "counts": {
-            fam: {r: sum(1 for e in entries if e["family"] == fam and e["reservation"] == r)
-                  for r in sorted({e["reservation"] for e in entries if e["family"] == fam})}
+            fam: {
+                r: sum(
+                    1 for e in entries if e["family"] == fam and e["reservation"] == r
+                )
+                for r in sorted(
+                    {e["reservation"] for e in entries if e["family"] == fam}
+                )
+            }
             for fam in ("f02", "f13")
-        },  # fmt: skip
+        },
     }
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1) + "\n")
     return manifest["counts"]
