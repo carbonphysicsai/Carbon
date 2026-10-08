@@ -16,7 +16,7 @@ from scripts.dev.exam_design.runpod import a40_acceptance as a40
 from scripts.dev.exam_design.runpod import a40_ssh as ssh
 
 A40_ROW = "NVIDIA A40, 580.159.03, GPU-aaaa-bbbb\n"
-KEY = "/home/operator/.ssh/a40-executor"
+KEY = "~operator/.ssh/a40-executor"
 RECORD = {
     "repeats": 2,
     "seed": 0,
