@@ -2,7 +2,8 @@
 
 Claims tested:
 
-1. `battery-l4-graph-v1` is registered, pinned by digest and recorded; the
+1. `battery-l4-graph-v2` is current (v1 stays registered), pinned by digest
+   and recorded, and carries the owner's caps (OWNER-L4-VALUES-01); the
    shipped policy is exactly what `level4.variant_document` builds (no drift),
    and it pins allowlist v1 and graph-only admission.
 2. A strategy naming a submission digest compiles under it to a Level 4
@@ -63,7 +64,9 @@ def test_registered_pinned_and_free_of_drift():
         "version": allowlist.version,
         "digest": allowlist.digest,
     }
-    assert set(bounds["caps"].values()) == {allowlist_module.HUMAN_INPUT}
+    assert bounds["caps"] == allowlist_module.CAPS
+    assert level4.VERSION == "battery-l4-graph-v2"
+    assert "battery-l4-graph-v1" in dv.load().by_version
     assert shipped["participant_code"] is False
     assert dv.recorded_variant(variant) is not None
 

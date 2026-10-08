@@ -126,7 +126,7 @@ def test_submission_pairs_init_with_forward(allowlist):
     verdict = validate.validate_submission(
         parsed, allowlist, interface=interface, batch=4
     )
-    assert verdict["status"] == "blocked_human_input" and verdict["batch"] == 4
+    assert verdict["status"] == "admitted" and verdict["batch"] == 4
     with pytest.raises(graph.GraphRefused) as refused:
         validate.validate_submission(parsed, allowlist, interface=interface, batch=8)
     assert refused.value.code == "interface_batch"
@@ -167,7 +167,7 @@ def test_e1_level0_through_the_gates(allowlist, label):
         allowlist, battery.level0_strategies()[label], steps=16, max_bytes=MAX_BYTES
     )
     assert result["identical"], result
-    assert result["status"] == "blocked_human_input"  # every cap is HUMAN_INPUT
+    assert result["status"] == "admitted"  # under the owner's caps
 
 
 def test_minibatch_recipe_uses_carbons_key(allowlist):

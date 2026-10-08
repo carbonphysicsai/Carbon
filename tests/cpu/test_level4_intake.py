@@ -138,7 +138,7 @@ def test_cli_jax_submission_through_intake_and_g4(allowlist, tmp_path):
     verdict = validate.validate_submission(
         parsed, allowlist, interface=INTERFACE, batch=4
     )
-    assert verdict["status"] == "blocked_human_input" and verdict["batch"] == 4
+    assert verdict["status"] == "admitted" and verdict["batch"] == 4
     named = {
         n["params"]["name"]
         for g in parsed["forward"]["graphs"].values()
@@ -156,16 +156,26 @@ def test_cli_torch_submission_uses_carbon_init(allowlist, tmp_path):
     validate.validate_submission(parsed, allowlist, interface=INTERFACE, batch=4)
 
 
-def test_unset_bounds_block(allowlist, tmp_path):
+def test_the_bounds_are_the_owners_and_an_unset_bound_still_blocks(allowlist, tmp_path):
+    assert intake.BOUNDS == {
+        "manifest_bytes": 16 * 1024,
+        "document_bytes": 1024**2,
+        "submission_bytes": 4 * 1024**2,
+        "parse_seconds": 10,
+        "parse_memory_bytes": 512 * 1024**2,
+    }
     _, raw_manifest, files = _lower(tmp_path, JAX_SPEC)
+    # The owner's bounds (OWNER-L4-VALUES-01) admit a small submission.
+    intake.intake(
+        raw_manifest,
+        files,
+        allowlist=allowlist,
+        challenge=CHALLENGE,
+        interface=INTERFACE.digest(),
+    )
+    unset = {name: allowlist_module.HUMAN_INPUT for name in intake.BOUNDS}
     with pytest.raises(intake.IntakeBlocked):
-        intake.intake(
-            raw_manifest,
-            files,
-            allowlist=allowlist,
-            challenge=CHALLENGE,
-            interface=INTERFACE.digest(),
-        )
+        _intake(allowlist, raw_manifest, files, bounds=unset)
     partial = dict(FIXTURE_BOUNDS, parse_seconds=allowlist_module.HUMAN_INPUT)
     with pytest.raises(intake.IntakeBlocked):
         _intake(allowlist, raw_manifest, files, bounds=partial)

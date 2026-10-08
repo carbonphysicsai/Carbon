@@ -1217,12 +1217,15 @@ def graph_equivalence(
 # --- The development-only Level 4 variant (LEVEL4-DEV-VARIANT-01) -------------
 
 LEVEL = 4
-VERSION = "battery-l4-graph-v1"
+#: v2 carries the owner's caps and G5's accepted status (OWNER-L4-VALUES-01);
+#: v1 stays registered as history.
+VERSION = "battery-l4-graph-v2"
 CAPABILITY = "hybrid.composition_graphs"
 FIELD = "composition_graphs"
 AUTHORITY = (
     "OWNER-LEVEL4-GRAPH-ONLY-01 (D1); OWNER-GRAPHITE-TEST-WAVE-03 section 1; "
-    "OWNER-GRAPHITE-DEV-LEVELS-01 F1; LEVEL4-DEV-VARIANT-01"
+    "OWNER-GRAPHITE-DEV-LEVELS-01 F1; LEVEL4-DEV-VARIANT-01; "
+    "OWNER-L4-G5-COMPILE-ISOLATION-01; OWNER-L4-VALUES-01"
 )
 REVIEW = {
     "reviewer": "Test Lead",
@@ -1242,7 +1245,10 @@ _GATES = [
     "G0 intake (carbon.level4.intake)",
     "G3 isolated parse (carbon.level4._parse_worker)",
     "G4 validation (carbon.level4.validate)",
-    "G5 compile in isolation (carbon.level4.compile): fail-closed until D3",
+    (
+        "G5 compile in isolation (carbon.level4.compile): accepted for development "
+        "and testnet (OWNER-L4-G5-COMPILE-ISOLATION-01)"
+    ),
     "G6 Carbon trains (carbon.level4.train)",
     "G7 Carbon grades (carbon.level4.grade)",
 ]
@@ -1258,7 +1264,11 @@ def _bounds(allowlist):
         "submission_schema": submission.SCHEMA,
         "gates": list(_GATES),
         "caps": {name: value for name, value in allowlist_module.CAPS.items()},
-        "compute_budget": "TRAINING-BUDGET-01 compute budget; HUMAN_INPUT until battery's sheet sets it",
+        "compute_budget": (
+            "one budget with Level 0, no separate Level 4 share (OWNER-L4-VALUES-01 "
+            "section 5); binds only once the TRAINING-BUDGET-01 cost calculator "
+            "costs development recipes"
+        ),
         "interface": "the Level 0 network boundary in development (battery.level4.interface)",
         "training": "Carbon's key, battery's own loop and optimizer menu, TRAIN v1 only",
     }

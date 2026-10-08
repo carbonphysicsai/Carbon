@@ -225,7 +225,8 @@ def validate(doc, allowlist, *, role=None, interface=None, batch=None, caps=None
             raise graph.GraphRefused("interface_batch")
     batch = declared
     measurements = graph.measure(doc)
-    # A cap the caller does not name stays HUMAN_INPUT: it blocks, never passes.
+    # A cap the caller does not name is the owner's (`allowlist.CAPS`); one a
+    # caller sets to HUMAN_INPUT blocks, it never passes.
     verdicts = allowlist_module.check_caps(
         measurements, {**allowlist_module.CAPS, **(caps or {})}
     )

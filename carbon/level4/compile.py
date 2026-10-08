@@ -16,11 +16,12 @@ Outcomes:
 * any other lane failure (no image, no Docker, a staging or cleanup fault):
   `CompileInfraFailure`, `FAILED_INFRA`, never charged to the submission.
 
-The deadline is `HUMAN_INPUT` and must be set by the caller; unset, G5 is
-blocked (`CompileBlocked`). The lane's profile for this use is accepted for
-development and testnet only (OWNER-L4-G5-COMPILE-ISOLATION-01, D3): the
-caller names its scope, and any other scope, mainnet included, is blocked
-until a mainnet security review. Nothing here is a security claim.
+The deadline is the owner's (OWNER-L4-VALUES-01, 120 s); a caller that
+passes `HUMAN_INPUT` is blocked (`CompileBlocked`). The lane's profile for
+this use is accepted for development and testnet only
+(OWNER-L4-G5-COMPILE-ISOLATION-01, D3): the caller names its scope, and any
+other scope, mainnet included, is blocked until a mainnet security review.
+Nothing here is a security claim.
 """
 
 from __future__ import annotations
@@ -31,7 +32,9 @@ from pathlib import Path
 
 from .allowlist import HUMAN_INPUT
 
-DEADLINE_SECONDS = HUMAN_INPUT
+#: Approved as proposed (`LEVEL4_VALUES_PROPOSAL.md` §4, OWNER-L4-VALUES-01).
+#: The C-03 lane admits Carbon's own runs only between 40 and 600 s.
+DEADLINE_SECONDS = 120
 PROVENANCE = "LEVEL4_G5_COMPILE_DEVELOPMENT"
 PROFILE_STATUS = "ACCEPTED_DEVELOPMENT_AND_TESTNET_ONLY"
 PROFILE_DECISION = "OWNER-L4-G5-COMPILE-ISOLATION-01"

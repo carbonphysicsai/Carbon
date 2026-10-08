@@ -6,8 +6,9 @@ rules; v0 stays loadable for the Phase 0 record.
 
 `check` is the spike's G4 subset: op membership and role, parameter kinds,
 and typed-key dtypes only where RNG is admitted. Caps (constant bytes, graph
-size, depth) are compared only through `check_caps`, whose every value is
-`HUMAN_INPUT` until an owner sets it: an unset cap blocks, it never passes.
+size, depth) are compared only through `check_caps`. The owner set them,
+for development and testnet, in OWNER-L4-VALUES-01; a cap a caller leaves
+`HUMAN_INPUT` still blocks, it never passes.
 """
 
 from __future__ import annotations
@@ -22,13 +23,16 @@ from . import graph, params
 #: (`docs/development/graphite/level4/allowlist_v0.json`).
 PATH = Path(__file__).with_name("allowlist_v1.json")
 HUMAN_INPUT = "HUMAN_INPUT"
-#: D6's per-Challenge values. None is chosen here.
+#: The owner's decision that set the values below (development and testnet).
+VALUES_DECISION = "OWNER-L4-VALUES-01"
+#: D6's caps, approved as proposed in
+#: `docs/development/graphite/level4/LEVEL4_VALUES_PROPOSAL.md` §3.
 CAPS = {
-    "constant_bytes": HUMAN_INPUT,
-    "nodes_executed": HUMAN_INPUT,
-    "call_depth": HUMAN_INPUT,
-    "document_bytes": HUMAN_INPUT,
-    "largest_intermediate_bytes": HUMAN_INPUT,
+    "constant_bytes": 16 * 1024,
+    "nodes_executed": 4096,
+    "call_depth": 16,
+    "document_bytes": 1024**2,
+    "largest_intermediate_bytes": 256 * 1024**2,
 }
 
 
