@@ -350,3 +350,172 @@ the cause, and the slice or PR that fixes it. The plan is
   Campaigns whose Carbon agent calls a model keep the refusal. It is written
   and tested (107 passed) but not yet committed.
 - **Status:** fix pending.
+
+## LA-F15: a second install rewrites the first install's systemd unit
+
+- **Cell:** `carbon-fresh`, 2026-10-08. Two installs share the checkout
+  `~/carbon`. minerB has the default state directory, `--service`, and port
+  8788. minerA has `CARBON_STATE_DIR=$HOME/.carbon/minerA`, `--no-start` and
+  `--port 8789`.
+- **Failure:** minerA's install, without `--service`, rewrote
+  `~/.config/systemd/user/carbon-control-center.service` to minerA's state
+  directory and port. minerB's running service escaped only because the unit
+  was not reloaded. A restart or a reboot would have started minerA's
+  Control Center in minerB's place.
+- **Cause:** the installer had one fixed unit name. It treated any existing
+  unit as its own, so it rewrote and restarted that unit whether or not
+  `--service` was given.
+- **Fix:**
+  - Each state directory has its own service. The default one keeps
+    `carbon-control-center`; any other is
+    `carbon-control-center-<directory>-<hash>`.
+  - A unit is written only with `--service`, or when this install's own
+    unit, which runs its own state directory, already exists. An install
+    never touches another state directory's unit.
+  - A default unit that runs another state directory is left alone, with a
+    note. The default install with `--service` takes it back.
+  - The installer prints its own service's restart, stop, status and log
+    commands.
+  - `--update` stops (in the hint) and restarts its own unit, and keeps its
+    unit's port.
+  - `FRESH_MINER_JOURNEY.md` gives the per-install commands.
+- **On `carbon-fresh` now:** `carbon-control-center.service` still runs
+  minerA's state directory. Run minerB's install with `--service` to take
+  it back.
+- **Decision:** `.agent/decisions/2026-10-08-LAUNCHPAD-FINDINGS-F15-F18.md`.
+- **Status:** fixed in the PR that carries this entry.
+
+## LA-F16: installs sharing a checkout overwrite each other's image manifests
+
+- **Cell:** the same two installs, 2026-10-08.
+- **Failure:**
+  - Both installs record `~/carbon/.carbon-artifacts/c03-worker-image.json`
+    and `accelerator-worker-image.json`, at fixed paths.
+  - minerA's install rebuilt both images and overwrote both manifests. A
+    rebuild at the same revision is a new image id: the worker went from
+    `0dd482db` to `28adde3c`, and the GPU worker from `7b485044` to
+    `3d8daedd`.
+  - minerA's record then paired an analysis image whose parent was an
+    earlier worker build (`575cc2b0`) with the overwritten worker manifest
+    (`28adde3c`). Setup refused it, first `analysis_image_unverified`, then
+    `compute_check_is_stale`.
+  - minerB's recorded compute check also silently stopped matching the
+    manifests.
+- **Cause:** every install rebuilt every image, even when the existing
+  image was built from the same source tree and Docker still held it.
+- **Fix:**
+  - Before it builds the worker or the GPU worker, the installer asks
+    `installed.current`. That check is setup's own source-tree test, plus
+    two checks on the image: Docker holds that id, and its source-tree label
+    matches the manifest. If both hold, the image is used again, so a second
+    install at the same revision builds nothing.
+  - The analysis image is keyed by its parent, so it is reused with its
+    worker.
+  - Per-install manifest copies were not added. Moving the shared checkout
+    makes every install's images stale anyway, so copies would protect no
+    valid state. The reasons are in the decision.
+  - Nothing is removed or pruned.
+- **Still true:** a gone image, or a new revision, is built again under the
+  shared path. Every other install on that checkout must then be run again
+  (`--no-start`). The journey document says so.
+- **On `carbon-fresh` now:** installing this fix moves the checkout, so the
+  first install after it builds new images. Then run the other install with
+  `--no-start` and its own `CARBON_STATE_DIR`, with each Control Center
+  stopped. It reuses those images, and setup checks both installs against
+  the same ones.
+- **Decision:** `.agent/decisions/2026-10-08-LAUNCHPAD-FINDINGS-F15-F18.md`.
+- **Status:** fixed in the PR that carries this entry.
+
+## LA-F17: the local bootstrap signs for the subnet publisher
+
+- **Cell:** `carbon-fresh`, 2026-10-08. The miner's signer was started with
+  `--receiver <their validator>` only. Preparing a campaign was refused with
+  `signer_refused`.
+- **What the signature authenticates:**
+  - `research_campaign.requester` (used by battery, motor and cold plate),
+    `standard_cli`'s bootstrap and every local practice call
+    (`research_tools`, and the Burgers `service`) sign a `btauth/1` request
+    for `/carbon/v1/mcp` with `receiver=connection.publisher`, UID 0 of
+    subnet 567.
+  - The verifier is `transport.AuthenticatedGateway`, built inside
+    `LocalMinerConnection` in the Control Center's own process. Its receipt
+    journal is the campaign's `research-auth/transport.sqlite3`.
+  - It proves that the miner's signer holds the registered hotkey: a fresh
+    signature, the registration snapshot, and the journal's nonce and replay
+    checks. It then derives the campaign owner from the hotkey, coldkey and
+    registration block (`requester_for_receipt`).
+  - The receiver is not part of the owner. It is checked only to be
+    registered and to match the signature.
+- **Who else sees it:** nobody off the machine. The body and headers go
+  in-process to `gateway.receive`; the journal and the evidence ledger are
+  local files. A submission to a validator intake is a separate message,
+  signed for that intake's own receiver (`remote_submission`).
+- **Why it matters anyway:** a publisher-addressed signature on
+  `/carbon/v1/mcp` is a valid credential at the publisher's own endpoint,
+  within the nonce window. To prepare a campaign today, the miner's signer
+  must be willing to sign that for any local process of the same user.
+- **Proposal (narrowest change; not implemented):**
+  - Address the local gateway, and the local calls signed for it, to the
+    miner's own hotkey. That is one receiver field in `LocalMinerConnection`
+    and the four local sign sites. `publisher` stays for the chain context
+    and the registration check.
+  - Have `carbon-miner-signer` sign `mcp` requests whose receiver is its own
+    hotkey, even when `--receiver` restricts every other receiver. It never
+    does so for `answer-key`.
+  - Optionally, give local calls their own path (for example
+    `/carbon/v1/local-mcp`) and let only the local gateway accept it.
+- **Security reasoning:**
+  - Proof of possession stays. The gateway still verifies a fresh signature
+    from the registered hotkey.
+  - The owner derivation does not change, so frozen campaigns and their
+    owners need no migration.
+  - A self-addressed signature is refused by every validator and by the
+    publisher, which check `receiver` against their own hotkey
+    (`AUTH_WRONG_RECEIVER`). It cannot be replayed off the machine.
+  - The signer can then be limited to the validators the miner chose.
+  - One residual: a service that runs under the miner's own hotkey would
+    accept a self-addressed signature. The separate local path closes that.
+  - Rejected alternative: trusting the hotkey the signer reports, without a
+    signature. That drops proof of possession and leaves unauthenticated
+    receipts in the journal.
+- **What would break:** tests that pin `receiver=publisher` on these calls,
+  and campaigns prepared by an older Carbon that resume against a newer
+  signer. Their journals hold publisher-addressed receipts, which stay
+  valid as history. Each new request is signed fresh, so nothing
+  re-verifies them. The local battery deployment's submit
+  (`battery.campaign`, `gateway.receive` for a validator on this machine)
+  addresses a validator and should keep a validator receiver. It is not
+  part of this change.
+- **Decision needed (owner):** whether to adopt this proposal. It changes
+  authentication, so it needs security review before it is implemented.
+- **Status:** open; proposal only.
+
+## LA-F18: observe never fetches a queued verdict
+
+- **Cell:** `carbon-fresh`, 2026-10-08. `carbon_submit` returned
+  `evaluation_queued` (intake outcome `QUEUED`), and the next action said
+  "Observe later". The sealed verdict arrived only through a replayed
+  `carbon_submit`.
+- **Answer:** observe never asks the validator.
+  - Observe (`runner.observe_admitted`) and the campaign view
+    (`campaign_view.ledger_view`) read only the campaign's local state and
+    its `last_refusal`. The supervisor does not poll either.
+  - Only a submit reaches `battery_status`, through
+    `battery.campaign.submit_through_intake` and then
+    `remote_submission.submit_and_wait`. It polls for up to `WAIT_S`, 30
+    minutes, then answers `evaluation_queued`.
+  - A replayed submit finds `intake-submission-epoch-N.json` and only polls
+    the recorded submission. It sends no second admission, and the
+    commitment gate does not ask again.
+  - So submitting again is today's only way to read a queued verdict.
+- **Fixed here (the honest minimum):**
+  - The `evaluation_queued` next step now says that observe does not ask
+    the validator, and to submit again (`carbon_submit`) for the result.
+  - `FRESH_MINER_JOURNEY.md` says the same at step 10.
+- **Proposed follow-up:** for an epoch with a recorded submission and no
+  verdict, observe, or the supervisor on a timer, would poll the intake
+  once. That puts the signer on the observe path, which is read-only today,
+  so it needs its own decision.
+- **Decision:** `.agent/decisions/2026-10-08-LAUNCHPAD-FINDINGS-F15-F18.md`.
+- **Status:** next-step text fixed in the PR that carries this entry; the
+  poll is open.
