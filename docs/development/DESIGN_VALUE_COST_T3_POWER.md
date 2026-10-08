@@ -12,7 +12,7 @@ changes score use.
 Use `carbon.design_search.producer_panels.seal_export(body)` to seal a complete
 `carbon.design-search.solved-panel-export.v1` JSON object. Its exact fields are
 `schema`, `sealed: true`, `family`, `challenge_id`, `exposure_unit`, `exposure`,
-`questions`, and `laws`. `family` is one of `battery-v3`, `motor`,
+`window_sampling`, `questions`, and `laws`. `family` is one of `battery-v3`, `motor`,
 `cooling-cell`, `f02`, `f06`, `f08`, `f13`, `f17`. The export digest covers all
 fields. Exporting does not itself establish scientific validity.
 
@@ -34,9 +34,14 @@ required unit is `per_question_draws`. This matches the merged
 questions, increments each selected question's exposure once, and retires each
 one at its own E. Thus k=8 and E=5 can produce five windows from eight
 questions; E is **not** a global eight-draw cap. Cross-window simulation
-selects uniformly among live questions in sequential windows and reports
-bank-short paths with null detection estimates and a feasibility probability.
-It does not model overlapping active windows or future top-ups.
+uses `window_sampling`, registered through `register_window_sampling`:
+one `{case, stratum}` row per question and an explicit
+`{questions_per_batch, quotas}` row for every tested k. It follows the
+bank ledger's sorted stratum quotas, sampling uniformly from live questions
+within each stratum. There is no invented quota allocation when k changes.
+The report marks bank-short paths with null detection estimates and a
+feasibility probability. It does not model overlapping active windows or
+future top-ups.
 
 For a `DesignBank` export, `case` corresponds to `case_id`,
 `task` to `inputs.task`, and the solved `reference` to its `OK`
@@ -49,7 +54,7 @@ use a shared cluster rather than invent independent evidence.
 The CLI also accepts a sealed
 `carbon.design-search.design-bank-snapshot.v1` input directly. Its top-level
 fields are `schema`, `sealed`, `family`, `challenge_id`, `exposure_unit`,
-`exposure`, `cases`, `laws`, and `snapshot_digest`. Each `cases` row carries
+`exposure`, `window_sampling`, `cases`, `laws`, and `snapshot_digest`. Each `cases` row carries
 `case_id`, the DesignBank `inputs` (`task`, `task_digest`, `draw`), its
 `reference` (`status: OK` and `panel` or `per_index`), plus `support_case`,
 `close_call`, and `refinement_demand`. Exposure rows use `case_id`, `limit`,

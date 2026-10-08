@@ -24,7 +24,8 @@ every window: repeated questions from one reference bank never become
 independent sign-test evidence. The merged design-bank ledger counts E per
 question, selects distinct live questions within a window, and retires each
 question at its own E. The registered sequential-window simulation follows
-those rules on a finite sealed bank and reports bank-short paths explicitly;
+those rules and the registered per-k stratum quotas on a finite sealed bank,
+and reports bank-short paths explicitly;
 it does not project future top-ups or overlapping active windows. The report prints aggregate detection
 probabilities, Monte Carlo uncertainty, and feasibility/abstention/regret
 summaries only. P and Q remain separate. An unregistered P must be absent,

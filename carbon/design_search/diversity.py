@@ -183,10 +183,23 @@ def diversity_report(bank, law):
         by_case = power_accumulation.validate_case_exposure(
             bank.get("case_exposure"), cases
         )
+        strata, quotas_by_k = power_accumulation.validate_window_sampling(
+            bank.get("window_sampling"), cases, k
+        )
         available = sum(count > 0 for count in by_case.values())
         remaining = sum(by_case.values())
-        drawable = available >= k
-        shortage = max(0, k - available)
+        shortage = sum(
+            max(
+                0,
+                quota
+                - sum(
+                    count > 0 and (name == "all" or strata[case] == name)
+                    for case, count in by_case.items()
+                ),
+            )
+            for name, quota in quotas_by_k[k].items()
+        )
+        drawable = shortage == 0
     else:
         available = None
         remaining = min(remaining_by_support)

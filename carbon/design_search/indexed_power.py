@@ -254,7 +254,11 @@ def indexed_power_report(
     for kind, law in laws.items():
         exposure = diversity_views[kind]["exposure_remaining"]
         maximum = (
-            min(max_questions, diversity_views[kind]["available_questions"])
+            (
+                min(max_questions, diversity_views[kind]["available_questions"])
+                if diversity_views[kind]["batch_drawable"]
+                else 0
+            )
             if diversity_views[kind]["exposure_unit"]
             == power_accumulation.EXPOSURE_UNIT
             else (
@@ -334,6 +338,7 @@ def indexed_power_report(
                         clusters,
                         registration["controls"],
                         bank["case_exposure"],
+                        bank["window_sampling"],
                         alpha=alpha,
                         target=power_target,
                         seed=simulation_seed,
@@ -349,6 +354,7 @@ def indexed_power_report(
                 clusters,
                 registration["controls"],
                 bank["case_exposure"],
+                bank["window_sampling"],
                 alpha=alpha,
                 target=power_target,
                 seed=simulation_seed,
