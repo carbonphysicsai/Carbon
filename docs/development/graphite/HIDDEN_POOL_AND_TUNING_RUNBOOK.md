@@ -209,6 +209,48 @@ against the hidden deployment `H`
    `python -m carbon.challenge_validator.tuning quiz-seal --config H --work <Q>`.
    It journals the quiz's digest, counts and panel version, and prints
    `{digest, journal_sequence}`.
+
+   **Q3 v8 design reports (DEVELOPMENT, after the seal).** On the AX42,
+   the owner runs these as `carbon-producer`. Replace every `TEST_LEAD_*`
+   token with an explicit value supplied by the Test Lead. The commands
+   read the owner-only quiz directory and journal without reading the
+   private root or writing to the work directory. Each prints aggregate
+   JSON only. Check that the `sealed_batch_digest` matches the `quiz-seal`
+   digest before interpreting either output.
+
+   ```bash
+   sudo -u carbon-producer -H /opt/carbon/.venv/bin/python -m carbon.design_search diversity-report \
+     --battery-work /var/lib/carbon-producer/tuning/quiz \
+     --journal /var/lib/carbon-producer/hidden/journal.jsonl \
+     --law /opt/carbon/carbon/battery/value/laws/battery-q3-v8.question-law.v1.json \
+     --bootstrap-seed TEST_LEAD_BOOTSTRAP_SEED --replicates TEST_LEAD_REPLICATES \
+     --interval-level TEST_LEAD_INTERVAL_LEVEL
+   ```
+
+   ```bash
+   sudo -u carbon-producer -H /opt/carbon/.venv/bin/python -m carbon.design_search power-report \
+     --battery-work /var/lib/carbon-producer/tuning/quiz \
+     --journal /var/lib/carbon-producer/hidden/journal.jsonl \
+     --law /opt/carbon/carbon/battery/value/laws/battery-q3-v8.question-law.v1.json \
+     --bootstrap-seed TEST_LEAD_BOOTSTRAP_SEED --replicates TEST_LEAD_REPLICATES \
+     --interval-level TEST_LEAD_INTERVAL_LEVEL \
+     --alpha TEST_LEAD_ALPHA --power-target TEST_LEAD_POWER_TARGET \
+     --severity-edge TEST_LEAD_EDGE_SEVERITY \
+     --severity-caution TEST_LEAD_CAUTION_SEVERITY \
+     --severity-sign TEST_LEAD_SIGN_SEVERITY \
+     --severity-path TEST_LEAD_PATH_SEVERITY
+   ```
+
+   Both outputs identify `battery-q3-v8`, the single-condition EV4
+   time-to-CV decision, and the seal. The exact view describes only the
+   kept eight and is **not a future-batch probability**. The empirical
+   view bootstraps the settled accepted draws in `draws.json`, reports
+   kept and not-kept separately, and gives a predictive interval. Twelve
+   draws are a small sample, so that interval can be wide; later batches
+   retain separate seal identities. Protected rejected draws are not
+   modeled. No #776 five-condition EV buyer-job result is implied. The
+   report uses v8's pessimistic UNRESOLVED outcome rule and prints its
+   unresolved count; Test Lead decides any score or power use.
 5. **Solve, predict and score the main set and the quiz together:**
 
    ```bash

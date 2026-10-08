@@ -1,0 +1,8 @@
+{
+  "schema": "carbon.battery.q3-v8.question-law.v1",
+  "job": "battery-q3-v8",
+  "draw": "v8-uniform-ambient-soc-protected-redraw",
+  "selection": "first-eight-settled-feasible",
+  "batch_size": 8,
+  "registration_digest": "sha256:70570a0cec0c94a1196831593cc297eff6495ce5417470d5c16deee552c3f5b6"
+}
