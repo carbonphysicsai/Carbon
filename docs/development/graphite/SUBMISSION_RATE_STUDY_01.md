@@ -291,6 +291,13 @@ plan only proposes it.
   sets need their own `fresh` bank (12 tranches of 98, roles `fresh-w01`...`fresh-w12`),
   because v2-bank's `producer draw` takes windows from the pool bank; the fresh bank is
   never drawable by a window and is read only by the non-consuming fresh-set scorer.
+- **O7c (library size vs rate; VALIDATOR-30 dependency, found in run sheet D.1):** the
+  frozen arm-H library has 89 distinct recipes (library-v1), but m = 4 needs 144
+  scored submissions per run, so the library cycles and 55 recipes are resubmitted.
+  The route must **rebuild and score a repeat submission, not refuse or cache it**;
+  otherwise arm H at m = 4 is only 89 scored submissions. This must be settled
+  before Stage 0 sizes are confirmed (the Carbon Validator was told directly). Arm H
+  at m = 1 and 2 (36, 72) is within the library.
 - **O3 (corrected):** the candidate library, scripted prober and adversary brief are the
   Test Engineer's (run sheet section D), not Data Collection's.
 

@@ -404,6 +404,14 @@ seed, input, reference or score appears in this file.
 
 ## F. Stage 1 entry point (for later; not part of Stage 0)
 
+**Requirement: one controller root per G-sealed run.** The controller counts
+SUBMITTED per ledger, so the grant's `max_submissions` caps the total across runs that
+share a controller root, not each run. Each of the 6 G-sealed runs therefore gets its
+**own controller root** (fresh store, own ledger), so the per-run submission cap from
+the frozen manifest (36, 72 or 144) applies to that run alone. (The alternative, one
+shared root with a grant cap equal to the total across the 6 runs, 504, would change
+the owner-approved grant terms and is not taken without a Test Lead decision.)
+
 The G-sealed arms start through the existing Graphite phase-3/4 runner with
 `--study SUBMISSION-RATE-STUDY-01`. The runner's grant check for that flag is
 `grant_binding.STUDY_GRANTS` / `check_study_grant`: it must enforce the 30.00 USD
