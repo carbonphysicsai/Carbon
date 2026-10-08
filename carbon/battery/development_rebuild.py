@@ -10,8 +10,9 @@ record is Level 0, and nothing here touches it.
 - Level 2: SpecMuon, `specmuon-carbon-v1` (`level2_worker`).
 - Level 3: training-time numerics (`level3_worker`).
 - Level 4: a graph-only submission (`level4_worker`); every rebuild fails
-  closed as Carbon's environment until the security owner accepts the G5
-  profile (D3).
+  closed as Carbon's environment until the submission's documents reach the
+  rebuild worker (G5 is accepted for development and testnet,
+  OWNER-L4-G5-COMPILE-ISOLATION-01).
 
 Each level's own module stays the authority for its staging; this module
 only routes.

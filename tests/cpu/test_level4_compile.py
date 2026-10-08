@@ -14,7 +14,10 @@ Claims tested:
 3. Lane outcomes are typed: deadline is `compile_deadline`, a program failure
    is `compile_failed` (both the submission's), any other lane failure is
    FAILED_INFRA (`CompileInfraFailure`). An unset deadline blocks.
-4. The profile is recorded as awaiting the security owner (D3).
+4. The profile is accepted for development and testnet only
+   (OWNER-L4-G5-COMPILE-ISOLATION-01): the caller names the scope, every
+   result records the profile and its decision, and any other scope
+   (mainnet included) is blocked before the lane runs.
 """
 
 from __future__ import annotations
@@ -141,7 +144,9 @@ def parsed(allowlist):
     )[1]
 
 
-def _compile(parsed, allowlist, tmp_path, runner, deadline=DEADLINE):
+def _compile(
+    parsed, allowlist, tmp_path, runner, deadline=DEADLINE, scope="development"
+):
     return g5.compile_in_isolation(
         parsed,
         allowlist,
@@ -150,6 +155,7 @@ def _compile(parsed, allowlist, tmp_path, runner, deadline=DEADLINE):
         image="test-image",
         deadline_seconds=deadline,
         max_bytes=MAX_BYTES,
+        scope=scope,
         runner=runner,
     )
 
@@ -160,7 +166,9 @@ def test_lane_program_compiles_from_staged_bytes(parsed, allowlist, tmp_path):
     for key in ("forward_seconds", "train_step_seconds", "init_seconds"):
         assert result[key] >= 0
     assert result["forward_flops"] > 0
-    assert result["profile"] == g5.PROFILE_STATUS
+    assert result["profile"] == "ACCEPTED_DEVELOPMENT_AND_TESTNET_ONLY"
+    assert result["profile_decision"] == "OWNER-L4-G5-COMPILE-ISOLATION-01"
+    assert result["scope"] == "development"
     call = runner.calls[0]
     assert call["provenance"] == g5.PROVENANCE and call["seconds"] == DEADLINE
     assert all(is_workspace_name(name) for name in call["files"])
@@ -176,6 +184,30 @@ def test_unset_deadline_blocks(parsed, allowlist, tmp_path):
             tmp_path,
             StandIn(),
             deadline=allowlist_module.HUMAN_INPUT,
+        )
+
+
+@pytest.mark.parametrize("scope", ["mainnet", "MAINNET", "", None, "live"])
+def test_only_development_and_testnet_compile(parsed, allowlist, tmp_path, scope):
+    runner = StandIn()
+    with pytest.raises(g5.CompileBlocked) as blocked:
+        _compile(parsed, allowlist, tmp_path, runner, scope=scope)
+    assert str(blocked.value) == g5.MAINNET_BLOCKED
+    assert runner.calls == []  # blocked before the lane runs
+    assert _compile(parsed, allowlist, tmp_path, StandIn(), scope="testnet")
+
+
+def test_scope_is_required(parsed, allowlist, tmp_path):
+    with pytest.raises(TypeError):
+        g5.compile_in_isolation(
+            parsed,
+            allowlist,
+            ledger=SimpleNamespace(root=tmp_path),
+            owner="test",
+            image="test-image",
+            deadline_seconds=DEADLINE,
+            max_bytes=MAX_BYTES,
+            runner=StandIn(),
         )
 
 
