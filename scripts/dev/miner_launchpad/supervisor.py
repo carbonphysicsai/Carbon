@@ -349,7 +349,10 @@ NEXT_ACTIONS = {
     ),
     "intake_unreachable": (
         "The validator intake could not be reached. The frozen candidate is "
-        "kept; submit again later."
+        "kept. For an intake on this machine's loopback (a tunnel to a "
+        "validator), start the tunnel or the validator, since Carbon cannot "
+        "tell which is not running; otherwise check the address and your "
+        "connection. Then submit again."
     ),
     # Every other closed code a submission through a validator intake can
     # end with (`carbon.battery.campaign.intake_code`: the intake's and its

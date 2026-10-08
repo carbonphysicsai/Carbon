@@ -52,6 +52,21 @@ with the fields in [Record](#record).
     profile can practise and freeze, but cannot submit. Run the validator on
     this machine, tunnel to its loopback yourself, or give setup your own
     intake's URL under Review.
+  - **A validator through a tunnel (LAUNCHPAD-ACCEPT-04).** A validator that
+    binds its own loopback is reached from your machine as a loopback intake,
+    for example `ssh -N -L 18467:127.0.0.1:8467 <validator host>` and then
+    `http://127.0.0.1:18467`. Name it at Review as your own intake, with the
+    validator's public receiver hotkey: `carbon_setup_review` with
+    `intakes.<challenge>` and `receiver_hotkey`, or the browser's Review
+    step under "Advanced: a validator's intake". Review reads its public facts
+    first. The network must be Carbon's testnet, netuid 567, for the
+    Challenge you named, or Review refuses
+    `intake_serves_another_chain_or_challenge`; the receiver must be the one
+    you named (`intake_receiver_mismatch`). If nothing answers, the refusal
+    is `intake_unreachable`: start the tunnel or the validator, since Carbon
+    cannot tell which is down. Such an address works only on a machine that
+    holds the tunnel's key, so Carbon never publishes it
+    (`published_endpoints.json` stays empty).
 
 ## Steps
 
@@ -135,6 +150,14 @@ with the fields in [Record](#record).
     - Record the digest, block and extrinsic id that observe shows read back.
     - Then submit. A `commitment_stale` refusal is answered by committing
       again with `recommit=true`.
+    Observe and the campaign view show the same readback on both doors:
+    - the submission id;
+    - for a submit that was not a verdict, its refusal with `intake_outcome`
+      (`QUEUED`, `UNAVAILABLE` or `REFUSED`);
+    - a verdict's public fields: its state, exam rule, recipe and contract
+      digests, and how it was rebuilt.
+    Under a sealed rule (v2) a scored outcome is `sealed`: no screening,
+    score, nomination or finals are shown.
 
 ## Updating
 
