@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-question-laws-continuous-pipeline",
+  "recorded_at": "2026-10-07T22:46:30+00:00",
+  "challenge": "protocol", "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-QUESTION-LAWS-01 pipeline validation", "description": "Native Windows python -X utf8 -m carbon.challenge_pipeline validate, after the new proposal/diagnostic lessons."},
+  "expected": "Proposals and lessons must not lock the Battery-led protocol, activate later families or silently qualify references.",
+  "observed": "Protocol DEFINING; 7 records valid; 418 lessons valid with zero awaiting a decision at this validation snapshot; 3 admission controllers designated and 3 pending identity. Subsequent lessons are not included in that count. No queue transition, solver/model run, spend or runtime registration occurred.",
+  "keep": ["Keep proposal consistency separate from protocol lock, reference adequacy and scientific qualification."],
+  "change": ["No protocol activation or new runtime adapter requested by this ticket."],
+  "protocol_elements": ["maturity-discipline", "protocol-boundary", "lesson-validation"],
+  "proposed_revision": null, "status": "RECORDED"
+}

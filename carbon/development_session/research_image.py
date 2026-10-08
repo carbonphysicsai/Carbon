@@ -239,6 +239,24 @@ def release_parent_reference(parent, repository):
     return reference
 
 
+#: The local name a miner host gives its analysis image (LA-F2).
+LOCAL_ANALYSIS_REPOSITORY = "carbon-analysis"
+
+
+def local_tag(cli, image_id, repository):
+    """Name a locally built image by its own id, `<repository>:<hex>`.
+
+    An untagged image is dangling, and `docker image prune` deletes it without
+    a prompt: an install would lose its analysis image to a routine disk
+    clean-up (LA-F2). The name only keeps the image; it is checked to point at
+    that image, and everything still verifies by image id."""
+    tag = f"{repository}:{image_id[7:]}"
+    cli.run(["tag", image_id, tag])
+    if cli.json(["image", "inspect", tag, "--format", "{{json .}}"])["Id"] != image_id:
+        raise ValueError("local image tag identity changed")
+    return tag
+
+
 def build_analysis_image(parent_manifest, root, *, parent_repository=None):
     """Build the analysis image on the pinned C-03 parent.
 
@@ -255,7 +273,12 @@ def build_analysis_image(parent_manifest, root, *, parent_repository=None):
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     manifest = root / "analysis-image.json"
     if manifest.exists():
-        return verify_image(load_analysis_image(manifest), cli)
+        image = verify_image(load_analysis_image(manifest), cli)
+        if parent_repository is None:
+            # An install made before LA-F2 left its image untagged; the next
+            # install names it, so it is no longer dangling.
+            local_tag(cli, image.image_id, LOCAL_ANALYSIS_REPOSITORY)
+        return image
     context = root / (
         "build-context" if parent_repository is None else "release-context"
     )
@@ -299,6 +322,8 @@ ENTRYPOINT ["/opt/carbon-worker/bin/python","-I","-m","carbon.reconstruction.wor
     image_id = built.stdout.decode().strip()
     image = ResearchImageIdentity(image_id, parent.image_id, fingerprint)
     verify_image(image, cli)
+    if parent_repository is None:
+        local_tag(cli, image_id, LOCAL_ANALYSIS_REPOSITORY)
     write_once(root / "runtime-material.json", canonical(runtime))
     write_once(
         manifest,

@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-customer-feasibility-baseline",
+  "recorded_at": "2026-10-07T18:58:06Z",
+  "challenge": "eight-challenge-foundation-development",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-CUSTOMER-FEASIBILITY-02 baseline at main 312bd2e4e",
+    "description": "Pinned canonical portfolio screen and challenge pipeline focused baseline"
+  },
+  "expected": "Reuse existing numeric sheet, screen and pipeline without creating execution authority",
+  "observed": "51 passed, 1 existing optional-numpy skip. Local executable lookup found neither ElmerSolver nor ccx; no domain solve or provider dispatch occurred. A short WSL worktree was needed after native managed checkout hit existing long fixture paths; the user's dirty primary checkout remains untouched.",
+  "keep": ["Differentiate definitions, analytical screens, complete-task measurements and qualified references."],
+  "change": ["Prepare full-task cost panels without borrowing another family's attempts or presenting null timings as zero."],
+  "protocol_elements": ["challenge.design-packet.f1", "challenge.reference.adequacy", "challenge.pipeline.lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

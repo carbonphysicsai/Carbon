@@ -1650,6 +1650,187 @@ def test_6c_an_intake_refusal_reaches_the_miner_with_its_own_next_step(
     assert refused["next_action"] != supervision.FALLBACK_ACTION
 
 
+class CommitmentStandIn:
+    """NON-PRODUCTION stand-in for the validator's chain commitment reader
+    (`chain.commitments.ChainCommitmentReader`): it reads what this test
+    commits, at a fixed block, and lists that hotkey as the digest's only
+    holder. No chain is read. The real commitment is the miner's own,
+    signed at their signer (LAUNCHPAD-ACCEPT-02); here the test drives the
+    stand-in so the commitment matches."""
+
+    BLOCK = 40
+
+    def __init__(self):
+        self.committed = {}
+
+    def read(self, hotkey):
+        digest = self.committed.get(hotkey)
+        return None if digest is None else {"digest": digest, "block": self.BLOCK}
+
+    def holders(self, digest):
+        return [(h, self.BLOCK) for h, d in self.committed.items() if d == digest]
+
+
+def through_both_doors(battery, server, token, campaign):
+    """`observe` and `campaign_view` as the browser's door and an MCP client
+    each read them."""
+    from mcp import Client
+
+    from carbon.development_session.chain_onboarding import carbon_testnet_context
+    from carbon.miner_mcp.mcp_operations import make_operation_tools
+    from carbon.miner_mcp.open_tier import create_open_tier_server
+
+    browser = {}
+    for operation in ("observe", "campaign_view"):
+        status, body = post(
+            server, token, "/api/v1/operations/" + operation, {"campaign": campaign}
+        )
+        assert status == 200, body
+        browser[operation] = body
+    door = create_open_tier_server(
+        reader=Registered(), context=carbon_testnet_context()
+    )
+    for tool in make_operation_tools(battery.host):
+        door._tool_manager._tools[tool.name] = tool
+
+    async def read():
+        found = {}
+        async with Client(door, mode="legacy") as session:
+            for operation in ("observe", "campaign_view"):
+                result = await session.call_tool(
+                    "carbon_" + operation, {"campaign": campaign}
+                )
+                assert not result.is_error, result
+                found[operation] = result.structured_content["payload"]
+        return found
+
+    return browser, asyncio.run(read())
+
+
+def test_6d_a_loopback_intake_requiring_a_commitment_reaches_a_sealed_verdict(
+    intake_battery, tmp_path, refs, monkeypatch
+):
+    """LAUNCHPAD-ACCEPT-04, engineering evidence only (the acceptance is the
+    plan's A5): a validator served on loopback, as the tunnel presents
+    valV2, with `require_commitment: true` and a commitment-reader stand-in,
+    under the sealed rule (v2). Its public facts are read as Review reads
+    them; a wrong pinned receiver sends nothing; submit before the
+    commitment is refused, REFUSED, at both doors; once committed, the
+    submission is scored and both doors read back the same submission id
+    and sealed public outcome, never a hidden score, case or seed."""
+    from test_battery_intake import MINER, VALIDATOR
+    from test_battery_intake_service_e2e import open_pool, serving
+    from test_battery_validator_service import throwaway
+
+    from carbon.battery import deployment
+    from carbon.battery import intake as ib
+    from carbon.battery.compile import compile_recipe
+    from carbon.battery.daemon import commitment_digest
+    from carbon.challenge_registry.campaigns import campaign_for_id
+    from scripts.dev.miner_launchpad import supervisor as supervision
+
+    battery = intake_battery
+    campaign = practised_and_frozen(battery)
+    chain = CommitmentStandIn()
+    monkeypatch.setattr(deployment, "_commitment_reader", lambda config: chain)
+    made = throwaway(
+        tmp_path / "validator-service",
+        port=free_port(),
+        deployment_changes={"require_commitment": True, "rule": "v2"},
+        intake_changes={"receiver": VALIDATOR.ss58_address},
+    )
+    open_pool(made, refs)
+    server, token = battery.http()
+    root = battery.campaign_root(campaign)
+    frozen = json.loads((root / "epoch-1" / "selected-recipe.json").read_bytes())
+    manifest = json.loads((root / "campaign-manifest.json").read_bytes())
+    contract = frozen.get("contract_digest") or manifest["contract_digest"]
+    _, recipe = compile_recipe(frozen["strategy"])
+    expected = commitment_digest(BATTERY, contract, recipe.strategy_hash)
+
+    def submit(key):
+        status, body = post(
+            server,
+            token,
+            "/api/v1/operations/submit",
+            {"campaign": campaign, "idempotency_key": key},
+        )
+        assert status == 200, body
+        battery.join()
+        return battery.view(campaign)
+
+    # A chain that advances a block on each read, as a live one does
+    # (`AdvancingChain`): this journey outlasts the intake's 12 s refresh.
+    with serving(made, chain=AdvancingChain()) as live:
+        # Review's preflight of a loopback intake: the public facts name
+        # Carbon's testnet, subnet 567, this Challenge and the receiver.
+        facts = campaign_for_id(BATTERY).intake_check(live.url)
+        assert (facts["network"], facts["netuid"]) == ("testnet", 567)
+        assert facts["challenge"]["id"] == BATTERY
+        assert facts["receiver"] == VALIDATOR.ss58_address
+        # A receiver pinned for another validator: nothing signed or sent.
+        battery.cfg = {
+            **battery.cfg,
+            "intakes": {BATTERY: live.url},
+            "receivers": {BATTERY: MINER.ss58_address},
+        }
+        view = submit("e2e-submit-key-000001")
+        refused = view["last_refusal"]
+        assert (refused["code"], refused["intake_outcome"]) == (
+            "intake_receiver_mismatch",
+            "REFUSED",
+        )
+        assert ib.Inbox(live.config["inbox"]).counts() == {
+            "RECEIVED": 0,
+            "ADMITTED": 0,
+            "REFUSED": 0,
+        }
+        # The pinned receiver, before the commitment: refused at admission.
+        battery.cfg = {**battery.cfg, "receivers": {BATTERY: VALIDATOR.ss58_address}}
+        view = submit("e2e-submit-key-000002")
+        refused = view["last_refusal"]
+        assert (refused["code"], refused["operation"]) == (
+            "commitment_required",
+            "submit",
+        )
+        assert refused["intake_outcome"] == "REFUSED"
+        assert refused["next_action"] == supervision.NEXT_ACTIONS["commitment_required"]
+        assert view["journey"]["frozen_awaiting_submission"] is True
+        browser, mcp = through_both_doors(battery, server, token, campaign)
+        for door in (browser, mcp):
+            assert door["observe"]["last_refusal"] == refused
+            stage = {s["id"]: s for s in door["campaign_view"]["stages"]}["submit"]
+            assert stage["refusal"]["intake_outcome"] == "REFUSED"
+        # Committed (the stand-in reads it): the same candidate, a verdict.
+        chain.committed[MINER.ss58_address] = expected
+        view = submit("e2e-submit-key-000003")
+        inbox = ib.Inbox(live.config["inbox"]).counts()
+    assert view["last_refusal"] is None, view["last_refusal"]
+    assert view["journey"]["submitted_epochs"] == [1]
+    assert inbox["ADMITTED"] == 1
+    browser, mcp = through_both_doors(battery, server, token, campaign)
+    for door in (browser, mcp):
+        (shown,) = door["observe"]["final_results"]
+        result = shown["result"]
+        assert result["state"] == "SCORED"
+        assert result["sealed"] is True and result["screening"] is None
+        assert result["submission_id"]
+        assert result["contract_digest"] == contract
+        assert result["recipe_digest"].startswith("sha256:")
+        assert (result["qualification"], result["reward"]) == (False, False)
+        (outcome,) = door["campaign_view"]["outcomes"]
+        assert outcome["result"]["submission_id"] == result["submission_id"]
+        assert outcome["result"]["sealed"] is True
+        assert "screening" not in outcome["result"]
+        text = json.dumps(
+            [door["observe"]["final_results"], door["campaign_view"]["outcomes"]]
+        )
+        for hidden in ("important_score", '"score"', "seed", "pool_version"):
+            assert hidden not in text, hidden
+    assert browser["observe"]["final_results"] == mcp["observe"]["final_results"]
+    assert browser["campaign_view"]["outcomes"] == mcp["campaign_view"]["outcomes"]
+
+
 # --- 7. closing pauses; restarting flags nothing; resume survives ------------
 
 
@@ -1692,6 +1873,13 @@ def test_7_closing_pauses_restarting_flags_nothing_and_resume_survives(
                 {
                     **launch_body("e2e-agent-key-00000001", agent="graphite"),
                     "graphite_mode": "BUILD",
+                    # Fixture ceilings: a Graphite launch caps both (LA-F4).
+                    "budget": {
+                        "ceilings": {
+                            "provider_attempts": 24,
+                            "provider_nanodollars": 24 * new_plan_reservation(),
+                        }
+                    },
                 },
             )
             for result in (idle, busy):

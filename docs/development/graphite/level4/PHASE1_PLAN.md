@@ -13,10 +13,17 @@
 
 | File | What it is |
 |---|---|
-| `allowlist_v1.json` | Allowlist v1: v0 plus named functions. `custom_jvp_call` is refused unless it is a registered kernel |
+| `carbon/level4/allowlist_v1.json` | Allowlist v1: v0 plus named functions. `custom_jvp_call` is refused unless it is a registered kernel |
 | `phase1_design_results.json` | The record for Q1 and Q3, and the Phase 0 equivalence re-run under v1 |
-| `scripts/dev/level4_spike/named.py`, `initializers.py`, `run_design.py` | Q1, Q3 and the record's runner |
-| `tests/cpu/test_level4_phase1_design.py` | Q1 and Q3 tests |
+| `carbon/level4/named.py`, `carbon/level4/initializers.py`, `scripts/dev/level4_spike/run_design.py` | Q1, Q3 and the record's runner |
+| `tests/cpu/test_level4_named_init.py` | Q1 and Q3 tests |
+
+**Progress.**
+
+| Plan PR | State |
+|---|---|
+| 1 | Merged (#748) |
+| 2 | `carbon/level4` core: format, allowlist v1, G4 `validate.py`, named functions, interpreter, initializers, specimens; `tooling/` (miner-side lowering); battery adapter `carbon/battery/level4.py`; `submission.py`, the manifest and canonical-bytes rule the Launchpad slot (LAUNCHPAD-LEVELS-01) and the validator share |
 
 Reproduce (CPU, development only):
 

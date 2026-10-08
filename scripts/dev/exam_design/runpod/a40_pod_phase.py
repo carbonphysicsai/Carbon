@@ -44,7 +44,8 @@ PHASE = "a40_acceptance"
 SCHEMA = "carbon.a40-acceptance.pod-results.v1"
 IDENTITY_FILE, PROBE_FILE, RESULTS_FILE = "identity.json", "probe.json", "results.json"
 EXIT_ENVIRONMENT, EXIT_REBUILD, EXIT_BARRIER = 6, 5, 7
-GO_PORT = 8001
+#: The marker the bootstrap drops on an authenticated POST /go (port 8000).
+GO_FILE = os.environ.get("GO_FILE", "/tmp/carbon-go")
 #: Engineering allowance for one rebuild child. The pod's own watchdog
 #: (`PROBE_DEADLINE`) is the real bound; this stops one hung child from
 #: consuming it silently.
@@ -150,38 +151,16 @@ def pinned_environment(backend, *, device=None):
     return env
 
 
-def wait_for_go(token, timeout, port=GO_PORT):
+def wait_for_go(timeout, path=GO_FILE):
     """The preflight barrier: block until the operator, having seen BOTH pods'
-    driver identities recorded and matching, POSTs /go with `token`. False on
-    timeout. Nothing else is accepted."""
-    import hmac
-    import http.server
-    import threading
-
-    released = threading.Event()
-
-    class Handler(http.server.BaseHTTPRequestHandler):
-        def do_POST(self):
-            ok = (
-                token
-                and self.path == "/go"
-                and hmac.compare_digest(self.headers.get("X-Probe-Token", ""), token)
-            )
-            self.send_response(200 if ok else 404)
-            self.send_header("Content-Length", "0")
-            self.end_headers()
-            if ok:
-                released.set()
-
-        def log_message(self, *args):
-            pass
-
-    server = http.server.ThreadingHTTPServer(("0.0.0.0", port), Handler)
-    threading.Thread(target=server.serve_forever, daemon=True).start()
-    try:
-        return released.wait(timeout)
-    finally:
-        server.shutdown()
+    driver identities recorded and matching, POSTs /go to the bootstrap, which
+    drops `path`. False on timeout."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if Path(path).exists():
+            return True
+        time.sleep(1)
+    return False
 
 
 def read_identity():
@@ -316,7 +295,7 @@ def _run(config, out, *, root="/tmp/carbon", python=None):
         )
         return EXIT_ENVIRONMENT
     if config.get("barrier") and not wait_for_go(
-        os.environ.get("GO_TOKEN", ""), config.get("go_timeout_seconds", 1800)
+        config.get("go_timeout_seconds", 1800)
     ):
         _write(out / "failure.json", {"stage": "barrier", "error": "not released"})
         return EXIT_BARRIER

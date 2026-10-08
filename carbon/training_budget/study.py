@@ -170,8 +170,14 @@ def check_release(image, record):
 
 def _ladder(default, low, high, integer):
     """From one doubling below the default up to the study range's top,
-    doubling each step, within the study range; the default is always in."""
-    values, value = set(), default / 2
+    doubling each step, within the study range; the default is always in. A
+    default of 0 (a setting that is off by default) starts four doublings
+    below the top."""
+    values, value = set(), (default / 2 if default > 0 else high / 16)
+    if value <= 0:
+        raise StudyRefused(
+            "study_ladder_empty", "the study range's top is not positive"
+        )
     while value <= high:
         if value >= low:
             values.add(round(value) if integer else float(value))

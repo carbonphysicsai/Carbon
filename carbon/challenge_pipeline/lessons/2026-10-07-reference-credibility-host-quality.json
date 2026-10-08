@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-reference-credibility-host-quality",
+  "recorded_at": "2026-10-07T20:10:53+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-REFERENCE-CREDIBILITY-01 host quality checks",
+    "description": "python -m ruff check tests/cpu/test_customer_reference_credibility.py; python -m black --check --target-version py310 tests/cpu/test_customer_reference_credibility.py"
+  },
+  "expected": "Lint and formatting validate the new static test without installing dependencies or invoking a solver.",
+  "observed": "Black passed: one file unchanged. Ruff could not run through this Windows Python because the module is absent; that is unavailable lint evidence, not a pass. A WSL Git probe with an assumed Ubuntu name failed because the installed distribution is Ubuntu-24.04; a corrected read-only probe is separate.",
+  "keep": ["No package installation, solver download or provider call for this documentation ticket."],
+  "change": ["Use an existing lint environment if available; report missing tooling honestly and rely on scope-required pinned CI, not the successful exit status of a later shell command."],
+  "protocol_elements": ["claim-basis", "canonical-environment", "delivery-hygiene"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

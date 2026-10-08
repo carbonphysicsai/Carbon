@@ -273,6 +273,11 @@ class FixtureRunner:
 
         return {**toolbox.for_request(self, request, LANES), "evidence": EVIDENCE}
 
+    def ladder_admitted(self, admitted, request):
+        from scripts.dev.miner_launchpad import ladder_view
+
+        return {**ladder_view.for_request(request), "evidence": EVIDENCE}
+
     def miner_message(self, identity, value):
         """The page's message route, kept in memory only."""
         if type(value) is not dict or set(value) != {"text"}:

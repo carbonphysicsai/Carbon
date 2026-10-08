@@ -185,9 +185,11 @@ def test_an_intake_set_aside_by_an_update_is_named_again_through_status(
     kept their own intake: status shows the set-aside check, then offers the
     intake at Review as `name_again`, and Review sent it keeps it."""
     from test_miner_setup_after_install import (
+        HOTKEY,
         NEW,
         OWN,
         Intakes,
+        own_review,
         profile,
         publish,
         rebuild,
@@ -200,7 +202,7 @@ def test_an_intake_set_aside_by_an_update_is_named_again_through_status(
     publish(tmp_path, monkeypatch, [])
     checks = Intakes()
     base, setup, _ = _setup(tmp_path, "set-aside", checks)
-    setup.review({"confirm": True, "intakes": {challenge["id"]: OWN}})
+    setup.review(own_review(challenge))
     record = setup._record()
     record["compute"]["choice"] = environment.REMOTE
     setup._save(record)
@@ -227,15 +229,66 @@ def test_an_intake_set_aside_by_an_update_is_named_again_through_status(
     entry = _call(server, STATUS)["payload"]["next"]
     assert entry["step"] == "review"
     assert entry["options"]["name_again"] == {challenge["id"]: OWN}
+    # With the receiver its Review pinned (LAUNCHPAD-ACCEPT-03).
+    assert entry["options"]["receivers_again"] == {challenge["id"]: HOTKEY}
     _call(
         server,
         "carbon_setup_review",
-        {"confirm": True, "intakes": entry["options"]["name_again"]},
+        {
+            "confirm": True,
+            "intakes": entry["options"]["name_again"],
+            "receivers": entry["options"]["receivers_again"],
+        },
     )
     assert profile(setup)["intakes"] == {challenge["id"]: OWN}
+    assert profile(setup)["receivers"] == {challenge["id"]: HOTKEY}
     item = _call(server, STATUS)["payload"]["evaluation"]["challenges"][0]
     assert (item["intake"], item["source"]) == (OWN, "yours")
     assert "set_aside_intake" not in item
+
+
+def test_both_doors_pin_an_own_intakes_receiver_the_same(tmp_path, head, monkeypatch):
+    """LAUNCHPAD-ACCEPT-03, door parity: Review over MCP and over the
+    browser's door take the same receiver fields, refuse the same codes with
+    the same field and next step, and pin the same receiver."""
+    from mcp.server.mcpserver.exceptions import ToolError
+    from test_miner_setup_after_install import HOTKEY, OWN, Intakes, profile, publish
+
+    from scripts.dev.miner_launchpad import environment_setup as environment
+    from scripts.dev.miner_launchpad.setup_operations import HTTP, MCP, perform, schema
+
+    challenge = environment.intake_challenges()[0]
+    publish(tmp_path, monkeypatch, [])
+    for door in (HTTP, MCP):
+        fields = schema("review", door)["properties"]
+        assert {"intakes", "receiver_hotkey", "receivers"} <= set(fields)
+    other = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+    for code, request in (
+        ("receiver_hotkey_required", {}),
+        ("intake_receiver_mismatch", {"receiver_hotkey": other}),
+    ):
+        request = {"confirm": True, "intakes": {challenge["id"]: OWN}, **request}
+        _, setup, _ = _setup(tmp_path, "browser-" + code, Intakes())
+        with pytest.raises(environment.SetupRefused) as browser:
+            perform(setup, "review", request, door=HTTP)
+        _, setup, _ = _setup(tmp_path, "mcp-" + code, Intakes())
+        with pytest.raises(ToolError) as raised:
+            asyncio.run(_door(setup).call_tool("carbon_setup_review", request))
+        message = str(raised.value)
+        answered = json.loads(message[message.index("{") :])
+        assert answered == {
+            "error": code,
+            "field": "receiver_hotkey",
+            "next_step": browser.value.next_step,
+        }
+        assert browser.value.code == code and browser.value.field == "receiver_hotkey"
+    _, setup, _ = _setup(tmp_path, "mcp-pinned", Intakes())
+    _call(
+        _door(setup),
+        "carbon_setup_review",
+        {"confirm": True, "intakes": {challenge["id"]: OWN}, "receiver_hotkey": HOTKEY},
+    )
+    assert profile(setup)["receivers"] == {challenge["id"]: HOTKEY}
 
 
 # --- D -> A: the research tools rule, frozen for new battery campaigns ---------------

@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-question-laws-02-native-regression",
+  "recorded_at": "2026-10-07T23:42:13+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-QUESTION-LAWS-02 formatted candidate",
+    "description": "py -3.11 -m pytest -q tests/cpu/test_foundation_quiz_content.py tests/cpu/test_portfolio_f1_packet.py tests/cpu/test_customer_feasibility_panels.py; native Black/Ruff on the new test file"
+  },
+  "expected": "Native static quiz/packet/recipe regression and clean changed-file diagnostics; canonical acceptance remains separate.",
+  "observed": "31 native tests passed using the accessible Anaconda Python 3.11.4 under command-specific permissions. Black formatted the new test and Ruff identified one import-layout finding, fixed mechanically; Black then left the file unchanged. The canonical wrapper did not execute tests: Git Bash could not find dirname and failed its repository-root check on both host-path probes. No reference or model ran, no timings were measured and no canonical pass is claimed.",
+  "keep": ["An available noncanonical interpreter can check pure document/recipe semantics without solving physics; label the tested scope and environment."],
+  "change": ["Do not infer canonical success from native tests or repeat unavailable shell bootstrap probes. Use pinned GitHub CI for acceptance."],
+  "protocol_elements": ["host-versus-canonical-validation", "claim-basis", "static-reference-packaging", "no-solver-execution"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
