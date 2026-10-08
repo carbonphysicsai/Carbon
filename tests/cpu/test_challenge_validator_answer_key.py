@@ -350,12 +350,15 @@ def test_silent_clients_never_freeze_the_host(tmp_path, published, capsys, monke
     """3a, 2026-10-08: the host's first listener ran every TLS handshake
     inside `accept`, so one client that connected and sent nothing froze it
     (`LISTEN 6 5`). Now silent connections wait in their own threads, a real
-    signed fetch over TLS still succeeds at once, a connection over the
-    per-peer cap is refused, and each refused or timed-out connection is one
-    log line."""
+    signed fetch over TLS is answered while they are all still held open, a
+    connection over the per-peer cap is refused, and each refused or
+    timed-out connection is one log line.
+
+    No wall-clock bound: on a loaded host a fetch may take longer than any
+    fixed figure. What is proved is the order: the fetch completes while
+    every silent connection is still open, so it never waited on them."""
     import socket
     import threading
-    import time
 
     from _signer_harness import in_thread_signer
     from bittensor.keyfiles import Keypair
@@ -364,7 +367,8 @@ def test_silent_clients_never_freeze_the_host(tmp_path, published, capsys, monke
     from carbon.battery import intake as ib
     from carbon.chain.auth import BittensorHotkeyVerifier
 
-    monkeypatch.setattr(ib.LoggedHandler, "timeout", 2.0)
+    # Silent clients are held far longer than any fetch takes.
+    monkeypatch.setattr(ib.LoggedHandler, "timeout", 120.0)
     validator = Keypair.create_from_uri("//carbon-answer-key-validator")
     receiver = Keypair.create_from_uri("//carbon-answer-key-host").ss58_address
     inbox = tmp_path / "inbox"
@@ -404,10 +408,14 @@ def test_silent_clients_never_freeze_the_host(tmp_path, published, capsys, monke
             asker = ak.Fetcher(
                 f"https://127.0.0.1:{port}", signer, receiver, ca=str(cert)
             )
-            started = time.monotonic()
             listing = asker.ask(published["source"].challenge_id)
-            assert time.monotonic() - started < 2.0
             assert listing["packages"]
+            # Every silent connection is still open: the fetch never waited.
+            for connection in silent:
+                connection.setblocking(False)
+                with pytest.raises(BlockingIOError):
+                    connection.recv(1)
+                connection.setblocking(True)
             # A fifth connection from this peer, with four open, is refused.
             asker_slot = socket.create_connection(("127.0.0.1", port))
             extra = socket.create_connection(("127.0.0.1", port))
@@ -415,10 +423,14 @@ def test_silent_clients_never_freeze_the_host(tmp_path, published, capsys, monke
             assert extra.recv(1) == b""
             extra.close()
             asker_slot.close()
-        # The silent clients are closed by the host after the socket timeout.
-        for connection in silent:
-            connection.settimeout(10.0)
-            assert connection.recv(1) == b""
+        # A connection opened under a short timeout is closed by the host
+        # once it passes, and logged.
+        silent.pop().close()
+        monkeypatch.setattr(ib.LoggedHandler, "timeout", 1.0)
+        late = socket.create_connection(("127.0.0.1", port))
+        silent.append(late)
+        late.settimeout(60.0)
+        assert late.recv(1) == b""
     finally:
         for connection in silent:
             connection.close()
@@ -431,7 +443,7 @@ def test_silent_clients_never_freeze_the_host(tmp_path, published, capsys, monke
     ]
     events = [x["event"] for x in lines if x["service"] == dist.SERVICE]
     assert events.count("connection_refused") >= 1
-    assert events.count("connection_timed_out") >= 3
+    assert events.count("connection_timed_out") >= 1
     assert "127.0.0.1" not in json.dumps(lines)
 
 
