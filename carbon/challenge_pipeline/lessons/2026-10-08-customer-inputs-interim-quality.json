@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-customer-inputs-interim-quality",
+  "recorded_at": "2026-10-08T14:03:17+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-CUSTOMER-INPUTS-03 interim quality/regressions", "description": "Black formatting and Ruff check, followed by native packet/law/pipeline/design-task tests and pipeline validation."},
+  "expected": "Formatting and static regressions pass without changing runtime.",
+  "observed": "Black reformatted the new test and Ruff passed. The shell returned while the regression command was still running; only progress output was retained, so no completed pytest or pipeline result is claimed for this invocation. Added two further synthetic buyer-mix/colocated-TIM checks before final validation.",
+  "keep": ["Qualify a pass by the completed result actually captured, not green progress dots."],
+  "change": ["Retain the running session identity and poll its final result for the final diagnostic batch."],
+  "protocol_elements": ["evidence basis", "native diagnostics", "reference boundaries"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

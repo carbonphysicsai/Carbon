@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-customer-inputs-final",
+  "recorded_at": "2026-10-08T14:06:21+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-CUSTOMER-INPUTS-03 final native diagnostics", "description": "Black/Ruff and UTF-8 pytest of new customer-input specs, prior packet/law/credibility checks, pipeline and Challenge-neutral task regressions; pipeline validate."},
+  "expected": "Prospective documents and synthetic semantics pass; no physical evidence or runtime authority is created.",
+  "observed": "125 passed in19.20s, including18 new static/synthetic tests; Black formatted and Ruff passed. Captured final shell exit0 and pipeline validation: DEFINING,7 records,449 valid lessons,0 awaiting decisions,3 controllers/3 pending identities before this entry. Native Windows diagnostics only; pinned GitHub acceptance is separate.",
+  "keep": ["Continuous requirements change questions without changing solved physical truth; hard limits precede buyer mixture time ranking; local TIM peaks use colocated fields."],
+  "change": ["Data Collection must version the tabulated-map/coupling route and variable-SOC/full-charge observer before execution; arbitrary initial aged states remain unsupported."],
+  "protocol_elements": ["P/Q/w separation", "conservative reference composition", "bank exposure", "prospective buyer requirements"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

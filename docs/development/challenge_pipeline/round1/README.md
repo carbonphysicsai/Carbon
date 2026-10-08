@@ -1,5 +1,12 @@
 # First customer-shaped DEVELOPMENT round
 
+> **Input proposals after #804:** [Cooling v2 spreader/TIM inputs and panel](cooling-spreader-v2.md)
+> await owner approval; the [panel recipe](cooling-spreader-panel-v2.json) has
+> no dispatch authority. Battery uses the [continuous-primary law proposal](../question-laws/battery-continuous-v3.md)
+> and [prospective optimizer v2](../optimizers/battery-ev-fast-charge-v2.md).
+> Numeric distributions/aggregation and variable-SOC/restart support remain
+> explicit owner/reference seams. Earlier packet versions are preserved.
+
 > **Current Battery/Cooling versions (2026-10-08):** use
 > [Battery v2](battery-ev-fast-charge-v2.md) (minimise admissible session time;
 > no hard 30-minute limit; charging 45 C, test-discharge diagnostics) and
