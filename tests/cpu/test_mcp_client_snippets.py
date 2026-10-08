@@ -49,6 +49,9 @@ def test_the_add_command_names_the_server_before_any_value_option(client_id):
     assert all(name_at < i for i in options), head
     env = head[head.index("--env") + 1]
     assert env == "PYTHONPATH=" + connect["cwd"]
+    if client_id == "claude-code":
+        # Claude Code's default scope is the current directory only.
+        assert head[head.index("--scope") + 1] == "user"
 
 
 def test_the_config_snippets_name_the_same_server_command():

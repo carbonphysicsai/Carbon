@@ -647,8 +647,11 @@ def mcp_connect(state_dir=None) -> dict:
                         "label": "Add it",
                         # The server name before --env: Claude Code's --env
                         # takes several values and would swallow the name
-                        # (LA-F12, Claude Code 2.1.294).
-                        "text": "claude mcp add --transport stdio carbon --env "
+                        # (LA-F12, Claude Code 2.1.294). --scope user makes
+                        # it available in every directory; Claude Code's
+                        # default scope is the current directory only.
+                        "text": "claude mcp add --transport stdio --scope user "
+                        + "carbon --env "
                         + shlex.quote("PYTHONPATH=" + repo)
                         + " -- "
                         + command,
