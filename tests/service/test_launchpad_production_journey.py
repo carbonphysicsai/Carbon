@@ -1873,6 +1873,13 @@ def test_7_closing_pauses_restarting_flags_nothing_and_resume_survives(
                 {
                     **launch_body("e2e-agent-key-00000001", agent="graphite"),
                     "graphite_mode": "BUILD",
+                    # Fixture ceilings: a Graphite launch caps both (LA-F4).
+                    "budget": {
+                        "ceilings": {
+                            "provider_attempts": 24,
+                            "provider_nanodollars": 24 * new_plan_reservation(),
+                        }
+                    },
                 },
             )
             for result in (idle, busy):

@@ -77,6 +77,11 @@ with the fields in [Record](#record).
    - It checks the machine, its free disk, and that the checkout is clean.
      A checkout with local changes stops it before anything changes, with
      the `git stash` command that sets them aside.
+   - With `--service`, it also checks that your systemd user manager, which
+     runs the service, reaches Docker. If you joined the `docker` group after
+     the manager started, the install stops here (LA-F6). On WSL, run
+     `wsl --terminate <distro>` from Windows and reopen it; elsewhere, run
+     `sudo systemctl restart user@$(id -u).service`. Then install again.
    - It installs the locked environment, builds the worker and analysis
      images (and the GPU worker) locally, records them for setup, and checks
      setup against them.
