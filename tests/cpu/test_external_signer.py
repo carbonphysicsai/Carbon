@@ -349,6 +349,23 @@ def test_the_signer_payload_rule():
 
     assert rule(payload()) is None
     assert rule(payload(path="/other")) is Refusal.NOT_A_CARBON_REQUEST
+    # The answer-key fetch is not a miner's request: refused unless started for it.
+    answer_key = payload(path="/carbon/v1/answer-key")
+    assert rule(answer_key) is Refusal.NOT_A_CARBON_REQUEST
+    started_for_it = frozenset({"/carbon/v1/answer-key"})
+    for value, expected in (
+        (answer_key, None),
+        (payload(), Refusal.NOT_A_CARBON_REQUEST),
+    ):
+        found = refusal_for(
+            value,
+            hotkey=miner,
+            scheme="sr25519",
+            receivers=frozenset({receiver}),
+            now_ns=now,
+            paths=started_for_it,
+        )
+        assert found is expected
     assert rule(payload(method="GET")) is Refusal.NOT_A_CARBON_REQUEST
     assert rule(payload(scheme="ed25519")) is Refusal.NOT_A_CARBON_REQUEST
     assert rule(payload(sender_ss58=receiver)) is Refusal.WRONG_SENDER
@@ -500,3 +517,83 @@ def test_a_busy_signer_is_a_timeout_never_not_running(tmp_path):
     with pytest.raises(SignerFailure) as absent:
         connect_signer(_keypair(URI).ss58_address, socket_path=path, timeout=0.5)
     assert absent.value.code == SignerCode.NOT_RUNNING.value
+
+
+ANSWER_KEY_PATH = "/carbon/v1/answer-key"
+
+
+def _signed_answer_key(external, body, receiver):
+    return BittensorMessageSigner(external).sign(
+        body, receiver=receiver, nonce_ns=time.time_ns(), path=ANSWER_KEY_PATH
+    )
+
+
+def test_a_miners_signer_never_signs_an_answer_key_fetch(signer):
+    """3a at r2: started as a miner's signer, the answer-key fetch is refused
+    by name, and nothing is signed."""
+    process, hotkey = signer
+    receiver = _keypair(RECEIVER_URI).ss58_address
+    external = connect_signer(hotkey, socket_path=process.socket_path)
+    with pytest.raises(SignerFailure) as failure:
+        _signed_answer_key(external, b"{}", receiver)
+    assert failure.value.refusal == "NOT_A_CARBON_REQUEST"
+    assert external.issued == 0
+
+
+def test_answer_key_signing_needs_a_named_receiver(specimen_key):
+    key_file, _hotkey = specimen_key
+    process = SignerProcess(
+        key_file, _short_dir() / "s.sock", "--request", "answer-key"
+    )
+    try:
+        process.read(until=b"--request answer-key needs --receiver")
+        assert process.process.wait(timeout=20) != 0
+    finally:
+        process.stop()
+
+
+def test_a_validators_signer_signs_the_answer_key_fetch_and_nothing_else(specimen_key):
+    """Started with `--request answer-key --receiver R`: the fetch to R is
+    signed and verifies at the answer-key path; another receiver and a miner's
+    MCP request are refused."""
+    from carbon.challenge_validator.answer_key import PATH
+
+    assert PATH == ANSWER_KEY_PATH
+    key_file, hotkey = specimen_key
+    allowed = _keypair(RECEIVER_URI).ss58_address
+    other = _keypair("//another-validator").ss58_address
+    process = SignerProcess(
+        key_file,
+        _short_dir() / "s.sock",
+        "--request",
+        "answer-key",
+        "--receiver",
+        allowed,
+    )
+    try:
+        process.type_password(PASSWORD)
+        process.wait_listening()
+        process.read(until=ANSWER_KEY_PATH.encode())
+        external = connect_signer(hotkey, socket_path=process.socket_path)
+        headers = _signed_answer_key(external, b"{}", allowed)
+        verified = BittensorHotkeyVerifier().verify(
+            headers,
+            b"{}",
+            method="POST",
+            path=ANSWER_KEY_PATH,
+            receiver=allowed,
+            now_ns=time.time_ns(),
+            nonce_store=_NonceStore(),
+        )
+        assert verified.hotkey == hotkey
+        process.read(until=b"signed a Carbon request (" + ANSWER_KEY_PATH.encode())
+        for sign, receiver, refusal in (
+            (_signed_answer_key, other, "RECEIVER_NOT_ALLOWED"),
+            (_signed, allowed, "NOT_A_CARBON_REQUEST"),
+        ):
+            with pytest.raises(SignerFailure) as failure:
+                sign(external, b"{}", receiver)
+            assert failure.value.refusal == refusal
+        assert external.issued == 1
+    finally:
+        process.stop()
