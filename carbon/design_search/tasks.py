@@ -445,18 +445,33 @@ def commit(task_, predicted, *, model_id):
     return {**body, "commitment_digest": digest(body)}
 
 
-def run_optimizer(task_, predictor, *, model_id):
+def run_optimizer(task_, predictor, *, model_id, cost_recorder=None):
     """Execute a registered optimizer on model predictions only."""
     from carbon.design_search.optimizer import run_optimizer as execute
 
-    return execute(task_, predictor, model_id=model_id)
+    return execute(task_, predictor, model_id=model_id, cost_recorder=cost_recorder)
 
 
-def audit_optimizer(primary_task, audit_task, predictor, *, model_id):
+def audit_optimizer(
+    primary_task,
+    audit_task,
+    predictor,
+    *,
+    model_id,
+    primary_cost_recorder=None,
+    audit_cost_recorder=None,
+):
     """Run a second registered path without changing the primary pick."""
     from carbon.design_search.optimizer import audit_optimizer as execute
 
-    return execute(primary_task, audit_task, predictor, model_id=model_id)
+    return execute(
+        primary_task,
+        audit_task,
+        predictor,
+        model_id=model_id,
+        primary_cost_recorder=primary_cost_recorder,
+        audit_cost_recorder=audit_cost_recorder,
+    )
 
 
 def reference_state(task_, truth):

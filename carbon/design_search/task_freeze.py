@@ -13,6 +13,7 @@ from carbon.design_search import experiment, tasks
 
 DESIGN_TASK_CODE = (
     "carbon/design_search/tasks.py",
+    "carbon/design_search/optimizer.py",
     "carbon/design_search/cost.py",
     "carbon/design_search/query_cost.py",
     "carbon/design_search/task_projection.py",
