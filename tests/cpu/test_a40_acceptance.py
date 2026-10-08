@@ -1283,3 +1283,36 @@ def test_the_run_record_is_not_changed_by_skip_fno(tmp_path, capsys, monkeypatch
     assert code == 0 and printed["plan"]["pytorch"]["rebuilds_per_pod"] == 4
     assert digest == a40.hashlib.sha256(record_path.read_bytes()).hexdigest()
     assert a40.load_record(record_path) == RECORD
+
+
+# ----------------------------------------------------------------- target device
+def test_target_devices_are_exactly_the_two_names():
+    assert a40.TARGET_DEVICES == {
+        "A40": "NVIDIA A40",
+        "RTX 4090": "NVIDIA GeForce RTX 4090",
+    }
+    assert a40.DEFAULT_TARGET == "A40"
+
+
+def test_the_runpod_gpu_type_follows_the_target(world):
+    make, _fake, bodies = world
+    runner, _fleet = make([])
+    runner.target_device = "RTX 4090"
+    pod = runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    assert bodies[-1]["gpuTypeIds"] == ["NVIDIA GeForce RTX 4090"]
+    runner.terminate(pod)
+    runner.close()
+    default, _f = make([])
+    pod = default.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    assert bodies[-1]["gpuTypeIds"] == ["NVIDIA A40"]
+    default.terminate(pod)
+    default.close()
+
+
+def test_the_cli_accepts_only_the_two_target_devices(tmp_path, capsys):
+    with pytest.raises(SystemExit):
+        a40.main(
+            ["run", "--record", str(tmp_path / "r"), "--work-dir", str(tmp_path),
+             "--target-device", "H100"]
+        )  # fmt: skip
+    assert "invalid choice" in capsys.readouterr().err

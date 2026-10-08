@@ -57,6 +57,12 @@ IMAGES = {"jax": ACCELERATOR_IMAGE, "pytorch": TORCH_IMAGE}
 BACKENDS = ("jax", "pytorch")
 
 GPU_TYPE = "NVIDIA A40"
+#: The target device of a run: exactly two values. The RunPod GPU type id and
+#: the exact device name `nvidia-smi` reports are the same string. The RTX 4090
+#: is an UNQUALIFIED development device (not in `QUALIFIED_PARTS`); this harness
+#: only records digests for it and qualifies nothing.
+TARGET_DEVICES = {"A40": "NVIDIA A40", "RTX 4090": "NVIDIA GeForce RTX 4090"}
+DEFAULT_TARGET = "A40"
 TORCH_LOCK = ".devcontainer/torch/torch-cu130-py311.txt"
 #: The grant's rate is the all-in pod ceiling (compute plus a 20 GB container
 #: disk at 0.10 / GB-month over 730 h), read from the grant record below.
@@ -738,6 +744,7 @@ class PodRunner:
         http=None,
         post=None,
         retry_window_seconds=DEFAULT_RETRY_WINDOW_SECONDS,
+        target_device=DEFAULT_TARGET,
         balance_floor=None,
         poll_seconds=POLL_SECONDS,
         run_id=None,
@@ -780,6 +787,7 @@ class PodRunner:
         self.driver_problems: list[dict] = []
         self.launch_attempts: list[dict] = []
         self.retry_window_seconds = retry_window_seconds
+        self.target_device = target_device
         self._n = 0
 
     # -- launching
@@ -820,7 +828,8 @@ class PodRunner:
 
         image = check_image(IMAGES[backend])
         self._check_balance(reservation_usd(deadline_seconds, self.rate))
-        [offer] = self.adapter.offers([GPU_TYPE], gpu_count=1, cloud_type=cloud)
+        gpu_type = TARGET_DEVICES[self.target_device]
+        [offer] = self.adapter.offers([gpu_type], gpu_count=1, cloud_type=cloud)
         if (
             offer.usd_per_hr is None
             or Decimal(str(offer.usd_per_hr)) > Decimal(str(POD_RATE_USD_PER_HR))
@@ -828,7 +837,8 @@ class PodRunner:
         ):
             raise LaunchFailed(
                 status=None,
-                message=f"no A40 {cloud} offer in stock at or below the rate ceiling",
+                message=f"no {self.target_device} {cloud} offer in stock at or below "
+                "the rate ceiling",
                 intent_id=None,
                 capacity=True,
                 cloud=cloud,
@@ -839,7 +849,7 @@ class PodRunner:
         deadline_at = self.clock() + deadline_seconds
         spec = PodSpec(
             image=image,
-            gpu_type_id=GPU_TYPE,
+            gpu_type_id=gpu_type,
             gpu_count=1,
             cloud_type=cloud,
             container_disk_gb=DISK_GB,
@@ -1612,6 +1622,7 @@ def _runner(args, record):
         manifest=manifest,
         repository=Path(args.repository),
         retry_window_seconds=args.retry_window_minutes * 60,
+        target_device=args.target_device,
     )
 
 
@@ -1738,6 +1749,12 @@ def main(argv=None):
         p.add_argument("--code-ref", default="")
         p.add_argument("--repository", default=str(REPOSITORY))
         p.add_argument("--cap", default=str(DEFAULT_CAP_USD))
+        p.add_argument(
+            "--target-device",
+            choices=sorted(TARGET_DEVICES),
+            default=DEFAULT_TARGET,
+            help="A40 (default) or RTX 4090 (unqualified development device)",
+        )
         p.add_argument(
             "--retry-window-minutes",
             type=int,
