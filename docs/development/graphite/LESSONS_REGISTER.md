@@ -91,6 +91,7 @@ before, and that none is as messy as this first wave.
 | G4 | A gate helper returned 0.0 on FAIL, so a failure ranked first under a negative-error score | A wrong τ in #609 | Admissibility before ranking: gate failures rank last, tested | ENFORCED (#617); EV5-RUN-01 ruling |
 | G5 | A gate tolerance sat 0.0006 K inside the references | Live false-rejection risk | A **margin study for every gate** at onboarding | GATED (S3); cooling v2 at 0.1 K |
 | G6 | A case-insensitive role guard could be bypassed | Possible recall of a sealed batch | Security review of every guard; case-folded comparison | ENFORCED (#583) |
+| G7 | Level 4 G4 trusted a graph document's declared node shapes; a document that lied passed validation and failed only on execution, inside G6 training and untyped (found by the `battery_level4` attack adapter) | A candidate's own fault would have read as an untyped training failure after compute was spent | **Declared metadata is checked against derived metadata before execution**: G4 evaluates the rebuilt graph abstractly (`jax.eval_shape`, no compile) and refuses with `declared_aval_mismatch`. This applies to every Level 4 field that is declared rather than derived. The `declared_shape_lie` specimen stays in the §8 suite with an unchecked control that fires | IN PR (#800); Test Lead ruling: PROTECTED, no freedom removed |
 
 ## 6. Attack instrument
 

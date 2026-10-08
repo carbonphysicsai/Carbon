@@ -88,3 +88,13 @@ def test_declared_shape_lie_is_refused_at_g4():
     with pytest.raises(graph.GraphRefused) as refused:
         g4.validate(graph.parse(graph.dumps(doc), max_bytes=1 << 26), allowlist)
     assert refused.value.code == "declared_aval_mismatch"
+
+
+def test_declared_shape_lie_stays_a_permanent_specimen(adapter):
+    # Test Lead ruling: PROTECTED. The lie is an attack in the §8 suite, held
+    # by Carbon's gates with its typed code, and the unchecked control fires.
+    attacks = dict(L4._integrity_attacks())
+    value = attacks["declared_shape_lie"]
+    held = L4.carbon_gates(value)
+    assert (held["status"], held["code"]) == ("REFUSED", "declared_aval_mismatch")
+    assert L4._accepted(L4.unchecked_gate(value))
