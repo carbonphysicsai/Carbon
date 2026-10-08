@@ -171,11 +171,14 @@ FAKE_CHECKOUT = {
     ),
     "scripts/dev/c03_worker_image.sh": (
         '#!/bin/sh\nmkdir -p "$(dirname "$1")"\n'
-        'echo "{\\"image_id\\": \\"sha256:$(git rev-parse HEAD)\\"}" > "$1"\n'
+        # A rebuild at the same revision is a new image (LA-F16): the id
+        # carries the build's process id too.
+        'echo "{\\"image_id\\": \\"sha256:$(git rev-parse HEAD)-$$\\"}" > "$1"\n'
         'echo "worker $(git rev-parse HEAD)" >> "$CARBON_TEST_LOG"\n'
     ),
     "scripts/dev/accelerator_worker_image.sh": (
-        '#!/bin/sh\nmkdir -p "$(dirname "$1")"\necho "{}" > "$1"\n'
+        '#!/bin/sh\nmkdir -p "$(dirname "$1")"\n'
+        'echo "{\\"image_id\\": \\"sha256:gpu-$(git rev-parse HEAD)-$$\\"}" > "$1"\n'
         'echo "gpu worker" >> "$CARBON_TEST_LOG"\n'
     ),
 }
@@ -191,7 +194,21 @@ case "$2" in
     case "$3" in
       gpu-installed) echo "${CARBON_TEST_GPU_INSTALLED:-no}" ;;
       after-install) echo "What this install changed: (fixture)" ;;
-      service-unit) echo "[Unit]" ;;
+      service-unit)
+        echo "[Unit]"
+        echo "ExecStart=/fixture/carbon-control-center --state-dir $5 --port $7" ;;
+    esac ;;
+  scripts.dev.miner_launchpad.installed)
+    # current --manifest PATH: the worker named there was built at this
+    # revision and Docker still holds it, unless the test removed it.
+    case "$3" in
+      current)
+        if grep -qs "$(git rev-parse HEAD)" "$5" \\
+          && [ "${CARBON_TEST_IMAGES_GONE:-no}" != yes ]; then
+          echo yes
+        else
+          echo no
+        fi ;;
     esac ;;
   scripts.dev.worker_image_release)
     # pull --record RECORD --out MANIFEST: pulls nothing; a named kind fails.
@@ -574,7 +591,10 @@ def test_the_service_option_writes_and_starts_the_user_unit(sandbox):
     completed = sandbox.run("--service")
     assert completed.returncode == 0, completed.stderr
     unit = sandbox.tmp / "home/.config/systemd/user/carbon-control-center.service"
-    assert unit.read_text() == "[Unit]\n"
+    assert unit.read_text() == (
+        "[Unit]\nExecStart=/fixture/carbon-control-center --state-dir "
+        f"{sandbox.state} --port 8788\n"
+    )
     log = sandbox.logged()
     assert log[-3:] == [
         "systemctl --user daemon-reload",
@@ -647,6 +667,237 @@ def test_a_user_manager_without_docker_stops_the_service_install_first(
     assert log[1].startswith(MANAGER_DOCKER_CHECK)
     unit = sandbox.tmp / "home/.config/systemd/user/carbon-control-center.service"
     assert not unit.exists()
+
+
+# --- Two installs sharing one checkout (LA-F15, LA-F16) -----------------------
+#
+# As on the fresh distro on 2026-10-08: minerB in the default state directory
+# with --service on 8788, minerA in its own CARBON_STATE_DIR on 8789.
+
+DEFAULT_UNIT = "carbon-control-center.service"
+
+
+def units(sandbox) -> Path:
+    return sandbox.tmp / "home/.config/systemd/user"
+
+
+def miner_a(sandbox) -> Path:
+    return sandbox.tmp / "home/.carbon/minerA"
+
+
+def unit_names(sandbox) -> list[str]:
+    return sorted(path.name for path in units(sandbox).iterdir())
+
+
+def test_a_second_install_without_service_never_touches_the_first_ones_unit(
+    sandbox,
+):
+    """LA-F15: minerA's install, without --service, rewrote minerB's unit to
+    minerA's state directory and port; a restart would have started the
+    wrong Control Center. It now writes, reloads, enables and starts no unit."""
+    assert sandbox.run("--service").returncode == 0
+    default = units(sandbox) / DEFAULT_UNIT
+    first = default.read_text()
+    assert f"--state-dir {sandbox.state} --port 8788" in first
+    before = len(sandbox.logged())
+    completed = sandbox.run(
+        "--no-start", "--port", "8789", CARBON_STATE_DIR=str(miner_a(sandbox))
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert default.read_text() == first
+    assert unit_names(sandbox) == [DEFAULT_UNIT]
+    assert not any(
+        line.startswith(("systemctl", "systemd-run"))
+        for line in sandbox.logged()[before:]
+    )
+    assert f"--state-dir {miner_a(sandbox)} --port 8789" in completed.stdout
+
+
+def test_each_state_directory_has_its_own_service_and_updates_only_its_own(
+    sandbox,
+):
+    """LA-F15: the default state directory keeps carbon-control-center;
+    another one gets a unit named after it, and the installer prints that
+    unit's own restart, stop, state and output commands. Each later update
+    rewrites and restarts only its own unit, on its own port."""
+    assert sandbox.run("--service").returncode == 0
+    default = units(sandbox) / DEFAULT_UNIT
+    first = default.read_text()
+    completed = sandbox.run(
+        "--service", "--port", "8789", CARBON_STATE_DIR=str(miner_a(sandbox))
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert default.read_text() == first
+    (own,) = [name for name in unit_names(sandbox) if name != DEFAULT_UNIT]
+    assert own.startswith("carbon-control-center-minerA-") and own.endswith(".service")
+    assert (
+        f"--state-dir {miner_a(sandbox)} --port 8789"
+        in (units(sandbox) / own).read_text()
+    )
+    assert sandbox.logged()[-3:] == [
+        "systemctl --user daemon-reload",
+        f"systemctl --user enable --quiet {own}",
+        f"systemctl --user restart {own}",
+    ]
+    service = own.removesuffix(".service")
+    for command in ("restart", "stop", "status"):
+        assert f"systemctl --user {command} {service}" in completed.stdout
+    assert f"tail -f {miner_a(sandbox)}/control-center.log" in completed.stdout
+    # minerA's update keeps its port and restarts its own service only.
+    completed = sandbox.run("--update", CARBON_STATE_DIR=str(miner_a(sandbox)))
+    assert completed.returncode == 0, completed.stderr
+    assert sandbox.logged()[-1] == f"systemctl --user restart {own}"
+    assert "--port 8789" in (units(sandbox) / own).read_text()
+    assert default.read_text() == first
+    # minerB's update restarts carbon-control-center only.
+    completed = sandbox.run("--update")
+    assert completed.returncode == 0, completed.stderr
+    assert sandbox.logged()[-1] == f"systemctl --user restart {DEFAULT_UNIT}"
+    assert default.read_text() == first
+    assert unit_names(sandbox) == sorted([DEFAULT_UNIT, own])
+
+
+def test_a_default_unit_rewritten_for_another_state_directory_is_left_alone(
+    sandbox,
+):
+    """The fresh distro's unit after LA-F15: carbon-control-center runs
+    minerA's state directory. Neither install rewrites it unasked; both say
+    what they found. Only the default install with --service takes it back."""
+    units(sandbox).mkdir(parents=True)
+    default = units(sandbox) / DEFAULT_UNIT
+    rewritten = (
+        "[Unit]\nExecStart=/old/carbon-control-center --state-dir "
+        f"{miner_a(sandbox)} --port 8789\n"
+    )
+    default.write_text(rewritten)
+    completed = sandbox.run("--no-start")
+    assert completed.returncode == 0, completed.stderr
+    assert default.read_text() == rewritten
+    assert "This install left it alone" in completed.stdout
+    assert not any(line.startswith("systemctl") for line in sandbox.logged())
+    completed = sandbox.run("--no-start", CARBON_STATE_DIR=str(miner_a(sandbox)))
+    assert completed.returncode == 0, completed.stderr
+    assert default.read_text() == rewritten
+    assert "belongs to the default state directory" in completed.stdout
+    assert unit_names(sandbox) == [DEFAULT_UNIT]
+    completed = sandbox.run("--service")
+    assert completed.returncode == 0, completed.stderr
+    assert f"--state-dir {sandbox.state} --port 8788" in default.read_text()
+
+
+def manifests(sandbox) -> dict[str, bytes]:
+    artifacts = sandbox.clone / ".carbon-artifacts"
+    return {
+        name: (artifacts / name).read_bytes()
+        for name in ("c03-worker-image.json", "accelerator-worker-image.json")
+    }
+
+
+def worker_builds(log) -> list[str]:
+    return [line for line in log if line.startswith(("worker ", "gpu worker"))]
+
+
+def test_a_second_install_at_the_same_revision_uses_the_first_ones_images(sandbox):
+    """LA-F16: both installs record the checkout's manifests, at fixed paths.
+    A rebuild at the same revision is a new image id, so minerA's rebuild
+    changed minerB's record under it, and paired minerA's analysis image
+    with another worker. A second install at the same source tree now builds
+    nothing and both records name the same, unchanged manifests; an image
+    Docker no longer holds, or a new revision, is built again."""
+    gpu = {"CARBON_TEST_GPU_INSTALLED": "yes"}
+    assert sandbox.run("--no-start", **gpu).returncode == 0
+    first = manifests(sandbox)
+    assert len(worker_builds(sandbox.logged())) == 2
+    before = len(sandbox.logged())
+    completed = sandbox.run("--no-start", CARBON_STATE_DIR=str(miner_a(sandbox)), **gpu)
+    assert completed.returncode == 0, completed.stderr
+    log = sandbox.logged()[before:]
+    assert worker_builds(log) == []
+    assert manifests(sandbox) == first
+    assert "The worker image built here from this exact source tree" in completed.stdout
+    assert "The GPU worker built here from this exact source tree" in completed.stdout
+    recorded = [line for line in sandbox.logged() if "installed write" in line]
+    worker = sandbox.clone / ".carbon-artifacts/c03-worker-image.json"
+    assert [f"--image-manifest {worker}" in line for line in recorded] == [True, True]
+    assert f"--state-dir {miner_a(sandbox)}" in recorded[1]
+    # The images are gone: built again, a new id.
+    before = len(sandbox.logged())
+    assert (
+        sandbox.run("--no-start", CARBON_TEST_IMAGES_GONE="yes", **gpu).returncode == 0
+    )
+    assert len(worker_builds(sandbox.logged()[before:])) == 2
+    assert manifests(sandbox)["c03-worker-image.json"] != first["c03-worker-image.json"]
+    # A new revision: built again.
+    newer = sandbox.publish("a newer main")
+    before = len(sandbox.logged())
+    assert sandbox.run("--no-start", **gpu).returncode == 0
+    assert f"worker {newer}" in sandbox.logged()[before:]
+
+
+def test_only_a_present_worker_of_this_source_tree_is_used_again(tmp_path):
+    """`installed.current`: setup's own source-tree test, and Docker still
+    holds that image id with that source-tree label. Anything else builds."""
+    from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+
+    tree, other = "sha256:" + "1" * 64, "sha256:" + "2" * 64
+    image_id = "sha256:" + "3" * 64
+    manifest = tmp_path / "c03-worker-image.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "schema": "carbon.c03.worker-image.v1",
+                "image_id": image_id,
+                "config_digest": image_id,
+                "source_tree_digest": tree,
+                **{
+                    field: "sha256:" + "4" * 64
+                    for field in (
+                        "wheel_digest",
+                        "lock_digest",
+                        "base_image_digest",
+                        "build_recipe_digest",
+                        "entrypoint_digest",
+                    )
+                },
+            }
+        )
+    )
+
+    class Docker:
+        def __init__(self, held):
+            self.held = held
+
+        def json(self, arguments, timeout=30):
+            assert arguments[:2] == ["image", "inspect"]
+            if arguments[2] not in self.held:
+                raise WorkerFailure(WorkerCode.RUNTIME)
+            return self.held[arguments[2]]
+
+    def held(label=tree):
+        return Docker(
+            {
+                image_id: {
+                    "Id": image_id,
+                    "Config": {"Labels": {installed.SOURCE_TREE_LABEL: label}},
+                }
+            }
+        )
+
+    here = {"source_tree_digest": tree}
+    assert installed.current(manifest, implementation=here, cli=held())
+    assert not installed.current(
+        manifest, implementation={"source_tree_digest": other}, cli=held()
+    )
+    assert not installed.current(manifest, implementation=here, cli=Docker({}))
+    assert not installed.current(manifest, implementation=here, cli=held(other))
+    assert not installed.current(
+        tmp_path / "absent.json", implementation=here, cli=held()
+    )
+    link = tmp_path / "link.json"
+    link.symlink_to(manifest)
+    assert not installed.current(link, implementation=here, cli=held())
+    manifest.write_text("{}")
+    assert not installed.current(manifest, implementation=here, cli=held())
 
 
 # --- Released images (LA-F10, OWNER-WORKER-IMAGES-V2-01) ------------------------
