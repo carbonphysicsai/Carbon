@@ -318,8 +318,11 @@ differs from the manifest's (added with the analysis script).
 ### 12.4 Needed before the freeze can happen
 
 - **Stage 0 operator-compute approval** (no provider spend): about 3200 reference
-  solves (2000 for the study bank plus 12 windows x 98 fresh cases), about 72
-  CPU-hours at the 82 CPU-s prior, in a host window agreed with Data Collection.
+  solves was the first estimate (2000 study cases plus 12 x 98 fresh). The run sheet
+  (section C) sizes it properly: one study bank per rate, 3 x 1,000 cases plus 1,176
+  fresh = about 4,176 solves, about 95 CPU-hours at the 82 CPU-s prior, in a host
+  window agreed with Data Collection. The approval is for about 3,200, so it is
+  re-confirmed at the larger figure or R0 is reduced.
 - **Carbon Validator:** the development rule variants and the study deployment
   (O1), and the simulated-clock answer (O2).
 - **Data Collection:** the study bank tranches committed and solved (O3).

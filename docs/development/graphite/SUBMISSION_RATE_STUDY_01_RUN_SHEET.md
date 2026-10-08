@@ -28,7 +28,7 @@ Arm H only (the honest control: a fixed, randomly ordered library of candidate
 recipes, never conditioned on any hidden result), at the three rates m = 1, 2, 4,
 on the study bank, over `W0` windows with `R0` replicates. Provisional Stage 0
 sizes, to be confirmed by the Carbon Validator's deployment limits:
-`W0 = 12` rotation windows, `R0 = 4` replicates per rate. These sizes are for the
+`W0 = 12` rotation windows, `R0 = 4` replicates per rate (see section C for the solve count this implies). These sizes are for the
 noise estimate only; the Stage 1 sizes are set from its output (A.4).
 
 ### A.2 Files the run writes (operator side; committed afterwards)
@@ -169,6 +169,20 @@ Per window `w` = 1 … `W0`:
   would mix tranche ages across runs.
 
 ## C. Study bank and fresh sets (Data Collection to fill)
+
+**Sizing (Carbon Validator's flag, folded in by the Graphite Testing Manager).**
+Each run draws 12 windows x 98 cases, and runs draw different batches (replicates
+must vary the batch to measure noise). One shared bank would need 3 rates x 4
+replicates x 12 x 98 = 14,112 draws, but a bank of 2,000 cases at E = 5 supplies only
+10,000. Use **one study bank per rate** (4 runs x 12 x 98 = 4,704 draws at E = 5
+needs at least 941 cases; size each at 1,000, above the 294 live cases three active
+batches need): exposure and retirement stay independent across rates, which the
+drift measures need. Total: 3 x 1,000 = 3,000 study cases plus 12 x 98 = 1,176
+fresh cases = about 4,176 reference solves, about 95 CPU-hours at the 82 CPU-s
+prior. That is **above the approved Stage 0 figure** (about 3,200 solves, 72 CPU-h):
+the owner's approval must be re-confirmed at the larger figure, or R0 reduced (R0 = 3
+gives 3 x 750 + 1,176 = 3,426 solves, about 78 CPU-h; R0 = 2 gives 2,676, within the
+approval, with a weaker honest band). The choice is the Test Lead's.
 
 - The sacrificial study bank: tranche draws from the producer root, committed to the
   journal before use, solved on the AX42 queue, sealed; the tranche roots.
