@@ -191,8 +191,13 @@ the 82 CPU-s prior). With the bank sized to the draws:
 That is about 1,000 solves and about 34 CPU-hours above the approved figure (about
 3,200 / 72 CPU-h at 82 CPU-s). The 3,000-case bank alone is in line with the original
 estimate; the difference is the fresh sets, which the original 3,200 counted against
-the 2,000-case bank. The Test Lead confirms the larger figure with the owner or reduces
-`R0` (R0 = 3 needs 3 x 12 x 98 / 5 = 706, a bank of about 750; R0 = 2 needs about 500).
+the 2,000-case bank. **Ruling (Test Lead, 2026-10-08; a Test Lead scheduling ruling under the owner's
+approved study, not a new owner approval):** option (a). The full design stands
+(`R0` unchanged). About 4,176 reference solves, about 106 CPU-hours, are approved as
+operator compute on the AX42, no provider spend. The token grant is unchanged. Queue
+position is unchanged: after the pool fill, the move to producer-code-r5 and the
+24-question design tranche. (The reduced-R0 options, R0 = 3 with a bank of about 750
+or R0 = 2 with about 500, are not taken.)
 
 - The sacrificial study bank: tranche draws from the producer root, committed to the
   journal before use, solved on the AX42 queue, sealed; the tranche roots.

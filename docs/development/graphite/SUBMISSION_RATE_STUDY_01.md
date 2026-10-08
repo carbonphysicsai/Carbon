@@ -324,7 +324,8 @@ differs from the manifest's (added with the analysis script).
   (section C) sizes it to the draws with one shared 3,000-case sacrificial bank plus
   1,176 fresh cases: about 4,176 solves, about 106 CPU-hours at 91 CPU-s, in a host
   window agreed with Data Collection. The difference from the approval is
-  reconciled there and goes to the Test Lead.
+  reconciled there and ruled on by the Test Lead (option (a), the full design, as operator
+  compute on the AX42 with no provider spend).
 - **Carbon Validator:** the development rule variants and the study deployment
   (O1), and the simulated-clock answer (O2).
 - **Data Collection:** the study bank tranches committed and solved (O3).
