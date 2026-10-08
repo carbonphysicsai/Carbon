@@ -104,11 +104,8 @@ def build(out, documents, trust, *, showcase=False):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     brand = _copy_web(out)
-    if showcase:
-        from carbon.dashboard import showcase as replays
-
-        replays.build_all(out / "showcase")
     entries = {}
+    leaders = []
     for document in documents:
         try:
             board = feed.project(document, trust)
@@ -124,10 +121,18 @@ def build(out, documents, trust, *, showcase=False):
             entries[slug] = _entry(previous)
             continue
         board["feed_state"] = {"state": "ACCEPTED", "code": None}
+        if board["showcase_panel"] is not None:
+            leaders.append((board, board["showcase_panel"]))
+        # The panel's predictions go to the showcase replays, not the board.
+        board = {**board, "showcase_panel": _panel_summary(board["showcase_panel"])}
         if board["slug"] in entries and entries[board["slug"]]["state"] == "ACCEPTED":
             raise ValueError(f"two feeds for one board: {board['slug']}")
         _write_json(out / "data" / "boards" / f"{board['slug']}.json", board)
         entries[board["slug"]] = _entry(board)
+    if showcase:
+        from carbon.dashboard import showcase as replays
+
+        replays.build_all(out / "showcase", leaders)
     index = {
         "schema": INDEX_SCHEMA,
         "fixture": trust.fixture,
@@ -136,6 +141,16 @@ def build(out, documents, trust, *, showcase=False):
     }
     _write_json(out / "data" / "index.json", index)
     return index
+
+
+def _panel_summary(panel):
+    if panel is None:
+        return None
+    return {
+        "state": panel["state"],
+        "code": panel["code"],
+        "cases": len(panel["predictions"]),
+    }
 
 
 def _entry(board):

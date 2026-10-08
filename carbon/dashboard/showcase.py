@@ -447,11 +447,109 @@ def replay(public, scenario, *, model, predictor):
     }
 
 
-def build_all(out_dir):
-    """Every public EV4 scenario for every control, plus an index."""
+def panel_predictor(public, scenario, panel):
+    """The leader's predictions from the validator's signed showcase panel. A
+    case the model gave no output for is a model failure the optimizer counts,
+    never filled in."""
+    contract = public["contract"]
+    by_action = {
+        tasks.digest({"c1": c["c1"], "c2": c["c2"]}): ev.case_id(
+            contract, scenario, c, 0
+        )
+        for c in ev.candidates(contract)
+    }
+
+    def predict(action, condition):
+        row = panel["predictions"].get(by_action[tasks.digest(action)])
+        if row is None:
+            raise ValueError("the model gave no prediction for this case")
+        return dict(row)
+
+    return predict
+
+
+def _check_panel(public, panel):
+    """The panel must be for this exact public contract."""
+    contract_sha = hashlib.sha256(_read(CONTRACT)).hexdigest()
+    if (
+        panel["task"]["contract"] != CONTRACT
+        or panel["task"]["contract_sha256"] != contract_sha
+        or panel["contract_digest"] != public["contract_digest"]
+    ):
+        raise ShowcaseError("the showcase panel is for another contract")
+
+
+def _write(path, document):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(document, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+
+def _entry(name, scenario, model, document):
+    result = document["result"]
+    return {
+        "file": name,
+        "scenario": scenario["id"],
+        "split": scenario["split"],
+        "model": model["id"],
+        "kind": model["kind"],
+        "label": model["label"],
+        "outcome": result["kind"],
+        "safety_misses": result["safety_misses"],
+        "regret_s": result["regret_s"],
+    }
+
+
+def build_all(out_dir, leaders=()):
+    """Every public EV4 scenario for every control, plus each released
+    incumbent's panel (`leaders`: `(board, panel)` pairs from the checked feed)
+    on the development scenarios, and an index."""
     public = load_public()
     out_dir = Path(out_dir)
     entries = []
+    unavailable = []
+    for board, panel in leaders:
+        if panel["state"] != "PREDICTED":
+            unavailable.append(
+                {
+                    "board": board["slug"],
+                    "hotkey": panel["model"]["hotkey"],
+                    "code": panel["code"],
+                }
+            )
+            continue
+        _check_panel(public, panel)
+        hotkey = panel["model"]["hotkey"]
+        model = {
+            "id": f"LEADER-{board['slug']}",
+            "kind": "LEADER",
+            "hotkey": hotkey,
+            "submission_id": panel["model"]["submission_id"],
+            "board": board["slug"],
+            "device_class": board["device_class"],
+            "label": f"Incumbent {hotkey[:6]}…{hotkey[-4:]} ({board['challenge']['id']}, {board['device_class']})",
+            "note": "The released incumbent's model, rebuilt by Carbon and queried by the validator on public cases. Predictions only.",
+        }
+        for scenario in ev.scenarios(public["contract"], "development"):
+            document = replay(
+                public,
+                scenario,
+                model=model,
+                predictor=panel_predictor(public, scenario, panel),
+            )
+            document["labels"] = [
+                "DEVELOPMENT",
+                *(["TESTNET"] if "TESTNET" in board["labels"] else []),
+                "PUBLIC_SYNTHETIC",
+                "LEADER",
+                *(["FIXTURE"] if board["fixture"] else []),
+            ]
+            name = f"{scenario['id']}--leader--{board['slug']}.json".lower()
+            _write(out_dir / name, document)
+            entries.append(_entry(name, scenario, model, document))
     for scenario in ev.scenarios(public["contract"]):
         task = register_task(public, scenario)
         reference = truth(public, task, scenario)
@@ -470,29 +568,12 @@ def build_all(out_dir):
                 predictor=control_predictor(task, spec, reference),
             )
             name = f"{scenario['id']}--{spec['name']}.json".lower()
-            path = out_dir / name
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(
-                json.dumps(document, sort_keys=True, allow_nan=False) + "\n",
-                encoding="utf-8",
-                newline="\n",
-            )
-            result = document["result"]
-            entries.append(
-                {
-                    "file": name,
-                    "scenario": scenario["id"],
-                    "split": scenario["split"],
-                    "model": model["id"],
-                    "label": model["label"],
-                    "kind": result["kind"],
-                    "safety_misses": result["safety_misses"],
-                    "regret_s": result["regret_s"],
-                }
-            )
+            _write(out_dir / name, document)
+            entries.append(_entry(name, scenario, model, document))
     index = {
         "schema": INDEX_SCHEMA,
-        "labels": ["DEVELOPMENT", "PUBLIC_SYNTHETIC", "CONTROL"],
+        "labels": ["DEVELOPMENT", "PUBLIC_SYNTHETIC"],
+        "leaders_unavailable": unavailable,
         "replays": entries,
     }
     (out_dir / "index.json").write_text(

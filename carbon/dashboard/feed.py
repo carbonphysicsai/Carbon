@@ -302,6 +302,88 @@ def _release(raw):
     }
 
 
+SHOWCASE_SCHEMA = "carbon.validator.showcase-panel.v1"
+SHOWCASE_STATES = ("PREDICTED", "UNAVAILABLE")
+SHOWCASE_QUANTITIES = (
+    "time_to_cv_onset_s",
+    "reach_class",
+    "plating_margin_v",
+    "peak_temperature_c",
+)
+_SHOWCASE_CASE = re.compile(r"ev4:[A-Za-z0-9.-]{1,40}:c1=[0-9.]{1,6},c2=[0-9.]{1,6}:0")
+_SHA256 = re.compile(r"[0-9a-f]{64}")
+
+
+def _showcase(raw, incumbent, trust):
+    """The released incumbent's predictions on the registered public showcase
+    task (VALIDATOR-29 showcase), or None. Only the incumbent may drive it;
+    only public EV4 case ids and the four projected quantities are kept. The
+    model's identity digest is dropped, and no recipe is ever carried."""
+    if raw is None:
+        return None
+    if type(raw) is not dict or raw.get("schema") != SHOWCASE_SCHEMA:
+        raise FeedRefused("showcase_invalid")
+    if incumbent is None:
+        raise FeedRefused("showcase_without_incumbent")
+    task = raw.get("task")
+    model = raw.get("model")
+    if type(task) is not dict or type(model) is not dict:
+        raise FeedRefused("showcase_invalid")
+    if (
+        task.get("data_scope") != "PUBLIC_SYNTHETIC"
+        or task.get("split") != "development"
+    ):
+        raise FeedRefused("showcase_not_public")
+    sha = task.get("contract_sha256")
+    if type(sha) is not str or not _SHA256.fullmatch(sha):
+        raise FeedRefused("showcase_invalid")
+    if _hotkey(model.get("hotkey"), trust) != incumbent["hotkey"]:
+        raise FeedRefused("showcase_not_incumbent")
+    state = raw.get("state")
+    if state not in SHOWCASE_STATES:
+        raise FeedRefused("showcase_invalid")
+    panel = {
+        "task": {
+            "task_id": _text(task.get("task_id"), "showcase_invalid"),
+            "contract": _text(task.get("contract"), "showcase_invalid"),
+            "contract_sha256": sha,
+            "split": "development",
+        },
+        "contract_digest": _text(raw.get("contract_digest"), "showcase_invalid"),
+        "model": {
+            "hotkey": model["hotkey"],
+            "submission_id": (
+                None
+                if model.get("submission_id") is None
+                else _text(model["submission_id"], "showcase_invalid")
+            ),
+        },
+        "state": state,
+        "code": None,
+        "predictions": {},
+    }
+    if state == "UNAVAILABLE":
+        panel["code"] = (
+            None if raw.get("code") is None else _text(raw["code"], "showcase_invalid")
+        )
+        return panel
+    predictions = raw.get("predictions")
+    if type(predictions) is not dict:
+        raise FeedRefused("showcase_invalid")
+    for case_id, values in sorted(predictions.items()):
+        if type(case_id) is not str or not _SHOWCASE_CASE.fullmatch(case_id):
+            raise FeedRefused("showcase_case_invalid")
+        if type(values) is not dict:
+            raise FeedRefused("showcase_invalid")
+        row = {
+            q: _number(values.get(q), "showcase_invalid") for q in SHOWCASE_QUANTITIES
+        }
+        if row["reach_class"] not in (-1, 0, 1):
+            raise FeedRefused("showcase_invalid")
+        panel["predictions"][case_id] = row
+    return panel
+
+
 def project(document, trust):
     """Verify a feed document and return the dashboard's board model.
 
@@ -487,6 +569,7 @@ def project(document, trust):
         "history": history,
         "miners": dict(sorted(miners.items())),
         "excluded_canaries": canaries,
+        "showcase_panel": _showcase(document.get("showcase"), incumbent, trust),
         "feed": {
             "key_id": key_id(signer),
             "digest": "sha256:" + hashlib.sha256(canonical_bytes(document)).hexdigest(),

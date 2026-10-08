@@ -201,10 +201,46 @@ def board_document(challenge_id, device_class, *, seed, miners=6, testnet=True):
     }
 
 
+# The validator's registered showcase task (VALIDATOR-29 showcase).
+SHOWCASE_TASK = {
+    "task_id": "ev4-charge-protocol-selection.v1:development",
+    "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+    "contract_sha256": "fc6f504f3ff69b3add10099056b7a652a28112d3ca1d63ada2fb194aac2d3e18",
+    "split": "development",
+    "data_scope": "PUBLIC_SYNTHETIC",
+    "registered": "Test Lead, 2026-10-08 (VALIDATOR-29 showcase)",
+}
+
+
+def unavailable_panel(document):
+    """A showcase panel for the fixture incumbent with no predictions. The
+    fixtures never carry made-up model predictions on the public task."""
+    incumbent = document["leaderboard"]["incumbent"]
+    return {
+        "schema": feed.SHOWCASE_SCHEMA,
+        "task": SHOWCASE_TASK,
+        "contract_digest": "sha256:fixture-not-predicted",
+        "model": {
+            "hotkey": incumbent["hotkey"],
+            "submission_id": incumbent["submission_id"],
+        },
+        "state": "UNAVAILABLE",
+        "code": "fixture_no_model",
+    }
+
+
 def documents():
     """The fixture set the local build draws: signed, two device classes."""
     return [
-        sign(board_document("fixture-challenge-alpha", "gpu:FIXTURE-GPU", seed=1)),
+        sign(
+            _with_panel(
+                board_document("fixture-challenge-alpha", "gpu:FIXTURE-GPU", seed=1)
+            )
+        ),
         sign(board_document("fixture-challenge-alpha", "cpu", seed=2, testnet=False)),
         sign(board_document("fixture-challenge-beta", "gpu:FIXTURE-GPU", seed=3)),
     ]
+
+
+def _with_panel(document):
+    return {**document, "showcase": unavailable_panel(document)}
