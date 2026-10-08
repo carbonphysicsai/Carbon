@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Carbon Leaderboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="wordmark" href="#/"><img src="brand/brand-2.svg" alt="Carbon"><span class="eyebrow">Leaderboard</span></a>
+  <div class="topbar-state" id="labels" aria-label="Labels"></div>
+</header>
+<div class="banner" id="banner" role="note">
+  <strong>Development display.</strong> Scores shown here are rounded, lagged to
+  released windows, and carry no qualification. They do not show that any model
+  or design is correct in practice.
+</div>
+<main id="app" aria-live="polite">
+  <noscript><p class="notice">The leaderboard draws its pages with JavaScript.</p></noscript>
+</main>
+<footer class="footer">
+  <p class="eyebrow">Carbon · Development / Testnet display</p>
+  <p class="hint">Scores, ranks and incumbents come from the Carbon Validator's signed score feed,
+    checked again here. Case-level values appear only for released, published windows.
+    Model recipes are not shown.</p>
+</footer>
+<script src="dashboard.js"></script>
+</body>
+</html>
