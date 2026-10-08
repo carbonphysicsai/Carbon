@@ -253,4 +253,3 @@ No LIVE authority.
   plus refine). B = 160 live therefore needs roughly 25–30k solves, about
   700–800 CPU-h at 91 CPU-s each. That is CCX63 startup territory, and it
   goes to the Test Lead's sizing.
-
