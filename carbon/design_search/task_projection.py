@@ -14,6 +14,7 @@ import math
 from carbon.design_search import tasks
 
 SCHEMA = "carbon.design-task.miner-projection.v1"
+INDEXED_SCHEMA = "carbon.design-task.indexed-miner-projection.v1"
 QUANTITY_FIELDS = ("quantity", "unit", "sense", "aggregate")
 LIMIT_FIELDS = ("quantity", "unit", "op", "value")
 
@@ -125,6 +126,24 @@ def miner_projection(registered_task):
     separately publish its approved public condition and action-space contract;
     this projection never accepts caller-supplied disclosure fields.
     """
+    if registered_task.get("schema") == tasks.INDEXED_SCHEMA:
+        from carbon.design_search.indexed import validate_indexed
+
+        validate_indexed(registered_task)
+        return {
+            "schema": INDEXED_SCHEMA,
+            "challenge": registered_task["identity"]["challenge"],
+            "contract_version": registered_task["identity"]["contract_version"],
+            "index_axis": registered_task["identity"]["index_axis"],
+            "index_count": len(registered_task["indices"]),
+            "objective": _pick(
+                registered_task["identity"]["objective"],
+                ("quantity", "unit", "sense", "aggregate"),
+            ),
+            "per_index": [
+                miner_projection(row["task"]) for row in registered_task["indices"]
+            ],
+        }
     if registered_task.get("schema") not in (
         tasks.SCHEMA,
         getattr(tasks, "RUNNABLE_SCHEMA", ""),

@@ -13,6 +13,8 @@ from carbon.design_search import experiment, tasks
 
 DESIGN_TASK_CODE = (
     "carbon/design_search/tasks.py",
+    "carbon/design_search/indexed.py",
+    "carbon/design_search/indexed_power.py",
     "carbon/design_search/optimizer.py",
     "carbon/design_search/cost.py",
     "carbon/design_search/query_cost.py",
@@ -35,13 +37,17 @@ def _with_design_task(adapter, registered_task):
     if (
         type(registered_task) is not dict
         or registered_task.get("schema")
-        not in (tasks.SCHEMA, getattr(tasks, "RUNNABLE_SCHEMA", ""))
+        not in (tasks.SCHEMA, tasks.RUNNABLE_SCHEMA, tasks.INDEXED_SCHEMA)
         or tasks.digest(
             {k: v for k, v in registered_task.items() if k != "task_digest"}
         )
         != registered_task.get("task_digest")
     ):
         raise experiment.ExperimentError("registered_design_task_required")
+    if registered_task["schema"] == tasks.INDEXED_SCHEMA:
+        from carbon.design_search.indexed import validate_indexed
+
+        validate_indexed(registered_task)
     if adapter.challenge != registered_task["identity"]["challenge"]:
         raise experiment.ExperimentError("task_challenge_mismatch")
     return replace(
