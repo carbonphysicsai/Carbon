@@ -205,10 +205,19 @@ def main(runs, out):
             "counts": dict(collections.Counter(d["status"] for d in decision.values())),
             "admissible": sorted(admissible),
             "pick_all_actions": pick(admissible),
-            "pick_protocol_only": pick({a: d for a, d in admissible.items() if a.endswith(":h1")}),
-            "unresolved_by_reason": dict(collections.Counter(
-                "coverage_missing" if "COVERAGE_MISSING" in d["per_ambient"].values() else "reference_unresolved"
-                for d in unresolved.values())),  # fmt: skip
+            "pick_protocol_only": pick(
+                {a: d for a, d in admissible.items() if a.endswith(":h1")}
+            ),
+            "unresolved_by_reason": dict(
+                collections.Counter(
+                    (
+                        "coverage_missing"
+                        if "COVERAGE_MISSING" in d["per_ambient"].values()
+                        else "reference_unresolved"
+                    )
+                    for d in unresolved.values()
+                )
+            ),
         },
         "actions": decision,
         "cells": {f"{a}@T{t:g}": c for (a, t), c in sorted(cells.items())},
