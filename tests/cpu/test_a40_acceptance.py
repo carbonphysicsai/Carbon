@@ -353,7 +353,8 @@ def world(tmp_path):
     def make(behaviours, retry_window_seconds=None, **fleet_options):
         fleet = Fleet(fake, behaviours, **fleet_options)
         runner_options = (
-            {} if retry_window_seconds is None
+            {}
+            if retry_window_seconds is None
             else {"retry_window_seconds": retry_window_seconds}
         )
         runner = a40.PodRunner(
