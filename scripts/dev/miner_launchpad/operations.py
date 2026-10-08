@@ -579,6 +579,25 @@ OPERATIONS = {
             ("request", "profile"),
             admits_work=False,
         ),
+        # A Challenge's construction levels (LAUNCHPAD-LEVELS-01 S1), read
+        # from its ladder record, level proposals and development-variant
+        # registry. Display only: no level is chosen or submitted here.
+        Operation(
+            "ladder",
+            "One Challenge's construction levels, read from its data: each "
+            "level's text and ladder state; who it is for (MINER_FACING only "
+            "where the ladder names it chosen, DEVELOPMENT only above a named "
+            "deployment's own level, otherwise NOT_OFFERED); its capabilities "
+            "from the accepted proposal, with the surface and bounds a "
+            "registered development variant widens; the variant's name, "
+            "digest and arm, or the registry's refusal; what the level leaves "
+            "out; and the contract's compute budget, or NOT_SET. Reads only; "
+            "nothing here can be submitted.",
+            frozenset({"challenge"}),
+            frozenset({"challenge_version"}),
+            ("request", "profile"),
+            admits_work=False,
+        ),
         Operation(
             "run_output",
             "A finished workspace run's own output (run_python or run_julia): "

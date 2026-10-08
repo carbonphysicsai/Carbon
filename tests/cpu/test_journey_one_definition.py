@@ -327,12 +327,16 @@ def test_every_operation_in_the_table_is_a_step_or_read_by_the_journey():
     # library and plans are the miner's own curation, outside any campaign,
     # and admit no work: pinned through both doors by
     # tests/cpu/test_launchpad_graphite_library.py (OWNER-GRAPHITE-MINER-01).
+    # A Challenge's construction levels are a read too, outside any campaign:
+    # pinned through both doors by tests/cpu/test_launchpad_ladder_view.py
+    # (LAUNCHPAD-LEVELS-01).
     covered = (
         {step.operation for step in JOURNEY}
         | {
             "observe",
             "campaign_view",
             "toolbox",
+            "ladder",
             "messages",
             "run_output",
         }
