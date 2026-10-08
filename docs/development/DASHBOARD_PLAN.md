@@ -30,7 +30,7 @@ disclosure rule, and draws the rest.
 | Public design contract, e.g. EV4 `carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json` | committed, `data_scope: PUBLIC_SYNTHETIC` | decision, grid, conditions, objective, limits, minimum useful improvement | on main |
 | Public reference solves, e.g. `docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz` (pinned by `references.sha256`) | committed evidence | reference truth for every candidate in the showcase bank | on main |
 | `carbon.design_search` (`tasks`, `optimizer`, `controls`) | Carbon | the registered optimizer, `judge`, synthetic control predictors | on main |
-| Leader predictions on the public showcase task | **dependency, see §5.4** | a committed prediction panel for the showcase task | not built |
+| Leader predictions on the public showcase task | Carbon Validator, VALIDATOR-29 showcase (`carbon.validator.showcase-panel.v1`, inside the signed feed) | the released incumbent's projected predictions on EV4's public development cases | on #854 |
 
 The dashboard reads nothing else. It never reads the validator's state
 directory, the pool store, bank draws, quiz or seed journals, private readers
@@ -49,11 +49,12 @@ validator's own. They do not replace the validator's checks.
    other key is refused.
 3. **Allow-list projection.** Only the fields named in the v1 schema are
    carried forward. Unknown fields are dropped, never shown.
-4. **No live values.** A document carrying `live` is refused until VALIDATOR-29
-   item 1 has its owner record and the dashboard pins that record.
-5. **Rounded only.** Every section value must be a whole multiple of
-   `values.precision` for its section. A value that is not refuses the
-   document, since it may be a raw value.
+4. **No live values.** A document carrying `live`, or a non-null
+   `values.live`, is refused until VALIDATOR-29 item 1 has its owner record and
+   the dashboard pins that record.
+5. **Rounded only.** Every section value must be rounded to the registered
+   `values.released.precision` (a power of ten; checked by decimal places). A
+   value that is not refuses the document, since it may be a raw value.
 6. **Case level only when released.** Every key of `detail` must be a
    fingerprint in `released_windows`. One that is not refuses the document.
    Per-case fields are allow-listed (`case_id` and the declared per-case
@@ -203,7 +204,9 @@ page.
 - `carbon/dashboard/`: Python. `feed.py` (verify, project, refuse),
   `showcase.py` (task, recorder, judge, replay), `build.py` (writes the static
   site and data from fixtures or a fetched feed), `__main__.py` (`build`, and
-  `serve` for a local preview). Added to `.agent/CODE_AUTHORITY.toml`.
+  `serve` for a local preview). `.agent/CODE_AUTHORITY.toml`'s implementation
+  roots are not exhaustive (`design_search` and `challenge_validator` are not
+  listed), so no entry is added.
 - `carbon/dashboard/web/`: the static app (`index.html`, `dashboard.js`,
   `showcase.js`, `style.css`). It uses the Launchpad's tokens and type, adapted
   from `scripts/dev/miner_launchpad/style.css`. Montreal (`neue-0.otf`,
@@ -237,20 +240,19 @@ page.
 
 ### 5.4 Dependencies outside the dashboard
 
-1. **VALIDATOR-29** (Carbon Validator): the feed. Schema notes sent with this
-   plan:
-   - pin the feed key out of band; the in-document key is not trust;
-   - state the canonical bytes that are signed (e.g. sorted keys, `,`/`:`
-     separators, UTF-8, `signature` removed), as `tasks.digest` does;
-   - give each section its display name, unit and sense (Rule v2 ranks lower
-     as better, A-Q higher as better);
-   - list the allowed per-case fields in `detail`;
-   - add `generated_at` (UTC) beside the block numbers.
-2. **The leader's showcase panel.** Someone has to run the incumbent's rebuilt
-   model on the public showcase task and commit the predictions. The validator
-   already rebuilds models. Proposed: a small validator or producer job, public
-   inputs only, writing a signed prediction panel. That is new scope for its
-   owner, and the Test Lead routes it.
+1. **VALIDATOR-29** (Carbon Validator): the feed. The schema notes sent with
+   this plan were adopted on #854:
+   - the feed key is pinned out of band; the in-document key is not trust;
+   - the signed bytes are `carbon.validator.score-feed.v1\0` + canonical JSON
+     (sorted keys, `,`/`:` separators, ASCII) without `signature`;
+   - top-level `sections` gives each section's display name, unit and sense
+     (gates have none);
+   - one device class per feed, at top-level `device_class`;
+   - v1 emits no per-case `detail`; its fields are registered before it does.
+2. **The leader's showcase panel.** The validator queries the released
+   incumbent's rebuilt model on EV4's public development cases and signs the
+   projected predictions into the feed (`showcase`). The dashboard replays them
+   (D3). The panel is null until the incumbent's windows are released.
 3. **The values.** Precision and display threshold are registered by the Test
    Lead for VALIDATOR-29. The dashboard adds none of its own.
 
@@ -296,6 +298,6 @@ carbon.dashboard serve`) and in PR previews. Nothing is published.
 | Live per-section scores on unretired windows (VALIDATOR-29 item 1) | owner, confirmed directly | lagged board, released windows only |
 | Feed precision and display threshold | Test Lead (VALIDATOR-29) | feed refuses to publish, so the board shows "Feed unavailable" |
 | Recipe opt-in (field and record) | owner | "Recipe not disclosed" |
-| Who produces the leader's showcase panel (§5.4) | Test Lead routes | controls only, labelled synthetic |
-| Showcase task choice beyond EV4 (other Challenges' public contracts) | Test Lead | EV4 only |
+| Showcase task beyond EV4's development split | Test Lead | EV4 development only for the leader; controls on all 24 scenarios |
+| Showcase tasks for other Challenges' public contracts | Test Lead | EV4 only |
 | A dollar conversion for regret | owner (HUMAN_INPUT) | s and minimum-useful-improvement units only |
