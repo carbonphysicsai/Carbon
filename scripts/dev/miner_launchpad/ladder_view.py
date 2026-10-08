@@ -40,7 +40,7 @@ SCHEMA = "carbon.launchpad.construction-ladder.v1"
 
 #: The levels a development variant may serve, and its closed codes: the
 #: variant module's own values, held equal by the view's tests.
-VARIANT_LEVELS = (1, 2, 3)
+VARIANT_LEVELS = (1, 2, 3, 4)
 VARIANT_SCOPE = "DEVELOPMENT_ONLY_NEVER_SERVED_TO_MINERS"
 UNREGISTERED = "development_variant_unregistered"
 NEEDS_ISOLATION = "development_variant_level_requires_isolation"
