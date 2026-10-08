@@ -212,7 +212,7 @@ def test_registered_condition_quantile_is_frozen_and_uses_left_inverse_cdf():
 
 
 def outcome(kind, regret=None):
-    return {"kind": kind, "regret": regret, "unit": "W"}
+    return {"kind": kind, "regret": regret, "unit": "W", "reference_resolved": True}
 
 
 def test_per_stratum_p_and_q_never_mix_and_quantile_is_registered():
@@ -288,6 +288,17 @@ def test_unresolved_reference_question_is_reported_even_with_a_feasible_pick():
         aggregate={"schema": task_measures.AGGREGATE_SCHEMA, "probability": 0.5},
     )
     assert partial["P"]["unresolved_rate"] == 1
+    with pytest.raises(tasks.TaskError, match="known judged outcome"):
+        task_measures.per_stratum_measures(
+            [
+                {
+                    "stratum": "only",
+                    "outcome": {"kind": "SELECTED_FEASIBLE", "regret": 0, "unit": "W"},
+                }
+            ],
+            strata={"only": {"p": 1, "q": 1, "w": 1}},
+            aggregate={"schema": task_measures.AGGREGATE_SCHEMA, "probability": 0.5},
+        )
 
 
 def test_query_cost_ledger_charges_invalid_and_failed_attempts():

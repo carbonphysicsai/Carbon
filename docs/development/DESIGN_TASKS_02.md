@@ -17,7 +17,9 @@ Q-times-w evidence views. It never applies w to P a second time.
 Each stratum's mass is divided over its observed jobs, so uneven diagnostic
 sample counts do not silently change P. Rates show their all/resolved/priced
 mass denominators. `UNRESOLVED` reference states are retained even when a
-particular selected action is known feasible. Quantiles use the left-continuous
+particular selected action is known feasible. Every input outcome must carry
+the explicit `reference_resolved` Boolean; an ambiguous partial bank is
+refused. Quantiles use the left-continuous
 weighted inverse CDF with no interpolation. This computes diagnostics only;
 Test Lead owns score use and power.
 

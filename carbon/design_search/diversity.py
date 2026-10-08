@@ -164,9 +164,6 @@ def diversity_report(bank, law):
         "draw_model": law["draw_model"],
         "batch_size": k,
         "basis": {
-            "bank_cases": len(cases),
-            "law_bins": len(checked),
-            "support_cases": len(remaining_by_support),
             "mass_l1_error_bound": error_bound,
             "expected_distinct_error_bound": k * error_bound if drawable else None,
         },

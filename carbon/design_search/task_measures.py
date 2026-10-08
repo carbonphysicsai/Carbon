@@ -134,7 +134,11 @@ def per_stratum_measures(records, *, strata, aggregate):
         ):
             raise tasks.TaskError("tagged registered outcome required")
         outcome = record["outcome"]
-        if type(outcome) is not dict or outcome.get("kind") not in tasks.KINDS:
+        if (
+            type(outcome) is not dict
+            or outcome.get("kind") not in tasks.KINDS
+            or type(outcome.get("reference_resolved")) is not bool
+        ):
             raise tasks.TaskError("known judged outcome required")
         regret = outcome.get("regret")
         if regret is not None:
