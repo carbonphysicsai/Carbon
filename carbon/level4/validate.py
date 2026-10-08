@@ -5,6 +5,8 @@ In order:
 1. the allowlist (`allowlist.check`): every op admitted in the document's
    role, parameters within their kinds, named functions registered, typed
    keys only where RNG is admitted;
+   then the declared shapes (`check_declared_shapes`): every node's declared
+   dtype and shape against abstract evaluation of the rebuilt graph;
 2. the expected role, when the caller names one;
 3. the Challenge's interface (forward graphs, when the adapter supplies one):
    inputs other than `params/*` are exactly the interface's named inputs,
@@ -172,6 +174,36 @@ def check_init(doc, allowlist):
             raise graph.GraphRefused("init_output_not_keyed", f"output {k}")
 
 
+_WIDE = frozenset({"float64", "int64", "uint64", "complex128"})
+
+
+def check_declared_shapes(doc, allowlist):
+    """Every node's declared dtype and shape, checked by evaluating the
+    rebuilt graph abstractly (`jax.eval_shape`: shapes only, no data, no
+    compile). A document whose declarations lie is refused here, at G4,
+    with `declared_aval_mismatch`, before anything is compiled or trained.
+    (Found by the Level 4 attack adapter: a lie caught only on execution
+    would surface inside G6 training, untyped.)"""
+    import jax
+
+    from . import interpret
+
+    entry = doc["graphs"][doc["entry"]]
+    if any(i["dtype"] in graph.KEY_DTYPES for i in entry["inputs"]):
+        return  # typed-key inputs exist only in init graphs, checked by data flow
+    rebuilt = interpret.rebuild(doc, allowlist)
+    wide = any(
+        o["dtype"] in _WIDE
+        for g in doc["graphs"].values()
+        for o in g["inputs"] + [out for n in g["nodes"] for out in n["out"]]
+    )
+    structs = [
+        jax.ShapeDtypeStruct(tuple(i["shape"]), i["dtype"]) for i in entry["inputs"]
+    ]
+    with jax.enable_x64(wide):
+        jax.eval_shape(lambda *args: rebuilt(*args), *structs)
+
+
 def validate(doc, allowlist, *, role=None, interface=None, batch=None, caps=None):
     """G4's verdict for a parsed document, or `GraphRefused`.
 
@@ -179,6 +211,7 @@ def validate(doc, allowlist, *, role=None, interface=None, batch=None, caps=None
     (the recipe's training batch; Phase 1 finding: per-case graphs batched by
     `vmap` do not train bit-identically for every family)."""
     flags = allowlist.check(doc)
+    check_declared_shapes(doc, allowlist)
     if role is not None and doc["role"] != role:
         raise graph.GraphRefused("role_mismatch")
     if doc["role"] == "init":

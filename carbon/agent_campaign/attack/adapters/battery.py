@@ -2422,13 +2422,9 @@ SEAMS = (
         "security owner: isolation, for participant-written routines beyond the "
         "declarative menu",
     ),
-    SeamSpec(
-        "level_4_constrained_inference_export",
-        "construction_evaluation_isolation",
-        4,
-        "hidden preprocessing/compilation and device/host memory " + _PARTICIPANT_CODE,
-        "security owner: isolation for executing participant code",
-    ),
+    # Level 4 is no longer a seam here: it runs in its own adapter,
+    # `adapters.battery_level4`, registered at (battery, 4) against the
+    # graph-only development variant battery-l4-graph-v1 (LEVEL4-DEV-VARIANT-01).
     SeamSpec(
         "level_5_custom_inference",
         "score_exploitation_and_tail_failures",
