@@ -16,7 +16,7 @@ from __future__ import annotations
 import collections
 import math
 
-from . import graph
+from .. import graph
 
 #: Torch dtypes to Carbon dtypes. `int64` narrows to `int32`: Carbon's JAX
 #: runs without x64, and in every family traced in Phase 0 int64 only carries

@@ -25,7 +25,6 @@ from __future__ import annotations
 import copy
 import json
 import os
-import sys
 from pathlib import Path
 
 import pytest
@@ -33,11 +32,11 @@ import pytest
 pytest.importorskip("jax")
 os.environ.setdefault("JAX_PLATFORMS", "cpu")
 REPOSITORY = Path(__file__).resolve().parents[2]
-SPIKE = REPOSITORY / "scripts" / "dev" / "level4_spike"
-sys.path.insert(0, str(SPIKE.parent))
-
-from level4_spike import allowlist as allowlist_module
-from level4_spike import graph, initializers, interpret, lower_jax, named
+PACKAGE = REPOSITORY / "carbon" / "level4"
+RECORDS = REPOSITORY / "docs" / "development" / "graphite" / "level4"
+from carbon.level4 import allowlist as allowlist_module
+from carbon.level4 import graph, initializers, interpret, named, tooling
+from carbon.level4.tooling import lower_jax
 
 MAX_BYTES = 1 << 26  # the tests' parser bound; not a G3 limit
 
@@ -51,10 +50,8 @@ def test_v1_beside_v0_and_v0_digest_unchanged(allowlist):
     assert allowlist.version == "level4-allowlist-v1"
     assert allowlist.ops["custom_jvp_call"]["default"] == "refuse"
     assert allowlist.ops["named_function"]["params"] == {"name": "name"}
-    record = json.loads(
-        (allowlist_module.DIRECTORY / "phase0_results.json").read_text()
-    )
-    v0 = allowlist_module.load(allowlist_module.PATH_V0)
+    record = json.loads((RECORDS / "phase0_results.json").read_text())
+    v0 = allowlist_module.load(RECORDS / "allowlist_v0.json")
     assert v0.digest == record["allowlist"]["digest"]
     assert not v0.named
 
@@ -90,7 +87,7 @@ def test_admitted_names_are_pinned_kernels(allowlist):
 
 def _rebuild(fn, args, allowlist, role="forward"):
     names = [f"inputs/{i}" for i in range(len(args))]
-    return interpret.through_bprime(
+    return tooling.through_bprime(
         fn,
         tuple(args),
         role=role,
@@ -209,7 +206,7 @@ def test_tampered_named_nodes_refused(allowlist, mutate, code):
 
 @pytest.mark.parametrize("activation", ["relu", "softplus"])
 def test_battery_custom_rule_activations_train_identically(allowlist, activation):
-    from level4_spike.adapters import battery
+    from carbon.battery import level4 as battery
 
     base = battery.level0_strategies()["scaffold_mlp"]["parameters"]
     s = battery.strategy("mlp", {**base, "activation": activation})
@@ -220,10 +217,10 @@ def test_battery_custom_rule_activations_train_identically(allowlist, activation
 def _torch_document(allowlist, seed):
     import numpy as np
     import torch
-    from level4_spike import lower_torch
-    from level4_spike.adapters import battery
 
+    from carbon.battery import level4 as battery
     from carbon.battery.recipes import features
+    from carbon.level4.tooling import lower_torch
 
     m = battery.material()
     strategy = battery.level0_strategies()["default_fno"]
@@ -239,7 +236,8 @@ def test_carbon_init_for_a_pytorch_graph(allowlist):
     pytest.importorskip("neuralop")
     import jax
     import numpy as np
-    from level4_spike.adapters import battery
+
+    from carbon.battery import level4 as battery
 
     doc = _torch_document(allowlist, 7)
     assert graph.digest(doc) == graph.digest(_torch_document(allowlist, 8))

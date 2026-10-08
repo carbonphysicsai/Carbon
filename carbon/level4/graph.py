@@ -58,6 +58,10 @@ _GRAPH_KEYS = {"inputs", "constants", "nodes", "outputs"}
 _TOP_KEYS = {"schema", "allowlist", "role", "entry", "graphs"}
 
 
+#: Ops whose parameter of kind "graph" names a nested graph, run inline.
+CALL_OPS = ("jit", "closed_call", "custom_jvp_call")
+
+
 class GraphRefused(ValueError):
     """A typed refusal. `code` is stable; `where` locates it without content."""
 

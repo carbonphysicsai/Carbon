@@ -36,10 +36,10 @@ def main(argv=None):
     parser.add_argument("--max-bytes", type=int, default=1 << 30)
     args = parser.parse_args(argv)
 
-    from level4_spike import allowlist as allowlist_module
+    from carbon.level4 import allowlist as allowlist_module
     from level4_spike.run import environment, torch_section
 
-    adapter = importlib.import_module(f"level4_spike.adapters.{args.adapter}")
+    adapter = importlib.import_module(f"carbon.{args.adapter}.level4")
     allowlist = allowlist_module.load()
     started = time.perf_counter()
     record = {
