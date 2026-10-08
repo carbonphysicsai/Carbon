@@ -26,7 +26,13 @@ question retires into the training release.
 (slice 3 decision D2, 2026-10-08). `k` is a registered parameter, never a
 constant in code.
 
-    python -m carbon.challenge_validator.design_bank fill --config PRODUCER.json --bank battery-q3 --dir BANK_DIR [--workers 6]
+    python -m carbon.challenge_validator.design_bank fill --config PRODUCER.json --bank battery-q3 --dir BANK_DIR [--workers 6] [--live N]
+
+`--live N` fills toward N live questions only (at most the registered size):
+a partial first tranche, the registered target B unchanged. Battery Q3's
+first tranche is 24 live (3 windows of k = 8), the Test Lead's direction of
+2026-10-08: a machinery rehearsal, since battery v3's charge map replaces
+the v8 decision and its full startup is sized for v3.
     python -m carbon.challenge_validator.design_bank status --config PRODUCER.json --bank battery-q3 --dir BANK_DIR
 
 DEVELOPMENT only: no qualification, weight, reward or LIVE authority.
@@ -184,9 +190,15 @@ class DesignBank:
             raise ProducerRefused("producer_design_bank_unregistered")
         return found
 
-    def top_up(self, *, workers=6):
-        """Refill to the registered size: finish any drawn tranche, then draw,
-        solve and seal one tranche of the live deficit."""
+    def top_up(self, *, workers=6, live=None):
+        """Refill to the registered size, or toward `live` live questions
+        when given (never above the size): finish any drawn tranche, then
+        draw, solve and seal one tranche of the live deficit."""
+        size = self.values()["size"]
+        if live is not None:
+            if type(live) is not int or not 0 < live <= size:
+                raise ProducerRefused("producer_design_live_malformed")
+            size = live
         results = [
             self._solve(row["role"], workers)
             for row in self.ledger.tranches(self.bank)
@@ -194,7 +206,7 @@ class DesignBank:
         ]
         if any(r["state"] != "SEALED" for r in results):
             return results
-        deficit = self.ledger.deficit(self.bank, self.values()["size"])
+        deficit = self.ledger.deficit(self.bank, size)
         if deficit:
             drawn = self.ledger.draw_tranche(self.bank, deficit)
             results.append(self._solve(drawn["tranche"], workers))
@@ -263,6 +275,7 @@ def main(argv=None):
         command.add_argument("--dir", required=True)
         if name == "fill":
             command.add_argument("--workers", type=int, default=6)
+            command.add_argument("--live", type=int)
     args = parser.parse_args(argv)
     try:
         producer = Producer.from_config(args.config)
@@ -279,7 +292,7 @@ def main(argv=None):
         bank = DesignBank(args.dir, law, solver)
         result = {}
         if args.command == "fill":
-            result["tranches"] = bank.top_up(workers=args.workers)
+            result["tranches"] = bank.top_up(workers=args.workers, live=args.live)
         result["status"] = bank.ledger.status()
     except ProducerRefused as refused:  # BankRefused included
         print(json.dumps(refused.record()))

@@ -242,3 +242,15 @@ def test_battery_q3_questions_are_solved_refined_settled_and_bridge_ready(
     for case_id, inputs, _ in leaves:
         for value in inputs["draw"]["condition"]:
             assert str(value) not in case_id
+
+
+def test_a_partial_fill_stops_at_the_requested_live_count(toy):
+    """`--live N`: a first tranche toward N live questions; the registered
+    size is unchanged and a later fill continues toward it."""
+    [first] = toy.top_up(live=2)
+    assert first["state"] == "SEALED"
+    assert toy.ledger.deficit(toy.bank, 2) == 1  # half the toy's draws are live
+    assert db.DESIGN_BANKS["toy"]["size"] == 4
+    with pytest.raises(db.ProducerRefused) as refused:
+        toy.top_up(live=5)
+    assert refused.value.code == "producer_design_live_malformed"
