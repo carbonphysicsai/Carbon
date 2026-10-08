@@ -213,13 +213,15 @@
     "fin_width_mm": 0.2759255440889758
    },
    "hydraulic_power_w": 0.34536930939000016,
-   "outcome": "NEAR_PENDING_REFINEMENT",
+   "outcome": "RESOLVED_INFEASIBLE",
    "pressure_drop_pa": 6907.3861878000025,
    "re_outlet": 401.632182469976,
    "reasons": [],
+   "res3_change_c": 0.026973104062278708,
    "status": "OK",
    "stratum": "warm_uniform",
    "tim_interface_peak_c": 85.11604757560355,
+   "tim_interface_peak_c_res3": 85.14302067966582,
    "wall_s": 1213.6
   },
   {
@@ -433,13 +435,15 @@
     "fin_width_mm": 0.3341105086046665
    },
    "hydraulic_power_w": 0.29630686336,
-   "outcome": "NEAR_PENDING_REFINEMENT",
+   "outcome": "RESOLVED_FEASIBLE_CELL",
    "pressure_drop_pa": 5926.1372672,
    "re_outlet": 397.70144339257257,
    "reasons": [],
+   "res3_change_c": 0.03317303844420394,
    "status": "OK",
    "stratum": "warm_uniform",
    "tim_interface_peak_c": 84.47090722661977,
+   "tim_interface_peak_c_res3": 84.50408026506398,
    "wall_s": 1317.4
   },
   {
@@ -998,13 +1002,15 @@
     "fin_width_mm": 0.480222467397773
    },
    "hydraulic_power_w": 0.5406246442750002,
-   "outcome": "NEAR_PENDING_REFINEMENT",
+   "outcome": "RESOLVED_FEASIBLE_CELL",
    "pressure_drop_pa": 10812.492885500003,
    "re_outlet": 490.07596419876467,
    "reasons": [],
+   "res3_change_c": 0.014256381046379829,
    "status": "OK",
    "stratum": "warm_uniform",
    "tim_interface_peak_c": 83.9802281703142,
+   "tim_interface_peak_c_res3": 83.99448455136059,
    "wall_s": 1718.1
   },
   {
@@ -2007,13 +2013,15 @@
     "fin_width_mm": 0.48262239424696
    },
    "hydraulic_power_w": 0.45705233927500016,
-   "outcome": "NEAR_PENDING_REFINEMENT",
+   "outcome": "RESOLVED_FEASIBLE_CELL",
    "pressure_drop_pa": 9141.046785500002,
    "re_outlet": 430.5499157020619,
    "reasons": [],
+   "res3_change_c": 0.0034622756786006903,
    "status": "OK",
    "stratum": "warm_uniform",
    "tim_interface_peak_c": 84.56637244709253,
+   "tim_interface_peak_c_res3": 84.56983472277113,
    "wall_s": 1787.6
   },
   {
@@ -2091,13 +2099,15 @@
     "fin_width_mm": 0.3742099983433213
    },
    "hydraulic_power_w": 0.27370063684499985,
-   "outcome": "NEAR_PENDING_REFINEMENT",
+   "outcome": "RESOLVED_INFEASIBLE",
    "pressure_drop_pa": 5474.0127368999965,
    "re_outlet": 377.930730632249,
    "reasons": [],
+   "res3_change_c": 0.02403926741817486,
    "status": "OK",
    "stratum": "warm_uniform",
    "tim_interface_peak_c": 85.11272077387508,
+   "tim_interface_peak_c_res3": 85.13676004129326,
    "wall_s": 1829.3
   },
   {
@@ -2259,13 +2269,15 @@
     "fin_width_mm": 0.2
    },
    "hydraulic_power_w": 0.27357305504000035,
-   "outcome": "NEAR_PENDING_REFINEMENT",
+   "outcome": "RESOLVED_FEASIBLE_CELL",
    "pressure_drop_pa": 5471.4611008000065,
    "re_outlet": 215.2234355361145,
    "reasons": [],
+   "res3_change_c": 0.007918540855484935,
    "status": "OK",
    "stratum": "warm_uniform",
    "tim_interface_peak_c": 83.64332961754519,
+   "tim_interface_peak_c_res3": 83.65124815840068,
    "wall_s": 1852.8
   },
   {
@@ -2385,13 +2397,15 @@
     "fin_width_mm": 0.35
    },
    "hydraulic_power_w": 0.3706155936000003,
-   "outcome": "NEAR_PENDING_REFINEMENT",
+   "outcome": "RESOLVED_FEASIBLE_CELL",
    "pressure_drop_pa": 7412.311872000006,
    "re_outlet": 295.08873457231545,
    "reasons": [],
+   "res3_change_c": 0.0021385611445339237,
    "status": "OK",
    "stratum": "warm_uniform",
    "tim_interface_peak_c": 83.20266114354519,
+   "tim_interface_peak_c_res3": 83.20052258240065,
    "wall_s": 1789.2
   },
   {
@@ -2853,20 +2867,12 @@
    "RESOLVED_INFEASIBLE": 10
   },
   "warm_uniform": {
-   "NEAR_PENDING_REFINEMENT": 7,
    "REFERENCE_UNRESOLVED_APPLICABILITY": 10,
-   "RESOLVED_FEASIBLE_CELL": 3,
-   "RESOLVED_INFEASIBLE": 12
+   "RESOLVED_FEASIBLE_CELL": 8,
+   "RESOLVED_INFEASIBLE": 14
   }
  },
- "near_for_refinement": [
-  "u03-warm_uniform",
-  "u05-warm_uniform",
-  "u11-warm_uniform",
-  "u22-warm_uniform",
-  "u23-warm_uniform",
-  "c1-warm_uniform",
-  "c3-warm_uniform"
- ],
- "pr": "#758 @ 1ac5acfa"
+ "near_for_refinement": [],
+ "pr": "#758 @ 1ac5acfa",
+ "resolution3": "7 near-85 C uniform cases re-solved at resolution 3: largest change 0.03 C"
 }
