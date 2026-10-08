@@ -43,11 +43,13 @@ the cause, and the slice or PR that fixes it. The plan is
   so does Docker Desktop's "clean up". Both are routine disk-space steps.
   Setup would then find the images missing and need a reinstall. A remote
   `ssh-docker` send-worker would also have nothing to send.
-- **Proposed fix:** a Launchpad slice tags each image the installer builds
-  with a content-addressed name, as the worker parent already is:
-  - `carbon-analysis:<id>`;
-  - `carbon-gpu-worker:<id>`.
+- **Fix:** each image a miner host builds is named by its own id, as the
+  worker parent already is:
+  - `carbon-analysis:<id>` (`research_image.local_tag`);
+  - `carbon-gpu-worker:<id>` (`accelerator_worker_image.sh`).
 
-  Verification stays by image id, and a test asserts that no recorded image
-  is dangling.
-- **Status:** open.
+  Each name is checked to point at its image, and everything still verifies
+  by image id. An install made before the fix gets its analysis image named
+  by the next install, and the GPU worker is rebuilt on every install
+  anyway. Release builds are unchanged.
+- **Status:** fixed in the PR that carries this entry.
