@@ -104,7 +104,9 @@ an agent.
   `graphite-confirmation-v1`, or the tuning set.
 - It runs the `v2-bank` rule with `per_hotkey.window_blocks` set to 360, 180 and
   90 for the three rates. Those are **development-only rule variants** (new
-  rule versions, prospective; invariant 10): the Carbon Validator builds them.
+  rule versions, prospective; invariant 10): the Carbon Validator builds them as VALIDATOR-30 (queue position set
+  by the Test Lead, after VALIDATOR-27 and before VALIDATOR-28; a simulated clock with
+  no chain read is accepted for the study harness).
   They change no production rule and no battery deployment.
 - The route accepts a caller-supplied clock. The study uses a **simulated block
   clock**, so a run's rate is set by blocks, not wall time: m = 4 does not need
