@@ -1173,24 +1173,42 @@ def _https_post(url, token, timeout):
         return 0, b""
 
 
-def phase_config(backend, record, *, barrier=False):
+#: The PyTorch fno leg is skipped (`--skip-fno`) until the v3 images: it fails on
+#: the GPU with a neuralop CPU/CUDA device mismatch. The run record is not
+#: changed or re-hashed; the recipe is filtered where it is used.
+SKIPPED_FNO = {
+    "fno": {
+        "skipped": True,
+        "reason": "known GPU device bug (neuralop CPU/CUDA device mismatch); "
+        "to be re-run on v3 images",
+    }
+}
+
+
+def phase_config(backend, record, *, barrier=False, skip_fno=False):
+    fno_id = record["fno"]["id"]
     return {
         "barrier": barrier,
         "backend": backend,
-        "recipes": record["recipes_by_backend"][backend],
+        "recipes": [
+            r
+            for r in record["recipes_by_backend"][backend]
+            if not (skip_fno and r["id"] == fno_id)
+        ],
         "repeats": record["repeats"],
         "seed": record["seed"],
     }
 
 
-def smoke(runner, record, *, backend="jax", out):
+def smoke(runner, record, *, backend="jax", out, skip_fno=False):
     """One rebuild (the record's largest pick on `backend`) on one pod; records
     the measured start-up and wall seconds that set every later deadline."""
-    config = phase_config(backend, record)
-    # JAX: the largest pick. PyTorch: the single fno rebuild (the slowest).
+    config = phase_config(backend, record, skip_fno=skip_fno)
+    # JAX: the largest pick. PyTorch: the single fno rebuild (the slowest),
+    # or the largest MLP/DeepONet pick when the fno is skipped.
     target = (
         record["fno"]["id"]
-        if backend == "pytorch"
+        if backend == "pytorch" and not skip_fno
         else next(p for p in record["picks"] if p["role"] == "largest")["id"]
     )
     config["recipes"] = [r for r in config["recipes"] if r["id"] == target]
@@ -1233,13 +1251,14 @@ def load_smoke(path):
     return smoke_record
 
 
-def plan(record, smokes, cap=DEFAULT_CAP_USD):
+def plan(record, smokes, cap=DEFAULT_CAP_USD, skip_fno=False):
     """Each backend's deadline (its own smoke x 1.5) and budget, with no pod.
     The cap gate applies per backend with the 4 pods + 2 replacements
     arithmetic; refused unless every backend fits."""
     out = {}
     for backend in BACKENDS:
-        rebuilds = len(record["recipes_by_backend"][backend]) * record["repeats"]
+        recipes = phase_config(backend, record, skip_fno=skip_fno)["recipes"]
+        rebuilds = len(recipes) * record["repeats"]
         smoke_record = smokes[backend]
         deadline = pod_deadline_seconds(smoke_record, rebuilds)
         gate = budget_gate(
@@ -1251,15 +1270,15 @@ def plan(record, smokes, cap=DEFAULT_CAP_USD):
     return out
 
 
-def run_acceptance(runner, record, smokes, *, cap=DEFAULT_CAP_USD):
+def run_acceptance(runner, record, smokes, *, cap=DEFAULT_CAP_USD, skip_fno=False):
     """Two A40 hosts per backend. Backends one after the other (two pods at a
     time, the grant's concurrency). Returns the run summary and results."""
-    budget = plan(record, smokes, cap)
+    budget = plan(record, smokes, cap, skip_fno)
     results = {}
     try:
         for backend in BACKENDS:
             deadline = budget[backend]["deadline_seconds"]
-            config = phase_config(backend, record, barrier=True)
+            config = phase_config(backend, record, barrier=True, skip_fno=skip_fno)
             config["go_timeout_seconds"] = deadline
             group = [
                 runner.launch(backend, "A", config, deadline),
@@ -1283,6 +1302,8 @@ def run_acceptance(runner, record, smokes, *, cap=DEFAULT_CAP_USD):
             sum((reservation_usd(p.deadline_seconds) for p in runner.pods), Decimal(0))
         ),
     }
+    if skip_fno:
+        summary["skipped"] = SKIPPED_FNO
     return summary, results
 
 
@@ -1305,7 +1326,7 @@ def _host_cell(rows, recipe_id):
     }
 
 
-def compare(pod_results, *, deviation=None, cpu=None):
+def compare(pod_results, *, deviation=None, cpu=None, skipped=None):
     """Per (backend, recipe): within-host equality, across-host equality, driver
     builds, device ids, and the CPU-vs-GPU record. Digest equality only; a
     driver difference between the compared hosts is REFUSED_DRIVER_MISMATCH
@@ -1380,6 +1401,8 @@ def compare(pod_results, *, deviation=None, cpu=None):
     if cpu is not None:
         document["cpu_vs_gpu"] = cpu_vs_gpu(cpu, pod_results)
     document["jax_fno"] = "not applicable: the fno is PyTorch-only"
+    if skipped:
+        document["skipped"] = skipped
     return document
 
 
@@ -1574,7 +1597,13 @@ def _cmd_smoke(args):
     record = load_record(args.record)
     runner = _runner(args, record)
     try:
-        measured = smoke(runner, record, backend=args.backend, out=args.smoke_record)
+        measured = smoke(
+            runner,
+            record,
+            backend=args.backend,
+            out=args.smoke_record,
+            skip_fno=args.skip_fno,
+        )
     finally:
         runner.close()
     print(
@@ -1615,14 +1644,18 @@ def _cmd_run(args):
     if args.dry_run:
         manifest = build_manifest(args.code_ref, Path(args.repository))
         print(json.dumps({"dry_run": True, "pods_created": 0, "images": IMAGES,
-                          "code_files": len(manifest), "plan": plan(record, smoke_record, cap)}, indent=1))  # fmt: skip
+                          "code_files": len(manifest), "plan": plan(record, smoke_record, cap, args.skip_fno)}, indent=1))  # fmt: skip
         return 0
-    plan(record, smoke_record, cap)  # refuse before touching the provider
+    plan(
+        record, smoke_record, cap, args.skip_fno
+    )  # refuse before touching the provider
     runner = _runner(args, record)
     try:
-        summary, results = run_acceptance(runner, record, smoke_record, cap=cap)
+        summary, results = run_acceptance(
+            runner, record, smoke_record, cap=cap, skip_fno=args.skip_fno
+        )
         flat = pod_results([p for pods in results.values() for p in pods])
-        document = compare(flat)
+        document = compare(flat, skipped=SKIPPED_FNO if args.skip_fno else None)
         out = Path(args.work_dir)
         (out / "summary.json").write_text(
             json.dumps(summary, indent=1, sort_keys=True) + "\n"
@@ -1688,6 +1721,11 @@ def main(argv=None):
             type=int,
             default=DEFAULT_RETRY_WINDOW_SECONDS // 60,
             help="minutes of capacity retries (rounds every 10 minutes)",
+        )
+        p.add_argument(
+            "--skip-fno",
+            action="store_true",
+            help="skip the PyTorch fno leg (known GPU device bug) until the v3 images",
         )
         p.set_defaults(handler=handler)
         if name == "smoke":

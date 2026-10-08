@@ -1209,3 +1209,68 @@ def test_each_pods_datacenter_and_driver_build_are_recorded(world):
     flat = a40.pod_results([p for pods in results.values() for p in pods])
     cell = a40.compare(flat)["cells"][0]
     assert len(cell["datacenters"]) == 2 and cell["driver_builds"] == ["580.159.03"]
+
+
+# ----------------------------------------------------------------- --skip-fno
+def test_skip_fno_drops_the_leg_from_recipes_rebuilds_and_deadline():
+    full = a40.phase_config("pytorch", RECORD)["recipes"]
+    skipped = a40.phase_config("pytorch", RECORD, skip_fno=True)["recipes"]
+    assert [r["id"] for r in full] == ["r1", "r2", "fno_defaults"]
+    assert [r["id"] for r in skipped] == ["r1", "r2"]
+    assert a40.phase_config("jax", RECORD, skip_fno=True)["recipes"] == (
+        a40.phase_config("jax", RECORD)["recipes"]
+    )
+    plan = a40.plan(RECORD, SMOKES)
+    short = a40.plan(RECORD, SMOKES, skip_fno=True)
+    assert plan["pytorch"]["rebuilds_per_pod"] == 6
+    assert short["pytorch"]["rebuilds_per_pod"] == 4
+    assert short["pytorch"]["deadline_seconds"] < plan["pytorch"]["deadline_seconds"]
+    assert short["jax"] == plan["jax"]
+
+
+def test_pytorch_smoke_with_skip_fno_rebuilds_the_largest_pick(world, tmp_path):
+    make, _fake, _bodies = world
+    runner, _fleet = make([])
+    measured = a40.smoke(
+        runner, RECORD, backend="pytorch", out=tmp_path / "s.json", skip_fno=True
+    )
+    runner.close()
+    assert measured["recipe_id"] == "r2" and measured["outcome"] == "COMPLETE"
+
+
+def test_a_skipped_fno_run_records_the_skip_and_never_launches_the_fno(world):
+    make, fake, bodies = world
+    runner, _fleet = make([])
+    try:
+        summary, results = a40.run_acceptance(runner, RECORD, SMOKES, skip_fno=True)
+    finally:
+        runner.close()
+    configs = [json.loads(dict(b["env"])["PHASE_CONFIG"]) for b in bodies]
+    assert all("fno_defaults" not in [r["id"] for r in c["recipes"]] for c in configs)
+    assert summary["skipped"]["fno"]["skipped"] is True
+    assert "v3" in summary["skipped"]["fno"]["reason"]
+    flat = a40.pod_results([p for pods in results.values() for p in pods])
+    document = a40.compare(flat, skipped=a40.SKIPPED_FNO)
+    assert document["skipped"] == a40.SKIPPED_FNO
+    assert "fno_defaults" not in {c["recipe_id"] for c in document["cells"]}
+    assert fake.pods == {}
+
+
+def test_the_run_record_is_not_changed_by_skip_fno(tmp_path, capsys, monkeypatch):
+    record_path = tmp_path / "record.json"
+    digest = a40.write_record(RECORD, record_path)
+    for name in ("s.json", "t.json"):
+        (tmp_path / name).write_text(json.dumps(SMOKE))
+    monkeypatch.setattr(a40, "build_manifest", lambda ref, repository=None: {"a": "b"})
+    code = a40.main(
+        [
+            "run", "--record", str(record_path), "--smoke-record", str(tmp_path / "s.json"),
+            "--smoke-record-pytorch", str(tmp_path / "t.json"),
+            "--work-dir", str(tmp_path / "w"), "--code-ref", "a" * 40,
+            "--dry-run", "--skip-fno",
+        ]
+    )  # fmt: skip
+    printed = json.loads(capsys.readouterr().out)
+    assert code == 0 and printed["plan"]["pytorch"]["rebuilds_per_pod"] == 4
+    assert digest == a40.hashlib.sha256(record_path.read_bytes()).hexdigest()
+    assert a40.load_record(record_path) == RECORD
