@@ -4,7 +4,14 @@ from __future__ import annotations
 
 import math
 
-from carbon.design_search import controls, diversity, indexed, power, tasks
+from carbon.design_search import (
+    controls,
+    diversity,
+    indexed,
+    power,
+    power_accumulation,
+    tasks,
+)
 
 REPORT_SCHEMA = "carbon.design-search.indexed-power-report.v1"
 
@@ -49,9 +56,11 @@ def _validate(bank, laws, registration, good):
         or type(bank.get("indexed_power_cases")) is not list
         or not bank["indexed_power_cases"]
         or type(laws) is not dict
-        or set(laws) != {"grid", "continuous"}
+        or not laws
+        or not set(laws) <= {"grid", "continuous"}
         or any(type(laws[kind]) is not dict for kind in laws)
-        or laws["grid"].get("batch_size") != laws["continuous"].get("batch_size")
+        or any(laws[kind].get("kind") != kind for kind in laws)
+        or len({laws[kind].get("batch_size") for kind in laws}) != 1
     ):
         raise tasks.TaskError("registered indexed power bank and laws required")
     diversity_views = {
@@ -71,7 +80,11 @@ def _validate(bank, laws, registration, good):
         good_rows[row["case"]] = row["predictions"]
     if set(good_rows) != set(cases):
         raise tasks.TaskError("indexed reference predictor cases differ")
-    support = {row["support_case"] for row in bank["exposure"]}
+    support = (
+        {row["support_case"] for row in bank["indexed_power_cases"]}
+        if bank.get("exposure_unit") == power_accumulation.EXPOSURE_UNIT
+        else {row["support_case"] for row in bank["exposure"]}
+    )
     rows = {}
     bank_identity = {}
     comparison_identity = None
@@ -196,6 +209,7 @@ def indexed_power_report(
     simulation_seed,
     replicates,
     max_questions,
+    accumulation=None,
 ):
     """Report map and per-index separation with shared-bank clustering."""
     if (
@@ -213,7 +227,18 @@ def indexed_power_report(
         or max_questions <= 0
     ):
         raise tasks.TaskError("explicit indexed power parameters required")
-    laws = {"grid": grid_law, "continuous": continuous_law}
+    if accumulation is not None:
+        power_accumulation.validate_accumulation(accumulation)
+        if (
+            type(bank) is not dict
+            or bank.get("exposure_unit") != accumulation["exposure_unit"]
+        ):
+            raise tasks.TaskError("sealed bank exposure unit differs from accumulation")
+    laws = {
+        kind: law
+        for kind, law in (("grid", grid_law), ("continuous", continuous_law))
+        if law is not None
+    }
     diversity_views, rows, comparison = _validate(
         bank, laws, registration, good_predictor
     )
@@ -228,21 +253,34 @@ def indexed_power_report(
     report_laws = {}
     for kind, law in laws.items():
         exposure = diversity_views[kind]["exposure_remaining"]
-        maximum = min(max_questions, exposure)
+        maximum = (
+            min(max_questions, diversity_views[kind]["available_questions"])
+            if diversity_views[kind]["exposure_unit"]
+            == power_accumulation.EXPOSURE_UNIT
+            else (
+                min(max_questions, exposure)
+                if diversity_views[kind]["exposure_unit"] == "question_draws"
+                else (max_questions if exposure else 0)
+            )
+        )
 
-        def view(data, law=law, maximum=maximum):
+        def view(data, law=law, maximum=maximum, exposure=exposure, kind=kind):
             return {
-                label: power._view(
-                    law,
-                    measure,
-                    data,
-                    clusters,
-                    registration["controls"],
-                    alpha=alpha,
-                    target=power_target,
-                    seed=simulation_seed,
-                    replicates=replicates,
-                    maximum=maximum,
+                label: (
+                    power._view(
+                        law,
+                        measure,
+                        data,
+                        clusters,
+                        registration["controls"],
+                        alpha=alpha,
+                        target=power_target,
+                        seed=simulation_seed,
+                        replicates=replicates,
+                        maximum=maximum,
+                    )
+                    if label != "P" or diversity_views[kind]["P"] is not None
+                    else None
                 )
                 for label, measure in (("P", "p_mass"), ("Q", "q_mass"))
             }
@@ -274,6 +312,52 @@ def indexed_power_report(
             "aggregate": view(outcomes),
             "per_index": per_index,
         }
+    bank_curve = None
+    if accumulation is not None:
+        per_index_curve = []
+        for position in range(index_count):
+            sub_outcomes = {
+                case: (
+                    result[0]["per_index"][position]["outcome"],
+                    [
+                        control["per_index"][position]["outcome"]
+                        for control in result[1]
+                    ],
+                )
+                for case, result in outcomes.items()
+            }
+            per_index_curve.append(
+                {
+                    "index_position": position,
+                    "view": power._bank_cross_batch_view(
+                        sub_outcomes,
+                        clusters,
+                        registration["controls"],
+                        bank["case_exposure"],
+                        alpha=alpha,
+                        target=power_target,
+                        seed=simulation_seed,
+                        replicates=replicates,
+                        max_questions=max_questions,
+                        accumulation=accumulation,
+                    ),
+                }
+            )
+        bank_curve = {
+            "aggregate": power._bank_cross_batch_view(
+                outcomes,
+                clusters,
+                registration["controls"],
+                bank["case_exposure"],
+                alpha=alpha,
+                target=power_target,
+                seed=simulation_seed,
+                replicates=replicates,
+                max_questions=max_questions,
+                accumulation=accumulation,
+            ),
+            "per_index": per_index_curve,
+        }
     return {
         "schema": REPORT_SCHEMA,
         "material": "DEVELOPMENT",
@@ -285,5 +369,17 @@ def indexed_power_report(
         "index_count": index_count,
         "regret_unit": comparison[0]["unit"],
         "laws": report_laws,
+        **({"sealed_bank_cross_batch": bank_curve} if bank_curve is not None else {}),
+        **(
+            {
+                "accumulation": {
+                    "schema": power_accumulation.SCHEMA,
+                    "exposure_unit": accumulation["exposure_unit"],
+                    "max_windows_requested": accumulation["max_windows"],
+                }
+            }
+            if accumulation is not None
+            else {}
+        ),
         "claims": {"score_use_approved": False, "power_qualified": False},
     }

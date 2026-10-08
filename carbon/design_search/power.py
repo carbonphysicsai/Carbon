@@ -10,7 +10,7 @@ import bisect
 import math
 import random
 
-from carbon.design_search import controls, diversity, tasks
+from carbon.design_search import controls, diversity, power_accumulation, tasks
 
 GOOD_SCHEMA = "carbon.design-search.reference-predictor.v1"
 REPORT_SCHEMA = "carbon.design-search.power-report.v1"
@@ -67,12 +67,13 @@ def _validate_inputs(bank, laws, registration, good):
     _registered_good(good)
     if (
         type(laws) is not dict
-        or set(laws) != {"grid", "continuous"}
+        or not laws
+        or not set(laws) <= {"grid", "continuous"}
         or any(type(laws[k]) is not dict for k in laws)
         or any(laws[k].get("kind") != k for k in laws)
-        or laws["grid"].get("batch_size") != laws["continuous"].get("batch_size")
+        or len({laws[k].get("batch_size") for k in laws}) != 1
     ):
-        raise tasks.TaskError("matching registered grid and continuous laws required")
+        raise tasks.TaskError("matching registered question laws required")
     diversity_views = {
         kind: diversity.diversity_report(bank, law) for kind, law in laws.items()
     }
@@ -80,7 +81,11 @@ def _validate_inputs(bank, laws, registration, good):
         raise tasks.TaskError("sealed power cases required")
     controls.validate_controls(registration, task=None)
     case_rows = {row["case"]: row for row in bank["cases"]}
-    support = {row["support_case"] for row in bank["exposure"]}
+    support = (
+        {row["support_case"] for row in bank["power_cases"]}
+        if bank.get("exposure_unit") == power_accumulation.EXPOSURE_UNIT
+        else {row["support_case"] for row in bank["exposure"]}
+    )
     good_rows = {}
     for row in good["cases"]:
         if (
@@ -311,7 +316,17 @@ def _power_curve(
 
 
 def _view(
-    law, key, cases, clusters, specs, *, alpha, target, seed, replicates, maximum
+    law,
+    key,
+    cases,
+    clusters,
+    specs,
+    *,
+    alpha,
+    target,
+    seed,
+    replicates,
+    maximum,
 ):
     masses = {case: 0.0 for case in cases}
     for bin_ in law["bins"]:
@@ -335,7 +350,7 @@ def _view(
                 )
                 for case in cases
             }
-            metrics[metric] = {
+            metric_view = {
                 "good": _weighted(
                     {c: good_loss[c] if common[c] is not None else None for c in cases},
                     masses,
@@ -361,6 +376,7 @@ def _view(
                     registered_batch=law["batch_size"],
                 ),
             }
+            metrics[metric] = metric_view
         controls_out.append(
             {
                 "control_index": index,
@@ -396,6 +412,62 @@ def _view(
     }
 
 
+def _bank_cross_batch_view(
+    cases,
+    clusters,
+    specs,
+    case_exposure,
+    *,
+    alpha,
+    target,
+    seed,
+    replicates,
+    max_questions,
+    accumulation,
+):
+    """Conditional finite-bank curves, separate from population P and draw Q."""
+    controls_out = []
+    for index, spec in enumerate(specs):
+        good = {case: result[0] for case, result in cases.items()}
+        model = {case: result[1][index] for case, result in cases.items()}
+        curves = {}
+        for metric in METRICS:
+            differences = {}
+            for case in cases:
+                good_loss = _loss(good[case], metric)
+                model_loss = _loss(model[case], metric)
+                differences[case] = (
+                    model_loss - good_loss
+                    if model_loss is not None and good_loss is not None
+                    else None
+                )
+            curves[metric] = power_accumulation.cross_batch_curve(
+                case_exposure,
+                differences,
+                clusters,
+                alpha=alpha,
+                target=target,
+                seed=seed,
+                replicates=replicates,
+                max_questions=max_questions,
+                accumulation=accumulation,
+            )
+        controls_out.append(
+            {
+                "control_index": index,
+                "kind": spec["kind"],
+                "scope": spec.get("scope"),
+                "severity": spec["severity"],
+                "metrics": curves,
+            }
+        )
+    return {
+        "basis": "conditional_on_sealed_bank",
+        "window_model": power_accumulation.WINDOW_MODEL,
+        "controls": controls_out,
+    }
+
+
 def power_report(
     bank,
     grid_law,
@@ -408,6 +480,7 @@ def power_report(
     simulation_seed,
     replicates,
     max_questions,
+    accumulation=None,
 ):
     """Run frozen optimizers and estimate per-metric clustered separation."""
     if type(bank) is dict and "indexed_power_cases" in bank:
@@ -424,6 +497,7 @@ def power_report(
             simulation_seed=simulation_seed,
             replicates=replicates,
             max_questions=max_questions,
+            accumulation=accumulation,
         )
     if (
         type(alpha) not in (int, float)
@@ -442,7 +516,18 @@ def power_report(
         raise tasks.TaskError(
             "explicit alpha, power target and simulation budget required"
         )
-    laws = {"grid": grid_law, "continuous": continuous_law}
+    if accumulation is not None:
+        power_accumulation.validate_accumulation(accumulation)
+        if (
+            type(bank) is not dict
+            or bank.get("exposure_unit") != accumulation["exposure_unit"]
+        ):
+            raise tasks.TaskError("sealed bank exposure unit differs from accumulation")
+    laws = {
+        kind: law
+        for kind, law in (("grid", grid_law), ("continuous", continuous_law))
+        if law is not None
+    }
     diversity_views, power_rows, regret_unit = _validate_inputs(
         bank, laws, registration, good_predictor
     )
@@ -454,7 +539,16 @@ def power_report(
     report_laws = {}
     for kind, law in laws.items():
         exposure = diversity_views[kind]["exposure_remaining"]
-        maximum = min(max_questions, exposure)
+        maximum = (
+            min(max_questions, diversity_views[kind]["available_questions"])
+            if diversity_views[kind]["exposure_unit"]
+            == power_accumulation.EXPOSURE_UNIT
+            else (
+                min(max_questions, exposure)
+                if diversity_views[kind]["exposure_unit"] == "question_draws"
+                else (max_questions if exposure else 0)
+            )
+        )
         report_laws[kind] = {
             "registered_batch_size": law["batch_size"],
             "exposure_remaining": exposure,
@@ -466,17 +560,21 @@ def power_report(
                 1.0,
                 maximum * diversity_views[kind]["basis"]["mass_l1_error_bound"],
             ),
-            "P": _view(
-                law,
-                "p_mass",
-                outcomes,
-                clusters,
-                registration["controls"],
-                alpha=alpha,
-                target=power_target,
-                seed=simulation_seed,
-                replicates=replicates,
-                maximum=maximum,
+            "P": (
+                _view(
+                    law,
+                    "p_mass",
+                    outcomes,
+                    clusters,
+                    registration["controls"],
+                    alpha=alpha,
+                    target=power_target,
+                    seed=simulation_seed,
+                    replicates=replicates,
+                    maximum=maximum,
+                )
+                if diversity_views[kind]["P"] is not None
+                else None
             ),
             "Q": _view(
                 law,
@@ -491,6 +589,22 @@ def power_report(
                 maximum=maximum,
             ),
         }
+    bank_curve = (
+        _bank_cross_batch_view(
+            outcomes,
+            clusters,
+            registration["controls"],
+            bank["case_exposure"],
+            alpha=alpha,
+            target=power_target,
+            seed=simulation_seed,
+            replicates=replicates,
+            max_questions=max_questions,
+            accumulation=accumulation,
+        )
+        if accumulation is not None
+        else None
+    )
     return {
         "schema": REPORT_SCHEMA,
         "material": "DEVELOPMENT",
@@ -501,5 +615,17 @@ def power_report(
         "max_questions_requested": max_questions,
         "regret_unit": regret_unit,
         "laws": report_laws,
+        **({"sealed_bank_cross_batch": bank_curve} if bank_curve is not None else {}),
+        **(
+            {
+                "accumulation": {
+                    "schema": power_accumulation.SCHEMA,
+                    "exposure_unit": accumulation["exposure_unit"],
+                    "max_windows_requested": accumulation["max_windows"],
+                }
+            }
+            if accumulation is not None
+            else {}
+        ),
         "claims": {"score_use_approved": False, "power_qualified": False},
     }
