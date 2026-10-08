@@ -6,7 +6,7 @@ review.
 
 **Authority:**
 - the Test Lead's ruling of 2026-10-07, closing the leak-incident runbook's
-  two gaps (`/home/carbon/shared/operator/LEAK_INCIDENT_RUNBOOK.md`);
+  two gaps (`~carbon/shared/operator/LEAK_INCIDENT_RUNBOOK.md`);
 - OWNER-SHARED-ANSWER-KEY-01;
 - OWNER-BANK-ARCHITECTURE-01;
 - OWNER-AUTO-PUBLISH-RETIRED-01.
