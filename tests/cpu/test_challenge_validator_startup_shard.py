@@ -252,3 +252,92 @@ def test_status_reports_public_counts_only(work, tmp_path, repo):
         s["jobs"] for s in report["shards"]
     ]
     assert "c0" not in json.dumps(report)
+
+
+HOST2 = "SHA256:" + "B" * 43
+
+
+def test_shards_spread_round_robin_over_every_startup_host(work, tmp_path, repo):
+    record = repo / ".agent" / "decisions" / RECORD
+    record.write_text(record.read_text() + f"Host key: {HOST2}\n")
+    summaries = split(work, tmp_path, repo, shards=4, host_key=[HOST, HOST2])
+    assert [s["host_key"] for s in summaries] == [HOST, HOST2, HOST, HOST2]
+    for s in summaries:
+        manifest = json.loads(
+            (tmp_path / "shards" / f"shard-{s['shard']}" / "manifest.json").read_text()
+        )
+        assert manifest["host_key"] == s["host_key"]
+        directory = tmp_path / "shards" / f"shard-{s['shard']}"
+        solve(directory)
+        assert merge(work, directory, repo)["accepted"] == s["jobs"]
+
+
+def test_every_startup_host_must_be_in_the_custody_record(work, tmp_path, repo):
+    with pytest.raises(ProducerRefused) as refused:
+        split(work, tmp_path, repo, host_key=[HOST, HOST2])
+    assert refused.value.code == "startup_custody_unrecorded"
+    with pytest.raises(ProducerRefused) as refused:
+        split(work, tmp_path, repo, host_key=[HOST, HOST])
+    assert refused.value.code == "startup_host_key_malformed"
+
+
+def test_a_per_startup_hosts_file_needs_the_standing_record_and_root(
+    work, tmp_path, repo, monkeypatch
+):
+    """Hourly startup hosts: the repository holds the standing record; each
+    startup's host keys are in a file the owner writes on the producer host
+    (root-owned, not group- or world-writable)."""
+    import os
+
+    hosts = tmp_path / "startup-hosts.txt"
+    hosts.write_text(f"OWNER-STARTUP-HOST-CUSTODY-01 startup 1\n{HOST}\n{HOST2}\n")
+    hosts.chmod(0o644)
+    real_lstat = os.lstat
+
+    def as_root(path, *args, **kwargs):
+        info = real_lstat(path, *args, **kwargs)
+        if str(path) != str(hosts):
+            return info
+        values = list(info)
+        values[4] = 0  # st_uid
+        return os.stat_result(values)
+
+    monkeypatch.setattr(os, "lstat", as_root)
+    summaries = split(work, tmp_path, repo, custody=str(hosts), host_key=[HOST, HOST2])
+    assert {s["host_key"] for s in summaries} == {HOST, HOST2}
+    # Without the standing record in the repository, the file alone is refused.
+    (repo / ".agent" / "decisions" / RECORD).unlink()
+    with pytest.raises(ProducerRefused) as refused:
+        split(
+            work, tmp_path / "again", repo, custody=str(hosts), host_key=[HOST, HOST2]
+        )
+    assert refused.value.code == "startup_custody_unrecorded"
+
+
+def test_a_hosts_file_not_written_by_root_is_refused(work, tmp_path, repo):
+    hosts = tmp_path / "startup-hosts.txt"
+    hosts.write_text(f"OWNER-STARTUP-HOST-CUSTODY-01\n{HOST}\n")
+    with pytest.raises(ProducerRefused) as refused:
+        split(work, tmp_path, repo, custody=str(hosts), host_key=[HOST])
+    assert refused.value.code == "startup_custody_file_not_owner_written"
+
+
+def test_every_custody_transfer_is_journaled(work, tmp_path, repo):
+    [s] = split(work, tmp_path, repo, shards=1)
+    digest = s["manifest_digest"]
+    for event in ss.TRANSFER_EVENTS:
+        ss.note(work, event, host_key=HOST, manifest_digest=digest, nbytes=1234)
+    events = [e["event"] for e in ss._journal(work)]
+    assert events[-4:] == ["pushed", "pulled", "wiped", "deleted"]
+    for kwargs, code in (
+        ({"host_key": "bad"}, "startup_host_key_malformed"),
+        (
+            {"host_key": HOST, "manifest_digest": "sha256:" + "0" * 64},
+            "startup_shard_not_from_this_work",
+        ),
+    ):
+        with pytest.raises(ProducerRefused) as refused:
+            ss.note(work, "pushed", **kwargs)
+        assert refused.value.code == code
+    with pytest.raises(ProducerRefused):
+        ss.note(work, "stopped", host_key=HOST)
