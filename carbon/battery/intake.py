@@ -106,9 +106,20 @@ from carbon.transport.models import (
 SCHEMA = "carbon.battery.intake.v1"
 PUBLIC_SCHEMA = "carbon.battery.intake-public.v1"
 INFO_PATH = "/carbon/v1/battery/intake"
+#: The validator's public score feed (VALIDATOR-29): released windows only,
+#: signed; `GET FEED_PATH + <challenge id>`.
+FEED_PATH = "/carbon/v1/feed/"
 STATUS_TOOL = "battery_status"
 REQUIRED = {"schema", "deployment", "transport_journal", "inbox", "receiver"}
-OPTIONAL = {"host", "port", "exposure_record", "tls_cert", "tls_key", "attempt_ledger"}
+OPTIONAL = {
+    "host",
+    "port",
+    "exposure_record",
+    "tls_cert",
+    "tls_key",
+    "attempt_ledger",
+    "feed",
+}
 #: The attempt ledger beside the inbox when the configuration names none.
 ATTEMPT_LEDGER_SUFFIX = ".attempts.sqlite3"
 
@@ -652,6 +663,7 @@ class BatteryIntake:
         limits=None,
         clock_ns=time.time_ns,
         commitment=None,
+        feed=None,
     ):
         from carbon.challenge_validator import Validator
 
@@ -681,7 +693,20 @@ class BatteryIntake:
         )
         self.limits = PeerLimits() if limits is None else limits
         self.clock_ns = clock_ns
+        #: The signed score feed's reader (`score_feed.read_feed`), or None
+        #: when this door serves no feed.
+        self.feed = feed
         self.wake = threading.Event()
+
+    def score_feed(self):
+        """The signed score feed: released windows only (VALIDATOR-29). Served
+        only when its signature verifies."""
+        if self.feed is None:
+            return _refused(404, "feed_not_served")
+        found = self.feed()
+        if found is None:
+            return _refused(503, "feed_unavailable")
+        return Answer(200, found)
 
     def public(self):
         snapshot = self.window.latest()
@@ -754,6 +779,8 @@ class BatteryIntake:
     def route(self, method, path, headers, body):
         if method == "GET" and path == INFO_PATH:
             return self.public()
+        if method == "GET" and path == FEED_PATH + self.challenge.challenge_id:
+            return self.score_feed()
         if method != "POST" or path != PATH:
             return _refused(404, "not_found")
         return asyncio.run(self._post(headers, body))
@@ -1302,6 +1329,19 @@ def serve(
         os.close(lock)
 
 
+def _feed_reader(config):
+    """The reader of the configured signed feed file, or None."""
+    if "feed" not in config:
+        return None
+    import functools
+
+    from carbon.challenge_validator.score_feed import read_feed
+
+    from .challenge import CHALLENGE
+
+    return functools.partial(read_feed, config["feed"], CHALLENGE.challenge_id)
+
+
 def _serve(config, target, repository, stop, reader, verifier, ready):
     """`serve` once the deployment is built: the refresher, the worker and
     the listener, until `stop` is set."""
@@ -1328,6 +1368,7 @@ def _serve(config, target, repository, stop, reader, verifier, ready):
         door=neutral_door(target, attempt_ledger(config)),
         rule=target.rule,
         commitment=commitment_fact(target),
+        feed=_feed_reader(config),
     )
     httpd = listener(config, intake)
     threads = [

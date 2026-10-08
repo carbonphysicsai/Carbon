@@ -154,7 +154,11 @@ def test_only_released_submissions_appear_rounded_and_signed(
     assert feed["values"]["live"] is None
     assert feed["release"]["expected_lag_blocks"] == 5 * 1080
     assert sf.verify_feed(feed)
+    assert sf.verify_feed(feed, pinned_key=key.public_key)
+    assert not sf.verify_feed(feed, pinned_key="00" * 32)
     assert not sf.verify_feed({**feed, "version": feed["version"] + 1})
+    assert feed["sections"]["accuracy"]["sense"] == "lower_is_better"
+    assert feed["generated_at"].endswith("Z")
     # No case id appears anywhere in the feed.
     text = json.dumps(feed)
     assert not any(
@@ -182,3 +186,36 @@ def test_the_feed_key_is_owner_only_and_never_printed(tmp_path):
     with pytest.raises(sf.FeedRefused) as refused:
         sf.FeedKey.load(tmp_path / "feed.key")
     assert refused.value.code == "feed_key_not_owner_only"
+
+
+def test_the_door_serves_only_a_verified_feed(tmp_path, monkeypatch):
+    """`GET /carbon/v1/feed/<challenge>` returns the signed file, or refuses
+    by name: no feed configured, or a file that does not verify."""
+    import functools
+
+    from carbon.battery import intake as ib
+    from carbon.battery.challenge import CHALLENGE
+
+    key = sf.FeedKey.create(tmp_path / "feed.key")
+    document = {
+        "schema": sf.FEED_SCHEMA,
+        "validator": {"hotkey": "5Val", "feed_key": key.public_key},
+        "challenge": {"id": CHALLENGE.challenge_id},
+        "version": 1,
+        "submissions": [],
+    }
+    feed = {**document, "signature": key.sign(document)}
+    path = tmp_path / "feed.json"
+    sf.write_feed(path, feed)
+    door = ib.BatteryIntake.__new__(ib.BatteryIntake)
+    door.challenge = CHALLENGE
+    route = ib.FEED_PATH + CHALLENGE.challenge_id
+    door.feed = None
+    assert door.score_feed() == ib.Answer(404, {"refused": "feed_not_served"})
+    door.feed = functools.partial(sf.read_feed, path, CHALLENGE.challenge_id)
+    assert door.score_feed() == ib.Answer(200, feed)
+    # A tampered file, or another Challenge's, is never served.
+    sf.write_feed(path, {**feed, "version": 2})
+    assert door.score_feed() == ib.Answer(503, {"refused": "feed_unavailable"})
+    assert sf.read_feed(path, "another-challenge") is None
+    assert route == "/carbon/v1/feed/" + CHALLENGE.challenge_id

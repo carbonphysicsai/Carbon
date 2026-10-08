@@ -75,6 +75,22 @@ release event.
 }
 ```
 
+**Schema notes (v1, with the dashboard session's requests):**
+- **Signed bytes:** `b"carbon.validator.score-feed.v1\0"` followed by the
+  feed without `signature`, as `json.dumps(sort_keys=True, separators=(",", ":"),
+  allow_nan=False, ensure_ascii=True)` encoded UTF-8.
+- **The feed key is pinned out of band:** the dashboard verifies against its
+  configured key, and the in-document `feed_key` is informational.
+- **`sections`:** each section's display name, unit and sense
+  (`lower_is_better` for battery's scores, `higher_is_better` for design q).
+- **`generated_at`:** UTC. It sits outside the versioned body, so it never
+  forces a new version.
+- **Released values** are rounded to 3 decimals (precision 0.001), and
+  `values.live` is null.
+- **v1 emits no `detail`** (per-case breakdown). When it is added, its keys
+  are released-window fingerprints only, and its per-case fields are
+  registered first.
+
 **Rules:**
 - **Rounded** to `values.precision` per section. A displayed best (`standing.best`)
   moves only when a released score improves on it by more than

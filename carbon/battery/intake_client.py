@@ -211,6 +211,11 @@ REFUSALS = {
         "The validator cannot read the chain right now. This is on the "
         "validator's side; retry in a minute."
     ),
+    "feed_not_served": "This validator does not publish a score feed.",
+    "feed_unavailable": (
+        "This validator's score feed cannot be served right now. This is on "
+        "the validator's side; try again later."
+    ),
     "hotkey_window_used": (
         "Your hotkey already has its submission for this tempo. Send this one "
         "again once the next window opens."

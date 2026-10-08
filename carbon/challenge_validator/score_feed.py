@@ -19,6 +19,11 @@ about E rotations; its `release` metadata says so.
   - It is labelled DEVELOPMENT, and TESTNET on testnet.
   - It is signed by the validator's feed key and versioned whenever it
     changes.
+- **Signed bytes:** `FEED_DOMAIN` followed by the feed without its
+  `signature` field, as `json.dumps(sort_keys=True, separators=(",", ":"),
+  allow_nan=False, ensure_ascii=True)` encoded UTF-8. The feed key is pinned
+  out of band (`verify_feed(feed, pinned_key=…)`); the in-document
+  `feed_key` is informational.
 - **Values** (`VALUES`): registered by the Test Lead, 2026-10-08. Released
   data is shown at precision 0.001 with no display threshold, because its
   cases are public. The live feed (item 1) is unregistered and refused until
@@ -26,7 +31,11 @@ about E rotations; its `release` metadata says so.
 
     python -m carbon.challenge_validator.score_feed keygen --out FEED.key
     python -m carbon.challenge_validator.score_feed releases --config FETCH.json
-    python -m carbon.challenge_validator.score_feed build --deployment DEPLOYMENT.json --key FEED.key --hotkey SS58 --network testnet
+    python -m carbon.challenge_validator.score_feed build --deployment DEPLOYMENT.json --key FEED.key --hotkey SS58 --network testnet --out FEED.json
+
+`--out` is the file the validator's door serves at
+`GET /carbon/v1/feed/<challenge>` (the intake's `feed` key). It is written
+atomically, and the door serves it only when its signature verifies.
 
 DEVELOPMENT only: no qualification, weight, reward or LIVE authority.
 """
@@ -54,6 +63,22 @@ VALUES = {
     "live": None,
 }
 SECTIONS = ("accuracy", "design_q", "near_limit")
+#: How a dashboard shows each section: its name, unit and sense (battery's
+#: scores are lower-is-better; the design q is higher-is-better).
+SECTION_META = {
+    "accuracy": {
+        "display": "Accuracy",
+        "unit": "battery score",
+        "sense": "lower_is_better",
+    },
+    "design_q": {"display": "Design q", "unit": "q", "sense": "higher_is_better"},
+    "near_limit": {
+        "display": "Near-limit accuracy",
+        "unit": "battery score",
+        "sense": "lower_is_better",
+    },
+    "gates": {"display": "Safety gates", "unit": "PASS/FAIL", "sense": None},
+}
 
 
 class FeedRefused(ValueError):
@@ -63,7 +88,9 @@ class FeedRefused(ValueError):
 
 
 def _canonical(value):
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return json.dumps(
+        value, sort_keys=True, separators=(",", ":"), allow_nan=False, ensure_ascii=True
+    )
 
 
 # --- the feed key -------------------------------------------------------------------
@@ -118,13 +145,16 @@ class FeedKey:
         return self._key.sign(FEED_DOMAIN + _canonical(document).encode()).hex()
 
 
-def verify_feed(feed):
-    """Whether a feed's signature is its own feed key's, over the document
-    without the signature."""
+def verify_feed(feed, pinned_key=None):
+    """Whether a feed's signature is its feed key's, over the document without
+    the signature. With `pinned_key` (the key a reader configured out of
+    band), the feed must name exactly that key."""
     from cryptography.exceptions import InvalidSignature
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
     try:
+        if pinned_key is not None and feed["validator"]["feed_key"] != pinned_key:
+            return False
         body = {k: v for k, v in feed.items() if k != "signature"}
         Ed25519PublicKey.from_public_bytes(
             bytes.fromhex(feed["validator"]["feed_key"])
@@ -314,6 +344,7 @@ def build(target, *, key, hotkey, network):
             "rule_digest": identities["rule_digest"],
         },
         "values": VALUES,
+        "sections": SECTION_META,
         "release": {
             "predicate": "every case a window drew is retired and published",
             "retire_at": bank.get("retire_at"),
@@ -334,9 +365,41 @@ def build(target, *, key, hotkey, network):
         },
         "excluded": {"canary_hotkeys": excluded},
     }
+    import datetime
+
     version = store.record_feed(document)
-    feed = {**document, "version": version}
+    generated = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    feed = {**document, "version": version, "generated_at": generated}
     return {**feed, "signature": key.sign(feed)}
+
+
+def write_feed(path, feed):
+    """Write the signed feed atomically for the door to serve."""
+    path = Path(path)
+    temporary = path.with_name(path.name + ".new")
+    if temporary.exists():
+        temporary.unlink()
+    fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o640)
+    with os.fdopen(fd, "w") as handle:
+        json.dump(feed, handle, sort_keys=True)
+    os.replace(temporary, path)
+
+
+def read_feed(path, challenge_id):
+    """The signed feed at `path` for `challenge_id`, or None: unreadable,
+    another Challenge's, or not verified by its own feed key."""
+    try:
+        feed = json.loads(Path(path).read_text())
+    except (OSError, ValueError):
+        return None
+    if (
+        type(feed) is not dict
+        or feed.get("schema") != FEED_SCHEMA
+        or (feed.get("challenge") or {}).get("id") != challenge_id
+        or not verify_feed(feed)
+    ):
+        return None
+    return feed
 
 
 # --- the command line ---------------------------------------------------------------
@@ -373,6 +436,7 @@ def main(argv=None):
     built.add_argument("--key", required=True)
     built.add_argument("--hotkey", required=True)
     built.add_argument("--network", required=True, choices=("testnet", "mainnet"))
+    built.add_argument("--out", help="the signed feed file the door serves")
     args = parser.parse_args(argv)
     try:
         if args.command == "keygen":
@@ -404,6 +468,8 @@ def main(argv=None):
                     hotkey=args.hotkey,
                     network=args.network,
                 )
+            if args.out:
+                write_feed(args.out, feed)
             result = {
                 "version": feed["version"],
                 "released_windows": len(feed["released_windows"]),
