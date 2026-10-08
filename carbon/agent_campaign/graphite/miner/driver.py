@@ -65,11 +65,14 @@ from __future__ import annotations
 import asyncio
 import inspect
 import json
+import math
 from dataclasses import dataclass
+from fractions import Fraction
 from pathlib import Path
 
 from carbon.development_session import research_campaign as campaigns
 from carbon.development_session.data import write_once
+from carbon.development_session.model_provider import DEFAULT_SETTINGS
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_loop import run_epoch
 
@@ -315,6 +318,46 @@ def check_research_share(block, ceilings, selection):
     its research would send nothing. Raised before the manifest freezes."""
     if research_share_shortfall(block, ceilings, selection) is not None:
         raise refused(RESEARCH_SHARE_TOO_SMALL)
+
+
+#: The input window at or below which a Graphite launch is advised, before it
+#: spends, to set a larger one (`graphite_input_window_too_small`): the
+#: historical 65,536, at which LA-F8's first reading turns passed Carbon's
+#: admission bound. An advisory only; nothing is refused by it.
+INPUT_WINDOW_ADVISED_AT_OR_BELOW = DEFAULT_SETTINGS.max_input_tokens
+
+
+def launch_window(selection, research_share=editions.DEFAULT_RESEARCH_SHARE):
+    """What a Graphite launch on `selection` holds before it spends
+    (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01): its input window and how it was
+    chosen (`ModelSelection.input_window`), what each model call reserves
+    (`budget.call_reservation`, None for an unpriced model), the least
+    provider_nanodollars ceiling at which a FULL launch with
+    `research_share` can pay one research call (`research_share_shortfall`'s
+    own rule; with a hunt, the hunt's part of the share must too), and
+    whether the input-window advisory applies."""
+    per_call = budget.call_reservation(selection).get("provider_nanodollars")
+    fraction = editions.share_fraction(
+        {"mode": editions.FULL_MODE, "research_share": research_share}
+    )
+    minimum = None
+    if per_call is not None and fraction > 0:
+        minimum = {
+            "without_hunt": math.ceil(Fraction(per_call) / fraction),
+            "with_hunt": math.ceil(
+                Fraction(per_call) / (fraction * editions.HUNT_PART_OF_SHARE)
+            ),
+        }
+    window = selection.settings.max_input_tokens
+    return {
+        "max_input_tokens": window,
+        "chosen": selection.input_window,
+        "max_output_tokens": selection.settings.max_output_tokens,
+        "per_call_reservation_nanodollars": per_call,
+        "research_share": research_share,
+        "full_launch_minimum_provider_nanodollars": minimum,
+        "advised": window <= INPUT_WINDOW_ADVISED_AT_OR_BELOW,
+    }
 
 
 def frozen_launch(root, block):

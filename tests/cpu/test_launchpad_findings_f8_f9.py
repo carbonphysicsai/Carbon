@@ -14,8 +14,9 @@ LA-F8. Graphite's stages stopped at the context ceiling: the default input
 window is 65,536 tokens, and Carbon's sound bound counts a token for every byte
 of new tool output. The model's published context (1,048,576 for the default
 Engy model) is now one record the Launchpad reads, and both the capability
-document and the launch options say so before a launch spends. No default
-changes and nothing new is refused.
+document and the launch options say so before a launch spends. Nothing new is
+refused. The Graphite default window itself changed later, by owner decision
+(OWNER-GRAPHITE-MINER-INPUT-WINDOW-01; test_graphite_miner_input_window).
 """
 
 from __future__ import annotations
@@ -263,14 +264,15 @@ def test_the_capability_document_states_the_window_and_published_context():
     assert advisory["next_step"] == NEXT_ACTIONS[advisory["code"]]
 
 
-def test_the_launch_options_carry_the_advisory_and_change_no_default():
+def test_the_launch_options_carry_the_advisory():
+    # OWNER-GRAPHITE-MINER-INPUT-WINDOW-01 since: the default is the model's
+    # published window (test_graphite_miner_input_window); the pinned model
+    # has none recorded, so a launch naming no model keeps 65,536.
     block = runner.graphite_options({})["input_window"]
-    assert block == {
-        "launch_field": "model_settings.max_input_tokens",
-        "default": mp.DEFAULT_SETTINGS.max_input_tokens,
-        "advisory": "graphite_input_window_too_small",
-        "next_step": NEXT_ACTIONS["graphite_input_window_too_small"],
-    }
+    assert block["launch_field"] == "model_settings.max_input_tokens"
+    assert block["default"] == mp.DEFAULT_SETTINGS.max_input_tokens
+    assert block["advisory"] == "graphite_input_window_too_small"
+    assert block["next_step"] == NEXT_ACTIONS["graphite_input_window_too_small"]
     assert mp.DEFAULT_SETTINGS.max_input_tokens == 65536
 
 
@@ -282,4 +284,4 @@ def test_the_stop_code_has_its_own_next_step_naming_the_real_values():
         assert "model_settings.max_input_tokens" in step
     advisory = NEXT_ACTIONS["graphite_input_window_too_small"]
     assert f"minus {CONTEXT_RESERVE_TOKENS:,}" in advisory
-    assert f"default {mp.DEFAULT_SETTINGS.max_input_tokens:,}" in advisory
+    assert f"historical {mp.DEFAULT_SETTINGS.max_input_tokens:,}" in advisory
