@@ -230,6 +230,8 @@ class RefusingHost(SpyHost):
         # LP-PROD-G's intake codes, wherever a door meets one.
         "intake_mismatch",
         "AUTH_STALE",
+        # LAUNCHPAD-ACCEPT-03: the pinned receiver, refused before signing.
+        "intake_receiver_mismatch",
     ],
 )
 def test_a_refusal_reads_the_same_next_step_at_both_doors(browser, code):

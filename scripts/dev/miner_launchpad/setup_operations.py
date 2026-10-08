@@ -141,9 +141,9 @@ SETUP_OPERATIONS = {
             "review",
             "review",
             REGISTERED,
-            "Write your runner profile and load it. Nothing is launched or " "spent.",
+            "Write your runner profile and load it. Nothing is launched or spent.",
             {"confirm"},
-            {"intakes"},
+            {"intakes", "receiver_hotkey", "receivers"},
         ),
     )
 }
@@ -192,6 +192,21 @@ FIELDS = {
     ),
     "confirm": ("boolean", "true"),
     "intakes": ("object", "Challenge id to validator intake URL (optional)."),
+    "receiver_hotkey": (
+        "string",
+        (
+            "The ss58 receiver hotkey of the one validator intake of your own "
+            "you name in intakes; required with it. Nothing is signed for an "
+            "intake that reports another."
+        ),
+    ),
+    "receivers": (
+        "object",
+        (
+            "Challenge id to receiver hotkey, one per intake of your own in "
+            "intakes, when you name several (instead of receiver_hotkey)."
+        ),
+    ),
 }
 
 #: The next step for a refusal that names none of its own.
@@ -589,8 +604,16 @@ def _options(setup, step, state) -> dict:
             for item in challenges
             if item.get("set_aside_intake")
         }
+        # Their receivers, pinned at the Review that wrote them: sent again
+        # as `receivers` (LAUNCHPAD-ACCEPT-03).
+        receivers = {
+            item["id"]: item["set_aside_receiver"]
+            for item in challenges
+            if item.get("set_aside_intake") and item.get("set_aside_receiver")
+        }
         return {
             "intakes": [item["id"] for item in challenges],
             **({"name_again": kept} if kept else {}),
+            **({"receivers_again": receivers} if receivers else {}),
         }
     return {}

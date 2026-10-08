@@ -833,6 +833,16 @@ def _intake(prepared):
     return found or getattr(prepared.args, "battery_intake", None)
 
 
+def _receiver(prepared):
+    """The receiver hotkey the profile pins for this Challenge's intake
+    (`receivers`, LAUNCHPAD-ACCEPT-03), or None for a profile written before
+    receivers were pinned, which is not checked."""
+    found = (getattr(prepared.args, "receivers", None) or {}).get(
+        CHALLENGE.challenge_id
+    )
+    return found if type(found) is str else None
+
+
 async def evaluate_candidate(prepared, epoch, record):
     """Submit a frozen battery candidate to the validator daemon (M3).
 
@@ -925,6 +935,9 @@ async def evaluate_candidate(prepared, epoch, record):
 #: the miner's signer not signing (`signer_unavailable`), an intake for
 #: another chain or Challenge (`intake_mismatch`), and a resend that would
 #: name another hotkey's submission (`intake_signer_changed`) are REFUSED.
+#: So is an intake reporting another receiver than the profile pins
+#: (`intake_receiver_mismatch`, LAUNCHPAD-ACCEPT-03), refused before anything
+#: is signed or sent.
 #: `intake_client.explain(code)` gives each one's plain explanation.
 INTAKE_QUEUED = frozenset({"evaluation_queued"})
 INTAKE_UNAVAILABLE = frozenset(
@@ -963,9 +976,13 @@ def intake_outcome(code):
     return "UNAVAILABLE" if code in INTAKE_UNAVAILABLE else "REFUSED"
 
 
-def _resend(url, signer, submission_id, failure, strategy, contract_digest, io):
+def _resend(
+    url, signer, submission_id, failure, strategy, contract_digest, io, receiver=None
+):
     """Send the epoch's frozen candidate again, so the intake receives it
-    again under the same submission id.
+    again under the same submission id. The intake's facts are read again
+    and must report the profile's pinned `receiver` before the resend is
+    signed (`remote_submission.check_receiver`).
 
     Before anything is sent, the id the resend would name is worked out from
     the signer's public hotkey (`intake_client.submission_id`). If it is not
@@ -986,7 +1003,7 @@ def _resend(url, signer, submission_id, failure, strategy, contract_digest, io):
         != submission_id
     ):
         raise rs.IntakeRefusal("intake_signer_changed")
-    facts = io["read"](url)
+    facts = rs.check_receiver(io["read"](url), receiver)
     next_block = (failure or {}).get("next_block")
     block = (facts.get("snapshot") or {}).get("finalized_block")
     if next_block is not None and type(block) is int and block < next_block:
@@ -1009,7 +1026,16 @@ def _resend(url, signer, submission_id, failure, strategy, contract_digest, io):
 
 
 def submit_through_intake(
-    url, signer, *, root, epoch, strategy, contract_digest, read=None, post=None
+    url,
+    signer,
+    *,
+    root,
+    epoch,
+    strategy,
+    contract_digest,
+    read=None,
+    post=None,
+    receiver=None,
 ):
     """The epoch's frozen candidate through a validator intake, to a verdict.
 
@@ -1024,8 +1050,12 @@ def submit_through_intake(
     submission (`_resend`; otherwise `intake_signer_changed`, nothing sent).
     A candidate recorded against another intake is refused
     (`intake_changed_since_submission`): an epoch's submission belongs to the
-    validator that received it. Returns `(status, answer, submission_id)`;
-    raises `IntakeRefusal` with the intake's or the transport's code.
+    validator that received it. `receiver`, the profile's pinned receiver
+    hotkey, is checked against the intake's reported one before every submit,
+    resend and status poll is signed (`intake_receiver_mismatch`, nothing
+    signed or sent; None for a profile written before receivers were
+    pinned). Returns `(status, answer, submission_id)`; raises
+    `IntakeRefusal` with the intake's or the transport's code.
     """
     from carbon.reconstruction.capability_registry import (
         DEVELOPMENT_VARIANT_NOT_SERVED,
@@ -1041,6 +1071,8 @@ def submit_through_intake(
         # the Launchpad sends nothing (OWNER-GRAPHITE-TEST-WAVE-03 §1).
         raise rs.IntakeRefusal(DEVELOPMENT_VARIANT_NOT_SERVED)
     passed = {} if read is None else {"read": read, "post": post}
+    if receiver is not None:
+        passed["receiver"] = receiver
     io = {
         "read": read or intake_client.read_intake,
         "post": post or intake_client.post,
@@ -1067,12 +1099,14 @@ def submit_through_intake(
         if refused.code != "not_found" or recorded is None:
             raise
         sid = recorded["submission_id"]
-        _resend(url, signer, sid, None, strategy, contract_digest, io)
+        _resend(url, signer, sid, None, strategy, contract_digest, io, receiver)
         return wait()
     failure = answer.get("failure") or {}
     if answer.get("state") != "REFUSED" or failure.get("code") not in RECEIVED_AGAIN:
         return status, answer, submission_id
-    _resend(url, signer, submission_id, failure, strategy, contract_digest, io)
+    _resend(
+        url, signer, submission_id, failure, strategy, contract_digest, io, receiver
+    )
     return wait()
 
 
@@ -1201,6 +1235,7 @@ async def _evaluate_through_intake(prepared, epoch, record, url):
                 strategy=record["strategy"],
                 contract_digest=record.get("contract_digest")
                 or prepared.manifest["contract_digest"],
+                receiver=_receiver(prepared),
             )
         except IntakeRefusal as refused:
             raise OperationRefused(intake_code(refused.code)) from None

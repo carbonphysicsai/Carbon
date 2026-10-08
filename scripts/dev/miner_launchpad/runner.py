@@ -109,6 +109,11 @@ OPTIONAL_PROFILE_FIELDS = {
     # deployment for that Challenge.
     "intakes",
     "validators",
+    # Per Challenge (LAUNCHPAD-ACCEPT-03): {challenge_id: ss58}, the receiver
+    # hotkey that Challenge's intake must report before anything is signed
+    # for it. Review pins it; a profile written before has none, and its
+    # intake is not checked (setup and the prelaunch review warn).
+    "receivers",
     # Legacy names from C-MLP-03, still read exactly as before: the intake and
     # the validator deployment of the one Challenge they were written for.
     "battery_intake",
@@ -141,6 +146,16 @@ def intakes(cfg):
     return found
 
 
+#: An ss58 address, as a pinned receiver hotkey is written.
+RECEIVER_ADDRESS = re.compile(r"[1-9A-HJ-NP-Za-km-z]{47,48}")
+
+
+def receivers(cfg):
+    """{challenge_id: receiver hotkey} the profile pins (LAUNCHPAD-ACCEPT-03);
+    empty for a profile written before receivers were pinned."""
+    return dict(cfg.get("receivers") or {})
+
+
 def validators(cfg):
     """{challenge_id: validator deployment path}, with a legacy
     `battery_validator` path read the same way."""
@@ -157,6 +172,7 @@ def campaign_args(cfg, **fields):
     return SimpleNamespace(
         **{k: Path(v) for k, v in cfg["paths"].items() if k != LEGACY_VALIDATOR},
         intakes=intakes(cfg),
+        receivers=receivers(cfg),
         validators=validators(cfg),
         remote_machine=cfg.get("remote_machine"),
         **fields,
@@ -615,6 +631,15 @@ def validated_profile(cfg):
         _registered_challenge_ids(cfg["intakes"], "intakes")
         if not all(map(_intake_url, cfg["intakes"].values())):
             raise ValueError("an intake is an https URL or a loopback URL")
+    if "receivers" in cfg:
+        _registered_challenge_ids(cfg["receivers"], "receivers")
+        if any(
+            type(v) is not str or not RECEIVER_ADDRESS.fullmatch(v)
+            for v in cfg["receivers"].values()
+        ):
+            raise ValueError("a receiver is an ss58 hotkey address")
+        if not set(cfg["receivers"]) <= set(intakes(cfg)):
+            raise ValueError("a receiver is pinned only beside its intake")
     if "validators" in cfg:
         _registered_challenge_ids(cfg["validators"], "validators")
         if any(
@@ -988,7 +1013,7 @@ GRAPHITE_MODE_SUMMARIES = {
         "select and submit."
     ),
     "FULL": (
-        "Research within the research share of your budget, then build. The " "default."
+        "Research within the research share of your budget, then build. The default."
     ),
 }
 
