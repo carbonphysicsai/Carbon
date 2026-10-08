@@ -193,3 +193,117 @@ def test_the_standing_file_binds_the_owner_records_bytes(tmp_path):
     standing.chmod(0o644)
     with pytest.raises(twp.WinnerPublicationRefused):
         twp.load_standing(standing, chain())
+
+
+# -- the same rule on mainnet; the owner-coldkey switch by network ---------------------
+
+
+def owner_coldkey_miner(ctx, block=925):
+    """The standard snapshot plus a miner whose coldkey is the subnet owner's
+    (Carbon's own miner) and whose hotkey is not an owner hotkey."""
+    base = snapshot(ctx, block=block)
+    member = type(base.participants[0])(2, "carbon-miner-hotkey", "owner-coldkey", 3)
+    return dataclasses.replace(base, participants=base.participants + (member,))
+
+
+def test_testnet_pays_a_winner_whose_coldkey_is_the_owners(tmp_path):
+    issuer, backend, publisher = composed(
+        tmp_path,
+        source=lambda: promotion("carbon-miner-hotkey"),
+        state=owner_coldkey_miner(chain()),
+    )
+    assert publisher.ALLOW_OWNER_COLDKEY_WINNER is True
+    publish(issuer, backend, publisher)
+    assert backend.executions == 1
+
+
+def mainnet():
+    from test_battery_od4a_dispatch import TESTNET_GENESIS
+
+    from carbon.chain import ChainContext
+
+    genesis = TESTNET_GENESIS[:2] + "f" * (len(TESTNET_GENESIS) - 2)
+    return ChainContext(
+        "finney", "wss://finney.example.invalid:443", "finney-fixture", genesis, 99
+    )
+
+
+def mainnet_policy(tmp_path):
+    """A synthetic finney policy (netuid 99, a fixture value): the registered
+    rule, renamed and pinned in a copy of the registry."""
+    import hashlib
+    import json
+    import shutil
+
+    copy = tmp_path / "weight_policies"
+    shutil.copytree(wd.POLICY_DIR, copy)
+    document = json.loads((copy / f"{POLICY.version}.json").read_text())
+    document.update(
+        version="mainnet-fixture",
+        network="finney",
+        netuid=99,
+        authority=wd.MAINNET_AUTHORITY,
+    )
+    (copy / "mainnet-fixture.json").write_text(json.dumps(document))
+    registry = json.loads((copy / "registry.json").read_text())
+    registry["versions"]["mainnet-fixture"] = (
+        "sha256:" + hashlib.sha256(wd._canonical(document)).hexdigest()
+    )
+    (copy / "registry.json").write_text(json.dumps(registry))
+    return wd.load_policy("mainnet-fixture", directory=copy)
+
+
+def mainnet_composed(tmp_path, **kwargs):
+    policy = mainnet_policy(tmp_path / "policy")
+    auth = authorization(
+        context=mainnet(), policy_digest=policy.digest, authority=wd.MAINNET_AUTHORITY
+    )
+    return composed(
+        tmp_path,
+        auth=auth,
+        policy=policy,
+        state=kwargs.pop("state", None) or snapshot(mainnet(), block=925),
+        **kwargs,
+    )
+
+
+def test_mainnet_runs_the_same_rule(tmp_path):
+    issuer, backend, publisher = mainnet_composed(tmp_path)
+    assert publisher.ALLOW_OWNER_COLDKEY_WINNER is False
+    state, _ = asyncio.run(backend.observe())
+    ref = issuer.issue(state)
+    assert ref.identity.startswith("mainnet-winner-mainnet-fixture-e")
+    intent = issuer.resolve(ref, state)["intent"]
+    assert (intent["stage"], intent["maturity"], intent["authority"]) == (
+        "PUBLIC_MAINNET",
+        "MAINNET_OWNER_AUTHORIZED",
+        wd.MAINNET_AUTHORITY,
+    )
+    asyncio.run(publisher.publish(ref))
+    assert backend.executions == 1
+
+
+def test_mainnet_refuses_a_winner_whose_coldkey_is_the_owners(tmp_path):
+    issuer, backend, publisher = mainnet_composed(
+        tmp_path,
+        source=lambda: promotion("carbon-miner-hotkey"),
+        state=owner_coldkey_miner(mainnet()),
+    )
+    with pytest.raises(PublicationFailure) as refused:
+        publish(issuer, backend, publisher)
+    assert str(refused.value) == "OWNER_ASSOCIATED_WINNER_WOULD_BURN"
+    assert backend.executions == 0
+
+
+def test_an_authority_never_crosses_networks(tmp_path):
+    # The testnet record never authorizes mainnet.
+    with pytest.raises(twp.WinnerPublicationRefused):
+        authorization(context=mainnet())
+    # A mainnet authorization with the testnet policy is not for this network.
+    with pytest.raises(twp.WinnerPublicationRefused) as refused:
+        composed(
+            tmp_path,
+            auth=authorization(context=mainnet(), authority=wd.MAINNET_AUTHORITY),
+            state=snapshot(mainnet(), block=925),
+        )
+    assert str(refused.value) == "POLICY_NOT_FOR_THIS_NETWORK"
