@@ -140,6 +140,13 @@ their own evidence. No new solves occur here.
 
 ## 10. Readiness and next gate
 
+Current prospective T2: [buyer value/cost scorecard](../value-cost/battery.md)
+and [owner framework](../value-cost/README.md). Require at least five feasible
+and five distinct near-limit infeasible actions per mandatory stratum. Report
+the overall fraction; it is not a gate. Other value checks still require
+evidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.
+The original fraction-based observations below retain their historical meaning.
+
 Before a new hidden bank, require the [four-check value prerequisite](../question-laws/value-check-v1.md).
 The public with-cooling study has resolved pass fractions 7.3/28.2/12.2/
 11.4/8.3% in 5/15/25/35/40 C bands: only 15 C meets the recommended

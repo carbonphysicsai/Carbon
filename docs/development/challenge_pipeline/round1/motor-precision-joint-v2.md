@@ -272,6 +272,13 @@ be used to tune either the buyer brief or the model.
 
 ## 10. Readiness and claim record
 
+Current prospective T2: [buyer value/cost scorecard](../value-cost/motor.md)
+and [owner framework](../value-cost/README.md). Require at least five feasible
+and five distinct near-limit infeasible actions per mandatory stratum. Report
+the overall fraction; it is not a gate. Other value checks still require
+evidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.
+The original fraction-based observations below retain their historical meaning.
+
 Before a new hidden bank, require the [four-check value receipt](../question-laws/value-check-v1.md):
 each supported command/service stratum discriminates designs and has
 meaningful buyer-unit margins, a common geometry/command action passes the
