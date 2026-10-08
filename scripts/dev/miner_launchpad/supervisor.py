@@ -1077,11 +1077,12 @@ NEXT_ACTIONS = {
     ),
     "research_share_too_small": (
         "Your research share cannot pay for one model call: each call reserves "
-        "its most possible cost (the model's whole output unless you cap "
-        "max_output_tokens in model_settings) before it is sent, so this "
-        "research would send nothing. Raise your provider_nanodollars or "
-        "provider_attempts ceiling, raise research_share, cap the model's "
-        "output, or launch BUILD."
+        "its most possible cost (the model's whole output and its whole input "
+        "window unless you cap max_output_tokens or max_input_tokens in "
+        "model_settings) before it is sent, so this research would send "
+        "nothing. Raise your provider_nanodollars or provider_attempts "
+        "ceiling, raise research_share, cap the model's output or input "
+        "window, or launch BUILD."
     ),
     # LA-F8 (LAUNCHPAD-FINDINGS-F8-F9): the input window, before a launch
     # (the options' `input_window` advisory) and after a stop at it.
@@ -1089,19 +1090,25 @@ NEXT_ACTIONS = {
         "Graphite reads whole discovery documents, several in one turn, and "
         "Carbon admits a request only while it stays under max_input_tokens "
         "minus 4,096, counting one token for every byte added since the "
-        "provider's last count. At the default 65,536 Graphite's first reading "
-        "turns pass that bound. Set model_settings.max_input_tokens higher, up "
-        "to your model's published context (input_window lists it), before you "
+        "provider's last count. A Graphite launch that sets no "
+        "max_input_tokens gets its model's published context less its output "
+        "cap; where Carbon records no context, the historical 65,536, at "
+        "which Graphite's first reading turns pass that bound. This applies "
+        "when your window - that default, or the max_input_tokens you set - "
+        "is 65,536 or less. Set model_settings.max_input_tokens higher, up to "
+        "your model's published context less max_output_tokens (input_window "
+        "lists both), or choose a model with a published context, before you "
         "launch. Each call is reserved at that window, so a larger one holds "
-        "more of your provider_nanodollars ceiling per call."
+        "more of your provider_nanodollars ceiling per call, and a FULL "
+        "launch's research share must hold one whole call."
     ),
     "context_ceiling": (
         "The agent stopped because its next request could pass your model's "
         "input window as Carbon bounds it; no history was silently dropped. "
         "Launch a new campaign with model_settings.max_input_tokens set "
-        "higher, up to your model's published context (input_window lists "
-        "it). Each call is reserved at that window, so check your "
-        "provider_nanodollars ceiling too."
+        "higher, up to your model's published context less max_output_tokens "
+        "(input_window lists both). Each call is reserved at that window, so "
+        "check your provider_nanodollars ceiling too."
     ),
     "too_many_pins": (
         "You pinned more cards than one plan can consider (64), and the "

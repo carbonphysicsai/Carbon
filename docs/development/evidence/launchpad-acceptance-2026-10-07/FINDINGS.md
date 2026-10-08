@@ -238,6 +238,10 @@ the cause, and the slice or PR that fixes it. The plan is
   - Decision: `.agent/decisions/2026-10-08-LAUNCHPAD-FINDINGS-F8-F9.md`.
 - **Status:** advisory fixed in the PR that carries this entry. The default
   window is open and needs an owner decision.
+  2026-10-08: decided. A new Graphite miner-edition plan's default window is
+  now the model's published window (its context less the output cap,
+  917,504 tokens on the default Engy model), under
+  OWNER-GRAPHITE-MINER-INPUT-WINDOW-01.
 
 ## LA-F9: every practice result was withheld from Graphite as protected material
 
@@ -306,6 +310,9 @@ the cause, and the slice or PR that fixes it. The plan is
   - Decision: `.agent/decisions/2026-10-08-LAUNCHPAD-FINDINGS-F8-F9.md`.
 - **Status:** fixed in the PR that carries this entry, pending security
   review.
+  2026-10-08: security-accepted by the owner under
+  OWNER-LA-F9-SECURITY-ACCEPT-01. The `dispatched: false` follow-up stays
+  open.
 
 ## LA-F10: the Launchpad cannot practise on Carbon's released worker images
 

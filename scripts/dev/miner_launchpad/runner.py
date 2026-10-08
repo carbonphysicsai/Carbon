@@ -766,7 +766,7 @@ MODEL_SELECTION_FIELDS = frozenset(
 )
 
 
-def setup_selection(cfg, *, settings=None, output_default=None):
+def setup_selection(cfg, *, settings=None, output_default=None, input_default=None):
     """The profile's setup choice as a validated selection, with its key file.
 
     Raises `ModelSelectionRefused` when it does not validate.
@@ -779,6 +779,7 @@ def setup_selection(cfg, *, settings=None, output_default=None):
         credential={"kind": "file", "reference": path or "unset"},
         settings=settings,
         output_default=output_default,
+        input_default=input_default,
         **chosen,
     )
 
@@ -1144,14 +1145,74 @@ def hunt_estimate(cfg):
     }
 
 
+def graphite_default_selection(cfg):
+    """The selection a Graphite launch naming no model and no model settings
+    runs with (setup's choice, or the pinned default), exactly as its
+    campaign's builder chooses it: the model's own maximum output
+    (OWNER-LAUNCHPAD-PROD-02) and its published context less that output
+    (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01). None when it does not validate."""
+    from carbon.development_session.model_provider import (
+        DEFAULT_SELECTION,
+        INPUT_DEFAULT_V2,
+        OUTPUT_DEFAULT_V2,
+        ModelSelectionRefused,
+        select,
+    )
+
+    try:
+        if "model_selection" in cfg:
+            return setup_selection(
+                cfg, output_default=OUTPUT_DEFAULT_V2, input_default=INPUT_DEFAULT_V2
+            )
+        return select(
+            provider_id=DEFAULT_SELECTION.provider_id,
+            model_id=DEFAULT_SELECTION.model_id,
+            credential={"kind": "file", "reference": "unset"},
+            output_default=OUTPUT_DEFAULT_V2,
+            input_default=INPUT_DEFAULT_V2,
+        )
+    except (ModelSelectionRefused, KeyError, TypeError, ValueError):
+        return None
+
+
+def graphite_input_window(cfg):
+    """The input window a Graphite launch gets, said before it spends (LA-F8,
+    OWNER-GRAPHITE-MINER-INPUT-WINDOW-01): for a launch naming no model and
+    no window, the window its campaign will freeze, what each call reserves
+    at it and the least provider_nanodollars ceiling a FULL launch at the
+    default research share needs (`driver.launch_window`), and whether the
+    advisory applies. The advisory applies when that window, or the
+    max_input_tokens a miner sets, is at most `advised_at_or_below`."""
+    from carbon.agent_campaign.graphite.miner import driver
+    from carbon.development_session.model_provider import INPUT_DEFAULT_V2
+    from scripts.dev.miner_launchpad.supervisor import next_action
+
+    selection = graphite_default_selection(cfg)
+    window = None if selection is None else driver.launch_window(selection)
+    return {
+        "launch_field": "model_settings.max_input_tokens",
+        "default_rule": INPUT_DEFAULT_V2,
+        "default": None if window is None else window["max_input_tokens"],
+        "launch_default": (
+            None
+            if window is None
+            else {
+                "model": selection.provider_id + ":" + selection.model_id,
+                **window,
+            }
+        ),
+        "advised_at_or_below": driver.INPUT_WINDOW_ADVISED_AT_OR_BELOW,
+        "advisory": "graphite_input_window_too_small",
+        "next_step": next_action("graphite_input_window_too_small"),
+    }
+
+
 def graphite_options(cfg):
     """What a Graphite launch may choose, for the launch form and an agent:
     the modes, the research share, a hunt's shape and planning cost, the
-    optional limits, the input-window advisory (LA-F8) and the Challenges
-    Graphite runs on."""
+    optional limits, the input window and its advisory (LA-F8) and the
+    Challenges Graphite runs on."""
     from carbon.challenge_registry.campaigns import implemented_campaigns
-    from carbon.development_session.model_provider import DEFAULT_SETTINGS
-    from scripts.dev.miner_launchpad.supervisor import next_action
 
     return {
         "agent": GRAPHITE,
@@ -1197,15 +1258,10 @@ def graphite_options(cfg):
             "maximum": LIMIT_MAX,
             "omitted": "only your campaign ceilings - money, attempts, trials, time - bind",
         },
-        # LA-F8: said before a launch spends, not after. Advisory only: no
-        # default changes and nothing is refused (capabilities' input_window
-        # lists each model's published context).
-        "input_window": {
-            "launch_field": "model_settings.max_input_tokens",
-            "default": DEFAULT_SETTINGS.max_input_tokens,
-            "advisory": "graphite_input_window_too_small",
-            "next_step": next_action("graphite_input_window_too_small"),
-        },
+        # LA-F8: said before a launch spends, not after. Advisory only;
+        # nothing is refused (capabilities' input_window lists each model's
+        # published context and Graphite default).
+        "input_window": graphite_input_window(cfg),
         "offered_for": [
             {"id": entry.challenge_id, "version": entry.version}
             for entry, _campaign in implemented_campaigns()
@@ -2626,6 +2682,7 @@ class RunnerAdapter:
         chooses (the model's own maximum, OWNER-LAUNCHPAD-PROD-02)."""
         from carbon.development_session.model_provider import (
             ADAPTERS,
+            INPUT_DEFAULT_V2,
             OUTPUT_DEFAULT_V2,
             ModelSelectionRefused,
             check_budget,
@@ -2633,6 +2690,10 @@ class RunnerAdapter:
         )
         from carbon.development_session.product_campaign import miner_budget
 
+        # A Graphite launch's unset input window is its model's published
+        # context less its output cap (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01),
+        # as the campaign's own builder will choose it.
+        input_default = INPUT_DEFAULT_V2 if request.get("agent") == GRAPHITE else None
         mode = request.get("feedback_mode")
         if mode is not None:
             if type(mode) is not str or mode not in feedback_modes():
@@ -2679,7 +2740,10 @@ class RunnerAdapter:
                 # campaign's own builder will choose it.
                 selection = (
                     setup_selection(
-                        cfg, settings=settings, output_default=OUTPUT_DEFAULT_V2
+                        cfg,
+                        settings=settings,
+                        output_default=OUTPUT_DEFAULT_V2,
+                        input_default=input_default,
                     )
                     if same_as_setup
                     else select(
@@ -2688,6 +2752,7 @@ class RunnerAdapter:
                         credential={"kind": "file", "reference": path},
                         settings=settings,
                         output_default=OUTPUT_DEFAULT_V2,
+                        input_default=input_default,
                     )
                 )
                 budget = miner_budget(request.get("budget"))

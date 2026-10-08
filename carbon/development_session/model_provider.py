@@ -499,6 +499,18 @@ DEFAULT_SETTINGS = Settings(
 OUTPUT_DEFAULT_V2 = "carbon.model-selection.output-default.v2"
 OUTPUT_DEFAULTS = (None, OUTPUT_DEFAULT_V2)
 
+#: How a new Graphite miner-edition plan's input window is chosen when the
+#: miner sets none (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01, LA-F8): the selected
+#: model's published context less the plan's output cap (`input_window`), so
+#: a request and its whole reply fit what the provider publishes. A
+#: `max_input_tokens` the miner sets binds. A selection built without it
+#: (None, the historical rule) keeps `DEFAULT_SETTINGS`' 65,536, so every
+#: other caller (an autonomous or research-loop plan, internal Graphite,
+#: Burgers, a development grant) and every plan frozen before is unchanged.
+#: A plan records its window, so it replays the same under either rule.
+INPUT_DEFAULT_V2 = "carbon.model-selection.input-default.v2"
+INPUT_DEFAULTS = (None, INPUT_DEFAULT_V2)
+
 _MODEL_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}")
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 EFFORTS = (None, "minimal", "low", "medium", "high")
@@ -521,6 +533,11 @@ class ModelSelection:
     pricing: Pricing | None
     credential: CredentialReference
     _token: object = field(default=None, repr=False, compare=False)
+    #: How the input window was chosen (`input_window`'s record), for a
+    #: selection built under `INPUT_DEFAULT_V2`; None otherwise. A plan
+    #: freezes it beside the selection; `record()` never carries it, so a
+    #: selection's record is the same under either input default.
+    input_window: dict | None = field(default=None, compare=False)
 
     def __post_init__(self):
         # Each ticket admits one construction, so neither a direct call nor
@@ -847,6 +864,61 @@ def published_context(provider_id, model_id):
     }
 
 
+#: Where a new Graphite miner-edition plan's input window came from
+#: (`input_window`).
+INPUT_FROM_PUBLISHED = "published_context_less_output"
+INPUT_CONSERVATIVE = "no_published_context"
+INPUT_NO_ROOM = "published_context_leaves_no_window"
+INPUT_FROM_MINER = "miner_set"
+
+
+def input_window(provider_id, model_id, max_output_tokens):
+    """The input window a new Graphite miner-edition plan opens with when the
+    miner sets none (`INPUT_DEFAULT_V2`), as a record:
+    `{rule, max_input_tokens, basis, published_context, max_output_tokens,
+    bound}`.
+
+    1. The model's published context (`published_context`) less the plan's
+       output cap, so a request and its whole reply fit the context the
+       provider publishes. Bounded by `INPUT_TOKEN_BOUNDS`' upper limit; the
+       record's `bound` names that limit when it applied.
+    2. Otherwise Carbon records no context for the model and never guesses
+       one: the historical window (`DEFAULT_SETTINGS`, 65,536 tokens) until
+       the miner sets their own.
+    3. A context that leaves less than `INPUT_TOKEN_BOUNDS`' lower limit
+       after the output cap also keeps the historical window, and says so.
+    """
+    published = published_context(provider_id, model_id)
+    record = {
+        "rule": INPUT_DEFAULT_V2,
+        "published_context": published,
+        "max_output_tokens": max_output_tokens,
+        "bound": None,
+    }
+    if published is None:
+        return {
+            **record,
+            "max_input_tokens": DEFAULT_SETTINGS.max_input_tokens,
+            "basis": INPUT_CONSERVATIVE,
+        }
+    low, high = INPUT_TOKEN_BOUNDS
+    room = published["tokens"] - max_output_tokens
+    if room < low:
+        return {
+            **record,
+            "max_input_tokens": DEFAULT_SETTINGS.max_input_tokens,
+            "basis": INPUT_NO_ROOM,
+        }
+    if room > high:
+        return {
+            **record,
+            "max_input_tokens": high,
+            "basis": INPUT_FROM_PUBLISHED,
+            "bound": {"upper": high, "source": "model_provider.INPUT_TOKEN_BOUNDS"},
+        }
+    return {**record, "max_input_tokens": room, "basis": INPUT_FROM_PUBLISHED}
+
+
 def select(
     *,
     provider_id,
@@ -857,6 +929,7 @@ def select(
     declared_pricing=None,
     published_pricing=None,
     output_default=None,
+    input_default=None,
     adapters=None,
 ):
     """Validate a miner's choice into a `ModelSelection`.
@@ -871,9 +944,15 @@ def select(
     `output_default` is how an unset max_output_tokens is chosen: None, the
     historical 2,048, or `OUTPUT_DEFAULT_V2` for a new plan, the model's own
     maximum (`output_maximum`). A max_output_tokens in `settings` binds
-    either way. `adapters` is the registry `provider_id` must be in:
-    `ADAPTERS` (every miner-facing caller) unless Carbon's own Graphite
-    passes its own (`graphite.model_providers.GRAPHITE_ADAPTERS`).
+    either way. `input_default` is how an unset max_input_tokens is chosen:
+    None, the historical 65,536, or `INPUT_DEFAULT_V2` for a new Graphite
+    miner-edition plan, the model's published context less the output cap
+    (`input_window`); a max_input_tokens in `settings` binds either way, and
+    the selection keeps the record of how its window was chosen
+    (`ModelSelection.input_window`). `adapters` is the registry
+    `provider_id` must be in: `ADAPTERS` (every miner-facing caller) unless
+    Carbon's own Graphite passes its own
+    (`graphite.model_providers.GRAPHITE_ADAPTERS`).
     """
     registry = _registry(adapters)
     adapter = registry.get(provider_id)
@@ -881,6 +960,8 @@ def select(
         raise ModelSelectionRefused("unknown provider adapter")
     if output_default not in OUTPUT_DEFAULTS:
         raise ModelSelectionRefused("unknown output default")
+    if input_default not in INPUT_DEFAULTS:
+        raise ModelSelectionRefused("unknown input default")
     if model_id is None:
         model_id = adapter.default_model
     if type(model_id) is not str or not _MODEL_ID.fullmatch(model_id):
@@ -898,13 +979,28 @@ def select(
         chosen.update(settings)
     if chosen["reasoning_effort"] not in EFFORTS:
         raise ModelSelectionRefused("unsupported reasoning effort")
+    max_output_tokens = _int(
+        chosen["max_output_tokens"], *OUTPUT_TOKEN_BOUNDS, "max_output_tokens"
+    )
+    window = None
+    if input_default == INPUT_DEFAULT_V2:
+        if "max_input_tokens" in (settings or {}):
+            window = {
+                "rule": INPUT_DEFAULT_V2,
+                "published_context": published_context(provider_id, model_id),
+                "max_output_tokens": max_output_tokens,
+                "bound": None,
+                "max_input_tokens": chosen["max_input_tokens"],
+                "basis": INPUT_FROM_MINER,
+            }
+        else:
+            window = input_window(provider_id, model_id, max_output_tokens)
+            chosen["max_input_tokens"] = window["max_input_tokens"]
     resolved = Settings(
         max_input_tokens=_int(
             chosen["max_input_tokens"], *INPUT_TOKEN_BOUNDS, "max_input_tokens"
         ),
-        max_output_tokens=_int(
-            chosen["max_output_tokens"], *OUTPUT_TOKEN_BOUNDS, "max_output_tokens"
-        ),
+        max_output_tokens=max_output_tokens,
         reasoning_effort=chosen["reasoning_effort"],
         timeout_seconds=_int(chosen["timeout_seconds"], 10, 600, "timeout_seconds"),
     )
@@ -926,7 +1022,14 @@ def select(
     _TICKETS.add(ticket)
     try:
         return ModelSelection(
-            adapter, model_id, endpoint, resolved, pricing, credential, _token=ticket
+            adapter,
+            model_id,
+            endpoint,
+            resolved,
+            pricing,
+            credential,
+            _token=ticket,
+            input_window=window,
         )
     finally:
         _TICKETS.discard(ticket)

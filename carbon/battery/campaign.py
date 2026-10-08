@@ -230,6 +230,12 @@ def graphite_plan(budget, selection, graphite):
     }
     if not selection.is_historical_default:
         plan["model_selection"] = selection.record()
+    window = getattr(selection, "input_window", None)
+    if window is not None:
+        # How the window was chosen (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01):
+        # the published context it came from and any bound that applied, or
+        # that Carbon records none. A plan frozen before has no record.
+        plan["input_window"] = window
     return plan
 
 
@@ -453,6 +459,7 @@ async def prepare_battery(args, *, ledger=None, campaign):
         from carbon.development_session.agent import ResponsesTransport
         from carbon.development_session.model_provider import SelectionTransport
         from carbon.development_session.research_campaign import (
+            new_plan_input_default,
             new_plan_output_default,
             supplied_selection,
         )
@@ -462,9 +469,14 @@ async def prepare_battery(args, *, ledger=None, campaign):
         if frozen is None:
             # A new plan: its agent's output cap defaults to the selected
             # model's own maximum, unless the miner set one
-            # (OWNER-LAUNCHPAD-PROD-02). The plan records the cap it chose.
+            # (OWNER-LAUNCHPAD-PROD-02), and a Graphite plan's input window
+            # to the model's published context less that cap, unless the
+            # miner set one (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01). The plan
+            # records what it chose.
             selection = supplied_selection(
-                args, output_default=new_plan_output_default(args)
+                args,
+                output_default=new_plan_output_default(args),
+                input_default=new_plan_input_default(args, agent),
             )
             if agent == "graphite":
                 # The miner's launch fields and library, read once and frozen
