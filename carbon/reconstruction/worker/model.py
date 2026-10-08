@@ -20,6 +20,11 @@ CLEANUP_CONFIRMATION_SECONDS = 30
 CPU_COUNT = 2
 MEMORY_BYTES = 4 * 1024**3
 SWAP_BYTES = 0
+#: The Level 4 G5 compile lane: the C-03 CPU profile with only its memory
+#: raised (OWNER-L4-VALUES-01; LEVEL4-G5-LANE-MEMORY-01). Every other
+#: control, the network's included, is the C-03 profile's.
+G5_PROFILE_ID = "carbon.c03.linux-x86_64-cpu.level4-g5-compile.v1"
+G5_MEMORY_BYTES = 8 * 1024**3
 PIDS_LIMIT = 256
 SCRATCH_BYTES = 512 * 1024**2
 SCRATCH_INODES = 8192
@@ -251,6 +256,14 @@ class DevelopmentWorkerProfile(LaunchAuthorityBearing):
         return int(controls["productive_seconds"])
 
     @property
+    def effective_memory_bytes(self) -> int:
+        """The memory limit this launch is run and inspected under: the G5
+        compile lane's, or the C-03 constant for every other profile."""
+        if self.profile_id == G5_PROFILE_ID:
+            return G5_MEMORY_BYTES
+        return MEMORY_BYTES
+
+    @property
     def effective_output_bytes(self) -> int:
         """The output ceiling this launch's collection is actually bounded by."""
         controls = self.accelerator_controls
@@ -261,7 +274,7 @@ class DevelopmentWorkerProfile(LaunchAuthorityBearing):
     def __post_init__(self) -> None:
         if self.accelerator_profile_id is None:
             if (
-                self.profile_id != PROFILE_ID
+                self.profile_id not in (PROFILE_ID, G5_PROFILE_ID)
                 or self.profile_version != PROFILE_VERSION
                 or self.accelerator_grant_digest is not None
                 or self.accelerator_role is not None
@@ -382,7 +395,7 @@ class DevelopmentWorkerProfile(LaunchAuthorityBearing):
             },
             "concurrency": 1,
             "cpu": {"count": CPU_COUNT, "quota_cpus": 2, "cpuset_count": 2},
-            "memory": {"bytes": MEMORY_BYTES, "swap_bytes": SWAP_BYTES},
+            "memory": {"bytes": self.effective_memory_bytes, "swap_bytes": SWAP_BYTES},
             "pids": PIDS_LIMIT,
             "scratch": {"bytes": SCRATCH_BYTES, "inodes": SCRATCH_INODES},
             "input": {"bytes": INPUT_BYTES, "expanded_bytes": EXPANDED_INPUT_BYTES},
@@ -611,6 +624,8 @@ __all__ = [
     "DIAGNOSTIC_BYTES",
     "EXPANDED_INPUT_BYTES",
     "EXPANDED_OUTPUT_BYTES",
+    "G5_MEMORY_BYTES",
+    "G5_PROFILE_ID",
     "GRACEFUL_CANCELLATION_SECONDS",
     "INPUT_BYTES",
     "MEMORY_BYTES",
