@@ -92,7 +92,11 @@ def plan_a(runs):
         for c2 in (0.4, 0.7, 1.0)
         for h in (3.0, 6.0)
     ]
-    return jobs
+    return [
+        j
+        for j in jobs
+        if key(j["c1"], j["c2"], j["h_multiplier"], j["t_amb_c"]) not in have
+    ]
 
 
 def _cross(points, targets, step, lo, hi, transform=lambda x: x):
