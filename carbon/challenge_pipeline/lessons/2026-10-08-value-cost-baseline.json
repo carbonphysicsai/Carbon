@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-value-cost-baseline",
+  "recorded_at": "2026-10-08T20:42:45Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-VALUE-COST-01 baseline",
+    "description": "Native Windows packet readiness and reference-credibility regression tests before new scorecards."
+  },
+  "expected": "Preserve existing historical packet and credibility contracts.",
+  "observed": "41 passed in 2.94s. Native-host diagnostic only; no canonical CI, physical adequacy or measured cost is implied.",
+  "keep": [
+    "Preserve the original fraction audit while adding a prospective contested-boundary rule."
+  ],
+  "change": [
+    "Low overall pass fraction is not itself a weak question; count distinct feasible and near-limit infeasible actions per stratum."
+  ],
+  "protocol_elements": [
+    "buyer value",
+    "historical evidence",
+    "reference credibility"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

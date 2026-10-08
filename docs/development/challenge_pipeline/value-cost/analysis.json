@@ -1,0 +1,618 @@
+{
+  "schema": "carbon.challenge.value-cost.analysis.v1",
+  "authority": "OWNER-CHALLENGE-VALUE-COST-01",
+  "maturity": "SPECIFIED",
+  "runtime_enforced": false,
+  "dispatch_ready": false,
+  "protected_material": false,
+  "historical_rescore": false,
+  "spend_grant": null,
+  "accepted_value_receipt": null,
+  "source_main": "bc650fd53826aaf752d1e9e96e1ead4328b653df",
+  "public_evidence_head": "96983b03b1b7fb06749e7584b16f0bb7be2dcc01",
+  "adoption": "HUMAN_INPUT",
+  "overall_keep": "NOT_DEMONSTRATED",
+  "ranking": "UNCOMPUTABLE",
+  "t2": {
+    "minimum_feasible": 5,
+    "minimum_near_infeasible": 5,
+    "near_definition": "ONE_REGISTERED_REFINEMENT_BAND",
+    "numeric_acceptance": "HUMAN_INPUT",
+    "fraction_role": "DIAGNOSTIC_NOT_GATE",
+    "prune_for_fraction": false,
+    "redraw_none_feasible": false,
+    "thresholds_reset_exposure": false
+  },
+  "budget": {
+    "currency": "EUR",
+    "startup_ceiling": 100,
+    "working_rate_per_node_hour": 1.37,
+    "overhead_sensitivity_reserve": 20,
+    "status": "ASSUMPTION_NOT_QUOTE_OR_GRANT",
+    "wall_equals_cpu": "ILLUSTRATIVE_SERIAL_SCENARIO_NOT_MEASURED",
+    "ongoing_ax42_fraction_ceiling": 0.15
+  },
+  "power": {
+    "owner": "OPTIMIZER_AND_TEST_LEAD",
+    "cross_batch_evidence": null,
+    "independent_windows_assumed": false,
+    "remaining_exposure_required": true
+  },
+  "custody": {
+    "witness": "SEPARATE_NON_HIDDEN_OR_RETIRED_PUBLISHED",
+    "protected_witness_allowed": false,
+    "sealed_reference_revised": false
+  },
+  "battery_bands": [
+    {
+      "band_c": 5,
+      "feasible": 3,
+      "resolved": 41,
+      "near_infeasible": null,
+      "t2": "NOT_DEMONSTRATED"
+    },
+    {
+      "band_c": 15,
+      "feasible": 11,
+      "resolved": 39,
+      "near_infeasible": null,
+      "t2": "NOT_DEMONSTRATED"
+    },
+    {
+      "band_c": 25,
+      "feasible": 16,
+      "resolved": 131,
+      "near_infeasible": null,
+      "t2": "NOT_DEMONSTRATED"
+    },
+    {
+      "band_c": 35,
+      "feasible": 15,
+      "resolved": 132,
+      "near_infeasible": null,
+      "t2": "NOT_DEMONSTRATED"
+    },
+    {
+      "band_c": 40,
+      "feasible": 3,
+      "resolved": 36,
+      "near_infeasible": null,
+      "t2": "NOT_DEMONSTRATED"
+    }
+  ],
+  "f02_action_coverage": {
+    "original_actions": 9,
+    "necessary_minimum_distinct_actions": 10,
+    "illustrative_proposed_actions": 16,
+    "contexts": 24,
+    "proposal_adopted": false
+  },
+  "cards": {
+    "battery": {
+      "file": "battery.md",
+      "packet": "battery-ambient-map-v3.md",
+      "overall_keep": "NOT_DEMONSTRATED",
+      "reframe": "NO_NEW_REFRAME",
+      "workflow_authors": [
+        "NREL",
+        "Chen et al., independent research study"
+      ],
+      "workflow_evaluation_count": "UNSOURCED",
+      "buyer_value": {
+        "status": "ASSUMPTION",
+        "currency": "USD",
+        "unit": "MINUTES_SAVED_PER_SESSION",
+        "before_units": [
+          1,
+          3,
+          6
+        ],
+        "unit_rate": [
+          0.2,
+          0.5,
+          1
+        ],
+        "before_gross": [
+          0.2,
+          1.5,
+          6
+        ],
+        "after_units": null,
+        "after_gross": null,
+        "net_value": "NOT_DEMONSTRATED"
+      },
+      "credibility": {
+        "target_tier": 2,
+        "earned_tier": null,
+        "accepted_witness_receipt": null
+      },
+      "cost": {
+        "bank_primary_units": 500,
+        "bank_size_adopted": false,
+        "complete_case_p50_cpu_h": null,
+        "complete_case_p95_cpu_h": null,
+        "peak_ram_gib": null,
+        "startup_bill": null,
+        "ongoing_cpu_h": null,
+        "validator_measurement": null
+      },
+      "t3": "NOT_DEMONSTRATED",
+      "t4": "NOT_DEMONSTRATED",
+      "safety_before": {
+        "charging_temperature_c": 45,
+        "plating_v": 0,
+        "voltage_v": 4.2,
+        "capacity_ratio": 0.99
+      },
+      "safety_after": {
+        "charging_temperature_c": 45,
+        "plating_v": 0,
+        "voltage_v": 4.2,
+        "capacity_ratio": 0.99
+      }
+    },
+    "motor": {
+      "file": "motor.md",
+      "packet": "motor-precision-joint-v2.md",
+      "overall_keep": "NOT_DEMONSTRATED",
+      "reframe": "AWAIT_REVISED_PANEL",
+      "workflow_authors": [
+        "Kollmorgen",
+        "COMSOL"
+      ],
+      "workflow_evaluation_count": "UNSOURCED",
+      "buyer_value": {
+        "status": "ASSUMPTION",
+        "currency": "USD",
+        "unit": "ENGINEERING_REWORK_HOURS_AVOIDED_PER_REVISION",
+        "before_units": [
+          2,
+          6,
+          16
+        ],
+        "unit_rate": [
+          100,
+          150,
+          200
+        ],
+        "before_gross": [
+          200,
+          900,
+          3200
+        ],
+        "after_units": null,
+        "after_gross": null,
+        "net_value": "NOT_DEMONSTRATED"
+      },
+      "credibility": {
+        "target_tier": 2,
+        "earned_tier": null,
+        "accepted_witness_receipt": null
+      },
+      "cost": {
+        "bank_primary_units": 1800,
+        "bank_size_adopted": false,
+        "complete_case_p50_cpu_h": null,
+        "complete_case_p95_cpu_h": null,
+        "peak_ram_gib": null,
+        "startup_bill": null,
+        "ongoing_cpu_h": null,
+        "validator_measurement": null
+      },
+      "t3": "NOT_DEMONSTRATED",
+      "t4": "NOT_DEMONSTRATED",
+      "safety_before": {
+        "holding_torque_nm": 6,
+        "peak_torque_nm": 12,
+        "ripple_fraction": 0.05,
+        "cogging_pk_pk_nm": 0.05
+      },
+      "safety_after": {
+        "holding_torque_nm": 6,
+        "peak_torque_nm": 12,
+        "ripple_fraction": 0.05,
+        "cogging_pk_pk_nm": 0.05
+      }
+    },
+    "cooling-cell": {
+      "file": "cooling-cell.md",
+      "packet": "cooling-cell-v3.md",
+      "overall_keep": "NOT_DEMONSTRATED",
+      "reframe": "AWAIT_REVISED_PANEL",
+      "workflow_authors": [
+        "Boyd",
+        "CoolIT"
+      ],
+      "workflow_evaluation_count": "UNSOURCED",
+      "buyer_value": {
+        "status": "ASSUMPTION",
+        "currency": "USD",
+        "unit": "ENGINEERING_REWORK_HOURS_AVOIDED_PER_REVISION",
+        "before_units": [
+          1,
+          3,
+          8
+        ],
+        "unit_rate": [
+          100,
+          150,
+          200
+        ],
+        "before_gross": [
+          100,
+          450,
+          1600
+        ],
+        "after_units": null,
+        "after_gross": null,
+        "net_value": "NOT_DEMONSTRATED"
+      },
+      "credibility": {
+        "target_tier": 2,
+        "earned_tier": null,
+        "accepted_witness_receipt": null
+      },
+      "cost": {
+        "bank_primary_units": 1000,
+        "bank_size_adopted": false,
+        "complete_case_p50_cpu_h": null,
+        "complete_case_p95_cpu_h": null,
+        "peak_ram_gib": null,
+        "startup_bill": null,
+        "ongoing_cpu_h": null,
+        "validator_measurement": null
+      },
+      "t3": "NOT_DEMONSTRATED",
+      "t4": "NOT_DEMONSTRATED",
+      "safety_before": {
+        "case_temperature_c": 85,
+        "plane": "LID_SIDE_TIM2_INTERFACE"
+      },
+      "safety_after": {
+        "case_temperature_c": 85,
+        "plane": "LID_SIDE_TIM2_INTERFACE"
+      }
+    },
+    "f02": {
+      "file": "f02.md",
+      "packet": "f02-burst-thermal.md",
+      "overall_keep": "NOT_DEMONSTRATED",
+      "reframe": "PROPOSED_ACTION_GRAMMAR_V2",
+      "workflow_authors": [
+        "AMD",
+        "Ansys"
+      ],
+      "workflow_evaluation_count": "UNSOURCED",
+      "buyer_value": {
+        "status": "ASSUMPTION",
+        "currency": "USD",
+        "unit": "ENGINEERING_REWORK_HOURS_AVOIDED_PER_REVISION",
+        "before_units": [
+          2,
+          4,
+          8
+        ],
+        "unit_rate": [
+          100,
+          150,
+          200
+        ],
+        "before_gross": [
+          200,
+          600,
+          1600
+        ],
+        "after_units": [
+          2,
+          4,
+          8
+        ],
+        "after_gross": [
+          200,
+          600,
+          1600
+        ],
+        "net_value": "NOT_DEMONSTRATED"
+      },
+      "credibility": {
+        "target_tier": 2,
+        "earned_tier": null,
+        "accepted_witness_receipt": null
+      },
+      "cost": {
+        "bank_primary_units": 384,
+        "bank_size_adopted": false,
+        "complete_case_p50_cpu_h": null,
+        "complete_case_p95_cpu_h": null,
+        "peak_ram_gib": null,
+        "startup_bill": null,
+        "ongoing_cpu_h": null,
+        "validator_measurement": null
+      },
+      "t3": "NOT_DEMONSTRATED",
+      "t4": "NOT_DEMONSTRATED",
+      "safety_before": {
+        "temperature_c": 95,
+        "peak_power_upper_w": 140
+      },
+      "safety_after": {
+        "temperature_c": 95,
+        "peak_power_upper_w": 140
+      }
+    },
+    "f06": {
+      "file": "f06.md",
+      "packet": "f06-grating-coupler.md",
+      "overall_keep": "NOT_DEMONSTRATED",
+      "reframe": "PROPOSED_BUYER_STAGE_V2",
+      "workflow_authors": [
+        "Ansys",
+        "Westerveld et al."
+      ],
+      "workflow_evaluation_count": "UNSOURCED",
+      "buyer_value": {
+        "status": "ASSUMPTION",
+        "currency": "USD",
+        "unit": "ENGINEERING_REWORK_HOURS_AVOIDED_PER_REVISION",
+        "before_units": [
+          4,
+          8,
+          16
+        ],
+        "unit_rate": [
+          100,
+          150,
+          200
+        ],
+        "before_gross": [
+          400,
+          1200,
+          3200
+        ],
+        "after_units": [
+          2,
+          4,
+          6
+        ],
+        "after_gross": [
+          200,
+          600,
+          1200
+        ],
+        "net_value": "NOT_DEMONSTRATED"
+      },
+      "credibility": {
+        "target_tier": 2,
+        "earned_tier": null,
+        "accepted_witness_receipt": null
+      },
+      "cost": {
+        "bank_primary_units": 256,
+        "bank_size_adopted": false,
+        "complete_case_p50_cpu_h": null,
+        "complete_case_p95_cpu_h": null,
+        "peak_ram_gib": null,
+        "startup_bill": null,
+        "ongoing_cpu_h": null,
+        "validator_measurement": null
+      },
+      "t3": "NOT_DEMONSTRATED",
+      "t4": "NOT_DEMONSTRATED",
+      "safety_before": {
+        "coupled_fraction": 0.3,
+        "reflected_fraction": 0.1
+      },
+      "safety_after": {
+        "coupled_fraction": 0.3,
+        "reflected_fraction": 0.1
+      }
+    },
+    "f08": {
+      "file": "f08.md",
+      "packet": "f08-resonance-structure.md",
+      "overall_keep": "NOT_DEMONSTRATED",
+      "reframe": "PROPOSED_REFERENCE_ONLY",
+      "workflow_authors": [
+        "Ansys",
+        "Siemens"
+      ],
+      "workflow_evaluation_count": "UNSOURCED",
+      "buyer_value": {
+        "status": "ASSUMPTION",
+        "currency": "USD",
+        "unit": "ENGINEERING_REWORK_HOURS_AVOIDED_PER_REVISION",
+        "before_units": [
+          2,
+          6,
+          12
+        ],
+        "unit_rate": [
+          100,
+          150,
+          200
+        ],
+        "before_gross": [
+          200,
+          900,
+          2400
+        ],
+        "after_units": [
+          2,
+          6,
+          12
+        ],
+        "after_gross": [
+          200,
+          900,
+          2400
+        ],
+        "net_value": "NOT_DEMONSTRATED"
+      },
+      "credibility": {
+        "target_tier": 2,
+        "earned_tier": null,
+        "accepted_witness_receipt": null
+      },
+      "cost": {
+        "bank_primary_units": 256,
+        "bank_size_adopted": false,
+        "complete_case_p50_cpu_h": null,
+        "complete_case_p95_cpu_h": null,
+        "peak_ram_gib": null,
+        "startup_bill": null,
+        "ongoing_cpu_h": null,
+        "validator_measurement": null
+      },
+      "t3": "NOT_DEMONSTRATED",
+      "t4": "NOT_DEMONSTRATED",
+      "safety_before": {
+        "mass_kg": 0.45,
+        "static_compliance_mm_per_n": 0.03,
+        "dynamic_compliance_mm_per_n": 0.15
+      },
+      "safety_after": {
+        "mass_kg": 0.45,
+        "static_compliance_mm_per_n": 0.03,
+        "dynamic_compliance_mm_per_n": 0.15
+      }
+    },
+    "f13": {
+      "file": "f13.md",
+      "packet": "f13-compressor-silencer.md",
+      "overall_keep": "NOT_DEMONSTRATED",
+      "reframe": "PROPOSED_COAXIAL_SCOPE_V2",
+      "workflow_authors": [
+        "COMSOL",
+        "Andersen, Dinex"
+      ],
+      "workflow_evaluation_count": "UNSOURCED",
+      "buyer_value": {
+        "status": "ASSUMPTION",
+        "currency": "USD",
+        "unit": "ENGINEERING_REWORK_HOURS_AVOIDED_PER_REVISION",
+        "before_units": [
+          4,
+          8,
+          16
+        ],
+        "unit_rate": [
+          100,
+          150,
+          200
+        ],
+        "before_gross": [
+          400,
+          1200,
+          3200
+        ],
+        "after_units": [
+          2,
+          4,
+          8
+        ],
+        "after_gross": [
+          200,
+          600,
+          1600
+        ],
+        "net_value": "NOT_DEMONSTRATED"
+      },
+      "credibility": {
+        "target_tier": 2,
+        "earned_tier": null,
+        "accepted_witness_receipt": null
+      },
+      "cost": {
+        "bank_primary_units": 16,
+        "bank_size_adopted": false,
+        "complete_case_p50_cpu_h": null,
+        "complete_case_p95_cpu_h": null,
+        "peak_ram_gib": null,
+        "startup_bill": null,
+        "ongoing_cpu_h": null,
+        "validator_measurement": null
+      },
+      "t3": "NOT_DEMONSTRATED",
+      "t4": "NOT_DEMONSTRATED",
+      "safety_before": {
+        "p10_transmission_loss_db": 5,
+        "diameter_mm": 140,
+        "length_mm": 300
+      },
+      "safety_after": {
+        "p10_transmission_loss_db": 5,
+        "diameter_mm": 140,
+        "length_mm": 300
+      }
+    },
+    "f17": {
+      "file": "f17.md",
+      "packet": "f17-passive-micromixer.md",
+      "overall_keep": "NOT_DEMONSTRATED",
+      "reframe": "PROPOSED_REFERENCE_ONLY",
+      "workflow_authors": [
+        "Stroock et al.",
+        "COMSOL"
+      ],
+      "workflow_evaluation_count": "UNSOURCED",
+      "buyer_value": {
+        "status": "ASSUMPTION",
+        "currency": "USD",
+        "unit": "ENGINEERING_REWORK_HOURS_AVOIDED_PER_REVISION",
+        "before_units": [
+          4,
+          8,
+          16
+        ],
+        "unit_rate": [
+          100,
+          150,
+          200
+        ],
+        "before_gross": [
+          400,
+          1200,
+          3200
+        ],
+        "after_units": [
+          4,
+          8,
+          16
+        ],
+        "after_gross": [
+          400,
+          1200,
+          3200
+        ],
+        "net_value": "NOT_DEMONSTRATED"
+      },
+      "credibility": {
+        "target_tier": 2,
+        "earned_tier": null,
+        "accepted_witness_receipt": null
+      },
+      "cost": {
+        "bank_primary_units": 45,
+        "bank_size_adopted": false,
+        "complete_case_p50_cpu_h": null,
+        "complete_case_p95_cpu_h": null,
+        "peak_ram_gib": null,
+        "startup_bill": null,
+        "ongoing_cpu_h": null,
+        "validator_measurement": null
+      },
+      "t3": "NOT_DEMONSTRATED",
+      "t4": "NOT_DEMONSTRATED",
+      "safety_before": {
+        "mixing_index": 0.8,
+        "pressure_drop_pa": 250,
+        "residence_time_s": 20
+      },
+      "safety_after": {
+        "mixing_index": 0.8,
+        "pressure_drop_pa": 250,
+        "residence_time_s": 20
+      }
+    }
+  }
+}

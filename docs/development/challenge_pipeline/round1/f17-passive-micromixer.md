@@ -146,6 +146,13 @@ contracts, not this reference-feasibility allowance.
 
 ## 10. Readiness and claim record
 
+Current prospective T2: [buyer value/cost scorecard](../value-cost/f17.md)
+and [owner framework](../value-cost/README.md). Require at least five feasible
+and five distinct near-limit infeasible actions per mandatory stratum. Report
+the overall fraction; it is not a gate. Other value checks still require
+evidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.
+The original fraction-based observations below retain their historical meaning.
+
 **Before any new hidden bank:** the owner-selected [four-check value prerequisite](../question-laws/value-check-v1.md)
 requires per-stratum discrimination and meaningful buyer-unit spread, one
 complete feasible action, and changing best/equivalent answers. Numeric

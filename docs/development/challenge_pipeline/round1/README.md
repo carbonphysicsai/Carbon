@@ -1,5 +1,13 @@
 # First customer-shaped DEVELOPMENT round
 
+> **Current value/cost and contested-boundary rule:**
+> [eight buyer scorecards](../value-cost/analysis.md) apply the
+> [owner framework](../value-cost/README.md). At least five feasible and five
+> distinct near-limit infeasible actions are needed per mandatory stratum;
+> the old pass-fraction gate is superseded, not its historical observations.
+> Candidate reframes have not changed registered laws, safety limits or earned
+> reference tiers. No Challenge is KEEP without the missing measured C/T rows.
+
 > **Current owner readiness amendment:** [design-value prerequisite](../question-laws/value-check-v1.md)
 > applies before new hidden-bank construction across all eight. See each
 > current packet's readiness section and the public Battery v3/Motor audit.
