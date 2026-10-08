@@ -3,12 +3,14 @@
 `development_rebuild` asks this module whether a construction carries a
 Level 4 graph record and how to stage or build it. A Level 4 construction is
 a graph-only submission (OWNER-LEVEL4-GRAPH-ONLY-01): its record names the
-submission's digest and the allowlist it was admitted under. Compiling or
-training a submitted graph runs Carbon's program over hostile data, which is
-G5's profile; that waits for the security owner (D3). Until then every
-rebuild of a Level 4 record fails closed as Carbon's environment, never the
-candidate's: the staged program raises `ImportError`, and so does an
-in-process build (LEVEL4-DEV-VARIANT-01).
+submission's digest and the allowlist it was admitted under. G5's profile,
+compiling a checked graph in the C-03 lane, is accepted for development and
+testnet (OWNER-L4-G5-COMPILE-ISOLATION-01). What still stops a rebuild is
+the transport: the record names only the submission's digest, and no path
+yet stages the submission's documents into the rebuild worker. Until one
+does, every rebuild of a Level 4 record fails closed as Carbon's
+environment, never the candidate's: the staged program raises
+`ImportError`, and so does an in-process build (LEVEL4-DEV-VARIANT-01).
 
 Imports nothing beyond the standard library: the validator and daemon reach
 this module, and must never reach the variant mechanism.
@@ -21,8 +23,11 @@ import json
 SCHEMA = "carbon.battery.level4-graph.v1"
 CAPABILITY = "hybrid.composition_graphs"
 #: Why every Level 4 rebuild stops today.
-BLOCKED = "level4_requires_security_owner_g5_acceptance_d3"
-REBUILD_LABEL = "rebuild: blocked until the security owner accepts the G5 profile (D3)"
+BLOCKED = "level4_submission_documents_not_staged"
+REBUILD_LABEL = (
+    "rebuild: blocked until the submission's documents reach the rebuild "
+    "worker; G5 accepted for development and testnet only"
+)
 STAGED = "level4-graph.json"
 
 
