@@ -309,10 +309,10 @@ plan only proposes it.
   submission. Checked against the recipe grammar: battery's contract has **no
   recipe-level seed field** ("Carbon-assigned reconstruction seed; never
   miner-chosen"), so option 2 would have to change a real recipe field, which is a
-  different recipe; it is option 1 in disguise. **Recommendation: option 1.** The
-  library's digest (library-v1, sha256:31cea3b2...) changes, and that must happen before
-  the Stage 0 sizes are confirmed. The choice is the Test Engineer's and the Test
-  Lead's.
+  different recipe; it is option 1 in disguise. **Decided (Test Lead, 2026-10-08):
+  option 1, as a new version.** library-v1 (sha256:31cea3b2...) is kept unchanged.
+  **library-v2** (sha256:52d50b06..., 146 distinct recipes, a superset of v1; run sheet
+  D.1) is arm H's library, frozen before the Stage 0 sizes are confirmed.
 - **O3 (corrected):** the candidate library, scripted prober and adversary brief are the
   Test Engineer's (run sheet section D), not Data Collection's.
 

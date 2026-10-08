@@ -313,40 +313,56 @@ seed, input, reference or score appears in this file.
 - D.2 and D.3 are specified here and are **to build** before the freeze (A.4),
   as development tooling with no access to operator records.
 
-### D.1 Arm H's candidate library (frozen)
+### D.1 Arm H's candidate library: library-v2 (frozen)
 
-| Item | Value |
-|---|---|
-| File | `docs/development/evidence/submission-rate-study-01/library-v1.json` |
-| Builder | `scripts/dev/rate_study/library.py` (`--check` refuses a stale file; `tests/cpu/test_rate_study_library.py`) |
-| `library_digest` | `sha256:31cea3b24b9d895c361d470cd394866776c2a82a3fbbaade2b99f0f20665d72b` |
-| Order seed (study-only, public) | `SUBMISSION-RATE-STUDY-01/arm-H/library-v1` |
-| Order rule | ascending `sha256(order_seed + ":" + strategy_digest)` |
+**Ruling (Test Lead, 2026-10-08, plan O7c):** arm H needs at least 144
+distinct recipes, because the route never rescores a repeat. library-v1 is
+not grown in place, since its digest is pinned. **library-v2** is a new
+version and a superset of v1. v1 is kept exactly as recorded and superseded
+before any run.
 
-- **Contents: 89 distinct recipes.**
+| Item | library-v2 (current) | library-v1 (superseded, unchanged) |
+|---|---|---|
+| File | `docs/development/evidence/submission-rate-study-01/library-v2.json` | `.../library-v1.json` |
+| `library_digest` | `sha256:52d50b0601a1c2fefaf0276719e176b6be06df710070ed8c050d2aa8eb5772d8` | `sha256:31cea3b24b9d895c361d470cd394866776c2a82a3fbbaade2b99f0f20665d72b` |
+| Order seed (study-only, public) | `SUBMISSION-RATE-STUDY-01/arm-H/library-v2` | `SUBMISSION-RATE-STUDY-01/arm-H/library-v1` |
+| Distinct recipes | 146 (94 MLP, 40 DeepONet, 12 kNN) | 89 (62 MLP, 20 DeepONet, 7 kNN) |
+
+- **Builder:** `scripts/dev/rate_study/library.py`. It writes both versions,
+  and `--check` refuses a stale file.
+- **Tests** (`tests/cpu/test_rate_study_library.py`):
+  - each file is the builder's;
+  - v1's digest is as recorded;
+  - v2 holds at least 144 distinct recipes and every v1 recipe;
+  - every v2 recipe compiles;
+  - the order follows each version's public seed;
+  - no seed or hidden field is carried.
+- **Contents of v1:**
   - EV4's panel (`panel.PANELS["ev4"]`): the **80 distinct recipes** behind
     EV4's 100 members. "EV4's 100 recipes" in the plan counts members; a
     member is a recipe at a panel seed.
   - Graphite's run-5 constructions (`panel.PANELS["graphite-run5"]`): 9.
-  - By family: 62 MLP, 20 DeepONet and 7 kNN. No recipe is in both sources.
+- **What v2 adds: 57 recipes** (source `rate-study-grid-v2`). They form a
+  deterministic grid over EV4's own sweep axes, conditioned on nothing
+  measured, within the contract's caps:
+  - MLP: EV4's steps (500, 1,500, 3,000, 6,000) × widths (64, 128, 256, 512)
+    at depths 1 and 4. EV4 covers depths 2 and 3. That gives 32.
+  - DeepONet: the same steps × widths at `deeponet_depth` 2 and 3, where not
+    already in v1. That gives 20.
+  - kNN: `neighbours` 2, 7, 20, 30 and 50. That gives 5.
 - **Deduplication and seeds.** Recipes are deduplicated by the canonical
-  digest of the strategy document. Panel seeds are dropped, because the
-  validator chooses the rebuild seed.
-- **The order seed is not a hidden seed.** It is a public string that gates
-  nothing, and every entry's position follows from it and the recipe digest.
-- **How arm H submits.** Every rate and replicate starts at position 0 and
-  submits in order. It never conditions on a result. Replicates differ only
-  in the batches they draw (C.1).
+  digest of the strategy document, and a v1 recipe keeps its v1 sources.
+  Panel seeds are dropped, because the validator chooses the rebuild seed.
+- **The order seeds are not hidden seeds.** Each is a public string that
+  gates nothing. Every entry's position follows from its version's seed and
+  the recipe digest.
+- **How arm H submits.** Every rate and replicate starts at position 0 of
+  library-v2 and submits in order. It never conditions on a result.
+  Replicates differ only in the batches they draw (C.1).
 - **Per run:** `W0 × 3m` submissions: 36 at m = 1, 72 at m = 2 and 144 at
-  m = 4.
-  - At m = 4, the run passes the library's 89 and continues from position 0
-    (`cycle`), so 55 recipes are submitted a second time in the same run.
-  - **The Carbon Validator must confirm (VALIDATOR-30) that the study route
-    rebuilds and scores a repeated recipe.** It should not refuse it as a
-    duplicate or return the earlier result. A repeat is a new model and a new
-    D observation only if it is rebuilt. If the route refuses or caches
-    repeats, arm H at m = 4 would be 89 scored submissions, not 144; tell the
-    Test Lead before Stage 0 sizes are confirmed.
+  m = 4. All are distinct; 146 is at least 144, so no run repeats a recipe.
+  The runner still counts any REPEATED outcome separately and never as a
+  scored submission (O7c).
 - **The implementation version.** Recipes are rebuilt under the study
   deployment's current battery implementation, which `manifest.json` records
   (A.2). The library holds designs (strategy documents), not recipe digests,
