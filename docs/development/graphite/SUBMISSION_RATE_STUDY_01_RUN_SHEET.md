@@ -170,19 +170,29 @@ Per window `w` = 1 … `W0`:
 
 ## C. Study bank and fresh sets (Data Collection to fill)
 
-**Sizing (Carbon Validator's flag, folded in by the Graphite Testing Manager).**
-Each run draws 12 windows x 98 cases, and runs draw different batches (replicates
-must vary the batch to measure noise). One shared bank would need 3 rates x 4
-replicates x 12 x 98 = 14,112 draws, but a bank of 2,000 cases at E = 5 supplies only
-10,000. Use **one study bank per rate** (4 runs x 12 x 98 = 4,704 draws at E = 5
-needs at least 941 cases; size each at 1,000, above the 294 live cases three active
-batches need): exposure and retirement stay independent across rates, which the
-drift measures need. Total: 3 x 1,000 = 3,000 study cases plus 12 x 98 = 1,176
-fresh cases = about 4,176 reference solves, about 95 CPU-hours at the 82 CPU-s
-prior. That is **above the approved Stage 0 figure** (about 3,200 solves, 72 CPU-h):
-the owner's approval must be re-confirmed at the larger figure, or R0 reduced (R0 = 3
-gives 3 x 750 + 1,176 = 3,426 solves, about 78 CPU-h; R0 = 2 gives 2,676, within the
-approval, with a weaker honest band). The choice is the Test Lead's.
+**Sizing (Test Lead decision, 2026-10-08).** One **single shared sacrificial study
+bank** for all rates, sized to the draws, not to the production B rule. Each run
+draws 12 windows x 98 cases, and replicates draw different batches (they must, to
+measure noise): 3 rates x 4 replicates x 12 x 98 = 14,112 draws. At E = 5 that needs
+at least 14,112 / 5 = 2,823 cases, so the bank is **3,000 cases**. One bank for all
+rates keeps the rates on the same case population, so drift is not confounded by
+bank differences; exposure is counted per draw.
+
+**Reconciliation with the earlier approval.** Stage 0 was approved at about 3,200
+reference solves, about 72 CPU-hours (2,000 study cases plus 1,176 fresh cases, at
+the 82 CPU-s prior). With the bank sized to the draws:
+
+| Term | Cases | CPU-h at 91 CPU-s |
+|---|---|---|
+| Study bank | 3,000 | about 76 |
+| Fresh sets (12 x 98, shared among models at the same simulated time) | 1,176 | about 30 |
+| **Stage 0 total** | **4,176** | **about 106** |
+
+That is about 1,000 solves and about 34 CPU-hours above the approved figure (about
+3,200 / 72 CPU-h at 82 CPU-s). The 3,000-case bank alone is in line with the original
+estimate; the difference is the fresh sets, which the original 3,200 counted against
+the 2,000-case bank. The Test Lead confirms the larger figure with the owner or reduces
+`R0` (R0 = 3 needs 3 x 12 x 98 / 5 = 706, a bank of about 750; R0 = 2 needs about 500).
 
 - The sacrificial study bank: tranche draws from the producer root, committed to the
   journal before use, solved on the AX42 queue, sealed; the tranche roots.
