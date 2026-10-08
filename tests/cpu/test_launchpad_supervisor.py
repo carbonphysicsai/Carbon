@@ -728,6 +728,19 @@ def test_an_agents_unevaluated_candidate_is_reported_with_its_code(
     assert entry["next_action"] == supervision.NEXT_ACTIONS["evaluation_queued"]
 
 
+def test_a_queued_submission_says_only_a_submit_asks_for_its_verdict():
+    """LA-F18: observe and the campaign view read this machine's record of
+    the campaign and never ask the validator; only a submit polls the
+    intake's `battery_status` (`remote_submission.submit_and_wait`), and a
+    replayed submit polls the recorded submission without a second
+    admission. So the next step says to submit again, not to observe."""
+    text = supervision.NEXT_ACTIONS["evaluation_queued"]
+    assert "Observe later" not in text
+    assert "Observe does not ask the validator" in text
+    assert "submit again later (carbon_submit)" in text
+    assert "never a second one" in text
+
+
 def retained_by_its_agent(journey, monkeypatch, key="launch-key-0000001", fail=None):
     """A Carbon-agent campaign whose agent selected a candidate the validator
     did not evaluate. DEVELOPMENT FIXTURE: `run_agent` freezes the candidate
