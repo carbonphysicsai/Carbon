@@ -89,6 +89,23 @@ def test_registration_must_be_committed_before_computing(tmp_path):
         st.load_registry(path, repository=tmp_path)
 
 
+def test_a_checkout_owned_by_another_user_still_registers(tmp_path, monkeypatch):
+    """The producer reads a root-owned checkout as its own service account
+    (AX42 step 12, 2026-10-08). git's ownership check is simulated, and a
+    plain git call in that state does fail, so the test is not vacuous."""
+    path = _registry(tmp_path)
+    monkeypatch.setenv("GIT_TEST_ASSUME_DIFFERENT_OWNER", "1")
+    plain = subprocess.run(
+        ["git", "-C", str(tmp_path), "status", "--porcelain"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert plain.returncode == 128 and "dubious ownership" in plain.stderr
+    candidates, identity = st.load_registry(path, repository=tmp_path)
+    assert identity["commit"] and set(candidates) == {"CE", "A", "CE+gate"}
+
+
 def test_a_modified_registry_is_refused(tmp_path):
     path = _registry(tmp_path)
     candidates, identity = st.load_registry(path, repository=tmp_path)
