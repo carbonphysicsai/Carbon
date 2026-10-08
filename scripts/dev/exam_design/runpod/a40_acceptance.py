@@ -58,29 +58,51 @@ BACKENDS = ("jax", "pytorch")
 
 GPU_TYPE = "NVIDIA A40"
 TORCH_LOCK = ".devcontainer/torch/torch-cu130-py311.txt"
-#: The grant's rate: RunPod's pod ceiling plus container disk
-#: (OWNER-A40-ACCEPTANCE-GRANT-01): 0.49 + 20 GB x 0.10 / 730 h.
-POD_RATE_USD_PER_HR = 0.49
+#: The grant's rate is the all-in pod ceiling (compute plus a 20 GB container
+#: disk at 0.10 / GB-month over 730 h), read from the grant record below.
 DISK_GB = 20
 DISK_USD_PER_GB_MONTH = 0.10
 GRANT_RECORD = ".agent/decisions/2026-10-06-OWNER-A40-ACCEPTANCE-GRANT-01.md"
 
 
-def grant_rate(repository=REPOSITORY):
-    """The pod-hour rate ceiling, read from the committed grant record (the
-    `Rate ceiling` row of its decision table), never restated here."""
+def grant_terms(repository=REPOSITORY):
+    """The pod-hour rate ceiling and the monetary cap, read from the committed
+    grant record, never restated here. The record's table states the original
+    terms; a later owner amendment line (`<date>, owner: ceiling <rate>/h, cap
+    USD <cap>`) supersedes them, the last one winning."""
     import re
 
     text = (Path(repository) / GRANT_RECORD).read_text()
     found = re.search(r"\|\s*Rate ceiling\s*\|\s*USD\s+([0-9.]+)\s+per pod-hour", text)
-    if found is None:
-        raise RuntimeError("the grant record names no rate ceiling")
-    return Decimal(found.group(1))
+    cap = re.search(r"\|\s*\*\*Monetary cap\*\*\s*\|\s*\*\*USD\s+([0-9.]+)\*\*", text)
+    if found is None or cap is None:
+        raise RuntimeError("the grant record names no rate ceiling or cap")
+    ceiling, cap_usd = Decimal(found.group(1)), Decimal(cap.group(1))
+    amendments = re.findall(
+        r"^\d{4}-\d{2}-\d{2}, owner: ceiling ([0-9.]+)/h, cap USD ([0-9.]+)$",
+        text,
+        flags=re.MULTILINE,
+    )
+    if amendments:
+        ceiling, cap_usd = (Decimal(value) for value in amendments[-1])
+    return ceiling, cap_usd
+
+
+def grant_rate(repository=REPOSITORY):
+    """The all-in (compute plus disk) pod-hour ceiling in force."""
+    return grant_terms(repository)[0]
 
 
 RATE_CEILING_USD_PER_HR = grant_rate()
+#: The compute-only rate is the all-in ceiling less the container disk's hour.
+POD_RATE_USD_PER_HR = float(
+    RATE_CEILING_USD_PER_HR
+    - (Decimal(DISK_GB) * Decimal("0.10") / Decimal(730)).quantize(
+        Decimal("0.000000001"), rounding=ROUND_HALF_EVEN
+    )
+)
 CLEANUP_RESERVE_USD = Decimal("0.25")
-DEFAULT_CAP_USD = Decimal("4.25")
+DEFAULT_CAP_USD = grant_terms()[1]
 PODS, REPLACEMENTS = 4, 2
 DEADLINE_FACTOR = Decimal("1.5")
 POLL_SECONDS = 15.0

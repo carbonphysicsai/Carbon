@@ -55,10 +55,17 @@ def test_rate_ceiling_derives_from_the_committed_grant():
     from pathlib import Path
 
     grant = Path(a40.REPOSITORY, a40.GRANT_RECORD).read_text()
-    assert a40.RATE_CEILING_USD_PER_HR == Decimal(
-        re.search(r"Rate ceiling \| USD ([0-9.]+) per pod-hour", grant).group(1)
+    amended = re.findall(
+        r"^\d{4}-\d{2}-\d{2}, owner: ceiling ([0-9.]+)/h, cap USD ([0-9.]+)$",
+        grant,
+        flags=re.MULTILINE,
     )
+    assert amended[-1] == ("0.65", "8")
+    assert a40.RATE_CEILING_USD_PER_HR == Decimal(amended[-1][0])
+    assert a40.DEFAULT_CAP_USD == Decimal(amended[-1][1])
     assert a40.RATE_CEILING_USD_PER_HR == a40.grant_rate()
+    # The original table's terms stay in the record, unchanged.
+    assert "0.492739726" in grant and "4.25" in grant
 
 
 def test_the_pod_phase_leaves_the_process_environment_untouched(tmp_path, monkeypatch):
@@ -75,21 +82,21 @@ def test_the_pod_phase_leaves_the_process_environment_untouched(tmp_path, monkey
 
 
 def test_rate_is_the_grants_rate():
-    assert a40.hourly_rate() == Decimal("0.492739726")
+    assert a40.hourly_rate() == Decimal("0.65")
 
 
 def test_budget_gate_is_the_test_leads_inequality():
     hours = 1.0
     gate = a40.budget_gate(3600)
-    expected = (4 + 2) * Decimal(hours) * Decimal("0.492739726") + Decimal("0.25")
+    expected = (4 + 2) * Decimal(hours) * Decimal("0.65") + Decimal("0.25")
     assert Decimal(gate["worst_case_usd"]) == expected.quantize(Decimal("0.0001"))
-    # The grant's own 2.0 h deadline cannot fit six pods under USD 4.25.
+    # The grant's own 2.0 h deadline cannot fit six pods under USD 8.00.
     with pytest.raises(a40.Refused, match="exceeds the cap"):
         a40.budget_gate(2 * 3600)
     # A smoke pod's reservation counts against the same cap.
     with pytest.raises(a40.Refused):
-        a40.budget_gate(3600, Decimal("3.25"), smoke_reserved=Decimal("0.5"))
-    assert a40.budget_gate(3600, Decimal("3.25"))["cap_usd"] == "3.25"
+        a40.budget_gate(3600, Decimal("4.25"), smoke_reserved=Decimal("0.5"))
+    assert a40.budget_gate(3600, Decimal("4.25"))["cap_usd"] == "4.25"
 
 
 def test_deadline_is_measured_times_one_and_a_half():
@@ -542,7 +549,7 @@ def test_launch_refuses_below_the_balance_floor(world):
 
 def test_launch_refuses_an_offer_above_the_rate_ceiling(world):
     make, fake, _bodies = world
-    fake.rate = 0.60
+    fake.rate = 0.70
     runner, _fleet = make([])
     with pytest.raises(a40.NoA40):  # above the ceiling is never created
         a40.run_acceptance(runner, RECORD, SMOKES)

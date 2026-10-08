@@ -28,11 +28,24 @@ them verbatim:
 - **(4) Where it runs:** carbon-fresh first, attended. The always-on box
   (CX23 class) is decided later.
 
-**Still open:**
-- (1) unattended commitment confirmation (SIGNER-AUTOCONFIRM-01), pending
-  with the owner in the building session;
-- (5) the stage deadlines, set from the first attended runs' measurements;
-- (6) the cadence (one cycle per rotation, proposed).
+**Later the same day,** the owner, directly in the Launchpad Acceptance
+session:
+
+> Approve all
+
+- **(6) Cadence:** one canary cycle per producer rotation (1080 blocks), as
+  proposed.
+- **(1) Unattended commitment confirmation:** approved again. The owner
+  approved it earlier ("approve testnet auto-confirm for test hotkeys", and
+  "I approve this action now"). Its build (SIGNER-AUTOCONFIRM-01) is still
+  blocked by the session's auto-mode permission classifier. It goes ahead
+  once the building session runs outside auto mode or has a permission
+  rule. Its own record, OWNER-SIGNER-TESTNET-AUTOCONFIRM-01, ships with that
+  build.
+
+**Still open:** (5) the stage deadlines, which the owner sets from the first
+attended runs' measurements. There is nothing to approve until those runs
+exist.
 
 **Not decided here.** The plan's §9 lists these as owner decisions:
 - unattended commitment confirmation (SIGNER-AUTOCONFIRM-01);

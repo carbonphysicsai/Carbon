@@ -85,6 +85,9 @@ CREATE TABLE IF NOT EXISTS pool(
 CREATE TABLE IF NOT EXISTS pool_clock(
   id INTEGER PRIMARY KEY CHECK(id = 1),
   block INTEGER);
+CREATE TABLE IF NOT EXISTS chain_head(
+  id INTEGER PRIMARY KEY CHECK(id = 1),
+  block INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS batch_salts(
   fingerprint TEXT PRIMARY KEY,
   salt TEXT NOT NULL);
@@ -904,7 +907,7 @@ class PoolStore:
         a submission was received against. Never stalls: when no window covers
         it, the current batches keep scoring and the overdue rotation is
         recorded."""
-        latest = self._latest_block(db)
+        latest = self._clock_block(db)
         if latest is None:
             return None
         active = self._windows_at(db, latest)
@@ -1028,6 +1031,36 @@ class PoolStore:
             {"version": version, "retired": retired, "activated": nxt[0]},
         )
         return retired
+
+    def _clock_block(self, db):
+        """A windowed pool's clock: the newest finalized block it has seen,
+        from an admission's receipt or the observed chain head
+        (`observe_head`)."""
+        latest = self._latest_block(db)
+        row = db.execute("SELECT block FROM chain_head WHERE id=1").fetchone()
+        head = None if row is None else row[0]
+        if latest is None or (head is not None and head > latest):
+            return head
+        return latest
+
+    def observe_head(self, block):
+        """Record the chain's finalized head, as this validator read it, and
+        rotate if due. An import-only pool's producer windows then open and
+        close on the chain's clock, not only when a submission arrives (3a,
+        2026-10-08: a pool stayed ROTATION_PENDING past its window's start
+        because its only submission was received before it). The head never
+        moves backwards."""
+        if type(block) is not int or block < 0:
+            raise StateError("chain_head_malformed")
+        with self.transaction() as db:
+            db.execute(
+                "INSERT INTO chain_head VALUES(1, ?) ON CONFLICT(id) DO UPDATE "
+                "SET block=MAX(block, excluded.block)",
+                (block,),
+            )
+            if db.execute("SELECT 1 FROM pool WHERE id=1").fetchone() is None:
+                return None
+            return self._try_rotate(db)
 
     def _latest_block(self, db):
         """The newest finalized block any admission was received against."""

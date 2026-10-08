@@ -232,8 +232,10 @@ class ScriptedDocker:
                     ),
                 },
                 "PidsLimit": int((flags.get("pids-limit") or [0])[0]),
-                "Memory": MEMORY_BYTES,
-                "MemorySwap": MEMORY_BYTES,
+                # Read back from the create line, as every other control is,
+                # so a profile's own limit is what the inspection sees.
+                "Memory": int((flags.get("memory") or [0])[0]),
+                "MemorySwap": int((flags.get("memory-swap") or [0])[0]),
                 "NanoCpus": CPU_COUNT * 1_000_000_000,
                 "CpusetCpus": (flags.get("cpuset-cpus") or [""])[0],
                 "ShmSize": _SHM_BYTES,
@@ -342,7 +344,7 @@ class ScriptedDocker:
         table = {
             "cpu.max": f"{CPU_COUNT * 100000} 100000",
             "cpuset.cpus.effective": "0-1",
-            "memory.max": str(MEMORY_BYTES),
+            "memory.max": (_flags(self.create_arguments).get("memory") or ["max"])[0],
             "memory.swap.max": "0",
             "pids.max": str(PIDS_LIMIT),
         }

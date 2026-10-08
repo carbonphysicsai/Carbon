@@ -423,12 +423,14 @@ class Fetcher:
         return answer
 
 
-def sync(adapter, fetcher, producer_public_key, challenge_id):
+def sync(adapter, fetcher, producer_public_key, challenge_id, *, head=None):
     """Import every listed package this validator does not hold yet.
 
     Each listing entry is checked before its package is fetched, and each
-    package is verified in full before anything is imported. Returns public
-    values only: fingerprints and verdicts.
+    package is verified in full before anything is imported. Then, with the
+    finalized chain `head`, the adapter's clock advances, so a window opens
+    on the chain's clock. Returns public values only: fingerprints, verdicts
+    and the pool's state.
     """
     if adapter.challenge_id != challenge_id:
         raise AnswerKeyRefused("answer_key_wrong_challenge")
@@ -457,7 +459,30 @@ def sync(adapter, fetcher, producer_public_key, challenge_id):
             raise AnswerKeyRefused("answer_key_listing_mismatch")
         adapter.import_answer_key(commitment, payload)
         results.append({"fingerprint": fingerprint, "state": "IMPORTED"})
-    return {"challenge_id": challenge_id, "packages": results}
+    found = {"challenge_id": challenge_id, "packages": results}
+    if head is not None and hasattr(adapter, "observe_head"):
+        found["clock"] = adapter.observe_head(head)
+    return found
+
+
+def finalized_head(deployment):
+    """The finalized chain head from the deployment's own chain reader
+    (`commitment_reader`), or None when it names none: then its windows open
+    only on admissions. A failed read is FAILED_INFRA for the clock only;
+    imports are unaffected."""
+    try:
+        reader = json.loads(Path(deployment).read_text()).get("commitment_reader")
+    except (OSError, ValueError, AttributeError):
+        return None
+    if type(reader) is not dict:
+        return None
+    from carbon.chain.models import ChainContext
+    from carbon.chain.permits import PermitUnavailable, finalized_block
+
+    try:
+        return finalized_block(ChainContext(**reader))
+    except (PermitUnavailable, TypeError, ValueError):
+        return None
 
 
 def import_local(adapter, producer_public_key, outbox):
@@ -553,7 +578,11 @@ def main(argv=None):
                 config["url"], signer, config["receiver"], ca=config.get("ca")
             )
             result = sync(
-                adapter, fetcher, config["producer_public_key"], config["challenge_id"]
+                adapter,
+                fetcher,
+                config["producer_public_key"],
+                config["challenge_id"],
+                head=finalized_head(config["deployment"]),
             )
     except AnswerKeyRefused as refused:
         # FAILED_INFRA: nothing was imported for the refused package, and
@@ -565,4 +594,10 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # The package module's own main: under `python -m` this file is
+    # `__main__`, a second copy whose classes the package's are not.
+    import sys
+
+    from carbon.challenge_validator.answer_key import main as _main
+
+    sys.exit(_main())

@@ -233,9 +233,12 @@ Renting the box is an owner purchase (a grant line).
 
 ## 9. Owner decisions this plan needs
 
-Answered 2026-10-08 ("approve canary 2-4", recorded in
-OWNER-CANARY-MINER-01): items 2, 3 and 4 as recommended. Items 1, 5 and 6
-are open.
+Answered 2026-10-08, recorded in OWNER-CANARY-MINER-01:
+- "approve canary 2-4": items 2, 3 and 4, as recommended;
+- "Approve all": item 6 (one cycle per rotation), plus item 1 again.
+  Item 1's build is blocked by the auto-mode classifier, not by the owner.
+
+Item 5, the deadlines, waits for measured runs.
 
 1. **Unattended commitments:** confirm SIGNER-AUTOCONFIRM-01 in the building
    session, and grant that session the permission the classifier asked for.

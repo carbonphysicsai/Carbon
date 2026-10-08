@@ -877,6 +877,7 @@ class Producer:
                 report[challenge_id] = {"cadence": None}
                 continue
             retired = self._retire(challenge_id, block)
+            republished = self._republish(challenge_id)
             current = block // cadence["every_blocks"]
             filled, unfilled = [], []
             finalists = {"filled": [], "unfilled": []}
@@ -900,7 +901,29 @@ class Producer:
                 "unfilled": unfilled,
                 "finalist": finalists,
             }
+            if republished:
+                report[challenge_id]["republished"] = republished
         return report
+
+    def _republish(self, challenge_id):
+        """Publish every scheduled batch that is neither published, retired
+        nor withdrawn. A tick schedules a batch and then publishes it; if the
+        publish failed (3a: the outbox was 0755), the slot was already taken,
+        so no later tick filled it and validators never received the batch.
+        Returns `[{"slot", "kind"}]` for each one published now."""
+        done = []
+        for kind in ("screening", "finalist"):
+            for slot, fingerprint in sorted(
+                self._scheduled(challenge_id, kind).items()
+            ):
+                if (
+                    self.journal.find("published", challenge_id, fingerprint) is None
+                    and self.journal.find("retired", challenge_id, fingerprint) is None
+                    and not self._withdrawn(challenge_id, fingerprint)
+                ):
+                    self.publish(challenge_id, fingerprint)
+                    done.append({"slot": slot, "kind": kind})
+        return done
 
     def status(self):
         """Counts per Challenge; public values only."""
@@ -1011,4 +1034,10 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # The package module's own main: under `python -m` this file is
+    # `__main__`, a second copy whose classes the package's are not.
+    import sys
+
+    from carbon.challenge_validator.producer import main as _main
+
+    sys.exit(_main())

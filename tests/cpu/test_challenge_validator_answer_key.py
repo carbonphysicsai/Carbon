@@ -435,6 +435,66 @@ def test_silent_clients_never_freeze_the_host(tmp_path, published, capsys, monke
     assert "127.0.0.1" not in json.dumps(lines)
 
 
+def test_a_window_opens_on_the_chain_clock_without_a_submission(
+    tmp_path, host, published
+):
+    """3a at r3: a pool whose only submission was received before its
+    window's start stayed ROTATION_PENDING after the window opened. The sync
+    now advances the clock with the finalized head (slot 1 is blocks
+    [1080, 4320))."""
+    adapter = battery_validator(tmp_path / "validator", import_only=True)
+    adapter.target.store.open_pool()  # `operate open`: a windowed pool opens empty
+    challenge = published["source"].challenge_id
+    asker = fetcher(host["service"], VALIDATOR)
+    key = published["key"].public_key
+    early = ak.sync(adapter, asker, key, challenge, head=500)
+    assert [p["state"] for p in early["packages"]] == ["IMPORTED"]
+    assert early["clock"] == {"block": 500, "pool": "ROTATION_PENDING", "version": 0}
+    opened = ak.sync(adapter, asker, key, challenge, head=1080)
+    assert opened["clock"] == {"block": 1080, "pool": "OPEN", "version": 1}
+    fingerprint = published["value"]["manifest"]["commitment"]["fingerprint"]
+    assert adapter.target.store.pool()["active"] == [fingerprint]
+    # The head never moves backwards, and an older read rotates nothing.
+    again = ak.sync(adapter, asker, key, challenge, head=900)
+    assert again["clock"]["pool"] == "OPEN" and again["clock"]["version"] == 1
+    # Past the window's end, the pool keeps scoring its batches (never stalls).
+    late = ak.sync(adapter, asker, key, challenge, head=4320)
+    assert late["clock"]["pool"] == "OPEN"
+    with pytest.raises(ak.AnswerKeyRefused) as refused:
+        adapter.observe_head(-1)
+    assert refused.value.code == "answer_key_chain_head_malformed"
+
+
+def test_the_clock_reads_the_deployments_own_chain(tmp_path, monkeypatch):
+    from carbon.chain import permits
+
+    deployment = tmp_path / "deployment.json"
+    deployment.write_text(json.dumps({"schema": "x"}))
+    assert ak.finalized_head(deployment) is None  # no chain reader: no clock
+    chain = {
+        "network": "testnet",
+        "endpoint": "wss://test.finney.opentensor.ai:443",
+        "provider": "bittensor-official-test",
+        "genesis_hash": "0x" + "8" * 64,
+        "netuid": 567,
+    }
+    deployment.write_text(json.dumps({"commitment_reader": chain}))
+    seen = []
+
+    def head(context, **kwargs):
+        seen.append(context.netuid)
+        return 1234
+
+    monkeypatch.setattr(permits, "finalized_block", head)
+    assert ak.finalized_head(deployment) == 1234 and seen == [567]
+
+    def down(context, **kwargs):
+        raise permits.PermitUnavailable("head_read_failed")
+
+    monkeypatch.setattr(permits, "finalized_block", down)
+    assert ak.finalized_head(deployment) is None
+
+
 def resigned(published, *, commitment=None, payload=None):
     value = published["value"]
     return ak.verify(
