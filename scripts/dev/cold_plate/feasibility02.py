@@ -169,7 +169,7 @@ def run(plan_path, out, parallel, cpus, timeout_s):
         if case_dir.exists():
             continue
         with variant(case["base_mm"]):
-            openfoam.write_case(case["inputs"], case_dir)
+            openfoam.write_case(case["inputs"], case_dir, **case.get("options", {}))
         written.append(case)
     lock = threading.Lock()
 
