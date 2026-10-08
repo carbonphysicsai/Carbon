@@ -626,18 +626,43 @@ def mcp_connect(state_dir=None) -> dict:
         args += ["--state-dir", str(state_dir)]
     repo = str(REPO)
     command = " ".join(shlex.quote(part) for part in [python, *args])
+    # LA-F14: a snippet that names the checkout by PYTHONPATH, with no cwd,
+    # starts in whatever directory the agent runs in, and `python -m` puts
+    # that directory first on the import path: inside another Carbon
+    # checkout, that checkout's packages load instead. `-P` (Python 3.11+)
+    # leaves it off. Snippets with `cwd` set to this checkout are already right.
+    env_args = ["-P", *args]
+    env_command = " ".join(shlex.quote(part) for part in [python, *env_args])
     quoted = lambda value: json.dumps(value)
     claude = {
         "mcpServers": {
-            "carbon": {"command": python, "args": args, "env": {"PYTHONPATH": repo}}
+            "carbon": {
+                "command": python,
+                "args": env_args,
+                "env": {"PYTHONPATH": repo},
+            }
         }
     }
     toml = (
+        # One whole table: a key appended after `codex mcp add` would land
+        # in the [mcp_servers.carbon.env] table it writes.
+        "# The whole table: use it in place of any [mcp_servers.carbon]\n"
+        "# tables `codex mcp add` wrote.\n"
         "[mcp_servers.carbon]\n"
         f"command = {quoted(python)}\n"
         f"args = {json.dumps(args)}\n"
         f"cwd = {quoted(repo)}\n"
         "tool_timeout_sec = 1800\n"
+        # LA-F13: `codex exec` runs with no one to approve a prompt, so a
+        # Carbon tool it calls fails "requires approval". Codex's documented
+        # per-server setting (learn.chatgpt.com/docs/extend/mcp): `prompt`
+        # asks each time; `approve` is the value its example uses for a tool
+        # that runs without asking.
+        "# Codex asks before each Carbon tool. For unattended runs\n"
+        '# (codex exec), set "approve" (run on Codex 0.161.0). Starting your\n'
+        "# signer, signing your registration and confirming a commitment stay\n"
+        "# yours either way.\n"
+        'default_tools_approval_mode = "prompt"\n'
     )
     yaml = (
         "mcp_servers:\n"
@@ -664,15 +689,22 @@ def mcp_connect(state_dir=None) -> dict:
                 "snippets": [
                     {
                         "label": "Add it",
-                        "text": "claude mcp add --transport stdio --env "
+                        # The server name before --env: Claude Code's --env
+                        # takes several values and would swallow the name
+                        # (LA-F12, Claude Code 2.1.294). --scope user makes
+                        # it available in every directory; Claude Code's
+                        # default scope is the current directory only.
+                        "text": "claude mcp add --transport stdio --scope user "
+                        + "carbon --env "
                         + shlex.quote("PYTHONPATH=" + repo)
-                        + " carbon -- "
-                        + command,
+                        + " -- "
+                        + env_command,
                     },
                     {"label": "Or in .mcp.json", "text": json.dumps(claude, indent=2)},
                 ],
+                # Run on Claude Code 2.1.294 (LA-F12, cell A3, 2026-10-08).
+                "verified": "Claude Code 2.1.294, 2026-10-08",
                 "unverified": [
-                    not_run,
                     (
                         "UNVERIFIED: how Claude Code bounds a long tool call; "
                         "Send your worker can take minutes."
@@ -689,11 +721,14 @@ def mcp_connect(state_dir=None) -> dict:
                         "text": "codex mcp add carbon --env "
                         + shlex.quote("PYTHONPATH=" + repo)
                         + " -- "
-                        + command,
+                        + env_command,
                     },
                     {"label": "Or in ~/.codex/config.toml", "text": toml},
                 ],
-                "unverified": [not_run],
+                # Run on Codex 0.161.0, interactive and unattended with
+                # default_tools_approval_mode = "approve" (LA-F13, cell A4).
+                "verified": "Codex 0.161.0, 2026-10-08",
+                "unverified": [],
             },
             {
                 "id": "hermes",
