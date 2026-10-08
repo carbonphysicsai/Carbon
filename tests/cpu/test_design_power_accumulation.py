@@ -90,6 +90,13 @@ def _fixture(*, banks=6, exposure_limit=2, shared_bank=False):
             "sealed": True,
             "exposure_unit": power_accumulation.EXPOSURE_UNIT,
             "case_exposure": exposure,
+            "window_sampling": power_accumulation.register_window_sampling(
+                case_strata=[{"case": row["case"], "stratum": "all"} for row in cases],
+                quotas_by_k=[
+                    {"questions_per_batch": k, "quotas": {"all": k}}
+                    for k in range(1, 9)
+                ],
+            ),
             "cases": cases,
             "power_cases": power_cases,
             "private_marker": "DO_NOT_EXPORT_PRIVATE_MARKER",
@@ -234,10 +241,18 @@ def test_cross_batch_curve_replays_and_can_gain_power_from_distinct_banks():
         ),
     }
     first = power_accumulation.cross_batch_curve(
-        bank["case_exposure"], differences, clusters, **arguments
+        bank["case_exposure"],
+        bank["window_sampling"],
+        differences,
+        clusters,
+        **arguments,
     )
     assert first == power_accumulation.cross_batch_curve(
-        bank["case_exposure"], differences, clusters, **arguments
+        bank["case_exposure"],
+        bank["window_sampling"],
+        differences,
+        clusters,
+        **arguments,
     )
     one = next(
         point
@@ -262,6 +277,7 @@ def test_eight_questions_can_run_five_windows_at_e_five_per_question():
     clusters = {row["case"]: row["support_case"] for row in bank["power_cases"]}
     curve = power_accumulation.cross_batch_curve(
         bank["case_exposure"],
+        bank["window_sampling"],
         differences,
         clusters,
         alpha=0.05,
@@ -281,3 +297,76 @@ def test_eight_questions_can_run_five_windows_at_e_five_per_question():
     assert point["exposure_feasible"]
     assert point["estimated_detection_probability"] == 0
     assert point["mean_nonzero_bank_clusters"] == 1
+
+
+def test_registered_stratum_quotas_control_each_k_and_missing_quota_refuses():
+    bank, _, _, _ = _fixture(banks=4)
+    cases = [row["case"] for row in bank["cases"]]
+    sampling = power_accumulation.register_window_sampling(
+        case_strata=[
+            {"case": case, "stratum": "cold" if i < 2 else "hot"}
+            for i, case in enumerate(cases)
+        ],
+        quotas_by_k=[
+            {"questions_per_batch": 1, "quotas": {"cold": 1}},
+            {"questions_per_batch": 2, "quotas": {"cold": 1, "hot": 1}},
+        ],
+    )
+    differences = {case: (0.0 if i < 2 else 1.0) for i, case in enumerate(cases)}
+    clusters = {row["case"]: row["support_case"] for row in bank["power_cases"]}
+    kwargs = {
+        "alpha": 0.05,
+        "target": 0.8,
+        "seed": 2,
+        "replicates": 20,
+        "max_questions": 2,
+        "accumulation": power_accumulation.register_accumulation(
+            exposure_unit="per_question_draws", max_windows=1
+        ),
+    }
+    curve = power_accumulation.cross_batch_curve(
+        bank["case_exposure"], sampling, differences, clusters, **kwargs
+    )
+    one = next(p for p in curve["points"] if p["questions_per_batch"] == 1)
+    two = next(p for p in curve["points"] if p["questions_per_batch"] == 2)
+    assert one["mean_nonzero_bank_clusters"] == 0
+    assert two["mean_nonzero_bank_clusters"] == 1
+    with pytest.raises(tasks.TaskError, match="missing a requested k"):
+        power_accumulation.cross_batch_curve(
+            bank["case_exposure"],
+            power_accumulation.register_window_sampling(
+                case_strata=sampling["case_strata"],
+                quotas_by_k=sampling["quotas_by_k"][:1],
+            ),
+            differences,
+            clusters,
+            **kwargs,
+        )
+
+
+def test_batch_drawability_checks_registered_stratum_capacity():
+    bank, law, _, _ = _fixture(banks=4)
+    cases = [row["case"] for row in bank["cases"]]
+    sampling = power_accumulation.register_window_sampling(
+        case_strata=[
+            {"case": case, "stratum": "cold" if i < 2 else "hot"}
+            for i, case in enumerate(cases)
+        ],
+        quotas_by_k=[
+            {"questions_per_batch": 1, "quotas": {"hot": 1}},
+            {"questions_per_batch": 2, "quotas": {"hot": 2}},
+        ],
+    )
+    exposures = [dict(row) for row in bank["case_exposure"]]
+    exposures[-1]["used"] = exposures[-1]["limit"]
+    adjusted = diversity.seal_bank(
+        {
+            **{key: value for key, value in bank.items() if key != "seal_digest"},
+            "case_exposure": exposures,
+            "window_sampling": sampling,
+        }
+    )
+    view = diversity.diversity_report(adjusted, law)
+    assert view["available_questions"] == 3
+    assert view["batch_drawable"] is False
+    assert view["exposure_shortage"] == 1

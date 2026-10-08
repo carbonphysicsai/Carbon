@@ -7,8 +7,10 @@ exposure E. Merged VALIDATOR-23 design-bank code defines E per question:
 each selected case once, and retires that case at its own E.
 
 **Engineering decision.** The DEVELOPMENT power harness simulates sequential
-uniform draws from the finite sealed case bank, without replacement within
-each window and with each question's registered remaining exposures. It keeps
+draws from the finite sealed case bank, without replacement within each
+window and with each question's registered remaining exposures. The producer
+registers each case's stratum and an explicit quota vector for every tested
+k; each stratum samples uniformly from its live cases. It keeps
 all appearances from the same solved reference bank in one sign-test cluster.
 If any simulated path cannot fill a complete window, the detection estimate
 for that k/window cell is null and the feasible-path rate is reported.

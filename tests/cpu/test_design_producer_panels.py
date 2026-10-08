@@ -107,6 +107,12 @@ def _export(family, *, indexed_decision=False):
             "challenge_id": "toy-panel-challenge",
             "exposure_unit": "per_question_draws",
             "exposure": [{"case": case, "limit": 2, "used": 0}],
+            "window_sampling": power_accumulation.register_window_sampling(
+                case_strata=[{"case": case, "stratum": "only"}],
+                quotas_by_k=[
+                    {"questions_per_batch": k, "quotas": {"only": k}} for k in (1, 2)
+                ],
+            ),
             "questions": [
                 {
                     "case": case,
@@ -170,6 +176,7 @@ def _design_bank_snapshot(family):
                 }
                 for row in export["exposure"]
             ],
+            "window_sampling": export["window_sampling"],
             "cases": questions,
             "laws": export["laws"],
         }

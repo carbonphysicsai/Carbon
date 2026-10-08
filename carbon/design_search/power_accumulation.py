@@ -14,8 +14,9 @@ import random
 from carbon.design_search import tasks
 
 SCHEMA = "carbon.design-search.power-accumulation.v1"
+SAMPLING_SCHEMA = "carbon.design-search.window-sampling.v1"
 EXPOSURE_UNIT = "per_question_draws"
-WINDOW_MODEL = "sequential_uniform_live_cases.v1"
+WINDOW_MODEL = "sequential_registered_stratum_quotas.v1"
 
 
 def register_accumulation(*, exposure_unit, max_windows):
@@ -83,16 +84,98 @@ def validate_case_exposure(rows, cases):
     return remaining
 
 
-def _one_path(remaining, *, seed, k, replicate, windows):
+def register_window_sampling(*, case_strata, quotas_by_k):
+    """Bind the producer's per-case strata and exact quota for each k."""
+    body = {
+        "schema": SAMPLING_SCHEMA,
+        "case_strata": case_strata,
+        "quotas_by_k": quotas_by_k,
+    }
+    return {**body, "registration_digest": tasks.digest(body)}
+
+
+def validate_window_sampling(registration, cases, max_questions):
+    if (
+        type(registration) is not dict
+        or set(registration)
+        != {"schema", "case_strata", "quotas_by_k", "registration_digest"}
+        or registration["schema"] != SAMPLING_SCHEMA
+        or registration["registration_digest"]
+        != tasks.digest(
+            {
+                key: value
+                for key, value in registration.items()
+                if key != "registration_digest"
+            }
+        )
+        or type(registration["case_strata"]) is not list
+        or type(registration["quotas_by_k"]) is not list
+    ):
+        raise tasks.TaskError("registered window sampling required")
+    strata = {}
+    for row in registration["case_strata"]:
+        if (
+            type(row) is not dict
+            or set(row) != {"case", "stratum"}
+            or type(row["case"]) is not str
+            or row["case"] not in cases
+            or row["case"] in strata
+            or type(row["stratum"]) is not str
+            or not row["stratum"]
+        ):
+            raise tasks.TaskError("window case stratum registration invalid")
+        strata[row["case"]] = row["stratum"]
+    if set(strata) != set(cases):
+        raise tasks.TaskError("window case strata do not cover sealed bank")
+    quotas_by_k = {}
+    for row in registration["quotas_by_k"]:
+        if (
+            type(row) is not dict
+            or set(row) != {"questions_per_batch", "quotas"}
+            or type(row["questions_per_batch"]) is not int
+            or row["questions_per_batch"] <= 0
+            or row["questions_per_batch"] in quotas_by_k
+            or type(row["quotas"]) is not dict
+            or not row["quotas"]
+            or any(
+                type(name) is not str
+                or not name
+                or type(count) is not int
+                or count <= 0
+                for name, count in row["quotas"].items()
+            )
+            or sum(row["quotas"].values()) != row["questions_per_batch"]
+            or ("all" in row["quotas"] and len(row["quotas"]) != 1)
+            or any(
+                name != "all" and name not in set(strata.values())
+                for name in row["quotas"]
+            )
+        ):
+            raise tasks.TaskError("registered window quota invalid")
+        quotas_by_k[row["questions_per_batch"]] = row["quotas"]
+    if not set(range(1, max_questions + 1)) <= set(quotas_by_k):
+        raise tasks.TaskError("window quotas missing a requested k")
+    return strata, quotas_by_k
+
+
+def _one_path(remaining, strata, quotas, *, seed, k, replicate, windows):
     rng = random.Random(f"{seed}:{k}:{replicate}")
     available = dict(remaining)
     drawn = []
     for _ in range(windows):
         live = sorted(case for case, count in available.items() if count > 0)
-        if len(live) < k:
+        chosen = []
+        for stratum, count in sorted(quotas.items()):
+            pool = [
+                case for case in live if stratum == "all" or strata[case] == stratum
+            ]
+            if len(pool) < count:
+                chosen = None
+                break
+            chosen.extend(rng.sample(pool, count))
+        if chosen is None:
             drawn.extend([None] * (windows - len(drawn)))
             break
-        chosen = rng.sample(live, k)
         for case in chosen:
             available[case] -= 1
         drawn.append(chosen)
@@ -101,6 +184,7 @@ def _one_path(remaining, *, seed, k, replicate, windows):
 
 def cross_batch_curve(
     case_exposure,
+    window_sampling,
     differences,
     clusters,
     *,
@@ -131,6 +215,9 @@ def cross_batch_curve(
     ):
         raise tasks.TaskError("finite registered cross-batch inputs required")
     remaining = validate_case_exposure(case_exposure, differences)
+    strata, quotas_by_k = validate_window_sampling(
+        window_sampling, differences, max_questions
+    )
     from carbon.design_search.power import _sign_test_p
 
     points = []
@@ -142,6 +229,8 @@ def cross_batch_curve(
         for replicate in range(replicates):
             path = _one_path(
                 remaining,
+                strata,
+                quotas_by_k[k],
                 seed=seed,
                 k=k,
                 replicate=replicate,

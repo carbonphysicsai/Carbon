@@ -56,6 +56,7 @@ def _from_design_bank_snapshot(snapshot):
             "challenge_id",
             "exposure_unit",
             "exposure",
+            "window_sampling",
             "cases",
             "laws",
             "snapshot_digest",
@@ -123,6 +124,7 @@ def _from_design_bank_snapshot(snapshot):
             "challenge_id": snapshot["challenge_id"],
             "exposure_unit": snapshot["exposure_unit"],
             "exposure": exposure,
+            "window_sampling": snapshot["window_sampling"],
             "questions": questions,
             "laws": snapshot["laws"],
         }
@@ -221,6 +223,7 @@ def adapt_export(export):
             "challenge_id",
             "exposure_unit",
             "exposure",
+            "window_sampling",
             "questions",
             "laws",
             "export_digest",
@@ -298,6 +301,7 @@ def adapt_export(export):
             "sealed": True,
             "exposure_unit": export["exposure_unit"],
             "case_exposure": export["exposure"],
+            "window_sampling": export["window_sampling"],
             "cases": cases,
             mode: rows,
         }
