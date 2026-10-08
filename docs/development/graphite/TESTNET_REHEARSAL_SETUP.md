@@ -93,7 +93,8 @@ This replaces steps 4–7 of the v2 switch (`BATTERY_VALIDATOR_SERVICE_RUNBOOK.m
 3. **The fetch configuration and timer** (`ANSWER_KEY_OPERATIONS.md` §4):
    - `url`: `https://answers.carbonphysics.ai`;
    - `receiver`: from Part 2.5;
-   - `hotkey`: the validator hotkey, through its signer (`signer_socket`);
+   - `hotkey`: the validator hotkey, through its signer (`signer_socket`),
+     started with `--request answer-key --receiver <receiver>`;
    - the pinned `producer_public_key`;
    - `deployment`: `C2`;
    - the battery Challenge.

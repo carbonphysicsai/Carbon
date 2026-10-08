@@ -16,7 +16,9 @@ from main. These tests hold:
 - the device is the worker's, never the recipe's: a missing or unknown device
   is Carbon's environment failure, never the candidate's;
 - with PyTorch installed (CI), a CPU rebuild through the fixed worker program
-  is byte-identical under 1.0 and 2.0.
+  is byte-identical under 1.0, 2.0 and 3.0;
+- 2.0 is a read-only snapshot too (BATTERY-IMPL-3), and 3.0 changed only the
+  PyTorch modules.
 """
 
 from __future__ import annotations
@@ -37,9 +39,10 @@ from carbon.battery import implementation_versions as versions
 REPOSITORY = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPOSITORY / "tests" / "cpu"))
 
-from test_battery_level1 import LEVEL0_PINS, LEVEL0_PINS_V2
+from test_battery_level1 import LEVEL0_PINS, LEVEL0_PINS_V2, LEVEL0_PINS_V3
 
 V1 = "sha256:e4c4f12958ba4cbbe5e088190eaeba19cc4a8e23378c8b119ca2bbaae96cc417"
+V2 = "sha256:01ff1d6adca47cf0b9b1aaff885f77126538f5b8f1fb131b64c40c5b3d5450c2"
 TORCH_TRAINING = REPOSITORY / "carbon" / "battery" / "torch_training.py"
 
 needs_torch = pytest.mark.skipif(
@@ -64,7 +67,7 @@ def snapshots(tmp_path):
 
 
 def test_the_v1_snapshot_is_exactly_its_pinned_bytes():
-    assert versions.PINNED == {"1.0": V1}
+    assert versions.PINNED == {"1.0": V1, "2.0": V2}
     assert versions.PINNED["1.0"] == LEVEL0_PINS["implementation"]
     modules = versions.module_bytes("1.0")
     assert set(modules) == set(versions.MODULES)
@@ -72,6 +75,14 @@ def test_the_v1_snapshot_is_exactly_its_pinned_bytes():
     manifest = json.loads((versions.SNAPSHOTS / "v1" / "MANIFEST.json").read_text())
     assert manifest["implementation_digest"] == V1
     assert manifest["version"] == "1.0"
+
+
+def test_the_v2_snapshot_is_exactly_its_pinned_bytes():
+    assert versions.PINNED["2.0"] == LEVEL0_PINS_V2["implementation"]
+    assert versions.digest_of(versions.module_bytes("2.0")) == V2
+    manifest = json.loads((versions.SNAPSHOTS / "v2" / "MANIFEST.json").read_text())
+    assert manifest["implementation_digest"] == V2
+    assert manifest["version"] == "2.0"
 
 
 @pytest.mark.parametrize("module", versions.MODULES)
@@ -130,10 +141,10 @@ def test_a_silent_re_pin_is_refused(snapshots, monkeypatch):
 
 
 def test_an_unregistered_version_is_refused():
-    for version in ("0.9", "1.1", "3.0", ""):
+    for version in ("0.9", "1.1", "4.0", ""):
         with pytest.raises(versions.ImplementationUnavailable):
             versions.module_bytes(version)
-    assert versions.VERSIONS == ("1.0", "2.0") and versions.CURRENT == "2.0"
+    assert versions.VERSIONS == ("1.0", "2.0", "3.0") and versions.CURRENT == "3.0"
     assert versions.CURRENT not in versions.PINNED
 
 
@@ -147,11 +158,15 @@ def test_v1_identities_verify_and_v2_identities_differ():
 
     assert contracts.IMPLEMENTATION_VERSION == versions.CURRENT
     assert contracts.implementation_digest("1.0") == LEVEL0_PINS["implementation"]
-    assert contracts.implementation_digest() == LEVEL0_PINS_V2["implementation"]
+    assert contracts.implementation_digest("2.0") == LEVEL0_PINS_V2["implementation"]
+    assert contracts.implementation_digest() == LEVEL0_PINS_V3["implementation"]
     v1 = compile_recipe(SCAFFOLD, implementation="1.0")[1]
-    v2 = compile_recipe(SCAFFOLD)[1]
+    v2 = compile_recipe(SCAFFOLD, implementation="2.0")[1]
     assert v1.recipe_digest == LEVEL0_PINS["scaffold_recipe"]
     assert v2.recipe_digest == LEVEL0_PINS_V2["scaffold_recipe"]
+    assert (
+        compile_recipe(SCAFFOLD)[1].recipe_digest == LEVEL0_PINS_V3["scaffold_recipe"]
+    )
     # The design is the same; only its implementation identity moved.
     assert v1.strategy_hash == v2.strategy_hash
     assert v1.plan_digest != v2.plan_digest
@@ -159,9 +174,10 @@ def test_v1_identities_verify_and_v2_identities_differ():
     assert contracts.battery_contracts("1.0") is contracts.battery_contracts("1.0")
 
 
-def test_only_the_pytorch_modules_changed_in_v2():
-    v1, v2 = versions.module_bytes("1.0"), versions.module_bytes()
-    changed = sorted(name for name in versions.MODULES if v1[name] != v2[name])
+@pytest.mark.parametrize(("old", "new"), [("1.0", "2.0"), ("2.0", "3.0")])
+def test_only_the_pytorch_modules_changed(old, new):
+    a, b = versions.module_bytes(old), versions.module_bytes(new)
+    changed = sorted(name for name in versions.MODULES if a[name] != b[name])
     assert changed == ["torch_families.py", "torch_training.py"]
 
 
@@ -276,7 +292,7 @@ def _rebuild_on_cpu(tmp_path, version, recipe):
 
 @needs_torch
 @pytest.mark.parametrize("family", ["mlp", "deeponet", "fno"])
-def test_a_cpu_rebuild_is_byte_identical_under_v1_and_v2(tmp_path, family):
+def test_a_cpu_rebuild_is_byte_identical_under_every_version(tmp_path, family):
     from test_battery_construction_contract import BATTERY, SMALL, strategy
 
     from carbon.battery.compile import compile_recipe
@@ -284,10 +300,11 @@ def test_a_cpu_rebuild_is_byte_identical_under_v1_and_v2(tmp_path, family):
     parameters = {**SMALL[family], "backend": "pytorch"}
     recipe = compile_recipe(strategy(BATTERY, family, **parameters))[1]
     v1 = _rebuild_on_cpu(tmp_path, "1.0", recipe)
-    v2 = _rebuild_on_cpu(tmp_path, "2.0", recipe)
-    assert v1["params_sha256"] == v2["params_sha256"]
-    assert v1["final_loss"] == v2["final_loss"]
-    assert "device" not in v2
+    for version in ("2.0", "3.0"):
+        later = _rebuild_on_cpu(tmp_path, version, recipe)
+        assert v1["params_sha256"] == later["params_sha256"]
+        assert v1["final_loss"] == later["final_loss"]
+        assert "device" not in later
 
 
 def test_staging_without_extra_cases_is_byte_identical_to_mains():

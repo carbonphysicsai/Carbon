@@ -60,15 +60,24 @@ AUTONOMOUS_PLAN_DIGEST = (
 )
 
 
-def new_plan_selection(args):
+def new_plan_selection(args, agent=None):
     """The model selection `prepare_battery` chooses for a new plan: under
     the base's new-plan output default where this tree has it
     (OWNER-LAUNCHPAD-PROD-02: the model's own maximum output, unless the
-    miner set a cap), else as before it."""
+    miner set a cap), else as before it; and for `agent`'s plan under the
+    new-plan input default where this tree has it
+    (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01)."""
     output_default = getattr(campaigns, "new_plan_output_default", None)
     if output_default is None:
         return campaigns.supplied_selection(args)
-    return campaigns.supplied_selection(args, output_default=output_default(args))
+    input_default = getattr(campaigns, "new_plan_input_default", None)
+    if input_default is None or agent is None:
+        return campaigns.supplied_selection(args, output_default=output_default(args))
+    return campaigns.supplied_selection(
+        args,
+        output_default=output_default(args),
+        input_default=input_default(args, agent),
+    )
 
 
 #: What one model call of a new product plan on the pinned model reserves.
@@ -535,7 +544,7 @@ def test_a_new_graphite_plan_records_the_selection_prepare_chose(host):
     checked against that selection's whole-call cost."""
     prepared = host.prepare("run", graphite={"mode": "RESEARCH"})
     frozen = json.loads((host.root / "campaign-manifest.json").read_bytes())
-    chosen = new_plan_selection(host.args("run"))
+    chosen = new_plan_selection(host.args("run"), "graphite")
     assert frozen["provider"] == battery.provider_plan(
         "graphite", GRAPHITE_BUDGET, chosen, graphite=frozen["provider"]["graphite"]
     )

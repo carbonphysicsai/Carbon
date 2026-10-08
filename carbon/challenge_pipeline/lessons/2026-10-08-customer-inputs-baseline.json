@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-customer-inputs-baseline",
+  "recorded_at": "2026-10-08T13:48:36+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-CUSTOMER-INPUTS-03 baseline", "description": "Native py3.11 UTF-8 pytest of v2 revisions, question laws, first-three packets and credibility."},
+  "expected": "Public static baseline remains green before prospective supplements.",
+  "observed": "69 passed in0.71s; native diagnostics, not canonical or physical evidence. Reference audit finds ambient/SOC inputs but no independent aged-state input; cooling accepts axial Gaussian maps, not arbitrary conduction output.",
+  "keep": ["Preserve observed packet/law identities; distinguish solver input support from observer/truth adequacy."],
+  "change": ["Specify variable-SOC timing and tabulated cooling maps as explicit versioned support gaps rather than implicit extensions."],
+  "protocol_elements": ["versioned requirements", "reference support", "no silent rescore"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -119,6 +119,20 @@ UNVERIFIED or FAILED.
 On a GPU host, `--gpus` (and optionally `--expect-device-kind`) runs the GPU
 device checks. The release workflow never passes them.
 
+### Running a GPU image by hand
+
+Two host steps the executor's worker-images-v2 run on a WSL2 host needed
+(2026-10-08):
+
+- **On WSL2, `--gpus all` alone does not reach the driver.** Also pass
+  `-v /usr/lib/wsl:/usr/lib/wsl:ro -e LD_LIBRARY_PATH=/usr/lib/wsl/lib`, so
+  the container sees WSL's CUDA driver libraries.
+- **`/scratch/tmp` must exist and be writable.** The images set
+  `TMPDIR=/scratch/tmp`, and production supplies a `/scratch` tmpfs. A hand
+  run must supply it too: mount a writable directory at `/scratch` that
+  contains `tmp/`. Without it, compilers that write to `TMPDIR` (`ptxas`
+  among them) fail.
+
 ## Testnet adoption (Ryan; nothing here has been run)
 
 Old images and old manifest files stay. **Nothing on the host is deleted or

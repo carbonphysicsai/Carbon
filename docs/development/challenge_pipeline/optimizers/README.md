@@ -1,5 +1,12 @@
 # Carbon-owned design optimizers — eight-Challenge DEVELOPMENT design
 
+> **Current Battery amendment after #804:** use [Battery optimizer v2](battery-ev-fast-charge-v2.md)
+> for admissible time minimization, charging-only thermal scope and the
+> continuous-primary law proposal. The Battery row and original draft below
+> remain historical proposals; their hard30-minute/whole-programme thermal
+> clauses are superseded. `tasks.py` is now merged. Other optimizer proposals
+> are unchanged; old Cooling assembly prose remains deferred/out of cell scope.
+
 This index gives the requested **buyer-decision optimizer proposals** in the required order. Each linked file is one Challenge specification. The [round-one customer packets](../round1/README.md) own the buyer requirements; the optimizer proposal does not alter a Score Pack, grader, hidden pool, validator, LIVE contract, miner surface or product qualification. The Test Lead owns how a decision is scored, attacked and statistically qualified. **HUMAN_INPUT (recommended)** denotes a planning value that is not in the packet and is not approved for an official batch. **NOT_DEMONSTRATED** denotes missing reference, power, product or cost evidence. A finite-bank optimum means only best within that exact registered bank.
 
 ## Decision summary

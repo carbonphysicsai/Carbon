@@ -30,7 +30,7 @@ RELEASED_TORCH = a40.TORCH_IMAGE
         "ghcr.io/carbonphysicsai/carbon-accelerator-worker:latest",
         "ghcr.io/carbonphysicsai/carbon-accelerator-worker",
         "ghcr.io/carbonphysicsai/carbon-accelerator-worker@sha256:" + "0" * 64,
-        "ghcr.io/other/worker@sha256:" + "8f16c105" + "0" * 56,
+        "ghcr.io/other/worker@sha256:" + "c34d579e" + "0" * 56,
         "ghcr.io/carbonphysicsai/carbon-torch-gpu-worker@sha256:abc",
         "",
         None,
@@ -43,10 +43,10 @@ def test_only_released_digest_pinned_images_are_accepted(image):
 
 def test_released_images_are_the_briefs_digests():
     assert a40.check_image(RELEASED_ACCELERATOR).endswith(
-        "8f16c1055e14ebe4c35efe6d12c9b4230f5758cb87f383bdc6d9bc80557ce409"
+        "c34d579e37eeffee944b8b4b876289963a6b283ea825b91a404167d92d0124b4"
     )
     assert a40.check_image(RELEASED_TORCH).endswith(
-        "056bd77c5d8195206b42102b92e818176999266281bb485522b3c57b451a8a09"
+        "28856fd628d46818741e028837f064fe1a6f9f19653091adca92a36ff5726fc1"
     )
     assert a40.IMAGES == {"jax": RELEASED_ACCELERATOR, "pytorch": RELEASED_TORCH}
 
@@ -333,11 +333,12 @@ SMOKES = {"jax": SMOKE, "pytorch": SMOKE}
 def world(tmp_path):
     clock = Clock()
     fake = FakeRunPod(rate=0.40)
-    fake.always_fail = False
+    fake.fail_creates = 0
     bodies = []
 
     def transport(method, url, *, body, headers, timeout):
-        if method == "POST" and url.endswith("/v1/pods") and fake.always_fail:
+        if method == "POST" and url.endswith("/v1/pods") and fake.fail_creates:
+            fake.fail_creates -= 1
             return 500, b'{"error": "There are no instances currently available"}'
         if method == "POST" and url.endswith("/v1/pods"):
             bodies.append(json.loads(body))
@@ -349,8 +350,13 @@ def world(tmp_path):
             )
         return reply
 
-    def make(behaviours, **fleet_options):
+    def make(behaviours, retry_window_seconds=None, **fleet_options):
         fleet = Fleet(fake, behaviours, **fleet_options)
+        runner_options = (
+            {}
+            if retry_window_seconds is None
+            else {"retry_window_seconds": retry_window_seconds}
+        )
         runner = a40.PodRunner(
             work_dir=tmp_path / "work",
             key_file=key_file(tmp_path),
@@ -364,6 +370,7 @@ def world(tmp_path):
             balance_floor=lambda: 1.0,
             poll_seconds=15.0,
             run_id="t1",
+            **runner_options,
         )
         fake.fleet = fleet
         return runner, fleet
@@ -537,7 +544,7 @@ def test_launch_refuses_an_offer_above_the_rate_ceiling(world):
     make, fake, _bodies = world
     fake.rate = 0.60
     runner, _fleet = make([])
-    with pytest.raises(a40.Refused, match="rate ceiling"):
+    with pytest.raises(a40.NoA40):  # above the ceiling is never created
         a40.run_acceptance(runner, RECORD, SMOKES)
     runner.close()
     assert fake.creates() == 0
@@ -1050,31 +1057,105 @@ def test_definitive_failure_stops_at_once_and_the_intent_is_rejected(world):
     assert str(state) == "rejected"
 
 
-def test_capacity_failure_is_retried_every_ten_minutes_then_succeeds(world):
+def test_a_failed_secure_attempt_falls_back_to_community_in_the_same_round(
+    world, capsys
+):
     runner, fake = _runner_and_clock(world)
-    fake.fail_next_create_with = 500
-    config = {"recipes": [], "repeats": 1, "seed": 0}
+    fake.fail_creates = 1
     start = runner.clock()
-    pod = runner.launch("jax", "A", config, 600)
-    assert pod.pod_id and fake.creates() == 2  # the refused create, then one more
+    pod = runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    assert pod.cloud == "COMMUNITY" and runner.clock() == start  # no wait
     [attempt] = runner.launch_attempts
-    assert attempt["status"] == 500 and attempt["capacity"] is True
-    assert runner.clock() - start == a40.RETRY_SECONDS
+    assert attempt["cloud"] == "SECURE" and attempt["status"] == 500
+    assert attempt["capacity"] is True
+    assert "no instances" in attempt["message"]
+    err = capsys.readouterr().err
+    assert "cloud=SECURE" in err and "status=500" in err and "no instances" in err
+    assert MOCK_KEY not in err
+    assert pod.summary()["cloud"] == "COMMUNITY"
     runner.terminate(pod)
     runner.close()
 
 
-def test_capacity_retry_is_bounded_to_two_hours_with_one_create_in_flight(world):
+def test_a_whole_round_failing_waits_ten_minutes_then_secure_is_tried_again(world):
     runner, fake = _runner_and_clock(world)
-    fake.always_fail = True
+    fake.fail_creates = 2  # SECURE and COMMUNITY of round one
     start = runner.clock()
-    with pytest.raises(a40.LaunchFailed, match="no instances"):
+    pod = runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    assert pod.cloud == "SECURE"
+    assert runner.clock() - start == a40.RETRY_SECONDS
+    assert [a_["cloud"] for a_ in runner.launch_attempts] == ["SECURE", "COMMUNITY"]
+    runner.terminate(pod)
+    runner.close()
+
+
+def test_no_capacity_in_the_window_is_the_named_result_after_every_round(world):
+    runner, fake = _runner_and_clock(world)
+    fake.fail_creates = 10**6
+    start = runner.clock()
+    with pytest.raises(a40.NoA40) as caught:
         runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
     runner.close()
-    assert runner.clock() - start == a40.RETRY_LIMIT_SECONDS
-    assert len(runner.launch_attempts) == 13  # every 10 minutes, 0 to 120
-    assert all(a["capacity"] and a["status"] == 500 for a in runner.launch_attempts)
-    assert fake.creates() == 0
+    assert caught.value.result == "NO_A40_AFTER_60_MIN"
+    assert runner.clock() - start == 3600
+    # rounds at 0, 10, ..., 60 minutes, SECURE then COMMUNITY in each
+    assert len(runner.launch_attempts) == 14
+    assert {a_["cloud"] for a_ in runner.launch_attempts} == {"SECURE", "COMMUNITY"}
+    assert fake.pods == {}
+
+
+def test_the_retry_window_is_configurable(world):
+    make, fake, _bodies = world
+    runner, _fleet = make([], retry_window_seconds=1200)
+    fake.fail_creates = 10**6
+    with pytest.raises(a40.NoA40) as caught:
+        runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    runner.close()
+    assert caught.value.result == "NO_A40_AFTER_20_MIN"
+
+
+def test_the_cli_exits_with_the_named_result_when_no_a40_comes(
+    monkeypatch, capsys, tmp_path
+):
+    record = tmp_path / "r.json"
+    a40.write_record(RECORD, record)
+    smoke_path = tmp_path / "s.json"
+    smoke_path.write_text(json.dumps(SMOKE))
+    seen = {}
+
+    def runner_that_never_gets_one(args, record):
+        seen["window"] = args.retry_window_minutes
+        raise a40.NoA40(args.retry_window_minutes * 60)
+
+    monkeypatch.setattr(a40, "_runner", runner_that_never_gets_one)
+    code = a40.main(
+        ["smoke", "--record", str(record), "--smoke-record", str(smoke_path),
+         "--work-dir", str(tmp_path / "w"), "--retry-window-minutes", "30"]
+    )  # fmt: skip
+    assert code == 3 and seen["window"] == 30
+    assert json.loads(capsys.readouterr().out) == {"result": "NO_A40_AFTER_30_MIN"}
+
+
+def test_a_definitive_refusal_does_not_try_the_other_cloud(world):
+    runner, fake = _runner_and_clock(world)
+    fake.fail_next_create_with = 400
+    with pytest.raises(a40.LaunchFailed):
+        runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    runner.close()
+    assert [a_["cloud"] for a_ in runner.launch_attempts] == ["SECURE"]
+    assert fake.creates() == 1
+
+
+def test_cuda_versions_are_derived_from_both_image_locks(world):
+    assert a40.supported_cuda_versions() == ("13.0",)
+    _summary, _results, _fake, bodies = run(world, [])
+    assert {tuple(b["allowedCudaVersions"]) for b in bodies} == {("13.0",)}
+
+
+def test_the_decision_record_names_community_and_changes_no_figure():
+    text = (a40.REPOSITORY / a40.GRANT_RECORD).read_text()
+    assert text.rstrip().endswith("Community allowed per owner direction 2026-10-08")
+    assert "0.492739726" in text and "4.25" in text
 
 
 def test_the_bootstrap_accepts_post_go_only_with_the_token(tmp_path, monkeypatch):

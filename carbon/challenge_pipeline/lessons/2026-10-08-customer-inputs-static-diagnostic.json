@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-customer-inputs-static-diagnostic",
+  "recorded_at": "2026-10-08T14:03:17+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-CUSTOMER-INPUTS-03 first static/synthetic batch", "description": "Native py3.11 UTF-8 pytest of new input/law/optimizer contracts and unchanged packet-law/credibility checks."},
+  "expected": "New proposed sheets satisfy dimensional, panel arithmetic, support, custody and historical consistency tests.",
+  "observed": "84 passed,1 failed: exact float equality compared4e-6 with0.04*1e-4. This is binary representation in the test, not a joint-resistance discrepancy. Corrected the dimensional conversion assertion to approximate numeric equality. No reference calculation or physical qualification.",
+  "keep": ["Check effective joint resistance against bulk thickness/conductivity and keep ranges from becoming unconstrained Cartesian physical claims."],
+  "change": ["Use numerical comparison for floating unit conversions; keep exact identity checks for versioned document hashes."],
+  "protocol_elements": ["units", "static diagnostics", "versioned inputs"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

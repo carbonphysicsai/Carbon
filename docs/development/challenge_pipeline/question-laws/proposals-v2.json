@@ -1,0 +1,68 @@
+{
+  "schema": "carbon.question-law.amendment.v2",
+  "ticket": "CHALLENGE-CUSTOMER-PACKETS-02",
+  "amends": "CHALLENGE-QUESTION-LAWS-01",
+  "authority": "OWNER-BATTERY-COOLING-PACKETS-02",
+  "maturity": "SPECIFIED",
+  "runtime_registration": false,
+  "historical_rescore": false,
+  "base": {
+    "file": "proposals.json",
+    "sha256_lf_utf8": "c27149f55d7ae69718e3e71eea0c07b12a68d723aaa8f7ecaf1b39c2c0030744",
+    "inheritance": "Replace the complete battery and cooling-cell challenge rows below by challenge token; inherit the other six rows, common P/Q/w/grid-continuous/diversity/exposure policies and historical cost record unchanged. Documentation amendment only; no runtime resolver or sampler."
+  },
+  "unchanged_challenges": ["motor", "burst-thermal", "grating-coupler", "resonance-structure", "compressor-silencer", "passive-micromixer"],
+  "challenges": [
+    {
+      "challenge": "battery", "family": "f05", "packet_version": "v2",
+      "scope": "one pinned simulated cell; 30-cycle programme; charging thermal constraint and diagnostic test discharge; minimize session time without a hard deadline",
+      "service_contexts": {"status": "HUMAN_INPUT", "registered": null, "recommendation": ["complete 5/15/25/35/40 degC ambient panel at SOC0.10; report session times by ambient; proposed objective uses worst25/35 degC time, not a time limit"]},
+      "requirement_axes": [
+        {"quantity": "charging_temperature_max", "unit": "degC", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [42.5, 45], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [42.5, 45]}},
+        {"quantity": "capacity_ratio_min", "unit": "1", "op": ">=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.99, 0.995], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [0.99, 0.995]}}
+      ],
+      "owner_selected_packet_objective": {"quantity": "session_start_10_80_time", "unit": "min", "sense": "min", "status": "OWNER_APPROVED_DEVELOPMENT", "hard_max": null},
+      "mandatory_anchor": "Hard45 degC during every CC/CV charge leg and0 V every-charge model plating floor; retained4.2 V programme bound and0.99 capacity screen. Test-discharge temperature is diagnostic, not a hard charging failure. No hard30-minute limit.",
+      "objective": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "min worst25/35 degC session-start10-80% minutes including120-s initial rest; secondary capacity loss, then frozen bank order. Aggregation/ties require adoption, not a new time cap."},
+      "optional_cooling": "OPTIONAL_REPORTED_ACTION_WITH_PINNED_COVERAGE_NO_SELECTED_MULTIPLIER",
+      "bank_candidates": {"status": "HUMAN_INPUT", "registered": null, "recommendation": 100},
+      "questions_per_batch": {"status": "HUMAN_INPUT", "registered": null, "recommendation": 8},
+      "raw_question_grid_upper_bound": 4,
+      "grid_batch_caveat": "Only four grid vectors: at most four resolved answers and possibly fewer. k8 is a continuous-variant planning recommendation, not eight distinct grid questions; do not pad the grid or redraw for diversity.",
+      "distinct_answer_changing_questions": null,
+      "distinct_best_picks": null,
+      "continuous_variant": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Use the two proposed supported continuous intervals; session time is only the objective. Bank-bounded winner occupancy under P/Q and E must be measured; do not promise diversity.", "expected_distinct_winners_P": null, "expected_distinct_winners_Q": null, "close_call_rate_P": null, "close_call_rate_Q": null, "residual_unresolved_rate": null, "report_status": "NOT_DEMONSTRATED"},
+      "diagnostic_Q_revision": "Near charging-thermal/plating/voltage/capacity limits and objective near-ties;30 minutes is not a Q2 classification boundary. Quantitative bands and enrichment stay HUMAN_INPUT.",
+      "solve_cost_status": "MEASURED_HISTORICAL_ONLY", "revised_bank_cpu_hours": null,
+      "base_reference_work": "500 programme solves for proposed100 actions x five contexts plus refinement. Prior2684-solve ~68 CPU-h cost belongs only to its historical scope;435 reported feasibility solves supply no revised bank timings.",
+      "support_gate": "Pinned charge-integral SOC/crossing and capacity basis, complete phase/charging-plating reductions, optional cooling coverage and versioned charging-only task projection. Missing competitors/crossings remain UNRESOLVED; no prospective complete-panel pass is inferred from32.9 minutes."
+    },
+    {
+      "challenge": "cooling-cell", "family": "f04", "packet_version": "v2",
+      "scope": "periodic cooling cell only; post-spreader cold-plate interface heat map; no full cold plate or manifold",
+      "service_contexts": {"status": "HUMAN_INPUT", "registered": null, "recommendation": ["complete five supported nominal-flow cell contexts: cold uniform, typical, warm uniform, warm central and outlet-side hotspots; all maps at the post-spreader interface with stated buyer properties and case identities"]},
+      "requirement_axes": [
+        {"quantity": "cell_post_spreader_TIM_proxy_temperature_max", "unit": "degC", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [80, 82.5, 85], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [80, 85]}},
+        {"quantity": "cell_pressure_drop_max", "unit": "Pa", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "recommendation": [20000, 25000, 30000], "continuous_interval": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [20000, 30000]}}
+      ],
+      "mandatory_anchor": "Owner85 degC target uses spreader-side TIM-interface estimate from local post-spreader flux, not die-junction temperature. Pressure values remain proposed CELL allocations, not full-assembly50 kPa/2.5 W acceptance.",
+      "spreader_properties": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Buyer states geometry/thickness, material law, contacts, source/map and characterization provenance before drawing cases. Do not invent input values or map probabilities."},
+      "post_spreader_heat_map_manifest": null,
+      "alternative_policy": "REPORT_TIM_RATIO_INLET_ALTERNATIVES_WITHOUT_SELECTING",
+      "objective": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "min worst supported cell pressure drop in Pa; secondary worst post-spreader TIM-interface proxy in degC, then frozen bank order"},
+      "bank_candidates": {"status": "HUMAN_INPUT", "registered": null, "recommendation": 200},
+      "questions_per_batch": {"status": "HUMAN_INPUT", "registered": null, "recommendation": 8},
+      "raw_question_grid_upper_bound": 9,
+      "distinct_answer_changing_questions": null,
+      "distinct_best_picks": null,
+      "continuous_variant": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Retain grid and supported continuous threshold alternatives over the same new physical bank. No invented spreader law, selected sensitivity alternative or renewed E.", "expected_distinct_winners_P": null, "expected_distinct_winners_Q": null, "close_call_rate_P": null, "close_call_rate_Q": null, "residual_unresolved_rate": null, "report_status": "NOT_DEMONSTRATED"},
+      "diagnostic_Q_revision": "Enrich the85 degC local thermal edge and cell-pressure edges on supported post-spreader maps; retained old hotspot failures are not new answer keys.",
+      "solve_cost_status": "UNMEASURED", "revised_bank_cpu_hours": null,
+      "base_reference_work": "1000 cell solves for proposed200 geometry/flow actions x five supported contexts plus refinement; new maps or physics need new truth, not threshold-only reuse.128 reported old-map feasibility solves supply no v2 bank cost.",
+      "support_gate": "Explicit spreader properties and characterized post-interface map; #758 improved cell/local observer; Unsupported reduced-supply scenario excluded. Missing inputs/reference coverage remain UNRESOLVED. Uniform81.2 degC does not pass a hotspot panel; no assembly claim."
+    }
+  ],
+  "quiz_impact_file": "quiz-impact-v2.md",
+  "historical_quiz": {"file": "motor-cooling-quiz.md", "sha256_lf_utf8": "8509bbbe3667deff44d7b98da91a229bd2e299759d91c9ac6b27a4d820f5d64f"},
+  "question_policy": "NONE_FEASIBLE retained with no redraws; power through separately declared diagnostic Q; unknown reference or objective ordering is UNRESOLVED, never candidate failure."
+}

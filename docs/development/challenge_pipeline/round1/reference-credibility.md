@@ -1,5 +1,13 @@
 # Buyer reference credibility — targets, not earned tiers
 
+**Prospective packet scope (2026-10-08):** matched Battery witnesses now use
+[v2](battery-ev-fast-charge-v2.md)'s charge-integral time objective, charging
+thermal constraints and diagnostic discharge. Cooling uses
+[cell v2](cooling-cell-v2.md)'s post-spreader interface map with stated buyer
+properties. Retain both pointwise and decision agreement under those exact
+versions; never reuse an old scope's verdict or silently rescore sealed results.
+Target tiers and HUMAN_INPUT agreement tolerances below are unchanged.
+
 These additions apply to all eight mock-customer packets under
 [REFERENCE-CREDIBILITY-01](../../../../.agent/decisions/2026-10-07-REFERENCE-CREDIBILITY-01.md).
 Tool choices are **role-play assumptions**, not verified market share or actual

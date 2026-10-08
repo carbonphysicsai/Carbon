@@ -617,6 +617,23 @@ def _window_answer(next_block, block):
 # --- the intake -----------------------------------------------------------------
 
 
+def commitment_fact(target):
+    """The intake's public fact on chain commitments, from the deployment it
+    serves. Admission (`BatteryValidator.admit`) does the checking."""
+    if not getattr(target, "require_commitment", False):
+        return "not_checked: this deployment does not require a chain commitment"
+    if getattr(target, "commitments", None) is None:
+        return (
+            "required: no chain reader is configured, so every submission is "
+            "refused as commitment_reader_unavailable"
+        )
+    return (
+        "required: the recipe's chain commitment is read at admission and a "
+        "submission is refused by name as commitment_required, "
+        "commitment_stale or commitment_contested (D6)"
+    )
+
+
 class BatteryIntake:
     """Framework-free request handling; `serve` puts it behind HTTP."""
 
@@ -634,6 +651,7 @@ class BatteryIntake:
         rule=None,
         limits=None,
         clock_ns=time.time_ns,
+        commitment=None,
     ):
         from carbon.challenge_validator import Validator
 
@@ -654,6 +672,13 @@ class BatteryIntake:
         self.status_reader = status_reader
         #: The deployment's exam rule; rule v2 adds the per-hotkey window.
         self.rule = rule
+        #: The public fact on chain commitments: the deployment's real mode
+        #: (`commitment_fact`), checked at admission, not here.
+        # Built without its deployment's mode (not through `_serve`): say so,
+        # rather than claim a mode the deployment may not have.
+        self.commitment = commitment or (
+            "unstated: this door was built without its deployment's commitment mode"
+        )
         self.limits = PeerLimits() if limits is None else limits
         self.clock_ns = clock_ns
         self.wake = threading.Event()
@@ -687,7 +712,7 @@ class BatteryIntake:
                     "signature_max_age_s": 10.0,
                 },
                 "submission_rule": self._rule_facts(snapshot.finalized_block),
-                "commitment": "not_checked: no chain commitment reader exists (OD-7(a))",
+                "commitment": self.commitment,
                 "qualification": False,
                 "reward": False,
             },
@@ -1266,6 +1291,7 @@ def _serve(config, target, repository, stop, reader, verifier, ready):
         status_reader=status.outcome,
         door=neutral_door(target, attempt_ledger(config)),
         rule=target.rule,
+        commitment=commitment_fact(target),
     )
     httpd = listener(config, intake)
     threads = [

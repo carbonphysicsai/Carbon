@@ -79,10 +79,12 @@ def _controls_pass(name, split="trained"):
 def test_the_registry_loads_battery_level_0_and_refuses_anything_else():
     assert adapters.load(b.CHALLENGE_ID, 0) is A
     assert (b.CHALLENGE_ID, 0) in adapters.registered()
-    # Level 1 has its own adapter (GRAPHITE-L1-BUILD-01); Level 2 has none.
-    assert adapters.load(b.CHALLENGE_ID, 1) is not A
+    # Levels 1-3 have their own adapters (GRAPHITE-L1-BUILD-01,
+    # battery_level2, battery_level3); Level 5 has none.
+    for level in (1, 2, 3):
+        assert adapters.load(b.CHALLENGE_ID, level) is not A
     with pytest.raises(adapters.AdapterNotRegistered):
-        adapters.load(b.CHALLENGE_ID, 2)
+        adapters.load(b.CHALLENGE_ID, 5)
     with pytest.raises(adapters.AdapterNotRegistered):
         adapters.load("burgers-dynamics-v1", 0)
 
