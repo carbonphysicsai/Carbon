@@ -19,6 +19,8 @@ DESIGN_TASK_CODE = (
     "carbon/design_search/task_projection.py",
     "carbon/design_search/task_measures.py",
     "carbon/design_search/diversity.py",
+    "carbon/design_search/controls.py",
+    "carbon/design_search/power.py",
     "carbon/design_search/__main__.py",
     "carbon/design_search/task_freeze.py",
 )
