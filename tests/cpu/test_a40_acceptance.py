@@ -1152,9 +1152,11 @@ def test_cuda_versions_are_derived_from_both_image_locks(world):
     assert {tuple(b["allowedCudaVersions"]) for b in bodies} == {("13.0",)}
 
 
-def test_the_decision_record_names_community_and_changes_no_figure():
+def test_the_decision_record_names_its_allowances_and_changes_no_figure():
     text = (a40.REPOSITORY / a40.GRANT_RECORD).read_text()
-    assert text.rstrip().endswith("Community allowed per owner direction 2026-10-08")
+    lines = [line.strip() for line in text.splitlines()]
+    assert "Community allowed per owner direction 2026-10-08" in lines
+    assert "Vast.ai A40 allowed, owner-rented, per owner direction 2026-10-08" in lines
     assert "0.492739726" in text and "4.25" in text
 
 
