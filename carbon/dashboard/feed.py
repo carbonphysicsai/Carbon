@@ -224,18 +224,22 @@ def _values(raw):
 
 
 def _section_meta(raw):
-    """Display name, unit and sense per numeric section, when the feed gives
-    them. The dashboard assumes no sense of its own."""
+    """Display name, unit and sense per section, from the feed's top-level
+    `sections`. Numeric sections state a sense; gates have none. The dashboard
+    assumes no sense of its own."""
     if raw is None:
         return {}
     if type(raw) is not dict:
         raise FeedRefused("section_meta_invalid")
     out = {}
-    for name in NUMERIC_SECTIONS:
+    for name in (*NUMERIC_SECTIONS, "gates"):
         meta = raw.get(name)
         if meta is None:
             continue
-        if type(meta) is not dict or meta.get("sense") not in SENSES:
+        sense = meta.get("sense") if type(meta) is dict else "invalid"
+        if (name == "gates" and sense is not None) or (
+            name != "gates" and sense not in SENSES
+        ):
             raise FeedRefused("section_meta_invalid", name)
         out[name] = {
             "display": _text(meta.get("display", name), "section_meta_invalid"),
@@ -244,7 +248,7 @@ def _section_meta(raw):
                 if meta.get("unit") in (None, "")
                 else _text(meta["unit"], "section_meta_invalid")
             ),
-            "sense": meta["sense"],
+            "sense": sense,
         }
     return out
 
@@ -474,7 +478,7 @@ def project(document, trust):
             else _text(generated_at, "generated_at_invalid")
         ),
         "values": values,
-        "section_meta": _section_meta(document.get("section_meta")),
+        "section_meta": _section_meta(document.get("sections")),
         "release": _release(document.get("release")),
         "released_windows": released,
         "incumbent": incumbent,

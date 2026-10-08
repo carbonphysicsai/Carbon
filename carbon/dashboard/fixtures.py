@@ -63,13 +63,18 @@ def _fingerprint(*parts):
 
 
 SECTION_META = {
-    "accuracy": {"display": "Accuracy", "unit": "", "sense": "lower_is_better"},
-    "design_q": {
-        "display": "Design decisions",
-        "unit": "",
-        "sense": "higher_is_better",
+    "accuracy": {
+        "display": "Accuracy",
+        "unit": "fixture score",
+        "sense": "lower_is_better",
     },
-    "near_limit": {"display": "Near-limit", "unit": "", "sense": "lower_is_better"},
+    "design_q": {"display": "Design q", "unit": "q", "sense": "higher_is_better"},
+    "near_limit": {
+        "display": "Near-limit accuracy",
+        "unit": "fixture score",
+        "sense": "lower_is_better",
+    },
+    "gates": {"display": "Safety gates", "unit": "PASS/FAIL", "sense": None},
 }
 
 
@@ -157,7 +162,7 @@ def board_document(challenge_id, device_class, *, seed, miners=6, testnet=True):
             "rule_digest": _fingerprint(challenge_id, "rule"),
         },
         "device_class": device_class,
-        "section_meta": SECTION_META,
+        "sections": SECTION_META,
         "version": 3 + seed,
         "released_through_block": base + 7_200 * (len(windows) + 1),
         "generated_at": "2026-10-08T00:00:00Z",

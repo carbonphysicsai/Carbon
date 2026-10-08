@@ -342,3 +342,21 @@ def test_view_models_in_node(tmp_path):
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert json.loads(result.stdout)["boards"] == len(boards)
+
+
+def test_section_meta_comes_from_the_feed_sections():
+    board = feed.project(fixtures.sign(_fixture()), fixtures.fixture_trust())
+    assert board["section_meta"]["accuracy"]["sense"] == "lower_is_better"
+    assert board["section_meta"]["design_q"]["sense"] == "higher_is_better"
+    assert board["section_meta"]["gates"]["sense"] is None
+
+
+@pytest.mark.parametrize(
+    ("section", "sense"),
+    [("accuracy", None), ("accuracy", "up"), ("gates", "lower_is_better")],
+)
+def test_section_meta_with_a_bad_sense_is_refused(section, sense):
+    body = _fixture()
+    body["sections"] = copy.deepcopy(body["sections"])
+    body["sections"][section]["sense"] = sense
+    _refused(fixtures.sign(body), "section_meta_invalid")

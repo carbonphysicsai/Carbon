@@ -67,8 +67,7 @@
     return SECTIONS.map(([key]) => {
       const info = sectionInfo(board, key);
       const value = sections ? sections[key] : undefined;
-      return {key, name: info.name, sense: info.sense, value,
-        text: fmt(value, precision) + (info.unit && typeof value === "number" ? " " + info.unit : "")};
+      return {key, name: info.name, sense: info.sense, unit: info.unit, value, text: fmt(value, precision)};
     });
   }
   // Series colour follows the miner's standing order on the board, which the
@@ -259,7 +258,8 @@
     const grid = el("div", null, "sections");
     for (const v of values) {
       const tile = add(el("div", null, "section-tile"), el("p", v.name, "eyebrow"), el("p", v.text, "value"));
-      if (v.sense) tile.append(el("p", v.sense, "hint"));
+      const note = [v.unit, v.sense].filter(Boolean).join(" · ");
+      if (note) tile.append(el("p", note, "hint"));
       grid.append(tile);
     }
     return grid;
