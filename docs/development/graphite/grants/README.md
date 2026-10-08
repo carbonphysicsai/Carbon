@@ -957,3 +957,15 @@ The first live run measures the real figures and replaces these numbers.
   reserved.
 - `max_concurrency` and `max_runtime_s` are 1, because the grant schema
   requires positive values. They bound nothing, since no run is permitted.
+
+## GRAPHITE-GRANT-RATE-STUDY-TOKENS (SUBMISSION-RATE-STUDY-01, arm G-sealed)
+
+**Authority.** OWNER-RATE-STUDY-TOKENS-01
+(`.agent/decisions/2026-10-08-OWNER-RATE-STUDY-TOKENS-01.md`): the owner's
+"approve rate-study tokens $30", relayed by the Test Lead.
+
+Tokens only: 6 runs one at a time, 4.91 USD worst case per run, 0.25 cleanup, 30.00
+ceiling, 39,600 s per run. `max_submissions` (144) is a ceiling; the arm cap is set
+at the freeze. The grant binds spend only after the freeze manifest is on main and
+the runner binds it to the study's route (see the decision record).
+
