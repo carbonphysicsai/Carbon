@@ -60,6 +60,7 @@ def _public_grammar(grammar):
         or type(grammar["rules"]) is not list
     ):
         raise tasks.TaskError("public action grammar invalid")
+    tasks._validate_grammar(grammar)
     variables = []
     for var in grammar["variables"]:
         if type(var) is not dict or type(var.get("name")) is not str:
