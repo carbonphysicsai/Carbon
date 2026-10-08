@@ -1164,6 +1164,10 @@ def test_the_decision_record_names_its_allowances_and_changes_no_figure():
     lines = [line.strip() for line in text.splitlines()]
     assert "Community allowed per owner direction 2026-10-08" in lines
     assert "Vast.ai A40 allowed, owner-rented, per owner direction 2026-10-08" in lines
+    assert (
+        "2026-10-08, owner: target device RTX 4090 (A40 unallocatable); "
+        "ceiling and cap unchanged"
+    ) in lines
     assert "0.492739726" in text and "4.25" in text
 
 
@@ -1283,3 +1287,36 @@ def test_the_run_record_is_not_changed_by_skip_fno(tmp_path, capsys, monkeypatch
     assert code == 0 and printed["plan"]["pytorch"]["rebuilds_per_pod"] == 4
     assert digest == a40.hashlib.sha256(record_path.read_bytes()).hexdigest()
     assert a40.load_record(record_path) == RECORD
+
+
+# ----------------------------------------------------------------- target device
+def test_target_devices_are_exactly_the_two_names():
+    assert a40.TARGET_DEVICES == {
+        "A40": "NVIDIA A40",
+        "RTX 4090": "NVIDIA GeForce RTX 4090",
+    }
+    assert a40.DEFAULT_TARGET == "A40"
+
+
+def test_the_runpod_gpu_type_follows_the_target(world):
+    make, _fake, bodies = world
+    runner, _fleet = make([])
+    runner.target_device = "RTX 4090"
+    pod = runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    assert bodies[-1]["gpuTypeIds"] == ["NVIDIA GeForce RTX 4090"]
+    runner.terminate(pod)
+    runner.close()
+    default, _f = make([])
+    pod = default.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    assert bodies[-1]["gpuTypeIds"] == ["NVIDIA A40"]
+    default.terminate(pod)
+    default.close()
+
+
+def test_the_cli_accepts_only_the_two_target_devices(tmp_path, capsys):
+    with pytest.raises(SystemExit):
+        a40.main(
+            ["run", "--record", str(tmp_path / "r"), "--work-dir", str(tmp_path),
+             "--target-device", "H100"]
+        )  # fmt: skip
+    assert "invalid choice" in capsys.readouterr().err
