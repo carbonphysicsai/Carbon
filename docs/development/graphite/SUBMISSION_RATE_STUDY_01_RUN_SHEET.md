@@ -72,16 +72,101 @@ the fresh sets were each scored by operator code only; and `noise.json` has at
 least the replicate count A.1 states for every rate. A failed Stage 0 changes
 nothing frozen (nothing is frozen yet) and is rerun.
 
-## B. Study deployment and rule variants (Carbon Validator to fill)
+## B. Study deployment and rule variants (Carbon Validator)
 
-- The study deployment's root, journal, work and bank paths (operator-owned;
-  distinct from the live producer's and the testnet's).
-- The three development-only rule variants on `v2-bank` with
-  `per_hotkey.window_blocks` 360 / 180 / 90, and their names and digests.
-- Whether the deployment runs on a simulated block clock for a whole run, and how.
-- The operator-side fresh-set scoring command (scores a retained model on a
-  producer fresh set, once, output to the private root only).
-- The exact command that runs arm H for one rate, one replicate, and its exit codes.
+**State (2026-10-08):** O2 is answered from the code. O1, the fresh-set
+scorer and the arm-H runner are **to build**, as VALIDATOR-30 (rate-study
+harness, below). Commands marked *(VALIDATOR-30)* do not exist until it
+merges and the AX42 runs a tag that carries it. Fill-in values in `<…>` are
+recorded when that PR merges.
+
+### B.1 Paths (operator-owned; distinct from the live producer's and the testnet's)
+
+All under `/var/lib/carbon-producer/rate-study/` (owner-only 0700, account
+`carbon-producer`):
+- `producer/`: the study producer's directory (journal, outbox, its own lock).
+- `battery/`: the study producer deployment's root, journal, state and work
+  (`etc/rate-study-producer.json`).
+- `bank/`: the study bank. Data Collection's section C fills it.
+- `fresh/`: the sealed fresh sets (section C).
+- `runs/m<m>-r<r>/validator/`: each run's own import-only validator
+  deployment (root, journal, state, work, retained models), fresh per run.
+- `runs/m<m>-r<r>/records.jsonl`: written to A.2's `records/<rate>/<replicate>.jsonl`.
+
+### B.2 The rule variants (O1, to build in VALIDATOR-30)
+
+Three development-only rules, each `v2-bank` unchanged plus
+`per_hotkey.window_blocks` and `study: "SUBMISSION-RATE-STUDY-01"`. That
+gives each its own digest, so a study package never imports into a `v2-bank`
+validator and the reverse.
+
+| Rate m | Rule name | `window_blocks` | Digest |
+|---|---|---|---|
+| 1 | `v2-bank-rate-1` | 360 | `<recorded at merge>` |
+| 2 | `v2-bank-rate-2` | 180 | `<recorded at merge>` |
+| 4 | `v2-bank-rate-4` | 90 | `<recorded at merge>` |
+
+Each is prospective and changes no production rule or deployment
+(invariant 10). Authority: OWNER-RATE-STUDY-D1-01.
+
+### B.3 The simulated block clock (O2): yes, without a chain read
+
+- **Submissions:** the hidden route (`graphite/hidden_score.py`, VALIDATOR-13)
+  builds the authenticated submission with a **caller-supplied block**
+  (`clock()`) and calls `deployment.evaluate`. That receipt block is what the
+  per-hotkey window (`exam.hotkey_window`) and the windowed pool's clock
+  read.
+- **Windows:** the study producer ticks at a simulated block
+  (`producer tick --block B`). Its packages carry `[slot × 1080, (slot + 3) × 1080)`,
+  imported by `answer_key import`, never fetched.
+- **No chain:** the study deployments set `require_commitment: false` and name
+  **no** `commitment_reader`. Since r4 (#841), a windowed pool's clock is the
+  newer of the receipts and an *observed* chain head. With no reader, nothing
+  observes a head, so the simulated receipts alone drive rotation.
+
+### B.4 Fresh-set scoring (operator-side, to build in VALIDATOR-30)
+
+`fresh_rerun` exists but **consumes** a batch per rerun. Section 5 shares one
+fresh set among models at the same simulated time, scored once per model. So
+VALIDATOR-30 adds a non-consuming scorer:
+
+```bash
+P carbon.challenge_validator.rate_study fresh --config <run config> --submission <id> --set <fresh set id>    # (VALIDATOR-30)
+```
+
+- It scores the retained model once on a sealed fresh set. A repeat returns
+  the stored result.
+- The output goes to the run's private state only. The record line carries
+  `s_fresh` and nothing hidden.
+
+### B.5 Arm H, one rate and one replicate (to build in VALIDATOR-30)
+
+```bash
+P carbon.challenge_validator.rate_study run --config /var/lib/carbon-producer/etc/rate-study.json --arm H --rate <1|2|4> --replicate <r>    # (VALIDATOR-30)
+```
+
+Per window `w` = 1 … `W0`:
+1. tick the study producer at the window's simulated block;
+2. import its packages;
+3. submit the next `m` × 3 library candidates at `window_blocks` spacing, as one
+   development hotkey;
+4. score each on the fresh set of that simulated time;
+5. append one A.2 line per scored submission.
+
+**Exit codes:**
+- `0` when every window produced its records;
+- `2` for a refused configuration (typed code printed);
+- `1` for infrastructure, which is resumable: rerun the same command.
+
+`UNAVAILABLE` and `WINDOW_USED` are counted, never drift (A.5).
+
+### B.6 Limits that bear on A.1's sizes (W0 = 12, R0 = 4)
+
+- One run draws `W0 × 98` = 1,176 window cases. 12 runs is 14,112 draws, against
+  a bank's `2,000 × E` = 10,000 draws at E = 5.
+- **Section C must size the study bank** (or give each rate its own bank) so
+  that Stage 0's runs never short it. A short bank tops up (more solves) and
+  would mix tranche ages across runs.
 
 ## C. Study bank and fresh sets (Data Collection to fill)
 
