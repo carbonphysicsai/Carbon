@@ -24,6 +24,22 @@
 |---|---|
 | 1 | Merged (#748) |
 | 2 | `carbon/level4` core: format, allowlist v1, G4 `validate.py`, named functions, interpreter, initializers, specimens; `tooling/` (miner-side lowering); battery adapter `carbon/battery/level4.py`; `submission.py`, the manifest and canonical-bytes rule the Launchpad slot (LAUNCHPAD-LEVELS-01) and the validator share |
+| 3 | G6 `train.py` (Carbon-built init, padded inference, Carbon's key schedule; the Challenge's own loop through its adapter); G4 init data flow (`check_init`) and `validate_submission`; battery `lower_recipe`, `train_graph`; E1 through G3, G4 and G6 (`phase1_e1_results.json`) |
+
+**Q5 answered (plan PR 3).** Per-case graphs batched by Carbon's `vmap` run
+forward bit-identically, but they do **not** train bit-identically for every
+family. The classic MLP matches; DeepONet does not, because its gradient
+accumulation order changes under `vmap`. So a forward graph is lowered at
+the recipe's training batch (`validate(..., batch=)`). Carbon trains at that
+batch and pads inference into blocks of it (`Prepared.predict`), which keeps
+every case's result the declared graph's.
+
+**Carbon's key schedule.** An init graph returns parameters only, never a
+key. Carbon derives the training key itself (`train.keys`), so a submission
+cannot steer data order. Full-batch recipes, which include battery's Level 0
+recipes, match the declarative path bit for bit (E1). A minibatch recipe
+trains deterministically under Carbon's key, which by design is not the
+declarative path's.
 
 Reproduce (CPU, development only):
 
@@ -216,7 +232,7 @@ never `FAILED_INFRA` unless Carbon's own infrastructure failed.
 |---|---|---|
 | E1 | Battery's Level 0 recipes (scaffold MLP, panel MLP, panel DeepONet) through G0–G6 against the declarative path | Parameter and prediction digests identical (R1) |
 | E2 | Every activation × normalization × precision on battery's surface (the 22 cases of §1) | Gradients and training identical |
-| E3 | Per-case graph batched by Carbon's `vmap` against the native batched forward | Identical |
+| E3 | Inference padded into blocks of the declared batch, against the declared graph on each block (replaces per-case `vmap`, which does not train bit-identically for DeepONet) | Identical |
 | E4 | PyTorch families lowered to B′ against torch | Float32 agreement, recorded, never R1 |
 | E5 | GPU leg (§3) | Identical on one host and across hosts |
 | E6 | A second Challenge (cold plate or motor) through the same shared code | E1–E3 hold with only an adapter |

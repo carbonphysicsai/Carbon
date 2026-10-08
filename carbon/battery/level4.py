@@ -16,6 +16,7 @@ enter every Level 0 recipe digest.
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 REPOSITORY = Path(__file__).resolve().parents[2]
@@ -994,3 +995,177 @@ def torch_carbon_init(allowlist, strategy_, *, steps, max_bytes):
             "loss": [first, float(jax.jit(loss)(p))],
         },
     }
+
+
+# --- Phase 1: the graph path through G3, G4 and G6 -----------------------------
+
+
+def _is_classic(model, m):
+    return model.family == "mlp" and model._classic(batch(m))
+
+
+def e1_cases():
+    """Battery's trainable Level 0 recipes, for E1 (kNN is not trained; the
+    FNO is PyTorch-only and has no JAX declarative path to compare)."""
+    level0 = level0_strategies()
+    for label in ("scaffold_mlp", "panel_mlp", "panel_deeponet"):
+        yield label, level0[label]
+
+
+def training_batch(strategy_):
+    """The batch a recipe trains at: its batch size, capped at TRAIN's size."""
+    m = material()
+    _, model = _model(strategy_, m.train)
+    return min(model.settings["batch_size"], batch(m))
+
+
+def lower_recipe(strategy_, allowlist, *, max_bytes):
+    """Miner side: a declarative recipe's network lowered into a Level 4
+    submission (`(manifest, files)`) at the recipe's training batch. The init
+    graph returns parameters only (no key)."""
+    import jax
+
+    from ..level4 import submission, tooling
+
+    m = material()
+    _, model = _model(strategy_, m.train)
+    n = training_batch(strategy_)
+    x64 = model.settings["precision"] == "float64"
+    with jax.enable_x64(x64):
+        if _is_classic(model, m):
+            n_in, n_out = _dims(model)
+            make = classic_params(model)
+            example = make(jax.random.PRNGKey(0), n_in, n_out)
+            forward_fn, dtype = classic_net(), "float32"
+
+            def init_fn(key):
+                return jax.tree_util.tree_leaves(make(key, n_in, n_out))
+
+        else:
+            net = jax_network(strategy_, m.train)
+            _, example = net["init"](jax.random.PRNGKey(0))
+            forward_fn, n_in, dtype = net["apply"], net["n_in"], net["dtype"]
+
+            def init_fn(key, _init=net["init"]):
+                return jax.tree_util.tree_leaves(_init(key)[1])
+
+        count = len(jax.tree_util.tree_leaves(example))
+        f = jax.ShapeDtypeStruct((n, n_in), dtype)
+        names = [f"params/{i}" for i in range(count)] + ["inputs/features"]
+        _, forward, _ = tooling.through_bprime(
+            forward_fn,
+            (example, f),
+            role="forward",
+            allowlist=allowlist,
+            input_names=names,
+            max_bytes=max_bytes,
+        )
+        _, init, _ = tooling.through_bprime(
+            init_fn,
+            (jax.random.PRNGKey(0),),
+            role="init",
+            allowlist=allowlist,
+            input_names=["carbon/key"],
+            max_bytes=max_bytes,
+        )
+    return submission.build(
+        challenge=challenge_id(),
+        interface=interface(strategy_).digest(),
+        allowlist=allowlist,
+        forward=forward,
+        init=init,
+    )
+
+
+def train_graph(strategy_, prepared, *, seed):
+    """Battery's own Carbon training loop over a prepared graph (G6): the
+    classic written-out loop for the Level 0 MLP, `training.train` otherwise.
+    Initialization and the training key come from `carbon.level4.train`."""
+    import jax
+    import numpy as np
+
+    from ..level4 import train as level4_train
+
+    m = material()
+    _, model = _model(strategy_, m.train)
+    x64 = model.settings["precision"] == "float64"
+
+    def forward(p, f):
+        if f.shape[0] == prepared.batch:
+            return prepared.apply(list(p), f)[0]
+        return prepared.predict(list(p), f)[0]
+
+    if _is_classic(model, m):
+        _targets(model, m)  # `fit`'s target scaling, which `classic_fit` reads
+        y = model.layout.targets(m.train)
+        result = classic_fit(
+            model, m.train, y, seed, forward, lambda key, _a, _b: prepared.init(key)
+        )
+        return {"path": "classic", **result}
+
+    def swap(_init, _apply, _n_in, _n_out, _dtype):
+        def init(key):
+            # `training.train` passes the Carbon seed's key; the training key
+            # it then uses is Carbon's own, never one a graph returns.
+            return jax.random.fold_in(key, level4_train.TRAIN_KEY_FOLD), prepared.init(
+                key
+            )
+
+        return init, forward
+
+    graph_model = general_path_model(strategy_, swap)
+    with jax.enable_x64(x64):
+        stats = graph_model.fit(m.train, structure(m), seed)
+    out = graph_model.predict(m.train.x)
+    return {
+        "path": "general",
+        "params_sha256": stats["params_sha256"],
+        "final_loss": stats["final_loss"],
+        "predictions_sha256": _digest(np.asarray(out[k]) for k in sorted(out)),
+    }
+
+
+def graph_equivalence(
+    allowlist, strategy_, *, steps=None, seed=7, max_bytes, caps=None
+):
+    """E1: a recipe trained by its declarative path, then lowered and run
+    through G3 (`submission.verify`), G4 (`validate_submission`) and G6."""
+    import numpy as np
+
+    from ..level4 import submission, validate
+    from ..level4 import train as level4_train
+
+    s = _steps(strategy_, steps)
+    m = material()
+    _, native = _model(s, m.train)
+    declared = native.fit(m.train, structure(m), seed)
+    manifest, files = lower_recipe(s, allowlist, max_bytes=max_bytes)
+    _, parsed = submission.verify(
+        submission.canonical(manifest),
+        files,
+        allowlist=allowlist,
+        challenge=challenge_id(),
+        interface=interface(s).digest(),
+        max_bytes=max_bytes,
+    )
+    verdict = validate.validate_submission(
+        parsed, allowlist, interface=interface(s), batch=training_batch(s), caps=caps
+    )
+    prepared = level4_train.prepare(parsed, allowlist, verdict=verdict)
+    result = level4_train.train(sys.modules[__name__], s, prepared, seed=seed)
+    out = {
+        "path": result["path"],
+        "steps": native.steps,
+        "status": verdict["status"],
+        "batch": verdict["batch"],
+        "submission": submission.digest(manifest),
+        "declarative_params_sha256": declared["params_sha256"],
+        "graph_params_sha256": result["params_sha256"],
+        "identical": declared["params_sha256"] == result["params_sha256"],
+    }
+    if result["path"] == "general":
+        native_out = native.predict(m.train.x)
+        native_digest = _digest(np.asarray(native_out[k]) for k in sorted(native_out))
+        out["predictions_identical"] = native_digest == result["predictions_sha256"]
+        out["identical"] = out["identical"] and out["predictions_identical"]
+    return out
