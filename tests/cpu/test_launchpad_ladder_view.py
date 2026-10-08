@@ -156,10 +156,13 @@ def test_fixture_levels_0_to_3_render_with_one_shape():
     assert [a["arm"] for a in one["arms"]] == ["armed"]
     assert two["variant"]["name"] == "fixture-l2-v1"
     assert three["variant"]["name"] == "fixture-l3-v1"
-    # Levels 4 and 5 show the registry's refusal, not content.
-    for row in view["levels"][4:]:
+    # Level 4 may hold a variant (graph-only) but the fixture registers none;
+    # Level 5 shows the registry's refusal, not content.
+    four, five = view["levels"][4:]
+    for row in (four, five):
         assert row["variant"] is None and row["capabilities"] == []
-        assert row["variant_refusal"] == ladder_view.NEEDS_ISOLATION
+    assert four["variant_refusal"] == ladder_view.UNREGISTERED
+    assert five["variant_refusal"] == ladder_view.NEEDS_ISOLATION
 
 
 def test_an_empty_level_shows_what_it_leaves_out():
@@ -235,11 +238,17 @@ def test_the_battery_ladder_renders_from_its_data():
         "ssbroyden",
     ]
     assert three["left_out"]  # the accepted proposal adds nothing itself
-    for row in (one, two, three):
+    assert four["variant"]["name"] == "battery-l4-graph-v1"
+    assert four["variant"]["scope"] == ladder_view.VARIANT_SCOPE
+    assert four["variant"]["status"] == "REGISTERED_DEVELOPMENT_POLICY"
+    graphs = [c for c in four["capabilities"] if c["widened"]]
+    assert [c["id"] for c in graphs] == ["hybrid.composition_graphs"]
+    assert graphs[0]["widened"][0]["surface"] is None
+    assert graphs[0]["widened"][0]["bounds"]["admission"] == "graph_only"
+    for row in (one, two, three, four):
         assert row["state"] == "NOT_RUN" and row["variant_refusal"] is None
-    for row in (four, five):
-        assert row["variant_refusal"] == ladder_view.NEEDS_ISOLATION
-        assert row["variant"] is None
+    assert five["variant_refusal"] == ladder_view.NEEDS_ISOLATION
+    assert five["variant"] is None
     assert {json.dumps(r["compute_budget"]) for r in view["levels"]} == {
         json.dumps({"status": "NOT_SET"})
     }
@@ -262,7 +271,7 @@ def test_the_views_variant_identities_are_the_variant_modules_own():
         assert getattr(ladder_view, name) == getattr(dv, name), name
     view = ladder_view.ladder_view(BATTERY)
     registry = dv.load()
-    for row in view["levels"][1:4]:
+    for row in view["levels"][1:5]:
         found = dv.variant(BATTERY, row["level"])
         assert (row["variant"]["name"], row["variant"]["digest"]) == (
             found.version,
