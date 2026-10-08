@@ -13,6 +13,10 @@ from carbon.design_search import tasks
 from carbon.design_search.__main__ import main as cli_main
 
 LAW = "carbon/battery/value/laws/battery-q3-v8.question-law.v1.json"
+SEVERITIES = {
+    name: {"plating_margin_v": 0.002, "peak_temperature_c": 0.5}
+    for name in ("edge", "caution", "sign", "path")
+}
 
 
 def _private(path, value):
@@ -113,13 +117,15 @@ def test_battery_v8_reports_are_aggregate_and_conditional(tmp_path):
         interval_level=0.9,
         alpha=0.1,
         power_target=0.8,
-        severities={"edge": 0.02, "caution": 0.02, "sign": 0.02, "path": 0.02},
+        severities=SEVERITIES,
     )
     assert power["job_identity"] == "battery-q3-v8"
     assert len(power["exact_sealed_batch"]["kept"]) == 4
-    specs = reports._control_set(
-        {"edge": 0.02, "caution": 0.02, "sign": 0.02, "path": 0.02}
-    )
+    specs = reports._control_set(SEVERITIES, bank["cases"][0]["task"])
+    assert specs[0]["severity"] == {
+        "plating_margin_v": {"value": 0.002, "unit": "V"},
+        "peak_temperature_c": {"value": 0.5, "unit": "degC"},
+    }
     native = [reports._run_case(case, specs) for case in bank["cases"] if case["kept"]]
     v8 = bq.q3_measures(
         [row["controls"][0] for row in native], bank["cases"][0]["contract"]
@@ -196,16 +202,49 @@ def test_battery_cli_reads_sealed_fixture(tmp_path, capsys):
             "--power-target",
             "0.8",
             "--severity-edge",
-            "0.02",
+            "plating_margin_v=0.002",
+            "--severity-edge",
+            "peak_temperature_c=0.5",
             "--severity-caution",
-            "0.02",
+            "plating_margin_v=0.002",
+            "--severity-caution",
+            "peak_temperature_c=0.5",
             "--severity-sign",
-            "0.02",
+            "plating_margin_v=0.002",
+            "--severity-sign",
+            "peak_temperature_c=0.5",
             "--severity-path",
-            "0.02",
+            "plating_margin_v=0.002",
+            "--severity-path",
+            "peak_temperature_c=0.5",
         ]
     )
     assert json.loads(capsys.readouterr().out)["report"] == "power"
+    with pytest.raises(SystemExit):
+        cli_main(
+            [
+                "power-report",
+                *common,
+                "--alpha",
+                "0.1",
+                "--power-target",
+                "0.8",
+                "--severity-edge",
+                "plating_margin_v=0.002",
+                "--severity-caution",
+                "plating_margin_v=0.002",
+                "--severity-caution",
+                "peak_temperature_c=0.5",
+                "--severity-sign",
+                "plating_margin_v=0.002",
+                "--severity-sign",
+                "peak_temperature_c=0.5",
+                "--severity-path",
+                "plating_margin_v=0.002",
+                "--severity-path",
+                "peak_temperature_c=0.5",
+            ]
+        )
 
 
 def test_ev_buyer_job_shape_is_fixture_only():

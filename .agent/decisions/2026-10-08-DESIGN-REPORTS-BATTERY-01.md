@@ -50,3 +50,11 @@ no protected material in repository tests. The output is aggregate-only:
 no scenario or case IDs, candidate picks, conditions, reference values,
 registered task identity, or digest pre-images. Test Lead chooses alpha,
 power, control severities and any score interpretation. PR Lead owns merge.
+
+Review correction on #808: synthetic control severity is now keyed by every
+controlled limit quantity and carries that quantity's registered unit. The
+neutral control schema advances to v2 and refuses a missing key or unit
+mismatch. The battery producer CLI repeats each severity flag as
+`quantity=value`, using the task's V and degC limit units. The historical
+battery control adapter and prior results remain unchanged. Test Lead still
+supplies the actual values; toy fixtures exercise only the shape.

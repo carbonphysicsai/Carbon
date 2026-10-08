@@ -11,6 +11,21 @@ from carbon.design_search.diversity import diversity_report
 from carbon.design_search.power import power_report
 
 
+def _severity_pairs(values):
+    if not values:
+        raise tasks.TaskError("battery control severity is required")
+    result = {}
+    for item in values:
+        quantity, separator, number = item.partition("=")
+        if not separator or not quantity or not number or quantity in result:
+            raise tasks.TaskError("use one quantity=value severity per limit")
+        try:
+            result[quantity] = float(number)
+        except ValueError as exc:
+            raise tasks.TaskError("invalid control severity value") from exc
+    return result
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="design_search")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -43,7 +58,7 @@ def main(argv=None):
     power.add_argument("--bootstrap-seed", type=int)
     power.add_argument("--interval-level", type=float)
     for name in ("edge", "caution", "sign", "path"):
-        power.add_argument("--severity-" + name, type=float)
+        power.add_argument("--severity-" + name, action="append")
     args = parser.parse_args(argv)
     try:
         if args.command == "diversity-report" and args.battery_work is not None:
@@ -96,7 +111,7 @@ def main(argv=None):
                 alpha=args.alpha,
                 power_target=args.power_target,
                 severities={
-                    name: getattr(args, "severity_" + name)
+                    name: _severity_pairs(getattr(args, "severity_" + name))
                     for name in ("edge", "caution", "sign", "path")
                 },
             )

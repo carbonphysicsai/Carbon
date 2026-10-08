@@ -497,40 +497,64 @@ def _header(bank, kind):
     }
 
 
-def _control_set(severities):
+_CONTROL_QUANTITIES = ("plating_margin_v", "peak_temperature_c")
+
+
+def _control_set(severities, task):
+    units = {limit["quantity"]: limit["unit"] for limit in task["limits"]}
+    expected = set(_CONTROL_QUANTITIES)
+    if type(severities) is not dict or set(severities) != {
+        "edge",
+        "caution",
+        "sign",
+        "path",
+    }:
+        raise tasks.TaskError("all control severities required")
+    for values in severities.values():
+        if type(values) is not dict or set(values) != expected:
+            raise tasks.TaskError("one severity per battery limit quantity required")
+
+    def registered(kind):
+        return {
+            quantity: {"value": severities[kind][quantity], "unit": units[quantity]}
+            for quantity in _CONTROL_QUANTITIES
+        }
+
     specs = [
         {
             "schema": controls.CONTROL_SCHEMA,
             "name": "edge",
             "kind": "edge_optimist",
-            "severity": severities["edge"],
-            "limit_quantities": ["plating_margin_v", "peak_temperature_c"],
+            "severity": registered("edge"),
+            "limit_quantities": list(_CONTROL_QUANTITIES),
         },
         {
             "schema": controls.CONTROL_SCHEMA,
             "name": "caution",
             "kind": "over_cautious",
-            "severity": severities["caution"],
-            "limit_quantities": ["plating_margin_v", "peak_temperature_c"],
+            "severity": registered("caution"),
+            "limit_quantities": list(_CONTROL_QUANTITIES),
         },
         {
             "schema": controls.CONTROL_SCHEMA,
             "name": "sign",
             "kind": "localized_sign_error",
-            "severity": severities["sign"],
-            "limit_quantities": ["plating_margin_v"],
+            "severity": registered("sign"),
+            "limit_quantities": list(_CONTROL_QUANTITIES),
             "region": {"action": {"c1": {"min": 1.5, "max": 2.0}}, "strata": []},
         },
         {
             "schema": controls.CONTROL_SCHEMA,
             "name": "path",
             "kind": "optimizer_or_lattice_aware",
-            "severity": severities["path"],
-            "limit_quantities": ["plating_margin_v", "peak_temperature_c"],
+            "severity": registered("path"),
+            "limit_quantities": list(_CONTROL_QUANTITIES),
             "scope": "registered_search_path",
         },
     ]
-    return controls.register_controls(specs)["controls"]
+    registration = controls.register_controls(specs)
+    controls.validate_controls(registration, task=task)
+    return registration["controls"]
 
 
 def _native_outcome(case, selected):
@@ -642,10 +666,10 @@ def power_report(
         or not 0 < power_target < 1
     ):
         raise tasks.TaskError("explicit alpha and power target required")
-    if set(severities) != {"edge", "caution", "sign", "path"}:
-        raise tasks.TaskError("all control severities required")
-    specs = _control_set(severities)
     cases = bank["cases"]
+    if not cases:
+        raise tasks.TaskError("sealed battery cases required")
+    specs = _control_set(severities, cases[0]["task"])
     outcomes = [(case, _run_case(case, specs)) for case in cases]
     by_id = {id(case): row for case, row in outcomes}
     kept = [case for case in cases if case["kept"]]

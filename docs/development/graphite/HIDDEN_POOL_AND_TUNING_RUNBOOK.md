@@ -235,13 +235,20 @@ against the hidden deployment `H`
      --bootstrap-seed TEST_LEAD_BOOTSTRAP_SEED --replicates TEST_LEAD_REPLICATES \
      --interval-level TEST_LEAD_INTERVAL_LEVEL \
      --alpha TEST_LEAD_ALPHA --power-target TEST_LEAD_POWER_TARGET \
-     --severity-edge TEST_LEAD_EDGE_SEVERITY \
-     --severity-caution TEST_LEAD_CAUTION_SEVERITY \
-     --severity-sign TEST_LEAD_SIGN_SEVERITY \
-     --severity-path TEST_LEAD_PATH_SEVERITY
+     --severity-edge plating_margin_v=TEST_LEAD_EDGE_V \
+     --severity-edge peak_temperature_c=TEST_LEAD_EDGE_DEGC \
+     --severity-caution plating_margin_v=TEST_LEAD_CAUTION_V \
+     --severity-caution peak_temperature_c=TEST_LEAD_CAUTION_DEGC \
+     --severity-sign plating_margin_v=TEST_LEAD_SIGN_V \
+     --severity-sign peak_temperature_c=TEST_LEAD_SIGN_DEGC \
+     --severity-path plating_margin_v=TEST_LEAD_PATH_V \
+     --severity-path peak_temperature_c=TEST_LEAD_PATH_DEGC
    ```
 
-   Both outputs identify `battery-q3-v8`, the single-condition EV4
+   Each severity is in the named limit's own unit (`plating_margin_v` in V,
+   `peak_temperature_c` in °C); both quantities are required for each
+   control. Test Lead supplies all eight values. Both outputs identify
+   `battery-q3-v8`, the single-condition EV4
    time-to-CV decision, and the seal. The exact view describes only the
    kept eight and is **not a future-batch probability**. The empirical
    view bootstraps the settled accepted draws in `draws.json`, reports
