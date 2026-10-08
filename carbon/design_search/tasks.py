@@ -45,8 +45,10 @@ from decimal import ROUND_HALF_DOWN, Decimal, InvalidOperation
 
 SCHEMA = "carbon.design-task.v1"
 RUNNABLE_SCHEMA = "carbon.design-task.v2"
+INDEXED_SCHEMA = "carbon.design-task.indexed.v1"
 GRAMMAR_SCHEMA = "carbon.action-grammar.v1"
 COMMIT_SCHEMA = "carbon.design-task.commitment.v1"
+INDEXED_COMMIT_SCHEMA = "carbon.design-task.indexed-commitment.v1"
 SENSES = ("min", "max")
 AGGREGATES = ("worst", "mean", "quantile")
 QUANTILE_RULE = "inverse_cdf_left.v1"
@@ -450,6 +452,33 @@ def run_optimizer(task_, predictor, *, model_id, cost_recorder=None):
     from carbon.design_search.optimizer import run_optimizer as execute
 
     return execute(task_, predictor, model_id=model_id, cost_recorder=cost_recorder)
+
+
+def indexed_task(task_id, *, index_axis, indices, query_budget, value_equivalence):
+    """Compose runnable per-index tasks into one registered buyer decision."""
+    from carbon.design_search.indexed import indexed_task as register
+
+    return register(
+        task_id,
+        index_axis=index_axis,
+        indices=indices,
+        query_budget=query_budget,
+        value_equivalence=value_equivalence,
+    )
+
+
+def run_indexed_optimizer(registered, predictor, *, model_id):
+    """Run each registered index quota before any reference comparison."""
+    from carbon.design_search.indexed import run_indexed_optimizer as execute
+
+    return execute(registered, predictor, model_id=model_id)
+
+
+def judge_indexed(registered, commitment, references):
+    """Judge mandatory per-index limits before the buyer-weighted objective."""
+    from carbon.design_search.indexed import judge_indexed as judge_map
+
+    return judge_map(registered, commitment, references)
 
 
 def audit_optimizer(

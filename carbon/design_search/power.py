@@ -410,6 +410,21 @@ def power_report(
     max_questions,
 ):
     """Run frozen optimizers and estimate per-metric clustered separation."""
+    if type(bank) is dict and "indexed_power_cases" in bank:
+        from carbon.design_search.indexed_power import indexed_power_report
+
+        return indexed_power_report(
+            bank,
+            grid_law,
+            continuous_law,
+            registration,
+            good_predictor,
+            alpha=alpha,
+            power_target=power_target,
+            simulation_seed=simulation_seed,
+            replicates=replicates,
+            max_questions=max_questions,
+        )
     if (
         type(alpha) not in (int, float)
         or not math.isfinite(alpha)
