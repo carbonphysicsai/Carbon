@@ -466,9 +466,12 @@ class BatteryAdapter(ChallengeAdapter):
                 roots.get(question.get("tranche")),
             ):
                 raise AnswerKeyRefused("answer_key_design_proof")
+        # The law's draw is kept with the task: it is proven with it, and
+        # scoring needs it to rebuild the question's truth jobs (slice 3c).
         return {
             question_id: {
                 "task": questions[question_id]["inputs"]["task"],
+                "draw": questions[question_id]["inputs"].get("draw"),
                 "reference": questions[question_id]["reference"],
             }
             for question_id in ids

@@ -141,6 +141,11 @@ def test_an_import_only_validator_verifies_and_stores_the_questions(run, tmp_pat
     assert stored["bank"] == "design:battery-q3"
     assert len(stored["questions"]) == K
     assert all(q["reference"]["status"] == "OK" for q in stored["questions"].values())
+    # Each question keeps its proven draw (the scenario), for scoring.
+    payload = run["by_kind"]["screening"]["payload"]["design"]["questions"]
+    assert {q: v["draw"] for q, v in stored["questions"].items()} == {
+        q: v["inputs"]["draw"] for q, v in payload.items()
+    }
 
 
 def resigned(run, commitment, payload):
