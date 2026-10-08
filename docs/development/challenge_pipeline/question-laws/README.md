@@ -1,5 +1,13 @@
 # Eight-Challenge design-question laws — DEVELOPMENT proposal
 
+> **Battery continuous-primary supplement:** [v3 law and support/quiz impact](battery-continuous-v3.md)
+> / [sheet](battery-continuous-v3.json) supersedes Battery's v2 recommendations.
+> Continuous-primary is owner selected; numeric laws/aggregation remain
+> HUMAN_INPUT. Four-vector v2 grid is audit only. Variable-SOC timing and
+> arbitrary initial ageing need explicit observer/reference support. Cooling
+> receives a [spreader proposal](../round1/cooling-spreader-v2.md), not a changed
+> question law. Motor and five-family laws are unchanged.
+
 > **Prospective v2 amendment (2026-10-08):** the Battery/Cooling descriptions
 > below and `proposals.json` are the preserved #776 **v1 history**. For current
 > proposed law semantics use [proposals-v2.json](proposals-v2.json) and
