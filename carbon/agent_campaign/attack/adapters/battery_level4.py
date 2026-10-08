@@ -381,9 +381,11 @@ SEAMS = (
     (
         "l4_compile_isolation",
         "construction_evaluation_isolation",
-        "G5 compile in isolation: the profile is accepted for development and "
-        "testnet (OWNER-L4-G5-COMPILE-ISOLATION-01); no adversarial compile runs "
-        "here, and mainnet needs its security review",
+        (
+            "G5 compile in isolation: the profile is accepted for development and "
+            "testnet (OWNER-L4-G5-COMPILE-ISOLATION-01); no adversarial compile runs "
+            "here, and mainnet needs its security review"
+        ),
     ),
     (
         "l4_procedural_tables",
@@ -403,8 +405,10 @@ SEAMS = (
     (
         "l4_nonfinite_outputs",
         "score_exploitation_and_tail_failures",
-        "outputs typed by the exam's gates at G7 (tests/cpu/test_level4_grade.py); "
-        "no training runs here until the submission's documents reach the rebuild worker",
+        (
+            "outputs typed by the exam's gates at G7 (tests/cpu/test_level4_grade.py); "
+            "no training runs here until the submission's documents reach the rebuild worker"
+        ),
     ),
 )
 
