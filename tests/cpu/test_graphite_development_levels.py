@@ -25,6 +25,7 @@ acceptance.
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import json
 import sqlite3
@@ -52,6 +53,20 @@ SCORING = challenge_scoring.scoring_for(BATTERY)
 def _refusal(capsys):
     lines = [line for line in capsys.readouterr().out.splitlines() if line.strip()]
     return json.loads(lines[-1])["reason_code"]
+
+
+@contextlib.contextmanager
+def _without_adapter(level):
+    """Battery's shipped attack adapter at `level`, withdrawn from the core
+    registry for the block and restored after it."""
+    from carbon.agent_campaign.attack import adapter as adapters
+
+    shipped = adapters.get(BATTERY, level)
+    adapters.unregister(BATTERY, level)
+    try:
+        yield
+    finally:
+        adapters.register(shipped, replace=True)
 
 
 def _budget():
@@ -135,9 +150,10 @@ def check_unregistered_level_is_refused(tmp_path, capsys):
             + ["--dry-run", "--level", "5"]
         )
     assert _refusal(capsys) == UNREGISTERED
-    # Levels 2 and 3 are registered but have no attack adapter yet: the
-    # Attacker refuses them before anything runs.
-    with pytest.raises(SystemExit):
+    # A registered level with no attack adapter is refused before anything
+    # runs. Every registered battery level now ships one, so Level 3's is
+    # withdrawn for this check and restored after it.
+    with _without_adapter(3), pytest.raises(SystemExit):
         phase4.main(
             ["run", "--root", str(tmp_path), "--challenge", BATTERY]
             + ["--dry-run", "--level", "3"]
@@ -154,17 +170,22 @@ def test_an_unregistered_level_is_refused_before_anything_runs(tmp_path, capsys)
 
 
 def check_attack_adapter_per_level(variants, capsys):
-    # Battery Level 1 ships its own adapter (GRAPHITE-L1-BUILD-01); Level 2
-    # has none, so it is the level that must be refused.
+    # Battery Levels 1-3 ship their own adapters; with Level 2's withdrawn,
+    # Level 2 is the level that must be refused.
     variant = variants[2]
-    with pytest.raises(SystemExit):
-        phase4.adapter_for(phase4.attack_modules(), BATTERY, 2)
-    assert _refusal(capsys) == "no_attack_adapter_for_challenge_level"
     from carbon.agent_campaign.attack import adapter as adapters
 
-    with pytest.raises(adapters.AdapterError) as refused:
-        adapters.get(BATTERY, 2)
-    assert refused.value.code == "adapter_not_registered"
+    with _without_adapter(2):
+        with pytest.raises(SystemExit):
+            phase4.adapter_for(phase4.attack_modules(), BATTERY, 2)
+        assert _refusal(capsys) == "no_attack_adapter_for_challenge_level"
+        with pytest.raises(adapters.AdapterError) as refused:
+            adapters.get(BATTERY, 2)
+        assert refused.value.code == "adapter_not_registered"
+    # The shipped Level-2 adapter attacks the shipped variant, not a fixture.
+    with pytest.raises(SystemExit):
+        phase4.adapter_for(phase4.attack_modules(), BATTERY, 2)
+    assert _refusal(capsys) == "attack_adapter_is_not_for_this_variant"
     # The shipped Level-1 adapter attacks the shipped variant, not a fixture.
     with pytest.raises(SystemExit):
         phase4.adapter_for(phase4.attack_modules(), BATTERY, 1)
