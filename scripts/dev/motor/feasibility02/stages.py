@@ -2,6 +2,7 @@
 
     python -m scripts.dev.motor.feasibility02.stages s2 --s1 DIR --plan S1PLAN --out PLAN
     python -m scripts.dev.motor.feasibility02.stages analyze --runs DIR... --plan S1PLAN --out JSON
+    python -m scripts.dev.motor.feasibility02.stages s3 --runs DIR... --plan S1PLAN --out JSON
 
 Zero-current skew is exact from the J0 curve (slices are pure rotor shifts).
 Loaded skew combines, per command (J, gamma), the 2D curves at current angle
@@ -141,9 +142,113 @@ def analyze(dirs, s1_plan):
     return rows
 
 
+HOLD = {"mean_min": 6.0, "pk_max": 0.30, "frac_max": 0.05}
+PEAK = {"mean_min": 12.0, "pk_max": 0.60, "frac_max": 0.05}
+COG_MAX = 0.05
+RUNG = {"mean_nm": 0.10, "pk_pk_nm": 0.02}
+S3_SPANS = {"d12": (2.0, 4.0)}  # registered s3_plan; every other S3 design at 4 deg
+
+
+def _stack(records, design, j, gamma, span, prefix, step):
+    """Skewed stack metrics from one stage's slice variants (or None)."""
+    slices = []
+    for d in (-span / 2, 0.0, span / 2):
+        curve = _curve(records, cid(design, j, gamma - PP * d, prefix))
+        if curve is None:
+            return None
+        slices.append(tp.slice_curve(curve, round(d / step)))
+    return tp.metrics(tp.stack_curve(slices))
+
+
+def _cog(records, design, span, prefix, step):
+    curve = _curve(records, cid(design, 0, 0, prefix))
+    if curve is None:
+        return None
+    off = round(span / 2 / step)
+    return tp.metrics(
+        tp.stack_curve([tp.slice_curve(curve, o) for o in (-off, 0, off)])
+    )["pk_pk_nm"]
+
+
+def _side(value, limit, upper):
+    return value <= limit if upper else value >= limit
+
+
+def _verdict(pairs):
+    """pairs: (standard, rung2, limit, upper). A limit between the rungs is
+    UNRESOLVED; otherwise rung 2 decides."""
+    for std, r2, limit, upper in pairs:
+        if std is None or r2 is None:
+            return "REFERENCE_UNRESOLVED"
+        if _side(std, limit, upper) != _side(r2, limit, upper):
+            return "REFERENCE_UNRESOLVED"
+    ok = all(_side(r2, limit, upper) for _, r2, limit, upper in pairs)
+    return "RESOLVED_FEASIBLE (2D)" if ok else "RESOLVED_INFEASIBLE"
+
+
+def s3_analyze(dirs, s1_plan):
+    """Registered s3_plan: rung-2 convergence of the frozen precision command
+    (J 10, gamma 0) and cogging at the passing span, the holding verdict, and
+    the J 15 peak command with skew at standard."""
+    records = _records(dirs)
+    designs = json.loads(Path(s1_plan).read_text())["designs"]
+    present = sorted(
+        {int(c.split("-")[1][1:]) for c in records if c.startswith("s3r2-")}
+    )
+    out = {}
+    for i in present:
+        name = f"d{i:02d}"
+        row = {"geometry": designs[i], "spans": {}}
+        for span in S3_SPANS.get(name, (4.0,)):
+            std = skewed_loaded(records, i, 10.0, 0.0).get(f"{span:g}")
+            r2 = _stack(records, i, 10.0, 0.0, span, "s3r2", STEP_DEG / 2)
+            cog_std = (skewed_cogging(records, i) or {}).get(f"{span:g}")
+            cog_r2 = _cog(records, i, span, "s3r2", STEP_DEG / 2)
+            entry = {
+                "standard": std,
+                "rung2": r2,
+                "cogging_standard_nm": cog_std,
+                "cogging_rung2_nm": cog_r2,
+            }
+            if std and r2:
+                entry["rung_change"] = {k: abs(r2[k] - std[k]) for k in RUNG}
+                entry["cogging_change_nm"] = (
+                    abs(cog_r2 - cog_std)
+                    if cog_std is not None and cog_r2 is not None
+                    else None
+                )
+                entry["converged"] = all(
+                    entry["rung_change"][k] <= v for k, v in RUNG.items()
+                ) and (
+                    entry["cogging_change_nm"] is not None
+                    and entry["cogging_change_nm"] <= RUNG["pk_pk_nm"]
+                )
+                frac = lambda m: m["pk_pk_nm"] / abs(m["mean_nm"])
+                entry["holding_verdict"] = _verdict([
+                    (std["mean_nm"], r2["mean_nm"], HOLD["mean_min"], False),
+                    (std["pk_pk_nm"], r2["pk_pk_nm"], HOLD["pk_max"], True),
+                    (frac(std), frac(r2), HOLD["frac_max"], True),
+                    (cog_std, cog_r2, COG_MAX, True),
+                ])  # fmt: skip
+                entry["third_rung_needed"] = (
+                    entry["holding_verdict"] == "REFERENCE_UNRESOLVED"
+                )
+            peak = _stack(records, i, 15.0, 0.0, span, "s3pk", STEP_DEG)
+            if peak:
+                peak["meets_peak_limits"] = (
+                    peak["mean_nm"] >= PEAK["mean_min"]
+                    and peak["pk_pk_nm"] <= PEAK["pk_max"]
+                    and peak["pk_pk_nm"] / abs(peak["mean_nm"]) <= PEAK["frac_max"]
+                )
+            entry["peak_j15_standard"] = peak
+            row["spans"][f"{span:g}"] = entry
+        out[name] = row
+    return out
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="feasibility02.stages")
-    parser.add_argument("command", choices=("s2", "analyze"))
+    parser.add_argument("command", choices=("s2", "analyze", "s3"))
     parser.add_argument("--s1", type=Path)
     parser.add_argument("--runs", type=Path, nargs="*")
     parser.add_argument("--plan", type=Path, required=True)
@@ -151,6 +256,11 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.command == "s2":
         print(json.dumps(s2_plan(args.s1, args.plan, args.out)))
+    elif args.command == "s3":
+        args.out.write_text(
+            json.dumps(s3_analyze(args.runs, args.plan), indent=1, sort_keys=True)
+            + chr(10)
+        )
     else:
         rows = analyze(args.runs, args.plan)
         args.out.write_text(json.dumps(rows, indent=1, sort_keys=True) + "\n")
