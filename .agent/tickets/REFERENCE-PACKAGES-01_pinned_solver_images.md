@@ -52,3 +52,14 @@ agents are reused if they arrive; the work does not wait for them.
 Expected manifest: this ticket; `scripts/dev/reference_packages/`;
 `docs/development/evidence/reference-packages-01/`; one static test of the
 locks' completeness.
+
+## Scope additions (Test Lead, 2026-10-08)
+
+- f08: the #787 triage panel runs on the operator host's free CPU, one CPU
+  per ccx process, with no grant or spend (`calculix/f08_freeze.py`,
+  `triage_run.py --family f08`).
+- f02: #846 (CHALLENGE-VALUE-COST-01) asks for a measurement of a denser,
+  preregistered schedule menu inside the existing bounds, reusing this
+  package's deck on local free CPU (`elmer/f02_menu.py`,
+  `evidence/reference-packages-01/f02-menu-v2/`). It is diagnostic: no packet
+  adoption, no reference adequacy claim.
