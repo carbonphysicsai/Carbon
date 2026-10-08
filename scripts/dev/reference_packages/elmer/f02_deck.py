@@ -21,6 +21,7 @@ whole top, compared with the exact series (`slab_top_rise`).
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import math
 import re
@@ -57,7 +58,7 @@ def panel_case(label):
 
 def _axis(breaks, size):
     pts = [breaks[0]]
-    for a, b in zip(breaks, breaks[1:]):
+    for a, b in itertools.pairwise(breaks):
         n = max(1, math.ceil((b - a) / size - 1e-9))
         pts += [a + (b - a) * i / n for i in range(1, n + 1)]
     return pts
@@ -415,7 +416,8 @@ def observe(case_dir, baseline_top_c=None):
         prev_t, prev_v = ti, vi
     sched = meta["schedule_w"]
     energy = sum(
-        (b - a) * ((pa + pb) / 2 - BASE_W) for (a, pa), (b, pb) in zip(sched, sched[1:])
+        (b - a) * ((pa + pb) / 2 - BASE_W)
+        for (a, pa), (b, pb) in itertools.pairwise(sched)
     )
     recovery = None
     if baseline_top_c is not None:
@@ -515,7 +517,9 @@ def energy_balance(case_dir):
         out += (r[0] - prev) * h * (r[i_bottom] - tc * area)
         prev = r[0]
     sched = meta["schedule_w"] if meta["source"] else [(0, 0.0), (HORIZON_S, 0.0)]
-    heat_in = sum((b - a) * (pa + pb) / 2 for (a, pa), (b, pb) in zip(sched, sched[1:]))
+    heat_in = sum(
+        (b - a) * (pa + pb) / 2 for (a, pa), (b, pb) in itertools.pairwise(sched)
+    )
     stored = stored_energy_j(case_dir)
     return {
         "heat_in_j": heat_in,
