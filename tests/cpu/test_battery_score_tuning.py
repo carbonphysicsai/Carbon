@@ -89,11 +89,37 @@ def test_registration_must_be_committed_before_computing(tmp_path):
         st.load_registry(path, repository=tmp_path)
 
 
-def test_a_checkout_owned_by_another_user_still_registers(tmp_path, monkeypatch):
-    """The producer reads a root-owned checkout as its own service account
-    (AX42 step 12, 2026-10-08). git's ownership check is simulated, and a
-    plain git call in that state does fail, so the test is not vacuous."""
+def test_the_registry_git_calls_name_the_checkout_safe(tmp_path, monkeypatch):
+    """Every git call the registry check makes names the checkout it reads as
+    safe, for that call only (AX42 step 12, 2026-10-08)."""
     path = _registry(tmp_path)
+    issued = []
+    real = subprocess.run
+
+    def run(argv, *args, **kwargs):
+        if argv and argv[0] == "git":
+            issued.append(list(argv))
+        return real(argv, *args, **kwargs)
+
+    monkeypatch.setattr(st.subprocess, "run", run)
+    st.load_registry(path, repository=tmp_path)
+    assert len(issued) == 2
+    safe = "safe.directory=" + str(tmp_path.resolve())
+    assert all(a[1:3] == ["-c", safe] for a in issued), issued
+
+
+def test_a_checkout_owned_by_another_user_still_registers(tmp_path, monkeypatch):
+    """The producer reads a root-owned checkout as its own service account.
+    git's ownership check is simulated, with the global and system git
+    config set aside (a CI runner's global `safe.directory=*` would mask it).
+    Where git does refuse a plain call in that state, the registry check
+    must still pass; where this git does not enforce it, the probe would
+    prove nothing, so it is skipped by name."""
+    path = _registry(tmp_path)
+    empty = tmp_path / "empty-gitconfig"
+    empty.write_text("")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(empty))
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
     monkeypatch.setenv("GIT_TEST_ASSUME_DIFFERENT_OWNER", "1")
     plain = subprocess.run(
         ["git", "-C", str(tmp_path), "status", "--porcelain"],
@@ -101,7 +127,8 @@ def test_a_checkout_owned_by_another_user_still_registers(tmp_path, monkeypatch)
         text=True,
         check=False,
     )
-    assert plain.returncode == 128 and "dubious ownership" in plain.stderr
+    if plain.returncode != 128 or "dubious ownership" not in plain.stderr:
+        pytest.skip("this git does not enforce the simulated ownership check")
     candidates, identity = st.load_registry(path, repository=tmp_path)
     assert identity["commit"] and set(candidates) == {"CE", "A", "CE+gate"}
 
