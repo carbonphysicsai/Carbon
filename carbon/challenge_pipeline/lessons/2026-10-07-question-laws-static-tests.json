@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-question-laws-static-tests",
+  "recorded_at": "2026-10-07T21:27:40+00:00",
+  "challenge": "protocol", "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-QUESTION-LAWS-01 Part A", "description": "Native Windows: python -X utf8 -m pytest tests/cpu/test_challenge_question_laws.py tests/cpu/test_portfolio_f1_packet.py tests/cpu/test_first_three_customer_packets.py -q."},
+  "expected": "Eight unregistered P/Q/w recommendations, truthful unknown costs and capacity arithmetic remain consistent with the static proposal.",
+  "observed": "31 passed in 0.18 s. No reference solver, hidden bank, model or provider ran; canonical acceptance remains pending.",
+  "keep": ["Report raw grids, verdict signatures, distinct answers and remaining exposure independently.", "Never substitute old Battery or another Challenge's costs for an unmeasured scope."],
+  "change": ["Keep none-feasible/unresolved coverage visible rather than copying historical all-infeasible redraws into a new P law."],
+  "protocol_elements": ["design-question-population", "answer-diversity", "bank-exposure"],
+  "proposed_revision": null, "status": "RECORDED"
+}
