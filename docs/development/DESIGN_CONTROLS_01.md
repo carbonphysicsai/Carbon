@@ -45,3 +45,58 @@ bank identifiers, winners, reference quantities, control paths or task digests.
 The input digests check integrity, not scientific adequacy or authorization.
 Real bank construction, grid/continuous law, severity, alpha, target power,
 power interpretation and score use remain Test Lead or owner decisions.
+
+## Producer input and command
+
+The sealed bank retains the `carbon.design-search.sealed-bank.v1` format from
+`diversity-report`. Its additional private `power_cases` rows contain
+`case`, `support_case`, a registered runnable v2 `task`, and a complete
+`reference` panel. Each panel row gives `candidate`, `condition`, and numeric
+`values`. Every `support_case` must occur in the bank's exposure ledger.
+Cases sharing one support case must bind the same candidate bank and reference
+panel; changing a requirement may change the task while reusing those solves.
+The bank's aggregate case state and winner are checked against its reference
+panel. Questions must share the same objective quantity, unit and direction
+before regret can be aggregated. The bank is resealed after these rows are
+added.
+
+The known-good predictor file has schema
+`carbon.design-search.reference-predictor.v1`, `cases` rows containing `case`
+and `predictions` panels, and a `registration_digest` over the other fields.
+This first implementation requires the known-good table to equal the full
+reference panel exactly. It is an oracle control for the diagnostic, not a
+claim that any learned model is perfect. A missing or altered row is refused.
+
+The control file has schema `carbon.design-search.controls.v1`, a `controls`
+list and a `registration_digest`. Each control declares schema
+`carbon.design-search.control.v1`, a private `name`, `kind`, positive finite
+`severity`, and `limit_quantities`. A localized sign error also declares a
+nonempty `region` with `action` selectors and `strata`; the awareness control
+declares `scope: registered_search_path` or `registered_lattice`.
+`register_controls` and `register_good_predictor` construct the two digests.
+The report outputs a control index and kind, never its private name.
+
+```text
+python -m carbon.design_search power-report \
+  --bank sealed-bank.json \
+  --grid-law grid-law.json \
+  --continuous-law continuous-law.json \
+  --controls controls.json \
+  --good-predictor good-predictor.json \
+  --alpha <Test-Lead-supplied> \
+  --power-target <Test-Lead-supplied> \
+  --simulation-seed <producer-supplied> \
+  --replicates <producer-supplied> \
+  --max-questions <producer-supplied>
+```
+
+The two laws must use the same sealed bank and registered batch size. P and Q
+are separate views. Power uses an exact one-sided sign test after summing
+paired loss differences within each shared bank. False-feasible, missed
+opportunity and regret use separate tests; regret only uses questions priced
+for both predictors. The first reported question count meets the supplied
+target at that count and every larger simulated count through the supplied
+maximum. It is a Monte Carlo estimate with a reported standard error, not a
+qualified sample-size guarantee. Continuous-law integration error is stated
+separately as a conservative draw-probability bound. Exposure limits cap the
+largest simulated batch; a report can return no detectable batch size.
