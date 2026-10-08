@@ -150,6 +150,15 @@ def test_battery_adapter_requires_matching_seal_and_no_write(tmp_path):
             journal,
             "docs/development/challenge_pipeline/question-laws/proposals.json",
         )
+    changed_law = json.loads(reports.Path(LAW).read_text(encoding="utf-8"))
+    changed_law["draw"]["soc0"][0] = 0.10
+    changed_law["registration_digest"] = tasks.digest(
+        {k: v for k, v in changed_law.items() if k != "registration_digest"}
+    )
+    changed_path = tmp_path / "changed-law.json"
+    _private(changed_path, changed_law)
+    with pytest.raises(tasks.TaskError):
+        reports.load_bank(work, journal, changed_path)
     before = sorted(str(path) for path in work.rglob("*"))
     reports.load_bank(work, journal, LAW)
     assert before == sorted(str(path) for path in work.rglob("*"))

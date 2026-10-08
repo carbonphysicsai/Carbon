@@ -14,6 +14,7 @@ import random
 import stat
 from pathlib import Path
 
+from carbon.battery import domain
 from carbon.battery import quiz_stratum as qs
 from carbon.battery.value import contract as ev
 from carbon.battery.value import decision as bd
@@ -34,18 +35,31 @@ def _refuse():
 
 def load_law(path):
     law = json.loads(Path(path).read_text(encoding="utf-8"))
-    if (
-        type(law) is not dict
-        or set(law)
-        != {"schema", "job", "draw", "selection", "batch_size", "registration_digest"}
-        or law["schema"] != LAW_SCHEMA
-        or law["job"] != JOB
-        or law["draw"] != "v8-uniform-ambient-soc-protected-redraw"
-        or law["selection"] != "first-eight-settled-feasible"
-        or law["batch_size"] != bq.Q3_K
-        or law["registration_digest"]
-        != tasks.digest({k: v for k, v in law.items() if k != "registration_digest"})
-    ):
+    body = {
+        "schema": LAW_SCHEMA,
+        "job": JOB,
+        "draw": {
+            "rule": "independent_uniform_then_numpy_round_4",
+            "t_amb_c": list(domain.INPUT_BOUNDS["t_amb_c"]),
+            "soc0": list(domain.INPUT_BOUNDS["soc0"]),
+            "protected_exclusion": {
+                "rule": "both_axes_strict_less_than",
+                "t_amb_c": qs.PROTECTED_T_C,
+                "soc0": qs.PROTECTED_SOC,
+            },
+            "first_round": qs.q3_draws(1),
+            "additional_per_round": qs.Q3_EXTRA,
+        },
+        "selection": {
+            "rule": "first_settled_reference_feasible_in_draw_order",
+            "requires_v8_refinement": True,
+        },
+        "batch_size": bq.Q3_K,
+    }
+    if type(law) is not dict or law != {
+        **body,
+        "registration_digest": tasks.digest(body),
+    }:
         raise tasks.TaskError("registered battery Q3 v8 law required")
     return law
 
