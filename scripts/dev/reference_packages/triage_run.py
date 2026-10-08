@@ -46,11 +46,14 @@ def _used(ledger, family):
     return used
 
 
-def run(decks, family, ledger, image, dry_run=False):
+def run(decks, family, ledger, image, run_ref=None, dry_run=False):
     decks = Path(decks)
     manifest = json.loads((decks / "manifest.json").read_text())
     if manifest["image"] != image:
         raise SystemExit("image differs from the frozen manifest")
+    # A containerd image store names an image by its OCI manifest digest; the
+    # pinned id is the config digest that manifest references. Both are kept.
+    run_ref = run_ref or image
     done = set()
     if Path(ledger).exists():
         done = {json.loads(x)["case"] for x in Path(ledger).read_text().splitlines()}
@@ -82,7 +85,7 @@ def run(decks, family, ledger, image, dry_run=False):
             "docker", "run", "--rm", "--name", name, "--network", "none", "--read-only",
             "--tmpfs", "/tmp", "--cpus", str(CPUS), "--memory", MEMORY, "--memory-swap", MEMORY,
             "--pids-limit", str(PIDS), "--user", f"{os.getuid()}:{os.getgid()}",
-            "-v", f"{case_dir.resolve()}:/case", "-w", "/case", image, "bash", "-c", script,
+            "-v", f"{case_dir.resolve()}:/case", "-w", "/case", run_ref, "bash", "-c", script,
         ]  # fmt: skip
         if dry_run:
             print(" ".join(cmd))
@@ -119,7 +122,7 @@ def run(decks, family, ledger, image, dry_run=False):
             "family": family, "case": entry["case"], "reservation": entry["reservation"],
             "started_unix": started, "wall_s": round(wall, 2), "allocated_cpu_s": round(wall * CPUS, 1),
             "children_cpu": cpu, "cgroup_memory_peak_bytes": peak, "exit": code, "outcome": outcome,
-            "host": os.uname().nodename, "nproc": os.cpu_count(),
+            "nproc": os.cpu_count(), "image_config": image, "image_run_ref": run_ref,
         }  # fmt: skip
         with open(ledger, "a") as handle:
             handle.write(json.dumps(row) + "\n")
@@ -135,9 +138,12 @@ def main(argv=None):
         "--image",
         default="sha256:8bcd864dd60be0a80be9769c1a95c67db76eca9e718212f63dd0460cf3a08fc6",
     )
+    parser.add_argument(
+        "--run-ref", help="the reference docker run resolves (manifest digest)"
+    )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
-    run(args.decks, args.family, args.ledger, args.image, args.dry_run)
+    run(args.decks, args.family, args.ledger, args.image, args.run_ref, args.dry_run)
     return 0
 
 
