@@ -121,3 +121,42 @@ the cause, and the slice or PR that fixes it. The plan is
     what that fix stops. On WSL, `wsl --terminate <distro>` from Windows.
     Elsewhere, `sudo systemctl restart user@<uid>.service`.
   - `docs/development/FRESH_MINER_JOURNEY.md` says so at the Install step.
+
+## LA-F3: the Launchpad's prepared registration command was not the form that ran
+
+- **Cell:** F03, on `carbon-fresh`, 2026-10-07.
+- **Observed:** `carbon_onboarding_prepare` gave
+  `btcli subnet register --netuid 567 --network test --wallet.name <w> --wallet.hotkey <h>`,
+  marked UNVERIFIED.
+  - The owner registered minerB (UID 4, extrinsic 8173606-6) with btcli
+    9.23.2's documented form,
+    `btcli subnets register --netuid 567 --wallet-name <w> --hotkey <h> --network test`.
+  - btcli 9.23.2's `--help` lists `subnet` as an alias, and `--wallet.name`
+    and `--wallet.hotkey` as option aliases, so the Launchpad's form is valid
+    syntax. It was never run.
+- **Proposed fix:** prepare the form that ran, and replace the UNVERIFIED
+  note with the btcli version it ran on.
+- **Status:** open, minor.
+
+## LA-F7: never prune Docker on a shared host
+
+- **Incident (2026-10-07, overnight):** a `docker image prune` on the
+  shared main WSL host deleted Data Collection's motor stage-1 images, and
+  100 solves with them.
+- **Not caused by this acceptance:**
+  - No step, script, test or agent of the Launchpad acceptance ran a prune.
+    The only image command run was a read-only
+    `docker images -f dangling=true`, inside `carbon-fresh`'s own engine.
+  - On main, no miner-path code calls prune.
+- **Rule** (Test Lead, 2026-10-08):
+  - No Launchpad step, test or clean-up ever prunes on a shared host.
+  - Pruning happens only inside a miner's own dedicated engine (here
+    `carbon-fresh`), and only for images Carbon built, removed by their tag.
+- **Guard:** `tests/cpu/test_launchpad_never_prunes.py` fails if any
+  command on the miner path, or any of its tests, runs `docker … prune`. The
+  miner path covers the installer and image builds, setup, campaigns, the
+  remote transports and the signer.
+- **LA-F2's fix fits the rule:** it names the images, so they can be kept
+  or removed by tag; it never prunes.
+- **Status:** guard added.
+
