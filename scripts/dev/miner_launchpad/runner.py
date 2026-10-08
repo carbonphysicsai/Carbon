@@ -361,6 +361,30 @@ def product_agent(root):
     return json.loads(manifest.read_bytes()).get("agent", "autonomous")
 
 
+#: The launch doors' names for "no Carbon agent": the miner selects, or their
+#: own agent over MCP does, on its own model.
+_NO_CARBON_AGENT = frozenset({"none", "own-agent"})
+
+
+def _selects_without_carbon_model(root, row=None):
+    """Whether Carbon calls no model in this campaign (LA-F11): its frozen
+    manifest's agent, or before one exists its admitted launch's, is `none`.
+    Anything unreadable is not taken for `none`, so a key check still runs."""
+    try:
+        agent = product_agent(root)
+    except (OSError, ValueError):
+        # A manifest mid-write reads as nothing here; the key check decides.
+        return False
+    if agent is None and row is not None:
+        stored = row.get("launch_request")
+        try:
+            recorded = json.loads(stored) if type(stored) in (str, bytes) else None
+        except ValueError:
+            recorded = None
+        agent = recorded.get("agent") if type(recorded) is dict else None
+    return agent in _NO_CARBON_AGENT
+
+
 def waits_for_its_miner(root):
     """Whether the campaign at `root`, once nothing holds it, settles READY:
     `research_campaign.waits_for_its_miner` - no agent, or a retained
@@ -4173,7 +4197,15 @@ class RunnerAdapter:
         only: before the campaign's manifest exists, the provider its
         admitted launch recorded (`launch_provider`) is the one checked, as
         the run that then carries the launch out uses it (LA-F5). Without a
-        record, or one naming no provider, the pinned default's rule stands."""
+        record, or one naming no provider, the pinned default's rule stands.
+
+        A campaign whose agent is `none` needs no key: the miner, or the
+        miner's own agent on its own model, selects, and Carbon calls no model
+        for it (the battery campaign opens no key then either). Its practice,
+        freeze and submit were refused for another provider's key before
+        LA-F11."""
+        if _selects_without_carbon_model(root, row):
+            return None
         provider = frozen_provider(root)
         if provider is None and row is not None:
             provider = launch_provider(cfg, row)
