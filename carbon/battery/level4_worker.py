@@ -40,11 +40,20 @@ def is_graph(found):
     return isinstance(found, dict) and found.get("schema") == SCHEMA
 
 
+_BUILD = 'model = recipes.build(recipe["family"], recipe["settings"])\n'
+
+
 def program(base):
-    """The staged program for a Level 4 record: it refuses as Carbon's
-    environment before anything is built (`base` is not run)."""
-    del base
-    return f"raise ImportError({BLOCKED!r})\n"
+    """`base` (a Level-0 program) with its one build line replaced by a raise
+    of `ImportError(BLOCKED)`, at the same indent, so it lands inside the
+    program's `try:` and its `except ImportError` records the failure as
+    Carbon's environment (`failure.json`, stage `environment`), typed and
+    never retried as an unexplained infrastructure fault."""
+    for indent in ("    ", ""):
+        line = indent + _BUILD
+        if base.count(line) == 1:
+            return base.replace(line, f"{indent}raise ImportError({BLOCKED!r})\n")
+    raise RuntimeError("the program's build line moved")
 
 
 def staged(found):

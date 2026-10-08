@@ -18,15 +18,13 @@ Claims tested:
 from __future__ import annotations
 
 import json
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
 
 pytest.importorskip("jax")
 
-from carbon.battery import development_rebuild, level4, level4_worker
+from carbon.battery import development_rebuild, level4, level4_worker, worker
 from carbon.battery.worker import DirectBackend, WorkerFailure
 from carbon.level4 import allowlist as allowlist_module
 from carbon.reconstruction import capability_registry as cr
@@ -86,18 +84,20 @@ def test_compiles_to_a_level4_graph_record():
 def test_every_rebuild_fails_closed_as_carbons_environment():
     found = dv.compile_development(strategy(), dv.variant(BATTERY, 4))
     record = development_rebuild.record(found.reconstruction)
+    base = worker.RECONSTRUCT_PROGRAM
     program, files, trainer = development_rebuild.stage(
-        record, "print('level 0')\n", {"recipe.json": b"{}"}, level1_program=lambda: "x"
+        record, base, {"recipe.json": b"{}"}, level1_program=lambda: "x"
     )
     assert trainer == development_rebuild.LEVEL4 and level4_worker.STAGED in files
-    run = subprocess.run(
-        [sys.executable, "-I", "-c", program],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert run.returncode != 0
-    assert "ImportError" in run.stderr and level4_worker.BLOCKED in run.stderr
+    # The raise replaces the build line inside the program's `try:`, so the
+    # program's own `except ImportError` records stage `environment`.
+    raise_line = f"    raise ImportError({level4_worker.BLOCKED!r})\n"
+    assert level4_worker._BUILD not in program and program.count(raise_line) == 1
+    start = program.index(raise_line)
+    assert program.rfind("try:", 0, start) > program.rfind("except", 0, start)
+    assert program.index("except ImportError", start) > start
+    with pytest.raises(RuntimeError):
+        level4_worker.program("print('no build line')\n")
     with pytest.raises(ImportError):
         development_rebuild.build_in_process(found.construction, record)
     with pytest.raises(WorkerFailure) as failure:
