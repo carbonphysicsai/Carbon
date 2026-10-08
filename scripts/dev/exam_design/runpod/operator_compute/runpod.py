@@ -407,7 +407,8 @@ class RunPodAdapter:
         definitive = status in {400, 401, 403, 404, 422}
         raise ComputeError(
             operation="provision",
-            failed="provider did not return a resource id: " + provider_text(payload),
+            failed="provider did not return a resource id: "
+            + provider_text(payload, 500),
             execution=Execution.EXECUTED if definitive else Execution.MAY_HAVE_EXECUTED,
             resources_may_remain=not definitive,
             retry_safe=False,
