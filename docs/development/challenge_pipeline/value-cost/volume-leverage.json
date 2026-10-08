@@ -1,0 +1,1081 @@
+{
+  "schema": "carbon.challenge.volume-leverage.v1",
+  "authority": "OWNER-CHALLENGE-VOLUME-LEVERAGE-01",
+  "date": "2026-10-08",
+  "maturity": "SPECIFIED",
+  "source_main": "9d7327e6ed8769a0147f1f0b8f45390aa512c1d7",
+  "adoption": "HUMAN_INPUT",
+  "dispatch_ready": false,
+  "protected_material": false,
+  "historical_rescore": false,
+  "solver_runs": 0,
+  "spend_grant": null,
+  "empirical_annual_rank": "NOT_DEMONSTRATED",
+  "framework_rank": "UNCOMPUTABLE",
+  "currency": "USD",
+  "common_assumptions": {
+    "scenarios": [
+      "low",
+      "base",
+      "high"
+    ],
+    "fit_cpu_h": [
+      10,
+      10,
+      10
+    ],
+    "decisions_per_model": [
+      1,
+      10,
+      100
+    ],
+    "inference_cpu_s": [
+      1,
+      0.1,
+      0.001
+    ],
+    "inference_wall_s": [
+      1,
+      0.1,
+      0.001
+    ],
+    "cpu_price_usd_per_h": 0.1,
+    "reference_wall_to_cpu": "ONE_SERIAL_CPU_SECOND_EQUALS_ONE_WALL_SECOND_ASSUMPTION",
+    "fit_wall_to_cpu": "ONE_SERIAL_CPU_HOUR_EQUALS_ONE_WALL_HOUR_ASSUMPTION",
+    "unpriced": [
+      "engineering integration",
+      "licence",
+      "hardware",
+      "energy",
+      "refinement",
+      "independent adequacy witnesses",
+      "model selection and retraining"
+    ],
+    "verification_count_status": "ILLUSTRATION_NOT_ADEQUACY_GRANT"
+  },
+  "battery_timing": {
+    "status": "OBSERVED_PUBLIC_TRAIN_BATCH_NOT_V3_SINGLE_QUERY",
+    "source_commit": "51426cef909bf787575775f26e895e954f58fe95",
+    "path": "docs/development/evidence/exam-design-2026-09-24/refs-b/out/train/inference_timing.json",
+    "producer": "scripts/dev/exam_design/train_phase.py",
+    "role": "train",
+    "n": 400,
+    "tag": "mlp-s0",
+    "first_batch_wall_s": 0.0063942186534404755,
+    "steady_batch_wall_s": 0.005763229914009571,
+    "single_query_p95_wall_s": null,
+    "hardware_receipt": "NOT_DEMONSTRATED",
+    "v3_applicability": "NOT_DEMONSTRATED"
+  },
+  "cards": {
+    "battery": {
+      "volume": {
+        "status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+        "empirical_lower_bound": 0,
+        "unit": "ELIGIBLE_CHARGING_SESSIONS_PER_YEAR",
+        "cohort_unit": "FLEET_VEHICLES",
+        "cohort_size": [
+          100,
+          1000,
+          10000
+        ],
+        "cadence_per_unit": [
+          0.3,
+          0.7,
+          1
+        ],
+        "cadence_unit": "ELIGIBLE_BOTTLENECK_SESSIONS_PER_VEHICLE_OPERATING_DAY",
+        "operating_days": [
+          250,
+          300,
+          330
+        ],
+        "annual_units": [
+          7500,
+          210000,
+          3300000
+        ],
+        "sources": [
+          {
+            "author": "Transport for London",
+            "url": "https://content.tfl.gov.uk/tfl-commissioners-report-22-july-2025-acc.pdf",
+            "support": "2025 report: 2,000 zero-emission buses; includes non-BEV possibilities, not charging logs or matching cell chemistry."
+          },
+          {
+            "author": "Uber",
+            "url": "https://www.uber.com/us/en/newsroom/uber-electric/",
+            "support": "2025: over 200,000 EV drivers globally, not one controlled fleet or session count."
+          }
+        ],
+        "observed_annual_decisions": null,
+        "eligibility_adoption_rate": null
+      },
+      "value": {
+        "v2_assumed_usd_per_unit": [
+          0.2,
+          1.5,
+          6
+        ],
+        "conditional_annual_gross_usd": [
+          1500,
+          315000,
+          19800000
+        ],
+        "realized_annual_usd": null,
+        "enabled_incremental_annual_usd": null,
+        "net_annual_usd": null,
+        "v3_pass": "NOT_DEMONSTRATED"
+      },
+      "workflow": {
+        "N": [
+          224,
+          1120,
+          11200
+        ],
+        "count_status": "SOURCED_ANALOGUE_WITH_ASSUMED_TRANSFER",
+        "sources": [
+          {
+            "author": "Attia et al.",
+            "url": "https://web.mit.edu/braatzgroup/Attia_Nature_2020.pdf",
+            "support": "224 candidate protocols; 117 never tested. Different cells/limits; menu size is not 224 full experiments."
+          }
+        ],
+        "evaluation_unit": "one complete charge/30-cycle programme at a registered band/context",
+        "N_measured_for_current_buyer": null,
+        "distinct_new_reference_work_required": true,
+        "acquisition_evaluations": 500,
+        "acquisition_count_status": "LEGACY_BANK_SIZE_SENSITIVITY_NOT_ADOPTED_TRAINING_REQUIREMENT",
+        "retained_evaluations": 5,
+        "reference_cpu_s": [
+          91,
+          91,
+          91
+        ],
+        "reference_cost_status": "OWNER_REPORTED_MEASURED_CONTEXT_NEEDS_MATCHED_LEDGER",
+        "reference_cpu_s_semantics": "DESCRIPTIVE_RANGE_OR_VALUE_NOT_QUANTILES",
+        "current_complete_panel_cost_pass": "NOT_DEMONSTRATED",
+        "inference_status": "ASSUMPTION_NOT_MEASURED_FOR_THIS_TASK",
+        "models_served": [
+          1,
+          10,
+          100
+        ],
+        "v4_pass": "NOT_DEMONSTRATED",
+        "strongest_baseline_pass": "NOT_DEMONSTRATED"
+      },
+      "calculations": [
+        {
+          "reference_cpu_h": 5.662222222222222,
+          "acquisition_cpu_h": 12.63888888888889,
+          "build_cpu_h": 22.63888888888889,
+          "amortized_build_cpu_h": 22.63888888888889,
+          "serving_cpu_h": 0.06222222222222222,
+          "retained_verification_cpu_h": 0.12638888888888888,
+          "model_cpu_h": 22.70111111111111,
+          "end_to_end_cpu_h": 22.8275,
+          "leverage_excluding_verification": 0.24942489354412412,
+          "leverage_including_verification": 0.24804390416043026,
+          "cpu_h_saved": -17.165277777777778,
+          "serial_wall_h_saved_assumption": -17.165277777777778,
+          "compute_usd_saved": -1.7165277777777779,
+          "minimum_decisions_to_break_even": 4.136006089824917
+        },
+        {
+          "reference_cpu_h": 28.31111111111111,
+          "acquisition_cpu_h": 12.63888888888889,
+          "build_cpu_h": 22.63888888888889,
+          "amortized_build_cpu_h": 2.263888888888889,
+          "serving_cpu_h": 0.03111111111111111,
+          "retained_verification_cpu_h": 0.12638888888888888,
+          "model_cpu_h": 2.295,
+          "end_to_end_cpu_h": 2.421388888888889,
+          "leverage_excluding_verification": 12.3359961268458,
+          "leverage_including_verification": 11.692095904554318,
+          "cpu_h_saved": 25.889722222222222,
+          "serial_wall_h_saved_assumption": 25.889722222222222,
+          "compute_usd_saved": 2.5889722222222225,
+          "minimum_decisions_to_break_even": 0.8041202529772182
+        },
+        {
+          "reference_cpu_h": 283.1111111111111,
+          "acquisition_cpu_h": 12.63888888888889,
+          "build_cpu_h": 22.63888888888889,
+          "amortized_build_cpu_h": 0.2263888888888889,
+          "serving_cpu_h": 0.0031111111111111114,
+          "retained_verification_cpu_h": 0.12638888888888888,
+          "model_cpu_h": 0.2295,
+          "end_to_end_cpu_h": 0.3558888888888889,
+          "leverage_excluding_verification": 1233.5996126845798,
+          "leverage_including_verification": 795.5042147986261,
+          "cpu_h_saved": 282.7552222222222,
+          "serial_wall_h_saved_assumption": 282.7552222222222,
+          "compute_usd_saved": 28.27552222222222,
+          "minimum_decisions_to_break_even": 0.08000127216746906
+        }
+      ]
+    },
+    "motor": {
+      "volume": {
+        "status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+        "empirical_lower_bound": 0,
+        "unit": "IN_SCOPE_REVISIONS_PER_YEAR",
+        "cohort_unit": "IN_SCOPE_ENGINEERING_TEAMS",
+        "cohort_size": [
+          10,
+          30,
+          100
+        ],
+        "cadence_per_unit": [
+          2,
+          6,
+          12
+        ],
+        "cadence_unit": "REVISIONS_PER_TEAM_YEAR",
+        "operating_days": null,
+        "annual_units": [
+          20,
+          180,
+          1200
+        ],
+        "sources": [
+          {
+            "author": "Universal Robots",
+            "url": "https://www.universal-robots.com/media/1830013/ur_media_kit_a4.pdf",
+            "support": "2024 catalogue and launch dates demonstrate several arm platforms, not annual motor design counts."
+          },
+          {
+            "author": "Kollmorgen",
+            "url": "https://www.kollmorgen.com/en-us/products/motors/direct-drive/kbm-series-frameless",
+            "support": "Frameless motor families/customization; stock variants are not independent new programmes."
+          }
+        ],
+        "observed_annual_decisions": null,
+        "eligibility_adoption_rate": null
+      },
+      "value": {
+        "v2_assumed_usd_per_unit": [
+          200,
+          900,
+          3200
+        ],
+        "conditional_annual_gross_usd": [
+          4000,
+          162000,
+          3840000
+        ],
+        "realized_annual_usd": null,
+        "enabled_incremental_annual_usd": null,
+        "net_annual_usd": null,
+        "v3_pass": "NOT_DEMONSTRATED"
+      },
+      "workflow": {
+        "N": [
+          50,
+          505,
+          2000
+        ],
+        "count_status": "SOURCED_ANALOGUE_WITH_ASSUMED_TRANSFER",
+        "sources": [
+          {
+            "author": "Ren et al.",
+            "url": "https://pdfs.semanticscholar.org/8117/28aba09d970a1bd7a289f42119dce7867c60.pdf",
+            "support": "Motor example used 505 FEM sampling points; 10,000 cheap surrogate testing points are separate. 24-slot/4-pole example, not Carbon's revised space."
+          }
+        ],
+        "evaluation_unit": "one complete command/angle curve including required skew slices",
+        "N_measured_for_current_buyer": null,
+        "distinct_new_reference_work_required": true,
+        "acquisition_evaluations": 1800,
+        "acquisition_count_status": "LEGACY_BANK_SIZE_SENSITIVITY_NOT_ADOPTED_TRAINING_REQUIREMENT",
+        "retained_evaluations": 2,
+        "reference_cpu_s": null,
+        "reference_cost_status": "NOT_MEASURED",
+        "reference_cpu_s_semantics": "DESCRIPTIVE_RANGE_OR_VALUE_NOT_QUANTILES",
+        "current_complete_panel_cost_pass": "NOT_DEMONSTRATED",
+        "inference_status": "ASSUMPTION_NOT_MEASURED_FOR_THIS_TASK",
+        "models_served": [
+          1,
+          10,
+          100
+        ],
+        "v4_pass": "NOT_DEMONSTRATED",
+        "strongest_baseline_pass": "NOT_DEMONSTRATED"
+      },
+      "calculations": null
+    },
+    "cooling-cell": {
+      "volume": {
+        "status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+        "empirical_lower_bound": 0,
+        "unit": "IN_SCOPE_REVISIONS_PER_YEAR",
+        "cohort_unit": "IN_SCOPE_ENGINEERING_TEAMS",
+        "cohort_size": [
+          5,
+          15,
+          40
+        ],
+        "cadence_per_unit": [
+          2,
+          6,
+          12
+        ],
+        "cadence_unit": "REVISIONS_PER_TEAM_YEAR",
+        "operating_days": null,
+        "annual_units": [
+          10,
+          90,
+          480
+        ],
+        "sources": [
+          {
+            "author": "Boyd",
+            "url": "https://www.boydcorp.com/thermal/liquid-cooling-systems/liquid-cold-plates/cold-plates-for-ai-server-cooling.html",
+            "support": "Platform-specific AI cold plates establish OEM integration work, not annual cell-cell design cadence."
+          },
+          {
+            "author": "CoolIT",
+            "url": "https://www.coolitsystems.com/coldplate-technology/",
+            "support": "Multiple processor coldplate applications; do not count shipments or manifold work as cell decisions."
+          }
+        ],
+        "observed_annual_decisions": null,
+        "eligibility_adoption_rate": null
+      },
+      "value": {
+        "v2_assumed_usd_per_unit": [
+          100,
+          450,
+          1600
+        ],
+        "conditional_annual_gross_usd": [
+          1000,
+          40500,
+          768000
+        ],
+        "realized_annual_usd": null,
+        "enabled_incremental_annual_usd": null,
+        "net_annual_usd": null,
+        "v3_pass": "NOT_DEMONSTRATED"
+      },
+      "workflow": {
+        "N": [
+          30,
+          100,
+          1000
+        ],
+        "count_status": "SOURCED_ANALOGUE_WITH_ASSUMED_TRANSFER",
+        "sources": [
+          {
+            "author": "Mat et al.",
+            "url": "https://www.tj.kyushu-u.ac.jp/evergreen/contents/EG2024-11_2_content/p1426-1434.html",
+            "support": "2,500 response-surface optimization points, NOT 2,500 CFD calls. Exact acquisition count not established by the abstract."
+          }
+        ],
+        "evaluation_unit": "one cooling-cell geometry/service-condition solve",
+        "N_measured_for_current_buyer": null,
+        "distinct_new_reference_work_required": true,
+        "acquisition_evaluations": 1000,
+        "acquisition_count_status": "LEGACY_BANK_SIZE_SENSITIVITY_NOT_ADOPTED_TRAINING_REQUIREMENT",
+        "retained_evaluations": 2,
+        "reference_cpu_s": [
+          1620,
+          1620,
+          1620
+        ],
+        "reference_cost_status": "OWNER_REPORTED_MEASURED_CONTEXT_NEEDS_MATCHED_LEDGER",
+        "reference_cpu_s_semantics": "DESCRIPTIVE_RANGE_OR_VALUE_NOT_QUANTILES",
+        "current_complete_panel_cost_pass": "NOT_DEMONSTRATED",
+        "inference_status": "ASSUMPTION_NOT_MEASURED_FOR_THIS_TASK",
+        "models_served": [
+          1,
+          10,
+          100
+        ],
+        "v4_pass": "NOT_DEMONSTRATED",
+        "strongest_baseline_pass": "NOT_DEMONSTRATED"
+      },
+      "calculations": [
+        {
+          "reference_cpu_h": 13.5,
+          "acquisition_cpu_h": 450,
+          "build_cpu_h": 460,
+          "amortized_build_cpu_h": 460,
+          "serving_cpu_h": 0.008333333333333333,
+          "retained_verification_cpu_h": 0.9,
+          "model_cpu_h": 460.0083333333333,
+          "end_to_end_cpu_h": 460.9083333333333,
+          "leverage_excluding_verification": 0.029347294433071866,
+          "leverage_including_verification": 0.02928998897105354,
+          "cpu_h_saved": -447.4083333333333,
+          "serial_wall_h_saved_assumption": -447.4083333333333,
+          "compute_usd_saved": -44.740833333333335,
+          "minimum_decisions_to_break_even": 36.532097948378556
+        },
+        {
+          "reference_cpu_h": 45,
+          "acquisition_cpu_h": 450,
+          "build_cpu_h": 460,
+          "amortized_build_cpu_h": 46,
+          "serving_cpu_h": 0.002777777777777778,
+          "retained_verification_cpu_h": 0.9,
+          "model_cpu_h": 46.00277777777778,
+          "end_to_end_cpu_h": 46.90277777777778,
+          "leverage_excluding_verification": 0.9782017994082483,
+          "leverage_including_verification": 0.9594314480307965,
+          "cpu_h_saved": -1.9027777777777786,
+          "serial_wall_h_saved_assumption": -1.9027777777777786,
+          "compute_usd_saved": -0.19027777777777788,
+          "minimum_decisions_to_break_even": 10.431496062992126
+        },
+        {
+          "reference_cpu_h": 450,
+          "acquisition_cpu_h": 450,
+          "build_cpu_h": 460,
+          "amortized_build_cpu_h": 4.6,
+          "serving_cpu_h": 0.0002777777777777778,
+          "retained_verification_cpu_h": 0.9,
+          "model_cpu_h": 4.6002777777777775,
+          "end_to_end_cpu_h": 5.500277777777778,
+          "leverage_excluding_verification": 97.82017994082483,
+          "leverage_including_verification": 81.81404979546487,
+          "cpu_h_saved": 444.4997222222222,
+          "serial_wall_h_saved_assumption": 444.4997222222222,
+          "compute_usd_saved": 44.44997222222222,
+          "minimum_decisions_to_break_even": 1.024271397283083
+        }
+      ]
+    },
+    "f02": {
+      "volume": {
+        "status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+        "empirical_lower_bound": 0,
+        "unit": "IN_SCOPE_REVISIONS_PER_YEAR",
+        "cohort_unit": "IN_SCOPE_ENGINEERING_TEAMS",
+        "cohort_size": [
+          10,
+          40,
+          100
+        ],
+        "cadence_per_unit": [
+          2,
+          6,
+          12
+        ],
+        "cadence_unit": "REVISIONS_PER_TEAM_YEAR",
+        "operating_days": null,
+        "annual_units": [
+          20,
+          240,
+          1200
+        ],
+        "sources": [
+          {
+            "author": "Trenz Electronic",
+            "url": "https://shop.trenz-electronic.de/en/Products/Trenz-Electronic/",
+            "support": "Board family launch years/lifecycles: multi-year platforms, not all catalogue SKUs redesigned annually."
+          },
+          {
+            "author": "Terasic",
+            "url": "https://www.terasic.com.tw/cgi-bin/page/archive.pl?CategoryNo=115&Language=English&No=1252",
+            "support": "Independent accelerator-board product; no programme count or burst schedule logs published."
+          }
+        ],
+        "observed_annual_decisions": null,
+        "eligibility_adoption_rate": null
+      },
+      "value": {
+        "v2_assumed_usd_per_unit": [
+          200,
+          600,
+          1600
+        ],
+        "conditional_annual_gross_usd": [
+          4000,
+          144000,
+          1920000
+        ],
+        "realized_annual_usd": null,
+        "enabled_incremental_annual_usd": null,
+        "net_annual_usd": null,
+        "v3_pass": "NOT_DEMONSTRATED"
+      },
+      "workflow": {
+        "N": [
+          60,
+          216,
+          1000
+        ],
+        "count_status": "SOURCED_ANALOGUE_WITH_ASSUMED_TRANSFER",
+        "sources": [
+          {
+            "author": "Ansys Icepak",
+            "url": "https://ansyshelp.ansys.com/public/Views/Secured/Electronics/v261/en/Subsystems/Icepak/Content/Optimetrics/ParametricOverview.htm",
+            "support": "Parametric sweeps solve parameter variations; numerical workflow size remains an assumption."
+          }
+        ],
+        "evaluation_unit": "one complete burst transient/observer case",
+        "N_measured_for_current_buyer": null,
+        "distinct_new_reference_work_required": true,
+        "acquisition_evaluations": 384,
+        "acquisition_count_status": "LEGACY_BANK_SIZE_SENSITIVITY_NOT_ADOPTED_TRAINING_REQUIREMENT",
+        "retained_evaluations": 2,
+        "reference_cpu_s": [
+          120,
+          150,
+          180
+        ],
+        "reference_cost_status": "OWNER_REPORTED_MEASURED_CONTEXT_NEEDS_MATCHED_LEDGER",
+        "reference_cpu_s_semantics": "DESCRIPTIVE_RANGE_OR_VALUE_NOT_QUANTILES",
+        "current_complete_panel_cost_pass": "NOT_DEMONSTRATED",
+        "inference_status": "ASSUMPTION_NOT_MEASURED_FOR_THIS_TASK",
+        "models_served": [
+          1,
+          10,
+          100
+        ],
+        "v4_pass": "NOT_DEMONSTRATED",
+        "strongest_baseline_pass": "NOT_DEMONSTRATED"
+      },
+      "calculations": [
+        {
+          "reference_cpu_h": 2,
+          "acquisition_cpu_h": 12.8,
+          "build_cpu_h": 22.8,
+          "amortized_build_cpu_h": 22.8,
+          "serving_cpu_h": 0.016666666666666666,
+          "retained_verification_cpu_h": 0.06666666666666667,
+          "model_cpu_h": 22.816666666666666,
+          "end_to_end_cpu_h": 22.883333333333333,
+          "leverage_excluding_verification": 0.08765522279035792,
+          "leverage_including_verification": 0.08739985433357611,
+          "cpu_h_saved": -20.883333333333333,
+          "serial_wall_h_saved_assumption": -20.883333333333333,
+          "compute_usd_saved": -2.0883333333333334,
+          "minimum_decisions_to_break_even": 11.895652173913044
+        },
+        {
+          "reference_cpu_h": 9,
+          "acquisition_cpu_h": 16,
+          "build_cpu_h": 26,
+          "amortized_build_cpu_h": 2.6,
+          "serving_cpu_h": 0.006,
+          "retained_verification_cpu_h": 0.08333333333333333,
+          "model_cpu_h": 2.606,
+          "end_to_end_cpu_h": 2.6893333333333334,
+          "leverage_excluding_verification": 3.453568687643899,
+          "leverage_including_verification": 3.3465542885473476,
+          "cpu_h_saved": 6.310666666666666,
+          "serial_wall_h_saved_assumption": 6.310666666666666,
+          "compute_usd_saved": 0.6310666666666667,
+          "minimum_decisions_to_break_even": 2.917851264402214
+        },
+        {
+          "reference_cpu_h": 50,
+          "acquisition_cpu_h": 19.2,
+          "build_cpu_h": 29.2,
+          "amortized_build_cpu_h": 0.292,
+          "serving_cpu_h": 0.0002777777777777778,
+          "retained_verification_cpu_h": 0.1,
+          "model_cpu_h": 0.29227777777777775,
+          "end_to_end_cpu_h": 0.3922777777777777,
+          "leverage_excluding_verification": 171.07013875689034,
+          "leverage_including_verification": 127.46069961761792,
+          "cpu_h_saved": 49.60772222222222,
+          "serial_wall_h_saved_assumption": 49.60772222222222,
+          "compute_usd_saved": 4.960772222222222,
+          "minimum_decisions_to_break_even": 0.5851735981607558
+        }
+      ]
+    },
+    "f06": {
+      "volume": {
+        "status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+        "empirical_lower_bound": 0,
+        "unit": "IN_SCOPE_REVISIONS_PER_YEAR",
+        "cohort_unit": "IN_SCOPE_ENGINEERING_TEAMS",
+        "cohort_size": [
+          10,
+          40,
+          100
+        ],
+        "cadence_per_unit": [
+          1,
+          3,
+          6
+        ],
+        "cadence_unit": "REVISIONS_PER_TEAM_YEAR",
+        "operating_days": null,
+        "annual_units": [
+          10,
+          120,
+          600
+        ],
+        "sources": [
+          {
+            "author": "EPIC",
+            "url": "https://epic-photonics.com/wp-content/uploads/2023/06/epic-directory-consortium-members-products-and-competences-2.pdf",
+            "support": "Broad photonics member directory; not all firms design grating couplers or fit the proposed 2D stage."
+          },
+          {
+            "author": "EUROPRACTICE",
+            "url": "https://europractice-ic.com/schedules-prices-2025/",
+            "support": "GF 45SPCLO 2025 has three registration deadlines; access cadence, not designs/customers per run."
+          }
+        ],
+        "observed_annual_decisions": null,
+        "eligibility_adoption_rate": null
+      },
+      "value": {
+        "v2_assumed_usd_per_unit": [
+          200,
+          600,
+          1200
+        ],
+        "conditional_annual_gross_usd": [
+          2000,
+          72000,
+          720000
+        ],
+        "realized_annual_usd": null,
+        "enabled_incremental_annual_usd": null,
+        "net_annual_usd": null,
+        "v3_pass": "NOT_DEMONSTRATED"
+      },
+      "workflow": {
+        "N": [
+          40,
+          200,
+          2000
+        ],
+        "count_status": "SOURCED_ANALOGUE_WITH_ASSUMED_TRANSFER",
+        "sources": [
+          {
+            "author": "Ansys Lumerical",
+            "url": "https://optics.ansys.com/hc/en-us/articles/360042305334-Grating-coupler",
+            "support": "2D optimization 10–20 minutes, final 3D optimization hours; includes two S-parameter simulations, not a published optimization query count."
+          }
+        ],
+        "evaluation_unit": "one early-stage 2D geometry panel, plus separately charged 3D witnesses",
+        "N_measured_for_current_buyer": null,
+        "distinct_new_reference_work_required": true,
+        "acquisition_evaluations": 256,
+        "acquisition_count_status": "LEGACY_BANK_SIZE_SENSITIVITY_NOT_ADOPTED_TRAINING_REQUIREMENT",
+        "retained_evaluations": 2,
+        "reference_cpu_s": null,
+        "reference_cost_status": "NOT_MEASURED",
+        "reference_cpu_s_semantics": "DESCRIPTIVE_RANGE_OR_VALUE_NOT_QUANTILES",
+        "current_complete_panel_cost_pass": "NOT_DEMONSTRATED",
+        "inference_status": "ASSUMPTION_NOT_MEASURED_FOR_THIS_TASK",
+        "models_served": [
+          1,
+          10,
+          100
+        ],
+        "v4_pass": "NOT_DEMONSTRATED",
+        "strongest_baseline_pass": "NOT_DEMONSTRATED"
+      },
+      "calculations": null
+    },
+    "f08": {
+      "volume": {
+        "status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+        "empirical_lower_bound": 0,
+        "unit": "IN_SCOPE_REVISIONS_PER_YEAR",
+        "cohort_unit": "IN_SCOPE_ENGINEERING_TEAMS",
+        "cohort_size": [
+          5,
+          15,
+          40
+        ],
+        "cadence_per_unit": [
+          2,
+          4,
+          6
+        ],
+        "cadence_unit": "REVISIONS_PER_TEAM_YEAR",
+        "operating_days": null,
+        "annual_units": [
+          10,
+          60,
+          240
+        ],
+        "sources": [
+          {
+            "author": "DMG MORI",
+            "url": "https://en.dmgmori.com/resource/blob/704234/c5ebc771d4474783228a49d78473d6bf/j231en-data.pdf",
+            "support": "Manufacturer release reports seven world premieres; machines are not seven Carbon-sized support projects."
+          },
+          {
+            "author": "igus",
+            "url": "https://blog.igus.co.uk/how-is-the-robolink-robot-arm-made/",
+            "support": "Modular robot-arm variants/components; reused parts are not fresh resonance support decisions."
+          }
+        ],
+        "observed_annual_decisions": null,
+        "eligibility_adoption_rate": null
+      },
+      "value": {
+        "v2_assumed_usd_per_unit": [
+          200,
+          900,
+          2400
+        ],
+        "conditional_annual_gross_usd": [
+          2000,
+          54000,
+          576000
+        ],
+        "realized_annual_usd": null,
+        "enabled_incremental_annual_usd": null,
+        "net_annual_usd": null,
+        "v3_pass": "NOT_DEMONSTRATED"
+      },
+      "workflow": {
+        "N": [
+          15,
+          100,
+          1000
+        ],
+        "count_status": "SOURCED_ANALOGUE_WITH_ASSUMED_TRANSFER",
+        "sources": [
+          {
+            "author": "COMSOL",
+            "url": "https://www.comsol.com/model/download/1228781/models.opt.bracket_fatigue_optimization.pdf",
+            "support": "Shape optimization example has a 15-iteration cap, not 15 measured modal/FEM calls."
+          },
+          {
+            "author": "Ansys Mechanical",
+            "url": "https://ansyshelp.ansys.com/public/Views/Secured/corp/v242/en/ans_str/Hlp_G_STR4_MODESUPER.html",
+            "support": "Mode superposition reuses the basis; cached frequency/damping queries may already be cheap."
+          }
+        ],
+        "evaluation_unit": "one new geometry modal-route calculation, not one cached frequency point",
+        "N_measured_for_current_buyer": null,
+        "distinct_new_reference_work_required": true,
+        "acquisition_evaluations": 256,
+        "acquisition_count_status": "LEGACY_BANK_SIZE_SENSITIVITY_NOT_ADOPTED_TRAINING_REQUIREMENT",
+        "retained_evaluations": 2,
+        "reference_cpu_s": [
+          40,
+          75,
+          110
+        ],
+        "reference_cost_status": "OWNER_REPORTED_MEASURED_CONTEXT_NEEDS_MATCHED_LEDGER",
+        "reference_cpu_s_semantics": "DESCRIPTIVE_RANGE_OR_VALUE_NOT_QUANTILES",
+        "current_complete_panel_cost_pass": "NOT_DEMONSTRATED",
+        "inference_status": "ASSUMPTION_NOT_MEASURED_FOR_THIS_TASK",
+        "models_served": [
+          1,
+          10,
+          100
+        ],
+        "v4_pass": "NOT_DEMONSTRATED",
+        "strongest_baseline_pass": "NOT_DEMONSTRATED"
+      },
+      "calculations": [
+        {
+          "reference_cpu_h": 0.16666666666666666,
+          "acquisition_cpu_h": 2.8444444444444446,
+          "build_cpu_h": 12.844444444444445,
+          "amortized_build_cpu_h": 12.844444444444445,
+          "serving_cpu_h": 0.004166666666666667,
+          "retained_verification_cpu_h": 0.022222222222222223,
+          "model_cpu_h": 12.848611111111111,
+          "end_to_end_cpu_h": 12.870833333333334,
+          "leverage_excluding_verification": 0.012971570641011782,
+          "leverage_including_verification": 0.012949174490126253,
+          "cpu_h_saved": -12.704166666666667,
+          "serial_wall_h_saved_assumption": -12.704166666666667,
+          "compute_usd_saved": -1.2704166666666667,
+          "minimum_decisions_to_break_even": 91.56435643564356
+        },
+        {
+          "reference_cpu_h": 2.0833333333333335,
+          "acquisition_cpu_h": 5.333333333333333,
+          "build_cpu_h": 15.333333333333332,
+          "amortized_build_cpu_h": 1.5333333333333332,
+          "serving_cpu_h": 0.002777777777777778,
+          "retained_verification_cpu_h": 0.041666666666666664,
+          "model_cpu_h": 1.536111111111111,
+          "end_to_end_cpu_h": 1.5777777777777777,
+          "leverage_excluding_verification": 1.35623869801085,
+          "leverage_including_verification": 1.3204225352112677,
+          "cpu_h_saved": 0.5055555555555558,
+          "serial_wall_h_saved_assumption": 0.5055555555555558,
+          "compute_usd_saved": 0.050555555555555576,
+          "minimum_decisions_to_break_even": 7.520435967302452
+        },
+        {
+          "reference_cpu_h": 30.555555555555557,
+          "acquisition_cpu_h": 7.822222222222222,
+          "build_cpu_h": 17.822222222222223,
+          "amortized_build_cpu_h": 0.17822222222222223,
+          "serving_cpu_h": 0.0002777777777777778,
+          "retained_verification_cpu_h": 0.06111111111111111,
+          "model_cpu_h": 0.1785,
+          "end_to_end_cpu_h": 0.2396111111111111,
+          "leverage_excluding_verification": 171.17958294428885,
+          "leverage_including_verification": 127.52144678877812,
+          "cpu_h_saved": 30.315944444444447,
+          "serial_wall_h_saved_assumption": 30.315944444444447,
+          "compute_usd_saved": 3.031594444444445,
+          "minimum_decisions_to_break_even": 0.584446934295266
+        }
+      ]
+    },
+    "f13": {
+      "volume": {
+        "status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+        "empirical_lower_bound": 0,
+        "unit": "IN_SCOPE_REVISIONS_PER_YEAR",
+        "cohort_unit": "IN_SCOPE_ENGINEERING_TEAMS",
+        "cohort_size": [
+          5,
+          15,
+          30
+        ],
+        "cadence_per_unit": [
+          1,
+          4,
+          8
+        ],
+        "cadence_unit": "REVISIONS_PER_TEAM_YEAR",
+        "operating_days": null,
+        "annual_units": [
+          5,
+          60,
+          240
+        ],
+        "sources": [
+          {
+            "author": "CAGI",
+            "url": "https://www.cagi.org/cagi-membership",
+            "support": "Rotary-compressor membership lists suppliers; groups/brands overlap and are not all coaxial/no-flow buyers."
+          },
+          {
+            "author": "Kaeser",
+            "url": "https://pr.kaeser.com/en/download.ashx?id=tcm%3A164-186918",
+            "support": "CSG catalogue includes pulsation damping; real compressor flow may require qualification outside this no-flow stage."
+          }
+        ],
+        "observed_annual_decisions": null,
+        "eligibility_adoption_rate": null
+      },
+      "value": {
+        "v2_assumed_usd_per_unit": [
+          200,
+          600,
+          1600
+        ],
+        "conditional_annual_gross_usd": [
+          1000,
+          36000,
+          384000
+        ],
+        "realized_annual_usd": null,
+        "enabled_incremental_annual_usd": null,
+        "net_annual_usd": null,
+        "v3_pass": "NOT_DEMONSTRATED"
+      },
+      "workflow": {
+        "N": [
+          16,
+          100,
+          1000
+        ],
+        "count_status": "SOURCED_ANALOGUE_WITH_ASSUMED_TRANSFER",
+        "sources": [
+          {
+            "author": "Chen",
+            "url": "https://www.extrica.com/article/15234",
+            "support": "GA uses an acoustic transfer-matrix evaluator with FE/lab checks, not fresh FE curves for every GA individual. Numerical curve count is assumed."
+          }
+        ],
+        "evaluation_unit": "one complete attenuation curve including all frequency systems/refinement",
+        "N_measured_for_current_buyer": null,
+        "distinct_new_reference_work_required": true,
+        "acquisition_evaluations": 16,
+        "acquisition_count_status": "LEGACY_BANK_SIZE_SENSITIVITY_NOT_ADOPTED_TRAINING_REQUIREMENT",
+        "retained_evaluations": 2,
+        "reference_cpu_s": [
+          456,
+          1800,
+          4860
+        ],
+        "reference_cost_status": "OWNER_REPORTED_MEASURED_CONTEXT_NEEDS_MATCHED_LEDGER",
+        "reference_cpu_s_semantics": "456_DESCRIPTIVE_LOW_1800_ASSUMED_INTERIOR_4860_NOT_UPPER_BOUND",
+        "current_complete_panel_cost_pass": "NOT_DEMONSTRATED",
+        "inference_status": "ASSUMPTION_NOT_MEASURED_FOR_THIS_TASK",
+        "models_served": [
+          1,
+          10,
+          100
+        ],
+        "v4_pass": "NOT_DEMONSTRATED",
+        "strongest_baseline_pass": "NOT_DEMONSTRATED"
+      },
+      "calculations": [
+        {
+          "reference_cpu_h": 2.026666666666667,
+          "acquisition_cpu_h": 2.026666666666667,
+          "build_cpu_h": 12.026666666666667,
+          "amortized_build_cpu_h": 12.026666666666667,
+          "serving_cpu_h": 0.0044444444444444444,
+          "retained_verification_cpu_h": 0.25333333333333335,
+          "model_cpu_h": 12.031111111111112,
+          "end_to_end_cpu_h": 12.284444444444446,
+          "leverage_excluding_verification": 0.16845216106390837,
+          "leverage_including_verification": 0.16497829232995656,
+          "cpu_h_saved": -10.257777777777779,
+          "serial_wall_h_saved_assumption": -10.257777777777779,
+          "compute_usd_saved": -1.025777777777778,
+          "minimum_decisions_to_break_even": 6.798994974874372
+        },
+        {
+          "reference_cpu_h": 50,
+          "acquisition_cpu_h": 8,
+          "build_cpu_h": 18,
+          "amortized_build_cpu_h": 1.8,
+          "serving_cpu_h": 0.002777777777777778,
+          "retained_verification_cpu_h": 1,
+          "model_cpu_h": 1.8027777777777778,
+          "end_to_end_cpu_h": 2.802777777777778,
+          "leverage_excluding_verification": 27.73497688751926,
+          "leverage_including_verification": 17.839444995044598,
+          "cpu_h_saved": 47.19722222222222,
+          "serial_wall_h_saved_assumption": 47.19722222222222,
+          "compute_usd_saved": 4.719722222222223,
+          "minimum_decisions_to_break_even": 0.3673677646125064
+        },
+        {
+          "reference_cpu_h": 1350,
+          "acquisition_cpu_h": 21.6,
+          "build_cpu_h": 31.6,
+          "amortized_build_cpu_h": 0.316,
+          "serving_cpu_h": 0.0002777777777777778,
+          "retained_verification_cpu_h": 2.7,
+          "model_cpu_h": 0.31627777777777777,
+          "end_to_end_cpu_h": 3.016277777777778,
+          "leverage_excluding_verification": 4268.399789214825,
+          "leverage_including_verification": 447.57151013942865,
+          "cpu_h_saved": 1346.9837222222222,
+          "serial_wall_h_saved_assumption": 1346.9837222222222,
+          "compute_usd_saved": 134.69837222222222,
+          "minimum_decisions_to_break_even": 0.023454320875149655
+        }
+      ]
+    },
+    "f17": {
+      "volume": {
+        "status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+        "empirical_lower_bound": 0,
+        "unit": "IN_SCOPE_REVISIONS_PER_YEAR",
+        "cohort_unit": "IN_SCOPE_ENGINEERING_TEAMS",
+        "cohort_size": [
+          5,
+          15,
+          40
+        ],
+        "cadence_per_unit": [
+          1,
+          4,
+          8
+        ],
+        "cadence_unit": "REVISIONS_PER_TEAM_YEAR",
+        "operating_days": null,
+        "annual_units": [
+          5,
+          60,
+          320
+        ],
+        "sources": [
+          {
+            "author": "Microfluidics Association",
+            "url": "https://microfluidics-association.org/members/",
+            "support": "Several independent makers/labs; membership is not an eligible passive-mixer team count."
+          },
+          {
+            "author": "Micronit",
+            "url": "https://micronit.com/products.html",
+            "support": "Product inventory includes holders/accessories; not all products are mixers or annual design revisions."
+          }
+        ],
+        "observed_annual_decisions": null,
+        "eligibility_adoption_rate": null
+      },
+      "value": {
+        "v2_assumed_usd_per_unit": [
+          400,
+          1200,
+          3200
+        ],
+        "conditional_annual_gross_usd": [
+          2000,
+          72000,
+          1024000
+        ],
+        "realized_annual_usd": null,
+        "enabled_incremental_annual_usd": null,
+        "net_annual_usd": null,
+        "v3_pass": "NOT_DEMONSTRATED"
+      },
+      "workflow": {
+        "N": [
+          27,
+        100,
+        1000
+        ],
+        "count_status": "SOURCED_ANALOGUE_WITH_ASSUMED_TRANSFER",
+        "sources": [
+          {
+            "author": "Raza and Kim",
+            "url": "https://bura.brunel.ac.uk/bitstream/2438/6877/1/MNF2009.pdf",
+            "support": "27 CFD geometries at studied Reynolds settings; 26 ×100 generations evaluate response surfaces, not 2,600 new CFD solves."
+          }
+        ],
+        "evaluation_unit": "one complete nine-condition finite scalar/flow panel",
+        "N_measured_for_current_buyer": null,
+        "distinct_new_reference_work_required": true,
+        "acquisition_evaluations": 45,
+        "acquisition_count_status": "LEGACY_BANK_SIZE_SENSITIVITY_NOT_ADOPTED_TRAINING_REQUIREMENT",
+        "retained_evaluations": 2,
+        "reference_cpu_s": null,
+        "reference_cost_status": "NOT_MEASURED",
+        "reference_cpu_s_semantics": "DESCRIPTIVE_RANGE_OR_VALUE_NOT_QUANTILES",
+        "current_complete_panel_cost_pass": "NOT_DEMONSTRATED",
+        "inference_status": "ASSUMPTION_NOT_MEASURED_FOR_THIS_TASK",
+        "models_served": [
+          1,
+          10,
+          100
+        ],
+        "v4_pass": "NOT_DEMONSTRATED",
+        "strongest_baseline_pass": "NOT_DEMONSTRATED"
+      },
+      "calculations": null
+    }
+  },
+  "conditional_base_order": [
+    "battery",
+    "motor",
+    "f02",
+    "f06",
+    "f17",
+    "f08",
+    "cooling-cell",
+    "f13"
+  ],
+  "f08_cached_baseline": {
+    "status": "ASSUMPTION_COUNTEREXAMPLE_NOT_MEASUREMENT",
+    "designs": 100,
+    "decisions_served": 10,
+    "new_geometry_basis_cpu_s": 75,
+    "queries": 100,
+    "cached_query_cpu_s": 1,
+    "retained_reference_evaluations": 2,
+    "baseline_cpu_h": 0.2361111111111111,
+    "baseline_with_verification_cpu_h": 0.2777777777777778,
+    "model_end_to_end_cpu_h": 1.5777777777777777,
+    "v4_result_if_baseline_meets_same_decision_adequacy": "FAIL"
+  }
+}

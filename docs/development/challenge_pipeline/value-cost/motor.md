@@ -31,19 +31,40 @@ unproven. Do not add the older packet's whole prototype/commissioning losses
 to this narrower screening-labour scenario. False-feasible picks are rejected,
 not priced as an acceptable expected loss.
 
-### V3 — frequency
+### V3 — precision-joint programme revisions
 
-ASSUMPTION one motor programme has **2 / 6 / 12 geometry/command revisions per
-year**. Request actual CAD/FEA revision logs; no production robot volume or
-billable customer inferred from supplier application stories.
+Independent anchors: [Universal Robots' 2024 media kit](https://www.universal-robots.com/media/1830013/ur_media_kit_a4.pdf)
+lists arm platforms and launch dates; [Kollmorgen's frameless KBM range](https://www.kollmorgen.com/en-us/products/motors/direct-drive/kbm-series-frameless)
+shows motor families and customization. Platforms and stocked variants are
+not annual new designs; six joints are not six independently designed motors.
 
-### V4 — fast-model leverage
+Low/base/high **ASSUMPTIONS**: 10/30/100 in-scope engineering teams ×2/6/12
+shortlist-changing revisions/team/year = **20/180/1,200 decisions/year**.
+Product-family count is NOT_MEASURED; target teams include OEM and specialist
+motor suppliers without double-counting the same outsourced project.
+V2 gives **$4,000/$162,000/$3.84m conditional annual gross**.
+Empirical lower bound zero; no claimed industry flow or paid adoption.
+Ask for CAD releases, distinct motor families, carried-over parts, task
+eligibility and dated FEA revision logs; robot shipments are not the denominator.
 
-Legacy #776 estimate200 geometries ×9 commands =1,800 command curves,
-**workflow evaluation count UNSOURCED** for this buyer. Revised 10p/12 s/skew
-changes slice/angle/material work, so old timing is not C1. Need complete-curve
-CPU cost and measured cached-harmonic/interpolation baseline plus frozen
-shortlist search. Target curve ≤0.10 s is unmeasured, not a value receipt.
+### V4 — expensive curves versus already-cheap search
+
+[Ren et al.'s motor optimization](https://pdfs.semanticscholar.org/8117/28aba09d970a1bd7a289f42119dce7867c60.pdf)
+reports **505 FEM sampling points**, separately from 10,000 cheap surrogate
+testing points. Its 24-slot/4-pole machine is not Carbon's revised 10p/12s/skew
+space. **N=50/505/2,000 complete command curves** is an assumed transfer,
+not a measured precision-joint workload; multiple commands/slices count once
+in each complete curve and extra tolerance work must be itemized.
+
+Current curve C1 **NOT_MEASURED** for this economic sheet. Inference
+1/0.1/0.001 s and legacy 1,800-curve acquisition are shared sensitivities,
+not measured model bounds. Dollar/wall savings remain **NOT_MEASURED**;
+substitute matched curve CPU/wall into the shared formula rather than use
+old unskewed timings. Enabled case: a 10,000-geometry tolerance/ripple/cogging
+shortlist within a design-review window, if decision-parity and uncertainty
+support it. Compare existing FEM-plus-response-surface, cached harmonics and
+analytic magnetic-circuit controls; the cited study already uses a surrogate.
+V4 PASS remains NOT_DEMONSTRATED. [Model](volume-leverage.json).
 
 ### V5 — credibility
 
