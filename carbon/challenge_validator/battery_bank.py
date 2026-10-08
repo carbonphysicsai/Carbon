@@ -92,15 +92,59 @@ class BankedBatterySource(BatteryBatchSource):
     """Battery's producer source under rule `v2-bank`."""
 
     def __init__(
-        self, adapter, bank_dir, *, overlay=None, repository=None, runner=None
+        self,
+        adapter,
+        bank_dir,
+        *,
+        overlay=None,
+        repository=None,
+        runner=None,
+        design_dir=None,
+        design_solver=None,
     ):
         super().__init__(adapter, overlay=overlay, repository=repository, runner=runner)
         self.pool = bank_rule(adapter.target.rule)
         self.ledger = BankLedger(bank_dir, BatteryBankSource(adapter.target))
         self.bank_dir = Path(bank_dir)
+        self.design = self._design_bank(design_dir, design_solver)
+
+    def _design_bank(self, directory, solver):
+        """The rule's design bank (`v2-bank-design`, slice 3b), or None. A
+        rule naming one needs its directory; a directory without such a
+        rule is refused, as is a rule whose values differ from the bank's
+        registration."""
+        from .battery_q3_bank import BatteryQ3Law
+        from .design_bank import DESIGN_BANKS, PREFIX, DesignBank
+
+        rule = self.adapter.target.rule.get("design")
+        if rule is None:
+            if directory is not None:
+                raise ProducerRefused("producer_design_not_in_rule")
+            return None
+        if directory is None:
+            raise ProducerRefused("producer_design_bank_missing")
+        law = BatteryQ3Law(self.adapter.target, repository=self.repository)
+        values = DESIGN_BANKS.get(law.name)
+        if (
+            rule.get("bank") != PREFIX + law.name
+            or values is None
+            or (values["k"], values["retire_at"]) != (rule["k"], rule["retire_at"])
+        ):
+            raise ProducerRefused("producer_design_rule_mismatch")
+
+        def solve(work, workers):
+            from .tuning import solve as truth_solve
+
+            if self.overlay is None:
+                raise ProducerRefused("producer_no_truth_overlay")
+            truth_solve(work, self.overlay, workers=workers, runner=self.runner)
+
+        return DesignBank(directory, law, solver or solve)
 
     @classmethod
-    def from_deployment(cls, config_path, bank_dir, *, overlay=None, repository):
+    def from_deployment(
+        cls, config_path, bank_dir, *, overlay=None, repository, design_dir=None
+    ):
         from .battery import BatteryAdapter
 
         return cls(
@@ -108,6 +152,7 @@ class BankedBatterySource(BatteryBatchSource):
             bank_dir,
             overlay=overlay,
             repository=repository,
+            design_dir=design_dir,
         )
 
     # --- the bank's tranches ----------------------------------------------------
@@ -239,6 +284,8 @@ class BankedBatterySource(BatteryBatchSource):
                 active_slots=active,
                 retire_at=self.pool["retire_at"],
             )
+        if kind == "screening" and self.design is not None:
+            self._draw_design(key, active)
         batch, window = self._batch(role, drawn)
         target = self.adapter.target
         try:
@@ -249,6 +296,65 @@ class BankedBatterySource(BatteryBatchSource):
         except StateError as refused:
             raise ProducerRefused(refused.code) from None
         return fingerprint
+
+    def _design_keys(self, key, active):
+        """A screening window's design key and the design keys of the other
+        live screening windows (finalist windows carry no design
+        questions)."""
+        return key // 2, sorted(k // 2 for k in active if k % 2 == 0)
+
+    def _draw_design(self, key, active):
+        """The window's `k` design questions, stored once (a repeat returns
+        the same draw). A short bank is topped up first, as the pool is."""
+        rule = self.adapter.target.rule["design"]
+        design_key, design_active = self._design_keys(key, active)
+        options = {"active_slots": design_active, "retire_at": rule["retire_at"]}
+        bank = self.design.bank
+        try:
+            return self.design.ledger.draw_window(
+                bank, design_key, {"all": rule["k"]}, **options
+            )
+        except BankRefused as refused:
+            if not refused.code.startswith("bank_short"):
+                raise ProducerRefused("producer_" + refused.code) from None
+        # Not every drawn question is live (some have no feasible design), so
+        # a top-up may need more than one tranche; bounded, then refused.
+        for _ in range(3):
+            results = self.design.top_up()
+            if any(r["state"] != "SEALED" for r in results):
+                raise ProducerRefused("producer_design_bank_pending")
+            try:
+                return self.design.ledger.draw_window(
+                    bank, design_key, {"all": rule["k"]}, **options
+                )
+            except BankRefused as refused:
+                if not refused.code.startswith("bank_short"):
+                    raise ProducerRefused("producer_" + refused.code) from None
+        raise ProducerRefused("producer_design_bank_short")
+
+    def _design_window(self, fingerprint):
+        """The window's drawn design questions, or None (a finalist window,
+        or a rule without design)."""
+        if self.design is None:
+            return None
+        row = self._row(fingerprint)
+        if row["kind"] != "screening":
+            return None
+        key, _ = self._window(row["role"])
+        return self.design.ledger.window_cases(self.design.bank, key // 2)
+
+    def design_commitment(self, fingerprint):
+        """The commitment's `design` field (public), or None."""
+        window = self._design_window(fingerprint)
+        if window is None:
+            return None
+        rule = self.adapter.target.rule["design"]
+        return {
+            "bank": rule["bank"],
+            "k": rule["k"],
+            "tranches": window["tranches"],
+            "selection_digest": window["selection_digest"],
+        }
 
     def solve(self, work, **options):
         """Nothing to solve: a window's references come from the bank."""
@@ -280,6 +386,21 @@ class BankedBatterySource(BatteryBatchSource):
                 for case_id, case in sorted(window["cases"].items())
             }
         }
+        design = self._design_window(fingerprint)
+        if design is not None:
+            # Private, as every answer key is: each question's task and
+            # reference, with its proof into a sealed design tranche.
+            payload["design"] = {
+                "questions": {
+                    question_id: {
+                        "inputs": case["inputs"],
+                        "reference": case["reference"],
+                        "tranche": case["tranche"],
+                        "proof": case["proof"],
+                    }
+                    for question_id, case in sorted(design["cases"].items())
+                }
+            }
         return payload
 
 

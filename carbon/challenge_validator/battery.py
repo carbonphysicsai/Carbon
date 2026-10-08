@@ -400,6 +400,80 @@ class BatteryAdapter(ChallengeAdapter):
             ):
                 raise AnswerKeyRefused("answer_key_bank_proof")
 
+    def _checked_design(self, commitment, payload):
+        """Under a design rule (`v2-bank-design`, slice 3b), a screening
+        window carries exactly `k` design questions and nothing else does.
+        Each question proves into a sealed design tranche the commitment
+        names (its id, inputs and reference), its task digest re-derives, and
+        it is live (`OK`). The commitment's bank and k must be the rule's,
+        and its selection digest the question ids'. Returns the verified
+        questions, or None."""
+        from carbon.design_search import tasks
+
+        from . import bank_proof
+        from .answer_key import AnswerKeyRefused
+
+        rule = self.target.rule.get("design")
+        held = "design" in commitment, "design" in payload
+        if rule is None or commitment["kind"] != "screening":
+            if any(held):
+                raise AnswerKeyRefused("answer_key_design_mismatch")
+            return None
+        if not all(held):
+            raise AnswerKeyRefused("answer_key_design_missing")
+        design = commitment["design"]
+        questions = payload["design"].get("questions")
+        try:
+            roots = {
+                t["tranche"]: t["root"]
+                for t in design["tranches"]
+                if type(t.get("root")) is str
+            }
+            ids = sorted(questions)
+            if (
+                set(design) != {"bank", "k", "tranches", "selection_digest"}
+                or design["bank"] != rule["bank"]
+                or design["k"] != rule["k"]
+                or len(ids) != rule["k"]
+                or design["selection_digest"] != bank_proof.selection_digest(ids)
+            ):
+                raise ValueError
+        except (KeyError, TypeError, ValueError, AttributeError):
+            raise AnswerKeyRefused("answer_key_design_mismatch") from None
+        for question_id in ids:
+            question = questions[question_id]
+            try:
+                inputs, reference = question["inputs"], question["reference"]
+                task = inputs["task"]
+                if task.get("schema") == tasks.INDEXED_SCHEMA:
+                    from carbon.design_search import indexed
+
+                    indexed.validate_indexed(task)
+                else:
+                    tasks._verify_task_digest(task)
+                if (
+                    inputs["task_digest"] != task["task_digest"]
+                    or reference.get("status") != "OK"
+                ):
+                    raise ValueError
+            except (KeyError, TypeError, ValueError, AttributeError):
+                raise AnswerKeyRefused("answer_key_design_malformed") from None
+            if not bank_proof.verify(
+                question_id,
+                inputs,
+                reference,
+                question.get("proof"),
+                roots.get(question.get("tranche")),
+            ):
+                raise AnswerKeyRefused("answer_key_design_proof")
+        return {
+            question_id: {
+                "task": questions[question_id]["inputs"]["task"],
+                "reference": questions[question_id]["reference"],
+            }
+            for question_id in ids
+        }
+
     def withdraw_answer_key(self, manifest):
         """Apply a verified producer withdrawal (VALIDATOR-24): the batch
         stops scoring at once and is never imported again. Typed, never a
@@ -454,7 +528,7 @@ class BatteryAdapter(ChallengeAdapter):
             batch = PrivateBatch.from_document(payload["document"])
             references = payload["references"]
             salt = payload["reconstruction_salt"]
-            if set(payload) - {"quiz", "bank"} != {
+            if set(payload) - {"quiz", "bank", "design"} != {
                 "document",
                 "references",
                 "reconstruction_salt",
@@ -480,6 +554,7 @@ class BatteryAdapter(ChallengeAdapter):
             raise AnswerKeyRefused("answer_key_references_mismatch")
         quiz = self._checked_quiz(commitment, payload, batch)
         self._checked_bank(commitment, payload, batch, references, needed)
+        design = self._checked_design(commitment, payload)
         try:
             with self._writer():
                 fingerprint = self.target.import_batch(batch, kind=commitment["kind"])
@@ -490,6 +565,10 @@ class BatteryAdapter(ChallengeAdapter):
                 self.target.store.set_salt(fingerprint, salt)
                 if quiz is not None:
                     self.target.store.set_quiz(fingerprint, quiz)
+                if design is not None:
+                    self.target.store.set_design(
+                        fingerprint, commitment["design"]["bank"], design
+                    )
         except StateError as refused:
             raise AnswerKeyRefused("answer_key_" + refused.code) from None
         except PublishedCaseRefused:
