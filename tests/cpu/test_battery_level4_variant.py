@@ -9,8 +9,9 @@ Claims tested:
    graph record; anything else in the graph slot is refused by name.
 3. The shared dispatch (`development_rebuild`) routes the record to Level 4,
    never to Level 0 or Level 1, and every rebuild fails closed as Carbon's
-   environment (never the candidate's) until the security owner accepts the
-   G5 profile (D3).
+   environment (never the candidate's) until the submission's documents
+   reach the rebuild worker. G5 itself is accepted for development and
+   testnet (OWNER-L4-G5-COMPILE-ISOLATION-01), so D3 is no longer the blocker.
 4. The miner-facing contract still refuses the graph slot, and the variant's
    digest is refused at miner doors.
 """
@@ -72,6 +73,7 @@ def test_compiles_to_a_level4_graph_record():
     record = development_rebuild.record(found.reconstruction)
     assert record == level4_worker.graph_record(found.reconstruction)
     assert record["submission"] == DIGEST and record["lane"] == level4_worker.BLOCKED
+    assert level4_worker.BLOCKED == "level4_submission_documents_not_staged"
     assert development_rebuild.kind(record) == development_rebuild.LEVEL4
     assert development_rebuild.rebuild_label(record) == level4_worker.REBUILD_LABEL
     for value in ("not-a-digest", "sha256:" + "z" * 64, 7):

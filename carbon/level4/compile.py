@@ -17,8 +17,10 @@ Outcomes:
   `CompileInfraFailure`, `FAILED_INFRA`, never charged to the submission.
 
 The deadline is `HUMAN_INPUT` and must be set by the caller; unset, G5 is
-blocked (`CompileBlocked`). The lane's profile for this use awaits the
-security owner (D3): `PROFILE_STATUS`. Nothing here is a security claim.
+blocked (`CompileBlocked`). The lane's profile for this use is accepted for
+development and testnet only (OWNER-L4-G5-COMPILE-ISOLATION-01, D3): the
+caller names its scope, and any other scope, mainnet included, is blocked
+until a mainnet security review. Nothing here is a security claim.
 """
 
 from __future__ import annotations
@@ -31,7 +33,11 @@ from .allowlist import HUMAN_INPUT
 
 DEADLINE_SECONDS = HUMAN_INPUT
 PROVENANCE = "LEVEL4_G5_COMPILE_DEVELOPMENT"
-PROFILE_STATUS = "PENDING_SECURITY_OWNER_ACCEPTANCE_D3"
+PROFILE_STATUS = "ACCEPTED_DEVELOPMENT_AND_TESTNET_ONLY"
+PROFILE_DECISION = "OWNER-L4-G5-COMPILE-ISOLATION-01"
+#: The scopes the accepted profile covers. Mainnet is not one of them.
+SCOPES = ("development", "testnet")
+MAINNET_BLOCKED = "mainnet_requires_security_review"
 FAILED_INFRA = "FAILED_INFRA"
 #: The Carbon modules the lane program needs, staged by name (flat).
 MODULES = (
@@ -93,7 +99,8 @@ if 'init' in docs:
 
 
 class CompileBlocked(RuntimeError):
-    """The deadline is unset (HUMAN_INPUT): G5 cannot run."""
+    """G5 cannot run: the deadline is unset (HUMAN_INPUT), or the scope is
+    not one the accepted profile covers."""
 
 
 class CompileInfraFailure(RuntimeError):
@@ -130,13 +137,17 @@ def compile_in_isolation(
     image,
     deadline_seconds=DEADLINE_SECONDS,
     max_bytes,
+    scope,
     runner=None,
 ):
-    """G5 for a verified and validated submission: the lane's measurements."""
+    """G5 for a verified and validated submission: the lane's measurements.
+    `scope` is the deployment the compile serves; only `SCOPES` run."""
     from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 
     from . import graph
 
+    if scope not in SCOPES:
+        raise CompileBlocked(MAINNET_BLOCKED)
     if deadline_seconds == HUMAN_INPUT or deadline_seconds is None:
         raise CompileBlocked("the G5 deadline is unset")
     if runner is None:
@@ -171,4 +182,10 @@ def compile_in_isolation(
         result = json.loads(snapshot.read_bytes())
     except (OSError, ValueError):
         raise CompileInfraFailure("lane produced no compile record") from None
-    return {**result, "profile": PROFILE_STATUS, "identity": identity}
+    return {
+        **result,
+        "profile": PROFILE_STATUS,
+        "profile_decision": PROFILE_DECISION,
+        "scope": scope,
+        "identity": identity,
+    }

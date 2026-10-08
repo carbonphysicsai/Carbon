@@ -21,7 +21,13 @@ from dataclasses import dataclass
 #: excluded from the alignment view.
 ONE_TIME = ("training_data_generation", "fitting")
 #: Per-decision costs.
-PER_DECISION = ("inference", "in_search_solve", "cache_lookup", "fallback")
+PER_DECISION = (
+    "inference",
+    "in_search_solve",
+    "cache_lookup",
+    "fallback",
+    "query_validation",
+)
 CATEGORIES = ONE_TIME + PER_DECISION + ("verification",)
 BASES = ("MEASURED_CPU", "ALLOCATED_CPU_X_WALL")
 VERIFICATION = "VERIFICATION"

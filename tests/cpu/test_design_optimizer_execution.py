@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from carbon.design_search import cost, query_cost
 from carbon.design_search import tasks as dt
 
 GRAMMAR = {
@@ -139,6 +140,80 @@ def test_invalid_geometry_and_model_failures_consume_budget():
     assert failed["accounting"]["model_failures"] == 1
     assert failed["accounting"]["attempted_queries"] == 5
     assert failed["accounting"]["exhaustive_coverage"] is False
+
+
+def test_query_cost_ledger_matches_every_attempt_without_changing_pick():
+    ledger = cost.Ledger()
+    recorder = query_cost.QueryCostRecorder(
+        ledger, arm="toy-primary", route="toy-cpu", allocated_cores=2
+    )
+    local = make(
+        optimizer={"class": "multi_start_local", "version": "v1", "starts": ["c"]},
+        budget=5,
+    )
+    baseline = dt.run_optimizer(local, model, model_id="m")
+    metered = dt.run_optimizer(local, model, model_id="m", cost_recorder=recorder)
+    assert metered == baseline  # elapsed cost is separate from deterministic replay
+    assert (
+        len(ledger.charges(arm="toy-primary"))
+        == metered["accounting"]["attempted_queries"]
+    )
+    assert (
+        sum(c.category == "query_validation" for c in ledger.charges())
+        == metered["accounting"]["invalid_queries"]
+        == 1
+    )
+    assert all(c.basis == "ALLOCATED_CPU_X_WALL" for c in ledger.charges())
+
+    failing_ledger = cost.Ledger()
+    failing_recorder = query_cost.QueryCostRecorder(
+        failing_ledger, arm="toy-failure", route="toy-cpu", allocated_cores=2
+    )
+
+    def failing(action, condition):
+        if action["x"] == 1:
+            raise RuntimeError("toy failure")
+        return model(action, condition)
+
+    failed = dt.run_optimizer(
+        make(), failing, model_id="m", cost_recorder=failing_recorder
+    )
+    assert len(failing_ledger.charges()) == failed["accounting"]["attempted_queries"]
+    assert (
+        sum(c.note == "MODEL_FAILED" for c in failing_ledger.charges())
+        == failed["accounting"]["model_failures"]
+        == 1
+    )
+
+
+def test_audit_query_costs_are_separate_and_do_not_replace_primary_pick():
+    ledger = cost.Ledger()
+    primary = query_cost.QueryCostRecorder(
+        ledger, arm="primary", route="toy-cpu", allocated_cores=1
+    )
+    audit = query_cost.QueryCostRecorder(
+        ledger, arm="audit", route="toy-cpu", allocated_cores=1
+    )
+    result = dt.audit_optimizer(
+        make(budget=8),
+        make(
+            optimizer={"class": "multi_start_local", "version": "v1", "starts": ["a"]},
+            budget=8,
+        ),
+        model,
+        model_id="m",
+        primary_cost_recorder=primary,
+        audit_cost_recorder=audit,
+    )
+    assert result["primary"]["commitment"]["selected"] == "c"
+    assert (
+        len(ledger.charges(arm="primary"))
+        == result["primary"]["accounting"]["attempted_queries"]
+    )
+    assert (
+        len(ledger.charges(arm="audit"))
+        == result["audit"]["accounting"]["attempted_queries"]
+    )
 
 
 def test_snapping_and_grammar_are_versioned_in_task_identity():

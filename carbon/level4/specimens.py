@@ -559,7 +559,10 @@ def _attack_rows():
             "8.3",
             "Compiler exploit",
             "a crafted XLA bug trigger",
-            _recorded("G5 isolation; security owner (D3)"),
+            _recorded(
+                "G5 isolation: accepted for development and testnet "
+                "(OWNER-L4-G5-COMPILE-ISOLATION-01); mainnet security review"
+            ),
             None,
         ),
         (
