@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-value-cost-static-diagnostic",
+  "recorded_at": "2026-10-08T20:53:03Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-VALUE-COST-01 static candidate",
+    "description": "Native scorecard, historical-readiness and credibility diagnostics."
+  },
+  "expected": "Eight self-contained cards with explicit HUMAN_INPUT acceptance and preserved history.",
+  "observed": "5 failed, 67 passed in 8.54s. Five cards relied on the shared note for numeric adoption rather than stating HUMAN_INPUT locally; no arithmetic or old-contract failures. Native Windows only.",
+  "keep": [
+    "Keep the new assertions instead of weakening them."
+  ],
+  "change": [
+    "Make each card self-contained on owner acceptance, including where existing DEVELOPMENT limits are already selected."
+  ],
+  "protocol_elements": [
+    "owner decision boundary",
+    "self-contained evidence",
+    "historical contracts"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

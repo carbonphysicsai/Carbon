@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-value-cost-public-record-validation",
+  "recorded_at": "2026-10-08T21:01:09Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-VALUE-COST-01 public-record-validation",
+    "description": "Read-only public challenge pipeline validation and diff whitespace check."
+  },
+  "expected": "Bounded diagnostic validation of the eight scorecards without solver or paid execution.",
+  "observed": "Protocol DEFINING; 7 records valid, 460 lessons valid, 0 awaiting a decision; diff whitespace check passed. No execution capability is granted.",
+  "keep": [
+    "Reuse the existing lesson schema and protocol checks."
+  ],
+  "change": [
+    "A valid record is not an approved bank, empirical adequacy or a compute grant."
+  ],
+  "protocol_elements": [
+    "buyer value",
+    "cost units",
+    "historical evidence",
+    "owner boundaries"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

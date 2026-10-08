@@ -1,5 +1,13 @@
 # Design value before building a hidden bank
 
+> **Prospective supersession:** this v1 document and its sheet retain the
+> original #837 observations and 20–80% recommendation as history. Current
+> bank-admission T2 is the [owner value/cost framework](../value-cost/README.md):
+> at least five feasible plus five distinct near-limit infeasible actions
+> in every mandatory stratum. Report the fraction; it is no longer a gate.
+> Use [the eight scorecards](../value-cost/analysis.md) for the current audit.
+> No old result is rescored; other value checks and fail-closed custody remain.
+
 **OWNER-DESIGN-VALUE-01 / DEVELOPMENT / SPECIFIED.** The owner requires this
 readiness check for all eight Challenges. This document specifies it; no
 runtime bank builder or scorer enforces it yet. The

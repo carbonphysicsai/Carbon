@@ -1,5 +1,17 @@
 # Eight-Challenge design-question laws — DEVELOPMENT proposal
 
+> **Current contested-decision amendment, 2026-10-08:** the
+> [owner value/cost framework](../value-cost/README.md) and
+> [eight scorecards](../value-cost/analysis.md) supersede the fraction gate
+> below prospectively. Every mandatory stratum needs at least five feasible
+> and five distinct near-limit infeasible buyer-plausible actions. Near means
+> within one registered refinement band; unresolved rows do not count.
+> Report overall pass fraction, but do not gate on 20–80% or prune the menu
+> to raise it. Margin spread, a complete feasible answer and meaningful answer
+> changes still need evidence. Numeric acceptance/refinement stays HUMAN_INPUT.
+> The v1 sheet/audit below is historical, not a current acceptance receipt.
+> No question sampler, safety limit, exposure E or runtime authority changes.
+
 > **Owner readiness rule, 2026-10-08:** before any new hidden bank, apply the
 > [four-check design-value prerequisite](value-check-v1.md) /
 > [readiness sheet](value-check-v1.json) to every Challenge. A/B are per

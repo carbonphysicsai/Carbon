@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-value-cost-regressions",
+  "recorded_at": "2026-10-08T21:01:09Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-VALUE-COST-01 regressions",
+    "description": "Native 14-file packet, law, reference, pipeline and buyer-decision regression suite."
+  },
+  "expected": "Bounded diagnostic validation of the eight scorecards without solver or paid execution.",
+  "observed": "264 passed in 97.05s; native Windows only.",
+  "keep": [
+    "Keep old pinned packet/law identities and synthetic contract tests."
+  ],
+  "change": [
+    "Retain unresolved physical evidence as missing rather than claiming KEEP from a green fixture."
+  ],
+  "protocol_elements": [
+    "buyer value",
+    "cost units",
+    "historical evidence",
+    "owner boundaries"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-value-cost-current-main-diagnostics",
+  "recorded_at": "2026-10-08T21:16:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-VALUE-COST-01 current-main-diagnostics",
+    "description": "Focused static, historical-readiness and credibility validation; no solver/reference or paid execution."
+  },
+  "expected": "Maintain source identities, arithmetic and buyer scope while retaining fail-closed evidence.",
+  "observed": "73 focused tests passed in 9.18s; Black/Ruff passed; public validation reported DEFINING, 7 records and 463 lessons valid. Native Windows diagnostics on reconciled main only.",
+  "keep": [
+    "Separate target tiers, proposal tests and measured scientific/cost acceptance."
+  ],
+  "change": [
+    "Keep the owner's framework copy pinned, and separate declared reference costs from measured billing."
+  ],
+  "protocol_elements": [
+    "buyer scope",
+    "cost arithmetic",
+    "historical evidence",
+    "reference credibility"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

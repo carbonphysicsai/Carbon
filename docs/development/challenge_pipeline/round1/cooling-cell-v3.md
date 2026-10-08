@@ -181,6 +181,13 @@ and missed designs, cell-pressure regret and thermal margin by stratum.
 
 ## 10. Readiness and claim record
 
+Current prospective T2: [buyer value/cost scorecard](../value-cost/cooling-cell.md)
+and [owner framework](../value-cost/README.md). Require at least five feasible
+and five distinct near-limit infeasible actions per mandatory stratum. Report
+the overall fraction; it is not a gate. Other value checks still require
+evidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.
+The original fraction-based observations below retain their historical meaning.
+
 **New hidden-bank prerequisite:** [four-check design value](../question-laws/value-check-v1.md)
 with per-stratum discrimination/margin spread, a common complete feasible
 design and meaningfully changing answers. Roughly 20–80% resolved passes
