@@ -79,8 +79,10 @@ def _strings(value):
 #: constant.
 PUBLIC_PRACTICE_PATHS = frozenset(
     {
-        "docs/development/evidence/exam-design-2026-09-24/"
-        "refs-a-part2/out/records.jsonl",
+        (
+            "docs/development/evidence/exam-design-2026-09-24/"
+            "refs-a-part2/out/records.jsonl"
+        ),
         "docs/development/evidence/motor-pools-v1/practice.jsonl",
         "docs/development/evidence/cold-plate-pools-v1/practice.jsonl",
     }
