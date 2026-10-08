@@ -143,6 +143,7 @@ def research_view_for(challenge):
 def _contract(challenge_id, version):
     from carbon.challenge_registry import registry
     from carbon.reconstruction.capability_registry import public_registry
+    from scripts.dev.miner_launchpad.ladder_view import construction_slot
 
     described = registry.describe(challenge_id, version)
     capabilities = public_registry(challenge_id)
@@ -209,16 +210,10 @@ def _contract(challenge_id, version):
                 },
                 "limits": described.get("limits") or {},
                 "authority": described.get("authority"),
-                # RSURF-D10: filled from data when the construction ladder is
-                # merged; empty until then, never inferred.
-                "construction_level": {
-                    "level": None,
-                    "status": "NOT_YET_DEFINED",
-                    "basis": (
-                        "The construction ladder is not part of this build. "
-                        "This slot is filled from the Challenge's data when it is."
-                    ),
-                },
+                # RSURF-D10: filled from the Challenge's ladder data
+                # (LAUNCHPAD-LEVELS-01 S1); NOT_YET_DEFINED without it, never
+                # inferred. Its keys only grow.
+                "construction_level": construction_slot(challenge_id),
             },
             allow_nan=False,
         )

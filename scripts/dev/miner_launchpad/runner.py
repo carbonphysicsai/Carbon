@@ -3058,6 +3058,12 @@ class RunnerAdapter:
 
         return for_request(self, request)
 
+    def ladder_admitted(self, admitted, request):
+        # A Challenge's construction levels, from data (LAUNCHPAD-LEVELS-01).
+        from scripts.dev.miner_launchpad.ladder_view import for_request
+
+        return for_request(request)
+
     def run_output_admitted(self, admitted, request):
         # A finished workspace run's own output (RSURF-D17).
         from scripts.dev.miner_launchpad.campaign_view import _journal
