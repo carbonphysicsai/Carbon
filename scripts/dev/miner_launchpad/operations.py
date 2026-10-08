@@ -19,7 +19,9 @@ is no way to reach a body with the gates skipped.
 
 The DEVELOPMENT submit here is a signed message to the local development
 service. It writes nothing to the chain. Official submission is not an
-operation on either door.
+operation on either door. The one chain write is `commit`: the miner's own
+strategy commitment on testnet, which the miner's signer signs only after the
+miner confirms it on the signer's terminal (OWNER-COMMITMENT-POSTER-01).
 """
 
 from __future__ import annotations
@@ -78,6 +80,15 @@ FIELDS = {
         "A recipe: schema_version, challenge_id, backbone, parameters.",
     ),
     "reason": ("string", "Why this candidate: what your practice showed."),
+    "recommit": (
+        "boolean",
+        (
+            "Post the frozen candidate's digest again although it is already "
+            "your hotkey's commitment: for a validator that refused it "
+            "commitment_stale. Omitted: false, and a digest already on chain "
+            "is not posted again."
+        ),
+    ),
     "used_feedback": ("boolean", "Whether prior final feedback informed it."),
     "hypothesis": ("string", "What this trial tests."),
     "expected_effect": ("string", "What you expect it to show."),
@@ -370,6 +381,7 @@ REFUSAL_FIELDS = {
     "bounded_hypothesis_required": "hypothesis",
     "bounded_reason_required": "reason",
     "used_feedback_boolean_required": "used_feedback",
+    "recommit_boolean_required": "recommit",
     "invalid_research_control": "action",
     "note_kind_unknown": "note_kind",
     "bounded_note_required": "note",
@@ -391,6 +403,7 @@ REFUSAL_FIELDS = {
     "graphite_field_not_used_by_mode": "graphite_mode",
     "research_share_invalid": "research_share",
     "graphite_limits_invalid": "limits",
+    "graphite_ceilings_required": "budget",
     "hunt_query_invalid": "hunt",
     "plan_not_found": "plan",
     # The library and plans (S4).
@@ -567,6 +580,25 @@ OPERATIONS = {
             ("request", "profile"),
             admits_work=False,
         ),
+        # A Challenge's construction levels (LAUNCHPAD-LEVELS-01 S1), read
+        # from its ladder record, level proposals and development-variant
+        # registry. Display only: no level is chosen or submitted here.
+        Operation(
+            "ladder",
+            "One Challenge's construction levels, read from its data: each "
+            "level's text and ladder state; who it is for (MINER_FACING only "
+            "where the ladder names it chosen, DEVELOPMENT only above a named "
+            "deployment's own level, otherwise NOT_OFFERED); its capabilities "
+            "from the accepted proposal, with the surface and bounds a "
+            "registered development variant widens; the variant's name, "
+            "digest and arm, or the registry's refusal; what the level leaves "
+            "out; and the contract's compute budget, or NOT_SET. Reads only; "
+            "nothing here can be submitted.",
+            frozenset({"challenge"}),
+            frozenset({"challenge_version"}),
+            ("request", "profile"),
+            admits_work=False,
+        ),
         Operation(
             "run_output",
             "A finished workspace run's own output (run_python or run_julia): "
@@ -631,9 +663,36 @@ OPERATIONS = {
             "is kept. Until an intake is published for that Challenge, a "
             "campaign can still be launched, practised, observed, stopped or "
             "paused; carbon_setup_status's evaluation says which Challenges "
-            "have one.",
+            "have one. Through a validator intake whose Challenge uses an "
+            "on-chain commitment, it first reads your hotkey's commitment, "
+            "read-only, and is refused commitment_required before anything "
+            "is signed or sent unless it is the frozen candidate's: commit "
+            "first.",
             frozenset({"campaign"}),
             frozenset({"idempotency_key"}),
+            ("request", "profile", "replay", "registration", "campaign"),
+        ),
+        # The strategy commitment (OWNER-COMMITMENT-POSTER-01,
+        # LAUNCHPAD-ACCEPT-02): the frozen candidate's digest, on chain under
+        # the miner's own hotkey. The miner's signer signs it after the miner
+        # types on the signer's terminal; no field here confirms it (D10).
+        Operation(
+            "commit",
+            "Commit your frozen candidate's digest on chain "
+            "(Commitments.set_commitment under your hotkey, testnet), which a "
+            "validator that requires a commitment reads before it admits the "
+            "submit. The digest is the frozen candidate's own "
+            "(daemon.commitment_digest), never one you send. The answer is "
+            "the plan: the digest, your hotkey's current commitment and its "
+            "block, and the warning that this replaces it. The post then runs "
+            "in the background: observe shows commitment.human_action_required "
+            "confirm_commitment until you type the digest's last 8 characters "
+            "in your signer's terminal (an agent cannot confirm it), then the "
+            "digest, block and extrinsic read back at finality. A post whose "
+            "outcome is unknown is never sent again; it is reconciled by "
+            "reading the chain (RECONCILING).",
+            frozenset({"campaign"}),
+            frozenset({"recommit", "idempotency_key"}),
             ("request", "profile", "replay", "registration", "campaign"),
         ),
         # The miner's Graphite library and plans (OWNER-GRAPHITE-MINER-01,

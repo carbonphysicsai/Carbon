@@ -384,7 +384,7 @@ submit, which is always the same submission:
 |---|---|
 | `QUEUED` | `evaluation_queued` |
 | `UNAVAILABLE` (the validator's side) | `intake_unreachable`, `snapshot_unavailable`, `rate`, `capacity`, `inbox_full`, `backend_not_served`, `commitment_reader_unavailable`, `evaluation_failed_infra`, `intake_answer_unrecognised` |
-| `REFUSED` (the miner acts) | `hotkey_window_used`, `commitment_required`, `TRANSPORT_IDENTITY`, `AUTH_*`, `snapshot_unknown`, `intake_changed_since_submission`, `intake_signer_changed`, `intake_mismatch`, `signer_unavailable`; the neutral door's codes (`contract_not_served`, `challenge_mismatch`, `non_finite_value`, `duplicate_key` and the rest of `challenge_validator.dispatch.SCREEN_REFUSALS`) |
+| `REFUSED` (the miner acts) | `hotkey_window_used`, `commitment_required`, `TRANSPORT_IDENTITY`, `AUTH_*`, `snapshot_unknown`, `intake_changed_since_submission`, `intake_signer_changed`, `intake_mismatch`, `intake_receiver_mismatch` (the intake reports another receiver than the profile pins; nothing signed or sent), `signer_unavailable`; the neutral door's codes (`contract_not_served`, `challenge_mismatch`, `non_finite_value`, `duplicate_key` and the rest of `challenge_validator.dispatch.SCREEN_REFUSALS`) |
 
 **The neutral door** (VALIDATOR-01 VAL-D3). Every authenticated
 `battery_submit` passes Carbon's challenge-neutral checks before the inbox

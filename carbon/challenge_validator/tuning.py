@@ -325,6 +325,30 @@ def load_panel(path):
     return members
 
 
+def quiz_panel_members(panel_path, repository=REPOSITORY):
+    """The quiz's disagreement panel: the operator's full panel file (the one
+    `predict` takes), filtered to the members the registered disagreement
+    panel names (`disagreement-panel-v1.json`). A member the registry names
+    and the operator's panel lacks is refused by name. Passing the registry
+    itself is refused with its own code: it lists names only, and the panel
+    needs each member's strategy and seed."""
+    from carbon.battery import quiz_stratum as qs
+
+    try:
+        named = json.loads(Path(panel_path).read_bytes())
+    except (OSError, ValueError):
+        raise TuningRefused("tuning_panel_malformed") from None
+    if type(named) is dict and named.get("schema") == qs.PANEL_SCHEMA:
+        raise TuningRefused("tuning_quiz_panel_is_the_registry")
+    with _quiz_refusals():
+        registered = set(qs.registered_panel(repository))
+    members = [m for m in load_panel(panel_path) if m["member"] in registered]
+    missing = sorted(registered - {m["member"] for m in members})
+    if missing:
+        raise TuningRefused("tuning_quiz_panel_missing:" + ",".join(missing[:5]))
+    return members
+
+
 def _backend(backend):
     if backend is None:
         from carbon.battery.worker import DirectBackend
@@ -767,10 +791,7 @@ def quiz_select(work, panel_path, *, backend=None, repository=REPOSITORY):
         pool = qs.q2_pool(contract, draws["q2"], refs)
         if len(pool) < qz.Q2_N:
             raise TuningRefused("tuning_quiz_q2_pool_short")
-        registered = qs.registered_panel(repository)
-    members = load_panel(panel_path)
-    if sorted(m["member"] for m in members) != sorted(registered):
-        raise TuningRefused("tuning_quiz_panel_not_registered")
+    members = quiz_panel_members(panel_path, repository)
     inputs = {c["case_id"]: dict(c["inputs"]) for c in draws["q2"]}
     cache = _owner_only_dir(work / f"panel-v{qz.PANEL_VERSION}")
     panel = _panel_predictions(members, inputs, cache, backend)
@@ -904,6 +925,10 @@ def main(argv=None):
     solved = sub.add_parser("solve")
     solved.add_argument("--work", required=True)
     solved.add_argument("--overlay", required=True)
+    # Parallel truth solves on the producer host: an engineering value, never
+    # a scientific one. The default keeps every earlier run unchanged.
+    solved.add_argument("--workers", type=int, default=7)
+    solved.add_argument("--timeout-s", type=float, default=1200.0)
     predicted = sub.add_parser("predict")
     predicted.add_argument("--work", required=True)
     predicted.add_argument("--panel", required=True)
@@ -932,7 +957,12 @@ def main(argv=None):
         elif args.command == "jobs":
             result = jobs(args.config, args.commitment, args.work)
         elif args.command == "solve":
-            result = solve(args.work, args.overlay)
+            result = solve(
+                args.work,
+                args.overlay,
+                workers=args.workers,
+                timeout_s=args.timeout_s,
+            )
         elif args.command == "predict":
             result = predict(args.work, args.panel, quiz=args.quiz)
         elif args.command == "recheck":

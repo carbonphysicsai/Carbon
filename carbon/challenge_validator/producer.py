@@ -139,6 +139,16 @@ def source_for(challenge_id, spec, *, repository=REPOSITORY):
 
     require_approval(spec.get("approval"), repository=repository)
 
+    if challenge_id == BATTERY_CHALLENGE and "bank" in spec:
+        # Rule v2-bank (VALIDATOR-23 slice 2): windows drawn from the bank.
+        from .battery_bank import BankedBatterySource
+
+        return BankedBatterySource.from_deployment(
+            spec["deployment"],
+            spec["bank"],
+            overlay=spec.get("overlay"),
+            repository=repository,
+        )
     if challenge_id == BATTERY_CHALLENGE:
         # Battery's source with its quiz (slice Q, part 2): it draws a quiz
         # only for a producer configured with one.
@@ -241,7 +251,7 @@ def load_config(path, *, account=None):
         or any(
             type(spec) is not dict
             or not {"deployment", "approval"} <= set(spec)
-            or set(spec) - {"deployment", "overlay", "approval"}
+            or set(spec) - {"deployment", "overlay", "approval", "bank"}
             for spec in config["sources"].values()
         )
     ):
@@ -573,6 +583,13 @@ class Producer:
             # Set by rotation (slice 3) from the Challenge's cadence, which is
             # HUMAN_INPUT; null until then.
             "window": None,
+            # A window drawn from a bank (VALIDATOR-23) names its tranches and
+            # selection; a source without a bank adds nothing.
+            **(
+                {"bank": source.bank_commitment(fingerprint)}
+                if hasattr(source, "bank_commitment")
+                else {}
+            ),
         }
 
     def publish(self, challenge_id, fingerprint):
@@ -845,6 +862,9 @@ def main(argv=None):
             command.add_argument("--fingerprint", required=True)
         if name == "solve":
             command.add_argument("--workers", type=int, default=7)
+            # Unset keeps each source's own default (battery 1,200 s, motor
+            # 7,200 s).
+            command.add_argument("--timeout-s", type=float)
     args = parser.parse_args(argv)
     try:
         producer = Producer.from_config(args.config)
@@ -853,9 +873,10 @@ def main(argv=None):
                 args.challenge, args.role, kind=args.kind, size=args.size
             )
         elif args.command == "solve":
-            result = producer.solve(
-                args.challenge, args.fingerprint, workers=args.workers
-            )
+            options = {"workers": args.workers}
+            if args.timeout_s is not None:
+                options["timeout_s"] = args.timeout_s
+            result = producer.solve(args.challenge, args.fingerprint, **options)
         elif args.command == "seal":
             result = producer.seal(args.challenge, args.fingerprint)
         elif args.command == "publish":

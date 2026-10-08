@@ -17,6 +17,11 @@ and sends bytes with headers the miner produced, for example::
 
 A signature is valid for 10 seconds and the snapshot for 60, so sign and send
 straight after building. Poll with `status_message` the same way.
+
+The Launchpad signs for `facts["receiver"]` only once it equals the receiver
+the miner's profile pins for the Challenge (`remote_submission.check_receiver`,
+LAUNCHPAD-ACCEPT-03): an intake reporting another is refused
+`intake_receiver_mismatch` before anything is signed or sent.
 """
 
 from __future__ import annotations
@@ -244,6 +249,11 @@ REFUSALS = {
         "The configured intake serves another chain or Challenge, or is not a "
         "battery intake. Nothing was sent for evaluation; check the intake "
         "address."
+    ),
+    "intake_receiver_mismatch": (
+        "The intake reports another receiver hotkey than the one your profile "
+        "pins for this Challenge. Nothing was signed or sent; review the "
+        "evaluation endpoint's address and receiver hotkey in setup."
     ),
     "intake_signer_changed": (
         "This epoch's candidate was submitted under another hotkey than the "
