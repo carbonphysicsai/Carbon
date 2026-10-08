@@ -26,9 +26,9 @@ import os
 import shlex
 import subprocess
 import sys
-import tomllib
 
 import pytest
+import tomllib
 import yaml
 
 from scripts.dev.miner_launchpad import environment_setup
