@@ -323,4 +323,8 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    # The package module's own main: under `python -m` this file is
+    # `__main__`, a second copy whose classes the package's are not.
+    from carbon.battery.truth_env import main as _main
+
+    raise SystemExit(_main())

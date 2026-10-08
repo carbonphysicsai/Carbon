@@ -538,6 +538,10 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    # The package module's own main: under `python -m` this file is
+    # `__main__`, a second copy whose classes the package's are not.
     import sys
 
-    sys.exit(main())
+    from carbon.rewards.testnet_winner_publication import main as _main
+
+    sys.exit(_main())

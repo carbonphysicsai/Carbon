@@ -430,4 +430,10 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # The package module's own main: under `python -m` this file is
+    # `__main__`, a second copy whose classes the package's are not.
+    import sys
+
+    from carbon.challenge_validator.distribution import main as _main
+
+    sys.exit(_main())

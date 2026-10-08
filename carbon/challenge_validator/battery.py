@@ -400,6 +400,26 @@ class BatteryAdapter(ChallengeAdapter):
             ):
                 raise AnswerKeyRefused("answer_key_bank_proof")
 
+    def observe_head(self, block):
+        """Record the finalized chain head and rotate if a producer window
+        opened or closed: windows follow the chain's clock. Returns the pool's
+        public state."""
+        from carbon.battery.pool_store import StateError
+
+        from .answer_key import AnswerKeyRefused
+
+        try:
+            with self._writer():
+                self.target.store.observe_head(block)
+        except StateError as refused:
+            raise AnswerKeyRefused("answer_key_" + refused.code) from None
+        pool = self.target.store.pool()
+        return {
+            "block": block,
+            "pool": None if pool is None else pool["status"],
+            "version": None if pool is None else pool["version"],
+        }
+
     def withdraw_answer_key(self, manifest):
         """Apply a verified producer withdrawal (VALIDATOR-24): the batch
         stops scoring at once and is never imported again. Typed, never a
