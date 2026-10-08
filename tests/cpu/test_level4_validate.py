@@ -59,13 +59,18 @@ INTERFACE = validate.Interface(
 
 def test_caps_gate_admission(allowlist):
     doc = _forward(allowlist)
-    blocked = validate.validate(doc, allowlist, role="forward", interface=INTERFACE)
+    unset = {name: allowlist_module.HUMAN_INPUT for name in allowlist_module.CAPS}
+    blocked = validate.validate(
+        doc, allowlist, role="forward", interface=INTERFACE, caps=unset
+    )
     assert blocked["status"] == "blocked_human_input" and blocked["batch"] == 5
     assert set(blocked["caps"].values()) == {"blocked_human_input"}
+    # Unnamed caps are the owner's (OWNER-L4-VALUES-01).
+    owners = validate.validate(doc, allowlist, role="forward", interface=INTERFACE)
+    assert owners["status"] == "admitted"
     admitted = validate.validate(doc, allowlist, interface=INTERFACE, caps=FIXTURE_CAPS)
     assert admitted["status"] == "admitted"
-    partial = dict(FIXTURE_CAPS)
-    del partial["call_depth"]
+    partial = {**FIXTURE_CAPS, "call_depth": allowlist_module.HUMAN_INPUT}
     assert (
         validate.validate(doc, allowlist, caps=partial)["status"]
         == "blocked_human_input"

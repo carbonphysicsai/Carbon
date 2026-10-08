@@ -31,7 +31,7 @@ def test_e6_motor_through_the_shared_gates():
     from carbon.motor import level4 as motor
 
     result = motor.graph_equivalence(allowlist_module.load(), max_bytes=1 << 26)
-    assert result["status"] == "blocked_human_input"  # every cap is HUMAN_INPUT
+    assert result["status"] == "admitted"  # under the owner's caps
     assert result["batch"] == motor.BATCH
     assert result["case_states_identical"]
     assert result["nonfinite_cases"] == []

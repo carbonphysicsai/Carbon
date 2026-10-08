@@ -22,6 +22,7 @@ Miner side (Launchpad tooling; never run on Carbon hosts for a submission):
 programs into the format.
 
 Challenge-neutral: a Challenge supplies an adapter (`carbon/<challenge>/
-level4.py`). Nothing here is miner-facing, nothing is in `CONTRACTS`, and every
-cap is `HUMAN_INPUT` until an owner sets it.
+level4.py`). Nothing here is miner-facing and nothing is in `CONTRACTS`. The
+G0, G3, G4 and G5 values are the owner's (OWNER-L4-VALUES-01, development and
+testnet); the inference cost rule stays `HUMAN_INPUT`.
 """

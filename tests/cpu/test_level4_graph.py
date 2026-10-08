@@ -5,15 +5,16 @@ Claims tested:
 1. Allowlist v0 is versioned data: every op is classified allow, review or
    refuse; refused ops (callbacks, unbounded loops, host transfer, unkeyed
    RNG) have no role; keyed RNG is admitted only in the init role.
-2. No cap is chosen: every D6 cap is HUMAN_INPUT and blocks, never passes.
+2. The D6 caps are the owner's (OWNER-L4-VALUES-01); a cap left HUMAN_INPUT
+   still blocks, never passes.
 3. B' round trip: a program lowered to the strict-JSON Carbon graph, parsed
    with Carbon's strict JSON rules and rebuilt by Carbon's interpreter gives
    bit-identical outputs and gradients, and Carbon's own `jax.grad` trains it
    to the same parameters as the native program.
 4. Each known-vulnerable program and each tampered document is refused with
    its expected typed code.
-5. Constants are counted (one table or a table split into scalars) and only
-   ever compared with a HUMAN_INPUT cap.
+5. Constants are counted (one table or a table split into scalars) and
+   compared with the owner's constant cap; a 16 KiB table sits at it.
 6. Battery's Level 0 MLP (classic path) and DeepONet (general path) rebuilt
    through B' reproduce the declarative path's parameter digests (R1:
    bit-identical) on CPU.
@@ -80,9 +81,19 @@ def test_allowlist_is_versioned_and_classified(version):
         assert entry["lowering"] in ("emitted", "dropped", "refused"), name
 
 
-def test_every_cap_is_human_input():
-    assert set(allowlist_module.CAPS.values()) == {allowlist_module.HUMAN_INPUT}
-    verdicts = allowlist_module.check_caps({name: 0 for name in allowlist_module.CAPS})
+def test_the_caps_are_the_owners_and_an_unset_cap_still_blocks():
+    assert allowlist_module.VALUES_DECISION == "OWNER-L4-VALUES-01"
+    assert allowlist_module.CAPS == {
+        "constant_bytes": 16 * 1024,
+        "nodes_executed": 4096,
+        "call_depth": 16,
+        "document_bytes": 1024**2,
+        "largest_intermediate_bytes": 256 * 1024**2,
+    }
+    zero = {name: 0 for name in allowlist_module.CAPS}
+    assert set(allowlist_module.check_caps(zero).values()) == {"pass"}
+    unset = {name: allowlist_module.HUMAN_INPUT for name in allowlist_module.CAPS}
+    verdicts = allowlist_module.check_caps(zero, unset)
     assert set(verdicts.values()) == {"blocked_human_input"}
 
 
@@ -190,8 +201,8 @@ def test_constants_are_counted_never_capped(allowlist):
     assert rows["embedded table"]["constant_bytes"] == 4096 * 4
     split = rows["table split into scalars"]
     assert split["constant_count"] >= 512 and split["constant_bytes"] >= 512 * 4
-    for row in rows.values():
-        assert set(row["caps"].values()) == {"blocked_human_input"}
+    # 4096 float32 constants are exactly the owner's 16 KiB constant cap.
+    assert rows["embedded table"]["caps"]["constant_bytes"] == "pass"
 
 
 def test_parameter_codec_refuses_unknown_kind_and_extras():

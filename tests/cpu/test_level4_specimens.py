@@ -78,6 +78,6 @@ def test_every_executed_specimen_hits_its_gate(suite):
 
 
 def test_fixture_caps_are_not_the_allowlists():
-    assert set(allowlist_module.CAPS.values()) == {allowlist_module.HUMAN_INPUT}
+    assert specimens.FIXTURE_CAPS != allowlist_module.CAPS
     assert set(specimens.FIXTURE_CAPS) == set(allowlist_module.CAPS)
     assert allowlist_module.HUMAN_INPUT not in specimens.FIXTURE_CAPS.values()

@@ -176,6 +176,10 @@ def test_lane_program_compiles_from_staged_bytes(parsed, allowlist, tmp_path):
     assert staged["forward.json"] == graph.dumps(parsed["forward"])
 
 
+def test_the_deadline_is_the_owners():
+    assert g5.DEADLINE_SECONDS == 120  # OWNER-L4-VALUES-01; the lane admits 40-600 s
+
+
 def test_unset_deadline_blocks(parsed, allowlist, tmp_path):
     with pytest.raises(g5.CompileBlocked):
         _compile(
