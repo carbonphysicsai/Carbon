@@ -91,6 +91,27 @@ with the fields in [Record](#record).
      images (and the GPU worker) locally, records them for setup, and checks
      setup against them.
    - It prints how to start the Control Center again, then starts it.
+   - **A second install on the same checkout (LA-F15, LA-F16).** Give it
+     its own state directory and port, for example
+     `CARBON_STATE_DIR=$HOME/.carbon/minerA ~/carbon/scripts/install_miner.sh --port 8789`.
+     - With `--service`, each state directory has its own user service. The
+       default state directory's is `carbon-control-center`; any other is
+       `carbon-control-center-<directory>-<hash>`. The installer prints the
+       exact restart, stop, status and log commands for its own service.
+     - An install never writes, starts or stops another state directory's
+       service, and an install without `--service` writes no unit at all.
+       If `carbon-control-center` runs another state directory (an
+       installer before LA-F15 could rewrite it), the installer says so
+       and leaves it alone. Run the default install again with `--service`
+       to give it back.
+     - At the same revision the second install builds no image. It uses
+       the worker, analysis image and GPU worker already built from that
+       exact source tree, as long as Docker still holds them, so both
+       installs' records and compute checks stay valid.
+     - Moving the checkout to another revision changes it for every
+       install that shares it. Run each of the other installs again
+       (`--no-start`, with its own `CARBON_STATE_DIR`) so setup checks it
+       against the new images.
    - **Or install Carbon's released images (LA-F10,
      OWNER-WORKER-IMAGES-V2-01):** add `--release worker-images-vN`, for
      example `~/carbon/scripts/install_miner.sh --release worker-images-v2`.
@@ -186,7 +207,10 @@ with the fields in [Record](#record).
     Observe and the campaign view show the same readback on both doors:
     - the submission id;
     - for a submit that was not a verdict, its refusal with `intake_outcome`
-      (`QUEUED`, `UNAVAILABLE` or `REFUSED`);
+      (`QUEUED`, `UNAVAILABLE` or `REFUSED`). Observe does not ask the
+      validator again. For a `QUEUED` submit, submit again later: that asks
+      the intake for the recorded submission's result, and it is never a
+      second submission (LA-F18);
     - a verdict's public fields: its state, exam rule, recipe and contract
       digests, and how it was rebuilt.
     Under a sealed rule (v2) a scored outcome is `sealed`: no screening,
@@ -194,13 +218,19 @@ with the fields in [Record](#record).
 
 ## Updating
 
-Stop the Control Center first: Ctrl-C in its terminal, or
-`systemctl --user stop carbon-control-center`. A running Control Center stops
-the update before anything changes. Then run:
+Stop the Control Center first: Ctrl-C in its terminal, or stop its own
+service: `systemctl --user stop carbon-control-center` for the default state
+directory, or the `carbon-control-center-<directory>-<hash>` name the
+installer printed for another one. A running Control Center stops the update
+before anything changes. Then run:
 
 ```sh
 ~/carbon/scripts/install_miner.sh --update
 ```
+
+For another state directory, run it with that install's own
+`CARBON_STATE_DIR`. An update restarts only that install's own service, on
+the port its unit already has unless you give `--port`.
 
 An install made before 2026-10-03 has an installer without `--update`, which
 refuses it. Run `~/carbon/scripts/install_miner.sh --no-start` once: that

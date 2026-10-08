@@ -148,6 +148,62 @@ def found(state_dir, repo) -> dict:
     return images
 
 
+#: The label every image built on the C-03 worker carries: the source tree it
+#: was built from (`.devcontainer/Dockerfile.reconstruction-worker`). The GPU
+#: worker inherits it from its parent.
+SOURCE_TREE_LABEL = "org.opencontainers.image.carbon.c03.source-tree"
+
+
+def current(manifest, *, implementation=None, cli=None) -> bool:
+    """Whether the worker manifest `manifest` (the C-03 worker's or the GPU
+    worker's) names an image built from this checkout's exact source tree
+    that Docker still holds, so an install can use it again rather than
+    build it again (LA-F16).
+
+    Two installs share one checkout, and so its manifests at fixed paths. A
+    rebuild at the same revision is a new image with a new id, so a second
+    install that rebuilt would change the first one's record under it. The
+    test is setup's own (`verify_current_worker`), plus the image itself:
+    Docker holds that image id, and its source-tree label is the manifest's.
+    Anything else, or any error, is False, and the install builds as before.
+    `implementation` is `accepted_implementation` of this checkout's HEAD,
+    worked out when not given.
+    """
+    from carbon.development_session.research_campaign import (
+        accepted_implementation,
+        verify_current_worker,
+    )
+    from carbon.reconstruction.worker.docker_runtime import (
+        DockerCLI,
+        load_image_identity,
+    )
+
+    path = Path(manifest)
+    try:
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > 8192:
+            return False
+        image = load_image_identity(path)
+        if implementation is None:
+            import subprocess
+
+            repo = Path(__file__).resolve().parents[3]
+            head = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=repo, text=True, timeout=30
+            ).strip()
+            implementation = accepted_implementation(head)
+        verify_current_worker(image, implementation)
+        metadata = (cli or DockerCLI()).json(
+            ["image", "inspect", image.image_id, "--format", "{{json .}}"]
+        )
+        labels = (metadata.get("Config") or {}).get("Labels") or {}
+        return (
+            metadata.get("Id") == image.image_id
+            and labels.get(SOURCE_TREE_LABEL) == image.source_tree_digest
+        )
+    except Exception:  # noqa: BLE001 - any doubt builds the image again.
+        return False
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -157,7 +213,12 @@ def main(argv=None):
     record.add_argument("--analysis-image-manifest", required=True)
     record.add_argument("--gpu-image-manifest")
     record.add_argument("--gpu-release-record")
+    reuse = commands.add_parser("current")
+    reuse.add_argument("--manifest", type=Path, required=True)
     args = parser.parse_args(argv)
+    if args.command == "current":
+        print("yes" if current(args.manifest) else "no")
+        return
     path = write(
         args.state_dir,
         image_manifest=args.image_manifest,
