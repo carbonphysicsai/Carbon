@@ -40,6 +40,7 @@
     const parts = String(hash || "").replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
     if (parts[0] === "b" && parts[1] && parts[2] === "m" && parts[3]) return {view: "miner", slug: parts[1], hotkey: parts[3]};
     if (parts[0] === "b" && parts[1]) return {view: "board", slug: parts[1]};
+    if (parts[0] === "showcase") return {view: "showcase", file: parts[1] || null};
     return {view: "home"};
   }
   function boardHref(slug) { return "#/b/" + encodeURIComponent(slug); }
@@ -439,8 +440,16 @@
 
   async function render() {
     try {
+      if (!index) app.replaceChildren(el("p", "Loading…", "hint"));
       index = index || await getJson("data/index.json");
       const route = parseRoute(location.hash);
+      for (const a of document.querySelectorAll(".topnav a")) {
+        if ((a.dataset.view === "showcase") === (route.view === "showcase")) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+      }
+      if (route.view === "showcase") {
+        if (!root.CarbonShowcase) throw new Error("showcase unavailable");
+        return await root.CarbonShowcase.render(app, route, getJson, setLabels);
+      }
       if (route.view === "home") return renderHome();
       const entry = index.boards.find(b => b.slug === route.slug);
       if (!entry) { app.replaceChildren(add(el("p", null, "notice"), document.createTextNode("No such board. "), link("#/", "All boards"))); return; }

@@ -11,6 +11,7 @@
 <body>
 <header class="topbar">
   <a class="wordmark" href="#/"><img src="brand/brand-2.svg" alt="Carbon"><span class="eyebrow">Leaderboard</span></a>
+  <nav class="topnav" aria-label="Sections"><a href="#/" data-view="board">Leaders</a><a href="#/showcase" data-view="showcase">Design showcase</a></nav>
   <div class="topbar-state" id="labels" aria-label="Labels"></div>
 </header>
 <div class="banner" id="banner" role="note">
@@ -25,8 +26,10 @@
   <p class="eyebrow">Carbon · Development / Testnet display</p>
   <p class="hint">Scores, ranks and incumbents come from the Carbon Validator's signed score feed,
     checked again here. Case-level values appear only for released, published windows.
-    Model recipes are not shown.</p>
+    Model recipes are not shown. The design showcase replays public cases and public reference
+    solves only.</p>
 </footer>
+<script src="showcase.js"></script>
 <script src="dashboard.js"></script>
 </body>
 </html>
