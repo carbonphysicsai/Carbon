@@ -1,6 +1,6 @@
 # SUBMISSION-RATE-STUDY-01: plan (no runs, no spend, no grant)
 
-**Status:** PLAN for Test Lead review. **Author:** Graphite Testing Manager.
+**Status:** PLAN for Test Lead review; D1 approved by the owner (OWNER-RATE-STUDY-D1-01). **Author:** Graphite Testing Manager.
 **Authority:** the owner's study request, 2026-10-08, relayed by the Test Lead.
 This plan dispatches nothing. A run needs the pre-registration below to be
 frozen, the owner's approval of the grant proposal in section 9, and the
@@ -129,7 +129,8 @@ an agent.
   production batch, retirement into the release queue, or training. This is
   what makes the S-revealed arm safe: revealing scores of study-only cases
   reveals no production hidden material. S-revealed on any production pool is
-  not permitted and is not planned.
+  not permitted (OWNER-RATE-STUDY-D1-01). After the study the bank is retired or
+  published; it never serves a real window.
 - Sealed arms (H, S-sealed, G-sealed) show agents the mainnet allow-list only.
   No hidden score, case, seed, fingerprint, prediction or batch identity is in
   any agent-visible output. The operator record stays under the run's private
@@ -230,16 +231,24 @@ backend on the operator host; no hidden material goes to rented compute.
 
 ## 9. Grant PROPOSAL (not authored; the owner approves, the grant file binds spend)
 
-Platform: the Graphite provider route only for G-sealed; everything else is
-operator-host CPU and the validator's own time, no provider spend.
-Proposal for the owner, provisional until the freeze:
-- **Stage 0:** no grant needed (arm H is scripted).
-- **Stage 1 LLM spend:** G-sealed, 3 rates x R = 2 runs = 6 Graphite Constructor
-  sessions, tokens only (no pods), at the existing constructor model settings.
-  Budget and run count to be priced from the cooling/battery Constructor grants'
-  per-run worst case at the freeze (the same format as
-  GRAPHITE-GRANT-PHASE3-COOLING-CPU: tokens-only, one run at a time).
-- **Operator CPU:** the section 8 reference solves, scheduled by Data Collection.
+Platform: the Graphite provider route, tokens only, for arm G-sealed. Everything
+else is operator-host CPU and the validator's own time, with no provider spend and
+no pods.
+
+| Field | Proposal | Basis |
+|---|---|---|
+| Runs | 6, one at a time (3 rates x 2 replicates) | section 2 |
+| Worst case per run | 4.91 USD | the same figure as GRAPHITE-GRANT-PHASE3-R3 (Constructor, same role ladder); the adversary makes a few dozen LLM turns that drive the scripted probe tool, not one LLM call per scored submission |
+| Cleanup allowance | 0.25 USD | as the existing Constructor grants |
+| Ceiling | 30.00 USD | 6 x 4.91 + 0.25 = 29.71, rounded up |
+| Max runtime per run | 39600 s | as the existing grants |
+| Max submissions per run | set at the freeze to the arm's scored-submission cap (36, 72, 144) | the existing grants cap at 3, which does not fit this arm |
+
+If the freeze finds the adversary needs an LLM call per scored submission, the
+worst case per run changes and the proposal is re-priced before any run. Arms H
+and the scripted probers need no grant (Stage 0 needs only the operator-compute
+approval in section 12). The grant file is authored by the owner's process; this
+plan only proposes it.
 
 ## 10. Safeguards (invariants)
 
@@ -257,9 +266,10 @@ Proposal for the owner, provisional until the freeze:
 
 ## 11. Open items and decisions
 
-- **D1 (owner/Test Lead):** permit the S-revealed arm on a study-only,
-  sacrificial bank (section 5). Without it the study reports sealed arms only and
-  the revealed bound is dropped.
+- **D1 (DECIDED, owner, 2026-10-08, OWNER-RATE-STUDY-D1-01):** the S-revealed arm is in
+  scope, only on a study-only sacrificial bank that never serves a real window and
+  is retired or published after the study. Its result sets the leak bound for the
+  owner's later decision on live per-section scores (VALIDATOR-29 item 1).
 - **O1 (Carbon Validator):** development-only rule variants with `window_blocks`
   360 / 180 / 90 on `v2-bank`; a deployment with its own study bank.
 - **O2 (Carbon Validator):** whether the deployment accepts a simulated block
@@ -271,3 +281,47 @@ Proposal for the owner, provisional until the freeze:
   tooling), built as development tooling with no access to operator records.
 - **O6:** the H2 overlap check is not built; until it is, disjointness is
   recorded at draw time by the producer.
+
+## 12. The freeze: procedure, file layout, and what must exist first
+
+The freeze happens after Stage 0 and before Stage 1 (section 6). Nothing in this
+section runs without the approvals in 12.4.
+
+### 12.1 Layout (all under `docs/development/evidence/submission-rate-study-01/`)
+
+| Path | Content | Written |
+|---|---|---|
+| `measures-v1.json` | the registration; `status` becomes `FROZEN`; `sizes` and `noise` filled from Stage 0 | at the freeze |
+| `stage0/noise.json` | arm H's bootstrap band per rate and pooled, with the replicate records it was computed from | Stage 0 |
+| `stage0/throughput.json` | wall time per scored submission, `UNAVAILABLE` and `WINDOW_USED` counts | Stage 0 |
+| `stage0/solve_cost.json` | measured CPU-s per reference solve (median, p95) | Stage 0 |
+| `analysis/analyze.py` | the analysis code (a new file under `scripts/dev/`, digest-pinned; it reads operator records only) | before the freeze |
+| `freeze-manifest.json` | `{schema, study, measures_digest, analysis_digest, stage0_digest, bank_tranche_roots, library_digest, arms, rates, windows, replicates, decision_ref, frozen_unix}` | at the freeze |
+
+### 12.2 Steps
+
+1. Build and merge the analysis script; run its self-test on synthetic records.
+2. Run Stage 0 (arm H, three rates) on the study bank; write `stage0/*`.
+3. Compute `noise.json`, set `W` and `R` from its interval width, fill
+   `measures-v1.json` and set `status: FROZEN`.
+4. Compute the canonical digests, write `freeze-manifest.json`.
+5. The Test Lead records the manifest digest in a decision file
+   (`RATE-STUDY-FREEZE-01`); the files merge through PR Head.
+6. Stage 1 may start only when the decision file and the files are on main.
+   A change afterwards is a recorded amendment, never an edit.
+
+### 12.3 Guard
+
+A test refuses Stage 1 when `measures-v1.json` is not `FROZEN` or its digest
+differs from the manifest's (added with the analysis script).
+
+### 12.4 Needed before the freeze can happen
+
+- **Stage 0 operator-compute approval** (no provider spend): about 3200 reference
+  solves (2000 for the study bank plus 12 windows x 98 fresh cases), about 72
+  CPU-hours at the 82 CPU-s prior, in a host window agreed with Data Collection.
+- **Carbon Validator:** the development rule variants and the study deployment
+  (O1), and the simulated-clock answer (O2).
+- **Data Collection:** the study bank tranches committed and solved (O3).
+- Not needed for Stage 0: the grant in section 9, the prober or the adversary
+  brief (those gate Stage 1).
