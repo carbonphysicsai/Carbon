@@ -1,0 +1,247 @@
+{
+  "schema": "carbon.foundation-quiz.proposal.v1",
+  "ticket": "CHALLENGE-QUESTION-LAWS-02",
+  "maturity": "SPECIFIED",
+  "runtime_registration": false,
+  "basis": {
+    "question_laws_pr": 776,
+    "question_laws_head": "63d641b65a7e54ee547c1dd7b2aafece3b4d1366",
+    "forward_rule_comment": "https://github.com/carbonphysicsai/Carbon/pull/776#issuecomment-6048654166",
+    "packet_requirements": "../round1/requirements.json",
+    "packet_limit_authority": "OWNER-PORTFOLIO-DEV-ROUND-01",
+    "content": "foundation-quiz.md"
+  },
+  "permissions": {
+    "solver_execution": false,
+    "model_execution": false,
+    "hidden_material": false,
+    "spend": false,
+    "counted_campaign": false,
+    "fresh_confirmation": false,
+    "protocol_transition": false,
+    "runtime_activation": false,
+    "qualification": false
+  },
+  "forward_rule": {
+    "scope": "all eight Challenges prospectively",
+    "none_feasible_redraw": false,
+    "unresolved_redraw": false,
+    "none_feasible_requires": "Every bank action demonstrably infeasible; missing truth is not that proof.",
+    "power_population": "Reference-feasible opportunity subset under separately declared diagnostic Q; never replace P.",
+    "no_opportunities": "UNMEASURABLE",
+    "battery_exception": {
+      "scope": "already-sealed v8 only",
+      "ends_at": "next quiz version",
+      "next_version_number": null,
+      "historical_rescore": false
+    }
+  },
+  "common_choices": {
+    "variant": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Keep grids as audit baseline; prefer continuous supported intervals after bank winner-diversity and close-call measurement; owner selects."},
+    "P": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Uniform supported context/grid mass or uniform supported continuous threshold density; freeze support and dependencies, not equal mass on unequal-volume answer cells."},
+    "Q": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "0.5 P + 0.5 P conditioned on a prospectively frozen positive-mass near-limit region; use P and report no enrichment if empty. Power reports use the feasible-opportunity subset."},
+    "w": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Actual P/Q mass or density ratio for an adopted population-mean diagnostic only; raw Q reported separately; not adopted score weights."},
+    "q2_pool_pairs": {"status": "HUMAN_INPUT", "registered": null, "recommendation": 320},
+    "q2_selected_pairs": {"status": "HUMAN_INPUT", "registered": null, "recommendation": 80},
+    "q2_selection": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Up-to counts, not existing pools. Predeclare reference-supported boundary regions and use a frozen independent panel's disagreement, never candidate errors; missing panel predictions mean unavailable."},
+    "near_limit_bands": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Quantity-specific bands from separately accepted reference/refinement evidence; packet convergence limits are not certified uncertainty."},
+    "refined_truth": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Before key seal refine every required limit-crossing action and possibly optimal competitor on the same physical deck, with separately pinned bounded rungs; otherwise retain UNRESOLVED. Interval construction, equality, stopping and budget need adoption."},
+    "controls": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Four named decision behaviours and two good baselines; magnitudes, regions, recipes, mixtures and admission remain to be registered. A control is bad only where it causes its defined error."},
+    "power_k": {"status": "HUMAN_INPUT", "registered": null, "recommendation": [1, 2, 3, 4, 6, 8, 12]},
+    "power_and_thresholds": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Test Lead selects score use, acceptance thresholds, tail definitions, target power and recipes; absent class support is UNMEASURABLE."},
+    "winner_diversity": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Report observed winners and P/Q expected occupancy sum_a[1-(1-p_a)^k] excluding NONE_FEASIBLE/UNRESOLVED; actual joint law replaces iid formula under exposure constraints. Do not redraw for diversity."},
+    "exposure": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Use separately approved E and remaining ledger; one question per underlying window draw pending a bundle policy. Threshold variants, arms, replay and refinement never renew E; retired published cases never return to hidden use."},
+    "disclosure": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Future allow-listed projection omits registered starts, seed, bank order and protected linkage; this sheet contains no realized cases or keys."}
+  },
+  "bad_controls": ["edge-optimist", "over-cautious", "sign-error", "optimizer-or-lattice-aware"],
+  "good_baselines": ["accurate-observations-frozen-selector", "calibrated-candidate-uncertainty"],
+  "diagnostics": {
+    "a": "optimizer stability: committed pick/verdict agreement and physical regret under predeclared comparators",
+    "b": "grid resolution: matched numerical refinement distinct from new design-action witnesses",
+    "c": "power by k: good/bad discrimination on reference-feasible opportunities under Q with shared-bank clusters",
+    "d": "agreement with decision value: independent comparator rank, feasibility, best-pick agreement or buyer-unit regret",
+    "e": "unresolved rate: all-draw and eligible denominators, reference/optimum/refinement/candidate coverage separated"
+  },
+  "witness_custody": {
+    "permitted": ["separate non-hidden draw from supported distribution", "legitimately retired published bank cases"],
+    "prohibited": ["hidden EVAL", "hidden STRESS", "hidden quiz", "hidden tuning"],
+    "tool_disagreement": "Reference finding; versioned future revision, never candidate failure or silent historical rescore. Report pointwise and decision agreement."
+  },
+  "challenges": [
+    {
+      "family": "f02", "challenge": "burst-thermal", "packet": "f02-burst-thermal.md",
+      "customer_job": "Maximize useful extra burst joules without overheating the die.",
+      "packet_anchors": [
+        {"quantity": "peak_temperature_max", "unit": "degC", "op": "<=", "value": 95, "requirements_path": ["thermal", "limit_c"]}
+      ],
+      "q2_strata": ["thermal ceiling both sides and energy floor", "weak cooling/warm start/asymmetric patches", "rectangular/ramp/two-pulse event and lag peaks", "limit intersections and easy interiors"],
+      "panel": "One of 24 contexts; nine schedules in that context. Spatial-temporal top-die maximum over 120 s; extra energy above base integrated from the exact waveform.",
+      "q3_law": {
+        "status": "HUMAN_INPUT", "registered": null,
+        "axes": [
+          {"quantity": "peak_temperature_max", "unit": "degC", "op": "<=", "grid": [90, 92.5, 95], "continuous": [90, 95]},
+          {"quantity": "extra_delivered_energy_min", "unit": "J", "op": ">=", "grid": [300, 600, 900], "continuous": [300, 900]}
+        ],
+        "bank_candidates": 9, "context_count": 24, "questions_per_batch": 8,
+        "raw_question_grid_upper_bound": 216,
+        "objective": "Max extra J; frozen action order for ties.", "regret_unit": "J"
+      },
+      "refinement": "Same physical stack/waveforms; independent mesh/time and internal event-peak/crossing search. Packet 0.5 degC/0.5 s shifts and 1 degC unresolved band do not calibrate new bands; RC screen is not truth.",
+      "control_focus": {
+        "edge-optimist": "Understate a failing die peak or inflate ramp extra J.",
+        "over-cautious": "Reject a settled feasible high-energy schedule.",
+        "sign-error": "Reverse thermal or energy passing margin in a declared region.",
+        "optimizer-or-lattice-aware": "Hide a covered event/second-pulse peak at search-favoured energy; no invented off-lattice schedules."
+      },
+      "reference_route": {"solver": "Elmer transient", "status": "NOT_DEMONSTRATED", "gap": "Exact layered-stack deck/environment/source/observer and adequate spatial-time bank."},
+      "base_work": {"kind": "transient solves", "conditional_base_count": 216, "condition": "9 schedules x 24 contexts; additional steady recovery baselines, controls and mesh/time refinement excluded."},
+      "solve_cost_status": "UNMEASURED", "cpu_hours_per_case": null, "bank_cpu_hours": null, "refinement_cpu_hours": null, "measured_peak_rss_gib": null,
+      "diversity_status": "NOT_DEMONSTRATED", "expected_winners_P": null, "expected_winners_Q": null, "close_call_rate_P": null, "close_call_rate_Q": null
+    },
+    {
+      "family": "f06", "challenge": "grating-coupler", "packet": "f06-grating-coupler.md",
+      "customer_job": "Pick a manufacturable mask with robust fiber coupling and limited reflection.",
+      "packet_anchors": [
+        {"quantity": "coupled_power_fraction_min", "unit": "1", "op": ">=", "value": 0.30, "requirements_path": ["optical", "minimum_coupling"]},
+        {"quantity": "reflected_power_fraction_max", "unit": "1", "op": "<=", "value": 0.10, "requirements_path": ["optical", "maximum_reflection"]}
+      ],
+      "q2_strata": ["coupling/reflection boundaries both sides and intersections", "wavelength endpoints and alignment", "paired etch/pitch/duty vectors", "180-nm post-perturbation feature validity"],
+      "panel": "All 9 tolerance vectors x 5 wavelengths; both hard limits at every point. Finite 45-point nearest-rank p10 is the fifth ordered coupling, not continuous-band yield.",
+      "q3_law": {
+        "status": "HUMAN_INPUT", "registered": null,
+        "axes": [
+          {"quantity": "coupled_power_fraction_min", "unit": "1", "op": ">=", "grid": [0.25, 0.30, 0.35], "continuous": [0.25, 0.35]},
+          {"quantity": "reflected_power_fraction_max", "unit": "1", "op": "<=", "grid": [0.05, 0.10, 0.15], "continuous": [0.05, 0.15]}
+        ],
+        "bank_candidates": 256, "context_count": 1, "questions_per_batch": 8,
+        "raw_question_grid_upper_bound": 9,
+        "objective": "Max frozen 45-point p10 coupled fraction; frozen bank order.", "regret_unit": "coupled-power fraction and percentage points"
+      },
+      "refinement": "Same deck at 30/20/10 nm with independently checked PML/padding/time/normalization. Packet 0.02 coupling and 0.01 reflection deltas are convergence checks, not certified decision intervals.",
+      "control_focus": {
+        "edge-optimist": "Overstate coupling or understate reflection on a failing tolerance point.",
+        "over-cautious": "Reject a settled feasible robust mask.",
+        "sign-error": "Reverse coupling/reflection passing margins without inventing negative power.",
+        "optimizer-or-lattice-aware": "Fit coarse mask/spectral probes but bias independently covered perturbation or search-favoured witnesses."
+      },
+      "reference_route": {"solver": "new 3D Meep FDTD", "status": "NOT_DEMONSTRATED", "gap": "Exact normalization/TE0/fiber-overlap deck, fine-grid memory fit and adequate tolerance bank; old supermode route is not this task."},
+      "fine_grid_memory": {
+        "fine_grid_nm": 10, "bare_cells_approximate_range": [573000000, 1200000000],
+        "excluded": ["substrate", "air padding", "PML"],
+        "packet_ceiling_gib": 256, "ceiling_is_fit_evidence": false,
+        "forecast_status": "NOT_DEMONSTRATED", "measured_peak_rss_gib": null,
+        "unavailable_fine_truth": "UNRESOLVED; no silent coarse substitution, GPU grant or spend."
+      },
+      "base_work": {"kind": "vector solves", "conditional_base_count": 2304, "condition": "256 masks x 9 vectors ONLY IF one verified broadband solve resolves all 5 wavelengths; otherwise additional spectral work; normalization/controls/refinement excluded."},
+      "solve_cost_status": "UNMEASURED", "cpu_hours_per_case": null, "bank_cpu_hours": null, "refinement_cpu_hours": null, "measured_peak_rss_gib": null,
+      "diversity_status": "NOT_DEMONSTRATED", "expected_winners_P": null, "expected_winners_Q": null, "close_call_rate_P": null, "close_call_rate_Q": null
+    },
+    {
+      "family": "f08", "challenge": "resonance-structure", "packet": "f08-resonance-structure.md",
+      "customer_job": "Choose a support with low worst-band motion within mass and static stiffness limits.",
+      "packet_anchors": [
+        {"quantity": "dynamic_compliance_max", "unit": "mm/N", "op": "<=", "value": 0.15, "requirements_path": ["structure", "dynamic_compliance_limit_mm_n"]},
+        {"quantity": "static_compliance_max", "unit": "mm/N", "op": "<=", "value": 0.03, "requirements_path": ["structure", "static_compliance_limit_mm_n"]},
+        {"quantity": "mass_max", "unit": "kg", "op": "<=", "value": 0.45, "requirements_path": ["structure", "mass_limit_kg"]}
+      ],
+      "q2_strata": ["mass/static/dynamic boundaries both sides and intersections", "light flexible versus heavy stiff", "low-damping inter-node resonances", "resolved peak/phase and modal truncation"],
+      "panel": "Complete adaptive 80-600 Hz band at all three damping values 0.005/0.01/0.02; static and geometry mass observations. Not strength, fatigue or settling-time truth.",
+      "q3_law": {
+        "status": "HUMAN_INPUT", "registered": null,
+        "axes": [
+          {"quantity": "dynamic_compliance_max", "unit": "mm/N", "op": "<=", "grid": [0.10, 0.15, 0.20], "continuous": [0.10, 0.20]},
+          {"quantity": "static_compliance_max", "unit": "mm/N", "op": "<=", "grid": [0.02, 0.03, 0.04], "continuous": [0.02, 0.04]},
+          {"quantity": "mass_max", "unit": "kg", "op": "<=", "grid": [0.35, 0.45, 0.55], "continuous": [0.35, 0.55]}
+        ],
+        "bank_candidates": 256, "context_count": 1, "questions_per_batch": 8,
+        "raw_question_grid_upper_bound": 27,
+        "objective": "Min worst dynamic compliance; secondary mass, then frozen bank order.", "regret_unit": "mm/N"
+      },
+      "refinement": "Independent mesh/modes/resonance brackets; packet 12/24/48 modes where supported, 1% eigenfrequency, 5% peak, min(2 Hz,1% frequency) peak location, 5-degree phase; spacing at most 0.1 half-power bandwidth. No damping increase to obtain agreement.",
+      "control_focus": {
+        "edge-optimist": "Understate a failing resonance, static compliance or mass.",
+        "over-cautious": "Reject a settled feasible lightweight support.",
+        "sign-error": "Reverse compliance/mass passing margin in a declared region.",
+        "optimizer-or-lattice-aware": "Fit coarse frequency/design nodes but hide a covered narrow resonance or search-favoured design."
+      },
+      "reference_route": {"solver": "CalculiX static/eigen/harmonic", "status": "NOT_DEMONSTRATED", "gap": "Exact CAD deck/build/complex extractor and adequately resolved modes/peak bank."},
+      "base_work": {"kind": "process launches", "conditional_base_count": 1280, "condition": "256 x (static + eigen + three harmonic), assuming one process per study; controls/refinement excluded; route must be verified."},
+      "solve_cost_status": "UNMEASURED", "cpu_hours_per_case": null, "bank_cpu_hours": null, "refinement_cpu_hours": null, "measured_peak_rss_gib": null,
+      "diversity_status": "NOT_DEMONSTRATED", "expected_winners_P": null, "expected_winners_Q": null, "close_call_rate_P": null, "close_call_rate_Q": null
+    },
+    {
+      "family": "f13", "challenge": "compressor-silencer", "packet": "f13-compressor-silencer.md",
+      "customer_job": "Select a compact passive geometry with useful lower-tail no-flow attenuation.",
+      "packet_anchors": [
+        {"quantity": "band_p10_transmission_loss_min", "unit": "dB", "op": ">=", "value": 5, "requirements_path": ["acoustic", "p10_tl_target_db"]},
+        {"quantity": "package_length_max", "unit": "mm", "op": "<=", "value": 300, "requirements_path": ["acoustic", "package_length_mm"]},
+        {"quantity": "package_diameter_max", "unit": "mm", "op": "<=", "value": 140, "requirements_path": ["acoustic", "package_diameter_mm"]}
+      ],
+      "q2_strata": ["p10/length/diameter boundaries both sides and intersections", "neck and clearance validity", "resolved transmission notches changing p10 or pick", "power rather than pressure-amplitude TL"],
+      "panel": "Complete no-flow 500-2500 Hz power-TL curve with interval-weighted p10; minimum TL diagnostic only. No every-frequency 5 dB or pressure-loss constraint.",
+      "q3_law": {
+        "status": "HUMAN_INPUT", "registered": null,
+        "axes": [
+          {"quantity": "band_p10_transmission_loss_min", "unit": "dB", "op": ">=", "grid": [3, 5, 7], "continuous": [3, 7]},
+          {"quantity": "package_length_max", "unit": "mm", "op": "<=", "grid": [240, 270, 300], "continuous": [240, 300]},
+          {"quantity": "package_diameter_max", "unit": "mm", "op": "<=", "grid": [120, 130, 140], "continuous": [120, 140]}
+        ],
+        "bank_candidates": 16, "context_count": 1, "questions_per_batch": 8,
+        "raw_question_grid_upper_bound": 27,
+        "objective": "Max interval-weighted band p10 TL; frozen bank order.", "regret_unit": "dB"
+      },
+      "refinement": "Mesh and frequency quadrature independently; packet 0.5 dB mesh, 10 Hz resonance and 0.25 dB p10/mean changes, 1% balance. Absolute-power/log applicability and quantile uncertainty HUMAN_INPUT; sparse preflight cannot certify p10.",
+      "control_focus": {
+        "edge-optimist": "Mask low-TL intervals to inflate p10 or understate package size.",
+        "over-cautious": "Reject a settled feasible compact attenuator.",
+        "sign-error": "Reverse p10/length/diameter passing margin without active-gain fiction.",
+        "optimizer-or-lattice-aware": "Fit sparse frequency/CAD nodes but hide covered notch or quadrature behaviour."
+      },
+      "reference_route": {"solver": "3D Elmer Helmholtz", "status": "NOT_DEMONSTRATED", "gap": "Exact port/deck/energy extractor and full adaptive curve; no verified multi-frequency process route."},
+      "frequency_launches": {
+        "band_hz": [500, 2500], "initial_step_hz": 10,
+        "frequencies_per_curve": 201, "separate_frequency_bank_launches": 3216,
+        "separate_feasibility_panel_cases": 30, "separate_feasibility_panel_launches": 6030,
+        "packet_allowance_launches": 40, "allowance_completes_one_curve": false,
+        "excluded": ["adaptive frequencies", "mesh rungs", "normalization", "controls", "failed attempts"],
+        "model_queries_are_reference_launches": false
+      },
+      "base_work": {"kind": "separate-frequency launches", "conditional_base_count": 3216, "condition": "16 x 201 only under separately launched frequencies; batched route must be measured/versioned and cannot erase frequency work; controls/refinement excluded."},
+      "solve_cost_status": "UNMEASURED", "cpu_hours_per_case": null, "bank_cpu_hours": null, "refinement_cpu_hours": null, "measured_peak_rss_gib": null,
+      "diversity_status": "NOT_DEMONSTRATED", "expected_winners_P": null, "expected_winners_Q": null, "close_call_rate_P": null, "close_call_rate_Q": null
+    },
+    {
+      "family": "f17", "challenge": "passive-micromixer", "packet": "f17-passive-micromixer.md",
+      "customer_job": "Choose grooves with useful mixing and acceptable pump burden and residence.",
+      "packet_anchors": [
+        {"quantity": "mixing_index_min", "unit": "1", "op": ">=", "value": 0.8, "requirements_path": ["mixer", "uniformity_target"]},
+        {"quantity": "pressure_drop_max", "unit": "Pa", "op": "<=", "value": 250, "requirements_path": ["mixer", "pressure_limit_pa"]},
+        {"quantity": "residence_time_max", "unit": "s", "op": "<=", "value": 20, "requirements_path": ["mixer", "mean_residence_limit_s"]}
+      ],
+      "q2_strata": ["mixing/pressure/residence boundaries both sides and intersections", "mixing-pump and residence tradeoffs", "maximum-Pe numerical diffusion", "flux variance, volume residence and reference balance"],
+      "panel": "All 1/3/5 uL/min x 0.5/1/2 x 1e-10 m2/s conditions. Positive axial-flux weighted mixing; actual fluid-volume/flow residence, not residence-time distribution.",
+      "q3_law": {
+        "status": "HUMAN_INPUT", "registered": null,
+        "axes": [
+          {"quantity": "mixing_index_min", "unit": "1", "op": ">=", "grid": [0.75, 0.80, 0.85], "continuous": [0.75, 0.85]},
+          {"quantity": "pressure_drop_max", "unit": "Pa", "op": "<=", "grid": [200, 250, 300], "continuous": [200, 300]},
+          {"quantity": "residence_time_max", "unit": "s", "op": "<=", "grid": [15, 20, 25], "continuous": [15, 25]}
+        ],
+        "bank_candidates": 45, "context_count": 1, "questions_per_batch": 8,
+        "raw_question_grid_upper_bound": 27,
+        "objective": "Max worst mixing index across nine conditions; frozen bank order.", "regret_unit": "mixing-index fraction and percentage points"
+      },
+      "refinement": "Independent groove/mesh/velocity/scalar layers, especially maximum Pe; packet 0.5% balance, c[-0.001,1.001], 0.02 M and 5% pressure shifts. Boundedness is not diffusion adequacy; flow and scalar processes charged separately.",
+      "control_focus": {
+        "edge-optimist": "Smooth scalar variance to inflate M or understate pressure/residence.",
+        "over-cautious": "Reject a settled feasible useful-mixing cartridge.",
+        "sign-error": "Reverse M/pressure/residence passing margin without concentration clipping.",
+        "optimizer-or-lattice-aware": "Fit coarse grooves/easy flow but bias covered maximum-Pe or search-favoured grooves."
+      },
+      "reference_route": {"solver": "OpenFOAM laminar flow and passive scalar", "status": "NOT_DEMONSTRATED", "gap": "Exact grooved deck/flow-scalar build/flux observer and adequate bank; cooling installation is not this route."},
+      "base_work": {"kind": "flow/scalar launches", "conditional_base_count": 810, "condition": "45 geometries x 9 conditions x 2 processes if both run per pair; no assumed velocity reuse; controls/refinement excluded."},
+      "solve_cost_status": "UNMEASURED", "cpu_hours_per_case": null, "bank_cpu_hours": null, "refinement_cpu_hours": null, "measured_peak_rss_gib": null,
+      "diversity_status": "NOT_DEMONSTRATED", "expected_winners_P": null, "expected_winners_Q": null, "close_call_rate_P": null, "close_call_rate_Q": null
+    }
+  ]
+}

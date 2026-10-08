@@ -1,0 +1,16 @@
+{
+ "schema": "carbon.battery.quiz-design-registry.v1",
+ "registered": "2026-10-07, before any scoring (Test Lead ruling (C))",
+ "extends": "quiz-registry-v7.json; replaces v7's band-edge-seeker control",
+ "selector": "EV4's fixed decision rules, unchanged (Q3 stays aligned with the decision-value data it is checked against)",
+ "producer_refinement": {
+  "rule": "for every Q3 lattice point whose standard reference lies within one contract band of the plating or thermal limit, the producer runs the refined solve (truth.reference_solver with refined=True, same pinned image) and the answer key records the refined truth (quiz.q3_refine_points, quiz.q3_settle). The validator never solves.",
+  "backstop": "a point still UNRESOLVED after refinement takes quiz-registry-v7's pessimistic treatment; the residual UNRESOLVED rate is reported",
+  "cost_report": "the refined-solve count per scenario",
+  "scope": "DEVELOPMENT only (WAVE-07: refined references for development); using refined truth in a mainnet answer key is an owner decision at rule v3 adoption"
+ },
+ "known_bad": [
+  "control-infeasible_edge_seeker (constructed: where the truth is infeasible but within one contract band of the limit, it reports the case as just passing; accurate elsewhere). Refined truth must catch it. It replaces v7's band-edge seeker, which picks correctly at a true band-edge optimum and is not gaming (Test Lead's correction)"
+ ],
+ "status": "DEVELOPMENT"
+}

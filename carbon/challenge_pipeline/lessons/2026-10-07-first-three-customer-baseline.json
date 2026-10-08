@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-first-three-customer-baseline",
+  "recorded_at": "2026-10-07T17:03:27Z",
+  "challenge": "eight-challenge-foundation-development",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-CUSTOMER-PACKETS-01 baseline at main 0e7308fe9",
+    "description": "Canonical portfolio-round1 screen and challenge-pipeline baseline before new packet content"
+  },
+  "expected": "Reuse the common packet and existing pipeline without changing runtime authority",
+  "observed": "51 passed and 1 existing optional-numpy skip in the pinned canonical environment; no solver or provider execution.",
+  "keep": [
+    "Reuse the ten-section packet and keep requirements separate from runtime IDs and grades.",
+    "Keep existing five-family allowances non-transferable; new buyer briefs add no grants."
+  ],
+  "change": [
+    "Define original-three buyer value independently of TRAIN medians and score tuning."
+  ],
+  "protocol_elements": ["challenge.design-packet.f1", "challenge.pipeline.lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

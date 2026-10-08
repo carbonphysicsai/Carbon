@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-question-laws-continuous-diagnostic",
+  "recorded_at": "2026-10-07T22:43:36+00:00",
+  "challenge": "protocol", "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-QUESTION-LAWS-01 first continuous diagnostic", "description": "Native Windows focused static and synthetic occupancy/close-call tests after continuous and Part B drafting."},
+  "expected": "Eight unregistered continuous intervals, cell k=8, and bank-bounded occupancy/refinement arithmetic remain internally consistent.",
+  "observed": "19 passed, one failed in 0.50 s: the new toy occupancy check used a mistyped expected decimal (2.6893038179 rather than 2.6893950760). The formula and interval masses were unchanged; the literal was corrected. No physical, hidden, model or solver evidence was used. Canonical acceptance remains pending.",
+  "keep": ["Keep numerical examples purely synthetic and exclude NONE/UNRESOLVED from distinct winners."],
+  "change": ["Check illustrative occupancy numbers against the specified mass calculation rather than treating a handwritten decimal as evidence."],
+  "protocol_elements": ["continuous-requirements", "answer-diversity", "static-validation"],
+  "proposed_revision": null, "status": "RECORDED"
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-customer-feasibility-copy-failure",
+  "recorded_at": "2026-10-07T19:09:58Z",
+  "challenge": "eight-challenge-foundation-development",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-CUSTOMER-FEASIBILITY-02 canonical candidate test/quality attempts",
+    "description": "Two isolated canonical validation copies after the successful existing baseline"
+  },
+  "expected": "The isolated checkout reaches bootstrap and then focused candidate tests/quality",
+  "observed": "The focused attempt reported Cannot allocate memory while cp read existing EV4 evidence, before candidate pytest. Both attempts ended exit 1: the focused container exited after the copy error; only this ticket's other verified container was stopped. No other team's container was stopped. Candidate canonical acceptance is unavailable locally, not a failed physical reference or a passed test.",
+  "keep": ["Report infrastructure failure separately; preserve all tests and use pinned CI for required acceptance."],
+  "change": ["Avoid repeated canonical checkout-copy attempts under this local resource condition."],
+  "protocol_elements": ["challenge.evidence.claim-basis", "challenge.pipeline.lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

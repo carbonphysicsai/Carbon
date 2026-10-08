@@ -36,6 +36,11 @@ The flow, in order (scope §4):
 
 Never resent (scope B10): a request whose outcome is unknown is reconciled by
 reading the chain until its mortal era has passed. Nothing here signs.
+
+Before a campaign's submit (LAUNCHPAD-ACCEPT-02), ``check`` is L3 alone,
+read-only, and ``CommitmentGate`` is L5-L7 for a campaign whose agent selects:
+it asks for the commitment itself (D10) and submits only after the miner has
+confirmed it on the signer's terminal and it reads back at finality.
 """
 
 from __future__ import annotations
@@ -71,6 +76,8 @@ FINALITY_BLOCKS = 20
 FINALITY_SECONDS = FINALITY_BLOCKS * BLOCK_SECONDS
 #: States in which a signature may exist that the chain has not settled.
 PENDING = frozenset({"REQUESTED", "BROADCAST", "AMBIGUOUS"})
+#: The chain's name for an included extrinsic: "<block>-<index>".
+EXTRINSIC_ID = re.compile(r"[0-9]{1,12}-[0-9]{1,6}")
 
 
 class PostCode(str, Enum):
@@ -181,6 +188,7 @@ class CommitmentPoster:
             "digest": digest,
             "netuid": self.netuid,
             "current": on_chain,
+            "current_block": None if current is None else current["block"],
             "needed": on_chain != digest,
             "warning": (
                 "Posting replaces this hotkey's current commitment on the subnet. "
@@ -324,17 +332,24 @@ class CommitmentPoster:
         ):
             self._write(digest=digest, state="NOT_OBSERVED", block=block)
             return self._result(PostCode.NOT_OBSERVED, digest)
+        # The chain's own name for the extrinsic, "<block>-<index>", when the
+        # SDK reports one (its result carries no extrinsic hash).
+        extrinsic = outcome.get("extrinsic_id")
+        if type(extrinsic) is not str or not EXTRINSIC_ID.fullmatch(extrinsic):
+            extrinsic = None
         self._write(
             digest=digest,
             state="COMMITTED",
             block=current["block"],
             fee_rao=outcome.get("fee_rao"),
+            extrinsic_id=extrinsic,
         )
         return self._result(
             PostCode.COMMITTED,
             digest,
             block=current["block"],
             fee_rao=outcome.get("fee_rao"),
+            extrinsic_id=extrinsic,
         )
 
     def _reconcile(self, digest, recommit=False):
@@ -446,6 +461,151 @@ def commit_then_submit(poster, digest, submit, *, recommit=False):
             },
         }
     return {"submitted": True, "commitment": outcome, "submission": answer}
+
+
+# Before a submit (LAUNCHPAD-ACCEPT-02) ----------------------------------------
+
+#: The Launchpad's own codes for the read before a submit. The first is the
+#: validator's refusal for the same fact, so one code means one thing.
+REQUIRED = "commitment_required"
+UNREADABLE = "commitment_reader_unavailable"
+#: The request a campaign made, beside its other records, so every door can
+#: show what the miner is asked to confirm and how the post went.
+REQUEST_FILE = "commitment-request.json"
+REQUEST_SCHEMA = "carbon.miner.commitment-request.v1"
+_REFUSAL = re.compile(r"[A-Z][A-Z_]{1,40}")
+
+
+def check(chain, hotkey, digest):
+    """L3, read-only: None when ``digest`` is the hotkey's commitment at the
+    finalized head; otherwise ``commitment_required``, or
+    ``commitment_reader_unavailable`` when the chain could not be read.
+    Nothing is signed or sent."""
+    if type(digest) is not str or not DIGEST.fullmatch(digest):
+        return PostCode.BAD_DIGEST.value
+    try:
+        current = chain.read(hotkey)
+    except (CommitmentUnavailable, ChainFailure, OSError):
+        return UNREADABLE
+    if type(current) is not dict or current.get("digest") != digest:
+        return REQUIRED
+    return None
+
+
+def closed_code(code):
+    """A post's result code as one closed code a door shows: a signer's
+    refusal (``signer_refused:NOT_CONFIRMED``) is its own enum value
+    (``NOT_CONFIRMED``), from ``carbon_miner_signer.CommitRefusal``; every
+    other code is the poster's or the signer's as it is."""
+    if type(code) is not str:
+        return PostCode.FAILED.value
+    head, _, refusal = code.partition(":")
+    if refusal:
+        return refusal if _REFUSAL.fullmatch(refusal) else head
+    return code
+
+
+def write_request(root, *, hotkey, digest, epoch, recommit, by, plan, at, outcome=None):
+    """Record what was requested for the campaign at ``root``: the hotkey,
+    the frozen candidate's digest and epoch, who asked (``miner`` or
+    ``agent``, D10) and the plan the miner was shown (L2). ``outcome`` is
+    ``commitment_already_on_chain`` when nothing was posted (L3). Owner-only."""
+    row = {
+        "outcome": outcome if outcome == PostCode.ALREADY_ON_CHAIN.value else None,
+        "schema": REQUEST_SCHEMA,
+        "hotkey": hotkey,
+        "digest": digest,
+        "epoch": epoch,
+        "recommit": bool(recommit),
+        "requested_by": by if by in ("miner", "agent") else "agent",
+        "requested_at": at,
+        "plan": (
+            None
+            if type(plan) is not dict or "code" in plan
+            else {
+                key: plan.get(key)
+                for key in (
+                    "current",
+                    "current_block",
+                    "needed",
+                    "warning",
+                    "queued_other_digests",
+                )
+            }
+        ),
+    }
+    path = Path(root) / REQUEST_FILE
+    temporary = path.with_suffix(".tmp")
+    handle = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(handle, "w", encoding="utf-8") as stream:
+        stream.write(json.dumps(row, sort_keys=True))
+    os.replace(temporary, path)
+    return row
+
+
+def read_request(root):
+    """The campaign's last commitment request, or None."""
+    try:
+        row = json.loads((Path(root) / REQUEST_FILE).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if type(row) is not dict or row.get("schema") != REQUEST_SCHEMA:
+        return None
+    return row
+
+
+class CommitmentGate:
+    """One hotkey's commitment, as a campaign's submit needs it.
+
+    Built by the Launchpad, which holds no key: ``poster`` reads and
+    broadcasts, and its signer asks the miner on the signer's own terminal.
+    The submit asks ``before_submit`` before the candidate is first sent.
+    """
+
+    def __init__(self, poster, *, clock=None):
+        self.poster = poster
+        self._clock = clock or (lambda: datetime.datetime.now(datetime.UTC))
+
+    @property
+    def hotkey(self):
+        return self.poster.hotkey
+
+    def check(self, digest):
+        return check(self.poster.chain, self.poster.hotkey, digest)
+
+    def request(self, root, digest, *, epoch=None, recommit=False, by="agent"):
+        """Ask for ``digest`` to be committed (D10: an agent may ask), and
+        wait while the miner is asked on the signer's terminal. Returns the
+        poster's closed result; nothing is ever resent."""
+        plan = self.poster.plan(digest)
+        write_request(
+            root,
+            hotkey=self.poster.hotkey,
+            digest=digest,
+            epoch=epoch,
+            recommit=recommit,
+            by=by,
+            plan=plan,
+            at=self._clock().isoformat(),
+        )
+        return self.poster.post(digest, recommit=recommit)
+
+    def before_submit(self, root, digest, *, request, epoch=None, recommit=False):
+        """None when the submit may be sent; otherwise its closed code.
+
+        Read-only unless ``request``: a campaign whose agent selects (D10)
+        asks for the commitment itself, and the submit goes on only once the
+        miner has confirmed it and it reads back at finality (L7). The miner's
+        own submit never posts: it is refused ``commitment_required`` and the
+        miner commits first. ``recommit`` posts the same digest again, for a
+        validator that refused it as ``commitment_stale``.
+        """
+        if not recommit:
+            code = self.check(digest)
+            if code != REQUIRED or not request:
+                return code
+        result = self.request(root, digest, epoch=epoch, recommit=recommit)
+        return None if result["code"] in DONE else closed_code(result["code"])
 
 
 class _PublicAccount:
@@ -565,7 +725,12 @@ class SdkCommitmentChain:
                 block = int(result.extrinsic_id.split("-", 1)[0])
             fee = None if result.fee is None else int(result.fee.rao)
             if result.success:
-                return {"outcome": "FINALIZED", "block": block, "fee_rao": fee}
+                return {
+                    "outcome": "FINALIZED",
+                    "block": block,
+                    "fee_rao": fee,
+                    "extrinsic_id": result.extrinsic_id,
+                }
             if result.block_hash is not None:
                 message = result.error.message if result.error else result.message
                 return {"outcome": "FAILED", "block": block, "error": message}

@@ -316,3 +316,20 @@ def test_a_deployment_loads_only_under_its_service_account(tmp_path, account, ac
     with pytest.raises(battery_deployment.EvaluationUnavailable) as refused:
         battery_deployment.load_config(path)
     assert refused.value.code == "evaluation_wrong_account"
+
+
+@pytest.mark.parametrize("module", ["dev_submit", "answer_key"])
+def test_a_failed_keygen_leaves_no_key_file(tmp_path, monkeypatch, module):
+    """A missing `cryptography` fails before the key file exists, so a rerun
+    is never blocked by a half-made key."""
+    from carbon.challenge_validator import answer_key as ak
+
+    cls = ds.SubmitterKey if module == "dev_submit" else ak.ProducerKey
+
+    def missing(self, raw):
+        raise ModuleNotFoundError("No module named 'cryptography'")
+
+    monkeypatch.setattr(cls, "__init__", missing)
+    with pytest.raises(ModuleNotFoundError):
+        cls.create(tmp_path / "k.key")
+    assert not (tmp_path / "k.key").exists()

@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-portfolio-f1-native-static-first",
+  "recorded_at": "2026-10-06T20:29:27Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "F1 native static diagnostic first run", "description": "Invoke the two standalone test functions with Windows Python after pytest was unavailable"},
+  "expected": "Both packet checks pass",
+  "observed": "Section-order check passed; a literal phrase assertion failed because Markdown line wrapping split the words.",
+  "keep": ["The worked example correctly labels the proposed weight split as not adopted."],
+  "change": ["Normalize whitespace in the static phrase check."],
+  "protocol_elements": ["challenge.pipeline.lessons", "portfolio.f1.packet"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

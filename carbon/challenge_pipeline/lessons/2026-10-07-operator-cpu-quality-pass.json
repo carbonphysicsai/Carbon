@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-operator-cpu-quality-pass",
+  "recorded_at": "2026-10-07T02:13:35Z",
+  "challenge": "protocol",
+  "stage": "protocol",
+  "execution": {
+    "kind": "test_run",
+    "ref": "QUALITY_BASE_SHA=ec1f7948ddc575897d22da8f7a4ad0e5d2423d0e canonical bash tmp/canonical_preflight_modes.sh",
+    "description": "Pinned quality/diff preflight with Git modes restored only in the validation copy and locked environment resynchronized"
+  },
+  "expected": "Run unmodified doctor, quality ratchet and diff hygiene with no ignored lint rules.",
+  "observed": "Final executable-input preflight passed: Ruff 0/776, Black 0/68, four changed Python files clean, and Git diff hygiene against ec1f7948, including the exact-type subclass refusal and its test. The local mode-restoration helper is not a runtime change or part of the PR. Earlier command, import and metadata failures remain separately recorded.",
+  "keep": ["Use committed mode identity when validating a Windows-mounted source copy."],
+  "change": [],
+  "protocol_elements": ["canonical quality", "Git mode identity", "diff hygiene"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

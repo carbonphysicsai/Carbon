@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-operator-cpu-mode-sync",
+  "recorded_at": "2026-10-07T02:05:00Z",
+  "challenge": "protocol",
+  "stage": "protocol",
+  "execution": {
+    "kind": "test_run",
+    "ref": "canonical validation-copy mode restoration followed by preflight",
+    "description": "Correct file modes inside the isolated copy before quality, without updating the host"
+  },
+  "expected": "Doctor and quality run against tracked file modes.",
+  "observed": "The second doctor refused stale editable-package metadata after mode restoration. Quality did not run. The corrective local wrapper synchronizes the locked environment after restoring modes, without modifying canonical scripts or ignoring diagnostics.",
+  "keep": ["Doctor must refuse mismatched environment metadata."],
+  "change": ["Resynchronize after correcting copied filesystem metadata; leave source modes and shared Git metadata unchanged."],
+  "protocol_elements": ["canonical package identity", "isolated source-copy validation"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

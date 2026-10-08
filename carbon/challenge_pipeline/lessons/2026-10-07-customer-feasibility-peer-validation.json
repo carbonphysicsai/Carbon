@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-customer-feasibility-peer-validation",
+  "recorded_at": "2026-10-07T19:20:53Z",
+  "challenge": "eight-challenge-foundation-development",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-CUSTOMER-FEASIBILITY-02 repaired candidate diagnostic batch",
+    "description": "Focused static-panel pytest, read-only Black and pipeline validation after three parallel read-only reviews"
+  },
+  "expected": "Correct slice-length normalization, explicit comparison controls and deterministic complete-task panels without invented timing evidence",
+  "observed": "Motor review identified a double-normalization risk and unequal-resource comparison ambiguity; the addendum now distinguishes full-stack-equivalent slice averaging from actual-slice summation and does not imply equal copper loss from equal current density. Cooling/Battery and cost-panel reviews found no concrete blocking defects. The repaired candidate's 12 host tests passed, Black left both files unchanged, and the pipeline diagnostic accepted 7 records and 406 then-present lessons while remaining DEFINING with zero awaiting a decision. Host diagnostics are not canonical acceptance. No reference solve, paid dispatch or CPU-hour measurement occurred.",
+  "keep": ["Use communicating domain reviewers to check shared assumptions, with one author integrating one bounded ticket and PR."],
+  "change": ["Bind full-task solve and launch accounting before treating a panel as funded; preserve null timing slots until measured."],
+  "protocol_elements": ["challenge.reference.adequacy", "challenge.design-packet.f1", "challenge.pipeline.lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

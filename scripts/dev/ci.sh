@@ -160,8 +160,16 @@ fi
 # workflow step because the workflow delegates all of its semantics to these
 # scripts, and adding a step there would have widened what that invariant pins
 # instead of respecting it. Skipped, loudly, where no browser exists.
+# Not a merge requirement from 2026-10-07 (owner). On a hosted runner the
+# discovered browser never exposes a DevTools port: it writes no stderr and
+# creates no DevToolsActivePort, so the smoke cannot start a browser it can
+# drive. It failed #607, #628, #667, #700, #727, #751 and #761 without any of
+# them being at fault. Set CARBON_LAUNCHPAD_SMOKE=1 to run it where a browser
+# does work; the assertions are unchanged and nothing about it is weakened.
 if on_shard 4; then
-  if "${python_bin}" -c "import sys; sys.path.insert(0, 'docs/development/carbon_hub/tools'); import browser_smoke_test as cdp; cdp.discover_browser()" >/dev/null 2>&1; then
+  if [ "${CARBON_LAUNCHPAD_SMOKE:-0}" != "1" ]; then
+    echo "==> Launchpad real-browser smoke NOT RUN: set CARBON_LAUNCHPAD_SMOKE=1"
+  elif "${python_bin}" -c "import sys; sys.path.insert(0, 'docs/development/carbon_hub/tools'); import browser_smoke_test as cdp; cdp.discover_browser()" >/dev/null 2>&1; then
     echo "==> Launchpad real-browser smoke"
     "${python_bin}" scripts/dev/miner_launchpad/browser_smoke.py
   else

@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-first-three-customer-focused-pass",
+  "recorded_at": "2026-10-07T17:16:52Z",
+  "challenge": "eight-challenge-foundation-development",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-CUSTOMER-PACKETS-01 second canonical packet/pipeline check",
+    "description": "Focused pytest, pipeline validation and applicable Ruff/Black/diff checks in the isolated canonical environment"
+  },
+  "expected": "Packet tests and quality pass with the new Python test stored as a non-executable file",
+  "observed": "65 passed, 1 existing optional-numpy skip; pipeline DEFINING, 7 records valid, 404 lessons valid, 0 awaiting decision. Ruff EXE002 stopped subsequent checks because the NTFS copy presented the new test as executable.",
+  "keep": [
+    "Keep the repaired literal-field AST check and all packet/reference boundaries.",
+    "Keep Ruff's executable-file rule; this is a host-copy mode mismatch, not scientific failure."
+  ],
+  "change": [
+    "Store the new test with Git mode 100644 and normalize that intended mode inside the isolated canonical copy before the final quality checks."
+  ],
+  "protocol_elements": ["challenge.design-packet.f1", "challenge.pipeline.lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

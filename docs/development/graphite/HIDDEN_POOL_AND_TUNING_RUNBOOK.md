@@ -179,13 +179,28 @@ against the hidden deployment `H`
    ```bash
    python -m carbon.challenge_validator.tuning quiz-jobs --config H --work <Q>
    python -m carbon.challenge_validator.tuning solve --work <Q> --overlay <TRUTH_OVERLAY>
+   python -m carbon.challenge_validator.tuning quiz-refine --work <Q>
+   python -m carbon.challenge_validator.tuning solve --work <Q>/refine --overlay <TRUTH_OVERLAY>
    python -m carbon.challenge_validator.tuning quiz-select --work <Q> --panel docs/development/evidence/battery-quiz-designs/disagreement-panel-v1.json
    ```
 
+   - Each Q3 scenario is solved on the 117-point lattice.
+   - **`quiz-refine`** (quiz-registry-v8) writes `<Q>/refine/jobs.json`: a
+     refined solve for every lattice point whose standard reference is
+     within one contract band of a limit. It prints the refine count per
+     scenario and the total. The second `solve` runs them in the same pinned
+     truth image.
+   - `quiz-select` judges each scenario on its settled references: the
+     refined truth where the refined solve is OK, the standard reference
+     otherwise. The quiz records each scenario's `refine_points`,
+     `refined_ok` and `residual` (points still UNRESOLVED), counts only.
+   - **`tuning_quiz_needs_refine`:** a refine point has no refined record.
+     Run `quiz-refine` and `solve --work <Q>/refine` (again), then
+     `quiz-select`.
    - **If `quiz-select` refuses with `tuning_quiz_needs_more_q3`:** run
-     `quiz-jobs --round <N>` with the round it names, `solve` again, and
-     `quiz-select` again. Each round adds 4 Q3 conditions; infeasible ones
-     are redrawn and counted.
+     `quiz-jobs --round <N>` with the round it names, `solve`, `quiz-refine`
+     and `solve --work <Q>/refine` again, then `quiz-select`. Each round adds
+     4 Q3 conditions; infeasible ones are redrawn and counted.
    - **`tuning_quiz_panel_incomplete`:** rerun `quiz-select`, which retries
      the panel members that failed to rebuild.
    - **`tuning_quiz_q2_pool_short`:** stop and tell the Test Lead. Q2 is
@@ -205,7 +220,8 @@ against the hidden deployment `H`
 
    `score` writes these, owner-only, in `<W>`:
    - `scores.json` and `rows/`;
-   - `quiz-scores.json`: each member's Q2 and Q3 measures;
+   - `quiz-scores.json`: each member's Q2 and Q3 measures (Q3's include
+     `unresolved`), judged against the settled references;
    - `q3-regret.json`: each member's mean Q3 decision regret over the
      feasible scenarios. Ryan passes it to Data Collection's `tuning_rescore
      --q3-regret`.

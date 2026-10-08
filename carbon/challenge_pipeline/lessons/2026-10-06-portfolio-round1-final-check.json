@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-06-portfolio-round1-final-check",
+  "recorded_at": "2026-10-06T21:36:59Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "c8003c70f canonical focused/pipeline/delivery checks", "description": "Check final candidate planning invariants and delivery hygiene"},
+  "expected": "The revised packets and caps remain consistent without promoting analytical probes to reference evidence.",
+  "observed": "24 focused tests passed; pipeline validation accepted 7 records and 372 then-current lessons while remaining DEFINING. Delivery hygiene passed for 18 changed paths and 3 introduced commits. The check did not dispatch solvers, test physical adequacy or resolve F1's separately reported hidden-score CI failures.",
+  "keep": ["Report the basis of each green check; a below-limit analytical estimate is not an admissible spatial reference result."],
+  "change": ["Make the user-facing thermal-screen summary explicitly say that frozen near-limit probes are diagnostics, not approved safe bursts."],
+  "protocol_elements": ["challenge.reference.adequacy", "challenge.pipeline.lessons", "challenge.evidence.claim-basis"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

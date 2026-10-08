@@ -11,7 +11,7 @@ repo_root="$(CDPATH= cd -- "${script_dir}/../.." && pwd -P)"
 command -v docker >/dev/null 2>&1 || { echo 'Docker is unavailable.' >&2; exit 2; }
 output="${1:-${repo_root}/.carbon-artifacts/torch-gpu-worker-image.json}"
 parent_manifest="${repo_root}/.carbon-artifacts/torch-gpu-parent-worker-image.json"
-bash "${script_dir}/c03_worker_image.sh" "${parent_manifest}"
+bash "${script_dir}/worker_parent_manifest.sh" "${parent_manifest}"
 parent="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["image_id"])' "${parent_manifest}")"
 source_digest="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["source_tree_digest"])' "${parent_manifest}")"
 [[ "${parent}" =~ ^sha256:[0-9a-f]{64}$ && "${source_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 2
