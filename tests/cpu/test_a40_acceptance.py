@@ -30,7 +30,7 @@ RELEASED_TORCH = a40.TORCH_IMAGE
         "ghcr.io/carbonphysicsai/carbon-accelerator-worker:latest",
         "ghcr.io/carbonphysicsai/carbon-accelerator-worker",
         "ghcr.io/carbonphysicsai/carbon-accelerator-worker@sha256:" + "0" * 64,
-        "ghcr.io/other/worker@sha256:" + "8f16c105" + "0" * 56,
+        "ghcr.io/other/worker@sha256:" + "c34d579e" + "0" * 56,
         "ghcr.io/carbonphysicsai/carbon-torch-gpu-worker@sha256:abc",
         "",
         None,
@@ -43,10 +43,10 @@ def test_only_released_digest_pinned_images_are_accepted(image):
 
 def test_released_images_are_the_briefs_digests():
     assert a40.check_image(RELEASED_ACCELERATOR).endswith(
-        "8f16c1055e14ebe4c35efe6d12c9b4230f5758cb87f383bdc6d9bc80557ce409"
+        "c34d579e37eeffee944b8b4b876289963a6b283ea825b91a404167d92d0124b4"
     )
     assert a40.check_image(RELEASED_TORCH).endswith(
-        "056bd77c5d8195206b42102b92e818176999266281bb485522b3c57b451a8a09"
+        "28856fd628d46818741e028837f064fe1a6f9f19653091adca92a36ff5726fc1"
     )
     assert a40.IMAGES == {"jax": RELEASED_ACCELERATOR, "pytorch": RELEASED_TORCH}
 
