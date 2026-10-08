@@ -305,14 +305,102 @@ seed, input, reference or score appears in this file.
 - The alternative is to retire the banks to the operator's archive unpublished.
   Either way it is the owner's step, and it is never automatic.
 
-## D. Candidate library, scripted prober and adversary brief (Test Engineer to fill)
+## D. Candidate library, scripted prober and adversary brief (Test Engineer)
 
-- The frozen, ordered library of candidate recipes (EV4's 100 recipes and Graphite's
-  run-5 constructions): the file, its digest, and the random order's seed (study-only,
-  not a hidden seed). EV4's recipes and run-5's constructions are the Test
-  Engineer's, not Data Collection's.
-- The scripted prober (S-sealed and S-revealed) and the G-sealed adversary brief
-  with its probe tool; development tooling with no access to operator records.
+**State (2026-10-08):**
+- D.1, arm H's library, is **built and frozen**. It is the only part of D
+  that Stage 0 needs.
+- D.2 and D.3 are specified here and are **to build** before the freeze (A.4),
+  as development tooling with no access to operator records.
+
+### D.1 Arm H's candidate library (frozen)
+
+| Item | Value |
+|---|---|
+| File | `docs/development/evidence/submission-rate-study-01/library-v1.json` |
+| Builder | `scripts/dev/rate_study/library.py` (`--check` refuses a stale file; `tests/cpu/test_rate_study_library.py`) |
+| `library_digest` | `sha256:31cea3b24b9d895c361d470cd394866776c2a82a3fbbaade2b99f0f20665d72b` |
+| Order seed (study-only, public) | `SUBMISSION-RATE-STUDY-01/arm-H/library-v1` |
+| Order rule | ascending `sha256(order_seed + ":" + strategy_digest)` |
+
+- **Contents: 89 distinct recipes.**
+  - EV4's panel (`panel.PANELS["ev4"]`): the **80 distinct recipes** behind
+    EV4's 100 members. "EV4's 100 recipes" in the plan counts members; a
+    member is a recipe at a panel seed.
+  - Graphite's run-5 constructions (`panel.PANELS["graphite-run5"]`): 9.
+  - By family: 62 MLP, 20 DeepONet and 7 kNN. No recipe is in both sources.
+- **Deduplication and seeds.** Recipes are deduplicated by the canonical
+  digest of the strategy document. Panel seeds are dropped, because the
+  validator chooses the rebuild seed.
+- **The order seed is not a hidden seed.** It is a public string that gates
+  nothing, and every entry's position follows from it and the recipe digest.
+- **How arm H submits.** Every rate and replicate starts at position 0 and
+  submits in order. It never conditions on a result. Replicates differ only
+  in the batches they draw (C.1).
+- **Per run:** `W0 × 3m` submissions: 36 at m = 1, 72 at m = 2 and 144 at
+  m = 4.
+  - At m = 4, the run passes the library's 89 and continues from position 0
+    (`cycle`), so 55 recipes are submitted a second time in the same run.
+  - **The Carbon Validator must confirm (VALIDATOR-30) that the study route
+    rebuilds and scores a repeated recipe.** It should not refuse it as a
+    duplicate or return the earlier result. A repeat is a new model and a new
+    D observation only if it is rebuilt. If the route refuses or caches
+    repeats, arm H at m = 4 would be 89 scored submissions, not 144; tell the
+    Test Lead before Stage 0 sizes are confirmed.
+- **The implementation version.** Recipes are rebuilt under the study
+  deployment's current battery implementation, which `manifest.json` records
+  (A.2). The library holds designs (strategy documents), not recipe digests,
+  so it does not go stale when the implementation version moves.
+
+### D.2 The scripted prober (S-sealed and S-revealed): to build before the freeze
+
+- **Where:** `scripts/dev/rate_study/prober.py`, development tooling.
+- **Its only input is the route's response to its own submissions:**
+  - S-sealed sees the mainnet allow-list fields;
+  - S-revealed also sees the batch score, on the study bank only
+    (OWNER-RATE-STUDY-D1-01).
+
+  It reads no operator record, case, seed or fresh score.
+- **The search is deterministic coordinate-wise hill climbing:**
+  - it starts at D.1's position 0;
+  - it moves over the battery contract's cost-free surfaces (width, depth,
+    steps, learning rate, weight decay, loss weights), one coordinate at a
+    time, on a fixed step list;
+  - it accepts a move when the route's returned objective improves;
+  - ties keep the current recipe;
+  - every proposal stays inside the contract, so nothing is refused for
+    shape.
+- **The objective:**
+  - S-sealed uses the allow-listed outcome (admitted and ranked fields as the
+    route returns them);
+  - S-revealed uses the returned batch score;
+  - the code is identical and only the field read differs.
+- **Determinism:** a run's sequence is a function of the route's responses
+  and the prober's own fixed step list. It uses no randomness, so a replicate
+  differs only in its batches.
+- **Tests:**
+  - a synthetic route checks determinism and that the search stays inside
+    the contract;
+  - a check that no file outside the run's agent-visible output is read.
+
+### D.3 The G-sealed brief and its probe tool: to build before the freeze
+
+- **The brief** (`docs/development/graphite/briefs/rate-study-g-sealed.md`):
+  maximise the route's returned outcome, using only what the route returns
+  for the session's own submissions. The session submits through the study
+  route at the run's rate. It has no hidden material, no operator record and
+  no fresh score, so it sees the mainnet view only.
+- **The probe tool:** D.2's step function, exposed as a Constructor tool that
+  proposes the next coordinate step from the session's own response history.
+  The session may use it or ignore it, which shows whether an LLM adds
+  anything over the scripted bound.
+- **Launch:** through the phase-3 runner with
+  `--study SUBMISSION-RATE-STUDY-01 --study-submission-cap <36|72|144>`.
+  The binding (F) is built: `STUDY_GRANTS` / `check_study_grant`,
+  GRAPHITE-STUDY-GRANT-BINDING-01. It goes to PR Head once #852 merges.
+  The grant is tokens-only, so no pod launches.
+- **Scope:** the brief and the tool are development tooling. They grant no
+  live authority, and every G-sealed run's outputs are operator-side records.
 
 ## F. Stage 1 entry point (for later; not part of Stage 0)
 
@@ -320,10 +408,13 @@ The G-sealed arms start through the existing Graphite phase-3/4 runner with
 `--study SUBMISSION-RATE-STUDY-01`. The runner's grant check for that flag is
 `grant_binding.STUDY_GRANTS` / `check_study_grant`: it must enforce the 30.00 USD
 ceiling, the per-run cap, 6 runs, 39,600 s per run, and a submission cap of at
-most 144 read from the frozen `freeze-manifest.json`. **Status: pending (Test
-Engineer); not on main** at the time of writing (verified). Until it is on
-main the grant (OWNER-RATE-STUDY-TOKENS-01) binds nothing, and no G-sealed run may
-start.
+most 144 read from the frozen `freeze-manifest.json`. **Status: built (Test Engineer, GRAPHITE-STUDY-GRANT-BINDING-01); it goes to PR Head
+once #852 merges.** It enforces the 30.00 USD ceiling, USD 4.91 a run, 6 runs, 39,600 s
+and a submission cap that is one of the arm caps (36, 72, 144). The runner takes the cap as
+`--study-submission-cap`, copied from the frozen `freeze-manifest.json`; checking it
+against the manifest itself waits for the manifest's schema (A.4). Until the binding
+is on main, the grant (OWNER-RATE-STUDY-TOKENS-01) binds nothing, and no G-sealed run
+may start.
 
 ## E. Checklist the owner runs
 
