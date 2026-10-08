@@ -1,0 +1,21 @@
+{
+ "schema": "carbon.cooling.lid-spreading-presolve-registry.v1",
+ "registered": "2026-10-08, before the lid pre-solve and the value check are computed",
+ "authority": "owner decision 2026-10-08 relayed by the Test Lead: the 85 C limit applies at the lid-side TIM2 interface, conditional on the cooling task remaining valuable; #822 (561bee38) thermal budget, the 53-job panel on hold; #817 stack (209ae609). Local CPU, no spend; DEVELOPMENT screen, not reference truth",
+ "step1_presolve": {
+  "geometry": "copper lid, 30 mm along the flow (x) by thickness t; the source band is uniform across the channels, so the lid's conduction is exactly 2D (x, z); ends x = 0 and 30 mm adiabatic",
+  "top": "the raw die flux map q(x) = qbar (1 + a g(x)) / sbar of the registered cold-plate domain (Gaussian band on a floor, peak/mean ratio 3, width 2.5 mm; centres 15 and 24 mm), normalised to 1,500 W over 30 x 30 mm; TIM1 does not smooth a prescribed flux (it sets the die-side jump only)",
+  "bottom": "Robin to the local coolant bulk temperature through TIM2 and the cell in series: q_b(x) = (T_lid_bottom(x) - T_bulk(x)) / (R2'' + 1/h_cell); T_bulk rises linearly from the inlet by P/(rho cp V) (PG25 at 45 C); h_cell from the existing uniform cell solves (span-mean heated-face rise over local bulk)",
+  "method": "exact Fourier-cosine series in x (200 modes) per mode solved through the thickness; cross-checked once against the pinned Elmer image (2D structured mesh, same law)",
+  "outputs": "post-spreader peak/mean of q_b at the TIM2 plane, its location, and the interface jump; against the #822 headroom target <= 1.2 at nominal R2'' (1.8 at 4e-6, 0.9 at 8e-6)",
+  "nominal": {"t_mm": 1.5, "k": 391, "R1": 5.14e-6, "R2": 6e-6},
+  "sensitivity": "one-at-a-time and corners over #817 ranges: t 1.5-3.2 mm, k 380-400, R2'' 4e-6 - 8e-6, h_cell over the existing designs' range; R1'' does not change the post-spreader map (prescribed flux) and is reported only as the die-side jump"
+ },
+ "step2_value_check": {
+  "strata": "#817 contexts: cold_uniform 30 C / 500 W, typical_uniform 40 / 1000, warm_uniform 45 / 1500, warm_central_band ratio 3 at 15 mm, warm_outlet_band ratio 3 at 24 mm; flow 2 L/min/kW",
+  "prediction": "per existing cell design, interface peak = max_x [T_face(x) + R2'' q_b(x)]; T_face from the design's existing warm cell solves, linear in flux: the uniform-load face profile plus the post-spreader map's departure applied through the design's own hotspot response (raw ratio-3 solve) scaled by the map's amplitude; cold and typical strata scale the warm-uniform face rise by power (flow scales with power)",
+  "designs": "the 32 existing cooling-feasibility-02 cell designs with REFERENCE-valid warm solves; designs with fluid above the PG25 range in a stratum stay UNRESOLVED there",
+  "valuable_if": "in at least one hot or warm stratum some designs pass and some fail 85 C, and margins differ between designs; if every design passes or every design fails in every stratum, report NOT_VALUABLE and stop",
+  "uncertainty": "prediction only (linear superposition across maps, power scaling); a margin within 2 C of 85 C is reported as NEAR, not a verdict"
+ }
+}
