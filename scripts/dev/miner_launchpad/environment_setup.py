@@ -52,7 +52,10 @@ Only launchable choices are offered.
 - The evaluation endpoint (LP-PROD-E) is the one Carbon publishes for each
   Challenge in `published_endpoints.json`. Review writes it into the
   profile, and says plainly when none is published yet: such a profile
-  practises and freezes, but cannot submit.
+  practises and freezes, but cannot submit. Review also pins each intake's
+  receiver hotkey (LAUNCHPAD-ACCEPT-03): the published one, or the one the
+  miner names beside their own intake. Nothing is signed for an intake that
+  reports another.
 
 **A check describes one install** (LP-PROD-E). The compute check pins each
 image manifest it verified by digest, and the installer records what it
@@ -231,9 +234,9 @@ SIGNER_STEP = "start `carbon-miner-signer` for your registered hotkey"
 #: subnet and Challenge, the validator intake a frozen candidate is
 #: submitted to and the hotkey that receives it. An operator adds the live
 #: entry by pull request (BATTERY_VALIDATOR_SERVICE_RUNBOOK); an empty list
-#: publishes none. The receiver hotkey is shown for reference only: Review
-#: does not write or check it, and nothing yet compares it with the receiver
-#: the intake reports at submit (`RECEIVER_NOTE`).
+#: publishes none. The receiver hotkey is binding (LAUNCHPAD-ACCEPT-03):
+#: Review pins it in the profile's `receivers`, and the intake must report it
+#: before a submit, a resend or a status poll is signed (`RECEIVER_NOTE`).
 PUBLISHED_ENDPOINTS = Path(__file__).resolve().with_name("published_endpoints.json")
 PUBLISHED_SOURCE = "scripts/dev/miner_launchpad/published_endpoints.json"
 PUBLISHED_SCHEMA = "carbon.launchpad.published-endpoints.v1"
@@ -248,12 +251,66 @@ NO_ENDPOINT = (
     "update Carbon and review again then, or name a validator intake you "
     "run yourself."
 )
-#: What setup says beside a published receiver hotkey.
+#: What setup says beside a pinned receiver hotkey (LAUNCHPAD-ACCEPT-03).
 RECEIVER_NOTE = (
-    "for reference: the hotkey Carbon publishes as this endpoint's receiver. "
-    "Nothing checks it yet; your signer signs for the receiver the intake "
-    "reports when you submit."
+    "binding: your profile pins this hotkey as the endpoint's receiver. Before "
+    "your signer signs a submission, a resend or a status request, Carbon "
+    "checks that the intake reports this receiver, and otherwise refuses "
+    "intake_receiver_mismatch with nothing signed or sent."
 )
+#: What setup and the prelaunch review say about an intake whose profile was
+#: written before receivers were pinned: it keeps working, unchecked.
+RECEIVER_NOT_PINNED = (
+    "Your profile was written before Carbon pinned each intake's receiver "
+    "hotkey, so the receiver of your intake for {title} is not checked before "
+    "your signer signs. Review again in setup to pin it."
+)
+#: What a miner's own intake needs at Review (LAUNCHPAD-ACCEPT-03).
+RECEIVER_STEP = (
+    "name the validator's public receiver hotkey (its ss58 address) beside "
+    "your own intake: receiver_hotkey"
+)
+#: What a miner does when an intake reports another receiver than named.
+RECEIVER_MISMATCH_STEP = (
+    "check the intake address and the receiver hotkey you named: the intake "
+    "reports another receiver, so nothing would be signed for it"
+)
+#: How several own intakes name their receivers.
+RECEIVER_ONE_STEP = (
+    "send receiver_hotkey beside exactly one intake of your own, or receivers "
+    "mapping each of your intakes' Challenge ids to its receiver hotkey"
+)
+
+
+def _named_receivers(value, intakes, unpinned=frozenset()) -> dict:
+    """The receiver hotkey a Review request names for each of the miner's
+    own `intakes` (LAUNCHPAD-ACCEPT-03): `receiver_hotkey` beside exactly one,
+    or `receivers` mapping several. Each own intake needs one, except one in
+    `unpinned` (an update writing a profile from before receivers were
+    pinned again). Refusals name the field `receiver_hotkey`."""
+
+    def refused(code, step=RECEIVER_ONE_STEP):
+        return SetupRefused("receiver_hotkey", code, next_step=step)
+
+    named = value.get("receivers", {})
+    if type(named) is not dict:
+        raise refused("receiver_hotkey_names_one_intake")
+    named = dict(named)
+    if "receiver_hotkey" in value:
+        if "receivers" in value or len(intakes) != 1:
+            raise refused("receiver_hotkey_names_one_intake")
+        named[next(iter(intakes))] = value["receiver_hotkey"]
+    for challenge_id, hotkey in named.items():
+        if challenge_id not in intakes:
+            raise refused("receiver_hotkey_needs_its_intake")
+        if type(hotkey) is not str or not _ADDRESS.fullmatch(hotkey):
+            raise refused("receiver_hotkey_invalid", RECEIVER_STEP)
+    for challenge_id in intakes:
+        if challenge_id not in named and challenge_id not in unpinned:
+            raise refused("receiver_hotkey_required", RECEIVER_STEP)
+    return named
+
+
 #: What setup says about the miner's own intake in a profile an update set
 #: aside: Review writes only the intakes it is given, so it is named again.
 KEPT_INTAKE_NOTE = (
@@ -1873,18 +1930,29 @@ class EnvironmentSetup:
         challenges = []
         for challenge in intake_challenges():
             entry = published["endpoints"].get(challenge["id"])
+            receiver = None
             if type(written) is dict:
                 mine = written.get(challenge["id"])
                 intake = mine.get("url") if type(mine) is dict else None
                 source = mine.get("source") if type(mine) is dict else None
+                receiver = mine.get("receiver") if type(mine) is dict else None
             else:
                 intake = entry["intake_url"] if entry else None
                 source = "published" if entry else None
+                if "profile" not in record and entry is not None:
+                    # Before Review: the receiver it will pin.
+                    receiver = entry["receiver_hotkey"]
             item = {**challenge, "intake": intake, "source": source}
-            if source == "published" and entry and entry["intake_url"] == intake:
-                # Shown, never enforced: see RECEIVER_NOTE.
-                item["receiver_hotkey"] = entry["receiver_hotkey"]
+            if type(receiver) is str:
+                # Binding (LAUNCHPAD-ACCEPT-03): see RECEIVER_NOTE.
+                item["receiver_hotkey"] = receiver
                 item["receiver_hotkey_note"] = RECEIVER_NOTE
+            elif intake is not None and "profile" in record:
+                # Written before receivers were pinned: it keeps working,
+                # unchecked, and setup says to review again.
+                item["receiver_hotkey_warning"] = RECEIVER_NOT_PINNED.format(
+                    title=challenge["title"]
+                )
             if intake is None:
                 item["note"] = NO_ENDPOINT.format(title=challenge["title"])
                 if entry is not None:
@@ -1897,6 +1965,8 @@ class EnvironmentSetup:
             own = kept.get(challenge["id"])
             if type(own) is dict and type(own.get("url")) is str:
                 item["set_aside_intake"] = own["url"]
+                if type(own.get("receiver")) is str:
+                    item["set_aside_receiver"] = own["receiver"]
                 item["note"] = KEPT_INTAKE_NOTE.format(title=challenge["title"])
             challenges.append(item)
         return {
@@ -2470,7 +2540,21 @@ class EnvironmentSetup:
         no network for it. A Challenge with no endpoint is never passed over
         silently: the profile is written and `warnings` says it cannot
         submit there, and setup's Evaluation step keeps saying so.
+
+        Each intake's receiver hotkey is pinned in the profile's `receivers`
+        (LAUNCHPAD-ACCEPT-03): a published endpoint's `receiver_hotkey`, or,
+        for the miner's own intake, the `receiver_hotkey` named beside it
+        (`receivers` maps several), which is required. The own intake's
+        public facts must report that receiver, or Review refuses
+        `intake_receiver_mismatch`.
         """
+        return self._review(value)
+
+    def _review(self, value, unpinned=frozenset()) -> dict:
+        """Review, where `unpinned` names the Challenges whose own intake was
+        written before receivers were pinned and is written again without
+        one (an update's Review, `after_install`): kept working, with a
+        warning, rather than stranded."""
         from carbon.challenge_registry import ResolutionError
         from carbon.challenge_registry.campaigns import campaign_for_id
         from scripts.dev.miner_launchpad.runner import (
@@ -2479,7 +2563,11 @@ class EnvironmentSetup:
             _legacy_challenge,
         )
 
-        _closed(value, {"confirm"}, {"intakes", LEGACY_INTAKE})
+        _closed(
+            value,
+            {"confirm"},
+            {"intakes", LEGACY_INTAKE, "receiver_hotkey", "receivers"},
+        )
         if value["confirm"] is not True:
             raise SetupRefused("confirm", "review_needs_confirmation")
         intakes = value.get("intakes", {})
@@ -2488,19 +2576,37 @@ class EnvironmentSetup:
         intakes = dict(intakes)
         if LEGACY_INTAKE in value:
             intakes.setdefault(_legacy_challenge(), value[LEGACY_INTAKE])
+        campaigns = {}
         for challenge_id, url in intakes.items():
             if not _intake_url(url):
                 raise SetupRefused("intakes", "intake_url_invalid")
             try:
-                campaign = campaign_for_id(challenge_id)
+                campaigns[challenge_id] = campaign_for_id(challenge_id)
             except (ResolutionError, TypeError):
                 raise SetupRefused("intakes", "challenge_not_implemented") from None
-            if campaign.intake_check is None:
+            if campaigns[challenge_id].intake_check is None:
                 raise SetupRefused("intakes", "challenge_has_no_intake")
-            self.checks.intake(url, campaign=campaign)
+        receivers = _named_receivers(value, intakes, unpinned)
+        for challenge_id, url in intakes.items():
+            facts = self.checks.intake(url, campaign=campaigns[challenge_id])
+            pinned = receivers.get(challenge_id)
+            if pinned is not None and facts.get("receiver") != pinned:
+                raise SetupRefused(
+                    "receiver_hotkey",
+                    "intake_receiver_mismatch",
+                    next_step=RECEIVER_MISMATCH_STEP,
+                )
         sources = {challenge_id: "yours" for challenge_id in intakes}
         published = published_endpoints()
-        warnings = []
+        warnings = [
+            {
+                "code": "intake_receiver_not_pinned",
+                "challenge": challenge["id"],
+                "message": RECEIVER_NOT_PINNED.format(title=challenge["title"]),
+            }
+            for challenge in intake_challenges()
+            if challenge["id"] in intakes and challenge["id"] not in receivers
+        ]
         if published["problem"]:
             warnings.append(
                 {
@@ -2523,11 +2629,14 @@ class EnvironmentSetup:
                 )
                 continue
             intakes[challenge["id"]] = entry["intake_url"]
+            receivers[challenge["id"]] = entry["receiver_hotkey"]
             sources[challenge["id"]] = "published"
         with self.lock:
             cfg = self.profile()
             if intakes:
                 cfg = {**cfg, "intakes": intakes}
+            if receivers:
+                cfg = {**cfg, "receivers": receivers}
             record = self._record()
             agent = record["agent"]
             if agent.get("check", {}).get("hermes_profile") == "written at review":
@@ -2551,7 +2660,15 @@ class EnvironmentSetup:
                 # Each intake written and whose it is, so setup shows them and
                 # an update keeps the miner's own (LP-PROD-E).
                 "intakes": {
-                    challenge_id: {"url": url, "source": sources[challenge_id]}
+                    challenge_id: {
+                        "url": url,
+                        "source": sources[challenge_id],
+                        **(
+                            {"receiver": receivers[challenge_id]}
+                            if challenge_id in receivers
+                            else {}
+                        ),
+                    }
                     for challenge_id, url in intakes.items()
                 },
                 "warnings": warnings,
@@ -2589,6 +2706,21 @@ class EnvironmentSetup:
             }
         except (OSError, ValueError, TypeError, AttributeError):
             return {}
+
+    def _own_receivers(self, record) -> dict:
+        """The receiver hotkeys the miner's last Review pinned beside their
+        own intakes (LAUNCHPAD-ACCEPT-03); none for a Review from before."""
+        written = (record.get("profile") or {}).get("intakes")
+        if type(written) is not dict:
+            return {}
+        return {
+            challenge_id: entry["receiver"]
+            for challenge_id, entry in written.items()
+            if type(entry) is dict
+            and entry.get("source") == "yours"
+            and type(entry.get("url")) is str
+            and type(entry.get("receiver")) is str
+        }
 
     def _set_profile_aside(self) -> str | None:
         """Move the written runner profile, if any, to `STALE_PROFILE` in the
@@ -2691,6 +2823,7 @@ class EnvironmentSetup:
                 return report
             had_profile = "profile" in record
             own = self._own_intakes(record) if had_profile else {}
+            pinned = self._own_receivers(record) if had_profile else {}
             now = int(time.time())
             record.pop("compute")
             record.pop("profile", None)
@@ -2701,7 +2834,15 @@ class EnvironmentSetup:
                     "at": now,
                     **({"file": moved} if moved else {}),
                     "intakes": {
-                        challenge_id: {"url": url, "source": "yours"}
+                        challenge_id: {
+                            "url": url,
+                            "source": "yours",
+                            **(
+                                {"receiver": pinned[challenge_id]}
+                                if challenge_id in pinned
+                                else {}
+                            ),
+                        }
                         for challenge_id, url in own.items()
                     },
                 }
@@ -2740,8 +2881,16 @@ class EnvironmentSetup:
             report["next_steps"].append("review in setup to write your profile")
             return report
         try:
-            reviewed = self.review(
-                {"confirm": True, **({"intakes": own} if own else {})}
+            # The receivers the miner's last Review pinned are pinned again;
+            # an own intake from before pinning is written again without
+            # one, with a warning, rather than stranded (LAUNCHPAD-ACCEPT-03).
+            reviewed = self._review(
+                {
+                    "confirm": True,
+                    **({"intakes": own} if own else {}),
+                    **({"receivers": pinned} if pinned else {}),
+                },
+                unpinned=frozenset(own) - set(pinned),
             )
         except SetupRefused as refused:
             report["profile"] = {"written": False, **_refusal(refused)}

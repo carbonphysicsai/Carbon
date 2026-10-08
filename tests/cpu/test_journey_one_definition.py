@@ -338,6 +338,11 @@ def test_every_operation_in_the_table_is_a_step_or_read_by_the_journey():
         }
         | set(LIBRARY_READS)
         | set(LIBRARY_WRITES)
+        # The strategy commitment needs a Challenge that commits on chain,
+        # which the journey's fixture Challenge does not: pinned through both
+        # doors with the real signer by tests/cpu/test_launchpad_commitment.py
+        # (LAUNCHPAD-ACCEPT-02).
+        | {"commit"}
     )
     # Halt and resume are the lifecycle controls, pinned by the door-parity
     # test through both doors; the journey has no pause in it. A journal note

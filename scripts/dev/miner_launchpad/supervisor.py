@@ -94,8 +94,9 @@ QUEUED, RUNNING, DONE = "QUEUED", "RUNNING", "DONE"
 #: Center resumes it; any other supervisor keeps the pause (D4).
 HANDED_OVER = "paused_for_handover"
 #: What a queue item carries out: the campaign's run (a launch or resume), or
-#: one of a miner's operations.
-OPERATIONS = ("run", "practice", "freeze_candidate", "submit")
+#: one of a miner's operations. A commit runs here because the miner's signer
+#: waits on its own terminal for the miner to confirm (LAUNCHPAD-ACCEPT-02).
+OPERATIONS = ("run", "practice", "freeze_candidate", "submit", "commit")
 
 #: Ledger control states in which some process was working when it last
 #: wrote. Seen by a supervisor holding the campaign's free ownership lock,
@@ -362,6 +363,14 @@ NEXT_ACTIONS = {
         "is kept. Correct this Challenge's validator intake address under Set "
         "up your environment, then submit again."
     ),
+    # LAUNCHPAD-ACCEPT-03: checked before anything is signed.
+    "intake_receiver_mismatch": (
+        "The validator intake reports another receiver hotkey than the one "
+        "your profile pins for this Challenge, so nothing was signed or sent; "
+        "the frozen candidate is kept. Review the evaluation endpoint under "
+        "Set up your environment (carbon_setup_review): check the intake "
+        "address and its receiver hotkey, then submit again."
+    ),
     "intake_signer_changed": (
         "This epoch's candidate was submitted under another hotkey than the "
         "signer now running, and nothing was sent. Start carbon-miner-signer "
@@ -457,21 +466,164 @@ NEXT_ACTIONS = {
         "different candidate."
     ),
     "commitment_reader_unavailable": (
-        "This validator requires an on-chain commitment it cannot read yet; "
-        "that is on its side. Submit again later, or to another validator; "
-        "the frozen candidate is kept."
+        "Your hotkey's on-chain commitment could not be read just now, by "
+        "this validator or by Carbon before it sent anything; that is not a "
+        "verdict on the recipe. Try again in a few minutes, or submit to "
+        "another validator; the frozen candidate is kept."
     ),
     "commitment_required": (
-        "This validator requires the recipe's hash committed on chain first. "
-        "Commit it from the Launchpad (your signer asks you to confirm it in "
-        "its terminal) or with your own Bittensor SDK code, then submit again; "
-        "the frozen candidate is kept."
+        "This validator requires the frozen candidate's hash committed on "
+        "chain first. Commit it (carbon_commit with this campaign; your "
+        "signer asks you to confirm it in its terminal) or with your own "
+        "Bittensor SDK code, then submit again (or resume, where Carbon's "
+        "agent selects); the frozen candidate is kept."
     ),
     "commitment_stale": (
         "This validator counts a commitment only if it was posted after your "
-        "hotkey's previous admitted submission. Recommit the recipe's hash "
-        "(the Launchpad offers it; your signer asks you to confirm), then "
-        "submit again; the frozen candidate is kept."
+        "hotkey's previous admitted submission. Recommit it (carbon_commit "
+        "with this campaign and recommit=true; your signer asks you to "
+        "confirm it in its terminal), then submit again (or resume, where "
+        "Carbon's agent selects); the frozen candidate is kept."
+    ),
+    # The commitment itself (LAUNCHPAD-ACCEPT-02): the Launchpad's door and
+    # the poster (`carbon.chain.commitment_poster.PostCode`).
+    "recommit_boolean_required": "Send recommit as true or false.",
+    "commitment_not_offered": (
+        "This campaign's Challenge uses no on-chain commitment. Submit "
+        "without one (carbon_submit)."
+    ),
+    "commitment_digest_unavailable": (
+        "Carbon could not work out the frozen candidate's commitment digest, "
+        "so nothing was asked or sent. Report it; the frozen candidate is "
+        "kept."
+    ),
+    "commitment_bad_digest": (
+        "The digest to commit is not a sha256 digest, so nothing was asked "
+        "or sent. Report it: Carbon computes it from the frozen candidate."
+    ),
+    "commitment_fee_unknown": (
+        "The chain did not quote the commitment's fee, so nothing was signed "
+        "or sent. Commit again in a few minutes (carbon_commit)."
+    ),
+    "commitment_fee_over_ceiling": (
+        "The fee rose above your signer's ceiling after you confirmed, so the "
+        "signature was discarded unsent. Commit again later (carbon_commit)."
+    ),
+    "commitment_call_mismatch": (
+        "Your signer returned another call than the one prepared, so nothing "
+        "was sent. Check that your signer and Carbon are the same version, "
+        "then commit again (carbon_commit)."
+    ),
+    "commitment_signature_invalid": (
+        "The signature did not verify for your hotkey, so nothing was sent. "
+        "Check that your signer holds your registered hotkey, then commit "
+        "again (carbon_commit)."
+    ),
+    "commitment_in_flight": (
+        "A commitment for this hotkey is already being posted. Observe until "
+        "it settles (carbon_observe); it is never sent twice."
+    ),
+    "commitment_ambiguous": (
+        "A commitment was broadcast and its outcome is not known yet. Carbon "
+        "never sends it again: it reads the chain until the request's era has "
+        "passed (about 26 minutes). Observe (carbon_observe), and commit "
+        "again only if it did not land."
+    ),
+    "commitment_failed": (
+        "The chain included the commitment and rejected it, so it is not on "
+        "chain. Commit again later (carbon_commit); the frozen candidate is "
+        "kept."
+    ),
+    "commitment_not_observed": (
+        "The commitment was finalized but did not read back as your hotkey's "
+        "commitment. Observe again in a minute (carbon_observe); commit again "
+        "(carbon_commit) only if it is still not on chain."
+    ),
+    # The signer's own commit refusals (`carbon_miner_signer.CommitRefusal`),
+    # by their closed values. None signed anything.
+    "MALFORMED_REQUEST": (
+        "Your signer refused the commitment request as malformed; nothing was "
+        "signed or sent. Check that your signer and Carbon are the same "
+        "version, then commit again (carbon_commit)."
+    ),
+    "COMMITMENT_NOT_PINNED": (
+        "Your signer's commitment pins are incomplete, so it signs no "
+        "commitment; nothing was sent. Update carbon-miner-signer to a "
+        "release whose commitment record is complete, restart it, then commit "
+        "again (carbon_commit)."
+    ),
+    "NOT_A_COMMITMENT": (
+        "Your signer refused a call that is not the one commitment call it "
+        "signs; nothing was signed or sent. Check that your signer and Carbon "
+        "are the same version, then commit again (carbon_commit)."
+    ),
+    "BAD_DIGEST": (
+        "Your signer refused the digest as not a sha256 digest; nothing was "
+        "signed or sent. Report it: Carbon computes it from the frozen "
+        "candidate."
+    ),
+    "WRONG_NETUID": (
+        "Your signer refused a commitment for another subnet than the one it "
+        "started for; nothing was signed or sent. Start it for the subnet "
+        "your profile names, then commit again (carbon_commit)."
+    ),
+    "WRONG_NETWORK": (
+        "Your signer refused a commitment for another network than the one it "
+        "started for; nothing was signed or sent. Start it for the network "
+        "your profile names, then commit again (carbon_commit)."
+    ),
+    "NONZERO_TIP": (
+        "Your signer refused a commitment carrying a tip; nothing was signed "
+        "or sent. Check that your signer and Carbon are the same version, "
+        "then commit again (carbon_commit)."
+    ),
+    "IMMORTAL_ERA": (
+        "Your signer refused an immortal transaction; nothing was signed or "
+        "sent. Check that your signer and Carbon are the same version, then "
+        "commit again (carbon_commit)."
+    ),
+    "ERA_TOO_LONG": (
+        "Your signer refused a transaction whose era is longer than its cap; "
+        "nothing was signed or sent. Check that your signer and Carbon are the "
+        "same version, then commit again (carbon_commit)."
+    ),
+    "PAYLOAD_MISMATCH": (
+        "Your signer's own rebuild of the transaction differs from what was "
+        "prepared, so it signed nothing and nothing was sent. Check that your "
+        "signer and Carbon are the same version, then commit again "
+        "(carbon_commit)."
+    ),
+    "FEE_UNKNOWN": (
+        "Your signer had no fee to check, so it signed nothing and nothing "
+        "was sent. Commit again in a few minutes (carbon_commit)."
+    ),
+    "FEE_OVER_CEILING": (
+        "The quoted fee is above your signer's recorded ceiling, so it signed "
+        "nothing and nothing was sent. The ceiling is not changed from here; "
+        "commit again later (carbon_commit)."
+    ),
+    "ALREADY_COMMITTED_THIS_TEMPO": (
+        "Your signer already signed a commitment this tempo (at most one per "
+        "tempo, about 72 minutes). Commit again once the next tempo starts "
+        "(carbon_commit)."
+    ),
+    "STALE_CHAIN_CONTEXT": (
+        "The chain moved on while your signer was asked, so it signed nothing "
+        "and nothing was sent. Commit again (carbon_commit)."
+    ),
+    "COMMIT_IN_FLIGHT": (
+        "Your signer is already asking you to confirm another commitment. "
+        "Answer it in the signer's terminal, then observe (carbon_observe)."
+    ),
+    "NOT_CONFIRMED": (
+        "The commitment was not confirmed in your signer's terminal, so "
+        "nothing was signed or sent. Commit again (carbon_commit) and type the "
+        "digest's last 8 characters there; an agent cannot confirm it."
+    ),
+    "LEDGER_UNAVAILABLE": (
+        "Your signer could not read or write its own commitment ledger, so it "
+        "signed nothing. Check the signer's state directory, restart it, then "
+        "commit again (carbon_commit)."
     ),
     "backend_not_served": (
         "This validator has no worker image for your recipe's backend. That "

@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-question-laws-regression-path-diagnostic",
+  "recorded_at": "2026-10-07T22:44:55+00:00",
+  "challenge": "protocol", "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-QUESTION-LAWS-01 regression path check", "description": "Native Windows attempted proposal/packet/pipeline regression command."},
+  "expected": "Run only existing focused subsystem tests without reference/model execution.",
+  "observed": "No tests ran (0.01 s): test_challenge_customer_packets.py does not exist. File discovery identified the actual packet test_portfolio_round1_screen.py for the corrected invocation. No pass is claimed for this attempt.",
+  "keep": ["Report no-test execution as no evidence, not successful validation."],
+  "change": ["Resolve exact existing test paths before invoking regression sets."],
+  "protocol_elements": ["validation-basis", "static-validation"],
+  "proposed_revision": null, "status": "RECORDED"
+}

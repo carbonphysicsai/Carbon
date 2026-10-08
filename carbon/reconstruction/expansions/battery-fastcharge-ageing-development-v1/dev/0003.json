@@ -1,0 +1,62 @@
+{
+ "authority": "OWNER-GRAPHITE-TEST-WAVE-03 section 1; OWNER-GRAPHITE-DEV-LEVELS-01; engineering choices GRAPHITE-DEV-VARIANTS-01",
+ "base_contract": {
+  "contract_digest": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e",
+  "sequence": 1
+ },
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": 2,
+ "recorded_on": "2026-10-07",
+ "schema": "carbon.construction-development-expansion-record.v1",
+ "scope": "DEVELOPMENT_ONLY_NEVER_SERVED_TO_MINERS",
+ "sequence": 3,
+ "variant_digest": "sha256:602b9ce063dce297845b9d67105c2f355a095602c0eb70e903dd9afe583a5296",
+ "variant_document": {
+  "authority": "OWNER-GRAPHITE-TEST-WAVE-03 section 1; OWNER-GRAPHITE-DEV-LEVELS-01 F1; the Test Lead's review of level-climb-1 (BATTERY-CLIMB-1-REVIEW) and SpecMuon rulings (BATTERY-L2-SPECMUON-BUILD-01)",
+  "base_contract": {
+   "digest": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e",
+   "record_sequence": 1
+  },
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "level": 2,
+  "participant_code": false,
+  "review": {
+   "record": "carbon/challenge_pipeline/proposals/battery-fastcharge-ageing-development-v1/climbs/level-climb-1-disposition.json (2026-10-07)",
+   "reviewer": "Test Lead"
+  },
+  "schema": "carbon.construction-development-variant.v1",
+  "scope": "DEVELOPMENT_ONLY_NEVER_SERVED_TO_MINERS",
+  "status": "REGISTERED_DEVELOPMENT_POLICY",
+  "version": "battery-l2-spectral-v1",
+  "widened": [
+   {
+    "applies_to": [
+     "deeponet",
+     "mlp"
+    ],
+    "bounds": {
+     "constants": {
+      "eta_sav": 0.2,
+      "kappa": 1e-08,
+      "psi": 0.95,
+      "top_modes": 8
+     },
+     "interpretation": "specmuon-carbon-v1",
+     "lane": "CPU_ONLY_DEV",
+     "requires": "optimizer_family muon; not the plateau curve"
+    },
+    "id": "optimizer.muon_spectral",
+    "summary": "On the Muon optimizer family, Carbon's SpecMuon interpretation (specmuon-carbon-v1): Muon's step with a mode-wise RSAV correction along the gradient's dominant singular directions.",
+    "surface": [
+     "train",
+     "bool",
+     null,
+     null,
+     false
+    ]
+   }
+  ]
+ },
+ "variant_version": "battery-l2-spectral-v1",
+ "what": "Level 2 (development only): optimizer.muon_spectral, Carbon's SpecMuon interpretation specmuon-carbon-v1 on the Muon family, per the Test Lead's review of level-climb-1 and rulings; CPU only."
+}

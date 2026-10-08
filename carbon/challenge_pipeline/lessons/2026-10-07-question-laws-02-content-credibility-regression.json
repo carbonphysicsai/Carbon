@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-question-laws-02-content-credibility-regression",
+  "recorded_at": "2026-10-07T23:44:13+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-QUESTION-LAWS-02 content and credibility",
+    "description": "py -3.11 -m pytest -q tests/cpu/test_foundation_quiz_content.py tests/cpu/test_portfolio_f1_packet.py tests/cpu/test_customer_feasibility_panels.py tests/cpu/test_customer_reference_credibility.py; changed-file native Ruff/Black diagnostics"
+  },
+  "expected": "Preserve all eight reference-credibility custody/decision-agreement boundaries while specifying five new quizzes; do not claim physics or pinned quality evidence.",
+  "observed": "52 native static tests passed. Native Ruff 0.16.3 reported all checks passed on the new test file; the host Black module left that file unchanged but its package version is 0.0, not pinned 26.5.1. Canonical GitHub test/quality/merge acceptance remains required. No models, reference solvers, protected data or paid resources were used.",
+  "keep": ["Report pointwise and decision agreement, explicit missing basis, separate non-hidden witnesses and prospective reference revisions together."],
+  "change": ["A tool saying unchanged is not the pinned quality gate unless its version and environment match; keep host diagnostic evidence scoped."],
+  "protocol_elements": ["reference-credibility", "witness-custody", "historical-reference-identity", "claim-basis"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

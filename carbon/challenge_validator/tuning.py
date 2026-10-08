@@ -904,6 +904,10 @@ def main(argv=None):
     solved = sub.add_parser("solve")
     solved.add_argument("--work", required=True)
     solved.add_argument("--overlay", required=True)
+    # Parallel truth solves on the producer host: an engineering value, never
+    # a scientific one. The default keeps every earlier run unchanged.
+    solved.add_argument("--workers", type=int, default=7)
+    solved.add_argument("--timeout-s", type=float, default=1200.0)
     predicted = sub.add_parser("predict")
     predicted.add_argument("--work", required=True)
     predicted.add_argument("--panel", required=True)
@@ -932,7 +936,12 @@ def main(argv=None):
         elif args.command == "jobs":
             result = jobs(args.config, args.commitment, args.work)
         elif args.command == "solve":
-            result = solve(args.work, args.overlay)
+            result = solve(
+                args.work,
+                args.overlay,
+                workers=args.workers,
+                timeout_s=args.timeout_s,
+            )
         elif args.command == "predict":
             result = predict(args.work, args.panel, quiz=args.quiz)
         elif args.command == "recheck":

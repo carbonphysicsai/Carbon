@@ -148,6 +148,16 @@ def profile(setup):
     return runner.validated_profile(json.loads(setup.profile_path.read_bytes()))
 
 
+def own_review(challenge, receiver=HOTKEY):
+    """Review naming the miner's own intake with its receiver hotkey
+    (required since LAUNCHPAD-ACCEPT-03)."""
+    return {
+        "confirm": True,
+        "intakes": {challenge["id"]: OWN},
+        "receiver_hotkey": receiver,
+    }
+
+
 # --- the compute check pins what it checked -----------------------------------
 
 
@@ -416,7 +426,7 @@ def test_a_set_aside_profile_is_moved_where_no_restart_attaches_it(
     checks = Intakes()
     setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=checks)
     completed(tmp_path, setup)
-    setup.review({"confirm": True, "intakes": {challenge["id"]: OWN}})
+    setup.review(own_review(challenge))
     written = setup.profile_path.read_bytes()
     record = setup._record()
     record["compute"]["choice"] = REMOTE
@@ -434,6 +444,7 @@ def test_a_set_aside_profile_is_moved_where_no_restart_attaches_it(
     assert setup.state()["steps"]["review"]["profile_written"] is False
     item = setup.state()["steps"]["evaluation"]["challenges"][0]
     assert item["set_aside_intake"] == OWN
+    assert item["set_aside_receiver"] == HOTKEY  # named again with it
     assert "name yours again at Review" in item["note"]
     assert any(
         "set aside with the compute check" in line for line in describe_install(report)
@@ -447,9 +458,10 @@ def test_a_set_aside_profile_is_moved_where_no_restart_attaches_it(
             "analysis_image_manifest": str(analysis),
         }
     )
-    setup.review({"confirm": True, "intakes": {challenge["id"]: OWN}})
+    setup.review(own_review(challenge))
     assert profile(setup)["accepted_revision"] == NEW
     assert profile(setup)["intakes"] == {challenge["id"]: OWN}
+    assert profile(setup)["receivers"] == {challenge["id"]: HOTKEY}
     assert "profile_set_aside" not in setup._record()
     item = setup.state()["steps"]["evaluation"]["challenges"][0]
     assert "set_aside_intake" not in item
@@ -459,12 +471,15 @@ def test_an_update_keeps_the_intake_the_miner_named(tmp_path, state, head, chall
     checks = Intakes()
     setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=checks)
     completed(tmp_path, setup)
-    setup.review({"confirm": True, "intakes": {challenge["id"]: OWN}})
+    setup.review(own_review(challenge))
     head["revision"] = checks.revision = NEW
     rebuild(tmp_path, state, NEW)
     report = setup.after_install()
     assert report["profile"]["written"] is True
+    assert report["profile"]["warnings"] == []
     assert profile(setup)["intakes"] == {challenge["id"]: OWN}
+    # Its receiver is pinned again (LAUNCHPAD-ACCEPT-03).
+    assert profile(setup)["receivers"] == {challenge["id"]: HOTKEY}
     # The named intake is checked again, as at any Review.
     assert checks.calls.count(("intake", OWN)) == 2
 
@@ -475,17 +490,26 @@ def test_a_profile_written_before_intakes_were_recorded_keeps_the_miners_own(
     checks = Intakes()
     setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=checks)
     completed(tmp_path, setup)
-    setup.review({"confirm": True, "intakes": {challenge["id"]: OWN}})
+    setup.review(own_review(challenge))
     record = setup._record()
     # As a Review before LP-PROD-E recorded it: when, and nothing else.
     record["profile"] = {"written_at": record["profile"]["written_at"]}
     setup._save(record)
     item = setup.state()["steps"]["evaluation"]["challenges"][0]
     assert (item["intake"], item["source"]) == (OWN, "yours")
+    # No receiver is recorded for it: setup warns, never refuses.
+    assert "Review again in setup to pin it" in item["receiver_hotkey_warning"]
     head["revision"] = checks.revision = NEW
     rebuild(tmp_path, state, NEW)
-    assert setup.after_install()["profile"]["written"] is True
+    report = setup.after_install()
+    # Written again unpinned, with a warning, rather than stranded
+    # (LAUNCHPAD-ACCEPT-03's working decision).
+    assert report["profile"]["written"] is True
+    assert [w["code"] for w in report["profile"]["warnings"]] == [
+        "intake_receiver_not_pinned"
+    ]
     assert profile(setup)["intakes"] == {challenge["id"]: OWN}
+    assert "receivers" not in profile(setup)
 
 
 def test_an_update_names_the_gpu_worker_build_when_none_is_built(
@@ -548,9 +572,11 @@ def test_review_writes_the_published_endpoint_without_reaching_it(
     written = result["steps"]["evaluation"]["challenges"][0]
     assert (written["intake"], written["source"]) == (URL, "published")
     assert written["receiver_hotkey"] == HOTKEY
-    # Shown for reference: nothing enforces it yet, and setup says so.
+    # Binding (LAUNCHPAD-ACCEPT-03): pinned in the profile from the published
+    # entry, without reaching the endpoint, and setup says so.
     assert written["receiver_hotkey_note"] == environment.RECEIVER_NOTE
-    assert "receiver_hotkey" not in json.dumps(profile(setup))
+    assert "binding" in environment.RECEIVER_NOTE
+    assert profile(setup)["receivers"] == {challenge["id"]: HOTKEY}
 
 
 def test_with_none_published_review_says_so_and_still_writes(
@@ -583,10 +609,101 @@ def test_a_named_intake_wins_over_the_published_one(
     publish(tmp_path, monkeypatch, [entry(challenge["id"])])
     setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Intakes())
     completed(tmp_path, setup)
-    result = setup.review({"confirm": True, "intakes": {challenge["id"]: OWN}})
+    result = setup.review(own_review(challenge))
     assert profile(setup)["intakes"] == {challenge["id"]: OWN}
     item = result["steps"]["evaluation"]["challenges"][0]
     assert (item["intake"], item["source"]) == (OWN, "yours")
+    assert item["receiver_hotkey"] == HOTKEY
+
+
+# --- LAUNCHPAD-ACCEPT-03: Review pins each intake's receiver -----------------------
+
+OTHER = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+
+
+def test_an_own_intake_needs_its_receiver_and_review_pins_it(
+    tmp_path, state, head, challenge
+):
+    checks = Intakes()
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=checks)
+    completed(tmp_path, setup)
+    for request, code in (
+        ({"intakes": {challenge["id"]: OWN}}, "receiver_hotkey_required"),
+        (
+            {"intakes": {challenge["id"]: OWN}, "receiver_hotkey": "not-an-address"},
+            "receiver_hotkey_invalid",
+        ),
+        ({"receiver_hotkey": HOTKEY}, "receiver_hotkey_names_one_intake"),
+        (
+            {"intakes": {challenge["id"]: OWN}, "receivers": {"nowhere": HOTKEY}},
+            "receiver_hotkey_needs_its_intake",
+        ),
+    ):
+        with pytest.raises(SetupRefused) as refused:
+            setup.review({"confirm": True, **request})
+        assert (refused.value.field, refused.value.code) == ("receiver_hotkey", code)
+        assert refused.value.next_step
+    assert not setup.profile_path.exists()
+    assert ("intake", OWN) not in checks.calls  # refused before it was read
+    # Named as a map, the same.
+    setup.review(
+        {
+            "confirm": True,
+            "intakes": {challenge["id"]: OWN},
+            "receivers": {challenge["id"]: HOTKEY},
+        }
+    )
+    assert profile(setup)["receivers"] == {challenge["id"]: HOTKEY}
+    assert setup._record()["profile"]["intakes"][challenge["id"]] == {
+        "url": OWN,
+        "source": "yours",
+        "receiver": HOTKEY,
+    }
+
+
+def test_review_refuses_an_intake_reporting_another_receiver(
+    tmp_path, state, head, challenge
+):
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Intakes())
+    completed(tmp_path, setup)
+    with pytest.raises(SetupRefused) as refused:
+        setup.review(own_review(challenge, OTHER))
+    assert (refused.value.field, refused.value.code) == (
+        "receiver_hotkey",
+        "intake_receiver_mismatch",
+    )
+    assert refused.value.next_step == environment.RECEIVER_MISMATCH_STEP
+    assert not setup.profile_path.exists()
+
+
+def test_a_legacy_profile_with_an_unpinned_intake_still_validates(
+    tmp_path, state, head, challenge
+):
+    """A profile written before `receivers` validates unchanged, and its
+    review pin is the same: the field is an optional addition, and its
+    campaign arguments carry no receiver, which is not checked."""
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Reinstalled())
+    completed(tmp_path, setup)
+    setup.review({"confirm": True})
+    legacy = {**profile(setup), "intakes": {challenge["id"]: OWN}}
+    legacy.pop("receivers", None)
+    assert runner.validated_profile(dict(legacy)) == legacy
+    assert runner.review_pin(runner.validated_profile(dict(legacy))) == (
+        runner.review_pin(legacy)
+    )
+    assert runner.campaign_args(legacy, root=tmp_path).receivers == {}
+    pinned = {**legacy, "receivers": {challenge["id"]: HOTKEY}}
+    assert runner.validated_profile(dict(pinned))["receivers"] == pinned["receivers"]
+    for bad in (
+        {challenge["id"]: "not-an-address"},
+        {"nowhere": HOTKEY},
+        [HOTKEY],
+    ):
+        with pytest.raises(ValueError):
+            runner.validated_profile({**legacy, "receivers": bad})
+    no_intake = {k: v for k, v in pinned.items() if k != "intakes"}
+    with pytest.raises(ValueError, match="beside its intake"):
+        runner.validated_profile(no_intake)
 
 
 @pytest.mark.parametrize(

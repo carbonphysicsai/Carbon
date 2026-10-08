@@ -237,11 +237,11 @@ def _setups(tmp_path, monkeypatch):
     from test_miner_launchpad_environment_setup import Onboarding, completed
     from test_miner_setup_after_install import (
         NEW,
-        OWN,
         REVISION,
         Intakes,
         Reinstalled,
         entry,
+        own_review,
         publish,
         rebuild,
     )
@@ -286,7 +286,7 @@ def _setups(tmp_path, monkeypatch):
     # keeps the intake the miner named in it.
     checks = Intakes()
     base, setup = made("set-aside", checks)
-    setup.review({"confirm": True, "intakes": {challenge["id"]: OWN}})
+    setup.review(own_review(challenge))
     record = setup._record()
     record["compute"]["choice"] = environment.REMOTE
     setup._save(record)
