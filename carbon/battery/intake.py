@@ -674,7 +674,11 @@ class BatteryIntake:
         self.rule = rule
         #: The public fact on chain commitments: the deployment's real mode
         #: (`commitment_fact`), checked at admission, not here.
-        self.commitment = commitment or commitment_fact(None)
+        # Built without its deployment's mode (not through `_serve`): say so,
+        # rather than claim a mode the deployment may not have.
+        self.commitment = commitment or (
+            "unstated: this door was built without its deployment's commitment mode"
+        )
         self.limits = PeerLimits() if limits is None else limits
         self.clock_ns = clock_ns
         self.wake = threading.Event()

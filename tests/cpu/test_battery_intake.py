@@ -129,7 +129,8 @@ def test_the_public_facts_carry_no_private_state(deployed):
     assert body["receiver"] == VALIDATOR.ss58_address
     assert body["netuid"] == carbon_testnet_context().netuid
     assert body["tools"] == ["battery_submit", "battery_status"]
-    assert body["commitment"].startswith("not_checked")
+    # Built directly, without `_serve`: it makes no claim about the mode.
+    assert body["commitment"].startswith("unstated")
     assert body["qualification"] is False and body["reward"] is False
     text = json.dumps(body)
     for private in ("pscreen", "pfinal", "seed", "root", "case"):
