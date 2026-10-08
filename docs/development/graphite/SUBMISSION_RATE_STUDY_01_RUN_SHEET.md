@@ -298,11 +298,14 @@ seed, input, reference or score appears in this file.
 - The alternative is to retire the banks to the operator's archive unpublished.
   Either way it is the owner's step, and it is never automatic.
 
-## D. Candidate library for arm H (Test Engineer or Data Collection to fill)
+## D. Candidate library, scripted prober and adversary brief (Test Engineer to fill)
 
 - The frozen, ordered library of candidate recipes (EV4's 100 recipes and Graphite's
   run-5 constructions): the file, its digest, and the random order's seed (study-only,
-  not a hidden seed).
+  not a hidden seed). EV4's recipes and run-5's constructions are the Test
+  Engineer's, not Data Collection's.
+- The scripted prober (S-sealed and S-revealed) and the G-sealed adversary brief
+  with its probe tool; development tooling with no access to operator records.
 
 ## F. Stage 1 entry point (for later; not part of Stage 0)
 

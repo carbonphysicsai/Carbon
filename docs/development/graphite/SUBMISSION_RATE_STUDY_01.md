@@ -282,7 +282,17 @@ plan only proposes it.
 - **O5 (Test Engineer):** the scripted prober and the G-sealed brief (adversary
   tooling), built as development tooling with no access to operator records.
 - **O6:** the H2 overlap check is not built; until it is, disjointness is
-  recorded at draw time by the producer.
+  recorded at draw time by the producer. Data Collection's counts-only content-
+  disjointness check (run by the operator, run sheet C.3) counts toward H2's
+  missing overlap check for this study.
+- **O7 (VALIDATOR-30 dependencies found in run sheet C.1 and C.2):** (a) top-up must
+  be off for the study, or the 3,000-case bank keeps refilling and exposure
+  accounting is wrong; the rate variants set the top-up threshold to 0. (b) The fresh
+  sets need their own `fresh` bank (12 tranches of 98, roles `fresh-w01`...`fresh-w12`),
+  because v2-bank's `producer draw` takes windows from the pool bank; the fresh bank is
+  never drawable by a window and is read only by the non-consuming fresh-set scorer.
+- **O3 (corrected):** the candidate library, scripted prober and adversary brief are the
+  Test Engineer's (run sheet section D), not Data Collection's.
 
 ## 12. The freeze: procedure, file layout, and what must exist first
 
