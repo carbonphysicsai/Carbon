@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-design-value-baseline",
+  "recorded_at": "2026-10-08T18:42:50+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-DESIGN-VALUE-01 baseline", "description": "Native customer-inputs v3/v4 static and synthetic diagnostics before owner readiness amendment."},
+  "expected": "Preserve existing packet and arithmetic contracts before prospective owner changes.",
+  "observed": "40 passed in 4.47s; shell exit0. Native Windows only, not canonical or physical evidence.",
+  "keep": ["Keep historical packet bytes and old evidence identities while adding current versions."],
+  "change": ["A feasible map or one uniform pass does not demonstrate a useful question law across every stratum."],
+  "protocol_elements": ["historical versioning", "reference adequacy", "buyer value"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

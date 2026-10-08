@@ -1,5 +1,15 @@
 # Eight-Challenge design-question laws — DEVELOPMENT proposal
 
+> **Owner readiness rule, 2026-10-08:** before any new hidden bank, apply the
+> [four-check design-value prerequisite](value-check-v1.md) /
+> [readiness sheet](value-check-v1.json) to every Challenge. A/B are per
+> stratum; C requires a complete feasible action; D requires meaningful
+> answer changes. Roughly 20–80% passing and buyer-unit spread thresholds
+> remain HUMAN_INPUT recommendations. This is SPECIFIED, not an enforced
+> runtime gate, new sampling law or historical rescore. Current Cooling is
+> [cell v3](../round1/cooling-cell-v3.md): owner-selected 85 C at lid-side
+> TIM2, vapour-chamber buyer input, final settings/value evidence pending.
+
 > **Current Battery map v3:** [ambient-indexed continuous law](battery-ambient-indexed-v3.md)
 > / [sheet](battery-ambient-indexed-v3.json) supersedes the single-protocol
 > supplement below. Owner selects a five-band protocol/cooling map and

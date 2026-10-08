@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-design-value-regressions",
+  "recorded_at": "2026-10-08T19:00:41+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-DESIGN-VALUE-01 regressions",
+    "description": "Native readiness/customer-inputs/packet-law/credibility/pipeline regression suite."
+  },
+  "expected": "Prospective owner readiness is consistent and historical scientific authority unchanged.",
+  "observed": "157 passed in 20.98s; shell exit0. Native Windows diagnostics, not canonical acceptance or physical value evidence.",
+  "keep": [
+    "Preserve content-pinned old packets while testing new prospective readiness versions."
+  ],
+  "change": [
+    "Keep all eight accepted value receipts null until supported evidence and owning acceptance exist."
+  ],
+  "protocol_elements": [
+    "buyer value",
+    "mock isolation",
+    "historical versioning"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

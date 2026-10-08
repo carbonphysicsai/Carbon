@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-design-value-quality",
+  "recorded_at": "2026-10-08T19:01:50+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-DESIGN-VALUE-01 quality",
+    "description": "Black formatting followed by focused readiness tests, Black check, Ruff and diff checks."
+  },
+  "expected": "Prospective owner readiness is consistent and historical scientific authority unchanged.",
+  "observed": "20 passed in 0.15s after formatting; Black and Ruff passed. Diff check had no whitespace errors. Host diagnostics only.",
+  "keep": [
+    "Formatting and literal/structural contract tests do not establish a passing design-value gate."
+  ],
+  "change": [
+    "Keep all eight accepted value receipts null until supported evidence and owning acceptance exist."
+  ],
+  "protocol_elements": [
+    "buyer value",
+    "mock isolation",
+    "historical versioning"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

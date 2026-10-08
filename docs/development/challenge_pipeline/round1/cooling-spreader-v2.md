@@ -1,10 +1,15 @@
 # Cooling v2 spreader proposal and feasibility panel
 
-> **Panel hold after the 2026-10-08 budget review:** read the
+> **Panel hold, updated by the 2026-10-08 owner decision:** current buyer
+> input is [Cooling v3's vapour-chamber lid](cooling-cell-v3.md), with 85 C
+> at the lid-side TIM2 interface. The copper stack/53-job recipe below is
+> preserved proposal history, not an adopted vapour-chamber package.
+> Data Collection's cheap spreading and [four-check value preflight](../question-laws/value-check-v1.md)
+> plus final owner parameters precede any revised panel. No release is recorded.
+> For the historical solid-copper screen, read the
 > [thermal budget](cooling-thermal-budget-v2.md) before any of the 53 jobs.
-> The existing 85-C limit is at TIM2, not the die junction. Temperature-plane
-> confirmation and a reviewed budget showing possible feasibility with an
-> uncertainty allowance are required; no release is recorded.
+> Its plane is now resolved; its numerical stack/verification proposals
+> remain unadopted and do not verify vapour-chamber physics by inheritance.
 
 **Mock buyer / DEVELOPMENT / SPECIFIED; owner approval pending.** Supplement
 to [Cooling cell v2](cooling-cell-v2.md), not a new full-plate task or a claim

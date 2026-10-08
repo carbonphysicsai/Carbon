@@ -33,3 +33,23 @@ conditional linear power/area extrapolations as verified feasible designs;
 solving a full cold plate. Supersede this budget/hold prospectively if the
 owner changes the plane or evidence supplies a better conditional model.
 Existing old references and results remain unchanged; Hub is retired.
+
+## Prospective owner resolution, 2026-10-08
+
+Ryan has now selected **85 C at the lid-side TIM2 interface (case
+temperature)**, conditional on a valuable design task, and a buyer-stated
+**vapour-chamber lid**. The pending plane question above is #822's historical
+state, now resolved by [OWNER-DESIGN-VALUE-01](2026-10-08-OWNER-DESIGN-VALUE-01.md).
+The copper screen and die-side counterfactual lever values are unchanged;
+neither establishes vapour-chamber adequacy or current case-plane options.
+
+Data Collection runs the cheap lid-spreading/existing-results search and
+the all-four value check before the held 53 jobs: discrimination and
+meaningful margins per stratum, a common feasible design, and changing
+best/equivalent answers. 20–80% passes and about 5 K spread remain
+HUMAN_INPUT recommendations. Return 2–3 candidate settings with buyer
+realism/support and a recommendation; the owner approves final parameters.
+No new large CFD, hidden search, spend or valV3 permit follows. If value
+fails, Codex prepares prospective buyer-lever options for owner selection.
+Panel release remains null; the new hold is spreading/value evidence and
+final inputs, not an unanswered temperature plane.
