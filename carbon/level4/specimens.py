@@ -502,7 +502,10 @@ def _attack_rows():
             "8.1",
             "Malformed outputs, nonfinite values (outputs)",
             "NaN on selected cases",
-            _recorded("G7 (plan PR 5)"),
+            _recorded(
+                "G7: the exam's gates type the cases "
+                "(tests/cpu/test_level4_grade.py)"
+            ),
             None,
         ),
         (

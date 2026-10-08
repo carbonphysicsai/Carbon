@@ -27,6 +27,7 @@
 | 3 | G6 `train.py` (Carbon-built init, padded inference, Carbon's key schedule; the Challenge's own loop through its adapter); G4 init data flow (`check_init`) and `validate_submission`; battery `lower_recipe`, `train_graph`; E1 through G3, G4 and G6 (`phase1_e1_results.json`) |
 | 6 | `specimens.attack_suite`: one specimen per row of §8.1 and §8.3 under non-production fixture caps; rows no graph gate can test are recorded with their owner |
 | 4 | G0 `intake.py` (bounds `HUMAN_INPUT`; an unset bound blocks) with G3's isolated parse (`_parse_worker`: CPU, memory and file limits; a crash or overrun is the submission's refusal, a worker that cannot start is `FAILED_INFRA`); the miner-side CLI `python -m carbon.level4.tooling lower` for the Launchpad |
+| 5 | G7 `grade.py`: padded inference, non-finite cases named (the exam's gates type them), inference cost measured from the compiled graph (rule `HUMAN_INPUT`); battery `grade_graph` on public PRACTICE with battery's exam code unchanged. A trained Level 0 graph gets exactly the declarative path's exam verdict |
 
 **Q5 answered (plan PR 3).** Per-case graphs batched by Carbon's `vmap` run
 forward bit-identically, but they do **not** train bit-identically for every

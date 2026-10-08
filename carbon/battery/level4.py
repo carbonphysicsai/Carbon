@@ -318,6 +318,7 @@ def classic_fit(model, d, y, seed, net, make_params):
         "initial_loss": initial,
         "final_loss": float(final),
         "outputs_sha256": hashlib.sha256(out.tobytes()).hexdigest(),
+        "params": leaves,
     }
 
 
@@ -1122,6 +1123,48 @@ def train_graph(strategy_, prepared, *, seed):
         "params_sha256": stats["params_sha256"],
         "final_loss": stats["final_loss"],
         "predictions_sha256": _digest(np.asarray(out[k]) for k in sorted(out)),
+        "params": [np.asarray(a) for a in graph_model.params],
+    }
+
+
+def grade_graph(strategy_, prepared, params, *, seed):
+    """G7's exam for battery: the trained graph predicts the public PRACTICE
+    inputs (never hidden cases) through Carbon's padded inference, and
+    battery's exam code, unchanged (`practice.score_practice`: the exam's own
+    gates, TRAIN scales and frozen tolerances), gates and scores them."""
+    del seed  # inference draws nothing at random
+    import jax
+    import numpy as np
+
+    from .domain import INPUTS
+    from .practice import PracticeSet, score_practice
+    from .recipes import features, to_predictions
+
+    m = material()
+    practice = PracticeSet.load(REPOSITORY)
+    _, model = _model(strategy_, m.train)
+    _targets(model, m)
+    model.s = structure(m)
+    x = np.array([[r["inputs"][k] for k in INPUTS] for r in practice.records], float)
+    x64 = model.settings["precision"] == "float64"
+    dtype = np.float64 if x64 else np.float32
+    f = features(x, model.rich).astype(dtype)
+    with jax.enable_x64(x64):
+        z = np.asarray(prepared.predict(list(params), f)[0])
+    out = model.s.apply(
+        x,
+        *model.layout.split(model._decode(z.astype(float))),
+        predict_v0=model.predict_v0,
+    )
+    rows, summary = score_practice(
+        to_predictions(out, practice.case_ids), practice, m, REPOSITORY
+    )
+    return {
+        "summary": summary,
+        "rows": rows,
+        "outputs": [z],
+        "inputs": [f],
+        "case_ids": practice.case_ids,
     }
 
 
