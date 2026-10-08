@@ -1,6 +1,13 @@
 # Carbon-owned design optimizers — eight-Challenge DEVELOPMENT design
 
-> **Current Battery amendment after #804:** use [Battery optimizer v2](battery-ev-fast-charge-v2.md)
+> **Current Battery optimizer v3:** use the
+> [ambient-map optimizer](battery-ambient-map-v3.md), superseding v2's shared
+> protocol. Separate band searches commit one five-entry map; band-local hard
+> gates precede buyer-mix-weighted minutes and value-equivalent regret. Approximate
+> 0.5-min best-anchored resolution is HUMAN_INPUT. Earlier rows/drafts below
+> are preserved history where superseded; other optimizers are unchanged.
+
+> **Historical #817 Battery amendment after #804:** [Battery optimizer v2](battery-ev-fast-charge-v2.md)
 > for admissible time minimization, charging-only thermal scope and the
 > continuous-primary law proposal. The Battery row and original draft below
 > remain historical proposals; their hard30-minute/whole-programme thermal

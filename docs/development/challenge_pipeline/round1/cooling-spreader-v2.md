@@ -1,5 +1,11 @@
 # Cooling v2 spreader proposal and feasibility panel
 
+> **Panel hold after the 2026-10-08 budget review:** read the
+> [thermal budget](cooling-thermal-budget-v2.md) before any of the 53 jobs.
+> The existing 85-C limit is at TIM2, not the die junction. Temperature-plane
+> confirmation and a reviewed budget showing possible feasibility with an
+> uncertainty allowance are required; no release is recorded.
+
 **Mock buyer / DEVELOPMENT / SPECIFIED; owner approval pending.** Supplement
 to [Cooling cell v2](cooling-cell-v2.md), not a new full-plate task or a claim
 of hotspot feasibility. All stack choices, ranges and numerical acceptance

@@ -1,0 +1,22 @@
+{
+  "schema": "carbon.cooling-thermal-budget.screen.v2",
+  "ticket": "CHALLENGE-CUSTOMER-INPUTS-04",
+  "maturity": "SPECIFIED",
+  "evidence_kind": "ANALYTIC_CONDITIONAL_SCREEN_NOT_REFERENCE_TRUTH",
+  "runtime_registration": false,
+  "protected_material": false,
+  "spend_grant": null,
+  "panel_release": null,
+  "panel_status": "HOLD_TEMPERATURE_PLANE_AND_THERMAL_BUDGET",
+  "current_limit_plane": "LID_SIDE_TIM2_INTERFACE",
+  "prospective_die_limit_selected": false,
+  "inputs": {"power_w": 1500, "inlet_c": 45, "limit_c": 85, "footprint_mm": [30, 30], "flow_lpm": 3, "bare_cell_rise_k_approx": 28, "r1_m2k_w": 0.00000514, "r2_m2k_w": 0.000006, "lid_thickness_m": 0.0015, "lid_k_w_mk": 391, "raw_peak_to_mean": 3},
+  "basis": {"public_head": "f79e7a61da10f1005e7438362ffc8baf6bf80d61", "path": "docs/development/evidence/cooling-feasibility-02/summary.json", "case": "c2-warm_uniform", "old_tim_interface_c": 81.1890078349395, "old_tim_r_m2k_w": 0.000005, "bare_cell_rise_k_inferred": 27.85567450160617, "fin_mm": 0.35, "panel_fin_mm": 0.3, "is_panel_run": false},
+  "arithmetic": {"average_flux_w_m2": 1666666.6666666667, "raw_peak_flux_w_m2": 5000000, "rho_kg_m3_at_45c": 1007.2054718579743, "cp_j_kgk_at_45c": 3980.7003479220393, "coolant_rise_k_full_absorption": 7.482447726026248, "remaining_cell_rise_k": 20.517552273973752, "tim1_uniform_k": 8.566666666666666, "tim1_raw_hotspot_k": 25.7, "tim2_uniform_k": 10, "lid_uniform_k": 6.3938618925831205, "uniform_interface_c": 83, "uniform_die_proxy_c": 97.96052855924978, "ideal_redistributed_hot_interface_c": 83, "ideal_redistributed_hot_die_proxy_c": 115.09386189258312, "no_spread_hot_interface_c": 103, "no_spread_hot_die_proxy_c": 147.88158567774934},
+  "assumptions": ["28-K bare-cell rise already includes coolant; old TIM removed", "uniform/redistributed screens use unchanged empirical plate anchor, not a universal physical minimum", "source-site spreading drop and local nonuniform plate response are unresolved", "die proxy omits internal die/junction physics", "no-spread and ideal redistribution are conditional screens, not certified bounds"],
+  "sensitivity": {"minimum_r1_r2_m2k_w": 0.000004, "minimum_t_m": 0.0015, "maximum_k_w_mk": 400, "favorable_uniform_die_proxy_c": 92.58333333333333, "favorable_redistributed_hot_die_proxy_c": 105.91666666666666, "favorable_uniform_interface_c": 79.66666666666667, "nominal_required_post_peak_mean_max": 1.2, "required_post_peak_mean_at_r2_min": 1.8, "required_post_peak_mean_at_r2_max": 0.9},
+  "nominal_die_levers": {"status": "HUMAN_INPUT_CONDITIONAL_NO_SELECTION", "uniform": {"inlet_max_c": 32.03947144075021, "limit_min_c": 97.96052855924978, "power_max_w_fixed_flow_linearized": 1132.919206666806, "common_die_lid_area_min_mm2_fixed_plate_rise": 1872.039641943734}, "ideal_redistributed_hotspot": {"inlet_max_c": 14.90613810741688, "limit_min_c": 115.09386189258312, "power_max_w_fixed_flow_linearized": 855.9950668996997, "common_die_lid_area_min_mm2_fixed_plate_rise": 3157.0396419437334}},
+  "interface_verdict": "UNIFORM_POSSIBLE_IN_CONDITIONAL_SCREEN_HOTSPOT_NOT_DEMONSTRATED",
+  "die_proxy_verdict": "NO_STACK_IN_STATED_RANGES_PASSES_85_WITH_THIS_PLATE_ANCHOR_NOT_A_GLOBAL_IMPOSSIBILITY_PROOF",
+  "release_requirements": ["OWNER_TEMPERATURE_PLANE_AND_INPUTS", "REVIEWED_ANALYTIC_POSSIBILITY_WITH_UNCERTAINTY_ALLOWANCE", "ADOPTED_STACK", "PINNED_SUPPORTED_MAP_AND_CELL_PACKAGE", "SEPARATE_EXECUTION_AUTHORITY"]
+}
