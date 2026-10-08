@@ -261,7 +261,8 @@ def test_shared_modules_carry_no_challenge_literal():
     from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 
     banned = re.compile(
-        r"battery|fastcharge|PublicMaterial|carbon\.battery", re.IGNORECASE
+        r"battery|fastcharge|PublicMaterial|carbon\.battery|motor|cold.?plate|photonic",
+        re.IGNORECASE,
     )
     spike = REPOSITORY / "scripts" / "dev" / "level4_spike"
     shared = sorted(PACKAGE.rglob("*.py")) + sorted(spike.glob("*.py"))
