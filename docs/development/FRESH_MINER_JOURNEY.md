@@ -28,6 +28,11 @@ with the fields in [Record](#record).
   images (24 GiB with the GPU worker). When one filesystem holds both, as on
   WSL by default, it needs the sum: 17 GiB, or 29 GiB with the GPU worker.
   The installer checks before it builds anything.
+- **Never prune Docker on a machine others share** (`docker image prune`,
+  `system prune` and the like). Prune deletes whatever the engine holds that
+  matches, other people's images included. To free space on an engine of
+  your own, remove only Carbon's images, by their tags (`carbon-c03-worker:`,
+  `carbon-cw1d4-parent:`, `carbon-analysis:`, `carbon-gpu-worker:`).
 - **A registered hotkey on subnet 567.** Register it in your own wallet;
   Wallet & Identity prepares the unsigned call.
 - **Your inference key** for Engy (Chat Completions) or Chutes.
