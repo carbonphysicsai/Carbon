@@ -5,7 +5,7 @@
  "families": {
   "f08": "f08-ccx-modal-support"
  },
- "maturity": "IMPLEMENTED and smoke-TESTED; #787 feature proofs (modal damping, mass-normalised projection, mode ladder, complex phase, batched outputs) are NOT yet demonstrated and block dispatch",
+ "maturity": "IMPLEMENTED, smoke-TESTED and #787 f08 feature proof demonstrated (f08-feature-proof.json: exact constant modal damping, mass-normalised projection, 12/24/48 ladder, exp(+i omega t) complex phase, batched damping/frequency outputs); reference adequacy on the ribbed f08 geometry is NOT yet demonstrated",
  "image_id": "sha256:d9ef68d016226a945c7eefcb6b2261c60a11249ee0f93458ae6c3aca956fd6f8",
  "image_tag": "carbon-ref-calculix:2.23 (local; transfer by docker save/load keeps the id)",
  "sources_lock_sha256": "bbf09ba5b672c50b2aac76361220bc8ed6672f34af715d6e4bfd659620b0d332",
@@ -144,5 +144,10 @@
   }
  ],
  "smoke_source": "upstream ccx_2.23 tests from the verified test archive, run by scripts/dev/reference_packages/calculix/smoke.py; pass = every number in the .dat within relative 1e-4 of the upstream .dat.ref",
- "licence": "CalculiX ccx GPL-2.0; SPOOLES public domain; ARPACK-NG BSD-3-Clause; OpenBLAS BSD-3-Clause"
+ "licence": "CalculiX ccx GPL-2.0; SPOOLES public domain; ARPACK-NG BSD-3-Clause; OpenBLAS BSD-3-Clause",
+ "feature_proof": {
+  "evidence": "f08-feature-proof.json",
+  "script": "scripts/dev/reference_packages/calculix/f08_proof.py",
+  "status": "DEMONSTRATED"
+ }
 }

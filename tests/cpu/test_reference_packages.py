@@ -37,3 +37,22 @@ def test_manifest_names_image_and_passing_smoke(path):
     assert manifest["smoke"]
     assert all(s["exit"] == 0 and s["test_passed"] == 1 for s in manifest["smoke"])
     assert "NOT yet demonstrated" in manifest["maturity"]
+
+
+def test_f08_feature_proof_demonstrates_every_required_feature():
+    proof = json.loads(
+        (
+            ROOT
+            / "docs/development/evidence/reference-packages-01/f08-feature-proof.json"
+        ).read_text()
+    )
+    assert proof["schema"] == "carbon.reference-package.feature-proof.v1"
+    required = (
+        "exact_modal_damping",
+        "mass_normalised_projection",
+        "mode_ladder",
+        "complex_phase",
+        "batched_damping_frequency_outputs",
+    )
+    assert all(proof["proofs"][name] is True for name in required)
+    assert "HUMAN_INPUT" in proof["scope"]
