@@ -34,12 +34,18 @@ def main(argv=None):
     parser.add_argument("--steps", type=int, default=None)
     parser.add_argument("--init-steps", type=int, default=50)
     parser.add_argument("--max-bytes", type=int, default=1 << 30)
+    parser.add_argument(
+        "--sections",
+        default="q1,q3,torch,phase0",
+        help="comma-separated: q1, q3, torch, phase0, e1 (Level 0 through the gates)",
+    )
     args = parser.parse_args(argv)
+    sections = set(args.sections.split(","))
 
-    from level4_spike import allowlist as allowlist_module
+    from carbon.level4 import allowlist as allowlist_module
     from level4_spike.run import environment, torch_section
 
-    adapter = importlib.import_module(f"level4_spike.adapters.{args.adapter}")
+    adapter = importlib.import_module(f"carbon.{args.adapter}.level4")
     allowlist = allowlist_module.load()
     started = time.perf_counter()
     record = {
@@ -49,33 +55,48 @@ def main(argv=None):
         "environment": environment(),
         "allowlist": {"version": allowlist.version, "digest": allowlist.digest},
     }
-    gradients, training = {}, {}
-    for label, strategy in adapter.gradient_cases():
-        gradients[label] = adapter.gradient_equivalence(
-            allowlist, strategy, max_bytes=args.max_bytes
+    record["sections"] = sorted(sections)
+    if "q1" in sections:
+        gradients, training = {}, {}
+        for label, strategy in adapter.gradient_cases():
+            gradients[label] = adapter.gradient_equivalence(
+                allowlist, strategy, max_bytes=args.max_bytes
+            )
+            training[label] = adapter.training_equivalence(
+                allowlist, strategy, steps=args.steps, max_bytes=args.max_bytes
+            )
+        record["q1_gradients"] = gradients
+        record["q1_training"] = training
+    if "q3" in sections:
+        record["q3_carbon_init"] = {
+            label: adapter.torch_carbon_init(
+                allowlist, strategy, steps=args.init_steps, max_bytes=args.max_bytes
+            )
+            for label, strategy, largest in adapter.torch_cases()
+            if not largest and label in ("default_fno", "torch_mlp", "torch_deeponet")
+        }
+    if "torch" in sections:
+        rows, _, _ = torch_section(
+            adapter, allowlist, args.max_bytes, include_largest=False
         )
-        training[label] = adapter.training_equivalence(
-            allowlist, strategy, steps=args.steps, max_bytes=args.max_bytes
+        record["torch_v1"] = {
+            r["label"]: {
+                "lowering": r["lowering"],
+                "bprime_vs_torch": r["bprime_vs_torch"],
+            }
+            for r in rows
+        }
+    if "phase0" in sections:
+        record["phase0_equivalence_v1"] = adapter.equivalence(
+            allowlist, steps=args.steps, max_bytes=args.max_bytes
         )
-    record["q1_gradients"] = gradients
-    record["q1_training"] = training
-    record["q3_carbon_init"] = {
-        label: adapter.torch_carbon_init(
-            allowlist, strategy, steps=args.init_steps, max_bytes=args.max_bytes
-        )
-        for label, strategy, largest in adapter.torch_cases()
-        if not largest and label in ("default_fno", "torch_mlp", "torch_deeponet")
-    }
-    rows, _, _ = torch_section(
-        adapter, allowlist, args.max_bytes, include_largest=False
-    )
-    record["torch_v1"] = {
-        r["label"]: {"lowering": r["lowering"], "bprime_vs_torch": r["bprime_vs_torch"]}
-        for r in rows
-    }
-    record["phase0_equivalence_v1"] = adapter.equivalence(
-        allowlist, steps=args.steps, max_bytes=args.max_bytes
-    )
+    if "e1" in sections:
+        record["e1_through_gates"] = {
+            label: adapter.graph_equivalence(
+                allowlist, strategy, steps=args.steps, max_bytes=args.max_bytes
+            )
+            for label, strategy in adapter.e1_cases()
+        }
     record["seconds"] = round(time.perf_counter() - started, 1)
     Path(args.out).write_text(json.dumps(record, indent=1, sort_keys=True) + "\n")
     print(json.dumps({"out": args.out, "seconds": record["seconds"]}))

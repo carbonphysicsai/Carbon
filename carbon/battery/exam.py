@@ -89,7 +89,8 @@ DEVELOPMENT_RULE_V2 = {
 #: `window_cases` distinct cases (plus v2's two hidden duplicates) without
 #: replacement from the live pool bank. A case retires after `retire_at`
 #: draws, and the bank is kept at `size` live cases. These are the owner's
-#: cheap-class testing values (B = 20n per window kind, E = 5), not
+#: cheap-class testing values (B = 20n with n = 100 cases per window,
+#: E = 5; screening and finalist windows share the one bank), not
 #: production values. Battery's current v2 deployments are unaffected: a
 #: deployment moves onto the bank only by naming this rule.
 DEVELOPMENT_RULE_V2_BANK = {
@@ -103,7 +104,7 @@ DEVELOPMENT_RULE_V2_BANK = {
         "pool": {
             "window_cases": DEVELOPMENT_RULE_V2["screening_batch_size"] - 2,
             "hidden_duplicates": 2,
-            "size": 20 * DEVELOPMENT_RULE_V2["screening_batch_size"] * 2,
+            "size": 20 * DEVELOPMENT_RULE_V2["screening_batch_size"],
             "retire_at": 5,
         },
     },

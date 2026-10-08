@@ -68,6 +68,51 @@ _SCREENING_FIELDS = (
 )
 
 
+_DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
+_PUBLIC_CODE = re.compile(r"[A-Za-z][A-Za-z0-9_.:-]{0,127}")
+
+
+def _public_identity(outcome):
+    """A validator outcome's public identity fields - its exam rule, the
+    recipe and contract digests, how it was rebuilt, and a refusal's code and
+    issues - each in its closed shape; a field in any other shape is left
+    out, never echoed. Hidden scores, cases and seeds are none of these."""
+    shown = {}
+    rule = outcome.get("rule")
+    if type(rule) is str and _PUBLIC_CODE.fullmatch(rule):
+        shown["rule"] = rule
+    for key in ("recipe_digest", "contract_digest"):
+        if type(outcome.get(key)) is str and _DIGEST.fullmatch(outcome[key]):
+            shown[key] = outcome[key]
+    rebuilt = outcome.get("reconstruction")
+    if type(rebuilt) is dict and type(rebuilt.get("backend")) is str:
+        shown["reconstruction"] = {
+            "backend": rebuilt["backend"][:64],
+            "validator_path": rebuilt.get("validator_path") is True,
+        }
+    failure = outcome.get("failure")
+    if type(failure) is dict and type(failure.get("code")) is str:
+        issues = failure.get("issues") if type(failure.get("issues")) is list else []
+        shown["failure"] = {
+            "code": failure["code"][:128],
+            "issues": [
+                {
+                    "code": str(issue.get("code", ""))[:128],
+                    "path": [
+                        item[:128] if type(item) is str else item
+                        for item in (
+                            issue.get("path") if type(issue.get("path")) is list else []
+                        )[:16]
+                        if type(item) in (str, int) and not isinstance(item, bool)
+                    ],
+                }
+                for issue in issues[:16]
+                if type(issue) is dict
+            ],
+        }
+    return shown
+
+
 def pointer_exists(directory):
     return (directory / "final/comparison-ref.json").is_file()
 
@@ -100,6 +145,13 @@ def _validator_outcome(epoch, path):
             "state": outcome["state"][:64],
             "submission_id": str(outcome.get("submission_id", ""))[:128],
             "evidence": str(outcome.get("evidence", ""))[:64],
+            # The outcome's public identity, as the validator discloses it to
+            # this miner under every feedback mode (LAUNCHPAD-ACCEPT-04).
+            **_public_identity(outcome),
+            # Scored under a rule that seals hidden-batch results: no
+            # screening, nomination or finals reach a miner, so none is shown
+            # and none is inferred (`intake_client.describe`).
+            "sealed": outcome["state"] == "SCORED" and screening is None,
             "nominated": (
                 outcome.get("nominated")
                 if type(outcome.get("nominated")) is bool

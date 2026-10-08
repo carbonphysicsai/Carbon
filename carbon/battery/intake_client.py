@@ -17,6 +17,11 @@ and sends bytes with headers the miner produced, for example::
 
 A signature is valid for 10 seconds and the snapshot for 60, so sign and send
 straight after building. Poll with `status_message` the same way.
+
+The Launchpad signs for `facts["receiver"]` only once it equals the receiver
+the miner's profile pins for the Challenge (`remote_submission.check_receiver`,
+LAUNCHPAD-ACCEPT-03): an intake reporting another is refused
+`intake_receiver_mismatch` before anything is signed or sent.
 """
 
 from __future__ import annotations
@@ -245,6 +250,11 @@ REFUSALS = {
         "battery intake. Nothing was sent for evaluation; check the intake "
         "address."
     ),
+    "intake_receiver_mismatch": (
+        "The intake reports another receiver hotkey than the one your profile "
+        "pins for this Challenge. Nothing was signed or sent; review the "
+        "evaluation endpoint's address and receiver hotkey in setup."
+    ),
     "intake_signer_changed": (
         "This epoch's candidate was submitted under another hotkey than the "
         "signer now connected. Nothing was sent; connect the signer of the "
@@ -347,6 +357,13 @@ def describe(status, answer):
         return (
             f"Submitted as {answer['submission_id']}. Ask for its status in a "
             "few minutes; rebuilding and scoring take several."
+        )
+    if state == "VOID":
+        return (
+            "Void: the hidden window it was scored on was withdrawn after an "
+            "incident. That is not a result about your model: it was never a "
+            "score, it is not ranked or weighted, and it does not use your "
+            "scoring slot. Submit again when you are ready."
         )
     if state == "SCORED" and "screening" not in answer:
         return (

@@ -175,8 +175,8 @@ What the measurements show:
 
 ### 5.1 Format v0
 
-The format is defined in `scripts/dev/level4_spike/graph.py`, schema
-`carbon.development.level4-graph.v0`.
+The format is defined in `scripts/dev/level4_spike/graph.py` (since moved
+to `carbon/level4/graph.py`), schema `carbon.development.level4-graph.v0`.
 
 - A document has a role (forward, init or loss), an entry graph, and named
   graphs.

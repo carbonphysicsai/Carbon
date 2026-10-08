@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-question-laws-continuous-baseline",
+  "recorded_at": "2026-10-07T22:37:37+00:00",
+  "challenge": "protocol", "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-QUESTION-LAWS-01 follow-up baseline", "description": "Native Windows focused proposal tests before continuous-threshold and Part B edits."},
+  "expected": "The existing Part A candidate provides a stable baseline; live dependency state must be checked separately.",
+  "observed": "16 tests passed in 0.10 s. #758 and #764 are now actually merged, so Part B drafting is unblocked. This is a host diagnostic, not canonical CI or new-bank reference evidence.",
+  "keep": ["Refresh live merge state rather than waiting on a stale open-head condition."],
+  "change": ["Retain grid audits but add continuous requirements, bank-based occupancy and close-call rates; lower initial Cooling k to eight."],
+  "protocol_elements": ["question-laws", "live-dependency", "answer-diversity"],
+  "proposed_revision": null, "status": "RECORDED"
+}

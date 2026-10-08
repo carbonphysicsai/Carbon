@@ -13,10 +13,39 @@
 
 | File | What it is |
 |---|---|
-| `allowlist_v1.json` | Allowlist v1: v0 plus named functions. `custom_jvp_call` is refused unless it is a registered kernel |
+| `carbon/level4/allowlist_v1.json` | Allowlist v1: v0 plus named functions. `custom_jvp_call` is refused unless it is a registered kernel |
 | `phase1_design_results.json` | The record for Q1 and Q3, and the Phase 0 equivalence re-run under v1 |
-| `scripts/dev/level4_spike/named.py`, `initializers.py`, `run_design.py` | Q1, Q3 and the record's runner |
-| `tests/cpu/test_level4_phase1_design.py` | Q1 and Q3 tests |
+| `carbon/level4/named.py`, `carbon/level4/initializers.py`, `scripts/dev/level4_spike/run_design.py` | Q1, Q3 and the record's runner |
+| `tests/cpu/test_level4_named_init.py` | Q1 and Q3 tests |
+
+**Progress.**
+
+| Plan PR | State |
+|---|---|
+| 1 | Merged (#748) |
+| 2 | `carbon/level4` core: format, allowlist v1, G4 `validate.py`, named functions, interpreter, initializers, specimens; `tooling/` (miner-side lowering); battery adapter `carbon/battery/level4.py`; `submission.py`, the manifest and canonical-bytes rule the Launchpad slot (LAUNCHPAD-LEVELS-01) and the validator share |
+| 3 | G6 `train.py` (Carbon-built init, padded inference, Carbon's key schedule; the Challenge's own loop through its adapter); G4 init data flow (`check_init`) and `validate_submission`; battery `lower_recipe`, `train_graph`; E1 through G3, G4 and G6 (`phase1_e1_results.json`) |
+| 6 | `specimens.attack_suite`: one specimen per row of §8.1 and §8.3 under non-production fixture caps; rows no graph gate can test are recorded with their owner |
+| 4 | G0 `intake.py` (bounds `HUMAN_INPUT`; an unset bound blocks) with G3's isolated parse (`_parse_worker`: CPU, memory and file limits; a crash or overrun is the submission's refusal, a worker that cannot start is `FAILED_INFRA`); the miner-side CLI `python -m carbon.level4.tooling lower` for the Launchpad |
+| 5 | G7 `grade.py`: padded inference, non-finite cases named (the exam's gates type them), inference cost measured from the compiled graph (rule `HUMAN_INPUT`); battery `grade_graph` on public PRACTICE with battery's exam code unchanged. A trained Level 0 graph gets exactly the declarative path's exam verdict |
+| 7 | G5 `compile.py`: Carbon's own lane program compiles the rebuilt forward graph, a gradient step and the init graph in the C-03 Carbon lane from staged bytes only; a deadline or in-lane failure is the submission's refusal, any other lane failure `FAILED_INFRA`; the deadline is `HUMAN_INPUT`; the profile is recorded as awaiting the security owner (D3) |
+| 10 | E6, motor (`carbon/motor/level4.py`, adapter only; shared code unchanged). Motor has no gradient-trained family. Its Level 0 kernel ridge prediction is lowered to a graph whose parameters Carbon's own closed-form fit supplies at G6, and G7 grades it through motor's unchanged practice exam. Predictions agree with native to float64 rounding (max 1.1e-11 N·m), every case's gate decision is identical, and the score differs by about 1e-13. It is not bit-identical (numpy against XLA). **Open:** gradient training through G6 for a second Challenge needs a trainable family there |
+| 8 (part 1) | The development-only Level 4 variant `battery-l4-graph-v1` (LEVEL4-DEV-VARIANT-01). It is graph-only: `hybrid.composition_graphs` widened under allowlist v1, routed through the shared dispatch (BATTERY-DEV-DISPATCH-01), and every rebuild fails closed until D3. Also: the capability draft (`LEVEL4_CAPABILITY_DRAFT.md`, for the owner) and the lesson on lowering at the recipe batch. Part 2 is the `battery_level4` attack adapter |
+
+**Q5 answered (plan PR 3).** Per-case graphs batched by Carbon's `vmap` run
+forward bit-identically, but they do **not** train bit-identically for every
+family. The classic MLP matches; DeepONet does not, because its gradient
+accumulation order changes under `vmap`. So a forward graph is lowered at
+the recipe's training batch (`validate(..., batch=)`). Carbon trains at that
+batch and pads inference into blocks of it (`Prepared.predict`), which keeps
+every case's result the declared graph's.
+
+**Carbon's key schedule.** An init graph returns parameters only, never a
+key. Carbon derives the training key itself (`train.keys`), so a submission
+cannot steer data order. Full-batch recipes, which include battery's Level 0
+recipes, match the declarative path bit for bit (E1). A minibatch recipe
+trains deterministically under Carbon's key, which by design is not the
+declarative path's.
 
 Reproduce (CPU, development only):
 
@@ -209,7 +238,7 @@ never `FAILED_INFRA` unless Carbon's own infrastructure failed.
 |---|---|---|
 | E1 | Battery's Level 0 recipes (scaffold MLP, panel MLP, panel DeepONet) through G0–G6 against the declarative path | Parameter and prediction digests identical (R1) |
 | E2 | Every activation × normalization × precision on battery's surface (the 22 cases of §1) | Gradients and training identical |
-| E3 | Per-case graph batched by Carbon's `vmap` against the native batched forward | Identical |
+| E3 | Inference padded into blocks of the declared batch, against the declared graph on each block (replaces per-case `vmap`, which does not train bit-identically for DeepONet) | Identical |
 | E4 | PyTorch families lowered to B′ against torch | Float32 agreement, recorded, never R1 |
 | E5 | GPU leg (§3) | Identical on one host and across hosts |
 | E6 | A second Challenge (cold plate or motor) through the same shared code | E1–E3 hold with only an adapter |

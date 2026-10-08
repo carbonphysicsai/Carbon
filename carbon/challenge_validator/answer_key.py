@@ -245,6 +245,94 @@ def listing_entry(value):
     return {k: value[k] for k in ("manifest", "key_id", "public_key", "signature")}
 
 
+# --- withdrawal notices (VALIDATOR-24) --------------------------------------------------
+
+WITHDRAWAL_SCHEMA = "carbon.challenge-validator.withdrawal-notice.v1"
+_REASON = set("abcdefghijklmnopqrstuvwxyz0123456789_")
+
+
+def withdrawal_notice(key, challenge_id, fingerprint, reason, block):
+    """A producer-signed notice that a batch window is withdrawn: validators
+    stop scoring on it at once and never import it again. `reason` is a public
+    code, never a case."""
+    if type(key) is not ProducerKey:
+        raise TypeError("a ProducerKey is required")
+    manifest = {
+        "schema": WITHDRAWAL_SCHEMA,
+        "challenge_id": challenge_id,
+        "fingerprint": fingerprint,
+        "reason": reason,
+        "block": block,
+    }
+    _check_withdrawal(manifest)
+    return {
+        "schema": WITHDRAWAL_SCHEMA,
+        "manifest": manifest,
+        "key_id": key_id(key.public_key),
+        "public_key": key.public_key,
+        "signature": key.sign(manifest),
+    }
+
+
+def _check_withdrawal(manifest):
+    if (
+        type(manifest) is not dict
+        or set(manifest) != {"schema", "challenge_id", "fingerprint", "reason", "block"}
+        or manifest["schema"] != WITHDRAWAL_SCHEMA
+        or type(manifest["challenge_id"]) is not str
+        or type(manifest["fingerprint"]) is not str
+        or not manifest["fingerprint"].startswith("sha256:")
+        or type(manifest["reason"]) is not str
+        or not 0 < len(manifest["reason"]) <= 64
+        or set(manifest["reason"]) - _REASON
+        or type(manifest["block"]) is not int
+        or manifest["block"] < 0
+    ):
+        raise AnswerKeyRefused("answer_key_withdrawal_malformed")
+
+
+def verify_withdrawal(value, producer_public_key):
+    """A withdrawal notice, checked against the pinned producer key. Returns
+    its manifest."""
+    from cryptography.exceptions import InvalidSignature
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+    try:
+        if value["schema"] != WITHDRAWAL_SCHEMA:
+            raise AnswerKeyRefused("answer_key_withdrawal_malformed")
+        manifest = value["manifest"]
+        if value["public_key"] != producer_public_key or value["key_id"] != key_id(
+            producer_public_key
+        ):
+            raise AnswerKeyRefused("answer_key_wrong_producer")
+        Ed25519PublicKey.from_public_bytes(bytes.fromhex(producer_public_key)).verify(
+            bytes.fromhex(value["signature"]), DOMAIN + _canonical(manifest)
+        )
+    except AnswerKeyRefused:
+        raise
+    except InvalidSignature:
+        raise AnswerKeyRefused("answer_key_signature") from None
+    except (KeyError, TypeError, ValueError):
+        raise AnswerKeyRefused("answer_key_withdrawal_malformed") from None
+    _check_withdrawal(manifest)
+    return manifest
+
+
+def apply_withdrawals(adapter, notices, producer_public_key, challenge_id):
+    """Apply every verified withdrawal notice to `adapter` before anything is
+    imported. Returns the withdrawn fingerprints, in order."""
+    withdrawn = []
+    for value in notices:
+        manifest = verify_withdrawal(value, producer_public_key)
+        if manifest["challenge_id"] != challenge_id:
+            raise AnswerKeyRefused("answer_key_wrong_challenge")
+        if not hasattr(adapter, "withdraw_answer_key"):
+            raise AnswerKeyRefused("answer_key_withdrawal_unsupported")
+        adapter.withdraw_answer_key(manifest)
+        withdrawn.append(manifest["fingerprint"])
+    return withdrawn
+
+
 # --- the validator's fetch ------------------------------------------------------------
 
 
@@ -344,15 +432,22 @@ def sync(adapter, fetcher, producer_public_key, challenge_id):
     """
     if adapter.challenge_id != challenge_id:
         raise AnswerKeyRefused("answer_key_wrong_challenge")
-    listed = fetcher.ask(challenge_id).get("packages")
-    if type(listed) is not list:
+    answer = fetcher.ask(challenge_id)
+    listed = answer.get("packages")
+    notices = answer.get("withdrawals", [])
+    if type(listed) is not list or type(notices) is not list:
         raise AnswerKeyRefused("answer_key_malformed")
-    results = []
+    # Withdrawals first (VALIDATOR-24): a withdrawn window stops scoring at
+    # once and is never imported again.
+    withdrawn = apply_withdrawals(adapter, notices, producer_public_key, challenge_id)
+    results = [{"fingerprint": f, "state": "WITHDRAWN"} for f in withdrawn]
     for entry in listed:
         commitment = verify_manifest(entry, producer_public_key)
         fingerprint = commitment["fingerprint"]
         if commitment["challenge_id"] != challenge_id:
             raise AnswerKeyRefused("answer_key_wrong_challenge")
+        if fingerprint in withdrawn:
+            continue
         if adapter.holds_answer_key(commitment):
             results.append({"fingerprint": fingerprint, "state": "HELD"})
             continue
@@ -382,7 +477,13 @@ def import_local(adapter, producer_public_key, outbox):
         raise AnswerKeyRefused("answer_key_outbox_missing") from None
     if not stat.S_ISDIR(info.st_mode) or info.st_mode & 0o077:
         raise AnswerKeyRefused("answer_key_outbox_not_owner_only")
-    results = []
+    notices = [
+        read_private(p) for p in sorted((directory / "withdrawals").glob("*.json"))
+    ]
+    withdrawn = apply_withdrawals(
+        adapter, notices, producer_public_key, adapter.challenge_id
+    )
+    results = [{"fingerprint": f, "state": "WITHDRAWN"} for f in withdrawn]
     for path in sorted(directory.glob("*.json")):
         try:
             commitment, payload = verify(read_private(path), producer_public_key)

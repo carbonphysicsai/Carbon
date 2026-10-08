@@ -51,6 +51,9 @@ SUBMISSION_STATES = (
     "RECONSTRUCTION_FAILED",  # the candidate's own build or prediction failed
     "FAILED_INFRA",  # infrastructure; retryable, never a score
     "FAILED_INFRA_EXHAUSTED",  # infrastructure, retry cap reached; parked
+    "VOID",  # scored on a window the producer withdrew (VALIDATOR-24): not
+    # scientific, never a score, never ranked or weighted; its tempo slot is
+    # not consumed
 )
 #: Identity fields a deployment may carry over in place (`PoolStore.rebind`).
 CARRY_OVER_KEYS = frozenset(
@@ -85,6 +88,11 @@ CREATE TABLE IF NOT EXISTS pool_clock(
 CREATE TABLE IF NOT EXISTS batch_salts(
   fingerprint TEXT PRIMARY KEY,
   salt TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS withdrawn_batches(
+    fingerprint TEXT PRIMARY KEY,
+    reason TEXT NOT NULL,
+    block INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS batch_windows(
   fingerprint TEXT PRIMARY KEY,
   slot INTEGER NOT NULL,
@@ -715,10 +723,128 @@ class PoolStore:
                 "SELECT w.fingerprint FROM batch_windows w JOIN batches b "
                 "ON b.fingerprint = w.fingerprint WHERE b.kind='screening' "
                 "AND b.references_state='COMPLETE' AND w.activate_block <= ? "
-                "AND ? < w.retire_block ORDER BY w.activate_block, w.fingerprint",
+                "AND ? < w.retire_block AND w.fingerprint NOT IN "
+                "(SELECT fingerprint FROM withdrawn_batches) "
+                "ORDER BY w.activate_block, w.fingerprint",
                 (block, block),
             )
         ]
+
+    @staticmethod
+    def _withdrawn_set(db):
+        return {
+            row[0] for row in db.execute("SELECT fingerprint FROM withdrawn_batches")
+        }
+
+    def withdraw_batch(self, fingerprint, reason, block):
+        """Record a producer withdrawal (VALIDATOR-24): the batch never
+        activates again, leaves the active pool at the next rotation step, and
+        is never imported again. Recorded even before the batch is held.
+        Idempotent; a different reason or block for the same batch is
+        refused."""
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT reason, block FROM withdrawn_batches WHERE fingerprint=?",
+                (fingerprint,),
+            ).fetchone()
+            if row is not None:
+                if tuple(row) != (reason, block):
+                    raise StateError("withdrawal_changed")
+                return False
+            db.execute(
+                "INSERT INTO withdrawn_batches VALUES(?,?,?)",
+                (fingerprint, reason, block),
+            )
+            self._event(
+                db,
+                "batch_withdrawn",
+                {"fingerprint": fingerprint, "reason": reason, "block": block},
+            )
+            if self.windowed:
+                self._windowed_rotate(db)
+            self._void_withdrawn(db, fingerprint)
+            return True
+
+    def _void_withdrawn(self, db, fingerprint):
+        """Everything scored on a withdrawn window becomes VOID
+        (VALIDATOR-24): a non-scientific outcome, never a score, never ranked
+        or weighted, and it does not use the hotkey's tempo slot. Scores stay
+        in the record (invariant 10). Every validator applies the same signed
+        notice, so they agree on which windows count.
+        - A screening batch voids the submissions scored on any pool version it
+          was active in.
+        - A final that a voided challenger froze, or that ran on the withdrawn
+          finalist batch, is decided as withdrawn, never as a promotion. A
+          promotion it already made is undone: the incumbent returns to the
+          one it beat.
+        - A first incumbent set by a voided submission is cleared."""
+        row = db.execute(
+            "SELECT kind, activated_version, retired_version FROM batches "
+            "WHERE fingerprint=?",
+            (fingerprint,),
+        ).fetchone()
+        if row is None:
+            return []
+        kind, activated, retired = row
+        voided = []
+        if kind == "screening" and activated is not None:
+            if retired is None:
+                retired = self._pool_row(db)["version"] + 1
+            voided = [
+                r[0]
+                for r in db.execute(
+                    "SELECT s.submission_id FROM scores s JOIN submissions u ON "
+                    "u.submission_id = s.submission_id WHERE u.state='SCORED' AND "
+                    "s.pool_version >= ? AND s.pool_version < ? ORDER BY s.rowid",
+                    (activated, retired),
+                )
+            ]
+        failure = canonical({"code": "window_withdrawn"})
+        for submission_id in voided:
+            db.execute(
+                "UPDATE submissions SET state='VOID', failure=?, updated=? "
+                "WHERE submission_id=?",
+                (failure, self.clock(), submission_id),
+            )
+            self._event(
+                db,
+                "submission_voided",
+                {"submission_id": submission_id, "fingerprint": fingerprint},
+            )
+        withdrawn = {"withdrawn": "window_withdrawn", "promotable": False}
+        marks = ",".join("?" * len(voided)) or "NULL"
+        for final_id, state, challenger, incumbent, outcome in db.execute(
+            "SELECT final_id, state, challenger, incumbent, outcome FROM finals "
+            f"WHERE finalist=? OR challenger IN ({marks}) ORDER BY rowid",
+            (fingerprint, *voided),
+        ).fetchall():
+            if state != "DECIDED":
+                db.execute(
+                    "UPDATE finals SET state='DECIDED', outcome=? WHERE final_id=?",
+                    (_json(withdrawn), final_id),
+                )
+            elif (outcome and json.loads(outcome).get("promotable")) and (
+                self._incumbent_id(db) == challenger
+            ):
+                self._set_incumbent(
+                    db, incumbent, "window_withdrawn", expected=challenger
+                )
+            self._event(
+                db, "final_voided", {"final_id": final_id, "fingerprint": fingerprint}
+            )
+        current = self._incumbent_id(db)
+        if current in voided:
+            db.execute("DELETE FROM incumbent WHERE id=1")
+            self._event(
+                db,
+                "incumbent",
+                {"model_id": None, "reason": "window_withdrawn", "previous": current},
+            )
+        return voided
+
+    def batch_withdrawn(self, fingerprint):
+        with self.db() as db:
+            return fingerprint in self._withdrawn_set(db)
 
     def window(self, fingerprint):
         with self.db() as db:
@@ -741,6 +867,12 @@ class PoolStore:
             return None
         active = self._windows_at(db, latest)
         pool = self._pool_row(db)
+        if not active:
+            # No window covers the block: the current batches keep scoring,
+            # except a withdrawn one, which leaves at once (VALIDATOR-24).
+            withdrawn = self._withdrawn_set(db)
+            if any(f in withdrawn for f in pool["active"]):
+                active = [f for f in pool["active"] if f not in withdrawn]
         if active == pool["active"]:
             return None
         if not active:
@@ -947,7 +1079,7 @@ class PoolStore:
                 start, end, limit = window
                 used = db.execute(
                     "SELECT COUNT(*) FROM submissions WHERE hotkey=? AND "
-                    "state!='INVALID_CONSTRUCTION' AND "
+                    "state NOT IN ('INVALID_CONSTRUCTION', 'VOID') AND "
                     "json_extract(binding, '$.receipt.block') >= ? AND "
                     "json_extract(binding, '$.receipt.block') < ?",
                     (hotkey, start, end),
@@ -1299,6 +1431,8 @@ class PoolStore:
                         "ON w.fingerprint = b.fingerprint WHERE b.kind='finalist' "
                         "AND b.state='PREPARED' AND b.references_state='COMPLETE' "
                         "AND w.activate_block <= ? AND ? < w.retire_block "
+                        "AND b.fingerprint NOT IN "
+                        "(SELECT fingerprint FROM withdrawn_batches) "
                         "ORDER BY w.activate_block, b.fingerprint LIMIT 1",
                         (latest, latest),
                     ).fetchone()

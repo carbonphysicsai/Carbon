@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-reference-routes-baseline",
+  "recorded_at": "2026-10-08T02:56:07+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-REFERENCE-ROUTES-01 baseline on df26107c265dd9148be25ea5659ec2007785e0f2",
+    "description": "py -3.11 -m pytest -q tests/cpu/test_foundation_quiz_content.py tests/cpu/test_customer_reference_credibility.py tests/cpu/test_customer_feasibility_panels.py"
+  },
+  "expected": "Preserve packet limits, witness credibility and full-case cost semantics before adding route proposals.",
+  "observed": "50 passed in 10.73s on native Windows/Anaconda Python 3.11.4. Diagnostic only; no canonical acceptance, solver run or physical evidence.",
+  "keep": ["Pointwise plus buyer-decision checks; every new full-task cost UNMEASURED."],
+  "change": ["Separate acoustic process launches from frequency systems; modal projection may already be the structural baseline."],
+  "protocol_elements": ["reference-policy", "reference-cost", "claim-basis"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

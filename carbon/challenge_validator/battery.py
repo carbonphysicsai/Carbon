@@ -400,6 +400,22 @@ class BatteryAdapter(ChallengeAdapter):
             ):
                 raise AnswerKeyRefused("answer_key_bank_proof")
 
+    def withdraw_answer_key(self, manifest):
+        """Apply a verified producer withdrawal (VALIDATOR-24): the batch
+        stops scoring at once and is never imported again. Typed, never a
+        score."""
+        from carbon.battery.pool_store import StateError
+
+        from .answer_key import AnswerKeyRefused
+
+        try:
+            with self._writer():
+                return self.target.store.withdraw_batch(
+                    manifest["fingerprint"], manifest["reason"], manifest["block"]
+                )
+        except StateError as refused:
+            raise AnswerKeyRefused("answer_key_" + refused.code) from None
+
     def import_answer_key(self, commitment, payload):
         """Import a producer batch, verified in full first:
         - the commitment's contract and rule are this validator's;
@@ -423,6 +439,8 @@ class BatteryAdapter(ChallengeAdapter):
             or commitment["rule_digest"] != identities["rule_digest"]
         ):
             raise AnswerKeyRefused("answer_key_identity_mismatch")
+        if self.target.store.batch_withdrawn(commitment["fingerprint"]):
+            raise AnswerKeyRefused("answer_key_withdrawn")
         window = commitment.get("window")
         if (
             type(window) is not dict

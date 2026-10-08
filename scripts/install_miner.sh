@@ -7,9 +7,10 @@
 #   ~/carbon/scripts/install_miner.sh --update   # later: the latest main
 #
 # What it does, in order, and nothing else:
-#   1. checks this machine: Linux x86-64, git, curl, a running Docker, the
-#      free disk the environment and images need, and that no Control Center
-#      is running from the state directory this install changes;
+#   1. checks this machine: Linux x86-64, git, curl, a running Docker (for
+#      the service, reachable from the systemd user manager that runs it too),
+#      the free disk the environment and images need, and that no Control
+#      Center is running from the state directory this install changes;
 #   2. brings the checkout to the requested ref (the latest main by default).
 #      The checkout must be clean, because an image's identity is the exact
 #      source tree, and the ref must be in Carbon's main, because setup
@@ -137,6 +138,26 @@ for tool in git curl docker; do
 done
 docker info >/dev/null 2>&1 \
   || fail "Docker is installed but not reachable; start it, or add yourself to the docker group."
+# The service, and every unit Carbon's runs start, run under the systemd user
+# manager, not this shell (LA-F6). A docker group added after the manager
+# started is in a new shell's groups but not the manager's, so Docker answers
+# here while the service is refused, and the worker doctor then fails as
+# "accepted numerical host unavailable". Checked before anything changes.
+# A machine without the user manager is refused at step 6, as before.
+if [[ "${SERVICE}" == 1 || -f "${UNIT}" ]] && command -v systemctl >/dev/null 2>&1 \
+  && systemctl --user show-environment >/dev/null 2>&1; then
+  command -v systemd-run >/dev/null 2>&1 \
+    || fail "--service needs systemd-run (part of systemd) to check that the service can reach Docker."
+  if ! systemd-run --user --wait --quiet --collect --pipe \
+    "$(command -v docker)" info --format '{{.ServerVersion}}' </dev/null >/dev/null 2>&1; then
+    if [[ -n "${WSL_DISTRO_NAME:-}" ]]; then
+      restart="From Windows, run: wsl --terminate ${WSL_DISTRO_NAME}, then open the distro again. That stops everything running in it, Docker's containers and any Carbon campaign included."
+    else
+      restart="Run: sudo systemctl restart user@$(id -u).service (that stops all of your user services, a running Control Center service included), or log out of every session and back in."
+    fi
+    fail "Docker answers this shell but not your systemd user manager, which runs the Control Center service and everything it starts. Most often the manager started before you joined the docker group, so it does not have the group. Nothing was changed. Restart the manager so it picks the group up. ${restart} Then run this again."
+  fi
+fi
 if [[ "${GPU}" == 1 ]]; then
   command -v nvidia-smi >/dev/null 2>&1 \
     || fail "--gpu needs the NVIDIA driver (nvidia-smi was not found)."

@@ -109,6 +109,11 @@ OPTIONAL_PROFILE_FIELDS = {
     # deployment for that Challenge.
     "intakes",
     "validators",
+    # Per Challenge (LAUNCHPAD-ACCEPT-03): {challenge_id: ss58}, the receiver
+    # hotkey that Challenge's intake must report before anything is signed
+    # for it. Review pins it; a profile written before has none, and its
+    # intake is not checked (setup and the prelaunch review warn).
+    "receivers",
     # Legacy names from C-MLP-03, still read exactly as before: the intake and
     # the validator deployment of the one Challenge they were written for.
     "battery_intake",
@@ -141,6 +146,16 @@ def intakes(cfg):
     return found
 
 
+#: An ss58 address, as a pinned receiver hotkey is written.
+RECEIVER_ADDRESS = re.compile(r"[1-9A-HJ-NP-Za-km-z]{47,48}")
+
+
+def receivers(cfg):
+    """{challenge_id: receiver hotkey} the profile pins (LAUNCHPAD-ACCEPT-03);
+    empty for a profile written before receivers were pinned."""
+    return dict(cfg.get("receivers") or {})
+
+
 def validators(cfg):
     """{challenge_id: validator deployment path}, with a legacy
     `battery_validator` path read the same way."""
@@ -157,6 +172,7 @@ def campaign_args(cfg, **fields):
     return SimpleNamespace(
         **{k: Path(v) for k, v in cfg["paths"].items() if k != LEGACY_VALIDATOR},
         intakes=intakes(cfg),
+        receivers=receivers(cfg),
         validators=validators(cfg),
         remote_machine=cfg.get("remote_machine"),
         **fields,
@@ -546,6 +562,31 @@ def evaluation_refusal(cfg, manifest):
     return "evaluation_unavailable"
 
 
+#: How a submit through a validator intake ended, when it was not a verdict
+#: (LAUNCHPAD-ACCEPT-04): the validator holds it, the validator's side could
+#: not serve, or the miner acts.
+INTAKE_OUTCOMES = ("QUEUED", "UNAVAILABLE", "REFUSED")
+
+
+def _intake_outcome(refusal, root):
+    """`QUEUED`, `UNAVAILABLE` or `REFUSED` for a campaign's last submit
+    refusal that a trip through its Challenge's intake reported, read from
+    the Challenge's own campaign (`intake_outcome`); None otherwise. This
+    runner names no Challenge's module, so a Challenge with no intake, or a
+    code that is not an intake's, is None."""
+    from carbon.challenge_registry.campaigns import campaign_for_manifest
+
+    if refusal is None or refusal.get("operation") != "submit":
+        return None
+    try:
+        manifest = json.loads((Path(root) / "campaign-manifest.json").read_bytes())
+        classify = campaign_for_manifest(manifest).intake_outcome
+        found = classify(refusal["code"]) if classify is not None else None
+    except Exception:  # noqa: BLE001 - not readable: not shown, never guessed
+        return None
+    return found if found in INTAKE_OUTCOMES else None
+
+
 def validated_profile(cfg):
     """A runner profile v2, closed, or the reason it is not one.
 
@@ -615,6 +656,15 @@ def validated_profile(cfg):
         _registered_challenge_ids(cfg["intakes"], "intakes")
         if not all(map(_intake_url, cfg["intakes"].values())):
             raise ValueError("an intake is an https URL or a loopback URL")
+    if "receivers" in cfg:
+        _registered_challenge_ids(cfg["receivers"], "receivers")
+        if any(
+            type(v) is not str or not RECEIVER_ADDRESS.fullmatch(v)
+            for v in cfg["receivers"].values()
+        ):
+            raise ValueError("a receiver is an ss58 hotkey address")
+        if not set(cfg["receivers"]) <= set(intakes(cfg)):
+            raise ValueError("a receiver is pinned only beside its intake")
     if "validators" in cfg:
         _registered_challenge_ids(cfg["validators"], "validators")
         if any(
@@ -758,6 +808,45 @@ def credential_refusal(path):
     except (OSError, ValueError):
         return "model_provider_credential_unusable"
     return None
+
+
+def launch_model(cfg, request):
+    """The provider and model a launch request runs with, and whether they
+    are the miner's setup choice: the ones it names; or, for an agent that
+    calls a model and a launch naming no provider, model or settings, the
+    miner's setup choice, never the pinned default and another's key; or
+    neither (None, None: the pinned default)."""
+    provider, model = request.get("model_provider"), request.get("model")
+    if (
+        provider is None
+        and model is None
+        and request.get("model_settings") is None
+        and request.get("agent") in MODEL_AGENTS
+        and "model_selection" in cfg
+    ):
+        chosen = cfg["model_selection"]
+        return chosen["provider_id"], chosen["model_id"], True
+    return provider, model, False
+
+
+def launch_provider(cfg, row):
+    """The provider a campaign's admitted launch runs with, from its record
+    (`launch_request`), for a campaign not yet frozen (LA-F5); None when the
+    launch named none or nothing usable is recorded. Read exactly as the
+    run that carries the launch out reads it (`_recorded_launch`), so its
+    key is checked for the provider it will be sent to."""
+    stored = (row or {}).get("launch_request")
+    if type(stored) not in (str, bytes):
+        # Kept as canonical JSON bytes; nothing else is a record.
+        return None
+    try:
+        recorded = json.loads(stored)
+    except ValueError:
+        return None
+    if type(recorded) is not dict:
+        return None
+    provider, _model, _from_setup = launch_model(cfg, recorded)
+    return provider if type(provider) is str else None
 
 
 def frozen_provider(root):
@@ -988,7 +1077,7 @@ GRAPHITE_MODE_SUMMARIES = {
         "select and submit."
     ),
     "FULL": (
-        "Research within the research share of your budget, then build. The " "default."
+        "Research within the research share of your budget, then build. The default."
     ),
 }
 
@@ -2515,21 +2604,8 @@ class RunnerAdapter:
             if challenge is None or mode not in feedback_modes(challenge):
                 # Each Challenge offers its own modes; FULL is every one's.
                 raise Rejected("feedback_mode_not_offered_by_challenge", 409)
-        provider, model = request.get("model_provider"), request.get("model")
+        provider, model, from_setup = launch_model(cfg, request)
         settings = request.get("model_settings")
-        from_setup = False
-        if (
-            provider is None
-            and model is None
-            and settings is None
-            and request.get("agent") in MODEL_AGENTS
-            and "model_selection" in cfg
-        ):
-            # The miner chose a model in setup; a launch that names none runs
-            # with it, never with the pinned default and another's key.
-            provider = cfg["model_selection"]["provider_id"]
-            model = cfg["model_selection"]["model_id"]
-            from_setup = True
         if settings is not None:
             # Settings modify a selection; without a provider nothing uses them.
             if provider is None:
@@ -2593,7 +2669,8 @@ class RunnerAdapter:
     def _graphite_choice(self, request, challenge, *, admitted=None):
         """Graphite's launch choice (`graphite_launch`), checked against what
         it needs to run, or None for any other agent. Refused by name before
-        anything is created: a Challenge without a registered campaign
+        anything is created: a budget without both finite provider ceilings
+        (`graphite_ceilings_required`), a Challenge without a registered campaign
         (`graphite_not_offered_for_challenge`), a missing or changed shared
         card pack (`literature_pack_missing`), a plan not in the miner's
         library (`plan_not_found`), a plan for another Challenge or one the
@@ -2608,6 +2685,22 @@ class RunnerAdapter:
         choice = graphite_launch(request)
         if choice is None:
             return None
+        from carbon.challenge_registry.agent_plan import (
+            GRAPHITE_CEILINGS_REQUIRED,
+            finite_ceilings,
+        )
+        from carbon.development_session.product_campaign import miner_budget
+
+        try:
+            budget = miner_budget(request.get("budget"))
+        except ValueError:
+            raise Rejected("invalid_budget") from None
+        if not finite_ceilings(budget):
+            # The plan's own predicate (LA-F4): a Graphite plan freezes only
+            # finite provider_attempts and provider_nanodollars ceilings, so
+            # a launch without both is refused here, before it is queued,
+            # never by its preparation after.
+            raise Rejected(GRAPHITE_CEILINGS_REQUIRED)
         if not graphite_offered(challenge):
             raise Rejected("graphite_not_offered_for_challenge", 409)
         try:
@@ -3007,6 +3100,12 @@ class RunnerAdapter:
         from scripts.dev.miner_launchpad.toolbox import for_request
 
         return for_request(self, request)
+
+    def ladder_admitted(self, admitted, request):
+        # A Challenge's construction levels, from data (LAUNCHPAD-LEVELS-01).
+        from scripts.dev.miner_launchpad.ladder_view import for_request
+
+        return for_request(request)
 
     def run_output_admitted(self, admitted, request):
         # A finished workspace run's own output (RSURF-D17).
@@ -4053,11 +4152,19 @@ class RunnerAdapter:
         return result
 
     @staticmethod
-    def _frozen_credential(cfg, root):
+    def _frozen_credential(cfg, root, row=None):
         """The key file for the provider a frozen campaign records, from the
         runner profile. A resumed campaign never sends one provider's key to
-        another: an unconfigured provider is refused, not substituted."""
+        another: an unconfigured provider is refused, not substituted.
+
+        `row` is the campaign's record, given by a resume's admission check
+        only: before the campaign's manifest exists, the provider its
+        admitted launch recorded (`launch_provider`) is the one checked, as
+        the run that then carries the launch out uses it (LA-F5). Without a
+        record, or one naming no provider, the pinned default's rule stands."""
         provider = frozen_provider(root)
+        if provider is None and row is not None:
+            provider = launch_provider(cfg, row)
         if provider in (None, DEFAULT_PROVIDER):
             # Every campaign frozen before selection existed, unchanged: the
             # campaign checks this key itself when its agent needs one.
@@ -4411,7 +4518,9 @@ class RunnerAdapter:
                 # with (D10), the frozen provider's key.
                 self._current(cfg)
                 self._resume_binding(cfg, dict(row), root)
-                self._frozen_credential(cfg, root)
+                # Checked only: the run carries an unprepared launch out from
+                # its record, with the key for the provider it recorded.
+                self._frozen_credential(cfg, root, dict(row))
             try:
                 control.request(action)
             except ValueError:
@@ -4550,6 +4659,9 @@ class RunnerAdapter:
         value = project(row, root)
         # A retired-grant row has no such column: never refused here.
         value["last_refusal"] = supervision.read_refusal(row.get("last_refusal"))
+        outcome = _intake_outcome(value["last_refusal"], root)
+        if outcome is not None:
+            value["last_refusal"]["intake_outcome"] = outcome
         value["in_flight"] = self._in_flight(identity)
         # Only what can succeed: nothing resumes a retired-grant campaign or
         # one on a retired Challenge (`_control`), so neither is offered it.

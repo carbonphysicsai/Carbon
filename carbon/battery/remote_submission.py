@@ -35,6 +35,7 @@ TERMINAL = {
     "RECONSTRUCTION_FAILED",
     "FAILED_INFRA_EXHAUSTED",
     "REFUSED",
+    "VOID",
 }
 
 
@@ -58,6 +59,28 @@ def _signed(signer, facts, body):
     )
 
 
+#: The intake reports another receiver than the profile pins (LAUNCHPAD-ACCEPT-03).
+RECEIVER_MISMATCH = "intake_receiver_mismatch"
+
+
+def check_receiver(facts, receiver):
+    """The intake's public facts, once their `receiver` is the one the miner's
+    profile pins for this Challenge (LAUNCHPAD-ACCEPT-03).
+
+    Asked after every read of the facts and before anything is signed: a
+    submit, a resend and a status poll. The signer signs for the receiver it
+    is given, so an intake at a wrong or substituted address would otherwise
+    be signed for and sent to. A mismatch raises `IntakeRefusal`
+    (`intake_receiver_mismatch`) with nothing signed or sent. `receiver` None
+    is a profile written before receivers were pinned: it is not checked here,
+    and setup and the prelaunch review warn about it."""
+    if receiver is not None and (
+        type(facts) is not dict or facts.get("receiver") != receiver
+    ):
+        raise IntakeRefusal(RECEIVER_MISMATCH, intake_client.explain(RECEIVER_MISMATCH))
+    return facts
+
+
 def submit_and_wait(
     url,
     signer,
@@ -71,13 +94,16 @@ def submit_and_wait(
     clock=time.monotonic,
     sleep=time.sleep,
     wait_s=WAIT_S,
+    receiver=None,
 ):
     """Submit once (or recall the epoch's submission), then poll for a verdict.
 
     Returns `(status, answer, submission_id)` once the answer is terminal.
     Raises `IntakeRefusal` when no evaluation happened, including
     `evaluation_queued` when the wait ran out with the submission still on the
-    validator's queue.
+    validator's queue, and `intake_receiver_mismatch` when the intake reports
+    another receiver than `receiver`, the profile's pinned one
+    (`check_receiver`), before that request is signed.
     """
     from carbon.development_session.data import write_once
 
@@ -85,7 +111,7 @@ def submit_and_wait(
     if record.exists():
         submission_id = json.loads(record.read_bytes())["submission_id"]
     else:
-        facts = read(url)
+        facts = check_receiver(read(url), receiver)
         body = intake_client.submission_message(facts, strategy, contract_digest)
         status, answer = post(url, body, _signed(signer, facts, body))
         if status != 202 or "submission_id" not in answer:
@@ -104,7 +130,7 @@ def submit_and_wait(
         record.chmod(0o600)
     deadline = clock() + wait_s
     while True:
-        facts = read(url)
+        facts = check_receiver(read(url), receiver)
         body = intake_client.status_message(facts, submission_id)
         status, answer = post(url, body, _signed(signer, facts, body))
         if "refused" in answer:

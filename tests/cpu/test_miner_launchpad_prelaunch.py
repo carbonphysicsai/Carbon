@@ -403,7 +403,14 @@ def test_review_states_where_a_frozen_candidate_is_evaluated(tmp_path, monkeypat
     assert (item["status"], item["intake"]) == ("PUBLISHED_REVIEW_AGAIN", url)
     assert "review again in setup" in item["next_step"]
 
-    written = evaluation({**cfg, "intakes": {challenge["id"]: url}})
+    receiver = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+    written = evaluation(
+        {
+            **cfg,
+            "intakes": {challenge["id"]: url},
+            "receivers": {challenge["id"]: receiver},
+        }
+    )
     assert written["configured"] == "CONFIGURED_FOR_ALL"
     assert written["challenges"][0] == {
         "challenge_id": challenge["id"],
@@ -411,11 +418,30 @@ def test_review_states_where_a_frozen_candidate_is_evaluated(tmp_path, monkeypat
         "status": "INTAKE_CONFIGURED",
         "source": "PUBLISHED",
         "intake": url,
+        "receiver_pinned": True,
     }
+    # A profile from before receivers were pinned (LAUNCHPAD-ACCEPT-03): still
+    # configured, never refused, and the review says so.
+    legacy = evaluation({**cfg, "intakes": {challenge["id"]: url}})
+    assert legacy["configured"] == "CONFIGURED_FOR_ALL"
+    item = legacy["challenges"][0]
+    assert (item["receiver_pinned"], item["warning"]) == (
+        False,
+        "intake_receiver_not_pinned",
+    )
+    assert "Review again in setup to pin it" in item["next_step"]
     own = "https://PRIVATE-SENTINEL.example.org"
-    mine = evaluation({**cfg, "intakes": {challenge["id"]: own}})["challenges"][0]
+    mine = evaluation(
+        {
+            **cfg,
+            "intakes": {challenge["id"]: own},
+            "receivers": {challenge["id"]: "5PRIVATESENTINEL" + "x" * 32},
+        }
+    )["challenges"][0]
     assert (mine["status"], mine["source"]) == ("INTAKE_CONFIGURED", "YOURS")
+    assert mine["receiver_pinned"] is True
     assert "PRIVATE-SENTINEL" not in json.dumps(mine)
+    assert "PRIVATESENTINEL" not in json.dumps(mine)  # the pinned hotkey too
     local = {**cfg, "paths": {**cfg["paths"], "battery_validator": str(tmp_path)}}
     assert evaluation(local)["challenges"][0]["status"] == "VALIDATOR_ON_THIS_MACHINE"
     assert str(tmp_path) not in json.dumps(evaluation(local))
