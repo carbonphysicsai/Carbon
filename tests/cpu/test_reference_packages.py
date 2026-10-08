@@ -12,7 +12,9 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 LOCKS = sorted((ROOT / "scripts/dev/reference_packages").glob("*/sources.lock.json"))
 MANIFESTS = sorted(
-    (ROOT / "docs/development/evidence/reference-packages-01").glob("*.json")
+    p
+    for p in (ROOT / "docs/development/evidence/reference-packages-01").glob("*.json")
+    if json.loads(p.read_text()).get("schema") == "carbon.reference-package.manifest.v1"
 )
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
