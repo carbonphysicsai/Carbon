@@ -2396,18 +2396,31 @@ SEAMS = (
     # Level 1 is no longer a seam here: it runs in its own adapter,
     # `adapters.battery_level1`, registered at (battery, 1) against the
     # registered variant battery-l1-loss-expressions-v1 (GRAPHITE-L1-BUILD-01).
+    # Levels 2 and 3 have registered development-only variants but no attack
+    # adapter yet; until one ships, the Attacker refuses the level
+    # (`no_attack_adapter_for_challenge_level`) and the seam stays here.
     SeamSpec(
         "level_2_schedules_and_sampling",
         "adaptive_feedback_and_state_attacks",
         2,
-        "no Level 2 proposal or expansion record exists for battery",
+        "battery's development-only Level 2 variant battery-l2-spectral-v1 is "
+        "registered (BATTERY-L2-SPECMUON-BUILD-01), but it has no attack adapter: "
+        "its matched panels, permission ablations and combined-permission "
+        "attacks are not built, so the Attacker refuses Level 2",
     ),
     SeamSpec(
         "level_3_numerical_routines",
         "construction_evaluation_isolation",
         3,
-        _PARTICIPANT_CODE,
-        "security owner: isolation for executing participant code",
+        "battery's development-only Level 3 variant battery-l3-numerics-v1 is "
+        "registered (BATTERY-L3-NUMERICS-BUILD-01). It is a declarative menu, "
+        "held as data, that runs no participant code (OWNER-GRAPHITE-DEV-LEVELS-01 "
+        "F2), but it has no attack adapter: its matched panels, permission "
+        "ablations and combined-permission attacks are not built, so the "
+        "Attacker refuses Level 3. Participant-written numerical routines "
+        "beyond the menu would execute participant code",
+        "security owner: isolation, for participant-written routines beyond the "
+        "declarative menu",
     ),
     SeamSpec(
         "level_4_constrained_inference_export",
