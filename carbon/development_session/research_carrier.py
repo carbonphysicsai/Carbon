@@ -433,7 +433,7 @@ def _run_locked(
             before_finish=before_finish,
             device=device,
         )
-    worker = _worker_profile(device)
+    worker = _worker_profile(device, provenance)
     create_attempted = False
     output = operation / "export.stream"
     lease = ExitStack()
@@ -612,9 +612,25 @@ def _check_gpu_host(cli, image, device):
         raise ValueError("installed host device record changed before dispatch")
 
 
-def _worker_profile(device):
-    """The carrier's worker profile: CPU, or the miner lane on `device`."""
+#: The one provenance that runs under the G5 compile lane's profile
+#: (`carbon.level4.compile.PROVENANCE`; LEVEL4-G5-LANE-MEMORY-01).
+G5_PROVENANCE = "LEVEL4_G5_COMPILE_DEVELOPMENT"
+
+
+def _worker_profile(device, provenance=None):
+    """The carrier's worker profile: CPU, the G5 compile lane's CPU profile
+    (only for G5's own provenance, never with a device), or the miner lane on
+    `device`."""
     policy = digest(b"carbon.autoresearch.public-research.v1")
+    if device is None and provenance == G5_PROVENANCE:
+        from carbon.reconstruction.worker.model import G5_PROFILE_ID, PROFILE_VERSION
+
+        return DevelopmentWorkerProfile(
+            policy,
+            digest(b"2cpu-8gib-noswap-600seconds"),
+            G5_PROFILE_ID,
+            PROFILE_VERSION,
+        )
     resources = digest(b"2cpu-4gib-noswap-600seconds")
     if device is None:
         return DevelopmentWorkerProfile(policy, resources)
