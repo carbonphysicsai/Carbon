@@ -619,6 +619,15 @@ def mcp_connect(state_dir=None) -> dict:
         f"args = {json.dumps(args)}\n"
         f"cwd = {quoted(repo)}\n"
         "tool_timeout_sec = 1800\n"
+        # LA-F13: `codex exec` runs with no one to approve a prompt, so a
+        # Carbon tool it calls fails "requires approval". Codex's documented
+        # per-server setting (learn.chatgpt.com/docs/extend/mcp): `prompt`
+        # asks each time; `approve` is the value its example uses for a tool
+        # that runs without asking.
+        "# Codex asks before each Carbon tool. For unattended runs\n"
+        '# (codex exec), set "approve". Starting your signer, signing your\n'
+        "# registration and confirming a commitment stay yours either way.\n"
+        'default_tools_approval_mode = "prompt"\n'
     )
     yaml = (
         "mcp_servers:\n"
@@ -680,7 +689,15 @@ def mcp_connect(state_dir=None) -> dict:
                     },
                     {"label": "Or in ~/.codex/config.toml", "text": toml},
                 ],
-                "unverified": [not_run],
+                "unverified": [
+                    not_run,
+                    (
+                        "UNVERIFIED: that default_tools_approval_mode = "
+                        '"approve" lets codex exec run Carbon\'s tools; '
+                        "Codex's documentation lists the value without "
+                        "describing it."
+                    ),
+                ],
             },
             {
                 "id": "hermes",

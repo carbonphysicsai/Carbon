@@ -65,6 +65,8 @@ def test_the_config_snippets_name_the_same_server_command():
     codex = tomllib.loads(_snippet(clients["codex"], "Or in ~/.codex/config.toml"))
     server = codex["mcp_servers"][NAME]
     assert [server["command"], *server["args"]] == command
+    # LA-F13: the documented per-server approval setting, asking by default.
+    assert server["default_tools_approval_mode"] == "prompt"
     hermes_label = next(s["label"] for s in clients["hermes"]["snippets"])
     hermes = yaml.safe_load(_snippet(clients["hermes"], hermes_label))
     server = hermes["mcp_servers"][NAME]
