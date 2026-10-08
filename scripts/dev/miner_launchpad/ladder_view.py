@@ -196,18 +196,20 @@ def _variants(challenge):
                 "status": document.get("status") if refusal is None else None,
                 "scope": VARIANT_SCOPE,
                 "refusal": refusal,
-                "widened": []
-                if refusal is not None
-                else [
-                    {
-                        "id": w["id"],
-                        "summary": w["summary"],
-                        "surface": _surface(w["surface"]),
-                        "applies_to": w["applies_to"],
-                        "bounds": w["bounds"],
-                    }
-                    for w in document["widened"]
-                ],
+                "widened": (
+                    []
+                    if refusal is not None
+                    else [
+                        {
+                            "id": w["id"],
+                            "summary": w["summary"],
+                            "surface": _surface(w["surface"]),
+                            "applies_to": w["applies_to"],
+                            "bounds": w["bounds"],
+                        }
+                        for w in document["widened"]
+                    ]
+                ),
             }
         )
     for found in out.values():
@@ -299,7 +301,12 @@ def _capabilities(proposal, variants):
         for w in found["widened"]:
             row = by_id.get(w["id"])
             if row is None:
-                row = {"id": w["id"], "summary": w["summary"], "proposal": None, "widened": []}
+                row = {
+                    "id": w["id"],
+                    "summary": w["summary"],
+                    "proposal": None,
+                    "widened": [],
+                }
                 rows.append(row)
                 by_id[w["id"]] = row
             row["widened"].append({"variant": found["name"], "arm": found["arm"], **w})
@@ -308,7 +315,8 @@ def _capabilities(proposal, variants):
 
 def _identity(found):
     return {
-        key: found[key] for key in ("name", "digest", "arm", "status", "scope", "refusal")
+        key: found[key]
+        for key in ("name", "digest", "arm", "status", "scope", "refusal")
     }
 
 
@@ -336,9 +344,11 @@ def build(challenge, sources, deployment_level=None):
             {
                 "level": level,
                 "text": text,
-                "state": ladder.state_of(construction, level)
-                if construction
-                else ladder.NOT_RUN,
+                "state": (
+                    ladder.state_of(construction, level)
+                    if construction
+                    else ladder.NOT_RUN
+                ),
                 "audience": audience(level, chosen, deployment_level),
                 "proposal_status": proposal["status"] if proposal else None,
                 "capabilities": _capabilities(proposal, variants),
@@ -353,9 +363,11 @@ def build(challenge, sources, deployment_level=None):
         "schema": SCHEMA,
         "challenge": challenge,
         "status": ON_LADDER if construction else NOT_YET_DEFINED,
-        "ladder": None
-        if construction is None
-        else {"level": construction["level"], "chosen": chosen},
+        "ladder": (
+            None
+            if construction is None
+            else {"level": construction["level"], "chosen": chosen}
+        ),
         "deployment_level": deployment_level,
         "audience_basis": AUDIENCE_BASIS,
         "states": [*ladder.STATES, ladder.NOT_RUN],

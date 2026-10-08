@@ -98,13 +98,17 @@ def fixture_sources(chosen=1, budget=None):
         },
         "proposals": {
             0: _proposal(0, ["model_family.mlp", "optimizer.learning_rate"]),
-            1: _proposal(1, ["objective.relative_loss"], ["objective.code is excluded"]),
+            1: _proposal(
+                1, ["objective.relative_loss"], ["objective.code is excluded"]
+            ),
             2: _proposal(2, ["optimizer.optimizer_family"]),
             3: _proposal(3, [], ["Level 3 adds nothing for this fixture."]),
         },
         "variants": {
             1: [
-                _variant(1, "fixture-l1-v1", ["objective.relative_loss", "objective.extra"]),
+                _variant(
+                    1, "fixture-l1-v1", ["objective.relative_loss", "objective.extra"]
+                ),
                 _variant(1, "fixture-l1-arm-v1", ["objective.armed"], arm="armed"),
             ],
             2: [_variant(2, "fixture-l2-v1", ["optimizer.new_rule"])],
@@ -248,7 +252,13 @@ def test_the_views_variant_identities_are_the_variant_modules_own():
 
     assert ladder_view.VARIANT_LEVELS == dv.LEVELS
     assert ladder_view.VARIANT_SCOPE == dv.SCOPE
-    for name in ("UNREGISTERED", "NEEDS_ISOLATION", "BASE_STALE", "ALTERED", "MALFORMED"):
+    for name in (
+        "UNREGISTERED",
+        "NEEDS_ISOLATION",
+        "BASE_STALE",
+        "ALTERED",
+        "MALFORMED",
+    ):
         assert getattr(ladder_view, name) == getattr(dv, name), name
     view = ladder_view.ladder_view(BATTERY)
     registry = dv.load()
@@ -314,7 +324,9 @@ def test_unknown_and_variant_names_are_refused():
         ladder_view.for_request({"challenge": BATTERY, "challenge_version": "0.0.0-no"})
     assert refused.value.code == "challenge_unknown"
     version = challenge_ref(BATTERY)["version"]
-    value = ladder_view.for_request({"challenge": BATTERY, "challenge_version": version})
+    value = ladder_view.for_request(
+        {"challenge": BATTERY, "challenge_version": version}
+    )
     assert value["version"] == version and value["challenge"] == BATTERY
 
 
