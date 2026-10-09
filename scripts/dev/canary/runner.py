@@ -860,6 +860,9 @@ class Runner:
         except Refused as refused:  # the door itself could not be opened
             result = FAILED
             failure = {"stage": "cycle", "code": refused.code, "step": "door"}
+        except Exception:  # noqa: BLE001 - journalled and pinged by code, never a trace
+            result = FAILED
+            failure = {"stage": "cycle", "code": "runner_error", "step": None}
         return self.finish(url, result, failure, pending, deferred, close)
 
     def misses(self, now):

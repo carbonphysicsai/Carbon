@@ -128,25 +128,27 @@ These are attended runs first (plan §6). The checkout is `~/carbon`.
      are your choice, not deadlines, and they never alert.
    - Keep `max_wait_seconds` under the timer's period.
    - The config holds no key, password or URL secret.
+   - Every path is absolute. Write `HOME` below as your home directory's
+     absolute path: JSON does not expand `~`.
 
    ```json
    {
      "schema": "carbon.canary.config.v1",
      "hotkey": "5GBmHPBLwyKheugbtAVgxtWdX9YmWjfeCaBwmeFHr4rEWiB5",
      "launchpad": {
-       "state_dir": "/home/<you>/.carbon/canary",
+       "state_dir": "HOME/.carbon/canary",
        "python": "<the Python in setup's MCP command>",
-       "checkout": "/home/<you>/carbon"
+       "checkout": "HOME/carbon"
      },
      "challenge": {"id": "battery-fastcharge-ageing-development-v1", "version": "1.0"},
      "intake": {"url": "<valV2's intake URL, as review pinned it>", "receiver": "<valV2's receiver hotkey>"},
-     "variants": "/home/<you>/carbon/scripts/dev/canary/variants.json",
-     "cursor": "/home/<you>/.carbon/canary-runner/cursor.json",
-     "journal": "/home/<you>/.carbon/canary-runner/journal.jsonl",
+     "variants": "HOME/carbon/scripts/dev/canary/variants.json",
+     "cursor": "HOME/.carbon/canary-runner/cursor.json",
+     "journal": "HOME/.carbon/canary-runner/journal.jsonl",
      "deadlines": {"door": null, "window": null, "commit": null, "admission": null,
                    "scoring": null, "verdict": null, "weights": null},
      "poll": {"interval_seconds": 30, "max_wait_seconds": 10800},
-     "healthcheck_env_file": "/home/<you>/.carbon/canary-runner/hc.env"
+     "healthcheck_env_file": "HOME/.carbon/canary-runner/hc.env"
    }
    ```
 

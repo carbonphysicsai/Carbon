@@ -759,6 +759,19 @@ def test_a_busy_campaign_is_waited_for_not_failed(tmp_path):
     assert h.launchpad.tools().count("carbon_practice") == 2
 
 
+def test_an_unexpected_error_is_journalled_and_pinged_by_code_only(tmp_path):
+    class Broken(FakeDoor):
+        async def call(self, tool, arguments):
+            raise RuntimeError("/secret/path in a message")
+
+    h = Harness(tmp_path)
+    line, code = h.once(door=lambda: Broken(h.launchpad))
+    assert line["failure"] == {"stage": "cycle", "code": "runner_error", "step": None}
+    assert code == runner.EXIT_FAILED and h.cursor()["open"] is not None
+    assert "/secret/path" not in h.cfg.journal.read_text()
+    assert "/secret/path" not in h.opener.requests[-1][2]
+
+
 def test_a_failed_ping_is_recorded_and_retried_three_times(tmp_path):
     h = Harness(tmp_path)
     h.opener = Opener(503)
