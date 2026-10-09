@@ -2,6 +2,8 @@
 
 build --fixtures --out DIR
     Build the site from the signed synthetic fixtures (labelled FIXTURE).
+    Every build also writes the design showcase from public EV4 material,
+    unless --no-showcase.
 build --feed FILE [--feed FILE ...] --trust-key HEX [...] --out DIR
     Build from fetched feed documents, accepted only when signed by a pinned
     key. The fixture key is refused here.
@@ -30,6 +32,7 @@ def main(argv=None):
     source.add_argument("--fixtures", action="store_true")
     source.add_argument("--feed", action="append", type=Path)
     make.add_argument("--trust-key", action="append", default=[])
+    make.add_argument("--no-showcase", action="store_true")
     serve = commands.add_parser("serve")
     serve.add_argument("--dir", required=True, type=Path)
     serve.add_argument("--port", type=int, default=8765)
@@ -45,7 +48,7 @@ def main(argv=None):
                 parser.error("--feed needs at least one pinned --trust-key")
             trust = feed.Trust(keys=frozenset(args.trust_key))
             documents = [json.loads(p.read_text(encoding="utf-8")) for p in args.feed]
-        index = build.build(args.out, documents, trust)
+        index = build.build(args.out, documents, trust, showcase=not args.no_showcase)
         for board in index["boards"]:
             print(board["state"], board["slug"], board["code"] or "")
         return 0

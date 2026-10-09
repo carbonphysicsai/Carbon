@@ -98,11 +98,16 @@ def _slug_of(document):
         return None
 
 
-def build(out, documents, trust):
-    """Build the site into `out`; return the index written."""
+def build(out, documents, trust, *, showcase=False):
+    """Build the site into `out`; return the index written. With `showcase`,
+    also write the design showcase replays (public EV4 material only)."""
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     brand = _copy_web(out)
+    if showcase:
+        from carbon.dashboard import showcase as replays
+
+        replays.build_all(out / "showcase")
     entries = {}
     for document in documents:
         try:

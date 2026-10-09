@@ -311,7 +311,13 @@ def test_page_loads_nothing_from_the_internet():
 
 
 def test_dashboard_imports_no_validator_state_or_private_material():
-    allowed = {"carbon.dashboard"}
+    """The feed reader imports nothing outside carbon.dashboard. The showcase
+    adds only the public decision contract and the design_search optimizer;
+    neither reads validator state, bank draws, seeds or private material."""
+    showcase_allowed = {
+        "carbon.battery.value",
+        "carbon.design_search",
+    }
     for path in sorted(PACKAGE.glob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
@@ -319,13 +325,24 @@ def test_dashboard_imports_no_validator_state_or_private_material():
             if isinstance(node, ast.Import):
                 names = [alias.name for alias in node.names]
             elif isinstance(node, ast.ImportFrom) and node.module:
-                names = [node.module]
-            for name in names:
-                if name.startswith("carbon"):
-                    assert name in allowed or name.startswith("carbon.dashboard"), (
-                        path.name,
-                        name,
+                names = [
+                    (
+                        node.module + "." + alias.name
+                        if node.module in showcase_allowed
+                        else node.module
                     )
+                    for alias in node.names
+                ]
+            for name in names:
+                if not name.startswith("carbon") or name.startswith("carbon.dashboard"):
+                    continue
+                assert path.name == "showcase.py", (path.name, name)
+                assert name in {
+                    "carbon.battery.value.contract",
+                    "carbon.battery.value.decision",
+                    "carbon.design_search.controls",
+                    "carbon.design_search.tasks",
+                }, name
 
 
 def test_view_models_in_node(tmp_path):
