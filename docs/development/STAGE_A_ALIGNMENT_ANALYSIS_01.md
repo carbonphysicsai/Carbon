@@ -99,7 +99,7 @@ not arrived, the report says `UNMEASURED` and names the affected members.
 Copy the template below after the report exists. Keep one page per comparable
 cohort; do not fill a missing metric with zero.
 
-> **Stage A score/value check — <cohort identity and input SHA-256>**  
+> **Stage A score/value check — <cohort identity and input SHA-256>**
 > Confirmed recipes / seeds: `<n recipes>/<n members>`; exam rule and pool:
 > `<v2 rule digest>/<pool version>/<device class>`; development decision panel:
 > `<measure>/<digest>`; v3 input panel: `<digest>`.
