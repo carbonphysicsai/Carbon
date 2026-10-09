@@ -77,15 +77,9 @@ from .practice import (
     score_practice,
     staged_files,
 )
+from .scaffold import SCAFFOLD
 
 OBJECTIVE_SCHEMA = "carbon.battery.research-objective.v1"
-#: The unexecuted template a miner starts from: the campaign MLP, shortened.
-SCAFFOLD = {
-    "schema_version": "1.0",
-    "challenge_id": BATTERY_CHALLENGE,
-    "backbone": "mlp",
-    "parameters": {"steps": 2000, "width": 64, "depth": 3},
-}
 #: The allow-listed fields of a validator outcome a miner may receive
 #: (`daemon.BatteryValidator.outcome`), and of its screening summary. Named
 #: here so discovery states them exactly; the daemon refuses to emit any other.
