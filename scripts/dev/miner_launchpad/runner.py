@@ -47,6 +47,7 @@ from carbon.development_session.private_records import private_json
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_control import CampaignControl, DispatchStopped
 from carbon.development_session.research_ledger import CampaignLedger
+from scripts.dev.miner_launchpad import budget_view
 from scripts.dev.miner_launchpad import supervisor as supervision
 from scripts.dev.miner_launchpad.controller import Rejected, owner_lock
 
@@ -3208,6 +3209,13 @@ class RunnerAdapter:
 
         return for_request(request)
 
+    def budget_status_admitted(self, admitted, request):
+        # A recipe against its Challenge's compute budget, by admission's own
+        # rule (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01).
+        from scripts.dev.miner_launchpad.budget_view import for_request
+
+        return for_request(request)
+
     def run_output_admitted(self, admitted, request):
         # A finished workspace run's own output (RSURF-D17).
         from scripts.dev.miner_launchpad.campaign_view import _journal
@@ -3685,10 +3693,28 @@ class RunnerAdapter:
         refusal = freeze_refusal(Path(admitted.campaign["root"]), strategy)
         if refusal is not None:
             raise Rejected(refusal, 409)
+        # Refused now, with the numbers, where the submission compile would
+        # refuse it on the thread (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01).
+        budget = budget_view.require_within(strategy)
         params = {"strategy": strategy, "reason": reason, "used_feedback": used}
-        return self._background(
-            admitted, "freeze_candidate", params, "FREEZING", request
+        return self._with_budget(
+            self._background(admitted, "freeze_candidate", params, "FREEZING", request),
+            budget,
         )
+
+    @staticmethod
+    def _with_budget(value, budget):
+        """An answer with the recipe's compute budget status beside it."""
+        return {**value, "budget_status": budget} if type(value) is dict else value
+
+    @staticmethod
+    def _frozen_budget(admitted):
+        """The frozen candidate's compute budget status, or its refusal raised
+        before anything is signed or sent."""
+        from scripts.dev.miner_launchpad.commitment import frozen_candidate
+
+        _, record, _ = frozen_candidate(Path(admitted.campaign["root"]))
+        return budget_view.require_within(record.get("strategy"))
 
     def submit_admitted(self, admitted, request):
         # Checked before the thread starts, so a submit that cannot be
@@ -3698,9 +3724,12 @@ class RunnerAdapter:
         # sees it (LP-PROD-C D11; observed live: the page said "Submitted").
         self._admissible(admitted)
         self._require_frozen(admitted)
+        budget = self._frozen_budget(admitted)
         self._require_evaluation(admitted)
         self._require_commitment(admitted)
-        return self._background(admitted, "submit", {}, "SUBMITTING", request)
+        return self._with_budget(
+            self._background(admitted, "submit", {}, "SUBMITTING", request), budget
+        )
 
     def _require_commitment(self, admitted):
         """`commitment_required` now, before anything is signed or sent, when
@@ -3833,6 +3862,9 @@ class RunnerAdapter:
         identity = admitted.campaign["id"]
         root = Path(admitted.campaign["root"])
         epoch, digest = self._candidate_digest(root)
+        # Before anything is signed: a candidate its budget refuses is not
+        # committed (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01).
+        budget = self._frozen_budget(admitted)
         try:
             poster = self._poster(admitted.profile)
         except Exception:  # noqa: BLE001 - its closed code, never its text
@@ -3854,18 +3886,21 @@ class RunnerAdapter:
         if not plan["needed"] and not recommit:
             # L3: already the hotkey's commitment; nothing is asked or sent.
             cp.write_request(root, **fields, outcome=cp.PostCode.ALREADY_ON_CHAIN.value)
-            return self.get(identity)
+            return self._with_budget(self.get(identity), budget)
         path = root / cp.REQUEST_FILE
         previous = path.read_bytes() if path.exists() else None
         cp.write_request(root, **fields)
         try:
-            return self._background(
-                admitted,
-                "commit",
-                {"digest": digest, "recommit": recommit},
-                None,
-                request,
-                probe_lock=False,
+            return self._with_budget(
+                self._background(
+                    admitted,
+                    "commit",
+                    {"digest": digest, "recommit": recommit},
+                    None,
+                    request,
+                    probe_lock=False,
+                ),
+                budget,
             )
         except BaseException:
             # Not admitted: the campaign's earlier request stands.
@@ -4766,6 +4801,14 @@ class RunnerAdapter:
         row, kind, root = self._bound(identity)
         row = dict(row)
         value = project(row, root)
+        # Each practice result's recipe against its Challenge's compute
+        # budget, by admission's own rule; practice is never refused by it
+        # (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01).
+        for experiment in value.get("experiments") or ():
+            if type(experiment) is dict:
+                experiment["budget_status"] = budget_view.status(
+                    experiment.get("recipe")
+                )
         # A retired-grant row has no such column: never refused here.
         value["last_refusal"] = supervision.read_refusal(row.get("last_refusal"))
         outcome = _intake_outcome(value["last_refusal"], root)
