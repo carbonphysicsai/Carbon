@@ -172,3 +172,36 @@ def test_a_development_compile_checks_the_budget_at_its_own_level(monkeypatch):
         check_budget=False,
     )
     assert 2 not in calls
+
+
+# -- Level 4: priced from its G5 compile (slice 5) ----------------------------------------
+def _graph_recipe(monkeypatch):
+    graph = {"schema": level4_worker.SCHEMA}
+    recipe = SimpleNamespace(settings={"steps": 100, "batch_size": 32})
+    monkeypatch.setattr(
+        dv,
+        "compile_development",
+        lambda *a, **k: SimpleNamespace(construction=recipe, reconstruction={}),
+    )
+    monkeypatch.setattr(development_rebuild, "record", lambda reconstruction: graph)
+
+
+def test_level_4_prices_from_its_g5_train_step_flops(monkeypatch):
+    _graph_recipe(monkeypatch)
+    compiled = {"train_step_flops": 2.5e6, "train_step_loss": "graph"}
+    report = cost(BATTERY_CHALLENGE, strategy(), level=4, graph_compile=compiled)
+    assert report["F4_flops"] == 100 * 2.5e6
+    assert report["F0_steps"] == 100
+    assert report["F1"] == "HUMAN_INPUT"  # G5 records no parameter count
+    (program,) = report["programs"]
+    assert program["cases_per_update"] == 32 and program["parameters"] is None
+
+
+@pytest.mark.parametrize(
+    "compiled", [{}, {"train_step_flops": 0}, {"train_step_flops": "x"}]
+)
+def test_level_4_without_a_measured_step_is_refused(monkeypatch, compiled):
+    _graph_recipe(monkeypatch)
+    with pytest.raises(CostRefused) as refused:
+        cost(BATTERY_CHALLENGE, strategy(), level=4, graph_compile=compiled)
+    assert refused.value.code == "cost_level4_graph_unmeasured"

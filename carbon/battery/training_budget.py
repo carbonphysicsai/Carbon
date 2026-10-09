@@ -73,7 +73,7 @@ class BatteryAdapter:
             raise ValueError("train_cases is a positive integer")
         return train.take(np.arange(train_cases) % n)
 
-    def _development(self, strategy, level):
+    def _development(self, strategy, level, graph_compile=None):
         """`(recipe, record)` of `strategy` under `level`'s current development
         variant, compiled as the development rebuild compiles it, with no budget
         check of its own (the calculator is the budget check)."""
@@ -89,13 +89,40 @@ class BatteryAdapter:
         except dv.VariantRefused as refused:
             raise CostRefused("cost_development_refused", refused.code) from None
         record = development_rebuild.record(found.reconstruction)
-        if development_rebuild.kind(record) == development_rebuild.LEVEL4:
-            # A graph's FLOPs come from its compiled forward graph (G5), not
-            # from a battery training program: TRAINING-BUDGET-02 slice 5.
-            raise CostRefused("cost_level4_graph_pending", "graph-only Level 4")
+        if (
+            development_rebuild.kind(record) == development_rebuild.LEVEL4
+            and graph_compile is None
+        ):
+            # A graph's FLOPs come from its G5 compile (`train_step_flops`),
+            # not from a battery training program: TRAINING-BUDGET-02 slice 5.
+            raise CostRefused("cost_level4_graph_pending", "no G5 compile result")
         return found.construction, record
 
-    def training_programs(self, strategy, *, train_cases=None, level=0):
+    def _graph_program(self, recipe, graph_compile):
+        """A graph-only Level 4 recipe's one program: Carbon's loop over the
+        graph, `steps` gradient steps, each G5's measured `train_step_flops` at
+        the declared batch (the optimizer's update is not in it)."""
+        from carbon.training_budget.adapter import Program
+        from carbon.training_budget.cost import CostRefused
+
+        flops = (graph_compile or {}).get("train_step_flops")
+        if type(flops) not in (int, float) or not flops > 0:
+            raise CostRefused("cost_level4_graph_unmeasured", "train_step_flops")
+        settings = dict(recipe.settings)
+        return Program(
+            backend="jax",
+            members=1,
+            main_steps=settings["steps"],
+            polish_steps=0,
+            cases_per_update=settings["batch_size"],
+            fit=None,
+            parameters=None,
+            measured_step_flops=float(flops),
+        )
+
+    def training_programs(
+        self, strategy, *, train_cases=None, level=0, graph_compile=None
+    ):
         """The recipe's training programs. A KNN trains nothing (no program);
         an ensemble is one program of identical members, each with
         `steps // members` steps, as `recipes.Ensemble` trains them.
@@ -113,7 +140,9 @@ class BatteryAdapter:
         from .recipes import MLP, Structure
 
         if level:
-            recipe, record = self._development(strategy, level)
+            recipe, record = self._development(strategy, level, graph_compile)
+            if development_rebuild.kind(record) == development_rebuild.LEVEL4:
+                return [self._graph_program(recipe, graph_compile)]
         else:
             _, recipe = compile_recipe(strategy)
             record = None
