@@ -82,6 +82,40 @@ The print contracts expose displacements/temperature and integration-point stres
 
 CCX63 new hourly price excluding IPv4 and VAT is **SOURCED €1.3678/hour**. The owner-requested rounded **€1.37/node-hour** is used for arithmetic. US and Singapore tables differ. This is a compute anchor only; tax, idle time, storage, independent witness access and authoring costs must be checked for the actual purchaser.
 
+## Pinned f08 package reuse
+
+**S13 — REFERENCE-PACKAGES-01, inspected source head
+`0f12834226f65cdb317e7407e1e83e68c135801b`.**
+[Source lock](https://github.com/carbonphysicsai/Carbon/blob/0f12834226f65cdb317e7407e1e83e68c135801b/scripts/dev/reference_packages/calculix/sources.lock.json),
+[Dockerfile](https://github.com/carbonphysicsai/Carbon/blob/0f12834226f65cdb317e7407e1e83e68c135801b/scripts/dev/reference_packages/calculix/Dockerfile),
+[f08 deck](https://github.com/carbonphysicsai/Carbon/blob/0f12834226f65cdb317e7407e1e83e68c135801b/scripts/dev/reference_packages/calculix/f08_deck.py).
+
+Direct repository inspection, not a container build: ccx 2.23 archive checksum
+`9c88385c10fb04f5dc6c4e98027a51bebdd8aee3920e05190d6c1dd08357d6e7`,
+pinned Debian base/snapshot, serial SPOOLES and one-thread runtime settings.
+Its full-3D metal cantilever mesh, modal/steady-state/static procedures and
+projection observer do not implement calibrated package thermal expansion,
+cure/relaxation, molten-solder joint formation or residual process state.
+Build/source, meshing and ledger patterns may be reused prospectively; every
+new warpage material/deck/image/observer identity and feature proof is missing.
+Inspection supplies no solver adequacy, numerical pass or execution grant.
+
+**S14 — existing-eight decision-value snapshot and current discovery comparison.**
+[#857 source snapshot](https://github.com/carbonphysicsai/Carbon/blob/35ff76a87a7382c26c437e179c0ab2d301679c1f/docs/development/challenge_pipeline/value-cost/volume-leverage.json),
+[current-main comparison](https://github.com/carbonphysicsai/Carbon/blob/3a6dfdd8dffdfdaf241596033d5bf55b66abfcff/docs/development/challenge_pipeline/discovery/search-completion/data.json).
+The eight annual gross triples are USD assumption scenarios, not observed
+traction or surrogate leverage. Complete comparable C2/C3 and a common
+currency basis are missing. The new rows preserve null index and do not
+convert per-case cost snippets into a full-bank bill or scientific ranking.
+
+**Working-rule provenance:** the owner-requested follow-up to #936 and the
+Test Lead working value relayed on 2026-10-08 require five resolved feasible
+and five resolved infeasible designs **both within two refinement bands**.
+See the merged [Motor working law](../../question-laws/motor-round2.md#5-t2a-two-bands-each-family-no-widening).
+It does not supply adopted band widths, power, bank exposure or acceptance.
+k questions/window, M actions/question and shared physical-bank exposure are
+distinct bookkeeping units. No working number is promoted to scientific law.
+
 ## Unresolved acceptance and population inputs
 
 | Input | Required source/owner | Fail-closed behaviour |
