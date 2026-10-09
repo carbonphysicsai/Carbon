@@ -1,0 +1,16 @@
+{
+ "overlap_check": "NOT_RUN_FOR_V1: v1 is exactly TRAIN v1, the public set Level 0 already trains on; confirmation.overlap_check binds every later version on the producer before it exists",
+ "parent": null,
+ "parts": [
+  {
+   "case_ids_digest": "sha256:ad2948178528050264a6f4d3749c364bc171b702b61ff0a738b0fed3cb069b4a",
+   "cases": 400,
+   "part": "train",
+   "source": "docs/development/evidence/exam-design-2026-09-24/datasets/train-v1.jsonl.gz",
+   "source_sha256": "3a7c763cca272df729268759e3062abd79e104a5c527c17314aef663944cf0e3"
+  }
+ ],
+ "refused_case_ids": [],
+ "schema": "carbon.battery-public-pool.v1",
+ "version": "public-pool-v1"
+}
