@@ -334,6 +334,11 @@ class ResearchFixture:
                 "completed_experiments": 1,
                 "experiments": [
                     {
+                        "summary": {
+                            "eligible": False,
+                            "n_scored": 199,
+                            "gate_failures": {"voltage_ceiling": 2},
+                        },
                         "completed_steps": 12,
                         "worker_seconds": 2.5,
                         "diagnostics": {
@@ -379,7 +384,7 @@ class ResearchFixture:
         return build(
             self.record,
             view=None,
-            contract=None,
+            contract={"exam": {"gates": ["voltage_ceiling"]}},
             notes=[],
             feedback_mode="FULL",
             predictions=lambda task: (None, "engineering_fixture"),
@@ -886,6 +891,14 @@ def run():
                     # The record's own agent, as the campaign's settings say.
                     tab("settings")
                     wait(session, detail_text + ".includes('UI FIXTURE')")
+                    tab("experiments")
+                    wait(
+                        session,
+                        "document.querySelector('#campaign-detail .rs-gate-breakdown')?.textContent.includes('voltage ceiling')",
+                    )
+                    assert session.evaluate(
+                        "document.querySelector('#campaign-detail .rs-gate-breakdown')?.textContent.includes('2')"
+                    )
                     tab("live")
                     # The practice run's two-point training curve, drawn.
                     wait(

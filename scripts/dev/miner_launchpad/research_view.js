@@ -842,7 +842,34 @@
   }
   function tabExperiments(panel, doc, run) {
     if (run && run.selects === "miner" && CC.renderJourneyPractice) part(panel, "journey", journeyKey(run, "practice"), box => CC.renderJourneyPractice(box, run), "rs-journey-part", "div");
+    part(panel, "gate-breakdown", JSON.stringify(doc.practice_gate_breakdown || null), box => drawGateBreakdown(box, doc.practice_gate_breakdown), "rs-gate-breakdown", "section");
     part(panel, "runs", JSON.stringify([doc.experiments, doc.charts, doc.declaration?.components || null, (doc.toolbox?.runtimes || []).find(r => r.default)?.id || null]), box => drawExperiments(box, doc));
+  }
+  function drawGateBreakdown(box, breakdown) {
+    head(box, "Practice gate failures", "Local campaign");
+    if (!breakdown || breakdown.status === "UNAVAILABLE_PUBLIC_GATE_LIST") {
+      para(box, "Per-gate counts are unavailable because this Challenge has no registered public gate list here.", "hint");
+      return;
+    }
+    if (breakdown.status === "NO_TRIALS") {
+      para(box, "No practice trials recorded yet. No gate outcome has been measured.", "hint");
+      return;
+    }
+    para(box, breakdown.checked_trials + " of " + breakdown.exported_trials + " trials have verified summaries; " + breakdown.unverified_trial_summaries + " are unverified. " + breakdown.trials_passing_all_gates + " verified trials passed every reported practice gate.", "hint");
+    if (breakdown.status === "INSUFFICIENT_VERIFIED_SUMMARIES") para(box, "No trial summary is verified. Reported failure counts below may include contradictory feedback.", "reason");
+    const wrap = el("div", undefined, "table-wrap");
+    const table = el("table", undefined, "metrics-table");
+    const labels = el("tr");
+    for (const label of ["Gate", "Trials failed", "Cases failed"]) labels.append(el("th", label));
+    table.append(labels);
+    for (const [name, counts] of Object.entries(breakdown.gate_failures || {})) {
+      const row = el("tr");
+      row.append(el("td", words(name)), el("td", String(counts.trials)), el("td", String(counts.cases)));
+      table.append(row);
+    }
+    wrap.append(table); box.append(wrap);
+    if (breakdown.unrecognized_gate_names) para(box, breakdown.unrecognized_gate_names + " unrecognized gate name(s) were withheld.", "hint");
+    para(box, "Counts use your local public PRACTICE summaries. One trial may fail more than one gate; this does not change a gate or the exam.", "hint");
   }
   function drawExperiments(box, doc) {
     const rows = doc.experiments.rows.slice().reverse();
