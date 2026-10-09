@@ -4,9 +4,6 @@
 
 **Purpose.** One scorecard per Challenge that decides **keep**, **reframe** or **replace** on evidence. It covers all 8: battery (v3), motor, cooling cell, f02, f06, f08, f13 and f17.
 
-The [cheap buyer-method baseline specs](BASELINE_SPECS.md) define the matched
-comparison Data Collection must measure for V4. They set no acceptance value.
-
 ---
 
 ## Part V: is the value real and clear? (packets Codex; evidence cited)
