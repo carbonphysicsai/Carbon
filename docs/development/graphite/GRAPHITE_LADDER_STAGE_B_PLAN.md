@@ -10,7 +10,7 @@ Parent: `GRAPHITE_LADDER_WAVE_PLAN.md` (#889). Stage A checklist:
 - **Status (updated 2026-10-09, per the Carbon Validator):** building, in PRs, not yet on
   main. The ticket is `.agent/tickets/VALIDATOR-25_development_ladder_deployment.md`, carried
   by **#895** (slice 1, admission) and **#899** (slice 2, door and daemon); operator steps are
-  in `/home/carbon/shared/operator/LADDER_DEPLOYMENT_VALV2.md`. Both PRs were open when this
+  in `~carbon/shared/operator/LADDER_DEPLOYMENT_VALV2.md`. Both PRs were open when this
   was written. The ticket and operator file are not on main yet, so their content here is the
   Validator's statement, not something I read on main. Against the seven items below: 1, 2 and 4
   done; 3 pending the owner's record; 5 ladder side ready; 6 answered; 7 answered below.
