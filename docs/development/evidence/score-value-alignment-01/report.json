@@ -1,0 +1,407 @@
+{
+  "authority": "SCORE-VALUE-ALIGNMENT-01; owner-approved v3 is prospective",
+  "bootstrap": {
+    "draws": 500,
+    "interpretation": "descriptive, not independent confirmation or qualification",
+    "method": "cluster-resample recipes/families with replacement",
+    "seed": 20261009
+  },
+  "panels": [
+    {
+      "cluster_bootstrap_95_descriptive": {
+        "rho": {
+          "defined_draws": 500,
+          "high": 0.5297069415600769,
+          "low": -1.0
+        },
+        "tau": {
+          "defined_draws": 500,
+          "high": 0.34111487208681573,
+          "low": -1.0
+        }
+      },
+      "clusters": 8,
+      "decision_value": "EV4_development_common_resolved_mask",
+      "divergent_members_v2": [
+        "graphite-run5-p-1d4aaff5d292-s3718551111",
+        "graphite-run5-p-37985e699fe3-s1919562590",
+        "graphite-run5-p-4fd7fb870d2b-s1132250632",
+        "graphite-run5-p-69268f1b74ec-s1551240143",
+        "graphite-run5-p-87b76ad0a2fd-s3716900652",
+        "graphite-run5-p-c41a9a1ebb82-s524989794"
+      ],
+      "members": 8,
+      "metrics": {
+        "rho": -0.5389318178609666,
+        "tau": -0.47280542884465016
+      },
+      "panel": "graphite-run5-q1",
+      "score_rule": "v2_public_PRACTICE",
+      "source": "graphite-run5-q1/q1-report.json",
+      "source_sha256": "dfa707390e2d7ebea98c3c59e407ddf3459e74a760e010ee8544b180ec70eb9b",
+      "split": "one_seed",
+      "v3": {
+        "missing": [
+          "accuracy_on_registered_v3_screening_cases",
+          "q3_regret_on_corresponding_settled_quiz",
+          "false_feasible_rate_on_v3_scoring_set",
+          "case_and_rule_identity_with_failure_cause"
+        ],
+        "rho": null,
+        "status": "UNCOMPUTABLE_FROM_COMMITTED_PANEL",
+        "tau": null,
+        "term_contributions": {
+          "G-FEAS@0.05": null,
+          "a": null,
+          "q": null
+        }
+      }
+    },
+    {
+      "cluster_bootstrap_95_descriptive": {
+        "rho": {
+          "defined_draws": 500,
+          "high": 0.5353385161898673,
+          "low": -0.8545345893610149
+        },
+        "tau": {
+          "defined_draws": 500,
+          "high": 0.3934918629754829,
+          "low": -0.7443034196585753
+        }
+      },
+      "clusters": 8,
+      "decision_value": "EV4_development_common_resolved_mask",
+      "divergent_members_v2": null,
+      "members": 27,
+      "metrics": {
+        "rho": -0.10696699262845723,
+        "tau": -0.1065678882449618
+      },
+      "panel": "graphite-run5-q1",
+      "score_rule": "v2_public_PRACTICE",
+      "source": "graphite-run5-q1/q1-report.json",
+      "source_sha256": "dfa707390e2d7ebea98c3c59e407ddf3459e74a760e010ee8544b180ec70eb9b",
+      "split": "three_seed",
+      "v3": {
+        "missing": [
+          "accuracy_on_registered_v3_screening_cases",
+          "q3_regret_on_corresponding_settled_quiz",
+          "false_feasible_rate_on_v3_scoring_set",
+          "case_and_rule_identity_with_failure_cause"
+        ],
+        "rho": null,
+        "status": "UNCOMPUTABLE_FROM_COMMITTED_PANEL",
+        "tau": null,
+        "term_contributions": {
+          "G-FEAS@0.05": null,
+          "a": null,
+          "q": null
+        }
+      }
+    },
+    {
+      "cluster_bootstrap_95_descriptive": {
+        "rho": {
+          "defined_draws": 500,
+          "high": 0.5297069415600769,
+          "low": -1.0
+        },
+        "tau": {
+          "defined_draws": 500,
+          "high": 0.34111487208681573,
+          "low": -1.0
+        }
+      },
+      "clusters": 8,
+      "decision_value": "EV4_development_common_resolved_mask",
+      "divergent_members_v2": [
+        "graphite-run5-p-1d4aaff5d292-s3718551111",
+        "graphite-run5-p-37985e699fe3-s1919562590",
+        "graphite-run5-p-4fd7fb870d2b-s1132250632",
+        "graphite-run5-p-69268f1b74ec-s1551240143",
+        "graphite-run5-p-87b76ad0a2fd-s3716900652",
+        "graphite-run5-p-c41a9a1ebb82-s524989794"
+      ],
+      "members": 8,
+      "metrics": {
+        "rho": -0.5389318178609666,
+        "tau": -0.47280542884465016
+      },
+      "panel": "graphite-run5-q1-refined",
+      "score_rule": "v2_public_PRACTICE",
+      "source": "graphite-run5-q1-refined/q1-report.json",
+      "source_sha256": "3c862f8c01f952ab19678808a89682bf5783aefd00d92d03d2fb13cc9305cb74",
+      "split": "one_seed",
+      "v3": {
+        "missing": [
+          "accuracy_on_registered_v3_screening_cases",
+          "q3_regret_on_corresponding_settled_quiz",
+          "false_feasible_rate_on_v3_scoring_set",
+          "case_and_rule_identity_with_failure_cause"
+        ],
+        "rho": null,
+        "status": "UNCOMPUTABLE_FROM_COMMITTED_PANEL",
+        "tau": null,
+        "term_contributions": {
+          "G-FEAS@0.05": null,
+          "a": null,
+          "q": null
+        }
+      }
+    },
+    {
+      "cluster_bootstrap_95_descriptive": {
+        "rho": {
+          "defined_draws": 500,
+          "high": 0.5068881711136815,
+          "low": -0.8088749436506398
+        },
+        "tau": {
+          "defined_draws": 500,
+          "high": 0.36290021047205673,
+          "low": -0.6853387508373092
+        }
+      },
+      "clusters": 8,
+      "decision_value": "EV4_development_common_resolved_mask",
+      "divergent_members_v2": null,
+      "members": 27,
+      "metrics": {
+        "rho": -0.08015186518612429,
+        "tau": -0.0801879193228918
+      },
+      "panel": "graphite-run5-q1-refined",
+      "score_rule": "v2_public_PRACTICE",
+      "source": "graphite-run5-q1-refined/q1-report.json",
+      "source_sha256": "3c862f8c01f952ab19678808a89682bf5783aefd00d92d03d2fb13cc9305cb74",
+      "split": "three_seed",
+      "v3": {
+        "missing": [
+          "accuracy_on_registered_v3_screening_cases",
+          "q3_regret_on_corresponding_settled_quiz",
+          "false_feasible_rate_on_v3_scoring_set",
+          "case_and_rule_identity_with_failure_cause"
+        ],
+        "rho": null,
+        "status": "UNCOMPUTABLE_FROM_COMMITTED_PANEL",
+        "tau": null,
+        "term_contributions": {
+          "G-FEAS@0.05": null,
+          "a": null,
+          "q": null
+        }
+      }
+    },
+    {
+      "cluster_bootstrap_95_descriptive": {
+        "rho": {
+          "defined_draws": 500,
+          "high": 0.3236989635464089,
+          "low": -0.0522331207303602
+        },
+        "tau": {
+          "defined_draws": 500,
+          "high": 0.216394714521334,
+          "low": -0.03093520709822161
+        }
+      },
+      "clusters": 80,
+      "decision_value": "historical_EV_per_member_resolved_loss",
+      "members": 100,
+      "metrics": {
+        "rho": 0.13862248032008936,
+        "tau": 0.09531605943453803
+      },
+      "panel": "ev4-2026-10-01",
+      "score_rule": "control-exam-v1_not_v2",
+      "source": "ev4-2026-10-01/results.json",
+      "source_sha256": "3bd9b954f4bace5f0299b6cbe9301e27407cb846dd51e5793bd5b5f6f33b0371",
+      "split": "development",
+      "v2": {
+        "rho": null,
+        "status": "NOT_RECORDED_ON_THIS_PANEL",
+        "tau": null
+      },
+      "v3": {
+        "missing": [
+          "accuracy_on_registered_v3_screening_cases",
+          "q3_regret_on_corresponding_settled_quiz",
+          "false_feasible_rate_on_v3_scoring_set",
+          "case_and_rule_identity_with_failure_cause"
+        ],
+        "rho": null,
+        "status": "UNCOMPUTABLE_FROM_COMMITTED_PANEL",
+        "tau": null,
+        "term_contributions": {
+          "G-FEAS@0.05": null,
+          "a": null,
+          "q": null
+        }
+      }
+    },
+    {
+      "cluster_bootstrap_95_descriptive": {
+        "rho": {
+          "defined_draws": 500,
+          "high": 0.6857399027377372,
+          "low": 0.3825924559349605
+        },
+        "tau": {
+          "defined_draws": 500,
+          "high": 0.5167390352584914,
+          "low": 0.27045825062970863
+        }
+      },
+      "clusters": 80,
+      "decision_value": "historical_EV_per_member_resolved_loss",
+      "members": 100,
+      "metrics": {
+        "rho": 0.5537015666726876,
+        "tau": 0.40033077084408064
+      },
+      "panel": "ev4-2026-10-01",
+      "score_rule": "control-exam-v1_not_v2",
+      "source": "ev4-2026-10-01/results.json",
+      "source_sha256": "3bd9b954f4bace5f0299b6cbe9301e27407cb846dd51e5793bd5b5f6f33b0371",
+      "split": "verification",
+      "v2": {
+        "rho": null,
+        "status": "NOT_RECORDED_ON_THIS_PANEL",
+        "tau": null
+      },
+      "v3": {
+        "missing": [
+          "accuracy_on_registered_v3_screening_cases",
+          "q3_regret_on_corresponding_settled_quiz",
+          "false_feasible_rate_on_v3_scoring_set",
+          "case_and_rule_identity_with_failure_cause"
+        ],
+        "rho": null,
+        "status": "UNCOMPUTABLE_FROM_COMMITTED_PANEL",
+        "tau": null,
+        "term_contributions": {
+          "G-FEAS@0.05": null,
+          "a": null,
+          "q": null
+        }
+      }
+    },
+    {
+      "cluster_bootstrap_95_descriptive": {
+        "rho": {
+          "defined_draws": 500,
+          "high": 0.38644469785053887,
+          "low": -0.019277618439965703
+        },
+        "tau": {
+          "defined_draws": 500,
+          "high": 0.26176813504141666,
+          "low": -0.022280892992580043
+        }
+      },
+      "clusters": 80,
+      "decision_value": "historical_EV_per_member_resolved_loss",
+      "members": 100,
+      "metrics": {
+        "rho": 0.19530795681129565,
+        "tau": 0.12640695081080436
+      },
+      "panel": "ev5-2026-10-03",
+      "score_rule": "control-exam-v1_not_v2",
+      "source": "ev5-2026-10-03/results.json",
+      "source_sha256": "60e4a856fb2ee6556d3e7115411e5b00d84c84c02603c2473392c713bfacc254",
+      "split": "development",
+      "v2": {
+        "rho": null,
+        "status": "NOT_RECORDED_ON_THIS_PANEL",
+        "tau": null
+      },
+      "v3": {
+        "missing": [
+          "accuracy_on_registered_v3_screening_cases",
+          "q3_regret_on_corresponding_settled_quiz",
+          "false_feasible_rate_on_v3_scoring_set",
+          "case_and_rule_identity_with_failure_cause"
+        ],
+        "rho": null,
+        "status": "UNCOMPUTABLE_FROM_COMMITTED_PANEL",
+        "tau": null,
+        "term_contributions": {
+          "G-FEAS@0.05": null,
+          "a": null,
+          "q": null
+        }
+      }
+    },
+    {
+      "cluster_bootstrap_95_descriptive": {
+        "rho": {
+          "defined_draws": 500,
+          "high": 0.6669390079433046,
+          "low": 0.321555986480818
+        },
+        "tau": {
+          "defined_draws": 500,
+          "high": 0.4957046751285662,
+          "low": 0.24215507858722138
+        }
+      },
+      "clusters": 80,
+      "decision_value": "historical_EV_per_member_resolved_loss",
+      "members": 100,
+      "metrics": {
+        "rho": 0.5115219924632659,
+        "tau": 0.3738149022349564
+      },
+      "panel": "ev5-2026-10-03",
+      "score_rule": "control-exam-v1_not_v2",
+      "source": "ev5-2026-10-03/results.json",
+      "source_sha256": "60e4a856fb2ee6556d3e7115411e5b00d84c84c02603c2473392c713bfacc254",
+      "split": "verification",
+      "v2": {
+        "rho": null,
+        "status": "NOT_RECORDED_ON_THIS_PANEL",
+        "tau": null
+      },
+      "v3": {
+        "missing": [
+          "accuracy_on_registered_v3_screening_cases",
+          "q3_regret_on_corresponding_settled_quiz",
+          "false_feasible_rate_on_v3_scoring_set",
+          "case_and_rule_identity_with_failure_cause"
+        ],
+        "rho": null,
+        "status": "UNCOMPUTABLE_FROM_COMMITTED_PANEL",
+        "tau": null,
+        "term_contributions": {
+          "G-FEAS@0.05": null,
+          "a": null,
+          "q": null
+        }
+      }
+    }
+  ],
+  "quiz_design_curves": {
+    "status": "AGGREGATES_ONLY_NO_MATCHED_MEMBER_SCORE_VALUE_ROWS",
+    "v2_rho": null,
+    "v2_tau": null,
+    "v3": {
+      "missing": [
+        "accuracy_on_registered_v3_screening_cases",
+        "q3_regret_on_corresponding_settled_quiz",
+        "false_feasible_rate_on_v3_scoring_set",
+        "case_and_rule_identity_with_failure_cause"
+      ],
+      "rho": null,
+      "status": "UNCOMPUTABLE_FROM_COMMITTED_PANEL",
+      "tau": null,
+      "term_contributions": {
+        "G-FEAS@0.05": null,
+        "a": null,
+        "q": null
+      }
+    }
+  },
+  "schema": "carbon.development.score-value-alignment-audit.v1"
+}

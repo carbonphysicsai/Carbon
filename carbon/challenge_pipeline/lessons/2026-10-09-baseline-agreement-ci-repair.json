@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-agreement-ci-repair",
+  "recorded_at": "2026-10-09T17:15:00Z",
+  "challenge": "protocol", "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "BASELINE-AGREEMENT-01 CI repair", "description": "Pinned formatting and Linux development-environment comparator/consumer regression diagnostics; no real study or solver."},
+  "expected": "Preserve current-main safeguards and repair the canonical formatter mismatch without weakening assertions.",
+  "observed": "Black 26.5.1 formatted cheap_baselines.py. rate_study.py and its consumer contract now match current main. Linux comparator suite: 14 passed in 10.95s; two concrete consumer regressions: 2 xpassed in 15.64s. Ruff passes. Required new-head canonical CI remains pending.",
+  "keep": ["Compare inherited shared-code paths against main when CI exposes a rollback."],
+  "change": ["Do not trust an unpinned native formatter's clean output as the CI version's result."],
+  "protocol_elements": ["challenge.cheap-baseline.comparison", "canonical-validation"],
+  "proposed_revision": null, "status": "RECORDED"
+}

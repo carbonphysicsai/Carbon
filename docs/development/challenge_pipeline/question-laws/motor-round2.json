@@ -1,0 +1,138 @@
+{
+  "schema": "carbon.motor.question-law-proposal.v1",
+  "ticket": "CHALLENGE-MOTOR-QUESTION-LAW-01",
+  "maturity": "SPECIFIED",
+  "runtime_registration": false,
+  "bank_draw_authorized": false,
+  "spend_authorized": false,
+  "basis": {
+    "main": "6aa3e9d10e999afa8982a3dcb9bc90e50de971ab",
+    "feasibility_head": "5f373b199be8f8fc12c7c3e29d345e35d1c7832a",
+    "export_head": "112759b9c1b267cd8aef34ad6ac2dc3e4ba82216",
+    "prior_law": "proposals.json",
+    "buyer_packet": "../round1/motor-precision-joint-v2.md"
+  },
+  "action_space": {
+    "status": "HUMAN_INPUT",
+    "registered": null,
+    "recommendation": {
+      "topology": "10p12s-double-layer",
+      "continuous_geometry": {
+        "magnet_mm": [1.5, 4.0],
+        "coverage": [0.65, 0.95],
+        "airgap_mm": [0.3, 1.0],
+        "tooth_frac": [0.2, 0.4],
+        "opening_frac": [0.03, 0.12],
+        "slot_bottom_mm": [34.0, 42.0]
+      },
+      "discrete_skew_deg": [0, 2, 4],
+      "holding": {"J_A_per_mm2": 10, "gamma_deg": 0},
+      "peak": {"J_A_per_mm2": 15, "gamma_deg": 0},
+      "cogging": {"J_A_per_mm2": 0},
+      "off_bank_truth": "UNRESOLVED_UNTIL_COVERED",
+      "boundary_registration": "physical-coordinates-and-precommitted-brackets; independent geometry counts"
+    }
+  },
+  "P_job": {
+    "status": "HUMAN_INPUT",
+    "registered": null,
+    "recommendation": "product-uniform stricter-or-equal requirements; fixed complete holding/peak/cogging panel"
+  },
+  "P_case": {
+    "status": "HUMAN_INPUT",
+    "registered": null,
+    "recommendation": "valid-geometry-conditioned uniform coordinates, equal discrete skew masses; role masses still HUMAN_INPUT"
+  },
+  "Q": {
+    "status": "HUMAN_INPUT",
+    "registered": null,
+    "recommendation": "Q3=P_job; separate precommitted Q2 boundary enrichment, never outcome-conditioned P redraws"
+  },
+  "w": {
+    "status": "HUMAN_INPUT",
+    "registered": null,
+    "recommendation": "unit weights in uniform Q3 pilot; Q2 reported separately, hard limits checked per role"
+  },
+  "requirements": [
+    {"quantity": "precision_mean_torque_min", "unit": "N m", "op": ">=", "anchor": 6, "status": "HUMAN_INPUT", "registered": null, "recommendation": [6, 7]},
+    {"quantity": "peak_mean_torque_min", "unit": "N m", "op": ">=", "anchor": 12, "status": "HUMAN_INPUT", "registered": null, "recommendation": [12, 14]},
+    {"quantity": "precision_ripple_fraction_max", "unit": "1", "op": "<=", "anchor": 0.05, "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.04, 0.05]},
+    {"quantity": "precision_ripple_peak_to_peak_max", "unit": "N m", "op": "<=", "anchor": 0.30, "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.24, 0.30]},
+    {"quantity": "cogging_peak_to_peak_max", "unit": "N m", "op": "<=", "anchor": 0.05, "status": "HUMAN_INPUT", "registered": null, "recommendation": [0.03, 0.05]}
+  ],
+  "peak_absolute_ripple_multiplier": 2,
+  "objective": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "min holding relative ripple; lower holding current; frozen bank order"},
+  "k": {"status": "HUMAN_INPUT", "registered": null, "recommendation": 12},
+  "NONE_FEASIBLE": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "VALID_FORWARD_QUESTION_NO_REDRAW"},
+  "expected_distinct_winners_P": null,
+  "expected_distinct_winners_Q": null,
+  "close_call_rate": null,
+  "reference_uncertainty": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "covered intervals, precommitted refinement or UNRESOLVED; rung changes are not confidence intervals"},
+  "T2a": {
+    "status": "TEST_LEAD_WORKING_VALUE",
+    "authority": "Test Lead 2026-10-08, relayed by owner 2026-10-09",
+    "near_refinement_bands": 2,
+    "minimum_distinct_feasible": 5,
+    "minimum_distinct_infeasible": 5,
+    "reference_interval_adopted": false,
+    "historical_holding": {"geometries": 24, "feasible": 5, "infeasible": 19, "near_infeasible": 4, "next_nearest_bands": 4.8, "status": "FAIL_REPORTED_COUNT"},
+    "per_boundary_status": "NOT_DEMONSTRATED",
+    "full_buyer_status": "HOLD"
+  },
+  "public_export": {
+    "candidates": 44,
+    "questions": 20,
+    "states_under_main": {"UNRESOLVED": 20},
+    "states_simulated_only": {"FEASIBLE_EXISTS": 16, "NONE_FEASIBLE": 4, "UNRESOLVED": 0},
+    "winners_simulated_only": {"d21-skew4": 12, "d09-skew4": 4},
+    "physical_coordinates_and_full_signed_curves": "AWAITING_REEXPORT"
+  },
+  "bank": {
+    "class_policy_status": "OWNER_APPROVED_DEVELOPMENT_CLASS_POLICY",
+    "authority": "OWNER-BANK-ARCHITECTURE-01",
+    "B_over_n": 10,
+    "E": 10,
+    "n_definition": "cases of the specified bank served per window; a design-bank case is one complete question",
+    "applied_rule": null,
+    "pool_n": null,
+    "Q3_n": {"status": "HUMAN_INPUT", "registered": null, "recommendation": 12},
+    "Q3_B": {"status": "HUMAN_INPUT", "registered": null, "recommendation": 120},
+    "underlying_shared_case_exposure_enforced": "NOT_DEMONSTRATED",
+    "forward_NONE_FEASIBLE_live_path": "REQUIRES_EXPLICIT_MOTOR_INTEGRATION"
+  },
+  "cost": {
+    "unit": "allocated CPU-h; shared-host wall x 2, not billable CCX63 hours",
+    "planning_standard_hours": 1.2,
+    "planning_rung2_hours": 8,
+    "observed_standard_p50_seconds": 4164,
+    "observed_standard_p95_seconds": 6648,
+    "observed_rung2_p50_seconds": 28997,
+    "observed_rung2_p95_seconds": 56500,
+    "requested_node_price_eur_per_hour": 1.37,
+    "CCX63_throughput": null,
+    "quote": null,
+    "reported_standard_solves_per_bundle": 5,
+    "enumerated_standard_solves_per_bundle": 6,
+    "peak_additional_standard_solves_hypothesis": 5,
+    "rung2_solves_per_boundary_bundle": 4,
+    "standard_count_reconciled": false,
+    "cogging_summary_vs_raw": {
+      "status": "SUMMARY_TERMINOLOGY_FINDING_NOT_CONVERGENCE_FAILURE",
+      "raw_S3_span_rows": 8,
+      "maximum_change_nm": 0.00250959732452226,
+      "maximum_absolute_refined_nm": 0.020506511573833666,
+      "change_bound_nm": 0.02
+    },
+    "omitted_costs": ["rung3", "failed_attempts", "witnesses", "setup", "retained_verification", "actual_tax_and_storage"],
+    "illustrative_tax_rate": 0.19,
+    "illustrative_non_node_eur": 10,
+    "startup_target_eur": 100,
+    "scenarios": [
+      {"id": "shared-reported-holding", "unique_bundles": 44, "standard_solves_per_bundle": 5, "refined_bundles": 0, "allocated_cpu_hours": 264, "bare_serial_eur": 361.68},
+      {"id": "shared-conservative-holding", "unique_bundles": 44, "standard_solves_per_bundle": 6, "refined_bundles": 0, "allocated_cpu_hours": 316.8, "bare_serial_eur": 434.016},
+      {"id": "shared-frontier-holding", "unique_bundles": 44, "standard_solves_per_bundle": 6, "refined_bundles": 9, "allocated_cpu_hours": 604.8, "bare_serial_eur": 828.576},
+      {"id": "shared-full-role-hypothesis", "unique_bundles": 44, "standard_solves_per_bundle": 11, "refined_bundles": 9, "allocated_cpu_hours": 868.8, "bare_serial_eur": 1190.256},
+      {"id": "independent-120-question-panels", "unique_bundles": 5280, "standard_solves_per_bundle": 6, "refined_bundles": 0, "allocated_cpu_hours": 38016, "bare_serial_eur": 52081.92}
+    ]
+  }
+}

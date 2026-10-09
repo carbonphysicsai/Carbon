@@ -261,7 +261,7 @@ def _versions(backend):
     return {package: version(package)}
 
 
-def cost(challenge_id, strategy, *, train_cases=None, factors=None):
+def cost(challenge_id, strategy, *, train_cases=None, factors=None, level=0):
     """F0-F4 for one recipe on this host's image.
 
     The backend is the recipe's own. `train_cases` costs the recipe at a study
@@ -270,9 +270,18 @@ def cost(challenge_id, strategy, *, train_cases=None, factors=None):
     (`F3_seconds`, `F4_seconds`, each `{"setup_s", "per_unit_s"}`); each is
     HUMAN_INPUT until supplied. A recipe that trains nothing (no training
     program, as a nearest-neighbour recipe) costs 0.
+
+    `level` above 0 costs the recipe under that construction level's current
+    development variant (TRAINING-BUDGET-02): the program the development
+    rebuild trains, never a Level 0 reading of it.
     """
     adapter = adapter_for(challenge_id)
-    programs = adapter.training_programs(strategy, train_cases=train_cases)
+    if level:
+        programs = adapter.training_programs(
+            strategy, train_cases=train_cases, level=level
+        )
+    else:
+        programs = adapter.training_programs(strategy, train_cases=train_cases)
     backends = {program.backend for program in programs}
     if not backends <= set(adapter.backends()):
         raise CostRefused("cost_backend_unsupported", ", ".join(sorted(backends)))
@@ -298,11 +307,20 @@ def cost(challenge_id, strategy, *, train_cases=None, factors=None):
                 else f2
                 + members * (k_opt * p_b * main + (k_polish or 0) * p_b * polish)
             )
+        # A development recipe's recorded worst case stands in for an unset
+        # k_polish (TRAINING-BUDGET-02); a measured k_polish still decides.
+        k_poly = k_polish if k_polish is not None else program.polish_factor
         if f4 is not None:
             f4 = (
                 None
-                if polish and k_polish is None
-                else f4 + members * m.step_flops * (main + (k_polish or 0) * polish)
+                if polish and k_poly is None
+                else f4
+                + members * m.step_flops * (main + (k_poly or 0) * polish)
+                + members
+                * polish
+                * program.polish_dense_flops_per_p2
+                * m.parameters
+                * m.parameters
             )
         rows.append(
             {
@@ -360,10 +378,18 @@ def main(argv=None):
     parser.add_argument("--challenge", required=True)
     parser.add_argument("--strategy", required=True, help="a strategy JSON file")
     parser.add_argument("--train-cases", type=int)
+    parser.add_argument(
+        "--level",
+        type=int,
+        default=0,
+        help="cost under this construction level's development variant",
+    )
     args = parser.parse_args(argv)
     strategy = json.loads(Path(args.strategy).read_text(encoding="utf-8"))
     try:
-        report = cost(args.challenge, strategy, train_cases=args.train_cases)
+        # Level 0 calls the calculator exactly as before the ladder.
+        ladder = {"level": args.level} if args.level else {}
+        report = cost(args.challenge, strategy, train_cases=args.train_cases, **ladder)
     except CostRefused as refused:
         print(json.dumps({"refused": refused.code, "detail": str(refused)}))
         return 2

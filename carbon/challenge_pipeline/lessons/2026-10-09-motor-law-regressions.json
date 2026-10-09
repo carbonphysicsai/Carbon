@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-motor-law-regressions",
+  "recorded_at": "2026-10-09T16:27:42Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-MOTOR-QUESTION-LAW-01 repaired affected suite", "description": "Native UTF-8 Motor law, question laws, customer revisions, pipeline, value-cost scorecards and v4 customer inputs"},
+  "expected": "Repair exact arithmetic/whitespace defects and preserve adjacent proposals without changing runtime authority.",
+  "observed": "144 passed in 3.87 s after Black formatting. Native host only, not canonical acceptance or empirical magnetic evidence.",
+  "keep": ["Cost sheet separates questions, physical jobs, allocation and node billing; current full-buyer support remains HOLD."],
+  "change": ["Before rental require a deduplicated command/skew manifest and real CCX63 throughput, including extra peak-role refinement."],
+  "protocol_elements": ["cost-and-exposure-units", "fail-closed-support", "static-versus-empirical-evidence"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

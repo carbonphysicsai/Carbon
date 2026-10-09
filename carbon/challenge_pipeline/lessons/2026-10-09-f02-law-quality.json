@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-f02-law-quality",
+  "recorded_at": "2026-10-09T17:28:00Z",
+  "challenge": "f02",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-F02-QUESTION-LAW-01 quality",
+    "description": "Public pipeline validation, Black 26.5.1, Ruff and tracked diff whitespace checks."
+  },
+  "expected": "Valid analysis and records with no adopted scientific/execution authority.",
+  "observed": "Pipeline DEFINING; 7 records and 477 lessons valid, zero awaiting a decision, 7 controllers designated, 2 pending identity. Black/Ruff/diff checks passed. Native/WSL diagnostics, not canonical acceptance.",
+  "keep": [
+    "Reuse the pipeline lesson schema and pinned formatter."
+  ],
+  "change": [
+    "Wait for exact-head CI and public pinned reference evidence; no proof from cardinality alone."
+  ],
+  "protocol_elements": [
+    "question law",
+    "validation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

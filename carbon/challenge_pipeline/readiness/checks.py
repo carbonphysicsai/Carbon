@@ -20,7 +20,7 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import q1
+from . import evidence_checks, q1
 from .model import (
     FAIL,
     NOT_BUILT,
@@ -61,6 +61,7 @@ class Context:
     repository: Path = REPOSITORY
     data: dict = field(default_factory=dict)
     cache: dict = field(default_factory=dict)
+    evidence_paths: dict = field(default_factory=dict)
 
     def data_policy(self, item_id):
         """A registered test-side value (policies.json), never invented here."""
@@ -852,6 +853,8 @@ def confirmation_role(item, ctx):
 
 
 CHECKS = {
+    "gate_margin_study": evidence_checks.gate_margin_study,
+    "tuning_overlap": evidence_checks.tuning_overlap,
     "neutral_path": neutral_path,
     "admission_controller": admission_controller,
     "grant_binding": grant_binding,

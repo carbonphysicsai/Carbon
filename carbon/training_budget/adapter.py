@@ -73,6 +73,14 @@ class Program:
     cases_per_update: int
     fit: Callable[[int], dict]
     parameters: Callable[[tuple], int]
+    #: A development recipe's worst-case polish factor, in main steps per
+    #: polish step (TRAINING-BUDGET-02): a Level 3 line search's recorded cap
+    #: on full-batch evaluations, scaled from the minibatch step. None: the
+    #: study's measured `k_polish` (HUMAN_INPUT until supplied).
+    polish_factor: float | None = None
+    #: A dense quasi-Newton polish's inverse-Hessian update, FLOPs per
+    #: parameter squared per polish step (Level 3 bfgs, ssbfgs, ssbroyden).
+    polish_dense_flops_per_p2: int = 0
 
 
 @runtime_checkable

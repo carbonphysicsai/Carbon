@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-miner-faq-validation",
+  "recorded_at": "2026-10-09T17:25:00Z",
+  "challenge": "protocol", "stage": "design",
+  "execution": {"kind": "test_run", "ref": "MINER-FAQ-01 source and kit diagnostics", "description": "Document source checks and mocked kit regressions; no generated cases or real solvers."},
+  "expected": "Local claim links resolve; pending tools and owner-reserved disclosure remain explicit.",
+  "observed": "3 FAQ tests passed; Black 26.5.1/Ruff pass. Native kit collection failed for missing resource. Linux combined suite: 18 passed/3 failed in isolated imports; direct python -I import confirms carbon.challenge_kit unavailable in that external venv. No canonical pass claimed; GitHub CI pending.",
+  "keep": ["Describe implemented availability rather than a universal future generator or diagnosis command."],
+  "change": ["Treat testnet weights as test policy, not a mainnet earnings or universal zero-emissions claim."],
+  "protocol_elements": ["claims-follow-code", "disclosure-allowlist", "canonical-validation"],
+  "proposed_revision": null, "status": "RECORDED"
+}
