@@ -128,11 +128,42 @@ DEVELOPMENT_RULE_V2_BANK_DESIGN = {
     "design": {"bank": "design:battery-q3", "k": 8, "retire_at": 5},
 }
 
+
+def _rate_study_rule(window_blocks):
+    """SUBMISSION-RATE-STUDY-01's development rule variants (VALIDATOR-30):
+    `v2-bank` with the per-hotkey window at `window_blocks` (360, 180, 90 for
+    the rates 1, 2, 4), the shared sacrificial study bank sized to the
+    study's draws (3,000 cases), and no top-up when a window is drawn, so the
+    windows draw down the sealed bank. Tagged `study`, so each digest is its
+    own and a study package never imports into a `v2-bank` validator."""
+    pool = DEVELOPMENT_RULE_V2_BANK["bank"]["pool"]
+    return {
+        **DEVELOPMENT_RULE_V2_BANK,
+        "authority": (
+            "OWNER-RATE-STUDY-D1-01 (SUBMISSION-RATE-STUDY-01, development "
+            "only), on OWNER-BANK-ARCHITECTURE-01"
+        ),
+        "study": "SUBMISSION-RATE-STUDY-01",
+        "per_hotkey": {
+            **DEVELOPMENT_RULE_V2_BANK["per_hotkey"],
+            "window_blocks": window_blocks,
+        },
+        "bank": {
+            **DEVELOPMENT_RULE_V2_BANK["bank"],
+            "pool": {**pool, "size": 3000, "top_up": False},
+        },
+    }
+
+
 #: The rules a deployment may run, by the name its configuration gives.
 RULES = {
     "v1": DEVELOPMENT_RULE,
     "v2": DEVELOPMENT_RULE_V2,
     "v2-bank": DEVELOPMENT_RULE_V2_BANK,
+    # SUBMISSION-RATE-STUDY-01's rates m = 1, 2, 4 (VALIDATOR-30).
+    "v2-bank-rate-1": _rate_study_rule(360),
+    "v2-bank-rate-2": _rate_study_rule(180),
+    "v2-bank-rate-4": _rate_study_rule(90),
     "v2-bank-design": DEVELOPMENT_RULE_V2_BANK_DESIGN,
 }
 

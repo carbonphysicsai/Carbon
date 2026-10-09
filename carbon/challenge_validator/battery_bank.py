@@ -208,6 +208,28 @@ class BankedBatterySource(BatteryBatchSource):
             sealed.append(self._solve_tranche(drawn["tranche"], workers=workers))
         return sealed
 
+    # --- the rate study's fresh sets (VALIDATOR-30) ------------------------------
+
+    FRESH = "fresh"
+
+    def fresh_fill(self, windows, size, *, workers=7):
+        """Draw, journal-commit, solve and seal the study's fresh sets: one
+        tranche of `size` cases per window index, `bank-fresh-T<w>`, before
+        any study result exists. Never window-drawable; read only by the
+        non-consuming scorer (`rate_study`). Resumable."""
+        if self.pool.get("top_up", True) is not False:
+            raise ProducerRefused("producer_fresh_not_a_study")
+        if type(windows) is not int or windows < 1 or type(size) is not int or size < 1:
+            raise ProducerRefused("producer_fresh_malformed")
+        sealed = []
+        for row in self.ledger.tranches(self.FRESH):
+            if row["state"] == "DRAWN":
+                sealed.append(self._solve_tranche(row["role"], workers=workers))
+        while len(self.ledger.tranches(self.FRESH)) < windows:
+            drawn = self.ledger.draw_tranche(self.FRESH, size)
+            sealed.append(self._solve_tranche(drawn["tranche"], workers=workers))
+        return sealed
+
     # --- windows -----------------------------------------------------------------
 
     def _window(self, role):
@@ -276,6 +298,10 @@ class BankedBatterySource(BatteryBatchSource):
         except BankRefused as refused:
             if not refused.code.startswith("bank_short"):
                 raise ProducerRefused("producer_" + refused.code) from None
+            if self.pool.get("top_up", True) is False:
+                # The rate study draws down its sealed bank (VALIDATOR-30): a
+                # window that cannot draw is unavailable, never topped up.
+                raise ProducerRefused("producer_bank_short") from None
             self.top_up()
             drawn = self.ledger.draw_window(
                 BANK,
@@ -414,6 +440,11 @@ def main(argv=None):
     fill.add_argument("--workers", type=int, default=7)
     status = sub.add_parser("status")
     status.add_argument("--config", required=True)
+    fresh = sub.add_parser("fresh")
+    fresh.add_argument("--config", required=True)
+    fresh.add_argument("--windows", type=int, default=12)
+    fresh.add_argument("--size", type=int, default=98)
+    fresh.add_argument("--workers", type=int, default=7)
     args = parser.parse_args(argv)
     try:
         producer = Producer.from_config(args.config)
@@ -425,6 +456,12 @@ def main(argv=None):
         [source] = banked
         if args.command == "fill":
             result = {"sealed": source.top_up(workers=args.workers)}
+        elif args.command == "fresh":
+            result = {
+                "sealed": source.fresh_fill(
+                    args.windows, args.size, workers=args.workers
+                )
+            }
         else:
             result = {}
         result["status"] = source.ledger.status()
