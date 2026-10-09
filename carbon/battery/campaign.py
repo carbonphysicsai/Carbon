@@ -380,6 +380,7 @@ def manifest_document(
     selection=None,
     feedback=FEEDBACK_FULL,
     graphite=None,
+    construction_level=None,
 ):
     from carbon.development_session.research_ledger import VERSION
     from carbon.reconstruction.capability_registry import contract_digest
@@ -409,6 +410,14 @@ def manifest_document(
         "new_network_transactions": 0,
         "feedback_mode": feedback_mode(feedback),
         **product.manifest_fields(),
+        # A launch at a construction level (LAUNCHPAD-LEVELS-01 S2): the
+        # level's registered variant, frozen by name and digest. Level 0
+        # records nothing, so its manifest is what it was.
+        **(
+            {"construction_level": dict(construction_level)}
+            if construction_level
+            else {}
+        ),
     }
 
 
@@ -572,6 +581,7 @@ async def prepare_battery(args, *, ledger=None, campaign):
             selection=selection,
             feedback=getattr(args, "feedback_mode", FEEDBACK_FULL),
             graphite=graphite,
+            construction_level=getattr(args, "construction_level", None),
         )
         write_once(manifest_path, canonical(manifest))
     else:
@@ -632,6 +642,14 @@ async def prepare_battery(args, *, ledger=None, campaign):
     )
 
 
+def _frozen_level(root):
+    """The frozen manifest's construction-level binding, or None."""
+    from carbon.development_session.construction_level import binding
+
+    path = Path(root) / "campaign-manifest.json"
+    return binding(json.loads(path.read_bytes())) if path.exists() else None
+
+
 def compose(
     *,
     ledger,
@@ -668,9 +686,14 @@ def compose(
 
     from .research import BatteryPractice, make_battery_research_service
 
+    # A campaign launched at a construction level compiles at it, whichever
+    # door composes it (its own run or an attachment): read from its frozen
+    # manifest (LAUNCHPAD-LEVELS-01 S2).
+    level = _frozen_level(ledger.root)
     # `runner`/`backend` exist for tests; every campaign door passes neither,
     # so practice runs in the isolated carrier and says so.
     practice = BatteryPractice(
+        level=level,
         ledger=ledger,
         owner=owner,
         image=image,
@@ -1090,8 +1113,16 @@ def submit_through_intake(
 
     if is_development_variant(contract_digest):
         # A development-only contract variant is never served to a miner, so
-        # the Launchpad sends nothing (OWNER-GRAPHITE-TEST-WAVE-03 §1).
-        raise rs.IntakeRefusal(DEVELOPMENT_VARIANT_NOT_SERVED)
+        # the Launchpad sends nothing (OWNER-GRAPHITE-TEST-WAVE-03 §1), except
+        # to a target whose public facts list it among the variants it serves
+        # (OWNER-LADDER-THROUGH-LAUNCHPAD-01's amendment): the development-
+        # ladder deployment. Its facts are read, and the receiver checked,
+        # before anything is signed.
+        from carbon.development_session.construction_level import lists_digest
+
+        facts = rs.check_receiver((read or intake_client.read_intake)(url), receiver)
+        if not lists_digest(facts, contract_digest):
+            raise rs.IntakeRefusal(DEVELOPMENT_VARIANT_NOT_SERVED)
     passed = {} if read is None else {"read": read, "post": post}
     if receiver is not None:
         passed["receiver"] = receiver
@@ -1175,6 +1206,15 @@ def frozen_commitment(record, manifest):
     its Challenge, the contract it was frozen under and its strategy hash."""
     from carbon.chain.commitment_poster import expected_digest
 
+    if "construction_level" in record:
+        # A candidate frozen at a construction level (LAUNCHPAD-LEVELS-01
+        # S2): the same digest over the variant's contract digest and the
+        # strategy hash the level's compile gives it.
+        from carbon.development_session.construction_level import commitment_fields
+
+        from .daemon import commitment_digest
+
+        return commitment_digest(*commitment_fields(record))
     return expected_digest(
         record["strategy"],
         record.get("contract_digest") or manifest["contract_digest"],
@@ -1241,6 +1281,19 @@ async def _evaluate_through_intake(prepared, epoch, record, url):
     from .remote_submission import IntakeRefusal
 
     root = prepared.ledger.root
+    frozen_level = record.get("construction_level")
+    if type(frozen_level) is dict and frozen_level.get("level") == 4:
+        # A Level 4 candidate travels with its staging envelope beside the
+        # signed strategy (LEVEL4_STAGING_CONTRACT §4). It is read and checked
+        # here, unchanged; no intake carries it yet (the validator's upload,
+        # VALIDATOR-25 slice 4), so nothing is signed or sent.
+        from carbon.development_session import construction_level as cl
+
+        try:
+            cl.read_envelope(root / ("epoch-" + str(epoch)), record)
+        except cl.LevelRefused as refused:
+            raise OperationRefused(refused.code) from None
+        raise OperationRefused(cl.LEVEL4_TRANSPORT_UNAVAILABLE)
     gate = getattr(prepared.args, "commitment_gate", None)
     asks = getattr(prepared, "agent", "none") != "none"
     if gate is not None and commitment_due(prepared.args, root, epoch):

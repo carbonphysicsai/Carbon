@@ -47,6 +47,7 @@ from carbon.development_session.private_records import private_json
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_control import CampaignControl, DispatchStopped
 from carbon.development_session.research_ledger import CampaignLedger
+from scripts.dev.miner_launchpad import levels
 from scripts.dev.miner_launchpad import supervisor as supervision
 from scripts.dev.miner_launchpad.controller import Rejected, owner_lock
 
@@ -907,8 +908,14 @@ class LaunchChoice:
     #: captured at admission), or None for any other agent: then the args
     #: carry no `graphite`, exactly as before Graphite existed.
     graphite: dict | None = None
+    #: The construction-level binding a launch at a level named
+    #: (LAUNCHPAD-LEVELS-01 S2, `levels.launch_binding`), or None at Level 0:
+    #: then the args carry none and the manifest is what it was.
+    construction_level: dict | None = None
 
     def apply(self, args):
+        if self.construction_level is not None:
+            args.construction_level = dict(self.construction_level)
         if self.selection is not None:
             from carbon.development_session.model_provider import selection_spec
 
@@ -2864,6 +2871,9 @@ class RunnerAdapter:
         graphite = self._graphite_choice(request, challenge)
         if graphite is not None:
             choice = replace(choice or LaunchChoice(), graphite=graphite)
+        level = levels.launch_binding(request, challenge, request["agent"])
+        if level is not None:
+            choice = replace(choice or LaunchChoice(), construction_level=level)
         run_id, request_digest, config_pin = self._launch_identity(cfg, request)
         root = Path(cfg["campaigns_root"]) / run_id
         product = ProductLaunch(
@@ -2996,6 +3006,9 @@ class RunnerAdapter:
             choice = replace(choice or LaunchChoice(), graphite=graphite)
         elif captured is not None:
             raise Rejected("launch_record_differs", 409)
+        level = levels.launch_binding(request, challenge, request.get("agent"))
+        if level is not None:
+            choice = replace(choice or LaunchChoice(), construction_level=level)
         miner = _registered(self, cfg)
         _signer_reachable(self, cfg)
         product = ProductLaunch(
@@ -3206,7 +3219,31 @@ class RunnerAdapter:
         # A Challenge's construction levels, from data (LAUNCHPAD-LEVELS-01).
         from scripts.dev.miner_launchpad.ladder_view import for_request
 
-        return for_request(request)
+        return for_request(request, deployment_level=self._target_level(request))
+
+    def _target_level(self, request):
+        """The profile's target intake's own level for the Challenge: the
+        lowest its `served_contracts` lists, so every level above it is
+        labelled DEVELOPMENT (LAUNCHPAD-LEVELS-01 S2); None when no intake is
+        configured or its facts list none or cannot be read."""
+        from carbon.development_session.construction_level import deployment_level
+
+        challenge = request.get("challenge")
+        if type(challenge) is not str:
+            return None
+        try:
+            cfg = self.configured()
+            from carbon.challenge_registry.campaigns import challenge_ref
+
+            ref = challenge_ref(challenge)
+            facts = levels.read_facts(
+                cfg,
+                {"id": challenge, "version": ref["version"]},
+                self.read_intake_facts,
+            )
+        except Exception:  # noqa: BLE001 - unread names no deployment level
+            return None
+        return deployment_level(facts) if facts is not None else None
 
     def run_output_admitted(self, admitted, request):
         # A finished workspace run's own output (RSURF-D17).
@@ -3651,7 +3688,10 @@ class RunnerAdapter:
         from scripts.dev.miner_launchpad.operations import strategy_value
 
         strategy = strategy_value(request)
-        self._design_refusal(strategy)
+        # At a construction level, the level's compile first; check-design
+        # then judges the recipe's Level 0 base (LAUNCHPAD-LEVELS-01 S2).
+        found = levels.campaign_binding(admitted.campaign)
+        self._design_refusal(levels.checked_strategy(found, strategy))
         hypothesis = request["hypothesis"]
         expected = request.get("expected_effect", hypothesis)
         for text in (hypothesis, expected):
@@ -3681,11 +3721,18 @@ class RunnerAdapter:
         reason = request["reason"]
         if type(reason) is not str or not 1 <= len(reason) <= 4096:
             raise Rejected("bounded_reason_required")
-        self._design_refusal(strategy)
+        found = levels.campaign_binding(admitted.campaign)
+        self._design_refusal(levels.checked_strategy(found, strategy))
         refusal = freeze_refusal(Path(admitted.campaign["root"]), strategy)
         if refusal is not None:
             raise Rejected(refusal, 409)
+        # A level's freeze refusals, Level 4's lowered submission among them,
+        # now rather than on the thread (LAUNCHPAD-LEVELS-01 S2, S3).
+        directory = request.get("level4_directory")
+        levels.checked_freeze(found, strategy, directory)
         params = {"strategy": strategy, "reason": reason, "used_feedback": used}
+        if directory is not None:
+            params["level4_directory"] = directory
         return self._background(
             admitted, "freeze_candidate", params, "FREEZING", request
         )
@@ -3699,8 +3746,27 @@ class RunnerAdapter:
         self._admissible(admitted)
         self._require_frozen(admitted)
         self._require_evaluation(admitted)
+        self._require_level_served(admitted)
         self._require_commitment(admitted)
         return self._background(admitted, "submit", {}, "SUBMITTING", request)
+
+    #: How a level campaign's target intake facts are read before a commit
+    #: or submit: None reads them through the campaign's own intake check;
+    #: a test names a fixture reader.
+    read_intake_facts = None
+
+    def _require_level_served(self, admitted):
+        """A level campaign's pre-sign refusals (LAUNCHPAD-LEVELS-01 S2):
+        `level_not_registered`, `level_not_served_by_target`, and for Level 4
+        `level4_envelope_transport_unavailable`. A Level 0 campaign passes."""
+        path = Path(admitted.campaign["root"]) / "campaign-manifest.json"
+        if not path.exists():
+            raise Rejected("campaign_not_prepared", 409)
+        levels.require_served(
+            admitted.profile,
+            json.loads(path.read_bytes()),
+            read=self.read_intake_facts,
+        )
 
     def _require_commitment(self, admitted):
         """`commitment_required` now, before anything is signed or sent, when
@@ -3830,6 +3896,8 @@ class RunnerAdapter:
         if type(recommit) is not bool:
             raise Rejected("recommit_boolean_required")
         self._admissible(admitted)
+        # A level candidate is committed only for a target that serves it.
+        self._require_level_served(admitted)
         identity = admitted.campaign["id"]
         root = Path(admitted.campaign["root"])
         epoch, digest = self._candidate_digest(root)

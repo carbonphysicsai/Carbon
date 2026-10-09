@@ -1197,14 +1197,23 @@ def freeze_refusal(root, strategy):
     return None
 
 
-async def freeze_candidate(prepared, *, strategy, reason, used_feedback=False):
+async def freeze_candidate(
+    prepared, *, strategy, reason, used_feedback=False, level4_directory=None
+):
     """A miner freezes a practiced recipe as this epoch's candidate.
 
     The record is the one the agent's SELECT writes, built by the same
     function. Refused, with nothing written, for a recipe with no practice
     result, while a frozen candidate awaits submission, or once both committed
     final exams are used.
+
+    A campaign launched at a construction level freezes at it
+    (LAUNCHPAD-LEVELS-01): the level's compile, the variant's digest as the
+    record's `contract_digest`, and for Level 4 the lowered submission in
+    `level4_directory`, checked and kept beside the record as its staging
+    envelope (`construction_level`). Its refusals are closed codes.
     """
+    from . import construction_level as cl
     from .research_loop import _epoch_paths, candidate_record
 
     ledger, owner = prepared.ledger, prepared.owner
@@ -1212,10 +1221,21 @@ async def freeze_candidate(prepared, *, strategy, reason, used_feedback=False):
     refusal = freeze_refusal(ledger.root, strategy)
     if refusal is not None:
         raise OperationRefused(refusal)
+    found = cl.binding(prepared.manifest)
+    try:
+        compiled, envelope = cl.check_freeze(found, strategy, level4_directory)
+    except cl.LevelRefused as refused:
+        raise OperationRefused(refused.code) from None
     epoch = _open_epoch(prepared)
-    record = candidate_record(strategy, reason, used_feedback)
+    record = (
+        candidate_record(strategy, reason, used_feedback)
+        if found is None
+        else cl.candidate_record(found, strategy, reason, used_feedback, compiled)
+    )
     ledger.checkpoint()
     folder = _epoch_paths(ledger, epoch)
+    if envelope is not None:
+        cl.write_envelope(folder, envelope)
     write_once(folder / "selected-recipe.json", canonical(record))
     write_once(
         folder / "outcome.json",
