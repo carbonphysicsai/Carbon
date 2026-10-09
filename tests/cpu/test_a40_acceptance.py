@@ -95,8 +95,8 @@ def test_budget_gate_is_the_test_leads_inequality():
         a40.budget_gate(2 * 3600)
     # A smoke pod's reservation counts against the same cap.
     with pytest.raises(a40.Refused):
-        a40.budget_gate(3600, Decimal("4.25"), smoke_reserved=Decimal("0.5"))
-    assert a40.budget_gate(3600, Decimal("4.25"))["cap_usd"] == "4.25"
+        a40.budget_gate(3600, Decimal("6.00"), smoke_reserved=Decimal("0.5"))
+    assert a40.budget_gate(3600, Decimal("6.00"))["cap_usd"] == "6.00"
 
 
 def test_deadline_is_measured_times_one_and_a_half():
