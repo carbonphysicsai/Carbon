@@ -106,5 +106,15 @@
   "verdict": "S3's rule: limits and bands unchanged (mean 6.0/0.10, pk-pk 0.30/0.02, ripple 5 %, cogging 0.05/0.02); a rung change across a limit is UNRESOLVED",
   "code": "scripts/dev/motor/feasibility02/boundary.py",
   "t2d": "re-evaluated without new solves on the existing panel under requirement variants that change limits only (motor-feasibility-02/panel-export.json); the packet's law values are HUMAN_INPUT"
+ },
+ "amendment_3": {
+  "registered": "2026-10-09, before any peak-completion or frontier solve",
+  "authority": "Test Lead 2026-10-09 relaying the owner (#922 motor round 2): complete the missing peak solves, a registered peak frontier search in the continuous six-coordinate space (skew 0/2/4), never relax a limit; free local CPU, unattended",
+  "full_question": "holding J 10 gamma 0 (mean >= 6, pk-pk <= 0.30 and <= 5 %), peak J 15 gamma 0 (mean >= 12, pk-pk <= 0.60 and <= 5 %), cogging J 0 <= 0.05; skew slices gamma - 5 d",
+  "complete_plan_sha256": "811ec018bf2f81992c2c97d3c2aaf4529005ace0efc1b9c3336c5519ab67e643",
+  "frontier_plan_sha256": "557eb07e801816fde41248ff8338bc9aff9f8dc962ce3d04e08deab0e3780815",
+  "rules": "scripts/dev/motor/feasibility02/peak.py docstring (complete, frontier, skew >= 11.5 N m at J 15 gamma 0, rung 2 within one band)",
+  "frontier_fit": "OLS of S1 J 10 gamma 0 mean on normalised coordinates: R2 0.99, predicted valid maximum 8.73 N m; region >= 8.0 N m holds 676 of 200,000 valid-checked points",
+  "bundle": "deduplicated per geometry: holding at all three spans = J 0 + J 10 at gamma 0, +-5, +-10 = 6 solves; peak adds J 15 at the same five gammas = 5; full question 11"
  }
 }
