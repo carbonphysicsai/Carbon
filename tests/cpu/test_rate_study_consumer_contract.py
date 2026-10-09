@@ -17,11 +17,18 @@ from pathlib import Path
 import pytest
 
 REPOSITORY = Path(__file__).resolve().parents[2]
-MISSING = (ImportError, AttributeError, ModuleNotFoundError)
-not_built = pytest.mark.xfail(
-    reason="VALIDATOR-30 (rate-study harness) is not built yet",
-    raises=MISSING,
-    strict=False,
+
+
+def _posix_host():
+    # The harness reaches the producer, which locks with fcntl; a host without it
+    # (Windows) cannot run these. CI does.
+    return importlib.util.find_spec("fcntl") is not None
+
+
+#: VALIDATOR-30 slice B is built (#873), so these are real tests; they skip only on a
+#: host that cannot run the harness.
+needs_posix = pytest.mark.skipif(
+    not _posix_host(), reason="the rate-study harness needs a POSIX host (fcntl)"
 )
 
 PROBER_MODULE = "carbon.agent_campaign.graphite.study_prober"
@@ -99,6 +106,19 @@ def _config(tmp_path, **over):
     return path
 
 
+def _real_config(tmp_path, **over):
+    """A real-mode (`fixture: false`) config that passes the schema and the file-mode
+    check, so the roots are what is refused: owner-only (0600) regular file, with
+    `producer_configs` and `validator_config`."""
+    import os
+
+    over.setdefault("producer_configs", {"1": "p1", "2": "p2", "4": "p4"})
+    over.setdefault("validator_config", "validators/{rate}/{replicate}.json")
+    path = _config(tmp_path, fixture=False, **over)
+    os.chmod(path, 0o600)
+    return path
+
+
 def _records(tmp_path, arm="H", rate=1, replicate=1):
     path = tmp_path / "records" / arm / str(rate) / f"{replicate}.jsonl"
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
@@ -108,18 +128,14 @@ def test_the_refusal_list_is_closed_and_unique():
     assert len(set(REFUSALS)) == len(REFUSALS) == 21
 
 
-@not_built
+@needs_posix
 def test_the_module_exposes_the_contract_surface():
     module = _module()
     for name in ("main", "run", "fresh", "check"):
         assert callable(getattr(module, name))
 
 
-@pytest.mark.xfail(
-    reason="VALIDATOR-30 (rate-study harness) is not built yet",
-    raises=MISSING + (KeyError,),
-    strict=False,
-)
+@needs_posix
 def test_the_three_rule_variants_are_v2_bank_plus_window_blocks_and_study():
     from carbon.battery import exam
 
@@ -141,7 +157,7 @@ def test_the_three_rule_variants_are_v2_bank_plus_window_blocks_and_study():
     assert len(digests) == 3
 
 
-@not_built
+@needs_posix
 def test_run_writes_records_in_exactly_the_analysis_schema(tmp_path):
     module, analyze = _module(), _analyze()
     config = _config(tmp_path)
@@ -168,7 +184,7 @@ def test_run_writes_records_in_exactly_the_analysis_schema(tmp_path):
     assert len(records) == 3 * 1 * 2  # 3m per window x 2 windows at m = 1
 
 
-@not_built
+@needs_posix
 def test_a_resume_appends_only_the_missing_submissions(tmp_path):
     module = _module()
     config = _config(tmp_path)
@@ -189,7 +205,7 @@ def test_a_resume_appends_only_the_missing_submissions(tmp_path):
     assert _records(tmp_path, rate=2) == first
 
 
-@not_built
+@needs_posix
 def test_a_repeated_outcome_is_its_own_line_and_never_scored(tmp_path):
     # 14 windows at m = 4 is 168 submissions against library-v2's >= 144 distinct
     # recipes, so the fixture route must answer the surplus with REPEATED lines.
@@ -224,7 +240,7 @@ def test_a_repeated_outcome_is_its_own_line_and_never_scored(tmp_path):
     assert analyze.excluded_counts(records)["REPEATED"] == len(repeated)
 
 
-@not_built
+@needs_posix
 @pytest.mark.parametrize(
     "over, code",
     [
@@ -279,7 +295,7 @@ def test_check_refuses_with_a_typed_code(tmp_path, capsys, over, code):
     assert code in REFUSALS
 
 
-@not_built
+@needs_posix
 def test_revealed_is_refused_on_a_non_sacrificial_bank(tmp_path, capsys):
     module = _module()
     bank = {
@@ -310,7 +326,7 @@ def test_revealed_is_refused_on_a_non_sacrificial_bank(tmp_path, capsys):
     assert not (tmp_path / "records").exists()
 
 
-@not_built
+@needs_posix
 def test_a_fixture_never_runs_on_a_real_root(tmp_path, capsys):
     module = _module()
     roots = {
@@ -322,7 +338,7 @@ def test_a_fixture_never_runs_on_a_real_root(tmp_path, capsys):
     assert "refused: fixture_with_real_root" in capsys.readouterr().out
 
 
-@not_built
+@needs_posix
 def test_the_fresh_scorer_is_non_consuming_and_prints_nothing_hidden(tmp_path, capsys):
     module = _module()
     config = _config(tmp_path)
@@ -356,7 +372,7 @@ def test_the_fresh_scorer_is_non_consuming_and_prints_nothing_hidden(tmp_path, c
     )  # another model, the same set: scores normally
 
 
-@not_built
+@needs_posix
 def test_nothing_hidden_reaches_stdout_or_the_records(tmp_path, capsys):
     module = _module()
     config = _config(tmp_path)
@@ -380,7 +396,7 @@ def test_nothing_hidden_reaches_stdout_or_the_records(tmp_path, capsys):
         assert token not in text
 
 
-@not_built
+@needs_posix
 @pytest.mark.parametrize("arm", ["S-sealed", "S-revealed"])
 def test_an_s_arm_needs_a_freeze_manifest_and_then_is_not_built(tmp_path, capsys, arm):
     module = _module()
@@ -396,23 +412,49 @@ def test_an_s_arm_needs_a_freeze_manifest_and_then_is_not_built(tmp_path, capsys
     assert "refused: arm_not_built" in out or "refused: freeze_manifest_mismatch" in out
 
 
-@not_built
+@needs_posix
 def test_a_real_root_must_sit_under_the_rate_study_directory(tmp_path, capsys):
     module = _module()
-    config = _config(tmp_path, fixture=False)
+    config = _real_config(tmp_path)
     assert module.main(["check", "--config", str(config)]) == 2
     assert "refused: production_root_refused" in capsys.readouterr().out
 
 
-@not_built
+@needs_posix
+def test_a_real_config_must_be_an_owner_only_file(tmp_path, capsys):
+    import os
+
+    module = _module()
+    config = _real_config(tmp_path)
+    os.chmod(config, 0o644)
+    assert module.main(["check", "--config", str(config)]) == 2
+    assert "refused: config_unreadable" in capsys.readouterr().out
+
+
+@needs_posix
+def test_a_real_config_needs_producer_configs_and_validator_config(tmp_path, capsys):
+    import json as _json
+    import os
+
+    module = _module()
+    config = _real_config(tmp_path)
+    document = _json.loads(config.read_text(encoding="utf-8"))
+    del document["validator_config"]
+    config.write_text(_json.dumps(document), encoding="utf-8")
+    os.chmod(config, 0o600)
+    assert module.main(["check", "--config", str(config)]) == 2
+    assert "refused: config_schema_mismatch" in capsys.readouterr().out
+
+
+@needs_posix
 def test_a_real_fresh_names_its_run(tmp_path):
     module = _module()
-    config = _config(tmp_path, fixture=False)
+    config = _real_config(tmp_path)
     argv = ["fresh", "--config", str(config), "--submission", "s", "--set", "fresh-w01"]
-    assert module.main(argv) == 2  # no --rate and --replicate in a real run
+    assert module.main(argv) == 2  # refused: no --rate and --replicate in a real run
 
 
-@not_built
+@needs_posix
 def test_a_fixture_ignores_producer_configs_and_validator_config(tmp_path):
     module = _module()
     config = _config(
@@ -423,49 +465,57 @@ def test_a_fixture_ignores_producer_configs_and_validator_config(tmp_path):
     assert module.main(["check", "--config", str(config)]) == 0
 
 
-@not_built
+@needs_posix
 def test_a_fixture_library_digest_may_be_null_but_a_real_one_may_not(tmp_path, capsys):
     module = _module()
     assert module.main(["check", "--config", str(_config(tmp_path))]) == 0
     library = {"path": "library-v2.json", "digest": None}
-    config = _config(tmp_path, fixture=False, library=library)
+    config = _real_config(tmp_path, library=library)
     assert module.main(["check", "--config", str(config)]) == 2
     assert "refused:" in capsys.readouterr().out
 
 
-@not_built
+class _ShortWorld:
+    """The `world` seam of `rate_study.run`: scripted route answers, no producer or host.
+    A window in `short` has no drawable bank (the producer's tick returns False)."""
+
+    provenance = "FIXTURE"
+
+    def __init__(self, short=()):
+        self.short = set(short)
+
+    def tick(self, window, block):
+        return window not in self.short
+
+    def submit(self, strategy, block, window):
+        module = _module()
+        return {
+            "state": "SCORED",
+            "submission_id": module._sha256(module._canonical(strategy)),
+            "s_current": 0.5,
+            "batches": {"shared": ["a", "b"], f"w{window}": ["c"]},
+            "wall_s": 0.1,
+        }
+
+    def fresh(self, submission_id, window):
+        return {"state": "SCORED", "s_fresh": 0.75}
+
+    def roots(self):
+        return [], {}
+
+    def close(self):
+        pass
+
+
+@needs_posix
 def test_a_bank_short_window_writes_three_m_unavailable_lines(tmp_path):
     module = _module()
-    config = _config(tmp_path, bank_short_windows=[1])
-    argv = [
-        "run",
-        "--config",
-        str(config),
-        "--arm",
-        "H",
-        "--rate",
-        "2",
-        "--replicate",
-        "1",
-    ]
-    module.main(argv)
-    first_window = [r for r in _records(tmp_path, rate=2) if r["window"] == 1]
-    assert len(first_window) == 6
-    assert all(r["state"] == "UNAVAILABLE" for r in first_window)
-
-
-def test_the_named_probers_follow_the_contract_when_they_are_in_this_tree():
-    # Not xfail: it skips until the Test Engineer's #879 is in the tree, then checks
-    # the contract surface the runner calls. A literal `importorskip` (the authority
-    # test inventories dynamic imports by literal name).
-    module = pytest.importorskip("carbon.agent_campaign.graphite.study_prober")
-    if not hasattr(module, "ContractProber"):
-        pytest.skip("study_prober.ContractProber (#879) is not in this tree")
-    for name in ("sealed", "revealed"):
-        first, second = getattr(module, name)(), getattr(module, name)()
-        assert first is not second, "a factory returns a fresh prober per run"
-        strategy = first.propose()
-        assert isinstance(strategy, dict), "a JSON-ready document, not a string"
-        json.dumps(strategy)
-        with pytest.raises(module.ProberRefused):
-            first.propose(None)  # no feedback after the first proposal
+    config = _config(tmp_path)
+    assert module.run(config, "H", 2, 1, world=_ShortWorld(short={1})) == 0
+    lines = _records(tmp_path, rate=2)
+    first_window = [r for r in lines if r["window"] == 1]
+    assert len(first_window) == 6  # 3m lines at m = 2
+    assert all(
+        r["state"] == "UNAVAILABLE" and r["d_index"] is None for r in first_window
+    )
+    assert all(r["state"] == "SCORED" for r in lines if r["window"] == 2)

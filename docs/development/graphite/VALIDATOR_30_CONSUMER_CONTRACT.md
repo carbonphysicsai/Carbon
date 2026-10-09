@@ -37,6 +37,12 @@ answer marks its recipe visited, so it is never proposed again; a call after the
 prober per run, calls `propose` once per submission and passes each answer back.
 S-revealed is refused unless the bank is the sacrificial one (section 4).
 
+The `run` function also takes `prober=None, repository=None, world=None`. `world` is a
+test seam: an object with `tick(window, block) -> bool`, `submit(strategy, block, window)`,
+`fresh(submission_id, window)`, `roots()` and `close()`. A producer `tick` that returns `False`
+is a bank-short window, which writes 3m `UNAVAILABLE` lines. A bank-short window cannot be set
+from the config; it is a fact of the producer, so tests inject it through `world`.
+
 The Python surface the tests call: `rate_study.main(argv) -> int` (the CLI) and
 `rate_study.run(config, arm, rate, replicate) -> int`, `rate_study.fresh(...)`,
 `rate_study.check(config, arm) -> None | RefusalCode`.
@@ -59,6 +65,16 @@ The Python surface the tests call: `rate_study.main(argv) -> int` (the CLI) and
 | `fresh` | `{"name": "fresh", "windows": 12, "cases_per_window": 98, "roots": {...}}`. Real fresh sets are the study bank's `fresh` tranches (VALIDATOR-30 slice A); `roots.fresh` holds only fixture scores |
 | `records_dir` | where `records/<arm>/<rate>/<replicate>.jsonl` is written |
 | `freeze_manifest` | path to `freeze-manifest.json`; required for Stage 1 arms, absent for Stage 0 arm H |
+
+**A real config (`fixture: false`) is held to more than a fixture:**
+- it must be an owner-only regular file, no group or other bits (mode `0600`), else
+  `config_unreadable`;
+- it must carry `producer_configs` (keys `"1"`, `"2"`, `"4"`) and `validator_config` (a path
+  containing `{rate}` and `{replicate}`), else `config_schema_mismatch`;
+- only then are its roots checked: every root must sit under
+  `/var/lib/carbon-producer/rate-study/`, else `production_root_refused`.
+So a real config is refused for its file or schema before its roots. (The contract tests build
+a valid-but-wrong-roots real config to reach `production_root_refused`.)
 
 ## 3. Rules `v2-bank-rate-1/2/4`
 
