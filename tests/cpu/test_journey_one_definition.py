@@ -347,6 +347,11 @@ def test_every_operation_in_the_table_is_a_step_or_read_by_the_journey():
         # doors with the real signer by tests/cpu/test_launchpad_commitment.py
         # (LAUNCHPAD-ACCEPT-02).
         | {"commit"}
+        # A recipe against its Challenge's compute budget is a read outside
+        # any campaign: pinned through both doors by
+        # tests/cpu/test_launchpad_compute_budget_status.py
+        # (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01).
+        | {"budget_status"}
     )
     # Halt and resume are the lifecycle controls, pinned by the door-parity
     # test through both doors; the journey has no pause in it. A journal note

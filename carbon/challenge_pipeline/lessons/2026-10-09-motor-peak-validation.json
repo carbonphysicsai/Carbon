@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-motor-peak-validation",
+  "recorded_at": "2026-10-09T17:05:00+00:00",
+  "challenge": "motor",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "MOTOR-PEAK-FEASIBILITY-01 focused suite", "description": "Native Python arithmetic and packet/pipeline regression suite; no solver execution."},
+  "expected": "Arithmetic reproduces the declared source conventions and packet boundaries remain unchanged.",
+  "observed": "63 tests passed in 8.26 seconds. Pipeline validation found 7 valid records and 475 valid lessons before this lesson. Black 26.5.1 and Ruff checks pass. Native tests are diagnostic only; required canonical exact-head CI is pending because the local Windows worktree is not resolved by the WSL canonical wrapper.",
+  "keep": ["Test numeric calculations separately from claims of physical feasibility."],
+  "change": ["A native green cannot substitute for canonical CI or reference measurements."],
+  "protocol_elements": ["analysis-not-truth", "canonical-validation", "customer-value"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

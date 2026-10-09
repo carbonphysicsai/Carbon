@@ -59,6 +59,8 @@ SURFACES = (
     "carbon/battery/intake.py",
     "carbon/battery/intake_client.py",
     "carbon/battery/daemon.py",
+    # The ladder's Level 4 admission (VALIDATOR-25 slice 4) imports it.
+    "carbon/battery/level4_admission.py",
     "carbon/challenge_registry",
 )
 

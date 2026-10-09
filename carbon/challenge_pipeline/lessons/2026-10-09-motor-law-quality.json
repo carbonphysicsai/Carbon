@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-motor-law-quality",
+  "recorded_at": "2026-10-09T16:28:23Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-MOTOR-QUESTION-LAW-01 quality", "description": "Black --check and Ruff check of tests/cpu/test_motor_question_law_round2.py"},
+  "expected": "The repaired static test follows repository quality rules.",
+  "observed": "Black left the file unchanged and Ruff reported all checks passed. Static quality is not scientific or canonical acceptance.",
+  "keep": ["Format bounded new tests without unrelated rewrites."],
+  "change": ["None; canonical PR CI still owns acceptance."],
+  "protocol_elements": ["small-reviewable-diff", "evidence-basis"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

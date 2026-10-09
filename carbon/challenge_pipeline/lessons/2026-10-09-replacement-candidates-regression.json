@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-replacement-candidates-regression",
+  "recorded_at": "2026-10-09T16:08:32Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "REPLACEMENT-CANDIDATES-01 affected tests",
+    "description": "Native five-file dossier arithmetic, existing value-cost, credibility and pipeline regressions."
+  },
+  "expected": "Inactive recommendations preserve prior authority and charge complete startup work.",
+  "observed": "132 passed in 9.27s. Native diagnostics only. Six cards, both witness tools, refinement, failures, tax/overhead scenarios and local links validated; no empirical cost or credibility earned.",
+  "keep": ["Zero empirical commercial floor and null observed annual cadence remain explicit."],
+  "change": ["Count complete curves/programmes, not cheap internal solver nodes, when estimating startup."],
+  "protocol_elements": ["buyer value", "cost accounting", "reference credibility"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-agreement-affected-regression",
+  "recorded_at": "2026-10-09T14:35:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "67 comparator/task/producer/indexed/optimizer tests",
+    "description": "BASELINE-AGREEMENT-01: 67 comparator/task/producer/indexed/optimizer tests"
+  },
+  "expected": "Repairs must preserve canonical task owners and their toy semantics.",
+  "observed": "67 native tests passed; Ruff and Black clean. No change to task, score, power or reference owners.",
+  "keep": [
+    "Report candidate verdict agreement separately from best-pick agreement."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.pipeline.lessons",
+    "challenge.cheap-baseline.comparison"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
