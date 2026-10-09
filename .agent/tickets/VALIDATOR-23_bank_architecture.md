@@ -283,4 +283,3 @@ No LIVE authority.
   evidence awaits the owner.
 - **The first tranche is partial:** `design_bank fill --live 24` (3 windows of
   k = 8), with the target B = 160 unchanged (the Test Lead, 2026-10-08).
-
