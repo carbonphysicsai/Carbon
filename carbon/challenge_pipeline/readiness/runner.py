@@ -27,9 +27,9 @@ from .model import (
     PASS,
     PASS_BY_REVIEW,
     REPOSITORY,
-    WAIVED,
     REVIEW_REQUIRED,
     RUNTIME,
+    WAIVED,
     Result,
     digest,
     file_digest,
@@ -378,7 +378,7 @@ def run_gate(challenge, level=0, *, only=None, repository=REPOSITORY, root=PACKA
 
 
 def _waiver_summary(rows, root):
-    active, waivers, problem = load_waivers(root)
+    active, _waivers, problem = load_waivers(root)
     return {
         "active_stage": active,
         "problem": problem,
