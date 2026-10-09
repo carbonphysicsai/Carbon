@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-replacement-candidates-final",
+  "recorded_at": "2026-10-09T16:11:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "REPLACEMENT-CANDIDATES-01 final static and lesson regression",
+    "description": "Native formatted dossier tests and lesson/pipeline validation."
+  },
+  "expected": "Formatting repair and added lessons preserve dossier arithmetic and pipeline authority.",
+  "observed": "49 passed in 2.62s; staged whitespace check passed. Full affected native run previously passed 132 tests. Canonical acceptance remains PR CI, not native-host output.",
+  "keep": ["Charge witnesses, refinement and failures in every startup scenario."],
+  "change": ["Do not use a hypothesis under EUR100 as authority to draw or rent a bank."],
+  "protocol_elements": ["engineering validation", "cost accounting"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

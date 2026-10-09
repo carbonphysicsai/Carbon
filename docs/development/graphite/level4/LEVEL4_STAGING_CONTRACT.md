@@ -86,8 +86,23 @@ It never re-serializes a document.
 5. Store the bytes by submission digest.
 6. At rebuild, stage `staging.workspace(...)` beside the record.
 
-**Rebuild worker (Carbon).** The worker runs `staging.from_workspace` against
-the record's `submission`, then G4 again, G5, G6 and G7.
+**Rebuild worker (Carbon; built in Phase 3).** The validator passes the
+staged files to battery's backend:
+
+    backend.reconstruct(identity, recipe, seed, development=record,
+                        workspace=staging.workspace(raw_manifest, files))
+
+- **The worker program** (`level4_worker.program`) loads Carbon's own
+  `carbon.level4` modules from staged files. Then:
+  - it reads the workspace (`staging.from_workspace` against the record's
+    `submission`);
+  - it verifies the submission and runs G4 again, under the owner's caps;
+  - it trains the graph through battery's own loop (`level4_model.GraphModel`)
+    and writes a self-contained `level4_graph` state.
+- **Inference** of that state uses `level4_worker.infer_program`, which stages
+  the same modules. Every other state keeps the Level 0 inference program.
+- **With no workspace staged**, the program fails closed as Carbon's
+  environment (`level4_submission_documents_not_staged`).
 
 ## 5. Unchanged
 

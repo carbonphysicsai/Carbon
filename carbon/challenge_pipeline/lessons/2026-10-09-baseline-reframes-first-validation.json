@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-reframes-first-validation",
+  "recorded_at": "2026-10-09T15:13:50Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "conditional reframe/static arithmetic plus value-cost/volume/pipeline tests", "description": "Native four-file affected regression after Black formatting; Ruff clean."},
+  "expected": "All three dossiers retain explicit HUMAN_INPUT adoption and lower assumed value.",
+  "observed": "98 passed, one failed in 6.37s: Cooling document described pending owner choices but omitted the explicit HUMAN_INPUT marker required by the new static boundary test. Repaired the document, not the test.",
+  "keep": ["Test both numeric arithmetic and visible authority boundaries."],
+  "change": ["State pending input status directly in each dossier, not only the shared sheet."],
+  "protocol_elements": ["testing", "authority", "buyer scope"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

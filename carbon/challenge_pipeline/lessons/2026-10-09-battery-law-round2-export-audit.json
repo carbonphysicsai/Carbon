@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-battery-law-round2-export-audit",
+  "recorded_at": "2026-10-09T15:00:39Z",
+  "challenge": "battery",
+  "stage": "design",
+  "execution": {"kind": "coverage_run", "ref": "SOC10 fresh development export SHA256 31463626c13549916feffa4ef9917f520e1437eb24dc08c8c402b6926e4717d4", "description": "Read-only nominal q00 canonical task interval assessment of supplied solved development rows; no reference solve."},
+  "expected": "Separate original-export row coverage from broader tier-4 diagnostic counts and approved-law acceptance.",
+  "observed": "493 rows: per-band feasible counts 13/10/15/15/22, infeasible 62/28/115/117/51, unresolved 5/4/17/15/4. All 25 question comparisons unresolved; nine historical off-lattice rows. Tier-4 wider bands and x3/x6 actions are not an approved-menu one-band T2(a) pass.",
+  "keep": ["Bind audit to source bytes, original task contract and public acquisition head."],
+  "change": ["Request per-limit approved-menu settled counts instead of adopting a contested flag from a different scope."],
+  "protocol_elements": ["reference identity", "contested decisions", "uncertainty"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
