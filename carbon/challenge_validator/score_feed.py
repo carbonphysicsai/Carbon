@@ -75,6 +75,16 @@ SHOWCASE = {
     "split": "development",
     "data_scope": "PUBLIC_SYNTHETIC",
     "registered": "Test Lead, 2026-10-08 (VALIDATOR-29 showcase)",
+    # The model is the LIVE incumbent: its hotkey is already public through
+    # the on-chain weights, its inputs are public EV4 cases, and its recipe is
+    # never shown. The owner asked for "a live design optimizer display of
+    # the leaders' performance".
+    "incumbent": "LIVE",
+    "label": "current incumbent, public cases",
+    "disclosure": (
+        "Test Lead 2026-10-08, per owner request; confirmed by the owner in the "
+        "Carbon Validator session"
+    ),
 }
 SHOWCASE_SCHEMA = "carbon.validator.showcase-panel.v1"
 #: Showcase predictions are stored apart from every scored, quiz and design one.
@@ -264,11 +274,21 @@ def _sections(target, row, released):
     }
 
 
+def live_incumbent(target):
+    """`{"hotkey", "submission_id"}` of the deployment's current incumbent,
+    or None. Its hotkey is public through the on-chain weights."""
+    found = target.store.incumbent()
+    if found is None:
+        return None
+    row = target.store.submission(found["model_id"])
+    return {"hotkey": row["hotkey"], "submission_id": found["model_id"]}
+
+
 def showcase(target, incumbent, repository=REPOSITORY):
-    """The released incumbent's predictions on the registered public
-    showcase task, or None when no incumbent is released. Public inputs only;
-    the panel carries the model's identity digest and predicted quantities,
-    never its recipe. An inference failure is the showcase's own state."""
+    """The live incumbent's predictions on the registered public showcase
+    task, or None when there is no incumbent. Public inputs only; the panel
+    carries the model's identity digest and predicted quantities, never its
+    recipe. An inference failure is the showcase's own state."""
     from carbon.battery.pool_store import StateError
     from carbon.battery.value import contract as ev
     from carbon.battery.worker import WorkerFailure
@@ -292,6 +312,7 @@ def showcase(target, incumbent, repository=REPOSITORY):
     model_id = incumbent["submission_id"]
     head = {
         "schema": SHOWCASE_SCHEMA,
+        "label": SHOWCASE["label"],
         "task": SHOWCASE,
         "contract_digest": contract_digest,
         "model": {"hotkey": incumbent["hotkey"], "submission_id": model_id},
@@ -451,8 +472,8 @@ def build(target, *, key, hotkey, network, device_class="cpu", with_showcase=Fal
         "excluded": {"canary_hotkeys": excluded},
     }
     if with_showcase:
-        # Driven by the released incumbent only: no new disclosure.
-        document["showcase"] = showcase(target, incumbent_view)
+        # The live incumbent (SHOWCASE["disclosure"]); a canary is never one.
+        document["showcase"] = showcase(target, live_incumbent(target))
     import datetime
 
     version = store.record_feed(document)

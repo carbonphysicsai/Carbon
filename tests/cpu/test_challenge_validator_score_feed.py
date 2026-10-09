@@ -231,12 +231,13 @@ def test_the_door_serves_only_a_verified_feed(tmp_path, monkeypatch):
     assert route == "/carbon/v1/feed/" + CHALLENGE.challenge_id
 
 
-def test_the_showcase_is_the_released_incumbents_panel_on_public_inputs(
+def test_the_showcase_is_the_live_incumbents_panel_on_public_inputs(
     validator, tmp_path, monkeypatch
 ):
-    """The released incumbent's rebuilt model, queried on EV4's public
-    development scenarios only; the panel carries its identity digest and
-    predicted quantities, never a recipe. No released incumbent: no panel."""
+    """The live incumbent's rebuilt model (the owner's request; its hotkey is
+    public through the weights), queried on EV4's public development scenarios
+    only; the panel carries its identity digest and predicted quantities,
+    never a recipe."""
     from carbon.battery.value import contract as ev
 
     store, w = validator["store"], validator["windows"]
@@ -269,18 +270,18 @@ def test_the_showcase_is_the_released_incumbents_panel_on_public_inputs(
 
     monkeypatch.setattr(validator["target"], "_quiz_predictions", predict)
     key = sf.FeedKey.create(tmp_path / "feed.key")
-    hidden = sf.build(
-        validator["target"], key=key, hotkey="5V", network="testnet", with_showcase=True
-    )
-    assert hidden["showcase"] is None and asked == []  # not yet released
-    store.record_published("file-1", validator["drawn"]["screening"])
+    # The live incumbent drives the showcase before its windows are released
+    # (the owner's request; its hotkey is public through the weights).
     feed = sf.build(
         validator["target"], key=key, hotkey="5V", network="testnet", with_showcase=True
     )
+    assert feed["submissions"] == []  # its scores are still not released
     shown = feed["showcase"]
     contract, digest = ev.load(REPOSITORY / sf.SHOWCASE["contract"])
     jobs = ev.decision_cases(contract, "development")
     assert shown["state"] == "PREDICTED" and shown["schema"] == sf.SHOWCASE_SCHEMA
+    assert shown["label"] == "current incumbent, public cases"
+    assert shown["task"]["incumbent"] == "LIVE"
     assert shown["contract_digest"] == digest
     assert set(shown["predictions"]) == {job["case_id"] for job in jobs}
     assert asked == [("s1", sf.SHOWCASE_PREDICTIONS, len(jobs))]
