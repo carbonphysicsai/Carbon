@@ -1,0 +1,22 @@
+{
+ "schema": "carbon.battery.v3-panel-export-note.v1",
+ "export_schema": "carbon.design-search.solved-panel-export.v1",
+ "family": "battery-v3",
+ "path": "/home/carbon/shared/design-panels/battery-v3-export.json (operator host, not committed; 4.3 MB)",
+ "export_digest": "sha256:4594c73236f609556ec59f1dc68c4af9dd422f243a6f07b4c96a133165f3d7e5",
+ "file_sha256": "5ea5df8f83880e75d35df8b1361e948b6e09ea66bdbc538dc29f9b82e5098f48",
+ "builder": "scripts/dev/battery/v3_panel_export.py (questions 24 + nominal, seed 846; run against main 9d7327e6e)",
+ "authority": "Test Lead 2026-10-08: seal the boundary panel as a battery-v3 export indexed by band, packet cooling x1/x2/x4, no new compute; per-candidate settlement per the Test Lead's ruling (a), rule carbon.reference.two-rung-settlement.v1",
+ "choices": {
+  "questions": "nominal map (zero margins, mean suggested mix) plus 24 requirement variants from the v3 packet's suggested law (Dirichlet(2,3,8,5,2) mix, thermal margin U[0,2.5] K, plating margin U[0,2] mV): HUMAN_INPUT, registered UNREGISTERED",
+  "soc": "0.10 only (the solved support)",
+  "banks": "every solved action per band with cooling x1/x2/x4, sorted; switch-voltage variants included where solved",
+  "limits": "charging T <= 45 - margin (band 0.5 C), plating >= margin (band 2 mV), v_max <= 4.2 V + 1e-6 (feasibility02_v2's registered numerical tolerance), Q30/Q1 >= 0.99",
+  "value_equivalence": "0.5 min (packet's HUMAN_INPUT recommendation)",
+  "exposure": "limit 5 per question (v2-bank E, development value), batch 8, one stratum"
+ },
+ "states_under_main": {"UNRESOLVED": 25},
+ "states_simulated_rule_a_plus_b": {"UNRESOLVED": 25},
+ "why": "in every band an unsettled in-band candidate is faster than the best FEASIBLE one (near-limit actions are the fast ones); with drawn margins most in-band candidates have no refined solve",
+ "to_settle": "115 refined solves (5 C: 4, 15 C: 8, 25 C: 40, 35 C: 45, 40 C: 18; refined p50 378 s wall on the shared host, about 12 CPU-h), then a third rung only for straddles"
+}
