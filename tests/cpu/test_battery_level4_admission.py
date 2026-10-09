@@ -99,7 +99,7 @@ def test_a_loss_graph_without_the_variants_declaration_is_refused():
     )
     by_slot = {slot: files[name] for slot, name in manifest["documents"].items()}
     interface, _batch = level4_admission.interface_and_batch(strategy)
-    ((_, (n_in,)),) = interface.inputs
+    ((_, _, (n_in,)),) = interface.inputs
     ((_, (n_out,)),) = interface.outputs
     _, loss, _ = through_bprime(
         lambda p, t, x: jnp.sum((p - t) ** 2, axis=1) + 0.0 * jnp.sum(x, axis=1),
