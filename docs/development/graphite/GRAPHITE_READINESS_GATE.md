@@ -10,8 +10,19 @@ live Graphite Constructor or Attacker session spends money.
 **[auto]** have, or must get, a command. Items marked **[review]** are
 recorded Test Lead review steps.
 - **The target command** is `python -m carbon.challenge_pipeline readiness
-  --challenge <id>`. It prints this checklist with PASS / FAIL / NOT_BUILT
-  for each item, and exits non-zero unless every item passes.
+  --challenge <id> [--level N]`. It prints this checklist with one status
+  per item:
+  - **PASS**: the automated check passed (an [auto] item), or the recorded
+    review passed (a [review] item).
+  - **PASS_BY_REVIEW**: an [auto] item whose automated check is NOT_BUILT,
+    accepted by a valid committed PASS review (reviewer, date, evidence). It
+    counts toward the exit code but is shown apart from an automated PASS, so
+    the missing automation stays visible. A review can never turn a FAIL into
+    a pass, and a missing, malformed or FAIL review leaves the item NOT_BUILT.
+  - **FAIL**, **NOT_BUILT**, **REVIEW_REQUIRED** (a [review] item with no
+    valid review): none of these passes.
+  The command exits 0 only when no FAIL, NOT_BUILT or REVIEW_REQUIRED
+  remains.
 - **Until that command exists,** the Test Lead runs the gate by hand and
   records the result in the challenge's wave notes.
 - **Who builds it:** owner to be assigned (see the end of this document).

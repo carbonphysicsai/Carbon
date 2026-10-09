@@ -17,7 +17,11 @@ PASS = "PASS"
 FAIL = "FAIL"
 NOT_BUILT = "NOT_BUILT"
 REVIEW_REQUIRED = "REVIEW_REQUIRED"
-STATUSES = (PASS, FAIL, NOT_BUILT, REVIEW_REQUIRED)
+#: A check that has no automation (NOT_BUILT) accepted by a valid committed PASS review.
+#: Counts toward green, but is shown apart from an automated PASS so the missing
+#: automation stays visible. A review can never turn a FAIL into this (or a PASS).
+PASS_BY_REVIEW = "PASS_BY_REVIEW"
+STATUSES = (PASS, PASS_BY_REVIEW, FAIL, NOT_BUILT, REVIEW_REQUIRED)
 
 KINDS = ("auto", "review", "auto+review")
 PACKAGE = Path(__file__).resolve().parent

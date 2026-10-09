@@ -25,6 +25,7 @@ from .model import (
     NOT_BUILT,
     PACKAGE,
     PASS,
+    PASS_BY_REVIEW,
     REPOSITORY,
     REVIEW_REQUIRED,
     RUNTIME,
@@ -35,11 +36,13 @@ from .model import (
 )
 
 REPORT_SCHEMA = "carbon.challenge-pipeline.readiness-report.v1"
-RUN_SCHEMA = "carbon.challenge-pipeline.readiness-run.v1"
+#: v2 adds the PASS_BY_REVIEW status and its count; a v1 line (no such status) is read by
+#: `history_metrics` unchanged.
+RUN_SCHEMA = "carbon.challenge-pipeline.readiness-run.v2"
 REVIEW_SCHEMA = "carbon.challenge-pipeline.readiness-review.v1"
 EVIDENCE_KINDS = ("pr", "decision", "file", "test")
 #: Worst first: a combined item takes the first status any part has.
-SEVERITY = (FAIL, NOT_BUILT, REVIEW_REQUIRED, PASS)
+SEVERITY = (FAIL, NOT_BUILT, REVIEW_REQUIRED, PASS_BY_REVIEW, PASS)
 _SHA = re.compile(r"^sha256:[0-9a-f]{64}\Z")
 
 
@@ -74,9 +77,11 @@ def load_review(challenge, level, item_id, root=PACKAGE):
         return Result(REVIEW_REQUIRED, f"{path.name} is malformed: {problem}")
     evidence = (f"review:{file_digest(path)}", f"reviewer:{review['reviewer']}")
     status = PASS if review["decision"] == "PASS" else FAIL
+    notes = f" ({review['notes']})" if review.get("notes") else ""
     return Result(
         status,
-        f"recorded review by {review['reviewer']} on {review['date']}: {review['decision']}",
+        f"recorded review by {review['reviewer']} on {review['date']}: "
+        f"{review['decision']}{notes}",
         evidence,
     )
 
@@ -179,7 +184,8 @@ def _safe(function, *args):
 
 def _accepted_by_review(automated, ctx, item, root):
     """A NOT_BUILT automated check can be accepted by hand: a valid committed PASS
-    review (reviewer, date, evidence) turns it into PASS, stated as such in the detail.
+    review (reviewer, date, evidence) turns it into PASS_BY_REVIEW, a status shown apart
+    from an automated PASS so the missing automation stays visible.
     Only NOT_BUILT is ever converted: a FAIL is never overridden, a missing, malformed
     or FAIL review leaves the item NOT_BUILT, and the converted result says the
     automated check does not exist."""
@@ -187,7 +193,7 @@ def _accepted_by_review(automated, ctx, item, root):
     if review.status != PASS:
         return automated
     return Result(
-        PASS,
+        PASS_BY_REVIEW,
         "automated check not built ("
         + automated.detail
         + "); accepted by "
@@ -280,7 +286,7 @@ def run_gate(challenge, level=0, *, only=None, repository=REPOSITORY, root=PACKA
         "partial": bool(only),
         "items": rows,
         "counts": counts,
-        "green": counts[PASS] == len(rows) and not only,
+        "green": counts[PASS] + counts[PASS_BY_REVIEW] == len(rows) and not only,
         "claims": {"authority_to_run": False, "live_run": False, "spend": False},
     }
     report["report_digest"] = digest(report)
@@ -351,8 +357,16 @@ def history_metrics(challenge, root=None):
     green = next((r for r in full if r["green"]), None)
     return {
         "runs": len(runs),
+        # Not passing = neither an automated PASS nor accepted by review.
         "first_run_not_passing": (
-            sum(1 for i in first["items"] if i["status"] != PASS) if first else None
+            sum(1 for i in first["items"] if i["status"] not in (PASS, PASS_BY_REVIEW))
+            if first
+            else None
+        ),
+        "first_run_by_review": (
+            sum(1 for i in first["items"] if i["status"] == PASS_BY_REVIEW)
+            if first
+            else None
         ),
         "first_green_utc": green["utc"] if green else None,
     }
@@ -375,7 +389,8 @@ def render_text(report):
             lines.append(f"      evidence: {str(entry)[:160]}")
     c = report["counts"]
     lines.append(
-        f"PASS {c[PASS]}  FAIL {c[FAIL]}  NOT_BUILT {c[NOT_BUILT]}  "
+        f"PASS {c[PASS]}  PASS_BY_REVIEW {c.get(PASS_BY_REVIEW, 0)}  FAIL {c[FAIL]}  "
+        f"NOT_BUILT {c[NOT_BUILT]}  "
         f"REVIEW_REQUIRED {c[REVIEW_REQUIRED]}  green: {report['green']}  "
         f"digest {report['report_digest']}"
     )

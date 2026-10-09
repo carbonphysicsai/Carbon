@@ -144,6 +144,7 @@ def test_green_only_when_every_item_passes(monkeypatch, tmp_path):
         _write_review(tmp_path, item_id, _review(item_id))
     report = runner.run_gate(CHALLENGE, 0, root=tmp_path)
     assert report["green"] and report["counts"][model.PASS] == len(model.load_items())
+    assert report["counts"][model.PASS_BY_REVIEW] == 0
     partial = runner.run_gate(CHALLENGE, 0, only=["P1"], root=tmp_path)
     assert not partial["green"] and partial["partial"]
 
@@ -203,7 +204,9 @@ def test_history_is_append_only_and_drives_metrics(tmp_path):
     metrics = runner.history_metrics(CHALLENGE, root=tmp_path)
     assert metrics["runs"] == 2
     assert metrics["first_run_not_passing"] == sum(
-        1 for r in first["items"] if r["status"] != model.PASS
+        1
+        for r in first["items"]
+        if r["status"] not in (model.PASS, model.PASS_BY_REVIEW)
     )
     assert metrics["first_green_utc"] is None
 
@@ -821,7 +824,7 @@ def test_a_not_built_check_is_accepted_only_by_a_valid_pass_review(
     assert runner.evaluate_item(item, ctx, tmp_path)["status"] == model.NOT_BUILT
     _write_review(tmp_path, "P3", _review("P3"))
     row = runner.evaluate_item(item, ctx, tmp_path)
-    assert row["status"] == model.PASS
+    assert row["status"] == model.PASS_BY_REVIEW
     assert "not built" in row["detail"] and "accepted by" in row["detail"]
 
 
@@ -830,3 +833,67 @@ def test_a_review_never_overrides_a_failing_check(monkeypatch, tmp_path):
     item = _item_with(model.Result(model.FAIL, "red", ()), monkeypatch, "failing_check")
     _write_review(tmp_path, "P3", _review("P3"))
     assert runner.evaluate_item(item, ctx, tmp_path)["status"] == model.FAIL
+
+
+def test_a_failing_item_with_a_pass_review_stays_fail_in_the_report(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setitem(
+        checks.CHECKS,
+        "registered_l0",
+        lambda item, ctx: model.Result(model.FAIL, "red", ()),
+    )
+    _write_review(tmp_path, "P1", _review("P1"))
+    (row,) = runner.run_gate(CHALLENGE, 0, only=["P1"], root=tmp_path)["items"]
+    assert row["status"] == model.FAIL
+
+
+def _all_pass_except_one_by_review(monkeypatch, tmp_path):
+    monkeypatch.setattr(runner, "load_conditions", lambda challenge: [])
+    items = model.load_items()
+    for ref in {i["check"] for i in items}:
+        monkeypatch.setitem(
+            checks.CHECKS, ref, lambda item, ctx: model.Result(model.PASS, "ok", ("e",))
+        )
+    # One auto item has no automation: accept it by review.
+    victim = next(i for i in items if i["kind"] == "auto")
+    monkeypatch.setitem(
+        checks.CHECKS,
+        victim["check"],
+        lambda item, ctx: (
+            model.Result(model.NOT_BUILT, "no check yet", ())
+            if item["id"] == victim["id"]
+            else model.Result(model.PASS, "ok", ("e",))
+        ),
+    )
+    for item in items:
+        if item["kind"] != "auto" or item["id"] == victim["id"]:
+            _write_review(tmp_path, item["id"], _review(item["id"]))
+    return victim
+
+
+def test_pass_by_review_counts_toward_green_but_is_shown_apart(monkeypatch, tmp_path):
+    victim = _all_pass_except_one_by_review(monkeypatch, tmp_path)
+    report = runner.run_gate(CHALLENGE, 0, root=tmp_path)
+    counts = report["counts"]
+    assert counts[model.PASS_BY_REVIEW] == 1
+    assert counts[model.PASS] == len(model.load_items()) - 1
+    assert report["green"] is True
+    by_id = {r["id"]: r["status"] for r in report["items"]}
+    assert by_id[victim["id"]] == model.PASS_BY_REVIEW
+    text = runner.render_text(report)
+    assert "PASS_BY_REVIEW 1" in text and "green: True" in text
+    record = runner.run_record(report)
+    assert record["schema"] == runner.RUN_SCHEMA and record["green"] is True
+    assert record["counts"][model.PASS_BY_REVIEW] == 1
+
+
+def test_a_failing_item_makes_the_run_not_green_even_with_every_review(
+    monkeypatch, tmp_path
+):
+    _all_pass_except_one_by_review(monkeypatch, tmp_path)
+    assert runner.run_gate(CHALLENGE, 0, root=tmp_path)["green"]
+    monkeypatch.setitem(
+        checks.CHECKS, "registered_l0", lambda i, c: model.Result(model.FAIL, "r", ())
+    )
+    assert not runner.run_gate(CHALLENGE, 0, root=tmp_path)["green"]
