@@ -28,8 +28,12 @@ from carbon.agent_campaign.graphite import study_prober as sp
 
 STUDY = "SUBMISSION-RATE-STUDY-01"
 #: The Constructor's manifest digests before the study tool existed.
-CONSTRUCTOR_V1 = "sha256:25fecea50643cee04f9ab535164a52d8c09fc4b20a2dce1a7fcbffcc6275f999"
-CONSTRUCTOR_V2 = "sha256:2794e2f73e9adee8f0e6884f54c17832ab1ae302ad54c8583c9e66cb689112e4"
+CONSTRUCTOR_V1 = (
+    "sha256:25fecea50643cee04f9ab535164a52d8c09fc4b20a2dce1a7fcbffcc6275f999"
+)
+CONSTRUCTOR_V2 = (
+    "sha256:2794e2f73e9adee8f0e6884f54c17832ab1ae302ad54c8583c9e66cb689112e4"
+)
 
 
 def study_constructor():
@@ -132,7 +136,7 @@ def test_a_malformed_probe_request_is_refused(arguments, code):
 
 
 def test_a_probe_naming_protected_material_is_refused():
-    marker = sorted(tools.PROTECTED_MARKERS)[0]
+    marker = min(tools.PROTECTED_MARKERS)
     result, _ = call(study_constructor(), {"history_json": json.dumps([marker])})
     assert result["status"] == tools.REFUSED_PROTECTED
 
