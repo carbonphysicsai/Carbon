@@ -252,6 +252,7 @@ def _run_locked(
     miner_authored=False,
     before_finish=None,
     accelerator=None,
+    network=None,
 ):
     before_finish = before_finish or (lambda: None)
     # The miner's own research has no Carbon limits (owner direction): any
@@ -311,7 +312,8 @@ def _run_locked(
         if accelerator == VALIDATOR_GPU:
             from carbon.reconstruction.hardware_acceptance import require_accepted
 
-            require_accepted(device.device_kind, profile_id)
+            # The deployment's network: an acceptance names its networks.
+            require_accepted(device.device_kind, profile_id, network)
         request["accelerator"] = {
             "kind": accelerator,
             "profile": profile_id,

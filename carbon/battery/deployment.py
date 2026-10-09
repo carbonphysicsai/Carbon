@@ -294,6 +294,15 @@ def ladder_for(config):
     }
 
 
+def _network(config):
+    """The deployment's chain network: its commitment reader's, else Carbon's
+    own (testnet, `chain.models.CARBON_NETWORK`)."""
+    from carbon.chain.models import CARBON_NETWORK
+
+    reader = config.get("commitment_reader")
+    return reader["network"] if type(reader) is dict else CARBON_NETWORK
+
+
 def _commitment_reader(config):
     """The configured read-only commitment reader, or None."""
     spec = config.get("commitment_reader")
@@ -415,6 +424,7 @@ def build(config, *, repository, readonly=False):
                 root=repository,
                 seconds=int(config.get("seconds", 600)),
                 device=config.get("device"),
+                network=_network(config),
             )
         except DeviceClassNotAccepted:
             # No hardware acceptance names this host's device class: a GPU
