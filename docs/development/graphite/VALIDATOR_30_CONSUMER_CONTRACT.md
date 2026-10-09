@@ -23,9 +23,19 @@ python -m carbon.challenge_validator.rate_study <command> ...
 Arm G-sealed does not use `run`: it starts through the phase-3/4 runner with
 `--study SUBMISSION-RATE-STUDY-01` (arm sheets, run sheet F). Scripted arms
 S-sealed and S-revealed call a prober (Test Engineer, run sheet D.2) given as
-`--prober MODULE:OBJECT`; its interface is `propose(feedback) -> strategy_json`, where
-`feedback` is the allow-list for S-sealed and the batch score for S-revealed. S-revealed is
-refused unless the bank is the sacrificial one (section 4).
+`--prober MODULE:OBJECT`; the two objects are fixed by RATE-STUDY-PROBE-TOOL-01 and
+run sheet D.3: `carbon.agent_campaign.graphite.study_prober:sealed` (S-sealed) and
+`carbon.agent_campaign.graphite.study_prober:revealed` (S-revealed), in #865 (merged) plus
+#879. Each is a **factory with no arguments returning a fresh `ContractProber` for one
+run**. Its interface is `propose(feedback=None) -> strategy`, where `strategy` is a
+JSON-ready strategy document (a dict, not a string), and `feedback` is the route's answer
+to the previous proposal (`None` before the first). For S-sealed it is the allow-list view
+(`hidden_score` `agent_view`). For S-revealed it is that view carrying `batch_score`, or the
+batch score alone (an int or float), which the prober reads as a scored view. A `REPEATED`
+answer marks its recipe visited, so it is never proposed again; a call after the first with
+`feedback=None` raises `ProberRefused` (`prober_feedback_missing`). The runner builds one
+prober per run, calls `propose` once per submission and passes each answer back.
+S-revealed is refused unless the bank is the sacrificial one (section 4).
 
 The Python surface the tests call: `rate_study.main(argv) -> int` (the CLI) and
 `rate_study.run(config, arm, rate, replicate) -> int`, `rate_study.fresh(...)`,

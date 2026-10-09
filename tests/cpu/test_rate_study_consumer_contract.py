@@ -24,6 +24,12 @@ not_built = pytest.mark.xfail(
     strict=False,
 )
 
+PROBER_MODULE = "carbon.agent_campaign.graphite.study_prober"
+PROBERS = {
+    "S-sealed": f"{PROBER_MODULE}:sealed",
+    "S-revealed": f"{PROBER_MODULE}:revealed",
+}
+
 REFUSALS = (
     "config_unreadable",
     "config_schema_mismatch",
@@ -296,7 +302,7 @@ def test_revealed_is_refused_on_a_non_sacrificial_bank(tmp_path, capsys):
             "--replicate",
             "1",
             "--prober",
-            "x:y",
+            PROBERS["S-revealed"],
         ]
     )
     out = capsys.readouterr().out
@@ -378,7 +384,7 @@ def test_nothing_hidden_reaches_stdout_or_the_records(tmp_path, capsys):
 @pytest.mark.parametrize("arm", ["S-sealed", "S-revealed"])
 def test_an_s_arm_needs_a_freeze_manifest_and_then_is_not_built(tmp_path, capsys, arm):
     module = _module()
-    argv = ["--arm", arm, "--rate", "1", "--replicate", "1", "--prober", "x:y"]
+    argv = ["--arm", arm, "--rate", "1", "--replicate", "1", "--prober", PROBERS[arm]]
     config = _config(tmp_path)
     assert module.main(["run", "--config", str(config), *argv]) == 2
     assert "refused: freeze_manifest_required" in capsys.readouterr().out
@@ -446,3 +452,20 @@ def test_a_bank_short_window_writes_three_m_unavailable_lines(tmp_path):
     first_window = [r for r in _records(tmp_path, rate=2) if r["window"] == 1]
     assert len(first_window) == 6
     assert all(r["state"] == "UNAVAILABLE" for r in first_window)
+
+
+def test_the_named_probers_follow_the_contract_when_they_are_in_this_tree():
+    # Not xfail: it skips until the Test Engineer's #879 is in the tree, then
+    # checks the contract surface the runner calls.
+    path = REPOSITORY / "carbon/agent_campaign/graphite/study_prober.py"
+    if not path.is_file() or "ContractProber" not in path.read_text(encoding="utf-8"):
+        pytest.skip("study_prober.ContractProber (#879) is not in this tree")
+    module = importlib.import_module(PROBER_MODULE)
+    for name in ("sealed", "revealed"):
+        first, second = getattr(module, name)(), getattr(module, name)()
+        assert first is not second, "a factory returns a fresh prober per run"
+        strategy = first.propose()
+        assert isinstance(strategy, dict), "a JSON-ready document, not a string"
+        json.dumps(strategy)
+        with pytest.raises(module.ProberRefused):
+            first.propose(None)  # no feedback after the first proposal
