@@ -35,9 +35,16 @@ def scored(tmp_path, refs, backend, run_id):  # noqa: F811
     return target, pool
 
 
-def test_the_registry_is_empty_until_the_owners_record():
-    assert canary.CANARY_HOTKEYS == () and canary.CANARY_LIST_RECORD is None
-    assert canary.canary_hotkeys() == frozenset()
+def test_the_registry_names_exactly_the_owners_record():
+    assert canary.CANARY_LIST_RECORD == "OWNER-CANARY-LIST-01"
+    assert canary.CANARY_LIST_VERSION == 1
+    assert canary.canary_hotkeys() == frozenset(
+        {"5GBmHPBLwyKheugbtAVgxtWdX9YmWjfeCaBwmeFHr4rEWiB5"}
+    )
+    record = (
+        REPOSITORY / ".agent/decisions/2026-10-08-OWNER-CANARY-LIST-01.md"
+    ).read_text()
+    assert all(hotkey in record for hotkey in canary.CANARY_HOTKEYS)
 
 
 def test_a_canary_is_scored_and_never_nominated(
