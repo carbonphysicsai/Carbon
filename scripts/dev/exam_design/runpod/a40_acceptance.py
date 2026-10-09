@@ -752,26 +752,137 @@ def is_protected(path):
     return any(fragment in path.lower() for fragment in pods.FORBIDDEN_DATA)
 
 
-def ship_paths(ref, repository=REPOSITORY, extra=()):
-    """Every tracked file the pod needs. Code files the guard names (sealed
-    confirmation sets, EV4 contracts, `private` directories) are not shipped;
-    the rebuild path imports none of them (a test rebuilds without them). The
-    guard itself is unchanged: a protected DATA path is still refused."""
+#: The modules the pod phase and the rebuild child import (the phase's lazy
+#: imports, `a40_pod_phase.CHILD`, the probes, the PyTorch device binding). The
+#: pod ships their static import closure inside `carbon/`, not the whole tree:
+#: RunPod rejects an oversized create request with an opaque 500, and the full
+#: manifest was over the limit (docs: `A40_ACCEPTANCE_RUNBOOK.md`).
+ENTRY_MODULES = (
+    "carbon.battery.challenge",
+    "carbon.battery.compile",
+    "carbon.battery.training",
+    "carbon.battery.torch_training",
+    "carbon.battery.torch_families",
+    "carbon.agent_campaign.graphite.pod_phase",
+    "carbon.reconstruction.accelerators",
+    "carbon.reconstruction.torch_gpu",
+)
+#: Conservative bound on the total pod environment (names plus values); the
+#: provider's limit lies between 100,000 and 250,000 characters.
+ENV_LIMIT_CHARS = 90_000
+
+
+def read_blobs(ref, repository, paths):
+    """{path: bytes} at `ref`, in one `git cat-file --batch`."""
+    request = "".join(f"{ref}:{p}\n" for p in paths).encode()
+    blob = subprocess.run(
+        ["git", "-C", str(repository), "cat-file", "--batch"],
+        input=request,
+        capture_output=True,
+        check=True,
+    ).stdout
+    out, offset = {}, 0
+    for path in paths:
+        end = blob.index(b"\n", offset)
+        header = blob[offset:end].split()
+        if len(header) != 3 or header[1] != b"blob":
+            raise Refused(f"refused: {path} is not a blob at {ref}")
+        size = int(header[2])
+        out[path] = blob[end + 1 : end + 1 + size]
+        offset = end + 1 + size + 1
+    return out
+
+
+def _module_name(path):
+    parts = list(Path(path).with_suffix("").parts)
+    if parts[-1] == "__init__":
+        parts.pop()
+    return ".".join(parts)
+
+
+def import_closure(sources, entries):
+    """Paths of `sources` ({path: bytes}) reachable from `entries` by static
+    imports (module level and inside functions), with every parent package's
+    `__init__`. Names that are not in `sources` (stdlib, third party) are
+    ignored."""
+    import ast
+
+    by_module = {_module_name(p): p for p in sources if p.endswith(".py")}
+    seen, queue = set(), []
+
+    def want(name):
+        parts = name.split(".")
+        for i in range(1, len(parts) + 1):
+            path = by_module.get(".".join(parts[:i]))
+            if path is not None and path not in seen:
+                seen.add(path)
+                queue.append(path)
+
+    for entry in entries:
+        want(entry)
+    while queue:
+        path = queue.pop()
+        package = _module_name(path).split(".")
+        if not path.endswith("__init__.py"):
+            package = package[:-1]
+        for node in ast.walk(ast.parse(sources[path])):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    want(alias.name)
+            elif isinstance(node, ast.ImportFrom):
+                base = package[: len(package) - (node.level - 1)] if node.level else []
+                module = ".".join(
+                    [*base, *(node.module.split(".") if node.module else [])]
+                )
+                want(module)
+                for alias in node.names:
+                    want(module + "." + alias.name)
+    return sorted(seen)
+
+
+def ship_paths(ref, repository=REPOSITORY, extra=(), entries=ENTRY_MODULES):
+    """The files the pod needs: the import closure of `entries` inside the
+    tracked `carbon` tree, the two shipped scripts, the two public datasets and
+    `extra`. Code files the guard names (sealed confirmation sets, EV4
+    contracts, `private` directories) are never shipped; the rebuild path
+    imports none of them (a test rebuilds from exactly these files). The guard
+    itself is unchanged: a protected DATA path is still refused."""
     from carbon.agent_campaign.graphite import pods
 
-    code = [
+    tracked = [
         path
         for path in pods.tracked(ref, SHIP_TREES, repository)
-        if not {part.lower() for part in Path(path).parts[:-1]}
+        if path.endswith(".py")
+        and not {part.lower() for part in Path(path).parts[:-1]}
         & pods.UNSHIPPED_DIRECTORIES
         and not is_protected(path)
     ]
+    code = import_closure(read_blobs(ref, repository, tracked), entries)
     for path in (*SHIPPED_FILES, *DATA_PATHS, *extra):
         if is_protected(path):
             raise Refused("refused: forbidden data path " + path)
     return list(
         dict.fromkeys(code + list(SHIPPED_FILES) + list(DATA_PATHS) + list(extra))
     )
+
+
+def env_chars(env):
+    """Total characters of a pod environment (names plus values)."""
+    return sum(len(k) + len(v) for k, v in dict(env).items())
+
+
+def check_env_size(env, limit=ENV_LIMIT_CHARS):
+    """Refuse an oversized pod environment here, with the cause, rather than
+    meet it as an opaque provider 500."""
+    total = env_chars(env)
+    if total > limit:
+        biggest = max(dict(env).items(), key=lambda kv: len(kv[1]))[0]
+        raise Refused(
+            f"refused: the pod environment is {total} characters, over the "
+            f"{limit} limit (largest variable {biggest}); RunPod rejects an "
+            "oversized create request with an HTTP 500"
+        )
+    return total
 
 
 def build_manifest(ref, repository=REPOSITORY, extra=()):
@@ -1014,6 +1125,7 @@ class PodRunner:
             start_command=(PYTHON, "-I", "-c", self.boot),
             allowed_cuda_versions=self.cuda_versions,
         )
+        check_env_size(spec.env)
         launched_at = self.clock()
         try:
             resource = self.service.provision(
