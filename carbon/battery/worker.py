@@ -365,6 +365,7 @@ class CarrierBackend:
         runner=None,
         identity=None,
         device=None,
+        network=None,
     ):
         from carbon.development_session.research_carrier import _run
 
@@ -382,7 +383,11 @@ class CarrierBackend:
             from carbon.reconstruction.hardware_acceptance import require_accepted
 
             record = research_carrier._gpu_device()
-            require_accepted(record.device_kind, research_carrier._gpu_profile_id())
+            # The deployment's chain network: a class is accepted per network.
+            self.network = network
+            require_accepted(
+                record.device_kind, research_carrier._gpu_profile_id(), network
+            )
             if torch_image is not None:
                 # PyTorch on the validator's GPU (slice 2) is the PyTorch GPU
                 # worker (TORCH-GPU-01), never the CPU one, and its class needs
@@ -391,7 +396,9 @@ class CarrierBackend:
                     raise ValueError(
                         "a GPU validator's PyTorch image is the GPU worker"
                     )
-                require_accepted(record.device_kind, torch_profile.GPU_PROFILE_ID)
+                require_accepted(
+                    record.device_kind, torch_profile.GPU_PROFILE_ID, network
+                )
             self.accelerator = research_carrier.VALIDATOR_GPU
             gpu = {"device_kind": record.device_kind, "device_record": record.digest}
         self.images = {"jax": image, "pytorch": torch_image}
@@ -473,7 +480,7 @@ class CarrierBackend:
                 **(
                     {}
                     if self.accelerator is None
-                    else {"accelerator": self.accelerator}
+                    else {"accelerator": self.accelerator, "network": self.network}
                 ),
             )
         except WorkerFailure:

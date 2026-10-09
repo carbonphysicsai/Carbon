@@ -38,7 +38,7 @@ def record(monkeypatch):
 
 def accept(monkeypatch, kind, *profiles):
     """Enter `kind` for this test only, under JAX's profile by default."""
-    entry = {"record": "TEST", "evidence": "TEST"}
+    entry = {"record": "TEST", "evidence": "TEST", "networks": ("testnet",)}
     profiles = profiles or (GPU_PROFILE.profile_id,)
     monkeypatch.setitem(
         ha.ACCEPTED_DEVICE_CLASSES, kind, {profile: entry for profile in profiles}
@@ -59,11 +59,15 @@ def test_only_an_accepted_device_class_scores(record, monkeypatch):
         "NVIDIA GeForce RTX 4090": both,
     }
     assert record.device_kind == "NVIDIA GeForce RTX 4090"
-    worker.CarrierBackend(SimpleNamespace(), gpu_image(), device="gpu")
+    worker.CarrierBackend(
+        SimpleNamespace(), gpu_image(), device="gpu", network="testnet"
+    )
     # A class no record names is refused.
     monkeypatch.setattr(ha, "ACCEPTED_DEVICE_CLASSES", {})
     with pytest.raises(ha.DeviceClassNotAccepted):
-        worker.CarrierBackend(SimpleNamespace(), gpu_image(), device="gpu")
+        worker.CarrierBackend(
+            SimpleNamespace(), gpu_image(), device="gpu", network="testnet"
+        )
 
 
 def test_an_accepted_class_labels_every_score_with_its_device(record, monkeypatch):
@@ -75,7 +79,7 @@ def test_an_accepted_class_labels_every_score_with_its_device(record, monkeypatc
         raise RuntimeError("stop before dispatch")
 
     backend = worker.CarrierBackend(
-        SimpleNamespace(), gpu_image(), device="gpu", runner=runner
+        SimpleNamespace(), gpu_image(), device="gpu", network="testnet", runner=runner
     )
     assert backend.identity["device_kind"] == record.device_kind
     assert backend.identity["device_record"] == record.digest
@@ -107,7 +111,11 @@ def test_pytorch_on_the_gpu_is_the_pytorch_gpu_worker_only(record, monkeypatch):
     # The CPU PyTorch worker never runs on the validator's GPU.
     with pytest.raises(ValueError, match="GPU worker"):
         worker.CarrierBackend(
-            SimpleNamespace(), gpu_image(), torch_image=gpu_image("7"), device="gpu"
+            SimpleNamespace(),
+            gpu_image(),
+            torch_image=gpu_image("7"),
+            device="gpu",
+            network="testnet",
         )
 
 
@@ -115,14 +123,22 @@ def test_pytorch_needs_its_own_acceptance_on_the_class(record, monkeypatch):
     accept(monkeypatch, record.device_kind)  # JAX only
     with pytest.raises(ha.DeviceClassNotAccepted):
         worker.CarrierBackend(
-            SimpleNamespace(), gpu_image(), torch_image=torch_gpu_image(), device="gpu"
+            SimpleNamespace(),
+            gpu_image(),
+            torch_image=torch_gpu_image(),
+            device="gpu",
+            network="testnet",
         )
     accept(
         monkeypatch, record.device_kind, torch_profile.GPU_PROFILE_ID
     )  # PyTorch only
     with pytest.raises(ha.DeviceClassNotAccepted):
         worker.CarrierBackend(
-            SimpleNamespace(), gpu_image(), torch_image=torch_gpu_image(), device="gpu"
+            SimpleNamespace(),
+            gpu_image(),
+            torch_image=torch_gpu_image(),
+            device="gpu",
+            network="testnet",
         )
     accept(
         monkeypatch,
@@ -141,6 +157,7 @@ def test_pytorch_needs_its_own_acceptance_on_the_class(record, monkeypatch):
         gpu_image(),
         torch_image=torch_gpu_image(),
         device="gpu",
+        network="testnet",
         runner=runner,
     )
     assert backend.backends == ("jax", "pytorch")
@@ -180,13 +197,19 @@ def test_the_carrier_runs_the_validator_role_on_an_accepted_class_only(
     monkeypatch.setattr(ha, "ACCEPTED_DEVICE_CLASSES", {})
     with pytest.raises(ha.DeviceClassNotAccepted):
         research_carrier._run_locked(
-            ledger, accelerator=research_carrier.VALIDATOR_GPU, **call
+            ledger,
+            accelerator=research_carrier.VALIDATOR_GPU,
+            network="testnet",
+            **call,
         )
     assert requests == []
     accept(monkeypatch, record.device_kind)
     with pytest.raises(Stop):
         research_carrier._run_locked(
-            ledger, accelerator=research_carrier.VALIDATOR_GPU, **call
+            ledger,
+            accelerator=research_carrier.VALIDATOR_GPU,
+            network="testnet",
+            **call,
         )
     assert requests[-1]["accelerator"] == {
         "kind": research_carrier.VALIDATOR_GPU,
@@ -286,12 +309,18 @@ def test_the_pytorch_gpu_run_binds_and_checks_its_own_pins(
     accept(monkeypatch, record.device_kind)  # JAX's acceptance admits no PyTorch
     with pytest.raises(ha.DeviceClassNotAccepted):
         research_carrier._run_locked(
-            ledger, accelerator=research_carrier.VALIDATOR_GPU, **call
+            ledger,
+            accelerator=research_carrier.VALIDATOR_GPU,
+            network="testnet",
+            **call,
         )
     accept(monkeypatch, record.device_kind, torch_profile.GPU_PROFILE_ID)
     with pytest.raises(Stop):
         research_carrier._run_locked(
-            ledger, accelerator=research_carrier.VALIDATOR_GPU, **call
+            ledger,
+            accelerator=research_carrier.VALIDATOR_GPU,
+            network="testnet",
+            **call,
         )
     assert requests[-1]["accelerator"]["profile"] == torch_profile.GPU_PROFILE_ID
     # The miner lane's GPU never takes the PyTorch GPU worker's pins.
@@ -360,3 +389,29 @@ def test_a_gpu_deployment_may_name_the_pytorch_gpu_worker(tmp_path):
     path.write_text(json.dumps(config))
     path.chmod(0o600)
     assert deployment.load_config(path)["device"] == "gpu"
+
+
+def test_an_acceptance_admits_only_its_networks(record, monkeypatch, tmp_path):
+    # Every recorded class is testnet-only (OWNER-GPU-DEVICE-CLASSES-01).
+    for profiles in ha.ACCEPTED_DEVICE_CLASSES.values():
+        assert all(e["networks"] == ("testnet",) for e in profiles.values())
+    for network in ("finney", None):
+        with pytest.raises(ha.DeviceClassNotAccepted):
+            worker.CarrierBackend(
+                SimpleNamespace(), gpu_image(), device="gpu", network=network
+            )
+    ledger = SimpleNamespace(root=tmp_path, reserve=lambda *a, **k: None)
+    with pytest.raises(ha.DeviceClassNotAccepted):
+        research_carrier._run_locked(
+            ledger,
+            accelerator=research_carrier.VALIDATOR_GPU,
+            network="finney",
+            owner="o",
+            identity="t",
+            source="print(1)",
+            files={},
+            image=SimpleNamespace(image_id=gpu_image().image_id),
+            seconds=60,
+            provenance=research_carrier.VALIDATOR_PROVENANCE,
+            extra_resources={},
+        )
