@@ -378,6 +378,7 @@ REFUSAL_FIELDS = {
     "design_excluded": "strategy",
     "design_not_yet_rebuildable": "strategy",
     "design_needs_owner_decision": "strategy",
+    "strategy_names_another_challenge": "strategy",
     "bounded_hypothesis_required": "hypothesis",
     "bounded_reason_required": "reason",
     "used_feedback_boolean_required": "used_feedback",
@@ -416,14 +417,16 @@ REFUSAL_FIELDS = {
 }
 
 
-def refusal(code, next_step=None):
+def refusal(code, next_step=None, budget=None):
     """A refused call's closed body: the code, the field to correct when one
     is to blame, and the next step - the JSON both doors can send.
 
     The step is the refusal's own `next_step` when it carries one (a `Rejected`
     from `runner.stepped`: a model call's settlement refusal, a profile that
     no longer describes this install), as the browser's door sends it
-    (`controller.error_body`); otherwise the catalog's step for the code."""
+    (`controller.error_body`); otherwise the catalog's step for the code. A
+    compute budget refusal also carries its numbers, `budget`: `{unit, used,
+    allowed}` (`budget_view.refusal`)."""
     from scripts.dev.miner_launchpad.supervisor import next_action
 
     body = {
@@ -433,6 +436,8 @@ def refusal(code, next_step=None):
     field = REFUSAL_FIELDS.get(code)
     if field is not None:
         body["field"] = field
+    if budget is not None:
+        body["budget"] = budget
     return body
 
 
@@ -596,6 +601,25 @@ OPERATIONS = {
             "nothing here can be submitted.",
             frozenset({"challenge"}),
             frozenset({"challenge_version"}),
+            ("request", "profile"),
+            admits_work=False,
+        ),
+        # Whether a recipe is inside its Challenge's compute budget
+        # (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01): admission's own status, so the
+        # display and the submission compile cannot disagree. Reads only.
+        Operation(
+            "budget_status",
+            "Whether a recipe is inside one Challenge's submission compute "
+            "budget, by the same rule admission refuses by: status NOT_SET "
+            "(the Challenge declares no budget yet; no numbers), SET (used, "
+            "allowed and within, in the budget's unit, from the training "
+            "budget cost calculator on this machine), MALFORMED, UNMEASURABLE, "
+            "NO_ADAPTER or UNIT_NOT_CALIBRATED. Each Challenge's budget comes "
+            "from its training budget study; the validator's calculation on "
+            "its pinned image decides. The strategy must name this "
+            "challenge. Reads only.",
+            frozenset({"challenge", "strategy"}),
+            frozenset(),
             ("request", "profile"),
             admits_work=False,
         ),

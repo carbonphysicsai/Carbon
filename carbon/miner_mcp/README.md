@@ -128,6 +128,30 @@ what the level leaves out; and the contract's `compute_budget`, or
 `NOT_SET`. Everything is read from repository data. Nothing in it can be
 chosen or submitted yet: launching at a level is the ticket's S2.
 
+Whether a recipe is inside a Challenge's submission compute budget is a read
+too: `carbon_budget_status` (browser: `POST /api/v1/operations/budget_status`)
+takes `challenge` and a `strategy` that names it
+(LAUNCHPAD-COMPUTE-BUDGET-STATUS-01). It answers
+`{schema, status, unit, used, allowed, within}` by the rule admission refuses
+by (`challenge_contracts.budget_status`):
+- `NOT_SET`: the Challenge declares no budget. This is every Challenge today.
+  No number is given and nothing is computed.
+- `SET`: `used` is the recipe's cost from the training budget calculator on
+  this machine, `allowed` is the ceiling, both in `unit`, and `within` is
+  `used <= allowed`.
+- `MALFORMED`, `UNMEASURABLE`, `NO_ADAPTER` (no cost adapter for the
+  Challenge) or `UNIT_NOT_CALIBRATED` (the unit's factors are still
+  `HUMAN_INPUT`). Each one under a declared budget is refused at submission.
+
+The same status is on each practice result in `carbon_observe` and
+`carbon_campaign_view` (`budget_status`); practice is never refused by it.
+`carbon_freeze_candidate`, `carbon_commit` and `carbon_submit` show it in
+their answer. They refuse a recipe the budget would refuse before anything is
+signed or sent: `over_compute_budget` or `cost_unmeasurable`, with
+`budget: {unit, used, allowed}` and a next step naming the numbers. Each
+Challenge's budget comes from its own training budget study and the owner's
+decision on it. The validator's calculation on its pinned image decides.
+
 ## Starting without a campaign
 
 A miner who has not registered yet has no profile and no campaign, so
