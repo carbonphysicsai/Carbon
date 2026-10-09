@@ -15,6 +15,7 @@ REFERENCE_SOLVER_FAILED, REFERENCE_TIMEOUT, FAILED_INFRA, INVALID_INPUT.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -79,16 +80,63 @@ def params(case):
         "window_deg": window,
         "steps": steps,
         "iron": "brauer",
+        "flux_observers": bool(options.get("flux_observers")),
     }
+
+
+#: Opt-in flux-density observers (amendment_3, #925): integral of |B|^2 and
+#: area over stator iron, rotor iron and the airgap at every rotor position,
+#: printed after the existing outputs. The runtime deck writer is unchanged;
+#: off by default, so earlier decks stay byte-identical.
+FLUX_REGIONS = ("StatorFe", "RotorFe", "Airgap")
+
+
+def _with_flux_observers(text):
+    nl = chr(10)
+    qty = "".join(
+        f"  {{ Name b2_{r}; Value {{ Integral {{ [ SquNorm[{{d a}}] ]; In {r}; Jacobian Vol; Integration I1; }} }} }}{nl}"
+        f"  {{ Name area_{r}; Value {{ Integral {{ [ 1 ]; In {r}; Jacobian Vol; Integration I1; }} }} }}{nl}"
+        for r in FLUX_REGIONS
+    )
+    out = 'StrCat["res/bflux_", Sprintf["%g", STEP], ".txt"]'
+    prints = "".join(
+        f"  Print[ {q}_{r}[{r}], OnGlobal, Format Table, File > {out} ];{nl}"
+        for r in FLUX_REGIONS
+        for q in ("b2", "area")
+    )
+    marker = "} } }" + nl + "PostOperation"
+    head, tail = text.split(marker, 1)
+    text = head + qty + marker + tail
+    cut = text.rstrip().rfind("} } }")
+    return text[:cut] + prints + "} } }" + nl
 
 
 def pro_text(p, table):
     original = getdp.winding
     getdp.winding = lambda slots, poles: table
     try:
-        return getdp.pro_text({**p, "slots": len(table)}, nonlinear=getdp.BRAUER)
+        text = getdp.pro_text({**p, "slots": len(table)}, nonlinear=getdp.BRAUER)
     finally:
         getdp.winding = original
+    return _with_flux_observers(text) if p.get("flux_observers") else text
+
+
+def _flux(case_dir, p):
+    """RMS |B| (T) per region per rotor position, or None without observers."""
+    out = {r: [] for r in FLUX_REGIONS}
+    for k in p["steps"]:
+        path = case_dir / "res" / f"bflux_{k}.txt"
+        if not path.exists():
+            return None
+        values = [
+            float(line.split()[-1])
+            for line in path.read_text().splitlines()
+            if line.strip()
+        ]
+        for i, r in enumerate(FLUX_REGIONS):
+            b2, area = values[2 * i], values[2 * i + 1]
+            out[r].append(math.sqrt(b2 / area) if area > 0 else None)
+    return out
 
 
 def currents(p, k):
@@ -181,6 +229,7 @@ def analyze(case_dir, p, j):
             "torque_nm": curve,
             "angle_deg": [step_deg * i for i in range(len(curve))],
             "coenergy_j": coenergy[: len(curve)] if coenergy else None,
+            "b_rms_t": _flux(case_dir, p),
         },
         "derived": tp.metrics(curve),
         "checks": checks,
@@ -216,6 +265,10 @@ def run_case(case, out, args, batch, lock):
         return _write(record, out, lock)
     record["alpha0_deg"] = p["alpha0_deg"]
     record["coil_area_mm2"] = p["coil_area_mm2"]
+    record["current_a"] = p["current_a"]
+    record["machine_pro_sha256"] = hashlib.sha256(
+        (case_dir / "machine.pro").read_bytes()
+    ).hexdigest()
     name = f"carbon-mfeas-{case['case_id']}"[:120]
     started = time.time()
     status, wall, detail = solve(case_dir, p, name, args.cpus, args.timeout_s)
@@ -266,10 +319,13 @@ def main(argv=None):
     args.out.mkdir(parents=True, exist_ok=True)
     done = set()
     if (args.out / "records.jsonl").exists():
+        # Only a terminal attempt is done; FAILED_INFRA is retried (#925: a
+        # recorded infrastructure failure is not evidence about the case).
+        rows = (args.out / "records.jsonl").read_text().splitlines()
         done = {
-            json.loads(x)["case_id"]
-            for x in (args.out / "records.jsonl").read_text().splitlines()
-            if x.strip()
+            r["case_id"]
+            for r in map(json.loads, filter(str.strip, rows))
+            if r.get("status") != "FAILED_INFRA"
         }
     todo = [c for c in plan["cases"] if c["case_id"] not in done]
     for c in todo:
