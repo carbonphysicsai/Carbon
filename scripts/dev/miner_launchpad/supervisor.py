@@ -395,6 +395,20 @@ NEXT_ACTIONS = {
         "Check that the intake address serves this Carbon version, then "
         "submit again."
     ),
+    # VALIDATOR-29: the intake's score-feed read. Neither is a verdict on
+    # the recipe, and neither changes a submission.
+    "feed_not_served": (
+        "This validator intake does not publish a score feed, so no released "
+        "scores were read. Nothing was submitted or changed; the frozen "
+        "candidate is kept. Read released scores from an intake that serves "
+        "the feed, or check again later."
+    ),
+    "feed_unavailable": (
+        "The validator's score feed could not be read or did not verify, so "
+        "no released scores were shown. Nothing was submitted or changed; the "
+        "frozen candidate is kept. Scores are released only after the windows "
+        "they came from close; check again later."
+    ),
     "signer_unavailable": (
         "Your signer did not sign the submission: it is not running, or it "
         "declined. Start carbon-miner-signer for your registered hotkey, then "
