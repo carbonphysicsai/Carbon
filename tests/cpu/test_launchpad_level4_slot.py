@@ -25,7 +25,6 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-import sys
 from types import SimpleNamespace
 
 import pytest
@@ -103,8 +102,7 @@ def adapter(monkeypatch):
         interface=lambda strategy: INTERFACE,
         training_batch=lambda strategy: BATCH,
     )
-    monkeypatch.setitem(sys.modules, "fixture_level4_adapter", fake)
-    monkeypatch.setitem(door.LEVEL4_ADAPTERS, BATTERY, "fixture_level4_adapter")
+    monkeypatch.setitem(door.LEVEL4_ADAPTERS, BATTERY, lambda: fake)
     # The development door, in this process, so it sees the fixture adapter.
     monkeypatch.setattr(
         cl,

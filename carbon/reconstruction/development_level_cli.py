@@ -31,15 +31,22 @@ refused `level4_size_bound_not_set`.
 
 from __future__ import annotations
 
-import importlib
 import json
 import sys
 
-#: Each Challenge's Level 4 adapter: the module that gives a recipe's Level 4
-#: interface (`interface(strategy).digest()`) and its training batch
+
+def _battery_level4():
+    from carbon.battery import level4
+
+    return level4
+
+
+#: Each Challenge's Level 4 adapter, loaded by a static import when asked:
+#: the module that gives a recipe's Level 4 interface
+#: (`interface(strategy).digest()`) and its training batch
 #: (`training_batch(strategy)`). Development only.
 LEVEL4_ADAPTERS = {
-    "battery-fastcharge-ageing-development-v1": "carbon.battery.level4",
+    "battery-fastcharge-ageing-development-v1": _battery_level4,
 }
 
 NOT_REGISTERED = "level_not_registered"
@@ -157,10 +164,10 @@ def level4(request):
     loaded = allowlist_module.load()
     if {"version": loaded.version, "digest": loaded.digest} != pin:
         raise Refused(ALLOWLIST_MISMATCH)
-    module = LEVEL4_ADAPTERS.get(found.challenge)
-    if module is None:
+    load = LEVEL4_ADAPTERS.get(found.challenge)
+    if load is None:
         raise Refused(ADAPTER_MISSING)
-    adapter = importlib.import_module(module)
+    adapter = load()
     base = {
         **strategy,
         "parameters": {k: v for k, v in parameters.items() if k != field},

@@ -536,6 +536,10 @@ class BatteryPractice:
     so a result never claims an isolation it did not have.
     """
 
+    #: The campaign's construction-level binding (LAUNCHPAD-LEVELS-01 S2), or
+    #: None at Level 0: also for a practice built without `__init__`.
+    level = None
+
     def __init__(
         self,
         *,
