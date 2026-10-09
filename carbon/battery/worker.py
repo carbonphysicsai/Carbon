@@ -587,6 +587,11 @@ class DirectBackend:
             raise WorkerFailure(
                 "reconstruction_failed:" + type(failure).__name__, candidate=True
             ) from None
+        if getattr(model, "STATE_KIND", None) is not None:
+            # A Level 4 graph model writes its own state (`level4_model`).
+            from .level4_model import state_bytes as graph_state_bytes
+
+            return graph_state_bytes(model), stats
         return state_bytes(model), stats
 
     def infer(self, identity, state, inputs):
@@ -596,7 +601,12 @@ class DirectBackend:
         from .recipes import model_from_bytes, to_predictions
 
         self.calls["infer"] += 1
-        model = model_from_bytes(state)
+        if state_kind(state) == "level4_graph":
+            from .level4_model import model_from_bytes as graph_from_bytes
+
+            model = graph_from_bytes(state)
+        else:
+            model = model_from_bytes(state)
         ids = sorted(inputs)
         x = np.array([[inputs[c][k] for k in INPUTS] for c in ids], float)
         try:

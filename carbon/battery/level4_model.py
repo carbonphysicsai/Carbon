@@ -264,7 +264,8 @@ class GraphModel(recipes.MLP):
     # -- state -----------------------------------------------------------------------
     def export_state(self):
         """`(header, arrays)` without the schema, layout and OCV table, which
-        `recipes.export_state` adds as for every battery model."""
+        `state_bytes` adds as `recipes.export_state` does for every battery
+        model."""
         arrays = {}
         for name in ("mu", "sd") + (_PCA_ARRAYS if self.pca else ()):
             arrays[name] = np.asarray(getattr(self, name))
@@ -287,6 +288,49 @@ class GraphModel(recipes.MLP):
             "batch": self.prepared.batch,
         }
         return header, arrays
+
+
+def state_bytes(model):
+    """A trained graph model's self-describing state, in battery's state
+    format (`recipes.state_bytes`): the header, the layout, the OCV table and
+    every array. Kept here, not in `recipes`, so battery's implementation
+    modules (and so every recipe digest) are unchanged by Level 4."""
+    import io
+    import json
+
+    header, arrays = model.export_state()
+    header["schema"] = recipes.STATE_SCHEMA
+    header["layout"] = recipes._layout_state(model.layout)
+    arrays["ocv_soc"], arrays["ocv_v"] = model.s.ocv_soc, model.s.ocv_v
+    buffer = io.BytesIO()
+    np.savez(
+        buffer,
+        __header__=np.frombuffer(json.dumps(header, sort_keys=True).encode(), np.uint8),
+        **arrays,
+    )
+    return buffer.getvalue()
+
+
+def model_from_bytes(body):
+    """The trained graph model a `state_bytes` state describes; never trains.
+    Any other state kind is refused: it is `recipes.model_from_bytes`'s."""
+    import io
+    import json
+
+    with np.load(io.BytesIO(body), allow_pickle=False) as data:
+        arrays = {k: data[k] for k in data.files if k != "__header__"}
+        header = json.loads(bytes(data["__header__"]).decode())
+    if header.get("schema") != recipes.STATE_SCHEMA or header.get("kind") != STATE_KIND:
+        raise ValueError("not a Level 4 graph model state")
+    layout = recipes.Layout(
+        header["layout"]["g"],
+        header["layout"]["k"],
+        bounded_v=header["layout"]["bounded_v"],
+        predict_v0=header["layout"]["predict_v0"],
+        fade=header["layout"]["fade"],
+    )
+    structure = recipes.Structure(arrays["ocv_soc"], arrays["ocv_v"])
+    return import_state(header, arrays, layout, structure)
 
 
 def import_state(header, arrays, layout, structure):
