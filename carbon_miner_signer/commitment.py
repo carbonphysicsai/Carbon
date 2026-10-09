@@ -120,6 +120,10 @@ class CommitRefusal(str, Enum):
     COMMIT_IN_FLIGHT = "COMMIT_IN_FLIGHT"
     NOT_CONFIRMED = "NOT_CONFIRMED"
     LEDGER_UNAVAILABLE = "LEDGER_UNAVAILABLE"
+    #: OWNER-SIGNER-TESTNET-AUTOCONFIRM-01: a signer started with
+    #: ``--auto-confirm-commitments`` met a request off testnet 567, or for a
+    #: hotkey not in its allow-list. It never falls back to the prompt.
+    AUTO_CONFIRM_NOT_ALLOWED = "AUTO_CONFIRM_NOT_ALLOWED"
 
 
 class Refused(Exception):
@@ -441,9 +445,18 @@ class CommitLedger:
 
 def prompt_text(policy: CommitPolicy, hotkey: str, checked: dict, today: int) -> str:
     """What the miner reads on the signer's terminal before typing."""
-    genesis = policy.genesis_hash
     return (
         f"\nCarbon asks to post an on-chain commitment with hotkey {hotkey}\n"
+        + prompt_lines(policy, checked, today)
+        + "Type the last 8 characters of the digest to post, anything else to refuse: "
+    )
+
+
+def prompt_lines(policy: CommitPolicy, checked: dict, today: int) -> str:
+    """The commitment as the prompt shows it: network, netuid, digest, fee,
+    era. Shared by the prompt and the auto-confirm notice."""
+    genesis = policy.genesis_hash
+    return (
         f"  network   {policy.network} (genesis {genesis[:6]}...{genesis[-4:]})\n"
         f"  netuid    {policy.netuid}\n"
         f"  digest    {checked['digest']}\n"
@@ -453,7 +466,6 @@ def prompt_text(policy: CommitPolicy, hotkey: str, checked: dict, today: int) ->
         f"  valid for {checked['era_period']} blocks from block "
         f"{checked['era_current']}; today: {today} signed, at most one per tempo\n"
         "  It replaces this hotkey's current commitment on this subnet.\n"
-        "Type the last 8 characters of the digest to post, anything else to refuse: "
     )
 
 

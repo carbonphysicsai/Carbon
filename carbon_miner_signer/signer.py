@@ -22,7 +22,11 @@ decide whether to sign; that op never signs anything but these bytes.
 ``commit`` (OWNER-COMMITMENT-POSTER-01) is the one chain extrinsic: a strategy
 commitment, rebuilt and checked by ``commitment.check_request``, and signed
 only after the miner types the digest's last 8 characters on this process's
-own terminal. Nothing on the socket can confirm it.
+own terminal. Nothing on the socket can confirm it. The one exception is
+opt-in at start and testnet 567 only (``autoconfirm``,
+OWNER-SIGNER-TESTNET-AUTOCONFIRM-01): ``--auto-confirm-commitments`` names an
+owner-written allow-list, and a listed hotkey's commitments are signed
+without the prompt.
 """
 
 from __future__ import annotations
@@ -41,6 +45,7 @@ import time
 from enum import Enum
 from pathlib import Path
 
+from . import autoconfirm as ac
 from . import commitment as cm
 
 PROTOCOL = "carbon.miner-signer.v1"
@@ -157,6 +162,7 @@ class SignerServer:
         commit_policy=None,
         confirm=None,
         wall_clock=None,
+        auto_confirm=None,
     ):
         if keypair.crypto_type not in SCHEMES:
             raise ValueError("unsupported key type")
@@ -186,6 +192,14 @@ class SignerServer:
         #: One commit at a time: a second one while the miner is being asked
         #: is refused, never queued.
         self._committing = threading.Lock()
+        #: OWNER-SIGNER-TESTNET-AUTOCONFIRM-01: None (the default) asks on the
+        #: terminal; an ``AutoConfirm`` signs allow-listed testnet 567
+        #: commitments unasked, and never asks.
+        if auto_confirm is not None:
+            problem = auto_confirm.startup_problem(commit_policy, self.hotkey)
+            if problem is not None:
+                raise ValueError(problem)
+        self.auto_confirm = auto_confirm
         self.ledger = cm.CommitLedger(
             self.socket_path.parent / (self.hotkey + ".commitments.jsonl")
         )
@@ -305,9 +319,22 @@ class SignerServer:
             policy = self.commit_policy
             tempo = self.ledger.check(policy, checked["era_current"])
             now = self._now()
-            text = cm.prompt_text(policy, self.hotkey, checked, self.ledger.today(now))
-            if not self._confirm(text, checked["digest"][-8:]):
-                raise cm.Refused(cm.CommitRefusal.NOT_CONFIRMED)
+            marks, shown = {}, None
+            if self.auto_confirm is None:
+                text = cm.prompt_text(
+                    policy, self.hotkey, checked, self.ledger.today(now)
+                )
+                if not self._confirm(text, checked["digest"][-8:]):
+                    raise cm.Refused(cm.CommitRefusal.NOT_CONFIRMED)
+            else:
+                # Never the prompt: an unattended signer has no terminal.
+                self.auto_confirm.check(
+                    policy, self.hotkey, request["unsigned"]["genesis_hash"]
+                )
+                shown = ac.shown_text(
+                    policy, self.hotkey, checked, self.ledger.today(now)
+                )
+                marks = {"confirmation": ac.MARK, "network": policy.network}
             self.ledger.append(
                 {
                     "digest": checked["digest"],
@@ -319,8 +346,11 @@ class SignerServer:
                     "tempo_index": tempo,
                     "fee_rao": checked["fee_rao"],
                     "signed_at": now.astimezone(datetime.UTC).isoformat(),
+                    **marks,
                 }
             )
+            if shown is not None:
+                self._note(shown)
             with self._signing:
                 signature = bytes(self._keypair.sign(checked["payload"]))
         except cm.Refused as refused:
@@ -444,6 +474,15 @@ def main(argv=None):
     parser.add_argument(
         "--socket", type=Path, help="socket path (derived from the hotkey if omitted)"
     )
+    parser.add_argument(
+        "--auto-confirm-commitments",
+        type=Path,
+        metavar="ALLOWLIST_FILE",
+        help=(
+            "testnet 567 only: sign strategy commitments without asking, for a "
+            "hotkey in this owner-written allow-list (read once, at start)"
+        ),
+    )
     args = parser.parse_args(argv)
     if (args.key_file is None) == (args.wallet is None or args.hotkey is None):
         parser.error("give either --wallet and --hotkey, or --key-file")
@@ -463,6 +502,21 @@ def main(argv=None):
         raise SystemExit(problem)
     # The network, netuid and every commit bound are fixed here, at start.
     policy, unpinned = cm.load_policy()
+    auto = None
+    if args.auto_confirm_commitments is not None:
+        # OWNER-SIGNER-TESTNET-AUTOCONFIRM-01: refused at start unless the
+        # allow-list is sound and the record is testnet 567's.
+        try:
+            auto = ac.load_allowlist(args.auto_confirm_commitments)
+        except ac.AllowListProblem as problem:
+            raise SystemExit(str(problem)) from None
+        # Before the key is unlocked: the network, and --expect if given
+        # (without it, a listed hotkey stands in and only the network is
+        # checked here; the loaded key is checked below).
+        probe = args.expect if args.expect is not None else min(auto.hotkeys)
+        problem = auto.startup_problem(policy, probe)
+        if problem is not None:
+            raise SystemExit(problem)
     keypair = load_hotkey(
         wallet=args.wallet,
         hotkey=args.hotkey,
@@ -471,12 +525,17 @@ def main(argv=None):
     )
     if args.expect is not None and keypair.ss58_address != args.expect:
         raise SystemExit("this key file holds a different hotkey than --expect")
+    if auto is not None:
+        problem = auto.startup_problem(policy, keypair.ss58_address)
+        if problem is not None:
+            raise SystemExit(problem)
     server = SignerServer(
         keypair,
         args.socket or default_socket(keypair.ss58_address),
         receivers=args.receiver,
         requests=requests,
         commit_policy=policy,
+        auto_confirm=auto,
     )
     del keypair
     server.bind()
@@ -494,10 +553,17 @@ def main(argv=None):
             + ", ".join(unpinned),
             flush=True,
         )
-    else:
+    elif auto is None:
         print(
             f"On-chain commitments: {policy.network} netuid {policy.netuid}; each "
             "one asks you here first.",
+            flush=True,
+        )
+    else:
+        print(
+            f"On-chain commitments: {policy.network} netuid {policy.netuid}; "
+            f"{ac.MARK}: each one is signed without asking and shown here. "
+            f"Allow-list {auto.path}, read once: restart to change it.",
             flush=True,
         )
     try:
