@@ -795,6 +795,15 @@ class BatteryValidator:
             return hotkey in self.ladder["hotkeys"]
         return type(hotkey) is str and hotkey.startswith("graphite-dev:")
 
+    def _workspace(self, row):
+        """A Level 4 row's staged workspace for its rebuild (VALIDATOR-25 slice
+        4; the staging contract), from the ladder's compiler; None for any
+        other row or deployment."""
+        workspace_for = getattr(self.development_compiler, "workspace_for", None)
+        if not callable(workspace_for):
+            return None
+        return workspace_for(row["strategy"])
+
     def _ladder_refusal(self, contract_digest):
         """The ladder's closed code for a variant it does not list, read from
         the registry as data (the variant module is never imported)."""
@@ -983,12 +992,18 @@ class BatteryValidator:
                 return self.outcome(submission_id)
             if self.store.model_state(submission_id) is None:
                 development = self._development(row)
+                # Level 0 calls the backend exactly as before.
+                options = {}
+                if development is not None:
+                    options["development"] = development[1]
+                    workspace = self._workspace(row)
+                    if workspace is not None:
+                        options["workspace"] = workspace
                 state, stats = self.backend.reconstruct(
                     f"rec-{submission_id}-a{attempt}",
                     recipe,
                     self._reconstruction_seed(submission_id),
-                    # Level 0 calls the backend exactly as before.
-                    **({} if development is None else {"development": development[1]}),
+                    **options,
                 )
                 self.store.retain_model(
                     submission_id,

@@ -20,36 +20,50 @@ class LadderRefused(ValueError):
         self.code = code
 
 
-def compile_variant(strategy, variant_digest, parts=None):
+def compile_variant(strategy, variant_digest, parts=None, held=None):
     """The development compile for a registered variant the ladder lists. A
     Level 4 variant is admitted only through the Level 4 checks over its
-    envelope (`carbon.battery.level4.admit_envelope`), assembled from the
-    signed parts the intake holds; until those checks exist, it is refused."""
+    envelope (`carbon.battery.level4_admission.admit_envelope`), assembled from
+    the signed parts the intake holds; until those checks exist, it is
+    refused. `held` keeps each admitted envelope's `(raw_manifest, files)`."""
     from carbon.reconstruction import development_variants as dv
 
     variant = dv.registered(variant_digest)
     if getattr(variant, "level", None) == 4:
-        _admit_level4(strategy, variant, parts)
+        admitted = _admit_level4(strategy, variant, parts)
+        if held is not None:
+            held[_submission(strategy)] = admitted
     return dv.compile_development(strategy, variant)
 
 
-def _admit_level4(strategy, variant, parts):
-    from carbon.battery import level4
-    from carbon.battery.level4_parts import FIELD, PartRefused
+def _submission(strategy):
+    from carbon.battery.level4_parts import FIELD
 
-    admit = getattr(level4, "admit_envelope", None)
-    if admit is None or parts is None:
-        raise LadderRefused("ladder_level_4_checks_unavailable")
     parameters = strategy.get("parameters") if type(strategy) is dict else None
-    submission = parameters.get(FIELD) if type(parameters) is dict else None
+    return parameters.get(FIELD) if type(parameters) is dict else None
+
+
+def _admit_level4(strategy, variant, parts):
+    """`(raw_manifest, files)` of a Level 4 submission's admitted envelope.
+    A refusal of the candidate's envelope (`GraphRefused`) is a ValueError
+    with its code; an unset bound or a failed isolated parse is Carbon's
+    (`IntakeBlocked`, `IntakeInfraFailure`) and propagates as infrastructure."""
+    import json
+
+    from carbon.battery.level4_parts import PartRefused
+
     try:
-        envelope = parts.envelope(submission)
+        from carbon.battery.level4_admission import admit_envelope
+    except ImportError:
+        admit_envelope = None
+    if admit_envelope is None or parts is None:
+        raise LadderRefused("ladder_level_4_checks_unavailable")
+    try:
+        envelope = parts.envelope(_submission(strategy))
     except PartRefused as refused:
         raise LadderRefused(refused.code) from None
     if envelope is None:
         raise LadderRefused("level4_envelope_incomplete")
-    import json
-
     # The widened bounds' `loss_override`; absent means none (the same value
     # the rebuild record carries).
     overrides = [
@@ -57,12 +71,13 @@ def _admit_level4(strategy, variant, parts):
         for widened in variant.widened
     ]
     loss_override = next((o for o in overrides if o is not None), None)
-    admit(strategy, envelope, loss_override=loss_override)
+    return admit_envelope(strategy, envelope, loss_override=loss_override)
 
 
 def setup(target, config=None):
     """Supply the compiler to one development-ladder deployment, with its
-    Level 4 envelope parts when it serves Level 4."""
+    Level 4 envelope parts when it serves Level 4, and the staged workspace a
+    Level 4 rebuild needs (`workspace_for`)."""
     if getattr(target, "ladder", None) is None:
         raise ValueError("not a development-ladder deployment")
     parts = None
@@ -74,11 +89,27 @@ def setup(target, config=None):
         parts = Level4Parts(
             Path(config["work"]) / "level4-parts", target.ladder["hotkeys"]
         )
+    held = {}
 
     def compile_listed(strategy, variant_digest):
-        return compile_variant(strategy, variant_digest, parts)
+        return compile_variant(strategy, variant_digest, parts, held)
+
+    def workspace_for(strategy):
+        submission = _submission(strategy)
+        if parts is None or submission is None:
+            return None
+        if submission not in held:
+            # The daemon recompiles a row (and so re-admits its envelope) just
+            # before rebuilding it; a missing one is Carbon's state, never the
+            # candidate's.
+            raise RuntimeError("level4 envelope not admitted in this process")
+        from carbon.level4 import staging
+
+        raw_manifest, files = held[submission]
+        return staging.workspace(raw_manifest, files)
 
     compile_listed.parts = parts
+    compile_listed.workspace_for = workspace_for
     target.development_compiler = compile_listed
 
 

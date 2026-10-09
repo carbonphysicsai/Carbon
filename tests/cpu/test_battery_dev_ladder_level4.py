@@ -132,7 +132,8 @@ def test_a_submit_with_an_incomplete_envelope_is_answered_never_counted(parts):
 
 
 def test_the_compiler_refuses_level4_until_its_checks_exist(parts, monkeypatch):
-    from carbon.battery import level4
+    import sys
+
     from carbon.development_ladder import operate
     from carbon.reconstruction import development_variants as dv
 
@@ -140,20 +141,71 @@ def test_the_compiler_refuses_level4_until_its_checks_exist(parts, monkeypatch):
     monkeypatch.setattr(dv, "registered", lambda digest: variant)
     monkeypatch.setattr(dv, "compile_development", lambda s, v: "compiled")
     strategy = {"parameters": {"composition_graphs": SUBMISSION}}
-    monkeypatch.delattr(level4, "admit_envelope", raising=False)
+    monkeypatch.setitem(sys.modules, "carbon.battery.level4_admission", None)
     with pytest.raises(operate.LadderRefused) as refused:
         operate.compile_variant(strategy, "d", parts)
     assert refused.value.code == "ladder_level_4_checks_unavailable"
     seen = []
-    monkeypatch.setattr(
-        level4,
-        "admit_envelope",
-        lambda s, envelope, loss_override: seen.append((envelope, loss_override)),
-        raising=False,
+
+    def admit_envelope(s, envelope, *, loss_override):
+        seen.append((envelope, loss_override))
+        return b"manifest", {"doc": b"x"}
+
+    monkeypatch.setitem(
+        sys.modules,
+        "carbon.battery.level4_admission",
+        SimpleNamespace(admit_envelope=admit_envelope),
     )
     with pytest.raises(operate.LadderRefused) as refused:
         operate.compile_variant(strategy, "d", parts)
     assert refused.value.code == "level4_envelope_incomplete"
     parts.put(MINER_C, SUBMISSION, 0, 1, b"envelope")
-    assert operate.compile_variant(strategy, "d", parts) == "compiled"
+    held = {}
+    assert operate.compile_variant(strategy, "d", parts, held) == "compiled"
     assert seen == [(b"envelope", None)]
+    assert held == {SUBMISSION: (b"manifest", {"doc": b"x"})}
+
+
+def test_a_level4_rebuild_gets_its_admitted_workspace(tmp_path, monkeypatch):
+    import sys
+
+    from carbon.battery.daemon import BatteryValidator
+    from carbon.development_ladder import operate
+    from carbon.level4 import staging
+    from carbon.reconstruction import development_variants as dv
+
+    monkeypatch.setattr(
+        dv, "registered", lambda d: SimpleNamespace(level=4, widened=())
+    )
+    monkeypatch.setattr(dv, "compile_development", lambda s, v: "compiled")
+    monkeypatch.setitem(
+        sys.modules,
+        "carbon.battery.level4_admission",
+        SimpleNamespace(
+            admit_envelope=lambda s, e, *, loss_override: (b"manifest", {"d": b"x"})
+        ),
+    )
+    monkeypatch.setattr(staging, "workspace", lambda m, f: {"staged": (m, f)})
+    target = SimpleNamespace(
+        ladder={"levels": frozenset({4}), "hotkeys": frozenset({MINER_C})}
+    )
+    operate.setup(target, {"work": str(tmp_path)})
+    compiler = target.development_compiler
+    compiler.parts.put(MINER_C, SUBMISSION, 0, 1, b"envelope")
+    strategy = {"parameters": {"composition_graphs": SUBMISSION}}
+    assert compiler.workspace_for({"parameters": {}}) is None  # not Level 4
+    with pytest.raises(RuntimeError):
+        compiler.workspace_for(strategy)  # never admitted in this process
+    compiler(strategy, "d")
+    assert compiler.workspace_for(strategy) == {"staged": (b"manifest", {"d": b"x"})}
+    # The daemon passes it to the rebuild for a development row only.
+    daemon = SimpleNamespace(development_compiler=compiler)
+    assert BatteryValidator._workspace(daemon, {"strategy": strategy}) == {
+        "staged": (b"manifest", {"d": b"x"})
+    }
+    assert (
+        BatteryValidator._workspace(
+            SimpleNamespace(development_compiler=None), {"strategy": strategy}
+        )
+        is None
+    )
