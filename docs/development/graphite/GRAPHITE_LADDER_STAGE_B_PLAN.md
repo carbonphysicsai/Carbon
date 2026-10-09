@@ -100,3 +100,58 @@ the open items below. This file is the source; nothing else is needed.
 - A4 entries for L2 and L3 (executor-created identities, then recorded); V1 and V2 Q1
   reports per level.
 - Level 4 stays outside stage B. **Level 4 permission is resolved** (owner, 2026-10-09, relayed by the Test Lead: "I approve level 4 runs. This is testing"; scope the testnet dev-ladder and the development door only, never main), but **its spend is not**: stage C (about 71.55 worst case, 71.80 with cleanup; `GRAPHITE_LADDER_WAVE_PLAN.md` section 4a) needs the owner's spend approval and, additionally, that the dev-ladder serve and label L4 DEVELOPMENT, an A4 designation for (battery, 4), a Q1 report per level, and a grant file that binds spend.
+
+## 7. Stage B spend line for the owner (as of 2026-10-10)
+
+**The ask:** approve stage B's spend, **about USD 143.35 worst case**, for L2 and L3 on the
+dev-ladder. Nothing runs, and nothing is bound, until the prerequisites below hold and the
+grant files are on main; the grant file binds spend, and this section authors none.
+
+| | Runs | Worst case per run | Subtotal |
+|---|---|---|---|
+| Constructor, kimi-k3: L2 x3, L3 x3 | 6 | 14.91 (R4's committed worst case) | 89.46 |
+| Attacker, kimi-k3: L2 x2, L3 x2 | 4 | 13.41 (stage A's Attacker worst case) | 53.64 |
+| **Worst case** | 10 | | **143.10** |
+| Cleanup allowance | | | 0.25 |
+| **With cleanup** | | | **143.35** |
+
+Arithmetic re-verified: 6 x 14.91 = 89.46; 4 x 13.41 = 53.64; 89.46 + 53.64 = 143.10; plus 0.25 =
+143.35. **The 13.41 Attacker figure was an assumption in the parent plan; it is now the figure
+the owner adopted in GRAPHITE-GRANT-STAGE-A-ATTACKER** (4 runs, ceiling 53.77, so no longer
+unflagged-assumed, though it is still the stage A pricing reused for stage B). **Shape of the
+grants:** stage A used one Constructor grant and one Attacker grant with the cleanup split 0.12 +
+0.13. The same shape for stage B would be a Constructor ceiling of 89.58 (6 runs) and an Attacker
+ceiling of 53.77 (4 runs), together 143.35, with Constructor runs capped at 39,600 s and Attacker
+runs at 15,600 s as in stage A. That shape is a proposal for the Test Engineer's binding, not
+authored here.
+
+**Concurrency (peak simultaneous reservation):** at `max_concurrency` 2, up to 2 x 14.91 = 29.82
+(two Constructors) or 28.32 (a Constructor and an Attacker); at 4, up to 4 x 14.91 = 59.64. Each
+run keeps its own controller root, and each is capped on its own, so the ceilings above stand.
+Worst-case wall clock from the runtime caps: serial 83.3 h (6 x 11 h + 4 x 4.33 h); at 2 at a time
+about 41.7 h (Constructors 3 waves x 11 h = 33 h, then Attackers 2 waves x 4.33 h = 8.7 h). L2 and L3
+confirmations additionally take the ladder's tempo-bound time (one commit per hotkey per tempo; minerC
+alone is serial).
+
+**Prerequisites, verified on origin/main (2026-10-10) unless noted:**
+
+| Prerequisite | State |
+|---|---|
+| VALIDATOR-25 slice 1, admission (#895) | **merged** |
+| VALIDATOR-25 slice 2, door and daemon (#899) | **merged** |
+| The `levels` list slice | the ticket defines `ladder: {levels, hotkeys, variants}`; per the Test Lead the live door serves L0 plus L1 to L3; **not separately verified here** |
+| valV2 ladder steps and the minerC lane | **live** per the Test Lead (door on valV2/r5, signer up); not verified from main |
+| #902 (Launchpad levels) | **open** at the time of writing |
+| A4 designations for L2 and L3 | **on main**: `admission_controllers.json` has (battery, 2) and (battery, 3) DESIGNATED with identities recorded |
+| An L1 Q1 report from L1 exploration | **not yet**: only the Level 0 report exists (V1 and V2 fail at L1 until one is recorded) |
+| Stage A's L0 and L1 results | stage A has not run; its gate waits on #907 |
+| Grant files for stage B | **none yet**: stage A's two grants are on main; stage B's Constructor and Attacker grants are not |
+
+**What the grant needs:** a Constructor grant and an Attacker grant (shape above, kimi-k3,
+tokens plus the compute the stage A grants already include), each committed on main and bound by the
+Test Engineer to the stage B route, with the per-run submission cap taken from the plan; the owner's
+approval first. This plan authors neither file.
+
+**Guardrails (unchanged):** L2 and L3 on the testnet dev-ladder and the development door only, never
+main; hidden material never in an agent-visible output; a fresh controller root per run; stage B makes
+no promotion, frontier or improvement claim.

@@ -56,7 +56,18 @@ Canonical case identity should bind all causal and reference-relevant inputs plu
 
 ## 5. Reference policy
 
-**Proposed open route:** build CalculiX release 2.23 from author source in a CPU container using openly licensed dependencies, avoiding an assumed proprietary linear-solver entitlement [S10](source-evidence.md#open-reference-route-and-cost-anchor). Freeze archive or commit hash, compiler/dependency versions, build recipe, container digest, geometry/mesh/material/deck hashes and postprocessor identity. Every exact pin is `HUMAN_INPUT` until checked; no container or solver was built or run.
+**Proposed open route:** reuse the inspected f08 CalculiX release 2.23 build pattern [S13](source-evidence.md#pinned-f08-package-reuse), using openly licensed dependencies and avoiding an assumed proprietary linear-solver entitlement [S10](source-evidence.md#open-reference-route-and-cost-anchor). Existing source/build pins are evidence of a reusable package recipe, not a warpage run identity. Freeze the warpage compiler/dependency manifest, built container digest, geometry/mesh/material/deck hashes and postprocessor identity; those new execution pins remain `HUMAN_INPUT`. No container or solver was built or run.
+
+**f08 reuse map, inspected at `0f12834226f65cdb317e7407e1e83e68c135801b`:**
+
+| Disposition | Existing artifact | What transfers / what does not |
+| --- | --- | --- |
+| KEEP | `scripts/dev/reference_packages/calculix/{Dockerfile,build.sh,sources.lock.json}` | ccx 2.23 source/checksum, pinned Debian snapshot and serial CPU build/environment patterns; reverify license/build and actual run digest. Not material adequacy or a warpage grant. |
+| WRAP | `f08_deck.py`'s full-3D Gmsh mesh, named-region and retained-output patterns | New multilayer/asymmetric grammar, units, material regions and observers required; do not run the existing mesher here. |
+| DO NOT REUSE AS TRUTH | f08's metal cantilever modal/static deck and projection observer | No package multilayer thermal expansion, calibrated underfill cure/relaxation, solder phase/joint formation or retained residual process state. Modal truncation evidence proves none of these. |
+| GAP / HOLD | New process/material implementation and witnesses | Feature proofs for coupled/prescribed temperatures, orthotropic expansion, activation, cure/creep/plasticity, molten solder and state-continuous restart before full-task feasibility. |
+
+The pinned source lock includes ccx archive SHA-256 `9c88385c10fb04f5dc6c4e98027a51bebdd8aee3920e05190d6c1dd08357d6e7` and single-thread settings. The ccx manual's expansion convention must be matched to supplied temperature-dependent material data, not inferred from a CTE scalar. Existing f08 capabilities are a KEEP/WRAP opportunity; they neither qualify this reference nor authorize package-owner changes. The planned feature proofs remain unexecuted.
 
 The route is full-domain 3D solid thermal/structural FE with the complete ordered process history and state. Temperature-dependent thermoelasticity is an initial control. Supported time-dependent plastic/creep procedures and calibrated material implementations are necessary wherever they change the full-history grade. Cure kinetics, shrinkage, viscoelastic relaxation and molten-solder treatment are not proven merely by CalculiX's capability list. If the chosen laws cannot be represented and independently checked, the open route fails the hard filter; the reference job stays intact.
 
@@ -88,9 +99,13 @@ Source standards inform the transform; they do not qualify a specific postproces
 
 Mandatory failure precedes ranking: all registered hard limits must be met in every required condition/stratum. A soft error, fast runtime or high excitement cannot compensate for failure. Normalisation, uncertainty margins, near-infeasible-band width, scoring and target accuracy are `HUMAN_INPUT` from the measurement/science owner.
 
-**Question-law sketch.** One question consists of a complete package context, registered full history, all relevant hard limits and a finite set of approved underfill/solder-stack actions. Proposed action count k is **ASSUMPTION 4 / 8 / 12 low/base/high**, with the actual action law `HUMAN_INPUT`. Choose the objective-best feasible action, or `NONE_FEASIBLE` when independently adequate reference evidence shows that every action fails at least one mandatory limit. Ties and objective uncertainty require a precommitted policy. A model may abstain/request approved verification when evidence is inadequate; missing truth, unsupported inputs and uncertain frontier status are separate from `NONE_FEASIBLE`.
+**Question-law sketch.** One question consists of a buyer-supported complete package context, mandatory full histories, a requirement draw within approved support, and a finite set of approved underfill/solder-stack actions. Recommend **k = 4 / 8 / 12 questions per window** (ASSUMPTION low/base/high; base 8), subject to Test Lead power and owner law approval. k is not an action count, timestep count or number of independent physical solves. The first diagnostic pool has **M = 10 / 10 / 10 proposed actions**; the actual question menu/law remains `HUMAN_INPUT`. Choose the objective-best feasible action, or `NONE_FEASIBLE` when adequate reference evidence shows every action fails at least one mandatory limit. No redraw to remove that buyer answer. Ties and objective uncertainty require a precommitted policy. A model may abstain/request approved verification when evidence is inadequate; missing truth, unsupported inputs and uncertain frontier status are separate from `NONE_FEASIBLE`.
 
-Do not rank a failed action by averaging across thermal conditions. Include questions with narrow feasible margins and genuinely no feasible action. The owner's required contested-panel test is at least **SOURCED user requirement five feasible and five near-infeasible actions per stratum**; observed counts, near-band definition and question balance remain unmeasured/unapproved. k need not equal the diagnostic pool size.
+Keep P's requirement/context law, Q's frontier enrichment and w's buyer mix separate (§3). Continuous requirement support/distributions remain HUMAN_INPUT, not arbitrary interpolation between unrelated JEITA package classes. A small audit grid does not replace P. Report distinct winners/value-equivalent sets, feasible/NONE_FEASIBLE/UNRESOLVED mix, close-call rate and dependence by physical bank. Expected answer diversity is NOT_DEMONSTRATED. Reused threshold draws consume the same exposure E; E/B/n are HUMAN_INPUT, not fresh truth created by a new question ID.
+
+Do not rank a failed action by averaging across thermal conditions. **T2(a), Test Lead working value relayed by the owner:** for every question family and mandatory stratum, require **at least five distinct resolved feasible and five distinct resolved infeasible actions, BOTH within two refinement bands** of the relevant limit. The band width in each observable's units is HUMAN_INPUT from verified numerical/reference uncertainty. With signed slack m and approved one-band width delta, near means `abs(m) <= 2*delta`; this is a proposed working diagnostic, not production adoption. A feasible action must satisfy all mandatory conditions for the graded question/stratum; a near-infeasible action needs a resolved violation attributed to that boundary. Distant failures of another constraint, unsupported truth and repeated timestamps do not fill frontier quotas. Report boundary/active-constraint membership and cross-stratum full-question feasibility separately.
+
+Register both-side counts and the exact uncertainty rule before frontier inspection. Too few near designs means more frontier resolution, never a wider band or weaker limit. Overall pass rate is reported but is not the former 20–80% gate. Also require meaningful buyer-unit margin spread, a complete feasible answer across mandatory strata and answers that change across contexts/draws. All outcomes and working thresholds remain unmeasured/unapproved. Ten diagnostic slots can discover a shortage; they do not guarantee a powered batch or bank admission.
 
 ## 7. Construction contract
 
@@ -115,6 +130,27 @@ Unprovided: a runnable container/deck, calibrated complete-history material mode
 Stage zero is documentary: customer engineering owners freeze a real package/action grammar, every applicable hard limit, full process/service history, calibrated laws and witness export rights. Science owners freeze measurement/reference tolerances, independence, strata and baseline tuning limits. If any acceptance or reference input remains missing, Data Collection reports the gap and performs no substitute “feasible” calculation.
 
 After separate owner compute approval, the priced diagnostic panel assumes **10 / 10 / 10 actions** evaluated over **3 / 3 / 3 distinct complete-history strata**, producing **30 / 30 / 30 primary cases**, plus **6 / 6 / 6 double-cost refinements**, **4 / 4 / 4 analytic/control equivalents**, **4 / 4 / 4 paired-tool witness equivalents** and **4 / 4 / 4 failed-attempt equivalents**: **54 / 54 / 54 complete-case equivalents**. Every count is ASSUMPTION, not realised evidence. The witness allocation is only an early triage allowance; it does not establish Tier 2 coverage or independent confirmation power.
+
+**Explicit pre-registration, not runnable material.** All slots inherit one buyer-approved full-3D architecture `ARCH-A`, nominal geometry `G-NOM`, calibrated material/process set `MAT-A` and complete history definitions below. These symbolic identifiers are public drafting labels, not runtime IDs. Values/identities are HUMAN_INPUT; no property minimum/maximum is invented.
+
+| Proposed design slot | Change from the approved nominal; freeze obligation |
+| --- | --- |
+| W01 | Nominal underfill UF-A and solder-stack S-A; supplier-valid full geometry |
+| W02 / W03 | Buyer-approved lower / upper gap-standoff, with compatible joint geometry |
+| W04 / W05 | Buyer-approved lower / upper underfill fillet extent, keep-outs preserved |
+| W06 / W07 | Alternative approved UF-B / UF-C with their complete correlated material laws, not independent CTE/modulus tweaks |
+| W08 / W09 | Approved solder-stack S-B / S-C, including alloy, bump shape and phase/history treatment |
+| W10 | Precommitted combined underfill/stack frontier proposal; exact permitted values chosen before truth access |
+
+| Proposed stratum | Complete history to freeze, not a temperature snapshot |
+| --- | --- |
+| S1 | Nominal manufacture/cure/bond/reflow/cool-down plus approved nominal spatial operating field |
+| S2 | Same registered process plus a buyer-supported asymmetric operating field and complete service/cool-down sequence |
+| S3 | Buyer-approved dwell/residual/process variant plus its supported operating and cool-down history |
+
+For every W/S combination freeze CAD/mesh/regions, catalogs and law hashes, state/activation/phase history, thermal file/hash, boundaries, observers, limits/bands, solver/container and resource identities. A missing lawful supplier alternative is SLOT_UNRESOLVED, not a substitute invented material. No slot is registered until buyer/science accept applicability and DC freezes the complete manifest; hashes/status stay null/HOLD here. Distinct slots must resolve to distinct actions; aliases do not count twice.
+
+Precommit the six refinement selections and tie rule before seeing truth: use the approved near-boundary rule, retain unresolved/failing selections and stop on shortages rather than changing limits. The four control slots are free expansion, analytic bonded bilayer, full-3D asymmetric/twist consistency, and complete-history restart/state consistency. The two paired-tool witness slots are separate non-hidden matched-task draws or provenance-verified retired published cases, outside producer custody, not quiz/tuning material. Extra feature proofs, frontier slots or witness coverage require a versioned manifest/cost extension; the failure reserve is accounting, not retry permission.
 
 Using original complete-case C1 **ASSUMPTION 0.03 / 0.12 / 0.45 node-hours**, the panel is **ASSUMPTION €19.16 / €27.09 / €56.14**. Its detailed formula, reserves, licence assumption and exclusions are in [feasibility-panel.json](feasibility-panel.json). None of these counts weakens the full 3D/history job. Measure real complete-case latency and costs before extrapolating a bank.
 
@@ -159,7 +195,20 @@ Run separate CLOSED_BANK and NEW_SUPPORTED studies under the [cheap-baseline con
 
 On the inherited base assumptions, warpage does **not** beat the solenoid or seal on value per cost. Its frontier/investor excitement does not reverse that ordering or resolve its hard-filter HOLDs. The parallel discovery search owns any revised portfolio ranking; this packet does not update its shared data.
 
-Against the current eight, this task adds source/application discipline, not demonstrated superiority: check any real feasible design before committing as with motor; check cached-library/response-map value before model work as with f08/cooling; qualify reference and balance errors before cost extrapolation as with f13; measure the buyer's actual adequate baseline latency as with f06. A same-framework current-eight cohort/cost index is `HUMAN_INPUT` until that study is supplied. No comparison is invented from incomparable scientific leaderboard scores.
+**Explicit comparison against the eight.** Same index definition, but no invented currency conversion or missing full-bank cost. The annual gross snapshot below is in **USD**, while D016/D012/D077 above use EUR. It is labelled assumption-based decision value, not surrogate leverage, traction or earned advantage. Snapshot lineage and machine-readable null indices are in [feasibility-panel.json](feasibility-panel.json); the current discovery comparison also retains NOT_COMPUTABLE where complete C2/C3 and matched currency are missing.
+
+| Incumbent | Conditional annual gross USD low / base / high | Full C2 / weekly C3 / same-index result | Decision-level check before comparison |
+| --- | --- | --- | --- |
+| Battery v3 | 1,500 / 315,000 / 19,800,000 | NOT_COMPUTABLE: complete costs and currency basis missing | Beat the precomputed five-band charge map; sessions are not new solver decisions |
+| Motor | 4,000 / 162,000 / 3,840,000 | NOT_COMPUTABLE: complete costs and currency basis missing | Full holding/peak/cogging feasibility and signed-curve response surface |
+| Cooling cell | 1,000 / 40,500 / 768,000 | NOT_COMPUTABLE: complete costs and currency basis missing | Beat cell interpolation; no full cold plate in this comparison |
+| f02 burst thermal | 4,000 / 144,000 / 1,920,000 | NOT_COMPUTABLE: complete costs and currency basis missing | Thermal impulse-response/reduced-order decision baseline |
+| f06 grating coupler | 2,000 / 72,000 / 720,000 | NOT_COMPUTABLE: complete costs and currency basis missing | Adequate industry 2D optimizer may erase speed value |
+| f08 structures | 2,000 / 54,000 / 576,000 | NOT_COMPUTABLE: complete costs and currency basis missing | Cached modal library, not full-harmonic straw baseline |
+| f13 silencers | 1,000 / 36,000 / 384,000 | NOT_COMPUTABLE: complete costs and currency basis missing | Sound power/reference route before transfer-matrix/response comparison |
+| f17 micromixer | 2,000 / 72,000 / 1,024,000 | NOT_COMPUTABLE: complete costs and currency basis missing | Periodic-cell/reduced mixing baseline with protected diffusion measure |
+
+No per-case timing alone fills C2/C3, no assumed FX is used, and null is not zero. This packet does not rescore the eight or consume a reframe. Warpage still needs real full-history feasibility and contested boundaries, credible reference and superiority over its strongest cheap baseline. No same-index superiority over the eight is demonstrated.
 
 Reviewers are **HUMAN_INPUT named science/reference owner, customer packaging/reliability/thermal owners, construction/compute/security/rights owners and PR Head**. The next gate is a source-complete acceptance/reference freeze, followed by an independently authorised diagnostic panel. User adoption/replacement authority remains with the owner.
 

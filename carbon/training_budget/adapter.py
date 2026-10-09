@@ -81,6 +81,10 @@ class Program:
     #: A dense quasi-Newton polish's inverse-Hessian update, FLOPs per
     #: parameter squared per polish step (Level 3 bfgs, ssbfgs, ssbroyden).
     polish_dense_flops_per_p2: int = 0
+    #: A step already measured elsewhere: a Level 4 graph's G5
+    #: `train_step_flops` (TRAINING-BUDGET-02 slice 5). Set, the calculator
+    #: captures nothing; `fit` and `parameters` are then unused.
+    measured_step_flops: float | None = None
 
 
 @runtime_checkable

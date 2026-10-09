@@ -1,0 +1,24 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-review.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": [
+  0,
+  1
+ ],
+ "item": "D5",
+ "decision": "PASS",
+ "reviewer": "Test Lead",
+ "date": "2026-10-09",
+ "evidence": [
+  {
+   "kind": "file",
+   "ref": "docs/development/evidence/graphite-run5-q1/q1-report.json",
+   "sha256": "sha256:dfa707390e2d7ebea98c3c59e407ddf3459e74a760e010ee8544b180ec70eb9b"
+  },
+  {
+   "kind": "decision",
+   "ref": "OWNER-GRAPHITE-TEST-WAVE-07"
+  }
+ ],
+ "notes": "ACCEPTED: 6 of 12 development scenarios resolvable plus the WAVE-07 section 2 refinement policy (Test Lead stage A sign-off, 2026-10-09)."
+}

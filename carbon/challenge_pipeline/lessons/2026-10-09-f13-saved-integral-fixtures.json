@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-f13-saved-integral-fixtures",
+  "recorded_at": "2026-10-09T18:20:51Z",
+  "challenge": "f13",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "tests/cpu/test_f13_saved_integral_check.py + tests/cpu/test_challenge_pipeline.py", "description": "Read-only algebra/refusal fixtures and pipeline regression, native Python 3.11; no real acquisition outputs or solves."},
+  "expected": "Plane fixture closes; a constructed mixed-definition fixture exposes omitted inlet variance; malformed or empty evidence cannot pass.",
+  "observed": "70 passed in 3.90s. The synthetic 4.7% residual is explained by variance while physical reference remains UNRESOLVED; it is not a reproduction of the nominal solve. Pinned Black and Ruff passed. Exact-head canonical CI remains required.",
+  "keep": ["Signed residuals, unchanged 1% criterion and separate physical status.", "Explicit mapped columns and complete frequency coverage before any green."],
+  "change": ["DC should run retained public data and supply independent area/BC/source verification; no inferred real result from toy closure."],
+  "protocol_elements": ["reference-policy", "measurement-contract", "failure-classification"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
