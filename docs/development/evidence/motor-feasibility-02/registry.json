@@ -95,5 +95,16 @@
   "rung2": "n_gap 2880, h_max 0.5 (0.125 deg steps, 97 positions over 12 deg) for J 0 and the J 10 slice variants of those designs",
   "peak": "J 15 at gamma 0, +-5, +-10 at standard for d09, d16, d21, d12 (the frozen peak command J 15 gamma 0, both spans)",
   "convergence": "packet section 5: rung change <= 0.10 N m mean and <= 0.02 N m pk-pk; a third rung (5760) only where rung 2 leaves a limit straddled"
+ },
+ "amendment_2": {
+  "registered": "2026-10-08, after S3 and before any boundary solve",
+  "authority": "Test Lead 2026-10-08: T2(a) failed by one near-limit INFEASIBLE design; add frontier resolution (never a looser band); free local CPU after the battery refinement, ahead of f02",
+  "pairs": "each S3-FEASIBLE design (d06, d09, d12, d16, d21) with its nearest near-limit INFEASIBLE design (d01, d02, d10, d17) in the normalised grammar space: d06-d17, d09-d17, d12-d17, d16-d01, d21-d02",
+  "round1": "midpoint t = 0.5 from the feasible end (b00-b04); a geometrically invalid point moves to the nearest valid t in 0.05 steps",
+  "round2": "one step toward the frontier: t = 0.75 if the midpoint is FEASIBLE at standard, 0.25 if INFEASIBLE, none if within one band (rung 2 decides first) (b05-b09)",
+  "solves": "per point J 0 and J 10 at gamma -10/0/+10 (4-deg three-slice skew), standard resolution; points within one band of a limit get S3's rung 2 (n_gap 2880, h_max 0.5)",
+  "verdict": "S3's rule: limits and bands unchanged (mean 6.0/0.10, pk-pk 0.30/0.02, ripple 5 %, cogging 0.05/0.02); a rung change across a limit is UNRESOLVED",
+  "code": "scripts/dev/motor/feasibility02/boundary.py",
+  "t2d": "re-evaluated without new solves on the existing panel under requirement variants that change limits only (motor-feasibility-02/panel-export.json); the packet's law values are HUMAN_INPUT"
  }
 }
