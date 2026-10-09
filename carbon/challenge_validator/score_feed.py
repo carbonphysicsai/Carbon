@@ -52,8 +52,9 @@ import sys
 from pathlib import Path
 
 REPOSITORY = Path(__file__).resolve().parents[2]
-FEED_SCHEMA = "carbon.validator.score-feed.v1"
-FEED_DOMAIN = b"carbon.validator.score-feed.v1\x00"
+from .feed_file import FEED_DOMAIN, FEED_SCHEMA, verify_feed, write_feed
+from .feed_file import canonical as _canonical
+
 #: Registered by the Test Lead, 2026-10-08 (VALIDATOR-29). Released data's
 #: cases are public, so no display threshold applies to it.
 VALUES = {
@@ -75,6 +76,16 @@ SHOWCASE = {
     "split": "development",
     "data_scope": "PUBLIC_SYNTHETIC",
     "registered": "Test Lead, 2026-10-08 (VALIDATOR-29 showcase)",
+    # The model is the LIVE incumbent: its hotkey is already public through
+    # the on-chain weights, its inputs are public EV4 cases, and its recipe is
+    # never shown. The owner asked for "a live design optimizer display of
+    # the leaders' performance".
+    "incumbent": "LIVE",
+    "label": "current incumbent, public cases",
+    "disclosure": (
+        "Test Lead 2026-10-08, per owner request; confirmed by the owner in the "
+        "Carbon Validator session"
+    ),
 }
 SHOWCASE_SCHEMA = "carbon.validator.showcase-panel.v1"
 #: Showcase predictions are stored apart from every scored, quiz and design one.
@@ -102,12 +113,6 @@ class FeedRefused(ValueError):
     def __init__(self, code):
         super().__init__(code)
         self.code = code
-
-
-def _canonical(value):
-    return json.dumps(
-        value, sort_keys=True, separators=(",", ":"), allow_nan=False, ensure_ascii=True
-    )
 
 
 # --- the feed key -------------------------------------------------------------------
@@ -160,27 +165,6 @@ class FeedKey:
 
     def sign(self, document):
         return self._key.sign(FEED_DOMAIN + _canonical(document).encode()).hex()
-
-
-def verify_feed(feed, pinned_key=None):
-    """Whether a feed's signature is its feed key's, over the document without
-    the signature. With `pinned_key` (the key a reader configured out of
-    band), the feed must name exactly that key."""
-    from cryptography.exceptions import InvalidSignature
-    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
-
-    try:
-        if pinned_key is not None and feed["validator"]["feed_key"] != pinned_key:
-            return False
-        body = {k: v for k, v in feed.items() if k != "signature"}
-        Ed25519PublicKey.from_public_bytes(
-            bytes.fromhex(feed["validator"]["feed_key"])
-        ).verify(
-            bytes.fromhex(feed["signature"]), FEED_DOMAIN + _canonical(body).encode()
-        )
-    except (InvalidSignature, KeyError, TypeError, ValueError):
-        return False
-    return True
 
 
 # --- release records ----------------------------------------------------------------
@@ -264,11 +248,21 @@ def _sections(target, row, released):
     }
 
 
+def live_incumbent(target):
+    """`{"hotkey", "submission_id"}` of the deployment's current incumbent,
+    or None. Its hotkey is public through the on-chain weights."""
+    found = target.store.incumbent()
+    if found is None:
+        return None
+    row = target.store.submission(found["model_id"])
+    return {"hotkey": row["hotkey"], "submission_id": found["model_id"]}
+
+
 def showcase(target, incumbent, repository=REPOSITORY):
-    """The released incumbent's predictions on the registered public
-    showcase task, or None when no incumbent is released. Public inputs only;
-    the panel carries the model's identity digest and predicted quantities,
-    never its recipe. An inference failure is the showcase's own state."""
+    """The live incumbent's predictions on the registered public showcase
+    task, or None when there is no incumbent. Public inputs only; the panel
+    carries the model's identity digest and predicted quantities, never its
+    recipe. An inference failure is the showcase's own state."""
     from carbon.battery.pool_store import StateError
     from carbon.battery.value import contract as ev
     from carbon.battery.worker import WorkerFailure
@@ -292,6 +286,7 @@ def showcase(target, incumbent, repository=REPOSITORY):
     model_id = incumbent["submission_id"]
     head = {
         "schema": SHOWCASE_SCHEMA,
+        "label": SHOWCASE["label"],
         "task": SHOWCASE,
         "contract_digest": contract_digest,
         "model": {"hotkey": incumbent["hotkey"], "submission_id": model_id},
@@ -451,43 +446,14 @@ def build(target, *, key, hotkey, network, device_class="cpu", with_showcase=Fal
         "excluded": {"canary_hotkeys": excluded},
     }
     if with_showcase:
-        # Driven by the released incumbent only: no new disclosure.
-        document["showcase"] = showcase(target, incumbent_view)
+        # The live incumbent (SHOWCASE["disclosure"]); a canary is never one.
+        document["showcase"] = showcase(target, live_incumbent(target))
     import datetime
 
     version = store.record_feed(document)
     generated = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     feed = {**document, "version": version, "generated_at": generated}
     return {**feed, "signature": key.sign(feed)}
-
-
-def write_feed(path, feed):
-    """Write the signed feed atomically for the door to serve."""
-    path = Path(path)
-    temporary = path.with_name(path.name + ".new")
-    if temporary.exists():
-        temporary.unlink()
-    fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o640)
-    with os.fdopen(fd, "w") as handle:
-        json.dump(feed, handle, sort_keys=True)
-    os.replace(temporary, path)
-
-
-def read_feed(path, challenge_id):
-    """The signed feed at `path` for `challenge_id`, or None: unreadable,
-    another Challenge's, or not verified by its own feed key."""
-    try:
-        feed = json.loads(Path(path).read_text())
-    except (OSError, ValueError):
-        return None
-    if (
-        type(feed) is not dict
-        or feed.get("schema") != FEED_SCHEMA
-        or (feed.get("challenge") or {}).get("id") != challenge_id
-        or not verify_feed(feed)
-    ):
-        return None
-    return feed
 
 
 # --- the command line ---------------------------------------------------------------

@@ -34,23 +34,44 @@ selections, NOT five settled optima or proof of that saving. Never promise a
 30-minute session. A violation of plating/thermal/voltage/retention is not
 compensated by saved minutes. Cold-band equivalence requires refinement.
 
-### V3 — frequency
+### V3 — fleet-session volume, not map revisions
 
-ASSUMPTION per BMS team: **2 / 6 / 12 map revisions/year**, **100 / 500 / 2,000
-sessions/day** affected after deployment. These are elicitation ranges, not
-fleet sales or demand. Annual gross session value is explicitly conditional
-on actual sessions and Tier 3/deployment evidence; not multiplied into V2 as
-present commercial value. Ask buyer for revision and temperature-frequency logs.
+Two independent scale anchors: [TfL's July 2025 report](https://content.tfl.gov.uk/tfl-commissioners-report-22-july-2025-acc.pdf)
+records its 2,000th zero-emission bus; [Uber's October 2025 release](https://www.uber.com/us/en/newsroom/uber-electric/)
+reports over 200,000 EV drivers. Neither is a matching-chemistry buyer receipt:
+zero-emission includes other technologies, and independent drivers are not one
+controllable fleet. Neither source measures eligible fast-charge sessions.
 
-### V4 — fast-model leverage
+Conditional low/base/high cohort, **every factor ASSUMPTION**:
+100/1,000/10,000 vehicles ×0.3/0.7/1 **packet-eligible, time-bottleneck**
+sessions per operating day ×250/300/330 days = **7,500/210,000/3,300,000
+sessions/year**. The daily rate includes eligibility, not all charging.
+V2 gives **$1,500/$315,000/$19.8m annual gross** only if the stated per-session
+improvement actually occurs. Empirical lower bound **zero**; not TAM, revenue,
+observed savings or deployment authority. Physical fleet use needs Tier 3.
+Obtain chemistry, charging/SOC/ambient/queue logs and cooling energy costs.
+Map-building events (assumed 2/6/12 revisions per BMS team/year) are separate;
+never multiply map-search CPU savings by every session.
 
-Existing #776 proposal: 100 actions ×5 conditions =500 complete programmes
-plus refinements, not the five final choices. Public sources above establish
-optimization but do not establish a buyer's evaluation count; **workflow
-evaluation count UNSOURCED**. Do not pass V4. Historical 91 CPU-s ×500 =
-12.64 CPU-h is a sensitivity calculation ONLY; v3 per-band cooling/SOC/30-cycle
-programmes need matched measured C1. Retain charge-integral observers and
-final reference verification; compare strongest cached/interpolated control.
+### V4 — map-building leverage, not a solve every charge
+
+[Attia et al.](https://web.mit.edu/braatzgroup/Attia_Nature_2020.pdf) search a
+224-protocol menu; 117 candidates were never tested. Different chemistry and
+limits: menu size is an analogue, not 224 full reference calls. For a new
+five-band map, **N=224/1,120/11,200 complete programme evaluations is an
+ASSUMPTION** (base 224 ×5; extra SOC/age/tolerance exploration in high).
+Owner reports **91 CPU-s/programme**; applicability to v3/refined cold-band
+programmes needs the matched C1 ledger. The public TRAIN timing is a
+400-query batch, not single-query latency; see [timing discipline](analysis.md#workflow-leverage-with-build-cost).
+
+Using the shared illustrative build/reuse assumptions, base saves **25.89
+serial wall-h / $2.59 compute per map**, end-to-end leverage **11.69×**.
+Not V2 session savings, not labour saved, not a measured speedup. Potential:
+a 10,000-point SOC/ambient/cooling sensitivity search between calibration
+reviews, retaining per-band truth/refinement. Cached verified maps already
+serve live sessions cheaply; Carbon must beat cached/interpolated/POD maps
+at matched admissibility, not claim real-time BMS necessity. V4 PASS remains
+NOT_DEMONSTRATED. [All sensitivities](volume-leverage.json).
 
 ### V5 — credibility
 

@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-volume-leverage-extended",
+  "recorded_at": "2026-10-08T23:28:37Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-VOLUME-LEVERAGE-01 extended",
+    "description": "Bounded native Windows static validation; no solver/model training/spend or hidden material."
+  },
+  "expected": "Test scenario arithmetic and preserve current packet/protocol authority.",
+  "observed": "After Black and task-owned LF normalization: Black/Ruff/diff whitespace checks passed; 195 packet/question-law/route/readiness/pipeline regressions passed in 13.05s. Native-host diagnostics, not canonical CI or economic/scientific qualification.",
+  "keep": [
+    "Keep cached modal and DOE/surrogate baselines in the economic comparison; negative cold-start savings and censored cost tails remain visible."
+  ],
+  "change": [
+    "Replace assumed cadence/unique workflow/build/inference fields only with matched buyer and Data Collection receipts."
+  ],
+  "protocol_elements": [
+    "buyer value",
+    "model leverage",
+    "reference cost",
+    "historical evidence"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

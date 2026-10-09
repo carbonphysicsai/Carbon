@@ -30,6 +30,7 @@ from test_challenge_validator_design_bank import ToyLaw, solve_all
 from carbon.challenge_validator import answer_key as ak
 from carbon.challenge_validator import canary
 from carbon.challenge_validator import design_bank as db
+from carbon.challenge_validator import feed_file
 from carbon.challenge_validator import score_feed as sf
 from carbon.challenge_validator.training_pool import TrainingPool
 
@@ -222,21 +223,22 @@ def test_the_door_serves_only_a_verified_feed(tmp_path, monkeypatch):
     route = ib.FEED_PATH + CHALLENGE.challenge_id
     door.feed = None
     assert door.score_feed() == ib.Answer(404, {"refused": "feed_not_served"})
-    door.feed = functools.partial(sf.read_feed, path, CHALLENGE.challenge_id)
+    door.feed = functools.partial(feed_file.read_feed, path, CHALLENGE.challenge_id)
     assert door.score_feed() == ib.Answer(200, feed)
     # A tampered file, or another Challenge's, is never served.
     sf.write_feed(path, {**feed, "version": 2})
     assert door.score_feed() == ib.Answer(503, {"refused": "feed_unavailable"})
-    assert sf.read_feed(path, "another-challenge") is None
+    assert feed_file.read_feed(path, "another-challenge") is None
     assert route == "/carbon/v1/feed/" + CHALLENGE.challenge_id
 
 
-def test_the_showcase_is_the_released_incumbents_panel_on_public_inputs(
+def test_the_showcase_is_the_live_incumbents_panel_on_public_inputs(
     validator, tmp_path, monkeypatch
 ):
-    """The released incumbent's rebuilt model, queried on EV4's public
-    development scenarios only; the panel carries its identity digest and
-    predicted quantities, never a recipe. No released incumbent: no panel."""
+    """The live incumbent's rebuilt model (the owner's request; its hotkey is
+    public through the weights), queried on EV4's public development scenarios
+    only; the panel carries its identity digest and predicted quantities,
+    never a recipe."""
     from carbon.battery.value import contract as ev
 
     store, w = validator["store"], validator["windows"]
@@ -269,18 +271,18 @@ def test_the_showcase_is_the_released_incumbents_panel_on_public_inputs(
 
     monkeypatch.setattr(validator["target"], "_quiz_predictions", predict)
     key = sf.FeedKey.create(tmp_path / "feed.key")
-    hidden = sf.build(
-        validator["target"], key=key, hotkey="5V", network="testnet", with_showcase=True
-    )
-    assert hidden["showcase"] is None and asked == []  # not yet released
-    store.record_published("file-1", validator["drawn"]["screening"])
+    # The live incumbent drives the showcase before its windows are released
+    # (the owner's request; its hotkey is public through the weights).
     feed = sf.build(
         validator["target"], key=key, hotkey="5V", network="testnet", with_showcase=True
     )
+    assert feed["submissions"] == []  # its scores are still not released
     shown = feed["showcase"]
     contract, digest = ev.load(REPOSITORY / sf.SHOWCASE["contract"])
     jobs = ev.decision_cases(contract, "development")
     assert shown["state"] == "PREDICTED" and shown["schema"] == sf.SHOWCASE_SCHEMA
+    assert shown["label"] == "current incumbent, public cases"
+    assert shown["task"]["incumbent"] == "LIVE"
     assert shown["contract_digest"] == digest
     assert set(shown["predictions"]) == {job["case_id"] for job in jobs}
     assert asked == [("s1", sf.SHOWCASE_PREDICTIONS, len(jobs))]

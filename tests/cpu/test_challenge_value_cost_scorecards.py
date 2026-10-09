@@ -88,7 +88,7 @@ def test_low_base_high_is_assumed_gross_not_inflated_or_net(name):
 def test_no_proposal_earns_tiers_power_cost_or_relaxes_safety(name):
     card = CARDS[name]
     assert card["overall_keep"] == card["t3"] == card["t4"] == "NOT_DEMONSTRATED"
-    assert card["workflow_evaluation_count"] == "UNSOURCED"
+    assert card["workflow_evaluation_count"] == "SOURCED_ANALOGUE_WITH_ASSUMED_TRANSFER"
     assert card["credibility"] == {
         "target_tier": 2,
         "earned_tier": None,
