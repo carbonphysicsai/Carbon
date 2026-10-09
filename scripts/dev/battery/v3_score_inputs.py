@@ -10,6 +10,7 @@ import argparse
 import gzip
 import hashlib
 import json
+import math
 import subprocess
 from pathlib import Path
 
@@ -20,7 +21,8 @@ from carbon.battery.calibration import SHAPES, frozen_calibration
 from carbon.battery.challenge import PublicMaterial
 from carbon.battery.value import contract as ev
 from carbon.battery.value import decision as d
-from carbon.battery.value import quiz, ratios, score_tuning as tuning
+from carbon.battery.value import quiz, ratios
+from carbon.battery.value import score_tuning as tuning
 from carbon.battery.value import scoring as sc
 from carbon.design_search.score_value import kendall_tau_b, spearman_rho
 
@@ -108,9 +110,17 @@ def load_panel(root, panel_path):
         panel.get("schema") != SCHEMA
         or panel.get("scope") != SCOPE
         or panel.get("settlement_rule") != SETTLEMENT
-        or set(panel) != {
-            "schema", "scope", "job", "contract", "settlement_rule",
-            "screening", "q3", "rule_registry", "quiz_registry",
+        or set(panel)
+        != {
+            "schema",
+            "scope",
+            "job",
+            "contract",
+            "settlement_rule",
+            "screening",
+            "q3",
+            "rule_registry",
+            "quiz_registry",
         }
         or panel["job"] != "battery-q3-v8"
     ):
@@ -126,7 +136,8 @@ def load_panel(root, panel_path):
     candidates, _identity = tuning.load_registry(registry_path, repository=root)
     candidate = candidates[CANDIDATE]
     if candidate.weights != {"a": 0.5, "q": 0.5} or candidate.gate != {
-        "measure": "feasibility", "cutoff": 0.05,
+        "measure": "feasibility",
+        "cutoff": 0.05,
     }:
         raise Refused("rule_contract_mismatch")
     screening = panel["screening"]
@@ -158,6 +169,18 @@ def load_panel(root, panel_path):
     for row in q3["scenarios"]:
         if set(row) != {"id", "batch_id", "t_amb_c", "soc0"} or row["id"] in seen:
             raise Refused("q3_scenarios_invalid")
+        try:
+            in_envelope = all(
+                math.isfinite(float(row[key]))
+                and contract["operating_conditions"]["envelope"][key][0]
+                <= float(row[key])
+                <= contract["operating_conditions"]["envelope"][key][1]
+                for key in ("t_amb_c", "soc0")
+            )
+        except (TypeError, ValueError, KeyError):
+            in_envelope = False
+        if not in_envelope:
+            raise Refused("q3_scenario_outside_envelope")
         if row["batch_id"] not in batch_counts:
             raise Refused("q3_screening_batch_mismatch")
         batch_counts[row["batch_id"]] += 1
@@ -169,22 +192,33 @@ def load_panel(root, panel_path):
             raise Refused("q3_standard_incomplete")
         for job in grid:
             record = standard[job["case_id"]]
-            if record.get("inputs") != {k: job[k] for k in ("c1", "c2", "t_amb_c", "soc0")}:
+            if record.get("inputs") != {
+                k: job[k] for k in ("c1", "c2", "t_amb_c", "soc0")
+            }:
                 raise Refused("q3_reference_inputs_mismatch")
         expected_refine.update(
-            job["case_id"] for job in quiz.q3_refine_points(contract, scenario, standard)
+            job["case_id"]
+            for job in quiz.q3_refine_points(contract, scenario, standard)
         )
         scenarios.append(scenario)
     if any(n != quiz.Q3_K for n in batch_counts.values()):
         raise Refused("q3_batch_size_mismatch")
     if set(standard) != expected_standard:
         raise Refused("q3_standard_outside_registration")
+    if set(screening["case_ids"]) & expected_standard:
+        raise Refused("screening_q3_case_id_collision")
     if set(refined) != expected_refine:
         raise Refused("q3_refinement_incomplete")
     for case_id, record in refined.items():
-        if record.get("refined") is not True or record.get("status") not in (
-            "OK", "FAILED_INFRA",
-        ) or record.get("inputs") != standard[case_id].get("inputs"):
+        if (
+            record.get("refined") is not True
+            or record.get("status")
+            not in (
+                "OK",
+                "FAILED_INFRA",
+            )
+            or record.get("inputs") != standard[case_id].get("inputs")
+        ):
             raise Refused("q3_refinement_invalid")
     if any(case_id not in screening_refs for case_id in screening["case_ids"]):
         raise Refused("screening_references_incomplete")
@@ -202,7 +236,15 @@ def load_panel(root, panel_path):
         "scope": SCOPE,
         "job": panel["job"],
     }
-    return contract, candidate, screening["case_ids"], screening_refs, scenarios, settled, identity
+    return (
+        contract,
+        candidate,
+        screening["case_ids"],
+        screening_refs,
+        scenarios,
+        settled,
+        identity,
+    )
 
 
 def _q3_outcomes(contract, scenarios, settled, predictions):
@@ -212,8 +254,13 @@ def _q3_outcomes(contract, scenarios, settled, predictions):
         grid = quiz.q3_grid(contract, scenario)
         refs = {j["case_id"]: settled[j["case_id"]] for j in grid}
         reference = d.assess_reference(
-            contract, scenario, candidates,
-            {(c["id"], 0): refs[j["case_id"]] for c, j in zip(candidates, grid, strict=True)},
+            contract,
+            scenario,
+            candidates,
+            {
+                (c["id"], 0): refs[j["case_id"]]
+                for c, j in zip(candidates, grid, strict=True)
+            },
         )
         best = d.best_in_set(candidates, reference)
         if best is None:
@@ -232,8 +279,18 @@ def _q3_outcomes(contract, scenarios, settled, predictions):
     return outcomes
 
 
-def evaluate_member(root, contract, candidate, case_ids, screening_refs, scenarios,
-                    settled, predictions, identity, recipe):
+def evaluate_member(
+    root,
+    contract,
+    candidate,
+    case_ids,
+    screening_refs,
+    scenarios,
+    settled,
+    predictions,
+    identity,
+    recipe,
+):
     """Pure scoring over already committed predictions and pinned references."""
     required = set(case_ids)
     for scenario in scenarios:
@@ -244,31 +301,63 @@ def evaluate_member(root, contract, candidate, case_ids, screening_refs, scenari
         "recipe": recipe,
         "required_predictions": len(required),
         "status": None,
-        "a": None, "q": None, "g_feas": None, "q3_regret": None,
-        "raw_score": None, "eligible": None,
+        "a": None,
+        "q": None,
+        "g_feas": None,
+        "q3_regret": None,
+        "raw_score": None,
+        "eligible": None,
     }
-    if any(screening_refs[c].get("status") != "OK" or not exam._finite_shape(screening_refs[c].get("outputs"), SHAPES)
-           for c in case_ids):
-        return {**result, "status": "FAILED_INFRA", "cause": "screening_reference_unavailable"}
-    if any(c not in settled or settled[c].get("status") != "OK" or not exam._finite_shape(settled[c].get("outputs"), SHAPES)
-           for c in required - set(case_ids)):
+    if any(
+        screening_refs[c].get("status") != "OK"
+        or not exam._finite_shape(screening_refs[c].get("outputs"), SHAPES)
+        for c in case_ids
+    ):
+        return {
+            **result,
+            "status": "FAILED_INFRA",
+            "cause": "screening_reference_unavailable",
+        }
+    if any(
+        c not in settled
+        or settled[c].get("status") != "OK"
+        or not exam._finite_shape(settled[c].get("outputs"), SHAPES)
+        for c in required - set(case_ids)
+    ):
         return {**result, "status": "FAILED_INFRA", "cause": "q3_reference_unavailable"}
-    if any(c not in predictions or not isinstance(predictions[c], dict)
-           or not exam._finite_shape(predictions[c], SHAPES)
-           for c in required):
-        return {**result, "status": "INELIGIBLE", "cause": "candidate_prediction_invalid", "eligible": False}
+    if any(
+        c not in predictions
+        or not isinstance(predictions[c], dict)
+        or not exam._finite_shape(predictions[c], SHAPES)
+        for c in required
+    ):
+        return {
+            **result,
+            "status": "INELIGIBLE",
+            "cause": "candidate_prediction_invalid",
+            "eligible": False,
+        }
     try:
         outcomes = _q3_outcomes(contract, scenarios, settled, predictions)
     except Refused as failure:
         return {**result, "status": "FAILED_INFRA", "cause": failure.code}
     except (TypeError, ValueError, KeyError, IndexError, ZeroDivisionError):
-        return {**result, "status": "INELIGIBLE", "cause": "candidate_prediction_invalid", "eligible": False}
+        return {
+            **result,
+            "status": "INELIGIBLE",
+            "cause": "candidate_prediction_invalid",
+            "eligible": False,
+        }
     regret = quiz.q3_measures(outcomes, contract)["regret"]
     if regret is None:
         return {**result, "status": "FAILED_INFRA", "cause": "q3_regret_unmeasured"}
     material = PublicMaterial.load(root)
     ocv = {
-        c: float(np.interp(screening_refs[c]["inputs"]["soc0"], material.ocv_soc, material.ocv_v))
+        c: float(
+            np.interp(
+                screening_refs[c]["inputs"]["soc0"], material.ocv_soc, material.ocv_v
+            )
+        )
         for c in case_ids
     }
     tol, scales = frozen_calibration(root)
@@ -276,49 +365,76 @@ def evaluate_member(root, contract, candidate, case_ids, screening_refs, scenari
     try:
         component = sc.components(predictions, case_ids, store, contract)
     except (TypeError, ValueError, KeyError, IndexError, ZeroDivisionError):
-        return {**result, "status": "FAILED_INFRA", "cause": "screening_evaluation_unavailable"}
+        return {
+            **result,
+            "status": "FAILED_INFRA",
+            "cause": "screening_evaluation_unavailable",
+        }
     a, _r, _g = ratios.legs(component)
     g_feas = tuning.false_feasible_rate(contract, predictions, case_ids, screening_refs)
     if g_feas is None:
-        return {**result, "status": "FAILED_INFRA", "cause": "g_feas_denominator_empty",
-                "a": a, "q": 1 / (1 + regret), "q3_regret": regret}
+        return {
+            **result,
+            "status": "FAILED_INFRA",
+            "cause": "g_feas_denominator_empty",
+            "a": a,
+            "q": 1 / (1 + regret),
+            "q3_regret": regret,
+        }
     row = {
-        "eligible": component["eligible"], "E": component["E"],
+        "eligible": component["eligible"],
+        "E": component["E"],
         "legs": {"a": a, "q": 1 / (1 + regret)},
         "gates": {"feasibility": g_feas},
     }
     raw = tuning.score_member(candidate, row)
     verdict = tuning.gate_verdict(candidate, row)
     eligible = bool(component["eligible"]) and verdict == "PASS" and raw is not None
-    return {**result, "status": "SCORED" if eligible else "INELIGIBLE",
-            "cause": None if eligible else "screening_or_g_feas_gate",
-            "eligible": eligible, "a": a, "q": row["legs"]["q"],
-            "g_feas": g_feas, "q3_regret": regret, "raw_score": raw,
-            "gate_verdict": verdict, "q3_scenarios": len(outcomes)}
+    return {
+        **result,
+        "status": "SCORED" if eligible else "INELIGIBLE",
+        "cause": None if eligible else "screening_or_g_feas_gate",
+        "eligible": eligible,
+        "a": a,
+        "q": row["legs"]["q"],
+        "g_feas": g_feas,
+        "q3_regret": regret,
+        "raw_score": raw,
+        "gate_verdict": verdict,
+        "q3_scenarios": len(outcomes),
+    }
 
 
-def run(root, panel_path, member_path, out):
-    """One CPU reconstruction, then score on the registered dev panel."""
+def load_confirmed_member(root, member_path):
+    """Bind the confirmation receipt to a compiled strategy and seed."""
     from carbon.battery.compile import compile_recipe
-    from carbon.battery.value.experiment import member_bundle
-    from carbon.battery.worker import DirectBackend
 
     root = Path(root).resolve()
-    contract, candidate, ids, refs, scenarios, settled, identity = load_panel(root, panel_path)
     member_path = _under(Path(member_path), root / "docs/development/evidence")
     member_body = member_path.read_bytes()
     member = json.loads(member_body)
     if (
         member.get("schema") != "carbon.battery.confirmed-recipe-input.v1"
         or member.get("status") != "CONFIRMED"
-        or set(member) != {"schema", "status", "member", "strategy", "seed", "recipe_digest", "confirmation"}
+        or set(member)
+        != {
+            "schema",
+            "status",
+            "member",
+            "strategy",
+            "seed",
+            "recipe_digest",
+            "confirmation",
+        }
         or not isinstance(member["seed"], int)
     ):
         raise Refused("confirmed_recipe_input_invalid")
     _, compiled = compile_recipe(member["strategy"])
     if compiled.recipe_digest != member["recipe_digest"]:
         raise Refused("recipe_digest_mismatch")
-    confirmation_path, confirmation_body = _file(Path(member_path).parent, member["confirmation"])
+    confirmation_path, confirmation_body = _file(
+        Path(member_path).parent, member["confirmation"]
+    )
     if confirmation_path == Path(member_path):
         raise Refused("confirmation_self_reference")
     confirmation = json.loads(confirmation_body)
@@ -328,20 +444,58 @@ def run(root, panel_path, member_path, out):
         or confirmation.get("seed") != member["seed"]
     ):
         raise Refused("confirmation_identity_mismatch")
+    recipe = {
+        "member": member["member"],
+        "recipe_digest": compiled.recipe_digest,
+        "seed": member["seed"],
+        "input_sha256": "sha256:" + _sha(member_body),
+        "confirmation_sha256": "sha256:" + _sha(confirmation_body),
+    }
+    return member, recipe
+
+
+def run(root, panel_path, member_path, out):
+    """One CPU reconstruction, then score on the registered dev panel."""
+    from carbon.battery.value.experiment import member_bundle
+    from carbon.battery.worker import DirectBackend
+
+    root = Path(root).resolve()
+    contract, candidate, ids, refs, scenarios, settled, identity = load_panel(
+        root, panel_path
+    )
+    member, recipe = load_confirmed_member(root, member_path)
     inputs = {c: dict(refs[c]["inputs"]) for c in ids}
     for scenario in scenarios:
-        inputs.update({j["case_id"]: {k: j[k] for k in ("c1", "c2", "t_amb_c", "soc0")}
-                       for j in quiz.q3_grid(contract, scenario)})
+        inputs.update(
+            {
+                j["case_id"]: {k: j[k] for k in ("c1", "c2", "t_amb_c", "soc0")}
+                for j in quiz.q3_grid(contract, scenario)
+            }
+        )
     bundle, _state = member_bundle(
-        DirectBackend(root), member["member"], member["strategy"], member["seed"], inputs
+        DirectBackend(root),
+        member["member"],
+        member["strategy"],
+        member["seed"],
+        inputs,
     )
-    recipe = {"member": member["member"], "recipe_digest": compiled.recipe_digest,
-              "seed": member["seed"], "input_sha256": "sha256:" + _sha(member_body),
-              "confirmation_sha256": "sha256:" + _sha(confirmation_body),
-              "prediction_sha256": "sha256:" + _sha(json.dumps(bundle["predictions"], sort_keys=True,
-                                                             separators=(",", ":")).encode())}
-    report = evaluate_member(root, contract, candidate, ids, refs, scenarios,
-                             settled, bundle["predictions"], identity, recipe)
+    recipe["prediction_sha256"] = "sha256:" + _sha(
+        json.dumps(
+            bundle["predictions"], sort_keys=True, separators=(",", ":")
+        ).encode()
+    )
+    report = evaluate_member(
+        root,
+        contract,
+        candidate,
+        ids,
+        refs,
+        scenarios,
+        settled,
+        bundle["predictions"],
+        identity,
+        recipe,
+    )
     report["cpu_seconds"] = bundle["seconds"]
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -361,16 +515,24 @@ def compare_run5(q1_path, reports):
             raise Refused("duplicate_member_report")
         v3[member] = row
     missing = sorted(
-        m for m in members
-        if m not in v3 or v3[m]["status"] != "SCORED"
+        m
+        for m in members
+        if m not in v3
+        or v3[m]["status"] != "SCORED"
         or v3[m]["recipe"]["seed"] != members[m]["seed"]
     )
     if len(members) != 8 or missing:
-        return {"status": "UNMEASURED", "expected_members": len(members),
-                "matched_scored": len(members) - len(missing), "missing": missing,
-                "v2": {"kendall_tau_b": q1["one_seed"]["kendall_tau_b"],
-                       "spearman_rho": q1["one_seed"]["spearman_rho"]},
-                "v3": None}
+        return {
+            "status": "UNMEASURED",
+            "expected_members": len(members),
+            "matched_scored": len(members) - len(missing),
+            "missing": missing,
+            "v2": {
+                "kendall_tau_b": q1["one_seed"]["kendall_tau_b"],
+                "spearman_rho": q1["one_seed"]["spearman_rho"],
+            },
+            "v3": None,
+        }
     identities = {json.dumps(v3[m]["identity"], sort_keys=True) for m in members}
     if len(identities) != 1:
         raise Refused("v3_panel_identity_mismatch")
@@ -378,23 +540,36 @@ def compare_run5(q1_path, reports):
     value = [-members[m]["development_decision_loss"] for m in names]
     old = [-members[m]["cpu_practice_score"] for m in names]
     new = [v3[m]["raw_score"] for m in names]
-    return {"status": "SCORED", "members": len(names),
-            "v2": {"kendall_tau_b": kendall_tau_b(old, value),
-                   "spearman_rho": spearman_rho(old, value)},
-            "v3": {"kendall_tau_b": kendall_tau_b(new, value),
-                   "spearman_rho": spearman_rho(new, value)},
-            "v3_identity": v3[names[0]]["identity"]}
+    return {
+        "status": "SCORED",
+        "members": len(names),
+        "v2": {
+            "kendall_tau_b": kendall_tau_b(old, value),
+            "spearman_rho": spearman_rho(old, value),
+        },
+        "v3": {
+            "kendall_tau_b": kendall_tau_b(new, value),
+            "spearman_rho": spearman_rho(new, value),
+        },
+        "v3_identity": v3[names[0]]["identity"],
+    }
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
-    run_parser = sub.add_parser("run", help="reconstruct one confirmed recipe on a dev panel")
+    run_parser = sub.add_parser(
+        "run", help="reconstruct one confirmed recipe on a dev panel"
+    )
     run_parser.add_argument("--panel", required=True, type=Path)
     run_parser.add_argument("--member", required=True, type=Path)
     run_parser.add_argument("--out", required=True, type=Path)
     compare_parser = sub.add_parser("compare-run5", help="matched v2/v3 correlations")
-    compare_parser.add_argument("--q1", type=Path, default=ROOT / "docs/development/evidence/graphite-run5-q1/q1-report.json")
+    compare_parser.add_argument(
+        "--q1",
+        type=Path,
+        default=ROOT / "docs/development/evidence/graphite-run5-q1/q1-report.json",
+    )
     compare_parser.add_argument("--report", action="append", default=[], type=Path)
     args = parser.parse_args(argv)
     if args.command == "run":

@@ -40,7 +40,10 @@ def test_panel_must_be_committed_clean_and_in_development(tmp_path):
 def test_reference_digest_and_path_fail_closed(tmp_path):
     good = b'{"case_id":"toy"}\n'
     (tmp_path / "references.jsonl").write_bytes(good)
-    entry = {"path": "references.jsonl", "sha256": "sha256:" + hashlib.sha256(good).hexdigest()}
+    entry = {
+        "path": "references.jsonl",
+        "sha256": "sha256:" + hashlib.sha256(good).hexdigest(),
+    }
     assert v3._file(tmp_path, entry)[1] == good
     with pytest.raises(v3.Refused, match="file_digest_mismatch"):
         v3._file(tmp_path, {**entry, "sha256": "sha256:" + "0" * 64})
@@ -48,26 +51,95 @@ def test_reference_digest_and_path_fail_closed(tmp_path):
         v3._file(tmp_path, {**entry, "path": "../hidden.jsonl"})
 
 
+def test_confirmation_receipt_binds_recipe_and_seed(tmp_path):
+    from carbon.battery.compile import compile_recipe
+
+    records = json.loads(
+        (
+            v3.ROOT
+            / "docs/development/evidence/graphite-run5-q1/graphite-run5-members.json"
+        ).read_text()
+    )
+    strategy = records[0]["strategy"]
+    _, compiled = compile_recipe(strategy)
+    base = tmp_path / "docs/development/evidence/confirmed-toy"
+    base.mkdir(parents=True)
+    receipt = {
+        "status": "CONFIRMED",
+        "recipe_digest": compiled.recipe_digest,
+        "seed": 17,
+    }
+    body = json.dumps(receipt).encode()
+    (base / "receipt.json").write_bytes(body)
+    member = {
+        "schema": "carbon.battery.confirmed-recipe-input.v1",
+        "status": "CONFIRMED",
+        "member": "toy",
+        "strategy": strategy,
+        "seed": 17,
+        "recipe_digest": compiled.recipe_digest,
+        "confirmation": {
+            "path": "receipt.json",
+            "sha256": "sha256:" + hashlib.sha256(body).hexdigest(),
+        },
+    }
+    member_path = base / "member.json"
+    member_path.write_text(json.dumps(member))
+    accepted, identity = v3.load_confirmed_member(tmp_path, member_path)
+    assert accepted["member"] == "toy"
+    assert identity["recipe_digest"] == compiled.recipe_digest
+    member["seed"] = 18
+    member_path.write_text(json.dumps(member))
+    with pytest.raises(v3.Refused, match="confirmation_identity_mismatch"):
+        v3.load_confirmed_member(tmp_path, member_path)
+    with pytest.raises(v3.Refused, match="development_path_required"):
+        v3.load_confirmed_member(tmp_path, tmp_path / "hidden/member.json")
+
+
 def _toy_evaluation(monkeypatch, g_feas=0.0):
     from carbon.battery.value import quiz
 
     monkeypatch.setattr(quiz, "q3_grid", lambda contract, scenario: [{"case_id": "q3"}])
-    monkeypatch.setattr(v3.exam, "_finite_shape", lambda outputs, shapes: outputs == {"toy": 1})
-    monkeypatch.setattr(v3.PublicMaterial, "load", lambda root: SimpleNamespace(ocv_soc=[0, 1], ocv_v=[3, 4]))
+    monkeypatch.setattr(
+        v3.exam, "_finite_shape", lambda outputs, shapes: outputs == {"toy": 1}
+    )
+    monkeypatch.setattr(
+        v3.PublicMaterial,
+        "load",
+        lambda root: SimpleNamespace(ocv_soc=[0, 1], ocv_v=[3, 4]),
+    )
     monkeypatch.setattr(v3, "frozen_calibration", lambda root: (object(), {}))
-    monkeypatch.setattr(v3.sc, "components", lambda *args: {"eligible": True, "E": 0.25, "E_important": None})
+    monkeypatch.setattr(
+        v3.sc,
+        "components",
+        lambda *args: {"eligible": True, "E": 0.25, "E_important": None},
+    )
     monkeypatch.setattr(v3.tuning, "false_feasible_rate", lambda *args: g_feas)
-    monkeypatch.setattr(v3, "_q3_outcomes", lambda *args: [{"kind": "SELECTED_FEASIBLE", "decision_loss": 1.0}])
+    monkeypatch.setattr(
+        v3,
+        "_q3_outcomes",
+        lambda *args: [{"kind": "SELECTED_FEASIBLE", "decision_loss": 1.0}],
+    )
     candidate = tuning.Candidate(
-        "G-FEAS/A-Q@0.05", weights={"a": 0.5, "q": 0.5},
+        "G-FEAS/A-Q@0.05",
+        weights={"a": 0.5, "q": 0.5},
         gate={"measure": "feasibility", "cutoff": 0.05},
     )
     refs = {"screen": {"status": "OK", "inputs": {"soc0": 0.5}, "outputs": {"toy": 1}}}
     settled = {"q3": {"status": "OK", "outputs": {"toy": 1}}}
     predictions = {"screen": {"toy": 1}, "q3": {"toy": 1}}
-    args = (".", {"mistake_costs": {}}, candidate, ["screen"], refs,
-            [{"id": "toy"}], settled, predictions, {"panel_sha256": "sha256:toy"},
-            {"member": "toy", "seed": 1})
+    args = (
+        ".",
+        {"mistake_costs": {}},
+        candidate,
+        ["screen"],
+        refs,
+        [{"id": "toy"}],
+        settled,
+        predictions,
+        {"panel_sha256": "sha256:toy"},
+        {"member": "toy", "seed": 1},
+    )
     return args
 
 
@@ -106,12 +178,22 @@ def test_unresolved_could_change_q3_best_is_unmeasured(monkeypatch):
         {"id": "b", "c1": 0.6, "c2": 0.2},
     ]
     monkeypatch.setattr(quiz, "q3_candidates", lambda: candidates)
-    monkeypatch.setattr(quiz, "q3_grid", lambda contract, scenario: [{"case_id": "a"}, {"case_id": "b"}])
-    monkeypatch.setattr(v3.d, "assess_reference", lambda *args: {
-        "a": {"status": v3.d.FEASIBLE, "objective": 10.0},
-        "b": {"status": v3.d.UNRESOLVED, "objective": 9.0},
-    })
-    monkeypatch.setattr(quiz, "q3_judge", lambda *args: {"kind": "SELECTED_FEASIBLE", "decision_loss": 0.0})
+    monkeypatch.setattr(
+        quiz, "q3_grid", lambda contract, scenario: [{"case_id": "a"}, {"case_id": "b"}]
+    )
+    monkeypatch.setattr(
+        v3.d,
+        "assess_reference",
+        lambda *args: {
+            "a": {"status": v3.d.FEASIBLE, "objective": 10.0},
+            "b": {"status": v3.d.UNRESOLVED, "objective": 9.0},
+        },
+    )
+    monkeypatch.setattr(
+        quiz,
+        "q3_judge",
+        lambda *args: {"kind": "SELECTED_FEASIBLE", "decision_loss": 0.0},
+    )
     with pytest.raises(v3.Refused, match="q3_reference_could_change_best"):
         v3._q3_outcomes({}, [{"id": "toy"}], {"a": {}, "b": {}}, {})
 
@@ -127,11 +209,16 @@ def test_run5_correlation_waits_for_all_eight_same_panel(tmp_path):
     for member in source["one_seed"]["members_ranked"]:
         row = source["members"][member]
         path = tmp_path / (member + ".json")
-        path.write_text(json.dumps({
-            "status": "SCORED", "recipe": {"member": member, "seed": row["seed"]},
-            "identity": {"panel_sha256": "sha256:toy"},
-            "raw_score": -row["development_decision_loss"],
-        }))
+        path.write_text(
+            json.dumps(
+                {
+                    "status": "SCORED",
+                    "recipe": {"member": member, "seed": row["seed"]},
+                    "identity": {"panel_sha256": "sha256:toy"},
+                    "raw_score": -row["development_decision_loss"],
+                }
+            )
+        )
         paths.append(path)
     matched = v3.compare_run5(q1, paths)
     assert matched["status"] == "SCORED"
