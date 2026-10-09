@@ -142,11 +142,13 @@ SHIP_TREES = ("carbon",)
 #: `carbon.level4.staging` directory per pick, and shipped to the pods as data.
 LEVEL4_DIR = "docs/development/graphite/level4/a40_leg"
 LEVEL4_LEG = "level4"
-#: Recipes the leg adds beyond the picks, so a review op is on the GPU (plan
-#: section 3, item 5): a relu MLP lowers relu as a named function. They get
-#: native repeats too (the same-host comparison needs them). `gather` appears
-#: only in the nearest-neighbour graph, which Carbon does not train; a
-#: forward-only leg for it is an open item, not built here.
+#: Recipes the leg adds beyond the picks, so each review op is on the GPU
+#: (plan section 3, item 5). A relu MLP lowers relu as a named function; it
+#: is trained, and gets native repeats too (the same-host comparison needs
+#: them). `gather` and `sort` appear only in the nearest-neighbour graph,
+#: which Carbon does not train: it runs forward-only (`LEVEL4_FORWARD`), its
+#: same-host comparison inside the one rebuild, against the JAX function it
+#: was lowered from (battery's NumPy kNN differs at 1e-15 and is recorded).
 LEVEL4_COVERAGE = (
     {
         "id": "level4_relu_layer_norm_mlp",
@@ -591,14 +593,25 @@ def _level4_strategy(pick):
     return for_backend(pick["strategy"], "jax")
 
 
+#: The forward-only leg: battery's panel kNN (Test Lead, 2026-10-08).
+LEVEL4_FORWARD = ("level4_knn_forward",)
+
+
+def _knn_strategy():
+    from carbon.battery import level4 as battery
+
+    return battery.level0_strategies()["panel_knn"]
+
+
 def _level4_recipes(record):
-    """`(id, JAX strategy)` for every recipe the leg rebuilds: the picks, then
-    the coverage recipes."""
-    out = [(p["id"], _level4_strategy(p)) for p in record["picks"]]
+    """`(id, JAX strategy, kind)` for every recipe the leg rebuilds: the picks,
+    the coverage recipes (trained), then the forward-only kNN."""
+    out = [(p["id"], _level4_strategy(p), "train") for p in record["picks"]]
     out += [
-        (c["id"], _strategy(c["backbone"], copy.deepcopy(c["parameters"])))
+        (c["id"], _strategy(c["backbone"], copy.deepcopy(c["parameters"])), "train")
         for c in LEVEL4_COVERAGE
     ]
+    out += [(i, _knn_strategy(), "forward") for i in LEVEL4_FORWARD]
     return out
 
 
@@ -613,8 +626,9 @@ def level4_lower(record, repository=REPOSITORY):
     from carbon.level4 import intake, staging, submission
 
     allowlist = allowlist_module.load()
-    for recipe_id, strategy in _level4_recipes(record):
-        manifest, files = battery.lower_recipe(
+    for recipe_id, strategy, kind in _level4_recipes(record):
+        lower = battery.lower_knn if kind == "forward" else battery.lower_recipe
+        manifest, files = lower(
             strategy, allowlist, max_bytes=intake.BOUNDS["document_bytes"]
         )
         directory = Path(repository) / LEVEL4_DIR / recipe_id
@@ -634,7 +648,7 @@ def level4_section(record, repository=REPOSITORY):
 
     allowlist = allowlist_module.load()
     picks, ops = [], set()
-    for recipe_id, strategy in _level4_recipes(record):
+    for recipe_id, strategy, kind in _level4_recipes(record):
         relative = f"{LEVEL4_DIR}/{recipe_id}"
         try:
             digest, _raw, files = staging.read_directory(Path(repository) / relative)
@@ -652,6 +666,7 @@ def level4_section(record, repository=REPOSITORY):
         picks.append(
             {
                 "id": recipe_id,
+                "kind": kind,
                 "strategy": strategy,
                 "directory": relative,
                 "submission": digest,
@@ -1391,6 +1406,7 @@ def level4_entries(record):
     return [
         {
             "id": p["id"],
+            "kind": p["kind"],
             "directory": p["directory"],
             "submission": p["submission"],
             "strategy": p["strategy"],
@@ -1565,7 +1581,16 @@ def level4_cells(pod_results):
             native = _host_cell(h["rows"], recipe_id)
             leg = _leg_row(h["rows"], recipe_id)
             legs[h["label"]] = leg
-            if leg is None or "error" in leg or not native["complete"]:
+            if leg is not None and "native_outputs_sha256" in leg:
+                # Forward-only: the native kNN ran beside the graph in the
+                # same child; compare their outputs.
+                equal = leg["outputs_sha256"] == leg["native_outputs_sha256"]
+                same_host[h["label"]] = {
+                    "outcome": "AGREE" if equal else "DISAGREE",
+                    "native_outputs_sha256": leg["native_outputs_sha256"],
+                    "level4_outputs_sha256": leg["outputs_sha256"],
+                }
+            elif leg is None or "error" in leg or not native["complete"]:
                 same_host[h["label"]] = {"outcome": "INCOMPLETE"}
             elif not native["weights_equal"]:
                 same_host[h["label"]] = {"outcome": "NO_SINGLE_NATIVE_DIGEST"}

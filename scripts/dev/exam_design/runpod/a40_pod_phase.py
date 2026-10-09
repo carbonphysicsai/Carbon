@@ -147,6 +147,63 @@ print(json.dumps({
 }))
 """
 
+#: One forward-only Level 4 rebuild (the kNN graph: `gather` and `sort` on
+#: the device): the documents verified and validated as above, then the
+#: graph rebuilt by Carbon's interpreter and evaluated on TRAIN, in float64,
+#: beside the function it was lowered from (battery's kNN as JAX code,
+#: `knn_jax`), both jitted. Nothing is trained. `native_outputs_sha256` and
+#: `outputs_sha256` hash the two output arrays the same way, so the same-host
+#: comparison is inside this record. Battery's NumPy predictor is a different
+#: implementation (Phase 0: not bit-identical, 3.6e-15): its largest absolute
+#: difference is recorded, never compared against a tolerance.
+CHILD_LEVEL4_FORWARD = """
+import hashlib, json, sys, time
+import jax
+import numpy as np
+from carbon.battery import level4 as battery
+from carbon.level4 import allowlist as allowlist_module
+from carbon.level4 import intake, interpret, staging, submission, validate
+
+strategy, seed, directory, expected = (
+    json.loads(sys.argv[1]), int(sys.argv[2]), sys.argv[3], sys.argv[4]
+)
+started = time.perf_counter()
+allowlist = allowlist_module.load()
+digest, raw_manifest, files = staging.read_directory(directory)
+if digest != expected:
+    raise SystemExit("the staged submission is not the run record's")
+interface = battery.knn_interface(strategy)
+_, parsed = submission.verify(
+    raw_manifest, files, allowlist=allowlist, challenge=battery.challenge_id(),
+    interface=interface.digest(), max_bytes=intake.BOUNDS["document_bytes"],
+)
+verdict = validate.validate_submission(parsed, allowlist, interface=interface)
+
+
+def sha(array):
+    array = np.ascontiguousarray(np.asarray(array, dtype="<f8"))
+    return hashlib.sha256(str(array.shape).encode() + b"\\0" + array.tobytes()).hexdigest()
+
+
+with jax.enable_x64(True):
+    _, u_train, y_train, u, numpy_out = battery.knn_native(strategy, battery.material())
+    rebuilt = jax.jit(interpret.rebuild(parsed["forward"], allowlist))
+    (out,) = rebuilt(u_train, y_train, u)
+    native = jax.jit(battery.knn_jax(strategy["parameters"]["neighbours"]))(
+        u_train, y_train, u
+    )
+print(json.dumps({
+    "params_sha256": hashlib.sha256(b"").hexdigest(),
+    "outputs_sha256": sha(out),
+    "native_outputs_sha256": sha(native),
+    "numpy_max_abs_difference": float(np.max(np.abs(np.asarray(out) - numpy_out))),
+    "submission": digest,
+    "status": verdict["status"],
+    "path": "forward_only",
+    "seconds": round(time.perf_counter() - started, 3),
+}))
+"""
+
 #: The PyTorch image's probe, run through `probe_environment(code=...)`. It
 #: writes the same result keys as Carbon's JAX probe (`pod_phase.PROBE`), so
 #: the record's schema is unchanged.
@@ -301,7 +358,11 @@ def run_level4(entry, seed, root, env, *, python=None, timeout=CHILD_SECONDS):
             [
                 python or sys.executable,
                 "-c",
-                CHILD_LEVEL4,
+                (
+                    CHILD_LEVEL4_FORWARD
+                    if entry.get("kind") == "forward"
+                    else CHILD_LEVEL4
+                ),
                 json.dumps(entry["strategy"]),
                 str(seed),
                 str(Path(root).resolve() / entry["directory"]),

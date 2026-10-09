@@ -7,13 +7,17 @@ CPU only, no pod and no spend. Claims tested:
    `level4_section` pins each one's submission digest, files and review ops
    in the run record; a missing directory is a refusal.
 2. The pod configuration carries the leg on JAX only: one B' rebuild per
-   recipe, and the coverage recipes join the native recipes. The deadline
+   recipe; the trained coverage recipe joins the native recipes, the
+   forward-only kNN does not (it carries its own native). The deadline
    counts the leg's rebuilds at the smoke's own leg measurement. The ship
    list carries the pinned files.
 3. On the CPU, one recipe's B' rebuild (pod child, fresh interpreter) gives
    the native child's `params_sha256` (same host), refuses documents that
    are not the record's, and records an `outputs_sha256`.
-4. The comparison is digest equality only. Same host: B' against native.
+4. The forward-only kNN child (gather, sort) gives, bit for bit, the outputs
+   of the JAX function it was lowered from, on the CPU, in the same record;
+   the NumPy predictor's difference is recorded, not compared.
+5. The comparison is digest equality only. Same host: B' against native.
    Across hosts: B' against B', refused on a driver mismatch or one unit.
    A disagreement is a recorded outcome, never a harness failure.
 """
@@ -70,8 +74,12 @@ def monkeypatch_module():
 def test_documents_are_pinned_before_spend(lowered, tmp_path):
     root, record = lowered
     section = record["level4"]
-    assert [p["id"] for p in section["picks"]] == ["r2", "level4_relu_layer_norm_mlp"]
-    assert section["covers"] == {"gather": False, "named_function": True}
+    assert [(p["id"], p["kind"]) for p in section["picks"]] == [
+        ("r2", "train"),
+        ("level4_relu_layer_norm_mlp", "train"),
+        ("level4_knn_forward", "forward"),
+    ]
+    assert section["covers"] == {"gather": True, "named_function": True}
     for pick in section["picks"]:
         assert pick["submission"].startswith("sha256:")
         assert all((root / f).is_file() for f in pick["files"])
@@ -84,7 +92,11 @@ def test_the_leg_is_configured_on_jax_only(lowered):
     _, record = lowered
     jax = a40.phase_config("jax", record)
     torch = a40.phase_config("pytorch", record)
-    assert [e["id"] for e in jax["level4"]] == ["r2", "level4_relu_layer_norm_mlp"]
+    assert [e["id"] for e in jax["level4"]] == [
+        "r2",
+        "level4_relu_layer_norm_mlp",
+        "level4_knn_forward",
+    ]
     assert "level4" not in torch
     assert [r["id"] for r in jax["recipes"]] == ["r2", "level4_relu_layer_norm_mlp"]
     assert [r["id"] for r in torch["recipes"]] == ["r2", "fno_defaults"]
@@ -163,3 +175,27 @@ def test_comparison_same_host_and_across_hosts():
     # Native cells never count a leg row.
     native = a40.compare(agree)["cells"][0]
     assert all(c["repeats"] == 2 for c in native["within_host"].values())
+
+
+def test_the_forward_only_knn_equals_native_on_cpu(lowered):
+    root, record = lowered
+    (entry,) = [e for e in a40.level4_entries(record) if e["kind"] == "forward"]
+    env = phase.pinned_environment("jax", device=None)
+    row = phase.run_level4(entry, 0, root, env, timeout=600)
+    assert "error" not in row, row
+    assert row["path"] == "forward_only"
+    assert row["outputs_sha256"] == row["native_outputs_sha256"]
+    assert isinstance(row["numpy_max_abs_difference"], float)
+    leg = {"recipe_id": entry["id"], "leg": a40.LEVEL4_LEG, "repeat": 0, **row}
+    hosts = [
+        {
+            "backend": "jax",
+            "label": label,
+            "identity": {"uuid": label, "driver_version": "1"},
+            "rows": [leg],
+        }
+        for label in ("A", "B")
+    ]
+    (cell,) = a40.compare(hosts)["level4"]
+    assert {c["outcome"] for c in cell["same_host"].values()} == {"AGREE"}
+    assert cell["across_hosts"]["outcome"] == "AGREE"
