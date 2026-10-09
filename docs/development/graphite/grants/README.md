@@ -968,4 +968,3 @@ Tokens only: 6 runs one at a time, 4.91 USD worst case per run, 0.25 cleanup, 30
 ceiling, 39,600 s per run. `max_submissions` (144) is a ceiling; the arm cap is set
 at the freeze. The grant binds spend only after the freeze manifest is on main and
 the runner binds it to the study's route (see the decision record).
-
