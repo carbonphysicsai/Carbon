@@ -192,7 +192,7 @@
       el("p", doc.decision, "lede"));
     const notice = el("p", null, "notice");
     const leader = doc.model.kind === "LEADER";
-    notice.append(el("strong", leader ? "The current leader's model. " : "Synthetic control, not a miner. "),
+    notice.append(el("strong", leader ? (doc.model.incumbent === "LIVE" ? "Current incumbent, public cases. " : "The released incumbent's model. ") : "Synthetic control, not a miner. "),
       document.createTextNode(doc.model.label + ". " + (leader ? doc.model.note + " " : "") +
         "Public EV4 cases and public reference solves only; nothing here comes from a hidden or live exam."));
     view.append(notice);

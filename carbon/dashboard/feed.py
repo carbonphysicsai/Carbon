@@ -304,6 +304,7 @@ def _release(raw):
 
 SHOWCASE_SCHEMA = "carbon.validator.showcase-panel.v1"
 SHOWCASE_STATES = ("PREDICTED", "UNAVAILABLE")
+SHOWCASE_LIVE = "LIVE"
 SHOWCASE_QUANTITIES = (
     "time_to_cv_onset_s",
     "reach_class",
@@ -315,17 +316,29 @@ _SHA256 = re.compile(r"[0-9a-f]{64}")
 
 
 def _showcase(raw, incumbent, trust):
-    """The released incumbent's predictions on the registered public showcase
-    task (VALIDATOR-29 showcase), or None. Only the incumbent may drive it;
-    only public EV4 case ids and the four projected quantities are kept. The
+    """The incumbent's predictions on the registered public showcase task
+    (VALIDATOR-29 showcase), or None.
+
+    Which incumbent drives it is the task's registration:
+    - `task.incumbent == "LIVE"`: the deployment's current incumbent, whose
+      hotkey is public through the on-chain weights (owner-confirmed in the
+      Carbon Validator session, 2026-10-08). It may differ from the
+      leaderboard's released incumbent, or come before any release; the
+      leaderboard's incumbent stays released-only.
+    - absent: only the feed's released incumbent.
+
+    Only public EV4 case ids and the four projected quantities are kept. The
     model's identity digest is dropped, and no recipe is ever carried."""
     if raw is None:
         return None
     if type(raw) is not dict or raw.get("schema") != SHOWCASE_SCHEMA:
         raise FeedRefused("showcase_invalid")
-    if incumbent is None:
-        raise FeedRefused("showcase_without_incumbent")
     task = raw.get("task")
+    mode = task.get("incumbent") if type(task) is dict else None
+    if mode not in (None, SHOWCASE_LIVE):
+        raise FeedRefused("showcase_invalid")
+    if mode is None and incumbent is None:
+        raise FeedRefused("showcase_without_incumbent")
     model = raw.get("model")
     if type(task) is not dict or type(model) is not dict:
         raise FeedRefused("showcase_invalid")
@@ -337,7 +350,8 @@ def _showcase(raw, incumbent, trust):
     sha = task.get("contract_sha256")
     if type(sha) is not str or not _SHA256.fullmatch(sha):
         raise FeedRefused("showcase_invalid")
-    if _hotkey(model.get("hotkey"), trust) != incumbent["hotkey"]:
+    hotkey = _hotkey(model.get("hotkey"), trust)
+    if mode is None and hotkey != incumbent["hotkey"]:
         raise FeedRefused("showcase_not_incumbent")
     state = raw.get("state")
     if state not in SHOWCASE_STATES:
@@ -348,7 +362,13 @@ def _showcase(raw, incumbent, trust):
             "contract": _text(task.get("contract"), "showcase_invalid"),
             "contract_sha256": sha,
             "split": "development",
+            "incumbent": mode or "RELEASED",
         },
+        "label": (
+            None
+            if raw.get("label") is None
+            else _text(raw["label"], "showcase_invalid")
+        ),
         "contract_digest": _text(raw.get("contract_digest"), "showcase_invalid"),
         "model": {
             "hotkey": model["hotkey"],

@@ -523,15 +523,30 @@ def build_all(out_dir, leaders=()):
             continue
         _check_panel(public, panel)
         hotkey = panel["model"]["hotkey"]
+        live = panel["task"]["incumbent"] == "LIVE"
+        short = f"{hotkey[:6]}…{hotkey[-4:]}"
+        where = f"{board['challenge']['id']}, {board['device_class'] or 'no class'}"
+        title = panel["label"] or (
+            "current incumbent, public cases" if live else "released incumbent"
+        )
         model = {
             "id": f"LEADER-{board['slug']}",
             "kind": "LEADER",
+            "incumbent": panel["task"]["incumbent"],
             "hotkey": hotkey,
             "submission_id": panel["model"]["submission_id"],
             "board": board["slug"],
             "device_class": board["device_class"],
-            "label": f"Incumbent {hotkey[:6]}…{hotkey[-4:]} ({board['challenge']['id']}, {board['device_class']})",
-            "note": "The released incumbent's model, rebuilt by Carbon and queried by the validator on public cases. Predictions only.",
+            "label": f"{title[:1].upper()}{title[1:]}: {short} ({where})",
+            "note": (
+                "The deployment's current incumbent, rebuilt by Carbon and queried by "
+                "the validator on public cases. Its hotkey is public through the "
+                "on-chain weights; its scores stay sealed until its windows are "
+                "released. Predictions only."
+                if live
+                else "The released incumbent's model, rebuilt by Carbon and queried "
+                "by the validator on public cases. Predictions only."
+            ),
         }
         for scenario in ev.scenarios(public["contract"], "development"):
             document = replay(
