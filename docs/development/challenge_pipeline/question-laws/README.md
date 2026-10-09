@@ -1,5 +1,10 @@
 # Eight-Challenge design-question laws — DEVELOPMENT proposal
 
+Prospective f02 round 2: [customer law, value panel and startup arithmetic](f02-round2.md)
+ / [sheet](f02-round2.json). Continuous requirements and denser in-bounds actions
+are recommendations only; the nine-action history cannot meet the ten-action
+contested minimum. No bank draw, runtime adoption, safety or exposure change.
+
 > **Battery prospective round-two supplement (2026-10-09):**
 > [battery-v3-round2.md](battery-v3-round2.md) /
 > [non-runtime sheet](battery-v3-round2.json) binds the owner's 0.01-C action
