@@ -451,6 +451,7 @@ REFUSAL_FIELDS = {
     # Construction levels (LAUNCHPAD-LEVELS-01 S2, S3).
     "level_not_registered": "construction_level",
     "level_not_served_by_target": "construction_level",
+    "level_compile_not_served_by_target": "construction_level",
     "construction_level_invalid": "construction_level",
     "construction_level_arm_invalid": "arm",
     "construction_level_needs_own_selection": "agent",

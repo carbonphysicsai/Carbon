@@ -48,6 +48,10 @@ CLI_TIMEOUT_SECONDS = 600
 
 NOT_REGISTERED = "level_not_registered"
 NOT_SERVED = "level_not_served_by_target"
+#: The level's compile is not spawned: the binding's target intake does not
+#: list the variant's exact digest in `served_contracts` (Test Lead's ruling
+#: on #902: the child-process compile runs only where the target serves it).
+COMPILE_NOT_SERVED = "level_compile_not_served_by_target"
 INVALID = "construction_level_invalid"
 ARM_INVALID = "construction_level_arm_invalid"
 NEEDS_OWN_SELECTION = "construction_level_needs_own_selection"
@@ -138,6 +142,17 @@ def resolve(challenge, level, arm=None, *, directory=None):
     }
 
 
+def with_target(found, target_intake):
+    """The binding with the target intake its compile is gated on: the
+    runner profile's intake for the Challenge at launch, or None (then every
+    compile is refused before anything is spawned)."""
+    if found is None:
+        return None
+    if target_intake is not None and type(target_intake) is not str:
+        raise LevelRefused(NOT_SERVED)
+    return {**found, "target_intake": target_intake}
+
+
 def binding(manifest):
     """A frozen manifest's level binding, or None for a Level 0 campaign."""
     found = (manifest or {}).get(MANIFEST_KEY) if type(manifest) is dict else None
@@ -165,14 +180,16 @@ def served_contracts(facts):
 
 
 def lists(facts, found):
-    """Whether the intake's facts list this binding's variant: the entry for
-    its level names its registry version, and its digest is the binding's."""
+    """Whether the intake's facts list this binding's variant: an entry whose
+    digest is the binding's exact digest, whose own `level` is the binding's
+    level (one door may serve several levels), and whose `variant`, where it
+    names one, is the binding's registry version."""
     for entry in served_contracts(facts) or ():
         if (
             type(entry) is dict
-            and entry.get("level") == found["level"]
-            and entry.get("variant") == found["variant"]
             and entry.get("digest") == found["digest"]
+            and entry.get("level") == found["level"]
+            and entry.get("variant", found["variant"]) == found["variant"]
         ):
             return True
     return False
@@ -252,6 +269,46 @@ def checked(value):
 RUN = _run
 
 
+def _read_target(challenge, url):
+    """The target intake's public facts, through the Challenge campaign's
+    own intake check (its chain and Challenge)."""
+    from carbon.challenge_registry.campaigns import campaign_for, challenge_ref
+
+    campaign = campaign_for(
+        {"id": challenge, "version": challenge_ref(challenge)["version"]}
+    )
+    if campaign.intake_check is None:
+        return None
+    return campaign.intake_check(url)
+
+
+#: How the target's facts are read before a spawn; tests substitute one.
+READ_TARGET = _read_target
+
+
+def require_compile_served(found):
+    """`level_compile_not_served_by_target` unless the binding's target
+    intake lists the variant's exact digest (`lists`): no target, an
+    unreadable one, absent `served_contracts`, or a listing without this
+    variant. Checked before every spawn of the level's compile, never
+    skipped by a cached answer."""
+    url = found.get("target_intake")
+    if type(url) is not str or not url:
+        raise LevelRefused(COMPILE_NOT_SERVED)
+    try:
+        facts = READ_TARGET(found["challenge"], url)
+    except Exception:  # noqa: BLE001 - unread is never served (fail closed)
+        raise LevelRefused(COMPILE_NOT_SERVED) from None
+    if not lists(facts, found):
+        raise LevelRefused(COMPILE_NOT_SERVED)
+
+
+def _spawn(found, request):
+    """The development door's answer, only once the target serves it."""
+    require_compile_served(found)
+    return RUN(request)
+
+
 @functools.lru_cache(maxsize=64)
 def _compiled(key):
     request = json.loads(key)
@@ -260,9 +317,12 @@ def _compiled(key):
 
 def compile_strategy(found, strategy):
     """The level's compile of `strategy` (`compile_development`, in its own
-    process), checked to be the frozen binding's variant."""
+    process), checked to be the frozen binding's variant. Refused before
+    anything is spawned unless the binding's target serves the variant
+    (`require_compile_served`)."""
     if type(strategy) is not dict:
         raise LevelRefused("level_strategy_refused")
+    require_compile_served(found)
     key = json.dumps(
         {
             "op": "compile",
@@ -331,7 +391,8 @@ def level4_check(found, strategy, directory):
         raise LevelRefused(LEVEL4_DIRECTORY_NOT_FOR_LEVEL)
     if type(directory) is not str or not directory:
         raise LevelRefused(LEVEL4_DIRECTORY_REQUIRED)
-    value = RUN(
+    value = _spawn(
+        found,
         {
             "op": "level4",
             "challenge": found["challenge"],
@@ -339,7 +400,7 @@ def level4_check(found, strategy, directory):
             "arm": found.get("arm"),
             "strategy": strategy,
             "directory": directory,
-        }
+        },
     )
     if value.get("variant_digest") != found["digest"]:
         raise LevelRefused(NOT_REGISTERED)
@@ -383,29 +444,38 @@ def candidate_record(found, strategy, reason, used_feedback, compiled):
     }
 
 
-def commitment_fields(record):
+def commitment_fields(record, manifest):
     """What a level candidate commits, `(challenge, contract_digest,
-    strategy_hash)`: its Challenge, the variant's digest it was frozen under,
-    and the strategy hash the level's compile gives it (recomputed, never
-    read back from the record). The Challenge's own commitment function
-    digests them."""
-    frozen = record[MANIFEST_KEY]
+    strategy_hash)`: its Challenge, the **variant's** digest it was frozen
+    under, and the strategy hash the level's compile gives it (recomputed,
+    never read back from the record). The Challenge's own commitment function
+    digests them.
+
+    The contract digest is never the base contract's. It must be the
+    manifest's frozen variant digest, the record's own `contract_digest` and
+    its binding's digest at once, and a registered development variant;
+    anything else raises `ValueError` and nothing is committed (no fallback
+    to the base digest, and none to Level 0's path)."""
+    from carbon.reconstruction.capability_registry import is_development_variant
+
+    found = binding(manifest)
+    frozen = record.get(MANIFEST_KEY)
+    if found is None or type(frozen) is not dict:
+        raise ValueError("a level candidate commits under its frozen binding")
+    digest = record.get("contract_digest")
+    if (
+        type(digest) is not str
+        or digest != found["digest"]
+        or digest != frozen.get("digest")
+        or digest == manifest.get("contract_digest")
+        or not is_development_variant(digest)
+    ):
+        raise ValueError("a level candidate commits its variant's digest only")
     strategy = record["strategy"]
-    found = {
-        "challenge": strategy["challenge_id"],
-        "level": frozen["level"],
-        "arm": frozen.get("arm"),
-        "variant": frozen["variant"],
-        "digest": record["contract_digest"],
-    }
-    if frozen["digest"] != record["contract_digest"]:
-        raise ValueError("the frozen level binding differs from its record")
     value = compile_strategy(found, strategy)
-    return (
-        strategy["challenge_id"],
-        record["contract_digest"],
-        value["commitment_strategy_hash"],
-    )
+    if value["variant_digest"] != digest:
+        raise ValueError("a level candidate commits its variant's digest only")
+    return (strategy["challenge_id"], digest, value["commitment_strategy_hash"])
 
 
 def write_envelope(folder, envelope):

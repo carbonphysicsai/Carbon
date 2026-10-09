@@ -49,9 +49,11 @@ def _rejected(refused, status=409):
     return error
 
 
-def launch_binding(request, challenge, agent):
+def launch_binding(request, challenge, agent, cfg=None):
     """The level binding a launch names, or None for Level 0. Refused by
-    closed code before the campaign is created."""
+    closed code before the campaign is created. The binding carries the
+    profile's intake for the Challenge (`target_intake`): the level's compile
+    is spawned only while that target lists the variant's exact digest."""
     cl = _cl()
     level, arm = request.get("construction_level"), request.get("arm")
     if level is None and arm is None:
@@ -70,10 +72,11 @@ def launch_binding(request, challenge, agent):
 
     if not campaign_for(challenge).construction_levels:
         raise Rejected(cl.NOT_OFFERED, 409)
-    return found
+    target = _intake_url(cfg, challenge["id"]) if cfg is not None else None
+    return cl.with_target(found, target)
 
 
-def campaign_binding(row):
+def campaign_binding(row, cfg=None):
     """An admitted campaign's level binding: its frozen manifest's, or,
     before the manifest is written, the one its launch record names."""
     cl = _cl()
@@ -93,9 +96,11 @@ def campaign_binding(row):
     if level is None:
         return None
     try:
-        return cl.resolve(challenge, level, recorded.get("arm"))
+        found = cl.resolve(challenge, level, recorded.get("arm"))
     except cl.LevelRefused as refused:
         raise _rejected(refused) from None
+    target = _intake_url(cfg, challenge) if cfg is not None else None
+    return cl.with_target(found, target)
 
 
 def checked_strategy(found, strategy):

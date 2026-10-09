@@ -1210,6 +1210,13 @@ NEXT_ACTIONS = {
         "above 0 is DEVELOPMENT: submit it only to the development-ladder "
         "deployment that lists it. The frozen candidate is kept."
     ),
+    "level_compile_not_served_by_target": (
+        "Your target validator's intake does not list this level's variant "
+        "digest in its served_contracts, so the level's compile was not run "
+        "and nothing was practised or frozen. Point this Challenge's intake "
+        "at the development-ladder deployment that serves the level (Set up "
+        "your environment), then try again."
+    ),
     "construction_level_invalid": (
         "Send construction_level as a whole number from 0 to 5, or omit it "
         "for Level 0. arm needs a construction_level."

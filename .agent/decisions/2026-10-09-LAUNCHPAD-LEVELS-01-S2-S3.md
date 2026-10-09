@@ -95,16 +95,41 @@ scope; nothing here sets a bound, gate, score or value.
     refused `level4_envelope_transport_unavailable` before anything is
     signed, and the campaign's own send path refuses the same after checking
     the kept envelope.
+12. **The child-process compile is gated (Test Lead's ruling on #902,
+    2026-10-09).** This supersedes decision 3's open review question. The
+    binding frozen at launch carries the profile's intake for the Challenge
+    (`target_intake`). Before every spawn of `development_level_cli`
+    (practice, freeze, Level 4's check and the commitment's recompute), and
+    never skipped by a cached answer, the target's public facts are read.
+    They must list the variant's exact digest in `served_contracts`, in an
+    entry whose own `level` is the binding's (one door may serve several
+    levels) and whose `variant`, where named, is its registry version.
+    Otherwise nothing is spawned and the call is refused
+    `level_compile_not_served_by_target` (field `construction_level`, with a
+    next step). That covers no target, an unreadable one, the field absent,
+    a listing of level 0 only (the main deployment), and a listing of
+    another level or digest. The doors keep the no-import invariant
+    unchanged.
+13. **The commitment binds the variant digest, never the base digest.**
+    `battery.campaign.frozen_commitment` takes the level path whenever the
+    record *or* the manifest carries a level binding, so a level campaign
+    never falls back to Level 0's `expected_digest`. The level path commits
+    only a `contract_digest` that is the manifest's frozen variant digest
+    and the record binding's digest, is a registered development variant,
+    and is not the manifest's base `contract_digest`. Anything else raises
+    and nothing is committed. The send path refuses the same mismatch
+    (`level_not_registered`) before anything is signed, and a level
+    candidate is never sent to a deployment on this machine
+    (`level_not_served_by_target`). The Test Lead is telling the Carbon
+    Validator the same, so both sides agree.
 
 **Open, for the Carbon Validator.**
-- The ladder's admission today computes the expected commitment from the
-  development compiler's result (`CompiledDevelopment.contract_digest` is the
-  *base* contract's digest). The Launchpad commits the *variant's* digest, as
-  the ticket specifies; the ladder must compute the same, or every level
-  submit there is refused `commitment_required`.
-- The commitment's strategy hash is the base construction's, so it binds the
-  level (through the variant digest) but not the widened values; the
-  admission's `widened_digest` binds those.
+- The Validator's development commitment form,
+  `daemon.development_commitment_digest(challenge, variant_digest,
+  strategy_hash, strategy)`, also binds the strategy's own digest, so it
+  covers the widened values. It lands in #899. The level path switches to it
+  in one commit once #899 is on main; until then it is not imported, because
+  an import before the merge would break this PR's CI.
 
 **Unchanged.** Every level's bounds, gates and scoring; the variant
 registry; validator and intake code; the commitment schema; Level 0.

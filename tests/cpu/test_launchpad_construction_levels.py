@@ -66,11 +66,43 @@ def entry(found):
     }
 
 
+LEVEL0 = {"level": 0, "digest": cr.contract_digest(BATTERY)}
+
+
+def bound(level, arm=None):
+    """A binding as a launch with the fixture profile freezes it."""
+    return cl.with_target(cl.resolve(BATTERY, level, arm), URL)
+
+
+def ladder_facts():
+    """A fixture ladder intake that serves every registered level."""
+    served = [LEVEL0]
+    for level, arm in ((1, None), (1, "signed"), (2, None), (3, None), (4, None)):
+        served.append(entry(cl.resolve(BATTERY, level, arm)))
+    return facts(*served)
+
+
 @pytest.fixture(autouse=True)
-def fresh_cache():
+def fresh_cache(monkeypatch):
     cl._compiled.cache_clear()
+    # The fixture target serves every level, unless a test says otherwise.
+    monkeypatch.setattr(cl, "READ_TARGET", lambda challenge, url: ladder_facts())
     yield
     cl._compiled.cache_clear()
+
+
+@pytest.fixture
+def no_spawn(monkeypatch):
+    """The spawn seam, failing the test if the child process is launched."""
+    spawned = []
+
+    def spawn(request):
+        spawned.append(request)
+        raise AssertionError("the level's compile was spawned")
+
+    monkeypatch.setattr(cl, "RUN", spawn)
+    monkeypatch.setattr(cl.subprocess, "run", spawn)
+    return spawned
 
 
 # ---- 1. The binding.
@@ -112,7 +144,11 @@ def test_a_level_with_no_registered_variant_is_refused_from_registry_data(tmp_pa
 
 def test_launch_binding_refuses_by_closed_code_before_anything_is_created():
     found = levels.launch_binding({"construction_level": 2}, challenge(), "none")
-    assert found == cl.resolve(BATTERY, 2)
+    assert found == cl.with_target(cl.resolve(BATTERY, 2), None)
+    with_profile = levels.launch_binding(
+        {"construction_level": 2}, challenge(), "none", CFG
+    )
+    assert with_profile == bound(2) and with_profile["target_intake"] == URL
     assert levels.launch_binding({}, challenge(), "graphite") is None
     with pytest.raises(Rejected) as refused:
         levels.launch_binding({"construction_level": 5}, challenge(), "none")
@@ -174,7 +210,7 @@ def test_practice_compiles_at_the_level_and_trains_the_level_0_base():
     from carbon.battery.compile import compile_recipe
     from carbon.battery.research import BatteryPractice
 
-    found = cl.resolve(BATTERY, 2)
+    found = bound(2)
     practice = SimpleNamespace(level=found)
     widened = strategy(muon_spectral=True)
     _compiled, recipe = BatteryPractice.compile(practice, widened)
@@ -195,7 +231,7 @@ def test_practice_compiles_at_the_level_and_trains_the_level_0_base():
 def test_the_level_compile_is_compile_development():
     from carbon.reconstruction import development_variants as dv
 
-    found = cl.resolve(BATTERY, 2)
+    found = bound(2)
     value = cl.compile_strategy(found, strategy(muon_spectral=True))
     direct = dv.compile_development(
         strategy(muon_spectral=True), dv.variant(BATTERY, 2)
@@ -215,25 +251,41 @@ def test_freeze_records_the_variant_digest_and_the_commitment_binds_it():
     from carbon.battery import campaign
     from carbon.battery.daemon import commitment_digest
 
-    found = cl.resolve(BATTERY, 2)
+    found = bound(2)
     chosen = strategy(muon_spectral=True)
     compiled, envelope = cl.check_freeze(found, chosen)
     assert envelope is None
     record = cl.candidate_record(found, chosen, "practiced", False, compiled)
     assert record["contract_digest"] == found["digest"]
     assert record["construction_level"]["digest"] == found["digest"]
-    manifest = {"contract_digest": cr.contract_digest(BATTERY)}
+    manifest = {
+        "contract_digest": cr.contract_digest(BATTERY),
+        "construction_level": found,
+    }
     digest = campaign.frozen_commitment(record, manifest)
     # The commitment's own schema, unchanged: {challenge, contract, strategy}.
     assert digest == commitment_digest(
         BATTERY, found["digest"], compiled["commitment_strategy_hash"]
     )
-    level0 = campaign.frozen_commitment({"strategy": strategy()}, manifest)
+    level0 = campaign.frozen_commitment(
+        {"strategy": strategy()}, {"contract_digest": manifest["contract_digest"]}
+    )
     assert level0 != digest
-    # A record whose binding differs from its contract digest is not committed.
-    altered = {**record, "contract_digest": cl.resolve(BATTERY, 3)["digest"]}
+    # The variant's digest only: never another variant's, never the base's.
+    base = manifest["contract_digest"]
+    for altered in (
+        {**record, "contract_digest": cl.resolve(BATTERY, 3)["digest"]},
+        {**record, "contract_digest": base},
+        {**record, "contract_digest": None},
+        {k: v for k, v in record.items() if k != "construction_level"},
+    ):
+        with pytest.raises(ValueError):
+            campaign.frozen_commitment(altered, manifest)
+    # A level campaign's record never falls back to the Level 0 path.
     with pytest.raises(ValueError):
-        campaign.frozen_commitment(altered, manifest)
+        campaign.frozen_commitment(
+            {"strategy": chosen, "contract_digest": base}, manifest
+        )
 
 
 def test_research_freeze_writes_the_level_record(tmp_path, monkeypatch):
@@ -241,7 +293,7 @@ def test_research_freeze_writes_the_level_record(tmp_path, monkeypatch):
 
     from carbon.development_session import research_campaign as rc
 
-    found = cl.resolve(BATTERY, 1)
+    found = bound(1)
     monkeypatch.setattr(rc, "freeze_refusal", lambda root, s: None)
     monkeypatch.setattr(rc, "report", lambda ledger, owner: None)
     ledger = SimpleNamespace(
@@ -288,7 +340,7 @@ def _manifest(level=None, arm=None):
         "contract_digest": cr.contract_digest(BATTERY),
     }
     if level:
-        manifest["construction_level"] = cl.resolve(BATTERY, level, arm)
+        manifest["construction_level"] = bound(level, arm)
     return manifest
 
 
@@ -492,3 +544,79 @@ def test_every_level_code_has_a_next_step():
     assert "level_not_registered" in codes and "level_not_served_by_target" in codes
     for code in codes + ["level_compile_unavailable"]:
         assert next_action(code) != FALLBACK_ACTION, code
+
+
+# ---- The spawn gate (Test Lead's ruling on #902).
+
+
+@pytest.mark.parametrize(
+    "served",
+    [
+        {"challenge": {"id": BATTERY}},  # served_contracts absent
+        facts(LEVEL0),  # the main deployment: level 0 only
+    ],
+    ids=["field_absent", "level_0_only"],
+)
+def test_a_target_that_does_not_serve_the_level_never_spawns_its_compile(
+    served, monkeypatch, no_spawn
+):
+    from carbon.battery.research import BatteryPractice
+
+    monkeypatch.setattr(cl, "READ_TARGET", lambda challenge, url: served)
+    found = bound(2)
+    chosen = strategy(muon_spectral=True)
+    # Practice, at the door and in the campaign's own compile.
+    with pytest.raises(Rejected) as refused:
+        levels.checked_strategy(found, chosen)
+    assert refused.value.code == "level_compile_not_served_by_target"
+    assert operations.refusal(refused.value.code)["field"] == "construction_level"
+    with pytest.raises(cl.LevelRefused) as refused:
+        BatteryPractice.compile(SimpleNamespace(level=found), chosen)
+    assert refused.value.code == "level_compile_not_served_by_target"
+    # Freeze, at the door and in the campaign's freeze (Level 4 included).
+    with pytest.raises(Rejected) as refused:
+        levels.checked_freeze(found, chosen, None)
+    assert refused.value.code == "level_compile_not_served_by_target"
+    with pytest.raises(cl.LevelRefused) as refused:
+        cl.level4_check(bound(4), chosen, "/tmp/lowered")
+    assert refused.value.code == "level_compile_not_served_by_target"
+    assert no_spawn == []
+
+
+def test_a_cached_compile_is_still_gated(monkeypatch):
+    found = bound(2)
+    cl.compile_strategy(found, strategy(muon_spectral=True))
+    monkeypatch.setattr(cl, "READ_TARGET", lambda challenge, url: facts(LEVEL0))
+    with pytest.raises(cl.LevelRefused) as refused:
+        cl.compile_strategy(found, strategy(muon_spectral=True))
+    assert refused.value.code == "level_compile_not_served_by_target"
+
+
+def test_no_target_or_an_unreadable_one_never_spawns(monkeypatch, no_spawn):
+    with pytest.raises(cl.LevelRefused) as refused:
+        cl.compile_strategy(cl.resolve(BATTERY, 2), strategy())
+    assert refused.value.code == "level_compile_not_served_by_target"
+
+    def broken(challenge, url):
+        raise OSError("down")
+
+    monkeypatch.setattr(cl, "READ_TARGET", broken)
+    with pytest.raises(cl.LevelRefused) as refused:
+        cl.compile_strategy(bound(2), strategy())
+    assert refused.value.code == "level_compile_not_served_by_target"
+    assert no_spawn == []
+
+
+def test_a_listing_for_another_level_or_digest_never_spawns(monkeypatch, no_spawn):
+    found = bound(2)
+    for listed in (
+        {**entry(found), "level": 3},
+        {**entry(found), "digest": cl.resolve(BATTERY, 3)["digest"]},
+        {**entry(found), "variant": "battery-l2-spectral-v1"},
+    ):
+        monkeypatch.setattr(
+            cl, "READ_TARGET", lambda challenge, url, listed=listed: facts(listed)
+        )
+        with pytest.raises(cl.LevelRefused):
+            cl.compile_strategy(found, strategy())
+    assert no_spawn == []

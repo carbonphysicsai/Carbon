@@ -911,6 +911,13 @@ async def evaluate_candidate(prepared, epoch, record):
 
     config = evaluation_config(prepared)
     intake = _intake(prepared)
+    _level_record_bound(prepared, record)
+    if (getattr(prepared, "manifest", None) or {}).get("construction_level") and (
+        intake is None
+    ):
+        # A level candidate goes only through a target intake that lists
+        # its variant, never to a deployment on this machine.
+        raise OperationRefused("level_not_served_by_target")
     if config is None and intake is not None:
         # The validator runs elsewhere: submit through its intake, signed by
         # the miner's own signer (C-MLP-03 slice 6).
@@ -1214,15 +1221,17 @@ def frozen_commitment(record, manifest):
     its Challenge, the contract it was frozen under and its strategy hash."""
     from carbon.chain.commitment_poster import expected_digest
 
-    if "construction_level" in record:
-        # A candidate frozen at a construction level (LAUNCHPAD-LEVELS-01
-        # S2): the same digest over the variant's contract digest and the
-        # strategy hash the level's compile gives it.
+    if "construction_level" in record or "construction_level" in manifest:
+        # A candidate of a campaign at a construction level
+        # (LAUNCHPAD-LEVELS-01 S2): the same digest over the variant's
+        # contract digest, never the base contract's, and the strategy hash
+        # the level's compile gives it. A level campaign's record without its
+        # binding raises: it never falls back to the Level 0 path below.
         from carbon.development_session.construction_level import commitment_fields
 
         from .daemon import commitment_digest
 
-        return commitment_digest(*commitment_fields(record))
+        return commitment_digest(*commitment_fields(record, manifest))
     return expected_digest(
         record["strategy"],
         record.get("contract_digest") or manifest["contract_digest"],
@@ -1265,6 +1274,27 @@ async def _committed(gate, root, epoch, record, manifest, *, request, recommit=F
         raise OperationRefused(code)
 
 
+def _level_record_bound(prepared, record):
+    """`level_not_registered` (`OperationRefused`) when a campaign launched at
+    a construction level holds a candidate not frozen under its variant: its
+    record's `contract_digest` and binding must both be the manifest's
+    variant digest. A level candidate is never sent under the base contract
+    digest (LAUNCHPAD-LEVELS-01 S2)."""
+    from carbon.development_session.research_campaign import OperationRefused
+
+    found = (getattr(prepared, "manifest", None) or {}).get("construction_level")
+    frozen = record.get("construction_level")
+    if found is None and frozen is None:
+        return
+    digest = record.get("contract_digest")
+    if not (
+        type(found) is dict
+        and type(frozen) is dict
+        and digest == found.get("digest") == frozen.get("digest")
+    ):
+        raise OperationRefused("level_not_registered")
+
+
 async def _evaluate_through_intake(prepared, epoch, record, url):
     """One frozen candidate through the validator's intake; see
     `submit_through_intake`. The epoch is consumed only by a verdict: SCORED,
@@ -1289,6 +1319,7 @@ async def _evaluate_through_intake(prepared, epoch, record, url):
     from .remote_submission import IntakeRefusal
 
     root = prepared.ledger.root
+    _level_record_bound(prepared, record)
     frozen_level = record.get("construction_level")
     if type(frozen_level) is dict and frozen_level.get("level") == 4:
         # A Level 4 candidate travels with its staging envelope beside the

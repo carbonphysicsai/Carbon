@@ -2871,7 +2871,7 @@ class RunnerAdapter:
         graphite = self._graphite_choice(request, challenge)
         if graphite is not None:
             choice = replace(choice or LaunchChoice(), graphite=graphite)
-        level = levels.launch_binding(request, challenge, request["agent"])
+        level = levels.launch_binding(request, challenge, request["agent"], cfg)
         if level is not None:
             choice = replace(choice or LaunchChoice(), construction_level=level)
         run_id, request_digest, config_pin = self._launch_identity(cfg, request)
@@ -3006,7 +3006,7 @@ class RunnerAdapter:
             choice = replace(choice or LaunchChoice(), graphite=graphite)
         elif captured is not None:
             raise Rejected("launch_record_differs", 409)
-        level = levels.launch_binding(request, challenge, request.get("agent"))
+        level = levels.launch_binding(request, challenge, request.get("agent"), cfg)
         if level is not None:
             choice = replace(choice or LaunchChoice(), construction_level=level)
         miner = _registered(self, cfg)
@@ -3690,7 +3690,7 @@ class RunnerAdapter:
         strategy = strategy_value(request)
         # At a construction level, the level's compile first; check-design
         # then judges the recipe's Level 0 base (LAUNCHPAD-LEVELS-01 S2).
-        found = levels.campaign_binding(admitted.campaign)
+        found = levels.campaign_binding(admitted.campaign, admitted.profile)
         self._design_refusal(levels.checked_strategy(found, strategy))
         hypothesis = request["hypothesis"]
         expected = request.get("expected_effect", hypothesis)
@@ -3721,7 +3721,7 @@ class RunnerAdapter:
         reason = request["reason"]
         if type(reason) is not str or not 1 <= len(reason) <= 4096:
             raise Rejected("bounded_reason_required")
-        found = levels.campaign_binding(admitted.campaign)
+        found = levels.campaign_binding(admitted.campaign, admitted.profile)
         self._design_refusal(levels.checked_strategy(found, strategy))
         refusal = freeze_refusal(Path(admitted.campaign["root"]), strategy)
         if refusal is not None:

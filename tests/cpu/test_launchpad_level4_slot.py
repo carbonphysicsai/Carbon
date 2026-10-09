@@ -126,8 +126,23 @@ def _strategy(digest):
     return value
 
 
+TARGET = "http://127.0.0.1:9/carbon/v1/battery/intake"
+
+
 def _found():
-    return cl.resolve(BATTERY, 4)
+    return cl.with_target(cl.resolve(BATTERY, 4), TARGET)
+
+
+@pytest.fixture(autouse=True)
+def serving_target(monkeypatch):
+    """A fixture ladder intake that lists the Level 4 variant's digest."""
+    found = cl.resolve(BATTERY, 4)
+    served = {
+        "served_contracts": [
+            {"level": 4, "variant": found["variant"], "digest": found["digest"]}
+        ]
+    }
+    monkeypatch.setattr(cl, "READ_TARGET", lambda challenge, url: served)
 
 
 def test_a_whole_submission_passes_and_its_envelope_is_the_directorys_bytes(
@@ -241,7 +256,11 @@ def test_submit_sends_nothing_while_no_intake_carries_the_envelope(
         "contract_digest": _found()["digest"],
         "construction_level": {**cl.practice_label(_found())},
     }
-    prepared = SimpleNamespace(ledger=SimpleNamespace(root=tmp_path), args=None)
+    prepared = SimpleNamespace(
+        ledger=SimpleNamespace(root=tmp_path),
+        args=None,
+        manifest={"construction_level": _found()},
+    )
     with pytest.raises(OperationRefused) as refused:
         asyncio.run(campaign._evaluate_through_intake(prepared, 1, record, "http://x"))
     assert refused.value.code == "level4_envelope_transport_unavailable"
