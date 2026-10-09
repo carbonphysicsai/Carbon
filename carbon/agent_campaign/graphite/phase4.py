@@ -202,6 +202,23 @@ PHASE4_GRANTS = types.MappingProxyType(
         )
     }
 )
+#: Further owner-approved Attacker grants, by grant id, each bound to one
+#: Challenge beside its default `PHASE4_GRANTS` entry: the Graphite ladder
+#: wave's stage A kimi-k3 Attacker (OWNER-GRAPHITE-STAGE-A-01). A live run
+#: names it with `--grant`; the default grant, the dry run and prelive are
+#: unchanged. Its start rung is `grant_binding`'s.
+PHASE4_STAGE_GRANTS = types.MappingProxyType(
+    {
+        entry.grant_id: entry
+        for entry in (
+            Phase4Grant(
+                challenge=BATTERY_CHALLENGE,
+                grant_id="GRAPHITE-GRANT-STAGE-A-ATTACKER",
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-STAGE-A-ATTACKER.json",
+            ),
+        )
+    }
+)
 #: The pipeline stage an Attacker campaign runs at.
 STAGE = "test_iterate"
 #: Graphite's current attack wave exercises registered Level 0 adapters. The
@@ -1796,6 +1813,14 @@ def check_committed_grant(path, repository=REPOSITORY, *, challenge):
         given = json.loads(Path(path).read_bytes())
     except (OSError, ValueError):
         raise RunnerRefused("phase4_grant_file_unreadable") from None
+    staged = PHASE4_STAGE_GRANTS.get(
+        given.get("grant_id") if isinstance(given, dict) else None
+    )
+    if staged is not None:
+        # A stage grant (`PHASE4_STAGE_GRANTS`) binds only its own Challenge.
+        if staged.challenge != challenge:
+            raise RunnerRefused("grant_is_for_another_challenge")
+        entry = staged
     bind_grant_to_challenge(given, entry)
     return grant_binding.check_committed_blob(
         given, repository, entry.grant_file, phase="phase4"

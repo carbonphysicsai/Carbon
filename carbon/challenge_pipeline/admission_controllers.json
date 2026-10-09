@@ -5,8 +5,36 @@
    "challenge": "battery-fastcharge-ageing-development-v1",
    "level": 0,
    "name": "admission-controller-battery-l0",
-   "identity": null,
-   "status": "PENDING_OPERATOR_IDENTITY"
+   "identity": "sha256:d2ae1970257574a7a37aca5b540f56a5cfc6ef52dfdd408c901f08bab1c3a25d",
+   "status": "DESIGNATED"
+  },
+  {
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "level": 1,
+   "name": "admission-controller-battery-l1",
+   "identity": "sha256:606ccc54ac9968a00c6019294cd8beda2764d5407f717b5cfae9d3d24bcfb649",
+   "status": "DESIGNATED"
+  },
+  {
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "level": 2,
+   "name": "admission-controller-battery-l2",
+   "identity": "sha256:3bf398a2980d5d99a1a36811464d13aaba1e3389c5dccbc56054641c485b9665",
+   "status": "DESIGNATED"
+  },
+  {
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "level": 3,
+   "name": "admission-controller-battery-l3",
+   "identity": "sha256:62f5eb89b5144dda1b5f7aee98e55162aed0a81915b81dec4a62144683735785",
+   "status": "DESIGNATED"
+  },
+  {
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "level": 4,
+   "name": "admission-controller-battery-l4",
+   "identity": "sha256:c8c8a49cb139433add8df561ef9c73e60fa59b4a7aa72198ec5356dc80bf8973",
+   "status": "DESIGNATED"
   },
   {
    "challenge": "chip-cold-plate",

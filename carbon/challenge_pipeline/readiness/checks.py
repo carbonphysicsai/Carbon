@@ -654,6 +654,45 @@ def _phase4_grant(ctx):
     return entry.grant_file, None
 
 
+ANALYSIS_IMAGE_ENV = "CARBON_READINESS_ANALYSIS_IMAGE_MANIFEST"
+
+
+def _analysis_image_manifest():
+    """`(path, refusal)`: the host's analysis image manifest named by the
+    environment variable, read with the consumer itself
+    (`research_image.load_analysis_image`: the closed four-key document, bounded,
+    no symlink). No manifest is invented or defaulted: unset, missing, or not that
+    document is a refusal the R1 result states."""
+    value = os.environ.get(ANALYSIS_IMAGE_ENV)
+    if not value:
+        return None, (
+            f"no analysis image manifest: set {ANALYSIS_IMAGE_ENV} to the host's manifest "
+            "file (the release produces it: schema, image_id, parent_image, runtime_digest); "
+            "prelive's carrier containment check cannot run without it"
+        )
+    path = Path(value)
+    if not path.is_file():
+        return None, f"the analysis image manifest {value} is not a file"
+    try:
+        from carbon.development_session import research_image
+
+        image = research_image.load_analysis_image(path)
+    except (OSError, ValueError, TypeError, KeyError) as error:
+        return None, (
+            f"the analysis image manifest {value} is not the closed four-key format "
+            f"({type(error).__name__})"
+        )
+    if not all(
+        isinstance(v, str) and v
+        for v in (image.image_id, image.parent_image, image.runtime_digest)
+    ):
+        return (
+            None,
+            f"the analysis image manifest {value} has an empty or non-text value",
+        )
+    return str(path), None
+
+
 def prelive(item, ctx):
     """`phase4 prelive` for the challenge under a scratch root. It needs the
     committed grant on a pushed HEAD and a main to compare, so a host without
@@ -665,6 +704,9 @@ def prelive(item, ctx):
             "canonical Linux host. Failing closed.",
         )
     grant, refused = _phase4_grant(ctx)
+    if refused:
+        return Result(FAIL, refused)
+    manifest, refused = _analysis_image_manifest()
     if refused:
         return Result(FAIL, refused)
     with tempfile.TemporaryDirectory(prefix="readiness-prelive-") as root:
@@ -679,6 +721,8 @@ def prelive(item, ctx):
             ctx.challenge,
             "--grant",
             str(ctx.repository / grant),
+            "--analysis-image-manifest",
+            manifest,
         ]
         try:
             done = subprocess.run(
