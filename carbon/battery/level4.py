@@ -19,8 +19,30 @@ import json
 import sys
 from pathlib import Path
 
-from .level4_model import classic_fit  # one stageable copy
-from .level4_model import dims as _dims
+
+# `level4_model` imports numpy and battery's recipes. The variant mechanism
+# imports this module and stays pure data at import, so it is imported only
+# when called.
+def _classic_fit(*args, **kwargs):
+    from .level4_model import classic_fit
+
+    return classic_fit(*args, **kwargs)
+
+
+def _dims(model):
+    from .level4_model import dims
+
+    return dims(model)
+
+
+def __getattr__(name):
+    """`classic_fit` is `level4_model.classic_fit` (one stageable copy)."""
+    if name == "classic_fit":
+        from .level4_model import classic_fit
+
+        return classic_fit
+    raise AttributeError(name)
+
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 EXPANSION = "carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/0001.json"
@@ -368,7 +390,7 @@ def equivalence_classic(allowlist, strategy_, *, steps=None, seed=7, max_bytes):
     if not model.classic:
         raise ValueError("this recipe does not train through the classic path")
     y = model.layout.targets(m.train)
-    native = classic_fit(model, m.train, y, seed, classic_net(), classic_params(model))
+    native = _classic_fit(model, m.train, y, seed, classic_net(), classic_params(model))
     f = features(m.train.x, model.rich).astype(np.float32)
     n_in, n_out = f.shape[1], y.shape[1]
     make = classic_params(model)
@@ -398,7 +420,7 @@ def equivalence_classic(allowlist, strategy_, *, steps=None, seed=7, max_bytes):
         leaves = init_b(key)
         return [(leaves[2 * i], leaves[2 * i + 1]) for i in range(len(leaves) // 2)]
 
-    rebuilt = classic_fit(model, m.train, y, seed, rebuilt_net, rebuilt_make)
+    rebuilt = _classic_fit(model, m.train, y, seed, rebuilt_net, rebuilt_make)
     return {
         "path": "classic (recipes.MLP._fit_classic)",
         "steps": model.steps,
@@ -1079,7 +1101,7 @@ def train_graph(strategy_, prepared, *, seed):
     if _is_classic(model, m):
         _targets(model, m)  # `fit`'s target scaling, which `classic_fit` reads
         y = model.layout.targets(m.train)
-        result = classic_fit(
+        result = _classic_fit(
             model, m.train, y, seed, forward, lambda key, _a, _b: prepared.init(key)
         )
         return {"path": "classic", **result}
