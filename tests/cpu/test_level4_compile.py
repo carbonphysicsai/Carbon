@@ -8,7 +8,8 @@ Claims tested:
 
 1. The lane program, given only staged module and document bytes, rebuilds
    and compiles the forward graph, a gradient step and the init graph, and
-   reports the measurements.
+   reports the measurements, the step's FLOPs among them. With a loss graph,
+   the step is the gradient of Carbon's mean of that graph.
 2. Every staged name is a flat workspace name; documents are staged as
    canonical bytes and parsed again inside.
 3. Lane outcomes are typed: deadline is `compile_deadline`, a program failure
@@ -166,6 +167,8 @@ def test_lane_program_compiles_from_staged_bytes(parsed, allowlist, tmp_path):
     for key in ("forward_seconds", "train_step_seconds", "init_seconds"):
         assert result[key] >= 0
     assert result["forward_flops"] > 0
+    assert result["train_step_flops"] > 0
+    assert result["train_step_loss"] == "sum_of_squares"
     assert result["profile"] == "ACCEPTED_DEVELOPMENT_AND_TESTNET_ONLY"
     assert result["profile_decision"] == "OWNER-L4-G5-COMPILE-ISOLATION-01"
     assert result["scope"] == "development"
@@ -174,6 +177,43 @@ def test_lane_program_compiles_from_staged_bytes(parsed, allowlist, tmp_path):
     assert all(is_workspace_name(name) for name in call["files"])
     staged = g5.staged_files(parsed, allowlist, max_bytes=MAX_BYTES)
     assert staged["forward.json"] == graph.dumps(parsed["forward"])
+
+
+def test_a_loss_graph_is_the_train_steps_loss(parsed, allowlist, tmp_path):
+    """With an admitted loss graph, the measured step is the gradient of
+    Carbon's mean of that graph, and its FLOPs are recorded."""
+    import jax.numpy as jnp
+
+    _, loss, _ = tooling.through_bprime(
+        lambda p, t, x: jnp.sum((p - t) ** 2, axis=1) + 0.0 * jnp.sum(x, axis=1),
+        (jnp.ones((1, 8)), jnp.ones((1, 8)), jnp.ones((1, 3))),
+        role="loss",
+        allowlist=allowlist,
+        input_names=["loss/pred/0", "loss/target/0", "loss/x/x"],
+        max_bytes=MAX_BYTES,
+    )
+    manifest, files = submission.build(
+        challenge="example",
+        interface="sha256:" + "1" * 64,
+        allowlist=allowlist,
+        forward=parsed["forward"],
+        init=parsed["init"],
+        loss=loss,
+    )
+    with_loss = submission.verify(
+        submission.canonical(manifest),
+        files,
+        allowlist=allowlist,
+        challenge="example",
+        interface="sha256:" + "1" * 64,
+        max_bytes=MAX_BYTES,
+    )[1]
+    runner = StandIn()
+    result = _compile(with_loss, allowlist, tmp_path, runner)
+    assert result["train_step_loss"] == "graph" and result["train_step_flops"] > 0
+    assert {"loss.json", "carbon.level4.loss.py"} <= set(runner.calls[0]["files"])
+    staged = g5.staged_files(with_loss, allowlist, max_bytes=MAX_BYTES)
+    assert staged["loss.json"] == graph.dumps(with_loss["loss"])
 
 
 def test_the_deadline_is_the_owners():
