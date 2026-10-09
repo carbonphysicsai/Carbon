@@ -547,6 +547,12 @@ class StudyWorld:
             )
             if self.adapter.target.rule != self.source.adapter.target.rule:
                 raise StudyRefused("rule_window_blocks_mismatch")
+            from carbon.battery import exam
+
+            if not exam.sealed(self.adapter.target.rule):
+                # As the hidden route: a rule that discloses hidden results
+                # would hand the study what a miner never sees.
+                raise StudyRefused("rule_not_study_variant")
         except BaseException:
             os.close(self.lock)
             raise
@@ -569,27 +575,62 @@ class StudyWorld:
             answer_key.import_local(self.adapter, self.public_key, outbox)
         return True
 
+    def _submission(self, strategy, block):
+        """One development submission at simulated `block`, built as the
+        hidden route builds it (`graphite.hidden_score`, VALIDATOR-13): one
+        development hotkey per run, the receipt's block the clock. The route
+        itself is not imported: this package is a validator surface, which
+        never reaches the development variant modules the route serves."""
+        import hashlib
+
+        from carbon.battery.daemon import AuthenticatedSubmission
+
+        hotkey = f"graphite-dev:{self.run_id}:constructor"
+        body = _canonical({"hotkey": hotkey, "block": block, "strategy": strategy})
+        return AuthenticatedSubmission(
+            hotkey=hotkey,
+            receipt={
+                "sequence": block,
+                "digest": hashlib.sha256(body).hexdigest(),
+                "block": block,
+            },
+            challenge_id=self.adapter.challenge_id,
+            challenge_version=self.adapter.challenge_version,
+            strategy=strategy,
+            contract_digest=self.target.identities()["contract_digest"],
+        )
+
     def submit(self, strategy, block, window):
         import time
 
-        from carbon.agent_campaign.graphite import hidden_score
+        from carbon.battery import deployment
+        from carbon.battery.pool_store import StateError
 
-        pool = hidden_score.HiddenPool(
-            self.target, run_id=self.run_id, clock=lambda: block
-        )
+        from .battery import ScoreReplayMismatch
+
         started = time.monotonic()
-        view, operator = pool.submit("proposal", strategy)
+        try:
+            outcome = deployment.evaluate(
+                self.target, self._submission(strategy, block)
+            )
+        except deployment.EvaluationUnavailable as refused:
+            state = "WINDOW_USED" if refused.code == "hotkey_window_used" else None
+            wall = round(time.monotonic() - started, 3)
+            return {"state": state or "UNAVAILABLE", "wall_s": wall}
+        except StateError:
+            wall = round(time.monotonic() - started, 3)
+            return {"state": "UNAVAILABLE", "wall_s": wall}
         wall = round(time.monotonic() - started, 3)
-        state = view["state"]
-        if state == "NOT_SCORED":
-            outcome = view.get("outcome") or {}
-            if outcome.get("state") == "FAILED_INFRA":
-                raise StudyInfrastructure("route_failed_infra")
+        if outcome["state"] == "FAILED_INFRA":
+            raise StudyInfrastructure("route_failed_infra")
+        if outcome["state"] != "SCORED":
             return {"state": "NOT_SCORED", "wall_s": wall}
-        if state != "SCORED" or operator is None or "aggregate" not in operator:
-            if state not in ("UNAVAILABLE", "WINDOW_USED"):
-                state = "NOT_SCORED"
-            return {"state": state, "wall_s": wall}
+        try:
+            operator = self.adapter.score_record(outcome["submission_id"])
+        except ScoreReplayMismatch:
+            # The stored score did not reproduce: an integrity finding for the
+            # operator, never a drift observation.
+            return {"state": "NOT_SCORED", "wall_s": wall}
         batches = {}
         for fingerprint in operator["active_batches"]:
             document = self.target.store.batch(fingerprint)["document"]
@@ -599,7 +640,7 @@ class StudyWorld:
             ]
         return {
             "state": "SCORED",
-            "submission_id": operator["submission_id"],
+            "submission_id": outcome["submission_id"],
             "s_current": operator["aggregate"].get("score"),
             "batches": batches,
             "wall_s": wall,
