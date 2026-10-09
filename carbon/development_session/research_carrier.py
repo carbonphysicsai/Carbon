@@ -293,11 +293,26 @@ def _run_locked(
         # host's installed record, bound to this request, so a replaced or
         # withdrawn record is a different request. Absent for every CPU run,
         # so their identities are unchanged.
-        if accelerator != MINER_GPU or (miner_lane and not miner_authored):
+        if accelerator == MINER_GPU:
+            # The validator's scored rebuild never runs in the miner lane.
+            if (
+                miner_lane and not miner_authored
+            ) or provenance == VALIDATOR_PROVENANCE:
+                raise ValueError("unsupported accelerator request")
+        elif accelerator == VALIDATOR_GPU:
+            # The validator's own GPU (VALIDATOR-27): only its scored rebuild,
+            # and only on a device class a hardware acceptance has passed.
+            if provenance != VALIDATOR_PROVENANCE:
+                raise ValueError("unsupported accelerator request")
+        else:
             raise ValueError("unsupported accelerator request")
         device = _gpu_device()
+        if accelerator == VALIDATOR_GPU:
+            from carbon.reconstruction.hardware_acceptance import require_accepted
+
+            require_accepted(device.device_kind, _gpu_profile_id())
         request["accelerator"] = {
-            "kind": MINER_GPU,
+            "kind": accelerator,
             "profile": _gpu_profile_id(),
             "device": device.digest,
         }
@@ -565,6 +580,11 @@ def _run_locked(
 #: Carbon's fixed practice program or, in the miner lane's isolated
 #: container, the miner's own code cell (RSURF-D20).
 MINER_GPU = "MINER_OWN_GPU"
+#: The validator's own GPU for its scored rebuild (VALIDATOR-27), under the
+#: validator reconstruction role, on an accepted device class only.
+VALIDATOR_GPU = "VALIDATOR_OWN_GPU"
+#: The battery validator's scored rebuild (`battery.worker.CarrierBackend`).
+VALIDATOR_PROVENANCE = "BATTERY_VALIDATOR"
 
 
 def _gpu_profile_id():
@@ -640,6 +660,14 @@ def _worker_profile(device, provenance=None):
         registered_run_controls,
     )
 
+    # The validator's scored rebuild runs under the validator reconstruction
+    # role (C-CORE-19 admits both roles on a self-service host); every other
+    # GPU run stays the miner lane.
+    role = (
+        AcceleratorRole.VALIDATOR_RECONSTRUCTION
+        if provenance == VALIDATOR_PROVENANCE
+        else AcceleratorRole.MINER_RESEARCH
+    )
     return DevelopmentWorkerProfile(
         policy,
         resources,
@@ -647,7 +675,7 @@ def _worker_profile(device, provenance=None):
         "1.0",
         GPU_PROFILE.profile_id,
         device.digest,
-        AcceleratorRole.MINER_RESEARCH.value,
+        role.value,
         MINER_HOST_AUTHORITY,
         None,
         device.device_uuid,
