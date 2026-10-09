@@ -19,6 +19,9 @@ import json
 import sys
 from pathlib import Path
 
+from .level4_model import classic_fit  # one stageable copy
+from .level4_model import dims as _dims
+
 REPOSITORY = Path(__file__).resolve().parents[2]
 EXPANSION = "carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/0001.json"
 FAMILIES_JAX = ("mlp", "deeponet")
@@ -115,19 +118,6 @@ def _model(strategy_, train):
             fade=model.fade,
         )
     return recipe, model
-
-
-def _dims(model):
-    """Input width from battery's own `features`, and the output width."""
-    import numpy as np
-
-    from carbon.battery.recipes import BOUNDS, features
-
-    lay = model.layout
-    n_in = features(np.asarray(BOUNDS[:, :1].T, float), model.rich).shape[1]
-    if model.pca:
-        return n_in, 2 * model.pca + 1 + lay.k
-    return n_in, lay.nv + lay.nt + 1 + lay.k
 
 
 def interface(strategy_):
@@ -310,77 +300,6 @@ def torch_network(strategy_, train, seed=7):
 
 
 # --- Equivalence hooks: the rebuilt graph inside battery's own training ------
-
-
-def classic_fit(model, d, y, seed, net, make_params):
-    """`recipes.MLP._fit_classic`'s loop with `net` and `make_params(key)`
-    supplied: the Level 0 MLP's written-out full-batch Adam(W) with cosine
-    decay, statement for statement (history recording off). Run with the
-    native `net` it must reproduce `MLP.fit`'s digest exactly; that pins this
-    copy to the declarative path before the rebuilt `net` is compared."""
-    import hashlib
-
-    import jax
-    import jax.numpy as jnp
-    import numpy as np
-
-    from carbon.battery.recipes import features
-
-    z = model._encode(y).astype(np.float32)
-    f = features(d.x, model.rich).astype(np.float32)
-    sw = np.where(d.important, model.important_weight, 1.0).astype(np.float32)
-    gw = model._group_weights(z.shape[1]).astype(np.float32)
-    params = make_params(jax.random.PRNGKey(seed), f.shape[1], z.shape[1])
-
-    def loss(p, xx, yy):
-        r = (net(p, xx) - yy) ** 2
-        return jnp.sum(sw[:, None] * r * gw[None, :]) / jnp.sum(sw)
-
-    initial = float(jax.jit(loss)(params, f, z))
-
-    steps, lr0, wd = model.steps, model.lr, model.wd
-    b1, b2, eps = 0.9, 0.999, 1e-8
-
-    @jax.jit
-    def train(p, xx, yy):
-        m = jax.tree_util.tree_map(jnp.zeros_like, p)
-        v = jax.tree_util.tree_map(jnp.zeros_like, p)
-
-        def step(c, i):
-            p, m, v = c
-            g = jax.grad(loss)(p, xx, yy)
-            lr = lr0 * 0.5 * (1 + jnp.cos(jnp.pi * i / steps))
-            m = jax.tree_util.tree_map(lambda a, b: b1 * a + (1 - b1) * b, m, g)
-            v = jax.tree_util.tree_map(lambda a, b: b2 * a + (1 - b2) * b * b, v, g)
-            t = i + 1.0
-            p = jax.tree_util.tree_map(
-                lambda w, a, b: (
-                    w
-                    - lr
-                    * ((a / (1 - b1**t)) / (jnp.sqrt(b / (1 - b2**t)) + eps) + wd * w)
-                ),
-                p,
-                m,
-                v,
-            )
-            return (p, m, v), None
-
-        (p, m, v), _ = jax.lax.scan(
-            step, (p, m, v), jnp.arange(steps, dtype=jnp.float32)
-        )
-        return p, loss(p, xx, yy)
-
-    p, final = train(params, f, z)
-    leaves = [np.asarray(a) for a in jax.tree_util.tree_leaves(p)]
-    blob = b"".join(a.tobytes() for a in leaves)
-    out = np.asarray(jax.jit(net)(p, jnp.asarray(f)))
-    return {
-        "params_sha256": hashlib.sha256(blob).hexdigest(),
-        "initial_loss": initial,
-        "final_loss": float(final),
-        "outputs_sha256": hashlib.sha256(out.tobytes()).hexdigest(),
-        "params": leaves,
-    }
 
 
 def classic_params(model):
