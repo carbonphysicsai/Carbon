@@ -222,6 +222,8 @@ Renting the box is an owner purchase (a grant line).
    - It measures stages from the Launchpad readback and the intake facts.
    - It writes a journal, and pings as in §7.
    - Tests use the loopback intake and fixtures. Engineering evidence only.
+   - **Built** in `scripts/dev/canary/`, with 320 registered kNN variants.
+     The owner's steps are in [`CANARY_RUNBOOK.md`](./CANARY_RUNBOOK.md).
 2. **CANARY-01 S2: the weights check.** It reads the validator's publication
    for the epoch after a verdict, and checks the canary's UID weight is zero.
 3. **Carbon Validator (VALIDATOR domain): the registered canary list,**
