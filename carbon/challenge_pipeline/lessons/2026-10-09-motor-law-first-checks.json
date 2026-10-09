@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-motor-law-first-checks",
+  "recorded_at": "2026-10-09T16:26:35Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-MOTOR-QUESTION-LAW-01 first affected checks", "description": "Native UTF-8 new Motor proposal plus existing question-law/packet/pipeline tests; Black and Ruff static checks"},
+  "expected": "Consistent proposed arithmetic, unadopted values and unaffected existing semantics.",
+  "observed": "87 passed / 2 failed in 5.37 s. Expected 55.2058 node-hours was inaccurate (exact 55.20456357725572); Markdown line wrap broke a literal phrase test. Black requested formatting; Ruff passed. These are local draft defects, not science findings or canonical CI.",
+  "keep": ["All solve-count/T5 evidence discrepancies and bank-readiness HOLD remain explicit."],
+  "change": ["Correct exact arithmetic and displayed rounding; normalize prose whitespace in static phrase check; format test file."],
+  "protocol_elements": ["cost-arithmetic", "proposal-consistency", "canonical-boundary"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

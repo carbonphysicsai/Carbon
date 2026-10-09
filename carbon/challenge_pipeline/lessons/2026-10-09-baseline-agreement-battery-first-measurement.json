@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-agreement-battery-first-measurement",
+  "recorded_at": "2026-10-09T14:35:00Z",
+  "challenge": "battery-fast-charge",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "coverage_run",
+    "ref": "battery-summary.json local diagnostic",
+    "description": "BASELINE-AGREEMENT-01: battery-summary.json local diagnostic"
+  },
+  "expected": "Measure whole-protocol and whole-band holdouts without new solves.",
+  "observed": "276/493 and 108/493 physical rows predicted; all 25 map judgments unresolved. Initial aggregate abstention label needed per-index accounting.",
+  "keep": [
+    "Count incomplete five-band maps as abstentions; unresolved best agreement stays null."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.pipeline.lessons",
+    "challenge.cheap-baseline.comparison"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
