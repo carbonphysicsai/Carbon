@@ -891,7 +891,7 @@ def run():
                     # The record's own agent, as the campaign's settings say.
                     tab("settings")
                     wait(session, detail_text + ".includes('UI FIXTURE')")
-                    tab("experiments")
+                    tab("live")
                     wait(
                         session,
                         "document.querySelector('#campaign-detail .rs-gate-breakdown')?.textContent.includes('voltage ceiling')",
@@ -899,7 +899,6 @@ def run():
                     assert session.evaluate(
                         "document.querySelector('#campaign-detail .rs-gate-breakdown')?.textContent.includes('2')"
                     )
-                    tab("live")
                     # The practice run's two-point training curve, drawn.
                     wait(
                         session,

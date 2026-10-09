@@ -519,6 +519,7 @@
       if (byId.trend_score) chart(trend, byId.trend_score); else para(trend, "No practice run yet. Each completed run adds a point.", "empty-state");
       if (byId.trend_components) chart(trend, byId.trend_components);
     });
+    part(grid, "gate-breakdown", JSON.stringify(doc.practice_gate_breakdown || null), box => drawGateBreakdown(box, doc.practice_gate_breakdown), "rs-gate-breakdown rs-panel rs-wide", "section");
     part(grid, "compare", JSON.stringify([byId.components || null, doc.comparison]), compare => {
       head(compare, "This run against the previous", "Experiment output");
       if (byId.components) chart(compare, byId.components);
@@ -842,7 +843,6 @@
   }
   function tabExperiments(panel, doc, run) {
     if (run && run.selects === "miner" && CC.renderJourneyPractice) part(panel, "journey", journeyKey(run, "practice"), box => CC.renderJourneyPractice(box, run), "rs-journey-part", "div");
-    part(panel, "gate-breakdown", JSON.stringify(doc.practice_gate_breakdown || null), box => drawGateBreakdown(box, doc.practice_gate_breakdown), "rs-gate-breakdown", "section");
     part(panel, "runs", JSON.stringify([doc.experiments, doc.charts, doc.declaration?.components || null, (doc.toolbox?.runtimes || []).find(r => r.default)?.id || null]), box => drawExperiments(box, doc));
   }
   function drawGateBreakdown(box, breakdown) {
