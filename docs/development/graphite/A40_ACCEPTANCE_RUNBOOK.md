@@ -53,8 +53,12 @@ record without it runs exactly as above.
     on a driver mismatch.
 
   A mismatch is a recorded R1 finding, not a harness failure.
-- **Not covered.** `gather` appears only in the nearest-neighbour graph,
-  which Carbon does not train. A forward-only leg for it is open.
+- **Forward-only kNN.** `gather` and `sort` appear only in the
+  nearest-neighbour graph, which Carbon does not train, so it runs
+  forward-only (`level4_knn_forward`). Its same-host check is inside the one
+  rebuild: the rebuilt graph against the JAX function it was lowered from,
+  both jitted. Battery's NumPy kNN differs at 1e-15 (Phase 0); that
+  difference is recorded, never compared.
 - **Spend.** The leg runs only under a grant that names it.
 
 Credentials: `--key-file` is a path; the key is read only by the operator
