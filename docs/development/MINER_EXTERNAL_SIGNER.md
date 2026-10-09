@@ -53,6 +53,56 @@ refuses to start if the file holds a different hotkey; `--receiver SS58`
 (repeatable) signs only for those validator hotkeys; `--socket PATH` sets a
 non-default path, which the profile's optional `signer_socket` then names.
 
+## Testnet only: auto-confirmed commitments
+
+By default, every on-chain strategy commitment waits for you to type the
+digest's last 8 characters in the signer's terminal (OWNER-COMMITMENT-POSTER-01
+D10). For Carbon's own test hotkeys on testnet 567, the owner approved an
+unattended alternative (OWNER-SIGNER-TESTNET-AUTOCONFIRM-01):
+
+```bash
+carbon-miner-signer --key-file PATH --expect SS58 \
+  --auto-confirm-commitments ~/.carbon/signer/autoconfirm-allowlist.json
+```
+
+The allow-list is a file the owner writes. It must be a regular file, not a
+symlink, yours, `chmod 600`, at most 4096 bytes, and exactly:
+
+```json
+{"schema": "carbon.signer.autoconfirm-allowlist.v1", "network": "testnet",
+ "netuid": 567, "hotkeys": ["<ss58 of each test hotkey>"]}
+```
+
+The signer reads it once, at start: restart the signer after changing it.
+Anything else in or about the file refuses start, with a one-line reason.
+
+With the flag, a commitment is signed without asking only when all of these
+hold:
+- it passes every bound a prompted commitment passes: the one pinned call of
+  a `sha256:` digest, netuid 567, tip 0, the era cap and the recorded fee
+  ceiling;
+- the chain is testnet 567. Its genesis is hard-coded in the signer, and any
+  other network, mainnet especially, is refused at start and on every
+  request;
+- the signer's own hotkey is in the allow-list. An unlisted `--expect` is
+  refused before the key is unlocked, and an unlisted loaded key before the
+  signer serves;
+- there has been no commitment from this hotkey this tempo.
+
+Anything else is refused with a closed code and is never put to the terminal
+instead: an unattended signer has no one to ask. A request off testnet 567
+or for an unlisted hotkey is `AUTO_CONFIRM_NOT_ALLOWED`. Each auto-confirm is
+printed in the signer's terminal with the lines the prompt would have shown,
+marked `AUTO-CONFIRMED (allow-listed testnet hotkey)`, and appended with the
+same mark to the commitments ledger beside the socket.
+
+**Limits.**
+- The flag removes a person from commitments only. Signing Carbon's requests
+  for receivers is unchanged, and still governed by `--receiver`.
+- An unattended signer holds an unlocked hotkey. Use it only for test
+  hotkeys: their own coldkeys, test TAO, no stake, never mainnet.
+- Without the flag, nothing about the signer changes.
+
 ## When it cannot sign
 
 Each condition has its own code, and the Control Center and MCP door show the
