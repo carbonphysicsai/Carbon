@@ -235,9 +235,9 @@ def feasibility_report(task, panel, predictions, *, band, verdicts=None):
         counts["false_infeasible"] += prediction is False and actual is True
     return {
         **counts,
-        "agreement_rate": counts["agree"] / counts["compared"]
-        if counts["compared"]
-        else None,
+        "agreement_rate": (
+            counts["agree"] / counts["compared"] if counts["compared"] else None
+        ),
         "interpretation": "point_prediction_diagnostic_not_safety_bound",
     }
 
@@ -332,9 +332,9 @@ def battery_predictions(export, *, holdout):
             "predicted_rows": len(predicted),
             "fit": _cost(fit_cost),
             "queries": _cost(query_cost),
-            "held_out_unit": "whole_protocol_all_bands"
-            if holdout == "protocol"
-            else "whole_band",
+            "held_out_unit": (
+                "whole_protocol_all_bands" if holdout == "protocol" else "whole_band"
+            ),
         },
     )
 
@@ -446,9 +446,9 @@ def motor_predictions(export, curve_set, *, kernel):
         "physical_rows": len(rows),
         "curve_samples": len(curve_errors),
         "curve_mae_nm": float(np.mean(np.abs(curve_errors))) if curve_errors else None,
-        "curve_max_abs_nm": float(np.max(np.abs(curve_errors)))
-        if curve_errors
-        else None,
+        "curve_max_abs_nm": (
+            float(np.max(np.abs(curve_errors))) if curve_errors else None
+        ),
         "fit": _cost(fits),
         "queries": _cost(queries),
     }
@@ -459,12 +459,12 @@ def _cost(rows):
         "samples": len(rows),
         "cpu_s": sum(row["cpu_s"] for row in rows),
         "wall_s": sum(row["wall_s"] for row in rows),
-        "wall_p50_s": statistics.median(row["wall_s"] for row in rows)
-        if rows
-        else None,
-        "wall_p95_s": float(np.quantile([row["wall_s"] for row in rows], 0.95))
-        if rows
-        else None,
+        "wall_p50_s": (
+            statistics.median(row["wall_s"] for row in rows) if rows else None
+        ),
+        "wall_p95_s": (
+            float(np.quantile([row["wall_s"] for row in rows], 0.95)) if rows else None
+        ),
     }
 
 

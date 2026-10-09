@@ -72,3 +72,20 @@ Carbon prediction/cost arm absent. V4 agreement/regret and acquisition,
 refinement, retained verification, RAM and money remain unearned. No ticket
 claim that these missing measurements are complete. Data Collection's return
 can enable a bounded continuation without any new solve grant here.
+
+## Owner-returned CI repair, 2026-10-09
+
+At `babe362f1d2a2eb18add311eb27f97ac10591bcc`, canonical shard 0 required
+Black 26.5.1 formatting and shard 3 exposed two rolled-back main safeguards:
+real-root refusal order and fixture `bank_short_windows` handling. Restore
+`rate_study.py` and its consumer contract exactly to current main; no new rate
+study behavior is invented. The formatter-only comparator changes do not
+change its measurements. Current main `cfb40e0fa74b2304bdd61594916f55b1390b24e1`.
+
+Linux development-environment diagnostics: 14 comparator tests passed (10.95 s)
+and the two concrete consumer regressions xpassed (15.64 s; restricted historical
+xfail markers, no skipped assertions). Black 26.5.1 and Ruff pass. A broader
+native Windows test/library run was interrupted after extended no-progress
+compilation; no pass is claimed for that run. Linux diagnostics still do not
+replace the required exact-head canonical GitHub acceptance. Repaired head is
+handed back to PR Head; no further push without returned ownership.
