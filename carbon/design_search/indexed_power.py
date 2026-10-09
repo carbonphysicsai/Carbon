@@ -10,6 +10,7 @@ from carbon.design_search import (
     indexed,
     power,
     power_accumulation,
+    reference_resolution,
     tasks,
 )
 
@@ -31,7 +32,11 @@ def _panels(rows, registered):
     return out
 
 
-def _state_and_winner(registered, panels):
+def _state_and_winner(registered, panels, settled=None):
+    if settled is not None:
+        return reference_resolution.indexed_state_and_winner(
+            registered, panels, settled
+        )
     states = []
     winners = []
     resolved = True
@@ -51,6 +56,8 @@ def _state_and_winner(registered, panels):
 def _validate(bank, laws, registration, good):
     power._registered_good(good)
     controls.validate_controls(registration, task=None)
+    if "refinement_rule" in bank:
+        reference_resolution.validate_rule(bank["refinement_rule"])
     if (
         type(bank) is not dict
         or type(bank.get("indexed_power_cases")) is not list
@@ -91,7 +98,11 @@ def _validate(bank, laws, registration, good):
     for entry in bank["indexed_power_cases"]:
         if (
             type(entry) is not dict
-            or set(entry) != {"case", "support_case", "task", "reference"}
+            or set(entry)
+            != (
+                {"case", "support_case", "task", "reference"}
+                | ({"settled"} if "refinement_rule" in bank else set())
+            )
             or entry["case"] not in cases
             or entry["case"] in rows
             or entry["support_case"] not in support
@@ -103,7 +114,9 @@ def _validate(bank, laws, registration, good):
         known_good = _panels(good_rows[entry["case"]], registered)
         if known_good != reference:
             raise tasks.TaskError("indexed good predictor differs from reference")
-        state, winner = _state_and_winner(registered, reference)
+        state, winner = _state_and_winner(
+            registered, reference, settled=entry.get("settled")
+        )
         if (
             cases[entry["case"]]["state"] != state
             or cases[entry["case"]]["winner"] != winner
@@ -140,13 +153,14 @@ def _validate(bank, laws, registration, good):
             reference,
             known_good,
             entry["support_case"],
+            entry.get("settled"),
         )
     if set(rows) != set(cases) or support != {row[3] for row in rows.values()}:
         raise tasks.TaskError("indexed power bank does not cover exposure ledger")
     return diversity_views, rows, comparison_identity
 
 
-def _run_case(registered, reference, known_good, specs):
+def _run_case(registered, reference, known_good, specs, settled=None):
     action_index = [
         {
             tasks.digest(action): candidate
@@ -171,7 +185,16 @@ def _run_case(registered, reference, known_good, specs):
         {"index_value": value, "values": panel}
         for value, panel in zip(values, reference)
     ]
-    good_outcome = tasks.judge_indexed(registered, good_run["commitment"], panels)
+    judge = (
+        (
+            lambda commitment: reference_resolution.judge_indexed(
+                registered, commitment, panels, settled
+            )
+        )
+        if settled is not None
+        else (lambda commitment: tasks.judge_indexed(registered, commitment, panels))
+    )
+    good_outcome = judge(good_run["commitment"])
     control_outcomes = []
     for control_index, spec in enumerate(specs):
 
@@ -191,9 +214,7 @@ def _run_case(registered, reference, known_good, specs):
         run = tasks.run_indexed_optimizer(
             registered, predict, model_id=f"CONTROL-{control_index}"
         )
-        control_outcomes.append(
-            tasks.judge_indexed(registered, run["commitment"], panels)
-        )
+        control_outcomes.append(judge(run["commitment"]))
     return good_outcome, control_outcomes
 
 
@@ -244,9 +265,9 @@ def indexed_power_report(
     )
     outcomes = {}
     clusters = {}
-    for case, (registered, reference, known_good, cluster) in rows.items():
+    for case, (registered, reference, known_good, cluster, settled) in rows.items():
         outcomes[case] = _run_case(
-            registered, reference, known_good, registration["controls"]
+            registered, reference, known_good, registration["controls"], settled
         )
         clusters[case] = cluster
     index_count = len(comparison[3])

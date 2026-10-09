@@ -13,6 +13,7 @@ from carbon.design_search import (
     indexed_power,
     power,
     power_accumulation,
+    reference_resolution,
     tasks,
 )
 
@@ -49,18 +50,33 @@ def _from_design_bank_snapshot(snapshot):
     if (
         type(snapshot) is not dict
         or set(snapshot)
-        != {
-            "schema",
-            "sealed",
-            "family",
-            "challenge_id",
-            "exposure_unit",
-            "exposure",
-            "window_sampling",
-            "cases",
-            "laws",
-            "snapshot_digest",
-        }
+        not in (
+            {
+                "schema",
+                "sealed",
+                "family",
+                "challenge_id",
+                "exposure_unit",
+                "exposure",
+                "window_sampling",
+                "cases",
+                "laws",
+                "snapshot_digest",
+            },
+            {
+                "schema",
+                "sealed",
+                "family",
+                "challenge_id",
+                "exposure_unit",
+                "exposure",
+                "window_sampling",
+                "cases",
+                "laws",
+                "snapshot_digest",
+                "refinement_rule",
+            },
+        )
         or snapshot["schema"] != DESIGN_BANK_SNAPSHOT_SCHEMA
         or snapshot["sealed"] is not True
         or snapshot["snapshot_digest"]
@@ -76,14 +92,25 @@ def _from_design_bank_snapshot(snapshot):
         if (
             type(row) is not dict
             or set(row)
-            != {
-                "case_id",
-                "inputs",
-                "reference",
-                "support_case",
-                "close_call",
-                "refinement_demand",
-            }
+            not in (
+                {
+                    "case_id",
+                    "inputs",
+                    "reference",
+                    "support_case",
+                    "close_call",
+                    "refinement_demand",
+                },
+                {
+                    "case_id",
+                    "inputs",
+                    "reference",
+                    "support_case",
+                    "close_call",
+                    "refinement_demand",
+                    "settled",
+                },
+            )
             or type(row["inputs"]) is not dict
             or set(row["inputs"]) != {"task", "task_digest", "draw"}
             or type(row["inputs"]["task"]) is not dict
@@ -107,6 +134,7 @@ def _from_design_bank_snapshot(snapshot):
                 "reference": panel,
                 "close_call": row["close_call"],
                 "refinement_demand": row["refinement_demand"],
+                **({"settled": row["settled"]} if "settled" in row else {}),
             }
         )
     exposure = []
@@ -127,6 +155,11 @@ def _from_design_bank_snapshot(snapshot):
             "window_sampling": snapshot["window_sampling"],
             "questions": questions,
             "laws": snapshot["laws"],
+            **(
+                {"refinement_rule": snapshot["refinement_rule"]}
+                if "refinement_rule" in snapshot
+                else {}
+            ),
         }
     )
 
@@ -142,11 +175,17 @@ def _plain(entry, challenge_id):
     if registered["identity"]["challenge"] != challenge_id:
         raise tasks.TaskError("panel task Challenge identity differs")
     panel = power._panel(entry["reference"], registered)
-    truth = tasks.assess(registered, panel, reference=True)
-    resolved = all(row["feasible"] is not None for row in truth.values())
+    if "settled" in entry:
+        truth = reference_resolution.assessed(registered, panel, entry["settled"])
+        state, winner = reference_resolution.state_and_winner(registered, truth)
+    else:
+        truth = tasks.assess(registered, panel, reference=True)
+        resolved = all(row["feasible"] is not None for row in truth.values())
+        state = tasks.reference_state(registered, truth) if resolved else "UNRESOLVED"
+        winner = tasks.select(registered, truth) if resolved else None
     return (
-        tasks.reference_state(registered, truth) if resolved else "UNRESOLVED",
-        tasks.select(registered, truth) if resolved else None,
+        state,
+        winner,
         "power_cases",
     )
 
@@ -157,7 +196,9 @@ def _indexed(entry, challenge_id):
     if registered["identity"]["challenge"] != challenge_id:
         raise tasks.TaskError("indexed panel Challenge identity differs")
     panels = indexed_power._panels(entry["reference"], registered)
-    state, winner = indexed_power._state_and_winner(registered, panels)
+    state, winner = indexed_power._state_and_winner(
+        registered, panels, settled=entry.get("settled")
+    )
     return state, winner, "indexed_power_cases"
 
 
@@ -216,18 +257,33 @@ def adapt_export(export):
     if (
         type(export) is not dict
         or set(export)
-        != {
-            "schema",
-            "sealed",
-            "family",
-            "challenge_id",
-            "exposure_unit",
-            "exposure",
-            "window_sampling",
-            "questions",
-            "laws",
-            "export_digest",
-        }
+        not in (
+            {
+                "schema",
+                "sealed",
+                "family",
+                "challenge_id",
+                "exposure_unit",
+                "exposure",
+                "window_sampling",
+                "questions",
+                "laws",
+                "export_digest",
+            },
+            {
+                "schema",
+                "sealed",
+                "family",
+                "challenge_id",
+                "exposure_unit",
+                "exposure",
+                "window_sampling",
+                "questions",
+                "laws",
+                "export_digest",
+                "refinement_rule",
+            },
+        )
         or export["schema"] != EXPORT_SCHEMA
         or export["sealed"] is not True
         or export["family"] not in FAMILIES
@@ -242,6 +298,8 @@ def adapt_export(export):
         != tasks.digest({k: v for k, v in export.items() if k != "export_digest"})
     ):
         raise tasks.TaskError("sealed registered solved-panel export required")
+    if "refinement_rule" in export:
+        reference_resolution.validate_rule(export["refinement_rule"])
     cases = []
     rows = []
     known_good = []
@@ -251,14 +309,17 @@ def adapt_export(export):
         if (
             type(entry) is not dict
             or set(entry)
-            != {
-                "case",
-                "support_case",
-                "task",
-                "reference",
-                "close_call",
-                "refinement_demand",
-            }
+            != (
+                {
+                    "case",
+                    "support_case",
+                    "task",
+                    "reference",
+                    "close_call",
+                    "refinement_demand",
+                }
+                | ({"settled"} if "refinement_rule" in export else set())
+            )
             or type(entry["case"]) is not str
             or not entry["case"]
             or entry["case"] in seen
@@ -292,6 +353,7 @@ def adapt_export(export):
                 "support_case": entry["support_case"],
                 "task": entry["task"],
                 "reference": entry["reference"],
+                **({"settled": entry["settled"]} if "settled" in entry else {}),
             }
         )
         known_good.append({"case": entry["case"], "predictions": entry["reference"]})
@@ -304,6 +366,11 @@ def adapt_export(export):
             "window_sampling": export["window_sampling"],
             "cases": cases,
             mode: rows,
+            **(
+                {"refinement_rule": export["refinement_rule"]}
+                if "refinement_rule" in export
+                else {}
+            ),
         }
     )
     laws = {}

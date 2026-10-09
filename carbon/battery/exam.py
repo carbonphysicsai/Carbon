@@ -128,6 +128,24 @@ DEVELOPMENT_RULE_V2_BANK_DESIGN = {
     "design": {"bank": "design:battery-q3", "k": 8, "retire_at": 5},
 }
 
+#: Rule `v2-bank-e2` (OWNER-BANK-EXPOSURE-E2-01): `v2-bank` with the pool
+#: bank's exposure E lowered from 5 to 2, so a window's cases retire and
+#: publish sooner and the score feed's release lag shortens. A new rule
+#: version, never an edit of `v2-bank`: a deployment's seed pin binds its
+#: rule digest. The bank's tranches carry no E (it is counted per window
+#: draw), so a bank filled under `v2-bank` serves this rule unchanged.
+DEVELOPMENT_RULE_V2_BANK_E2 = {
+    **DEVELOPMENT_RULE_V2_BANK,
+    "authority": (
+        DEVELOPMENT_RULE_V2_BANK["authority"]
+        + "; pool E = 2: OWNER-BANK-EXPOSURE-E2-01"
+    ),
+    "bank": {
+        **DEVELOPMENT_RULE_V2_BANK["bank"],
+        "pool": {**DEVELOPMENT_RULE_V2_BANK["bank"]["pool"], "retire_at": 2},
+    },
+}
+
 
 def _rate_study_rule(window_blocks):
     """SUBMISSION-RATE-STUDY-01's development rule variants (VALIDATOR-30):
@@ -160,6 +178,7 @@ RULES = {
     "v1": DEVELOPMENT_RULE,
     "v2": DEVELOPMENT_RULE_V2,
     "v2-bank": DEVELOPMENT_RULE_V2_BANK,
+    "v2-bank-e2": DEVELOPMENT_RULE_V2_BANK_E2,
     # SUBMISSION-RATE-STUDY-01's rates m = 1, 2, 4 (VALIDATOR-30).
     "v2-bank-rate-1": _rate_study_rule(360),
     "v2-bank-rate-2": _rate_study_rule(180),

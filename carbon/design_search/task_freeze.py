@@ -26,6 +26,7 @@ DESIGN_TASK_CODE = (
     "carbon/design_search/power.py",
     "carbon/design_search/power_accumulation.py",
     "carbon/design_search/producer_panels.py",
+    "carbon/design_search/reference_resolution.py",
     "carbon/design_search/__main__.py",
     "carbon/design_search/task_freeze.py",
 )
