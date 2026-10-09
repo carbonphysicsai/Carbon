@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.development.motor-peak-sizing.v1",
+  "ticket": "MOTOR-PEAK-FEASIBILITY-01",
+  "maturity": "SPECIFIED_ANALYTIC_SCREEN_NOT_REFERENCE_TRUTH",
+  "source_pin": "66ea509888e4ef0f5ac08750554db744b56b92bf",
+  "solver_runs": 0,
+  "spend": 0,
+  "adopted_requirement_change": false,
+  "physical_feasibility": "NOT_DEMONSTRATED",
+  "fixed": {"rotor_radius_mm": 25.6, "outer_radius_mm": 46, "length_mm": 35, "slots": 12, "pole_pairs": 5, "tip_wedge_mm": 0.94, "br_t": 1.2, "j_peak_coil_a_mm2": 15},
+  "marker_t": [1.8, 2.0],
+  "marker_status": "ASSUMPTION_NOT_HARD_MATERIAL_LIMIT",
+  "screen_rows": [
+    {"label": "thin", "geometry": [4, 0.95, 0.3, 0.20, 0.03, 42], "whole_slot_area_mm2": 222.50903813162324, "linear_nm": 23.848985151907616, "marker_nm": [8.215241852662846, 9.128046502958716]},
+    {"label": "middle", "geometry": [4, 0.95, 0.3, 0.30, 0.03, 42], "whole_slot_area_mm2": 203.2528322598747, "linear_nm": 21.78506463985297, "marker_nm": [11.256427075554424, 12.50714119506047]},
+    {"label": "balanced", "geometry": [4, 0.95, 0.3, 0.35, 0.03, 41.5], "whole_slot_area_mm2": 185.37988766746295, "linear_nm": 19.86940497144368, "marker_nm": [11.977698043379675, 13.30855338153297]},
+    {"label": "wide", "geometry": [4, 0.95, 0.3, 0.40, 0.03, 42], "whole_slot_area_mm2": 183.92548225841298, "linear_nm": 19.713518750836457, "marker_nm": [13.581401747165865, 15.090446385739847]},
+    {"label": "d16", "geometry": [3.8870658855252125, 0.8557136482047045, 0.5940567425473162, 0.2867418901548715, 0.11002833401964227, 40.31216198295938], "whole_slot_area_mm2": 173.76356738241526, "linear_nm": 16.993051410388702, "marker_nm": [9.25050129694891, 10.278334774387679]}
+  ],
+  "geometry_order": ["magnet_mm", "coverage", "airgap_mm", "tooth_frac", "opening_frac", "slot_bottom_mm"],
+  "skew_fundamental_factors": {"0": 1, "2": 0.997463132061164, "4": 0.989871835341472},
+  "material_grade": "HUMAN_INPUT_NOT_A_NAMED_GRADE",
+  "global_maximum_proven": false,
+  "search_recommendation": "WIDE_TOOTH_SMALL_GAP_DEEP_SLOT_WITHIN_EXISTING_GRAMMAR",
+  "missing_peak_coverage": {"s3_peak_requested_geometries": ["d09", "d12", "d16", "d21"], "holding_only_summary_geometries": ["d01", "d06", "d17"], "null_is_zero_torque": false},
+  "larger_envelope": {"status": "OWNER_INPUT_CONTINGENCY_NOT_ADOPTED", "diameter_class_mm": 115, "buyer_requirement_nm": 12, "gross_v2_before_usd_assumption": 900, "gross_v2_after_usd_assumption_ceiling": 900, "demonstrated_net_savings_usd_floor": 0}
+}

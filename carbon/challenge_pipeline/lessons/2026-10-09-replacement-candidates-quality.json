@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-replacement-candidates-quality",
+  "recorded_at": "2026-10-09T16:09:24Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "REPLACEMENT-CANDIDATES-01 formatted quality",
+    "description": "Apply Black's mechanical layout and recheck Black/Ruff."
+  },
+  "expected": "No new format/lint debt after mechanical repair.",
+  "observed": "Black reformatted one test file; subsequent Black and Ruff checks passed. Native checks do not replace canonical PR CI.",
+  "keep": ["No solver or runtime code is needed for an auditable contingency shortlist."],
+  "change": ["Require actual buyer workflow and complete-cost measurements before replacement adoption."],
+  "protocol_elements": ["engineering validation", "buyer value"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

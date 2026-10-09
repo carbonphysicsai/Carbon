@@ -50,8 +50,18 @@ def torch_gpu_image():
     return gpu_image("8", lock=torch_profile.GPU_LOCK_DIGEST)
 
 
-def test_no_device_class_is_accepted_until_a_hardware_acceptance_passes(record):
-    assert ha.ACCEPTED_DEVICE_CLASSES == {}
+def test_only_an_accepted_device_class_scores(record, monkeypatch):
+    # OWNER-GPU-DEVICE-CLASSES-01: the A40 and the RTX 4090 (this fixture's
+    # device), each for both frameworks; no other class.
+    both = {GPU_PROFILE.profile_id, torch_profile.GPU_PROFILE_ID}
+    assert {k: set(v) for k, v in ha.ACCEPTED_DEVICE_CLASSES.items()} == {
+        "NVIDIA A40": both,
+        "NVIDIA GeForce RTX 4090": both,
+    }
+    assert record.device_kind == "NVIDIA GeForce RTX 4090"
+    worker.CarrierBackend(SimpleNamespace(), gpu_image(), device="gpu")
+    # A class no record names is refused.
+    monkeypatch.setattr(ha, "ACCEPTED_DEVICE_CLASSES", {})
     with pytest.raises(ha.DeviceClassNotAccepted):
         worker.CarrierBackend(SimpleNamespace(), gpu_image(), device="gpu")
 
@@ -167,6 +177,7 @@ def test_the_carrier_runs_the_validator_role_on_an_accepted_class_only(
         "extra_resources": {},
     }
     # Not accepted: refused before any reservation.
+    monkeypatch.setattr(ha, "ACCEPTED_DEVICE_CLASSES", {})
     with pytest.raises(ha.DeviceClassNotAccepted):
         research_carrier._run_locked(
             ledger, accelerator=research_carrier.VALIDATOR_GPU, **call
