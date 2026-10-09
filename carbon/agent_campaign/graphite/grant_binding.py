@@ -44,6 +44,16 @@ committed blob:
     full-window kimi-k3 call (USD 2.0646912 reserved) is admitted.
   A new session records them as its `run_conditions` (`run_conditions`).
 
+**Studies (OWNER-RATE-STUDY-TOKENS-01).** `STUDY_GRANTS` binds each
+owner-approved study grant to its study, its Challenge and main's committed
+blob, with the record's limits. A study run names its study (`phase3 run
+--study`), and `check_study_grant` accepts only the grant registered for that
+study, carrying exactly the record's ceiling, per-run cost, run count and
+wall-clock, and a submission cap that is one of the study's frozen arm caps
+and never above the grant's. A run that names no study, or a study with no
+binding, is refused `grant_is_not_bound_to_study`. A study grant is never a
+phase-3 grant: outside its study it is refused `grant_is_bound_to_a_study`.
+
 A registered grant named for another Challenge is
 `grant_is_for_another_challenge`. A Challenge in `PHASE3_BOUND_CHALLENGES`
 accepts only a grant registered for it
@@ -334,7 +344,10 @@ def check_phase3_grant(path, grant, *, challenge, level=0, repository=REPOSITORY
     names (module docstring) and to the construction level `--level` names
     (`level_refusal`). `grant` is the `SpendingGrant` loaded from `path`.
     Returns its `Phase3Grant`, or None for an unregistered grant on a
-    Challenge that is not bound."""
+    Challenge that is not bound. A study's grant is refused here: it spends
+    only through its study (`check_study_grant`)."""
+    if any(s.grant_id == grant.grant_id for s in STUDY_GRANTS.values()):
+        raise _refused(STUDY_GRANT_OUTSIDE)
     entry = PHASE3_GRANTS.get(grant.grant_id)
     if entry is None:
         if challenge in PHASE3_BOUND_CHALLENGES:
@@ -351,6 +364,95 @@ def check_phase3_grant(path, grant, *, challenge, level=0, repository=REPOSITORY
         except (OSError, ValueError):
             raise _refused("phase3_grant_file_unreadable") from None
         check_committed_blob(given, repository, entry.grant_file, phase="phase3")
+    return entry
+
+
+# -- studies (OWNER-RATE-STUDY-TOKENS-01) -------------------------------------------------
+@dataclasses.dataclass(frozen=True)
+class StudyGrant:
+    """One owner-approved study grant: its study, Challenge, file and the
+    record's limits. The grant file must carry exactly these values, so a
+    grant edited after approval, or another grant, never binds."""
+
+    study_id: str
+    grant_id: str
+    challenge: str
+    grant_file: str
+    monetary_ceiling: Decimal
+    worst_case_run_cost: Decimal
+    permitted_runs: int
+    max_runtime_s: int
+    max_submissions: int
+    #: The scored-submission caps the study's arms may freeze (plan section 9);
+    #: a run's cap is one of these, from the frozen manifest.
+    submission_caps: tuple[int, ...]
+
+
+STUDY_GRANTS = types.MappingProxyType(
+    {
+        entry.study_id: entry
+        for entry in (
+            StudyGrant(
+                study_id="SUBMISSION-RATE-STUDY-01",
+                grant_id="GRAPHITE-GRANT-RATE-STUDY-TOKENS",
+                challenge=BATTERY_CHALLENGE,
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-RATE-STUDY-TOKENS.json",
+                monetary_ceiling=Decimal("30.00"),
+                worst_case_run_cost=Decimal("4.91"),
+                permitted_runs=6,
+                max_runtime_s=39600,
+                max_submissions=144,
+                submission_caps=(36, 72, 144),
+            ),
+        )
+    }
+)
+STUDY_UNBOUND = "grant_is_not_bound_to_study"
+STUDY_GRANT_OUTSIDE = "grant_is_bound_to_a_study"
+STUDY_LIMITS_DIFFER = "study_grant_limits_differ_from_the_record"
+STUDY_CAP_REFUSED = "study_submission_cap_not_a_frozen_arm_cap"
+
+
+def check_study_grant(
+    path, grant, *, study, challenge, submission_cap, repository=REPOSITORY
+):
+    """A live study run's grant (`phase3 run --study`). Refused, typed:
+
+    - `grant_is_not_bound_to_study`: no study named, a study with no binding,
+      or a grant that is not the one bound to it;
+    - `grant_is_for_another_challenge`;
+    - `study_grant_limits_differ_from_the_record`: the ceiling, per-run cost,
+      run count, wall-clock or submission maximum is not the record's;
+    - `study_submission_cap_not_a_frozen_arm_cap`: the run's cap is not one
+      of the study's arm caps, or exceeds the grant's maximum;
+    - every `check_committed_blob` refusal: the grant must be main's blob.
+
+    Returns the `StudyGrant`. The controller then enforces the grant's
+    amounts, runs and wall-clock as for any grant."""
+    entry = STUDY_GRANTS.get(study) if isinstance(study, str) else None
+    if entry is None or grant.grant_id != entry.grant_id:
+        raise _refused(STUDY_UNBOUND)
+    if entry.challenge != challenge:
+        raise _refused("grant_is_for_another_challenge")
+    if (
+        grant.monetary_ceiling != entry.monetary_ceiling
+        or grant.worst_case_run_cost != entry.worst_case_run_cost
+        or grant.permitted_runs != entry.permitted_runs
+        or grant.max_runtime_s != entry.max_runtime_s
+        or grant.max_submissions != entry.max_submissions
+    ):
+        raise _refused(STUDY_LIMITS_DIFFER)
+    if (
+        type(submission_cap) is not int
+        or submission_cap not in entry.submission_caps
+        or submission_cap > grant.max_submissions
+    ):
+        raise _refused(STUDY_CAP_REFUSED)
+    try:
+        given = json.loads(Path(path).read_bytes())
+    except (OSError, ValueError):
+        raise _refused("study_grant_file_unreadable") from None
+    check_committed_blob(given, repository, entry.grant_file, phase="study")
     return entry
 
 
