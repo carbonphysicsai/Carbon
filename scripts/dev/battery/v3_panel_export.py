@@ -50,7 +50,11 @@ CHALLENGE = "battery-fastcharge-ageing-development-v1"
 BANDS = (5.0, 15.0, 25.0, 35.0, 40.0)
 COOLING = (1.0, 2.0, 4.0)
 MIX_ALPHA = (2.0, 3.0, 8.0, 5.0, 2.0)
-REFINEMENT_RULE = "carbon.reference.two-rung-settlement.v1"
+REFINEMENT_RULE = "carbon.reference.multi-rung-settlement.v1"
+#: rung 3 (mesh 80, rtol 1e-7) for the candidates whose rungs 1-2 straddle a
+#: question's limit; settled when the two finest rungs lie on one side and
+#: differ by less than the band
+RUNG3_DIR = "bfeas-t6r3"
 SUPPORT = "battery-feasibility-02-public-panel"
 EXPOSURE_LIMIT = 5  # v2-bank E (OWNER-BANK-ARCHITECTURE-01), development value
 BATCH = 8
@@ -92,7 +96,16 @@ def solved_with_switch(runs):
         (refined if r["case_id"].startswith("refined:") else base)[k] = t4.v2.measures(
             r
         )
-    return {k: (m, refined.get(k)) for k, m in base.items()}
+    rung3 = {}
+    path = Path(runs) / RUNG3_DIR / "records.jsonl"
+    if path.exists():
+        for x in path.read_text().splitlines():
+            r = json.loads(x) if x.strip() else None
+            if r and r["status"] == "OK":
+                k = (round(r["c1"], 4), round(r["c2"], 4), round(r.get("switch_voltage_v", 4.0), 4),
+                     round(r["h_multiplier"], 4), float(r["t_amb_c"]))  # fmt: skip
+                rung3[k] = t4.v2.measures(r)
+    return {k: (m, refined.get(k), rung3.get(k)) for k, m in base.items()}
 
 
 def band_bank(have, t):
@@ -109,12 +122,19 @@ def band_bank(have, t):
         )
         cands.append(cid)
         actions[cid] = action
-        m, ref = have[(c1, c2, sv, h, t)]
+        m, ref, r3 = have[(c1, c2, sv, h, t)]
         values = {q: float(m[q]) for q in QUANTITIES}
         if ref is not None:
             values.update(
                 {
                     f"refined.{q}": float(ref[q])
+                    for q in ("charging_t_max_c", "plating_min_v")
+                }
+            )
+        if r3 is not None:
+            values.update(
+                {
+                    f"rung3.{q}": float(r3[q])
                     for q in ("charging_t_max_c", "plating_min_v")
                 }
             )

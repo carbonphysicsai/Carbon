@@ -107,8 +107,13 @@ def _simulation(job):
         }
     )
     npts = spec["refined_mesh_points"] if job["refined"] else spec["mesh_points"]
+    rung3 = job.get("rung") == 3  # registered third rung (v3-panel-export.json)
+    if rung3:
+        npts = 80
     var_pts = {"x_n": npts, "x_s": npts, "x_p": npts, "r_n": npts, "r_p": npts}
     s = spec["refined_solver"] if job["refined"] else spec["solver"]
+    if rung3:
+        s = {"rtol": 1e-7, "atol": 1e-9}
     solver = pybamm.IDAKLUSolver(
         rtol=s["rtol"], atol=s["atol"], output_variables=VARIABLES
     )
