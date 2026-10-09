@@ -14,6 +14,9 @@ the original handoff, not the current delivery status.
 
 ## Installing, starting and updating today (LP-PROD-E, 2026-10-03)
 
+New miners: read the [plain-language miner FAQ](MINER_FAQ.md) for privacy,
+local data, public practice versus the exam, gate diagnosis and testnet limits.
+
 The sections below are the 2026-09-17 record. Today a miner installs and runs
 the Control Center on Linux x86-64, or WSL2 on Windows. The installer refuses
 macOS and native Windows, as the canonical environment does.
