@@ -1,5 +1,9 @@
 # Cooling cell — case-plane thermal/hydraulic shortlist scorecard
 
+> [Inactive cell-screening candidate](reframes/cooling-cell.md) is conditional
+> on running-panel evidence and owner settings; no version or law is adopted.
+> It lowers the value claim and may still fail V4 against ordinary maps.
+
 DEVELOPMENT / SPECIFIED. [Current Cooling v3](../round1/cooling-cell-v3.md).
 Cell-only; full cold plate/manifold is OUT OF SCOPE. Recommendation: await
 running Set A T1/T2, no additional customer reframe. KEEP NOT_DEMONSTRATED.

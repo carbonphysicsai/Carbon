@@ -244,7 +244,7 @@ def test_the_battery_ladder_renders_from_its_data():
         "ssbroyden",
     ]
     assert three["left_out"]  # the accepted proposal adds nothing itself
-    assert four["variant"]["name"] == "battery-l4-graph-v2"
+    assert four["variant"]["name"] == "battery-l4-graph-v3"
     assert four["variant"]["scope"] == ladder_view.VARIANT_SCOPE
     assert four["variant"]["status"] == "REGISTERED_DEVELOPMENT_POLICY"
     graphs = [c for c in four["capabilities"] if c["widened"]]

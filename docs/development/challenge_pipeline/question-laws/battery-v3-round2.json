@@ -1,0 +1,106 @@
+{
+  "schema": "carbon.battery-ambient-question-law.proposal.round2.v1",
+  "ticket": "CHALLENGE-BATTERY-V3-QUESTION-LAW-01",
+  "challenge": "battery",
+  "maturity": "SPECIFIED",
+  "runtime_registration": false,
+  "historical_rescore": false,
+  "solver_runs": false,
+  "spend_grant": null,
+  "registered_P": null,
+  "registered_Q": null,
+  "registered_outer_w": null,
+  "action_decision": {
+    "status": "OWNER_APPROVED_DEVELOPMENT",
+    "c_rate_step_c": "0.01",
+    "c_rate_bounds": null,
+    "switch_voltage_menu": null,
+    "cooling_multipliers": [1, 2, 4],
+    "round_historical_actions": false,
+    "all_bands_mandatory": true
+  },
+  "hard_anchor_limits": {
+    "charging_temperature_max_c": 45,
+    "every_charge_plating_min_v": 0,
+    "programme_voltage_max_v": 4.2,
+    "q30_over_q1_min": 0.99,
+    "hard_session_time_cap": null,
+    "discharge_thermal_role": "DIAGNOSTIC"
+  },
+  "P_recommendation": {
+    "status": "HUMAN_INPUT",
+    "ambient_bands_c": [5, 15, 25, 35, 40],
+    "mix_dirichlet_alpha": [2, 3, 8, 5, 2],
+    "thermal_margin_k": [0, 2.5],
+    "plating_margin_v": [0, 0.002],
+    "common_margins_all_bands": true,
+    "covered_pilot_soc": [0.1],
+    "expanded_soc_support": [0.1, 0.2, 0.3],
+    "expanded_soc_mass": [0.5, 0.3, 0.2],
+    "expanded_execution": "HOLD_PENDING_COVERAGE",
+    "initial_ageing_state": "PINNED_FRESH_POINT_MASS",
+    "arbitrary_initial_soh_supported": false
+  },
+  "Q_recommendation": {
+    "status": "HUMAN_INPUT",
+    "interior_mass": 0.2,
+    "safety_edge_mass": 0.5,
+    "value_edge_mass": 0.3,
+    "registered_refinement_bands": null,
+    "source": "SEPARATE_PUBLIC_OR_RETIRED",
+    "redraw_none_feasible": false,
+    "redraw_unsupported_or_unresolved": false
+  },
+  "w": {
+    "band_value": "OWNER_SELECTED_BUYER_MIX",
+    "aggregate": "SUM_B_MIX_B_TIMES_MINUTES_B_AFTER_ALL_GATES",
+    "outer_recommendation": "HUMAN_INPUT_UNIT_P_WEIGHTS_BANK_CLUSTERED",
+    "Q_population_correction": "HUMAN_INPUT_SUPPORTED_P_OVER_Q_ONLY",
+    "Q_is_fleet_mix": false
+  },
+  "question": {
+    "kind": "ONE_COMPLETE_FIVE_BAND_MAP",
+    "k": {"status": "HUMAN_INPUT", "registered": null, "recommendation": 8},
+    "exposure_E": {"status": "HUMAN_INPUT", "registered": null},
+    "search_query_count": "SUM_B_N_B",
+    "new_requirements_renew_exposure": false,
+    "expected_distinct_winners_by_band": [null, null, null, null, null],
+    "occupancy": "SUM_J_1_MINUS_1_MINUS_P_BJ_TO_K_FOR_IID_P_ONLY",
+    "mix_only_pick_changes": 0,
+    "none_feasible_policy": {
+      "status": "HUMAN_INPUT",
+      "registered": null,
+      "recommendation": "VALID_FORWARD_DRAW_WITH_COMPLETE_SETTLED_NO_MAP_PROOF",
+      "uncertain_is_none": false,
+      "redraw": false,
+      "T1_seam": "GATE_OWNER_DECISION_REQUIRED_NO_WEAKENING"
+    }
+  },
+  "tier4": {
+    "head": "66ea509888e4ef0f5ac08750554db744b56b92bf",
+    "T5": {"actions": 80, "feasible": 17, "infeasible": 62, "unresolved": 1, "infeasible_within_two_bands": 8, "infeasible_within_five_bands": 26},
+    "T40": {"actions": 137, "feasible": 53, "infeasible": 78, "unresolved": 6, "infeasible_within_two_bands": 30, "infeasible_within_five_bands": 51},
+    "T40_contains_excluded_cooling": [3, 6],
+    "one_band_approved_menu_T2a": "NOT_DEMONSTRATED",
+    "other_bands_in_tier4_summary": false
+  },
+  "nominal_export_audit": {
+    "input_sha256": "31463626c13549916feffa4ef9917f520e1437eb24dc08c8c402b6926e4717d4",
+    "export_digest": "sha256:2ec4da3ccfc358d412bd38648f4ca9fb6a010e838964a1e4e3f65a4a2b5f041d",
+    "context": "Q00_SOC10_FRESH_ORIGINAL_EXPORT_CONTRACT",
+    "bands": [
+      {"ambient_c": 5, "rows": 80, "feasible": 13, "infeasible": 62, "unresolved": 5},
+      {"ambient_c": 15, "rows": 42, "feasible": 10, "infeasible": 28, "unresolved": 4},
+      {"ambient_c": 25, "rows": 147, "feasible": 15, "infeasible": 115, "unresolved": 17},
+      {"ambient_c": 35, "rows": 147, "feasible": 15, "infeasible": 117, "unresolved": 15},
+      {"ambient_c": 40, "rows": 77, "feasible": 22, "infeasible": 51, "unresolved": 4}
+    ],
+    "historical_off_lattice_rows": 9,
+    "questions": 25,
+    "unresolved_question_comparisons": 25,
+    "adopted_law_truth": false,
+    "T2a_by_band": ["NOT_DEMONSTRATED", "NOT_DEMONSTRATED", "NOT_DEMONSTRATED", "NOT_DEMONSTRATED", "NOT_DEMONSTRATED"]
+  },
+  "audit_grid": {"role": "AUDIT_ONLY", "vectors": 4, "temperature_caps_c": [42.5, 45], "retention_floors": [0.99, 0.995]},
+  "other_challenge_laws_changed": false
+}

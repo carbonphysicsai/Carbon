@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-replacement-candidates-baseline",
+  "recorded_at": "2026-10-09T15:57:29Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "REPLACEMENT-CANDIDATES-01 baseline",
+    "description": "Native existing value-cost and volume/leverage arithmetic regressions."
+  },
+  "expected": "Existing framework and scenario evidence remain unchanged.",
+  "observed": "62 passed in 0.66s. Native diagnostic only; no reference solve, cost measurement or canonical acceptance.",
+  "keep": ["Separate sourced workflow evidence from assumed commercial volume."],
+  "change": ["Replacement dossiers must confront the strongest cheap method before forecasting benefit."],
+  "protocol_elements": ["buyer value", "cost accounting"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

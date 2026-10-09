@@ -334,7 +334,15 @@ def git_state(repository=REPOSITORY):
     }
 
 
-def run_gate(challenge, level=0, *, only=None, repository=REPOSITORY, root=PACKAGE):
+def run_gate(
+    challenge,
+    level=0,
+    *,
+    only=None,
+    repository=REPOSITORY,
+    root=PACKAGE,
+    evidence_paths=None,
+):
     """The report for one challenge at one level. Items run in gate order."""
     check_request(challenge, level)
     items = load_items()
@@ -348,6 +356,7 @@ def run_gate(challenge, level=0, *, only=None, repository=REPOSITORY, root=PACKA
         level=level,
         repository=Path(repository),
         data=check_module.load_challenge_data(challenge),
+        evidence_paths=dict(evidence_paths or {}),
     )
     rows = [evaluate_item(item, ctx, root) for item in items]
     counts = {s: sum(1 for r in rows if r["status"] == s) for s in SEVERITY}
@@ -356,9 +365,7 @@ def run_gate(challenge, level=0, *, only=None, repository=REPOSITORY, root=PACKA
         "schema": REPORT_SCHEMA,
         "challenge": challenge,
         "level": level,
-        "utc": datetime.datetime.now(datetime.timezone.utc).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        ),
+        "utc": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "git": git,
         "partial": bool(only),
         "items": rows,

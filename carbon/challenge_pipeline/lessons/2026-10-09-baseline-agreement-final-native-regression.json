@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-agreement-final-native-regression",
+  "recorded_at": "2026-10-09T14:35:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "final 67-test regression after observer-identity repair",
+    "description": "BASELINE-AGREEMENT-01: final 67-test regression after observer-identity repair"
+  },
+  "expected": "Curve observer and summary identity repairs should not change task owners.",
+  "observed": "67 tests passed; Black formatted one module and Ruff passed. Local Python/NumPy/SciPy differ from canonical pins.",
+  "keep": [
+    "Require the full-curve sidecar observer to match registered tasks and preserve zero-mean refusal."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.pipeline.lessons",
+    "challenge.cheap-baseline.comparison"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

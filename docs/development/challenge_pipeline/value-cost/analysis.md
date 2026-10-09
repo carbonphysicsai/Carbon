@@ -1,5 +1,12 @@
 # Applying the owner framework without manufacturing eight passes
 
+> **Prospective baseline-driven follow-up (2026-10-09):**
+> [three conditional dossiers](reframes/README.md) reuse f06's existing early-2D
+> candidate and examine lower-value screening-only f08/Cooling candidates.
+> None is adopted; none changes this historical ranking or registers a law.
+> A narrower question can still lose to #864's strong incumbent. Cooling
+> running-panel/owner input gates and the single adopted-fix ledger remain.
+
 Authority: [owner framework](README.md), OWNER-CHALLENGE-VALUE-COST-01.
 Development only, SPECIFIED, 2026-10-08. These are mock buyer roles, not
 customers, deployment advice, traction or adopted scientific contracts.
