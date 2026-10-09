@@ -1,6 +1,6 @@
 """Summarize a miner's exported practice gate outcomes without trial details.
 
-Run ``python -m scripts.dev.miner_launchpad.gate_pass_diagnosis EXPORT.json``.
+Run ``python -m scripts.dev.battery.gate_pass_diagnosis EXPORT.json``.
 The input is the Launchpad's own-research export. This reads existing public
 PRACTICE feedback only; it does not train, predict, access an exam, or change a
 gate. A score is descriptive even when the trial is ineligible.

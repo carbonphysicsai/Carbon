@@ -5,7 +5,7 @@ import json
 import pytest
 
 from carbon.battery.scaffold import SCAFFOLD
-from scripts.dev.miner_launchpad.gate_pass_diagnosis import (
+from scripts.dev.battery.gate_pass_diagnosis import (
     diagnose,
     main,
     shareable_counts,

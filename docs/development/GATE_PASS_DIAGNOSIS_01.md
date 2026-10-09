@@ -55,7 +55,7 @@ After this tool is merged, the miner can update Carbon, export his own campaign
 locally, and run:
 
 ```sh
-python -m scripts.dev.miner_launchpad.gate_pass_diagnosis /path/to/campaign-export.json --counts-only
+python -m scripts.dev.battery.gate_pass_diagnosis /path/to/campaign-export.json --counts-only
 ```
 
 `--counts-only` prints each public gate's failed-trial and failed-case counts,
