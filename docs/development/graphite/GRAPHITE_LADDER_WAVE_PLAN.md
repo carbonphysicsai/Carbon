@@ -41,17 +41,20 @@ Checked against origin/main `8b19f012d` (2026-10-09).
    Graphite's internal hidden route (VALIDATOR-13) as the evidence path. Attacks also run
    here. Nothing here counts as a level passing.
 2. **Confirm the best candidates through the Launchpad.** A few real freeze, commit,
-   submit, verdict runs per level, on the **minerD-G lane** (UIDs 8 to 11, one commit per
-   tempo each, so up to 4 confirmations per tempo; assumption, section 0) with the auto-confirm
-   signer. A level is "passed through the Launchpad" only when these runs pass
+   submit, verdict runs per level with the auto-confirm signer. **Each hotkey is bound to
+   exactly one deployment (enforced in code by the Validator).** The **minerD-G lane** (UIDs 8
+   to 11, one commit per tempo each, so up to 4 confirmations per tempo) stays on **main** and
+   serves **L0 confirmations only**. L1 to L4 confirm on the dev-ladder with its own hotkeys:
+   `carbon-rehearsal-minerC`, plus new minerH to K if the owner creates them (optional). A level is "passed through the Launchpad" only when these runs pass
    (OWNER-LADDER-THROUGH-LAUNCHPAD-01 item 3).
 
 **Deployments.**
 - **L0: the main battery deployment** is the only level that confirms on main today (Test
   Lead, 2026-10-09). L1 is a development variant, so L1 confirms on the dev-ladder like L2 to L4.
 - **L1 to L4: the dev-ladder deployment** (VALIDATOR-25), never mainnet until the owner locks
-  a level. It accepts only its dedicated rehearsal hotkey per the 2026-10-07 decision; whether
-  UIDs 8 to 11 are also allowed there is for the Carbon Validator. **L1 to L4 confirmation is
+  a level. Its hotkeys are the dedicated rehearsal hotkey `carbon-rehearsal-minerC` and, if the
+  owner creates them, minerH to K; the minerD-G UIDs 8 to 11 are bound to main and never commit
+  on the ladder (Test Lead, 2026-10-09; there is no minerD-G ladder record). **L1 to L4 confirmation is
   blocked on VALIDATOR-25 being built.** (L1 exploration on the development door and the
   Constructor and Attacker runs do not wait for it.)
 - Development variants are served only by the dev-ladder deployment (the decision's
@@ -117,8 +120,7 @@ L1's confirmation to the dev-ladder changes only where L1 confirms and what it w
 stage A's L1 confirmations wait for VALIDATOR-25 (its L1 explore, Constructor and Attacker
 runs do not). Stage B waits for VALIDATOR-25 and stage C for the security decision. ### Concurrency (Test Lead: "hammering" means more than one run at a time)
 
-Proposal: **`max_concurrency` 2 for stage A** on the shared WSL host, raised to **4 (one per
-D-G lane)** after a host-load check with Data Collection (the host has been saturated; a
+Proposal: **`max_concurrency` 2 for stage A** on the shared WSL host, raised to **4** after a host-load check with Data Collection (the host has been saturated; a
 raise is not assumed). Each run keeps its own controller root. Cost is unchanged: the per-run
 worst case and the stage ceilings stand (each run is capped on its own); concurrency only
 raises the peak simultaneous reservation (2 x 14.91 = 29.82 USD at 2; 4 x 14.91 = 59.64 at 4,
@@ -188,9 +190,9 @@ waiver names the replacement). This plan proposes no waiver.
 
 1. **VALIDATOR-25** (dev-ladder deployment): blocks L1 to L4 confirmation. UNVERIFIED status.
 2. **minerD-G lane, UIDs 8 to 11:** owner-registered 2026-10-08; to verify with Carbon's reader
-   after the WSL restart. The rehearsal-hotkey restriction in the 2026-10-07 decision (the
-   dev-ladder accepts only `carbon-rehearsal-minerC`) may conflict with using these UIDs there
-   (Carbon Validator to confirm).
+   after the WSL restart. They stay on main for L0 confirmations only. L1 to L4 confirmation
+   capacity is the ladder's hotkey count (minerC alone is one commit per tempo; more only if the
+   owner creates minerH to K).
 3. **Grants:** new Level 0 kimi-k3 Constructor binding, kimi-k3 Attacker token share, L2 to L4
    grants (section 4). The owner approves; the Test Engineer binds.
 4. **Gate:** A4 designation per level (only level 0 exists, PENDING); R1 containment image; V1
