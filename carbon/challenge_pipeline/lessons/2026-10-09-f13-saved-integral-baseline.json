@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-f13-saved-integral-baseline",
+  "recorded_at": "2026-10-09T18:20:51Z",
+  "challenge": "f13",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "tests/cpu/test_challenge_pipeline.py", "description": "Native Python 3.11 pipeline baseline before saved-output diagnostic; no solver or real acquisition material."},
+  "expected": "Existing protocol and lesson validation remains green.",
+  "observed": "28 passed in 7.69s on the native Windows diagnostic host; not canonical acceptance.",
+  "keep": ["One append-only lesson file per execution; separate bookkeeping from scientific qualification."],
+  "change": ["Add a tool that cannot claim physical reference adequacy from Robin accounting closure."],
+  "protocol_elements": ["lessons", "reference-policy"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

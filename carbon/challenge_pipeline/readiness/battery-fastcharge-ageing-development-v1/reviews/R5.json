@@ -1,0 +1,28 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-review.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": [
+  0,
+  1
+ ],
+ "item": "R5",
+ "decision": "PASS",
+ "reviewer": "Test Lead",
+ "date": "2026-10-09",
+ "evidence": [
+  {
+   "kind": "pr",
+   "ref": "896"
+  },
+  {
+   "kind": "file",
+   "ref": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3-R4.json",
+   "sha256": "sha256:30458c1726c4724f4783122ebb46dfe6526b67c947b15b73931c865b914769a2"
+  },
+  {
+   "kind": "test",
+   "ref": "tests/cpu/test_graphite_phase4_grant.py"
+  }
+ ],
+ "notes": "ACCEPTED: grants per #896 (OWNER-GRAPHITE-STAGE-A-01) and R4 (Test Lead stage A sign-off, 2026-10-09). #896 was open when this was written; the grant files bind spend only once on main."
+}

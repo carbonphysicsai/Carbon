@@ -1,0 +1,27 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-review.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": [
+  0,
+  1
+ ],
+ "item": "R2",
+ "decision": "PASS",
+ "reviewer": "Test Lead",
+ "date": "2026-10-09",
+ "evidence": [
+  {
+   "kind": "test",
+   "ref": "tests/cpu/test_carrier_containment.py"
+  },
+  {
+   "kind": "test",
+   "ref": "tests/cpu/test_carrier_containment_mutations.py"
+  },
+  {
+   "kind": "decision",
+   "ref": "GRAPHITE-CARRIER-CONTAINMENT-01"
+  }
+ ],
+ "notes": "ACCEPTED on cited evidence (Test Lead stage A sign-off, 2026-10-09); wiring gaps are tracked as notes. Note: containment runs as the carrier_containment step of prelive and needs the analysis image manifest."
+}
