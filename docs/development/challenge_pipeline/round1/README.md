@@ -5,6 +5,10 @@
 > extraction and short-port treatment remain unresolved; no repaired truth,
 > weakened limits, solver execution or package change is claimed.
 
+Motor peak follow-up: [analytic sizing, setup coverage and search recommendation](motor-peak-feasibility.md)
+retains 12 N·m. It is an analysis-only supplement, not a feasibility result,
+material/geometry adoption or permission to execute a reference.
+
 > **Current value/cost and contested-boundary rule:**
 > [eight buyer scorecards](../value-cost/analysis.md) apply the
 > [owner framework](../value-cost/README.md). At least five feasible and five

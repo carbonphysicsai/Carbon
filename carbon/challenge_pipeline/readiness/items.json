@@ -255,12 +255,7 @@
    "kind": "auto",
    "lesson": "G5",
    "title": "A margin study for every gate: the minimum reference margin and 1st percentile, with fragile gates flagged.",
-   "check": "recorded_tests",
-   "pending": {
-    "reason": "gate margin study (VALIDATOR-09) is not recorded for the challenge",
-    "owner": "Carbon Validator",
-    "neutral_tests": []
-   }
+   "check": "gate_margin_study"
   },
   {
    "id": "S4",
@@ -398,12 +393,7 @@
    "kind": "auto",
    "lesson": "S9",
    "title": "Tuning and confirmation sets are registered and disjoint (overlap-checked) against the other sealed roles, the rotating pool, TRAIN, PRACTICE and the practice decision set.",
-   "check": "recorded_tests",
-   "pending": {
-    "reason": "the tuning role (graphite-tuning-v1) and an overlap checker are not on main",
-    "owner": "Carbon Validator",
-    "neutral_tests": []
-   }
+   "check": "tuning_overlap"
   },
   {
    "id": "H3",

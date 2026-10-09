@@ -54,6 +54,14 @@ and never above the grant's. A run that names no study, or a study with no
 binding, is refused `grant_is_not_bound_to_study`. A study grant is never a
 phase-3 grant: outside its study it is refused `grant_is_bound_to_a_study`.
 
+- GRAPHITE-GRANT-STAGE-A-CONSTRUCTOR and GRAPHITE-GRANT-STAGE-A-ATTACKER are
+  the Graphite ladder wave's stage A (OWNER-GRAPHITE-STAGE-A-01): battery,
+  main's committed blob, start model kimi-k3. The Constructor grant admits
+  Level 0 and above (`min_level` 0) with R4's token share; the Attacker grant
+  starts the Attacker on kimi-k3 and runs only through phase 4 (`runner`):
+  a phase-3 run refuses it (`grant_is_not_a_phase3_grant`), and phase 4
+  accepts it by its id for battery (`phase4.check_committed_grant`).
+
 A registered grant named for another Challenge is
 `grant_is_for_another_challenge`. A Challenge in `PHASE3_BOUND_CHALLENGES`
 accepts only a grant registered for it
@@ -157,6 +165,10 @@ def check_committed_blob(given, repository, grant_file, *, phase):
 
 
 # -- phase 3 ------------------------------------------------------------------------------
+#: The Graphite ladder wave's stage A (#889 section 4), approved by the owner.
+STAGE_A_AUTHORITY = "OWNER-GRAPHITE-STAGE-A-01"
+
+
 @dataclasses.dataclass(frozen=True)
 class Phase3Grant:
     """One owner-approved phase-3 grant: its Challenge, its file, whether a
@@ -173,6 +185,13 @@ class Phase3Grant:
     start_model: str | None = None
     #: The run's token share in USD; None: the run cost less the pods.
     token_share_usd: Decimal | None = None
+    #: The roles `start_model` applies to (`roles.RoleName` values).
+    start_roles: tuple = ("constructor", "planner")
+    #: The decision the run conditions record.
+    authority: str = "OWNER-GRAPHITE-PHASE3-R4-01"
+    #: The runner that spends the grant: "phase3" (Constructor sessions) or
+    #: "phase4" (Attacker sessions, `phase4.PHASE4_STAGE_GRANTS`).
+    runner: str = "phase3"
 
 
 PHASE3_GRANTS = types.MappingProxyType(
@@ -211,6 +230,26 @@ PHASE3_GRANTS = types.MappingProxyType(
                 min_level=1,
                 start_model="kimi-k3",
                 token_share_usd=Decimal("11.93"),
+            ),
+            Phase3Grant(
+                grant_id="GRAPHITE-GRANT-STAGE-A-CONSTRUCTOR",
+                challenge=BATTERY_CHALLENGE,
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-STAGE-A-CONSTRUCTOR.json",
+                main_blob=True,
+                min_level=0,
+                start_model="kimi-k3",
+                token_share_usd=Decimal("11.93"),
+                authority=STAGE_A_AUTHORITY,
+            ),
+            Phase3Grant(
+                grant_id="GRAPHITE-GRANT-STAGE-A-ATTACKER",
+                challenge=BATTERY_CHALLENGE,
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-STAGE-A-ATTACKER.json",
+                main_blob=True,
+                start_model="kimi-k3",
+                start_roles=("attacker",),
+                authority=STAGE_A_AUTHORITY,
+                runner="phase4",
             ),
         )
     }
@@ -257,7 +296,7 @@ def start_rungs(grant):
     if entry is None or entry.start_model is None:
         return {}
     rung = ENGY_LADDER.index(entry.start_model)
-    return {RoleName(name): rung for name in START_ROLES}
+    return {RoleName(name): rung for name in entry.start_roles}
 
 
 def start_model_refusal(grant, role, model_id):
@@ -270,7 +309,7 @@ def start_model_refusal(grant, role, model_id):
     entry = entry_of(grant)
     if entry is None or entry.start_model is None:
         return None
-    if getattr(role, "value", None) not in START_ROLES:
+    if getattr(role, "value", None) not in entry.start_roles:
         return None
     floor = ENGY_LADDER.index(entry.start_model)
     if model_id not in ENGY_LADDER or ENGY_LADDER.index(model_id) < floor:
@@ -290,11 +329,11 @@ def run_conditions(grant):
         return None
     return {
         "schema": RUN_CONDITIONS_SCHEMA,
-        "authority": RUN_CONDITIONS_AUTHORITY,
+        "authority": entry.authority,
         "grant_id": entry.grant_id,
         "min_construction_level": entry.min_level,
         "start_model": entry.start_model,
-        "start_roles": list(START_ROLES),
+        "start_roles": list(entry.start_roles),
         "token_share_usd": (
             None if entry.token_share_usd is None else str(entry.token_share_usd)
         ),
@@ -349,6 +388,9 @@ def check_phase3_grant(path, grant, *, challenge, level=0, repository=REPOSITORY
     if any(s.grant_id == grant.grant_id for s in STUDY_GRANTS.values()):
         raise _refused(STUDY_GRANT_OUTSIDE)
     entry = PHASE3_GRANTS.get(grant.grant_id)
+    if entry is not None and entry.runner != "phase3":
+        # An Attacker's grant (stage A) is spent only through phase 4.
+        raise _refused("grant_is_not_a_phase3_grant")
     if entry is None:
         if challenge in PHASE3_BOUND_CHALLENGES:
             raise _refused("grant_is_not_a_phase3_grant_for_challenge")

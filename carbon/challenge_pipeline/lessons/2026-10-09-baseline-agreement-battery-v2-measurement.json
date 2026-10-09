@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-agreement-battery-v2-measurement",
+  "recorded_at": "2026-10-09T14:35:00Z",
+  "challenge": "battery-fast-charge",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "coverage_run",
+    "ref": "battery-measurement-v2.json local diagnostic",
+    "description": "BASELINE-AGREEMENT-01: battery-measurement-v2.json local diagnostic"
+  },
+  "expected": "Separate per-band abstention, point-prediction verdicts and map agreement.",
+  "observed": "Both held-out arms abstained from all 25 complete maps; 226 protocol folds and five band folds timed. Nine historical rows off prospective 0.01-C lattice; no unsupported cooling levels.",
+  "keep": [
+    "Keep historical panel measurement distinct from prospective law adoption."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.pipeline.lessons",
+    "challenge.cheap-baseline.comparison"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

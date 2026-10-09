@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-battery-law-round2-baseline",
+  "recorded_at": "2026-10-09T15:00:39Z",
+  "challenge": "battery",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-BATTERY-V3-QUESTION-LAW-01 baseline", "description": "Native Python question-law and customer-revision tests before prospective supplement."},
+  "expected": "Current proposal/history tests pass unchanged.",
+  "observed": "34 passed in 0.47s. Native Windows diagnostic only; no canonical acceptance, solver, sampler or spend.",
+  "keep": ["Preserve original numeric law sheets and optimizer ownership."],
+  "change": ["Bind approved action lattice separately from unregistered requirement distributions."],
+  "protocol_elements": ["question law", "history", "authority"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

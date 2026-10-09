@@ -93,6 +93,8 @@ fails the gate gets no live Graphite run, at any level.
 | V2 | Panel discrimination: at least two distinct decision outcomes among panel members on the decision study. If not, widen the construction families first (development variant). | [auto] | S3 |
 | V3 | Promotion claims require multi-seed evidence. | [review] | S2 |
 
+READINESS-GAPS-01's [draft multi-seed promotion policy](../challenge_pipeline/readiness/MULTI_SEED_PROMOTION_PROPOSAL.md) is a proposal for the Test Lead. It does not supply a V3 review or make the item pass.
+
 ## H. Hidden path: operational evidence (OWNER-GRAPHITE-TEST-WAVE-08)
 
 Practice-score evidence is a proxy: the rule's form on cases the agent had seen.

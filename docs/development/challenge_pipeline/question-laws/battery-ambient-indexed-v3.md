@@ -1,5 +1,9 @@
 # Battery v3 continuous law for ambient indexed decisions
 
+> Prospective [round-two supplement](battery-v3-round2.md) records the owner's
+> 0.01-C action lattice, x1/x2/x4 menu and scoped tier-4 audit. This document
+> and its original numeric sheet retain their historical evidence identities.
+
 **DEVELOPMENT / SPECIFIED.** The owner selects an ambient-indexed map and
 buyer-mix-weighted band value; the [numeric law sheet](battery-ambient-indexed-v3.json)
 is not runtime registration. Supersede #817's single-protocol law prospectively;
