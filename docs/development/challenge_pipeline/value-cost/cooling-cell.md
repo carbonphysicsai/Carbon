@@ -30,20 +30,43 @@ uptime or full prototype saving claimed from a cell. Verification/integration
 cost missing: net benefit NOT_DEMONSTRATED. Reconcile pressure vs hydraulic
 power objective with owning contract before using either as the winner.
 
-### V3 — frequency
+### V3 — cell-shortlist revisions, not server shipments
 
-ASSUMPTION **2 / 6 / 12 component design revisions/year per OEM team**.
-Ask for NPI/CFD iteration records; hardware shipment volume does not establish
-decision frequency or demand for a cell-only fast model.
+Independent [Boyd AI-platform coldplate designs](https://www.boydcorp.com/thermal/liquid-cooling-systems/liquid-cold-plates/cold-plates-for-ai-server-cooling.html)
+and [CoolIT processor coldplate applications](https://www.coolitsystems.com/coldplate-technology/)
+establish repeated integration work. They do not count cell-only projects,
+annual SKU introductions or unique CFD teams. No full-plate/manifold work is
+valued here.
 
-### V4 — fast-model leverage
+All factors **ASSUMPTIONS**: 5/15/40 eligible supplier/OEM teams ×2/6/12
+cell geometry/flow revisions/team/year = **10/90/480 decisions/year**;
+V2 gives **$1,000/$40,500/$768,000 conditional annual gross**.
+Empirical lower bound zero. Count shared supplier/OEM projects once; obtain
+new-vs-carried-over SKU, NPI, cell-library and actual CFD logs before V3 PASS.
+Units shipped and changing a threshold over the same bank do not create
+fresh engineering decisions or reference calls.
 
-#776 legacy 200 geometry/flow actions ×5 conditions =1,000 cell cases plus
-refinement. **Workflow evaluation count UNSOURCED** by these manufacturer
-pages; current field/physics support and timing must come from C1.
-Compare cached thermal-resistance/interpolation and analytical fluid controls;
-wall speedup and retained final reference cost both matter. No “100–300× full
-plate saving” is attributed to this out-of-scope cell decision.
+### V4 — compare to CFD + response surface, not brute-force fiction
+
+[Mat et al.'s microchannel study](https://www.tj.kyushu-u.ac.jp/evergreen/contents/EG2024-11_2_content/p1426-1434.html)
+searches **2,500 response-surface points**, not 2,500 CFD jobs. Its exact
+acquisition count is not established by the abstract. **N=30/100/1,000
+new cell-condition solves** is a sensitivity assumption; the high case
+requires genuinely novel supported geometries/conditions, not repeated lookups.
+
+Owner-reported C1 **0.45 CPU-h/cell case**. At base N=100, acquiring the
+legacy 1,000-case bank and fitting over only 10 served revisions costs
+more than direct solves: **−1.90 serial wall-h / −$0.19 compute saved**,
+end-to-end leverage **0.96×**. Break-even reuse is **over 10.43 revisions**
+under these assumptions; reused published training may improve it but is
+not automatically free acquisition. A cold-start model is not justified by
+an instantaneous inference ratio.
+
+Enabled case: 10,000 cell geometry/flow/tolerance queries in a review window,
+with a retained refined shortlist. Compare the cited DOE/response surface,
+thermal-resistance library and interpolated lookup at the same case-plane
+quantity. No full cold plate saving. V4 PASS NOT_DEMONSTRATED;
+[low/base/high, build and reuse](volume-leverage.json).
 
 ### V5 — credibility
 

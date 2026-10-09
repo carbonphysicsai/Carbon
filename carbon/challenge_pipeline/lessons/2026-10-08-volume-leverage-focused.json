@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-volume-leverage-focused",
+  "recorded_at": "2026-10-08T23:28:37Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-VOLUME-LEVERAGE-01 focused",
+    "description": "Bounded native Windows static validation; no solver/model training/spend or hidden material."
+  },
+  "expected": "Test scenario arithmetic and preserve current packet/protocol authority.",
+  "observed": "83 passed in 0.41s: new volume/leverage arithmetic plus existing value-cost and credibility tests. Native-host diagnostics, not canonical CI or economic/scientific qualification.",
+  "keep": [
+    "Source menus/search counts are not matched buyer truth-call counts; preserving null acceptance slots prevents accidental economic clearance."
+  ],
+  "change": [
+    "Replace assumed cadence/unique workflow/build/inference fields only with matched buyer and Data Collection receipts."
+  ],
+  "protocol_elements": [
+    "buyer value",
+    "model leverage",
+    "reference cost",
+    "historical evidence"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
