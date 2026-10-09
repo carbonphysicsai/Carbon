@@ -1,0 +1,33 @@
+{
+ "schema": "carbon.submission-rate-study.measures.v1",
+ "study": "SUBMISSION-RATE-STUDY-01",
+ "status": "DRAFT_NOT_FROZEN",
+ "plan": "docs/development/graphite/SUBMISSION_RATE_STUDY_01.md",
+ "freeze_rule": "Frozen after Stage 0 (arm H only) and before any adversary run: the canonical digest of this document, the analysis script digest and the study bank tranche roots are recorded in a Test Lead decision file. A change after the freeze is a recorded amendment.",
+ "arms": ["H", "S-sealed", "S-revealed", "G-sealed"],
+ "rates": {"unit": "per-hotkey scored submissions per 360-block tempo", "m": [1, 2, 4], "window_blocks": {"1": 360, "2": 180, "4": 90}},
+ "sizes": {"windows_per_run": "SET_AT_FREEZE", "replicates_per_arm": "SET_AT_FREEZE", "basis": "Stage 0 honest-arm noise"},
+ "measures": {
+  "overfitting_index_D": "S(M_t; current batches) - S(M_t; producer fresh set), sign-adjusted so positive = better on the scored batch; operator side only",
+  "drift_growth": "regression slope of D on cumulative batch probes and cumulative case probes, bootstrap interval over runs, per arm and rate",
+  "sealed_vs_revealed": "ratio of S-revealed to S-sealed drift at equal m and probe count",
+  "exposure_profile": "D by case exposure (1, 3, E) using leak_detection classes current/fresh/retired/published",
+  "detector_curve": "leak_detection advantage, in_seed_band and in_batch_spread over its registered sweep; false-flag rate on arm H",
+  "throughput": "wall time per scored submission; UNAVAILABLE and WINDOW_USED counts",
+  "selection_check": "best-of-sequence D of arm H at matched probe count"
+ },
+ "noise": {
+  "definition": "bootstrap interval of arm H's mean D at matched cumulative probe count, pooled over rates if arm H shows no rate effect",
+  "interval_settings": {"n_boot": 4000, "alpha": 0.05, "source": "carbon.battery.exam.DEVELOPMENT_RULE comparison (reused, not chosen)"},
+  "within_noise": "the upper bound of an adversary arm's bootstrap interval of mean D does not exceed the upper bound of arm H's band at the same probe count"
+ },
+ "safe_rate": "the largest tested m at which S-sealed and G-sealed are both within noise at the final probe count; S-revealed is the reported bound",
+ "pricing": {
+  "per_window_solves": "n / E",
+  "n": 98,
+  "e_bound": "E <= P_star / (3 m H)",
+  "per_solve_cost": "measured in Stage 0 (B4 median 82 CPU-s as the prior)",
+  "capacity_model": "CAPACITY_MODEL_8_CHALLENGES.md is not committed; reconcile when it lands"
+ },
+ "claims": {"qualification": false, "live": false, "reward": false, "production_rate": false}
+}
