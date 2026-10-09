@@ -124,12 +124,10 @@ def load_config(path):
     if config.get("torch_image_manifest") and config["backend"] != "carrier":
         raise EvaluationUnavailable("evaluation_config_image")
     # VALIDATOR-27: a GPU deployment is a carrier on the accelerator image,
-    # JAX only for now.
+    # and serves PyTorch on the PyTorch GPU worker when it names one.
     if config.get("device", "cpu") not in ("cpu", "gpu"):
         raise EvaluationUnavailable("evaluation_config_device")
-    if config.get("device") == "gpu" and (
-        config["backend"] != "carrier" or config.get("torch_image_manifest")
-    ):
+    if config.get("device") == "gpu" and config["backend"] != "carrier":
         raise EvaluationUnavailable("evaluation_config_device")
     from .exam import RULES
 
@@ -249,7 +247,18 @@ def build(config, *, repository, readonly=False):
             if config.get("torch_image_manifest")
             else None
         )
-        if torch_image is not None:
+        if torch_image is not None and config.get("device") == "gpu":
+            from carbon.reconstruction.torch_profile import gpu_requirements_digest
+
+            # The PyTorch GPU worker (VALIDATOR-27 slice 2) is built on the same
+            # C-03 worker as the JAX accelerator image, from this checkout's
+            # exact-hashed cu130 lock, nothing else.
+            if (
+                torch_image.base_image_digest != image.base_image_digest
+                or torch_image.lock_digest != gpu_requirements_digest(repository)
+            ):
+                raise EvaluationUnavailable("evaluation_config_image")
+        elif torch_image is not None:
             from carbon.reconstruction.torch_profile import requirements_digest
 
             # The PyTorch image is the one built on this JAX image from this

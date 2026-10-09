@@ -1,6 +1,6 @@
 # VALIDATOR-27: battery validator scoring on a GPU (valV3, `gpu:NVIDIA A40`)
 
-**Status:** slice 1 (JAX) implemented. The Test Lead approved the plan on
+**Status:** slices 1 (JAX) and 2 (PyTorch) implemented. The Test Lead approved the plan on
 2026-10-08 ("Proceed with VALIDATOR-27"). It goes live only after the A40
 acceptance passes and its record enters the hardware acceptance registry.
 
@@ -106,5 +106,32 @@ SECURITY_QUALIFIED. GPU scores are UNVERIFIED until the A40 acceptance.
   - `evaluation_device_class_not_accepted`;
   - `evaluation_device_unavailable`.
 
-**Slice 2 (later):** PyTorch on the validator's GPU, with its own pinned
-GPU-worker check.
+## Slice 2, as built (PyTorch GPU)
+
+The same carrier lane, worker profile, host device record and determinism
+environment as JAX (backend parity). What differs is the pinned worker and
+its acceptance.
+
+- **The image is the PyTorch GPU worker** (TORCH-GPU-01): its own
+  exact-hashed cu130 lock, layered on the same C-03 worker as JAX's
+  accelerator image.
+  - A GPU deployment may name it as `torch_image_manifest`.
+  - The deployment requires the same C-03 parent as the JAX image, and the
+    checkout's cu130 lock (`evaluation_config_image` otherwise).
+  - The CPU PyTorch worker never runs on the validator's GPU.
+- **Its own pinned-worker check:** `accelerator_runtime.verify_image_and_toolkit`
+  checks the PyTorch GPU worker's profile digest and lock, under the same two
+  labels and in the same way as JAX's. One mechanism, with the pins passed
+  by `research_carrier._gpu_pins`. A claimed lock admits nothing unless the
+  labels match. The miner lane always keeps JAX's pins.
+- **Its own acceptance:** `ACCEPTED_DEVICE_CLASSES` is now keyed by device
+  class and then by profile id.
+  - A JAX acceptance never admits the PyTorch GPU worker, nor the reverse.
+  - A GPU deployment that serves PyTorch needs both accepted at start.
+  - The run binds the PyTorch GPU profile id in its request.
+- **In the worker:** PyTorch applies `GPU_DETERMINISM_TORCH` in-process
+  (`torch_gpu.require_ready`), and `worker_environment` delivers the
+  environment controls it shares with JAX.
+- **Unchanged:** CPU deployments and JAX GPU runs.
+- **Not done:** the PyTorch GPU acceptance on the A40. No class is entered for
+  either profile, so this fails closed.

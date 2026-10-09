@@ -14,8 +14,10 @@ reviewed commit naming the record. Empty until the A40 acceptance passes.
 
 from __future__ import annotations
 
-#: `{device_kind: {"profile_id", "record", "evidence"}}`. Empty: no class
-#: has passed a hardware acceptance yet.
+#: `{device_kind: {profile_id: {"record", "evidence"}}}`: a class is
+#: accepted per accelerator profile, so a JAX acceptance never admits the
+#: PyTorch GPU worker (or the reverse). Empty: no class has passed a hardware
+#: acceptance yet.
 ACCEPTED_DEVICE_CLASSES: dict = {}
 
 
@@ -28,8 +30,9 @@ class DeviceClassNotAccepted(ValueError):
 def require_accepted(device_kind, profile_id):
     """Refuse unless `device_kind` passed a hardware acceptance under
     `profile_id`."""
-    entry = ACCEPTED_DEVICE_CLASSES.get(device_kind)
-    if type(entry) is not dict or entry.get("profile_id") != profile_id:
+    profiles = ACCEPTED_DEVICE_CLASSES.get(device_kind)
+    entry = profiles.get(profile_id) if type(profiles) is dict else None
+    if type(entry) is not dict:
         raise DeviceClassNotAccepted(
             "no hardware acceptance names this device class for validator scoring"
         )
