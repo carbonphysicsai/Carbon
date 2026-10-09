@@ -119,7 +119,7 @@ def run(root, parallel, image, host_profile=None):
             raise SystemExit(f"{entry['case']}: files differ from the manifest")
         script = f"{SOLVE}; rc=$?; times > times.txt; cat /sys/fs/cgroup/memory.peak > memory.peak 2>/dev/null; exit $rc"
         cmd = ["docker", "run", "--rm", "--name", f"carbon-f02menu-{entry['case']}"[:100], "--network", "none",
-               "--read-only", "--tmpfs", "/tmp", "--cpus", "1", "--memory", "4g", "--pids-limit", "16",
+               "--read-only", "--cpu-shares", "256", "--tmpfs", "/tmp", "--cpus", "1", "--memory", "4g", "--pids-limit", "16",
                "--user", f"{os.getuid()}:{os.getgid()}", "-v", f"{d.resolve()}:/case", "-w", "/case", image,
                "bash", "-c", script]  # fmt: skip
         started, t0 = time.time(), time.monotonic()
