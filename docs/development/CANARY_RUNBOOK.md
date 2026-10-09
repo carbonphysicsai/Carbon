@@ -67,18 +67,27 @@ scoring cannot be told apart, and the journal says so in each stage's `note`.
 
 ## Owner steps on carbon-fresh
 
-These are attended runs first (plan §6). The checkout is `~/carbon`.
+These are attended runs first (plan §6). The checkout is `~/carbon`. The
+steps match the owner sheet for the carbon-fresh lanes, where the ports are:
+
+| Lane | Port |
+|---|---|
+| minerB | 8788 |
+| minerA | 8789 |
+| canary | 8790 |
+| minerD to minerG | 8791 to 8794 |
 
 1. **Install the canary's Launchpad.** This is a third install on the
-   checkout, with its own state directory and port. Since #843 (LA-F15,
-   LA-F16) it is safe beside minerA and minerB: it gets its own service name,
-   leaves theirs alone, and reuses their images at the same revision.
+   checkout, with its own state directory, port and user service. Since #843
+   (LA-F15, LA-F16) it is safe beside minerA and minerB: it gets its own
+   service name, leaves theirs alone, and reuses their images at the same
+   revision.
 
    ```bash
-   CARBON_STATE_DIR=$HOME/.carbon/canary ~/carbon/scripts/install_miner.sh --port 8791
+   CARBON_STATE_DIR=$HOME/.carbon/canary ~/carbon/scripts/install_miner.sh --service --port 8790
    ```
 
-2. **Set it up** in that Control Center (`http://127.0.0.1:8791`), or with any
+2. **Set it up** in that Control Center (`http://127.0.0.1:8790`), or with any
    MCP agent using setup's status loop.
    - The hotkey is `carbon-canary`, already registered as UID 13.
    - Choose your own agent (`own-agent`) and CPU compute.
@@ -86,24 +95,36 @@ These are attended runs first (plan §6). The checkout is `~/carbon`.
    - Note the MCP command setup shows under "Connect your agent". It holds
      the Python path and the checkout the config names.
 
-3. **Write the auto-confirm allow-list**, in the format of #861
-   (`docs/development/MINER_EXTERNAL_SIGNER.md`). It must be a regular file,
-   not a symlink, yours, `chmod 600`, at most 4096 bytes, and exactly:
+3. **Write the auto-confirm allow-list** at
+   `~/.config/carbon/autoconfirm-allowlist.json`, in the format of #861
+   (`docs/development/MINER_EXTERNAL_SIGNER.md`).
+   - It must be a regular file, not a symlink, yours, `chmod 600`, and at most
+     4096 bytes.
+   - One file serves five signers. It holds five hotkeys: the canary and
+     minerD to minerG.
+   - minerA and minerB are not on it. They stay manual.
+
+   Its content is exactly:
 
    ```json
    {"schema": "carbon.signer.autoconfirm-allowlist.v1", "network": "testnet",
-    "netuid": 567, "hotkeys": ["5GBmHPBLwyKheugbtAVgxtWdX9YmWjfeCaBwmeFHr4rEWiB5"]}
+    "netuid": 567, "hotkeys": ["5GBmHPBLwyKheugbtAVgxtWdX9YmWjfeCaBwmeFHr4rEWiB5",
+                               "<minerD>", "<minerE>", "<minerF>", "<minerG>"]}
    ```
 
-   The file may list the other test hotkeys too: at most 16, all distinct.
-
-4. **Start the canary's signer** with the flag, in its own terminal:
+4. **Start the canary's signer** with the flag, in its own terminal (the
+   owner sheet runs it in the `signers` tmux session):
 
    ```bash
-   carbon-miner-signer --key-file <the carbon-canary hotkey file> \
+   ~/carbon/.venv/bin/carbon-miner-signer --wallet carbon-canary --hotkey default \
      --expect 5GBmHPBLwyKheugbtAVgxtWdX9YmWjfeCaBwmeFHr4rEWiB5 \
-     --auto-confirm-commitments ~/.carbon/signer/autoconfirm-allowlist.json
+     --receiver <valV2's receiver hotkey> \
+     --receiver <the subnet publisher's hotkey, until LA-F17> \
+     --auto-confirm-commitments ~/.config/carbon/autoconfirm-allowlist.json
    ```
+
+   - The publisher's `--receiver` is needed only until LA-F17 merges. Then
+     drop it, so the signer signs only for valV2.
 
    - If the key is encrypted, you type its password there.
    - The signer reads the allow-list once, at start: restart it after changing
