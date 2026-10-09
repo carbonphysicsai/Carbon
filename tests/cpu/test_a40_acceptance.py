@@ -60,7 +60,7 @@ def test_rate_ceiling_derives_from_the_committed_grant():
         grant,
         flags=re.MULTILINE,
     )
-    assert amended[-1] == ("0.65", "8")
+    assert amended[-1] == ("0.95", "8")
     assert a40.RATE_CEILING_USD_PER_HR == Decimal(amended[-1][0])
     assert a40.DEFAULT_CAP_USD == Decimal(amended[-1][1])
     assert a40.RATE_CEILING_USD_PER_HR == a40.grant_rate()
@@ -82,13 +82,13 @@ def test_the_pod_phase_leaves_the_process_environment_untouched(tmp_path, monkey
 
 
 def test_rate_is_the_grants_rate():
-    assert a40.hourly_rate() == Decimal("0.65")
+    assert a40.hourly_rate() == Decimal("0.95")
 
 
 def test_budget_gate_is_the_test_leads_inequality():
     hours = 1.0
     gate = a40.budget_gate(3600)
-    expected = (4 + 2) * Decimal(hours) * Decimal("0.65") + Decimal("0.25")
+    expected = (4 + 2) * Decimal(hours) * Decimal("0.95") + Decimal("0.25")
     assert Decimal(gate["worst_case_usd"]) == expected.quantize(Decimal("0.0001"))
     # The grant's own 2.0 h deadline cannot fit six pods under USD 8.00.
     with pytest.raises(a40.Refused, match="exceeds the cap"):
@@ -549,7 +549,7 @@ def test_launch_refuses_below_the_balance_floor(world):
 
 def test_launch_refuses_an_offer_above_the_rate_ceiling(world):
     make, fake, _bodies = world
-    fake.rate = 0.70
+    fake.rate = 1.00
     runner, _fleet = make([])
     with pytest.raises(a40.NoA40):  # above the ceiling is never created
         a40.run_acceptance(runner, RECORD, SMOKES)
