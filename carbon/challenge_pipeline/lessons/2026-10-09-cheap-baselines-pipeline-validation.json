@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-cheap-baselines-pipeline-validation",
+  "recorded_at": "2026-10-09T02:15:30Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-CHEAP-BASELINES-01 public pipeline validation",
+    "description": "Read-only native challenge_pipeline validate after the candidate regression lesson."
+  },
+  "expected": "Valid development records and lessons without advancing the protocol or runtime identities.",
+  "observed": "Passed: protocol DEFINING; seven records and 473 lessons valid; zero awaiting a lesson decision; three controllers designated and three identity bindings pending. This lesson records that check, not controller or scientific qualification.",
+  "keep": ["Protocol stage, pending identity bindings and human-reserved qualification remain unchanged."],
+  "change": ["A valid comparator specification is a measurement handoff, not an accepted baseline result."],
+  "protocol_elements": ["protocol stage", "buyer value", "maturity discipline"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
