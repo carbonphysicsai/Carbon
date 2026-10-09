@@ -53,7 +53,7 @@ def panel_case(label):
     return dict(zip(d["panel_fields"], row["parameters"]))
 
 
-def gmsh_script(case, h_mm):
+def gmsh_script(case, h_mm, stub_mm=STUB):
     """A Python script for the mesher image: builds the fused solid and
     writes mesh.msh (v2.2, second order) and groups.json."""
     return f"""
@@ -69,13 +69,13 @@ def cyl(x, r, length):
     tag = occ.addCylinder(x, 0, z, 0, 0, length, r)
     z += length
     return (3, tag)
-parts.append(cyl(0, {R_PORT}, {STUB}))
+parts.append(cyl(0, {R_PORT}, {stub_mm}))
 parts.append(cyl(0, case["radius1_mm"], case["length1_mm"]))
 if case.get("neck_length_mm", 0) > 0:
     parts.append(cyl(case["neck_offset_mm"], {R_NECK}, case["neck_length_mm"]))
 if case.get("radius2_mm", 0) > 0:
     parts.append(cyl(0, case["radius2_mm"], case["length2_mm"]))
-parts.append(cyl(0, {R_PORT}, {STUB}))
+parts.append(cyl(0, {R_PORT}, {stub_mm}))
 length = z
 if len(parts) > 1:
     fused, _ = occ.fuse([parts[0]], parts[1:])
@@ -204,15 +204,15 @@ End
 """
 
 
-def write_case(case, out, h_mm=8.0, step_hz=10.0, freqs=None):
+def write_case(case, out, h_mm=8.0, step_hz=10.0, freqs=None, stub_mm=STUB):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
-    (out / "make_mesh.py").write_text(gmsh_script(case, h_mm))
+    (out / "make_mesh.py").write_text(gmsh_script(case, h_mm, stub_mm))
     freqs = freqs or frequencies(step_hz)
     (out / "case.sif").write_text(sif(freqs))
     (out / "ELMERSOLVER_STARTINFO").write_text("case.sif\n1\n")
     meta = {"case": case, "h_mm": h_mm, "frequencies_hz": freqs, "amplitude_pa": AMPLITUDE,
-            "port_area_m2": S_PORT, "rho": RHO, "c": C, "mesh_image": MESH_IMAGE}  # fmt: skip
+            "port_area_m2": S_PORT, "stub_mm": stub_mm, "rho": RHO, "c": C, "mesh_image": MESH_IMAGE}  # fmt: skip
     (out / "deck.json").write_text(json.dumps(meta, indent=1) + "\n")
     return meta
 
@@ -242,9 +242,14 @@ def observe(case_dir):
         b = mean_in - a
         p_ref = abs(b) ** 2 * s / (2 * RHO * C)
         p_tr = r[i_a2[1]] / (2 * RHO * C)
+        # The outlet's plane-wave (mean-pressure) power: evanescent non-planar
+        # content carries no power but adds to the |p|^2 integral.
+        mean_out = complex(r[i_p1[1]], r[i_p2[1]]) / s
+        p_tr_plane = abs(mean_out) ** 2 * s / (2 * RHO * C)
         out.append({"f_hz": f, "p_ref_w": p_ref, "p_trans_w": p_tr,
                     "tl_db": -10 * math.log10(p_tr) if p_tr > 0 else None,
-                    "residual": 1 - p_ref - p_tr})  # fmt: skip
+                    "residual": 1 - p_ref - p_tr, "p_trans_plane_w": p_tr_plane,
+                    "residual_plane": 1 - p_ref - p_tr_plane})  # fmt: skip
     return out
 
 
