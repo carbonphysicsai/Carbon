@@ -638,12 +638,7 @@ def _mlp_arrays(model, prefix, arrays):
 
 def export_state(model):
     """(header, arrays) describing a trained model's full prediction state."""
-    if getattr(model, "STATE_KIND", None) is not None:
-        # A Level 4 graph model (`level4_model.GraphModel`), checked before
-        # MLP: it is one, but its network is a submission's graph.
-        header, arrays = model.export_state()
-        base = model
-    elif isinstance(model, KNN):
+    if isinstance(model, KNN):
         header = {"kind": "knn", "k": model.k, "fraction": model.fraction}
         arrays = {"u": model.u, "y": model.y}
         base = model
@@ -721,10 +716,6 @@ def import_state(header, arrays):
         fade=header["layout"]["fade"],
     )
     structure = Structure(arrays["ocv_soc"], arrays["ocv_v"])
-    if header["kind"] == "level4_graph":
-        from .level4_model import import_state as import_graph_state
-
-        return import_graph_state(header, arrays, layout, structure)
     if header["kind"] == "knn":
         model = KNN(header["k"], header["fraction"])
         model.layout, model.s = layout, structure

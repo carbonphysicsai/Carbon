@@ -83,7 +83,16 @@ _LEVEL4_BUILD = _PRELUDE + """from carbon_battery_lab import level4_model  # noq
 
 model = level4_model.build_from_work(recipe, work)
 """
+#: A graph model's state is written and read by `level4_model`, never by
+#: `recipes`: battery's implementation modules, and so every recipe digest,
+#: stay byte for byte.
+_STATE = "state = recipes.state_bytes(model)\n"
+_LEVEL4_STATE = "state = level4_model.state_bytes(model)\n"
 _INFER_LOAD = 'model = recipes.model_from_bytes((work / "state.npz").read_bytes())\n'
+_LEVEL4_INFER_LOAD = _PRELUDE + (
+    "from carbon_battery_lab import level4_model  # noqa: E402\n\n"
+    'model = level4_model.model_from_bytes((work / "state.npz").read_bytes())\n'
+)
 
 
 def graph_record(reconstruction):
@@ -114,8 +123,8 @@ def program(base):
     by the Level 4 build, at the same indent, so it lands inside the
     program's `try:`: a missing document or module is its `except
     ImportError` (Carbon's environment), and a refused or failed graph is
-    the candidate's."""
-    return _replace(base, _BUILD, _LEVEL4_BUILD)
+    the candidate's. Its state line writes the graph model's state."""
+    return _replace(_replace(base, _BUILD, _LEVEL4_BUILD), _STATE, _LEVEL4_STATE)
 
 
 def _module_files():
@@ -141,8 +150,8 @@ def staged(found):
 
 def infer_program(base):
     """`base` (the Level-0 inference program) with Carbon's Level 4 modules
-    loaded before the state is read, for a Level 4 state only."""
-    return _replace(base, _INFER_LOAD, _PRELUDE + _INFER_LOAD)
+    loaded and the state read by `level4_model`, for a Level 4 state only."""
+    return _replace(base, _INFER_LOAD, _LEVEL4_INFER_LOAD)
 
 
 def infer_staged():

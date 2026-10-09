@@ -20,6 +20,7 @@ Claims tested:
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -70,7 +71,8 @@ def test_the_staged_graph_trains_to_the_native_parameters(rebuilt):
 def test_the_state_is_self_contained(rebuilt):
     _label, model, _stats, native, _native_stats, m = rebuilt
     out = model.predict(m.train.x)
-    restored = recipes.model_from_bytes(recipes.state_bytes(model))
+    state = level4_model.state_bytes(model)
+    restored = level4_model.model_from_bytes(state)
     assert isinstance(restored, level4_model.GraphModel)
     again = restored.predict(m.train.x)
     assert sorted(again) == sorted(out)
@@ -150,10 +152,41 @@ def test_an_unset_owner_cap_blocks_as_carbons(monkeypatch):
 
 def test_a_state_whose_manifest_is_not_its_submission_is_refused(rebuilt):
     _label, model, *_ = rebuilt
-    header, arrays = recipes.export_state(model)
+    header, arrays = model.export_state()
     header = dict(header, submission="sha256:" + "0" * 64)
     with pytest.raises(ValueError, match="not its manifest"):
-        recipes.import_state(header, arrays)
+        level4_model.import_state(header, arrays, model.layout, model.s)
+
+
+def test_battery_implementation_modules_are_untouched_by_level4(rebuilt):
+    """A graph model's state is `level4_model`'s: `recipes` never reads or
+    writes one, so battery's implementation digest (every recipe digest) is
+    unchanged by Level 4."""
+    import io
+    import json
+
+    from carbon.battery import implementation_versions
+
+    _label, model, *_ = rebuilt
+    for name in implementation_versions.MODULES:
+        body = Path(recipes.__file__).with_name(name).read_text(encoding="utf-8")
+        assert "level4" not in body, name
+    state = level4_model.state_bytes(model)
+    with pytest.raises(ValueError, match="unknown model state kind"):
+        recipes.model_from_bytes(state)
+    with np.load(io.BytesIO(state), allow_pickle=False) as data:
+        arrays = {k: data[k] for k in data.files if k != "__header__"}
+        header = json.loads(bytes(data["__header__"]).decode())
+    buffer = io.BytesIO()
+    np.savez(
+        buffer,
+        __header__=np.frombuffer(
+            json.dumps({**header, "kind": "mlp"}).encode(), np.uint8
+        ),
+        **arrays,
+    )
+    with pytest.raises(ValueError, match="not a Level 4"):
+        level4_model.model_from_bytes(buffer.getvalue())
 
 
 def test_the_stageable_module_names_batterys_challenge():
