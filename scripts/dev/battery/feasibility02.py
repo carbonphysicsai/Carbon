@@ -303,7 +303,7 @@ def solve(jobs_path, records_path, workers):
                   flush=True)  # fmt: skip
 
 
-def run(plan_path, overlay, out, workers, cpus):
+def run(plan_path, overlay, out, workers, cpus, cpu_shares=None):
     from carbon.battery import truth_env
 
     out = Path(out).resolve()
@@ -322,6 +322,9 @@ def run(plan_path, overlay, out, workers, cpus):
         "--cpus",
         str(cpus),
     ]
+    if cpu_shares:  # low priority behind other operator work; never preempts it
+        at = command.index("--rm") + 1
+        command[at:at] = ["--cpu-shares", str(cpu_shares)]
     return subprocess.run(command, check=False).returncode
 
 
@@ -335,13 +338,16 @@ def main(argv=None):
     parser.add_argument("--records", type=Path)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--cpus", type=int, default=4)
+    parser.add_argument("--cpu-shares", type=int)
     args = parser.parse_args(argv)
     if args.command == "plan":
         print(plan(args.out))
     elif args.command == "solve":
         solve(args.jobs, args.records, args.workers)
     else:
-        return run(args.plan, args.overlay, args.out, args.workers, args.cpus)
+        return run(
+            args.plan, args.overlay, args.out, args.workers, args.cpus, args.cpu_shares
+        )
     return 0
 
 

@@ -36,6 +36,7 @@ DIRS = (
     "bfeas-t4a",
     "bfeas-t4b",
     "bfeas-t4r",
+    "bfeas-t5r",
 )
 T_BAND, P_BAND = v2.T_BAND_C, v2.PLATING_BAND_V
 #: stage-B targets: overshoots inside (1, 2] bands (near-limit INFEASIBLE)

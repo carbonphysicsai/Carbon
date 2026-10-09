@@ -92,10 +92,13 @@ def main(runs):
         speed = t in (25.0, 35.0)
         if r["status"] != "OK":
             outcome, why = (
-                "FAILED_INFRA"
-                if r["status"] == "FAILED_INFRA"
-                else "REFERENCE_UNRESOLVED"
-            ), [r["status"]]
+                (
+                    "FAILED_INFRA"
+                    if r["status"] == "FAILED_INFRA"
+                    else "REFERENCE_UNRESOLVED"
+                ),
+                [r["status"]],
+            )
         else:
             ref = refined.get(cid)
             outcome, why = verdict(
