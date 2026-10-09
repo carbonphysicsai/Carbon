@@ -897,3 +897,150 @@ def test_a_failing_item_makes_the_run_not_green_even_with_every_review(
         checks.CHECKS, "registered_l0", lambda i, c: model.Result(model.FAIL, "r", ())
     )
     assert not runner.run_gate(CHALLENGE, 0, root=tmp_path)["green"]
+
+
+# -- the stage waiver (WAIVED) -------------------------------------------------------------------
+BATTERY = "battery-fastcharge-ageing-development-v1"
+
+
+def _waivers(tmp_path, **over):
+    document = {
+        "schema": runner.WAIVER_SCHEMA,
+        "active_stage": "stage-A",
+        "waivers": [
+            {
+                "id": "STAGE_A_WAIVER",
+                "challenge": BATTERY,
+                "stage": "stage-A",
+                "items": ["S3", "H2"],
+                "levels": [0, 1],
+                "reviewer": "Test Lead",
+                "date": "2026-10-09",
+                "scope": "measurement only",
+            }
+        ],
+    }
+    document.update(over)
+    (tmp_path / "waivers.json").write_text(json.dumps(document), encoding="utf-8")
+
+
+def _row(tmp_path, item_id, challenge=BATTERY, level=0):
+    report = runner.run_gate(challenge, level, only=[item_id], root=tmp_path)
+    return report["items"][0], report
+
+
+def test_a_waiver_turns_an_unbuilt_item_into_waived_never_pass(tmp_path):
+    _waivers(tmp_path)
+    row, report = _row(tmp_path, "S3")
+    assert row["status"] == model.WAIVED
+    assert (
+        "waived under STAGE_A_WAIVER" in row["detail"]
+        and "measurement only" in row["detail"]
+    )
+    assert report["counts"][model.WAIVED] == 1 and report["counts"][model.PASS] == 0
+    assert "WAIVED 1" in runner.render_text(report)
+
+
+def test_a_waiver_expires_when_the_active_stage_moves_on(tmp_path):
+    _waivers(tmp_path, active_stage="stage-B")
+    assert _row(tmp_path, "S3")[0]["status"] == model.NOT_BUILT
+
+
+def test_a_waiver_covers_only_its_challenge_items_and_levels(tmp_path):
+    _waivers(tmp_path)
+    assert (
+        _row(tmp_path, "S3", challenge="chip-cold-plate")[0]["status"]
+        == model.NOT_BUILT
+    )
+    assert _row(tmp_path, "S1")[0]["status"] == model.NOT_BUILT  # not a waived item
+    assert (
+        _row(tmp_path, "S3", level=2)[0]["status"] == model.NOT_BUILT
+    )  # not a waived level
+    assert _row(tmp_path, "S3", level=1)[0]["status"] == model.WAIVED
+
+
+def test_a_waiver_never_covers_a_failing_item(monkeypatch, tmp_path):
+    _waivers(tmp_path)
+    monkeypatch.setitem(
+        checks.CHECKS,
+        "recorded_tests",
+        lambda item, ctx: model.Result(model.FAIL, "red", ()),
+    )
+    assert _row(tmp_path, "S3")[0]["status"] == model.FAIL
+
+
+def test_a_malformed_waiver_file_waives_nothing_and_says_so(tmp_path):
+    (tmp_path / "waivers.json").write_text("{not json", encoding="utf-8")
+    row, report = _row(tmp_path, "S3")
+    assert row["status"] == model.NOT_BUILT
+    assert report["waivers"]["problem"] == "waivers.json is not valid JSON"
+    _waivers(tmp_path, waivers=[{"id": "x"}])
+    assert _row(tmp_path, "S3")[0]["status"] == model.NOT_BUILT
+    _waivers(tmp_path)
+    document = json.loads((tmp_path / "waivers.json").read_text(encoding="utf-8"))
+    document["waivers"][0]["items"] = ["ZZ"]
+    (tmp_path / "waivers.json").write_text(json.dumps(document), encoding="utf-8")
+    assert _row(tmp_path, "S3")[0]["status"] == model.NOT_BUILT
+
+
+def test_green_stays_false_while_waived_but_launch_ready_is_true(monkeypatch, tmp_path):
+    _waivers(tmp_path, waivers=[])
+    victim = _all_pass_except_one_by_review(monkeypatch, tmp_path)
+    document = json.loads((tmp_path / "waivers.json").read_text(encoding="utf-8"))
+    document["waivers"] = [
+        {
+            "id": "STAGE_A_WAIVER",
+            "challenge": CHALLENGE,
+            "stage": "stage-A",
+            "items": [victim["id"]],
+            "levels": [0],
+            "reviewer": "Test Lead",
+            "date": "2026-10-09",
+            "scope": "measurement only",
+        }
+    ]
+    (tmp_path / "waivers.json").write_text(json.dumps(document), encoding="utf-8")
+    # No review for the victim now, so it is NOT_BUILT and the waiver covers it.
+    (tmp_path / CHALLENGE / "reviews" / f"{victim['id']}.json").unlink()
+    report = runner.run_gate(CHALLENGE, 0, root=tmp_path)
+    assert report["counts"][model.WAIVED] == 1
+    assert report["green"] is False
+    assert report["launch_ready"] is True
+    assert report["waivers"]["applied"] == [victim["id"]]
+    record = runner.run_record(report)
+    assert record["schema"] == runner.RUN_SCHEMA and record["launch_ready"] is True
+    # A FAIL anywhere ends launch readiness.
+    monkeypatch.setitem(
+        checks.CHECKS, "registered_l0", lambda i, c: model.Result(model.FAIL, "r", ())
+    )
+    assert runner.run_gate(CHALLENGE, 0, root=tmp_path)["launch_ready"] is False
+
+
+def test_history_metrics_keeps_green_apart_from_launch_ready(tmp_path):
+    line = {
+        "schema": runner.RUN_SCHEMA,
+        "utc": "2026-10-09T00:00:00Z",
+        "partial": False,
+        "items": [{"id": "S3", "status": model.WAIVED, "evidence_digest": "d"}],
+        "counts": {},
+        "green": False,
+        "launch_ready": True,
+    }
+    directory = tmp_path / CHALLENGE
+    directory.mkdir()
+    (directory / "history.jsonl").write_text(json.dumps(line) + "\n", encoding="utf-8")
+    metrics = runner.history_metrics(CHALLENGE, root=tmp_path)
+    assert metrics["first_green_utc"] is None
+    assert metrics["first_launch_ready_utc"] == "2026-10-09T00:00:00Z"
+
+
+def test_the_committed_waiver_is_stage_a_battery_only():
+    active, waivers, problem = runner.load_waivers()
+    assert problem is None and active == "stage-A"
+    (w,) = waivers
+    assert (w["id"], w["challenge"], w["stage"]) == (
+        "STAGE_A_WAIVER",
+        BATTERY,
+        "stage-A",
+    )
+    assert set(w["items"]) == {"S3", "H2", "H4", "V3"} and w["levels"] == [0, 1]

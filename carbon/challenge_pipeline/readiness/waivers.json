@@ -1,0 +1,25 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-waivers.v1",
+ "rule": "Test Lead waivers of NOT_BUILT or REVIEW_REQUIRED items. A waiver is never a PASS: its items report WAIVED and keep `green` false. It never covers a FAIL. It applies only while its `stage` is this file's `active_stage`, for the named challenge, items and levels; moving `active_stage` on (a committed Test Lead edit) ends every waiver of the old stage, so nothing carries over to the next stage.",
+ "active_stage": "stage-A",
+ "waivers": [
+  {
+   "id": "STAGE_A_WAIVER",
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "stage": "stage-A",
+   "items": [
+    "S3",
+    "H2",
+    "H4",
+    "V3"
+   ],
+   "levels": [
+    0,
+    1
+   ],
+   "reviewer": "Test Lead",
+   "date": "2026-10-09",
+   "scope": "stage A is measurement only: no promotion, frontier or improvement claims; single-seed results are measurements. Expires at the end of stage A; stage B needs its own decision"
+  }
+ ]
+}

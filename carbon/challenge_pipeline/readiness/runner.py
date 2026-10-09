@@ -27,6 +27,7 @@ from .model import (
     PASS,
     PASS_BY_REVIEW,
     REPOSITORY,
+    WAIVED,
     REVIEW_REQUIRED,
     RUNTIME,
     Result,
@@ -36,13 +37,14 @@ from .model import (
 )
 
 REPORT_SCHEMA = "carbon.challenge-pipeline.readiness-report.v1"
-#: v2 adds the PASS_BY_REVIEW status and its count; a v1 line (no such status) is read by
+#: v2 adds PASS_BY_REVIEW; v3 adds WAIVED and `launch_ready`. Older lines are read by
 #: `history_metrics` unchanged.
-RUN_SCHEMA = "carbon.challenge-pipeline.readiness-run.v2"
+RUN_SCHEMA = "carbon.challenge-pipeline.readiness-run.v3"
+WAIVER_SCHEMA = "carbon.challenge-pipeline.readiness-waivers.v1"
 REVIEW_SCHEMA = "carbon.challenge-pipeline.readiness-review.v1"
 EVIDENCE_KINDS = ("pr", "decision", "file", "test")
 #: Worst first: a combined item takes the first status any part has.
-SEVERITY = (FAIL, NOT_BUILT, REVIEW_REQUIRED, PASS_BY_REVIEW, PASS)
+SEVERITY = (FAIL, NOT_BUILT, REVIEW_REQUIRED, WAIVED, PASS_BY_REVIEW, PASS)
 _SHA = re.compile(r"^sha256:[0-9a-f]{64}\Z")
 
 
@@ -202,6 +204,67 @@ def _accepted_by_review(automated, ctx, item, root):
     )
 
 
+def load_waivers(root=PACKAGE):
+    """`(active_stage, waivers, problem)` from the committed `waivers.json`. Fail closed:
+    an unreadable or malformed file waives nothing and the problem is reported."""
+    path = Path(root) / "waivers.json"
+    if not path.is_file():
+        return None, [], None
+    try:
+        document = json.loads(path.read_bytes())
+    except ValueError:
+        return None, [], "waivers.json is not valid JSON"
+    keys = {"id", "challenge", "stage", "items", "levels", "reviewer", "date", "scope"}
+    if (
+        not isinstance(document, dict)
+        or document.get("schema") != WAIVER_SCHEMA
+        or not isinstance(document.get("active_stage"), str)
+        or not document["active_stage"]
+        or not isinstance(document.get("waivers"), list)
+    ):
+        return None, [], "waivers.json is malformed"
+    known = {i["id"] for i in load_items()}
+    for w in document["waivers"]:
+        try:
+            datetime.date.fromisoformat(str(w.get("date")))
+        except (ValueError, AttributeError):
+            return None, [], "a waiver has no ISO date"
+        if (
+            not isinstance(w, dict)
+            or set(w) != keys
+            or not all(
+                isinstance(w[k], str) and w[k].strip()
+                for k in ("id", "challenge", "stage", "reviewer", "scope")
+            )
+            or not isinstance(w["items"], list)
+            or not w["items"]
+            or not set(w["items"]) <= known
+            or not isinstance(w["levels"], list)
+            or not w["levels"]
+            or any(type(x) is not int for x in w["levels"])
+        ):
+            return None, [], "a waiver entry is malformed"
+    return document["active_stage"], document["waivers"], None
+
+
+def _waiver_for(item, ctx, root):
+    """The unexpired waiver covering this item for this challenge and level, or None.
+    It applies only while the waiver's stage is the file's active stage: when the Test
+    Lead moves `active_stage` on, every waiver of the old stage stops applying."""
+    active, waivers, problem = load_waivers(root)
+    if problem:
+        return None
+    for w in waivers:
+        if (
+            w["stage"] == active
+            and w["challenge"] == ctx.challenge
+            and item["id"] in w["items"]
+            and ctx.level in w["levels"]
+        ):
+            return w
+    return None
+
+
 def evaluate_item(item, ctx, root=PACKAGE):
     parts = []
     function = check_module.CHECKS.get(item["check"])
@@ -219,6 +282,20 @@ def evaluate_item(item, ctx, root=PACKAGE):
         if condition["item"] == item["id"]:
             parts.append(_safe(evaluate_condition, condition, ctx.repository))
     status = _worst(parts)
+    waiver = (
+        _waiver_for(item, ctx, root) if status in (NOT_BUILT, REVIEW_REQUIRED) else None
+    )
+    if waiver:
+        # Never a FAIL: only an unbuilt or un-reviewed item is waived, and it says so.
+        parts = [
+            Result(
+                WAIVED,
+                f"waived under {waiver['id']} ({waiver['stage']}, {waiver['reviewer']}, "
+                f"{waiver['date']}: {waiver['scope']}): "
+                + " | ".join(p.detail for p in parts if p.status != PASS),
+            )
+        ]
+        status = WAIVED
     detail = " | ".join(p.detail for p in parts if p.status != PASS) or "; ".join(
         p.detail for p in parts
     )
@@ -286,11 +363,27 @@ def run_gate(challenge, level=0, *, only=None, repository=REPOSITORY, root=PACKA
         "partial": bool(only),
         "items": rows,
         "counts": counts,
+        # green: every item passed (automated or by review). A WAIVED item keeps it false.
         "green": counts[PASS] + counts[PASS_BY_REVIEW] == len(rows) and not only,
+        # launch_ready (the exit code): no FAIL, NOT_BUILT or REVIEW_REQUIRED remains; every
+        # non-PASS item is PASS_BY_REVIEW or WAIVED under an unexpired waiver.
+        "launch_ready": (
+            counts[FAIL] + counts[NOT_BUILT] + counts[REVIEW_REQUIRED] == 0 and not only
+        ),
+        "waivers": _waiver_summary(rows, root),
         "claims": {"authority_to_run": False, "live_run": False, "spend": False},
     }
     report["report_digest"] = digest(report)
     return report
+
+
+def _waiver_summary(rows, root):
+    active, waivers, problem = load_waivers(root)
+    return {
+        "active_stage": active,
+        "problem": problem,
+        "applied": sorted(r["id"] for r in rows if r["status"] == WAIVED),
+    }
 
 
 def run_record(report):
@@ -313,6 +406,7 @@ def run_record(report):
         ],
         "counts": report["counts"],
         "green": report["green"],
+        "launch_ready": report["launch_ready"],
         "report_digest": report["report_digest"],
     }
 
@@ -346,7 +440,12 @@ def history_metrics(challenge, root=None):
         / "history.jsonl"
     )
     if not path.is_file():
-        return {"runs": 0, "first_run_not_passing": None, "first_green_utc": None}
+        return {
+            "runs": 0,
+            "first_run_not_passing": None,
+            "first_green_utc": None,
+            "first_launch_ready_utc": None,
+        }
     runs = [
         json.loads(line)
         for line in path.read_text(encoding="utf-8").splitlines()
@@ -355,6 +454,7 @@ def history_metrics(challenge, root=None):
     full = [r for r in runs if not r["partial"]]
     first = full[0] if full else None
     green = next((r for r in full if r["green"]), None)
+    ready = next((r for r in full if r.get("launch_ready")), None)
     return {
         "runs": len(runs),
         # Not passing = neither an automated PASS nor accepted by review.
@@ -369,6 +469,8 @@ def history_metrics(challenge, root=None):
             else None
         ),
         "first_green_utc": green["utc"] if green else None,
+        # Waivers never make a run "green"; launch readiness is tracked apart.
+        "first_launch_ready_utc": ready["utc"] if ready else None,
     }
 
 
@@ -389,9 +491,11 @@ def render_text(report):
             lines.append(f"      evidence: {str(entry)[:160]}")
     c = report["counts"]
     lines.append(
-        f"PASS {c[PASS]}  PASS_BY_REVIEW {c.get(PASS_BY_REVIEW, 0)}  FAIL {c[FAIL]}  "
+        f"PASS {c[PASS]}  PASS_BY_REVIEW {c.get(PASS_BY_REVIEW, 0)}  "
+        f"WAIVED {c.get(WAIVED, 0)}  FAIL {c[FAIL]}  "
         f"NOT_BUILT {c[NOT_BUILT]}  "
         f"REVIEW_REQUIRED {c[REVIEW_REQUIRED]}  green: {report['green']}  "
+        f"launch_ready: {report.get('launch_ready')}  "
         f"digest {report['report_digest']}"
     )
     return "\n".join(lines)
