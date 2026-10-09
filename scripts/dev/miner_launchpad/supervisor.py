@@ -672,6 +672,28 @@ NEXT_ACTIONS = {
         "it against the Challenge's published contract and submit again; the "
         "frozen candidate is kept."
     ),
+    # The testnet development-ladder deployment (VALIDATOR-25). None is a
+    # verdict on the recipe.
+    "ladder_hotkey_not_listed": (
+        "This validator is Carbon's development ladder, which serves only its "
+        "listed rehearsal hotkeys, and nothing was evaluated. Point this "
+        "Challenge's intake at the main validator under Set up your "
+        "environment, then submit again; the frozen candidate is kept."
+    ),
+    "ladder_variant_not_accepted": (
+        "The development ladder does not serve this level's variant, and "
+        "nothing was evaluated. Choose a variant the ladder lists for its "
+        "level, then submit again; the frozen candidate is kept."
+    ),
+    "ladder_level_not_accepted": (
+        "The development ladder serves another level than the one this "
+        "candidate uses, and nothing was evaluated. Submit it to the ladder "
+        "deployment for its level; the frozen candidate is kept."
+    ),
+    "ladder_level_4_not_open": (
+        "Level 4 is not open on the development ladder yet, and nothing was "
+        "evaluated. The frozen candidate is kept."
+    ),
     "contract_digest_malformed": (
         "The validator could not read the contract digest Carbon sent. Check "
         "that the intake address serves this Carbon version, then submit "
