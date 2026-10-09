@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-f02-law-candidate",
+  "recorded_at": "2026-10-09T17:27:18Z",
+  "challenge": "f02",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-F02-QUESTION-LAW-01",
+    "description": "Native candidate analysis regression."
+  },
+  "expected": "Check documents and arithmetic while retaining pending owner/science authority.",
+  "observed": "69 native packet, law, quiz and pipeline tests passed in 2.95 s after the arithmetic expectation repair. No solver runs, spend, hidden data, adoption or scientific qualification.",
+  "keep": [
+    "Count physical support and question appearances separately."
+  ],
+  "change": [
+    "Add frontier resolution rather than widening truth bands; benchmark the strong impulse-response incumbent."
+  ],
+  "protocol_elements": [
+    "question law",
+    "contested decision",
+    "exposure",
+    "cost"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

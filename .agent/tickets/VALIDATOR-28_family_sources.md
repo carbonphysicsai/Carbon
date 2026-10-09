@@ -34,10 +34,15 @@ producer code.
    - So a registered family is bankable. Its window rule values (B, E) stay
      the family owner's to register, and a startup host's sharding follows
      in a later slice.
-3. `FamilyHiddenAdapter`: `motor_hidden`, generalized, for import-only
-   validators.
-4. **A conformance kit:** one test function a family module calls with a
-   scripted runner. It proves:
+3. **The validator's import (#883).** `family_hidden.FamilyHiddenImport`
+   and `HiddenFamily` cover answer-key import, holds, withdraws, status, the
+   per-hotkey window and the import-only refusals, generalized from
+   `motor_hidden`. Scoring stays each family's own.
+4. **A conformance kit** (`tests/cpu/family_conformance.py`): a family's
+   test module calls `check_family` (or each of `CHECKS`) with its
+   registration, validator, deployment writer and scripted runner. Motor is
+   the reference (`test_challenge_validator_family_conformance.py`). It
+   proves:
    - determinism by role;
    - published-case refusal;
    - resumable solve;

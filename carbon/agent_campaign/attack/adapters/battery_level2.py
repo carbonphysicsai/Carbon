@@ -1,4 +1,4 @@
-"""Battery's Level 2 attack adapter: SpecMuon (`battery-l2-spectral-v1`).
+"""Battery's Level 2 attack adapter: SpecMuon and pool selection (`battery-l2-v2`).
 
 The Test Lead's L2 attack design (2026-10-08), on the shared declarative
 pattern (`adapters.battery_declarative`): one family per row that Carbon can
@@ -14,10 +14,17 @@ the rest are seams, NOT_RUN, each saying why.
 * **Permission ablation** (`l2_slot_ablation`): every Level 2 field fails
   the miner-facing contract, which signs on the Launchpad and admits on the
   validator; only the variant admits it.
+* **P1 and P2, pool sources and weights** (`l2_pool_sources_and_weights`):
+  a selection naming PRACTICE, an unregistered pool version, a part not in
+  the version or cases themselves, or carrying weights outside [0, 2],
+  non-numeric, negative or all zero, or an empty, oversized or malformed
+  draw, is refused by the variant with its `pool.*` code before any rebuild
+  (`carbon.battery.pools`, BATTERY-L2-POOL-SELECTION-01).
 * **Determinism** (`l2_rebuild_determinism`): the same recipe and seed
-  rebuild bit-identically twice on CPU.
-* **Seams.** `data.pool_selection` (P1-P4) is not in the registered
-  variant, so it has nothing to attack. M1, the SVD's cost, is the cost
+  rebuild bit-identically twice on CPU, a pool-selection draw included.
+* **Seams.** P3, budget evasion, is held by construction but its "charged in
+  full" waits for the cost calculator; P4, distribution chasing, is a
+  measurement, not a refusal (below). M1, the SVD's cost, is the cost
   calculator's finding (`battery_declarative.compute_accounting_seam`). M2,
   divergence, found no diverging recipe in the surface on CPU (below).
 """
@@ -65,6 +72,37 @@ def _other_level_fields():
     )
 
 
+def _pool(**changes):
+    """A selection from battery's one registered pool version: TRAIN only,
+    64 cases, uniform. Attacks change one part of it."""
+    from carbon.battery import pools
+
+    (version,) = pools.registered()
+    return {"pool_version": version, "strata": {"train": 1.0}, "cases": 64, **changes}
+
+
+def _pool_attacks():
+    """P1 (forbidden sources) and P2 (malformed weights and draws)."""
+    rows = (
+        ("pool_practice_stratum", _pool(strata={"practice": 1.0})),
+        ("pool_practice_beside_train", _pool(strata={"train": 1.0, "practice": 1.0})),
+        ("pool_unregistered_version", _pool(pool_version="sha256:" + "0" * 64)),
+        ("pool_part_not_in_version", _pool(strata={"bank": 1.0})),
+        ("pool_names_its_cases", _pool(case_ids=["train-0001"])),
+        ("pool_weight_above_two", _pool(strata={"train": 2.5})),
+        ("pool_weight_negative", _pool(strata={"train": -0.5})),
+        ("pool_weight_not_a_number", _pool(strata={"train": "1"})),
+        ("pool_weight_boolean", _pool(strata={"train": True})),
+        ("pool_weights_all_zero", _pool(strata={"train": 0})),
+        ("pool_no_strata", _pool(strata={})),
+        ("pool_no_cases", _pool(cases=0)),
+        ("pool_more_cases_than_the_pool", _pool(cases=10**6)),
+        ("pool_box_reversed", _pool(box={"c1": [3.0, 1.0]})),
+        ("pool_box_unknown_input", _pool(box={"label": [0.0, 1.0]})),
+    )
+    return tuple((name, _strategy(pool_selection=value)) for name, value in rows)
+
+
 def _cross_level_attacks():
     out = [
         (name, _strategy(muon_spectral=True, **fields))
@@ -109,6 +147,7 @@ def _determinism_attacks():
             "muon_spectral_constant_curve",
             _strategy(muon_spectral=True, learning_rate_curve="constant"),
         ),
+        ("pool_selection_draw", _strategy(pool_selection=_pool())),
     )
 
 
@@ -140,6 +179,17 @@ def _families():
             trained=honest,
             held_out=_strategy(muon_spectral=False),
         ),
+        "l2_pool_sources_and_weights": d.FamilyRow(
+            check="artifact_and_dependency_attacks",
+            words="a selection names only a registered pool version and its parts, never PRACTICE or a case, with weights in [0, 2] not all zero, and a draw the pool can fill",
+            attacks=_pool_attacks,
+            boundary=gate,
+            specimen=d.unchecked_gate,
+            breached=d.accepted,
+            control_ok=d.accepted,
+            trained=_strategy(pool_selection=_pool()),
+            held_out=_strategy(pool_selection=_pool(strata={"train": 2.0}, cases=32)),
+        ),
         "l2_slot_ablation": d.FamilyRow(
             check="baseline_and_permission_ablation",
             words="the miner-facing contract refuses the Level 2 field; only the variant admits it",
@@ -167,17 +217,27 @@ def _families():
 
 SEAMS = (
     (
-        "l2_pool_selection",
+        "l2_pool_budget_evasion",
+        "resource_and_failure_accounting",
+        (
+            "P3: held by construction in battery-l2-v2: the draw is unique and "
+            "never larger than the pool, and weights are normalised, so neither "
+            "duplicates nor inflated weights can add training cases; `cases` "
+            "counts as the recipe's train_cases (TRAINING-BUDGET-02). Whether "
+            "it is charged in full is the cost calculator's, which refuses every "
+            "development recipe (the M1 finding, owner Test Engineer); it runs "
+            "when the calculator costs a pool-selection recipe"
+        ),
+    ),
+    (
+        "l2_pool_distribution_chasing",
         "adaptive_feedback_and_state_attacks",
         (
-            "data.pool_selection (P1 forbidden sources, P2 malformed weights, P3 "
-            "budget evasion, P4 distribution chasing) was accepted with changes "
-            "at level-climb-1 but is not in the registered variant "
-            "battery-l2-spectral-v1, so there is nothing to attack; it needs its "
-            "own variant build on the published pool (OWNER-BANK-ARCHITECTURE-01), "
-            "and P4 is a measurement for leak detection (#737), not a refusal; "
-            "pending: pool_selection v1 is the Test Engineer's next build, and "
-            "P1-P4 run against its variant when it registers (Test Lead, 2026-10-08)"
+            "P4: weights that chase what public stratification says the current "
+            "batch over-represents are admissible by design, so nothing refuses "
+            "them; it is a measurement (the score must not beat the uniform-weight "
+            "control beyond noise on a fresh batch), fed to leak detection (#737), "
+            "and needs fresh cases (Phase 3)"
         ),
     ),
     (

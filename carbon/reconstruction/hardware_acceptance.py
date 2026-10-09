@@ -22,13 +22,15 @@ JAX_GPU = "carbon_jax_cuda13_nvidia_development_v1"
 TORCH_GPU = "carbon_torch_cuda13_nvidia_development_v1"
 _OWNER = {
     "record": "OWNER-GPU-DEVICE-CLASSES-01",
+    # Testnet only: another network needs its own owner record.
+    "networks": ("testnet",),
     "evidence": (
         "the owner's direct acceptance, 2026-10-09, for validator scoring on "
         "testnet (.agent/decisions/2026-10-09-OWNER-GPU-DEVICE-CLASSES-01.md)"
     ),
 }
 
-#: `{device_kind: {profile_id: {"record", "evidence"}}}`: a class is
+#: `{device_kind: {profile_id: {"record", "evidence", "networks"}}}`: a class is
 #: accepted per accelerator profile, so a JAX acceptance never admits the
 #: PyTorch GPU worker (or the reverse). The device kind is the exact name
 #: `nvidia-smi` reports, as the host device record binds it.
@@ -44,12 +46,18 @@ class DeviceClassNotAccepted(ValueError):
     code = "validator_device_class_not_accepted"
 
 
-def require_accepted(device_kind, profile_id):
+def require_accepted(device_kind, profile_id, network):
     """Refuse unless `device_kind` passed a hardware acceptance under
-    `profile_id`."""
+    `profile_id` for `network` (the deployment's chain network). An acceptance
+    names its networks, so a testnet acceptance never admits another network,
+    and an unknown network (None) is refused."""
     profiles = ACCEPTED_DEVICE_CLASSES.get(device_kind)
     entry = profiles.get(profile_id) if type(profiles) is dict else None
-    if type(entry) is not dict:
+    if (
+        type(entry) is not dict
+        or type(network) is not str
+        or network not in entry.get("networks", ())
+    ):
         raise DeviceClassNotAccepted(
             "no hardware acceptance names this device class for validator scoring"
         )

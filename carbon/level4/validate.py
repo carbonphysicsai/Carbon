@@ -211,6 +211,18 @@ def validate(doc, allowlist, *, role=None, interface=None, batch=None, caps=None
     (the recipe's training batch; Phase 1 finding: per-case graphs batched by
     `vmap` do not train bit-identically for every family)."""
     flags = allowlist.check(doc)
+    # The owner's caps first, from the document alone (`graph.measure` is
+    # static), so an over-cap graph is refused before even the shape-only
+    # trace below runs it.
+    measurements = graph.measure(doc)
+    # A cap the caller does not name is the owner's (`allowlist.CAPS`); one a
+    # caller sets to HUMAN_INPUT blocks, it never passes.
+    verdicts = allowlist_module.check_caps(
+        measurements, {**allowlist_module.CAPS, **(caps or {})}
+    )
+    exceeded = sorted(name for name, v in verdicts.items() if v == "refuse")
+    if exceeded:
+        raise graph.GraphRefused("cap_exceeded", ",".join(exceeded))
     check_declared_shapes(doc, allowlist)
     if role is not None and doc["role"] != role:
         raise graph.GraphRefused("role_mismatch")
@@ -224,15 +236,6 @@ def validate(doc, allowlist, *, role=None, interface=None, batch=None, caps=None
         if batch is not None and declared != batch:
             raise graph.GraphRefused("interface_batch")
     batch = declared
-    measurements = graph.measure(doc)
-    # A cap the caller does not name is the owner's (`allowlist.CAPS`); one a
-    # caller sets to HUMAN_INPUT blocks, it never passes.
-    verdicts = allowlist_module.check_caps(
-        measurements, {**allowlist_module.CAPS, **(caps or {})}
-    )
-    exceeded = sorted(name for name, v in verdicts.items() if v == "refuse")
-    if exceeded:
-        raise graph.GraphRefused("cap_exceeded", ",".join(exceeded))
     status = (
         "admitted"
         if all(v == "pass" for v in verdicts.values())

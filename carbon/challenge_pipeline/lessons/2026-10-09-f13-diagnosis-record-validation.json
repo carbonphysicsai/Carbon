@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-f13-diagnosis-record-validation",
+  "recorded_at": "2026-10-09T17:41:00Z",
+  "challenge": "f13",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "F13-POWER-BALANCE-DIAGNOSIS-01 records",
+    "description": "Read-only public pipeline validator."
+  },
+  "expected": "Valid lessons without advancing protocol, reference or bank authority.",
+  "observed": "Protocol DEFINING;7 records and477 lessons valid;zero awaiting a decision;7 admission controllers designated,2 pending identity. Native diagnostic only.",
+  "keep": [
+    "Separate typed reference finding from candidate failure."
+  ],
+  "change": [
+    "Require exact retained ports/fields before declaring the proposed cause measured."
+  ],
+  "protocol_elements": [
+    "reference failure",
+    "maturity"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

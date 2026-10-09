@@ -19,9 +19,10 @@ therefore scores on it. Its scores are labelled `gpu:<device kind>` and are
 never ranked with CPU scores (`rebuild_identity`). Every other class stays
 refused (`evaluation_device_class_not_accepted`).
 
-**Scope:** testnet.
-- The registry is not network-scoped, and no mainnet deployment exists.
-- Any mainnet use needs a new owner record.
+**Scope:** testnet, enforced. Each entry names its networks (`testnet`), and
+`require_accepted` refuses any other network, and an unknown one, at the
+deployment and again before each GPU run. Any other network needs a new owner
+record.
 
 **Not decided here:**
 - the determinism values;
