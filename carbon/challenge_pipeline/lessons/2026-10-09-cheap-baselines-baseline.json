@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-cheap-baselines-baseline",
+  "recorded_at": "2026-10-09T02:09:36Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-CHEAP-BASELINES-01 baseline",
+    "description": "Native Windows read-only value-cost and reference-credibility regression diagnostics."
+  },
+  "expected": "Preserve existing value-cost and credibility semantics before additive comparator specifications.",
+  "observed": "54 passed in 16.40s. Native diagnostics only; no baseline fitting, reference solve, timing study, spend or qualification.",
+  "keep": ["Reuse the current packet and independent witness contracts."],
+  "change": ["Distinguish exact solved-menu lookup from held-out interpolation so finite-bank reuse does not manufacture learned advantage."],
+  "protocol_elements": ["buyer value", "cheap baselines", "reference credibility"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
