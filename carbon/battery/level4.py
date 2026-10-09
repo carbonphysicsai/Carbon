@@ -1218,14 +1218,19 @@ def graph_equivalence(
 
 LEVEL = 4
 #: v2 carries the owner's caps and G5's accepted status (OWNER-L4-VALUES-01);
-#: v1 stays registered as history.
-VERSION = "battery-l4-graph-v2"
+#: v3 declares `loss_override: graph` (LEVEL4-LOSS-OVERRIDE-01). v1 and v2
+#: stay registered as history.
+VERSION = "battery-l4-graph-v3"
+#: The G6 loss slot this development variant admits (`carbon.level4.loss`):
+#: a submitted per-case loss graph may replace battery's loss. Development
+#: only; battery's frozen and live rules declare no override.
+LOSS_OVERRIDE = "graph"
 CAPABILITY = "hybrid.composition_graphs"
 FIELD = "composition_graphs"
 AUTHORITY = (
     "OWNER-LEVEL4-GRAPH-ONLY-01 (D1); OWNER-GRAPHITE-TEST-WAVE-03 section 1; "
     "OWNER-GRAPHITE-DEV-LEVELS-01 F1; LEVEL4-DEV-VARIANT-01; "
-    "OWNER-L4-G5-COMPILE-ISOLATION-01; OWNER-L4-VALUES-01"
+    "OWNER-L4-G5-COMPILE-ISOLATION-01; OWNER-L4-VALUES-01; LEVEL4-LOSS-OVERRIDE-01"
 )
 REVIEW = {
     "reviewer": "Test Lead",
@@ -1233,7 +1238,9 @@ REVIEW = {
         "Test Lead ruling 2026-10-08 (Level 4 PR 8): the Level 4 surface is the "
         "allowlist, the constant caps, the compute budget and gates G0-G7, at "
         "maximum freedom; the drafted surface is "
-        "docs/development/graphite/level4/LEVEL4_CAPABILITY_DRAFT.md"
+        "docs/development/graphite/level4/LEVEL4_CAPABILITY_DRAFT.md. "
+        "Test Lead decision 2026-10-09 (LEVEL4-LOSS-OVERRIDE-01): this "
+        "development variant declares loss_override: graph"
     ),
 }
 _SUMMARY = (
@@ -1271,6 +1278,12 @@ def _bounds(allowlist):
         ),
         "interface": "the Level 0 network boundary in development (battery.level4.interface)",
         "training": "Carbon's key, battery's own loop and optimizer menu, TRAIN v1 only",
+        "loss_override": LOSS_OVERRIDE,
+        "loss_slot": (
+            "a per-case loss graph (carbon.level4.loss, PHASE1_PLAN section 4.5) "
+            "may replace battery's loss; Carbon maps it over the batch and takes "
+            "the mean; G7's exam is unchanged"
+        ),
     }
 
 
