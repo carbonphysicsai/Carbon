@@ -996,3 +996,24 @@ the runner binds it to the study's route (see the decision record).
   battery's default phase-4 grant is still PHASE4.
 
 R4 (45.00, 3 runs, Level 1 and above) is unchanged and stays spendable.
+
+## GRAPHITE-GRANT-STAGE-B-{CONSTRUCTOR,ATTACKER} (the ladder wave's stage B, battery L2-L3, kimi-k3)
+
+**Authority.** OWNER-GRAPHITE-STAGE-B-01
+(`.agent/decisions/2026-10-10-OWNER-GRAPHITE-STAGE-B-01.md`):
+- **The approval.** The owner replied "approve" to the Test Lead's exact line
+  "approve Graphite stage B, $143.35, up to 4 at once".
+- **Direct confirmation.** The owner confirmed it directly in the Test
+  Engineer's session.
+- **The plan.** `GRAPHITE_LADDER_STAGE_B_PLAN.md` section 7 (#938).
+
+| Grant | Runs | Worst case per run | Cleanup | Ceiling | Concurrency |
+|---|---|---|---|---|---|
+| STAGE-B-CONSTRUCTOR (phase 3) | 6: Level 2 x 3, Level 3 x 3 | 14.91 | 0.12 | 89.58 | 4 |
+| STAGE-B-ATTACKER (phase 4) | 4: Level 2 x 2, Level 3 x 2 | 13.41 | 0.13 | 53.77 | 4 |
+| Stage B | 10 | | 0.25 | **143.35** | |
+
+**Bindings:** stage A's, at Levels 2 and 3 only.
+- **The Constructor grant** sets `min_level` 2 and `max_level` 3.
+- **The Attacker grant** sets `Phase4Grant.levels` to (2, 3).
+- **A run at any other level** is refused `grant_level_outside_the_grants_levels`.

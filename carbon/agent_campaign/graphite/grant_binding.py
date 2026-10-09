@@ -62,6 +62,12 @@ phase-3 grant: outside its study it is refused `grant_is_bound_to_a_study`.
   a phase-3 run refuses it (`grant_is_not_a_phase3_grant`), and phase 4
   accepts it by its id for battery (`phase4.check_committed_grant`).
 
+- GRAPHITE-GRANT-STAGE-B-CONSTRUCTOR and GRAPHITE-GRANT-STAGE-B-ATTACKER are
+  stage B (OWNER-GRAPHITE-STAGE-B-01): stage A's shape at Levels 2 and 3
+  only. The Constructor grant registers `min_level` 2 and `max_level` 3 (a
+  run outside them is `grant_level_outside_the_grants_levels`); the
+  Attacker grant's levels are phase 4's (`Phase4Grant.levels`).
+
 A registered grant named for another Challenge is
 `grant_is_for_another_challenge`. A Challenge in `PHASE3_BOUND_CHALLENGES`
 accepts only a grant registered for it
@@ -167,6 +173,8 @@ def check_committed_blob(given, repository, grant_file, *, phase):
 # -- phase 3 ------------------------------------------------------------------------------
 #: The Graphite ladder wave's stage A (#889 section 4), approved by the owner.
 STAGE_A_AUTHORITY = "OWNER-GRAPHITE-STAGE-A-01"
+#: Stage B (GRAPHITE_LADDER_STAGE_B_PLAN.md section 7), approved by the owner.
+STAGE_B_AUTHORITY = "OWNER-GRAPHITE-STAGE-B-01"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -189,6 +197,9 @@ class Phase3Grant:
     start_roles: tuple = ("constructor", "planner")
     #: The decision the run conditions record.
     authority: str = "OWNER-GRAPHITE-PHASE3-R4-01"
+    #: The highest construction level a run under this grant may run at;
+    #: None: no upper bound (every grant before stage B).
+    max_level: int | None = None
     #: The runner that spends the grant: "phase3" (Constructor sessions) or
     #: "phase4" (Attacker sessions, `phase4.PHASE4_STAGE_GRANTS`).
     runner: str = "phase3"
@@ -251,6 +262,27 @@ PHASE3_GRANTS = types.MappingProxyType(
                 authority=STAGE_A_AUTHORITY,
                 runner="phase4",
             ),
+            Phase3Grant(
+                grant_id="GRAPHITE-GRANT-STAGE-B-CONSTRUCTOR",
+                challenge=BATTERY_CHALLENGE,
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-STAGE-B-CONSTRUCTOR.json",
+                main_blob=True,
+                min_level=2,
+                max_level=3,
+                start_model="kimi-k3",
+                token_share_usd=Decimal("11.93"),
+                authority=STAGE_B_AUTHORITY,
+            ),
+            Phase3Grant(
+                grant_id="GRAPHITE-GRANT-STAGE-B-ATTACKER",
+                challenge=BATTERY_CHALLENGE,
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-STAGE-B-ATTACKER.json",
+                main_blob=True,
+                start_model="kimi-k3",
+                start_roles=("attacker",),
+                authority=STAGE_B_AUTHORITY,
+                runner="phase4",
+            ),
         )
     }
 )
@@ -264,6 +296,7 @@ START_ROLES = ("constructor", "planner")
 RUN_CONDITIONS_SCHEMA = "carbon.graphite.phase3.run-conditions.v1"
 RUN_CONDITIONS_AUTHORITY = "OWNER-GRAPHITE-PHASE3-R4-01"
 LEVEL_REFUSED = "grant_requires_construction_level_1_or_above"
+LEVEL_RANGE_REFUSED = "grant_level_outside_the_grants_levels"
 START_MODEL_REFUSED = "start_model_below_the_grants_start_rung"
 
 
@@ -277,6 +310,11 @@ def level_refusal(grant, level):
     None. Only a grant registering a `min_level` refuses anything; a level
     that is not a whole number refuses under one (fail closed)."""
     entry = entry_of(grant)
+    if entry is not None and entry.max_level is not None:
+        # A grant bound to a range of levels (stage B) refuses either side.
+        if type(level) is not int or not entry.min_level <= level <= entry.max_level:
+            return LEVEL_RANGE_REFUSED
+        return None
     if entry is None or entry.min_level == 0:
         return None
     if type(level) is not int or level < entry.min_level:
