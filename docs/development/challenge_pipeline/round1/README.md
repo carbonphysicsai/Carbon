@@ -1,5 +1,10 @@
 # First customer-shaped DEVELOPMENT round
 
+> **f13 reference finding:** [power-balance diagnosis](f13-power-balance-diagnosis.md)
+> proposes a retained-integral check before new solves. Mixed plane/all-field
+> extraction and short-port treatment remain unresolved; no repaired truth,
+> weakened limits, solver execution or package change is claimed.
+
 > **Current value/cost and contested-boundary rule:**
 > [eight buyer scorecards](../value-cost/analysis.md) apply the
 > [owner framework](../value-cost/README.md). At least five feasible and five
