@@ -385,24 +385,26 @@ class FamilySource(BatchSource):
             raise ProducerRefused("producer_sequence_mismatch")
 
 
-#: The registered families, by Challenge: `(module, source class)`, imported
-#: only when the producer serves that Challenge.
-FAMILY_SOURCES = {
-    "motor": ("carbon.challenge_validator.motor_source", "MotorBatchSource"),
-}
+def _motor():
+    from .motor_source import MotorBatchSource
+
+    return MotorBatchSource
+
+
+#: The registered families, by name: each a function returning its source
+#: class, imported only when the producer serves that Challenge (a static
+#: import, never a dynamic one).
+FAMILY_SOURCES = {"motor": _motor}
 
 
 def family_source_class(challenge_id):
     """The registered family source class for `challenge_id`, or None."""
-    import importlib
-
     from carbon.reconstruction.capability_registry import MOTOR_CHALLENGE
 
     names = {MOTOR_CHALLENGE: "motor"}
     if challenge_id not in names:
         return None
-    module, name = FAMILY_SOURCES[names[challenge_id]]
-    return getattr(importlib.import_module(module), name)
+    return FAMILY_SOURCES[names[challenge_id]]()
 
 
 __all__ = ["FAMILY_SOURCES", "FamilySource", "ReferenceFamily", "family_source_class"]
