@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-agreement-baseline-native-tests",
+  "recorded_at": "2026-10-09T14:35:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "producer/indexed baseline",
+    "description": "BASELINE-AGREEMENT-01: producer/indexed baseline"
+  },
+  "expected": "Native baseline establishes unchanged task/producer behavior.",
+  "observed": "32 existing producer-panel and indexed-task tests passed on native Python; not canonical acceptance.",
+  "keep": [
+    "Keep native diagnostics separate from canonical CI."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.pipeline.lessons",
+    "challenge.cheap-baseline.comparison"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

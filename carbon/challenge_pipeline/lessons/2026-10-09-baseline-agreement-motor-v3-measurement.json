@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-agreement-motor-v3-measurement",
+  "recorded_at": "2026-10-09T14:35:00Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "coverage_run",
+    "ref": "motor-measurement-v3.json",
+    "description": "BASELINE-AGREEMENT-01: motor-measurement-v3.json"
+  },
+  "expected": "Measure the final module bytes without overwriting earlier diagnostics.",
+  "observed": "Digest-bound 44-candidate/20-question replay and CPU/wall costs recorded; 20 unresolved decisions, full-curve arm HOLD; zero reference solves.",
+  "keep": [
+    "Ship the final versioned artifact and explicit missing-input return."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.pipeline.lessons",
+    "challenge.cheap-baseline.comparison"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

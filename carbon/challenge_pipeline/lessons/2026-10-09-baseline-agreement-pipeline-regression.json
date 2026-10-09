@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-agreement-pipeline-regression",
+  "recorded_at": "2026-10-09T14:38:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "tests/cpu/test_challenge_pipeline.py",
+    "description": "Validate pipeline and added lesson records without changing the frozen protocol"
+  },
+  "expected": "Lesson records should preserve protocol ownership and require no authority transition.",
+  "observed": "28 pipeline tests passed on native Python, including committed lesson validation. No solver, paid or hidden execution.",
+  "keep": ["A measurement return and its lessons do not lock the protocol or qualify a Challenge."],
+  "change": [],
+  "protocol_elements": ["challenge.pipeline.lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
