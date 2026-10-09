@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-agreement-toy-first-run",
+  "recorded_at": "2026-10-09T14:35:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "initial cheap comparator toy tests",
+    "description": "BASELINE-AGREEMENT-01: initial cheap comparator toy tests"
+  },
+  "expected": "Held-out interpolation should use an available complete enclosing rectangle.",
+  "observed": "9 passed and 1 failed: an exact coordinate with a missing held-out row incorrectly prevented strict bracketing.",
+  "keep": [
+    "Repair coordinate-only alternate support; do not use held-out error to choose cells."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.pipeline.lessons",
+    "challenge.cheap-baseline.comparison"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

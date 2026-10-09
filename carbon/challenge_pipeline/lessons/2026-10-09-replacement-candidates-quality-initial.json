@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-replacement-candidates-quality-initial",
+  "recorded_at": "2026-10-09T16:08:32Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "REPLACEMENT-CANDIDATES-01 initial quality",
+    "description": "Native Ruff and Black checks on the new static test."
+  },
+  "expected": "New test is lint/format clean.",
+  "observed": "Ruff passed; Black requested a mechanical reformat. No test or acceptance was weakened.",
+  "keep": ["Use checked arithmetic instead of untraceable rounded cost estimates."],
+  "change": ["Apply the formatter and rerun quality before handoff."],
+  "protocol_elements": ["engineering validation"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

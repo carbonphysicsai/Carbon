@@ -968,3 +968,31 @@ Tokens only: 6 runs one at a time, 4.91 USD worst case per run, 0.25 cleanup, 30
 ceiling, 39,600 s per run. `max_submissions` (144) is a ceiling; the arm cap is set
 at the freeze. The grant binds spend only after the freeze manifest is on main and
 the runner binds it to the study's route (see the decision record).
+
+## GRAPHITE-GRANT-STAGE-A-{CONSTRUCTOR,ATTACKER} (the ladder wave's stage A, battery, kimi-k3)
+
+**Authority.** OWNER-GRAPHITE-STAGE-A-01
+(`.agent/decisions/2026-10-09-OWNER-GRAPHITE-STAGE-A-01.md`):
+- **The figure.** The owner replied "Approve 2" to the Test Lead's exact line
+  "approve Graphite stage A, $128.44".
+- **The relation to R4.** The owner confirmed it directly in the Test
+  Engineer's session: a new USD 128.44 for all nine stage A runs, with R4's
+  unused runs still spendable on top.
+- **The plan.** `GRAPHITE_LADDER_WAVE_PLAN.md` section 4 (#889).
+
+| Grant | Runs | Worst case per run | Cleanup | Ceiling | Concurrency |
+|---|---|---|---|---|---|
+| STAGE-A-CONSTRUCTOR (phase 3) | 5: Level 0 x 2, Level 1 x 3 | 14.91 (R4's: 10.00 model + 4.91) | 0.12 | 74.67 | 2 |
+| STAGE-A-ATTACKER (phase 4) | 4: Level 0 x 2, Level 1 x 2 | 13.41 (10.00 model + PHASE4's 3.41) | 0.13 | 53.77 | 2 |
+| Stage A | 9 | | 0.25 | **128.44** | |
+
+**Bindings** (`grant_binding.PHASE3_GRANTS`, `phase4.PHASE4_STAGE_GRANTS`):
+- **Both grants:** battery, main's committed blob only, start model kimi-k3.
+- **The Constructor grant** admits Level 0 and above, unlike R4. Its token
+  share is 11.93, R4's.
+- **The Attacker grant** starts the Attacker on kimi-k3. Its model money is
+  PHASE4's plus 10.00, which holds at least four full kimi-k3 reservations.
+  Phase 3 refuses it. Phase 4 accepts it with `--grant` for battery only;
+  battery's default phase-4 grant is still PHASE4.
+
+R4 (45.00, 3 runs, Level 1 and above) is unchanged and stays spendable.

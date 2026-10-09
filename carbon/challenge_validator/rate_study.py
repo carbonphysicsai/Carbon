@@ -216,7 +216,11 @@ REQUIRED_KEYS = frozenset(
 #: `producer_configs` ({"1"|"2"|"4": the rate's study producer configuration})
 #: and `validator_config` (a path with `{rate}` and `{replicate}`: each run's
 #: own import-only validator deployment) are required for a real run.
-OPTIONAL_KEYS = frozenset({"freeze_manifest", "producer_configs", "validator_config"})
+#: `bank_short_windows` (fixture only): the windows a fixture's bank is short
+#: in, so a test sees their submissions UNAVAILABLE.
+OPTIONAL_KEYS = frozenset(
+    {"freeze_manifest", "producer_configs", "validator_config", "bank_short_windows"}
+)
 #: Simulated slots: each (arm, rate, replicate) starts at its own offset past
 #: the configured start block, so no two runs share a window of the bank.
 SLOT_GAP, REPLICATE_SPAN = 16, 100
@@ -276,7 +280,18 @@ def load_config(path):
         or type(config["records_dir"]) is not str
     ):
         raise StudyRefused("config_schema_mismatch")
+    short = config.get("bank_short_windows", [])
+    if (
+        type(short) is not list
+        or not all(type(w) is int and w >= 1 for w in short)
+        or (short and not config["fixture"])
+    ):
+        raise StudyRefused("config_schema_mismatch")
     if not config["fixture"]:
+        # The safety refusal first, by its own reason: a real root outside the
+        # study's directory is refused before anything else about the file.
+        if not all(_under(r, STUDY_ROOT) for r in config["roots"].values()):
+            raise StudyRefused("production_root_refused")
         info = os.lstat(path)
         if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:
             raise StudyRefused("config_unreadable")
@@ -484,7 +499,7 @@ class FixtureWorld:
         return 0.1 + int(digest[7:15], 16) / 0xFFFFFFFF
 
     def tick(self, window, block):
-        return True
+        return window not in self.config.get("bank_short_windows", [])
 
     def submit(self, strategy, block, window):
         sid = _sha256(_canonical(strategy))
