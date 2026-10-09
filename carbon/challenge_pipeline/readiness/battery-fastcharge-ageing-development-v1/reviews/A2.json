@@ -1,0 +1,23 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-review.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": [
+  0,
+  1
+ ],
+ "item": "A2",
+ "decision": "PASS",
+ "reviewer": "Test Lead",
+ "date": "2026-10-09",
+ "evidence": [
+  {
+   "kind": "test",
+   "ref": "tests/cpu/test_attack_battery_adapter.py"
+  },
+  {
+   "kind": "test",
+   "ref": "tests/cpu/test_attack_battery_level1_adapter.py"
+  }
+ ],
+ "notes": "ACCEPTED on cited evidence (Test Lead stage A sign-off, 2026-10-09); wiring gaps are tracked as notes. Note: the machine check of the Attacker's route to each family (lesson A2) is not built."
+}

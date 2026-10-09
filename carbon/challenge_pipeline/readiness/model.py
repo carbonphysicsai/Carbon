@@ -17,7 +17,15 @@ PASS = "PASS"
 FAIL = "FAIL"
 NOT_BUILT = "NOT_BUILT"
 REVIEW_REQUIRED = "REVIEW_REQUIRED"
-STATUSES = (PASS, FAIL, NOT_BUILT, REVIEW_REQUIRED)
+#: A check that has no automation (NOT_BUILT) accepted by a valid committed PASS review.
+#: Counts toward green, but is shown apart from an automated PASS so the missing
+#: automation stays visible. A review can never turn a FAIL into this (or a PASS).
+PASS_BY_REVIEW = "PASS_BY_REVIEW"
+#: A NOT_BUILT or REVIEW_REQUIRED item covered by an unexpired, committed Test Lead waiver
+#: (`waivers.json`). It is never a PASS: it keeps `green` false, and a waiver can never
+#: cover a FAIL.
+WAIVED = "WAIVED"
+STATUSES = (PASS, PASS_BY_REVIEW, WAIVED, FAIL, NOT_BUILT, REVIEW_REQUIRED)
 
 KINDS = ("auto", "review", "auto+review")
 PACKAGE = Path(__file__).resolve().parent

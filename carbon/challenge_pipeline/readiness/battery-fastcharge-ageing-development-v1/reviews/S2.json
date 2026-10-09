@@ -1,0 +1,28 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-review.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": [
+  0,
+  1
+ ],
+ "item": "S2",
+ "decision": "PASS",
+ "reviewer": "Test Lead",
+ "date": "2026-10-09",
+ "evidence": [
+  {
+   "kind": "test",
+   "ref": "tests/cpu/test_battery_admissibility_gate.py"
+  },
+  {
+   "kind": "test",
+   "ref": "tests/cpu/test_battery_ev5_run.py"
+  },
+  {
+   "kind": "file",
+   "ref": "carbon/battery/value/scoring.py",
+   "sha256": "sha256:211441e82fa51b5820e6a1417c776679a38256abf01dc0d352d348218365beaa"
+  }
+ ],
+ "notes": "ACCEPTED on cited evidence (Test Lead stage A sign-off, 2026-10-09); wiring gaps are tracked as notes."
+}

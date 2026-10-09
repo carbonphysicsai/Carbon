@@ -1,0 +1,19 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-review.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": [
+  0
+ ],
+ "item": "V1",
+ "decision": "PASS",
+ "reviewer": "Test Lead",
+ "date": "2026-10-09",
+ "evidence": [
+  {
+   "kind": "file",
+   "ref": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/q1_report.json",
+   "sha256": "sha256:91d4b27a661d55a6c686e811ad5a0526765b3c1bde63b42356722947137fbe8b"
+  }
+ ],
+ "notes": "PASS as a measurement, not a threshold: Kendall tau-b -0.473 and Spearman rho -0.539 over n = 8 members at one seed per recipe (EV4 references, graphite-run5 panel). Stage A is an ALIGNMENT MEASUREMENT, not improvement hunting; the negative tau is escalated to the owner by the Test Lead. Level 0 only: Level 1 has no Q1 report yet."
+}
