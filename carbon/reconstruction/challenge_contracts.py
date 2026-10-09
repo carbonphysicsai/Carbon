@@ -49,8 +49,7 @@ ISSUE_MESSAGES = {
         "to miners."
     ),
     "budget.over_compute_budget": (
-        "This recipe's calculated compute cost is over the Challenge's compute "
-        "budget."
+        "This recipe's calculated compute cost is over the Challenge's compute budget."
     ),
     "budget.cost_unmeasurable": (
         "This recipe's compute cost cannot be calculated in the budget's unit."
@@ -220,7 +219,7 @@ def compile_submission(strategy, *, contract_digest=None):
     return CompiledSubmission(challenge, item.digest, compiled, construction)
 
 
-def check_compute_budget(item, strategy):
+def check_compute_budget(item, strategy, level=0):
     """Refuse a recipe over the contract's declared compute budget.
 
     Only a contract whose envelope declares `compute_budget` is checked; the
@@ -245,7 +244,7 @@ def check_compute_budget(item, strategy):
     from carbon.training_budget import cost as calculator
 
     try:
-        report = calculator.cost(strategy["challenge_id"], strategy)
+        report = calculator.cost(strategy["challenge_id"], strategy, level=level)
     except calculator.CostRefused:
         report = {}
     value = report.get(budget["unit"])
