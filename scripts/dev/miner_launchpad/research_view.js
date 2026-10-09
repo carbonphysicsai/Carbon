@@ -855,8 +855,8 @@
       para(box, "No practice trials recorded yet. No gate outcome has been measured.", "hint");
       return;
     }
-    para(box, breakdown.checked_trials + " of " + breakdown.exported_trials + " trials have verified summaries; " + breakdown.unverified_trial_summaries + " are unverified. " + breakdown.trials_passing_all_gates + " verified trials passed every reported practice gate.", "hint");
-    if (breakdown.status === "INSUFFICIENT_VERIFIED_SUMMARIES") para(box, "No trial summary is verified. Reported failure counts below may include contradictory feedback.", "reason");
+    para(box, breakdown.checked_trials + " of " + breakdown.exported_trials + " trials have usable summaries; " + breakdown.unverified_trial_summaries + " are missing, incomplete, or contradictory. " + breakdown.trials_passing_all_gates + " trial summaries report passing every practice gate.", "hint");
+    if (breakdown.status === "INSUFFICIENT_VERIFIED_SUMMARIES") para(box, "No trial summary is usable. Reported failure counts below may include contradictory feedback.", "reason");
     const wrap = el("div", undefined, "table-wrap");
     const table = el("table", undefined, "metrics-table");
     const labels = el("tr");
