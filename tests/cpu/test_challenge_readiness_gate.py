@@ -744,10 +744,12 @@ def test_a4_passes_only_a_designated_controller_with_an_identity(monkeypatch, tm
 
 
 def test_the_committed_designations_fail_a4_until_an_identity_is_recorded():
-    battery = checks.Context(
-        challenge="battery-fastcharge-ageing-development-v1", level=0
-    )
-    assert checks.admission_controller({}, battery).status == model.FAIL
+    # Battery levels 0-4 are designated; cooling still waits.
+    for level in range(5):
+        battery = checks.Context(
+            challenge="battery-fastcharge-ageing-development-v1", level=level
+        )
+        assert checks.admission_controller({}, battery).status == model.PASS
     cooling = checks.Context(challenge="chip-cold-plate", level=0)
     assert checks.admission_controller({}, cooling).status == model.FAIL
 
