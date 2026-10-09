@@ -74,6 +74,7 @@ OPTIONAL = {
     "commitment_reader",
     "development_only",
     "service_account",
+    "device",
 }
 READER_FIELDS = {"network", "endpoint", "provider", "genesis_hash", "netuid"}
 BACKENDS = ("carrier", "direct")
@@ -122,6 +123,14 @@ def load_config(path):
         raise EvaluationUnavailable("evaluation_config_image")
     if config.get("torch_image_manifest") and config["backend"] != "carrier":
         raise EvaluationUnavailable("evaluation_config_image")
+    # VALIDATOR-27: a GPU deployment is a carrier on the accelerator image,
+    # JAX only for now.
+    if config.get("device", "cpu") not in ("cpu", "gpu"):
+        raise EvaluationUnavailable("evaluation_config_device")
+    if config.get("device") == "gpu" and (
+        config["backend"] != "carrier" or config.get("torch_image_manifest")
+    ):
+        raise EvaluationUnavailable("evaluation_config_device")
     from .exam import RULES
 
     if config.get("rule", "v1") not in RULES:
@@ -256,13 +265,26 @@ def build(config, *, repository, readonly=False):
                 and not doctor(image_id=pinned.image_id, image_identity=pinned).eligible
             ):
                 raise EvaluationUnavailable("evaluation_host_unavailable")
-        backend = CarrierBackend(
-            WorkLedger(store, work),
-            image,
-            torch_image=torch_image,
-            root=repository,
-            seconds=int(config.get("seconds", 600)),
-        )
+        from carbon.reconstruction.hardware_acceptance import DeviceClassNotAccepted
+
+        try:
+            backend = CarrierBackend(
+                WorkLedger(store, work),
+                image,
+                torch_image=torch_image,
+                root=repository,
+                seconds=int(config.get("seconds", 600)),
+                device=config.get("device"),
+            )
+        except DeviceClassNotAccepted:
+            # No hardware acceptance names this host's device class: a GPU
+            # validator never scores on it.
+            raise EvaluationUnavailable(
+                "evaluation_device_class_not_accepted"
+            ) from None
+        except ValueError:
+            # No device record on this host, or a malformed device request.
+            raise EvaluationUnavailable("evaluation_device_unavailable") from None
     else:
         backend = DirectBackend(repository)
     key = config.get("service_key")
