@@ -333,14 +333,24 @@ cross-case tricks" is enforced by structure:
 - So the graph never sees a second case. Declaring it at batch B instead
   would need an independence proof that shapes alone cannot give.
 
-**Not yet built.** The ruling's content is complete, but these pieces wait:
-- **Battery's `loss_override`.** It is a Challenge declaration, so it waits
-  for the Test Lead, and changing it changes the registered variant document,
-  which means a new version.
-- **G6 training on a submitted loss.** The battery adapter's
-  `train_graph` with `per_case_mean`, and the F4 count, are the next slice.
+**Built.**
+- **Battery's `loss_override: graph`.** The development variant
+  `battery-l4-graph-v3` declares it (LEVEL4-LOSS-OVERRIDE-01).
+- **G6 training on a submitted loss.** It is in the rebuild
+  (`carbon/battery/level4_model.py`, LEVEL4-G6-LOSS-TRAINING-01):
+  - the record carries the variant's declaration (`RECORD_BOUNDS`);
+  - G4 gates the loss graph against it;
+  - battery's own loss terms must stay neutral;
+  - both paths train on `Prepared.loss`, which is Carbon's mean of the
+    per-case graph;
+  - battery's implementation modules are unchanged.
+
+**Not yet built.**
 - **Admitting `aux` outputs.** That needs N set, and the forward interface
   check then widened to admit them.
+- **F4.** The loss graph runs inside the compiled training step, so the
+  cost calculator counts it once it costs development recipes, which it
+  does not do yet.
 
 ---
 

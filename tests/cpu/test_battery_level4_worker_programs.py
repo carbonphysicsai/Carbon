@@ -17,7 +17,8 @@ Claims tested:
    from the same state.
 3. With no documents staged, the program records Carbon's environment
    (`failure.json`, stage `environment`), never the candidate's.
-4. Level 0 programs are unchanged by Level 4: a non-Level-4 state keeps the
+4. A submitted loss graph (G6) trains in the worker exactly as in process.
+5. Level 0 programs are unchanged by Level 4: a non-Level-4 state keeps the
    Level 0 inference program.
 """
 
@@ -123,6 +124,20 @@ def test_a_level4_state_predicts_in_the_worker_as_in_process(reconstructed):
     predicted = json.loads(_run(program, files)["predictions.json"])
     in_process = worker.DirectBackend(REPOSITORY).infer(None, state, inputs)
     assert predicted == in_process
+
+
+def test_the_worker_trains_a_submitted_loss_graph_as_in_process():
+    from tests.cpu import test_battery_level4_loss_training as g6
+
+    strategy, recipe = g6._recipe("scaffold_mlp")
+    m = g6.battery.material()
+    native, _ = g6._native(recipe, m)
+    found, workspace = g6._with_loss(strategy, native, g6._case_loss(native))
+    out = _reconstruct(recipe, found, workspace)
+    assert "failure.json" not in out, out.get("failure.json")
+    model = level4_worker.build_in_process(recipe, found, workspace)
+    stats = model.fit(m.train, g6.battery.structure(m), SEED)
+    assert json.loads(out["fit.json"])["params_sha256"] == stats["params_sha256"]
 
 
 def test_no_staged_documents_is_carbons_environment():
