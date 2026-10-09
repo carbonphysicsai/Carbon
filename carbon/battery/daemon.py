@@ -337,7 +337,8 @@ class BatteryValidator:
         self.development_only = development_only is True
         #: The testnet development-ladder deployment (VALIDATOR-25;
         #: `deployment.ladder_for`): only its listed hotkeys, and only its
-        #: listed variants of its one level. Only on a development deployment.
+        #: listed variants of its listed levels. Only on a development
+        #: deployment.
         self.ladder = ladder if self.development_only else None
         #: Import-only (VALIDATOR-19 slice 2): every batch comes from Carbon's
         #: shared answer key (`challenge_validator.answer_key`); this
@@ -746,7 +747,7 @@ class BatteryValidator:
         level = document.get("level")
         if type(level) is int and level > 3:
             return "ladder_level_4_not_open"
-        if level != self.ladder["level"]:
+        if level not in self.ladder["levels"]:
             return "ladder_level_not_accepted"
         return "ladder_variant_not_accepted"
 

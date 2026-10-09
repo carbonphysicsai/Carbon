@@ -12,7 +12,9 @@ made it top priority on 2026-10-09, because it blocks Graphite ladder testing.
    `v2-ladder-lN` rule could not share the main deployment's live windows,
    which the Test Lead settled. Instead, the ladder runs the main
    deployment's rule, and carries its level and its accepted variants in the
-   deployment configuration (`ladder: {level, hotkeys, variants}`).
+   deployment configuration (`ladder: {levels, hotkeys, variants}`). One
+   door serves several levels (L1 to L3 first): each variant's level is the
+   registry's, and it must be a listed level.
 2. **A ladder kind of development deployment.** This is for the owner to
    confirm: the record leaves "development_only, or a new kind" to this
    design.

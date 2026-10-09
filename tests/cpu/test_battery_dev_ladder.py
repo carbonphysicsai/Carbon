@@ -53,7 +53,7 @@ def config(**changes):
         "batch_source": "answer_key",
         "require_commitment": True,
         "commitment_reader": dict(TESTNET),
-        "ladder": {"level": 2, "hotkeys": [MINER_C], "variants": [LEVEL_2]},
+        "ladder": {"levels": [2], "hotkeys": [MINER_C], "variants": [LEVEL_2]},
     }
     found.update(changes)
     return found
@@ -83,9 +83,9 @@ def test_a_variants_document_is_read_by_name_or_digest_and_rechecked(
 def test_the_ladder_admits_its_hotkeys_and_its_levels_variants():
     ladder = deployment.ladder_for(config())
     assert ladder == {
-        "level": 2,
+        "levels": frozenset({2}),
         "hotkeys": frozenset({MINER_C}),
-        "variants": {FIXTURE_DIGESTS[2]: LEVEL_2},
+        "variants": {FIXTURE_DIGESTS[2]: {"version": LEVEL_2, "level": 2}},
     }
     assert deployment.ladder_for({}) is None
 
@@ -101,21 +101,21 @@ def test_the_ladder_admits_its_hotkeys_and_its_levels_variants():
             "evaluation_config_ladder_testnet_only",
         ),
         (
-            {"ladder": {"level": 4, "hotkeys": [MINER_C], "variants": [LEVEL_2]}},
+            {"ladder": {"levels": [4], "hotkeys": [MINER_C], "variants": [LEVEL_2]}},
             "evaluation_config_ladder_level_4_not_open",
         ),
         (
-            {"ladder": {"level": 2, "hotkeys": ["minerC"], "variants": [LEVEL_2]}},
+            {"ladder": {"levels": [2], "hotkeys": ["minerC"], "variants": [LEVEL_2]}},
             "evaluation_config_ladder",
         ),
         (
-            {"ladder": {"level": 2, "hotkeys": [MINER_C], "variants": []}},
+            {"ladder": {"levels": [2], "hotkeys": [MINER_C], "variants": []}},
             "evaluation_config_ladder",
         ),
         (
             {
                 "ladder": {
-                    "level": 2,
+                    "levels": [2],
                     "hotkeys": [MINER_C],
                     "variants": [fixture_document(1)["version"]],
                 }
@@ -123,7 +123,13 @@ def test_the_ladder_admits_its_hotkeys_and_its_levels_variants():
             "evaluation_config_ladder_variant",
         ),
         (
-            {"ladder": {"level": 2, "hotkeys": [MINER_C], "variants": ["unknown-v1"]}},
+            {
+                "ladder": {
+                    "levels": [2],
+                    "hotkeys": [MINER_C],
+                    "variants": ["unknown-v1"],
+                }
+            },
             "evaluation_config_ladder_variant",
         ),
     ],
@@ -151,7 +157,7 @@ def test_only_the_ladder_may_be_a_development_deployment_with_commitments(tmp_pa
         path.write_text(json.dumps({**base, **changes}))
         path.chmod(0o600)
         if code is None:
-            assert deployment.load_config(path)["ladder"]["level"] == 2
+            assert deployment.load_config(path)["ladder"]["levels"] == [2]
         else:
             with pytest.raises(deployment.EvaluationUnavailable) as refused:
                 deployment.load_config(path)
@@ -316,3 +322,28 @@ def test_the_supervisor_runs_the_ladders_daemon_only_for_a_ladder(tmp_path):
     assert supervisor._daemon_module(tmp_path / "missing.json") == (
         "carbon.battery.operate"
     )
+
+
+def test_one_door_serves_several_levels(tmp_path, refs, backend):  # noqa: F811
+    level_1 = fixture_document(1)["version"]
+    ladder = deployment.ladder_for(
+        config(
+            ladder={
+                "levels": [1, 2],
+                "hotkeys": [MINER_C],
+                "variants": [level_1, LEVEL_2],
+            }
+        )
+    )
+    validator = tbd.make(tmp_path, refs, backend, development_only=True, ladder=ladder)
+    # Each listed level's variant passes the ladder's own check (and, with no
+    # compiler supplied, fails closed after it); an unlisted level is refused.
+    for digest in (FIXTURE_DIGESTS[1], FIXTURE_DIGESTS[2]):
+        assert code(validator, MINER_C, digest) == "development_variant_not_served"
+    assert code(validator, MINER_C, FIXTURE_DIGESTS[3]) == "ladder_level_not_accepted"
+    served = door(validator, tmp_path).served_contracts()
+    assert {(s["level"], s.get("variant")) for s in served} == {
+        (0, None),
+        (1, level_1),
+        (2, LEVEL_2),
+    }

@@ -40,12 +40,12 @@ operator's; none is reachable from a miner surface:
   publisher refuses it: a development deployment never sets weights and never
   serves miners.
 - `ladder` (optional; VALIDATOR-25, OWNER-LADDER-THROUGH-LAUNCHPAD-01): the
-  testnet development-ladder deployment, `{level, hotkeys, variants}`. It
+  testnet development-ladder deployment, `{levels, hotkeys, variants}`. It
   needs `development_only: true`, so it never sets weights, and unlike any
   other development deployment it is reached through the Launchpad: it
   requires the chain commitment, on Carbon's testnet only. It admits only
   the listed hotkeys (public SS58), and only the listed development variants
-  of its one level (1 to 3; Level 4 is not open). It shares the main
+  of its listed levels (1 to 3; Level 4 is not open). It shares the main
   deployment's live windows (`batch_source: "answer_key"` under the main
   deployment's rule), so it holds no bank and no exposure of its own;
 - `service_account` (optional; VALIDATOR-19 slice 0): the OS account that
@@ -194,7 +194,7 @@ def load_config(path):
     return config
 
 
-LADDER_FIELDS = {"level", "hotkeys", "variants"}
+LADDER_FIELDS = {"levels", "hotkeys", "variants"}
 #: The highest level the ladder opens (OWNER-LEVEL4-GRAPH-ONLY-01: Level 4
 #: runs through the Launchpad only from its Phase 3).
 LADDER_TOP = 3
@@ -203,7 +203,8 @@ _SS58 = re.compile(r"[1-9A-HJ-NP-Za-km-z]{47,48}\Z")
 
 def ladder_for(config):
     """The development-ladder deployment's admission (VALIDATOR-25), or None:
-    `{"level", "hotkeys", "variants": {digest: version}}`. Refuses by
+    `{"levels", "hotkeys", "variants": {digest: {"version", "level"}}}`, each
+    variant's level read from the registry. Refuses by
     `evaluation_config_ladder*` unless every part is exact."""
     spec = config.get("ladder")
     if spec is None:
@@ -228,10 +229,15 @@ def ladder_for(config):
     if (reader.get("network"), reader.get("netuid")) != (CARBON_NETWORK, CARBON_NETUID):
         # Never mainnet until the owner locks a level.
         raise EvaluationUnavailable("evaluation_config_ladder_testnet_only")
-    level, hotkeys, variants = spec["level"], spec["hotkeys"], spec["variants"]
-    if type(level) is not int or level < 1:
+    levels, hotkeys, variants = spec["levels"], spec["hotkeys"], spec["variants"]
+    if (
+        type(levels) is not list
+        or not levels
+        or len(set(levels)) != len(levels)
+        or not all(type(level) is int and level >= 1 for level in levels)
+    ):
         raise EvaluationUnavailable("evaluation_config_ladder")
-    if level > LADDER_TOP:
+    if max(levels) > LADDER_TOP:
         raise EvaluationUnavailable("evaluation_config_ladder_level_4_not_open")
     if (
         type(hotkeys) is not list
@@ -252,14 +258,18 @@ def ladder_for(config):
         base = (document or {}).get("base_contract")
         if (
             document is None
-            or document.get("level") != level
+            or document.get("level") not in levels
             or document.get("challenge") != CHALLENGE.challenge_id
             or type(base) is not dict
             or base.get("digest") != contract(CHALLENGE.challenge_id).digest
         ):
             raise EvaluationUnavailable("evaluation_config_ladder_variant")
-        accepted[versions[name]] = name
-    return {"level": level, "hotkeys": frozenset(hotkeys), "variants": accepted}
+        accepted[versions[name]] = {"version": name, "level": document["level"]}
+    return {
+        "levels": frozenset(levels),
+        "hotkeys": frozenset(hotkeys),
+        "variants": accepted,
+    }
 
 
 def _commitment_reader(config):

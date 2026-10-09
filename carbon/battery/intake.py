@@ -436,10 +436,10 @@ def neutral_door(target, ledger):
     development = {
         digest: {
             "base": adapter.contract_digest,
-            "level": ladder["level"],
-            "variant": name,
+            "level": served["level"],
+            "variant": served["version"],
         }
-        for digest, name in (ladder or {}).get("variants", {}).items()
+        for digest, served in (ladder or {}).get("variants", {}).items()
     }
     return Validator(Adapters([adapter]), ledger, development=development)
 
