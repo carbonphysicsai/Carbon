@@ -19,4 +19,3 @@ Narrow-scope startup estimates are respectively **EUR17.75/21.44/33.75**, **EUR1
 LPBF is **excluded** despite excitement: thermal-only reference lacks graded distortion. RF filters, photonic rings and wind airfoils also fail cheap-baseline screening. Increasing their budgets does not repair those failures.
 
 Research only: no solver, spending, protected/AX42 data or existing Challenge packet edits. This owner-requested addition stays in **PR #928**; no second PR or adoption decision. [Detailed evidence, losses and cost ledger](analysis.md).
-

@@ -40,4 +40,3 @@ The follow-up validator also passes the selection/exclusion, retained-value, tri
 Earned: a sourced research inventory and conditional packet drafts, with static arithmetic/structure verification. Not earned: measured C1/C2/C3/C4, customer acceptance, T1/T2/T3, qualified reference, V4 advantage, scientific/security/network/production qualification. No Challenge is activated, replaced or rescored.
 
 Owner decisions required are the exact buyer job and limits, population law/rights, reference applicability and tolerances, question/power law, and authority to collect evidence. They block candidate adoption and solver dispatch, not this research deliverable. Final handoff head/PR/check state is posted externally in the PR comment, not in an evidence-only commit.
-

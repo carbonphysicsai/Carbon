@@ -170,4 +170,3 @@ Primary sources were checked on 2026-10-09; no source supplies customer limits o
 The root [validator](../validate.py) checks the original inventory plus the follow-up's selection/exclusions, source IDs, unchanged cost/score evidence, literal zero-qualified claim, retained-value arithmetic, complete-cost/index/triage calculations, order, links and exact file manifest. It runs no solver, network or third-party package. Native results are drafting diagnostics; exact-head canonical CI remains PR Lead's acceptance task. No amount of static verification qualifies a customer, reference, economic benefit or scientific test.
 
 Maturity: sourced research and prospective scenario specification only. Solver runs=0; spend=0; no hidden/AX42 data or existing Challenge packet edits. There is no dispatch readiness, approved budget, adoption, production/scientific/security claim or historical rescore.
-
