@@ -137,10 +137,15 @@ def intake(
     bounds=None,
     isolate=True,
     worker=None,
+    loss_override=None,
 ):
     """G0 and G3 for one submission: `(manifest, {slot: document})`.
 
+    A loss document is refused unless the Challenge declares
+    `loss_override: graph` (`loss.gate`); never ignored.
     `worker` replaces the isolated parser's command (tests only)."""
+    from . import loss as loss_slot
+
     bounds = _bounds(bounds)
     if type(raw_manifest) is not bytes or type(files) is not dict:
         raise graph.GraphRefused("intake_malformed")
@@ -157,7 +162,7 @@ def intake(
             bounds=bounds,
             worker=worker,
         )
-    return submission.verify(
+    manifest, parsed = submission.verify(
         raw_manifest,
         files,
         allowlist=allowlist,
@@ -165,3 +170,5 @@ def intake(
         interface=interface,
         max_bytes=bounds["document_bytes"],
     )
+    loss_slot.gate(parsed, loss_override)
+    return manifest, parsed

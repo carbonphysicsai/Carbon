@@ -25,6 +25,17 @@ Order on the pod:
    hashing BOTH the weights (`params_sha256`) and the predictions
    (`predictions_sha256`) of every repeat.
 
+4. the Level 4 B' leg (`PHASE1_PLAN.md` section 3), when the configuration
+   carries one: for each pick, ONE rebuild in a fresh interpreter, under the
+   same pinned environment, of that pick's B' documents. They were lowered on
+   the CPU before any spend and arrive as data (`carbon.level4.staging`
+   directories). Carbon verifies them (`submission.verify`), validates them
+   (G4, the owner's caps), and trains them through Carbon's own loop
+   (`carbon.level4.train`). Nothing is lowered or exported on a pod. The row
+   records `params_sha256`, comparable with the native rebuild on the same
+   host, and `outputs_sha256`, the graph's raw outputs on TRAIN, comparable
+   B' to B' across hosts.
+
 The same per-repeat flow runs on the CPU for `--local-cpu-dry-run`
 (`JAX_PLATFORMS=cpu`, no device variables). No label, sealed or hidden
 material is read: the only inputs are the public TRAIN v1 and OCV table.
@@ -78,6 +89,117 @@ print(json.dumps({
     "predictions_sha256": digest.hexdigest(),
     "backend": stats.get("backend", recipe.settings.get("backend", "jax")),
     "n_params": stats.get("n_params"),
+    "seconds": round(time.perf_counter() - started, 3),
+}))
+"""
+
+#: One Level 4 B' rebuild in a fresh interpreter: the pick's documents from
+#: its staging directory, refused unless the submission digest is the run
+#: record's. `params_sha256` is the battery recipe's own digest (the same
+#: quantity as the native child's); `outputs_sha256` covers, per output in
+#: order, the index, the shape and the float64 C-order bytes of the graph's
+#: outputs on TRAIN's features.
+CHILD_LEVEL4 = """
+import hashlib, json, sys, time
+import jax
+import numpy as np
+from carbon.battery import level4 as battery
+from carbon.battery.recipes import features
+from carbon.level4 import allowlist as allowlist_module
+from carbon.level4 import intake, staging, submission, train, validate
+
+strategy, seed, directory, expected = (
+    json.loads(sys.argv[1]), int(sys.argv[2]), sys.argv[3], sys.argv[4]
+)
+started = time.perf_counter()
+allowlist = allowlist_module.load()
+digest, raw_manifest, files = staging.read_directory(directory)
+if digest != expected:
+    raise SystemExit("the staged submission is not the run record's")
+interface = battery.interface(strategy)
+_, parsed = submission.verify(
+    raw_manifest, files, allowlist=allowlist, challenge=battery.challenge_id(),
+    interface=interface.digest(), max_bytes=intake.BOUNDS["document_bytes"],
+)
+verdict = validate.validate_submission(
+    parsed, allowlist, interface=interface, batch=battery.training_batch(strategy)
+)
+prepared = train.prepare(parsed, allowlist, verdict=verdict)
+result = train.train(battery, strategy, prepared, seed=seed)
+material = battery.material()
+_, model = battery._model(strategy, material.train)
+wide = model.settings["precision"] == "float64"
+f = features(material.train.x, model.rich).astype(np.float64 if wide else np.float32)
+with jax.enable_x64(wide):
+    outputs = prepared.predict([jax.numpy.asarray(a) for a in result["params"]], f)
+out_digest = hashlib.sha256()
+for index, value in enumerate(outputs):
+    array = np.ascontiguousarray(np.asarray(value, dtype="<f8"))
+    out_digest.update(str(index).encode() + b"\\0" + str(array.shape).encode() + b"\\0")
+    out_digest.update(array.tobytes())
+print(json.dumps({
+    "params_sha256": result["params_sha256"],
+    "outputs_sha256": out_digest.hexdigest(),
+    "submission": digest,
+    "status": verdict["status"],
+    "path": result["path"],
+    "seconds": round(time.perf_counter() - started, 3),
+}))
+"""
+
+#: One forward-only Level 4 rebuild (the kNN graph: `gather` and `sort` on
+#: the device): the documents verified and validated as above, then the
+#: graph rebuilt by Carbon's interpreter and evaluated on TRAIN, in float64,
+#: beside the function it was lowered from (battery's kNN as JAX code,
+#: `knn_jax`), both jitted. Nothing is trained. `native_outputs_sha256` and
+#: `outputs_sha256` hash the two output arrays the same way, so the same-host
+#: comparison is inside this record. Battery's NumPy predictor is a different
+#: implementation (Phase 0: not bit-identical, 3.6e-15): its largest absolute
+#: difference is recorded, never compared against a tolerance.
+CHILD_LEVEL4_FORWARD = """
+import hashlib, json, sys, time
+import jax
+import numpy as np
+from carbon.battery import level4 as battery
+from carbon.level4 import allowlist as allowlist_module
+from carbon.level4 import intake, interpret, staging, submission, validate
+
+strategy, seed, directory, expected = (
+    json.loads(sys.argv[1]), int(sys.argv[2]), sys.argv[3], sys.argv[4]
+)
+started = time.perf_counter()
+allowlist = allowlist_module.load()
+digest, raw_manifest, files = staging.read_directory(directory)
+if digest != expected:
+    raise SystemExit("the staged submission is not the run record's")
+interface = battery.knn_interface(strategy)
+_, parsed = submission.verify(
+    raw_manifest, files, allowlist=allowlist, challenge=battery.challenge_id(),
+    interface=interface.digest(), max_bytes=intake.BOUNDS["document_bytes"],
+)
+verdict = validate.validate_submission(parsed, allowlist, interface=interface)
+
+
+def sha(array):
+    array = np.ascontiguousarray(np.asarray(array, dtype="<f8"))
+    return hashlib.sha256(str(array.shape).encode() + b"\\0" + array.tobytes()).hexdigest()
+
+
+with jax.enable_x64(True):
+    _, u_train, y_train, u, numpy_out = battery.knn_native(strategy, battery.material())
+    rebuilt = jax.jit(interpret.rebuild(parsed["forward"], allowlist))
+    (out,) = rebuilt(u_train, y_train, u)
+    native = jax.jit(battery.knn_jax(strategy["parameters"]["neighbours"]))(
+        u_train, y_train, u
+    )
+print(json.dumps({
+    "params_sha256": hashlib.sha256(b"").hexdigest(),
+    "outputs_sha256": sha(out),
+    "native_outputs_sha256": sha(native),
+    "numpy_max_abs_difference": float(np.max(np.abs(np.asarray(out) - numpy_out))),
+    "submission": digest,
+    "status": verdict["status"],
+    "path": "forward_only",
     "seconds": round(time.perf_counter() - started, 3),
 }))
 """
@@ -225,10 +347,57 @@ def run_repeat(strategy, seed, root, env, *, python=None, timeout=CHILD_SECONDS)
     return record
 
 
+def run_level4(entry, seed, root, env, *, python=None, timeout=CHILD_SECONDS):
+    """One Level 4 B' rebuild of `entry` (a pick's staging directory under
+    `root`) in a fresh interpreter with `env`. The child's record, or
+    `{"error": ...}`."""
+    full = dict(os.environ)
+    full.update(env)
+    try:
+        done = subprocess.run(
+            [
+                python or sys.executable,
+                "-c",
+                (
+                    CHILD_LEVEL4_FORWARD
+                    if entry.get("kind") == "forward"
+                    else CHILD_LEVEL4
+                ),
+                json.dumps(entry["strategy"]),
+                str(seed),
+                str(Path(root).resolve() / entry["directory"]),
+                entry["submission"],
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+            cwd=Path(root).resolve(),
+            env=full,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired:
+        return {"error": "ChildTimeout"}
+    if done.returncode != 0:
+        return {"error": f"exit {done.returncode}", "stderr_tail": done.stderr[-400:]}
+    try:
+        record = json.loads(done.stdout.strip().splitlines()[-1])
+    except (IndexError, ValueError):
+        return {"error": "child printed no record"}
+    if not (
+        hexdigest_ok(record.get("params_sha256"))
+        and hexdigest_ok(record.get("outputs_sha256"))
+    ):
+        return {"error": "child record has no digests"}
+    return record
+
+
 def run_recipes(config, root, env, *, out=None, python=None):
-    """Every recipe, N repeats, each in a fresh interpreter. Writes progress to
-    `out/progress.json` (the bootstrap serves it at /status) when given."""
-    rows, total = [], len(config["recipes"]) * config["repeats"]
+    """Every recipe, N repeats, each in a fresh interpreter, then each Level 4
+    pick once (`leg: level4`). Writes progress to `out/progress.json` (the
+    bootstrap serves it at /status) when given."""
+    level4 = config.get("level4", [])
+    rows = []
+    total = len(config["recipes"]) * config["repeats"] + len(level4)
     for recipe in config["recipes"]:
         for repeat in range(config["repeats"]):
             started = time.monotonic()
@@ -247,6 +416,22 @@ def run_recipes(config, root, env, *, out=None, python=None):
                 (Path(out) / "progress.json").write_text(
                     json.dumps({"done": len(rows), "total": total})
                 )
+    for entry in level4:
+        started = time.monotonic()
+        record = run_level4(entry, config["seed"], root, env, python=python)
+        rows.append(
+            {
+                "recipe_id": entry["id"],
+                "leg": "level4",
+                "repeat": 0,
+                "wall_seconds": round(time.monotonic() - started, 3),
+                **record,
+            }
+        )
+        if out is not None:
+            (Path(out) / "progress.json").write_text(
+                json.dumps({"done": len(rows), "total": total})
+            )
     return rows
 
 
@@ -259,6 +444,7 @@ def results_document(config, rows, *, device, environment_pins):
         "device": device,
         "environment_pins": environment_pins,
         "recipes": [r["id"] for r in config["recipes"]],
+        "level4": [e["id"] for e in config.get("level4", [])],
         "rows": rows,
         "complete": all("error" not in row for row in rows) and len(rows) > 0,
     }

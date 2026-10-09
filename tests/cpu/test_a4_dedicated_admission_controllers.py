@@ -346,8 +346,14 @@ def test_the_admission_controller_consumes_conditions_as_the_designated_authorit
 
 
 # -- the committed designation and A4, per Challenge -----------------------------------------
-@pytest.mark.parametrize("challenge", CHALLENGES)
-def test_each_challenge_has_exactly_one_pending_dedicated_entry(challenge):
+#: Challenges whose committed designation still waits for an operator identity.
+PENDING_CHALLENGES = (COLD_PLATE_CHALLENGE, MOTOR_CHALLENGE)
+#: The ladder levels battery designates a dedicated admission controller for.
+BATTERY_LEVELS = (0, 1, 2, 3, 4)
+
+
+@pytest.mark.parametrize("challenge", PENDING_CHALLENGES)
+def test_each_pending_challenge_has_exactly_one_pending_dedicated_entry(challenge):
     mine = [
         e for e in designations.load()["controllers"] if e["challenge"] == challenge
     ]
@@ -357,11 +363,39 @@ def test_each_challenge_has_exactly_one_pending_dedicated_entry(challenge):
     assert only["status"] == designations.PENDING and only["identity"] is None
 
 
-@pytest.mark.parametrize("challenge", CHALLENGES)
+@pytest.mark.parametrize("challenge", PENDING_CHALLENGES)
 def test_a_pending_entry_keeps_a4_not_passed(challenge):
     result = a4(challenge, model.REPOSITORY)
     assert result.status == model.FAIL
     assert "pending" in result.detail
+
+
+def test_battery_designates_one_dedicated_controller_per_level_0_to_4():
+    mine = [
+        e
+        for e in designations.load()["controllers"]
+        if e["challenge"] == BATTERY_CHALLENGE
+    ]
+    assert sorted(e["level"] for e in mine) == list(BATTERY_LEVELS)
+    for e in mine:
+        assert e["name"] == f"admission-controller-battery-l{e['level']}"
+        assert e["status"] == designations.DESIGNATED
+        assert designations._DIGEST.fullmatch(e["identity"])
+    # One controller per level: no identity is shared between levels.
+    assert len({e["identity"] for e in mine}) == len(BATTERY_LEVELS)
+
+
+@pytest.mark.parametrize("level", BATTERY_LEVELS)
+def test_each_committed_battery_level_passes_a4(level):
+    result = a4(BATTERY_CHALLENGE, model.REPOSITORY, level=level)
+    assert result.status == model.PASS, result.detail
+    entry_ = designations.designation(BATTERY_CHALLENGE, level)
+    assert any(entry_["identity"] in item for item in result.evidence)
+
+
+def test_battery_level_5_has_no_designation_and_fails_a4():
+    assert designations.designation(BATTERY_CHALLENGE, 5) is None
+    assert a4(BATTERY_CHALLENGE, model.REPOSITORY, level=5).status == model.FAIL
 
 
 def check_a4_pending(tmp_path, _monkeypatch, _capsys):
