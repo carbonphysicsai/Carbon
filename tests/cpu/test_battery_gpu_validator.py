@@ -1,4 +1,5 @@
-"""The battery validator scoring on a GPU (VALIDATOR-27, slice 1: JAX).
+"""The battery validator scoring on a GPU (VALIDATOR-27: slice 1, JAX;
+slice 2, PyTorch on the PyTorch GPU worker).
 
 A GPU deployment scores on the host's recorded device under the validator
 reconstruction role, only for a device class a hardware acceptance has
@@ -24,6 +25,7 @@ from test_battery_gpu_practice import device, gpu_image
 from carbon.battery import deployment, rebuild_identity, worker
 from carbon.development_session import research_carrier
 from carbon.reconstruction import hardware_acceptance as ha
+from carbon.reconstruction import torch_profile
 from carbon.reconstruction.accelerators import GPU_PROFILE
 
 
@@ -34,12 +36,18 @@ def record(monkeypatch):
     return found
 
 
-def accept(monkeypatch, kind):
+def accept(monkeypatch, kind, *profiles):
+    """Enter `kind` for this test only, under JAX's profile by default."""
+    entry = {"record": "TEST", "evidence": "TEST"}
+    profiles = profiles or (GPU_PROFILE.profile_id,)
     monkeypatch.setitem(
-        ha.ACCEPTED_DEVICE_CLASSES,
-        kind,
-        {"profile_id": GPU_PROFILE.profile_id, "record": "TEST", "evidence": "TEST"},
+        ha.ACCEPTED_DEVICE_CLASSES, kind, {profile: entry for profile in profiles}
     )
+
+
+def torch_gpu_image():
+    """The PyTorch GPU worker's identity: its own exact-hashed cu130 lock."""
+    return gpu_image("8", lock=torch_profile.GPU_LOCK_DIGEST)
 
 
 def test_no_device_class_is_accepted_until_a_hardware_acceptance_passes(record):
@@ -84,12 +92,54 @@ def test_a_cpu_deployment_is_exactly_what_it_was():
     assert "accelerator" not in seen
 
 
-def test_a_gpu_validator_serves_jax_only(record, monkeypatch):
+def test_pytorch_on_the_gpu_is_the_pytorch_gpu_worker_only(record, monkeypatch):
     accept(monkeypatch, record.device_kind)
-    with pytest.raises(ValueError, match="JAX only"):
+    # The CPU PyTorch worker never runs on the validator's GPU.
+    with pytest.raises(ValueError, match="GPU worker"):
         worker.CarrierBackend(
-            SimpleNamespace(), gpu_image(), torch_image=gpu_image("8"), device="gpu"
+            SimpleNamespace(), gpu_image(), torch_image=gpu_image("7"), device="gpu"
         )
+
+
+def test_pytorch_needs_its_own_acceptance_on_the_class(record, monkeypatch):
+    accept(monkeypatch, record.device_kind)  # JAX only
+    with pytest.raises(ha.DeviceClassNotAccepted):
+        worker.CarrierBackend(
+            SimpleNamespace(), gpu_image(), torch_image=torch_gpu_image(), device="gpu"
+        )
+    accept(
+        monkeypatch, record.device_kind, torch_profile.GPU_PROFILE_ID
+    )  # PyTorch only
+    with pytest.raises(ha.DeviceClassNotAccepted):
+        worker.CarrierBackend(
+            SimpleNamespace(), gpu_image(), torch_image=torch_gpu_image(), device="gpu"
+        )
+    accept(
+        monkeypatch,
+        record.device_kind,
+        GPU_PROFILE.profile_id,
+        torch_profile.GPU_PROFILE_ID,
+    )
+    seen = {}
+
+    def runner(ledger, **kwargs):
+        seen.update(kwargs)
+        raise RuntimeError("stop before dispatch")
+
+    backend = worker.CarrierBackend(
+        SimpleNamespace(),
+        gpu_image(),
+        torch_image=torch_gpu_image(),
+        device="gpu",
+        runner=runner,
+    )
+    assert backend.backends == ("jax", "pytorch")
+    assert backend.identity["pytorch_image"] == torch_gpu_image().image_id
+    assert backend.identity["device_kind"] == record.device_kind
+    with pytest.raises(worker.WorkerFailure):
+        backend._call("op", "print(1)", {}, [], "pytorch")
+    assert seen["image"] == torch_gpu_image()
+    assert seen["accelerator"] == research_carrier.VALIDATOR_GPU
 
 
 class Stop(Exception):
@@ -179,13 +229,9 @@ def test_the_validator_worker_profile_carries_the_pinned_determinism(
     [
         ({"device": "tpu"}, "evaluation_config_device"),
         ({"device": "gpu", "backend": "direct"}, "evaluation_config_device"),
-        (
-            {"device": "gpu", "torch_image_manifest": "/x/torch.json"},
-            "evaluation_config_device",
-        ),
     ],
 )
-def test_a_gpu_deployment_is_a_jax_carrier(tmp_path, fields, code):
+def test_a_gpu_deployment_is_a_carrier(tmp_path, fields, code):
     import json
 
     config = {
@@ -204,3 +250,102 @@ def test_a_gpu_deployment_is_a_jax_carrier(tmp_path, fields, code):
     with pytest.raises(deployment.EvaluationUnavailable) as refused:
         deployment.load_config(path)
     assert refused.value.code == code
+
+
+def test_the_pytorch_gpu_run_binds_and_checks_its_own_pins(
+    record, monkeypatch, tmp_path
+):
+    requests = []
+
+    def reserve(identity, **kwargs):
+        requests.append(kwargs["request"])
+        raise Stop
+
+    ledger = SimpleNamespace(root=tmp_path, reserve=reserve)
+    call = {
+        "owner": "o",
+        "identity": "t",
+        "source": "print(1)",
+        "files": {},
+        "image": torch_gpu_image(),
+        "seconds": 60,
+        "provenance": research_carrier.VALIDATOR_PROVENANCE,
+        "extra_resources": {},
+    }
+    accept(monkeypatch, record.device_kind)  # JAX's acceptance admits no PyTorch
+    with pytest.raises(ha.DeviceClassNotAccepted):
+        research_carrier._run_locked(
+            ledger, accelerator=research_carrier.VALIDATOR_GPU, **call
+        )
+    accept(monkeypatch, record.device_kind, torch_profile.GPU_PROFILE_ID)
+    with pytest.raises(Stop):
+        research_carrier._run_locked(
+            ledger, accelerator=research_carrier.VALIDATOR_GPU, **call
+        )
+    assert requests[-1]["accelerator"]["profile"] == torch_profile.GPU_PROFILE_ID
+    # The miner lane's GPU never takes the PyTorch GPU worker's pins.
+    assert research_carrier._gpu_pins(
+        torch_gpu_image(), research_carrier.MINER_GPU
+    ) == (
+        GPU_PROFILE.profile_id,
+        GPU_PROFILE.digest,
+        GPU_PROFILE.environment_lock_digest,
+    )
+
+
+class Labels:
+    """A Docker CLI that answers with the NVIDIA runtime and fixed labels."""
+
+    def __init__(self, profile, environment):
+        self.labels = {
+            "org.opencontainers.image.carbon.accelerator.profile": profile,
+            "org.opencontainers.image.carbon.accelerator.environment": environment,
+        }
+
+    def json(self, command):
+        if command[0] == "info":
+            return {"Runtimes": {"nvidia": {}}}
+        return {"Config": {"Labels": self.labels}}
+
+
+def test_the_pytorch_gpu_worker_is_checked_by_its_own_labels():
+    from carbon.reconstruction.worker import accelerator_runtime
+    from carbon.reconstruction.worker.model import WorkerFailure
+
+    pins = research_carrier._gpu_pins(torch_gpu_image(), research_carrier.VALIDATOR_GPU)
+    _, profile, lock = pins
+    good = Labels(profile, lock)
+    accelerator_runtime.verify_image_and_toolkit(
+        cli=good, image=torch_gpu_image(), profile_digest=profile, lock_digest=lock
+    )
+    # JAX's labels on the PyTorch lock, or the PyTorch image checked as JAX's,
+    # are refused.
+    with pytest.raises(WorkerFailure):
+        accelerator_runtime.verify_image_and_toolkit(
+            cli=Labels(GPU_PROFILE.digest, lock),
+            image=torch_gpu_image(),
+            profile_digest=profile,
+            lock_digest=lock,
+        )
+    with pytest.raises(WorkerFailure):
+        accelerator_runtime.verify_image_and_toolkit(cli=good, image=torch_gpu_image())
+
+
+def test_a_gpu_deployment_may_name_the_pytorch_gpu_worker(tmp_path):
+    import json
+
+    config = {
+        "schema": deployment.SCHEMA,
+        "state": str(tmp_path / "s.sqlite3"),
+        "private_root": str(tmp_path / "root.bin"),
+        "journal": str(tmp_path / "j.jsonl"),
+        "work": str(tmp_path / "work"),
+        "backend": "carrier",
+        "image_manifest": "/x/image.json",
+        "torch_image_manifest": "/x/torch-gpu.json",
+        "device": "gpu",
+    }
+    path = tmp_path / "deployment.json"
+    path.write_text(json.dumps(config))
+    path.chmod(0o600)
+    assert deployment.load_config(path)["device"] == "gpu"

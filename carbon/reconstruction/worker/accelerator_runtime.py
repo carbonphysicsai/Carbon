@@ -229,9 +229,22 @@ def miner_device_lease(device_uuid: str):
             os.close(descriptor)
 
 
-def verify_image_and_toolkit(*, cli, image: WorkerImageIdentity) -> None:
-    """Read daemon/image metadata only; never initialize a numerical backend."""
-    if image.lock_digest != GPU_PROFILE.environment_lock_digest:
+def verify_image_and_toolkit(
+    *,
+    cli,
+    image: WorkerImageIdentity,
+    profile_digest: str | None = None,
+    lock_digest: str | None = None,
+) -> None:
+    """Read daemon/image metadata only; never initialize a numerical backend.
+
+    The pins default to JAX's accelerator worker. The validator's PyTorch GPU
+    worker (VALIDATOR-27 slice 2; TORCH-GPU-01) passes its own profile digest
+    and lock, checked by the same labels in the same way."""
+    if profile_digest is None or lock_digest is None:
+        profile_digest = GPU_PROFILE.digest
+        lock_digest = GPU_PROFILE.environment_lock_digest
+    if image.lock_digest != lock_digest:
         raise WorkerFailure(WorkerCode.POLICY)
     info = cli.json(["info", "--format", "{{json .}}"])
     if type(info) is not dict or "nvidia" not in (info.get("Runtimes") or {}):
@@ -240,9 +253,9 @@ def verify_image_and_toolkit(*, cli, image: WorkerImageIdentity) -> None:
     labels = value.get("Config", {}).get("Labels", {}) if type(value) is dict else {}
     if (
         labels.get("org.opencontainers.image.carbon.accelerator.profile")
-        != GPU_PROFILE.digest
+        != profile_digest
         or labels.get("org.opencontainers.image.carbon.accelerator.environment")
-        != GPU_PROFILE.environment_lock_digest
+        != lock_digest
     ):
         raise WorkerFailure(WorkerCode.POLICY)
 

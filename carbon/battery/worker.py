@@ -377,14 +377,20 @@ class CarrierBackend:
             raise ValueError("device is cpu or gpu")
         if device == "gpu":
             from carbon.development_session import research_carrier
+            from carbon.reconstruction import torch_profile
             from carbon.reconstruction.hardware_acceptance import require_accepted
 
-            if torch_image is not None:
-                # PyTorch on the validator's GPU needs its own pinned GPU
-                # worker check; JAX only, until then.
-                raise ValueError("a GPU validator serves JAX only")
             record = research_carrier._gpu_device()
             require_accepted(record.device_kind, research_carrier._gpu_profile_id())
+            if torch_image is not None:
+                # PyTorch on the validator's GPU (slice 2) is the PyTorch GPU
+                # worker (TORCH-GPU-01), never the CPU one, and its class needs
+                # its own acceptance under the PyTorch GPU profile.
+                if torch_image.lock_digest != torch_profile.GPU_LOCK_DIGEST:
+                    raise ValueError(
+                        "a GPU validator's PyTorch image is the GPU worker"
+                    )
+                require_accepted(record.device_kind, torch_profile.GPU_PROFILE_ID)
             self.accelerator = research_carrier.VALIDATOR_GPU
             gpu = {"device_kind": record.device_kind, "device_record": record.digest}
         self.images = {"jax": image, "pytorch": torch_image}
