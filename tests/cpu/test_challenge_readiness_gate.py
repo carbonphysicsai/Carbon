@@ -1081,7 +1081,7 @@ def test_a_waiver_never_covers_a_failing_item(monkeypatch, tmp_path):
     _waivers(tmp_path)
     monkeypatch.setitem(
         checks.CHECKS,
-        "recorded_tests",
+        "gate_margin_study",
         lambda item, ctx: model.Result(model.FAIL, "red", ()),
     )
     assert _row(tmp_path, "S3")[0]["status"] == model.FAIL
