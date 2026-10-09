@@ -26,4 +26,4 @@ python -m carbon.challenge_pipeline readiness \
 
 The command's partial run is never globally green. `--no-history` is required whenever a producer panel path is supplied, so the ordinary append-only repository history cannot capture a report derived from private inputs. If `--json` is used, its output path must also be outside the repository. The two registration files contain no case rows. No real S3 or H2 registration is added by this ticket; real runs therefore remain `NOT_BUILT` until the producer and owners supply pinned evidence.
 
-V3 remains a human review item. Its [draft](MULTI_SEED_PROMOTION_PROPOSAL.md) contains `HUMAN_INPUT` for all seed counts and decision thresholds.
+V3 remains a human review item. Its [draft](MULTI_SEED_PROMOTION_PROPOSAL.md) records the Test Lead's 2026-10-09 development working values for seed count, pairing, confidence bound, and any-seed gate failure. Owner adoption into a frozen rule and the remaining evidence details are still pending.
