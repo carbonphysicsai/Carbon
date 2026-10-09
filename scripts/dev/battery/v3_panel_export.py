@@ -36,8 +36,9 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import feasibility02_tier4 as t4  # noqa: E402
-from carbon.design_search import (  # noqa: E402
+import feasibility02_tier4 as t4
+
+from carbon.design_search import (
     diversity,
     indexed,
     power_accumulation,
