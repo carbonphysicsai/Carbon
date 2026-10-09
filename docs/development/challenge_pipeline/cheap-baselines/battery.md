@@ -36,6 +36,10 @@ demonstrates bounded multistep charging-protocol selection. Its LFP chemistry,
 ten-minute task and experimental learning are **not** v3 safety evidence or
 an already implemented safe interpolation baseline. Cache/interpolation here
 is a comparator recommendation based on the registered finite-menu decision.
+[Romeo Power's battery-model account](https://www.mathworks.com/company/technical-articles/modeling-and-simulating-battery-performance-for-design-optimization.html)
+describes temperature-, SOC- and age-indexed lookup tables used to explore
+charging methods in an industrial design workflow. It supports the incumbent
+method class, not v3 plating, lifetime or five-band admissibility.
 KEEP existing public feasibility outputs and charge-integral observers only at
 their own pins; no 30-s voltage-probe proxy for session time.
 
