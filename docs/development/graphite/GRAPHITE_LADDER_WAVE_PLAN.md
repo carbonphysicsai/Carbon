@@ -25,7 +25,7 @@ Checked against origin/main `8b19f012d` (2026-10-09).
 | Development variants L1 to L4 | VERIFIED (policies) | `reconstruction/development_variant_policies/`: l1 loss expressions, l2 spectral/v2, l3 numerics, l4 graph v1/v2. Levels 4 and 5 stay refused by the variant registry until the security owner accepts isolation (LEVEL4 decisions); **whether a Level 4 live run is permitted is the owner's and the security owner's, not assumed here** |
 | Auto-confirm signer (#861) | VERIFIED | merged: SIGNER-AUTOCONFIRM-01, opt-in, testnet-only |
 | Development door (`battery/dev_submit.py`) | VERIFIED | OWNER-LADDER-THROUGH-LAUNCHPAD-01 |
-| The Launchpad `minerD-G` lane, UIDs 8 to 11, one commit per tempo each | **UNVERIFIED** | nothing on main names `minerD-G` or those UIDs; the commit-per-hotkey-per-tempo rule is verified (OWNER-COMMITMENT-POSTER-01 D4). Treated here as the Test Lead's statement |
+| The Launchpad `minerD-G` lane, UIDs 8 to 11, one commit per tempo each | **OWNER-REGISTERED; chain check after the WSL restart** | the owner created and registered them on 2026-10-08 (Test Lead, relayed). Nothing on main names them, by design: no account or address detail is in the repo. They are verified with Carbon's reader once the WSL host is back. The commit-per-hotkey-per-tempo rule is verified (OWNER-COMMITMENT-POSTER-01 D4) |
 | VALIDATOR-25 `battery-dev-ladder` deployment | **UNVERIFIED / NOT BUILT** | decision records its design (rehearsal hotkey `carbon-rehearsal-minerC`); no code or deployment on main; "building now" is the Test Lead's statement |
 | The Level 1 hidden-path check, owner's score-variant pick, Level 0 run 3 on the same variant | **UNVERIFIED** | R4's entry conditions, recorded as conditions only, not wired |
 
@@ -47,22 +47,22 @@ Checked against origin/main `8b19f012d` (2026-10-09).
    (OWNER-LADDER-THROUGH-LAUNCHPAD-01 item 3).
 
 **Deployments.**
-- **L0 and L1: the main battery deployment** (as the Test Lead specified).
-- **L2 to L4: the dev-ladder deployment** (VALIDATOR-25), never mainnet until the owner locks
+- **L0: the main battery deployment** is the only level that confirms on main today (Test
+  Lead, 2026-10-09). L1 is a development variant, so L1 confirms on the dev-ladder like L2 to L4.
+- **L1 to L4: the dev-ladder deployment** (VALIDATOR-25), never mainnet until the owner locks
   a level. It accepts only its dedicated rehearsal hotkey per the 2026-10-07 decision; whether
-  UIDs 8 to 11 are also allowed there is for the Carbon Validator. **L2 to L4 confirmation is
-  blocked on VALIDATOR-25 being built.**
+  UIDs 8 to 11 are also allowed there is for the Carbon Validator. **L1 to L4 confirmation is
+  blocked on VALIDATOR-25 being built.** (L1 exploration on the development door and the
+  Constructor and Attacker runs do not wait for it.)
 - Development variants are served only by the dev-ladder deployment (the decision's
-  amendment); the main deployment serves L1 only if a variant is already live there, which is
-  **not verified**. Plan assumption to confirm: L1 on the main deployment means the L1 recipe
-  is expressible as a main-deployment contract; otherwise L1 also waits for the dev-ladder.
+  amendment), which is why L1 to L4 confirm there.
 
 **Sequence (each step needs the previous level's entry conditions, section 5):**
 
 | Step | Level | Deployment | Constructor | Attacker |
 |---|---|---|---|---|
-| 1 | L0 | main | kimi-k3 (needs a Level 0 binding, section 6) | kimi-k3 (needs a larger token share) |
-| 2 | L1 | main | kimi-k3 under R4 (exists) | kimi-k3 |
+| 1 | L0 | main (confirmation); dev door (exploration) | kimi-k3 (needs a Level 0 binding, section 6) | kimi-k3 (needs a larger token share) |
+| 2 | L1 | dev-ladder (confirmation); dev door (exploration) | kimi-k3 under R4 (exists) | kimi-k3 |
 | 3 | L2 | dev-ladder | kimi-k3 | kimi-k3 |
 | 4 | L3 | dev-ladder | kimi-k3 | kimi-k3 |
 | 5 | L4 | dev-ladder | kimi-k3, graph-only | kimi-k3; the owner and security owner decide whether it runs |
@@ -104,15 +104,40 @@ Basis (all verified in the committed files and decisions):
 
 | Stage | Runs | Worst case | Stage ceiling (+0.25 cleanup) |
 |---|---|---|---|
-| A: L0 and L1 on main | Constructor L0 x2, L1 x3 (R4 exists for L1) = 5 x 14.91 = 74.55; Attacker L0 x2, L1 x2 = 4 x 13.41 = 53.64 | 128.19 | 128.44 |
-| B: L2, L3 on dev-ladder | Constructor 2 levels x 3 = 6 x 14.91 = 89.46; Attacker 2 x 2 x 13.41 = 53.64 | 143.10 | 143.35 |
+| A: L0 and L1 (L0 confirms on main, L1 on the dev-ladder) | Constructor L0 x2, L1 x3 (R4 exists for L1) = 5 x 14.91 = 74.55; Attacker L0 x2, L1 x2 = 4 x 13.41 = 53.64 | 128.19 | 128.44 |
+| B: L2 and L3 (dev-ladder) | Constructor 2 levels x 3 = 6 x 14.91 = 89.46; Attacker 2 x 2 x 13.41 = 53.64 | 143.10 | 143.35 |
 | C: L4 (graph-only) | Constructor x3 = 44.73; Attacker x2 = 26.82 | 71.55 | 71.80 |
 | Total A + B + C | 14 Constructor runs, 10 Attacker runs | 342.84 | about 343 |
 
 Platform: the Graphite provider route (Engy kimi-k3), tokens plus the carrier or pod compute the
-existing R4 and PHASE4 grants already include; runs one at a time (`max_concurrency` 1). The
-owner may approve stage by stage; stage B waits for VALIDATOR-25 and stage C for the security
-decision. Existing grants cover only part of this: R4 (45.00 ceiling, 3 runs, battery L1+)
+existing R4 and PHASE4 grants already include; concurrency below. The
+owner may approve stage by stage. **Stage membership is by runs, so the figures do not change:**
+stage A is still 5 Constructor and 4 Attacker runs, about 128.19 (128.44 with cleanup). Moving
+L1's confirmation to the dev-ladder changes only where L1 confirms and what it waits for:
+stage A's L1 confirmations wait for VALIDATOR-25 (its L1 explore, Constructor and Attacker
+runs do not). Stage B waits for VALIDATOR-25 and stage C for the security decision. ### Concurrency (Test Lead: "hammering" means more than one run at a time)
+
+Proposal: **`max_concurrency` 2 for stage A** on the shared WSL host, raised to **4 (one per
+D-G lane)** after a host-load check with Data Collection (the host has been saturated; a
+raise is not assumed). Each run keeps its own controller root. Cost is unchanged: the per-run
+worst case and the stage ceilings stand (each run is capped on its own); concurrency only
+raises the peak simultaneous reservation (2 x 14.91 = 29.82 USD at 2; 4 x 14.91 = 59.64 at 4,
+inside the stage ceiling), which the grant gate must be checked against (the R4 arithmetic
+assumed one run at a time).
+
+Wall-clock effect on stage A (9 runs: 5 Constructor and 4 Attacker), at the grant's 39,600 s
+(11 h) runtime cap per run, **worst case**:
+
+| Concurrency | Waves | Worst-case wall clock |
+|---|---|---|
+| 1 (serial, the earlier assumption) | 9 | 99 h |
+| 2 | 5 | 55 h |
+| 4 | 3 | 33 h |
+
+Real runs finish well inside the cap (the earlier phase-3 runs did); these are upper bounds.
+L1 confirmations on the dev-ladder add their own tempo-bound time and wait for VALIDATOR-25.
+
+Existing grants cover only part of this: R4 (45.00 ceiling, 3 runs, battery L1+)
 covers 3 of stage A's Constructor runs if its 3 runs are unused (unverified); **everything else needs new grants** (a Level 0
 kimi-k3 Constructor binding, a kimi-k3 Attacker token share, and R4-style grants for L2 to L4).
 Grant files and runner bindings are the owner's and the Test Engineer's, not authored here.
@@ -144,7 +169,7 @@ are "last known".
 | Level | Extra items that must PASS | Notes |
 |---|---|---|
 | L0 | A2 (adapter at (battery, 0)), A4 (designated admission controller at level 0) | A2 NOT_BUILT only for the Attacker route-to-family check; A4 FAIL: identity PENDING_OPERATOR_IDENTITY |
-| L1 | A2 and A4 at level 1 | A4: **no L1 entry exists** in `admission_controllers.json` (only level 0); needs designation. R4's four recorded entry conditions also apply (section 0) |
+| L1 | A2 and A4 at level 1 | A4: **no L1 entry exists** in `admission_controllers.json` (only level 0); needs designation. R4's four recorded entry conditions also apply (section 0). L1 confirmation additionally needs VALIDATOR-25 |
 | L2 | A2 and A4 at level 2 | no L2 designation; also needs VALIDATOR-25 |
 | L3 | A2 and A4 at level 3 | no L3 designation; also needs VALIDATOR-25 |
 | L4 | A2 and A4 at level 4 | no L4 designation; VALIDATOR-25; security-owner acceptance of G5 compile isolation (LEVEL4 decisions) is the owner's, not a gate item |
@@ -161,9 +186,11 @@ waiver names the replacement). This plan proposes no waiver.
 
 ## 6. Blockers and open items
 
-1. **VALIDATOR-25** (dev-ladder deployment): blocks L2 to L4 confirmation. UNVERIFIED status.
-2. **minerD-G lane, UIDs 8 to 11:** UNVERIFIED on main; the rehearsal-hotkey restriction in the
-   2026-10-07 decision may conflict (Carbon Validator to confirm).
+1. **VALIDATOR-25** (dev-ladder deployment): blocks L1 to L4 confirmation. UNVERIFIED status.
+2. **minerD-G lane, UIDs 8 to 11:** owner-registered 2026-10-08; to verify with Carbon's reader
+   after the WSL restart. The rehearsal-hotkey restriction in the 2026-10-07 decision (the
+   dev-ladder accepts only `carbon-rehearsal-minerC`) may conflict with using these UIDs there
+   (Carbon Validator to confirm).
 3. **Grants:** new Level 0 kimi-k3 Constructor binding, kimi-k3 Attacker token share, L2 to L4
    grants (section 4). The owner approves; the Test Engineer binds.
 4. **Gate:** A4 designation per level (only level 0 exists, PENDING); R1 containment image; V1
