@@ -265,3 +265,33 @@ acceptance, which stays the owner's, and tests are not an audit.
   of the same user could print to that terminal. The digest's last 8
   characters bind what is typed to what is signed, but the review should
   judge the terminal as the trust root.
+
+## 10. Amendment: testnet auto-confirm (SIGNER-AUTOCONFIRM-01), NOT YET REVIEWED
+
+OWNER-SIGNER-TESTNET-AUTOCONFIRM-01 amends D10 for testnet 567 and an
+owner-written hotkey allow-list only. This is not a security acceptance.
+
+- **Opt-in.** `--auto-confirm-commitments <allowlist-file>`
+  (`carbon_miner_signer/autoconfirm.py`). Without it the commit path is
+  unchanged and still asks on `/dev/tty`.
+- **What it skips.** The terminal confirmation, and nothing else. Every §9
+  bound still runs first, and the D4 ledger check after it.
+- **Genesis lock.** Testnet 567's genesis is hard-coded. A commitment record
+  for any other network, or an unpinned one, refuses start. On each request,
+  the request's genesis and the policy are checked again
+  (`AUTO_CONFIRM_NOT_ALLOWED`).
+- **Allow-list.** Opened with `O_NOFOLLOW` and checked on the open
+  descriptor: a regular file, the signer's uid, no group or other bits, at
+  most 4096 bytes, an exact schema. It is read once at start. The signer's
+  hotkey must be listed: `--expect` is checked before the key is unlocked,
+  and the loaded key before the signer serves.
+- **No fallback.** A failed auto check refuses. It never prompts.
+- **Record.** Each auto-confirm is printed on the signer's terminal and
+  appended to the ledger, marked `AUTO-CONFIRMED (allow-listed testnet
+  hotkey)`.
+- **Open for the review.**
+  - While it runs, any same-user process can obtain one commitment per tempo
+    for a digest of its choice. That is the §3 signing oracle, extended to
+    the one extrinsic, for test hotkeys.
+  - The hotkey stays unlocked and unattended. The allow-listed hotkeys must
+    be test-only: their own coldkeys, test TAO, no stake, never mainnet.

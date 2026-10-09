@@ -262,6 +262,8 @@ def test_leader_panel_drives_replays(public, tmp_path, monkeypatch):
         (tmp_path / "site" / "showcase" / leaders[0]["file"]).read_text()
     )
     assert replay["model"]["kind"] == "LEADER"
+    assert replay["model"]["incumbent"] == "LIVE"
+    assert replay["model"]["label"].startswith("Current incumbent, public cases: ")
     assert "FIXTURE" in replay["labels"] and "DEVELOPMENT" in replay["labels"]
     assert replay["scenario"]["split"] == "development"
     assert "state_digest" not in json.dumps(replay)

@@ -56,7 +56,12 @@ LIVE_STATUS = "OK"
 #: canary. Tuning, confirmation, study and EV material live in their own
 #: custodies and can never be banked here, so they can never be published
 #: from here.
-BANK_NAME = re.compile(r"(pool|q2|canary|q3:[a-z0-9_-]{1,40}|design:[a-z0-9_-]{1,40})")
+BANK_NAME = re.compile(
+    r"(pool|q2|canary|fresh|q3:[a-z0-9_-]{1,40}|design:[a-z0-9_-]{1,40})"
+)
+#: Banks no window may draw from: the rate study's fresh sets (VALIDATOR-30),
+#: read only by its non-consuming scorer.
+NOT_WINDOW_DRAWABLE = frozenset({"fresh"})
 
 
 def _canonical(value):
@@ -440,6 +445,8 @@ class BankLedger:
         release queue. Returns the drawn case ids, sorted."""
         if type(retire_at) is not int or retire_at < 1:
             raise BankRefused("bank_retirement_malformed")
+        if bank in NOT_WINDOW_DRAWABLE:
+            raise BankRefused("bank_not_window_drawable")
         with self._db() as db:
             db.execute("BEGIN IMMEDIATE")
             stored = db.execute(

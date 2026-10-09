@@ -10,7 +10,13 @@ import bisect
 import math
 import random
 
-from carbon.design_search import controls, diversity, power_accumulation, tasks
+from carbon.design_search import (
+    controls,
+    diversity,
+    power_accumulation,
+    reference_resolution,
+    tasks,
+)
 
 GOOD_SCHEMA = "carbon.design-search.reference-predictor.v1"
 REPORT_SCHEMA = "carbon.design-search.power-report.v1"
@@ -79,6 +85,8 @@ def _validate_inputs(bank, laws, registration, good):
     }
     if type(bank.get("power_cases")) is not list or not bank["power_cases"]:
         raise tasks.TaskError("sealed power cases required")
+    if "refinement_rule" in bank:
+        reference_resolution.validate_rule(bank["refinement_rule"])
     controls.validate_controls(registration, task=None)
     case_rows = {row["case"]: row for row in bank["cases"]}
     support = (
@@ -103,7 +111,11 @@ def _validate_inputs(bank, laws, registration, good):
     for row in bank["power_cases"]:
         if (
             type(row) is not dict
-            or set(row) != {"case", "support_case", "task", "reference"}
+            or set(row)
+            != (
+                {"case", "support_case", "task", "reference"}
+                | ({"settled"} if "refinement_rule" in bank else set())
+            )
             or row["case"] not in case_rows
             or row["case"] in power_rows
             or row["support_case"] not in support
@@ -128,10 +140,14 @@ def _validate_inputs(bank, laws, registration, good):
             raise tasks.TaskError(
                 "known-good predictor differs from full reference panel"
             )
-        truth = tasks.assess(task, reference, reference=True)
-        resolved = all(v["feasible"] is not None for v in truth.values())
-        state = tasks.reference_state(task, truth) if resolved else "UNRESOLVED"
-        winner = tasks.select(task, truth) if resolved else None
+        if "settled" in row:
+            truth = reference_resolution.assessed(task, reference, row["settled"])
+            state, winner = reference_resolution.state_and_winner(task, truth)
+        else:
+            truth = tasks.assess(task, reference, reference=True)
+            resolved = all(v["feasible"] is not None for v in truth.values())
+            state = tasks.reference_state(task, truth) if resolved else "UNRESOLVED"
+            winner = tasks.select(task, truth) if resolved else None
         if (
             case_rows[row["case"]]["state"] != state
             or case_rows[row["case"]]["winner"] != winner
@@ -151,7 +167,13 @@ def _validate_inputs(bank, laws, registration, good):
             raise tasks.TaskError(
                 "shared bank cluster has different reference material"
             )
-        power_rows[row["case"]] = (task, reference, known_good, row["support_case"])
+        power_rows[row["case"]] = (
+            task,
+            reference,
+            known_good,
+            row["support_case"],
+            row.get("settled"),
+        )
     if set(power_rows) != set(case_rows):
         raise tasks.TaskError("sealed power cases do not cover bank")
     if support != {row[3] for row in power_rows.values()}:
@@ -159,7 +181,7 @@ def _validate_inputs(bank, laws, registration, good):
     return diversity_views, power_rows, objective_identity[1]
 
 
-def _run_case(task, reference, known_good, specs):
+def _run_case(task, reference, known_good, specs, settled=None):
     action_index = {
         tasks.digest(action): candidate for candidate, action in task["actions"].items()
     }
@@ -171,7 +193,16 @@ def _run_case(task, reference, known_good, specs):
         return dict(known_good[(action_index[key], condition["id"])])
 
     good_commit = tasks.run_optimizer(task, lookup, model_id="REFERENCE")["commitment"]
-    good_outcome = tasks.judge(task, good_commit, reference)
+    judge = (
+        (
+            lambda commitment: reference_resolution.judge(
+                task, commitment, reference, settled
+            )
+        )
+        if settled is not None
+        else (lambda commitment: tasks.judge(task, commitment, reference))
+    )
+    good_outcome = judge(good_commit)
     out = []
     for index, spec in enumerate(specs):
 
@@ -184,7 +215,7 @@ def _run_case(task, reference, known_good, specs):
         commitment = tasks.run_optimizer(task, predict, model_id=f"CONTROL-{index}")[
             "commitment"
         ]
-        out.append(tasks.judge(task, commitment, reference))
+        out.append(judge(commitment))
     return good_outcome, out
 
 
@@ -336,7 +367,9 @@ def _view(
     for index, spec in enumerate(specs):
         model = {case: value[1][index] for case, value in cases.items()}
         resolved = {
-            case: value["reference_resolved"] is True for case, value in good.items()
+            case: good[case]["reference_resolved"] is True
+            and model[case]["reference_resolved"] is True
+            for case in cases
         }
         metrics = {}
         for metric in METRICS:
@@ -384,6 +417,12 @@ def _view(
                 "scope": spec.get("scope"),
                 "severity": spec["severity"],
                 "metrics": metrics,
+                "unscored_control_mass": sum(
+                    masses[case]
+                    for case in cases
+                    if good[case]["reference_resolved"] is True
+                    and model[case]["reference_resolved"] is not True
+                ),
                 "abstention_outcomes": {
                     "good": {
                         "missed_opportunity": _rate(
@@ -535,8 +574,10 @@ def power_report(
     )
     outcomes = {}
     clusters = {}
-    for case, (task, reference, good, cluster) in power_rows.items():
-        outcomes[case] = _run_case(task, reference, good, registration["controls"])
+    for case, (task, reference, good, cluster, settled) in power_rows.items():
+        outcomes[case] = _run_case(
+            task, reference, good, registration["controls"], settled
+        )
         clusters[case] = cluster
     report_laws = {}
     for kind, law in laws.items():

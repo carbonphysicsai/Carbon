@@ -395,6 +395,20 @@ NEXT_ACTIONS = {
         "Check that the intake address serves this Carbon version, then "
         "submit again."
     ),
+    # VALIDATOR-29: the intake's score-feed read. Neither is a verdict on
+    # the recipe, and neither changes a submission.
+    "feed_not_served": (
+        "This validator intake does not publish a score feed, so no released "
+        "scores were read. Nothing was submitted or changed; the frozen "
+        "candidate is kept. Read released scores from an intake that serves "
+        "the feed, or check again later."
+    ),
+    "feed_unavailable": (
+        "The validator's score feed could not be read or did not verify, so "
+        "no released scores were shown. Nothing was submitted or changed; the "
+        "frozen candidate is kept. Scores are released only after the windows "
+        "they came from close; check again later."
+    ),
     "signer_unavailable": (
         "Your signer did not sign the submission: it is not running, or it "
         "declined. Start carbon-miner-signer for your registered hotkey, then "
@@ -631,6 +645,12 @@ NEXT_ACTIONS = {
         "Your signer could not read or write its own commitment ledger, so it "
         "signed nothing. Check the signer's state directory, restart it, then "
         "commit again (carbon_commit)."
+    ),
+    "AUTO_CONFIRM_NOT_ALLOWED": (
+        "Your signer auto-confirms only allow-listed testnet 567 hotkeys, and "
+        "this commitment is not one; nothing was signed or sent. Restart the "
+        "signer without --auto-confirm-commitments and confirm in its "
+        "terminal, then commit again (carbon_commit)."
     ),
     "backend_not_served": (
         "This validator has no worker image for your recipe's backend. That "
@@ -964,6 +984,28 @@ NEXT_ACTIONS = {
         "A choice in this recipe awaits an owner decision before it can be "
         "submitted. Run check_design on it to see which, and choose another "
         "for now."
+    ),
+    # The Challenge's compute budget (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01). A
+    # door's refusal carries its own step with the numbers; these are the
+    # catalog's for the same codes.
+    "over_compute_budget": (
+        "This recipe's calculated cost is over the Challenge's compute "
+        "budget. Make it cheaper (fewer steps, members or parameters), "
+        "practise it, and freeze that recipe instead; carbon_budget_status "
+        "shows the cost and the ceiling."
+    ),
+    "cost_unmeasurable": (
+        "This recipe's cost cannot be calculated in the Challenge's budget "
+        "unit, and a cost that cannot be checked is refused. Choose a recipe "
+        "carbon_budget_status shows as Within budget."
+    ),
+    "compute_budget_malformed": (
+        "This Challenge's compute budget declaration is malformed, a "
+        "repository defect: nothing can be frozen or submitted under it until "
+        "Carbon fixes it. Your practice results are kept."
+    ),
+    "strategy_names_another_challenge": (
+        "Send a strategy whose challenge_id is the challenge you name."
     ),
     "bounded_hypothesis_required": (
         "Send hypothesis (and expected_effect, if given) as 1 to 2048 "

@@ -231,6 +231,67 @@ def knn_native(strategy_, m):
     return model, model.u, model.y, u, np.einsum("nk,nkd->nd", w, model.y[idx])
 
 
+KNN_INPUTS = ["inputs/train_unit", "inputs/train_targets", "inputs/query_unit"]
+
+
+def knn_interface(strategy_=None):
+    """The kNN graph's development interface: TRAIN inputs in unit scale,
+    TRAIN targets (normalized) and query inputs in unit scale in, normalized
+    outputs out, all float64 with one leading batch (the query is TRAIN, as
+    in Phase 0). Development only, like `interface`."""
+    from ..level4.validate import Interface
+
+    del strategy_
+    m = material()
+    d, c = m.train.x.shape[1], _knn_columns(m)
+    return Interface(
+        inputs=(
+            ("inputs/train_unit", "float64", (d,)),
+            ("inputs/train_targets", "float64", (c,)),
+            ("inputs/query_unit", "float64", (d,)),
+        ),
+        outputs=(("float64", (c,)),),
+    )
+
+
+def lower_knn(strategy_, allowlist, *, max_bytes):
+    """Miner side: battery's kNN predictor lowered to a forward graph at the
+    TRAIN batch (float64). It has no parameters, so its init spec is empty.
+    Carbon never trains it: a forward-only graph (its `gather` and `sort`
+    are the review ops a GPU leg must exercise)."""
+    import jax
+    import jax.numpy as jnp
+
+    from ..level4 import graph, initializers, submission, tooling
+
+    m = material()
+    n = batch(m)
+    k = strategy_["parameters"]["neighbours"]
+    with jax.enable_x64(True):
+        u = jax.ShapeDtypeStruct((n, m.train.x.shape[1]), jnp.float64)
+        y = jax.ShapeDtypeStruct((n, _knn_columns(m)), jnp.float64)
+        _, forward, _ = tooling.through_bprime(
+            knn_jax(k),
+            (u, y, u),
+            role="forward",
+            allowlist=allowlist,
+            input_names=KNN_INPUTS,
+            max_bytes=max_bytes,
+        )
+    spec = {
+        "schema": initializers.SCHEMA,
+        "graph": graph.digest(forward),
+        "parameters": [],
+    }
+    return submission.build(
+        challenge=challenge_id(),
+        interface=knn_interface().digest(),
+        allowlist=allowlist,
+        forward=forward,
+        init_spec=spec,
+    )
+
+
 # --- PyTorch -----------------------------------------------------------------
 
 

@@ -394,15 +394,44 @@ def test_showcase_panel_is_carried_for_the_incumbent():
     assert panel["model"]["hotkey"] == board["incumbent"]["hotkey"]
 
 
-def test_showcase_panel_for_another_miner_is_refused():
-    body = _with_showcase(model_changes={"hotkey": "fixture-miner-99"})
+RELEASED_TASK = {
+    k: v for k, v in fixtures.SHOWCASE_TASK.items() if k not in ("incumbent", "label")
+}
+
+
+def test_released_mode_panel_for_another_miner_is_refused():
+    body = _with_showcase({"task": RELEASED_TASK}, {"hotkey": "fixture-miner-99"})
     _refused(fixtures.sign(body), "showcase_not_incumbent")
 
 
-def test_showcase_panel_without_an_incumbent_is_refused():
-    body = _with_showcase()
+def test_released_mode_panel_without_an_incumbent_is_refused():
+    body = _with_showcase({"task": RELEASED_TASK})
     body["leaderboard"]["incumbent"] = None
     _refused(fixtures.sign(body), "showcase_without_incumbent")
+
+
+def test_live_incumbent_panel_comes_before_any_release():
+    """task.incumbent LIVE: the deployment's current incumbent drives the
+    showcase while the leaderboard's incumbent stays released-only (null)."""
+    body = _with_showcase(model_changes={"hotkey": "fixture-miner-99"})
+    body["leaderboard"]["incumbent"] = None
+    board = feed.project(fixtures.sign(body), fixtures.fixture_trust())
+    assert board["incumbent"] is None
+    panel = board["showcase_panel"]
+    assert panel["task"]["incumbent"] == "LIVE"
+    assert panel["model"]["hotkey"] == "fixture-miner-99"
+    assert panel["label"] == "current incumbent, public cases"
+
+
+def test_live_incumbent_may_differ_from_the_released_one():
+    body = _with_showcase(model_changes={"hotkey": "fixture-miner-99"})
+    board = feed.project(fixtures.sign(body), fixtures.fixture_trust())
+    assert board["incumbent"]["hotkey"] != board["showcase_panel"]["model"]["hotkey"]
+
+
+def test_an_unregistered_incumbent_mode_is_refused():
+    task = {**fixtures.SHOWCASE_TASK, "incumbent": "ANY"}
+    _refused(fixtures.sign(_with_showcase({"task": task})), "showcase_invalid")
 
 
 def test_showcase_panel_on_non_public_material_is_refused():

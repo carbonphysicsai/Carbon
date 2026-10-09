@@ -1,0 +1,312 @@
+{
+ "comparison": [
+  {
+   "across_hosts": {
+    "outcome": "REFUSED_ONE_UNIT"
+   },
+   "recipe_id": "deeponet_t1500_w512_d3",
+   "same_host": {
+    "cpu": {
+     "level4_params_sha256": "5f81614044011539e939eadfe34fcddff02accf75afd1cea0f53e4c4715f3f16",
+     "native_params_sha256": "5f81614044011539e939eadfe34fcddff02accf75afd1cea0f53e4c4715f3f16",
+     "outcome": "AGREE"
+    }
+   }
+  },
+  {
+   "across_hosts": {
+    "outcome": "REFUSED_ONE_UNIT"
+   },
+   "recipe_id": "level4_relu_layer_norm_mlp",
+   "same_host": {
+    "cpu": {
+     "level4_params_sha256": "8d7bb61e6fe1c9600866844a78fd89d48a9e7c0223f1f655053afeb048c6f498",
+     "native_params_sha256": "8d7bb61e6fe1c9600866844a78fd89d48a9e7c0223f1f655053afeb048c6f498",
+     "outcome": "AGREE"
+    }
+   }
+  },
+  {
+   "across_hosts": {
+    "outcome": "REFUSED_ONE_UNIT"
+   },
+   "recipe_id": "mlp",
+   "same_host": {
+    "cpu": {
+     "level4_params_sha256": "088f38d5a12d1eddd0a56de10bedf8b5339778c4efd6fb5801ee076ec60f3acf",
+     "native_params_sha256": "088f38d5a12d1eddd0a56de10bedf8b5339778c4efd6fb5801ee076ec60f3acf",
+     "outcome": "AGREE"
+    }
+   }
+  },
+  {
+   "across_hosts": {
+    "outcome": "REFUSED_ONE_UNIT"
+   },
+   "recipe_id": "mlp_t1500_w64_d2",
+   "same_host": {
+    "cpu": {
+     "level4_params_sha256": "2b8c6dbd598592f5fd0805485c5d828b3e552e8374798a258a75448813979656",
+     "native_params_sha256": "2b8c6dbd598592f5fd0805485c5d828b3e552e8374798a258a75448813979656",
+     "outcome": "AGREE"
+    }
+   }
+  }
+ ],
+ "complete": true,
+ "environment": {
+  "jax": "0.10.2",
+  "jax_platforms": "cpu",
+  "machine": "x86_64",
+  "python": "3.11.16"
+ },
+ "record_level4": {
+  "allowlist": {
+   "digest": "sha256:3b2371ffb02275a1dc2dbbe8e8a97eb180b9c673c9149cc38d05ae99557971f7",
+   "version": "level4-allowlist-v1"
+  },
+  "coverage": [
+   "level4_relu_layer_norm_mlp"
+  ],
+  "covers": {
+   "gather": false,
+   "named_function": true
+  },
+  "picks": [
+   {
+    "directory": "docs/development/graphite/level4/a40_leg/mlp_t1500_w64_d2",
+    "files": [
+     "docs/development/graphite/level4/a40_leg/mlp_t1500_w64_d2/4e0e414f9c31865162e0698d14e67301e6e58d0d5da303019b0f47aac1e18b69.json",
+     "docs/development/graphite/level4/a40_leg/mlp_t1500_w64_d2/67808a04c255285c8787964cb43e7aea6a194a4feb5dfee7e2fd5b66c2a2eb53.json",
+     "docs/development/graphite/level4/a40_leg/mlp_t1500_w64_d2/manifest.json"
+    ],
+    "id": "mlp_t1500_w64_d2",
+    "ops": {
+     "gather": false,
+     "named_function": false
+    },
+    "strategy": {
+     "backbone": "mlp",
+     "challenge_id": "battery-fastcharge-ageing-development-v1",
+     "parameters": {
+      "depth": 2,
+      "steps": 1500,
+      "width": 64
+     },
+     "schema_version": "1.0"
+    },
+    "submission": "sha256:2b328c94184ea62662af90a2ebf2c8408dcf1bef8b17c637fc155409b5638f5f"
+   },
+   {
+    "directory": "docs/development/graphite/level4/a40_leg/mlp",
+    "files": [
+     "docs/development/graphite/level4/a40_leg/mlp/4d01da436dc0ee427570501f2f3353ca7c770f27c655b6f5f0b736b7a3cde28e.json",
+     "docs/development/graphite/level4/a40_leg/mlp/faa51a636887a269a84f35331e3c387d172a897e8ca77c26e05da5af31fe8652.json",
+     "docs/development/graphite/level4/a40_leg/mlp/manifest.json"
+    ],
+    "id": "mlp",
+    "ops": {
+     "gather": false,
+     "named_function": false
+    },
+    "strategy": {
+     "backbone": "mlp",
+     "challenge_id": "battery-fastcharge-ageing-development-v1",
+     "parameters": {
+      "depth": 3,
+      "steps": 6000,
+      "width": 256
+     },
+     "schema_version": "1.0"
+    },
+    "submission": "sha256:ac2bab958afe4e60de4a345f98e1cf2dbaae2dc1839430a7a567a7969a9f4683"
+   },
+   {
+    "directory": "docs/development/graphite/level4/a40_leg/deeponet_t1500_w512_d3",
+    "files": [
+     "docs/development/graphite/level4/a40_leg/deeponet_t1500_w512_d3/179d75fce7609a6401039a35f9c95de1c8025c93d6aa2b19b7dd3c7279c50ac1.json",
+     "docs/development/graphite/level4/a40_leg/deeponet_t1500_w512_d3/d93f66759f3248ef52c0e62a23e1c0db5b12987677b4a4b5e47e042518027b6b.json",
+     "docs/development/graphite/level4/a40_leg/deeponet_t1500_w512_d3/manifest.json"
+    ],
+    "id": "deeponet_t1500_w512_d3",
+    "ops": {
+     "gather": false,
+     "named_function": false
+    },
+    "strategy": {
+     "backbone": "deeponet",
+     "challenge_id": "battery-fastcharge-ageing-development-v1",
+     "parameters": {
+      "deeponet_depth": 3,
+      "steps": 1500,
+      "width": 512
+     },
+     "schema_version": "1.0"
+    },
+    "submission": "sha256:daad126b79147b1572236b0b4e46733feba8e8bd96e757751567d559754784c7"
+   },
+   {
+    "directory": "docs/development/graphite/level4/a40_leg/level4_relu_layer_norm_mlp",
+    "files": [
+     "docs/development/graphite/level4/a40_leg/level4_relu_layer_norm_mlp/43b05094a3fc99f49617cc8f4207aff0dc38a262713c6951cfe0dd6b40cb76f1.json",
+     "docs/development/graphite/level4/a40_leg/level4_relu_layer_norm_mlp/9df92493cd7bb730f7261aa3e7aa105ac9481a8a7a82523b5aa96cea4fd24226.json",
+     "docs/development/graphite/level4/a40_leg/level4_relu_layer_norm_mlp/manifest.json"
+    ],
+    "id": "level4_relu_layer_norm_mlp",
+    "ops": {
+     "gather": false,
+     "named_function": true
+    },
+    "strategy": {
+     "backbone": "mlp",
+     "challenge_id": "battery-fastcharge-ageing-development-v1",
+     "parameters": {
+      "activation": "relu",
+      "depth": 2,
+      "normalization": "layer_norm",
+      "steps": 1500,
+      "width": 64
+     },
+     "schema_version": "1.0"
+    },
+    "submission": "sha256:9d21236fbae1f579b48fea1d860a583f9cbc1d7e46eb937af9f65dd34834a183"
+   }
+  ]
+ },
+ "rows": [
+  {
+   "leg": null,
+   "outputs_sha256": null,
+   "params_sha256": "2b8c6dbd598592f5fd0805485c5d828b3e552e8374798a258a75448813979656",
+   "path": null,
+   "predictions_sha256": "e7349bd5c257c27da1ffb2862b50e126f5b83a88e133adbce6947e3da7f051ea",
+   "recipe_id": "mlp_t1500_w64_d2",
+   "repeat": 0,
+   "status": null,
+   "wall_seconds": 21.965
+  },
+  {
+   "leg": null,
+   "outputs_sha256": null,
+   "params_sha256": "2b8c6dbd598592f5fd0805485c5d828b3e552e8374798a258a75448813979656",
+   "path": null,
+   "predictions_sha256": "e7349bd5c257c27da1ffb2862b50e126f5b83a88e133adbce6947e3da7f051ea",
+   "recipe_id": "mlp_t1500_w64_d2",
+   "repeat": 1,
+   "status": null,
+   "wall_seconds": 18.603
+  },
+  {
+   "leg": null,
+   "outputs_sha256": null,
+   "params_sha256": "088f38d5a12d1eddd0a56de10bedf8b5339778c4efd6fb5801ee076ec60f3acf",
+   "path": null,
+   "predictions_sha256": "aece6bef86aef98729c74268ebc78b0d2cc6e824c7ff79a7a67dc78190115249",
+   "recipe_id": "mlp",
+   "repeat": 0,
+   "status": null,
+   "wall_seconds": 176.536
+  },
+  {
+   "leg": null,
+   "outputs_sha256": null,
+   "params_sha256": "088f38d5a12d1eddd0a56de10bedf8b5339778c4efd6fb5801ee076ec60f3acf",
+   "path": null,
+   "predictions_sha256": "aece6bef86aef98729c74268ebc78b0d2cc6e824c7ff79a7a67dc78190115249",
+   "recipe_id": "mlp",
+   "repeat": 1,
+   "status": null,
+   "wall_seconds": 200.642
+  },
+  {
+   "leg": null,
+   "outputs_sha256": null,
+   "params_sha256": "5f81614044011539e939eadfe34fcddff02accf75afd1cea0f53e4c4715f3f16",
+   "path": null,
+   "predictions_sha256": "22d688653e199088d3bcbdb5fa53c651a9bd580afa8dd24d249b3cb1785b37b0",
+   "recipe_id": "deeponet_t1500_w512_d3",
+   "repeat": 0,
+   "status": null,
+   "wall_seconds": 153.689
+  },
+  {
+   "leg": null,
+   "outputs_sha256": null,
+   "params_sha256": "5f81614044011539e939eadfe34fcddff02accf75afd1cea0f53e4c4715f3f16",
+   "path": null,
+   "predictions_sha256": "22d688653e199088d3bcbdb5fa53c651a9bd580afa8dd24d249b3cb1785b37b0",
+   "recipe_id": "deeponet_t1500_w512_d3",
+   "repeat": 1,
+   "status": null,
+   "wall_seconds": 133.03
+  },
+  {
+   "leg": null,
+   "outputs_sha256": null,
+   "params_sha256": "8d7bb61e6fe1c9600866844a78fd89d48a9e7c0223f1f655053afeb048c6f498",
+   "path": null,
+   "predictions_sha256": "654248e29ccb12aa33d895649024e073ac0f12cda6bbd6b8a70b698fab97628f",
+   "recipe_id": "level4_relu_layer_norm_mlp",
+   "repeat": 0,
+   "status": null,
+   "wall_seconds": 38.182
+  },
+  {
+   "leg": null,
+   "outputs_sha256": null,
+   "params_sha256": "8d7bb61e6fe1c9600866844a78fd89d48a9e7c0223f1f655053afeb048c6f498",
+   "path": null,
+   "predictions_sha256": "654248e29ccb12aa33d895649024e073ac0f12cda6bbd6b8a70b698fab97628f",
+   "recipe_id": "level4_relu_layer_norm_mlp",
+   "repeat": 1,
+   "status": null,
+   "wall_seconds": 33.611
+  },
+  {
+   "leg": "level4",
+   "outputs_sha256": "9f5b50a6dfa7e05a1a72e6b800d1cb645325ace78975cad760fbb92279aa75c7",
+   "params_sha256": "2b8c6dbd598592f5fd0805485c5d828b3e552e8374798a258a75448813979656",
+   "path": "classic",
+   "predictions_sha256": null,
+   "recipe_id": "mlp_t1500_w64_d2",
+   "repeat": 0,
+   "status": "admitted",
+   "wall_seconds": 39.939
+  },
+  {
+   "leg": "level4",
+   "outputs_sha256": "ce266d99b9fdde3b5d4ebc3837d8990dc70354f77965860c1ffdffebe527b7b6",
+   "params_sha256": "088f38d5a12d1eddd0a56de10bedf8b5339778c4efd6fb5801ee076ec60f3acf",
+   "path": "classic",
+   "predictions_sha256": null,
+   "recipe_id": "mlp",
+   "repeat": 0,
+   "status": "admitted",
+   "wall_seconds": 149.329
+  },
+  {
+   "leg": "level4",
+   "outputs_sha256": "0d21b24b929a06f99f7cc04a107b24e4ecfccb2e0133f19f90c522d5b032aca9",
+   "params_sha256": "5f81614044011539e939eadfe34fcddff02accf75afd1cea0f53e4c4715f3f16",
+   "path": "general",
+   "predictions_sha256": null,
+   "recipe_id": "deeponet_t1500_w512_d3",
+   "repeat": 0,
+   "status": "admitted",
+   "wall_seconds": 130.001
+  },
+  {
+   "leg": "level4",
+   "outputs_sha256": "3fdb3b80ab6ac8c3812ed5c476e3e01f886d15d8ca6c85275ccbc99cd17f4fb6",
+   "params_sha256": "8d7bb61e6fe1c9600866844a78fd89d48a9e7c0223f1f655053afeb048c6f498",
+   "path": "general",
+   "predictions_sha256": null,
+   "recipe_id": "level4_relu_layer_norm_mlp",
+   "repeat": 0,
+   "status": "admitted",
+   "wall_seconds": 33.161
+  }
+ ],
+ "schema": "carbon.development.a40-level4-leg-cpu-dry-run.v1",
+ "what": "A40 harness Level 4 B' leg, local CPU dry run (run --local-cpu-dry-run --no-docker --backends jax); no pod, no spend"
+}

@@ -209,6 +209,8 @@ SHOWCASE_TASK = {
     "split": "development",
     "data_scope": "PUBLIC_SYNTHETIC",
     "registered": "Test Lead, 2026-10-08 (VALIDATOR-29 showcase)",
+    "incumbent": "LIVE",
+    "label": "current incumbent, public cases",
 }
 
 
@@ -218,6 +220,7 @@ def unavailable_panel(document):
     incumbent = document["leaderboard"]["incumbent"]
     return {
         "schema": feed.SHOWCASE_SCHEMA,
+        "label": SHOWCASE_TASK["label"],
         "task": SHOWCASE_TASK,
         "contract_digest": "sha256:fixture-not-predicted",
         "model": {

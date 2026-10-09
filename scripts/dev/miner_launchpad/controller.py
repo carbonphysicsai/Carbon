@@ -153,7 +153,8 @@ def error_body(code, exc=None):
     from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS
 
     body = {"error": code}
-    for name in ("field", "next_step"):
+    # `budget`: a compute budget refusal's numbers (`budget_view.refusal`).
+    for name in ("field", "next_step", "budget"):
         if getattr(exc, name, None) is not None:
             body[name] = getattr(exc, name)
     if "next_step" not in body and code in NEXT_ACTIONS:

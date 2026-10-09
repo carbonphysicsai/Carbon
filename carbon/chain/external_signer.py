@@ -60,6 +60,7 @@ COMMIT_REFUSALS = frozenset(
         "COMMIT_IN_FLIGHT",
         "NOT_CONFIRMED",
         "LEDGER_UNAVAILABLE",
+        "AUTO_CONFIRM_NOT_ALLOWED",
     }
 )
 #: How long a commit request may wait: the miner reads the prompt and types

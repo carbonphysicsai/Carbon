@@ -55,6 +55,9 @@ from .protected_material import (  # noqa: F401
 #: The next-level proposal tool (`roles.NEXT_LEVEL`; the name is repeated
 #: here rather than imported, and `roles` asserts the two agree).
 NEXT_LEVEL = "graphite_propose_next_level"
+#: The rate study's probe tool (`roles.STUDY_PROBE`), offered by a study role
+#: only; answered here from the session's own history (`study_prober`).
+STUDY_PROBE = "rate_study_next_probe"
 
 REFUSED_MANIFEST = "REFUSED_NOT_IN_MANIFEST"
 REFUSED_PROTECTED = "REFUSED_PROTECTED_MATERIAL"
@@ -122,6 +125,10 @@ class GraphiteToolbox:
             )
         if name in (literature.SEARCH, literature.CARD):
             result = self._literature(name, arguments)
+        elif name == STUDY_PROBE:
+            from .study_prober import probe_tool
+
+            result = probe_tool(arguments)
         elif name == NEXT_LEVEL:
             if self.next_level is None:
                 result = refusal(UNAVAILABLE, "next_level_store_not_attached")
