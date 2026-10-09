@@ -690,6 +690,18 @@ NEXT_ACTIONS = {
         "candidate uses, and nothing was evaluated. Submit it to the ladder "
         "deployment for its level; the frozen candidate is kept."
     ),
+    "hotkey_reserved_for_ladder": (
+        "This hotkey is Carbon's development-ladder hotkey, which the main "
+        "validator never scores, and nothing was evaluated. Point this "
+        "Challenge's intake at the ladder under Set up your environment, then "
+        "submit again; the frozen candidate is kept."
+    ),
+    "ladder_commitment_not_variant": (
+        "The development ladder expects the variant's commitment, which binds "
+        "the variant digest and the whole strategy, and nothing was evaluated. "
+        "Carbon commits that form for you; commit again, then submit again; "
+        "the frozen candidate is kept."
+    ),
     "ladder_level_4_not_open": (
         "Level 4 is not open on the development ladder yet, and nothing was "
         "evaluated. The frozen candidate is kept."

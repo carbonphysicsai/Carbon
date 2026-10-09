@@ -86,6 +86,7 @@ OPTIONAL = {
     "service_account",
     "device",
     "ladder",
+    "ladder_deployment",
 }
 READER_FIELDS = {"network", "endpoint", "provider", "genesis_hash", "netuid"}
 BACKENDS = ("carrier", "direct")
@@ -191,7 +192,28 @@ def load_config(path):
         raise EvaluationUnavailable("evaluation_config_development_only")
     if "ladder" in config:
         ladder_for(config)  # refuses a malformed ladder now
+    if "ladder_deployment" in config:
+        reserved_hotkeys(config)  # refuses a missing or malformed ladder now
     return config
+
+
+def reserved_hotkeys(config):
+    """The hotkeys a main deployment refuses (VALIDATOR-25): every hotkey the
+    development-ladder deployment named by `ladder_deployment` accepts, read
+    from that deployment's own configuration (one source of truth), so a
+    hotkey belongs to exactly one deployment."""
+    path = config.get("ladder_deployment")
+    if path is None:
+        return frozenset()
+    if type(path) is not str or "ladder" in config:
+        raise EvaluationUnavailable("evaluation_config_ladder_deployment")
+    try:
+        ladder = ladder_for(load_config(path))
+    except EvaluationUnavailable:
+        raise EvaluationUnavailable("evaluation_config_ladder_deployment") from None
+    if ladder is None:
+        raise EvaluationUnavailable("evaluation_config_ladder_deployment")
+    return ladder["hotkeys"]
 
 
 LADDER_FIELDS = {"levels", "hotkeys", "variants"}
@@ -419,6 +441,7 @@ def build(config, *, repository, readonly=False):
             development_only=config.get("development_only", False),
             import_only=config.get("batch_source") == "answer_key",
             ladder=ladder_for(config),
+            reserved_hotkeys=reserved_hotkeys(config),
         )
     except StateError as mismatch:
         raise EvaluationUnavailable("evaluation_" + mismatch.code) from None

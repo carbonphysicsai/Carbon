@@ -253,6 +253,15 @@ class CommitmentStale(CommitmentRequired):
     code = "commitment_stale"
 
 
+class CommitmentNotVariant(CommitmentRequired):
+    """A development-level submission to the ladder whose commitment is the
+    Level 0 form (over the base or the variant digest): the ladder binds the
+    variant digest and the whole strategy (`development_commitment_digest`),
+    the identity of exactly what is scored (the Test Lead's ruling)."""
+
+    code = "ladder_commitment_not_variant"
+
+
 class CommitmentContested(CommitmentRequired):
     """Another hotkey committed the same digest at an earlier block, or the
     same one: D6 gives the earliest commitment priority, and a same-block tie
@@ -334,6 +343,7 @@ class BatteryValidator:
         development_only=False,
         import_only=False,
         ladder=None,
+        reserved_hotkeys=(),
     ):
         if type(store) is not PoolStore:
             raise TypeError("a PoolStore is required")
@@ -359,6 +369,9 @@ class BatteryValidator:
         #: listed variants of its listed levels. Only on a development
         #: deployment.
         self.ladder = ladder if self.development_only else None
+        #: The main deployment's refusal of the ladder's hotkeys (VALIDATOR-25):
+        #: one hotkey, one deployment, read from the ladder's own config.
+        self.reserved_hotkeys = frozenset(reserved_hotkeys)
         #: Import-only (VALIDATOR-19 slice 2): every batch comes from Carbon's
         #: shared answer key (`challenge_validator.answer_key`); this
         #: validator never draws or seals one itself.
@@ -575,6 +588,9 @@ class BatteryValidator:
             )
             return self.outcome(row["submission_id"])
 
+        if submission.hotkey in self.reserved_hotkeys:
+            # A ladder hotkey submits to the ladder only.
+            return refuse("hotkey_reserved_for_ladder")
         if self.ladder is not None and submission.hotkey not in self.ladder["hotkeys"]:
             # The ladder serves its listed rehearsal hotkeys only.
             return refuse("ladder_hotkey_not_listed")
@@ -658,6 +674,22 @@ class BatteryValidator:
                 if self.commitments is None
                 else self.commitments.read(submission.hotkey)
             )
+            if (
+                development is not None
+                and observed is not None
+                and observed.get("digest")
+                in (
+                    commitment_digest(
+                        submission.strategy["challenge_id"],
+                        digest,
+                        recipe.strategy_hash,
+                    )
+                    for digest in (admitted.contract_digest, submission.contract_digest)
+                )
+            ):
+                raise CommitmentNotVariant(
+                    "commit " + expected + " (the variant's form) on chain"
+                )
             if observed is None or observed.get("digest") != expected:
                 raise CommitmentRequired(
                     "commit " + expected + " on chain before submitting"

@@ -608,6 +608,7 @@ RECEIVED_AGAIN = frozenset(
         "receipt_block_missing",
         "commitment_required",
         "commitment_stale",
+        "ladder_commitment_not_variant",
         "commitment_reader_unavailable",
         "backend_not_served",
     }
@@ -972,6 +973,7 @@ def work_once(inbox, target):
     from .daemon import (
         BackendNotServed,
         CommitmentContested,
+        CommitmentNotVariant,
         CommitmentRequired,
         CommitmentStale,
     )
@@ -999,6 +1001,9 @@ def work_once(inbox, target):
                 # D6: another hotkey committed this digest first; never
                 # received again.
                 code = "commitment_contested"
+            elif isinstance(missing, CommitmentNotVariant):
+                # The ladder binds the variant's form; recommit and resend.
+                code = "ladder_commitment_not_variant"
             elif isinstance(missing, CommitmentStale):
                 # D6: the matching commitment was spent by an earlier
                 # admission; a fresh one makes this resend count.

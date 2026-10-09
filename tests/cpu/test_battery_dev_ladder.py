@@ -357,6 +357,7 @@ def test_a_development_commitment_binds_the_variant_and_the_whole_strategy(
 
     from carbon.battery.daemon import (
         AuthenticatedSubmission,
+        CommitmentNotVariant,
         CommitmentRequired,
         commitment_digest,
         development_commitment_digest,
@@ -400,18 +401,25 @@ def test_a_development_commitment_binds_the_variant_and_the_whole_strategy(
     )
     compiled = operate.compile_variant(strategy, variant)
     strategy_hash = compiled.construction.strategy_hash
-    for digest in (
-        # Level 0's form, over the base digest or the variant's: refused.
-        commitment_digest(tbd.BATTERY, compiled.contract_digest, strategy_hash),
-        commitment_digest(tbd.BATTERY, variant, strategy_hash),
-        # The right form over other widened values: refused.
-        development_commitment_digest(
-            tbd.BATTERY, variant, strategy_hash, _strategy(fixture_only_cycles=4)
+    for digest, refusal in (
+        # Level 0's form, over the base digest or the variant's: its own code.
+        (
+            commitment_digest(tbd.BATTERY, compiled.contract_digest, strategy_hash),
+            CommitmentNotVariant,
+        ),
+        (commitment_digest(tbd.BATTERY, variant, strategy_hash), CommitmentNotVariant),
+        # The right form over other widened values: not committed.
+        (
+            development_commitment_digest(
+                tbd.BATTERY, variant, strategy_hash, _strategy(fixture_only_cycles=4)
+            ),
+            CommitmentRequired,
         ),
     ):
         chain.values[MINER_C] = {"digest": digest, "block": 123}
-        with pytest.raises(CommitmentRequired):
+        with pytest.raises(refusal) as raised:
             validator.admit(submission)
+        assert type(raised.value) is refusal
     chain.values[MINER_C] = {
         "digest": development_commitment_digest(
             tbd.BATTERY, variant, strategy_hash, strategy
@@ -422,3 +430,38 @@ def test_a_development_commitment_binds_the_variant_and_the_whole_strategy(
     binding = validator.store.submission(admitted["submission_id"])["binding"]
     assert binding["development"]["variant_contract_digest"] == variant
     assert binding["commitment"]["block"] == 123
+
+
+def test_the_main_deployment_refuses_the_ladders_hotkeys(
+    tmp_path, refs, backend  # noqa: F811
+):
+    main = tbd.make(tmp_path, refs, backend, reserved_hotkeys={MINER_C})
+    assert code(main, MINER_C) == "hotkey_reserved_for_ladder"
+    assert code(main, OTHER) != "hotkey_reserved_for_ladder"
+
+
+def test_the_reserved_hotkeys_are_read_from_the_ladders_own_config(tmp_path):
+    base = {
+        "schema": deployment.SCHEMA,
+        "state": str(tmp_path / "s.sqlite3"),
+        "private_root": str(tmp_path / "root.bin"),
+        "journal": str(tmp_path / "j.jsonl"),
+        "work": str(tmp_path / "work"),
+        "backend": "direct",
+    }
+    ladder = tmp_path / "ladder.json"
+    ladder.write_text(json.dumps({**base, **config()}))
+    ladder.chmod(0o600)
+    assert deployment.reserved_hotkeys({"ladder_deployment": str(ladder)}) == {MINER_C}
+    assert deployment.reserved_hotkeys({}) == frozenset()
+    plain = tmp_path / "plain.json"
+    plain.write_text(json.dumps(base))
+    plain.chmod(0o600)
+    for refused in (
+        {"ladder_deployment": str(plain)},
+        {"ladder_deployment": str(tmp_path / "missing.json")},
+        {"ladder_deployment": str(ladder), "ladder": {}},
+    ):
+        with pytest.raises(deployment.EvaluationUnavailable) as raised:
+            deployment.reserved_hotkeys(refused)
+        assert raised.value.code == "evaluation_config_ladder_deployment"
