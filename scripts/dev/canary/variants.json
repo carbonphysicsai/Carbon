@@ -1,0 +1,4184 @@
+{
+ "challenge": {
+  "id": "battery-fastcharge-ageing-development-v1",
+  "version": "1.0"
+ },
+ "contract_digest": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e",
+ "grid": {
+  "neighbours": [
+   1,
+   64
+  ],
+  "train_fraction": [
+   1.0,
+   0.95,
+   0.9,
+   0.85,
+   0.8
+  ]
+ },
+ "method": "knn",
+ "schema": "carbon.canary.variants.v1",
+ "variants": [
+  {
+   "index": 0,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 1,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:5f4ef644a1b46fa28b0f66d92f544631c4c64cb22ddf9e32370d4e456065fd58"
+  },
+  {
+   "index": 1,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 2,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:d1baaf2d3be5d731a8e9421d6e2d34813362180c2f5996f103d0de8a698f5c03"
+  },
+  {
+   "index": 2,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 3,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:4762827932190da6b9ad83ee58a6e29a7a6b91c1ff277a42896da877178aea72"
+  },
+  {
+   "index": 3,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 4,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:cae3fb8a68c7164a4aa1bef9ff735c945bf72fc2b5d0c480f1e659f7a52a15c6"
+  },
+  {
+   "index": 4,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 5,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:da21ef7f1e8330cb42c5cedbf9b82494e36be7f6d87d2caecaca673258e6c81d"
+  },
+  {
+   "index": 5,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 6,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:1b95750c693b9d64cbc3d65647c6271a5ab09eb0ac010179e29dbf828058f559"
+  },
+  {
+   "index": 6,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 7,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:45fb5bd003fe4f7b487d5d44278820056755e6ed0784d210255c7333b7c207c7"
+  },
+  {
+   "index": 7,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 8,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:26f5a69f8744fec6adfd5c0ecd5180ec15da407e771a1e4dc6db2871eda4223b"
+  },
+  {
+   "index": 8,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 9,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:390e534f72a9348cf5229de90651467ac509ad041f7435702acd2ab404b7a443"
+  },
+  {
+   "index": 9,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 10,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:8d204e5c186613b63bc0ee3fadd750f48efb85962606677be4c0c2c77f92ccd6"
+  },
+  {
+   "index": 10,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 11,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:c09b3ec6c0bb7e39cb539fd41ea095610cf102867b2d5612c4d202830c8949be"
+  },
+  {
+   "index": 11,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 12,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:fcaa8cad00d4719623db5c6500dcd9a889b0b68ae35539808755f1840a769c74"
+  },
+  {
+   "index": 12,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 13,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:a560b5c3ba1f2117ab5715e65a17f0c350ab3c811c8dad098f9e5e9db3af74fa"
+  },
+  {
+   "index": 13,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 14,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:1eb18f2f57f3ad42a81b5c433ed0554d9d602dc833e8b2bde7f5967a87e24b6b"
+  },
+  {
+   "index": 14,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 15,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:ea854c03229e9086add028df25fc397482ba22abfe1acdf7ffc4eaea82762815"
+  },
+  {
+   "index": 15,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 16,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:eda4fe9f9c6dc34bc1893d5d009e4bafc6819f2d698744a2ee1a04a3a9b148a0"
+  },
+  {
+   "index": 16,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 17,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:9620f563bf2e5e92f099e476b37141d3f55961e11299024fbc996d1fe1e90ba6"
+  },
+  {
+   "index": 17,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 18,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:f6748f4d77a7f42a9a15973a213be5f6814168446dc86c8ace8cc7da92791a3a"
+  },
+  {
+   "index": 18,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 19,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:6752df59638546ff3c5d8d3a5dcd6072d25a2c25d509331cceedcbc50b247227"
+  },
+  {
+   "index": 19,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 20,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:4d98bcabd28e96b5f2ba4b3833e89ca6ae3bf305a839700aed6cbcda13c07a10"
+  },
+  {
+   "index": 20,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 21,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:54fa732f364b2cd7829568be773f48d93897351407d7ad678d685a158ae3f294"
+  },
+  {
+   "index": 21,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 22,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:af1e1c3161c1a3d4406c3099ff696787941ba35b531b6ada2f38b450e9ce04cc"
+  },
+  {
+   "index": 22,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 23,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:f4765abf9281b979163820f68feaf5dc550fc4915026ee0d6330eea6aed864e0"
+  },
+  {
+   "index": 23,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 24,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:241f09ab0deac97ed01c4cdfaec9b0145402396965ed62b3745381835fcdcac6"
+  },
+  {
+   "index": 24,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 25,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:8dc5ae34dac8975d70d94d13595718488e7eb0761b3b060016df97eda932a7fa"
+  },
+  {
+   "index": 25,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 26,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:8f8a9ceeb3f404c822d1e3c16933f7b698b9911c4bed9c57e201c93029d24889"
+  },
+  {
+   "index": 26,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 27,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:96bf4dfa425af8c5c34808f244c00156abacda5140a6b83ab0dd427f9e3db153"
+  },
+  {
+   "index": 27,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 28,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:47a9c4bf945f49f993a00f75a4719d97756e79831ce773087620f6f3e41026bd"
+  },
+  {
+   "index": 28,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 29,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:9d51ce082df83121601642ca737be97a7971c9dff04a2be759856399f4058bd0"
+  },
+  {
+   "index": 29,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 30,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:f54a65c92a4559ac473616f4054b66d44bd5973a11312f0459fb77c3c7764096"
+  },
+  {
+   "index": 30,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 31,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:71d0bc03f16a1b956353a549910f9891adc707c36a82e5522b79cdbde3b75549"
+  },
+  {
+   "index": 31,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 32,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:9dede9f319ce9ac0fac03136bed573be22f53c957e3e69c6039e6e9867afd684"
+  },
+  {
+   "index": 32,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 33,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:2ebf84bdb2401c6fa41710674bd566adbe88f7fcc0395aa10b878479fb554d90"
+  },
+  {
+   "index": 33,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 34,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:fa4b9efae5ad979a440fb17ff38e1c30a8eb1aac13f34863dd2f566d245b5773"
+  },
+  {
+   "index": 34,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 35,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:2c697d68a5ce5bf9516f2e22b24bc33318a93dc179d275ffb7b7f86a81f09d0f"
+  },
+  {
+   "index": 35,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 36,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:0f33414ddfdeec6f15ec6d77ceeae87ac7ea6fc80723cf8948fb8bc4d6c6fccf"
+  },
+  {
+   "index": 36,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 37,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:48d1ece848abf68341b3262e199183e0f3b757fd10f44fa24e9078bc9e381be0"
+  },
+  {
+   "index": 37,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 38,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:4a821e61f2f6de11138b0776c73d366f7f66376560a111a268efd2d6fe22d380"
+  },
+  {
+   "index": 38,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 39,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:ac95a6181ad14e22bc86021da30ac6e1a1bb16d57524d120d37484acf9c9fa4a"
+  },
+  {
+   "index": 39,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 40,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:bb5d57280ade431d14d07b3baa552aaf82f6bab873b0d7b42770587f498efb63"
+  },
+  {
+   "index": 40,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 41,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:3887ed47cc8a7cc22e9143b13247eda7d5a0a17380129bcac8656c16ab85316f"
+  },
+  {
+   "index": 41,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 42,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:cad83d1969efe54e59c5197bfe0bc55d8e08eeab9c987f3d204efac2cc1a2f61"
+  },
+  {
+   "index": 42,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 43,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:800379a0eb689a8f9c2a3b026276da34940da43f05de870271a1a80f2a0c65e5"
+  },
+  {
+   "index": 43,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 44,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:26411d65b1426de4ca615610e45ba856eaeec00a6bda2a1e5bd15757ec77facc"
+  },
+  {
+   "index": 44,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 45,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:97d25906562ff7aa37ab38109a999b5ceee66d7e0ec5b7ddcafd3c2a5c2c8a2a"
+  },
+  {
+   "index": 45,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 46,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:9bbf61ebbd892d2f663368b9b72fe7c9ed336dbb9f50df6de1458021423c9030"
+  },
+  {
+   "index": 46,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 47,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:7f1f3eac327e82be9bd1057713014ed4d4747e73a15a68dda8daec868361d6c8"
+  },
+  {
+   "index": 47,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 48,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:baae25b17adc9841e16d47c8fa7fb22a76a358b8c4ca9ced98c07fbc545a8ba7"
+  },
+  {
+   "index": 48,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 49,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:b426d538919f9f15723ec8021546ebf51677250f48a83dae5a14ca17d502b7be"
+  },
+  {
+   "index": 49,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 50,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:099c718dd101af7200af14382e8a9c0b7b9fa9f263264b10d7b6eb696022a075"
+  },
+  {
+   "index": 50,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 51,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:508b4a40c6e4ca6b61bd4619811dfdbf152713f757f991bc97bb45761032807f"
+  },
+  {
+   "index": 51,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 52,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:091dfd04ec4787c8048a4d91cd0fdccca88e611e785b39ea03d7324421394989"
+  },
+  {
+   "index": 52,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 53,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:3058b6e7ccbafb88ba845cc97fc27711b2250340d9ef9a57e0f239d2cfd7cc17"
+  },
+  {
+   "index": 53,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 54,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:c639339151f658fae6a0c71a4f33e459c7be6204e610407729cf937fae0d031f"
+  },
+  {
+   "index": 54,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 55,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:9db456be364fc9d353216551018bcab83179b69ab32bf3042a99553c8459dec4"
+  },
+  {
+   "index": 55,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 56,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:1348265eb47014e8fd87e81705bb2e135b1eab617e802e99b625bce5454a5293"
+  },
+  {
+   "index": 56,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 57,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:6c20aba9333d60d9552cc37d0d41fcc5d98c2a73fe7673ce1723560ead5b35ef"
+  },
+  {
+   "index": 57,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 58,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:525c5a870c65e94b810b7f7f87d654c809a76a1b42b3e80c7c3fd5359b08e7cd"
+  },
+  {
+   "index": 58,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 59,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:58963587c3c257d77caf7669dc7e07e03daf5e76f3df758c43a50248f30a3c6f"
+  },
+  {
+   "index": 59,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 60,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:ed4c8432b7e2e5933d7f0269b1b62dfe0b23ed16423e087ff4a8b70dfa1b3a10"
+  },
+  {
+   "index": 60,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 61,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:bd2b71d45734bbad6ea74eecd61c85ebed5dfd4002c7faa332398393c4d417ff"
+  },
+  {
+   "index": 61,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 62,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:bd84f35ed459c8008bf4e9d39ea07bdf9fb46a4e0eb9c1b578d05fb0812aba98"
+  },
+  {
+   "index": 62,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 63,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:4d268887f6026245a3b4bd7955e4514be31e374434a788925f6ac29a620a9deb"
+  },
+  {
+   "index": 63,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 64,
+     "train_fraction": 1.0
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:e8d3d462a6655a6c4b01bbe7927e70e22e84fb05ec052d508212fd6d27f65c08"
+  },
+  {
+   "index": 64,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 1,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:8dc381e40388e96db9f873c6f51448fea4d27b196009fbd26cd6abc66b558b5d"
+  },
+  {
+   "index": 65,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 2,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:bc1a23eda677fbf30cb0ec1bf00daed0749f4201f4c069cc8160bf8b07d91898"
+  },
+  {
+   "index": 66,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 3,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:f03c4c5764cc6290a02a942320706b7dbbecf303fb664a652fba1382af800246"
+  },
+  {
+   "index": 67,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 4,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:327bda78363ec85ab568f5979b7fde4717eb143fbaf05a9963b7636aa204f4bc"
+  },
+  {
+   "index": 68,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 5,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:1780da7473f276b56f7cead03f9423ecb2cf9c1ef7bc34d1bef7b63eafe6aae5"
+  },
+  {
+   "index": 69,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 6,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:cc135d1faeca7f3608bbd7f2cdba1fa0ed2268e0681604081e971a2d0fa1fc9a"
+  },
+  {
+   "index": 70,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 7,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:47702725a6326134a99f3a2dd14909479711b5a89b4a176e438526f4bb3dff97"
+  },
+  {
+   "index": 71,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 8,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:36c93ebe2a626a5b48cc42ade047b3d8b29e5c605ddcf01fc01193aac30a8ef2"
+  },
+  {
+   "index": 72,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 9,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:ba886d3b6efd8c6e02d0f33a94b3964fd621ac240cad0f7b0e7bf2ce0979f4d4"
+  },
+  {
+   "index": 73,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 10,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:8d256055f54a284dc59a1c5b13cefca6b89c21a1bd04436a81cf34d1fa1a681e"
+  },
+  {
+   "index": 74,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 11,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:d67b4297576010a1ffa19720677053b6f98be15af4f9e5e69e08d3beb55daeee"
+  },
+  {
+   "index": 75,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 12,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:8e10b732ff3a4525a93c9a172d6cfd9cd22f714c9f491d5b6b7b5304b8050345"
+  },
+  {
+   "index": 76,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 13,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:b523809893595c026e1594eb7044d91797a29d4bf9ae77f4cfd9b15e10bf9266"
+  },
+  {
+   "index": 77,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 14,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:7cbc5b270291adacc06be7a775d2418583609d2c3d8f7cc70231c8d0e18b92fa"
+  },
+  {
+   "index": 78,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 15,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:807df1a3d240f223f98ec1f44db346881c4fcdc29bdb103052e5eebe9d72766b"
+  },
+  {
+   "index": 79,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 16,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:b638ce955087a8dad0d3f5b79aa824ae357e7eeebe648d3cd416f7cd36a0bcf8"
+  },
+  {
+   "index": 80,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 17,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:1e87d191f129761a9a95ea7c41af0ee118e3058f5b5d1b71a45a0ec49b68c1a7"
+  },
+  {
+   "index": 81,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 18,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:1aeb2b58e6617d666cda453db2ac504b48f0c97c840d98f035a9534f863c7fa9"
+  },
+  {
+   "index": 82,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 19,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:939c5a755cf96afb3b84b326f1c79060bce22f7efc92fc124a715773667e708f"
+  },
+  {
+   "index": 83,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 20,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:2da596b4b5975bb042dc43cc3e2a77d53fbb1aac0f2ee6877f20c27e87f6d84d"
+  },
+  {
+   "index": 84,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 21,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:8296173d33793cacb5e26002b56ddf4a0e146059184b83df20ad3126676ce966"
+  },
+  {
+   "index": 85,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 22,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:08e552a0d3870d31a27e76e46e1d2a7b8b8acfa68d402061835d415a7ac72997"
+  },
+  {
+   "index": 86,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 23,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:7db04500380a420fdd249a0a3a5bf43dbcca6013f8ba4d9b6f53379ce6008e07"
+  },
+  {
+   "index": 87,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 24,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:966e243722959b7613c9a0bd63e71c7498c38c1eb51d3ed18425283408514cc6"
+  },
+  {
+   "index": 88,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 25,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:d23c586b3d45a1c75de8f7297dffeca8eb07b08f25ac8e225d28f87b76bc65f8"
+  },
+  {
+   "index": 89,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 26,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:dd5d2d96de6da3c967d0e3aefda87629533fc76ce8384b0a2bdc2310d80148b6"
+  },
+  {
+   "index": 90,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 27,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:14b0246340a365c7f375260007fb3b82fb4272ff2f9255a7ab517c6dc821ea1a"
+  },
+  {
+   "index": 91,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 28,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:6276e15d2898c0c0bc947bac571a50291b257d31c944e96528593bf0c5be2fcd"
+  },
+  {
+   "index": 92,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 29,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:fc411cd641981181a1a56a1981cc57cbded0baccefb25bd9b693f1f0cd188297"
+  },
+  {
+   "index": 93,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 30,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:27953304b56afb204aa2d1aaf05020c8acbc138a3655a002da7496f56575619d"
+  },
+  {
+   "index": 94,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 31,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:cf09413cf77f32120e52e3c73e628acbd448481f1e730b5a536066edc5d4c810"
+  },
+  {
+   "index": 95,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 32,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:2025c0f6b97fb8520298f62ce16209993b7ff9b65be1cf4a731fb80b47a201c1"
+  },
+  {
+   "index": 96,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 33,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:240a48e79aad40795aed066599d2ac1292613576a0303f2fa979552c00bb9576"
+  },
+  {
+   "index": 97,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 34,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:5f7979505de7305233a9f56a8a10013b50be5fac3f7a49909b49e42ec0304dc7"
+  },
+  {
+   "index": 98,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 35,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:4424f409fa20468e70fea5c60e144b0f371e2b47f34cbb6a0a2538f64810b703"
+  },
+  {
+   "index": 99,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 36,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:cc11e5e2ce540672433dce8678c7b7a0f54eade899e98865e32d6f1558bda11b"
+  },
+  {
+   "index": 100,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 37,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:aec715069592dd852928f65390beee393b2d5e12a42401006d8f3879f10df5a7"
+  },
+  {
+   "index": 101,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 38,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:bf260f69f286a02adacfcac20c9761372069cc40ea85daf33b1c0e4188fb4ff3"
+  },
+  {
+   "index": 102,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 39,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:83d0a501c47f620f05074808004dadb72c308e5d9512c5365c868245b3688540"
+  },
+  {
+   "index": 103,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 40,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:0279a789a3daed3fa0542675326f4af9c9ca61da13520611e19d61887f459bcf"
+  },
+  {
+   "index": 104,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 41,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:1cae2895ab0639760aa6efab49749751cdc785bead9208db95a581d80bda569f"
+  },
+  {
+   "index": 105,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 42,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:c1ae47d6880341303e3c3942e57db88b323a2e7280a227f43dd10de9e029dcd1"
+  },
+  {
+   "index": 106,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 43,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:f3e8c0392ccab1283137ceeb47a8f213154df69fded43b92e46f74bd509a7f25"
+  },
+  {
+   "index": 107,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 44,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:16c24329be8123a8ed27b75f7c38c27051212f6a6a21143f906978e3cc2c5ac9"
+  },
+  {
+   "index": 108,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 45,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:05f021334a2ade9deb8b7758cb396d4f72b6b354b2d041e7d64c7794d7e90a7e"
+  },
+  {
+   "index": 109,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 46,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:ee9e65d84dc176952ef28fe6c4d1f91fc48bc128a36d92dc56059d17e60d8025"
+  },
+  {
+   "index": 110,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 47,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:bb61a2abdc7f2fa4418c77af1beaa0110a05b056b5a491ca356e113c6ff85461"
+  },
+  {
+   "index": 111,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 48,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:5267b302560c440ae7a05b3649af80b65db957be9075da0654faccf6830db87c"
+  },
+  {
+   "index": 112,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 49,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:a5f614c59d02fb93d749e590c5c640aeae0399393d380bb4cce90a145f7faaf6"
+  },
+  {
+   "index": 113,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 50,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:7037c7dd6bb8f5390049b9ca501eebdf80afe30fce4b79c26d71a2ccb71cb54e"
+  },
+  {
+   "index": 114,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 51,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:cc984524b5f677f3b9422d50ccc155f4f8307739e8964c1bdc40c4fefe874e3d"
+  },
+  {
+   "index": 115,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 52,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:de229b027d82f66b92d0ff6f3cfd66a9647d55cc70f2d0695cc28adf0313315d"
+  },
+  {
+   "index": 116,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 53,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:26aae060569ab2f69f603bc7f884a8b1ae48baf5aa37f87c0366e55f473b3110"
+  },
+  {
+   "index": 117,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 54,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:9f47fc71b4d198f8789277ac8de52095c5f6d7fda529a3a81efa5bad12650849"
+  },
+  {
+   "index": 118,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 55,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:72151841766c65b0a1b9ebe2e78f83371b0361f2c0bfcc143de14264362b6b81"
+  },
+  {
+   "index": 119,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 56,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:0101a97c254a954631b4825c289fd5ea746addb9c00a610b40b517f8046c4420"
+  },
+  {
+   "index": 120,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 57,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:b34caaeb87b7f0f4ea04fa4077fcaba2f20019c70cb403b759565d5e8090ec12"
+  },
+  {
+   "index": 121,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 58,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:8a599c44dd1c061c4455154b08beaf35429c0ca60455841ae95fdc10ab1f94ec"
+  },
+  {
+   "index": 122,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 59,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:47b17a8e1c9ac9d2bfeddb9633878146a9aaede15a33f585002e22ba898918a2"
+  },
+  {
+   "index": 123,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 60,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:80be81597dba323605134670d23763b6d113c25e95392ebe2a114f37f367457e"
+  },
+  {
+   "index": 124,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 61,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:7726d8675d3bb00c33f375ab6a87e8b0eadcaa6aa91cf465ce9631a04862c018"
+  },
+  {
+   "index": 125,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 62,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:5954bc6f63e65d4bce36d5181fb30f9bffb03f0d6f6d0bf8d1ce577190197c37"
+  },
+  {
+   "index": 126,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 63,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:79fc2f36743eb3ce9736c4d512aa134a9ceef93ea2bb6c9f0a410aace5e37f6a"
+  },
+  {
+   "index": 127,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 64,
+     "train_fraction": 0.95
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:6a64cbccb16efba2817cb7f48a8e50a172bea08ed487ac549ce7320b70a41060"
+  },
+  {
+   "index": 128,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 1,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:5187249cbc53b1d6aacf19bb3c8fd98291fd53b12828e09005d5b31318066657"
+  },
+  {
+   "index": 129,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 2,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:9c93ba2eac4b8948c56476980c052f49c819f1593df34ac9541d736c33aaed59"
+  },
+  {
+   "index": 130,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 3,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:dbc966710088c29f0af2857d76cd1ac3f15b4041582ccf9fe8b296121ebe5e1b"
+  },
+  {
+   "index": 131,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 4,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:bda4ff9bfd7574ca519baf3466d45541945fe95080b64221909705b022973838"
+  },
+  {
+   "index": 132,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 5,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:dc07207e9c790944b64e175419ead572d1b42a20d0c2507e42a067a109098ca5"
+  },
+  {
+   "index": 133,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 6,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:95438cd49cfd2ca85cfbcad666e5d513d65c4a55a0599229020247f13d654f73"
+  },
+  {
+   "index": 134,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 7,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:ef62d9ce926634434d7205f6c70c41d3afe6d5dd88cebe81f7939e96fc8b6228"
+  },
+  {
+   "index": 135,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 8,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:dd9a76acd2948e7bab1f9b2b059cf3e49b6629a4abff649f6fb077163e35dd3e"
+  },
+  {
+   "index": 136,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 9,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:8e54f7ed5c36145fe74d03f569f43fa37abfbd9f13624641eac13a012c38b4de"
+  },
+  {
+   "index": 137,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 10,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:d42542d1647f651e282157c47f5c12dad568ca487e29eb0a1c4616dc25e980ea"
+  },
+  {
+   "index": 138,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 11,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:d482b92f0f543be2d0785f57be97788332231f7fd475a864d8a2598da5203b28"
+  },
+  {
+   "index": 139,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 12,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:877956869a1164d301bdb0849d2c1b3b5c8fd518a02b2703551ec96a131853f0"
+  },
+  {
+   "index": 140,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 13,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:b5630868df1d5ae5cfac0b5bed59c04e9f740595c98425ce424ced712a1fb615"
+  },
+  {
+   "index": 141,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 14,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:5828b6614aa0e023c82b11967c9e1dc4411cea1690848e47e7b628e88a52d579"
+  },
+  {
+   "index": 142,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 15,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:cf5526b54198c95156731b29f801bb990b84211e6d2aaa5167a191b3e59f871f"
+  },
+  {
+   "index": 143,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 16,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:42f968a5116ba4aae99a42108d7f23b698045de04d345f19137343f4c424852f"
+  },
+  {
+   "index": 144,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 17,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:3724ab225d00496411a4e33128bcbe9a2ed8e0b450d10cf96aae3648bb4af8a6"
+  },
+  {
+   "index": 145,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 18,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:210e681328f5c7e29eba02619039dc12978afb76a8d611519eebda3a6735fe22"
+  },
+  {
+   "index": 146,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 19,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:bbfa7897a3ab93989b590cf16d941a598e865bcd6f6d9dec5ad07ed376944e4f"
+  },
+  {
+   "index": 147,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 20,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:b6b838ee38e78c5f111b3cedf70503ddea26892fa7683a0f0c2574179e245885"
+  },
+  {
+   "index": 148,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 21,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:ce90ea94028b6e3510f0d5b09a681e8d083f601aab8f901db004bdbe263099ee"
+  },
+  {
+   "index": 149,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 22,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:052f8e170fd63b81a4817e60ffca5c227e67699909d13e44f6679c51a2b52e31"
+  },
+  {
+   "index": 150,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 23,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:5a4a0172d990f5522365b8e0aa9aac998b87003b6915dac3de9cbbd5fca63243"
+  },
+  {
+   "index": 151,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 24,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:29095d164cbf008c1c494750dfbb068f58040158a88480561274a6aa2a6111b8"
+  },
+  {
+   "index": 152,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 25,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:e128b21979fce8a7dc039d3719ae60fc9799d6eef49b19434c742a3c92d61c00"
+  },
+  {
+   "index": 153,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 26,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:b711f153f9738579efb260daea3c5c33f9ff15ba0c800327106e1549be84ee71"
+  },
+  {
+   "index": 154,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 27,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:78b59b5c167227d7b956f7a7b326c31224f252f9b157cf27625be1d35a0ad68a"
+  },
+  {
+   "index": 155,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 28,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:2d5098abcc9f6d38d5a164d3fa2224b0574809d98d7ce0be9b31be16846814fc"
+  },
+  {
+   "index": 156,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 29,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:905351c1bc1c8cbc14cf58e379040b5f964e134bf4e29f971ff65e583061f946"
+  },
+  {
+   "index": 157,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 30,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:2d54ab77a728d46f314ff5f42581bca05963e4d719e9d6ff8fc49942b7f4b066"
+  },
+  {
+   "index": 158,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 31,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:b2454316ed2af9412e007ae6f4b3a8e8b45a6e40d65ecd71ec8f74b05bdfb38f"
+  },
+  {
+   "index": 159,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 32,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:c41448bcdb5d5a89d5106bd81650d40fd20b29ad2d4886af32b2b4c7be9ffdf7"
+  },
+  {
+   "index": 160,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 33,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:f7d84f3a73742d98097fafb52523845e00f75d728f9397d0f0b68e41a694e415"
+  },
+  {
+   "index": 161,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 34,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:664a880b62474b536ef8b40a1637dcba516a0ac15906321a57a0e41240592891"
+  },
+  {
+   "index": 162,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 35,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:ddc6ce1970edbf3407cca91abf0a1e76b39471ab9fcd0f930d49e6c5a355b3ec"
+  },
+  {
+   "index": 163,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 36,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:4abd3d812160447338e08753f1d40480ee13831c1d98b40e61853912d77e6087"
+  },
+  {
+   "index": 164,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 37,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:cd70b84dd3ee0072964598d6030dc26eae0bc8789f530062a6e04fc2f0972eeb"
+  },
+  {
+   "index": 165,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 38,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:bca0f0476dc94b59950321ebecd002f7d85c8b8e95c0bf617c32e898088122f5"
+  },
+  {
+   "index": 166,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 39,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:7f386893c7d5bb03ef351f1731ca7be7a4cc9bb939abfa01b58391fdea63ec2e"
+  },
+  {
+   "index": 167,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 40,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:6da6175dea0ffb629e392a89d846fe7616b52a675b13f33ff1305ed9faee5834"
+  },
+  {
+   "index": 168,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 41,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:d2056f6cbd9f4054e3f5e23732931c38c2c0d8072668b231262e77240b48ccf7"
+  },
+  {
+   "index": 169,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 42,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:20c7d4b97ac0f7f69f07c78fe92331891f743642529b6584e61790260a174ae5"
+  },
+  {
+   "index": 170,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 43,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:9bd96acb51d812f6796009eaa56b998d4ffa59290429ea5315702c247d5f7ca3"
+  },
+  {
+   "index": 171,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 44,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:239e14ec89a347bf01f9882f6b9279c59d2e4f0765204fd2b2368ccbda3c4249"
+  },
+  {
+   "index": 172,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 45,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:d81516ffa8d3693655bf759431b9651e847f31984dd1804228e88e8fadb9ff48"
+  },
+  {
+   "index": 173,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 46,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:90d35661e0410b3e7833f997d7fc2dfb4d5a47868910ac4717f0c589081eec53"
+  },
+  {
+   "index": 174,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 47,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:b9a48bf42ae0e14d4a4cf0d84530cc9ff8e4e85802e1d56238a03870caf5809c"
+  },
+  {
+   "index": 175,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 48,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:6b4858d7c796832f2a98d1cc039a3c9bb83a9da234d2e10c4957203a1ba328dc"
+  },
+  {
+   "index": 176,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 49,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:542cca45ed7e4be8292faa9c408f59d4fb4ba89ac4b920f834af911cf0e4c28e"
+  },
+  {
+   "index": 177,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 50,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:2a7600884941dbf789f100ba90f5165855012d398483e238a19bf06a06623d84"
+  },
+  {
+   "index": 178,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 51,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:7c7766ab333ec2621cd629ed09f4f15bdd4702f3301a74d1025a3fff41ace950"
+  },
+  {
+   "index": 179,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 52,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:fc296a9f0e7ebcd76a48c65191014b5f131d19872c2d387795d60ac3edf55699"
+  },
+  {
+   "index": 180,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 53,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:49c6f371c19e5ab3fc606341251322cec8ad737209fae680fa06f3fe640cf60a"
+  },
+  {
+   "index": 181,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 54,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:2beb0ac58f45d6a07a6c252f7bb51c50b02fa6151f19b2af1357703cc0affb6c"
+  },
+  {
+   "index": 182,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 55,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:3a61e72f0cfc6020e667d52e3d7190f63a093612c003e9c6214f6240f024efe3"
+  },
+  {
+   "index": 183,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 56,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:e47ec92333cb7611a78e99c86bff45219dde12e493813d9337564750fecf048a"
+  },
+  {
+   "index": 184,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 57,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:b13626dd030b8f5e5eef89cd1954779ce935f71609fe288578f6fe89940d8551"
+  },
+  {
+   "index": 185,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 58,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:1cc852fd6ac65406ee70d751ceced836180422df3c54eddf2a0db8769bfe3d00"
+  },
+  {
+   "index": 186,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 59,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:a0f9aec05fad3479be14fcde84e1456c630b80a424bb35b5eb86848ea65e8da7"
+  },
+  {
+   "index": 187,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 60,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:0df31efe2788ee74ad8a971aa6f0c3c5a4bfbf72c748cc25d8e7b69d38a89af1"
+  },
+  {
+   "index": 188,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 61,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:c53fd6a97085f2c7e8273e57f9e435c123a893bd900faa97a9e8f5a98f6008cc"
+  },
+  {
+   "index": 189,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 62,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:bc43f95730367cb0cb675d8fd2ef7cba8bbda0d77283de7a5e614d3d9977a66e"
+  },
+  {
+   "index": 190,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 63,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:67fe609b9c986eb8c9e0c038bb668b4b190d68e273afea160c65696d61e40715"
+  },
+  {
+   "index": 191,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 64,
+     "train_fraction": 0.9
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:2094ae83c89a472a63f694629e5349796e1181100d1bebebb3cb0656f7e41848"
+  },
+  {
+   "index": 192,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 1,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:7639a9ae19a0d701e6ade3294332982350f888d1b558bf9d14bd748da6cdce1b"
+  },
+  {
+   "index": 193,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 2,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:7a64d3e046e30d00da5fc6f3ed5b8afe48c6a55f564e59d27a2a9996a22bc21e"
+  },
+  {
+   "index": 194,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 3,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:ba4a3ef65b4a9bc14a45a4d4d50747f88699ad6fcc74e96a22a8da022bf64954"
+  },
+  {
+   "index": 195,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 4,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:a8554fbbe2eb45a8a91433a501cb7b35e93e98f434be77e74b3a3629440c1133"
+  },
+  {
+   "index": 196,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 5,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:dd651fb861310d22fdf527b938e1c221422336cf1ac9dd0666e371afdcde89cd"
+  },
+  {
+   "index": 197,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 6,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:d3c3b5180db4991221ce4bf0d652c1aa61837edb5c0df7eb0757ef249bcfd5b3"
+  },
+  {
+   "index": 198,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 7,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:9a330140638ffa4f2dd15c1a7b7c1faca4ef2ec61c6488b9d7f70f884e2be1e8"
+  },
+  {
+   "index": 199,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 8,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:8d964260455e515c6a002dd7b4ffe8bdfbb707cd79deb23296a8c5259a407045"
+  },
+  {
+   "index": 200,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 9,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:9cf3a72113ef4d34b17911794f9de00e942e3d12009347389613bb2d316057d8"
+  },
+  {
+   "index": 201,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 10,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:ed91030d882751936b51ea35875d50fced1e91cdc236b5dbd962951493f84948"
+  },
+  {
+   "index": 202,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 11,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:77f0d4f366de2c765c2bdca601a2b0a261e4026ddeaeace308a9b275453bde7e"
+  },
+  {
+   "index": 203,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 12,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:3106116b7d657b2fa0ffeb59848c13b1867742a264f890fe528e5d5b7572e599"
+  },
+  {
+   "index": 204,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 13,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:aeba3a1134c6d35f1ba854f7b4f01218811cc90dadf1ae537397eb5f7cc553a0"
+  },
+  {
+   "index": 205,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 14,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:c71ef34895d40f5480e7f5a91463e79e30501494643fbb030b1286ddbc696639"
+  },
+  {
+   "index": 206,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 15,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:8c665d2628a0640d02db82f7720e1ac062dc1de3e1a87e7d6f03cc73fe46a65b"
+  },
+  {
+   "index": 207,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 16,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:3faf9e34ace1a5bb4774f982e42185b23d2f9c45971ce1a46e49871c7f04d7ea"
+  },
+  {
+   "index": 208,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 17,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:6116b52cdc5d64e82c0f3b7394faa769ded0b2e8bc24688c7a489481af4dd313"
+  },
+  {
+   "index": 209,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 18,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:6202e42dae2dfa1ab207f9b45cc55cad48847aef2ff0fb46ff24e0fc50244556"
+  },
+  {
+   "index": 210,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 19,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:c91686d833d1ee1471a33b34479b0c2a04064a49155c0e2da9d8c59d79498018"
+  },
+  {
+   "index": 211,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 20,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:c46ed197b27405f0c0b2a877454473aaefb34c9faec1898d49191b1510560445"
+  },
+  {
+   "index": 212,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 21,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:c539e6ac93bb78eac738085d3b7748c6b2c2a2afc2a230d0f422db06117a04b6"
+  },
+  {
+   "index": 213,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 22,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:28c7a5d25738f3a5ccac80dcd7d619939ad42d114e7cbeab97a092d4cd3467fd"
+  },
+  {
+   "index": 214,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 23,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:b6dc07807864797a7698a94202b46e992fb0d4fa86b2a9ab8faabc2a0359404c"
+  },
+  {
+   "index": 215,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 24,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:e3ef2521ec10b93045616ad3bfa260d32744e2c1c491946ac3b96cb386f4abab"
+  },
+  {
+   "index": 216,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 25,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:705e0395d7936c457a3bfe78334f9f5b34edab6185f70c554965e2bf1c8e6f57"
+  },
+  {
+   "index": 217,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 26,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:cc2fd05c51946bbda4787b9cd92e381eeec6f273b32391949a21d6cd09d53bc2"
+  },
+  {
+   "index": 218,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 27,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:cd0e5cdeeeee1d4dee50173da6f8c6bbe161d2accf03738c26c29110a3cc0fb1"
+  },
+  {
+   "index": 219,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 28,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:0848d0c2bb95a51a90eb953c89f90fbad91d212391db0517be18cfb770ab1e82"
+  },
+  {
+   "index": 220,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 29,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:ed7350d03af60a78d3b2d4f5b09fa643075d1ef38f64fc5392fd21714b06965d"
+  },
+  {
+   "index": 221,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 30,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:08a74ba85c9c1ccae94465798e22672035be02545c4fb5bc3ef496aadcf9986d"
+  },
+  {
+   "index": 222,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 31,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:f01b11ac88acef447bd6c0c1fa0e74753b942ae0bd472ede1d8f6cd8c9ba0af6"
+  },
+  {
+   "index": 223,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 32,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:ead84097ffb75887d65d82610fe5b879ab15027bb2b6780689381443132c10e0"
+  },
+  {
+   "index": 224,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 33,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:d64a5ebd34593d3ef53f3487b1b3384ecbcc12af16f612d95289c68e3862c852"
+  },
+  {
+   "index": 225,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 34,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:8ce9970bbcc60fbc05a0ef282d4f8ded78e2e1dfe9d66e3fc99988daffb19b21"
+  },
+  {
+   "index": 226,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 35,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:13d4a4e7d3d9d319a4a6c16da371bfda71ee3dce96a8491b50c1cb908a316f8e"
+  },
+  {
+   "index": 227,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 36,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:40c59b77aca3807a747c57e0751e4c45da7fa6ffa5640f2b012cdc2a3d361b07"
+  },
+  {
+   "index": 228,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 37,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:861ec7bf2b4262e80bc9b0d3417b86be48041c14652c2be37c6c4771884043a5"
+  },
+  {
+   "index": 229,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 38,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:fcb08e9670a7f77f5cfdc44c9cb8f18174fc430ccd86460c39303c72fd358fef"
+  },
+  {
+   "index": 230,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 39,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:4deb0f95654d041b98ff140e95623810cc8207ba0f34b2ecaba2b588e089b98a"
+  },
+  {
+   "index": 231,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 40,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:4e93c77fedb3851ffbd0616ed95927dc0334cd53a3da3de8780f2a75f4593660"
+  },
+  {
+   "index": 232,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 41,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:5c63e8c02d6defb3c5a8d52f7ba049b80d8719bc3ea28584805661c4ee79c6e3"
+  },
+  {
+   "index": 233,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 42,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:db8315063c3f8da32292d57492877be158654242b485130a184bea03c428ed0e"
+  },
+  {
+   "index": 234,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 43,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:f690b448fc56b07966e811a6dfd0555cb186c10f65a29ebc9e0578bf729bebea"
+  },
+  {
+   "index": 235,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 44,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:7b500645549f42d010e27d31834ac49eb716d9cbebf98965130a077d757d51e8"
+  },
+  {
+   "index": 236,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 45,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:d4f18c427391f87178bd5ca406449e201cf7d620dbac609f172c45453735b2a9"
+  },
+  {
+   "index": 237,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 46,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:735f76714e345a94932079facceb47b7c6b7bd83353ec01102b88c8277332dbc"
+  },
+  {
+   "index": 238,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 47,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:2da9c0eba95d21a88c1778fae80cb0df0a5f5a1b46469e251c84c86ddbb34bfe"
+  },
+  {
+   "index": 239,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 48,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:56a4aa436a41e3645754dee2efa035d9ece728c443b67a949ab3bf2ccbdb3f1d"
+  },
+  {
+   "index": 240,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 49,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:d6d6880692c232eb17248db0bd36465be781ace4dcc2a9502b4829b3494de428"
+  },
+  {
+   "index": 241,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 50,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:3691c28189c18eeb3b2f37810328856186d5e92ea5a8121d468a0a09415e4fe8"
+  },
+  {
+   "index": 242,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 51,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:a402e9d46bf4e62ebcfe15a8712ddbb9be8abec70ecf33add36338f87b50f1f6"
+  },
+  {
+   "index": 243,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 52,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:d6e9431d5db4224f836804b533fdb9ed37484203a735b998f85170c57af131fd"
+  },
+  {
+   "index": 244,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 53,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:f79f742a696153af7d63441516f8b09748c9a9f33658b5b55805b4582206c0f9"
+  },
+  {
+   "index": 245,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 54,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:7e7abe307e733a0ed586e4bf0cebc5bd4f2aec9acf295eb3bdbe1777b082a4ba"
+  },
+  {
+   "index": 246,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 55,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:154417f6a73b44485c6d50d6213726fabf2cdf5db2801b3e0874be18433e95b2"
+  },
+  {
+   "index": 247,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 56,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:66d1112220af6fa08dfa441d7e4bd79df12732bee30d63d795dc99e1a4ba7f1a"
+  },
+  {
+   "index": 248,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 57,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:4c04cdad555f1ef21d3e435d4f6e9e23cccf114d4104f45851df63710e46b018"
+  },
+  {
+   "index": 249,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 58,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:b4e4553eb98064ed603c5811d7410ad17a141ecbc61eea2c1e0b1b3c9131b3c3"
+  },
+  {
+   "index": 250,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 59,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:e2ed9a7e477b881a5f79a6b0220aba2ad4368d4b9f6fea96be0e16ed4a71437c"
+  },
+  {
+   "index": 251,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 60,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:17aab7a093aeb9d43a2111a3f7486cb0b2edd09ca73b3da86f90a23fa237efd0"
+  },
+  {
+   "index": 252,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 61,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:ffc4f3fa1cdb0dde7bf5434dd372719a95542749eb1debb0400499652527e243"
+  },
+  {
+   "index": 253,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 62,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:00781780da0583fb55fde0d71cf2bdb404b68c4f8c32d39cd86254b080ce5312"
+  },
+  {
+   "index": 254,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 63,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:d21bfc88b9724012c04bb497ba452fa3a7332a214c0163f90da3064c77d8ecec"
+  },
+  {
+   "index": 255,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 64,
+     "train_fraction": 0.85
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:362d24c07f0ef223abb1de1e966778943e21724d35087418d6795d122214bdd0"
+  },
+  {
+   "index": 256,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 1,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:572de7f3ad0d15d23dba4c43cc34a90c254de7635dc87207dbf1b6927708ed50"
+  },
+  {
+   "index": 257,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 2,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:b57dfda143c8e9886b9d5b853589bb531fb910c816b0eb1edd21f92df226db0d"
+  },
+  {
+   "index": 258,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 3,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:4ad514667e249909bfd213764a331760ee5f13316b23fa5ff74ef18625db360f"
+  },
+  {
+   "index": 259,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 4,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:fc9d226e4010b7b510dee35c2e3b48b2333ee3d96755c4d069c8d04e89d15d1d"
+  },
+  {
+   "index": 260,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 5,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:598995301192b47ecdf19b38d160a2dd637f42adf054b1a5cdea3903881cf159"
+  },
+  {
+   "index": 261,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 6,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:57598e9e9906cfd6922bf48793cd417839e1f4a72caf35fe223a2b82b386824f"
+  },
+  {
+   "index": 262,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 7,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:81f98223498851c2410417bf7d1d667cb86962feb4745f25b8e4eb9e50afe95e"
+  },
+  {
+   "index": 263,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 8,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:9bea3959177d90dafab8b0a7af7efa399edaa24d133182b8a4a0b259b739d426"
+  },
+  {
+   "index": 264,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 9,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:edde48bee474f1d944ffee7e64f71ff41eec5f22720d14061e495680dc5309d8"
+  },
+  {
+   "index": 265,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 10,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:36982c65d4037aebf42c4041572338b53563f224ffbe4ad9b32a6e44e7dd959b"
+  },
+  {
+   "index": 266,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 11,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:d0f540e6e05957d86a693b3de8a7e4c55ca23895a3f3d01a529721aac8053d67"
+  },
+  {
+   "index": 267,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 12,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:786f44479314a513814b85a175150a01fcb7b36a3b478e505f48b49e32d50aa6"
+  },
+  {
+   "index": 268,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 13,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:abdef5b8c8cbb044962aede8fc9b4c96027defcbeb8a80c9d4f6ce15497d30ee"
+  },
+  {
+   "index": 269,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 14,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:8ea57ff9ccda2b4a76380b017aba1e833225cb870e13195e0be77f03aefc6a1e"
+  },
+  {
+   "index": 270,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 15,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:2e7b6c7d586f2c4967c1704a4951beb917fb6b1cfc067cf40ada53ff816c7938"
+  },
+  {
+   "index": 271,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 16,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:91782bfcb4239badc8eeae059883b36693217da1797c588c889e595a58e2c793"
+  },
+  {
+   "index": 272,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 17,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:91a773fbdfad16470cde52e8109ca5c2d3e3336dcb9aac3905b14db688e2f18e"
+  },
+  {
+   "index": 273,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 18,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:92d9e32d024a67053f652242f4976d10408da8af37ab05812907146ac3d9a964"
+  },
+  {
+   "index": 274,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 19,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:00c191b2e9af0d7963b0c154bb0beba7358f444b4634499d9c860132fef73e3b"
+  },
+  {
+   "index": 275,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 20,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:7be9ad1915618c72033b4d540d32271372f629d46a602596af792fd847131797"
+  },
+  {
+   "index": 276,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 21,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:b9db3fdeca5e6d04017185c1ec720c1a5afdf1fd1a44c8aaaee76033a88ac6f6"
+  },
+  {
+   "index": 277,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 22,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:07d5dd880adb4c72f2c26380d48fcbb198b3cc2b004297f6b08a0e80c38cbe8a"
+  },
+  {
+   "index": 278,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 23,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:236b8107c7754978c7befd04e41d8d569174f3cd8b7ab59962d642a22981c257"
+  },
+  {
+   "index": 279,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 24,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:9b45203cc7edeee64940c6bc730cab42279b66681a534371d6aa43e5460347d8"
+  },
+  {
+   "index": 280,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 25,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:addf41249649c2e318f99ae1a71930164de304edfc3bbe2f3b9f6a586ef7fe54"
+  },
+  {
+   "index": 281,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 26,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:d5f38bc3a1c3bed8aeb0d9104e3c7cf70b3ed161e91c8c228be1522b13f598bc"
+  },
+  {
+   "index": 282,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 27,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:6fc30f252a7b83aff68eff4e86fee608fef5bb42a0f5e0d96bec7fa9c464e1cf"
+  },
+  {
+   "index": 283,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 28,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:8c040974e67a83d7b676d9a1f22016065e59a6d4b522568a075124e168cc37df"
+  },
+  {
+   "index": 284,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 29,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:b92b8d2f7cdb59a28c168a9f2bebb57c8bd4b29a44833331e4dec357159e6c24"
+  },
+  {
+   "index": 285,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 30,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:ba2ee5e3e794d75e4c8548f73e4f0e920a73e412ace4eaeab616ee9b2423a0de"
+  },
+  {
+   "index": 286,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 31,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:707aff9e1e7a521f714a449e89f283689d57b9125ab1a3436a6eb6b9ebba1495"
+  },
+  {
+   "index": 287,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 32,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:1b0883a778d680c5f05ea84ab3a36cdfae1caed2d49b1726a42a329eb2fa4c28"
+  },
+  {
+   "index": 288,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 33,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:6266a709afaa5cfe929004e712b02d7afc5dca67264c85d1e1d0693292ea318b"
+  },
+  {
+   "index": 289,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 34,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:a18e961a5aab61c5233e1aa8611593de37486da69264cb3827bcb9ab90095e20"
+  },
+  {
+   "index": 290,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 35,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:21c3b9b75ac71a747bd7e95e23e10053b6eb5e09d5eae6f0aa1fd1f5ab4654fa"
+  },
+  {
+   "index": 291,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 36,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:0f5a3a3f89239f7835ebaea686a1706bde354d89cc06b1f78a7b726e7e1f050c"
+  },
+  {
+   "index": 292,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 37,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:32abe1690659460a05d2e28e954e86451ea27ae75898a34104d332837a8e03f7"
+  },
+  {
+   "index": 293,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 38,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:89f0cae1cb108fdda6cd90bda76693fa264ec8c4c0fb93251ca76afd7acb3079"
+  },
+  {
+   "index": 294,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 39,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:598648b6c77000af101050448eaf04aa37055c55527775141a18a4e6aef64534"
+  },
+  {
+   "index": 295,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 40,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:221cda31eb22b6c30c89811555e3984311291404e0e35edc7d9c1c08895179f0"
+  },
+  {
+   "index": 296,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 41,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:7cc7aec6e40f572241d46812f3a897cfda3de1f2f3ed4ac1c71752c061e74e73"
+  },
+  {
+   "index": 297,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 42,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:21ba04d1ad4a27c78c830c73e1c42aa8c18842370b9883bce22dab0a3612c14d"
+  },
+  {
+   "index": 298,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 43,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:ae1221818b2eb9e6a6b0fec36552bd7132a58ac01edd9754dee3d61f7188b214"
+  },
+  {
+   "index": 299,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 44,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:1a4c5497bf932d17e21832ef83a3eb98e7d10683b239c86af1b883ab2cace3e0"
+  },
+  {
+   "index": 300,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 45,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:5f9f3c34541371c8985deeda1d7fbb9a8c3567a8d64abda0dff4195d808c60cf"
+  },
+  {
+   "index": 301,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 46,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:766c1b6b80f7eaefb53bc25808575b72116079cf19fac2338a1427abb2f07967"
+  },
+  {
+   "index": 302,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 47,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:67c7fcd5c44fca42a4e0e44f8ac87da57b98c223db3782729ea8eef37691a191"
+  },
+  {
+   "index": 303,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 48,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:483e73ddef1df328d33dcdadbb45314320d89350c745c05c3d8ed000c619fbdf"
+  },
+  {
+   "index": 304,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 49,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:8f652239e733746c50c7bbc0b51198ef8f6e79f48f46245943b0b660000b98f5"
+  },
+  {
+   "index": 305,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 50,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:a96a70672c2987929aa41d3217c380de81b2ac772edff5874a5c83189bcbbdc4"
+  },
+  {
+   "index": 306,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 51,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:873cafdf64d3206f9a1f8bd25f10893b16501fb75e73b4e86ba9c55b8d9a4a62"
+  },
+  {
+   "index": 307,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 52,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:ad4f245a4d080ed4e3192e57e1fcba184b36df2965b21b2198b72f2733ffd7a9"
+  },
+  {
+   "index": 308,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 53,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:da2ee44c1a433726d801ced1ea2e15fc71530ed89517ce95908c611727f9380e"
+  },
+  {
+   "index": 309,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 54,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:16c6e6b9407dd67193279406362d71e620ed5dbe30d070d4d30df37d1ff19a17"
+  },
+  {
+   "index": 310,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 55,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:eb62221ac4d2d132fceaf242bb9318b3b3c246e866f7073bc74106421ca8812a"
+  },
+  {
+   "index": 311,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 56,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:545b8f3855c028b9b5734f840d7abbcc7ab26640234c684e0a4f6674041514b0"
+  },
+  {
+   "index": 312,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 57,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:48bfe16401dcdfb7c72b90ed55a394ce36a75456a5ffdbe79304174a61e7d60f"
+  },
+  {
+   "index": 313,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 58,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:e0d47376a3dec540bf070f65b0dc6297a012b85fafdfd65e838717609d05fd56"
+  },
+  {
+   "index": 314,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 59,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:6ece2e2a9c30ced8b2a758883ec7fd0b54f50d0334e00a356d0ad92b9b46f6f2"
+  },
+  {
+   "index": 315,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 60,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:8de1a489c6510ab46a7e5d9c7cd334eebfc54fd72e47a6c035c33ae1d92aa356"
+  },
+  {
+   "index": 316,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 61,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:5d8cd79869096a97022b201115387c18a11081f323e1355fd1df547582267fe6"
+  },
+  {
+   "index": 317,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 62,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:1ec1a485ed97072a29f69ec2836da565bc4a6d6a30a3896b159e5705edce4e4a"
+  },
+  {
+   "index": 318,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 63,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:a91c12d7420959ddddc98330e8dfd46243fc6bcb4a658a0d3ba04c0f4f926a24"
+  },
+  {
+   "index": 319,
+   "strategy": {
+    "backbone": "knn",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "neighbours": 64,
+     "train_fraction": 0.8
+    },
+    "schema_version": "1.0"
+   },
+   "strategy_hash": "sha256:b94565f310f6eecbb6ad6b553eb10868da5c79f06d37306b3d59314cd7c52c01"
+  }
+ ]
+}
