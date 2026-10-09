@@ -627,12 +627,32 @@ def test_a_gate_run_leaves_carbon_clean(monkeypatch, tmp_path):
     assert sorted(str(p) for p in model.PACKAGE.rglob("*")) == before
 
 
-def _r1_runner(monkeypatch):
-    calls = []
-    # Import the runner's grant binding before os.name is faked: pathlib cannot
-    # be instantiated for a faked platform.
-    from carbon.agent_campaign.graphite import phase4  # noqa: F401
+def _analysis_manifest(tmp_path, **over):
+    """A fixture manifest in the closed four-key format the consumer reads
+    (`research_image.load_analysis_image`); a test value, not a built image."""
+    from carbon.development_session import research_image
 
+    document = {
+        "schema": research_image.SCHEMA,
+        "image_id": "sha256:" + "1" * 64,
+        "parent_image": "sha256:" + "2" * 64,
+        "runtime_digest": "sha256:" + "3" * 64,
+    }
+    document.update(over)
+    path = tmp_path / "analysis-image.json"
+    path.write_text(json.dumps(document), encoding="utf-8")
+    return path
+
+
+def _r1_runner(monkeypatch, tmp_path):
+    calls = []
+    # Import what the check imports before os.name is faked: pathlib cannot be
+    # instantiated for a faked platform.
+    from carbon.agent_campaign.graphite import phase4  # noqa: F401
+    from carbon.development_session import research_image  # noqa: F401
+
+    manifest = _analysis_manifest(tmp_path)
+    monkeypatch.setenv(checks.ANALYSIS_IMAGE_ENV, str(manifest))
     monkeypatch.setattr(checks.os, "name", "posix")
 
     def fake(command, **kwargs):
@@ -646,8 +666,8 @@ def _r1_runner(monkeypatch):
 BATTERY = "battery-fastcharge-ageing-development-v1"
 
 
-def test_r1_never_passes_for_a_challenge_with_no_bound_grant(monkeypatch):
-    calls = _r1_runner(monkeypatch)
+def test_r1_never_passes_for_a_challenge_with_no_bound_grant(monkeypatch, tmp_path):
+    calls = _r1_runner(monkeypatch, tmp_path)
     motor = checks.Context(
         challenge="electric-motor-magnetics",
         level=0,
@@ -660,8 +680,8 @@ def test_r1_never_passes_for_a_challenge_with_no_bound_grant(monkeypatch):
     assert calls == [], "prelive must not run without the challenge's own grant"
 
 
-def test_r1_never_passes_on_another_challenges_grant(monkeypatch):
-    calls = _r1_runner(monkeypatch)
+def test_r1_never_passes_on_another_challenges_grant(monkeypatch, tmp_path):
+    calls = _r1_runner(monkeypatch, tmp_path)
     # challenges.json (or anything else) naming battery's grant for cooling.
     cooling = checks.Context(
         challenge="chip-cold-plate",
@@ -685,9 +705,9 @@ def test_r1_never_passes_on_another_challenges_grant(monkeypatch):
     ],
 )
 def test_r1_passes_the_challenges_own_bound_grant_to_prelive(
-    monkeypatch, challenge, grant
+    monkeypatch, tmp_path, challenge, grant
 ):
-    calls = _r1_runner(monkeypatch)
+    calls = _r1_runner(monkeypatch, tmp_path)
     ctx = checks.Context(
         challenge=challenge, level=0, data=checks.load_challenge_data(challenge)
     )
@@ -774,3 +794,99 @@ def test_r5_never_passes_and_never_borrows_another_grant(monkeypatch):
     assert checks.grant_binding({}, cooling).status == model.FAIL
     own = checks.Context(challenge="chip-cold-plate", level=0)
     assert checks.grant_binding({}, own).status == model.NOT_BUILT
+
+
+def _own_grant_context():
+    battery = "battery-fastcharge-ageing-development-v1"
+    return checks.Context(
+        challenge=battery, level=0, data=checks.load_challenge_data(battery)
+    )
+
+
+def test_r1_passes_the_analysis_image_manifest_to_prelive(monkeypatch, tmp_path):
+    calls = _r1_runner(monkeypatch, tmp_path)
+    assert checks.prelive({}, _own_grant_context()).status == model.PASS
+    command = calls[0]
+    flag = command.index("--analysis-image-manifest")
+    assert command[flag + 1] == str(tmp_path / "analysis-image.json")
+
+
+def test_r1_fails_closed_when_the_manifest_is_unset(monkeypatch, tmp_path):
+    calls = _r1_runner(monkeypatch, tmp_path)
+    monkeypatch.delenv(checks.ANALYSIS_IMAGE_ENV)
+    result = checks.prelive({}, _own_grant_context())
+    assert result.status == model.FAIL and checks.ANALYSIS_IMAGE_ENV in result.detail
+    assert calls == [], "prelive must not run without a manifest"
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        {"extra": "x"},
+        {"schema": "another.schema"},
+    ],
+)
+def test_r1_refuses_a_manifest_that_is_not_the_closed_format(
+    monkeypatch, tmp_path, mutation
+):
+    calls = _r1_runner(monkeypatch, tmp_path)
+    _analysis_manifest(tmp_path, **mutation)
+    result = checks.prelive({}, _own_grant_context())
+    assert result.status == model.FAIL and "four-key" in result.detail
+    assert calls == []
+
+
+def test_r1_refuses_a_missing_unreadable_or_empty_valued_manifest(
+    monkeypatch, tmp_path
+):
+    calls = _r1_runner(monkeypatch, tmp_path)
+    monkeypatch.setenv(checks.ANALYSIS_IMAGE_ENV, str(tmp_path / "nowhere.json"))
+    assert checks.prelive({}, _own_grant_context()).status == model.FAIL
+    (tmp_path / "bad.json").write_text("{not json", encoding="utf-8")
+    monkeypatch.setenv(checks.ANALYSIS_IMAGE_ENV, str(tmp_path / "bad.json"))
+    assert checks.prelive({}, _own_grant_context()).status == model.FAIL
+    _analysis_manifest(tmp_path, image_id="")
+    monkeypatch.setenv(checks.ANALYSIS_IMAGE_ENV, str(tmp_path / "analysis-image.json"))
+    result = checks.prelive({}, _own_grant_context())
+    assert result.status == model.FAIL and "empty" in result.detail
+    assert calls == []
+
+
+# -- the manifest helper on its own (needs no phase-4 import) -----------------------------------
+def test_manifest_helper_accepts_the_closed_format(monkeypatch, tmp_path):
+    path = _analysis_manifest(tmp_path)
+    monkeypatch.setenv(checks.ANALYSIS_IMAGE_ENV, str(path))
+    assert checks._analysis_image_manifest() == (str(path), None)
+
+
+@pytest.mark.parametrize(
+    "setup, fragment",
+    [
+        ("unset", checks.ANALYSIS_IMAGE_ENV),
+        ("missing", "is not a file"),
+        ("garbage", "four-key"),
+        ("extra", "four-key"),
+        ("schema", "four-key"),
+        ("empty", "empty or non-text"),
+    ],
+)
+def test_manifest_helper_fails_closed_with_a_reason(
+    monkeypatch, tmp_path, setup, fragment
+):
+    monkeypatch.delenv(checks.ANALYSIS_IMAGE_ENV, raising=False)
+    if setup == "missing":
+        monkeypatch.setenv(checks.ANALYSIS_IMAGE_ENV, str(tmp_path / "nowhere.json"))
+    elif setup == "garbage":
+        (tmp_path / "m.json").write_text("{not json", encoding="utf-8")
+        monkeypatch.setenv(checks.ANALYSIS_IMAGE_ENV, str(tmp_path / "m.json"))
+    elif setup != "unset":
+        over = {
+            "extra": {"extra": "x"},
+            "schema": {"schema": "other"},
+            "empty": {"image_id": ""},
+        }[setup]
+        monkeypatch.setenv(
+            checks.ANALYSIS_IMAGE_ENV, str(_analysis_manifest(tmp_path, **over))
+        )
+    path, refusal = checks._analysis_image_manifest()
+    assert path is None and fragment in refusal
