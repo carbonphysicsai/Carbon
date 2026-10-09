@@ -323,9 +323,9 @@ def showcase(target, incumbent, repository=REPOSITORY):
 def canary_hotkeys():
     """The registered canary hotkeys (OWNER-CANARY-LIST-01): excluded from
     every feed field. Empty until the record names them."""
-    from .canary import CANARY_HOTKEYS
+    from .canary import canary_hotkeys as registered
 
-    return frozenset(CANARY_HOTKEYS)
+    return registered()
 
 
 def build(target, *, key, hotkey, network, device_class="cpu", with_showcase=False):
