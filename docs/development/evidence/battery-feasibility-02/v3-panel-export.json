@@ -15,8 +15,19 @@
   "value_equivalence": "0.5 min (packet's HUMAN_INPUT recommendation)",
   "exposure": "limit 5 per question (v2-bank E, development value), batch 8, one stratum"
  },
- "states_under_main": {"UNRESOLVED": 25},
- "states_simulated_rule_a_plus_b": {"UNRESOLVED": 25},
+ "states_under_main": {
+  "UNRESOLVED": 25
+ },
+ "states_simulated_rule_a_plus_b": {
+  "UNRESOLVED": 25
+ },
  "why": "in every band an unsettled in-band candidate is faster than the best FEASIBLE one (near-limit actions are the fast ones); with drawn margins most in-band candidates have no refined solve",
- "to_settle": "115 refined solves (5 C: 4, 15 C: 8, 25 C: 40, 35 C: 45, 40 C: 18; refined p50 378 s wall on the shared host, about 12 CPU-h), then a third rung only for straddles"
+ "to_settle": "115 refined solves (5 C: 4, 15 C: 8, 25 C: 40, 35 C: 45, 40 C: 18; refined p50 378 s wall on the shared host, about 12 CPU-h), then a third rung only for straddles",
+ "refinement_approved": {
+  "authority": "Test Lead 2026-10-08: refine the 115 in-band candidates on local free CPU, low priority behind motor S3 and cooling Set A; third rung only for straddles",
+  "registered": "2026-10-08, before any of these refined results",
+  "plan": "115 refined solves (mesh 40, rtol 1e-6, atol 1e-8), run bfeas-t5r, cpu-shares 128, nice 15",
+  "third_rung": "only for candidates whose standard and refined values straddle a question's limit or differ by >= the band: mesh 80, rtol 1e-7, atol 1e-9; a candidate settles when refined and third rung lie on one side and differ by < the band; otherwise it stays UNRESOLVED",
+  "cost_record": "per question: the refined (and third-rung) solves that question needs, their count and wall-s, reported as battery v3's refinement C1/C3 input"
+ }
 }
