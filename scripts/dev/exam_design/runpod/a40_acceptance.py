@@ -44,14 +44,14 @@ from pathlib import Path
 
 REPOSITORY = Path(__file__).resolve().parents[4]
 
-#: Released images, pinned by digest (worker-images-v2, release run 37785049981).
+#: Released images, pinned by digest (worker-images-v3, release run 37855550264).
 ACCELERATOR_IMAGE = (
     "ghcr.io/carbonphysicsai/carbon-accelerator-worker@sha256:"
-    "c34d579e37eeffee944b8b4b876289963a6b283ea825b91a404167d92d0124b4"
+    "4ef87d81f412123b4cd6e0d37d4f764a49f2883dea1e03a27e5c7d1e5c1f9732"
 )
 TORCH_IMAGE = (
     "ghcr.io/carbonphysicsai/carbon-torch-gpu-worker@sha256:"
-    "28856fd628d46818741e028837f064fe1a6f9f19653091adca92a36ff5726fc1"
+    "5867207e35b2fd54d1cbf4d1fb2a7e0a6b88654a1485f138e3f0054d6b702186"
 )
 IMAGES = {"jax": ACCELERATOR_IMAGE, "pytorch": TORCH_IMAGE}
 BACKENDS = ("jax", "pytorch")

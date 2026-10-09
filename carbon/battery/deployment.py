@@ -74,6 +74,7 @@ OPTIONAL = {
     "commitment_reader",
     "development_only",
     "service_account",
+    "device",
 }
 READER_FIELDS = {"network", "endpoint", "provider", "genesis_hash", "netuid"}
 BACKENDS = ("carrier", "direct")
@@ -122,6 +123,12 @@ def load_config(path):
         raise EvaluationUnavailable("evaluation_config_image")
     if config.get("torch_image_manifest") and config["backend"] != "carrier":
         raise EvaluationUnavailable("evaluation_config_image")
+    # VALIDATOR-27: a GPU deployment is a carrier on the accelerator image,
+    # and serves PyTorch on the PyTorch GPU worker when it names one.
+    if config.get("device", "cpu") not in ("cpu", "gpu"):
+        raise EvaluationUnavailable("evaluation_config_device")
+    if config.get("device") == "gpu" and config["backend"] != "carrier":
+        raise EvaluationUnavailable("evaluation_config_device")
     from .exam import RULES
 
     if config.get("rule", "v1") not in RULES:
@@ -240,7 +247,18 @@ def build(config, *, repository, readonly=False):
             if config.get("torch_image_manifest")
             else None
         )
-        if torch_image is not None:
+        if torch_image is not None and config.get("device") == "gpu":
+            from carbon.reconstruction.torch_profile import gpu_requirements_digest
+
+            # The PyTorch GPU worker (VALIDATOR-27 slice 2) is built on the same
+            # C-03 worker as the JAX accelerator image, from this checkout's
+            # exact-hashed cu130 lock, nothing else.
+            if (
+                torch_image.base_image_digest != image.base_image_digest
+                or torch_image.lock_digest != gpu_requirements_digest(repository)
+            ):
+                raise EvaluationUnavailable("evaluation_config_image")
+        elif torch_image is not None:
             from carbon.reconstruction.torch_profile import requirements_digest
 
             # The PyTorch image is the one built on this JAX image from this
@@ -256,13 +274,26 @@ def build(config, *, repository, readonly=False):
                 and not doctor(image_id=pinned.image_id, image_identity=pinned).eligible
             ):
                 raise EvaluationUnavailable("evaluation_host_unavailable")
-        backend = CarrierBackend(
-            WorkLedger(store, work),
-            image,
-            torch_image=torch_image,
-            root=repository,
-            seconds=int(config.get("seconds", 600)),
-        )
+        from carbon.reconstruction.hardware_acceptance import DeviceClassNotAccepted
+
+        try:
+            backend = CarrierBackend(
+                WorkLedger(store, work),
+                image,
+                torch_image=torch_image,
+                root=repository,
+                seconds=int(config.get("seconds", 600)),
+                device=config.get("device"),
+            )
+        except DeviceClassNotAccepted:
+            # No hardware acceptance names this host's device class: a GPU
+            # validator never scores on it.
+            raise EvaluationUnavailable(
+                "evaluation_device_class_not_accepted"
+            ) from None
+        except ValueError:
+            # No device record on this host, or a malformed device request.
+            raise EvaluationUnavailable("evaluation_device_unavailable") from None
     else:
         backend = DirectBackend(repository)
     key = config.get("service_key")

@@ -223,9 +223,14 @@ class BatteryAdapter(ChallengeAdapter):
         ]
         profiles = []
         with self._writer():
+            from .canary import is_canary
+
             for submission_id in sorted(scored):
                 score = store.score(submission_id)
                 row = store.submission(submission_id)
+                if is_canary(row["hotkey"]):
+                    # A canary is never a leak-detection baseline (CANARY-01).
+                    continue
                 current = set(score["record"]["active_batches"])
                 block = (row["binding"].get("receipt") or {}).get("block")
                 batches = {}

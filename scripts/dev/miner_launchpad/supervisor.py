@@ -395,6 +395,20 @@ NEXT_ACTIONS = {
         "Check that the intake address serves this Carbon version, then "
         "submit again."
     ),
+    # VALIDATOR-29: the intake's score-feed read. Neither is a verdict on
+    # the recipe, and neither changes a submission.
+    "feed_not_served": (
+        "This validator intake does not publish a score feed, so no released "
+        "scores were read. Nothing was submitted or changed; the frozen "
+        "candidate is kept. Read released scores from an intake that serves "
+        "the feed, or check again later."
+    ),
+    "feed_unavailable": (
+        "The validator's score feed could not be read or did not verify, so "
+        "no released scores were shown. Nothing was submitted or changed; the "
+        "frozen candidate is kept. Scores are released only after the windows "
+        "they came from close; check again later."
+    ),
     "signer_unavailable": (
         "Your signer did not sign the submission: it is not running, or it "
         "declined. Start carbon-miner-signer for your registered hotkey, then "
@@ -631,6 +645,12 @@ NEXT_ACTIONS = {
         "Your signer could not read or write its own commitment ledger, so it "
         "signed nothing. Check the signer's state directory, restart it, then "
         "commit again (carbon_commit)."
+    ),
+    "AUTO_CONFIRM_NOT_ALLOWED": (
+        "Your signer auto-confirms only allow-listed testnet 567 hotkeys, and "
+        "this commitment is not one; nothing was signed or sent. Restart the "
+        "signer without --auto-confirm-commitments and confirm in its "
+        "terminal, then commit again (carbon_commit)."
     ),
     "backend_not_served": (
         "This validator has no worker image for your recipe's backend. That "
