@@ -227,3 +227,92 @@ def test_the_ladder_never_sets_weights(ladder_validator):
 
     with pytest.raises(Exception, match="DEVELOPMENT_DEPLOYMENT_NEVER_SETS_WEIGHTS"):
         publication.check_weight_source(ladder_validator)
+
+
+# --- slice 2: the door and the service --------------------------------------------
+
+
+def door(target, tmp_path):
+    from carbon.battery import intake as ib
+
+    target.lock_path = str(tmp_path / "state.sqlite3.lock")
+    ledger = ib.attempt_ledger({"inbox": str(tmp_path / "inbox.sqlite3")})
+    return ib.neutral_door(target, ledger)
+
+
+def screened(validator_door, adapter_digest, digest, hotkey=MINER_C):
+    from carbon.challenge_validator.interface import Submission
+
+    strategy = {
+        "schema_version": "1.0",
+        "challenge_id": tbd.BATTERY,
+        "backbone": "knn",
+        "parameters": {"neighbours": 8},
+    }
+    return validator_door.screen(
+        Submission(
+            hotkey=hotkey,
+            receipt={"sequence": 1, "digest": "0" * 64},
+            challenge_id=tbd.BATTERY,
+            challenge_version="1.0",
+            strategy_json=json.dumps(strategy),
+            contract_digest=digest,
+        )
+    )
+
+
+def test_the_ladders_door_passes_only_its_declared_variants(ladder_validator, tmp_path):
+    validator_door = door(ladder_validator, tmp_path)
+    base = ladder_validator.identities()["contract_digest"]
+    passed = screened(validator_door, base, FIXTURE_DIGESTS[2])
+    assert passed.adapter.contract_digest == base
+    assert passed.admitted.contract_digest == FIXTURE_DIGESTS[2]
+    refused = screened(validator_door, base, FIXTURE_DIGESTS[1])
+    assert refused["code"] == "development_variant_not_served"
+    assert validator_door.served_contracts() == [
+        {"level": 0, "digest": base},
+        {"level": 2, "variant": LEVEL_2, "digest": FIXTURE_DIGESTS[2]},
+    ]
+
+
+def test_the_main_door_still_refuses_every_variant(
+    tmp_path, refs, backend  # noqa: F811
+):
+    import test_battery_intake as tbi
+
+    intake, target = tbi.build(tmp_path, refs, backend)
+    base = target.identities()["contract_digest"]
+    refused = screened(intake.door, base, FIXTURE_DIGESTS[2])
+    assert refused["code"] == "development_variant_not_served"
+    assert tbi.facts(intake)["served_contracts"] == [{"level": 0, "digest": base}]
+
+
+def test_the_ladders_entry_point_supplies_the_compiler(ladder_validator, monkeypatch):
+    from carbon.development_ladder import operate
+    from carbon.reconstruction import development_variants as dv
+
+    operate.setup(ladder_validator)
+    assert ladder_validator.development_compiler is operate.compile_variant
+    calls = []
+    monkeypatch.setattr(dv, "registered", lambda digest: ("registered", digest))
+    monkeypatch.setattr(
+        dv, "compile_development", lambda strategy, v: calls.append(v) or "compiled"
+    )
+    assert operate.compile_variant({}, FIXTURE_DIGESTS[2]) == "compiled"
+    assert calls == [("registered", FIXTURE_DIGESTS[2])]
+    with pytest.raises(ValueError):
+        operate.setup(type("Main", (), {"ladder": None})())
+
+
+def test_the_supervisor_runs_the_ladders_daemon_only_for_a_ladder(tmp_path):
+    from scripts.dev.battery_validator_service import supervisor
+
+    ladder = tmp_path / "ladder.json"
+    ladder.write_text(json.dumps(config()))
+    main = tmp_path / "main.json"
+    main.write_text(json.dumps({"backend": "carrier"}))
+    assert supervisor._daemon_module(ladder) == "carbon.development_ladder.operate"
+    assert supervisor._daemon_module(main) == "carbon.battery.operate"
+    assert supervisor._daemon_module(tmp_path / "missing.json") == (
+        "carbon.battery.operate"
+    )

@@ -429,7 +429,19 @@ def neutral_door(target, ledger):
     from carbon.challenge_validator import Adapters, Validator
     from carbon.challenge_validator.battery import BatteryAdapter
 
-    return Validator(Adapters([BatteryAdapter(target)]), ledger)
+    adapter = BatteryAdapter(target)
+    ladder = getattr(target, "ladder", None)
+    # The development-ladder deployment (VALIDATOR-25) declares its variants;
+    # every other deployment declares none, so every variant stays refused.
+    development = {
+        digest: {
+            "base": adapter.contract_digest,
+            "level": ladder["level"],
+            "variant": name,
+        }
+        for digest, name in (ladder or {}).get("variants", {}).items()
+    }
+    return Validator(Adapters([adapter]), ledger, development=development)
 
 
 # --- the durable inbox ----------------------------------------------------------
@@ -731,6 +743,9 @@ class BatteryIntake:
                 },
                 "path": PATH,
                 "tools": ["battery_submit", STATUS_TOOL],
+                # What this deployment admits (VALIDATOR-25): level 0, plus a
+                # development-ladder deployment's declared variants.
+                "served_contracts": self.door.served_contracts(),
                 "limits": {
                     "max_body": MAX_BODY,
                     "snapshot_max_age_s": SNAPSHOT_MAX_AGE_S,

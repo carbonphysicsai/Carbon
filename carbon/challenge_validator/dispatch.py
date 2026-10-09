@@ -189,15 +189,54 @@ def _well_formed(submission):
 
 
 class Validator:
-    """The miner-facing validator."""
+    """The miner-facing validator.
 
-    def __init__(self, adapters, ledger):
+    `development` (VALIDATOR-25, the testnet development-ladder deployment
+    only): `{variant digest: {"base", "level", "variant"}}`, the registered
+    development variants this deployment declares it serves, each routed to
+    the adapter of its base contract. Every other variant is still refused
+    by name. Read from registry data; the variant module is never imported.
+    """
+
+    def __init__(self, adapters, ledger, development=None):
         if type(adapters) is not Adapters:
             raise TypeError("an Adapters registry is required")
         if type(ledger) is not AttemptLedger:
             raise TypeError("an AttemptLedger is required")
         self._adapters = adapters
         self._ledger = ledger
+        development = dict(development or {})
+        for digest, served in development.items():
+            if (
+                not _development_variant(digest)
+                or type(served) is not dict
+                or set(served) != {"base", "level", "variant"}
+                or adapters.get(served["base"]) is None
+            ):
+                raise ValueError("a declared variant must be registered and based")
+        self._development = development
+
+    def _adapter_for(self, digest):
+        """`(adapter, refusal)` for a contract digest: a served contract, or a
+        declared development variant routed to its base contract's adapter."""
+        if _development_variant(digest):
+            served = self._development.get(digest)
+            if served is None:
+                return None, _VARIANT_NOT_SERVED
+            return self._adapters.get(served["base"]), None
+        adapter = self._adapters.get(digest)
+        return adapter, None if adapter is not None else "contract_not_served"
+
+    def served_contracts(self):
+        """The public list of what this validator admits: each served contract
+        at level 0, and each declared development variant with its level and
+        version name. Never a hotkey."""
+        found = [{"level": 0, "digest": d} for d in sorted(self._adapters.digests())]
+        found += [
+            {"level": s["level"], "variant": s["variant"], "digest": d}
+            for d, s in sorted(self._development.items())
+        ]
+        return found
 
     def served(self):
         """The contract digests this validator serves (public)."""
@@ -222,11 +261,9 @@ class Validator:
             return refuse("malformed_submission")
         if not is_digest(submission.contract_digest):
             return refuse("contract_digest_malformed")
-        if _development_variant(submission.contract_digest):
-            return refuse(_VARIANT_NOT_SERVED)
-        adapter = self._adapters.get(submission.contract_digest)
+        adapter, refused = self._adapter_for(submission.contract_digest)
         if adapter is None:
-            return refuse("contract_not_served")
+            return refuse(refused)
         if (submission.challenge_id, submission.challenge_version) != (
             adapter.challenge_id,
             adapter.challenge_version,
@@ -324,11 +361,9 @@ class Validator:
         """
         if not is_digest(contract_digest):
             return _result("REFUSED", code="contract_digest_malformed")
-        if _development_variant(contract_digest):
-            return _result("REFUSED", code=_VARIANT_NOT_SERVED)
-        adapter = self._adapters.get(contract_digest)
+        adapter, refused = self._adapter_for(contract_digest)
         if adapter is None:
-            return _result("REFUSED", code="contract_not_served")
+            return _result("REFUSED", code=refused)
         if not (_short_text(submission_id) and _short_text(hotkey)):
             return _result("REFUSED", code="unknown_submission", adapter=adapter)
         try:

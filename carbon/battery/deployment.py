@@ -92,6 +92,20 @@ BACKENDS = ("carrier", "direct")
 
 _VALIDATORS = {}
 _LOCK = threading.RLock()
+#: The development-ladder deployment's setup (VALIDATOR-25), set once per
+#: process by its own entry point (`carbon.development_ladder.operate`), which
+#: supplies the development compiler from outside this module: this module
+#: and the daemon never import the variant module. Applied only to a ladder
+#: deployment; without it a ladder serves no variant (fail closed).
+_LADDER_SETUP = None
+
+
+def set_ladder_setup(setup):
+    """Install the development-ladder entry point's setup for this process."""
+    global _LADDER_SETUP
+    if not callable(setup):
+        raise TypeError("a callable setup is required")
+    _LADDER_SETUP = setup
 
 
 class EvaluationUnavailable(RuntimeError):
@@ -196,6 +210,7 @@ def ladder_for(config):
         return None
     from carbon.chain.models import CARBON_NETUID, CARBON_NETWORK
     from carbon.reconstruction.capability_registry import (
+        contract,
         development_variant_document,
         development_variant_registry,
     )
@@ -234,10 +249,13 @@ def ladder_for(config):
     accepted = {}
     for name in variants:
         document = development_variant_document(name) if name in versions else None
+        base = (document or {}).get("base_contract")
         if (
             document is None
             or document.get("level") != level
             or document.get("challenge") != CHALLENGE.challenge_id
+            or type(base) is not dict
+            or base.get("digest") != contract(CHALLENGE.challenge_id).digest
         ):
             raise EvaluationUnavailable("evaluation_config_ladder_variant")
         accepted[versions[name]] = name
@@ -396,6 +414,8 @@ def build(config, *, repository, readonly=False):
         raise EvaluationUnavailable("evaluation_" + mismatch.code) from None
     validator.lock_path = str(config["state"]) + ".lock"
     validator.readonly = readonly
+    if validator.ladder is not None and _LADDER_SETUP is not None:
+        _LADDER_SETUP(validator)
     if readonly:
         return validator
     try:
