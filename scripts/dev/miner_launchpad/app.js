@@ -2473,6 +2473,24 @@
     researchNote(section, "Practice gates: " + (s.eligible === true ? "all passed" : s.eligible === false ? "failed · " + (failures.join(", ") || "gate counts unavailable") : "unavailable") + " · final admissibility is separate.");
     researchNote(section, "Cases: " + num(s.n_scored) + " scored of " + num(s.n_cases) + " · " + num(s.n_reference_invalid) + " reference invalid · " + num(s.n_failed_infra) + " infrastructure failed");
     researchNote(section, "Training: final loss " + num(fit.final_loss) + " · " + num(fit.n_params) + " parameters · " + num(fit.train_s) + " s training · backend " + (backend.kind || "unavailable"));
+    const budget = budgetLine(experiment.budget_status);
+    if (budget) researchNote(section, budget, "budget-status");
+  }
+  // The recipe against its Challenge's compute budget, by admission's own
+  // rule (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01). NOT_SET shows no number.
+  function budgetNumber(v) {
+    if (Number.isInteger(v) && Math.abs(v) < 1e15) return v.toLocaleString("en-US");
+    return Number(v).toPrecision(4);
+  }
+  function budgetLine(status) {
+    if (!status || typeof status !== "object") return null;
+    const of = () => budgetNumber(status.used) + " of " + budgetNumber(status.allowed) + " " + status.unit;
+    if (status.status === "SET" && Number.isFinite(status.used) && Number.isFinite(status.allowed)) return (status.within ? "Within budget: " : "Over budget: ") + of();
+    if (status.status === "NOT_SET") return "Budget not set for this Challenge";
+    if (status.status === "UNIT_NOT_CALIBRATED") return "Budget unit not calibrated yet";
+    if (status.status === "NO_ADAPTER") return "Budget set, but this Challenge has no cost calculator yet";
+    if (status.status === "MALFORMED") return "Budget declaration malformed: nothing can be frozen under it";
+    return "Budget set, but this recipe's cost cannot be calculated";
   }
   function renderPractice(parent, experiment, index) {
     const section = document.createElement("section"); section.className = "practice-result";
@@ -3964,6 +3982,8 @@
     held, rebuild, quietly, setText, sent, refused,
     keyedOperation, heldOperation, discardOperation, releaseHeld, watch, watchStatus, notDone,
     lastRefusal, refusalNote, campaignHref, budgetParts, resourceShort, resourceValue, usageTable,
+    // A recipe against its Challenge's compute budget, one line.
+    budgetLine,
     onRender(hook) { renderHooks.push(hook); },
   };
   buildNavigation();
