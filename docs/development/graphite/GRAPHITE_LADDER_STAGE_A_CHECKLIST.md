@@ -23,8 +23,9 @@ door; **L1 confirmation waits for VALIDATOR-25** (dev-ladder), and no L1 run cou
 | 4 | A host-load check with Data Collection, recorded: free memory and CPU headroom for 2 concurrent runs (4 only after a second check) | Data Collection and executor | the check's output in the run brief |
 | 5 | The minerD-G lane is checked on chain with Carbon's reader after the WSL restart: UIDs 8 to 11 registered and the signer opt-in set | executor with the Test Lead | the reader's output (no account detail committed) |
 | 6 | The REF: a merge commit on `origin/main`, containing every PR this checklist names, the installed checkout clean at it, setup redone after any reinstall (OWNER-GRAPHITE-TEST-WAVE-05 section 3) | executor | the SHA and the clean-tree output |
-| 7 | `phase4 prelive` and `pods.real_path_check` pass at that exact SHA for each challenge and level the run uses | executor | the prelive reports (R1's containment needs the analysis image manifest) |
+| 7 | `phase4 prelive` and `pods.real_path_check` pass at that exact SHA for each challenge and level the run uses. **R1's containment check needs the analysis image manifest**: use the worker-images-v3 analysis image `ghcr.io/carbonphysicsai/carbon-miner-analysis@sha256:5cce1c2d44d87a35dd1f7273f4b8dd75da9bb19a2c40ebae9e0da0d2556d075e` (release `c80a18f21`, CPU-verified) as the source, passed to `phase4 prelive --analysis-image-manifest PATH`. The manifest file is the closed document `research_image.load_analysis_image` reads (`schema`, `image_id`, `parent_image`, `runtime_digest`); the release produces it. It is not invented or hand-written here, and the digest above alone is not that file | executor | the prelive reports and the manifest file's digest |
 | 8 | The host window is agreed in writing between the executor and Data Collection, and no sealed or EV5 host work runs in it | executor and Data Collection | the written agreement |
+| 3a | **A4 designations (Test Lead ruling, 2026-10-09):** battery L1 to L4 get dedicated zero-spend controllers; the executor creates the L0 to L4 controller roots and identities first thing after the WSL restart, and the designation entries are recorded in `admission_controllers.json` (a PR through PR Head). **A4 stays NOT passed until those entries exist on main**; it is a precondition owned by the executor, no longer an unresolved blocker | executor (roots and identities), Test Engineer (the designation records) | the five entries on main, `status: DESIGNATED` with an identity, and A4 PASS at levels 0 and 1 in the readiness report |
 | 9 | Each run has its own fresh controller root; the W2 rule applies (an open finding blocks LOCK, not exploration) | executor | the root path per run (no secret in the brief) |
 | 10 | R4's recorded entry conditions for L1 hold: the owner has picked the score variant; the `hidden_score` variant fix is merged; Level 0 run 3 has completed on the same variant; the Test Engineer's Level 1 hidden-path check says yes | Test Lead | the decision or PR for each (these are not wired into code) |
 
@@ -39,12 +40,12 @@ plus #698; baseline 2 refreshes them.
 | Ownership and decisions | O1, O2, O3 | O2, O3 PASS; O1 REVIEW_REQUIRED | O1 needs the Test Lead's committed review |
 | Plumbing | P1, P2, P4, P5, P6, P7 | PASS | PASS |
 | Plumbing | P3 | NOT_BUILT (battery) | Test Lead decides: build, or waive by a recorded decision |
-| Runtime | R1 | FAIL (containment image manifest) | PASS: the analysis image must be available on the host |
+| Runtime | R1 | FAIL (containment image manifest) | PASS: the worker-images-v3 analysis image (precondition 7) available on the host and its manifest given to prelive. The readiness runner does not pass `--analysis-image-manifest` today; wiring it (an environment variable naming the host's manifest path, as for the carrier probe) is a small follow-up PR, not assumed here |
 | Runtime | R3, R6 | R3 PASS; R6 REVIEW_REQUIRED | R6's host-window review recorded |
 | Runtime | R2, R4, R5, R7 | NOT_BUILT | Test Lead decides each: build, or waive by a recorded decision |
 | Attack instrument | A1, A3, A5 | A1 PASS; A3 NOT_BUILT; A5 REVIEW_REQUIRED | A5 review recorded; A3 per the same rule |
 | Attack instrument | A2 at level 0 and level 1 | NOT_BUILT (route-to-family check) | adapters exist at both levels; the missing check is the Test Engineer's |
-| Attack instrument | **A4 at level 0 and level 1** | FAIL: level 0 identity PENDING; **no level 1 entry** | a designated controller identity recorded per level (operator step) |
+| Attack instrument | **A4 at level 0 and level 1** | FAIL: level 0 identity PENDING; **no level 1 entry** | PASS once precondition 3a's entries exist on main (zero-spend controllers, executor-created) |
 | Scoring | S1 to S5 | S5 PASS; S1 to S3 NOT_BUILT; S4 REVIEW_REQUIRED | each decided as above |
 | Hidden path | H1, H3 | PASS | PASS |
 

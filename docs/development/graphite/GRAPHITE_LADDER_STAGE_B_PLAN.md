@@ -46,7 +46,10 @@ variant rules. None is assumed to exist.
    level's value:score pair can be reported (V1 and V2 need a real-reference Q1 report per
    level).
 7. **Controller designation** per level: an admission controller recorded for (battery, 2)
-   and (battery, 3) (A4; only level 0 exists today and it is PENDING).
+   and (battery, 3) (A4). Test Lead ruling 2026-10-09: battery L1 to L4 get dedicated
+   zero-spend controllers, and the executor creates the L0 to L4 roots and identities after the
+   WSL restart. A4 is therefore an executor-owned precondition, not an open blocker, and stays
+   NOT passed until the entries are in `admission_controllers.json` on main.
 
 ## 3. Stage B's runs and price (from the parent plan, unchanged)
 
@@ -86,5 +89,6 @@ the open items below. This file is the source; nothing else is needed.
 
 - A VALIDATOR-25 ticket or PR number (none exists on main or in PRs today).
 - Hotkey allowance for the minerD-G UIDs on the dev-ladder, and the weights-rule design.
-- A4 designations for L2 and L3; V1 and V2 Q1 reports per level.
+- A4 entries for L2 and L3 (executor-created identities, then recorded); V1 and V2 Q1
+  reports per level.
 - Level 4 stays outside stage B (owner and security owner).
