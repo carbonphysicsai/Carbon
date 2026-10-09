@@ -197,7 +197,7 @@ def build(runs, n_questions=24, seed=846):
 
 def main(runs, out, n=24):
     export = build(runs, int(n))
-    bank, grid, _, _ = producer_panels.adapt_export(
+    bank, _grid, _, _ = producer_panels.adapt_export(
         export
     )  # current main must accept it
     states = {}
