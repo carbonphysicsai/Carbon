@@ -368,55 +368,51 @@ before any run.
   (A.2). The library holds designs (strategy documents), not recipe digests,
   so it does not go stale when the implementation version moves.
 
-### D.2 The scripted prober (S-sealed and S-revealed): to build before the freeze
+### D.2 The scripted prober (S-sealed and S-revealed): built
 
-- **Where:** `scripts/dev/rate_study/prober.py`, development tooling.
-- **Its only input is the route's response to its own submissions:**
-  - S-sealed sees the mainnet allow-list fields;
-  - S-revealed also sees the batch score, on the study bank only
-    (OWNER-RATE-STUDY-D1-01).
-
-  It reads no operator record, case, seed or fresh score.
-- **The search is deterministic coordinate-wise hill climbing:**
-  - it starts at D.1's position 0;
-  - it moves over the battery contract's cost-free surfaces (width, depth,
-    steps, learning rate, weight decay, loss weights), one coordinate at a
-    time, on a fixed step list;
-  - it accepts a move when the route's returned objective improves;
-  - ties keep the current recipe;
-  - every proposal stays inside the contract, so nothing is refused for
-    shape.
-- **The objective:**
-  - S-sealed uses the allow-listed outcome (admitted and ranked fields as the
-    route returns them);
-  - S-revealed uses the returned batch score;
-  - the code is identical and only the field read differs.
-- **Determinism:** a run's sequence is a function of the route's responses
-  and the prober's own fixed step list. It uses no randomness, so a replicate
-  differs only in its batches.
+- **Where:** `carbon/agent_campaign/graphite/study_prober.py`. It lives in
+  `carbon/`, not `scripts/dev/`, so that the G-sealed probe tool (D.3) can
+  import the same search. Tests: `tests/cpu/test_rate_study_prober.py`.
+  Decision: RATE-STUDY-PROBER-01.
+- **Its only input is the route's view of its own submissions:**
+  - S-sealed reads the allow-list `state` (SCORED above NOT_SCORED);
+  - S-revealed reads `batch_score` too, on the study bank only, and a
+    revealed view without it is refused, typed.
+- **No-information states.** `WINDOW_USED` and `UNAVAILABLE` visit nothing,
+  so the same proposal comes back.
+- **The search** is deterministic coordinate-wise hill climbing over MLP
+  recipes:
+  - it starts at battery's panel MLP (6,000 steps, width 256, depth 3,
+    learning rate 0.002, weight decay 0);
+  - it moves on fixed ladders inside the contract's caps (steps, width,
+    depth, learning rate, weight decay);
+  - it takes the current point's first unvisited neighbour, or else the next
+    unvisited point of a fixed sweep;
+  - a later point replaces the current one only when strictly better.
+- **It never repeats a recipe,** because the route never rescores one (O7c).
 - **Tests:**
-  - a synthetic route checks determinism and that the search stays inside
-    the contract;
-  - a check that no file outside the run's agent-visible output is read.
+  - deterministic;
+  - 144 distinct proposals in both modes;
+  - S-revealed climbs a synthetic batch score, and S-sealed reads the state
+    only;
+  - every proposal compiles;
+  - the module imports nothing but `hashlib`, `json` and `math`, and opens no
+    file.
+- **Not built here:** the arm's runner (`rate_study run --arm S-sealed |
+  S-revealed`), which is VALIDATOR-30's. It calls `Prober.propose()` and
+  `Prober.observe(view)` with the route's agent view.
 
-### D.3 The G-sealed brief and its probe tool: to build before the freeze
+### D.3 The G-sealed brief and its probe tool
 
-- **The brief** (`docs/development/graphite/briefs/rate-study-g-sealed.md`):
-  maximise the route's returned outcome, using only what the route returns
-  for the session's own submissions. The session submits through the study
-  route at the run's rate. It has no hidden material, no operator record and
-  no fresh score, so it sees the mainnet view only.
-- **The probe tool:** D.2's step function, exposed as a Constructor tool that
-  proposes the next coordinate step from the session's own response history.
-  The session may use it or ignore it, which shows whether an LLM adds
-  anything over the scripted bound.
-- **Launch:** through the phase-3 runner with
-  `--study SUBMISSION-RATE-STUDY-01 --study-submission-cap <36|72|144>`.
-  The binding (F) is built: `STUDY_GRANTS` / `check_study_grant`,
-  GRAPHITE-STUDY-GRANT-BINDING-01. It goes to PR Head once #852 merges.
-  The grant is tokens-only, so no pod launches.
-- **Scope:** the brief and the tool are development tooling. They grant no
-  live authority, and every G-sealed run's outputs are operator-side records.
+- **The brief:** `docs/development/graphite/briefs/rate-study-g-sealed.md`.
+- **The probe tool:** `study_prober.next_probe` in S-sealed mode. On the
+  scripted prober's own history it proposes exactly what the prober would.
+  A session's own off-ladder designs are never re-proposed, and they do not
+  move the search.
+- **Still to build before the freeze:** offering the tool in a study-only
+  Constructor manifest. The name `rate_study_next_probe` is added for
+  `--study` runs only, so every other session's manifest digest is unchanged.
+- **Launch:** the phase-3 runner with `--study` (F).
 
 ## F. Stage 1 entry point (for later; not part of Stage 0)
 
