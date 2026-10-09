@@ -132,7 +132,11 @@ bank identities. Keep the input export and controls on the producer.
 
 ## Integration status
 
-The eight adapter paths are toy-tested. This branch has no settled Cooling Set A
-or Motor Stage 3 producer export to run, and does not claim measured power for
-any Challenge. Data Collection must register complete solved panels and their
-question laws before a real run. No solver is invoked by the adapter.
+The eight adapter paths are toy-tested. The supplied Motor and battery v3
+development exports run through the adapter; their conditional aggregate
+results are recorded in
+[`power-reports-01/README.md`](evidence/power-reports-01/README.md).
+Both exports still lack digest-bound settled candidate verdicts, leaving every
+question unresolved and detection probability unestimable. Data Collection
+must re-seal those reference decisions before a control separation curve can
+be measured. No solver is invoked by the adapter.

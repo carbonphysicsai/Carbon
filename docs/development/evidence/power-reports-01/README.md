@@ -28,6 +28,45 @@ bank-sharing labels. There is no continuous law in either export. The
 panel's `population_status` is `UNREGISTERED`, so P remains unmeasured and
 the curves are conditional on the sealed development panel.
 
-The aggregate results and exact input digests are added after the run. No
-per-question IDs, winners, margins or reference values belong in this
-directory.
+## Aggregate results on the supplied exports
+
+Both commands above ran against the producer's October 9 development exports.
+The source files and the full JSON outputs remain in the producer workspace;
+this record contains only aggregates and digests. Neither export includes a
+digest-bound refinement rule or a `settled` verdict. The neutral reference
+resolver therefore reports every question UNRESOLVED. It would be incorrect
+to show the resulting null detection estimates as zero power or as a control
+failure.
+
+| Export | Export digest | Questions | Shared solved-bank clusters | Unresolved Q mass | Common resolved mass, all 16 controls | P |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| Motor | `sha256:720e93a2d6bf4540119fa46c3d47478811a7f412dc80f6627ef228a6c5758569` | 20 | 1 | 1.0 | 0.0 | unregistered |
+| Battery v3 | `sha256:2ec4da3ccfc358d412bd38648f4ca9fb6a010e838964a1e4e3f65a4a2b5f041d` | 25 | 1 | 1.0, in each of five bands | 0.0 | unregistered |
+
+The complete requested curve domain is **questions per batch k = 1 through
+8** by **windows within exposure E = 1 through 5**. Every one of its 40 cells
+has `exposure_feasible = true` and `run_feasible_probability = 1.0` under the
+registered per-question quotas and 2,000 simulation replicates. For every
+control, severity, metric, and battery band, each cell's
+`estimated_detection_probability` and Monte Carlo standard error is **null
+(unestimable)**. The first k or window meeting target is also null. This is a
+conditional result for these sealed development panels, not a future-batch
+population probability. It supplies no pass/fail verdict.
+
+The full aggregate CLI outputs had SHA-256 digests
+`2edb8f4d5f3ea8b522f33d3174739541f02735d095f54946836983dfa0ee8bc1`
+(motor) and
+`2db600b9b73c401f7f0ef8b83b122ed9e723cffe6d748eaaead2f652dee4adc2`
+(battery v3). A leakage scan found zero occurrences of the exports' question
+or solved-bank IDs in either output. The outputs are not committed because
+they repeat the same null result in approximately 4 MB of JSON.
+
+Data Collection needs to re-seal the exports with per-candidate verdicts
+settled under a named, digest-bound refinement rule before a separation
+curve can be estimated. Each export currently names one shared solved-bank
+cluster. Under the registered one-sided exact sign test, one cluster has a
+minimum possible p-value of 0.5, even if all questions are settled and a
+control is worse. A panel intended to measure detection at alpha 0.05 also
+needs genuinely independent solved-bank clusters; relabeling one bank would
+not supply them. Any later export must be reported separately under its own
+digest rather than silently replacing these results.

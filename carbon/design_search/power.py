@@ -298,6 +298,29 @@ def _power_curve(
             "at_registered_batch_size": None,
             "points": [],
         }
+    # A panel with no common resolved outcome cannot estimate detection.
+    # Keep this distinct from a resolved comparison with zero separation.
+    scorable = any(
+        bin_[key] > 0 and differences.get(bin_["case"]) is not None
+        for bin_ in law["bins"]
+    )
+    if not scorable:
+        points = [
+            {
+                "questions": k,
+                "estimated_detection_probability": None,
+                "monte_carlo_standard_error": None,
+                "mean_nonzero_bank_clusters": None,
+            }
+            for k in range(1, maximum + 1)
+        ]
+        return {
+            "first_questions_meeting_target_estimate": None,
+            "at_registered_batch_size": (
+                points[registered_batch - 1] if registered_batch <= maximum else None
+            ),
+            "points": points,
+        }
     batches = _draws(law, key, seed=seed, replicates=replicates, maximum=maximum)
     points = []
     for k in range(1, maximum + 1):
