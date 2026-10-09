@@ -39,6 +39,15 @@ operator's; none is reachable from a miner surface:
   `require_commitment: false` and no `commitment_reader`, and the winner-weight
   publisher refuses it: a development deployment never sets weights and never
   serves miners.
+- `ladder` (optional; VALIDATOR-25, OWNER-LADDER-THROUGH-LAUNCHPAD-01): the
+  testnet development-ladder deployment, `{level, hotkeys, variants}`. It
+  needs `development_only: true`, so it never sets weights, and unlike any
+  other development deployment it is reached through the Launchpad: it
+  requires the chain commitment, on Carbon's testnet only. It admits only
+  the listed hotkeys (public SS58), and only the listed development variants
+  of its one level (1 to 3; Level 4 is not open). It shares the main
+  deployment's live windows (`batch_source: "answer_key"` under the main
+  deployment's rule), so it holds no bank and no exposure of its own;
 - `service_account` (optional; VALIDATOR-19 slice 0): the OS account that
   alone may touch this deployment. Every load refuses under any other account
   (`evaluation_wrong_account`), so `operate`, the confirmation seal, the
@@ -56,6 +65,7 @@ import contextlib
 import fcntl
 import json
 import os
+import re
 import stat
 import threading
 from pathlib import Path
@@ -75,6 +85,7 @@ OPTIONAL = {
     "development_only",
     "service_account",
     "device",
+    "ladder",
 }
 READER_FIELDS = {"network", "endpoint", "provider", "genesis_hash", "netuid"}
 BACKENDS = ("carrier", "direct")
@@ -154,13 +165,83 @@ def load_config(path):
             raise EvaluationUnavailable("evaluation_wrong_account")
     if type(config.get("development_only", False)) is not bool:
         raise EvaluationUnavailable("evaluation_config_fields")
-    if config.get("development_only") and (
-        config.get("require_commitment", True) is not False
-        or "commitment_reader" in config
+    if (
+        config.get("development_only")
+        and "ladder" not in config
+        and (
+            config.get("require_commitment", True) is not False
+            or "commitment_reader" in config
+        )
     ):
         # A development deployment serves no miner and sets no weights.
         raise EvaluationUnavailable("evaluation_config_development_only")
+    if "ladder" in config:
+        ladder_for(config)  # refuses a malformed ladder now
     return config
+
+
+LADDER_FIELDS = {"level", "hotkeys", "variants"}
+#: The highest level the ladder opens (OWNER-LEVEL4-GRAPH-ONLY-01: Level 4
+#: runs through the Launchpad only from its Phase 3).
+LADDER_TOP = 3
+_SS58 = re.compile(r"[1-9A-HJ-NP-Za-km-z]{47,48}\Z")
+
+
+def ladder_for(config):
+    """The development-ladder deployment's admission (VALIDATOR-25), or None:
+    `{"level", "hotkeys", "variants": {digest: version}}`. Refuses by
+    `evaluation_config_ladder*` unless every part is exact."""
+    spec = config.get("ladder")
+    if spec is None:
+        return None
+    from carbon.chain.models import CARBON_NETUID, CARBON_NETWORK
+    from carbon.reconstruction.capability_registry import (
+        development_variant_document,
+        development_variant_registry,
+    )
+
+    reader = config.get("commitment_reader")
+    if (
+        type(spec) is not dict
+        or set(spec) != LADDER_FIELDS
+        or config.get("development_only") is not True
+        or config.get("batch_source") != "answer_key"
+        or config.get("require_commitment", True) is not True
+        or type(reader) is not dict
+    ):
+        raise EvaluationUnavailable("evaluation_config_ladder")
+    if (reader.get("network"), reader.get("netuid")) != (CARBON_NETWORK, CARBON_NETUID):
+        # Never mainnet until the owner locks a level.
+        raise EvaluationUnavailable("evaluation_config_ladder_testnet_only")
+    level, hotkeys, variants = spec["level"], spec["hotkeys"], spec["variants"]
+    if type(level) is not int or level < 1:
+        raise EvaluationUnavailable("evaluation_config_ladder")
+    if level > LADDER_TOP:
+        raise EvaluationUnavailable("evaluation_config_ladder_level_4_not_open")
+    if (
+        type(hotkeys) is not list
+        or not hotkeys
+        or len(set(hotkeys)) != len(hotkeys)
+        or not all(type(h) is str and _SS58.fullmatch(h) for h in hotkeys)
+        or type(variants) is not list
+        or not variants
+        or len(set(variants)) != len(variants)
+    ):
+        raise EvaluationUnavailable("evaluation_config_ladder")
+    from .challenge import CHALLENGE
+
+    versions = development_variant_registry()["versions"]
+    accepted = {}
+    for name in variants:
+        document = development_variant_document(name) if name in versions else None
+        if (
+            document is None
+            or document.get("level") != level
+            or document.get("challenge") != CHALLENGE.challenge_id
+        ):
+            raise EvaluationUnavailable("evaluation_config_ladder_variant")
+        accepted[versions[name]] = name
+    return {"level": level, "hotkeys": frozenset(hotkeys), "variants": accepted}
 
 
 def _network(config):
@@ -319,6 +400,7 @@ def build(config, *, repository, readonly=False):
             service_key=None if key is None else ServiceKey.load(key),
             development_only=config.get("development_only", False),
             import_only=config.get("batch_source") == "answer_key",
+            ladder=ladder_for(config),
         )
     except StateError as mismatch:
         raise EvaluationUnavailable("evaluation_" + mismatch.code) from None
