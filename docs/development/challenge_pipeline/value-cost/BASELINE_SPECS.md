@@ -215,11 +215,14 @@ unchanged job. A 2D pass alone is not a final 3D acceptance verdict.
   worst-condition outlet uniformity under the registered
   design. Latency is surface evaluation and a finite scan, p50/p95 unmeasured;
   outside fitted Reynolds/Péclet and geometry support it abstains.
-- **Existing use.** The [original micromixer design study in *Scientific
-  Reports*](https://pmc.ncbi.nlm.nih.gov/articles/PMC8907327/) uses Latin
-  hypercube CFD samples, response-surface proxies and a genetic search for
-  mixing index and pressure drop. It shows the method class, not its adequacy
-  for Carbon's finite inlet/diffusion observer.
+- **Existing use.** An [Ansys CFX static-mixer optimization workflow](https://ansyshelp.ansys.com/public/Views/Secured/corp/v251/en/cfx_tutr/CAGDDGEB.html)
+  uses design of experiments and response-surface optimization in an
+  engineering tool. An [original micromixer design study in *Scientific
+  Reports*](https://pmc.ncbi.nlm.nih.gov/articles/PMC8907327/) applies Latin
+  hypercube CFD sampling, response-surface proxies and a genetic search to
+  micromixer mixing index and pressure drop. Together these show the workflow
+  and its micromixer application, not buyer adoption or adequacy for Carbon's
+  finite inlet/diffusion observer.
 - **Decision agreement.** Compare mixing, pressure and residence hard-limit
   verdicts over all flow/diffusivity strata, then selected groove and
   mixing-index regret. Recompute
