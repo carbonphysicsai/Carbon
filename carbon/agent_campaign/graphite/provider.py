@@ -118,6 +118,7 @@ from .model_providers import DEFAULT_MODEL_PROVIDER
 from .roles import (
     MODEL_SETTINGS,
     PARALLEL_RULES,
+    ROLES,  # noqa: F401 - re-exported: tests patch the shared role table here
     TOOL_TEXT_V1,
     TOOL_TEXT_V2,
     TOOL_TEXTS,
