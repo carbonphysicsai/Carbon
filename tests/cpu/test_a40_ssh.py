@@ -230,21 +230,49 @@ def test_the_driver_is_read_before_any_rebuild_and_flags_are_exact(tmp_path):
         assert "NVIDIA_TF32_OVERRIDE=0" in r and "--rm" in r
 
 
-def test_each_repeat_is_its_own_container_and_the_fno_is_skipped(tmp_path):
+def test_each_repeat_is_its_own_container_and_the_fno_runs_by_default(tmp_path):
     fake = FakeSsh()
     summary, results = run(fake, tmp_path)
+    assert summary["status"] == "COMPLETE" and summary["skipped"] == {}
+    by_backend = {r["backend"]: r for r in results}
+    mlp = [("r1", 0), ("r1", 1), ("r2", 0), ("r2", 1)]
+    jax_rows = by_backend["jax"]["rows"]
+    assert [(r["recipe_id"], r["repeat"]) for r in jax_rows] == mlp
+    torch_rows = by_backend["pytorch"]["rows"]
+    assert [(r["recipe_id"], r["repeat"]) for r in torch_rows] == mlp + [
+        ("fno_defaults", 0),
+        ("fno_defaults", 1),
+    ]
+    assert all(r["cloud"] == "VAST_SSH" for r in results)
+    assert len(set(fake.containers)) == len(fake.containers)
+
+
+def test_skip_fno_is_optional_and_recorded(tmp_path):
+    fake = FakeSsh()
+    summary, results = run(fake, tmp_path, skip_fno=True)
     assert (
         summary["status"] == "COMPLETE" and summary["skipped"]["fno"]["skipped"] is True
     )
-    by_backend = {r["backend"]: r for r in results}
-    for backend in ("jax", "pytorch"):
-        rows = by_backend[backend]["rows"]
-        assert [(r["recipe_id"], r["repeat"]) for r in rows] == [
-            ("r1", 0), ("r1", 1), ("r2", 0), ("r2", 1)
-        ]  # fmt: skip
-        assert by_backend[backend]["cloud"] == "VAST_SSH"
-    assert len(set(fake.containers)) == len(fake.containers)
+    torch_rows = next(r for r in results if r["backend"] == "pytorch")["rows"]
+    assert {r["recipe_id"] for r in torch_rows} == {"r1", "r2"}
     assert not any("fno" in r for r in fake.remotes if "-c pass" not in r)
+
+
+def test_the_cli_accepts_skip_fno_and_runs_the_fno_without_it(monkeypatch, tmp_path):
+    seen = {}
+
+    def fake_run_all(box_, record, ref, repository, out, **kw):
+        seen.update(kw)
+        return {"status": "COMPLETE"}, []
+
+    record = tmp_path / "r.json"
+    a40.write_record({**RECORD, "schema": a40.RECORD_SCHEMA}, record)
+    monkeypatch.setattr(ssh, "run_all", fake_run_all)
+    base = ["--host", "u@h", "--key", KEY, "--record", str(record), "--code-ref", "a" * 40,
+            "--out", str(tmp_path / "o"), "--deadline-minutes", "5"]  # fmt: skip
+    assert ssh.main(base) == 0 and seen["skip_fno"] is False
+    assert ssh.main([*base, "--skip-fno", "--target-device", "RTX 4090"]) == 0
+    assert seen["skip_fno"] is True and seen["target"] == "RTX 4090"
 
 
 def test_a_failed_probe_is_failed_infra_and_runs_no_rebuild(tmp_path):
@@ -263,6 +291,7 @@ def test_results_feed_compare_and_one_host_is_within_host_only(tmp_path):
         ("jax", "r2"),
         ("pytorch", "r1"),
         ("pytorch", "r2"),
+        ("pytorch", "fno_defaults"),
     }
     for cell in cells.values():
         assert cell["within_host_equal"] is True

@@ -1026,13 +1026,25 @@ class BatteryValidator:
             record = self._pool_records(
                 pool, submission_id, incumbent_id, f"a{attempt}"
             )
-            if "development" in self.store.submission(submission_id)["binding"]:
+            from carbon.challenge_validator.canary import is_canary
+
+            submission = self.store.submission(submission_id)
+            if "development" in submission["binding"]:
                 # A development level is never nominated, never an incumbent
                 # and never in standings or weights (VALIDATOR-13 separation).
                 record["nomination"] = {
                     **record["nomination"],
                     "nominated": False,
                     "excluded": "DEVELOPMENT_LEVEL",
+                }
+            elif is_canary(submission["hotkey"]):
+                # A registered canary (CANARY-01) is scored as any submission,
+                # the liveness check, and never nominated: never an incumbent,
+                # a finalist, a standing or a weight.
+                record["nomination"] = {
+                    **record["nomination"],
+                    "nominated": False,
+                    "excluded": "CANARY",
                 }
             nomination = (
                 self._nomination(submission_id, incumbent_id, record)

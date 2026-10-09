@@ -62,6 +62,12 @@ START = (4, 4, 2, 2, 0)
 #: not an observation.
 SEALED_VALUE = {"SCORED": 1.0, "NOT_SCORED": 0.0}
 NO_INFORMATION = ("WINDOW_USED", "UNAVAILABLE")
+#: The route's answer to an identical resubmission (VALIDATOR-30 consumer
+#: contract): the recipe is visited, with no new value, so it is never
+#: proposed again.
+REPEATED = "REPEATED"
+#: The largest `history_json` the probe tool reads.
+MAX_HISTORY_BYTES = 1024 * 1024
 
 
 class ProberRefused(ValueError):
@@ -105,7 +111,7 @@ def objective(mode, view):
     if type(view) is not dict or type(view.get("state")) is not str:
         raise ProberRefused("prober_view_malformed")
     state = view["state"]
-    if state in NO_INFORMATION:
+    if state in NO_INFORMATION or state == REPEATED:
         return None
     if state not in SEALED_VALUE:
         raise ProberRefused("prober_view_state_unknown")
@@ -175,9 +181,11 @@ def next_probe(mode, history):
         if type(entry) is not dict or set(entry) != {"strategy", "view"}:
             raise ProberRefused("probe_history_malformed")
         value = objective(mode, entry["view"])
-        if value is None:
-            continue
         point = _point(entry["strategy"])
+        if value is None:
+            if point is not None and entry["view"]["state"] == REPEATED:
+                visited.add(point)
+            continue
         if point is None:
             continue
         visited.add(point)
@@ -220,3 +228,65 @@ class Prober:
         self.history.append({"strategy": self.pending, "view": view})
         self.pending = None
         return value
+
+
+class ContractProber:
+    """The prober as VALIDATOR-30's study runner calls it (consumer contract,
+    `--prober MODULE:OBJECT`): `propose(feedback) -> strategy`, where
+    `feedback` is the route's answer to the previous proposal (None before the
+    first). S-sealed's feedback is the allow-list view; S-revealed's is the
+    view with `batch_score`, or the batch score alone, which reads as a scored
+    view. The strategy is a JSON-ready document. One instance per run."""
+
+    def __init__(self, mode):
+        self.prober = Prober(mode)
+        self.started = False
+
+    def propose(self, feedback=None):
+        if self.started:
+            if feedback is None:
+                raise ProberRefused("prober_feedback_missing")
+            if self.prober.mode == REVEALED and type(feedback) in (int, float):
+                feedback = {"state": "SCORED", "batch_score": feedback}
+            self.prober.observe(feedback)
+        self.started = True
+        return self.prober.propose()
+
+
+def sealed():
+    """A fresh S-sealed prober (`--prober ...study_prober:sealed`)."""
+    return ContractProber(SEALED)
+
+
+def revealed():
+    """A fresh S-revealed prober (`--prober ...study_prober:revealed`)."""
+    return ContractProber(REVEALED)
+
+
+def probe_tool(arguments):
+    """The `rate_study_next_probe` tool's answer for a G-sealed session: the
+    S-sealed search's next strategy from the session's own history. A typed
+    refusal for a malformed request; it never submits anything."""
+    history_json = arguments.get("history_json") if type(arguments) is dict else None
+    if (
+        type(arguments) is not dict
+        or set(arguments) != {"history_json"}
+        or type(history_json) is not str
+    ):
+        return {"status": "REFUSED_INVALID_REQUEST", "reason_code": "probe_arguments"}
+    if len(history_json.encode("utf-8")) > MAX_HISTORY_BYTES:
+        return {
+            "status": "REFUSED_INVALID_REQUEST",
+            "reason_code": "probe_history_too_large",
+        }
+    try:
+        history = json.loads(history_json)
+        proposal = next_probe(SEALED, history)
+    except ValueError as refused:
+        code = refused.code if type(refused) is ProberRefused else "probe_history_json"
+        return {"status": "REFUSED_INVALID_REQUEST", "reason_code": code}
+    return {
+        "status": "OK",
+        "strategy": proposal,
+        "note": "A suggestion only: nothing was submitted and no run was used.",
+    }

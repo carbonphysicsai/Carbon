@@ -261,11 +261,16 @@ def parameters(doc):
     ]
 
 
-def validate_submission(parsed, allowlist, *, interface, batch=None, caps=None):
+def validate_submission(
+    parsed, allowlist, *, interface, batch=None, caps=None, loss_override=None
+):
     """G4 over a verified submission (`submission.verify`): every document,
-    then the init graph's outputs against the forward graph's parameters.
-    The submission's status is the strictest of its documents'."""
+    then the init graph's outputs against the forward graph's parameters, and
+    a loss graph against the loss slot (`loss`), admitted only under the
+    Challenge's `loss_override: graph`. The submission's status is the
+    strictest of its documents'."""
     from . import initializers
+    from . import loss as loss_slot
 
     verdicts = {
         "forward": validate(
@@ -278,7 +283,13 @@ def validate_submission(parsed, allowlist, *, interface, batch=None, caps=None):
         )
     }
     if "loss" in parsed:
+        loss_slot.gate(parsed, loss_override)
         verdicts["loss"] = validate(parsed["loss"], allowlist, role="loss", caps=caps)
+        loss_slot.check(
+            parsed["loss"],
+            interface,
+            loss_slot.aux_outputs(parsed["forward"], interface),
+        )
     wanted = [(d, s) for _, d, s in parameters(parsed["forward"])]
     if "init" in parsed:
         verdicts["init"] = validate(parsed["init"], allowlist, role="init", caps=caps)

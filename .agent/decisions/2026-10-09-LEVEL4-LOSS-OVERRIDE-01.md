@@ -20,7 +20,7 @@ Recorded by the Level 4 engineer session.
    - G7's exam is unchanged;
    - a non-finite loss is the candidate's own training failure.
 2. **A new version.** It is registered as `battery-l4-graph-v3`, with
-   development record 0006. v1 and v2 stay pinned in the registry as history.
+   development record 0007. v1 and v2 stay pinned in the registry as history.
 
 **Unchanged.**
 - **Frozen and live rules.** Battery's frozen and live rules declare no

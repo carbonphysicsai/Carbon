@@ -28,6 +28,7 @@ submission twice, rotate twice or repeat a completed solve.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sqlite3
@@ -115,6 +116,13 @@ CREATE TABLE IF NOT EXISTS batch_quizzes(
   quiz_digest TEXT NOT NULL,
   references_digest TEXT NOT NULL,
   panel_version INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS published_cases(
+  case_id TEXT PRIMARY KEY,
+  file TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS feed_versions(
+  version INTEGER PRIMARY KEY,
+  digest TEXT NOT NULL,
+  body TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS quiz_reports(
   submission_id TEXT PRIMARY KEY,
   body TEXT NOT NULL);
@@ -778,6 +786,82 @@ class PoolStore:
                 "SELECT body FROM design_reports ORDER BY submission_id"
             ).fetchall()
         return [json.loads(row[0]) for row in rows]
+
+    # --- the score feed's records (VALIDATOR-29) -------------------------------------
+
+    def record_published(self, file, case_ids):
+        """Record cases this validator verified in a published training file
+        (the public pool). Idempotent; returns how many were new."""
+        added = 0
+        with self.transaction() as db:
+            for case_id in case_ids:
+                added += db.execute(
+                    "INSERT OR IGNORE INTO published_cases VALUES(?,?)", (case_id, file)
+                ).rowcount
+        return added
+
+    def published_case_ids(self):
+        with self.db() as db:
+            return {r[0] for r in db.execute("SELECT case_id FROM published_cases")}
+
+    def batch_fingerprints(self):
+        with self.db() as db:
+            return [r[0] for r in db.execute("SELECT fingerprint FROM batches")]
+
+    def scored_submissions(self):
+        """`[{submission_id, hotkey, binding, state, score}]` for every scored
+        submission, oldest first. Operator-only."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT s.submission_id, b.hotkey, b.binding, b.state, s.pool_version, "
+                "s.record FROM scores s JOIN submissions b USING(submission_id) "
+                "ORDER BY b.created, s.submission_id"
+            ).fetchall()
+        return [
+            {
+                "submission_id": r[0],
+                "hotkey": r[1],
+                "binding": json.loads(r[2]),
+                "state": r[3],
+                "pool_version": r[4],
+                "record": json.loads(r[5]),
+            }
+            for r in rows
+        ]
+
+    def finals_rows(self):
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT final_id, challenger, incumbent, state FROM finals"
+            ).fetchall()
+        return [
+            {"final_id": r[0], "challenger": r[1], "incumbent": r[2], "state": r[3]}
+            for r in rows
+        ]
+
+    def record_feed(self, body):
+        """Store a feed document as a new version when it differs from the
+        latest; returns the version that holds it."""
+        digest = "sha256:" + hashlib.sha256(_json(body).encode()).hexdigest()
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT version, digest FROM feed_versions ORDER BY version DESC LIMIT 1"
+            ).fetchone()
+            if row is not None and row[1] == digest:
+                return row[0]
+            version = 1 if row is None else row[0] + 1
+            db.execute(
+                "INSERT INTO feed_versions VALUES(?,?,?)",
+                (version, digest, _json(body)),
+            )
+            return version
+
+    def latest_feed(self):
+        with self.db() as db:
+            row = db.execute(
+                "SELECT body FROM feed_versions ORDER BY version DESC LIMIT 1"
+            ).fetchone()
+        return None if row is None else json.loads(row[0])
 
     def quiz_report(self, submission_id):
         with self.db() as db:

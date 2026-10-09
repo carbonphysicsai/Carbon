@@ -409,9 +409,19 @@ before any run.
   scripted prober's own history it proposes exactly what the prober would.
   A session's own off-ladder designs are never re-proposed, and they do not
   move the search.
-- **Still to build before the freeze:** offering the tool in a study-only
-  Constructor manifest. The name `rate_study_next_probe` is added for
-  `--study` runs only, so every other session's manifest digest is unchanged.
+- **Offered to G-sealed sessions only** (RATE-STUDY-PROBE-TOOL-01): a
+  `--study` run's Constructor is `roles.study_role`, the ordinary
+  Constructor plus `rate_study_next_probe`. Every other session's manifest
+  digest is unchanged.
+- **For VALIDATOR-30's runner** (consumer contract #876,
+  `--prober MODULE:OBJECT`): pass
+  `carbon.agent_campaign.graphite.study_prober:sealed` or `:revealed`.
+  - Each is a factory that returns a fresh `ContractProber` for one run.
+  - Its `propose(feedback)` takes the route's answer to the previous proposal
+    (None first): the allow-list view, or for S-revealed the view or the
+    batch score alone.
+  - It returns a JSON-ready strategy document.
+  - A `REPEATED` answer visits its recipe, which is never proposed again.
 - **Launch:** the phase-3 runner with `--study` (F).
 
 ## F. Stage 1 entry point (for later; not part of Stage 0)

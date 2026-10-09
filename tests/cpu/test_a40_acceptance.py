@@ -30,7 +30,7 @@ RELEASED_TORCH = a40.TORCH_IMAGE
         "ghcr.io/carbonphysicsai/carbon-accelerator-worker:latest",
         "ghcr.io/carbonphysicsai/carbon-accelerator-worker",
         "ghcr.io/carbonphysicsai/carbon-accelerator-worker@sha256:" + "0" * 64,
-        "ghcr.io/other/worker@sha256:" + "c34d579e" + "0" * 56,
+        "ghcr.io/other/worker@sha256:" + "4ef87d81" + "0" * 56,
         "ghcr.io/carbonphysicsai/carbon-torch-gpu-worker@sha256:abc",
         "",
         None,
@@ -43,10 +43,10 @@ def test_only_released_digest_pinned_images_are_accepted(image):
 
 def test_released_images_are_the_briefs_digests():
     assert a40.check_image(RELEASED_ACCELERATOR).endswith(
-        "c34d579e37eeffee944b8b4b876289963a6b283ea825b91a404167d92d0124b4"
+        "4ef87d81f412123b4cd6e0d37d4f764a49f2883dea1e03a27e5c7d1e5c1f9732"
     )
     assert a40.check_image(RELEASED_TORCH).endswith(
-        "28856fd628d46818741e028837f064fe1a6f9f19653091adca92a36ff5726fc1"
+        "5867207e35b2fd54d1cbf4d1fb2a7e0a6b88654a1485f138e3f0054d6b702186"
     )
     assert a40.IMAGES == {"jax": RELEASED_ACCELERATOR, "pytorch": RELEASED_TORCH}
 
@@ -60,7 +60,7 @@ def test_rate_ceiling_derives_from_the_committed_grant():
         grant,
         flags=re.MULTILINE,
     )
-    assert amended[-1] == ("0.65", "8")
+    assert amended[-1] == ("0.95", "8")
     assert a40.RATE_CEILING_USD_PER_HR == Decimal(amended[-1][0])
     assert a40.DEFAULT_CAP_USD == Decimal(amended[-1][1])
     assert a40.RATE_CEILING_USD_PER_HR == a40.grant_rate()
@@ -82,21 +82,21 @@ def test_the_pod_phase_leaves_the_process_environment_untouched(tmp_path, monkey
 
 
 def test_rate_is_the_grants_rate():
-    assert a40.hourly_rate() == Decimal("0.65")
+    assert a40.hourly_rate() == Decimal("0.95")
 
 
 def test_budget_gate_is_the_test_leads_inequality():
     hours = 1.0
     gate = a40.budget_gate(3600)
-    expected = (4 + 2) * Decimal(hours) * Decimal("0.65") + Decimal("0.25")
+    expected = (4 + 2) * Decimal(hours) * Decimal("0.95") + Decimal("0.25")
     assert Decimal(gate["worst_case_usd"]) == expected.quantize(Decimal("0.0001"))
     # The grant's own 2.0 h deadline cannot fit six pods under USD 8.00.
     with pytest.raises(a40.Refused, match="exceeds the cap"):
         a40.budget_gate(2 * 3600)
     # A smoke pod's reservation counts against the same cap.
     with pytest.raises(a40.Refused):
-        a40.budget_gate(3600, Decimal("4.25"), smoke_reserved=Decimal("0.5"))
-    assert a40.budget_gate(3600, Decimal("4.25"))["cap_usd"] == "4.25"
+        a40.budget_gate(3600, Decimal("6.00"), smoke_reserved=Decimal("0.5"))
+    assert a40.budget_gate(3600, Decimal("6.00"))["cap_usd"] == "6.00"
 
 
 def test_deadline_is_measured_times_one_and_a_half():
@@ -549,7 +549,7 @@ def test_launch_refuses_below_the_balance_floor(world):
 
 def test_launch_refuses_an_offer_above_the_rate_ceiling(world):
     make, fake, _bodies = world
-    fake.rate = 0.70
+    fake.rate = 1.00
     runner, _fleet = make([])
     with pytest.raises(a40.NoA40):  # above the ceiling is never created
         a40.run_acceptance(runner, RECORD, SMOKES)
