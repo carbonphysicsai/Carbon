@@ -52,7 +52,7 @@ needed to test it: a sourced buyer workflow and decision volume; feasible,
 contested questions; a qualified reference; superiority over cached FE,
 response surfaces and other cheap models at matched admissibility; and full
 construction/evaluation cost. The separate
-[buyer-volume proposal](../../../docs/development/challenge_pipeline/discovery/buyer-volume/README.md)
+[buyer-volume proposal](https://github.com/carbonphysicsai/Carbon/blob/a0385353357fdac4aafc79b5aa4430b1c20b05e4/docs/development/challenge_pipeline/discovery/buyer-volume/README.md)
 records why public charging activity and within-study design counts cannot fill
 the missing annual engineering-decision denominator.
 
