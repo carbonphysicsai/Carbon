@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-magnetics-panels-baseline",
+  "recorded_at": "2026-10-09T18:34:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "tests/cpu/test_challenge_pipeline.py", "description": "Native unchanged pipeline baseline before magnetics proposal tests. No field solve, real panel data or paid work."},
+  "expected": "Existing pipeline and lessons stay green before independent proposal documents.",
+  "observed": "28 passed in 6.27s on native Python 3.11; not canonical acceptance.",
+  "keep": ["Reuse the existing pipeline, not a new scientific runtime or family identifier."],
+  "change": ["Separate binary reuse from axisymmetric force and planar/3D inductance feature proof; count derivative states and complete-case costs."],
+  "protocol_elements": ["reference-policy", "case-contract", "lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
