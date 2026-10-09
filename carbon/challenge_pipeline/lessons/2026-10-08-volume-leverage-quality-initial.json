@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-volume-leverage-quality-initial",
+  "recorded_at": "2026-10-08T23:28:37Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-VOLUME-LEVERAGE-01 quality-initial",
+    "description": "Bounded native Windows static validation; no solver/model training/spend or hidden material."
+  },
+  "expected": "Test scenario arithmetic and preserve current packet/protocol authority.",
+  "observed": "Black initially requested formatting of the new test; Ruff passed. Public pipeline validation: DEFINING, 7 records and 466 lessons valid, 0 awaiting decision; admission identities remain pending. Native-host diagnostics, not canonical CI or economic/scientific qualification.",
+  "keep": [
+    "Repair formatting without weakening tests; no green static record upgrades the protocol or a solver tier."
+  ],
+  "change": [
+    "Replace assumed cadence/unique workflow/build/inference fields only with matched buyer and Data Collection receipts."
+  ],
+  "protocol_elements": [
+    "buyer value",
+    "model leverage",
+    "reference cost",
+    "historical evidence"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

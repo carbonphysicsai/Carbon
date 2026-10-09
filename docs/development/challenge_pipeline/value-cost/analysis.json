@@ -13,6 +13,14 @@
   "adoption": "HUMAN_INPUT",
   "overall_keep": "NOT_DEMONSTRATED",
   "ranking": "UNCOMPUTABLE",
+  "volume_leverage_followup": {
+    "authority": "OWNER-CHALLENGE-VOLUME-LEVERAGE-01",
+    "sheet": "volume-leverage.json",
+    "annual_rank_status": "ASSUMPTION_CONDITIONAL_GROSS_NOT_MARKET",
+    "measured_rank_status": "UNCOMPUTABLE",
+    "original_value_cost_pr": 846,
+    "owner_framework_changed": false
+  },
   "t2": {
     "minimum_feasible": 5,
     "minimum_near_infeasible": 5,
@@ -97,7 +105,7 @@
         "NREL",
         "Chen et al., independent research study"
       ],
-      "workflow_evaluation_count": "UNSOURCED",
+      "workflow_evaluation_count": "SOURCED_ANALOGUE_WITH_ASSUMED_TRANSFER",
       "buyer_value": {
         "status": "ASSUMPTION",
         "currency": "USD",
@@ -160,7 +168,7 @@
         "Kollmorgen",
         "COMSOL"
       ],
-      "workflow_evaluation_count": "UNSOURCED",
+      "workflow_evaluation_count": "SOURCED_ANALOGUE_WITH_ASSUMED_TRANSFER",
       "buyer_value": {
         "status": "ASSUMPTION",
         "currency": "USD",
@@ -223,7 +231,7 @@
         "Boyd",
         "CoolIT"
       ],
-      "workflow_evaluation_count": "UNSOURCED",
+      "workflow_evaluation_count": "SOURCED_ANALOGUE_WITH_ASSUMED_TRANSFER",
       "buyer_value": {
         "status": "ASSUMPTION",
         "currency": "USD",
@@ -282,7 +290,7 @@
         "AMD",
         "Ansys"
       ],
-      "workflow_evaluation_count": "UNSOURCED",
+      "workflow_evaluation_count": "SOURCED_ANALOGUE_WITH_ASSUMED_TRANSFER",
       "buyer_value": {
         "status": "ASSUMPTION",
         "currency": "USD",
@@ -349,7 +357,7 @@
         "Ansys",
         "Westerveld et al."
       ],
-      "workflow_evaluation_count": "UNSOURCED",
+      "workflow_evaluation_count": "SOURCED_ANALOGUE_WITH_ASSUMED_TRANSFER",
       "buyer_value": {
         "status": "ASSUMPTION",
         "currency": "USD",
@@ -416,7 +424,7 @@
         "Ansys",
         "Siemens"
       ],
-      "workflow_evaluation_count": "UNSOURCED",
+      "workflow_evaluation_count": "SOURCED_ANALOGUE_WITH_ASSUMED_TRANSFER",
       "buyer_value": {
         "status": "ASSUMPTION",
         "currency": "USD",
@@ -485,7 +493,7 @@
         "COMSOL",
         "Andersen, Dinex"
       ],
-      "workflow_evaluation_count": "UNSOURCED",
+      "workflow_evaluation_count": "SOURCED_ANALOGUE_WITH_ASSUMED_TRANSFER",
       "buyer_value": {
         "status": "ASSUMPTION",
         "currency": "USD",
@@ -554,7 +562,7 @@
         "Stroock et al.",
         "COMSOL"
       ],
-      "workflow_evaluation_count": "UNSOURCED",
+      "workflow_evaluation_count": "SOURCED_ANALOGUE_WITH_ASSUMED_TRANSFER",
       "buyer_value": {
         "status": "ASSUMPTION",
         "currency": "USD",

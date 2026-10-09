@@ -30,6 +30,7 @@ from test_challenge_validator_design_bank import ToyLaw, solve_all
 from carbon.challenge_validator import answer_key as ak
 from carbon.challenge_validator import canary
 from carbon.challenge_validator import design_bank as db
+from carbon.challenge_validator import feed_file
 from carbon.challenge_validator import score_feed as sf
 from carbon.challenge_validator.training_pool import TrainingPool
 
@@ -222,12 +223,12 @@ def test_the_door_serves_only_a_verified_feed(tmp_path, monkeypatch):
     route = ib.FEED_PATH + CHALLENGE.challenge_id
     door.feed = None
     assert door.score_feed() == ib.Answer(404, {"refused": "feed_not_served"})
-    door.feed = functools.partial(sf.read_feed, path, CHALLENGE.challenge_id)
+    door.feed = functools.partial(feed_file.read_feed, path, CHALLENGE.challenge_id)
     assert door.score_feed() == ib.Answer(200, feed)
     # A tampered file, or another Challenge's, is never served.
     sf.write_feed(path, {**feed, "version": 2})
     assert door.score_feed() == ib.Answer(503, {"refused": "feed_unavailable"})
-    assert sf.read_feed(path, "another-challenge") is None
+    assert feed_file.read_feed(path, "another-challenge") is None
     assert route == "/carbon/v1/feed/" + CHALLENGE.challenge_id
 
 

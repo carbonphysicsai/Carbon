@@ -1335,7 +1335,8 @@ def _feed_reader(config):
         return None
     import functools
 
-    from carbon.challenge_validator.score_feed import read_feed
+    # The file helpers only: the door never reaches the feed builder's science.
+    from carbon.challenge_validator.feed_file import read_feed
 
     from .challenge import CHALLENGE
 

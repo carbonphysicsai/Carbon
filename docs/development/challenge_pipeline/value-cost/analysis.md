@@ -155,8 +155,8 @@ V2/V3 dollar scenarios are not customer payments or official score inputs.
 Report gross benefit separately from retained verification, integration,
 cooling/energy and model-build cost; net positive value is unproven where those
 are missing. Do not sum avoided prototypes, saved labour, simulator CPU and
-operating gains when they describe the same benefit. V4 workflow counts still
-need sources; scenario counts alone do not pass it. The framework ranking is
+operating gains when they describe the same benefit. V4 has sourced analogues;
+buyer counts/timings still need evidence. The framework ranking is
 UNCOMPUTABLE until accepted comparable money conversion and measured C2/C3
 exist; J, dB, M and minutes are not comparable cross-Challenge currencies.
 
@@ -165,3 +165,151 @@ settled picks/regret, question-level residual unresolved rates and power
 receipts. Owner/science accept reframed scope and witnesses before adoption.
 No solver, spend, hidden material, EV5/journal14/live-contract or qualification
 change follows from these specifications. The Battery-led protocol stays DEFINING.
+
+## Volume × leverage follow-up to #846
+
+Prospective authority: OWNER-CHALLENGE-VOLUME-LEVERAGE-01.
+[Static sensitivity sheet](volume-leverage.json): tested arithmetic, not a
+buyer survey, fitted market model, solver/training run or grant. Each card now
+has two independent primary-source volume anchors and a published workflow/tool
+anchor. None establishes annual volume of this exact Carbon-sized decision.
+Low/base/high are assumed cohorts, not confidence intervals. Empirical
+commercial lower bound is zero. Sources anchor roles and recurring product
+work, not eligibility, unique annual projects, paid demand or adoption.
+
+V3 counts non-duplicated eligible revisions/year, except battery's eligible
+time-bottleneck sessions/year. One outsourced supplier/OEM programme counts
+once. Catalogue stock, shipments, assays, frequency points and threshold redraws
+are not new revisions. Historical launch dates and long product lifecycles
+are counterevidence to counting every SKU as an annual new design.
+
+### Conditional annual gross ranking
+
+USD, original #846 V2 assumptions retained, including lower f06/f13 V2 for
+their conditional narrowed scopes. Every volume factor is ASSUMPTION;
+current deployment and realized time/labour improvement are NOT_DEMONSTRATED.
+
+| Base order | Challenge | Annual units low / base / high | Gross annual USD low / base / high |
+| ---: | --- | --- | --- |
+| 1 | Battery v3 | 7,500 /210,000 /3,300,000 sessions | 1,500 /315,000 /19,800,000 |
+| 2 | Motor | 20 /180 /1,200 revisions | 4,000 /162,000 /3,840,000 |
+| 3 | f02 burst thermal | 20 /240 /1,200 revisions | 4,000 /144,000 /1,920,000 |
+| =4 | f06 early grating design | 10 /120 /600 revisions | 2,000 /72,000 /720,000 |
+| =4 | f17 cartridge mixer | 5 /60 /320 revisions | 2,000 /72,000 /1,024,000 |
+| 6 | f08 support | 10 /60 /240 revisions | 2,000 /54,000 /576,000 |
+| 7 | Cooling cell | 10 /90 /480 revisions | 1,000 /40,500 /768,000 |
+| 8 | f13 supported silencer stage | 5 /60 /240 revisions | 1,000 /36,000 /384,000 |
+
+These are **cohort opportunity sensitivities**, not industry annual value,
+TAM or Carbon revenue. Do not sum across eight: shared programmes and benefit
+mechanisms are unreconciled. If improvement, eligibility or adoption is zero,
+realized benefit is zero. Battery's high case needs matching chemistry, fleet,
+safety/deployment and time-bottleneck evidence, not just vehicle counts.
+
+**Versus #846:** there was no prior annual rank; its framework ranking was
+UNCOMPUTABLE. Relative to V2-per-revision emphasis, volume raises f02's
+priority and weakens f13/cooling; battery potentially leads only with the
+correct session denominator. f06/f17 tie in base but separate in high; cooling
+overtakes f06/f08 in high. Motor/f02 lead in low, with battery behind.
+Material reversals make unconditional ranking unjustified. Framework KEEP
+and value-to-cost rank stay **UNCOMPUTABLE** until comparable V/T/C evidence
+passes. Gross value cannot compensate failed feasibility, safety or power.
+
+### Workflow leverage with build cost
+
+N = distinct **new complete** reference evaluations per real buyer decision,
+after its existing cache/DOE/ROM/surrogate shortcuts. Menu/iteration/generation
+counts are analogues, not measured N. Never multiply response-surface search
+points by expensive truth cost. Complete-case conditions, frequency systems
+and refinement must be in the matched evaluation unit.
+
+Let r = reference CPU-s/evaluation; c = inference CPU-s/evaluation;
+B = acquisition evaluations; F = fit CPU-h; M = compatible decisions served
+before invalidation/retraining; V = retained reference evaluations:
+
+- Build H = B ×r/3600 +F. Public retired data may have zero *incremental*
+  acquisition for one buyer, not zero societal/reference-bank cost.
+- Requested leverage = (N ×r/3600) / (N ×c/3600 +H/M).
+- End-to-end leverage adds V ×r/3600 to that denominator.
+- CPU-h saved = direct − end-to-end. **Negative stays negative**.
+- Break-even M > H / (((N−V) ×r −N ×c)/3600), if denominator >0.
+  Unknown r cannot produce numeric savings or break-even.
+
+Actual dollars need separate CPU/GPU acquisition, fitting and serving bills.
+No saved waiting hour is automatically saved labour. Licence, integration,
+hardware, energy, model selection/retraining and independent adequacy witnesses
+are unpriced, so net buyer value remains unproven.
+
+**CPU is not elapsed time.** Numeric wall savings below are the explicit
+serial CPU=wall hypothesis for reference, acquisition, fitting and single-core
+serving. Actual reference concurrency, GPU fit, queues/setup, batching and
+memory require separate wall ledgers; no core-count division is a measurement.
+Different training/reference hardware cannot silently share a price or speed.
+
+Battery public TRAIN-only timing:
+[immutable record](https://github.com/carbonphysicsai/Carbon/blob/51426cef909bf787575775f26e895e954f58fe95/docs/development/evidence/exam-design-2026-09-24/refs-b/out/train/inference_timing.json),
+mlp-s0, n=400, first batch 0.006394 s, steady batch 0.005763 s.
+[Producer](../../../../scripts/dev/exam_design/train_phase.py) times the
+entire predict(x). **Not** single-query p95, current indexed v3 applicability,
+or a hardware-independent bound. No protected-role timing is used.
+Low/base/high current c=1/0.1/0.001 s are **assumptions for all eight**;
+the batch record motivates testing millisecond throughput, not certifying it.
+
+Build assumptions: F=10 CPU-h; M=1/10/100; V=5 battery /2 others, not an
+adequacy/campaign grant. B is #846's legacy bank-size sensitivity, not an
+adopted sufficient training set. Acquisition might itself fail €100 C2; V4
+cannot waive C2. B=0 needs an evidenced compatible public warm start and a
+separate original acquisition ledger. Worldwide revision/session count is not M.
+
+### Base arithmetic, with non-passes visible
+
+Owner-reported Data Collection C1 is used in its named measured context.
+Full current panel/refinement/tail/package/hardware applicability still needs
+a matched ledger; no descriptive range is p50/p95. Base 150 s (f02), 75 s
+(f08), 1,800 s (f13) are assumed interior values. f13's 81+ min is **not an
+upper bound**. Motor/f06/f17 current C1 remains NOT_MEASURED.
+
+| Challenge | Assumed N / B / M | Base r | Raw / end-to-end leverage | Serial wall-h saved, assumption | Compute USD saved at assumed $0.10/CPU-h |
+| --- | --- | --- | --- | ---: | ---: |
+| Battery map building | 1,120 /500 /10 | 91 CPU-s | 12.34× /11.69× | 25.890 | 2.589 |
+| Motor | 505 /1,800 /10 | NOT_MEASURED | NOT_MEASURED | NOT_MEASURED | NOT_MEASURED |
+| Cooling cell | 100 /1,000 /10 | 0.45 CPU-h | 0.978× /0.959× | −1.903 | −0.190 |
+| f02 | 216 /384 /10 | 150 CPU-s assumption | 3.45× /3.35× | 6.311 | 0.631 |
+| f06 | 200 /256 /10 | NOT_MEASURED | NOT_MEASURED | NOT_MEASURED | NOT_MEASURED |
+| f08 new geometries | 100 /256 /10 | 75 CPU-s assumption | 1.36× /1.32× | 0.506 | 0.051 |
+| f13 complete curves | 100 /16 /10 | 1,800 CPU-s assumption | 27.73× /17.84× | 47.197 | 4.720 |
+| f17 panels | 100 /45 /10 | NOT_MEASURED | NOT_MEASURED | NOT_MEASURED | NOT_MEASURED |
+
+Low/base/high calculations and break-even reuse are in the static sheet.
+**Do not add** compute savings to V2 by default: avoided engineering work,
+prototype work and simulator cost can overlap. Small CPU savings do not
+disprove labour benefit; the buyer must show the mechanism.
+
+**f08 baseline counterexample:** same 100-design menu, ten compatible decisions.
+Assume a modal library costs 100 ×75 s to build and 1 s/whole-design query:
+850 s/decision including amortized acquisition; 1,000 s (0.278 h) with
+two retained solves. Model takes 1.578 h with retained checks.
+These latencies are hypotheses, not measurements. Equal decision adequacy
+and independent verification are required for either. If the library meets
+that adequacy and buyer latency, **V4 FAILS**. Never compare cached FRFs
+with a new eigen solve per frequency to manufacture leverage.
+
+Other strongest baselines: f06's documented 10–20 min 2D optimization,
+f02 RC/POD/convolution, f13 transfer matrices and cooling/f17 response
+surfaces. They are existing buyer methods, not absent competition.
+
+### Enabled studies without fabricated dollars
+
+Each card names interactive shortlist review or 10,000-point supported
+geometry/tolerance/service studies as **opportunities to test**, not tasks
+buyers categorically cannot do today. Require a buyer latency/resource budget,
+strongest baseline, equal credibility and observed extra decisions/improved
+regret before valuing them. Incremental enabled annual USD is **null** in
+every row, not an invented productivity multiplier; unknown is not zero truth.
+
+Buyer logs return eligible unique teams/projects/sessions, N_unique,
+already-cheap queries, model reuse/invalidation, integration cost and workflow
+timing traces. Data Collection returns matched complete-case CPU/wall/bill,
+pins, tails/memory and cheap baselines. Test Lead owns T3/decision/power and
+credibility acceptance. No registered P/Q/w, E, limit, question law, runtime
+interface, hidden bank, earned tier or production claim changes here.

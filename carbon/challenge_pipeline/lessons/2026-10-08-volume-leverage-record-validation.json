@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-volume-leverage-record-validation",
+  "recorded_at": "2026-10-08T23:33:31Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-VOLUME-LEVERAGE-01 final public records",
+    "description": "Public pipeline validator after the bounded test/quality lessons; no readiness execution or official packs."
+  },
+  "expected": "Current protocol stays DEFINING and lessons remain valid without adopted economic or scientific clearance.",
+  "observed": "7 records and 469 lessons valid, 0 awaiting a decision; 3 admission controllers designated and 3 pending identity. Native Windows diagnostic, not canonical CI. Scope-owned staged diff has 19 files; unrelated website working-tree changes are unstaged.",
+  "keep": [
+    "Retain one ticket/one PR, explicit source context, negative savings and fail-closed unmeasured current-panel costs."
+  ],
+  "change": [
+    "Matched buyer logs and independent decision-adequacy receipts, not scenario arithmetic, decide V3/V4 adoption."
+  ],
+  "protocol_elements": [
+    "buyer value",
+    "reference cost",
+    "protocol authority"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

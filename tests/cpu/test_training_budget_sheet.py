@@ -132,19 +132,24 @@ def test_the_battery_sheet_is_for_testing_and_explains_every_value():
     """OWNER-BATTERY-STUDY-SHEET-01: team-proposed, owner-approved for testing,
     never production; every set value carries its reason. Its study seed root
     stays unset until the producer records the commitment, so every phase is
-    blocked until then."""
+    blocked until then. Its image stays unset until worker-images-v3 is
+    released (OWNER-BATTERY-STUDY-4090-01, #826), which blocks every phase and
+    rule."""
     battery = capability_registry.BATTERY_CHALLENGE
     loaded = sheet.load(battery)
     assert loaded.status == "TEAM_PROPOSED_OWNER_APPROVED_FOR_TESTING"
     document = json.loads((sheet.SHEETS / f"{battery}.json").read_text())
     assert set(loaded.values) - {"challenge_id"} <= set(document["rationale"])
     assert loaded.get("study_seed_root") is None
+    assert loaded.get("image_digest") is None
     for phase in "ABCDEFGH":
         with pytest.raises(sheet.SheetIncomplete) as refused:
             loaded.require(phase)
-        assert refused.value.fields == ("study_seed_root",)
+        assert refused.value.fields == ("image_digest", "study_seed_root")
     for phase in ("R3", "R9", "R11", "stop"):
-        loaded.require(phase)
+        with pytest.raises(sheet.SheetIncomplete) as refused:
+            loaded.require(phase)
+        assert refused.value.fields == ("image_digest",)
 
 
 @pytest.mark.parametrize(
