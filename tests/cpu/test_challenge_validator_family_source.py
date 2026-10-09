@@ -25,7 +25,11 @@ from test_challenge_validator_motor_hidden import Solver, write_deployment
 from carbon.challenge_validator import motor_hidden as hidden
 from carbon.challenge_validator import producer as pr
 from carbon.challenge_validator.batch_source import ProducerRefused
-from carbon.challenge_validator.family_source import FamilySource, family_source_class
+from carbon.challenge_validator.family_source import (
+    FamilyBankSource,
+    FamilySource,
+    family_source_class,
+)
 from carbon.challenge_validator.motor_source import (
     RUN_BATCH,
     MotorBatchSource,
@@ -92,3 +96,37 @@ def test_the_runner_and_image_come_from_the_registration(tmp_path):
     assert seen == [(str(REPOSITORY / RUN_BATCH), "toy-image")]
     producer.seal(toy.challenge_id, drawn["fingerprint"])
     assert source.sealed(drawn["fingerprint"])["cases"] == toy.batch_cases
+
+
+# --- slice 2: the family's bank (VALIDATOR-23) --------------------------------
+
+
+def motor_source(tmp_path, solver):
+    path = deployment(tmp_path, custody=str(tmp_path / "producer-custody"))
+    MotorBatchSource.init(path)
+    return MotorBatchSource(path, repository=REPOSITORY, runner=solver)
+
+
+def test_a_bank_tranche_is_drawn_from_the_custody_root_by_role(tmp_path):
+    source = motor_source(tmp_path, Solver())
+    bank = FamilyBankSource(source)
+    first = bank.draw_tranche("pool", "bank-pool-T1", 5)
+    assert first == bank.draw_tranche("pool", "bank-pool-T1", 5)
+    other = bank.draw_tranche("pool", "bank-pool-T2", 5)
+    assert len(first) == 5 and not {c["case_id"] for c in first} & {
+        c["case_id"] for c in other
+    }
+    assert bank.terminal() == hidden.TERMINAL
+
+
+def test_a_tranche_is_solved_resumably_and_sealed(tmp_path):
+    solver = Solver()
+    source = motor_source(tmp_path, solver)
+    ledger = source.bank(tmp_path / "bank")
+    drawn = ledger.draw_tranche("pool", 4)
+    # One case's first attempt is FAILED_INFRA: retried, never stored.
+    solver.fail = {ledger.jobs(drawn["tranche"])[0]["case_id"]}
+    sealed = source.fill_tranche(ledger, drawn["tranche"], tmp_path / "work")
+    assert sealed["tranche"] == drawn["tranche"]
+    assert [len(planned) for planned in solver.planned] == [4, 1]  # only the retry
+    assert [row["state"] for row in ledger.tranches("pool")] == ["SEALED"]
