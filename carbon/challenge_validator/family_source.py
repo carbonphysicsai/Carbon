@@ -198,8 +198,7 @@ class FamilySource(BatchSource):
         if self._published is None:
             self._published = self.family.published_keys(self.repository)
         return any(
-            self.family.overlap_key(case["inputs"]) in self._published
-            for case in cases
+            self.family.overlap_key(case["inputs"]) in self._published for case in cases
         )
 
     def draw(self, role, *, kind, size=None):
