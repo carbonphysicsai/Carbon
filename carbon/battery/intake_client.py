@@ -171,6 +171,26 @@ REFUSALS = {
         "is never served to miners. Nothing was sent for evaluation; write the "
         "recipe against the Challenge's published contract digest."
     ),
+    # The testnet development-ladder deployment (VALIDATOR-25): its own
+    # admission, before anything is compiled or rebuilt.
+    "ladder_hotkey_not_listed": (
+        "This is Carbon's development-ladder validator, which serves only its "
+        "listed rehearsal hotkeys. Nothing was evaluated; submit to the main "
+        "validator instead."
+    ),
+    "ladder_variant_not_accepted": (
+        "The development-ladder validator does not serve that development "
+        "variant. Nothing was evaluated; use one of the variants it lists for "
+        "its level."
+    ),
+    "ladder_level_not_accepted": (
+        "The development-ladder validator serves another level than the "
+        "variant names. Nothing was evaluated; submit to the ladder deployment "
+        "for that level."
+    ),
+    "ladder_level_4_not_open": (
+        "Level 4 is not open on the development ladder yet. Nothing was " "evaluated."
+    ),
     "status_fields": "A status request needs exactly submission_id.",
     # The validator's neutral checks (`challenge_validator.Validator.screen`),
     # answered at once; nothing was queued, evaluated or counted.

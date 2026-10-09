@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-agreement-battery-v3-measurement",
+  "recorded_at": "2026-10-09T14:35:00Z",
+  "challenge": "battery-fast-charge",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "coverage_run",
+    "ref": "battery-measurement-v3.json",
+    "description": "BASELINE-AGREEMENT-01: battery-measurement-v3.json"
+  },
+  "expected": "Measure final module bytes and retain coverage/cost limitations.",
+  "observed": "Digest-bound 493-row/25-map holdouts recorded with per-band outcomes, error and cost fields; no reference solves or spend. Reference/Carbon advantage remains unresolved.",
+  "keep": [
+    "Sparse supported interpolation is not a complete safe map or qualified error bound."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.pipeline.lessons",
+    "challenge.cheap-baseline.comparison"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -314,6 +314,7 @@ class BatteryValidator:
         allow_published_cases=False,
         development_only=False,
         import_only=False,
+        ladder=None,
     ):
         if type(store) is not PoolStore:
             raise TypeError("a PoolStore is required")
@@ -334,6 +335,10 @@ class BatteryValidator:
         #: `development_compiler` the Graphite side supplies. This module never
         #: names the variant module. Off by default; never sets weights.
         self.development_only = development_only is True
+        #: The testnet development-ladder deployment (VALIDATOR-25;
+        #: `deployment.ladder_for`): only its listed hotkeys, and only its
+        #: listed variants of its one level. Only on a development deployment.
+        self.ladder = ladder if self.development_only else None
         #: Import-only (VALIDATOR-19 slice 2): every batch comes from Carbon's
         #: shared answer key (`challenge_validator.answer_key`); this
         #: validator never draws or seals one itself.
@@ -550,6 +555,9 @@ class BatteryValidator:
             )
             return self.outcome(row["submission_id"])
 
+        if self.ladder is not None and submission.hotkey not in self.ladder["hotkeys"]:
+            # The ladder serves its listed rehearsal hotkeys only.
+            return refuse("ladder_hotkey_not_listed")
         try:
             resolve(
                 submission.challenge_id, submission.challenge_version, "cpu_research"
@@ -567,6 +575,11 @@ class BatteryValidator:
         development = None
         try:
             if is_development_variant(submission.contract_digest):
+                if (
+                    self.ladder is not None
+                    and submission.contract_digest not in self.ladder["variants"]
+                ):
+                    return refuse(self._ladder_refusal(submission.contract_digest))
                 if not self._serves_development(submission.hotkey):
                     # A development-only contract variant is never served to a
                     # miner (OWNER-GRAPHITE-TEST-WAVE-03 §1).
@@ -714,13 +727,28 @@ class BatteryValidator:
 
     def _serves_development(self, hotkey):
         """Whether this deployment admits a development variant from `hotkey`:
-        opted in, given a compiler, and a Graphite development identity."""
-        return (
-            self.development_only
-            and callable(self.development_compiler)
-            and type(hotkey) is str
-            and hotkey.startswith("graphite-dev:")
+        opted in, given a compiler, and a Graphite development identity, or,
+        on the ladder deployment, one of its listed hotkeys."""
+        if not (self.development_only and callable(self.development_compiler)):
+            return False
+        if self.ladder is not None:
+            return hotkey in self.ladder["hotkeys"]
+        return type(hotkey) is str and hotkey.startswith("graphite-dev:")
+
+    def _ladder_refusal(self, contract_digest):
+        """The ladder's closed code for a variant it does not list, read from
+        the registry as data (the variant module is never imported)."""
+        from carbon.reconstruction.capability_registry import (
+            development_variant_document,
         )
+
+        document = development_variant_document(contract_digest) or {}
+        level = document.get("level")
+        if type(level) is int and level > 3:
+            return "ladder_level_4_not_open"
+        if level != self.ladder["level"]:
+            return "ladder_level_not_accepted"
+        return "ladder_variant_not_accepted"
 
     def _development(self, row):
         """`(recipe, record)` for a development row, recompiled through the

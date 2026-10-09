@@ -5,6 +5,13 @@ Prospective f02 round 2: [customer law, value panel and startup arithmetic](f02-
 are recommendations only; the nine-action history cannot meet the ten-action
 contested minimum. No bank draw, runtime adoption, safety or exposure change.
 
+> **Battery prospective round-two supplement (2026-10-09):**
+> [battery-v3-round2.md](battery-v3-round2.md) /
+> [non-runtime sheet](battery-v3-round2.json) binds the owner's 0.01-C action
+> lattice and x1/x2/x4 cooling menu, audits tier-4 evidence and recommends a
+> forward NONE_FEASIBLE policy. P/Q/outer weights, k and E are not registered.
+> Original numerical sheets remain history; no other Challenge law changes.
+
 > **Current contested-decision amendment, 2026-10-08:** the
 > [owner value/cost framework](../value-cost/README.md) and
 > [eight scorecards](../value-cost/analysis.md) supersede the fraction gate
