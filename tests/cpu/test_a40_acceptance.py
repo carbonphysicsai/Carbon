@@ -921,15 +921,28 @@ def test_ship_list_excludes_protected_code_and_still_refuses_protected_data(
         "carbon/private/x.py",
         "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
         "carbon/challenge_validator/confirmation_sets/registry.json",
+        "carbon/b.py",
+        "carbon/unused.py",
     ]
     monkeypatch.setattr(pods, "tracked", lambda ref, prefixes, repository=None: tracked)
-    paths = a40.ship_paths("a" * 40)
-    assert "carbon/a.py" in paths
+    sources = {
+        "carbon/a.py": b"import carbon.b\n",
+        "carbon/b.py": b"",
+        "carbon/unused.py": b"",
+    }
+    monkeypatch.setattr(
+        a40,
+        "read_blobs",
+        lambda ref, repo, paths: {p: sources.get(p, b"") for p in paths},
+    )
+    paths = a40.ship_paths("a" * 40, entries=("carbon.a",))
+    assert "carbon/a.py" in paths and "carbon/b.py" in paths
+    assert "carbon/unused.py" not in paths
     assert not [p for p in paths if a40.is_protected(p) or "/private/" in p]
     assert set(a40.DATA_PATHS) <= set(paths) and set(a40.SHIPPED_FILES) <= set(paths)
     monkeypatch.setattr(a40, "DATA_PATHS", ("docs/secret/train.jsonl.gz",))
     with pytest.raises(a40.Refused, match="forbidden data path"):
-        a40.ship_paths("a" * 40)
+        a40.ship_paths("a" * 40, entries=("carbon.a",))
 
 
 def test_the_real_tree_ships_without_a_refusal():
@@ -1320,3 +1333,116 @@ def test_the_cli_accepts_only_the_two_target_devices(tmp_path, capsys):
              "--target-device", "H100"]
         )  # fmt: skip
     assert "invalid choice" in capsys.readouterr().err
+
+
+# ----------------------------------------------------------------- request size
+def test_import_closure_follows_static_lazy_and_relative_imports():
+    sources = {
+        "carbon/__init__.py": b"",
+        "carbon/p/__init__.py": b"from . import sibling\n",
+        "carbon/p/sibling.py": b"",
+        "carbon/p/entry.py": (
+            b"from .sibling import x\n"
+            b"def f():\n    from carbon.q import deep\n    import carbon.r.leaf\n"
+        ),
+        "carbon/q/__init__.py": b"",
+        "carbon/q/deep.py": b"import json\nfrom ..s import t\n",
+        "carbon/s/__init__.py": b"",
+        "carbon/s/t.py": b"",
+        "carbon/r/__init__.py": b"",
+        "carbon/r/leaf.py": b"",
+        "carbon/unrelated.py": b"import carbon.nothing\n",
+    }
+    got = a40.import_closure(sources, ("carbon.p.entry",))
+    assert set(got) == set(sources) - {"carbon/unrelated.py"}
+
+
+def test_an_oversized_environment_is_refused_before_any_create(world):
+    make, fake, _bodies = world
+    runner, _fleet = make([])
+    runner.manifest = {
+        f"carbon/f{i}.py": hashlib.sha256(str(i).encode()).hexdigest()
+        for i in range(6000)
+    }
+    with pytest.raises(a40.Refused, match="over the 90000 limit"):
+        runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    runner.close()
+    assert fake.creates() == 0
+
+
+def test_the_guard_counts_names_and_values():
+    assert a40.env_chars((("AB", "cde"),)) == 5
+    assert a40.check_env_size((("A", "x" * 100),), limit=200) == 101
+    with pytest.raises(a40.Refused, match="BIG"):
+        a40.check_env_size((("BIG", "x" * 300), ("S", "y")), limit=200)
+
+
+def _head():
+    import subprocess
+
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=a40.REPOSITORY,
+    ).stdout.strip()
+
+
+def test_the_real_pod_environment_fits_well_under_the_provider_limit():
+    ref = _head()
+    manifest = a40.build_manifest(ref)
+    assert len(manifest) < 600  # the closure, not the 1,400-file tree
+    runner = object.__new__(a40.PodRunner)
+    runner.code_ref, runner.manifest = ref, manifest
+    config = a40.phase_config(
+        "pytorch",
+        {"recipes_by_backend": {"pytorch": [{"id": "x", "strategy": {}}]}, "fno": {"id": "f"},
+         "repeats": 2, "seed": 0},
+        barrier=True,
+    )  # fmt: skip
+    env = runner._env("pytorch", config, "t" * 32, 1.0)
+    assert a40.check_env_size(env) < 60_000
+
+
+def _copy_shipped(tmp_path):
+    import shutil
+
+    for path in a40.ship_paths(_head()):
+        target = tmp_path / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(a40.REPOSITORY / path, target)
+
+
+def test_the_pod_phase_modules_import_from_the_shipped_closure_alone(tmp_path):
+    import subprocess
+    import sys
+
+    _copy_shipped(tmp_path)
+    code = (
+        "import carbon.agent_campaign.graphite.pod_phase, carbon.reconstruction.torch_gpu, "
+        "carbon.reconstruction.accelerators, carbon.battery.torch_families, "
+        "carbon.battery.torch_training, scripts.dev.exam_design.runpod.a40_pod_phase, "
+        "scripts.dev.gpu_determinism_study.device_identity"
+    )
+    pytest.importorskip("torch")
+    done = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert done.returncode == 0, done.stderr[-600:]
+
+
+def test_a_pytorch_rebuild_runs_from_the_shipped_closure_alone(tmp_path):
+    pytest.importorskip("torch")
+    _copy_shipped(tmp_path)
+    strategy = a40._strategy(
+        "mlp", {"steps": 32, "width": 8, "depth": 1, "backend": "pytorch"}
+    )
+    record = phase.run_repeat(
+        strategy, 0, tmp_path, phase.pinned_environment("pytorch", device=None)
+    )
+    assert "error" not in record, record
