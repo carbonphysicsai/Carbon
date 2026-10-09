@@ -1,0 +1,21 @@
+{
+  "schema": "carbon.development.f02-question-law.v1",
+  "ticket": "CHALLENGE-F02-QUESTION-LAW-01",
+  "maturity": "SPECIFIED",
+  "solver_runs": 0, "spend": 0, "runtime_adoption": false,
+  "hard_temperature_anchor_c": 95,
+  "p_job": {"status": "HUMAN_INPUT", "registered": null, "recommendation": {"context_mass": "uniform24", "thermal_cap_c": [90, 95], "energy_floor_j": [300, 900], "dependence": "independent_product_uniform"}},
+  "q_job": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Q3=P; separately registered diagnostic Q2/frontier"},
+  "w_job": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "unit for uniform P; Q2 separate"},
+  "action_proposal": {"status": "HUMAN_INPUT", "registered": null, "power_w": [80, 140], "duration_s": [5, 20], "rounding": null, "seed_power_w": [80, 100, 120, 140], "seed_duration_s": [5, 10, 15, 20]},
+  "context_count": 24, "historical_menu_size": 9, "seed_menu_size": 16,
+  "k": {"status": "HUMAN_INPUT", "registered": null, "recommendation": 8},
+  "bank_recommendation": {"registered": null, "class": "cheap", "multiplier": 20, "e": 5, "b_questions": 160, "same_truth_resets_exposure": false},
+  "none_feasible": "VALID_FORWARD_NO_REDRAW_PENDING_RUNTIME_INTEGRATION",
+  "t2a": {"status": "HUMAN_INPUT", "minimum_each_side": 5, "near_refinement_bands": 2, "thermal_band_registered": null, "energy_band_registered": null, "old_menu_cardinality_can_pass": false},
+  "value_check": {"feasible": "NOT_DEMONSTRATED", "contested": "NOT_DEMONSTRATED", "spread": "NOT_DEMONSTRATED", "answer_changes": "NOT_DEMONSTRATED"},
+  "expected_distinct_winners_p": null, "expected_distinct_winners_q": null,
+  "cost": {"basis": "OWNER_REPORTED_NOT_PINNED_RECEIPT", "standard_cpu_min": [2, 3], "node_eur_per_h_assumption": 1.37, "c2_status": "UNMEASURED", "tax_fraction_assumption": 0.19, "non_node_reserve_eur_assumption": 20, "standard_panel_jobs": 384, "controls_and_baselines": 8, "initial_refinement_jobs_recommendation": 12, "refinement_cpu_h_measured": null, "c2_cap_eur": 100},
+  "historical_grid_question_vectors": 216,
+  "independent_support_cost_is_not_shared_bank_cost": true
+}

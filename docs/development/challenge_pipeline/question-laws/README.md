@@ -1,5 +1,10 @@
 # Eight-Challenge design-question laws — DEVELOPMENT proposal
 
+Prospective f02 round 2: [customer law, value panel and startup arithmetic](f02-round2.md)
+ / [sheet](f02-round2.json). Continuous requirements and denser in-bounds actions
+are recommendations only; the nine-action history cannot meet the ten-action
+contested minimum. No bank draw, runtime adoption, safety or exposure change.
+
 > **Current contested-decision amendment, 2026-10-08:** the
 > [owner value/cost framework](../value-cost/README.md) and
 > [eight scorecards](../value-cost/analysis.md) supersede the fraction gate

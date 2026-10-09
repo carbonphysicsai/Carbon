@@ -1,5 +1,10 @@
 # f02 — Carbon-owned burst schedule optimizer (DEVELOPMENT proposal)
 
+Prospective supplement: [f02 round-2 law](../question-laws/f02-round2.md)
+proposes denser in-bounds actions and continuous requirements. It does not adopt
+a continuous optimizer or change the historical nine-action specification below.
+The owner-reported2-3 CPU-min timing is not a pinned whole-bank cost receipt.
+
 **Source of selected requirements:** [f02 customer packet](../round1/f02-burst-thermal.md), [round-one sheet](../round1/requirements.json), and [round-one authority](../../../../.agent/decisions/2026-10-06-OWNER-PORTFOLIO-DEV-ROUND-01.md). These describe a synthetic development job, not a qualified chip or a deployment population. This file specifies the buyer's decision and proposes a fixed optimizer. It registers no grader, protected pool, reference campaign, or customer product. Elmer reference adequacy is **NOT_DEMONSTRATED**.
 
 ## Buyer decision and task
