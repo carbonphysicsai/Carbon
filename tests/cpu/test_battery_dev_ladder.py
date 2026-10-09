@@ -101,7 +101,7 @@ def test_the_ladder_admits_its_hotkeys_and_its_levels_variants():
             "evaluation_config_ladder_testnet_only",
         ),
         (
-            {"ladder": {"levels": [4], "hotkeys": [MINER_C], "variants": [LEVEL_2]}},
+            {"ladder": {"levels": [5], "hotkeys": [MINER_C], "variants": [LEVEL_2]}},
             "evaluation_config_ladder_level_4_not_open",
         ),
         (
@@ -200,13 +200,13 @@ def test_another_levels_variant_is_refused_by_its_own_code(
     )
     real = registry.development_variant_document
 
-    def as_level_4(value, directory=None):
+    def as_level_5(value, directory=None):
         document = real(value, directory)
         if value == FIXTURE_DIGESTS[3]:
-            return {**document, "level": 4}
+            return {**document, "level": 5}
         return document
 
-    monkeypatch.setattr(registry, "development_variant_document", as_level_4)
+    monkeypatch.setattr(registry, "development_variant_document", as_level_5)
     assert code(ladder_validator, MINER_C, FIXTURE_DIGESTS[3]) == (
         "ladder_level_4_not_open"
     )
@@ -298,7 +298,7 @@ def test_the_ladders_entry_point_supplies_the_compiler(ladder_validator, monkeyp
     from carbon.reconstruction import development_variants as dv
 
     operate.setup(ladder_validator)
-    assert ladder_validator.development_compiler is operate.compile_variant
+    assert ladder_validator.development_compiler.parts is None  # no L4 listed
     calls = []
     monkeypatch.setattr(dv, "registered", lambda digest: ("registered", digest))
     monkeypatch.setattr(

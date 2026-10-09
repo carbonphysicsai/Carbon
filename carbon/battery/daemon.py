@@ -804,7 +804,8 @@ class BatteryValidator:
 
         document = development_variant_document(contract_digest) or {}
         level = document.get("level")
-        if type(level) is int and level > 3:
+        if type(level) is int and level > 4:
+            # Beyond Level 4: no level above it is open on the ladder.
             return "ladder_level_4_not_open"
         if level not in self.ladder["levels"]:
             return "ladder_level_not_accepted"

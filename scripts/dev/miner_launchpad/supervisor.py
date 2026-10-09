@@ -690,6 +690,36 @@ NEXT_ACTIONS = {
         "candidate uses, and nothing was evaluated. Submit it to the ladder "
         "deployment for its level; the frozen candidate is kept."
     ),
+    "level4_not_served": (
+        "This validator does not take Level 4 envelopes, and nothing was stored. "
+        "Point this Challenge's intake at the development ladder that serves Level "
+        "4, then submit again; the frozen candidate is kept."
+    ),
+    "level4_part_malformed": (
+        "A Level 4 envelope part was malformed, and nothing was stored. Submit "
+        "again: Carbon rebuilds the parts from the frozen envelope; the frozen "
+        "candidate is kept."
+    ),
+    "level4_part_conflict": (
+        "The validator holds other bytes for a part of this envelope, and nothing "
+        "was replaced. Submit the candidate Carbon froze again; the frozen "
+        "candidate is kept."
+    ),
+    "level4_parts_mismatch": (
+        "An envelope part named another part count than its earlier parts, and "
+        "nothing was stored. Submit the candidate Carbon froze again; the frozen "
+        "candidate is kept."
+    ),
+    "level4_envelope_incomplete": (
+        "Not every part of the Level 4 envelope had arrived, so nothing was "
+        "evaluated or counted. Submit again: Carbon sends the missing parts first; "
+        "the frozen candidate is kept."
+    ),
+    "level4_store_not_owner_only": (
+        "The validator's Level 4 store is misconfigured, which is the validator's "
+        "to fix, and nothing was stored. Try again later; the frozen candidate is "
+        "kept."
+    ),
     "hotkey_reserved_for_ladder": (
         "This hotkey is Carbon's development-ladder hotkey, which the main "
         "validator never scores, and nothing was evaluated. Point this "
