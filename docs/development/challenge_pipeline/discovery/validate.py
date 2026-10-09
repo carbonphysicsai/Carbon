@@ -12,6 +12,133 @@ def close(a: float, b: float) -> None:
     assert math.isclose(a, b, rel_tol=1e-10, abs_tol=1e-10), (a, b)
 
 
+def check_search_completion(root: Path, original_cards: list[dict]) -> None:
+    """Check prospective desk estimates without supplying scientific authority."""
+    data = json.loads(
+        (root / "search-completion" / "data.json").read_text(encoding="utf-8")
+    )
+    originals, fresh = data["original80"], data["buyer_side20"]
+    assert len(originals) == 80 and len(fresh) == 20
+    assert data["counts"] == {
+        "original": 80,
+        "preserved_scored": 15,
+        "newly_scored": 65,
+        "buyer_side_new": 20,
+        "total": 100,
+    }
+    assert data["admitted_count"] == data["solver_runs"] == data["spend_eur"] == 0
+    assert data["adoption"] == "HUMAN_INPUT"
+    assert not data["dispatch_ready"] and not data["protected_material_access"]
+    assert data["admitted_ranking"] == []
+    assert data["not_proved_better_than_warpage"]
+    assert not data["cost_policy"]["all_in_bill_verified"]
+    by_id = {c["id"]: c for c in originals + fresh}
+    assert len(by_id) == 100
+    original_ids = {c["id"] for c in original_cards}
+    preserved = [c for c in originals if c["origin"] == "ORIGINAL_15_PRESERVED"]
+    assert {c["id"] for c in preserved} == original_ids
+    for c in original_cards:
+        for key, value in c.items():
+            assert by_id[c["id"]][key] == value, (c["id"], key)
+    assert sum(c["origin"] == "ORIGINAL_65_NOW_SCORED" for c in originals) == 65
+    old_sources = json.loads((root / "data.json").read_text(encoding="utf-8"))[
+        "sources"
+    ]
+    source_ids = {s["id"] for s in old_sources + data["sources"]}
+    assert len(data["sources"]) == len({s["id"] for s in data["sources"]}) == 28
+    for c in originals + fresh:
+        assert set(c["sources"]) <= source_ids
+        assert set(c["gates"]) == {f"G{n}" for n in range(1, 8)}
+        assert not c["admitted"] and not c["dispatch_ready"]
+        assert c["earned_credibility"] == "NOT_DEMONSTRATED"
+        assert c["p50_cpu_h"] is None and c["p95_cpu_h"] is None
+        assert len(c["V_scores_low_base_high"]) == 5
+        for values in c["V_scores_low_base_high"] + c["excitement_axes_low_base_high"]:
+            assert len(values) == 3 and values == sorted(values)
+            assert all(0 <= value <= 5 for value in values)
+        axes = c["excitement_axes_low_base_high"]
+        mean = sum(a[1] for a in axes) / 3
+        close(c["excitement_low_base_high"][1], mean)
+        close(c["excitement_low_base_high"][0], max(0, mean - 1))
+        close(c["excitement_low_base_high"][2], min(5, mean + 1))
+        for j in range(3):
+            close(c["V2_eur"][j], c["engineer_h"][j] * c["engineer_rate_eur_h"][j])
+            close(
+                c["V3_decisions_year"][j],
+                c["teams"][j] * c["decisions_per_team_year"][j],
+            )
+            close(
+                c["annual_gross_eur"][j],
+                c["V2_eur"][j] * c["V3_decisions_year"][j],
+            )
+            close(
+                c["C2_eur"][j],
+                1.37 * (c["equivalent_cases"] * c["c1_cpu_h"][j] + 4) * 1.19 + 10,
+            )
+            close(c["C3_weekly_eur"][j], c["C2_eur"][j] * [0.025, 0.1, 0.4][j])
+            panel = c.get("first_panel")
+            if panel is not None:
+                close(
+                    panel["eur_low_base_high"][j],
+                    1.37 * (panel["equivalent_cases"] * c["c1_cpu_h"][j] + 4) * 1.19
+                    + 10,
+                )
+        den = [c["C2_eur"][j] + 52 * c["C3_weekly_eur"][j] for j in range(3)]
+        for j, numerator, denominator in [(0, 0, 2), (1, 1, 1), (2, 2, 0)]:
+            close(
+                c["VCI_low_base_high"][j],
+                c["annual_gross_eur"][numerator] / den[denominator],
+            )
+        assert c["gates"]["G6"].startswith("PASS") == (c["C2_eur"][2] <= 100)
+        if c["origin"] == "BUYER_SIDE_NEW":
+            assert c["base_budget_prefilter_pass"] and c["C2_eur"][1] <= 100
+            assert c["observed_incremental_value_floor_eur"] == [0, 0, 0]
+            assert c["customer_packet"] == "HUMAN_INPUT"
+        assert all(
+            not value.startswith("PASS")
+            for key, value in c["gates"].items()
+            if key != "G6"
+        )
+
+    def ranked(cards: list[dict]) -> list[dict]:
+        return sorted(
+            cards,
+            key=lambda c: (
+                -c["VCI_low_base_high"][1],
+                -c["excitement_low_base_high"][1],
+                c["id"],
+            ),
+        )
+
+    ordered = ranked(originals + fresh)
+    assert data["ranking_all100"] == [c["id"] for c in ordered]
+    assert data["ranking_original80"] == [c["id"] for c in ranked(originals)]
+    queue = [
+        c for c in ordered if not any(v.startswith("FAIL") for v in c["gates"].values())
+    ]
+    assert data["conditional_queue_ids"] == [c["id"] for c in queue]
+    assert data["final_top5_conditional_ids"] == [c["id"] for c in queue[:5]]
+    assert data["final_top5_conditional_ids"] == [
+        "D012",
+        "D077",
+        "B008",
+        "D006",
+        "D076",
+    ]
+    for c in data["current8_comparison"]:
+        assert c["index_low_base_high"] is None
+        assert c["index_status"].startswith("NOT_COMPUTABLE")
+    assert len(data["current8_comparison"]) == 8
+    assert (
+        len(
+            (root / "search-completion" / "README.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+        <= 550
+    )
+
+
 def main() -> None:
     root = Path(__file__).resolve().parent
     data = json.loads((root / "data.json").read_text(encoding="utf-8"))
@@ -241,6 +368,8 @@ def main() -> None:
     )
     assert followup_words <= 550, followup_words
 
+    check_search_completion(root, cards)
+
     expected = {
         "README.md",
         "owner-summary.md",
@@ -254,11 +383,29 @@ def main() -> None:
         "flagship-budget/README.md",
         "flagship-budget/analysis.md",
         "flagship-budget/scenarios.json",
+        *(
+            "search-completion/" + name
+            for name in (
+                "README.md",
+                "methodology.md",
+                "sources.md",
+                "original-80.md",
+                "buyer-sweep.md",
+                "ranking-and-comparison.md",
+                "data.json",
+            )
+        ),
         *("dossiers/" + c["slug"] + ".md" for c in queue),
     }
-    actual = {p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file()}
+    actual = {
+        p.relative_to(root).as_posix()
+        for p in root.rglob("*")
+        if p.is_file() and "warpage-packet" not in p.relative_to(root).parts
+    }
     assert actual == expected, actual ^ expected
     for path in root.rglob("*.md"):
+        if "warpage-packet" in path.relative_to(root).parts:
+            continue
         content = path.read_text(encoding="utf-8")
         for target in re.findall(r"\]\(([^\s)]+)\)", content):
             if target.startswith(("https://", "http://", "#")):
@@ -271,7 +418,9 @@ def main() -> None:
         "PASS: 80 rows, 16 domains, 15 cards, five complete conditional dossiers; "
         "cost/value/rank/source/link/manifest checks; zero admitted, no dispatch; "
         "flagship follow-up: 3 cost-only-coded candidates, 4 non-cost exclusions, "
-        "65 unscored, 0 proved sole-cost failures; scope/value-loss arithmetic; 17 files."
+        "historical input: 65 unscored, 0 proved sole-cost failures; "
+        "scope/value-loss arithmetic; prospective 80 scored + 20 buyer leads, "
+        "all-100 ranking; zero admitted; 24 own files."
     )
 
 
