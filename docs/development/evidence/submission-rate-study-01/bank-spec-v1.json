@@ -1,0 +1,59 @@
+{
+ "schema": "carbon.submission-rate-study.bank-spec.v1",
+ "study": "SUBMISSION-RATE-STUDY-01",
+ "status": "SPEC_NOT_BUILT",
+ "authority": "Test Lead sizing, 2026-10-08 (run sheet C.1), OWNER-RATE-STUDY-D1-01",
+ "bank": {
+  "name": "study",
+  "cases": 3000,
+  "population": "battery pool law (Q = P), study producer's own root",
+  "sacrificial": true,
+  "serves_real_window": false,
+  "after_study": "retired or published",
+  "top_up": "off"
+ },
+ "fresh": {
+  "name": "fresh",
+  "windows": 12,
+  "cases_per_window": 98,
+  "total": 1176,
+  "drawable_by_a_window": false,
+  "scored_by": "operator-side non-consuming fresh-set scorer only",
+  "disjoint_from": [
+   "study bank",
+   "every live, retired and published case",
+   "TRAIN",
+   "PRACTICE",
+   "EV5",
+   "graphite-confirmation-v1",
+   "tuning set"
+  ]
+ },
+ "exposure": {
+  "E": 5,
+  "window_cases": 98,
+  "hidden_duplicates": 2
+ },
+ "runs": {
+  "rates": [
+   1,
+   2,
+   4
+  ],
+  "replicates_per_rate": 4,
+  "windows_per_run": 12,
+  "order": "interleaved by rate (m1 r1, m2 r1, m4 r1, m1 r2, ...)"
+ },
+ "arithmetic": {
+  "draws": 14112,
+  "exposures_available": 15000,
+  "spare_exposures": 888,
+  "reference_solves": 4176
+ },
+ "claims": {
+  "qualification": false,
+  "live": false,
+  "reward": false,
+  "production_rate": false
+ }
+}
