@@ -1471,12 +1471,14 @@ def load_smoke(path):
     return smoke_record
 
 
-def plan(record, smokes, cap=DEFAULT_CAP_USD, skip_fno=False):
+def plan(record, smokes, cap=DEFAULT_CAP_USD, skip_fno=False, backends=BACKENDS):
     """Each backend's deadline (its own smoke x 1.5) and budget, with no pod.
-    The cap gate applies per backend with the 4 pods + 2 replacements
-    arithmetic; refused unless every backend fits."""
+    The cap gate applies per backend with 2 pods per backend run (4 for the
+    two backends) + 2 replacements; refused unless every backend fits. A
+    JAX-only run (`backends=("jax",)`, the Level 4 leg's grant) books 2 pods."""
     out = {}
-    for backend in BACKENDS:
+    pods = 2 * len(backends)
+    for backend in backends:
         config = phase_config(backend, record, skip_fno=skip_fno)
         rebuilds = len(config["recipes"]) * record["repeats"]
         level4_rebuilds = len(config.get("level4", ()))
@@ -1485,6 +1487,7 @@ def plan(record, smokes, cap=DEFAULT_CAP_USD, skip_fno=False):
         gate = budget_gate(
             deadline,
             cap,
+            pods=pods,
             smoke_reserved=Decimal(smoke_record.get("booked_usd", "0")),
         )
         out[backend] = {
@@ -1495,13 +1498,15 @@ def plan(record, smokes, cap=DEFAULT_CAP_USD, skip_fno=False):
     return out
 
 
-def run_acceptance(runner, record, smokes, *, cap=DEFAULT_CAP_USD, skip_fno=False):
+def run_acceptance(
+    runner, record, smokes, *, cap=DEFAULT_CAP_USD, skip_fno=False, backends=BACKENDS
+):
     """Two A40 hosts per backend. Backends one after the other (two pods at a
     time, the grant's concurrency). Returns the run summary and results."""
-    budget = plan(record, smokes, cap, skip_fno)
+    budget = plan(record, smokes, cap, skip_fno, backends)
     results = {}
     try:
-        for backend in BACKENDS:
+        for backend in backends:
             deadline = budget[backend]["deadline_seconds"]
             config = phase_config(backend, record, barrier=True, skip_fno=skip_fno)
             config["go_timeout_seconds"] = deadline
@@ -1955,27 +1960,32 @@ def _cmd_run(args):
         )
         complete = all(d["complete"] for d in dry["documents"].values())
         return 0 if dry["documents"] and complete else 1
+    backends = tuple(args.backends or BACKENDS)
     if args.smoke_record is None:
         raise Refused("refused: --smoke-record is required (run `smoke` first)")
-    if args.smoke_record_pytorch is None:
+    if "pytorch" in backends and args.smoke_record_pytorch is None:
         raise Refused("refused: --smoke-record-pytorch is required")
-    smoke_record = {
-        "jax": load_smoke(args.smoke_record),
-        "pytorch": load_smoke(args.smoke_record_pytorch),
-    }
+    smoke_record = {"jax": load_smoke(args.smoke_record)}
+    if "pytorch" in backends:
+        smoke_record["pytorch"] = load_smoke(args.smoke_record_pytorch)
     cap = Decimal(args.cap)
     if args.dry_run:
         manifest = _manifest(args, record)
         print(json.dumps({"dry_run": True, "pods_created": 0, "images": IMAGES,
-                          "code_files": len(manifest), "plan": plan(record, smoke_record, cap, args.skip_fno)}, indent=1))  # fmt: skip
+                          "code_files": len(manifest), "plan": plan(record, smoke_record, cap, args.skip_fno, backends)}, indent=1))  # fmt: skip
         return 0
     plan(
-        record, smoke_record, cap, args.skip_fno
+        record, smoke_record, cap, args.skip_fno, backends
     )  # refuse before touching the provider
     runner = _runner(args, record)
     try:
         summary, results = run_acceptance(
-            runner, record, smoke_record, cap=cap, skip_fno=args.skip_fno
+            runner,
+            record,
+            smoke_record,
+            cap=cap,
+            skip_fno=args.skip_fno,
+            backends=backends,
         )
         flat = pod_results([p for pods in results.values() for p in pods])
         document = compare(flat, skipped=SKIPPED_FNO if args.skip_fno else None)
