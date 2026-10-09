@@ -14,7 +14,7 @@
   {
    "challenge": "battery-fastcharge-ageing-development-v1",
    "level": 2,
-   "version": "battery-l2-spectral-v1"
+   "version": "battery-l2-v2"
   },
   {
    "challenge": "battery-fastcharge-ageing-development-v1",
@@ -34,6 +34,7 @@
   "battery-l1-loss-expressions-signed-v1": "sha256:53c630f41388907d2c57875dd98af2b26998ca791f2e9e3ebfbe4114a91a16a9",
   "battery-l1-loss-expressions-v1": "sha256:34153f41641e3f45077e2752b1cae6d2e1c0ae4327d2cb780526e084a241c854",
   "battery-l2-spectral-v1": "sha256:602b9ce063dce297845b9d67105c2f355a095602c0eb70e903dd9afe583a5296",
+  "battery-l2-v2": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
   "battery-l3-numerics-v1": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
   "battery-l4-graph-v1": "sha256:475829d4415700df230d7b8b3e82b2a6b34e517ea5e461a37860e369e03336ca",
   "battery-l4-graph-v2": "sha256:a162bdfa2bb03c64a98e7220dd502fa7faeef474c1db2fbcadabdd8516f130f4"

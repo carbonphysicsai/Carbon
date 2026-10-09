@@ -121,7 +121,8 @@ def _rebuild_development(recipe, record, material, seed):
     from .recipes import Structure
 
     model = development_rebuild.build_in_process(recipe, record)
-    stats = model.fit(material.train, Structure(material.ocv_soc, material.ocv_v), seed)
+    train = development_rebuild.training_data(record, material.train)
+    stats = model.fit(train, Structure(material.ocv_soc, material.ocv_v), seed)
     return model, {
         **with_state(model, stats),
         "trainer": development_rebuild.kind(record),

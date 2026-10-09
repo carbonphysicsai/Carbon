@@ -7,7 +7,8 @@ a level's record can never be silently rebuilt as Level 0
 record is Level 0, and nothing here touches it.
 
 - Level 1: a loss expression (`level1_worker`).
-- Level 2: SpecMuon, `specmuon-carbon-v1` (`level2_worker`).
+- Level 2: SpecMuon, `specmuon-carbon-v1`, and pool selection
+  (`level2_worker`).
 - Level 3: training-time numerics (`level3_worker`).
 - Level 4: a graph-only submission (`level4_worker`); every rebuild fails
   closed as Carbon's environment until the submission's documents reach the
@@ -33,7 +34,7 @@ def record(reconstruction):
     if found is None:
         found = level3_worker.numerics_record(reconstruction)
     if found is None:
-        found = level2_worker.spectral_record(reconstruction)
+        found = level2_worker.level2_record(reconstruction)
     return found
 
 
@@ -45,7 +46,7 @@ def kind(found):
         return LEVEL4
     if level3_worker.is_numerics(found):
         return LEVEL3
-    if level2_worker.is_spectral(found):
+    if level2_worker.is_level2(found):
         return LEVEL2
     return LEVEL1
 
@@ -72,7 +73,7 @@ def stage(found, program, files, *, level1_program):
         )
     if level == LEVEL2:
         return (
-            level2_worker.program(program),
+            level2_worker.program(program, found),
             {**files, **level2_worker.staged(found)},
             LEVEL2,
         )
@@ -91,6 +92,14 @@ def rebuild_label(found):
         LEVEL3: level3_worker.REBUILD_LABEL,
         LEVEL4: level4_worker.REBUILD_LABEL,
     }[level]
+
+
+def training_data(found, train):
+    """The TRAIN a development record trains on (`train`, unless a Level-2
+    pool selection restricts it)."""
+    if kind(found) == LEVEL2:
+        return level2_worker.training_data(found, train)
+    return train
 
 
 def build_in_process(recipe, found):
