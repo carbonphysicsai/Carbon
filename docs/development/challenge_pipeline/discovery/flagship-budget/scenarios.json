@@ -1,0 +1,1163 @@
+{
+  "schema": "carbon.challenge-discovery.flagship-budget.research.v1",
+  "ticket": "CHALLENGE-DISCOVERY-01_OWNER_FOLLOWUP",
+  "source_head": "536a2716bd24a41751a1d382fca40038ff1384ae",
+  "source_data_url": "https://github.com/carbonphysicsai/Carbon/blob/536a2716bd24a41751a1d382fca40038ff1384ae/docs/development/challenge_pipeline/discovery/data.json",
+  "authority_main": "432d22b786a7341de788bc8b1206526849f3a31f",
+  "date": "2026-10-09",
+  "research_only": true,
+  "solver_runs": 0,
+  "spend_eur": 0,
+  "protected_material": false,
+  "dispatch_ready": false,
+  "adoption": "HUMAN_INPUT",
+  "bank_budget_owner_decision": "HUMAN_INPUT",
+  "strict_cost_only_count": 0,
+  "recorded_cost_only_count": 3,
+  "selection_definition": {
+    "status": "REPORT_CLASSIFICATION_NOT_SCIENCE",
+    "high_excitement_base_at_least": 3.5,
+    "high_excitement_scale_max": 5,
+    "economic_strength": "POSITIVE_GROSS_SCENARIO_NOT_PROVEN_BUYER_VALUE",
+    "exact_failed_gate_set": [
+      "G6"
+    ],
+    "non_cost_HOLD_allowed_only_for_diagnostic_list": true
+  },
+  "cost_assumptions": {
+    "status": "ASSUMPTION_NOT_MEASURED",
+    "rate_eur_node_h": 1.37,
+    "rate_source": "USER_TASK_AND_HETZ",
+    "tax_stress_multiplier": 1.19,
+    "setup_idle_fit_node_h": 4,
+    "other_reserve_eur": 10,
+    "elapsed_to_cpu_ratio": 1,
+    "refinement_multiplier": 2,
+    "witness_pairs": 8,
+    "witness_tools_per_pair": 2,
+    "incremental_buyer_tool_licence_eur": 0,
+    "rate_hypothesis_eur_h": [
+      60,
+      90,
+      120
+    ],
+    "weekly_windows_R": [
+      0.5,
+      1,
+      2
+    ],
+    "refresh_exposure_E": [
+      20,
+      10,
+      5
+    ],
+    "weeks_year": 52,
+    "bank_cap_eur": 100,
+    "all_in_bill_verified": false,
+    "equivalent_case_count_unchanged": 151,
+    "triage_equivalent_cases": 54
+  },
+  "index_formula": "V2*V3/(C2+52*C3_weekly)",
+  "index_corner_order": [
+    "low_gross/high_cost",
+    "base_gross/base_cost",
+    "high_gross/low_cost"
+  ],
+  "rank_basis": "ORIGINAL_SCOPE_BASE_VALUE_TO_COST_INDEX",
+  "startup_only_index_formula": "annual_gross/C2; no refresh included, not ROI",
+  "scored_inventory_ids": [
+    "D012",
+    "D077",
+    "D078",
+    "D006",
+    "D076",
+    "D071",
+    "D018",
+    "D021",
+    "D016",
+    "D026",
+    "D041",
+    "D051",
+    "D079",
+    "D046",
+    "D056"
+  ],
+  "unscored_inventory_ids": [
+    "D001",
+    "D002",
+    "D003",
+    "D004",
+    "D005",
+    "D007",
+    "D008",
+    "D009",
+    "D010",
+    "D011",
+    "D013",
+    "D014",
+    "D015",
+    "D017",
+    "D019",
+    "D020",
+    "D022",
+    "D023",
+    "D024",
+    "D025",
+    "D027",
+    "D028",
+    "D029",
+    "D030",
+    "D031",
+    "D032",
+    "D033",
+    "D034",
+    "D035",
+    "D036",
+    "D037",
+    "D038",
+    "D039",
+    "D040",
+    "D042",
+    "D043",
+    "D044",
+    "D045",
+    "D047",
+    "D048",
+    "D049",
+    "D050",
+    "D052",
+    "D053",
+    "D054",
+    "D055",
+    "D057",
+    "D058",
+    "D059",
+    "D060",
+    "D061",
+    "D062",
+    "D063",
+    "D064",
+    "D065",
+    "D066",
+    "D067",
+    "D068",
+    "D069",
+    "D070",
+    "D072",
+    "D073",
+    "D074",
+    "D075",
+    "D080"
+  ],
+  "source_gate_audit": [
+    {
+      "id": "D021",
+      "name": "Photonic ring",
+      "slug": "photonic-ring",
+      "screen": "REJECT_G5_G6_SCENARIO",
+      "recorded_failed_gates": [
+        "G5",
+        "G6"
+      ],
+      "excitement_low_base_high": [
+        3.666666666666667,
+        4.666666666666667,
+        5
+      ],
+      "C2_eur": [
+        23.906459000000005,
+        41.13873000000001,
+        114.99132
+      ],
+      "VCI_low_base_high": [
+        0.7180438257378864,
+        508.11548646376804,
+        52378.05870971849
+      ],
+      "selected": false,
+      "reason": "Also G5: cheap baseline defeats the plain proposed scope"
+    },
+    {
+      "id": "D016",
+      "name": "Package warpage",
+      "slug": "package-warpage",
+      "screen": "REJECT_G6_SCENARIO",
+      "recorded_failed_gates": [
+        "G6"
+      ],
+      "excitement_low_base_high": [
+        3.333333333333333,
+        4.333333333333333,
+        5
+      ],
+      "C2_eur": [
+        23.906459000000005,
+        46.062236000000006,
+        127.30008500000001
+      ],
+      "VCI_low_base_high": [
+        0.8648206567911251,
+        453.8039752662378,
+        41902.44696777479
+      ],
+      "selected": true,
+      "reason": "G6 is the sole recorded FAIL; non-cost gates remain HOLD"
+    },
+    {
+      "id": "D026",
+      "name": "RF coupled filter",
+      "slug": "rf-filter",
+      "screen": "REJECT_G5_G6_SCENARIO",
+      "recorded_failed_gates": [
+        "G5",
+        "G6"
+      ],
+      "excitement_low_base_high": [
+        3,
+        4,
+        5
+      ],
+      "C2_eur": [
+        26.368212,
+        46.062236000000006,
+        127.30008500000001
+      ],
+      "VCI_low_base_high": [
+        0.6486154925933438,
+        453.8039752662378,
+        47488.00992056186
+      ],
+      "selected": false,
+      "reason": "Also G5: cheap baseline defeats the plain proposed scope"
+    },
+    {
+      "id": "D041",
+      "name": "PEM reactant header",
+      "slug": "pem-header",
+      "screen": "REJECT_G6_SCENARIO",
+      "recorded_failed_gates": [
+        "G6"
+      ],
+      "excitement_low_base_high": [
+        2.6666666666666665,
+        3.6666666666666665,
+        4.666666666666666
+      ],
+      "C2_eur": [
+        28.829965,
+        53.447494999999996,
+        114.99132
+      ],
+      "VCI_low_base_high": [
+        0.9573917676505153,
+        325.91527140251713,
+        26059.842522392482
+      ],
+      "selected": true,
+      "reason": "G6 is the sole recorded FAIL; non-cost gates remain HOLD"
+    },
+    {
+      "id": "D051",
+      "name": "Wind airfoil",
+      "slug": "wind-airfoil",
+      "screen": "REJECT_G5_G6_SCENARIO",
+      "recorded_failed_gates": [
+        "G5",
+        "G6"
+      ],
+      "excitement_low_base_high": [
+        2.3333333333333335,
+        3.3333333333333335,
+        4.333333333333334
+      ],
+      "C2_eur": [
+        23.906459000000005,
+        46.062236000000006,
+        139.60885
+      ],
+      "VCI_low_base_high": [
+        0.3942864049065158,
+        226.9019876331189,
+        20951.223483887396
+      ],
+      "selected": false,
+      "reason": "Also G5; excitement base below the report's defined high-score cut"
+    },
+    {
+      "id": "D046",
+      "name": "CO2 adsorption cycle",
+      "slug": "co2-adsorption-cycle",
+      "screen": "REJECT_G6_SCENARIO",
+      "recorded_failed_gates": [
+        "G6"
+      ],
+      "excitement_low_base_high": [
+        3.333333333333333,
+        4.333333333333333,
+        5
+      ],
+      "C2_eur": [
+        28.829965,
+        65.75626,
+        213.46144
+      ],
+      "VCI_low_base_high": [
+        0.25787267039720624,
+        132.4539658939672,
+        13029.921261196241
+      ],
+      "selected": true,
+      "reason": "G6 is the sole recorded FAIL; non-cost gates remain HOLD"
+    },
+    {
+      "id": "D056",
+      "name": "LPBF scan strategy",
+      "slug": "lpbf-scan",
+      "screen": "REJECT_G2_G6_SCENARIO",
+      "recorded_failed_gates": [
+        "G2",
+        "G6"
+      ],
+      "excitement_low_base_high": [
+        3.333333333333333,
+        4.333333333333333,
+        5
+      ],
+      "C2_eur": [
+        90.37379,
+        508.8718,
+        2478.2742000000003
+      ],
+      "VCI_low_base_high": [
+        0.022211372559030402,
+        27.385058222852482,
+        6927.749256966419
+      ],
+      "selected": false,
+      "reason": "Also G2: thermal reference alone lacks graded distortion"
+    }
+  ],
+  "cards": [
+    {
+      "id": "D016",
+      "slug": "package-warpage",
+      "name": "Package warpage",
+      "rank": 1,
+      "excitement": [
+        3.333333333333333,
+        4.333333333333333,
+        5
+      ],
+      "original": {
+        "id": "D016",
+        "slug": "package-warpage",
+        "name": "Package warpage",
+        "lineage": "NEW_DISCOVERY_HYPOTHESIS",
+        "sources": [
+          "PACK1",
+          "PACK2"
+        ],
+        "buyer_role": "Package mechanical engineer",
+        "decision": "Choose underfill/solder-stack geometry",
+        "solver": "CALC",
+        "outputs": "warpage and strain through full thermal history",
+        "baseline": "laminate theory plus reduced thermoelastic FE",
+        "incremental_case": "High full-history cost scenario exceeds the bank cap; costly calibrated creep/plasticity cannot be silently removed.",
+        "V_scores_low_base_high": [
+          [
+            3,
+            4,
+            5
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_axes_low_base_high": [
+          [
+            4,
+            5,
+            5
+          ],
+          [
+            4,
+            5,
+            5
+          ],
+          [
+            2,
+            3,
+            4
+          ]
+        ],
+        "excitement_low_base_high": [
+          3.333333333333333,
+          4.333333333333333,
+          5
+        ],
+        "cost_status": "ASSUMPTION_NOT_MEASURED",
+        "value_status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+        "engineer_h": [
+          2,
+          6,
+          16
+        ],
+        "engineer_rate_eur_h": [
+          60,
+          90,
+          120
+        ],
+        "V2_eur": [
+          120,
+          540,
+          1920
+        ],
+        "teams": [
+          5,
+          20,
+          50
+        ],
+        "decisions_per_team_year": [
+          4,
+          12,
+          24
+        ],
+        "V3_decisions_year": [
+          20,
+          240,
+          1200
+        ],
+        "annual_gross_eur": [
+          2400,
+          129600,
+          2304000
+        ],
+        "c1_cpu_h": [
+          0.03,
+          0.12,
+          0.45
+        ],
+        "peak_ram_gib": [
+          2,
+          6,
+          16
+        ],
+        "p50_cpu_h": null,
+        "p95_cpu_h": null,
+        "designs": 24,
+        "strata": 3,
+        "primary_cases": 72,
+        "refined_cases": 24,
+        "charged_failed": 15,
+        "witness_pairs": 8,
+        "equivalent_cases": 151,
+        "C2_eur": [
+          23.906459000000005,
+          46.062236000000006,
+          127.30008500000001
+        ],
+        "C3_weekly_eur": [
+          0.5976614750000001,
+          4.606223600000001,
+          50.92003400000001
+        ],
+        "VCI_low_base_high": [
+          0.8648206567911251,
+          453.8039752662378,
+          41902.44696777479
+        ],
+        "computed_base_rank": 9,
+        "conditional_queue_rank": null,
+        "gates": {
+          "G1": "HOLD_EXACT_BUYER_DECISION",
+          "G2": "HOLD_EXACT_DECK_AND_PIN",
+          "G3": "HOLD_LIMITS_AND_WITNESSES",
+          "G4": "HOLD_COUNTS_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_BASELINE",
+          "G6": "FAIL_SCENARIO_NOT_MEASURED",
+          "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+        },
+        "screen": "REJECT_G6_SCENARIO",
+        "admitted": false,
+        "dispatch_ready": false,
+        "earned_credibility": "NOT_DEMONSTRATED",
+        "target_credibility": "TIER_2_INDEPENDENT_BUYER_TOOL",
+        "reason": "High full-history cost scenario exceeds the bank cap; costly calibrated creep/plasticity cannot be silently removed."
+      },
+      "narrow": {
+        "name": "Fixed-package 2D layered thermoelastic warpage screen",
+        "c1": [
+          0.005,
+          0.02,
+          0.07
+        ],
+        "retvalue": [
+          0,
+          0.4,
+          0.65
+        ],
+        "retvolume": [
+          0,
+          0.5,
+          0.8
+        ],
+        "status": "ASSUMPTION_PROSPECTIVE_NOT_ADOPTED",
+        "equivalent_cases": 151,
+        "V2_eur": [
+          0,
+          216,
+          1248
+        ],
+        "V3_eligible_revisions_year": [
+          0,
+          120,
+          960
+        ],
+        "C2_eur": [
+          17.7520765,
+          21.444706,
+          33.753471000000005
+        ],
+        "gross_eur": [
+          0,
+          25920,
+          1198080
+        ],
+        "C3_weekly_eur": [
+          0.44380191250000006,
+          2.1444706,
+          13.501388400000003
+        ],
+        "index_low_base_high": [
+          0,
+          194.94998725048146,
+          29343.29106941866
+        ],
+        "startup_only_index_low_base_high": [
+          0,
+          1208.689920952985,
+          67489.56945966293
+        ],
+        "gross_value_retained_fraction": [
+          0,
+          0.2,
+          0.52
+        ],
+        "gross_value_loss_pct_low_base_high": [
+          48,
+          80,
+          100
+        ],
+        "reference_adequacy": "HUMAN_INPUT",
+        "excitement_inherited": false,
+        "adopted": false,
+        "dispatch_ready": false,
+        "same_original_buyer_job": false
+      },
+      "original_startup_only_index": [
+        18.853090318046526,
+        2813.5846466506746,
+        96375.62802588202
+      ],
+      "minimum_budget_covering_stated_high_eur": 128,
+      "absolute_cost_only_qualified": false,
+      "literal_cost_only_proved": false,
+      "non_cost_failures": [],
+      "non_cost_holds": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G7"
+      ],
+      "triage_eur_low_base_high": [
+        19.162286,
+        27.085544000000002,
+        56.13749
+      ]
+    },
+    {
+      "id": "D041",
+      "slug": "pem-header",
+      "name": "PEM reactant header",
+      "rank": 2,
+      "excitement": [
+        2.6666666666666665,
+        3.6666666666666665,
+        4.666666666666666
+      ],
+      "original": {
+        "id": "D041",
+        "slug": "pem-header",
+        "name": "PEM reactant header",
+        "lineage": "NEW_DISCOVERY_HYPOTHESIS",
+        "sources": [
+          "PEM1",
+          "PEM2"
+        ],
+        "buyer_role": "Fuel-cell stack engineer",
+        "decision": "Choose header cross-section and branches",
+        "solver": "FOAM",
+        "outputs": "distribution and pressure loss across flow panel",
+        "baseline": "network model plus CFD-trained response surface",
+        "incremental_case": "High scenario exceeds cap and ANN response-surface incumbent already optimises headers; full-cell sources do not prove header-only exact contract.",
+        "V_scores_low_base_high": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_axes_low_base_high": [
+          [
+            3,
+            4,
+            5
+          ],
+          [
+            3,
+            4,
+            5
+          ],
+          [
+            2,
+            3,
+            4
+          ]
+        ],
+        "excitement_low_base_high": [
+          2.6666666666666665,
+          3.6666666666666665,
+          4.666666666666666
+        ],
+        "cost_status": "ASSUMPTION_NOT_MEASURED",
+        "value_status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+        "engineer_h": [
+          2,
+          5,
+          12
+        ],
+        "engineer_rate_eur_h": [
+          60,
+          90,
+          120
+        ],
+        "V2_eur": [
+          120,
+          450,
+          1440
+        ],
+        "teams": [
+          5,
+          20,
+          50
+        ],
+        "decisions_per_team_year": [
+          4,
+          12,
+          24
+        ],
+        "V3_decisions_year": [
+          20,
+          240,
+          1200
+        ],
+        "annual_gross_eur": [
+          2400,
+          108000,
+          1728000
+        ],
+        "c1_cpu_h": [
+          0.05,
+          0.15,
+          0.4
+        ],
+        "peak_ram_gib": [
+          2,
+          6,
+          16
+        ],
+        "p50_cpu_h": null,
+        "p95_cpu_h": null,
+        "designs": 24,
+        "strata": 3,
+        "primary_cases": 72,
+        "refined_cases": 24,
+        "charged_failed": 15,
+        "witness_pairs": 8,
+        "equivalent_cases": 151,
+        "C2_eur": [
+          28.829965,
+          53.447494999999996,
+          114.99132
+        ],
+        "C3_weekly_eur": [
+          0.7207491250000001,
+          5.3447495,
+          45.996528000000005
+        ],
+        "VCI_low_base_high": [
+          0.9573917676505153,
+          325.91527140251713,
+          26059.842522392482
+        ],
+        "computed_base_rank": 11,
+        "conditional_queue_rank": null,
+        "gates": {
+          "G1": "HOLD_EXACT_BUYER_DECISION",
+          "G2": "HOLD_EXACT_DECK_AND_PIN",
+          "G3": "HOLD_LIMITS_AND_WITNESSES",
+          "G4": "HOLD_COUNTS_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_BASELINE",
+          "G6": "FAIL_SCENARIO_NOT_MEASURED",
+          "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+        },
+        "screen": "REJECT_G6_SCENARIO",
+        "admitted": false,
+        "dispatch_ready": false,
+        "earned_credibility": "NOT_DEMONSTRATED",
+        "target_credibility": "TIER_2_INDEPENDENT_BUYER_TOOL",
+        "reason": "High scenario exceeds cap and ANN response-surface incumbent already optimises headers; full-cell sources do not prove header-only exact contract."
+      },
+      "narrow": {
+        "name": "Fixed-layout 2D dry-gas manifold distribution screen",
+        "c1": [
+          0.01,
+          0.04,
+          0.12
+        ],
+        "retvalue": [
+          0,
+          0.35,
+          0.6
+        ],
+        "retvolume": [
+          0,
+          0.5,
+          0.75
+        ],
+        "status": "ASSUMPTION_PROSPECTIVE_NOT_ADOPTED",
+        "equivalent_cases": 151,
+        "V2_eur": [
+          0,
+          157.5,
+          864
+        ],
+        "V3_eligible_revisions_year": [
+          0,
+          120,
+          900
+        ],
+        "C2_eur": [
+          18.982953000000002,
+          26.368212,
+          46.062236000000006
+        ],
+        "gross_eur": [
+          0,
+          18900,
+          777600
+        ],
+        "C3_weekly_eur": [
+          0.47457382500000006,
+          2.6368212,
+          18.424894400000003
+        ],
+        "index_low_base_high": [
+          0,
+          115.60841124814203,
+          17810.029689360716
+        ],
+        "startup_only_index_low_base_high": [
+          0,
+          716.7721497384806,
+          40963.06828552965
+        ],
+        "gross_value_retained_fraction": [
+          0,
+          0.175,
+          0.44999999999999996
+        ],
+        "gross_value_loss_pct_low_base_high": [
+          55.00000000000001,
+          82.5,
+          100
+        ],
+        "reference_adequacy": "HUMAN_INPUT",
+        "excitement_inherited": false,
+        "adopted": false,
+        "dispatch_ready": false,
+        "same_original_buyer_job": false
+      },
+      "original_startup_only_index": [
+        20.871140534781233,
+        2020.6746826956064,
+        59937.63780150271
+      ],
+      "minimum_budget_covering_stated_high_eur": 115,
+      "absolute_cost_only_qualified": false,
+      "literal_cost_only_proved": false,
+      "non_cost_failures": [],
+      "non_cost_holds": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G7"
+      ],
+      "triage_eur_low_base_high": [
+        20.923009999999998,
+        29.72663,
+        51.73568
+      ]
+    },
+    {
+      "id": "D046",
+      "slug": "co2-adsorption-cycle",
+      "name": "CO2 adsorption cycle",
+      "rank": 3,
+      "excitement": [
+        3.333333333333333,
+        4.333333333333333,
+        5
+      ],
+      "original": {
+        "id": "D046",
+        "slug": "co2-adsorption-cycle",
+        "name": "CO2 adsorption cycle",
+        "lineage": "NEW_DISCOVERY_HYPOTHESIS",
+        "sources": [
+          "CO21",
+          "CO22"
+        ],
+        "buyer_role": "Capture process engineer",
+        "decision": "Choose cycle step pressures/times",
+        "solver": "APEP",
+        "outputs": "cyclic purity, recovery and energy panel",
+        "baseline": "shortcut cycle plus interpolated dynamic response surface",
+        "incremental_case": "High cycle-convergence scenario exceeds cap; solver kinetics/energy/extraction closure unresolved.",
+        "V_scores_low_base_high": [
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_axes_low_base_high": [
+          [
+            4,
+            5,
+            5
+          ],
+          [
+            4,
+            5,
+            5
+          ],
+          [
+            2,
+            3,
+            4
+          ]
+        ],
+        "excitement_low_base_high": [
+          3.333333333333333,
+          4.333333333333333,
+          5
+        ],
+        "cost_status": "ASSUMPTION_NOT_MEASURED",
+        "value_status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+        "engineer_h": [
+          2,
+          5,
+          12
+        ],
+        "engineer_rate_eur_h": [
+          60,
+          90,
+          120
+        ],
+        "V2_eur": [
+          120,
+          450,
+          1440
+        ],
+        "teams": [
+          5,
+          20,
+          50
+        ],
+        "decisions_per_team_year": [
+          2,
+          6,
+          12
+        ],
+        "V3_decisions_year": [
+          10,
+          120,
+          600
+        ],
+        "annual_gross_eur": [
+          1200,
+          54000,
+          864000
+        ],
+        "c1_cpu_h": [
+          0.05,
+          0.2,
+          0.8
+        ],
+        "peak_ram_gib": [
+          1,
+          4,
+          12
+        ],
+        "p50_cpu_h": null,
+        "p95_cpu_h": null,
+        "designs": 24,
+        "strata": 3,
+        "primary_cases": 72,
+        "refined_cases": 24,
+        "charged_failed": 15,
+        "witness_pairs": 8,
+        "equivalent_cases": 151,
+        "C2_eur": [
+          28.829965,
+          65.75626,
+          213.46144
+        ],
+        "C3_weekly_eur": [
+          0.7207491250000001,
+          6.575626,
+          85.38457600000001
+        ],
+        "VCI_low_base_high": [
+          0.25787267039720624,
+          132.4539658939672,
+          13029.921261196241
+        ],
+        "computed_base_rank": 14,
+        "conditional_queue_rank": null,
+        "gates": {
+          "G1": "HOLD_EXACT_BUYER_DECISION",
+          "G2": "HOLD_EXACT_DECK_AND_PIN",
+          "G3": "HOLD_LIMITS_AND_WITNESSES",
+          "G4": "HOLD_COUNTS_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_BASELINE",
+          "G6": "FAIL_SCENARIO_NOT_MEASURED",
+          "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+        },
+        "screen": "REJECT_G6_SCENARIO",
+        "admitted": false,
+        "dispatch_ready": false,
+        "earned_credibility": "NOT_DEMONSTRATED",
+        "target_credibility": "TIER_2_INDEPENDENT_BUYER_TOOL",
+        "reason": "High cycle-convergence scenario exceeds cap; solver kinetics/energy/extraction closure unresolved."
+      },
+      "narrow": {
+        "name": "Fixed-sorbent/feed isothermal single-bed cycle timing screen",
+        "c1": [
+          0.01,
+          0.04,
+          0.12
+        ],
+        "retvalue": [
+          0,
+          0.3,
+          0.55
+        ],
+        "retvolume": [
+          0,
+          0.5,
+          0.7
+        ],
+        "status": "ASSUMPTION_PROSPECTIVE_NOT_ADOPTED",
+        "equivalent_cases": 151,
+        "V2_eur": [
+          0,
+          135,
+          792.0000000000001
+        ],
+        "V3_eligible_revisions_year": [
+          0,
+          60,
+          420
+        ],
+        "C2_eur": [
+          18.982953000000002,
+          26.368212,
+          46.062236000000006
+        ],
+        "gross_eur": [
+          0,
+          8100,
+          332640.00000000006
+        ],
+        "C3_weekly_eur": [
+          0.47457382500000006,
+          2.6368212,
+          18.424894400000003
+        ],
+        "index_low_base_high": [
+          0,
+          49.54646196348944,
+          7618.734922670975
+        ],
+        "startup_only_index_low_base_high": [
+          0,
+          307.18806417363453,
+          17523.09032214324
+        ],
+        "gross_value_retained_fraction": [
+          0,
+          0.15,
+          0.385
+        ],
+        "gross_value_loss_pct_low_base_high": [
+          61.5,
+          85,
+          100
+        ],
+        "reference_adequacy": "HUMAN_INPUT",
+        "excitement_inherited": false,
+        "adopted": false,
+        "dispatch_ready": false,
+        "same_original_buyer_job": false
+      },
+      "original_startup_only_index": [
+        5.621624214659097,
+        821.2145885425966,
+        29968.818900751354
+      ],
+      "minimum_budget_covering_stated_high_eur": 214,
+      "absolute_cost_only_qualified": false,
+      "literal_cost_only_proved": false,
+      "non_cost_failures": [],
+      "non_cost_holds": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G7"
+      ],
+      "triage_eur_low_base_high": [
+        20.923009999999998,
+        34.12844,
+        86.95016000000001
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "PKG2D",
+      "owner": "Lo, Liu and Chang / National Taiwan University",
+      "url": "https://scholars.lib.ntu.edu.tw/entities/publication/c32f1d38-1e15-4056-b256-cee403b6c61d",
+      "support": "Author-institution abstract describes a 3D-to-2D thermo-mechanical warpage method. It is a comparator/modelling analogue, not a verified open CalculiX implementation.",
+      "retrieval": "institutional abstract",
+      "access_date": "2026-10-09"
+    },
+    {
+      "id": "PKGPINN",
+      "owner": "WarpagePINN authors",
+      "url": "https://arxiv.org/abs/2607.00364",
+      "support": "Primary preprint of learned thermal-warpage prediction. Comparison must include acquisition/training and domain limits; no reported speedup is adopted here.",
+      "retrieval": "primary preprint abstract",
+      "access_date": "2026-10-09"
+    },
+    {
+      "id": "PKGGNN",
+      "owner": "WarPGNN authors",
+      "url": "https://arxiv.org/abs/2603.18581",
+      "support": "Primary preprint of physics-aware parametric thermal-warpage prediction. It strengthens the incumbent screen; no general V4 conclusion follows.",
+      "retrieval": "primary preprint abstract",
+      "access_date": "2026-10-09"
+    },
+    {
+      "id": "PEM2D",
+      "owner": "Chen, Jung and Yen",
+      "url": "https://www.sciencedirect.com/science/article/pii/S0378775307009457",
+      "support": "Published abstract describes a 2D porous-media stack/manifold model while omitting electrochemistry, heat and mass transport. This supports the narrower hydraulic modelling analogue only.",
+      "retrieval": "publisher abstract via search; direct open 403",
+      "access_date": "2026-10-09"
+    },
+    {
+      "id": "PEM3D",
+      "owner": "Turbulent-header study authors",
+      "url": "https://www.sciencedirect.com/science/article/abs/pii/S036031991100348X",
+      "support": "Published abstract reports complex 3D outlet-header jets/crossflow, motivating applicability checks before using 2D.",
+      "retrieval": "publisher abstract via search; direct open 403",
+      "access_date": "2026-10-09"
+    },
+    {
+      "id": "APEPDOC",
+      "owner": "pyAPEP authors",
+      "url": "https://nahyeonan.github.io/pyAPEP/build/html/simsep.html",
+      "support": "Official axial-column model documentation separates mass/momentum from mass/momentum/energy functions. Isothermal reduction changes the claim; original model is already spatially 1D.",
+      "retrieval": "official documentation",
+      "access_date": "2026-10-09"
+    }
+  ],
+  "realized_commercial_value_floor_eur": 0,
+  "original_evidence_unchanged": true
+}
+
