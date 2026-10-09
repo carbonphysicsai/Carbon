@@ -52,6 +52,7 @@ from carbon.development_session.miner_guidance import (
 from carbon.development_session.miner_guidance import (
     message_digest as _message_digest,
 )
+from scripts.dev.miner_launchpad import budget_view
 
 SCHEMA = "carbon.control-center.campaign-view.v1"
 
@@ -309,6 +310,10 @@ def experiment_rows(own, view):
                     ),
                     "train_s": finite(fit.get("train_s")),
                 },
+                # The recipe against its Challenge's compute budget, by
+                # admission's own rule (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01);
+                # NOT_SET carries no number. Never refuses the practice.
+                "budget_status": budget_view.status(experiment.get("recipe")),
                 "backend": _str(backend.get("kind"), 64),
                 # CPU or GPU, and where (RSURF-D19), from the run's own record.
                 "ran_on": ran_on(backend),
