@@ -41,6 +41,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+from .bank import BankRefused, BankSource
 from .batch_source import BatchSource, ProducerRefused
 from .interface import canonical_role, digest, role_reserved
 
@@ -192,6 +193,14 @@ class FamilySource(BatchSource):
             if canonical_role(entry.get("role")) == canonical_role(role)
         ]
 
+    def repeats_published(self, cases):
+        """Whether any of `cases` repeats a published case of the family."""
+        if self._published is None:
+            self._published = self.family.published_keys(self.repository)
+        return any(
+            self.family.overlap_key(case["inputs"]) in self._published for case in cases
+        )
+
     def draw(self, role, *, kind, size=None):
         family = self.family
         if kind not in family.kinds:
@@ -203,12 +212,7 @@ class FamilySource(BatchSource):
         with self.custody.writer():
             document = self._document(role, kind)
             fingerprint = digest(document)
-            if self._published is None:
-                self._published = family.published_keys(self.repository)
-            if any(
-                family.overlap_key(case["inputs"]) in self._published
-                for case in document["cases"]
-            ):
+            if self.repeats_published(document["cases"]):
                 raise ProducerRefused("producer_published_case")
             journaled = self._journaled(role)
             if any(entry["fingerprint"] != fingerprint for entry in journaled):
@@ -383,6 +387,72 @@ class FamilySource(BatchSource):
             raise ProducerRefused("producer_not_committed")
         if journaled[0]["sequence"] != batch["sequence"]:
             raise ProducerRefused("producer_sequence_mismatch")
+
+    # --- the bank (VALIDATOR-23) ------------------------------------------------
+
+    def bank(self, bank_dir):
+        """The family's bank ledger, its tranches drawn from this custody."""
+        from .bank import BankLedger
+
+        return BankLedger(bank_dir, FamilyBankSource(self))
+
+    def fill_tranche(self, ledger, tranche, work, *, workers=6, timeout_s=7200.0):
+        """Solve and seal one drawn bank tranche through the family's runner,
+        under the same contract as a batch (`solve`). Resumable: each pass
+        plans only the cases still unsolved, and a case's first terminal
+        record, checked by the family, is the one kept."""
+        work = Path(work)
+        work.mkdir(parents=True, mode=0o700, exist_ok=True)
+        for _attempt in range(3):
+            jobs = ledger.jobs(tranche)
+            if not jobs:
+                break
+            (work / "jobs.json").write_text(
+                json.dumps({"fingerprint": tranche, "jobs": jobs})
+            )
+            self.solve(work, workers=workers, timeout_s=timeout_s)
+            pending = {job["case_id"]: job["inputs"] for job in jobs}
+            terminal, checked = self.family.terminal, []
+            for record in self._records(work / "records.jsonl"):
+                case_id = record.get("case_id") if type(record) is dict else None
+                if case_id not in pending or record.get("status") not in terminal:
+                    continue
+                try:
+                    self.family.check_reference(record, pending.pop(case_id))
+                except ValueError:
+                    raise ProducerRefused("producer_reference_malformed") from None
+                checked.append(record)
+            ledger.ingest(tranche, checked)
+        if ledger.jobs(tranche):
+            raise ProducerRefused("producer_bank_tranche_unsolved")
+        return ledger.seal(tranche)
+
+
+class FamilyBankSource(BankSource):
+    """A family's bank tranches: `count` fresh cases drawn from its producer
+    custody root through its population under the tranche's role, so a
+    registered family is bankable with no family-specific code. Private."""
+
+    def __init__(self, source):
+        self.source = source
+        self.challenge_id = source.challenge_id
+
+    def draw_tranche(self, bank, role, count):
+        from .confirmation import make_batch
+
+        source = self.source
+        item = SimpleNamespace(**{**vars(source._item(role)), "cases": count})
+        sealed = make_batch(source.custody.root(), source.population, item)
+        cases = [
+            {"case_id": case_id, "inputs": inputs}
+            for case_id, inputs in sorted(sealed.inputs().items())
+        ]
+        if source.repeats_published(cases):
+            raise BankRefused("bank_published_case")
+        return cases
+
+    def terminal(self):
+        return self.source.family.terminal
 
 
 def _motor():

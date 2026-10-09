@@ -1,0 +1,229 @@
+"""The testnet development-ladder deployment (VALIDATOR-25, slice 1).
+
+OWNER-LADDER-THROUGH-LAUNCHPAD-01: a separate `battery-dev-ladder` deployment
+on valV2, reached through the Launchpad with real hotkeys and chain
+commitments, that serves only its listed rehearsal hotkeys and only the
+development variants of its one level. It shares the main deployment's live
+windows (import-only), and it is `development_only`, so it never sets
+weights. Its admission refuses, before anything compiles:
+- `ladder_hotkey_not_listed`: a hotkey it does not list;
+- `ladder_level_not_accepted`: another level's variant;
+- `ladder_level_4_not_open`: a Level 4 variant;
+- `ladder_variant_not_accepted`: an unlisted variant of its level.
+
+Synthetic fixture variants only (`test_development_variants.install`).
+Not a security audit (AGENTS.md §13).
+"""
+
+from __future__ import annotations
+
+import copy
+import json
+
+import pytest
+import test_battery_validator_daemon as tbd
+from test_battery_validator_daemon import backend, refs  # noqa: F401 - fixtures
+from test_development_variants import FIXTURE_DIGESTS, fixture_document, install
+
+from carbon.battery import deployment
+from carbon.reconstruction import capability_registry as registry
+
+MINER_C = "5E49MhzFLBv35AbSPgtwrutCd6yvDm6GK9EC5ocmJ3Czb48N"
+OTHER = "5DWznJMnCeoevFSwsck7LXdYBWAbiw1G1qrxnghqSHqQj2qr"
+TESTNET = {
+    "network": "testnet",
+    "endpoint": "wss://test.finney.opentensor.ai:443",
+    "provider": "bittensor-official-test",
+    "genesis_hash": (
+        "0x8f9cf856bf558a14440e75569c9e58594757048d7b3a84b5d25f6bd978263105"
+    ),
+    "netuid": 567,
+}
+LEVEL_2 = fixture_document(2)["version"]
+
+
+@pytest.fixture(autouse=True)
+def _registry(tmp_path, monkeypatch):
+    install(tmp_path / "registry", monkeypatch)
+
+
+def config(**changes):
+    found = {
+        "development_only": True,
+        "batch_source": "answer_key",
+        "require_commitment": True,
+        "commitment_reader": dict(TESTNET),
+        "ladder": {"level": 2, "hotkeys": [MINER_C], "variants": [LEVEL_2]},
+    }
+    found.update(changes)
+    return found
+
+
+# --- the registry, as data ------------------------------------------------------
+
+
+def test_a_variants_document_is_read_by_name_or_digest_and_rechecked(
+    tmp_path, monkeypatch
+):
+    by_name = registry.development_variant_document(LEVEL_2)
+    assert by_name["level"] == 2
+    assert registry.development_variant_document(FIXTURE_DIGESTS[2]) == by_name
+    assert registry.development_variant_document("sha256:" + "0" * 64) is None
+    changed = copy.deepcopy(by_name)
+    changed["level"] = 3
+    path = registry.DEVELOPMENT_VARIANT_DIR / f"{LEVEL_2}.json"
+    path.write_text(json.dumps(changed))
+    with pytest.raises(RuntimeError, match="changed"):
+        registry.development_variant_document(LEVEL_2)
+
+
+# --- the deployment -----------------------------------------------------------
+
+
+def test_the_ladder_admits_its_hotkeys_and_its_levels_variants():
+    ladder = deployment.ladder_for(config())
+    assert ladder == {
+        "level": 2,
+        "hotkeys": frozenset({MINER_C}),
+        "variants": {FIXTURE_DIGESTS[2]: LEVEL_2},
+    }
+    assert deployment.ladder_for({}) is None
+
+
+@pytest.mark.parametrize(
+    ("changes", "code"),
+    [
+        ({"development_only": False}, "evaluation_config_ladder"),
+        ({"batch_source": "draw"}, "evaluation_config_ladder"),
+        ({"require_commitment": False}, "evaluation_config_ladder"),
+        (
+            {"commitment_reader": {**TESTNET, "network": "finney"}},
+            "evaluation_config_ladder_testnet_only",
+        ),
+        (
+            {"ladder": {"level": 4, "hotkeys": [MINER_C], "variants": [LEVEL_2]}},
+            "evaluation_config_ladder_level_4_not_open",
+        ),
+        (
+            {"ladder": {"level": 2, "hotkeys": ["minerC"], "variants": [LEVEL_2]}},
+            "evaluation_config_ladder",
+        ),
+        (
+            {"ladder": {"level": 2, "hotkeys": [MINER_C], "variants": []}},
+            "evaluation_config_ladder",
+        ),
+        (
+            {
+                "ladder": {
+                    "level": 2,
+                    "hotkeys": [MINER_C],
+                    "variants": [fixture_document(1)["version"]],
+                }
+            },
+            "evaluation_config_ladder_variant",
+        ),
+        (
+            {"ladder": {"level": 2, "hotkeys": [MINER_C], "variants": ["unknown-v1"]}},
+            "evaluation_config_ladder_variant",
+        ),
+    ],
+)
+def test_a_malformed_ladder_is_refused(changes, code):
+    with pytest.raises(deployment.EvaluationUnavailable) as refused:
+        deployment.ladder_for(config(**changes))
+    assert refused.value.code == code
+
+
+def test_only_the_ladder_may_be_a_development_deployment_with_commitments(tmp_path):
+    base = {
+        "schema": deployment.SCHEMA,
+        "state": str(tmp_path / "s.sqlite3"),
+        "private_root": str(tmp_path / "root.bin"),
+        "journal": str(tmp_path / "j.jsonl"),
+        "work": str(tmp_path / "work"),
+        "backend": "direct",
+    }
+    path = tmp_path / "deployment.json"
+    for changes, code in (
+        (config(), None),
+        ({k: v for k, v in config().items() if k != "ladder"}, "development_only"),
+    ):
+        path.write_text(json.dumps({**base, **changes}))
+        path.chmod(0o600)
+        if code is None:
+            assert deployment.load_config(path)["ladder"]["level"] == 2
+        else:
+            with pytest.raises(deployment.EvaluationUnavailable) as refused:
+                deployment.load_config(path)
+            assert refused.value.code == "evaluation_config_development_only"
+
+
+# --- admission ------------------------------------------------------------------
+
+
+@pytest.fixture
+def ladder_validator(tmp_path, refs, backend):  # noqa: F811
+    return tbd.make(
+        tmp_path,
+        refs,
+        backend,
+        development_only=True,
+        ladder=deployment.ladder_for(config()),
+    )
+
+
+def code(validator, hotkey, digest=tbd.DIGEST):
+    outcome = validator.admit(tbd.submission(hotkey, digest=digest))
+    return (outcome.get("failure") or {}).get("code")
+
+
+def test_an_unlisted_hotkey_is_refused_before_anything(ladder_validator):
+    before = ladder_validator.store.pool()["admitted"]
+    assert code(ladder_validator, OTHER) == "ladder_hotkey_not_listed"
+    assert code(ladder_validator, "graphite-dev:run:constructor") == (
+        "ladder_hotkey_not_listed"
+    )
+    assert ladder_validator.store.pool()["admitted"] == before
+
+
+def test_another_levels_variant_is_refused_by_its_own_code(
+    ladder_validator, monkeypatch
+):
+    assert code(ladder_validator, MINER_C, FIXTURE_DIGESTS[1]) == (
+        "ladder_level_not_accepted"
+    )
+    real = registry.development_variant_document
+
+    def as_level_4(value, directory=None):
+        document = real(value, directory)
+        if value == FIXTURE_DIGESTS[3]:
+            return {**document, "level": 4}
+        return document
+
+    monkeypatch.setattr(registry, "development_variant_document", as_level_4)
+    assert code(ladder_validator, MINER_C, FIXTURE_DIGESTS[3]) == (
+        "ladder_level_4_not_open"
+    )
+
+
+def test_a_listed_variant_needs_the_injected_compiler(ladder_validator):
+    # Fail closed until the ladder's service entry point supplies it.
+    assert code(ladder_validator, MINER_C, FIXTURE_DIGESTS[2]) == (
+        "development_variant_not_served"
+    )
+    seen = []
+
+    def compiler(strategy, digest):
+        seen.append(digest)
+        raise ValueError("stop after admission")
+
+    ladder_validator.development_compiler = compiler
+    code(ladder_validator, MINER_C, FIXTURE_DIGESTS[2])
+    assert seen == [FIXTURE_DIGESTS[2]]
+
+
+def test_the_ladder_never_sets_weights(ladder_validator):
+    from carbon.rewards import testnet_winner_publication as publication
+
+    with pytest.raises(Exception, match="DEVELOPMENT_DEPLOYMENT_NEVER_SETS_WEIGHTS"):
+        publication.check_weight_source(ladder_validator)

@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-motor-law-canonical-boundary",
+  "recorded_at": "2026-10-09T16:29:12Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-MOTOR-QUESTION-LAW-01 canonical attempt", "description": "Local WSL canonical.sh --focused; read-only Git-root diagnosis"},
+  "expected": "Run focused acceptance only through the pinned canonical wrapper, without touching AX42 or solvers.",
+  "observed": "Wrapper refused repository-root verification before container/test execution. WSL Git resolves the Windows-created worktree's C:/Users/... gitdir relative to /mnt/c, reporting not a git repository. No metadata was changed; no canonical result exists.",
+  "keep": ["Do not bypass canonical identity checks or relabel native output as accepted."],
+  "change": ["Use required exact-head PR CI for canonical acceptance; report the local environment limitation in handoff."],
+  "protocol_elements": ["canonical-environment", "local-infrastructure-failure", "exact-head-handoff"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-battery-law-round2-first-validation",
+  "recorded_at": "2026-10-09T15:00:39Z",
+  "challenge": "battery",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "new static law tests plus existing question-law/customer-revision tests; Black/Ruff/diff check", "description": "Native diagnostic validation of prospective law and historical boundaries."},
+  "expected": "Static arithmetic and prior proposal tests pass; changed Python meets formatting and lint checks.",
+  "observed": "42 passed in 0.21s; Ruff and diff check clean. Black requested formatting of the new test file, repaired with Black. Native output is not canonical acceptance.",
+  "keep": ["Test both historical and current audit scopes without converting either into acceptance."],
+  "change": ["Apply repository formatter before final diagnostic acceptance."],
+  "protocol_elements": ["testing", "history", "formatting"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -283,10 +283,15 @@ def make_operation_tools(host, *, guard=None):
             except Rejected as refused:
                 # A closed code a client can branch on, the field to correct
                 # and the next step - the refusal's own when it carries one,
-                # as the browser's door sends it; never an argument back.
+                # as the browser's door sends it, with a compute budget
+                # refusal's numbers; never an argument back.
                 raise ToolError(
                     json_refusal(
-                        refusal(refused.code, getattr(refused, "next_step", None))
+                        refusal(
+                            refused.code,
+                            getattr(refused, "next_step", None),
+                            getattr(refused, "budget", None),
+                        )
                     )
                 ) from None
             return OperationResult(

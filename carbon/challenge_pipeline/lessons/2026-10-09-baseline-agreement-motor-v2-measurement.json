@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-agreement-motor-v2-measurement",
+  "recorded_at": "2026-10-09T14:35:00Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "coverage_run",
+    "ref": "motor-measurement-v2.json local diagnostic",
+    "description": "BASELINE-AGREEMENT-01: motor-measurement-v2.json local diagnostic"
+  },
+  "expected": "Report lookup cost and leave missing motor full-curve arm blocked.",
+  "observed": "20 unresolved decisions; exact replay search/reference arithmetic measured. No solver or curve fitting run on real motor data.",
+  "keep": [
+    "Producer simulated settlement is not accepted reference truth."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.pipeline.lessons",
+    "challenge.cheap-baseline.comparison"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

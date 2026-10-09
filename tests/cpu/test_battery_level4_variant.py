@@ -9,10 +9,10 @@ Claims tested:
 2. A strategy naming a submission digest compiles under it to a Level 4
    graph record; anything else in the graph slot is refused by name.
 3. The shared dispatch (`development_rebuild`) routes the record to Level 4,
-   never to Level 0 or Level 1, and every rebuild fails closed as Carbon's
-   environment (never the candidate's) until the submission's documents
-   reach the rebuild worker. G5 itself is accepted for development and
-   testnet (OWNER-L4-G5-COMPILE-ISOLATION-01), so D3 is no longer the blocker.
+   never to Level 0 or Level 1. The Level 4 build sits inside the program's
+   `try:`, so a rebuild with no staged documents fails closed as Carbon's
+   environment (never the candidate's). G5 is accepted for development and
+   testnet (OWNER-L4-G5-COMPILE-ISOLATION-01).
 4. The miner-facing contract still refuses the graph slot, and the variant's
    digest is refused at miner doors.
 """
@@ -91,7 +91,7 @@ def test_compiles_to_a_level4_graph_record():
         assert refused.value.issues[0][0] == "development.level4.submission_digest"
 
 
-def test_every_rebuild_fails_closed_as_carbons_environment():
+def test_without_staged_documents_every_rebuild_is_carbons_environment():
     found = dv.compile_development(strategy(), dv.variant(BATTERY, 4))
     record = development_rebuild.record(found.reconstruction)
     base = worker.RECONSTRUCT_PROGRAM
@@ -99,11 +99,14 @@ def test_every_rebuild_fails_closed_as_carbons_environment():
         record, base, {"recipe.json": b"{}"}, level1_program=lambda: "x"
     )
     assert trainer == development_rebuild.LEVEL4 and level4_worker.STAGED in files
-    # The raise replaces the build line inside the program's `try:`, so the
-    # program's own `except ImportError` records stage `environment`.
-    raise_line = f"    raise ImportError({level4_worker.BLOCKED!r})\n"
-    assert level4_worker._BUILD not in program and program.count(raise_line) == 1
-    start = program.index(raise_line)
+    assert {m + ".py" for m in level4_worker.MODULES} <= set(files)
+    # The Level 4 build replaces the build line inside the program's `try:`,
+    # so a missing document or module reaches its `except ImportError` and is
+    # recorded as stage `environment` (Phase 3: the build trains the staged
+    # submission; tests/cpu/test_battery_level4_worker_programs.py).
+    build_line = "    model = level4_model.build_from_work(recipe, work)\n"
+    assert level4_worker._BUILD not in program and program.count(build_line) == 1
+    start = program.index(build_line)
     assert program.rfind("try:", 0, start) > program.rfind("except", 0, start)
     assert program.index("except ImportError", start) > start
     with pytest.raises(RuntimeError):
