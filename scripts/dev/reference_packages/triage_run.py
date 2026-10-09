@@ -38,6 +38,10 @@ CEILINGS = {  # #787 grant proposal, per family
 }
 CPUS, MEMORY, PIDS, CASE_TIMEOUT_S = 8, "24g", 16, 7200
 LIMITS = {"f08": {"cpus": 1, "memory": "12g"}}  # local free CPU; others use CPUS/MEMORY
+#: f08 on a shared host: a case starts only when MemAvailable covers its
+#: estimated peak (measured 1.08 GB at 52 k nodes, scaled as nodes^1.4) plus
+#: a 2 GiB reserve for the host's other work. Waiting is free; no case is skipped.
+MEMORY_GATE = {"f08": {"gb_at": (52000, 1.08), "exponent": 1.4, "reserve_gb": 2.0}}
 HOST_PROFILE = None
 #: Run order within a family: the primary measurements first, so a family
 #: ceiling can only censor refinements, never a primary.
@@ -74,6 +78,24 @@ def _used(ledger, family):
                     else min(first, row["started_unix"])
                 )
     return used
+
+
+def _mem_available_gb():
+    for line in Path("/proc/meminfo").read_text().splitlines():
+        if line.startswith("MemAvailable:"):
+            return int(line.split()[1]) / 1024**2
+    return float("inf")
+
+
+def _wait_for_memory(entry, family):
+    gate = MEMORY_GATE.get(family)
+    nodes = (entry.get("mesh") or {}).get("nodes")
+    if not gate or not nodes:
+        return
+    (n0, gb0), k = gate["gb_at"], gate["exponent"]
+    need = gb0 * (nodes / n0) ** k + gate["reserve_gb"]
+    while _mem_available_gb() < need:
+        time.sleep(60)
 
 
 def _remaining_s(cap, used, cpus, family):
@@ -119,6 +141,8 @@ def run(decks, family, ledger, image, run_ref=None, dry_run=False, parallel=1):
                     f"family ceiling reached; {entry['case']} not launched", flush=True
                 )
                 return
+        if not dry_run:
+            _wait_for_memory(entry, family)
         _launch(
             entry,
             decks,
