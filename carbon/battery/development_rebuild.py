@@ -10,10 +10,10 @@ record is Level 0, and nothing here touches it.
 - Level 2: SpecMuon, `specmuon-carbon-v1`, and pool selection
   (`level2_worker`).
 - Level 3: training-time numerics (`level3_worker`).
-- Level 4: a graph-only submission (`level4_worker`); every rebuild fails
-  closed as Carbon's environment until the submission's documents reach the
-  rebuild worker (G5 is accepted for development and testnet,
-  OWNER-L4-G5-COMPILE-ISOLATION-01).
+- Level 4: a graph-only submission (`level4_worker`), trained from the
+  documents the validator stages beside its record; with none staged, the
+  rebuild fails closed as Carbon's environment (G5 is accepted for
+  development and testnet, OWNER-L4-G5-COMPILE-ISOLATION-01).
 
 Each level's own module stays the authority for its staging; this module
 only routes.
@@ -102,11 +102,12 @@ def training_data(found, train):
     return train
 
 
-def build_in_process(recipe, found):
-    """The untrained development model, built in this process."""
+def build_in_process(recipe, found, workspace=None):
+    """The untrained development model, built in this process. `workspace`
+    is a Level 4 submission's staged files; other levels have none."""
     level = kind(found)
     if level == LEVEL4:
-        return level4_worker.build_in_process(recipe, found)
+        return level4_worker.build_in_process(recipe, found, workspace)
     if level == LEVEL3:
         return level3_worker.build_in_process(recipe, found)
     if level == LEVEL2:

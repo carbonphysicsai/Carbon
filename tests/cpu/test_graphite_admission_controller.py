@@ -517,19 +517,24 @@ def test_check_lock_refuses_while_the_identity_is_pending(
     check_lock_pending(tmp_path, monkeypatch, capsys)
 
 
-def test_the_committed_battery_level0_designation_is_pending(tmp_path):
+def test_the_committed_battery_level0_designation_is_the_dedicated_controller(
+    tmp_path,
+):
     document = designations.load()
     (battery,) = [
         e
         for e in document["controllers"]
         if (e["challenge"], e["level"]) == (BATTERY_CHALLENGE, 0)
     ]
-    assert battery["identity"] is None and battery["status"] == designations.PENDING
+    assert battery["name"] == "admission-controller-battery-l0"
+    assert battery["status"] == designations.DESIGNATED
+    assert designations._DIGEST.fullmatch(battery["identity"])
     controller = tc.make(tmp_path)
     try:
-        # The designation is checked before anything in the block is read.
+        # Another controller's LOCK is refused, before anything in the block
+        # is read.
         assert _lock_code(controller, {}, BATTERY_CHALLENGE, repo=tmp_path) == (
-            designations.IDENTITY_PENDING
+            designations.MISMATCH
         )
     finally:
         controller.close()
@@ -611,10 +616,15 @@ def test_a_pending_designation_consumes_with_a_warning(tmp_path, monkeypatch, ca
     check_pending_consumes_with_a_warning(tmp_path, monkeypatch, capsys)
 
 
-def test_the_committed_pending_designation_lets_the_r2_root_consume(tmp_path, capsys):
+def test_the_committed_designation_is_not_the_r2_root(tmp_path, capsys):
+    # Battery's designated controller is the dedicated zero-spend one, so the
+    # R2 root consumes only with --record-also, and is then not LOCK authority.
     root, grant = phase3_root(tmp_path)
     code, out, _ = cli(capsys, root, grant)
-    assert code == 0 and out["designation"]["status"] == designations.IDENTITY_PENDING
+    assert (code, out["reason_code"]) == (2, designations.MISMATCH)
+    code, out, _ = cli(capsys, root, grant, "--record-also")
+    assert code == 0 and out["designation"]["status"] == designations.MISMATCH
+    assert out["designation"]["lock_authority"] is False
 
 
 def test_a_report_naming_a_level_is_checked_at_that_level(
