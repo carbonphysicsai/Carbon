@@ -443,11 +443,20 @@ def test_the_miner_surface_has_no_route_to_operator_records(validator, fake):
     public = {n for n in dir(Validator) if not n.startswith("_")}
     # `screen` and `note` serve a queueing transport (battery's intake): they
     # check and record; neither reads the ledger or any operator record.
-    assert public == {"evaluate", "outcome", "served", "screen", "note"}
+    # `served_contracts` is the public list of what is admitted (VALIDATOR-25).
+    assert public == {
+        "evaluate",
+        "outcome",
+        "served",
+        "served_contracts",
+        "screen",
+        "note",
+    }
     results = [
         validator.evaluate(sub()),
         validator.outcome(DIGEST, "sub-1", "hk-owner"),
         validator.served(),
+        validator.served_contracts(),
         validator.screen(sub(strategy_json="[1]")),
     ]
     no_echo(results)  # the fake's score record names MARKER as a case id
