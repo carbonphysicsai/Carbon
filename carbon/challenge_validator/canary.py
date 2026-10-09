@@ -15,3 +15,13 @@ CANARY_LIST_VERSION = 0
 CANARY_LIST_RECORD = None
 #: Public ss58 hotkeys.
 CANARY_HOTKEYS = ()
+
+
+def canary_hotkeys():
+    """The registered canary hotkeys, as a frozen set."""
+    return frozenset(CANARY_HOTKEYS)
+
+
+def is_canary(hotkey):
+    """Whether `hotkey` is a registered canary."""
+    return hotkey in canary_hotkeys()

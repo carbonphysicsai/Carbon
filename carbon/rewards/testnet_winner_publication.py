@@ -223,11 +223,15 @@ class TestnetWinnerIntentIssuer:
         return found
 
     def _targets(self, snapshot, records):
+        from carbon.challenge_validator.canary import is_canary
+
         registered = {p.hotkey: p for p in snapshot.participants}
         winners = {}
         for challenge, record in records.items():
             winner = payable(record, set(registered))
-            if winner is not None:
+            # A registered canary is never weighted (CANARY-01): its share
+            # burns, as a Challenge with no payable winner does.
+            if winner is not None and not is_canary(winner.hotkey):
                 winners[challenge] = winner
         paid = epoch_targets(self.policy, winners, snapshot.timestamp_ms)
         rows = []
