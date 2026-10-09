@@ -1,7 +1,7 @@
 """Battery's Level 4 attack adapter: graph-only submissions (LEVEL4-DEV-VARIANT-01).
 
 The Level 4 surface is the registered development-only variant
-`battery-l4-graph-v2` (`carbon.battery.level4`): a miner's model as a math
+`battery-l4-graph-v3` (`carbon.battery.level4`): a miner's model as a math
 graph, judged by `carbon.level4`'s gates. This adapter attacks it with the
 proposal's §8 suite (`docs/development/graphite/LEVEL4_GRAPH_CONSTRUCTION_PROPOSAL.md`),
 one family per Track A check. Attack design and dispositions are the Test

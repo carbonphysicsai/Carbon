@@ -2,7 +2,7 @@
 
 Claims tested:
 
-1. `battery-l4-graph-v2` is current (v1 stays registered), pinned by digest
+1. `battery-l4-graph-v3` is current (v1 and v2 stay registered), pinned by digest
    and recorded, and carries the owner's caps (OWNER-L4-VALUES-01); the
    shipped policy is exactly what `level4.variant_document` builds (no drift),
    and it pins allowlist v1 and graph-only admission.
@@ -65,8 +65,13 @@ def test_registered_pinned_and_free_of_drift():
         "digest": allowlist.digest,
     }
     assert bounds["caps"] == allowlist_module.CAPS
-    assert level4.VERSION == "battery-l4-graph-v2"
-    assert "battery-l4-graph-v1" in dv.load().by_version
+    assert level4.VERSION == "battery-l4-graph-v3"
+    assert {"battery-l4-graph-v1", "battery-l4-graph-v2"} <= set(dv.load().by_version)
+    # LEVEL4-LOSS-OVERRIDE-01: the development variant admits a loss graph.
+    assert bounds["loss_override"] == level4.LOSS_OVERRIDE == "graph"
+    # The frozen, miner-facing battery contract declares no override.
+    frozen = json.dumps(cr.contract(BATTERY).document(), sort_keys=True)
+    assert "loss_override" not in frozen
     assert shipped["participant_code"] is False
     assert dv.recorded_variant(variant) is not None
 
