@@ -44,12 +44,21 @@ How the key and the feed are handled:
 | `showcase/index.json`, `showcase/*.json` | Replays of EV4's public decision: the released incumbent's panel, when the feed carries one, and the synthetic controls |
 | `index.html`, `*.js`, `style.css`, `fonts/`, `brand/` | The static app. No third-party script, no CDN, no cookies |
 
-## Hosting (owner decision; nothing is deployed)
+## Hosting: the `carbon-dashboard` Worker
 
-The plan's §6 sets out the options:
-- **Proposed:** Cloudflare Workers static assets on Carbon's existing account.
-  The expected cost is USD 0, and the owner holds custody.
-- **Alternative:** GitHub Pages.
+The owner approved Cloudflare Workers hosting (2026-10-08). The Worker is in
+`worker/` and its config is `wrangler.dashboard.toml`; it holds no account id,
+token, feed URL or key.
 
-Until the owner decides, the site runs only locally. No deploy credential is
-kept in this repository.
+- **Static app:** the Worker serves the built site.
+- **Live leaderboard:** it computes `/data/index.json` and
+  `/data/boards/*.json` from the live feeds, fetched server-side and checked
+  against the pinned keys (Worker secrets).
+  - `worker/feed.mjs` is a port of `feed.py`.
+  - `tests/cpu/test_dashboard_worker.py` holds the two equal on every fixture
+    and refusal case.
+- **Fail closed:** a FIXTURE build is never served, and the fixture key is
+  never trusted.
+
+The owner's copy-paste setup is `docs/development/DASHBOARD_CLOUDFLARE_SETUP.md`.
+The public deploy waits for the real feed (VALIDATOR-29).
