@@ -25,7 +25,11 @@ when an ordinary fitted FEM response surface is available.
 [Ren et al., 2020](https://pdfs.semanticscholar.org/8117/28aba09d970a1bd7a289f42119dce7867c60.pdf)
 uses Kriging/RBF surrogate-assisted electrical-machine optimization including
 cogging. This supports the inexpensive method class, not parity at Carbon's
-robot-joint limits. KEEP public curve extraction and
+robot-joint limits.
+[Ansys Maxwell Optimetrics](https://ansyshelp.ansys.com/public/views/secured/electronics/v242/en/subsystems/maxwell/content/Optimetrics.htm)
+documents a commercial electromagnetic design-of-experiments and response-
+surface workflow. Tool availability does not establish adoption by this buyer
+or agreement on the registered joint decision. KEEP public curve extraction and
 [existing baseline inventory](../../../../scripts/dev/motor/reference/baselines.py)
 as reusable engineering assets; old-space results are not revised-space truth.
 

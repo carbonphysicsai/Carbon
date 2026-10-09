@@ -30,7 +30,9 @@ that one arbitrary model is the strongest competitor in the industry.
    verdict, including absence/infra/reference failure reasons. Public aggregates
    here; detailed witness rows only where their release/rights permit it.
 3. Pointwise/extremum/curve comparisons **and** false-feasible/missed-feasible
-   decisions; counts, denominators and uncovered/refined regions.
+   decisions; counts and denominators by mandatory limit quantity as well as
+   overall, plus uncovered/refined regions. Use the same resolved-reference
+   mask for both compared arms.
 4. Committed picks, feasible equivalent sets, settled reference-best identity
    or NONE_FEASIBLE/UNRESOLVED, objective and regret in buyer units. Infeasible
    picks are violations, not finite compensating regret. No favorable redraw.
@@ -48,7 +50,9 @@ that one arbitrary model is the strongest competitor in the industry.
   decisions as separate counts. No 201x speed claim from process batching.
 - Fit/reduction/compilation/storage/loading cost, cold and warm per-evaluation
   timing distributions with sample counts, search overhead and total decision
-  latency. Report optimizer evaluations versus unique physical reference calls.
+  latency. Include p50/p95 for per-action latency and the complete buyer
+  decision, with sample counts; do not substitute prediction-only milliseconds.
+  Report optimizer evaluations versus unique physical reference calls.
 - Retained verification/fallback bill and withheld results. Also report
   prediction-only quality so full-reference repairs do not conceal bad models.
 - Cold-start M=1 and compatible-reuse ledger, then labelled M sensitivity;
