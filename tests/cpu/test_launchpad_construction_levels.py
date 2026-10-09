@@ -380,7 +380,7 @@ def test_the_send_path_lifts_its_refusal_only_where_the_target_lists_the_digest(
         or (200, {"state": "SCORED"}, "sub-1"),
     )
 
-    def submit(served):
+    def submit(served, binding=found):
         return campaign.submit_through_intake(
             URL,
             object(),
@@ -390,11 +390,18 @@ def test_the_send_path_lifts_its_refusal_only_where_the_target_lists_the_digest(
             contract_digest=found["digest"],
             read=lambda url: served,
             post=lambda *a: None,
+            construction_level=binding,
         )
 
     for served in ({"challenge": {}}, facts({"level": 0, "digest": "x"})):
         with pytest.raises(rs.IntakeRefusal) as refused:
             submit(served)
+        assert refused.value.code == "development_variant_not_served"
+    # A variant digest without its frozen level binding is never sent, even
+    # to a target that lists it.
+    for binding in (None, cl.resolve(BATTERY, 3)):
+        with pytest.raises(rs.IntakeRefusal) as refused:
+            submit(facts(entry(found)), binding)
         assert refused.value.code == "development_variant_not_served"
     assert sent == []
     assert submit(facts(entry(found)))[0] == 200

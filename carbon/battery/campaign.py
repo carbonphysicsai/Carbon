@@ -1081,6 +1081,7 @@ def submit_through_intake(
     read=None,
     post=None,
     receiver=None,
+    construction_level=None,
 ):
     """The epoch's frozen candidate through a validator intake, to a verdict.
 
@@ -1101,6 +1102,8 @@ def submit_through_intake(
     signed or sent; None for a profile written before receivers were
     pinned). Returns `(status, answer, submission_id)`; raises
     `IntakeRefusal` with the intake's or the transport's code.
+    `construction_level` is the frozen record's level binding
+    (LAUNCHPAD-LEVELS-01), or None: a variant digest is sent only with it.
     """
     from carbon.reconstruction.capability_registry import (
         DEVELOPMENT_VARIANT_NOT_SERVED,
@@ -1114,12 +1117,17 @@ def submit_through_intake(
     if is_development_variant(contract_digest):
         # A development-only contract variant is never served to a miner, so
         # the Launchpad sends nothing (OWNER-GRAPHITE-TEST-WAVE-03 §1), except
-        # to a target whose public facts list it among the variants it serves
+        # a candidate frozen at a construction level under that variant, to a
+        # target whose public facts list it among the variants it serves
         # (OWNER-LADDER-THROUGH-LAUNCHPAD-01's amendment): the development-
-        # ladder deployment. Its facts are read, and the receiver checked,
-        # before anything is signed.
+        # ladder deployment. Anything else is refused with nothing read;
+        # a level candidate's target facts are read, and the receiver
+        # checked, before anything is signed.
         from carbon.development_session.construction_level import lists_digest
 
+        frozen = construction_level if type(construction_level) is dict else {}
+        if frozen.get("digest") != contract_digest:
+            raise rs.IntakeRefusal(DEVELOPMENT_VARIANT_NOT_SERVED)
         facts = rs.check_receiver((read or intake_client.read_intake)(url), receiver)
         if not lists_digest(facts, contract_digest):
             raise rs.IntakeRefusal(DEVELOPMENT_VARIANT_NOT_SERVED)
@@ -1311,6 +1319,7 @@ async def _evaluate_through_intake(prepared, epoch, record, url):
                 contract_digest=record.get("contract_digest")
                 or prepared.manifest["contract_digest"],
                 receiver=_receiver(prepared),
+                construction_level=record.get("construction_level"),
             )
         except IntakeRefusal as refused:
             raise OperationRefused(intake_code(refused.code)) from None

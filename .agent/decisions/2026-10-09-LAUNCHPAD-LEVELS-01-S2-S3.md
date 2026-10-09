@@ -66,8 +66,10 @@ scope; nothing here sets a bound, gate, score or value.
    0 is refused. An unreadable target is `intake_unreachable`, never served.
    A frozen variant that is no longer its level's current one is
    `level_not_registered`. `campaign.submit_through_intake` keeps
-   `development_variant_not_served` for every target whose facts do not list
-   the digest, and lifts it only where they do (the owner's amendment).
+   `development_variant_not_served`, with nothing read, for any variant
+   digest that does not come with the frozen record's level binding for that
+   same digest; with it, the refusal stands for every target whose facts do
+   not list the digest and lifts only where they do (the owner's amendment).
 8. **The ladder's own codes stay the validator's.** `ladder_hotkey_not_listed`,
    `ladder_variant_not_accepted`, `ladder_level_not_accepted` and
    `ladder_level_4_not_open` and their next steps arrive with VALIDATOR-25
