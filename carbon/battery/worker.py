@@ -231,14 +231,20 @@ def infer_files(state, inputs):
 
 def state_kind(state):
     """A stored model state's kind (`knn`, `mlp`, `ensemble`, or
-    `level4_graph`); reads the JSON header only."""
+    `level4_graph`); reads the JSON header only. None for bytes that are not
+    a readable battery state: those keep the Level 0 path, which reads (or
+    refuses) them exactly as before Level 4."""
     import io
+    import zipfile
 
     import numpy as np
 
-    with np.load(io.BytesIO(state), allow_pickle=False) as data:
-        header = json.loads(bytes(data["__header__"]).decode())
-    return header.get("kind")
+    try:
+        with np.load(io.BytesIO(state), allow_pickle=False) as data:
+            header = json.loads(bytes(data["__header__"]).decode())
+    except (OSError, ValueError, KeyError, EOFError, TypeError, zipfile.BadZipFile):
+        return None
+    return header.get("kind") if isinstance(header, dict) else None
 
 
 def state_backend(state):
