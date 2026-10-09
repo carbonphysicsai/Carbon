@@ -84,6 +84,12 @@ def test_compiles_to_a_level4_graph_record():
     assert level4_worker.BLOCKED == "level4_submission_documents_not_staged"
     assert development_rebuild.kind(record) == development_rebuild.LEVEL4
     assert development_rebuild.rebuild_label(record) == level4_worker.REBUILD_LABEL
+    # The record carries v3's declaration (`RECORD_BOUNDS`), so the rebuild
+    # admits a loss graph only under it; a v2 record is unchanged.
+    assert record["loss_override"] == level4.LOSS_OVERRIDE == "graph"
+    v2 = dv.load().by_version["battery-l4-graph-v2"]
+    earlier = dv.compile_development(strategy(), v2).reconstruction
+    assert "loss_override" not in level4_worker.graph_record(earlier)
     for value in ("not-a-digest", "sha256:" + "z" * 64, 7):
         with pytest.raises(dv.VariantRefused) as refused:
             dv.compile_development(strategy(value), dv.variant(BATTERY, 4))

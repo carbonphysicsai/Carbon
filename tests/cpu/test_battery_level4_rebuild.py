@@ -12,9 +12,11 @@ Claims tested:
 3. It fails closed as Carbon's environment, never the candidate's, when:
    - no workspace was staged (`BLOCKED`);
    - the workspace is not the record's submission (`level4_staging_corrupt`);
-   - the submission carries a loss graph, whose training is not built yet;
    - the family is the nearest-neighbour recipe, which has no network.
 4. A state whose manifest is not its recorded submission is refused.
+
+Training on a submitted loss graph (G6) is
+`tests/cpu/test_battery_level4_loss_training.py`.
 """
 
 from __future__ import annotations
@@ -96,45 +98,6 @@ def test_every_missing_or_wrong_input_is_carbons(rebuilt):
     knn = compile_recipe(battery.level0_strategies()["panel_knn"])[1]
     with pytest.raises(ImportError, match="level4_family_not_served"):
         level4_worker.build_in_process(knn, found, workspace)
-
-
-def test_a_loss_graph_is_not_trained_yet():
-    import jax.numpy as jnp
-
-    from carbon.level4.tooling import through_bprime
-
-    strategy = battery._steps(battery.level0_strategies()["scaffold_mlp"], STEPS)
-    _, recipe = compile_recipe(strategy)
-    allowlist = allowlist_module.load()
-    manifest, files = battery.lower_recipe(
-        strategy, allowlist, max_bytes=intake.BOUNDS["document_bytes"]
-    )
-    by_slot = {slot: files[name] for slot, name in manifest["documents"].items()}
-    _, loss, _ = through_bprime(
-        lambda p, t: jnp.sum((p - t) ** 2, axis=1),
-        (jnp.ones((1, 2)), jnp.ones((1, 2))),
-        role="loss",
-        allowlist=allowlist,
-        input_names=["loss/pred/0", "loss/target/0"],
-        max_bytes=intake.BOUNDS["document_bytes"],
-    )
-    import json
-
-    with_loss, loss_files = submission.build(
-        challenge=manifest["challenge"],
-        interface=manifest["interface"],
-        allowlist=allowlist,
-        forward=json.loads(by_slot["forward"]),
-        init=json.loads(by_slot["init"]),
-        loss=loss,
-    )
-    found = {"schema": level4_worker.SCHEMA, "submission": submission.digest(with_loss)}
-    model = level4_worker.build_in_process(
-        recipe, found, staging.workspace(submission.canonical(with_loss), loss_files)
-    )
-    m = battery.material()
-    with pytest.raises(ImportError, match=level4_model.LOSS_NOT_BUILT):
-        model.fit(m.train, battery.structure(m), SEED)
 
 
 def test_an_unset_owner_cap_blocks_as_carbons(monkeypatch):
