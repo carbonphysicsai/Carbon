@@ -34,11 +34,15 @@ variant rules. None is assumed to exist.
    so, only for a level above its miner-facing level, always labelled DEVELOPMENT. Every other
    deployment keeps refusing variants (`development_variant_not_served`). L2 and L3 must be on
    the list; L4 stays refused until the owner and security owner accept (not stage B).
-3. **PENDING the owner's record.** The hotkeys are a configurable list defaulting to minerC; the minerD-G UIDs wait on the owner's record (the Test Lead is asking). **A dedicated rehearsal hotkey.** The decision names `carbon-rehearsal-minerC` (the owner
-   creates it), not minerA or minerB, because the chain allows one commitment per hotkey per
-   tempo. **Open:** whether the owner-registered minerD-G UIDs 8 to 11 may also commit here.
-   Stage B needs at least one hotkey per concurrent run; with one hotkey the L2 and L3
-   confirmations are serial, one commit per tempo.
+3. **DONE in the design; hotkeys are the owner's.** **Each hotkey is bound to exactly one
+   deployment, enforced in code by the Validator (Test Lead, 2026-10-09).** The ladder's hotkeys
+   are `carbon-rehearsal-minerC` (the decision's dedicated hotkey, which the owner creates) and,
+   optionally, new minerH to K if the owner creates them. The owner-registered **minerD-G UIDs 8
+   to 11 stay on main** (stage A's L0 confirmations) and never commit on the ladder; **there is no
+   minerD-G ladder record, and this plan no longer waits for one.** The chain allows one
+   commitment per hotkey per tempo, so the ladder's **confirmation capacity is its hotkey count**:
+   with minerC alone, L2 and L3 confirmations are serial, one commit per tempo; with minerH to K,
+   up to five per tempo.
 4. **DONE** (OWNER-DEV-LADDER-KIND-01): a `ladder` sub-kind of `development_only`, never sets weights. **A weights rule.** A `development_only` deployment never sets weights
    (`carbon/battery/deployment.py`). Whether the dev-ladder is one, or needs a new kind, is
    the Carbon Validator's design to bring to the owner. Stage B needs the answer, not a
@@ -70,7 +74,7 @@ L2 and L3 and the kimi-k3 Attacker share. The owner approves; the Test Engineer 
 
 ## 4. Entry conditions for stage B
 
-1. VALIDATOR-25 slices (#895, #899) merged **and** deployed on valV2 (operator steps in LADDER_DEPLOYMENT_VALV2.md), plus the owner's record for the minerD-G hotkeys (item 3).
+1. VALIDATOR-25 slices (#895, #899) merged **and** deployed on valV2 (operator steps in LADDER_DEPLOYMENT_VALV2.md), plus the owner's valV2 ladder steps and the `levels` list slice. Nothing else: no minerD-G record is needed.
 2. Stage A's L0 and L1 work has produced the level proposals' disposition (the ladder climb
    procedure: a drafted surface, development expansion record, Carbon's reconstruction, matched
    panels, single-permission ablations, combined-permission attacks, clean rebuilds).
@@ -91,7 +95,8 @@ the open items below. This file is the source; nothing else is needed.
 ## 6. Open items
 
 - #895 and #899 merging (VALIDATOR-25 slices 1 and 2).
-- The owner's record allowing the minerD-G UIDs on the dev-ladder (the weights-rule design is settled).
+- The owner's valV2 ladder steps, and the `levels` list slice. (The weights-rule design is
+  settled; the minerD-G UIDs are not part of stage B.)
 - A4 entries for L2 and L3 (executor-created identities, then recorded); V1 and V2 Q1
   reports per level.
 - Level 4 stays outside stage B (owner and security owner).
