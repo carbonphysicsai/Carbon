@@ -791,7 +791,7 @@ class CompiledDevelopment:
         return binding
 
 
-def compile_development(strategy, variant_, *, without=()):
+def compile_development(strategy, variant_, *, without=(), check_budget=True):
     """Compile `strategy` under the registered development variant `variant_`.
 
     Development only: Graphite's experiment and pod phase call it when a
@@ -858,6 +858,15 @@ def compile_development(strategy, variant_, *, without=()):
         _canonical(reconstruction)
     except (TypeError, ValueError):
         raise VariantRefused(PARAMETER_REFUSED, "values are plain JSON") from None
+    if check_budget and values:
+        # The base compiled above against the declared compute budget; the
+        # development recipe is costed as the development rebuild trains it
+        # (TRAINING-BUDGET-02). The calculator compiles without this check.
+        from carbon.reconstruction.challenge_contracts import check_compute_budget
+
+        check_compute_budget(
+            CONTRACTS[variant_.challenge], strategy, level=variant_.level
+        )
     return CompiledDevelopment(
         challenge=variant_.challenge,
         contract_digest=admitted.contract_digest,
