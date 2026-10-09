@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-agreement-indexed-report-test-run",
+  "recorded_at": "2026-10-09T14:35:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "14 comparator tests and Ruff closure diagnostic",
+    "description": "BASELINE-AGREEMENT-01: 14 comparator tests and Ruff closure diagnostic"
+  },
+  "expected": "Indexed missing-band outcomes must preserve denominators and input identities.",
+  "observed": "14 tests passed; Ruff found one unbound loop closure in the question action cache. Fixed before final candidate.",
+  "keep": [
+    "Bind question-local caches explicitly, even when current calls execute synchronously."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.pipeline.lessons",
+    "challenge.cheap-baseline.comparison"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

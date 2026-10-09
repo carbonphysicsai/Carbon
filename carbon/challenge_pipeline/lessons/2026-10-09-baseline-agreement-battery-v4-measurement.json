@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-agreement-battery-v4-measurement",
+  "recorded_at": "2026-10-09T14:41:20Z",
+  "challenge": "battery-fast-charge",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "coverage_run",
+    "ref": "battery-measurement-v4.json",
+    "description": "BASELINE-AGREEMENT-01: battery-measurement-v4.json"
+  },
+  "expected": "Final source-byte pin and portable output should preserve held-out coverage.",
+  "observed": "276/493 protocol predictions and 108/493 band predictions; all 25 complete maps abstain and all reference decisions unresolved. No reference solves.",
+  "keep": [
+    "Report sparse coverage and missing total verification cost, not speed alone."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.pipeline.lessons",
+    "challenge.cheap-baseline.comparison"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
