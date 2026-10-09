@@ -1,8 +1,9 @@
 # GATE-PASS-DIAGNOSIS-01 — battery public PRACTICE
 
-Status: DEVELOPMENT diagnosis. The miner's 5,711-trial Launchpad export is not
-in this repository. Its failing gate and its own default-MLP result remain
-unmeasured here; the headline alone does not identify them.
+Status: DEVELOPMENT diagnosis. The miner's 5,711-trial Launchpad export stays
+with the miner. Its failing gate and its own default-MLP result remain
+unmeasured here; the headline alone does not identify them. Carbon must not
+request or receive his export because it contains his recipes.
 
 ## What the existing evidence establishes
 
@@ -22,31 +23,66 @@ unmeasured here; the headline alone does not identify them.
 - The current gates are `schema_finite`, `initial_voltage`,
   `initial_temperature`, `voltage_ceiling`, `voltage_floor`, and
   `capacity_bound`; `paired_repeat` applies only where a twin is supplied.
-  The two initial-value choices are explicit battery construction surfaces;
-  the voltage head is optional. Which gate failed in the 5,711 trials must be
-  read from those trials' `summary.gate_failures`.
+  Initial temperature is constructed from ambient, while initial voltage has
+  an optional OCV head. The bounded voltage head is also optional. Which gate
+  failed in the 5,711 trials must be read from those trials'
+  `summary.gate_failures`.
+
+## Device hypothesis
+
+- PRACTICE has no registered twin cases (`practice_store` constructs a
+  `CaseStore` without `twins`). `exam.evaluate_case` marks `paired_repeat`
+  `NOT_APPLICABLE` when no twin is supplied. A device-dependent repeat mismatch
+  therefore cannot explain public PRACTICE's gate failures. A toy test varies
+  interior voltage predictions by 1 mV between duplicate-like cases and
+  confirms no repeat failure when PRACTICE's twin map is empty; the existing
+  exam-design test shows the same control fails `paired_repeat` when a twin is
+  registered. This test does not claim to measure an A40.
+- The battery GPU PRACTICE worker currently serves JAX recipes only. The FNO
+  family requires PyTorch, and `BatteryPractice` refuses an unserved backend
+  before dispatch, without producing a practice score. An A40 on the host does
+  not by itself establish that a scored FNO trial trained on that GPU. The
+  miner's private feedback records the backend that actually ran.
+- The other six gates evaluate prediction shape, finiteness, initial values,
+  voltage limits and capacity bounds with the same frozen rule on CPU or GPU.
+  A different device may change numerical predictions enough to cross a
+  boundary, but there is no device-specific practice gate or demonstrated
+  erroneous A40 rejection. No tolerance change follows from this evidence.
 
 ## Run on the miner's own export
 
-Export the campaign from Launchpad, then run:
+After this tool is merged, the miner can update Carbon, export his own campaign
+locally, and run:
 
 ```sh
-python -m scripts.dev.miner_launchpad.gate_pass_diagnosis /path/to/campaign-export.json
+python -m scripts.dev.miner_launchpad.gate_pass_diagnosis /path/to/campaign-export.json --counts-only
 ```
 
-The command prints aggregate trial and case counts for each failing gate,
-counts the exact published MLP scaffold separately, and distinguishes the best
-descriptive error from the best *eligible* error by backbone. A trial with a
-missing or contradictory summary is counted as such, never counted as a pass.
-The report contains no trial IDs, recipes, case values, or private exam data.
-Gate counts can overlap: one trial may fail more than one gate. If
-`exported_trials` differs from 5,711, the export does not cover the headline.
+`--counts-only` prints each public gate's failed-trial and failed-case counts,
+the total and checked trial counts, and aggregate unverified/unknown counts.
+It prints no trial IDs, recipes, backbone, scores, case values or private exam
+data. The miner shares **only that counts-only output**. The fuller local
+report (without the flag) can check whether his exact default MLP scaffold
+passed, but he keeps it private. A trial with a missing or contradictory
+summary is never counted as a pass. Gate counts can overlap: one trial may fail
+more than one gate. If `exported_trials` differs from 5,711, the export does
+not cover the headline.
 
-No gate threshold or scientific rule is changed by this diagnostic. Once the
-actual export is available, record its aggregate output here and decide whether
-there is an implementation defect or a genuine mandatory failure. Any change
-to a scientific gate tolerance remains an owner decision and must be
-prospective.
+## Launchpad dashboard proposal
+
+Add a small practice-gates card built from the **full** own-research projection
+before the view limits experiment rows to the latest 50. Show each public gate's
+failed-trial count and failed-case count, plus the number of trials checked and
+the count whose summaries cannot be checked. The UI can use the same
+counts-only allow-list and explicitly say counts may overlap. It must never
+send the aggregate to Carbon or show another miner's trials. The current PR
+specifies this view; it does not change the dashboard wire contract or UI.
+
+No gate threshold or scientific rule is changed by this diagnostic. If the
+miner chooses to send the counts-only output, it can identify which gate to
+investigate next without revealing his recipes. It is miner-reported evidence,
+not an independently inspected campaign. Any change to a scientific gate
+tolerance remains an owner decision and must be prospective.
 
 ## Sources
 

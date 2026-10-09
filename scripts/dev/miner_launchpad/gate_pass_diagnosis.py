@@ -16,6 +16,16 @@ from pathlib import Path
 
 from carbon.battery.scaffold import SCAFFOLD
 
+PUBLIC_BATTERY_GATES = (
+    "schema_finite",
+    "initial_voltage",
+    "initial_temperature",
+    "voltage_ceiling",
+    "voltage_floor",
+    "capacity_bound",
+    "paired_repeat",
+)
+
 
 def _default_mlp(recipe: object) -> bool:
     """Recognize the exact published scaffold, not merely an MLP family."""
@@ -139,15 +149,45 @@ def diagnose(export: object) -> dict:
     }
 
 
+def shareable_counts(report: dict) -> dict:
+    """Only public gate counts and coverage, with no recipe or score fields."""
+    failures = report["gate_failures"]
+    checked = (
+        report["counts"]["checked_trials"] - report["counts"]["contradictory_summaries"]
+    )
+    return {
+        "schema": "carbon.launchpad.practice-gate-counts.v1",
+        "exported_trials": report["exported_trials"],
+        "checked_trials": checked,
+        "unverified_trial_summaries": report["exported_trials"] - checked,
+        "gate_failures": {
+            name: failures.get(name, {"trials": 0, "cases": 0})
+            for name in PUBLIC_BATTERY_GATES
+        },
+        "unrecognized_gate_names": len(set(failures) - set(PUBLIC_BATTERY_GATES)),
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("export", type=Path, help="Launchpad own-research export")
+    parser.add_argument(
+        "--counts-only",
+        action="store_true",
+        help="print only shareable per-gate counts and aggregate coverage",
+    )
     args = parser.parse_args(argv)
     try:
         result = diagnose(json.loads(args.export.read_text(encoding="utf-8")))
     except (OSError, UnicodeError, ValueError) as exc:
         parser.error(str(exc))
-    print(json.dumps(result, sort_keys=True, indent=2))
+    print(
+        json.dumps(
+            shareable_counts(result) if args.counts_only else result,
+            sort_keys=True,
+            indent=2,
+        )
+    )
     return 0
 
 

@@ -1,9 +1,15 @@
 """Toy public-practice summaries for the Launchpad gate diagnosis."""
 
+import json
+
 import pytest
 
 from carbon.battery.scaffold import SCAFFOLD
-from scripts.dev.miner_launchpad.gate_pass_diagnosis import diagnose
+from scripts.dev.miner_launchpad.gate_pass_diagnosis import (
+    diagnose,
+    main,
+    shareable_counts,
+)
 
 
 def _trial(backbone, score, eligible, failures, *, recipe=None):
@@ -63,6 +69,40 @@ def test_modified_mlp_is_not_the_published_default():
     report = diagnose({"experiments": [_trial("mlp", 0.2, True, {}, recipe=modified)]})
     assert report["counts"]["eligible_trials"] == 1
     assert report["published_default_mlp"]["checked_trials"] == 0
+
+
+def test_shareable_projection_names_only_public_gate_counts_and_coverage():
+    trial = _trial("secret-fno-recipe", 0.04, False, {"voltage_floor": 3})
+    trial["recipe"] = {"secret": "do-not-share"}
+    trial["summary"]["gate_failures"]["secret-gate-name"] = 1
+    shared = shareable_counts(diagnose({"experiments": [trial]}))
+    assert shared["exported_trials"] == shared["checked_trials"] == 1
+    assert shared["gate_failures"]["voltage_floor"] == {"trials": 1, "cases": 3}
+    assert shared["gate_failures"]["paired_repeat"] == {"trials": 0, "cases": 0}
+    assert shared["unrecognized_gate_names"] == 1
+    assert "secret" not in str(shared)
+    assert "0.04" not in str(shared)
+
+
+def test_shareable_coverage_excludes_contradictory_summaries():
+    contradictory = _trial("mlp", 0.2, True, {"voltage_floor": 1})
+    shared = shareable_counts(diagnose({"experiments": [contradictory]}))
+    assert shared["exported_trials"] == 1
+    assert shared["checked_trials"] == 0
+    assert shared["unverified_trial_summaries"] == 1
+
+
+def test_counts_only_cli_never_prints_local_recipe_or_error(tmp_path, capsys):
+    trial = _trial("fno", 0.04, False, {"capacity_bound": 2})
+    trial["recipe"] = {"secret": "private-recipe"}
+    export = tmp_path / "miner-private.json"
+    export.write_text(json.dumps({"experiments": [trial]}), encoding="utf-8")
+    assert main([str(export), "--counts-only"]) == 0
+    output = capsys.readouterr().out
+    assert json.loads(output)["gate_failures"]["capacity_bound"]["cases"] == 2
+    assert "private-recipe" not in output
+    assert '"fno"' not in output
+    assert "0.04" not in output
 
 
 def test_zero_scored_cases_cannot_be_reported_as_gate_passage():
