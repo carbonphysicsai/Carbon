@@ -45,7 +45,7 @@ operator's; none is reachable from a miner surface:
   other development deployment it is reached through the Launchpad: it
   requires the chain commitment, on Carbon's testnet only. It admits only
   the listed hotkeys (public SS58), and only the listed development variants
-  of its listed levels (1 to 3; Level 4 is not open). It shares the main
+  of its listed levels (1 to 4; Level 4 on testnet only). It shares the main
   deployment's live windows (`batch_source: "answer_key"` under the main
   deployment's rule), so it holds no bank and no exposure of its own;
 - `service_account` (optional; VALIDATOR-19 slice 0): the OS account that
@@ -217,9 +217,9 @@ def reserved_hotkeys(config):
 
 
 LADDER_FIELDS = {"levels", "hotkeys", "variants"}
-#: The highest level the ladder opens (OWNER-LEVEL4-GRAPH-ONLY-01: Level 4
-#: runs through the Launchpad only from its Phase 3).
-LADDER_TOP = 3
+#: The highest level the ladder opens: Level 4 on testnet only
+#: (OWNER-LEVEL4-TESTNET-RUNS-01; the ladder is testnet-only).
+LADDER_TOP = 4
 _SS58 = re.compile(r"[1-9A-HJ-NP-Za-km-z]{47,48}\Z")
 
 
@@ -458,7 +458,7 @@ def build(config, *, repository, readonly=False):
     validator.lock_path = str(config["state"]) + ".lock"
     validator.readonly = readonly
     if validator.ladder is not None and _LADDER_SETUP is not None:
-        _LADDER_SETUP(validator)
+        _LADDER_SETUP(validator, config)
     if readonly:
         return validator
     try:

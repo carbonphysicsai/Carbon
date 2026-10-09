@@ -110,6 +110,9 @@ INFO_PATH = "/carbon/v1/battery/intake"
 #: signed; `GET FEED_PATH + <challenge id>`.
 FEED_PATH = "/carbon/v1/feed/"
 STATUS_TOOL = "battery_status"
+#: The development ladder's Level 4 envelope tools (`level4_parts`).
+LEVEL4_TOOLS = ("battery_level4_part", "battery_level4_status")
+_LEVEL4_CONFLICTS = frozenset({"level4_part_conflict", "level4_parts_mismatch"})
 REQUIRED = {"schema", "deployment", "transport_journal", "inbox", "receiver"}
 OPTIONAL = {
     "host",
@@ -677,6 +680,7 @@ class BatteryIntake:
         clock_ns=time.time_ns,
         commitment=None,
         feed=None,
+        level4_parts=None,
     ):
         from carbon.challenge_validator import Validator
 
@@ -687,6 +691,9 @@ class BatteryIntake:
         #: Every submission passes the neutral checks here, and every attempt
         #: is recorded in the operator's ledger, before the inbox sees it.
         self.door = door
+        #: The development ladder's Level 4 envelope parts (VALIDATOR-25 slice
+        #: 4; `level4_parts.Level4Parts`), on a ladder serving Level 4 only.
+        self.level4_parts = level4_parts
         self.context = context
         self.challenge = CHALLENGE
         self.receiver = receiver
@@ -743,7 +750,8 @@ class BatteryIntake:
                     "timestamp_ms": snapshot.timestamp_ms,
                 },
                 "path": PATH,
-                "tools": ["battery_submit", STATUS_TOOL],
+                "tools": ["battery_submit", STATUS_TOOL]
+                + ([] if self.level4_parts is None else list(LEVEL4_TOOLS)),
                 # What this deployment admits (VALIDATOR-25): level 0, plus a
                 # development-ladder deployment's declared variants.
                 "served_contracts": self.door.served_contracts(),
@@ -841,6 +849,12 @@ class BatteryIntake:
             if type(screened) is Answer:
                 return screened
             neutral, submission = screened
+            incomplete = self._level4_incomplete(submission)
+            if incomplete is not None:
+                self.door.note(
+                    neutral, kind="REFUSED", code="level4_envelope_incomplete"
+                )
+                return incomplete
             _, submission_id = submission_identity(submission)
             refused = self._window_check(hotkey, submission_id, submission)
             if refused is not None:
@@ -872,7 +886,60 @@ class BatteryIntake:
             ):
                 return _refused(400, "status_fields")
             return self.status(hotkey, fields["submission_id"])
+        if received.call.tool in LEVEL4_TOOLS:
+            fields = {f.name: f.value for f in received.call.fields}
+            return self._level4(hotkey, received.call.tool, fields)
         return _refused(400, "tool")
+
+    def _level4(self, hotkey, tool, fields):
+        """A Level 4 envelope part, or which parts are held (VALIDATOR-25)."""
+        import base64
+        import binascii
+
+        from .level4_parts import PART_TOOL, PartRefused
+
+        if self.level4_parts is None:
+            return _refused(404, "level4_not_served")
+        try:
+            if tool == PART_TOOL:
+                if set(fields) != {"submission", "part", "parts", "data"} or (
+                    type(fields["data"]) is not str
+                ):
+                    raise PartRefused("level4_part_malformed")
+                try:
+                    data = base64.b64decode(fields["data"], validate=True)
+                except (binascii.Error, ValueError):
+                    raise PartRefused("level4_part_malformed") from None
+                held = self.level4_parts.put(
+                    hotkey, fields["submission"], fields["part"], fields["parts"], data
+                )
+            else:
+                if set(fields) != {"submission"}:
+                    raise PartRefused("level4_part_malformed")
+                if hotkey not in self.level4_parts.hotkeys:
+                    raise PartRefused("ladder_hotkey_not_listed")
+                held = self.level4_parts.held(fields["submission"])
+        except PartRefused as refused:
+            status = 409 if refused.code in _LEVEL4_CONFLICTS else 400
+            return _refused(status, refused.code)
+        return Answer(200, {"submission": fields["submission"], **held})
+
+    def _level4_incomplete(self, submission):
+        """409 `level4_envelope_incomplete` for a Level 4 submission whose
+        envelope parts are not all held yet; never a verdict, never counted
+        against the hotkey's window."""
+        from .level4_parts import FIELD, PartRefused
+
+        if self.level4_parts is None:
+            return None
+        parameters = submission.strategy.get("parameters")
+        if type(parameters) is not dict or FIELD not in parameters:
+            return None
+        try:
+            complete = self.level4_parts.complete(parameters[FIELD])
+        except PartRefused:
+            complete = False
+        return None if complete else _refused(409, "level4_envelope_incomplete")
 
     def _screen(self, received, gateway):
         """The neutral checks for one authenticated `battery_submit`
@@ -1363,6 +1430,20 @@ def _feed_reader(config):
     return functools.partial(read_feed, config["feed"], CHALLENGE.challenge_id)
 
 
+def level4_parts_for(deployment_path, target):
+    """The Level 4 envelope parts store of a development ladder serving Level 4
+    (VALIDATOR-25 slice 4), under its deployment's owner-only work directory;
+    None for every other deployment."""
+    from . import deployment
+    from .level4_parts import Level4Parts
+
+    ladder = getattr(target, "ladder", None)
+    if ladder is None or 4 not in ladder["levels"]:
+        return None
+    work = deployment.load_config(deployment_path)["work"]
+    return Level4Parts(Path(work) / "level4-parts", ladder["hotkeys"])
+
+
 def _serve(config, target, repository, stop, reader, verifier, ready):
     """`serve` once the deployment is built: the refresher, the worker and
     the listener, until `stop` is set."""
@@ -1390,6 +1471,7 @@ def _serve(config, target, repository, stop, reader, verifier, ready):
         rule=target.rule,
         commitment=commitment_fact(target),
         feed=_feed_reader(config),
+        level4_parts=level4_parts_for(config["deployment"], target),
     )
     httpd = listener(config, intake)
     threads = [
