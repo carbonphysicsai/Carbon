@@ -45,13 +45,15 @@ REFUSALS = (
     "replicate_already_complete",
     "run_dir_not_fresh",
     "fixture_with_real_root",
+    "arm_not_built",
 )
 
 
 def _analyze():
-    spec = importlib.util.spec_from_file_location(
-        "analyze", REPOSITORY / "scripts/dev/rate_study/analyze.py"
-    )
+    path = REPOSITORY / "scripts/dev/rate_study/analyze.py"
+    if not path.is_file():
+        raise ImportError("the analysis script (PR 872) is not in this tree")
+    spec = importlib.util.spec_from_file_location("analyze", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -97,7 +99,7 @@ def _records(tmp_path, arm="H", rate=1, replicate=1):
 
 
 def test_the_refusal_list_is_closed_and_unique():
-    assert len(set(REFUSALS)) == len(REFUSALS) == 20
+    assert len(set(REFUSALS)) == len(REFUSALS) == 21
 
 
 @not_built
@@ -121,8 +123,14 @@ def test_the_three_rule_variants_are_v2_bank_plus_window_blocks_and_study():
         rule = exam.RULES[f"v2-bank-rate-{rate}"]
         assert rule["per_hotkey"]["window_blocks"] == blocks
         assert rule["study"] == "SUBMISSION-RATE-STUDY-01"
-        rest = {k: v for k, v in rule.items() if k not in ("per_hotkey", "study")}
-        assert rest == {k: v for k, v in base.items() if k != "per_hotkey"}
+        ignored = ("per_hotkey", "study", "authority", "bank")
+        assert {k: v for k, v in rule.items() if k not in ignored} == {
+            k: v for k, v in base.items() if k not in ignored
+        }
+        assert "OWNER-RATE-STUDY-D1-01" in rule["authority"]
+        pool = rule["bank"]["pool"]
+        assert pool["size"] == 3000 and pool["top_up"] is False
+        assert pool["window_cases"] == base["bank"]["pool"]["window_cases"]
         digests.add(json.dumps(rule, sort_keys=True))
     assert len(digests) == 3
 
@@ -364,3 +372,77 @@ def test_nothing_hidden_reaches_stdout_or_the_records(tmp_path, capsys):
     )
     for token in ("case_id", "fingerprint", "prediction", "seed", "private_root"):
         assert token not in text
+
+
+@not_built
+@pytest.mark.parametrize("arm", ["S-sealed", "S-revealed"])
+def test_an_s_arm_needs_a_freeze_manifest_and_then_is_not_built(tmp_path, capsys, arm):
+    module = _module()
+    argv = ["--arm", arm, "--rate", "1", "--replicate", "1", "--prober", "x:y"]
+    config = _config(tmp_path)
+    assert module.main(["run", "--config", str(config), *argv]) == 2
+    assert "refused: freeze_manifest_required" in capsys.readouterr().out
+    manifest = tmp_path / "freeze-manifest.json"
+    manifest.write_text("{}", encoding="utf-8")
+    config = _config(tmp_path, freeze_manifest=str(manifest))
+    assert module.main(["run", "--config", str(config), *argv]) == 2
+    out = capsys.readouterr().out
+    assert "refused: arm_not_built" in out or "refused: freeze_manifest_mismatch" in out
+
+
+@not_built
+def test_a_real_root_must_sit_under_the_rate_study_directory(tmp_path, capsys):
+    module = _module()
+    config = _config(tmp_path, fixture=False)
+    assert module.main(["check", "--config", str(config)]) == 2
+    assert "refused: production_root_refused" in capsys.readouterr().out
+
+
+@not_built
+def test_a_real_fresh_names_its_run(tmp_path):
+    module = _module()
+    config = _config(tmp_path, fixture=False)
+    argv = ["fresh", "--config", str(config), "--submission", "s", "--set", "fresh-w01"]
+    assert module.main(argv) == 2  # no --rate and --replicate in a real run
+
+
+@not_built
+def test_a_fixture_ignores_producer_configs_and_validator_config(tmp_path):
+    module = _module()
+    config = _config(
+        tmp_path,
+        producer_configs={"1": "x", "2": "y", "4": "z"},
+        validator_config="nowhere/{rate}/{replicate}.json",
+    )
+    assert module.main(["check", "--config", str(config)]) == 0
+
+
+@not_built
+def test_a_fixture_library_digest_may_be_null_but_a_real_one_may_not(tmp_path, capsys):
+    module = _module()
+    assert module.main(["check", "--config", str(_config(tmp_path))]) == 0
+    library = {"path": "library-v2.json", "digest": None}
+    config = _config(tmp_path, fixture=False, library=library)
+    assert module.main(["check", "--config", str(config)]) == 2
+    assert "refused:" in capsys.readouterr().out
+
+
+@not_built
+def test_a_bank_short_window_writes_three_m_unavailable_lines(tmp_path):
+    module = _module()
+    config = _config(tmp_path, bank_short_windows=[1])
+    argv = [
+        "run",
+        "--config",
+        str(config),
+        "--arm",
+        "H",
+        "--rate",
+        "2",
+        "--replicate",
+        "1",
+    ]
+    module.main(argv)
+    first_window = [r for r in _records(tmp_path, rate=2) if r["window"] == 1]
+    assert len(first_window) == 6
+    assert all(r["state"] == "UNAVAILABLE" for r in first_window)

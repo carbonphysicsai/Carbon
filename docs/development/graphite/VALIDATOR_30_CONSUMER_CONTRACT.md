@@ -18,7 +18,7 @@ python -m carbon.challenge_validator.rate_study <command> ...
 |---|---|---|
 | `check --config PATH [--arm ARM]` | read-only preflight; exit 0 or a typed refusal | owner, before any run |
 | `run --config PATH --arm {H,S-sealed,S-revealed} --rate {1,2,4} --replicate R` | one run: arm, rate, replicate | owner (Stage 0: arm H only) |
-| `fresh --config PATH --submission ID --set ID` | non-consuming operator-side fresh-set scoring (section B.4) | `run`, and the owner for repair |
+| `fresh --config PATH --rate {1,2,4} --replicate R --submission ID --set ID` | non-consuming operator-side fresh-set scoring (section B.4). `--rate` and `--replicate` are required in a real run because the retained model lives in that run's own validator; fixture mode ignores them | `run`, and the owner for repair |
 
 Arm G-sealed does not use `run`: it starts through the phase-3/4 runner with
 `--study SUBMISSION-RATE-STUDY-01` (arm sheets, run sheet F). Scripted arms
@@ -38,20 +38,25 @@ The Python surface the tests call: `rate_study.main(argv) -> int` (the CLI) and
 | `fixture` | `true` selects an in-memory fixture bank and a synthetic scorer (section 6); never `true` with a real root |
 | `roots` | the run sheet B.1 paths: `producer`, `battery`, `bank`, `fresh`, `runs` (all under `/var/lib/carbon-producer/rate-study/`) |
 | `rules` | `{"1": "v2-bank-rate-1", "2": "v2-bank-rate-2", "4": "v2-bank-rate-4"}` |
-| `library` | `{path, digest}` of the arm-H library (current: `library-v2.json`); `run` refuses a mismatch |
+| `library` | `{path, digest}` of the arm-H library (current: `library-v2.json`). `digest` is the library's own `library_digest`, re-derived together with each entry's digest; `null` only in fixture mode. A relative `path` resolves under `docs/development/evidence/submission-rate-study-01/`. `run` refuses a mismatch |
 | `order_seed` | the library's public order seed string |
 | `windows` | `W0` (12 at Stage 0) |
 | `clock` | `{"mode": "simulated", "start_block": N}`; no chain read (run sheet B.3) |
 | `hotkey` | one development identity per run |
+| `producer_configs` | `{"1": PATH, "2": PATH, "4": PATH}`: the study producer config per rate (real run only; fixture mode ignores it) |
+| `validator_config` | a path containing `{rate}` and `{replicate}`: one import-only validator per run (real run only; fixture mode ignores it) |
 | `bank` | `{"name": "study", "cases": 3000, "sacrificial": true, "top_up": "off", "tranche_roots": [...]}` |
-| `fresh` | `{"name": "fresh", "windows": 12, "cases_per_window": 98, "roots": {...}}` |
+| `fresh` | `{"name": "fresh", "windows": 12, "cases_per_window": 98, "roots": {...}}`. Real fresh sets are the study bank's `fresh` tranches (VALIDATOR-30 slice A); `roots.fresh` holds only fixture scores |
 | `records_dir` | where `records/<arm>/<rate>/<replicate>.jsonl` is written |
 | `freeze_manifest` | path to `freeze-manifest.json`; required for Stage 1 arms, absent for Stage 0 arm H |
 
 ## 3. Rules `v2-bank-rate-1/2/4`
 
-Each is `v2-bank` unchanged plus `per_hotkey.window_blocks` of 360, 180, 90 and
-`study: "SUBMISSION-RATE-STUDY-01"` (run sheet B.2). They live in `exam.RULES` (or the
+Each is `v2-bank` unchanged plus `per_hotkey.window_blocks` of 360, 180, 90, `study:
+"SUBMISSION-RATE-STUDY-01"`, an `authority` naming OWNER-RATE-STUDY-D1-01, and a `bank.pool`
+of size 3000 with top-up off (`top_up: false`) (run sheet B.2). The equality with `v2-bank`
+holds on everything except `per_hotkey`, `study`, `authority` and `bank`; the pool values
+are asserted separately. They live in `exam.RULES` (or the
 rate-study module's registry the deployment reads) with their own digests, so a study
 package never imports into a `v2-bank` validator or the reverse. The bank `size` is 3,000
 and **top-up is off**, so windows draw down the sealed bank. The `fresh` bank is **not**
@@ -67,10 +72,16 @@ Closed set; the tests assert exactly these:
 `fresh_bank_missing`, `fresh_bank_drawable_by_a_window`, `clock_not_simulated`,
 `production_root_refused`, `revealed_on_non_sacrificial_bank`,
 `freeze_manifest_required`, `freeze_manifest_mismatch`, `replicate_already_complete`,
-`run_dir_not_fresh`, `fixture_with_real_root`.
+`run_dir_not_fresh`, `fixture_with_real_root`, `arm_not_built`.
 
-`production_root_refused` covers any root that is the live producer's, the testnet
-deployment's, EV5's, `graphite-confirmation-v1`'s or the tuning set's.
+`arm_not_built` (the 21st): an S arm (S-sealed, S-revealed) with no `freeze_manifest` is
+refused with `freeze_manifest_required`; with one, it is refused with `arm_not_built` until
+the prober runner lands.
+
+`production_root_refused` is an **allow-list**, not a deny-list: every real root must sit
+under `/var/lib/carbon-producer/rate-study/`, else the run is refused. (That covers the live
+producer's, the testnet deployment's, EV5's, `graphite-confirmation-v1`'s and the tuning
+set's roots without naming them.)
 
 ## 5. Exit codes and resumption
 
@@ -89,15 +100,19 @@ s_fresh, state, wall_s, provenance`. Nothing else: no case, seed, fingerprint,
 prediction or batch identity (the analysis refuses a record with another field).
 
 - `t`: 1, 2, 3, ... in submission order within the run, stable across a resume.
-- `state`: `SCORED`, `UNAVAILABLE`, `WINDOW_USED` or `REPEATED`. A `REPEATED` outcome
+- `state`: `SCORED`, `UNAVAILABLE`, `WINDOW_USED`, `REPEATED` or `NOT_SCORED`.
+  `NOT_SCORED` is a route candidate failure, a scored submission with no aggregate score,
+  or a fresh-set candidate failure; it is excluded and counted like the other non-scored
+  states (`analyze.STATES`), never a drift observation. A `REPEATED` outcome
   (the route returned a stored outcome for an identical submission) is its own line and
   is **never** a scored submission; the runner counts it separately. A library of at least
   144 distinct recipes (library-v2) means a clean run has none.
 - `d_index = s_fresh - s_current`, for a lower-is-better score; positive means better on
   the batch it was scored on. For non-`SCORED` lines the numeric fields are `null`.
-- `probes_batch`: how many times this hotkey has now probed this window's batch;
-  `probes_case_max`: the largest exposure count among the batch's cases at this
-  submission. Both from the validator's own state.
+- `probes_batch` and `probes_case_max` count **this run's own scored probes** of the
+  window's batch and of its most-probed case, from the run's own records; they are not the
+  bank's exposure counter. A bank-short window writes 3m `UNAVAILABLE` lines, never a short
+  or invented window.
 - `wall_s`: validator rebuild plus score seconds for the submission.
 - `provenance`: `"STUDY"` for a real run; `"FIXTURE"` when `fixture` is true.
 
