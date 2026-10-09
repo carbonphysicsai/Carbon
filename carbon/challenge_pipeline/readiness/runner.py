@@ -88,7 +88,19 @@ def review_problem(review, challenge, level, item_id):
         return "wrong schema"
     if review.get("challenge") != challenge:
         return "names another challenge"
-    if review.get("level") != level or type(review.get("level")) is not int:
+    # `level` is one int, or a non-empty list of distinct ints when one ruling covers
+    # several levels (a stage's L0 and L1).
+    levels = review.get("level")
+    if type(levels) is int:
+        levels = [levels]
+    if (
+        type(levels) is not list
+        or not levels
+        or any(type(x) is not int for x in levels)
+        or len(set(levels)) != len(levels)
+    ):
+        return "level is an int or a list of distinct ints"
+    if level not in levels:
         return "names another level"
     if review.get("item") != item_id:
         return "names another item"
@@ -101,6 +113,8 @@ def review_problem(review, challenge, level, item_id):
         datetime.date.fromisoformat(str(review.get("date")))
     except ValueError:
         return "date is not ISO"
+    if "notes" in review and not isinstance(review["notes"], str):
+        return "notes is not text"
     evidence = review.get("evidence")
     if not (isinstance(evidence, list) and evidence):
         return "no evidence"
@@ -163,6 +177,25 @@ def _safe(function, *args):
         return Result(FAIL, f"check raised {type(error).__name__}: {str(error)[:200]}")
 
 
+def _accepted_by_review(automated, ctx, item, root):
+    """A NOT_BUILT automated check can be accepted by hand: a valid committed PASS
+    review (reviewer, date, evidence) turns it into PASS, stated as such in the detail.
+    Only NOT_BUILT is ever converted: a FAIL is never overridden, a missing, malformed
+    or FAIL review leaves the item NOT_BUILT, and the converted result says the
+    automated check does not exist."""
+    review = load_review(ctx.challenge, ctx.level, item["id"], root)
+    if review.status != PASS:
+        return automated
+    return Result(
+        PASS,
+        "automated check not built ("
+        + automated.detail
+        + "); accepted by "
+        + review.detail,
+        automated.evidence + review.evidence,
+    )
+
+
 def evaluate_item(item, ctx, root=PACKAGE):
     parts = []
     function = check_module.CHECKS.get(item["check"])
@@ -170,6 +203,8 @@ def evaluate_item(item, ctx, root=PACKAGE):
         parts.append(Result(FAIL, f"unregistered check {item['check']!r}"))
     else:
         automated = _safe(function, item, ctx)
+        if automated is not None and automated.status == NOT_BUILT:
+            automated = _accepted_by_review(automated, ctx, item, root)
         if automated is not None:
             parts.append(automated)
     if item["kind"] in ("review", "auto+review"):

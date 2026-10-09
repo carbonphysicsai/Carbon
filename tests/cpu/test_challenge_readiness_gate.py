@@ -772,3 +772,61 @@ def test_r5_never_passes_and_never_borrows_another_grant(monkeypatch):
     assert checks.grant_binding({}, cooling).status == model.FAIL
     own = checks.Context(challenge="chip-cold-plate", level=0)
     assert checks.grant_binding({}, own).status == model.NOT_BUILT
+
+
+# -- a ruling that covers several levels, and a NOT_BUILT check accepted by review --------------
+def test_a_review_may_cover_several_levels(tmp_path):
+    _write_review(tmp_path, "O1", _review("O1", level=[0, 1]))
+    for level in (0, 1):
+        assert runner.load_review(CHALLENGE, level, "O1", root=tmp_path).status == (
+            model.PASS
+        )
+    assert runner.load_review(CHALLENGE, 2, "O1", root=tmp_path).status == (
+        model.REVIEW_REQUIRED
+    )
+
+
+@pytest.mark.parametrize("level", [[], [0, 0], ["0"], [0, True], "0", None])
+def test_a_malformed_level_list_is_review_required(tmp_path, level):
+    _write_review(tmp_path, "O1", _review("O1", level=level))
+    assert runner.load_review(CHALLENGE, 0, "O1", root=tmp_path).status == (
+        model.REVIEW_REQUIRED
+    )
+
+
+def test_notes_must_be_text(tmp_path):
+    _write_review(tmp_path, "O1", _review("O1", notes=["x"]))
+    assert runner.load_review(CHALLENGE, 0, "O1", root=tmp_path).status == (
+        model.REVIEW_REQUIRED
+    )
+    _write_review(tmp_path, "O1", _review("O1", notes="a note"))
+    assert runner.load_review(CHALLENGE, 0, "O1", root=tmp_path).status == model.PASS
+
+
+def _item_with(check_result, monkeypatch, check="not_built_check"):
+    monkeypatch.setitem(checks.CHECKS, check, lambda item, ctx: check_result)
+    return {"id": "P3", "kind": "auto", "lesson": "N1", "title": "t", "check": check}
+
+
+def test_a_not_built_check_is_accepted_only_by_a_valid_pass_review(
+    monkeypatch, tmp_path
+):
+    ctx = checks.Context(challenge=CHALLENGE, level=0)
+    nb = model.Result(model.NOT_BUILT, "no check yet", ())
+    item = _item_with(nb, monkeypatch)
+    assert runner.evaluate_item(item, ctx, tmp_path)["status"] == model.NOT_BUILT
+    _write_review(tmp_path, "P3", _review("P3", decision="FAIL"))
+    assert runner.evaluate_item(item, ctx, tmp_path)["status"] == model.NOT_BUILT
+    _write_review(tmp_path, "P3", _review("P3", level=[1]))
+    assert runner.evaluate_item(item, ctx, tmp_path)["status"] == model.NOT_BUILT
+    _write_review(tmp_path, "P3", _review("P3"))
+    row = runner.evaluate_item(item, ctx, tmp_path)
+    assert row["status"] == model.PASS
+    assert "not built" in row["detail"] and "accepted by" in row["detail"]
+
+
+def test_a_review_never_overrides_a_failing_check(monkeypatch, tmp_path):
+    ctx = checks.Context(challenge=CHALLENGE, level=0)
+    item = _item_with(model.Result(model.FAIL, "red", ()), monkeypatch, "failing_check")
+    _write_review(tmp_path, "P3", _review("P3"))
+    assert runner.evaluate_item(item, ctx, tmp_path)["status"] == model.FAIL
