@@ -347,3 +347,78 @@ def test_one_door_serves_several_levels(tmp_path, refs, backend):  # noqa: F811
         (1, level_1),
         (2, LEVEL_2),
     }
+
+
+def test_a_development_commitment_binds_the_variant_and_the_whole_strategy(
+    tmp_path, refs, backend  # noqa: F811
+):
+    pytest.importorskip("numpy")
+    from test_development_variants import _strategy
+
+    from carbon.battery.daemon import (
+        AuthenticatedSubmission,
+        CommitmentRequired,
+        commitment_digest,
+        development_commitment_digest,
+    )
+    from carbon.development_ladder import operate
+
+    class Chain:
+        def __init__(self):
+            self.values = {}
+
+        def read(self, hotkey):
+            return self.values.get(hotkey)
+
+        def holders(self, digest):
+            return sorted(
+                (hk, v["block"])
+                for hk, v in self.values.items()
+                if v["digest"] == digest
+            )
+
+    chain = Chain()
+    validator = tbd.make(
+        tmp_path,
+        refs,
+        backend,
+        development_only=True,
+        ladder=deployment.ladder_for(config()),
+        require_commitment=True,
+        commitments=chain,
+    )
+    operate.setup(validator)
+    strategy = _strategy(fixture_only_cycles=3)
+    variant = FIXTURE_DIGESTS[2]
+    submission = AuthenticatedSubmission(
+        MINER_C,
+        {"sequence": 1, "digest": "0" * 64},
+        tbd.BATTERY,
+        "1.0",
+        strategy,
+        variant,
+    )
+    compiled = operate.compile_variant(strategy, variant)
+    strategy_hash = compiled.construction.strategy_hash
+    for digest in (
+        # Level 0's form, over the base digest or the variant's: refused.
+        commitment_digest(tbd.BATTERY, compiled.contract_digest, strategy_hash),
+        commitment_digest(tbd.BATTERY, variant, strategy_hash),
+        # The right form over other widened values: refused.
+        development_commitment_digest(
+            tbd.BATTERY, variant, strategy_hash, _strategy(fixture_only_cycles=4)
+        ),
+    ):
+        chain.values[MINER_C] = {"digest": digest, "block": 123}
+        with pytest.raises(CommitmentRequired):
+            validator.admit(submission)
+    chain.values[MINER_C] = {
+        "digest": development_commitment_digest(
+            tbd.BATTERY, variant, strategy_hash, strategy
+        ),
+        "block": 123,
+    }
+    admitted = validator.admit(submission)
+    binding = validator.store.submission(admitted["submission_id"])["binding"]
+    assert binding["development"]["variant_contract_digest"] == variant
+    assert binding["commitment"]["block"] == 123

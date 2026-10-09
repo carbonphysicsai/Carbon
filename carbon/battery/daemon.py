@@ -161,6 +161,25 @@ def commitment_digest(challenge, contract_digest, strategy_hash):
     )
 
 
+def development_commitment_digest(challenge, variant_digest, strategy_hash, strategy):
+    """What a miner commits on chain for a development-level submission to the
+    development-ladder deployment (VALIDATOR-25). It binds the variant's digest
+    (so the commitment names the level) and the digest of the whole submitted
+    strategy (so it binds every widened value, which the base construction's
+    `strategy_hash` omits). Plain data: a miner surface computes it without
+    the variant module. Level 0's commitment (`commitment_digest`) is
+    unchanged."""
+    return _digest(
+        {
+            "schema": "carbon.battery.commitment.development.v1",
+            "challenge": challenge,
+            "contract_digest": variant_digest,
+            "strategy_hash": strategy_hash,
+            "strategy_digest": _digest(strategy),
+        }
+    )
+
+
 @dataclass(frozen=True)
 class AuthenticatedSubmission:
     """A submission whose signer the transport has verified.
@@ -620,11 +639,19 @@ class BatteryValidator:
         if backend not in getattr(self.backend, "backends", ("jax",)):
             raise BackendNotServed(backend)
         commitment = None
-        expected = commitment_digest(
-            submission.strategy["challenge_id"],
-            admitted.contract_digest,
-            recipe.strategy_hash,
-        )
+        if development is not None:
+            expected = development_commitment_digest(
+                submission.strategy["challenge_id"],
+                submission.contract_digest,
+                recipe.strategy_hash,
+                submission.strategy,
+            )
+        else:
+            expected = commitment_digest(
+                submission.strategy["challenge_id"],
+                admitted.contract_digest,
+                recipe.strategy_hash,
+            )
         if self.require_commitment:
             observed = (
                 None
