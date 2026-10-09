@@ -455,12 +455,12 @@ def test_a_bank_short_window_writes_three_m_unavailable_lines(tmp_path):
 
 
 def test_the_named_probers_follow_the_contract_when_they_are_in_this_tree():
-    # Not xfail: it skips until the Test Engineer's #879 is in the tree, then
-    # checks the contract surface the runner calls.
-    path = REPOSITORY / "carbon/agent_campaign/graphite/study_prober.py"
-    if not path.is_file() or "ContractProber" not in path.read_text(encoding="utf-8"):
+    # Not xfail: it skips until the Test Engineer's #879 is in the tree, then checks
+    # the contract surface the runner calls. A literal `importorskip` (the authority
+    # test inventories dynamic imports by literal name).
+    module = pytest.importorskip("carbon.agent_campaign.graphite.study_prober")
+    if not hasattr(module, "ContractProber"):
         pytest.skip("study_prober.ContractProber (#879) is not in this tree")
-    module = importlib.import_module(PROBER_MODULE)
     for name in ("sealed", "revealed"):
         first, second = getattr(module, name)(), getattr(module, name)()
         assert first is not second, "a factory returns a fresh prober per run"
