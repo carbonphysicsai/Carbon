@@ -305,13 +305,23 @@ def test_run5_correlation_waits_for_all_eight_same_panel(tmp_path):
     for member in source["one_seed"]["members_ranked"]:
         row = source["members"][member]
         path = tmp_path / (member + ".json")
+        q = 1 / (1 + row["development_decision_loss"])
         path.write_text(
             json.dumps(
                 {
+                    "schema": "carbon.battery.v3-score-inputs.v1",
                     "status": "SCORED",
                     "recipe": {"member": member, "seed": row["seed"]},
-                    "identity": {"panel_sha256": "sha256:toy"},
-                    "raw_score": -row["development_decision_loss"],
+                    "identity": {
+                        "scope": v3.SCOPE,
+                        "job": "battery-q3-v8",
+                        "panel_sha256": "sha256:toy",
+                    },
+                    "a": q,
+                    "q": q,
+                    "g_feas": 0.0,
+                    "eligible": True,
+                    "raw_score": q,
                 }
             )
         )
@@ -319,5 +329,11 @@ def test_run5_correlation_waits_for_all_eight_same_panel(tmp_path):
     matched = v3.compare_run5(q1, paths)
     assert matched["status"] == "SCORED"
     assert matched["v3"]["kendall_tau_b"] == pytest.approx(1.0)
+    gated = json.loads(paths[0].read_text())
+    gated["status"] = "INELIGIBLE"
+    gated["eligible"] = False
+    gated["g_feas"] = 0.2
+    paths[0].write_text(json.dumps(gated))
+    assert v3.compare_run5(q1, paths)["status"] == "SCORED"
     paths.pop()
     assert v3.compare_run5(q1, paths)["v3"] is None

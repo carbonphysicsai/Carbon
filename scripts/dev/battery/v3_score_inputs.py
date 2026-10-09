@@ -510,6 +510,13 @@ def compare_run5(q1_path, reports):
     v3 = {}
     for path in reports:
         row = json.loads(Path(path).read_bytes())
+        if (
+            row.get("schema") != "carbon.battery.v3-score-inputs.v1"
+            or row.get("identity", {}).get("scope") != SCOPE
+            or row["identity"].get("job") != "battery-q3-v8"
+            or not row["identity"].get("panel_sha256", "").startswith("sha256:")
+        ):
+            raise Refused("v3_report_identity_invalid")
         member = row["recipe"]["member"]
         if member in v3:
             raise Refused("duplicate_member_report")
@@ -518,7 +525,11 @@ def compare_run5(q1_path, reports):
         m
         for m in members
         if m not in v3
-        or v3[m]["status"] != "SCORED"
+        or v3[m]["status"] not in ("SCORED", "INELIGIBLE")
+        or v3[m].get("raw_score") is None
+        or v3[m].get("a") is None
+        or v3[m].get("q") is None
+        or v3[m].get("g_feas") is None
         or v3[m]["recipe"]["seed"] != members[m]["seed"]
     )
     if len(members) != 8 or missing:
@@ -539,7 +550,18 @@ def compare_run5(q1_path, reports):
     names = sorted(members)
     value = [-members[m]["development_decision_loss"] for m in names]
     old = [-members[m]["cpu_practice_score"] for m in names]
-    new = [v3[m]["raw_score"] for m in names]
+    candidate = tuning.load_registry(ROOT / REGISTRY)[0][CANDIDATE]
+    legs = {
+        m: {
+            "eligible": v3[m]["eligible"],
+            "E": None,
+            "legs": {"a": v3[m]["a"], "q": v3[m]["q"]},
+            "gates": {"feasibility": v3[m]["g_feas"]},
+        }
+        for m in names
+    }
+    ranked, _verdicts = tuning.candidate_scores(candidate, legs, lambda m: m)
+    new = [ranked[m] for m in names]
     return {
         "status": "SCORED",
         "members": len(names),
