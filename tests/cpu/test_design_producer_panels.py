@@ -12,12 +12,22 @@ from carbon.design_search import (
     indexed,
     power_accumulation,
     producer_panels,
+    reference_resolution,
     tasks,
 )
 from carbon.design_search.__main__ import main
 
 
-def _subtask(case, support, band):
+def _subtask(
+    case,
+    support,
+    band,
+    *,
+    reference_band=0,
+    safe_margin=1.0,
+    unsafe_margin=-0.1,
+    unsafe_cost=0.0,
+):
     registered = tasks.task(
         f"{case}-{band}",
         identity={
@@ -47,31 +57,56 @@ def _subtask(case, support, band):
             "sense": "min",
             "aggregate": "worst",
         },
-        limits=[{"quantity": "margin", "unit": "toy-unit", "op": ">=", "value": 0}],
+        limits=[
+            {
+                "quantity": "margin",
+                "unit": "toy-unit",
+                "op": ">=",
+                "value": 0,
+                **({"band": reference_band} if reference_band else {}),
+            }
+        ],
     )
     reference = [
         {
             "candidate": "safe",
             "condition": "condition",
-            "values": {"cost": 1.0, "margin": 1.0},
+            "values": {"cost": 1.0, "margin": safe_margin},
         },
         {
             "candidate": "unsafe",
             "condition": "condition",
-            "values": {"cost": 0.0, "margin": -0.1},
+            "values": {"cost": unsafe_cost, "margin": unsafe_margin},
         },
     ]
     return registered, reference
 
 
-def _export(family, *, indexed_decision=False):
+def _export(
+    family,
+    *,
+    indexed_decision=False,
+    reference_band=0,
+    safe_margin=1.0,
+    unsafe_margin=-0.1,
+    unsafe_cost=0.0,
+    settled=None,
+):
     case = "PRIVATE-T3-CASE"
     support = "PRIVATE-T3-BANK"
     if indexed_decision:
         indices = []
         reference = []
         for band in (5, 15):
-            subtask, panel = _subtask(case, support, band)
+            subtask, panel = _subtask(
+                case,
+                support,
+                band,
+                reference_band=reference_band,
+                safe_margin=safe_margin,
+                unsafe_margin=unsafe_margin,
+                unsafe_cost=unsafe_cost,
+            )
             indices.append({"index_value": band, "buyer_weight": 0.5, "task": subtask})
             reference.append({"index_value": band, "panel": panel})
         registered = indexed.indexed_task(
@@ -87,7 +122,15 @@ def _export(family, *, indexed_decision=False):
             },
         )
     else:
-        registered, reference = _subtask(case, support, "plain")
+        registered, reference = _subtask(
+            case,
+            support,
+            "plain",
+            reference_band=reference_band,
+            safe_margin=safe_margin,
+            unsafe_margin=unsafe_margin,
+            unsafe_cost=unsafe_cost,
+        )
     law = diversity.register_law(
         {
             "schema": diversity.LAW_SCHEMA_V2,
@@ -121,9 +164,20 @@ def _export(family, *, indexed_decision=False):
                     "reference": reference,
                     "close_call": False,
                     "refinement_demand": False,
+                    **({"settled": settled} if settled is not None else {}),
                 }
             ],
             "laws": [law],
+            **(
+                {
+                    "refinement_rule": {
+                        "id": "toy-two-rung-rule.v1",
+                        "method": reference_resolution.REFINEMENT_METHOD,
+                    }
+                }
+                if settled is not None
+                else {}
+            ),
         }
     )
 
@@ -299,3 +353,144 @@ def test_report_and_cli_emit_aggregates_only(tmp_path, capsys, family):
     rendered = capsys.readouterr().out
     assert "PRIVATE-T3" not in rendered
     assert json.loads(rendered) == report
+
+
+def test_settled_verdict_requires_named_digest_bound_refinement_rule():
+    unresolved = _export("motor", reference_band=0.2)
+    bank, _, _, _ = producer_panels.adapt_export(unresolved)
+    assert bank["cases"][0]["state"] == "UNRESOLVED"
+
+    export = _export(
+        "motor",
+        reference_band=0.2,
+        settled=[{"candidate": "unsafe", "feasible": False}],
+    )
+    bank, _, _, _ = producer_panels.adapt_export(export)
+    assert bank["cases"][0]["state"] == "FEASIBLE_EXISTS"
+    assert bank["cases"][0]["winner"] == "safe"
+
+    without_rule = producer_panels.seal_export(
+        {
+            **{
+                k: v
+                for k, v in export.items()
+                if k not in ("export_digest", "refinement_rule")
+            }
+        }
+    )
+    with pytest.raises(tasks.TaskError, match="complete producer question"):
+        producer_panels.adapt_export(without_rule)
+    export["refinement_rule"]["id"] = "unsealed-switch"
+    with pytest.raises(tasks.TaskError, match="sealed registered"):
+        producer_panels.adapt_export(export)
+    invalid_method = producer_panels.seal_export(
+        {
+            **{k: v for k, v in export.items() if k != "export_digest"},
+            "refinement_rule": {"id": "toy-rule", "method": "unregistered"},
+        }
+    )
+    with pytest.raises(tasks.TaskError, match="named two-rung"):
+        producer_panels.adapt_export(invalid_method)
+    conflicting = _export(
+        "motor",
+        reference_band=0.2,
+        unsafe_margin=-1.0,
+        settled=[{"candidate": "unsafe", "feasible": True}],
+    )
+    with pytest.raises(tasks.TaskError, match="contradicts resolved"):
+        producer_panels.adapt_export(conflicting)
+
+
+def test_only_decision_relevant_unsettled_candidates_make_a_question_unresolved():
+    slower = _export("motor", reference_band=0.2, unsafe_cost=2.0, settled=[])
+    bank, _, _, _ = producer_panels.adapt_export(slower)
+    assert bank["cases"][0]["state"] == "FEASIBLE_EXISTS"
+    assert bank["cases"][0]["winner"] == "safe"
+
+    faster = _export("motor", reference_band=0.2, settled=[])
+    bank, _, _, _ = producer_panels.adapt_export(faster)
+    assert bank["cases"][0]["state"] == "UNRESOLVED"
+
+    indexed_export = _export(
+        "battery-v3",
+        indexed_decision=True,
+        reference_band=0.2,
+        unsafe_cost=2.0,
+        settled=[{"index_value": band, "verdicts": []} for band in (5, 15)],
+    )
+    bank, _, _, _ = producer_panels.adapt_export(indexed_export)
+    assert bank["cases"][0]["state"] == "FEASIBLE_EXISTS"
+
+    # One mandatory all-fail band fixes the full-map state, even if another
+    # band's candidate could still change its local best.
+    indexed_export["questions"][0]["reference"][0]["panel"][0]["values"][
+        "margin"
+    ] = -1.0
+    indexed_export["questions"][0]["reference"][0]["panel"][1]["values"][
+        "margin"
+    ] = -1.0
+    indexed_export["questions"][0]["reference"][1]["panel"][1]["values"]["cost"] = 0.0
+    indexed_export = producer_panels.seal_export(
+        {k: v for k, v in indexed_export.items() if k != "export_digest"}
+    )
+    bank, _, _, _ = producer_panels.adapt_export(indexed_export)
+    assert bank["cases"][0]["state"] == "NONE_FEASIBLE"
+
+
+@pytest.mark.parametrize("family", ("motor", "battery-v3"))
+def test_control_pick_on_still_unresolved_candidate_is_unscored(family):
+    indexed_decision = family == "battery-v3"
+    settled = (
+        [
+            {
+                "index_value": band,
+                "verdicts": [{"candidate": "safe", "feasible": True}],
+            }
+            for band in (5, 15)
+        ]
+        if indexed_decision
+        else [{"candidate": "safe", "feasible": True}]
+    )
+    export = _export(
+        family,
+        indexed_decision=indexed_decision,
+        reference_band=0.2,
+        safe_margin=0.1,
+        unsafe_margin=0.19,
+        unsafe_cost=2.0,
+        settled=settled,
+    )
+    caution = controls.register_controls(
+        [
+            {
+                "schema": controls.CONTROL_SCHEMA,
+                "name": "toy-caution",
+                "kind": "over_cautious",
+                "severity": {"margin": {"value": 0.15, "unit": "toy-unit"}},
+                "limit_quantities": ["margin"],
+            }
+        ]
+    )
+    report = producer_panels.panel_power_report(
+        export,
+        caution,
+        power_accumulation.register_accumulation(
+            exposure_unit="per_question_draws", max_windows=2
+        ),
+        alpha=0.05,
+        power_target=0.8,
+        simulation_seed=3,
+        replicates=20,
+        max_questions=1,
+    )
+    q = (
+        report["power"]["laws"]["grid"]["aggregate"]["Q"]
+        if indexed_decision
+        else report["power"]["laws"]["grid"]["Q"]
+    )
+    control = q["controls"][0]
+    assert control["unscored_control_mass"] == 1.0
+    assert control["metrics"]["false_feasible"]["common_mass"] == 0
+    assert control["metrics"]["false_feasible"]["control"] is None
+    assert control["abstention_outcomes"]["control"]["missed_opportunity"] is None
+    assert "PRIVATE-T3" not in json.dumps(report)
