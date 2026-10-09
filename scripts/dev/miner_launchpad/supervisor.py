@@ -1049,6 +1049,28 @@ NEXT_ACTIONS = {
         "submitted. Run check_design on it to see which, and choose another "
         "for now."
     ),
+    # The Challenge's compute budget (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01). A
+    # door's refusal carries its own step with the numbers; these are the
+    # catalog's for the same codes.
+    "over_compute_budget": (
+        "This recipe's calculated cost is over the Challenge's compute "
+        "budget. Make it cheaper (fewer steps, members or parameters), "
+        "practise it, and freeze that recipe instead; carbon_budget_status "
+        "shows the cost and the ceiling."
+    ),
+    "cost_unmeasurable": (
+        "This recipe's cost cannot be calculated in the Challenge's budget "
+        "unit, and a cost that cannot be checked is refused. Choose a recipe "
+        "carbon_budget_status shows as Within budget."
+    ),
+    "compute_budget_malformed": (
+        "This Challenge's compute budget declaration is malformed, a "
+        "repository defect: nothing can be frozen or submitted under it until "
+        "Carbon fixes it. Your practice results are kept."
+    ),
+    "strategy_names_another_challenge": (
+        "Send a strategy whose challenge_id is the challenge you name."
+    ),
     "bounded_hypothesis_required": (
         "Send hypothesis (and expected_effect, if given) as 1 to 2048 "
         "characters of text."
