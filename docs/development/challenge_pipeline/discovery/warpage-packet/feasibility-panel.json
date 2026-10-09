@@ -132,17 +132,21 @@
     ],
     "strata_definition": "HUMAN_INPUT distinct owner-approved complete-history classes, not temperature snapshots.",
     "minimum_contested_counts_user_requirement": {
-      "feasible_per_stratum_low_base_high": [
+      "resolved_feasible_near_per_family_stratum_low_base_high": [
         5,
         5,
         5
       ],
-      "near_infeasible_per_stratum_low_base_high": [
+      "resolved_infeasible_near_per_family_stratum_low_base_high": [
         5,
         5,
         5
       ],
-      "near_band": "HUMAN_INPUT approved unit-bearing band and reference uncertainty"
+      "working_refinement_bands_both_sides": 2,
+      "near_band": "HUMAN_INPUT approved unit-bearing band and reference uncertainty",
+      "near_rule": "abs(signed slack) <= 2 * approved one-band width; both resolved classes",
+      "status": "TEST_LEAD_WORKING_VALUE_NOT_ADOPTED",
+      "shortage_policy": "More frontier resolution; never widen bands or weaken limits"
     },
     "observed_feasible_counts": null,
     "observed_near_infeasible_counts": null,
@@ -342,16 +346,92 @@
   },
   "question_law": {
     "status": "PROPOSED_NOT_REGISTERED",
-    "k_low_base_high": [
+    "k_questions_per_window_low_base_high": [
       4,
       8,
       12
     ],
+    "diagnostic_pool_actions_M_low_base_high": [10, 10, 10],
+    "actions_per_question": "HUMAN_INPUT approved menu; independent of k",
+    "P": "HUMAN_INPUT buyer-supported context/history and requirement law",
+    "Q": "HUMAN_INPUT registered diagnostic frontier enrichment, separate from P",
+    "w": "HUMAN_INPUT buyer mix, separate from Q",
+    "E": null,
+    "B": null,
+    "n": null,
+    "requirement_draws_renew_physical_exposure": false,
+    "expected_distinct_winners": null,
+    "answer_diversity_status": "NOT_DEMONSTRATED",
     "objective": "HUMAN_INPUT buyer-approved objective; proposed minimum worst-case warpage among feasible actions",
     "none_feasible": "Only when adequate independent reference evidence proves every action violates at least one mandatory applicable limit",
     "missing_reference": "Separate HOLD/REFERENCE_INADEQUATE, never NONE_FEASIBLE",
     "ties": "HUMAN_INPUT precommitted objective/uncertainty tie policy",
     "action_law": "HUMAN_INPUT approved supplier/manufacturing action set"
+  },
+  "f08_package_reuse": {
+    "source_head": "0f12834226f65cdb317e7407e1e83e68c135801b",
+    "ccx_archive_sha256": "9c88385c10fb04f5dc6c4e98027a51bebdd8aee3920e05190d6c1dd08357d6e7",
+    "inspected_only": true,
+    "KEEP": ["Dockerfile", "build.sh", "sources.lock.json"],
+    "WRAP": ["full-3D meshing/regions", "retained output and resource-ledger patterns"],
+    "not_package_truth": "f08 metal cantilever modal/static deck and projection observer",
+    "missing_feature_proofs": ["multilayer/orthotropic thermal expansion", "calibrated cure and relaxation", "solder phase/joint formation", "retained residual state and restart", "warpage and local integration-point observers"],
+    "warpage_image_digest": null,
+    "full_history_reference_status": "NOT_DEMONSTRATED"
+  },
+  "provisional_registration": {
+    "status": "PROPOSED_SLOTS_NOT_REGISTERED",
+    "runtime_ids": [],
+    "manifest_sha256": null,
+    "all_material_limits_and_geometry_values": "HUMAN_INPUT",
+    "common": {"architecture": "ARCH-A", "geometry": "G-NOM", "material_process_set": "MAT-A", "approved_identity_hashes": null},
+    "design_slots": [
+      {"slot": "W01", "change": "Nominal UF-A / solder-stack S-A"},
+      {"slot": "W02", "change": "Approved lower gap/standoff with compatible joints"},
+      {"slot": "W03", "change": "Approved upper gap/standoff with compatible joints"},
+      {"slot": "W04", "change": "Approved lower underfill fillet extent"},
+      {"slot": "W05", "change": "Approved upper underfill fillet extent"},
+      {"slot": "W06", "change": "Approved UF-B with complete correlated law"},
+      {"slot": "W07", "change": "Approved UF-C with complete correlated law"},
+      {"slot": "W08", "change": "Approved solder-stack S-B and phase/history law"},
+      {"slot": "W09", "change": "Approved solder-stack S-C and phase/history law"},
+      {"slot": "W10", "change": "Precommitted combined underfill/stack frontier proposal"}
+    ],
+    "strata": [
+      {"slot": "S1", "complete_history": "Nominal process and spatial operation/cool-down", "file_sha256": null},
+      {"slot": "S2", "complete_history": "Same process, supported asymmetric operation/cool-down", "file_sha256": null},
+      {"slot": "S3", "complete_history": "Approved dwell/residual/process variant and operation/cool-down", "file_sha256": null}
+    ],
+    "control_slots": ["free expansion", "analytic bonded bilayer", "full-3D asymmetric/twist consistency", "complete-history restart/state consistency"],
+    "witness_pair_slots": ["separate non-hidden matched-task draw", "separate non-hidden draw or provenance-verified retired published case"],
+    "witness_custody": "Outside producer; never hidden EVAL/STRESS/quiz/tuning",
+    "refinement_selection": "HUMAN_INPUT precommitted near-boundary and tie rule; retain all selected failures",
+    "required_case_pins": ["CAD/mesh/regions", "catalog and complete material-law hashes", "state/activation/phase history", "thermal file/hash and boundaries", "observer and limit/band versions", "solver/container and resources"],
+    "missing_slot": "SLOT_UNRESOLVED, no invented substitute",
+    "freeze_owner": "Buyer/science approve applicability; DC freezes exact manifest; owner grants execution",
+    "counts_do_not_prove_contestability": true,
+    "failure_reserve_authorizes_retries": false
+  },
+  "current_eight_comparison": {
+    "value_snapshot_head": "35ff76a87a7382c26c437e179c0ab2d301679c1f",
+    "crosscheck_main": "3a6dfdd8dffdfdaf241596033d5bf55b66abfcff",
+    "currency": "USD",
+    "value_status": "ASSUMPTION_CONDITIONAL_ANNUAL_GROSS_NOT_LEVERAGE_OR_TRACTION",
+    "index_formula": "annual gross / (C2 + 52 * C3_weekly), same currency and full scope",
+    "index_status": "NOT_COMPUTABLE_COMPLETE_C2_C3_AND_MATCHED_CURRENCY",
+    "missing_basis": ["complete comparable full-bank C2", "complete comparable weekly C3", "registered common currency basis"],
+    "rows": [
+      {"id": "battery", "annual_gross_usd_low_base_high": [1500, 315000, 19800000], "C2": null, "C3_weekly": null, "index_low_base_high": null},
+      {"id": "motor", "annual_gross_usd_low_base_high": [4000, 162000, 3840000], "C2": null, "C3_weekly": null, "index_low_base_high": null},
+      {"id": "cooling-cell", "annual_gross_usd_low_base_high": [1000, 40500, 768000], "C2": null, "C3_weekly": null, "index_low_base_high": null},
+      {"id": "f02", "annual_gross_usd_low_base_high": [4000, 144000, 1920000], "C2": null, "C3_weekly": null, "index_low_base_high": null},
+      {"id": "f06", "annual_gross_usd_low_base_high": [2000, 72000, 720000], "C2": null, "C3_weekly": null, "index_low_base_high": null},
+      {"id": "f08", "annual_gross_usd_low_base_high": [2000, 54000, 576000], "C2": null, "C3_weekly": null, "index_low_base_high": null},
+      {"id": "f13", "annual_gross_usd_low_base_high": [1000, 36000, 384000], "C2": null, "C3_weekly": null, "index_low_base_high": null},
+      {"id": "f17", "annual_gross_usd_low_base_high": [2000, 72000, 1024000], "C2": null, "C3_weekly": null, "index_low_base_high": null}
+    ],
+    "historical_rescore": false,
+    "computed_currency_conversion": false
   },
   "unresolved_inputs": [
     "rights-cleared exact customer package and action grammar",
@@ -369,5 +449,6 @@
   ],
   "next_action": "Documentary freeze by named owners; no dispatch while any required acceptance/reference/spend input is unresolved.",
   "publication_base": "f227a55a88cfe736171bb64f602a81eb1777c9ba",
-  "publication_base_tree": "8377bbfe47c9a4a90e3efb614f20e0fede8538fb"
+  "publication_base_tree": "8377bbfe47c9a4a90e3efb614f20e0fede8538fb",
+  "scope_alignment": {"ticket": "CHALLENGE-WARPAGE-SCOPE-ALIGNMENT-01", "base_main": "3a6dfdd8dffdfdaf241596033d5bf55b66abfcff", "merged_packet": "75cd4b14e826b110023cbaca1ca57d5b5b239e90", "historical_publication_fields_preserved": true}
 }
