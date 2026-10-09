@@ -28,9 +28,8 @@ from test_challenge_validator_battery_bank import adapter, run  # noqa: F401
 from test_challenge_validator_design_bank import ToyLaw, solve_all
 
 from carbon.challenge_validator import answer_key as ak
-from carbon.challenge_validator import canary
+from carbon.challenge_validator import canary, feed_file
 from carbon.challenge_validator import design_bank as db
-from carbon.challenge_validator import feed_file
 from carbon.challenge_validator import score_feed as sf
 from carbon.challenge_validator.training_pool import TrainingPool
 
