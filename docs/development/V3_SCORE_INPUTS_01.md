@@ -102,8 +102,11 @@ python -m scripts.dev.battery.v3_score_inputs run \
   --out <development-output>/<member>-v3.json
 ```
 
-Once all eight run-5 first-seed recipes have `SCORED` reports on the **same
-panel identity**, calculate the matched correlations:
+Once all eight run-5 first-seed recipes have complete measured reports on the
+**same panel identity**, calculate the matched correlations. A G-FEAS gate
+failure with all three measured terms remains in the comparison, ranked below
+passers by the registered `candidate_scores` rule; a missing reference or
+candidate prediction failure leaves the comparison unmeasured:
 
 ```bash
 python -m scripts.dev.battery.v3_score_inputs compare-run5 \
