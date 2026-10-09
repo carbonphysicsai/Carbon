@@ -44,14 +44,14 @@ from pathlib import Path
 
 REPOSITORY = Path(__file__).resolve().parents[4]
 
-#: Released images, pinned by digest (worker-images-v2, release run 37785049981).
+#: Released images, pinned by digest (worker-images-v3, release run 37855550264).
 ACCELERATOR_IMAGE = (
     "ghcr.io/carbonphysicsai/carbon-accelerator-worker@sha256:"
-    "c34d579e37eeffee944b8b4b876289963a6b283ea825b91a404167d92d0124b4"
+    "4ef87d81f412123b4cd6e0d37d4f764a49f2883dea1e03a27e5c7d1e5c1f9732"
 )
 TORCH_IMAGE = (
     "ghcr.io/carbonphysicsai/carbon-torch-gpu-worker@sha256:"
-    "28856fd628d46818741e028837f064fe1a6f9f19653091adca92a36ff5726fc1"
+    "5867207e35b2fd54d1cbf4d1fb2a7e0a6b88654a1485f138e3f0054d6b702186"
 )
 IMAGES = {"jax": ACCELERATOR_IMAGE, "pytorch": TORCH_IMAGE}
 BACKENDS = ("jax", "pytorch")
@@ -136,6 +136,32 @@ SHIPPED_FILES = (
     "scripts/dev/gpu_determinism_study/device_identity.py",
 )
 SHIP_TREES = ("carbon",)
+#: The Level 4 B' leg (`docs/development/graphite/level4/PHASE1_PLAN.md`
+#: section 3, plan PR 9): each JAX pick lowered to B' documents on the CPU
+#: before any spend (`level4-lower`), committed here as one
+#: `carbon.level4.staging` directory per pick, and shipped to the pods as data.
+LEVEL4_DIR = "docs/development/graphite/level4/a40_leg"
+LEVEL4_LEG = "level4"
+#: Recipes the leg adds beyond the picks, so each review op is on the GPU
+#: (plan section 3, item 5). A relu MLP lowers relu as a named function; it
+#: is trained, and gets native repeats too (the same-host comparison needs
+#: them). `gather` and `sort` appear only in the nearest-neighbour graph,
+#: which Carbon does not train: it runs forward-only (`LEVEL4_FORWARD`), its
+#: same-host comparison inside the one rebuild, against the JAX function it
+#: was lowered from (battery's NumPy kNN differs at 1e-15 and is recorded).
+LEVEL4_COVERAGE = (
+    {
+        "id": "level4_relu_layer_norm_mlp",
+        "backbone": "mlp",
+        "parameters": {
+            "steps": 1500,
+            "width": 64,
+            "depth": 2,
+            "activation": "relu",
+            "normalization": "layer_norm",
+        },
+    },
+)
 
 RECORD_SCHEMA = "carbon.a40-acceptance.run-record.v1"
 SMOKE_SCHEMA = "carbon.a40-acceptance.smoke-record.v1"
@@ -259,12 +285,18 @@ def budget_gate(
     }
 
 
-def pod_deadline_seconds(smoke, rebuilds):
+def pod_deadline_seconds(smoke, rebuilds, level4_rebuilds=0):
     """Each pod's deadline: measured x 1.5. Measured is the smoke pod's
     start-up (create to first running phase) plus `rebuilds` times the
-    measured wall seconds of one rebuild in a fresh interpreter."""
-    measured = Decimal(str(smoke["startup_seconds"])) + rebuilds * Decimal(
-        str(smoke["rebuild_wall_seconds"])
+    measured wall seconds of one rebuild in a fresh interpreter, plus
+    `level4_rebuilds` times the smoke's own Level 4 rebuild seconds (the
+    leg's own measurement; the native one when the smoke had no leg)."""
+    native = Decimal(str(smoke["rebuild_wall_seconds"]))
+    leg = Decimal(str(smoke.get("level4_wall_seconds") or native))
+    measured = (
+        Decimal(str(smoke["startup_seconds"]))
+        + rebuilds * native
+        + level4_rebuilds * leg
     )
     return int((measured * DEADLINE_FACTOR).to_integral_value(rounding=ROUND_CEILING))
 
@@ -475,10 +507,19 @@ def actual_n_params(strategy, backend, train):
     return total
 
 
-def build_record(panel_name=PANEL, *, root=".", counter=actual_n_params):
+def build_record(
+    panel_name=PANEL,
+    *,
+    root=".",
+    counter=actual_n_params,
+    level4=False,
+    repository=REPOSITORY,
+):
     """The run record: pool, picks, fno recipe, each pick cross-checked against
     an actual CPU count on every backend. Raises Refused on any mismatch or
-    when a backend cannot be exercised (a skipped cross-check is not a pass)."""
+    when a backend cannot be exercised (a skipped cross-check is not a pass).
+    With `level4`, the record also pins each pick's committed B' documents
+    (`level4_section`)."""
     from carbon.battery.challenge import PublicMaterial
 
     pool = pool_counts(panel_name)
@@ -543,7 +584,118 @@ def build_record(panel_name=PANEL, *, root=".", counter=actual_n_params):
         "repeats": REPEATS,
     }
     record["recipes_by_backend"] = recipes_by_backend(record)
+    if level4:
+        record["level4"] = level4_section(record, repository)
     return record
+
+
+def _level4_strategy(pick):
+    return for_backend(pick["strategy"], "jax")
+
+
+#: The forward-only leg: battery's panel kNN (Test Lead, 2026-10-08).
+LEVEL4_FORWARD = ("level4_knn_forward",)
+
+
+def _knn_strategy():
+    from carbon.battery import level4 as battery
+
+    return battery.level0_strategies()["panel_knn"]
+
+
+def _level4_recipes(record):
+    """`(id, JAX strategy, kind)` for every recipe the leg rebuilds: the picks,
+    the coverage recipes (trained), then the forward-only kNN."""
+    out = [(p["id"], _level4_strategy(p), "train") for p in record["picks"]]
+    out += [
+        (c["id"], _strategy(c["backbone"], copy.deepcopy(c["parameters"])), "train")
+        for c in LEVEL4_COVERAGE
+    ]
+    out += [(i, _knn_strategy(), "forward") for i in LEVEL4_FORWARD]
+    return out
+
+
+def level4_lower(record, repository=REPOSITORY):
+    """Lower each pick (JAX) to its B' documents on this CPU and write them as
+    `carbon.level4.staging` directories under LEVEL4_DIR, replacing any older
+    ones; nothing is lowered on a pod. Returns the record's Level 4 section.
+    The directories are then committed, so the pods read them at the pushed
+    ref."""
+    from carbon.battery import level4 as battery
+    from carbon.level4 import allowlist as allowlist_module
+    from carbon.level4 import intake, staging, submission
+
+    allowlist = allowlist_module.load()
+    for recipe_id, strategy, kind in _level4_recipes(record):
+        lower = battery.lower_knn if kind == "forward" else battery.lower_recipe
+        manifest, files = lower(
+            strategy, allowlist, max_bytes=intake.BOUNDS["document_bytes"]
+        )
+        directory = Path(repository) / LEVEL4_DIR / recipe_id
+        if directory.exists():
+            shutil.rmtree(directory)
+        staging.write_directory(directory, submission.canonical(manifest), files)
+    return level4_section(record, repository)
+
+
+def level4_section(record, repository=REPOSITORY):
+    """The run record's Level 4 section, read from the committed directories:
+    per pick, its directory, submission digest, files, and whether its graphs
+    hold a `gather` and a named function (the leg must include both). Refused
+    when a pick has no documents."""
+    from carbon.level4 import allowlist as allowlist_module
+    from carbon.level4 import graph, staging
+
+    allowlist = allowlist_module.load()
+    picks, ops = [], set()
+    for recipe_id, strategy, kind in _level4_recipes(record):
+        relative = f"{LEVEL4_DIR}/{recipe_id}"
+        try:
+            digest, _raw, files = staging.read_directory(Path(repository) / relative)
+        except (OSError, graph.GraphRefused):
+            raise Refused(
+                f"refused: no Level 4 documents for {recipe_id} "
+                "(run `level4-lower` and commit them)"
+            ) from None
+        held = set()
+        for raw in files.values():
+            document = json.loads(raw)
+            for body in (document.get("graphs") or {}).values():
+                held |= {node["op"] for node in body.get("nodes", ())}
+        ops |= held
+        picks.append(
+            {
+                "id": recipe_id,
+                "kind": kind,
+                "strategy": strategy,
+                "directory": relative,
+                "submission": digest,
+                "files": sorted(
+                    [f"{relative}/{staging.MANIFEST}"]
+                    + [f"{relative}/{n.split(':', 1)[1]}.json" for n in files]
+                ),
+                "ops": {
+                    "gather": "gather" in held,
+                    "named_function": "named_function" in held,
+                },
+            }
+        )
+    return {
+        "allowlist": {"version": allowlist.version, "digest": allowlist.digest},
+        "picks": picks,
+        "coverage": [c["id"] for c in LEVEL4_COVERAGE],
+        "covers": {
+            "gather": "gather" in ops,
+            "named_function": "named_function" in ops,
+        },
+    }
+
+
+def level4_files(record):
+    """Every committed Level 4 file the pods need, from the sealed record."""
+    return [
+        f for p in (record.get("level4") or {}).get("picks", ()) for f in p["files"]
+    ]
 
 
 def recipes_by_backend(record):
@@ -600,7 +752,7 @@ def is_protected(path):
     return any(fragment in path.lower() for fragment in pods.FORBIDDEN_DATA)
 
 
-def ship_paths(ref, repository=REPOSITORY):
+def ship_paths(ref, repository=REPOSITORY, extra=()):
     """Every tracked file the pod needs. Code files the guard names (sealed
     confirmation sets, EV4 contracts, `private` directories) are not shipped;
     the rebuild path imports none of them (a test rebuilds without them). The
@@ -614,18 +766,20 @@ def ship_paths(ref, repository=REPOSITORY):
         & pods.UNSHIPPED_DIRECTORIES
         and not is_protected(path)
     ]
-    for path in (*SHIPPED_FILES, *DATA_PATHS):
+    for path in (*SHIPPED_FILES, *DATA_PATHS, *extra):
         if is_protected(path):
             raise Refused("refused: forbidden data path " + path)
-    return list(dict.fromkeys(code + list(SHIPPED_FILES) + list(DATA_PATHS)))
+    return list(
+        dict.fromkeys(code + list(SHIPPED_FILES) + list(DATA_PATHS) + list(extra))
+    )
 
 
-def build_manifest(ref, repository=REPOSITORY):
+def build_manifest(ref, repository=REPOSITORY, extra=()):
     from carbon.agent_campaign.graphite import pods
 
     if type(ref) is not str or len(ref) != 40:
         raise Refused("refused: a 40-hex pushed commit is required")
-    return pods.code_manifest(ref, ship_paths(ref, repository), repository)
+    return pods.code_manifest(ref, ship_paths(ref, repository, extra), repository)
 
 
 # ------------------------------------------------------------------ the operator side
@@ -1226,10 +1380,39 @@ def phase_config(backend, record, *, barrier=False, skip_fno=False):
             r
             for r in record["recipes_by_backend"][backend]
             if not (skip_fno and r["id"] == fno_id)
-        ],
+        ]
+        + (
+            [
+                {"id": p["id"], "strategy": p["strategy"]}
+                for p in record["level4"]["picks"]
+                if p["id"] in record["level4"]["coverage"]
+            ]
+            if backend == "jax" and record.get("level4")
+            else []
+        ),
         "repeats": record["repeats"],
         "seed": record["seed"],
+        **(
+            {"level4": level4_entries(record)}
+            if backend == "jax" and record.get("level4")
+            else {}
+        ),
     }
+
+
+def level4_entries(record):
+    """The pod configuration's Level 4 leg: one rebuild per pick, of its
+    committed documents, against the submission digest the record pins."""
+    return [
+        {
+            "id": p["id"],
+            "kind": p["kind"],
+            "directory": p["directory"],
+            "submission": p["submission"],
+            "strategy": p["strategy"],
+        }
+        for p in record["level4"]["picks"]
+    ]
 
 
 def smoke(runner, record, *, backend="jax", out, skip_fno=False):
@@ -1245,11 +1428,15 @@ def smoke(runner, record, *, backend="jax", out, skip_fno=False):
     )
     config["recipes"] = [r for r in config["recipes"] if r["id"] == target]
     config["repeats"] = 1
+    if "level4" in config:  # the leg measures its own deadline on the same pick
+        config["level4"] = [e for e in config["level4"] if e["id"] == target]
     deadline = SMOKE_DEADLINE_SECONDS
     budget_gate(deadline, pods=1, replacements=0, cap=DEFAULT_CAP_USD)
     pod = runner.launch(backend, "A", config, deadline)
     runner.drive([pod], config)
-    row = (_json(pod.files.get("results.json")).get("rows") or [{}])[0]
+    rows = _json(pod.files.get("results.json")).get("rows") or [{}]
+    row = rows[0]
+    leg = next((r for r in rows if r.get("leg") == LEVEL4_LEG), None)
     measured = {
         "schema": SMOKE_SCHEMA,
         "backend": backend,
@@ -1260,6 +1447,7 @@ def smoke(runner, record, *, backend="jax", out, skip_fno=False):
         ),
         "rebuild_wall_seconds": row.get("wall_seconds"),
         "rebuild_child_seconds": row.get("seconds"),
+        **({"level4_wall_seconds": leg.get("wall_seconds")} if leg else {}),
         "device": _json(pod.files.get("identity.json")) or None,
         "booked_usd": str(reservation_usd(deadline)),
         "pod": pod.summary(),
@@ -1289,16 +1477,21 @@ def plan(record, smokes, cap=DEFAULT_CAP_USD, skip_fno=False):
     arithmetic; refused unless every backend fits."""
     out = {}
     for backend in BACKENDS:
-        recipes = phase_config(backend, record, skip_fno=skip_fno)["recipes"]
-        rebuilds = len(recipes) * record["repeats"]
+        config = phase_config(backend, record, skip_fno=skip_fno)
+        rebuilds = len(config["recipes"]) * record["repeats"]
+        level4_rebuilds = len(config.get("level4", ()))
         smoke_record = smokes[backend]
-        deadline = pod_deadline_seconds(smoke_record, rebuilds)
+        deadline = pod_deadline_seconds(smoke_record, rebuilds, level4_rebuilds)
         gate = budget_gate(
             deadline,
             cap,
             smoke_reserved=Decimal(smoke_record.get("booked_usd", "0")),
         )
-        out[backend] = {"rebuilds_per_pod": rebuilds, **gate}
+        out[backend] = {
+            "rebuilds_per_pod": rebuilds,
+            "level4_rebuilds_per_pod": level4_rebuilds,
+            **gate,
+        }
     return out
 
 
@@ -1341,7 +1534,93 @@ def run_acceptance(runner, record, smokes, *, cap=DEFAULT_CAP_USD, skip_fno=Fals
 
 # ------------------------------------------------------------------ comparison
 def _digests(rows, recipe_id, key):
-    return [r.get(key) for r in rows if r.get("recipe_id") == recipe_id]
+    """A native recipe's digests; Level 4 leg rows are compared separately."""
+    return [
+        r.get(key)
+        for r in rows
+        if r.get("recipe_id") == recipe_id and r.get("leg") is None
+    ]
+
+
+def _leg_row(rows, recipe_id):
+    return next(
+        (
+            r
+            for r in rows
+            if r.get("recipe_id") == recipe_id and r.get("leg") == LEVEL4_LEG
+        ),
+        None,
+    )
+
+
+def level4_cells(pod_results):
+    """The Level 4 leg's two comparisons, digest equality only:
+
+    * same host: the B' rebuild's `params_sha256` against that host's native
+      rebuild of the same pick (every native repeat must agree first);
+    * across hosts: B' against B' (`params_sha256` and `outputs_sha256`),
+      only between hosts whose driver builds match (the barrier rule).
+
+    A mismatch is a recorded R1 finding, never a harness failure; a missing
+    or failed row is INCOMPLETE."""
+    cells = []
+    hosts = [r for r in pod_results if r["backend"] == "jax"]
+    ids = sorted(
+        {row["recipe_id"] for h in hosts for row in h["rows"] if row.get("leg")}
+    )
+    builds = sorted(
+        {
+            h["identity"].get("driver_version")
+            for h in hosts
+            if h.get("identity") and h["identity"].get("driver_version")
+        }
+    )
+    for recipe_id in ids:
+        same_host, legs = {}, {}
+        for h in hosts:
+            native = _host_cell(h["rows"], recipe_id)
+            leg = _leg_row(h["rows"], recipe_id)
+            legs[h["label"]] = leg
+            if leg is not None and "native_outputs_sha256" in leg:
+                # Forward-only: the native kNN ran beside the graph in the
+                # same child; compare their outputs.
+                equal = leg["outputs_sha256"] == leg["native_outputs_sha256"]
+                same_host[h["label"]] = {
+                    "outcome": "AGREE" if equal else "DISAGREE",
+                    "native_outputs_sha256": leg["native_outputs_sha256"],
+                    "level4_outputs_sha256": leg["outputs_sha256"],
+                }
+            elif leg is None or "error" in leg or not native["complete"]:
+                same_host[h["label"]] = {"outcome": "INCOMPLETE"}
+            elif not native["weights_equal"]:
+                same_host[h["label"]] = {"outcome": "NO_SINGLE_NATIVE_DIGEST"}
+            else:
+                equal = leg["params_sha256"] == native["params_sha256"][0]
+                same_host[h["label"]] = {
+                    "outcome": "AGREE" if equal else "DISAGREE",
+                    "native_params_sha256": native["params_sha256"][0],
+                    "level4_params_sha256": leg["params_sha256"],
+                }
+        if len(hosts) < 2:
+            across = {"outcome": "REFUSED_ONE_UNIT"}
+        elif len(builds) > 1:
+            across = {"outcome": "REFUSED_DRIVER_MISMATCH", "driver_builds": builds}
+        elif any(leg is None or "error" in leg for leg in legs.values()):
+            across = {"outcome": "INCOMPLETE"}
+        else:
+            params = {leg["params_sha256"] for leg in legs.values()}
+            outputs = {leg["outputs_sha256"] for leg in legs.values()}
+            across = {
+                "outcome": (
+                    "AGREE" if len(params) == 1 and len(outputs) == 1 else "DISAGREE"
+                ),
+                "params_equal": len(params) == 1,
+                "outputs_equal": len(outputs) == 1,
+            }
+        cells.append(
+            {"recipe_id": recipe_id, "same_host": same_host, "across_hosts": across}
+        )
+    return cells
 
 
 def _host_cell(rows, recipe_id):
@@ -1430,6 +1709,9 @@ def compare(pod_results, *, deviation=None, cpu=None, skipped=None):
                 }
             )
     document = {"schema": COMPARISON_SCHEMA, "cells": cells, "cpu_vs_gpu": []}
+    level4 = level4_cells(pod_results)
+    if level4:
+        document["level4"] = level4
     if cpu is not None:
         document["cpu_vs_gpu"] = cpu_vs_gpu(cpu, pod_results)
     document["jax_fno"] = "not applicable: the fno is PyTorch-only"
@@ -1585,7 +1867,7 @@ def cpu_summary(dry):
 # ------------------------------------------------------------------ command line
 def _cmd_select(args):
     try:
-        record = build_record(args.panel, root=args.root)
+        record = build_record(args.panel, root=args.root, level4=args.level4)
     except Refused as refusal:
         print(str(refusal), file=sys.stderr)
         return 1
@@ -1607,8 +1889,16 @@ def _cmd_select(args):
     return 0
 
 
+def _manifest(args, record):
+    """The code manifest, with the record's Level 4 files when it pins any (a
+    record without the leg ships exactly what it did before)."""
+    files = level4_files(record)
+    extra = {"extra": files} if files else {}
+    return build_manifest(args.code_ref, Path(args.repository), **extra)
+
+
 def _runner(args, record):
-    manifest = build_manifest(args.code_ref, Path(args.repository))
+    manifest = _manifest(args, record)
     from scripts.dev.exam_design.runpod import pod_control
 
     if not pod_control.ref_is_pushed(args.code_ref):
@@ -1675,7 +1965,7 @@ def _cmd_run(args):
     }
     cap = Decimal(args.cap)
     if args.dry_run:
-        manifest = build_manifest(args.code_ref, Path(args.repository))
+        manifest = _manifest(args, record)
         print(json.dumps({"dry_run": True, "pods_created": 0, "images": IMAGES,
                           "code_files": len(manifest), "plan": plan(record, smoke_record, cap, args.skip_fno)}, indent=1))  # fmt: skip
         return 0
@@ -1709,6 +1999,15 @@ def _cmd_run(args):
     return 0 if summary["reconciliation"]["clean"] else 1
 
 
+def _cmd_level4_lower(args):
+    """Lower the picks of a record selected without the leg (`select`), so
+    `select --level4` can pin the committed documents."""
+    record = build_record(args.panel, root=args.root)
+    section = level4_lower(record, Path(args.repository))
+    print(json.dumps(section, indent=1, sort_keys=True))
+    return 0
+
+
 def _cmd_compare(args):
     from scripts.dev.gpu_determinism_study import compare_units
 
@@ -1735,7 +2034,19 @@ def main(argv=None):
     s.add_argument("--stdout", action="store_true", help="print the record only")
     s.add_argument("--panel", default=PANEL)
     s.add_argument("--root", default=str(REPOSITORY))
+    s.add_argument(
+        "--level4",
+        action="store_true",
+        help="pin each pick's committed Level 4 B' documents (run level4-lower first)",
+    )
     s.set_defaults(handler=_cmd_select)
+    lower = sub.add_parser(
+        "level4-lower", help="lower the picks to B' documents on this CPU"
+    )
+    lower.add_argument("--panel", default=PANEL)
+    lower.add_argument("--root", default=str(REPOSITORY))
+    lower.add_argument("--repository", default=str(REPOSITORY))
+    lower.set_defaults(handler=_cmd_level4_lower)
     for name, handler in (("smoke", _cmd_smoke), ("run", _cmd_run)):
         p = sub.add_parser(name)
         p.add_argument("--record", type=Path, required=True)

@@ -32,6 +32,7 @@
 | 10 | E6, motor (`carbon/motor/level4.py`, adapter only; shared code unchanged). Motor has no gradient-trained family. Its Level 0 kernel ridge prediction is lowered to a graph whose parameters Carbon's own closed-form fit supplies at G6, and G7 grades it through motor's unchanged practice exam. Predictions agree with native to float64 rounding (max 1.1e-11 N·m), every case's gate decision is identical, and the score differs by about 1e-13. It is not bit-identical (numpy against XLA). **Open:** gradient training through G6 for a second Challenge needs a trainable family there |
 | 8 (part 1) | The development-only Level 4 variant `battery-l4-graph-v1` (LEVEL4-DEV-VARIANT-01). It is graph-only: `hybrid.composition_graphs` widened under allowlist v1, routed through the shared dispatch (BATTERY-DEV-DISPATCH-01), and every rebuild fails closed until D3. Also: the capability draft (`LEVEL4_CAPABILITY_DRAFT.md`, for the owner) and the lesson on lowering at the recipe batch. Part 2 is the `battery_level4` attack adapter |
 | 8 (part 2) | The `battery_level4` attack adapter, registered at (battery, 4) against `battery-l4-graph-v1`. It runs seven §8 families at Carbon's real gates (G3 parse, G4 validate, rebuild) and declares six seams NOT_RUN with owners. Every attack is HELD, every specimen FIRES, every control PASSES. Its finding: a document whose declared shapes lie now gets `declared_aval_mismatch` at G4 (abstract evaluation), where before it surfaced only during execution. Dispositions are the Test Lead's |
+| 9 (code) | The A40 harness's Level 4 B′ leg (§3), opt-in. Picks plus a relu coverage recipe are lowered on the CPU before spend, committed as staging directories and pinned in the run record. JAX pods run one B′ rebuild per recipe after the native repeats. `compare` checks B′ against native on the same host and B′ against B′ across hosts. CPU: B′ equals the native digest. The forward-only kNN leg runs `gather` and `sort`, compared bit for bit with its JAX source. The run itself waits for a grant that names the leg (proposed to the owner: its own, capped at USD 3.00) |
 
 **Q5 answered (plan PR 3).** Per-case graphs batched by Carbon's `vmap` run
 forward bit-identically, but they do **not** train bit-identically for every
@@ -299,6 +300,46 @@ covered.
 PRs 2–6 need no security acceptance and no pods. PR 7 can land with its
 profile marked pending acceptance. Phase 3 (Graphite on the development
 variant) starts after PR 8.
+
+### 4.5 G6 loss slot v1 (working contract)
+
+**Authority.** The Test Lead's ruling of 2026-10-08 (L4 G6 loss slot v1).
+It is a working contract: it may change prospectively. The code is
+`carbon/level4/loss.py`, with the gate in G0 (`intake.intake`) and G4
+(`validate.validate_submission`). The fixtures are in
+`tests/cpu/test_level4_loss_slot.py`.
+
+| Item | Contract |
+|---|---|
+| **Level 1 gate** | Each Challenge declares `loss_override: none \| terms \| graph`. A loss document under `none` or `terms` (Level 1's loss terms) is refused at G0 (`loss_not_permitted`), never silently ignored. An unknown or unset declaration permits nothing. |
+| **Inputs** | By name, in this order: `loss/pred/<k>` (the Challenge's declared outputs), `loss/target/<k>` (TRAIN targets, same layout), `loss/x/<name>` (the TRAIN inputs), optional `loss/aux/<k>`. Nothing else: no parameter input (regularisation is the optimizer menu's), no key (no RNG; the allowlist admits RNG only in init). |
+| **`aux`** | Up to N auxiliary outputs the forward graph declares after the interface's outputs, for latent penalties. N is `HUMAN_INPUT` (`loss.AUX_LIMIT`); unset, no auxiliary output is admitted (`loss_aux_not_admitted`). |
+| **Output** | The case's loss: one float, shape `[1]`. Carbon maps the graph over the batch, which gives the per-case loss vector `[B]`. |
+| **Reduction** | Carbon's: the mean over the batch. No cross-case or batch-composition term. |
+| **Exam** | When the loss graph fully replaces the Challenge's loss, G7's exam is unchanged. |
+| **Budget** | The loss graph's FLOPs count toward F4 (TRAINING-BUDGET-01). |
+| **Failure** | A non-finite loss is the candidate's own training failure, never `FAILED_INFRA`. |
+| **Rest** | Allowlist v1 and Carbon's autodiff, as now. |
+
+**Per case, mapped by Carbon (contract).** The Level 4 engineer proposed it
+and the Test Lead accepted it, 2026-10-08, as structurally stronger than a
+`[B]`-vector rule. The ruling's "per-case loss vector, Carbon's mean, no
+cross-case tricks" is enforced by structure:
+- The loss graph is **declared per case**: every input has leading dimension
+  1, and its one output has shape `[1]`.
+- Carbon maps the graph over the batch with `jax.vmap`, which gives the
+  per-case vector `[B]`, then takes the mean (`loss.per_case_mean`).
+- So the graph never sees a second case. Declaring it at batch B instead
+  would need an independence proof that shapes alone cannot give.
+
+**Not yet built.** The ruling's content is complete, but these pieces wait:
+- **Battery's `loss_override`.** It is a Challenge declaration, so it waits
+  for the Test Lead, and changing it changes the registered variant document,
+  which means a new version.
+- **G6 training on a submitted loss.** The battery adapter's
+  `train_graph` with `per_case_mean`, and the F4 count, are the next slice.
+- **Admitting `aux` outputs.** That needs N set, and the forward interface
+  check then widened to admit them.
 
 ---
 

@@ -121,7 +121,8 @@ def _rebuild_development(recipe, record, material, seed):
     from .recipes import Structure
 
     model = development_rebuild.build_in_process(recipe, record)
-    stats = model.fit(material.train, Structure(material.ocv_soc, material.ocv_v), seed)
+    train = development_rebuild.training_data(record, material.train)
+    stats = model.fit(train, Structure(material.ocv_soc, material.ocv_v), seed)
     return model, {
         **with_state(model, stats),
         "trainer": development_rebuild.kind(record),
@@ -363,10 +364,36 @@ class CarrierBackend:
         seconds=600,
         runner=None,
         identity=None,
+        device=None,
     ):
         from carbon.development_session.research_carrier import _run
 
         self.ledger, self.image, self.root = ledger, image, Path(root)
+        # VALIDATOR-27: a GPU deployment scores on the host's recorded device,
+        # only for a device class a hardware acceptance has passed. Its
+        # identity names the device kind, so its scores are labelled
+        # `gpu:<kind>` and never ranked with CPU scores.
+        self.accelerator, gpu = None, {}
+        if device not in (None, "cpu", "gpu"):
+            raise ValueError("device is cpu or gpu")
+        if device == "gpu":
+            from carbon.development_session import research_carrier
+            from carbon.reconstruction import torch_profile
+            from carbon.reconstruction.hardware_acceptance import require_accepted
+
+            record = research_carrier._gpu_device()
+            require_accepted(record.device_kind, research_carrier._gpu_profile_id())
+            if torch_image is not None:
+                # PyTorch on the validator's GPU (slice 2) is the PyTorch GPU
+                # worker (TORCH-GPU-01), never the CPU one, and its class needs
+                # its own acceptance under the PyTorch GPU profile.
+                if torch_image.lock_digest != torch_profile.GPU_LOCK_DIGEST:
+                    raise ValueError(
+                        "a GPU validator's PyTorch image is the GPU worker"
+                    )
+                require_accepted(record.device_kind, torch_profile.GPU_PROFILE_ID)
+            self.accelerator = research_carrier.VALIDATOR_GPU
+            gpu = {"device_kind": record.device_kind, "device_record": record.digest}
         self.images = {"jax": image, "pytorch": torch_image}
         # The C-03 JAX image is the carrier's own; PyTorch is served only
         # where the deployment names its image.
@@ -384,6 +411,8 @@ class CarrierBackend:
                 if torch_image is None
                 else {"pytorch_image": getattr(torch_image, "image_id", None)}
             ),
+            # Absent for a CPU deployment, so its identity is what it was.
+            **gpu,
         }
 
     def _snapshot(self, result, names):
@@ -440,6 +469,12 @@ class CarrierBackend:
                 provenance="BATTERY_VALIDATOR",
                 extra_resources={},
                 phase="final",
+                # Only a GPU deployment asks; a CPU call is what it was.
+                **(
+                    {}
+                    if self.accelerator is None
+                    else {"accelerator": self.accelerator}
+                ),
             )
         except WorkerFailure:
             raise

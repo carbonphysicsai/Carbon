@@ -418,6 +418,7 @@ def project(document, trust):
     allowed = set(LABELS) | ({FIXTURE_LABEL} if trust.fixture else set())
     if (
         type(labels) is not list
+        or any(type(label) is not str for label in labels)
         or "DEVELOPMENT" not in labels
         or len(set(labels)) != len(labels)
         or not set(labels) <= allowed
@@ -511,7 +512,11 @@ def project(document, trust):
             "sections": _sections(incumbent.get("sections"), digits, "incumbent"),
         }
     challengers = []
-    for raw in board.get("challengers") or []:
+    raw_challengers = board.get("challengers")
+    raw_challengers = [] if raw_challengers is None else raw_challengers
+    if type(raw_challengers) is not list:
+        raise FeedRefused("leaderboard_invalid", "challengers")
+    for raw in raw_challengers:
         if type(raw) is not dict:
             raise FeedRefused("leaderboard_invalid", "challengers")
         state = raw.get("state")
@@ -521,7 +526,11 @@ def project(document, trust):
             {"hotkey": _hotkey(raw.get("hotkey"), trust), "state": state}
         )
     standing = []
-    for raw in board.get("standing") or []:
+    raw_standing = board.get("standing")
+    raw_standing = [] if raw_standing is None else raw_standing
+    if type(raw_standing) is not list:
+        raise FeedRefused("leaderboard_invalid", "standing")
+    for raw in raw_standing:
         if type(raw) is not dict:
             raise FeedRefused("leaderboard_invalid", "standing")
         standing.append(
@@ -536,7 +545,8 @@ def project(document, trust):
         )
     standing.sort(key=lambda r: (r["rank"], r["hotkey"]))
     history = {}
-    raw_history = board.get("history") or {}
+    raw_history = board.get("history")
+    raw_history = {} if raw_history is None else raw_history
     if type(raw_history) is not dict:
         raise FeedRefused("leaderboard_invalid", "history")
     for hotkey, points in sorted(raw_history.items()):

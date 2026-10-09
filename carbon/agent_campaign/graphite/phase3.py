@@ -1022,6 +1022,7 @@ def session_brief(
     variant=None,
     tool_text=TOOL_TEXT_V2,
     score_variant=None,
+    study=None,
 ):
     """The Constructor's brief: the session Challenge's public development
     material only (its `ChallengeScoring`), and the session's offered
@@ -1076,6 +1077,7 @@ def session_brief(
         checkout_manifest_digest=boundaries.manifest_digest(manifest),
         # A new session reads challenge-neutral tool text (VALIDATOR-07).
         tool_text=tool_text,
+        study=study,
     )
 
 
@@ -1495,7 +1497,9 @@ COMPUTE_LANES = ("runpod", "carrier")
 #: Test Lead's (2026-10-05); its file is
 #: docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3-COOLING-CPU.json, and
 #: a tokens-only run's pod money budget is 0 (`experiment.Phase3Budget`).
-TOKENS_ONLY_GRANTS = frozenset({"GRAPHITE-GRANT-PHASE3-COOLING-CPU"})
+TOKENS_ONLY_GRANTS = frozenset(
+    {"GRAPHITE-GRANT-PHASE3-COOLING-CPU", "GRAPHITE-GRANT-RATE-STUDY-TOKENS"}
+)
 
 
 def compute_lane(args, grant):
@@ -1678,11 +1682,21 @@ def command_run(args):
     # The grant bound to the named Challenge, and to main's committed blob
     # where its registration says so, and to the construction level where it
     # registers a lowest one (`grant_binding`).
-    from .grant_binding import check_phase3_grant
+    # A study run spends only its study's bound grant (OWNER-RATE-STUDY-TOKENS-01).
+    from .grant_binding import check_phase3_grant, check_study_grant
 
-    check_phase3_grant(
-        args.grant, grant, challenge=args.challenge, level=getattr(args, "level", 0)
-    )
+    if getattr(args, "study", None) is not None:
+        check_study_grant(
+            args.grant,
+            grant,
+            study=args.study,
+            challenge=args.challenge,
+            submission_cap=getattr(args, "study_submission_cap", None),
+        )
+    else:
+        check_phase3_grant(
+            args.grant, grant, challenge=args.challenge, level=getattr(args, "level", 0)
+        )
     # The inference provider this run picked (GRAPHITE-SPUR-PROVIDER-01; Engy
     # unless named). The grant must name it, and another provider's key is
     # taken by owner-only file only; both refuse before any key or pod.
@@ -1787,6 +1801,7 @@ def command_run(args):
             score_variant=scored,
             hidden=hidden,
             model_provider=model_provider,
+            study=getattr(args, "study", None),
         )
         try:
             check_resume(provider, args.session)
@@ -1802,6 +1817,7 @@ def command_run(args):
                 scoring=scoring,
                 variant=variant,
                 score_variant=sv.identity_of(scored),
+                study=getattr(args, "study", None),
             )
             _install_cancel(provider, provider.run_id_for(session_key(args.session)))
             result = run_session(control, provider, brief, args.session, variant)
@@ -2569,6 +2585,17 @@ def main(argv=None):
     run.add_argument("--challenge", required=True, help=challenge_help())
     run.add_argument("--dry-run", action="store_true")
     run.add_argument("--grant")
+    run.add_argument(
+        "--study",
+        help="a registered study this run belongs to (grant_binding.STUDY_GRANTS); "
+        "the run spends only that study's bound grant",
+    )
+    run.add_argument(
+        "--study-submission-cap",
+        type=int,
+        help="the run's scored-submission cap, copied from the study's frozen "
+        "freeze-manifest.json; one of the study's arm caps",
+    )
     run.add_argument(
         "--level",
         type=int,

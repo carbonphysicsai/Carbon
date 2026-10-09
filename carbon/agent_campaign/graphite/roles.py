@@ -160,10 +160,37 @@ NEXT_LEVEL_TOOL = {
 }
 
 
+#: SUBMISSION-RATE-STUDY-01's G-sealed probe tool (RATE-STUDY-PROBER-01). Only
+#: a study role offers it (`study_role`), so every other role's manifest, and
+#: its digest, is unchanged.
+STUDY_PROBE = "rate_study_next_probe"
+STUDY_PROBE_TOOL = {
+    "type": "function",
+    "name": STUDY_PROBE,
+    "strict": True,
+    "description": (
+        "Suggest the next recipe to submit in this study run: the recipe a "
+        "deterministic coordinate-wise search would try next, given this "
+        "session's own submissions and the route's answers to them. Pass "
+        "history_json, a JSON list of {strategy, view} objects in submission "
+        "order (the strategy you submitted and the route's view of it). The "
+        "answer is a suggestion only; it never submits and costs no run."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {"history_json": {"type": "string"}},
+        "required": ["history_json"],
+        "additionalProperties": False,
+    },
+}
+#: The studies a role may be bound to (`study_role`).
+STUDIES = ("SUBMISSION-RATE-STUDY-01",)
+
+
 def _registry():
     from . import tools as toolbox
 
-    if toolbox.NEXT_LEVEL != NEXT_LEVEL:
+    if toolbox.NEXT_LEVEL != NEXT_LEVEL or toolbox.STUDY_PROBE != STUDY_PROBE:
         raise RuntimeError("the toolbox and the registry name the same tool")
     tools = {tool["name"]: tool for tool in MINER_TOOLS}
     tools[SELECT] = SELECTION_TOOL
@@ -171,6 +198,7 @@ def _registry():
         tools[tool["name"]] = tool
     tools[PROPOSAL_TOOL["name"]] = PROPOSAL_TOOL
     tools[NEXT_LEVEL_TOOL["name"]] = NEXT_LEVEL_TOOL
+    tools[STUDY_PROBE_TOOL["name"]] = STUDY_PROBE_TOOL
     return tools
 
 
@@ -421,6 +449,9 @@ class GraphiteRole:
     tools: tuple
     start_model: str
     escalation_kinds: frozenset
+    #: The study this role is bound to (`study_role`), or None for every
+    #: ordinary role, whose record is then exactly as before.
+    study: str | None = None
 
     def __post_init__(self):
         if type(self.name) is not RoleName:
@@ -444,6 +475,10 @@ class GraphiteRole:
             type(kind) is FailureKind for kind in self.escalation_kinds
         ):
             raise TypeError("escalation kinds are typed failure observations")
+        if self.study is not None and self.study not in STUDIES:
+            raise ValueError("a role's study is a registered study")
+        if (STUDY_PROBE in self.tools) != (self.study is not None):
+            raise ValueError("only a study role offers the study probe tool")
 
     @property
     def prompt_digest(self):
@@ -488,6 +523,9 @@ class GraphiteRole:
         if tool_text != TOOL_TEXT_V1:
             # A v1 record has no key at all, exactly as before the versions.
             record["tool_text"] = tool_text
+        if self.study is not None:
+            # An ordinary role's record has no key at all.
+            record["study"] = self.study
         return record
 
 
@@ -591,3 +629,18 @@ ROLES = {
         ),
     )
 }
+
+
+def study_role(name, study=None):
+    """The role a session of `name` runs as. With no study, the ordinary role
+    (`ROLES`), unchanged. In a study (SUBMISSION-RATE-STUDY-01's G-sealed arm),
+    the Constructor with the study probe tool added and the study recorded;
+    any other study or role is refused (`ValueError`)."""
+    import dataclasses
+
+    role = ROLES[name]
+    if study is None:
+        return role
+    if study not in STUDIES or name is not RoleName.CONSTRUCTOR:
+        raise ValueError("no study role for " + str(name) + " in " + str(study))
+    return dataclasses.replace(role, tools=(*role.tools, STUDY_PROBE), study=study)

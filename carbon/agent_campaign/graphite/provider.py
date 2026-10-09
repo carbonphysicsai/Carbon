@@ -118,11 +118,12 @@ from .model_providers import DEFAULT_MODEL_PROVIDER
 from .roles import (
     MODEL_SETTINGS,
     PARALLEL_RULES,
-    ROLES,
+    ROLES,  # noqa: F401 - re-exported: tests patch the shared role table here
     TOOL_TEXT_V1,
     TOOL_TEXT_V2,
     TOOL_TEXTS,
     RoleName,
+    study_role,
     tool_text_known,
 )
 
@@ -212,11 +213,15 @@ class SessionBrief:
     #: The agents' tool text this session will read (`roles.TOOL_TEXTS`). A
     #: new brief selects v2, which names no Challenge (VALIDATOR-07).
     tool_text: str = TOOL_TEXT_V2
+    #: The study the session belongs to (`roles.study_role`), or None: an
+    #: ordinary brief's document is exactly as before.
+    study: str | None = None
 
     def __post_init__(self):
         if type(self.role) is not RoleName:
             raise TypeError("exact RoleName required")
         tool_text_known(self.tool_text)
+        study_role(self.role, self.study)  # refuses an unknown study or role
         if type(self.initial_observation) is not dict:
             raise TypeError("the initial observation is a JSON object")
         canonical(self.initial_observation)  # JSON-serialisable, finite
@@ -229,7 +234,7 @@ class SessionBrief:
             raise ValueError("refused: a brief names protected material")
 
     def document(self):
-        role = ROLES[self.role]
+        role = study_role(self.role, self.study)
         tool_text = role.effective_tool_text(self.tool_text)
         document = {
             "schema": BRIEF_SCHEMA,
@@ -245,6 +250,8 @@ class SessionBrief:
         if tool_text != TOOL_TEXT_V1:
             # A v1 brief has no key at all, exactly as before the versions.
             document["tool_text"] = tool_text
+        if self.study is not None:
+            document["study"] = self.study
         return document
 
     @property
@@ -359,6 +366,7 @@ class GraphiteProvider:
         crash_at_checkpoint=None,
         session_limits=SESSION_LIMITS_V2,
         model_provider=DEFAULT_MODEL_PROVIDER,
+        study=None,
     ):
         root = Path(root)
         if not root.is_absolute() or root.is_symlink():
@@ -407,6 +415,9 @@ class GraphiteProvider:
         for name in ("briefs", "runs"):
             (root / name).mkdir(exist_ok=True, mode=0o700)
         self.root, self.grant, self.model = root, grant, model
+        #: The study this provider's runs belong to (`--study`), or None. A
+        #: brief of another study, or of none, is refused at start.
+        self.study = study
         self.literature = literature_index
         self.miner_tools = miner_tools
         self.adapter_id = adapter_id
@@ -755,7 +766,9 @@ class GraphiteProvider:
         brief = self._brief(spec.instructions_digest)
         if brief is None:
             raise ProviderUnavailable("unknown_brief")
-        role = ROLES[RoleName(brief["role"])]
+        if brief.get("study") != self.study:
+            raise ProviderUnavailable("brief_study_mismatch")
+        role = study_role(RoleName(brief["role"]), brief.get("study"))
         _check_role(role, spec)
         # The tool text the brief selected (absent: v1, as every brief before
         # the versions); the session records it and every turn reads it.
@@ -944,7 +957,7 @@ class GraphiteProvider:
         if state["cancel_requested"]:
             return self._finish(run_id, "cancelled", None, None)
         opened = self._opened(run_id)
-        role = ROLES[RoleName(opened["role"]["name"])]
+        role = study_role(RoleName(opened["role"]["name"]), opened["role"].get("study"))
         try:
             brief = self._brief(opened["brief"]["digest"])
             if brief is None:

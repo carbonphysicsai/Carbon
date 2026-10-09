@@ -175,9 +175,13 @@ existing comparison settings (battery `comparison`: `n_boot` 4000, `alpha`
 0.05, reused, not chosen), pooled over rates because arm H does not adapt, so
 `m` should not change it (checked as a result, not assumed).
 
-**Within noise.** At rate `m` and probe count `P_cum`, an adversary arm is within
-noise iff the upper bound of its bootstrap interval of mean `D` does not exceed
-the upper bound of arm H's band. Otherwise it is **distinguishable**.
+**Within noise.** At rate `m` and probe count `P_cum`, an adversary arm is
+**distinguishable** iff the lower bound of the percentile bootstrap interval of
+`mean(arm D) - mean(honest D)` is above 0 (the same `n_boot` and `alpha`); it is
+within noise otherwise. Pooled honest values are used when arm H shows no rate
+effect. (Amended 2026-10-08, before any freeze: the first rule compared the arm
+interval's upper bound with the honest band's upper bound; the fixture dry run showed
+it flags about half of null arms. See `scripts/dev/rate_study/analyze.py`.)
 
 **Safe rate.** The largest tested `m` at which every adversary arm
 (S-sealed and G-sealed, which are the realistic ones) stays within noise at
