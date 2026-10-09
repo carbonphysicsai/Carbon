@@ -36,7 +36,8 @@ import stat
 import sys
 from pathlib import Path
 
-from .hidden_batch_store import HiddenBatchStore, HotkeyWindowUsed, references_digest
+from .family_hidden import FamilyHiddenImport, HiddenFamily
+from .hidden_batch_store import HiddenBatchStore, HotkeyWindowUsed
 from .interface import Admitted, CandidateFault, Unavailable, digest
 from .motor import (
     MotorAdapter,
@@ -223,9 +224,13 @@ def hidden_implementation_digest():
     """The motor adapter's own pin, plus this module and the hidden store."""
     import hashlib
 
-    from . import hidden_batch_store
+    from . import family_hidden, hidden_batch_store
 
-    files = {"motor_hidden": Path(__file__), "store": Path(hidden_batch_store.__file__)}
+    files = {
+        "family_hidden": Path(family_hidden.__file__),
+        "motor_hidden": Path(__file__),
+        "store": Path(hidden_batch_store.__file__),
+    }
     return digest(
         {
             "base": implementation_digest(),
@@ -243,12 +248,31 @@ def open_store(directory):
     )
 
 
+#: Motor's validator-side family values (VALIDATOR-28).
+MOTOR_HIDDEN = HiddenFamily(
+    name="motor",
+    store_schema=STORE_SCHEMA,
+    evidence=EVIDENCE,
+    terminal=TERMINAL,
+    error_type=MotorAdapterError,
+    window_blocks=HOTKEY_WINDOW_BLOCKS,
+    window_scored=HOTKEY_WINDOW_SCORED,
+    check_document=check_document,
+    check_reference=check_reference,
+    published_keys=published_keys,
+    overlap_key=overlap_key,
+)
+
+
 # --- the validator --------------------------------------------------------------------
 
 
-class MotorHiddenAdapter(MotorAdapter):
+class MotorHiddenAdapter(FamilyHiddenImport, MotorAdapter):
     """Motor's validator on producer batches, behind Interface v1. It never
-    draws or solves: batches arrive only through the answer key."""
+    draws or solves: batches arrive only through the answer key
+    (`family_hidden.FamilyHiddenImport`, shared by every family)."""
+
+    hidden = MOTOR_HIDDEN
 
     def __init__(self, store_root, *, repository=REPOSITORY):
         from carbon.motor.challenge import PublicMaterial
@@ -275,24 +299,6 @@ class MotorHiddenAdapter(MotorAdapter):
     @classmethod
     def from_deployment(cls, path, *, repository=REPOSITORY):
         return cls(load_deployment(path)["store"], repository=repository)
-
-    def _outcome(self, submission_id, state, *, failure=None, summary=None):
-        outcome = super()._outcome(
-            submission_id, state, failure=failure, summary=summary
-        )
-        outcome["evidence"] = EVIDENCE
-        return outcome
-
-    @staticmethod
-    def _block(submission):
-        block = submission.receipt.get("block")
-        if type(block) is not int or block < 0:
-            raise Unavailable("receipt_block_missing")
-        return block
-
-    def _hotkey_window(self, block):
-        start = block - block % HOTKEY_WINDOW_BLOCKS
-        return start, start + HOTKEY_WINDOW_BLOCKS, HOTKEY_WINDOW_SCORED
 
     def evaluate(self, submission):
         from carbon.development_session.research_catalog import RecipeRejected
@@ -395,135 +401,6 @@ class MotorHiddenAdapter(MotorAdapter):
                 "hotkey_window_used", retry={"next_block": used.next_block}
             ) from None
         return outcome
-
-    # --- the validator never draws or solves ------------------------------------
-
-    def sealed_roles(self):
-        return set()
-
-    def _prepare_batch(self, role, *, kind, **options):
-        raise MotorAdapterError("motor_hidden_import_only")
-
-    def reference_jobs(self, fingerprint):
-        raise MotorAdapterError("motor_hidden_import_only")
-
-    def ingest_references(self, fingerprint, records):
-        raise MotorAdapterError("motor_hidden_import_only")
-
-    def open_pool(self):
-        raise MotorAdapterError("motor_hidden_import_only")
-
-    def status(self, block=None):
-        return {
-            "schema": STORE_SCHEMA,
-            "evidence": EVIDENCE,
-            **self.store.status(block),
-        }
-
-    # --- the answer key -----------------------------------------------------------
-
-    def holds_answer_key(self, commitment):
-        try:
-            batch = self.store.batch(commitment["fingerprint"])
-        except MotorAdapterError:
-            return False
-        return (
-            batch["state"] == "COMPLETE"
-            and batch["references_digest"] == commitment["references_digest"]
-            and self.store.complete_digest(commitment["fingerprint"])
-            == commitment["references_digest"]
-            and self.store.window(commitment["fingerprint"]) == commitment.get("window")
-        )
-
-    def withdraw_answer_key(self, manifest):
-        """Apply a verified producer withdrawal (VALIDATOR-24)."""
-        from .answer_key import AnswerKeyRefused
-
-        try:
-            return self.store.withdraw(
-                manifest["fingerprint"], manifest["reason"], manifest["block"]
-            )
-        except MotorAdapterError as refused:
-            raise AnswerKeyRefused(
-                "answer_key_" + refused.code.removeprefix("motor_")
-            ) from None
-
-    def import_answer_key(self, commitment, payload):
-        """Import one producer batch, verified in full first:
-        - the commitment's contract and rule are this validator's;
-        - the window is well formed;
-        - the document is a motor hidden batch of admissible cases, and it
-          reproduces the committed fingerprint, role, kind and case count;
-        - no case repeats a published motor case;
-        - the references are exactly the batch's cases, each terminal, for
-          its own inputs, from the pinned image, and digest to the committed
-          references digest.
-        Only then is it stored, with its window."""
-        from .answer_key import AnswerKeyRefused
-
-        identities = self.identities()
-        if (
-            commitment["contract_digest"] != identities["contract_digest"]
-            or commitment["rule_digest"] != identities["rule_digest"]
-        ):
-            raise AnswerKeyRefused("answer_key_identity_mismatch")
-        if self.store.withdrawn(commitment["fingerprint"]):
-            raise AnswerKeyRefused("answer_key_withdrawn")
-        window = commitment.get("window")
-        if (
-            type(window) is not dict
-            or set(window) != {"slot", "activate_block", "retire_block"}
-            or any(type(v) is not int or v < 0 for v in window.values())
-            or window["activate_block"] >= window["retire_block"]
-        ):
-            raise AnswerKeyRefused("answer_key_no_window")
-        if type(payload) is not dict or set(payload) != {"document", "references"}:
-            raise AnswerKeyRefused("answer_key_malformed")
-        document, references = payload["document"], payload["references"]
-        try:
-            cases = check_document(document)
-        except ValueError:
-            raise AnswerKeyRefused("answer_key_malformed") from None
-        if (
-            digest(document) != commitment["fingerprint"]
-            or len(cases) != commitment["cases"]
-            or document["role"] != commitment["role"]
-            or document["kind"] != commitment["kind"]
-        ):
-            raise AnswerKeyRefused("answer_key_fingerprint_mismatch")
-        if self._published is None:
-            self._published = published_keys(self.repository)
-        if any(overlap_key(inputs) in self._published for inputs in cases.values()):
-            raise AnswerKeyRefused("answer_key_published_case")
-        if type(references) is not dict or set(references) != set(cases):
-            raise AnswerKeyRefused("answer_key_references_mismatch")
-        try:
-            for case_id, record in references.items():
-                if record.get("case_id") != case_id:
-                    raise ValueError
-                check_reference(record, cases[case_id])
-        except (AttributeError, ValueError):
-            raise AnswerKeyRefused("answer_key_references_mismatch") from None
-        if references_digest(references) != commitment["references_digest"]:
-            raise AnswerKeyRefused("answer_key_references_mismatch")
-        try:
-            fingerprint = self.store.add(
-                document,
-                role=document["role"],
-                kind=document["kind"],
-                sequence=commitment["journal_sequence"],
-            )
-            complete = self.store.ingest(
-                fingerprint, list(references.values()), terminal=TERMINAL
-            )
-            self.store.set_window(fingerprint, window)
-        except MotorAdapterError as refused:
-            raise AnswerKeyRefused(
-                "answer_key_" + refused.code.removeprefix("motor_")
-            ) from None
-        if not complete or not self.holds_answer_key(commitment):
-            raise AnswerKeyRefused("answer_key_references_mismatch")
-        return fingerprint
 
 
 def main(argv=None):
