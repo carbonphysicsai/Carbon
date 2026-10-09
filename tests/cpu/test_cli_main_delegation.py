@@ -23,6 +23,8 @@ MODULES = (
     "carbon.challenge_validator.battery_bank",
     "carbon.challenge_validator.battery_quiz",
     "carbon.challenge_validator.confirmation",
+    "carbon.challenge_validator.design_bank",
+    "carbon.challenge_validator.design_scoring",
     "carbon.challenge_validator.distribution",
     "carbon.challenge_validator.leak_detection",
     "carbon.challenge_validator.motor_hidden",
