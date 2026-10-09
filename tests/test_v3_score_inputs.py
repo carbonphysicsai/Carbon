@@ -96,6 +96,102 @@ def test_confirmation_receipt_binds_recipe_and_seed(tmp_path):
         v3.load_confirmed_member(tmp_path, tmp_path / "hidden/member.json")
 
 
+def test_full_toy_panel_checks_eight_lattices_and_digests(tmp_path, monkeypatch):
+    from carbon.battery.value import contract as ev
+    from carbon.battery.value import quiz
+
+    base = tmp_path / "docs/development/evidence/v3-score-inputs/toy"
+    base.mkdir(parents=True)
+    contract_body = (
+        v3.ROOT / "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json"
+    ).read_bytes()
+    (base / "contract.json").write_bytes(contract_body)
+    registry_body = (v3.ROOT / v3.REGISTRY).read_bytes()
+    quiz_registry_body = (v3.ROOT / v3.QUIZ_REGISTRY).read_bytes()
+    registry_path = tmp_path / v3.REGISTRY
+    registry_path.parent.mkdir(parents=True)
+    registry_path.write_bytes(registry_body)
+    quiz_registry_path = tmp_path / v3.QUIZ_REGISTRY
+    quiz_registry_path.parent.mkdir(parents=True)
+    quiz_registry_path.write_bytes(quiz_registry_body)
+    contract, _digest = ev.load(base / "contract.json")
+    scenarios = [
+        {"id": f"toy-{i}", "batch_id": "batch-A", "t_amb_c": 5 + i, "soc0": 0.2}
+        for i in range(quiz.Q3_K)
+    ]
+    standard = []
+    for row in scenarios:
+        scenario = quiz.q3_scenario(row["id"], (row["t_amb_c"], row["soc0"]))
+        for job in quiz.q3_grid(contract, scenario):
+            standard.append(
+                {
+                    "case_id": job["case_id"],
+                    "status": "OK",
+                    "inputs": {k: job[k] for k in ("c1", "c2", "t_amb_c", "soc0")},
+                    "outputs": {"plating_margin_v": 0.1, "temperature_c": [20, 20]},
+                }
+            )
+    assert len(standard) == 936
+    screening = [{"case_id": "screen", "status": "OK", "inputs": {"soc0": 0.2}}]
+
+    def write(name, body):
+        (base / name).write_bytes(body)
+        return {"path": name, "sha256": "sha256:" + hashlib.sha256(body).hexdigest()}
+
+    manifest = {
+        "schema": v3.SCHEMA,
+        "scope": v3.SCOPE,
+        "job": "battery-q3-v8",
+        "contract": write("contract.json", contract_body),
+        "rule_registry": "sha256:" + hashlib.sha256(registry_body).hexdigest(),
+        "quiz_registry": "sha256:" + hashlib.sha256(quiz_registry_body).hexdigest(),
+        "settlement_rule": v3.SETTLEMENT,
+        "screening": {
+            "batch_ids": ["batch-A"],
+            "case_ids": ["screen"],
+            "references": write(
+                "screening.jsonl", (json.dumps(screening[0]) + "\n").encode()
+            ),
+        },
+        "q3": {
+            "scenarios": scenarios,
+            "standard": write(
+                "standard.jsonl",
+                b"".join((json.dumps(r) + "\n").encode() for r in standard),
+            ),
+            "refined": write("refined.jsonl", b""),
+        },
+    }
+    panel_path = base / "panel.json"
+    panel_path.write_text(json.dumps(manifest))
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.name", "Toy")
+    _git(tmp_path, "config", "user.email", "toy@example.invalid")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "register toy panel")
+    monkeypatch.setattr(
+        v3.tuning,
+        "load_registry",
+        lambda *args, **kwargs: (
+            {
+                v3.CANDIDATE: tuning.Candidate(
+                    v3.CANDIDATE,
+                    weights={"a": 0.5, "q": 0.5},
+                    gate={"measure": "feasibility", "cutoff": 0.05},
+                )
+            },
+            {},
+        ),
+    )
+    loaded = v3.load_panel(tmp_path, panel_path)
+    assert len(loaded[4]) == 8
+    assert len(loaded[5]) == 936
+    assert loaded[6]["settlement_rule"] == v3.SETTLEMENT
+    (base / "standard.jsonl").write_bytes(b"tampered\n")
+    with pytest.raises(v3.Refused, match="file_digest_mismatch"):
+        v3.load_panel(tmp_path, panel_path)
+
+
 def _toy_evaluation(monkeypatch, g_feas=0.0):
     from carbon.battery.value import quiz
 
