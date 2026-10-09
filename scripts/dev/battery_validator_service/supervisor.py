@@ -85,7 +85,7 @@ def children(service, *, repository=REPOSITORY, python=None):
         "daemon": [
             python,
             "-m",
-            "carbon.battery.operate",
+            _daemon_module(intake_config["deployment"]),
             "run",
             "--config",
             str(intake_config["deployment"]),
@@ -95,6 +95,20 @@ def children(service, *, repository=REPOSITORY, python=None):
             str(heartbeat_path(service)),
         ],
     }
+
+
+def _daemon_module(deployment_path):
+    """The daemon's entry point: battery's own, or for the development-ladder
+    deployment (VALIDATOR-25) its own entry point, which supplies the
+    development compiler. An unreadable deployment keeps battery's, whose
+    preflight then refuses it."""
+    try:
+        config = json.loads(Path(deployment_path).read_bytes())
+    except (OSError, ValueError):
+        return "carbon.battery.operate"
+    if type(config) is dict and "ladder" in config:
+        return "carbon.development_ladder.operate"
+    return "carbon.battery.operate"
 
 
 def _utc(at=None):

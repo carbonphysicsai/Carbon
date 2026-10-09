@@ -188,6 +188,14 @@ REFUSALS = {
         "variant names. Nothing was evaluated; submit to the ladder deployment "
         "for that level."
     ),
+    "hotkey_reserved_for_ladder": (
+        "This hotkey belongs to Carbon's development-ladder validator and is "
+        "never scored here. Nothing was evaluated; submit it to the ladder."
+    ),
+    "ladder_commitment_not_variant": (
+        "The development ladder binds the variant's commitment (the variant "
+        "digest and the whole strategy). Commit that form on chain, then resend."
+    ),
     "ladder_level_4_not_open": (
         "Level 4 is not open on the development ladder yet. Nothing was " "evaluated."
     ),

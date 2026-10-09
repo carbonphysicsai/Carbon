@@ -161,6 +161,25 @@ def commitment_digest(challenge, contract_digest, strategy_hash):
     )
 
 
+def development_commitment_digest(challenge, variant_digest, strategy_hash, strategy):
+    """What a miner commits on chain for a development-level submission to the
+    development-ladder deployment (VALIDATOR-25). It binds the variant's digest
+    (so the commitment names the level) and the digest of the whole submitted
+    strategy (so it binds every widened value, which the base construction's
+    `strategy_hash` omits). Plain data: a miner surface computes it without
+    the variant module. Level 0's commitment (`commitment_digest`) is
+    unchanged."""
+    return _digest(
+        {
+            "schema": "carbon.battery.commitment.development.v1",
+            "challenge": challenge,
+            "contract_digest": variant_digest,
+            "strategy_hash": strategy_hash,
+            "strategy_digest": _digest(strategy),
+        }
+    )
+
+
 @dataclass(frozen=True)
 class AuthenticatedSubmission:
     """A submission whose signer the transport has verified.
@@ -232,6 +251,15 @@ class CommitmentStale(CommitmentRequired):
     admission, so it was already spent (OWNER-COMMITMENT-POSTER-01 D6)."""
 
     code = "commitment_stale"
+
+
+class CommitmentNotVariant(CommitmentRequired):
+    """A development-level submission to the ladder whose commitment is the
+    Level 0 form (over the base or the variant digest): the ladder binds the
+    variant digest and the whole strategy (`development_commitment_digest`),
+    the identity of exactly what is scored (the Test Lead's ruling)."""
+
+    code = "ladder_commitment_not_variant"
 
 
 class CommitmentContested(CommitmentRequired):
@@ -315,6 +343,7 @@ class BatteryValidator:
         development_only=False,
         import_only=False,
         ladder=None,
+        reserved_hotkeys=(),
     ):
         if type(store) is not PoolStore:
             raise TypeError("a PoolStore is required")
@@ -337,8 +366,12 @@ class BatteryValidator:
         self.development_only = development_only is True
         #: The testnet development-ladder deployment (VALIDATOR-25;
         #: `deployment.ladder_for`): only its listed hotkeys, and only its
-        #: listed variants of its one level. Only on a development deployment.
+        #: listed variants of its listed levels. Only on a development
+        #: deployment.
         self.ladder = ladder if self.development_only else None
+        #: The main deployment's refusal of the ladder's hotkeys (VALIDATOR-25):
+        #: one hotkey, one deployment, read from the ladder's own config.
+        self.reserved_hotkeys = frozenset(reserved_hotkeys)
         #: Import-only (VALIDATOR-19 slice 2): every batch comes from Carbon's
         #: shared answer key (`challenge_validator.answer_key`); this
         #: validator never draws or seals one itself.
@@ -555,6 +588,9 @@ class BatteryValidator:
             )
             return self.outcome(row["submission_id"])
 
+        if submission.hotkey in self.reserved_hotkeys:
+            # A ladder hotkey submits to the ladder only.
+            return refuse("hotkey_reserved_for_ladder")
         if self.ladder is not None and submission.hotkey not in self.ladder["hotkeys"]:
             # The ladder serves its listed rehearsal hotkeys only.
             return refuse("ladder_hotkey_not_listed")
@@ -619,17 +655,41 @@ class BatteryValidator:
         if backend not in getattr(self.backend, "backends", ("jax",)):
             raise BackendNotServed(backend)
         commitment = None
-        expected = commitment_digest(
-            submission.strategy["challenge_id"],
-            admitted.contract_digest,
-            recipe.strategy_hash,
-        )
+        if development is not None:
+            expected = development_commitment_digest(
+                submission.strategy["challenge_id"],
+                submission.contract_digest,
+                recipe.strategy_hash,
+                submission.strategy,
+            )
+        else:
+            expected = commitment_digest(
+                submission.strategy["challenge_id"],
+                admitted.contract_digest,
+                recipe.strategy_hash,
+            )
         if self.require_commitment:
             observed = (
                 None
                 if self.commitments is None
                 else self.commitments.read(submission.hotkey)
             )
+            if (
+                development is not None
+                and observed is not None
+                and observed.get("digest")
+                in (
+                    commitment_digest(
+                        submission.strategy["challenge_id"],
+                        digest,
+                        recipe.strategy_hash,
+                    )
+                    for digest in (admitted.contract_digest, submission.contract_digest)
+                )
+            ):
+                raise CommitmentNotVariant(
+                    "commit " + expected + " (the variant's form) on chain"
+                )
             if observed is None or observed.get("digest") != expected:
                 raise CommitmentRequired(
                     "commit " + expected + " on chain before submitting"
@@ -746,7 +806,7 @@ class BatteryValidator:
         level = document.get("level")
         if type(level) is int and level > 3:
             return "ladder_level_4_not_open"
-        if level != self.ladder["level"]:
+        if level not in self.ladder["levels"]:
             return "ladder_level_not_accepted"
         return "ladder_variant_not_accepted"
 

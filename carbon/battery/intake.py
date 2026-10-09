@@ -429,7 +429,19 @@ def neutral_door(target, ledger):
     from carbon.challenge_validator import Adapters, Validator
     from carbon.challenge_validator.battery import BatteryAdapter
 
-    return Validator(Adapters([BatteryAdapter(target)]), ledger)
+    adapter = BatteryAdapter(target)
+    ladder = getattr(target, "ladder", None)
+    # The development-ladder deployment (VALIDATOR-25) declares its variants;
+    # every other deployment declares none, so every variant stays refused.
+    development = {
+        digest: {
+            "base": adapter.contract_digest,
+            "level": served["level"],
+            "variant": served["version"],
+        }
+        for digest, served in (ladder or {}).get("variants", {}).items()
+    }
+    return Validator(Adapters([adapter]), ledger, development=development)
 
 
 # --- the durable inbox ----------------------------------------------------------
@@ -596,6 +608,7 @@ RECEIVED_AGAIN = frozenset(
         "receipt_block_missing",
         "commitment_required",
         "commitment_stale",
+        "ladder_commitment_not_variant",
         "commitment_reader_unavailable",
         "backend_not_served",
     }
@@ -731,6 +744,9 @@ class BatteryIntake:
                 },
                 "path": PATH,
                 "tools": ["battery_submit", STATUS_TOOL],
+                # What this deployment admits (VALIDATOR-25): level 0, plus a
+                # development-ladder deployment's declared variants.
+                "served_contracts": self.door.served_contracts(),
                 "limits": {
                     "max_body": MAX_BODY,
                     "snapshot_max_age_s": SNAPSHOT_MAX_AGE_S,
@@ -957,6 +973,7 @@ def work_once(inbox, target):
     from .daemon import (
         BackendNotServed,
         CommitmentContested,
+        CommitmentNotVariant,
         CommitmentRequired,
         CommitmentStale,
     )
@@ -984,6 +1001,9 @@ def work_once(inbox, target):
                 # D6: another hotkey committed this digest first; never
                 # received again.
                 code = "commitment_contested"
+            elif isinstance(missing, CommitmentNotVariant):
+                # The ladder binds the variant's form; recommit and resend.
+                code = "ladder_commitment_not_variant"
             elif isinstance(missing, CommitmentStale):
                 # D6: the matching commitment was spent by an earlier
                 # admission; a fresh one makes this resend count.
