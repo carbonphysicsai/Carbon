@@ -45,10 +45,16 @@ launches.
     re-proposed, and it does not move the search.
 - **What it reads:** the history it is given, and nothing else. It touches
   no file, network, clock or randomness.
-- **Not wired yet.** Offering the tool to the Constructor needs a study-only
-  Constructor manifest: the name `rate_study_next_probe` added for `--study`
-  runs only, so every other session's manifest digest is unchanged. That is
-  a separate PR, and it must land before the freeze.
+- **Offered to study sessions only** (RATE-STUDY-PROBE-TOOL-01):
+  - `roles.study_role(CONSTRUCTOR, "SUBMISSION-RATE-STUDY-01")` is the
+    Constructor with `rate_study_next_probe` added, and its record names the
+    study. Every ordinary role's manifest and digest are unchanged.
+  - A `--study` run registers a study brief (its `study` key, the study
+    role's manifest).
+  - The provider refuses a brief of another study, or of none
+    (`brief_study_mismatch`).
+  - The tool takes `history_json`, the session's own `{strategy, view}` list,
+    and answers `{status: OK, strategy}`. It never submits.
 
 ## What G-sealed measures
 
