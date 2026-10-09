@@ -300,6 +300,46 @@ PRs 2–6 need no security acceptance and no pods. PR 7 can land with its
 profile marked pending acceptance. Phase 3 (Graphite on the development
 variant) starts after PR 8.
 
+### 4.5 G6 loss slot v1 (working contract)
+
+**Authority.** The Test Lead's ruling of 2026-10-08 (L4 G6 loss slot v1).
+It is a working contract: it may change prospectively. The code is
+`carbon/level4/loss.py`, with the gate in G0 (`intake.intake`) and G4
+(`validate.validate_submission`). The fixtures are in
+`tests/cpu/test_level4_loss_slot.py`.
+
+| Item | Contract |
+|---|---|
+| **Level 1 gate** | Each Challenge declares `loss_override: none \| terms \| graph`. A loss document under `none` or `terms` (Level 1's loss terms) is refused at G0 (`loss_not_permitted`), never silently ignored. An unknown or unset declaration permits nothing. |
+| **Inputs** | By name, in this order: `loss/pred/<k>` (the Challenge's declared outputs), `loss/target/<k>` (TRAIN targets, same layout), `loss/x/<name>` (the TRAIN inputs), optional `loss/aux/<k>`. Nothing else: no parameter input (regularisation is the optimizer menu's), no key (no RNG; the allowlist admits RNG only in init). |
+| **`aux`** | Up to N auxiliary outputs the forward graph declares after the interface's outputs, for latent penalties. N is `HUMAN_INPUT` (`loss.AUX_LIMIT`); unset, no auxiliary output is admitted (`loss_aux_not_admitted`). |
+| **Output** | The case's loss: one float, shape `[1]`. Carbon maps the graph over the batch, which gives the per-case loss vector `[B]`. |
+| **Reduction** | Carbon's: the mean over the batch. No cross-case or batch-composition term. |
+| **Exam** | When the loss graph fully replaces the Challenge's loss, G7's exam is unchanged. |
+| **Budget** | The loss graph's FLOPs count toward F4 (TRAINING-BUDGET-01). |
+| **Failure** | A non-finite loss is the candidate's own training failure, never `FAILED_INFRA`. |
+| **Rest** | Allowlist v1 and Carbon's autodiff, as now. |
+
+**Per case, mapped by Carbon (contract).** The Level 4 engineer proposed it
+and the Test Lead accepted it, 2026-10-08, as structurally stronger than a
+`[B]`-vector rule. The ruling's "per-case loss vector, Carbon's mean, no
+cross-case tricks" is enforced by structure:
+- The loss graph is **declared per case**: every input has leading dimension
+  1, and its one output has shape `[1]`.
+- Carbon maps the graph over the batch with `jax.vmap`, which gives the
+  per-case vector `[B]`, then takes the mean (`loss.per_case_mean`).
+- So the graph never sees a second case. Declaring it at batch B instead
+  would need an independence proof that shapes alone cannot give.
+
+**Not yet built.** The ruling's content is complete, but these pieces wait:
+- **Battery's `loss_override`.** It is a Challenge declaration, so it waits
+  for the Test Lead, and changing it changes the registered variant document,
+  which means a new version.
+- **G6 training on a submitted loss.** The battery adapter's
+  `train_graph` with `per_case_mean`, and the F4 count, are the next slice.
+- **Admitting `aux` outputs.** That needs N set, and the forward interface
+  check then widened to admit them.
+
 ---
 
 ## 5. Open items carried forward
