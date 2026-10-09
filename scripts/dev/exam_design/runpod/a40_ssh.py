@@ -4,8 +4,8 @@ For a rented host that already has Docker and the NVIDIA container toolkit
 (for example a Vast.ai A40). Operator side, stdlib only. The script never
 creates or destroys the rental: it prints what it left on the box and the
 owner stops the rental. DEVELOPMENT evidence; digest equality only; the same
-legs as the pod run (`a40_acceptance.py`), minus the PyTorch fno (known GPU
-device bug, to be re-run on the v3 images).
+legs as the pod run (`a40_acceptance.py`); the PyTorch fno leg runs unless
+`--skip-fno` is given (the torch device fix ships in the v3 images).
 
     python -m scripts.dev.exam_design.runpod.a40_ssh \\
         --host user@host --port 22 --key ~/.ssh/a40-executor \\
@@ -257,7 +257,9 @@ def _docker_run(box, image, code, out_dir, env, command, name):
     return box.sh(line, check=False)
 
 
-def run_backend(box, backend, record, device, code, run_id, remote_out, counter):
+def run_backend(
+    box, backend, record, device, code, run_id, remote_out, counter, skip_fno=False
+):
     """The probe, then every recipe's repeats, each repeat in a fresh container."""
     from carbon.agent_campaign.graphite import pod_phase
 
@@ -284,8 +286,8 @@ def run_backend(box, backend, record, device, code, run_id, remote_out, counter)
         }
     rows = []
     for recipe in record["recipes_by_backend"][backend]:
-        if recipe["id"] == record["fno"]["id"]:
-            continue  # --skip-fno semantics: the fno waits on the v3 images
+        if skip_fno and recipe["id"] == record["fno"]["id"]:
+            continue  # --skip-fno (optional)
         for repeat in range(record["repeats"]):
             counter[0] += 1
             started = time.monotonic()
@@ -326,7 +328,16 @@ def run_backend(box, backend, record, device, code, run_id, remote_out, counter)
 
 # ------------------------------------------------------------------ 5. the run
 def run_all(
-    box, record, ref, repository, out, *, files=None, run_id=None, target="A40"
+    box,
+    record,
+    ref,
+    repository,
+    out,
+    *,
+    files=None,
+    run_id=None,
+    target="A40",
+    skip_fno=False,
 ):
     run_id = run_id or hashlib.sha256(str(time.time()).encode()).hexdigest()[:8]
     out = Path(out)
@@ -335,7 +346,7 @@ def run_all(
         "cloud": CLOUD,
         "target_device": target,
         "run_id": run_id,
-        "skipped": SKIPPED_FNO,
+        "skipped": SKIPPED_FNO if skip_fno else {},
         "status": "COMPLETE",
         "images_pulled": [],
     }
@@ -358,7 +369,15 @@ def run_all(
         device = {"uuid": info["identity"]["uuid"], "name": info["identity"]["name"]}
         for backend in a40.BACKENDS:
             leg = run_backend(
-                box, backend, record, device, code, run_id, remote_out, counter
+                box,
+                backend,
+                record,
+                device,
+                code,
+                run_id,
+                remote_out,
+                counter,
+                skip_fno,
             )
             summary.setdefault("legs", {})[backend] = leg["outcome"]
             try:
@@ -432,6 +451,11 @@ def main(argv=None):
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--deadline-minutes", type=int, required=True)
     parser.add_argument(
+        "--skip-fno",
+        action="store_true",
+        help="optional: leave out the PyTorch fno leg (it runs by default)",
+    )
+    parser.add_argument(
         "--target-device",
         choices=sorted(TARGETS),
         default="A40",
@@ -454,6 +478,7 @@ def main(argv=None):
         Path(args.repository),
         args.out,
         target=args.target_device,
+        skip_fno=args.skip_fno,
     )
     print(json.dumps(summary, indent=1, sort_keys=True))
     return 0 if summary["status"] == "COMPLETE" else 1
