@@ -1022,6 +1022,7 @@ def session_brief(
     variant=None,
     tool_text=TOOL_TEXT_V2,
     score_variant=None,
+    study=None,
 ):
     """The Constructor's brief: the session Challenge's public development
     material only (its `ChallengeScoring`), and the session's offered
@@ -1076,6 +1077,7 @@ def session_brief(
         checkout_manifest_digest=boundaries.manifest_digest(manifest),
         # A new session reads challenge-neutral tool text (VALIDATOR-07).
         tool_text=tool_text,
+        study=study,
     )
 
 
@@ -1787,6 +1789,7 @@ def command_run(args):
             score_variant=scored,
             hidden=hidden,
             model_provider=model_provider,
+            study=getattr(args, "study", None),
         )
         try:
             check_resume(provider, args.session)
@@ -1802,6 +1805,7 @@ def command_run(args):
                 scoring=scoring,
                 variant=variant,
                 score_variant=sv.identity_of(scored),
+                study=getattr(args, "study", None),
             )
             _install_cancel(provider, provider.run_id_for(session_key(args.session)))
             result = run_session(control, provider, brief, args.session, variant)
