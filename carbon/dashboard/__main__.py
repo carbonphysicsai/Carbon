@@ -7,6 +7,9 @@ build --fixtures --out DIR
 build --feed FILE [--feed FILE ...] --trust-key HEX [...] --out DIR
     Build from fetched feed documents, accepted only when signed by a pinned
     key. The fixture key is refused here.
+fetch --url URL --out FILE
+    Save one validator's feed document (GET /carbon/v1/feed/<challenge>) as
+    fetched. It is checked only when built, against a pinned key.
 serve --dir DIR [--port N]
     Serve a built site on 127.0.0.1 for a local preview. Nothing is published.
 """
@@ -18,9 +21,12 @@ import functools
 import http.server
 import json
 import sys
+import urllib.request
 from pathlib import Path
 
 from carbon.dashboard import build, feed, fixtures
+
+MAX_FEED_BYTES = 16 * 2**20
 
 
 def main(argv=None):
@@ -33,6 +39,9 @@ def main(argv=None):
     source.add_argument("--feed", action="append", type=Path)
     make.add_argument("--trust-key", action="append", default=[])
     make.add_argument("--no-showcase", action="store_true")
+    pull = commands.add_parser("fetch")
+    pull.add_argument("--url", required=True)
+    pull.add_argument("--out", required=True, type=Path)
     serve = commands.add_parser("serve")
     serve.add_argument("--dir", required=True, type=Path)
     serve.add_argument("--port", type=int, default=8765)
@@ -51,6 +60,19 @@ def main(argv=None):
         index = build.build(args.out, documents, trust, showcase=not args.no_showcase)
         for board in index["boards"]:
             print(board["state"], board["slug"], board["code"] or "")
+        return 0
+
+    if args.command == "fetch":
+        if not args.url.startswith("https://"):
+            parser.error("--url must be https")
+        with urllib.request.urlopen(args.url, timeout=60) as answer:
+            body = answer.read(MAX_FEED_BYTES + 1)
+        if len(body) > MAX_FEED_BYTES:
+            print("feed too large", file=sys.stderr)
+            return 1
+        json.loads(body)
+        args.out.write_bytes(body)
+        print(f"saved {len(body)} bytes to {args.out}")
         return 0
 
     handler = functools.partial(

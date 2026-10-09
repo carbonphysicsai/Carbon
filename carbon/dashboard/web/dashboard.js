@@ -19,6 +19,7 @@
   const SERIES_SLOTS = 5;
   const RECIPE = "Recipe not disclosed";
   const LAG_NOTE = "Scores appear once every window they used is retired and published, so this board trails the live exam.";
+  const LIVE_PENDING = "Live section scores: pending. They are shown only after the owner's live-feed record registers their precision.";
 
   // ---- Pure helpers ----
   function decimals(precision) {
@@ -88,6 +89,7 @@
       title: board.challenge.id,
       device: board.device_class,
       lag: LAG_NOTE,
+      live: LIVE_PENDING,
       incumbent: incumbent && {
         hotkey: incumbent.hotkey,
         since: typeof incumbent.since_block === "number" ? block(incumbent.since_block) : null,
@@ -214,7 +216,7 @@
     return {svg, points: placed, width: W};
   }
 
-  const api = {SECTIONS, GATES_NAME, RECIPE, LAG_NOTE, fmt, decimals, shortKey, parseRoute, boardHref, minerHref,
+  const api = {SECTIONS, GATES_NAME, RECIPE, LAG_NOTE, LIVE_PENDING, fmt, decimals, shortKey, parseRoute, boardHref, minerHref,
     labelsOf, gatesFailed, seriesSlots, sectionInfo, boardView, minerView, trendSeries, trendLayout};
   if (typeof module === "object" && module.exports) module.exports = api;
   if (typeof document === "undefined") return;
@@ -365,7 +367,7 @@
     view.append(crumbs(link("#/", "Boards"), el("span", v.title)), el("h1", v.title),
       add(el("div", null, "meta"), add(el("span", "Device class "), el("b", v.device || "none")), add(el("span", "Rule "), el("b", board.challenge.rule || board.challenge.rule_digest.slice(0, 19))),
         add(el("span", "Version "), el("b", board.challenge.version))),
-      add(el("p", null, "notice"), el("strong", "Lagged. "), document.createTextNode(v.lag)));
+      add(el("p", null, "notice"), el("strong", "Lagged. "), document.createTextNode(v.lag + " "), el("span", v.live, "live-pending")));
     const leader = el("div", null, "leader");
     const inc = el("section", null, "panel");
     inc.append(el("p", "Incumbent", "eyebrow"));

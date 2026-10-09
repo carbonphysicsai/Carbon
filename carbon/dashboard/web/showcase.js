@@ -191,11 +191,17 @@
     view.append(el("p", "Design showcase", "eyebrow section-label"), el("h1", "A model drives the design optimizer, checked against the solver"),
       el("p", doc.decision, "lede"));
     const notice = el("p", null, "notice");
-    notice.append(el("strong", doc.model.kind === "CONTROL" ? "Synthetic control, not a miner. " : "Leader's model. "),
-      document.createTextNode(doc.model.label + ". " + (doc.model.kind === "CONTROL"
-        ? "The current leader's model takes its place once its predictions for this public task are produced. "
-        : "") + "Public EV4 cases and public reference solves only; nothing here comes from a hidden or live exam."));
+    const leader = doc.model.kind === "LEADER";
+    notice.append(el("strong", leader ? "The current leader's model. " : "Synthetic control, not a miner. "),
+      document.createTextNode(doc.model.label + ". " + (leader ? doc.model.note + " " : "") +
+        "Public EV4 cases and public reference solves only; nothing here comes from a hidden or live exam."));
     view.append(notice);
+    if (!index.replays.some(r => r.kind === "LEADER")) {
+      const why = (index.leaders_unavailable || []).map(u => u.code || "unavailable").join(", ");
+      view.append(el("p", why
+        ? "The leader's predictions on this task are not available yet (" + why + "), so synthetic controls are shown."
+        : "No released incumbent yet, so synthetic controls are shown.", "hint"));
+    }
 
     // Pickers
     const pickers = el("div", null, "pickers");

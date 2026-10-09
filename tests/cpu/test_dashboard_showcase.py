@@ -206,3 +206,99 @@ def test_replays_in_node(public, tmp_path):
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert json.loads(result.stdout)["replays"] == len(files)
+
+
+def _predicted_panel(public, *, shift=0.004):
+    """A test-only panel: the public references with a plating-margin bias,
+    as a model that is optimistic near the plating limit would predict."""
+    from carbon.dashboard import fixtures
+
+    contract = public["contract"]
+    predictions = {}
+    for job in ev.decision_cases(contract, "development"):
+        row = showcase.projection(contract, public["rows"].get(job["case_id"]))
+        if row is not None:
+            predictions[job["case_id"]] = {
+                **row,
+                "plating_margin_v": row["plating_margin_v"] + shift,
+            }
+    document = fixtures.board_document(
+        "fixture-challenge-alpha", "gpu:FIXTURE-GPU", seed=1
+    )
+    incumbent = document["leaderboard"]["incumbent"]
+    document["showcase"] = {
+        "schema": "carbon.validator.showcase-panel.v1",
+        "task": fixtures.SHOWCASE_TASK,
+        "contract_digest": public["contract_digest"],
+        "model": {
+            "hotkey": incumbent["hotkey"],
+            "submission_id": incumbent["submission_id"],
+        },
+        "state": "PREDICTED",
+        "predictions": predictions,
+    }
+    return fixtures.sign(document)
+
+
+def test_leader_panel_drives_replays(public, tmp_path, monkeypatch):
+    from carbon.dashboard import build, fixtures
+
+    real = ev.scenarios
+    monkeypatch.setattr(
+        showcase.ev,
+        "scenarios",
+        lambda contract, split=None: real(contract, split)[:1],
+    )
+    build.build(
+        tmp_path / "site",
+        [_predicted_panel(public)],
+        fixtures.fixture_trust(),
+        showcase=True,
+    )
+    index = json.loads((tmp_path / "site" / "showcase" / "index.json").read_text())
+    leaders = [r for r in index["replays"] if r["kind"] == "LEADER"]
+    assert len(leaders) == 1 and index["replays"][0] == leaders[0]
+    replay = json.loads(
+        (tmp_path / "site" / "showcase" / leaders[0]["file"]).read_text()
+    )
+    assert replay["model"]["kind"] == "LEADER"
+    assert "FIXTURE" in replay["labels"] and "DEVELOPMENT" in replay["labels"]
+    assert replay["scenario"]["split"] == "development"
+    assert "state_digest" not in json.dumps(replay)
+    # The board carries a summary of the panel, never its predictions.
+    (board_file,) = (tmp_path / "site" / "data" / "boards").glob("*.json")
+    board = json.loads(board_file.read_text())
+    assert board["showcase_panel"]["state"] == "PREDICTED"
+    assert "predictions" not in board["showcase_panel"]
+
+
+def test_a_panel_for_another_contract_is_refused(public):
+    from carbon.dashboard import feed, fixtures
+
+    document = _predicted_panel(public)
+    body = {k: v for k, v in document.items() if k != "signature"}
+    body["showcase"] = {
+        **body["showcase"],
+        "task": {**body["showcase"]["task"], "contract_sha256": "0" * 64},
+    }
+    board = feed.project(fixtures.sign(body), fixtures.fixture_trust())
+    with pytest.raises(showcase.ShowcaseError, match="another contract"):
+        showcase.build_all("unused", [(board, board["showcase_panel"])])
+
+
+def test_a_missing_leader_prediction_is_a_counted_model_failure(public):
+    from carbon.dashboard import feed, fixtures
+
+    board = feed.project(_predicted_panel(public), fixtures.fixture_trust())
+    panel = board["showcase_panel"]
+    scenario = ev.scenarios(public["contract"], "development")[0]
+    dropped = ev.case_id(
+        public["contract"], scenario, ev.candidates(public["contract"])[0], 0
+    )
+    panel = {
+        **panel,
+        "predictions": {k: v for k, v in panel["predictions"].items() if k != dropped},
+    }
+    predictor = showcase.panel_predictor(public, scenario, panel)
+    with pytest.raises(ValueError, match="no prediction"):
+        predictor({"c1": 0.5, "c2": 0.2}, {"id": showcase.CONDITION})

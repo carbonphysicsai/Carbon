@@ -377,3 +377,58 @@ def test_section_meta_with_a_bad_sense_is_refused(section, sense):
     body["sections"] = copy.deepcopy(body["sections"])
     body["sections"][section]["sense"] = sense
     _refused(fixtures.sign(body), "section_meta_invalid")
+
+
+def _with_showcase(panel_changes=None, model_changes=None):
+    body = _fixture()
+    panel = fixtures.unavailable_panel(body)
+    panel.update(panel_changes or {})
+    panel["model"] = {**panel["model"], **(model_changes or {})}
+    return {**body, "showcase": panel}
+
+
+def test_showcase_panel_is_carried_for_the_incumbent():
+    board = feed.project(fixtures.sign(_with_showcase()), fixtures.fixture_trust())
+    panel = board["showcase_panel"]
+    assert panel["state"] == "UNAVAILABLE" and panel["code"] == "fixture_no_model"
+    assert panel["model"]["hotkey"] == board["incumbent"]["hotkey"]
+
+
+def test_showcase_panel_for_another_miner_is_refused():
+    body = _with_showcase(model_changes={"hotkey": "fixture-miner-99"})
+    _refused(fixtures.sign(body), "showcase_not_incumbent")
+
+
+def test_showcase_panel_without_an_incumbent_is_refused():
+    body = _with_showcase()
+    body["leaderboard"]["incumbent"] = None
+    _refused(fixtures.sign(body), "showcase_without_incumbent")
+
+
+def test_showcase_panel_on_non_public_material_is_refused():
+    task = {**fixtures.SHOWCASE_TASK, "data_scope": "HIDDEN"}
+    _refused(fixtures.sign(_with_showcase({"task": task})), "showcase_not_public")
+    task = {**fixtures.SHOWCASE_TASK, "split": "verification"}
+    _refused(fixtures.sign(_with_showcase({"task": task})), "showcase_not_public")
+
+
+def test_showcase_predictions_keep_only_public_case_ids_and_quantities():
+    row = {
+        "time_to_cv_onset_s": 1800.0,
+        "reach_class": 1,
+        "plating_margin_v": 0.01,
+        "peak_temperature_c": 31.0,
+        "architecture": "secret-recipe",
+    }
+    good = _with_showcase(
+        {
+            "state": "PREDICTED",
+            "predictions": {"ev4:D-T5-S0.12:c1=0.5,c2=0.2:0": row},
+        },
+        {"state_digest": "sha256:" + "a" * 64},
+    )
+    board = feed.project(fixtures.sign(good), fixtures.fixture_trust())
+    text = json.dumps(board["showcase_panel"])
+    assert "secret-recipe" not in text and "state_digest" not in text
+    bad = _with_showcase({"state": "PREDICTED", "predictions": {"hidden:case-1": row}})
+    _refused(fixtures.sign(bad), "showcase_case_invalid")

@@ -20,6 +20,7 @@ for (const file of process.argv.slice(2)) {
   const board = JSON.parse(fs.readFileSync(file, "utf8"));
   const view = D.boardView(board);
   assert.equal(view.labels[0], "DEVELOPMENT", "board view labelled");
+  assert.match(view.live, /pending/, "live sections render as pending");
   assert.ok(view.labels.includes("FIXTURE"), "fixture board says so");
   assert.equal(view.standing.length, board.standing.length, "every standing row drawn");
   assert.deepEqual(view.standing.map(r => r.rank), board.standing.map(r => r.rank), "rank copied, not computed");
