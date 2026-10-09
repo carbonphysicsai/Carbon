@@ -193,6 +193,22 @@ with the fields in [Record](#record).
    Record two practices. For a remote setup, check afterwards that no
    `carbon-job-*` container or `/tmp/carbon-job-*` directory is left on it,
    then stop it yourself.
+
+   Each practice result also says whether its recipe is inside the
+   Challenge's submission compute budget, next to its training seconds
+   (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01). The line is admission's own rule:
+   - "Within budget: X of Y <unit>" or "Over budget: X of Y <unit>", once the
+     Challenge declares a budget;
+   - "Budget not set for this Challenge" until then. This is every Challenge
+     today. No number is shown, and the per-setting caps are the limit;
+   - "Budget unit not calibrated yet" while the budget's unit needs factors
+     the Challenge's study has not fitted.
+
+   Each Challenge's budget comes from its own training budget study and the
+   owner's decision on it. Practice is never refused by it. Freeze, commit
+   and submit are: an over-budget recipe is refused `over_compute_budget`,
+   with its cost and the ceiling, before anything is signed or sent.
+   `carbon_budget_status` checks any recipe first.
 10. **Freeze, commit and submit.** Record the submission and its verdict.
     When the validator runs elsewhere, also record the intake URL and the
     submission id. An intake whose validator requires an on-chain commitment
