@@ -708,7 +708,7 @@ def run(config, arm, rate, replicate, *, prober=None, repository=None, world=Non
     except StudyRefused as refused:
         print(f"refused: {refused.code}")
         return 2
-    except Exception as failure:  # infrastructure: rerun the same command
+    except Exception as failure:  # noqa: BLE001 - infrastructure: exit 1, rerun
         print(f"failed: study_infrastructure {type(failure).__name__}")
         return 1
     spacing = rule["per_hotkey"]["window_blocks"]
@@ -805,7 +805,7 @@ def run(config, arm, rate, replicate, *, prober=None, repository=None, world=Non
         publish()
         print(f"failed: {failure}")
         return 1
-    except Exception as failure:  # infrastructure: rerun the same command
+    except Exception as failure:  # noqa: BLE001 - infrastructure: exit 1, rerun
         print(f"failed: study_infrastructure {type(failure).__name__}")
         return 1
     finally:
@@ -851,7 +851,7 @@ def fresh(config, submission, set_id, *, rate=None, replicate=None, repository=N
     except StudyRefused as refused:
         print(f"refused: {refused.code}")
         return 2
-    except Exception as failure:
+    except Exception as failure:  # noqa: BLE001 - infrastructure: exit 1, rerun
         print(f"failed: study_infrastructure {type(failure).__name__}")
         return 1
     finally:
