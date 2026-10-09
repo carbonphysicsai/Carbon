@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-motor-law-final-bundle",
+  "recorded_at": "2026-10-09T16:31:11Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-MOTOR-QUESTION-LAW-01 final bundle", "description": "Native UTF-8 tests/cpu/test_motor_question_law_round2.py and tests/cpu/test_challenge_pipeline.py after all substantive draft/lesson changes"},
+  "expected": "The final proposed law, arithmetic and retained lessons remain valid documentation artifacts.",
+  "observed": "55 passed in 2.79 s. No empirical motor result, solver execution or canonical acceptance; exact-head CI pending.",
+  "keep": ["Report simulation versus adopted-law results separately and retain all local failure/repair evidence."],
+  "change": ["None; owner/Test Lead law adoption and public frontier/full-panel evidence remain prerequisites to rental."],
+  "protocol_elements": ["final-bundle-validation", "no-invented-science", "owner-adoption"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

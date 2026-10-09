@@ -1,5 +1,14 @@
 # First customer-shaped DEVELOPMENT round
 
+> **f13 reference finding:** [power-balance diagnosis](f13-power-balance-diagnosis.md)
+> proposes a retained-integral check before new solves. Mixed plane/all-field
+> extraction and short-port treatment remain unresolved; no repaired truth,
+> weakened limits, solver execution or package change is claimed.
+
+Motor peak follow-up: [analytic sizing, setup coverage and search recommendation](motor-peak-feasibility.md)
+retains 12 N·m. It is an analysis-only supplement, not a feasibility result,
+material/geometry adoption or permission to execute a reference.
+
 Saved-output tooling: [f13 saved-integral power-balance check](f13-saved-integral-check.md)
 is a read-only DC diagnostic. Its accounting closure never qualifies physical
 reference power, silently repairs historical TL or authorizes new solves.

@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-f02-law-arithmetic-repair",
+  "recorded_at": "2026-10-09T17:27:18Z",
+  "challenge": "f02",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-F02-QUESTION-LAW-01",
+    "description": "Native candidate analysis regression."
+  },
+  "expected": "Check documents and arithmetic while retaining pending owner/science authority.",
+  "observed": "Initial native candidate suite: 1 failed, 68 passed in 2.52 s; incorrect test-only expected cap 49.0713439676 h. Independent expression gives 49.0707231798 h; the document already rounded correctly to 49.07 h.",
+  "keep": [
+    "Repair arithmetic expectations, never change a budget to fit a test."
+  ],
+  "change": [
+    "Add frontier resolution rather than widening truth bands; benchmark the strong impulse-response incumbent."
+  ],
+  "protocol_elements": [
+    "question law",
+    "contested decision",
+    "exposure",
+    "cost"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

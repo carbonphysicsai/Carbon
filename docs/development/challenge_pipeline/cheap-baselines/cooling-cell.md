@@ -26,7 +26,11 @@ do not make it the only incumbent when a calibrated output map is available.
 [Mat et al., 2024](https://www.tj.kyushu-u.ac.jp/evergreen/contents/EG2024-11_2_content/p1426-1434.html)
 uses water-cell response-surface optimization with 2,500 **response-surface
 design points**, not 2,500 separately measured CFD solves. It supports the
-ordinary incumbent class, not our maps/lid/pressure allocations. KEEP
+ordinary incumbent class, not our maps/lid/pressure allocations.
+[Ansys' Icepak/optiSLang thermal workflow](https://www.ansys.com/it-it/webinars/optimizing-thermal-designs-with-ansys-optislang-and-aedt-icepak)
+uses design-of-experiments metamodels to explore thermal designs without a
+solver call for each iteration. It demonstrates an available commercial
+workflow, not accuracy at this cell's post-spreader interface. KEEP
 [existing cell baseline inventory](../../../../scripts/dev/cold_plate/reference/baselines.py)
 and public output conventions only within their recorded applicability.
 

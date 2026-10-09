@@ -188,6 +188,38 @@ REFUSALS = {
         "variant names. Nothing was evaluated; submit to the ladder deployment "
         "for that level."
     ),
+    "level4_not_served": (
+        "This validator does not take Level 4 envelopes. Send them to the "
+        "development ladder that serves Level 4."
+    ),
+    "level4_part_malformed": (
+        "The Level 4 envelope part is malformed (its submission digest, part "
+        "numbers or base64 data). Rebuild it with Carbon and send it again."
+    ),
+    "level4_part_conflict": (
+        "The validator already holds other bytes for that part of this Level 4 "
+        "envelope. Nothing was replaced; send the envelope Carbon froze."
+    ),
+    "level4_parts_mismatch": (
+        "That part names another part count than the envelope's earlier parts. "
+        "Nothing was stored; send the envelope Carbon froze."
+    ),
+    "level4_envelope_incomplete": (
+        "Not every part of this Level 4 envelope has arrived yet. Nothing was "
+        "evaluated or counted; send the missing parts, then submit again."
+    ),
+    "level4_store_not_owner_only": (
+        "The validator's Level 4 store is misconfigured. Nothing was stored; this "
+        "is the validator's, not yours. Try again later."
+    ),
+    "hotkey_reserved_for_ladder": (
+        "This hotkey belongs to Carbon's development-ladder validator and is "
+        "never scored here. Nothing was evaluated; submit it to the ladder."
+    ),
+    "ladder_commitment_not_variant": (
+        "The development ladder binds the variant's commitment (the variant "
+        "digest and the whole strategy). Commit that form on chain, then resend."
+    ),
     "ladder_level_4_not_open": (
         "Level 4 is not open on the development ladder yet. Nothing was " "evaluated."
     ),

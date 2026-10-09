@@ -113,6 +113,21 @@ def test_nondeterminism_fires_paired_repeat_only_where_a_twin_exists(store):
     assert by["c002"]["gates"]["paired_repeat"] == "NOT_APPLICABLE"
 
 
+def test_gpu_like_prediction_variation_is_not_a_practice_repeat_failure(store):
+    # Public PRACTICE has no registered twins. Perturb separate predictions
+    # on the same synthetic inputs, as two device executions might, while
+    # keeping every physical gate away from its boundary.
+    store.twins = {}
+    ids = ["c000", "c001"]
+    predictions = controls.oracle(store.refs, ids)
+    predictions["c000"]["voltage_v"][10] += 0.001
+    predictions["c001"]["voltage_v"][10] -= 0.001
+    rows, summary = exam.evaluate(predictions, ids, store)
+    assert summary["eligible"]
+    assert summary["gate_failures"] == {}
+    assert all(row["gates"]["paired_repeat"] == "NOT_APPLICABLE" for row in rows)
+
+
 def test_time_shift_passes_gates_but_scores_worse(store):
     ids = [c for c in _ids(store) if c not in ("c-bad", "c001")]
     good = controls.oracle(store.refs, ids)
