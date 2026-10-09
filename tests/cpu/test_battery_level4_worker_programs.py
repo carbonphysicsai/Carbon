@@ -154,3 +154,6 @@ def test_level_0_programs_are_unchanged():
     assert worker.INFER_PROGRAM.count("model = recipes.model_from_bytes(") == 1
     assert "carbon.level4" not in worker.INFER_PROGRAM
     assert "carbon.level4" not in worker.RECONSTRUCT_PROGRAM
+    # Bytes that are not a readable state keep the Level 0 path (an attack
+    # probe's state, for one), which reads or refuses them as before.
+    assert worker.state_kind(b"not a model state") is None
