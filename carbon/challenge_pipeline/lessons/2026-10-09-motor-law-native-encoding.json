@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-motor-law-native-encoding",
+  "recorded_at": "2026-10-09T16:17:51Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-MOTOR-QUESTION-LAW-01 baseline", "description": "Native py -3.11 pytest of question laws, packet revisions and pipeline before edits"},
+  "expected": "A bounded documentation regression diagnostic, not canonical acceptance.",
+  "observed": "61 passed / 1 failed in 7.76 s; pipeline Roadmap read_text used Windows cp1252 and could not decode UTF-8 byte 0x81. No application or test edit made.",
+  "keep": ["Report native environment failures rather than weakening repository assertions."],
+  "change": ["Rerun the same diagnostic with Python -X utf8; canonical Linux remains acceptance authority."],
+  "protocol_elements": ["native-versus-canonical-validation", "failure-classification"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

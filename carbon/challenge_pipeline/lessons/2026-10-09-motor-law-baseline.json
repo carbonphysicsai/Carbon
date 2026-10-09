@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-motor-law-baseline",
+  "recorded_at": "2026-10-09T16:18:43Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-MOTOR-QUESTION-LAW-01 baseline UTF-8", "description": "py -3.11 -X utf8 -m pytest tests/cpu/test_challenge_question_laws.py tests/cpu/test_customer_packet_revisions_v2.py tests/cpu/test_challenge_pipeline.py -q"},
+  "expected": "Retained existing law and pipeline semantics pass native diagnostics with correct text decoding.",
+  "observed": "62 passed in 2.57 s. Native Windows/Python 3.11.4 only; no solver, hidden material or canonical acceptance claim.",
+  "keep": ["Reuse current law/task contracts and leave historical evidence untouched."],
+  "change": ["Motor's supplement must distinguish complete buyer questions from the holding-only evidence and separate allocated CPU-hours from node billing."],
+  "protocol_elements": ["prospective-question-law", "historical-evidence", "cost-units"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
