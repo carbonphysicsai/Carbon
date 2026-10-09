@@ -135,6 +135,19 @@ def test_a_loss_graph_is_not_trained_yet():
         model.fit(m.train, battery.structure(m), SEED)
 
 
+def test_an_unset_owner_cap_blocks_as_carbons(monkeypatch):
+    strategy = battery._steps(battery.level0_strategies()["scaffold_mlp"], STEPS)
+    _, recipe = compile_recipe(strategy)
+    found, workspace = _staged(strategy)
+    model = level4_worker.build_in_process(recipe, found, workspace)
+    caps = {**allowlist_module.CAPS, "nodes_executed": allowlist_module.HUMAN_INPUT}
+    monkeypatch.setattr(allowlist_module, "CAPS", caps)
+    m = battery.material()
+    with pytest.raises(ImportError, match=level4_model.CAPS_UNSET):
+        model.fit(m.train, battery.structure(m), SEED)
+    assert model.prepared is None
+
+
 def test_a_state_whose_manifest_is_not_its_submission_is_refused(rebuilt):
     _label, model, *_ = rebuilt
     header, arrays = recipes.export_state(model)

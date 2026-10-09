@@ -12,7 +12,9 @@ rebuilt forward graph (`carbon.level4`):
 
 Before training, the submission is verified (`submission.verify`) and
 validated (G4, the owner's caps) against battery's development interface
-at the recipe's training batch. A refusal there is the candidate's.
+at the recipe's training batch, before anything is built or trained. A
+refusal there is the candidate's; an owner cap still unset (`HUMAN_INPUT`)
+blocks as Carbon's (`CAPS_UNSET`), never trains.
 
 It imports only battery's own recipe modules (relatively) and `carbon.level4`,
 so a rebuild worker can stage it beside them.
@@ -43,6 +45,7 @@ CHALLENGE = "battery-fastcharge-ageing-development-v1"
 #: nearest-neighbour recipe has no trained network.
 FAMILIES = ("mlp", "deeponet")
 LOSS_NOT_BUILT = "level4_loss_graph_training_not_built"
+CAPS_UNSET = "level4_caps_human_input"
 _PCA_ARRAYS = ("vm", "tm", "pv", "pt", "zmu", "zsd")
 
 
@@ -174,6 +177,10 @@ class GraphModel(recipes.MLP):
         verdict = validate.validate_submission(
             parsed, allowlist, interface=interface, batch=batch
         )
+        if verdict["status"] != "admitted":
+            # An unset owner cap blocks; it never trains. The value is the
+            # owner's to set, so the failure is Carbon's, not the candidate's.
+            raise ImportError(CAPS_UNSET)
         return train.prepare(parsed, allowlist, verdict=verdict)
 
     # -- training ------------------------------------------------------------------
