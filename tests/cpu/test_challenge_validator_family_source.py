@@ -113,9 +113,9 @@ def test_a_bank_tranche_is_drawn_from_the_custody_root_by_role(tmp_path):
     first = bank.draw_tranche("pool", "bank-pool-T1", 5)
     assert first == bank.draw_tranche("pool", "bank-pool-T1", 5)
     other = bank.draw_tranche("pool", "bank-pool-T2", 5)
-    assert len(first) == 5 and not {c["case_id"] for c in first} & {
-        c["case_id"] for c in other
-    }
+    ids = {case["case_id"] for case in first}
+    assert len(ids) == 5
+    assert not ids & {case["case_id"] for case in other}  # unique across roles
     assert bank.terminal() == hidden.TERMINAL
 
 
