@@ -31,6 +31,32 @@ apply before any spend. Spend is booked privately, never in the repository.
    both reconcilers must be clean.
 6. `compare --results flat.json [--deviation D] [--cpu C]`: offline comparison.
 
+**The Level 4 B′ leg** (`level4/PHASE1_PLAN.md` §3, plan PR 9) is opt-in. A
+record without it runs exactly as above.
+
+- **Before any spend, on the CPU.** `level4-lower` lowers each pick and the
+  coverage recipe (a relu MLP, so a named function runs on the GPU) into
+  `carbon.level4.staging` directories under
+  `docs/development/graphite/level4/a40_leg/`. Commit them and push.
+- **Seal.** `select --level4 --record R` pins each recipe's submission digest,
+  files and review ops in the record. A missing directory is a refusal.
+- **On the pods.** JAX pods only. The coverage recipe joins the native
+  recipes, and each recipe gets ONE B′ rebuild in a fresh interpreter, from
+  the committed documents (shipped as data, refused unless the digest is the
+  record's): verify, G4 under the owner's caps, Carbon's own training loop.
+- **Smoke.** The smoke measures the leg on the same pick
+  (`level4_wall_seconds`), and the deadline counts the leg's rebuilds at that
+  measurement.
+- **Compare.** `compare` adds a `level4` section, digest equality only:
+  - same host, B′ `params_sha256` against the native rebuild;
+  - across hosts, B′ against B′ (`params_sha256`, `outputs_sha256`), refused
+    on a driver mismatch.
+
+  A mismatch is a recorded R1 finding, not a harness failure.
+- **Not covered.** `gather` appears only in the nearest-neighbour graph,
+  which Carbon does not train. A forward-only leg for it is open.
+- **Spend.** The leg runs only under a grant that names it.
+
 Credentials: `--key-file` is a path; the key is read only by the operator
 adapter into its request header, never printed or put in an environment.
 
