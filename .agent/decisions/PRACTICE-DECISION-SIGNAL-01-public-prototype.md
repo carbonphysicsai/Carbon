@@ -33,7 +33,9 @@ change the scientific question. Displaying the prototype before owner review
 would preempt the reserved product/scientific decision.
 
 **Affected interfaces and invariants.** Only a development script, spec and
-tests. Practice remains intentionally incomplete (invariant 12); no hidden
+tests. The existing static safety-import inventory gains this one
+development-only public-data consumer; no runtime provider or exam import
+changes. Practice remains intentionally incomplete (invariant 12); no hidden
 data enters the computation (invariants 1, 2 and 4), and missing references
 are not candidate failures (invariant 20). Historical v2 scores remain
 historical (invariant 10). PRACTICE-QUIZ-01 can later consume the evidence but
