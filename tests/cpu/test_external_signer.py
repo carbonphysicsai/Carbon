@@ -597,3 +597,74 @@ def test_a_validators_signer_signs_the_answer_key_fetch_and_nothing_else(specime
         assert external.issued == 1
     finally:
         process.stop()
+
+
+def _allowlist_file(directory, hotkeys):
+    path = Path(directory) / "allowlist.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": "carbon.signer.autoconfirm-allowlist.v1",
+                "network": "testnet",
+                "netuid": 567,
+                "hotkeys": hotkeys,
+            }
+        )
+    )
+    path.chmod(0o600)
+    return path
+
+
+def test_a_real_signer_auto_confirms_an_allow_listed_testnet_commitment(specimen_key):
+    """OWNER-SIGNER-TESTNET-AUTOCONFIRM-01, end to end: the real process,
+    started with the flag under the committed testnet 567 record, signs a
+    commitment nobody types for, shows it marked and records it."""
+    from carbon.chain.external_signer import request_commitment
+    from tests.cpu.test_miner_signer_commit import DIGEST, _request
+
+    key_file, hotkey = specimen_key
+    directory = _short_dir()
+    allowlist = _allowlist_file(directory, [hotkey])
+    process = SignerProcess(
+        key_file, directory / "s.sock", "--auto-confirm-commitments", str(allowlist)
+    )
+    try:
+        process.type_password(PASSWORD)
+        process.wait_listening()
+        process.read(until=b"read once: restart to change it")
+        external = connect_signer(hotkey, socket_path=process.socket_path)
+        body = _request(fee=(0, 0))
+        del body["protocol"], body["op"]
+        answer = request_commitment(external, body)
+        assert len(answer["signature"]) == 64
+        process.read(until=b"signed commitment " + DIGEST.encode())
+        assert b"AUTO-CONFIRMED (allow-listed testnet hotkey)" in process.output
+        assert b"Type the last 8" not in process.output
+        with pytest.raises(SignerFailure) as refused:
+            request_commitment(external, body)
+        assert refused.value.refusal == "ALREADY_COMMITTED_THIS_TEMPO"
+        ledger = directory / (hotkey + ".commitments.jsonl")
+        (row,) = [json.loads(line) for line in ledger.read_text().splitlines()]
+        assert row["confirmation"] == "AUTO-CONFIRMED (allow-listed testnet hotkey)"
+        assert row["digest"] == DIGEST and row["network"] == "testnet"
+        # Nothing but the password was ever typed into the signer's terminal.
+        assert process.typed == PASSWORD.encode() + b"\n"
+    finally:
+        process.stop()
+
+
+def test_a_real_signer_refuses_to_auto_confirm_an_unlisted_hotkey(specimen_key):
+    key_file, _hotkey = specimen_key
+    directory = _short_dir()
+    other = _keypair("//another-validator").ss58_address
+    allowlist = _allowlist_file(directory, [other])
+    process = SignerProcess(
+        key_file, directory / "s.sock", "--auto-confirm-commitments", str(allowlist)
+    )
+    try:
+        process.type_password(PASSWORD)
+        process.read(until=b"not in the auto-confirm allow-list")
+        assert process.process.wait(timeout=20) != 0
+        assert not process.socket_path.exists()
+    finally:
+        process.stop()

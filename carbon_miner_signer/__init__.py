@@ -14,7 +14,9 @@ it is deliberately not part of Carbon's product process:
   (``Commitments.set_commitment``, OWNER-COMMITMENT-POSTER-01): it rebuilds
   the call and checks every bound itself (``commitment``), never opens a
   network connection, and signs only after the miner types the digest's last
-  8 characters in its terminal;
+  8 characters in its terminal, or, opt-in and on testnet 567 only, for a
+  hotkey in an owner-written allow-list (``autoconfirm``,
+  OWNER-SIGNER-TESTNET-AUTOCONFIRM-01);
 - it refuses to start on a key file others can read (D8);
 - it imports nothing from ``carbon``, and nothing in Carbon's product process
   imports it (``tests/invariants/test_product_process_holds_no_key.py``).

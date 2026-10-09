@@ -628,6 +628,12 @@ NEXT_ACTIONS = {
         "signed nothing. Check the signer's state directory, restart it, then "
         "commit again (carbon_commit)."
     ),
+    "AUTO_CONFIRM_NOT_ALLOWED": (
+        "Your signer auto-confirms only allow-listed testnet 567 hotkeys, and "
+        "this commitment is not one; nothing was signed or sent. Restart the "
+        "signer without --auto-confirm-commitments and confirm in its "
+        "terminal, then commit again (carbon_commit)."
+    ),
     "backend_not_served": (
         "This validator has no worker image for your recipe's backend. That "
         "is not a verdict on the recipe, and nothing was recorded. Submit to "
