@@ -1,0 +1,91 @@
+{
+  "schema": "carbon.development.f13-power-diagnosis.v1",
+  "ticket": "F13-POWER-BALANCE-DIAGNOSIS-01",
+  "maturity": "SPECIFIED",
+  "solver_runs": 0,
+  "spend": 0,
+  "package_changed": false,
+  "source": {
+    "head": "0f12834226f65cdb317e7407e1e83e68c135801b",
+    "deck_code_blob": "5a527255fb83202ec67f11a86555bff18763fffc",
+    "nominal_sif_sha256": "4cf02f9c24fe89861353ee413efdea97d85d14ba8f11eb5968412e8260020e17",
+    "nominal_deck_sha256": "885dc6d87887bb5e3e1cb7c4ac74de3767a3280546286d36b9c279eb90209286"
+  },
+  "report": {
+    "residual_max_abs_owner_reported": 0.047,
+    "raw_signed_residual": null,
+    "worst_frequency_hz": null,
+    "offset_mesh_convergence": null,
+    "status": "REFERENCE_UNRESOLVED"
+  },
+  "physics": {
+    "rho_kg_m3": 1.2,
+    "c_m_s": 343,
+    "port_radius_m": 0.025,
+    "physical_stub_m": 0.01,
+    "band_hz": [
+      500,
+      2500
+    ],
+    "closure_limit": 0.01,
+    "p10_buyer_target_db": 5,
+    "physical_package_max_mm": 300
+  },
+  "analytic": {
+    "roots": [
+      1.84118,
+      3.83171
+    ],
+    "at_frequency_hz": 2500,
+    "lead_lengths_m": [
+      0.01,
+      0.06,
+      0.1
+    ],
+    "is_residual_bound": false
+  },
+  "diagnostic": {
+    "retained_integrals_only": true,
+    "solver_systems": 0,
+    "measured_variance_identity_match": null,
+    "formulas": [
+      "V=(H-|I|^2/S)/(2*rho*c)",
+      "r_robin=r_old-V_in"
+    ],
+    "does_not_qualify_physical_ports": true
+  },
+  "verification_proposal": {
+    "approved": false,
+    "primary_route": "modal_boundary_at_original_planes",
+    "fallback": "converged_computational_leads_with_deembedding",
+    "lengths_m": [
+      0.06,
+      0.1
+    ],
+    "stages": [
+      {
+        "name": "A",
+        "systems": 2
+      },
+      {
+        "name": "B",
+        "systems": 1
+      },
+      {
+        "name": "C",
+        "systems": 4
+      }
+    ],
+    "systems_if_baseline_retained": 7,
+    "processes_if_control_pairs_scanned": 5,
+    "additional_system_if_baseline_missing": 1,
+    "lead_tl_tolerance_db": {
+      "status": "HUMAN_INPUT",
+      "registered": null,
+      "recommendation": 0.25
+    },
+    "resource_caps": null,
+    "full_band_adequacy": false
+  },
+  "historical_rescore": false
+}
