@@ -1,0 +1,20 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-review.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": [
+  0,
+  1
+ ],
+ "item": "S4",
+ "decision": "PASS",
+ "reviewer": "Test Lead",
+ "date": "2026-10-09",
+ "evidence": [
+  {
+   "kind": "file",
+   "ref": "carbon/battery/exam.py",
+   "sha256": "sha256:2f1a40cf26c94d9a7516a88c1062d91e719baba21f06e559e5d6b02c78bc20f4"
+  }
+ ],
+ "notes": "ACCEPTED: the noise source is seed for battery (Test Lead stage A sign-off, 2026-10-09)."
+}

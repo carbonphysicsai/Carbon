@@ -1,0 +1,511 @@
+{
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "claims": {
+  "authority_to_run": false,
+  "live_run": false,
+  "spend": false
+ },
+ "counts": {
+  "FAIL": 4,
+  "NOT_BUILT": 18,
+  "PASS": 14,
+  "REVIEW_REQUIRED": 5
+ },
+ "git": {
+  "dirty": true,
+  "sha": "dbefe5b8408b8a6e3c4dfde63c5ed6e29ff25008"
+ },
+ "green": false,
+ "items": [
+  {
+   "detail": "no recorded review (expected O1.json)",
+   "evidence": [
+    "sha256:bf59549a25a9befbfbb0f7ce26082baf412cbb657a8c3edfc736c172dbf9435b"
+   ],
+   "evidence_digest": "sha256:adf9eed34c9d82103c1215301b927bf1b16ba7f296ebd91edd583927327e5aa7",
+   "id": "O1",
+   "kind": "review",
+   "lesson": "C4",
+   "status": "REVIEW_REQUIRED",
+   "title": "An ownership map exists for the challenge: contract, scorer, validator adapter, attack adapter, decision study, references, gates, literature, grants. Each line names one owner session, and the map is committed."
+  },
+  {
+   "detail": "no planned branch name exists on origin under another owner",
+   "evidence": [
+    "sha256:82b2366e01ed080c4b5d01387351103a31881b4ea7b4607692e80a9d3440a51d"
+   ],
+   "evidence_digest": "sha256:816f15553c557d968afd4e57fb82274c1fafe69cb32f1ccf250bcd68a5de5269",
+   "id": "O2",
+   "kind": "auto",
+   "lesson": "C1",
+   "status": "PASS",
+   "title": "No open branch on origin uses a name the onboarding plans to use."
+  },
+  {
+   "detail": "every cited decision id resolves to a decision file",
+   "evidence": [
+    "OWNER-GRAPHITE-TEST-WAVE-01",
+    "OWNER-GRAPHITE-TEST-WAVE-02",
+    "OWNER-GRAPHITE-TEST-WAVE-03",
+    "OWNER-GRAPHITE-TEST-WAVE-04",
+    "OWNER-GRAPHITE-TEST-WAVE-05",
+    "OWNER-GRAPHITE-TEST-WAVE-06",
+    "OWNER-GRAPHITE-TEST-WAVE-07",
+    "OWNER-EV5-FREEZE-01"
+   ],
+   "evidence_digest": "sha256:7af2cf832a595df00598bfad6a5be8bc9eef01a986491e038ab67215c7414c54",
+   "id": "O3",
+   "kind": "auto",
+   "lesson": "C1, C5",
+   "status": "PASS",
+   "title": "Every owner question raised during onboarding has a decision file."
+  },
+  {
+   "detail": "registered, campaign composed, Level 0 contract resolves (Launchpad reachability itself is not separately exercised)",
+   "evidence": [
+    "registry:battery-fastcharge-ageing-development-v1@1.0",
+    "contract:sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e"
+   ],
+   "evidence_digest": "sha256:3dbffc1c5913d53be6c38648a3e4e778b4d37ec3abef6abeec61b4843e298c8e",
+   "id": "P1",
+   "kind": "auto",
+   "lesson": "N1",
+   "status": "PASS",
+   "title": "Registered in the challenge registry, with a Level 0 construction contract reachable in the Launchpad."
+  },
+  {
+   "detail": "scoring registered, unnamed call refuses, adapter class defined",
+   "evidence": [
+    "scoring_for(named) resolves",
+    "unnamed call refuses (challenge_scoring_must_be_named)",
+    "adapter:carbon.challenge_validator.battery:BatteryAdapter"
+   ],
+   "evidence_digest": "sha256:243f04663abc4b56030bdfd1899b1e96f89481af691333e04e1a8851ca19e6d4",
+   "id": "P2",
+   "kind": "auto",
+   "lesson": "N1",
+   "status": "PASS",
+   "title": "`ChallengeScoring` and an Interface v1 validator adapter are registered, and an unnamed scoring call refuses."
+  },
+  {
+   "detail": "no fixture phase-3 dry-run test is recorded for this challenge (VALIDATOR-05, #606, covers cooling's bundle only); owner: Carbon Validator",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "P3",
+   "kind": "auto",
+   "lesson": "N1",
+   "status": "NOT_BUILT",
+   "title": "A fixture dry run of phase 3 for this challenge passes end to end: brief, published material, bundle writeup, clean rebuild."
+  },
+  {
+   "detail": "tool text v2 names no challenge and the named-challenge plumbing and literature tests pass",
+   "evidence": [
+    "v1_names:battery",
+    "v2_names:none",
+    "tests/cpu/test_graphite_named_challenge.py",
+    "tests/cpu/test_graphite_challenge_literature.py",
+    "16 passed in 20.85s"
+   ],
+   "evidence_digest": "sha256:00209d3d83fb88984822903ad2ba1dd9784cca42821bdf666f883e81d5b539bd",
+   "id": "P4",
+   "kind": "auto",
+   "lesson": "N1",
+   "status": "PASS",
+   "title": "No battery-specific literal is reached on this challenge's path: tool text v2, literature snapshot, writeup."
+  },
+  {
+   "detail": "recorded tests passed",
+   "evidence": [
+    "tests/cpu/test_construction_noop_audit.py::test_no_rebuildable_capability_is_a_no_op[battery-fastcharge-ageing-development-v1]",
+    "1 passed in 236.09s (0:03:56)"
+   ],
+   "evidence_digest": "sha256:c280daa80f1a9512350b3f9fa04341776663afbc97887e61a906a58b964b24cd",
+   "id": "P5",
+   "kind": "auto",
+   "lesson": "I1",
+   "status": "PASS",
+   "title": "The no-op audit passes for every rebuildable capability. Known no-ops are listed."
+  },
+  {
+   "detail": "recorded tests passed",
+   "evidence": [
+    "tests/cpu/test_construction_noop_audit.py::test_no_rebuildable_capability_is_a_no_op[battery-fastcharge-ageing-development-v1]",
+    "1 passed in 202.48s (0:03:22)"
+   ],
+   "evidence_digest": "sha256:efbc749bfcd98100bc4d7e2704eb5ceda7346eb2f77169fbcc4dcbd0a4a47722",
+   "id": "P6",
+   "kind": "auto",
+   "lesson": "I1",
+   "status": "PASS",
+   "title": "Identity is by rebuilt artifact: no count, dedup or limit keyed on recipe text."
+  },
+  {
+   "detail": "recorded tests passed",
+   "evidence": [
+    "tests/cpu/test_challenge_validator_boundary_consistency.py",
+    "22 passed in 8.81s"
+   ],
+   "evidence_digest": "sha256:5b190f2319075b63b9caa56e92b387ef5e9b456f3c2b02b962a706956e906698",
+   "id": "P7",
+   "kind": "auto",
+   "lesson": "X1",
+   "status": "PASS",
+   "title": "The construction boundary is consistent across the validator door, the contract compile and Graphite's admission: the boundary-consistency test (the VALIDATOR-10 pattern) exists and passes for this challenge."
+  },
+  {
+   "detail": "prelive verdict FAIL (exit 4)",
+   "evidence": [
+    "carrier_containment: {'error': 'ContainmentNotPassed', 'message': 'containment_check_unavailable: analysis_image_manifest_not_given; failing probes: []', 'refusal': None, 'where': ['phase4_prelive.py:590:check', 'phase4_prelive.py:799:containment', 'phase4_prelive.py:759:carrier_containment']}"
+   ],
+   "evidence_digest": "sha256:dc33d67b2cee1cf6b9babec30b471a7e56ec0c59bc288d87e62d667e4cd449cd",
+   "id": "R1",
+   "kind": "auto",
+   "lesson": "E1",
+   "status": "FAIL",
+   "title": "The real-path no-spend gate passes for this challenge: the provider with a fake transport, the controller, ledger, pods and carrier under live threading."
+  },
+  {
+   "detail": "deterministic containment check with host canary: Test Engineer's containment PR not on main; owner: Test Engineer",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "R2",
+   "kind": "auto",
+   "lesson": "A3",
+   "status": "NOT_BUILT",
+   "title": "A deterministic containment check with a host canary passes on the lane this challenge uses (pod, CPU carrier or miner lane)."
+  },
+  {
+   "detail": "each lane names its own environment check and a current registered policy",
+   "evidence": [
+    "pod:pod_phase.probe_environment (Carbon-owned GPU probe, GRAPHITE-POD-GPU-PROBE-01):pod-attribution-v2:sha256:4eda1aaede3c5f153aabeaba2983c5364c9b25420fcaf33c86bf52273afbbfad"
+   ],
+   "evidence_digest": "sha256:84b5d2ac334c74b678f0f437bf056129970d60273097db82a27c0e49c2bc122b",
+   "id": "R3",
+   "kind": "auto",
+   "lesson": "E2",
+   "status": "PASS",
+   "title": "An environment probe and its attribution policy are registered for every compute lane used."
+  },
+  {
+   "detail": "prelive reports only attacker_model; per-role *_model blocks and the output cap (lesson E3 OPEN) are not reported; owner: Test Engineer",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "R4",
+   "kind": "auto",
+   "lesson": "E3, E4",
+   "status": "NOT_BUILT",
+   "title": "Model settings: full context for each role's model, an output cap sized from use, and an endpoint that reports charges."
+  },
+  {
+   "detail": "the bound grant docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json is committed and the binding tests pass; pricing with lost-run headroom and tokens-only where no pods run are not machine-checked (needs a recorded review of the owner's amounts; owner: Test Lead)",
+   "evidence": [
+    "grant:docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json",
+    "tests/cpu/test_graphite_phase4_grant.py",
+    "14 passed in 2.30s"
+   ],
+   "evidence_digest": "sha256:710e3469de43b0824dfc38dab8e6c399f5055038e57a1150e47f76c5b4e48aa1",
+   "id": "R5",
+   "kind": "auto",
+   "lesson": "I2",
+   "status": "NOT_BUILT",
+   "title": "Grants: a per-challenge grant bound to main's blob, priced with lost-run headroom, tokens-only where no pods run."
+  },
+  {
+   "detail": "no recorded review (expected R6.json)",
+   "evidence": [
+    "/mnt/c: 112.9 GB free",
+    "threshold 30 GB (Test Lead decision, 2026-10-05: at least 30 GB free on the WSL host's C: drive, the threshold the owner used for the first install on 2026-10-03)"
+   ],
+   "evidence_digest": "sha256:1feb7df15150648f266618caa7632ca06a674e25a025197fe1e1d7bca03420b2",
+   "id": "R6",
+   "kind": "auto+review",
+   "lesson": "E5, E6",
+   "status": "REVIEW_REQUIRED",
+   "title": "Host: free disk at least the threshold, and a host window agreed in writing between the executor and Data Collection."
+  },
+  {
+   "detail": "agent-facing budget text test (lesson E9 OPEN, oracle-fix PR) not on main; owner: Test Engineer",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "R7",
+   "kind": "auto",
+   "lesson": "E9",
+   "status": "NOT_BUILT",
+   "title": "Agent-facing budget text matches the real ledger; no \"0 of 0\"."
+  },
+  {
+   "detail": "recorded tests passed",
+   "evidence": [
+    "tests/cpu/test_attack_authoritative_boundary.py",
+    "49 passed in 35.29s"
+   ],
+   "evidence_digest": "sha256:44e48bcd4acd1ac39020c8325a8e8d6bb5210a2fa8e01a93aca1af384365eb81",
+   "id": "A1",
+   "kind": "auto",
+   "lesson": "A1",
+   "status": "PASS",
+   "title": "Every research tool has an authority class (authoritative, advisory, miner-local) and a family mapping; no UNASSIGNED."
+  },
+  {
+   "detail": "every family has an attack example, a control and trained and held-out controls; the Attacker's route to each family is not machine-checked (lesson A2 OPEN); owner: Test Engineer",
+   "evidence": [
+    "family:l1_permission_ablation",
+    "family:l1_expression_surface",
+    "family:l1_degenerate_losses",
+    "family:l1_nonfinite_typing",
+    "family:l1_rebuild_identity",
+    "family:l1_declarative_only"
+   ],
+   "evidence_digest": "sha256:7f1e8cd648c3cfcc5129cca9985b52b10de55e40124693875c3985d3a7181bc5",
+   "id": "A2",
+   "kind": "auto",
+   "lesson": "A2",
+   "status": "NOT_BUILT",
+   "title": "Each family has an attack example that fires, a trained control, a held-out control, and a route the Attacker can reach."
+  },
+  {
+   "detail": "coverage stop rule (lesson A2 OPEN) not on main; owner: Test Engineer",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "A3",
+   "kind": "auto",
+   "lesson": "A2",
+   "status": "NOT_BUILT",
+   "title": "The coverage stop rule is configured: k attempts per family before the finish tool is available."
+  },
+  {
+   "detail": "no admission controller is designated for (battery-fastcharge-ageing-development-v1, level 1); owner: Test Engineer",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "A4",
+   "kind": "auto",
+   "lesson": "I3",
+   "status": "FAIL",
+   "title": "A designated admission controller is recorded for (challenge, level)."
+  },
+  {
+   "detail": "no recorded review (expected A5.json)",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "A5",
+   "kind": "review",
+   "lesson": "G1",
+   "status": "REVIEW_REQUIRED",
+   "title": "Every attribution or grading assumption is a registered, versioned policy, and the Attacker has a family that probes it."
+  },
+  {
+   "detail": "no promotion-rule / equivalence-margin evidence is recorded for the challenge; owner: Carbon Validator",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "S1",
+   "kind": "auto",
+   "lesson": "S6",
+   "status": "NOT_BUILT",
+   "title": "The promotion rule exists: comparison settings plus an equivalence margin measured from the challenge's noise source."
+  },
+  {
+   "detail": "known-answer test that gate failures rank last (#617 follow-up) is not recorded for the challenge; owner: Carbon Validator",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "S2",
+   "kind": "auto",
+   "lesson": "G4",
+   "status": "NOT_BUILT",
+   "title": "Gate failures rank last (admissibility before ranking), tested with a known-answer case."
+  },
+  {
+   "detail": "gate margin study (VALIDATOR-09) is not recorded for the challenge; owner: Carbon Validator",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "S3",
+   "kind": "auto",
+   "lesson": "G5",
+   "status": "NOT_BUILT",
+   "title": "A margin study for every gate: the minimum reference margin and 1st percentile, with fragile gates flagged."
+  },
+  {
+   "detail": "no recorded review (expected S4.json)",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "S4",
+   "kind": "review",
+   "lesson": "S6",
+   "status": "REVIEW_REQUIRED",
+   "title": "The noise source is declared per construction family: seed, bootstrap, or both."
+  },
+  {
+   "detail": "recorded tests passed",
+   "evidence": [
+    "tests/cpu/test_graphite_coverage_parity.py::test_battery_frozen_rule_charges_a_missing_case",
+    "tests/cpu/test_graphite_coverage_parity.py::test_battery_validator_refuses_an_incomplete_worker_result",
+    "tests/cpu/test_graphite_coverage_parity.py::test_graphite_host_scores_a_partial_pod_file_ineligible",
+    "3 passed in 11.22s"
+   ],
+   "evidence_digest": "sha256:c9339e65e1696d658efd55e1840db0f31efa556745bada96c82d588274acbe84",
+   "id": "S5",
+   "kind": "auto",
+   "lesson": "G3",
+   "status": "PASS",
+   "title": "Incomplete prediction sets are refused on every host."
+  },
+  {
+   "detail": "no frozen decision-study check is recorded for the challenge; owner: Data Collection",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "D1",
+   "kind": "auto",
+   "lesson": "n/a",
+   "status": "NOT_BUILT",
+   "title": "A frozen decision study exists, with a finite comparator, commitment before reference access, and representative and boundary groups."
+  },
+  {
+   "detail": "no equal-cost harness adapter check is recorded for the challenge; owner: Data Collection",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "D2",
+   "kind": "auto",
+   "lesson": "n/a",
+   "status": "NOT_BUILT",
+   "title": "The equal-cost harness adapter is registered, with a B ladder confirmed by the Test Lead."
+  },
+  {
+   "detail": "no timing calibration check is recorded for the challenge; owner: Data Collection",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "D3",
+   "kind": "auto",
+   "lesson": "E8",
+   "status": "NOT_BUILT",
+   "title": "A timing calibration on the target hardware has run, and counted-plan timeouts are at least 2\u00d7 p95."
+  },
+  {
+   "detail": "no real-solver-output importer check is recorded for the challenge; owner: Data Collection",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "D4",
+   "kind": "auto",
+   "lesson": "E7",
+   "status": "NOT_BUILT",
+   "title": "The importer has run on at least one real solver output."
+  },
+  {
+   "detail": "no reference-coverage report is recorded for the challenge; owner: Data Collection | no recorded review (expected D5.json)",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "D5",
+   "kind": "auto+review",
+   "lesson": "S4",
+   "status": "NOT_BUILT",
+   "title": "Reference coverage of the decision set is reported, and the refinement policy for unresolved cases is decided."
+  },
+  {
+   "detail": "no pinned analysis-code check is recorded for the challenge; owner: Data Collection",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "D6",
+   "kind": "auto",
+   "lesson": "S5, N3",
+   "status": "NOT_BUILT",
+   "title": "Any confirmation study's analysis code is built, merged and pinned with every imported module before freeze."
+  },
+  {
+   "detail": "a registered sealable confirmation-set role has size, law and strata",
+   "evidence": [
+    "graphite-confirmation-v1",
+    "graphite-tuning-v1",
+    "graphite-tuning-v2"
+   ],
+   "evidence_digest": "sha256:be92e1001c37df0c10c3e65ab528315f0cb21fa797d7c66e728b0b3f9afe3a1e",
+   "id": "D7",
+   "kind": "auto",
+   "lesson": "n/a",
+   "status": "PASS",
+   "title": "A fresh confirmation-set role is registered, with size, law and strata set (VALIDATOR-03)."
+  },
+  {
+   "detail": "no Q1 alignment report is recorded (readiness/<challenge>/q1_report.json); run the Track B alignment on the registered panel and build one with `readiness.q1 build` | no recorded review (expected V1.json)",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "V1",
+   "kind": "auto+review",
+   "lesson": "S1",
+   "status": "FAIL",
+   "title": "A Q1 score-to-value check on the available panel (baselines plus constructed controls): \u03c4/\u03c1 with a band, and divergences listed. A negative or within-noise \u03c4 is NOT a blocker, but it is recorded, and the first Graphite runs are then framed as alignment measurements, never as improvement hunting."
+  },
+  {
+   "detail": "no Q1 report is recorded, so panel discrimination is unmeasured",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "V2",
+   "kind": "auto",
+   "lesson": "S3",
+   "status": "FAIL",
+   "title": "Panel discrimination: at least two distinct decision outcomes among panel members on the decision study. If not, widen the construction families first (development variant)."
+  },
+  {
+   "detail": "no recorded review (expected V3.json)",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "V3",
+   "kind": "review",
+   "lesson": "S2",
+   "status": "REVIEW_REQUIRED",
+   "title": "Promotion claims require multi-seed evidence."
+  },
+  {
+   "detail": "recorded tests passed",
+   "evidence": [
+    "tests/cpu/test_graphite_hidden_score.py::test_a_scored_submission_shows_only_the_miner_outcome",
+    "tests/cpu/test_graphite_hidden_score.py::test_only_a_writable_battery_validator_is_served",
+    "tests/cpu/test_graphite_hidden_score.py::test_one_hidden_score_per_tempo_and_the_baseline_has_its_own_window",
+    "3 passed in 22.04s"
+   ],
+   "evidence_digest": "sha256:6d37858a6474b338383a036cfed611cc71b80efd1d27fe21eae3a9dbc1726a77",
+   "id": "H1",
+   "kind": "auto",
+   "lesson": "S9",
+   "status": "PASS",
+   "title": "A rotating hidden pool exists for the challenge, and Graphite scores through the real validator."
+  },
+  {
+   "detail": "the tuning role (graphite-tuning-v1) and an overlap checker are not on main; owner: Carbon Validator",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "H2",
+   "kind": "auto",
+   "lesson": "S9",
+   "status": "NOT_BUILT",
+   "title": "Tuning and confirmation sets are registered and disjoint (overlap-checked) against the other sealed roles, the rotating pool, TRAIN, PRACTICE and the practice decision set."
+  },
+  {
+   "detail": "recorded tests passed",
+   "evidence": [
+    "tests/cpu/test_graphite_hidden_score.py::test_the_agent_feedback_is_identical_whatever_the_hidden_pool_says",
+    "tests/cpu/test_graphite_hidden_score.py::test_a_rule_that_discloses_hidden_results_is_refused",
+    "tests/cpu/test_graphite_hidden_score.py::test_the_hidden_deployment_refuses_reserved_and_sealed_roles",
+    "3 passed in 36.63s"
+   ],
+   "evidence_digest": "sha256:186374cc008a31630f280ffb219e23525a55cf8c44c695f62be9827cf7ad16a0",
+   "id": "H3",
+   "kind": "auto",
+   "lesson": "S9",
+   "status": "PASS",
+   "title": "No agent-visible output carries hidden-derived data (the VALIDATOR-13 non-leak test)."
+  },
+  {
+   "detail": "the gate audit on hidden and tuning predictions does not exist yet (VALIDATOR-09); owner: Carbon Validator | no recorded review (expected H4.json)",
+   "evidence": [],
+   "evidence_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "id": "H4",
+   "kind": "auto+review",
+   "lesson": "S9",
+   "status": "NOT_BUILT",
+   "title": "Gates are tested on hidden and tuning data, not practice alone."
+  }
+ ],
+ "level": 1,
+ "partial": false,
+ "report_digest": "sha256:1212f18a801980972ee9c628c5f043ef5030658586a71c91b30d92e16ce74cda",
+ "schema": "carbon.challenge-pipeline.readiness-report.v1",
+ "utc": "2026-10-09T12:57:05Z"
+}

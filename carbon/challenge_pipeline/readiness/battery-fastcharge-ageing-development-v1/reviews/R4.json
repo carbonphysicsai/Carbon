@@ -1,0 +1,33 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-review.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": [
+  0,
+  1
+ ],
+ "item": "R4",
+ "decision": "PASS",
+ "reviewer": "Test Lead",
+ "date": "2026-10-09",
+ "evidence": [
+  {
+   "kind": "decision",
+   "ref": "GRAPHITE-D34"
+  },
+  {
+   "kind": "decision",
+   "ref": "GRAPHITE-D35"
+  },
+  {
+   "kind": "file",
+   "ref": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3-R4.json",
+   "sha256": "sha256:30458c1726c4724f4783122ebb46dfe6526b67c947b15b73931c865b914769a2"
+  },
+  {
+   "kind": "file",
+   "ref": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json",
+   "sha256": "sha256:10e7b7ec6f683e9ee88bebc7a14735c44be38e780680b6c10961aea4d8df047e"
+  }
+ ],
+ "notes": "ACCEPTED with the grant caps as the cost guard (Test Lead stage A sign-off, 2026-10-09). Lesson E3 (an output cap sized from use) stays OPEN."
+}
