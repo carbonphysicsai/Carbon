@@ -220,26 +220,22 @@ def _variants(challenge):
 def _compute_budget(challenge):
     """The contract envelope's compute budget, or NOT_SET; never invented."""
     from carbon.reconstruction.capability_registry import CONTRACTS
-    from carbon.reconstruction.challenge_contracts import COMPUTE_BUDGET
+    from carbon.reconstruction.challenge_contracts import (
+        BUDGET_SET,
+        declared_compute_budget,
+    )
 
     if challenge not in CONTRACTS:
         # No construction contract, so no envelope declares a budget.
         return {"status": "NOT_SET"}
     try:
-        envelope = dict(CONTRACTS[challenge].document()["envelope"])
+        # The one parse admission uses (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01).
+        status, budget = declared_compute_budget(CONTRACTS[challenge])
     except Exception:  # noqa: BLE001
         raise SourcesUnavailable("contract_unreadable") from None
-    budget = envelope.get(COMPUTE_BUDGET)
-    if budget is None:
-        return {"status": "NOT_SET"}
-    if not (
-        type(budget) is dict
-        and set(budget) == {"unit", "value"}
-        and type(budget["unit"]) is str
-        and type(budget["value"]) in (int, float)
-    ):
-        return {"status": "MALFORMED"}
-    return {"status": "SET", "unit": budget["unit"], "value": budget["value"]}
+    if status != BUDGET_SET:
+        return {"status": status}
+    return {"status": BUDGET_SET, "unit": budget["unit"], "value": budget["value"]}
 
 
 def read_sources(challenge):

@@ -93,6 +93,16 @@ under `/var/lib/carbon-producer/rate-study/`, else the run is refused. (That cov
 producer's, the testnet deployment's, EV5's, `graphite-confirmation-v1`'s and the tuning
 set's roots without naming them.)
 
+**Order (the Test Lead's ruling, 2026-10-09).** For a real config the root allow-list is
+checked **first**: before the file-mode (owner-only) check, before
+`producer_configs`/`validator_config`, and before anything else about the file. A real
+root outside the study directory is therefore refused `production_root_refused`, for its
+own reason, never hidden behind `config_unreadable`.
+
+**Fixture-only key:** `bank_short_windows` (a list of window indices) makes those windows'
+`3m` submissions `UNAVAILABLE` in fixture mode; a real config naming it is refused
+`config_schema_mismatch`.
+
 ## 5. Exit codes and resumption
 
 - `0`: every window produced its records.

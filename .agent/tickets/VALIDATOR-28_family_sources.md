@@ -26,9 +26,14 @@ producer code.
      own source, because of its quiz and duplicates.
    - **Parity:** motor's own suite (`test_challenge_validator_motor_hidden.py`)
      runs unchanged through the extracted source.
-2. `FamilyBankSource`: a family's bank tranches (VALIDATOR-23) through the
-   same population and runner, so that a registered family is bankable and
-   shardable by a startup host.
+2. **The family's bank (VALIDATOR-23).**
+   - `FamilyBankSource` draws a tranche from the family's custody root by
+     role, through its population. Published cases are refused.
+   - `FamilySource.bank()` and `fill_tranche()` solve and seal a tranche
+     through the family's runner, under the batch contract and resumably.
+   - So a registered family is bankable. Its window rule values (B, E) stay
+     the family owner's to register, and a startup host's sharding follows
+     in a later slice.
 3. `FamilyHiddenAdapter`: `motor_hidden`, generalized, for import-only
    validators.
 4. **A conformance kit:** one test function a family module calls with a
