@@ -99,4 +99,4 @@ the open items below. This file is the source; nothing else is needed.
   settled; the minerD-G UIDs are not part of stage B.)
 - A4 entries for L2 and L3 (executor-created identities, then recorded); V1 and V2 Q1
   reports per level.
-- Level 4 stays outside stage B (owner and security owner).
+- Level 4 stays outside stage B. **Level 4 permission is resolved** (owner, 2026-10-09, relayed by the Test Lead: "I approve level 4 runs. This is testing"; scope the testnet dev-ladder and the development door only, never main), but **its spend is not**: stage C (about 71.55 worst case, 71.80 with cleanup; `GRAPHITE_LADDER_WAVE_PLAN.md` section 4a) needs the owner's spend approval and, additionally, that the dev-ladder serve and label L4 DEVELOPMENT, an A4 designation for (battery, 4), a Q1 report per level, and a grant file that binds spend.
