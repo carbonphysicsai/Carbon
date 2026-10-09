@@ -28,6 +28,32 @@ the library checks reference completeness and question summaries before
 running controls. `support_case` identifies questions that reuse one solved
 bank, so they count as one cluster in the separation test.
 
+An optional, digest-bound `refinement_rule` extends the export for settled
+near-limit candidates:
+
+```json
+{"refinement_rule": {"id": "<PRODUCER_REGISTERED_RULE_ID>", "method": "two-rungs-same-side-change-below-band.v1"}}
+```
+
+When this field is present, **every** question has a `settled` field. A plain
+question uses `[{"candidate": "...", "feasible": true}]`; an indexed question
+uses one `{"index_value": ..., "verdicts": [...]}` row per registered index, in
+order. The verdict list may be empty. The producer verifies that both refined
+rungs lie on the same side of every relevant limit and change by less than its
+registered band, then seals the rule ID and verdicts under `export_digest` (or
+`snapshot_digest`). The report checks the digest, the named rule, candidate and
+index identities, and contradictions with already resolved panel results. It
+does not reconstruct the rungs or declare the producer's refinement adequate.
+An unregistered or tampered settlement is refused; the legacy export without
+these fields keeps its historical interpretation.
+
+A still-unresolved candidate makes a band UNRESOLVED only if treating it as
+feasible could change the registered winner or whether a feasible design
+exists. A mandatory NONE_FEASIBLE band fixes the whole indexed map as
+NONE_FEASIBLE. If a control picks a still-unresolved candidate, that question
+is omitted from that control's common resolved comparison and counted in its
+aggregate `unscored_control_mass`; it is never a control failure.
+
 `exposure` is a list of `{case, limit, used}`, one row per question. Its
 required unit is `per_question_draws`. This matches the merged
 `challenge_validator.design_bank` ledger: a window selects distinct live
