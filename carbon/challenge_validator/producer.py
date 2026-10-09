@@ -132,10 +132,7 @@ def require_approval(approval, *, repository=REPOSITORY):
 def source_for(challenge_id, spec, *, repository=REPOSITORY):
     """The registered `BatchSource` for one configured, owner-approved
     Challenge."""
-    from carbon.reconstruction.capability_registry import (
-        BATTERY_CHALLENGE,
-        MOTOR_CHALLENGE,
-    )
+    from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 
     require_approval(spec.get("approval"), repository=repository)
 
@@ -158,14 +155,16 @@ def source_for(challenge_id, spec, *, repository=REPOSITORY):
         return BatteryQuizSource.from_deployment(
             spec["deployment"], overlay=spec.get("overlay"), repository=repository
         )
-    if challenge_id == MOTOR_CHALLENGE:
-        # Motor's hidden pool (VALIDATOR-21): its solver image is pinned by
-        # its hidden rule, so it takes no overlay.
+    from .family_source import family_source_class
+
+    family = family_source_class(challenge_id)
+    if family is not None:
+        # A registered reference family (VALIDATOR-28; motor's hidden pool,
+        # VALIDATOR-21, first): its solver image is pinned by its
+        # registration, so it takes no overlay.
         if "overlay" in spec:
             raise ProducerRefused("producer_config_malformed")
-        from .motor_source import MotorBatchSource
-
-        return MotorBatchSource(spec["deployment"], repository=repository)
+        return family(spec["deployment"], repository=repository)
     raise ProducerRefused("producer_no_source")
 
 
