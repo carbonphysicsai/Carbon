@@ -115,6 +115,7 @@
   "frontier_plan_sha256": "557eb07e801816fde41248ff8338bc9aff9f8dc962ce3d04e08deab0e3780815",
   "rules": "scripts/dev/motor/feasibility02/peak.py docstring (complete, frontier, skew >= 11.5 N m at J 15 gamma 0, rung 2 within one band)",
   "frontier_fit": "OLS of S1 J 10 gamma 0 mean on normalised coordinates: R2 0.99, predicted valid maximum 8.73 N m; region >= 8.0 N m holds 676 of 200,000 valid-checked points",
-  "bundle": "deduplicated per geometry: holding at all three spans = J 0 + J 10 at gamma 0, +-5, +-10 = 6 solves; peak adds J 15 at the same five gammas = 5; full question 11"
+  "bundle": "deduplicated per geometry: holding at all three spans = J 0 + J 10 at gamma 0, +-5, +-10 = 6 solves; peak adds J 15 at the same five gammas = 5; full question 11",
+  "setup_check": "d16 (strongest holding design): J 15 at gamma -20/+20/+30 (with S3's -10/-5/0/+5/+10 this is a gamma sweep) and gamma 0 at J 5/12.5/20 (with J 0/8/10/15 a current sweep). A setup error would show as a torque maximum away from gamma 0 or a non-physical J dependence; registered 2026-10-09 before these solves"
  }
 }
