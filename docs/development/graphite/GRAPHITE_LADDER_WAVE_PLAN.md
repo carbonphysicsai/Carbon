@@ -22,7 +22,7 @@ Checked against origin/main `8b19f012d` (2026-10-09).
 | A Constructor at **Level 0 on kimi-k3** is possible | NOT AVAILABLE | R4 refuses Level 0; Level 0 keeps the cheap start rung. A Level 0 kimi-k3 run needs a new binding and grant (section 6) |
 | An Attacker on kimi-k3 | NOT AVAILABLE under today's grant | D35: one kimi-k3 call reserves more than GRAPHITE-GRANT-PHASE4's token share, so an Attacker session stops before its first call. A larger token share is a grant value, the owner's |
 | Battery attack adapters at L0, L1, L2, L3, L4 | VERIFIED | `attack/adapters/__init__.py` `BUILTIN` (battery_level1 to battery_level4) |
-| Development variants L1 to L4 | VERIFIED (policies) | `reconstruction/development_variant_policies/`: l1 loss expressions, l2 spectral/v2, l3 numerics, l4 graph v1/v2. Levels 4 and 5 stay refused by the variant registry until the security owner accepts isolation (LEVEL4 decisions); **whether a Level 4 live run is permitted is the owner's and the security owner's, not assumed here** |
+| Development variants L1 to L4 | VERIFIED (policies) | `reconstruction/development_variant_policies/`: l1 loss expressions, l2 spectral/v2, l3 numerics, l4 graph v1/v2. Levels 4 and 5 stay refused by the variant registry until the security owner accepts isolation (LEVEL4 decisions); **Level 4 runs are PERMITTED** (owner, 2026-10-09, relayed by the Test Lead: "I approve level 4 runs. This is testing"), scope **testnet dev-ladder and development door only**, never main; spend is separate (stage C) |
 | Auto-confirm signer (#861) | VERIFIED | merged: SIGNER-AUTOCONFIRM-01, opt-in, testnet-only |
 | Development door (`battery/dev_submit.py`) | VERIFIED | OWNER-LADDER-THROUGH-LAUNCHPAD-01 |
 | The Launchpad `minerD-G` lane, UIDs 8 to 11, one commit per tempo each | **OWNER-REGISTERED; chain check after the WSL restart** | the owner created and registered them on 2026-10-08 (Test Lead, relayed). Nothing on main names them, by design: no account or address detail is in the repo. They are verified with Carbon's reader once the WSL host is back. The commit-per-hotkey-per-tempo rule is verified (OWNER-COMMITMENT-POSTER-01 D4) |
@@ -68,7 +68,7 @@ Checked against origin/main `8b19f012d` (2026-10-09).
 | 2 | L1 | dev-ladder (confirmation); dev door (exploration) | kimi-k3 under R4 (exists) | kimi-k3 |
 | 3 | L2 | dev-ladder | kimi-k3 | kimi-k3 |
 | 4 | L3 | dev-ladder | kimi-k3 | kimi-k3 |
-| 5 | L4 | dev-ladder | kimi-k3, graph-only | kimi-k3; the owner and security owner decide whether it runs |
+| 5 | L4 | dev-ladder (confirmation); dev door (exploration) | kimi-k3, graph-only | kimi-k3; **permitted** (owner, 2026-10-09); spend still needs the owner's approval (stage C) |
 
 A level's explore phase may overlap the previous level's confirmation phase; two levels never
 share a controller root (one controller root per run; the W2 rule that an open finding blocks
@@ -118,7 +118,9 @@ owner may approve stage by stage. **Stage membership is by runs, so the figures 
 stage A is still 5 Constructor and 4 Attacker runs, about 128.19 (128.44 with cleanup). Moving
 L1's confirmation to the dev-ladder changes only where L1 confirms and what it waits for:
 stage A's L1 confirmations wait for VALIDATOR-25 (its L1 explore, Constructor and Attacker
-runs do not). Stage B waits for VALIDATOR-25 and stage C for the security decision. ### Concurrency (Test Lead: "hammering" means more than one run at a time)
+runs do not). Stage B waits for VALIDATOR-25. Stage C is unblocked on permission (owner, 2026-10-09) and waits on stage B's prerequisites and the owner's spend approval.
+
+### Concurrency (Test Lead: "hammering" means more than one run at a time)
 
 Proposal: **`max_concurrency` 2 for stage A** on the shared WSL host, raised to **4** after a host-load check with Data Collection (the host has been saturated; a
 raise is not assumed). Each run keeps its own controller root. Cost is unchanged: the per-run
@@ -143,6 +145,35 @@ Existing grants cover only part of this: R4 (45.00 ceiling, 3 runs, battery L1+)
 covers 3 of stage A's Constructor runs if its 3 runs are unused (unverified); **everything else needs new grants** (a Level 0
 kimi-k3 Constructor binding, a kimi-k3 Attacker token share, and R4-style grants for L2 to L4).
 Grant files and runner bindings are the owner's and the Test Engineer's, not authored here.
+
+### 4a. Stage C line for the owner (once stage B's prerequisites are clear)
+
+**Level 4 permission (owner, 2026-10-09, relayed by the Test Lead; verbatim):** "I approve level 4 runs. This is testing". **Scope: the testnet dev-ladder and the development door only.** Level 4 is never on main and never on any mainnet-adjacent route beyond those two. This resolves the *permission* question only; it grants no spend.
+
+| Stage C: L4 (graph-only) | Runs | Worst case | With 0.25 cleanup |
+|---|---|---|---|
+| Constructor L4 x3 (kimi-k3, R4-style) | 3 x 14.91 = 44.73 | | |
+| Attacker L4 x2 (kimi-k3) | 2 x 13.41 = 26.82 | | |
+| **Stage C** | 3 Constructor, 2 Attacker | **71.55** | **71.80** |
+
+(Verified from the stage figures: 44.73 + 26.82 = 71.55; the Test Lead's about USD 71.80 is the
+71.55 worst case plus the 0.25 cleanup allowance. The 13.41 Attacker figure is the plan's
+assumption; 14.91 is the committed R4 worst case.) Prerequisites, all of which must hold before
+a stage C run:
+1. Stage B's prerequisites are clear (VALIDATOR-25 slices #895 and #899 merged and deployed on
+   valV2, the owner's valV2 ladder steps, the `levels` list slice).
+2. **Level 4 is served and labelled DEVELOPMENT on the dev-ladder** (the served-variants list
+   names it; it is the Validator's call that the dev-ladder serves L4; today the plan assumed it
+   served L1 to L3 with L4 refused, so this is a change to ask for).
+3. **A4 designated for (battery, 4):** the executor's zero-spend controller recorded in
+   `admission_controllers.json`.
+4. **A Q1 report for each level** the value:score claim covers (V1, V2).
+5. **The grant file binds spend:** an R4-style grant for L4 (and the kimi-k3 Attacker share) is
+   authored by the owner's process, committed on main, and bound by the Test Engineer. The file,
+   not this plan, binds spend.
+6. **Guardrails:** Level 4 never on main; no route beyond the testnet dev-ladder and the
+   development door; no mainnet; hidden material never in an agent-visible output; a fresh
+   controller root per run.
 
 ## 5. Readiness-gate items per level
 
@@ -174,7 +205,7 @@ are "last known".
 | L1 | A2 and A4 at level 1 | A4: **no L1 entry exists** in `admission_controllers.json` (only level 0); needs designation. R4's four recorded entry conditions also apply (section 0). L1 confirmation additionally needs VALIDATOR-25 |
 | L2 | A2 and A4 at level 2 | no L2 designation; also needs VALIDATOR-25 |
 | L3 | A2 and A4 at level 3 | no L3 designation; also needs VALIDATOR-25 |
-| L4 | A2 and A4 at level 4 | no L4 designation; VALIDATOR-25; security-owner acceptance of G5 compile isolation (LEVEL4 decisions) is the owner's, not a gate item |
+| L4 | A2 and A4 at level 4 | no L4 designation yet (executor-created zero-spend controller, then recorded); VALIDATOR-25. Level 4 runs are permitted by the owner for the dev-ladder and dev door only; G5 compile isolation was accepted for development and testnet (D3, #803) |
 
 **Items that gate value:score claims, not the live run:** D1 to D7 (decision studies; D7 PASS),
 V1 and V2 (Q1 report and panel discrimination, both FAIL until a real-reference Q1 report is
@@ -197,8 +228,9 @@ waiver names the replacement). This plan proposes no waiver.
    grants (section 4). The owner approves; the Test Engineer binds.
 4. **Gate:** A4 designation per level (only level 0 exists, PENDING); R1 containment image; V1
    and V2 reports per level; O1, A5, S4 reviews (Test Lead).
-5. **Level 4 permission** (owner and security owner), and L1 on main needing a live variant
-   (section 1) are open decisions.
+5. **Level 4 permission: RESOLVED for permission, NOT for spend.** **Level 4 permission (owner, 2026-10-09, relayed by the Test Lead; verbatim):** "I approve level 4 runs. This is testing". **Scope: the testnet dev-ladder and the development door only.** Level 4 is never on main and never on any mainnet-adjacent route beyond those two. This resolves the *permission* question only; it grants no spend. Stage C's
+   spend (section 4a) still needs the owner's approval. L1 on main needing a live variant
+   (section 1) is superseded: L1 confirms on the dev-ladder.
 6. **Host:** the WSL host is unhealthy; no run, no gate rerun until Data Collection or the Test
    Lead says it is healthy. The second readiness baseline is outstanding and would refresh
    section 5's "last known".
