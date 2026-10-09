@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-motor-law-raw-reconciled-checks",
+  "recorded_at": "2026-10-09T16:33:45Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-MOTOR-QUESTION-LAW-01 raw-reconciled affected suite", "description": "Native UTF-8 six affected proposal/pipeline/customer/value test files plus Black --check and Ruff"},
+  "expected": "Correct raw-versus-summary interpretation without changing scientific authority or other laws.",
+  "observed": "144 passed in 3.13 s; Black and Ruff clean. Canonical wrapper remains blocked by local Windows/WSL worktree metadata; required PR CI not yet observed.",
+  "keep": ["A misleading summary is not a failed reference when raw data resolves its terminology."],
+  "change": ["None; full-role feasibility, per-boundary T2 evidence, job-count reconciliation and measured billing remain required before bank rental."],
+  "protocol_elements": ["reference-finding-classification", "bounded-regression", "exact-head-CI"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

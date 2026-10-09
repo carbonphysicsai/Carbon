@@ -853,7 +853,7 @@
     const wrap = el("div", undefined, "table-wrap");
     const table = el("table", undefined, "metrics-table");
     const headRow = el("tr");
-    for (const name of ["Run", "Model", "Gates", "Score", ...keys.map(k => labels[k] || k), "Final loss", "Framework", "Ran on"]) headRow.append(el("th", name));
+    for (const name of ["Run", "Model", "Gates", "Score", ...keys.map(k => labels[k] || k), "Final loss", "Compute budget", "Framework", "Ran on"]) headRow.append(el("th", name));
     table.append(headRow);
     const fallback = (doc.toolbox?.runtimes || []).find(r => r.default)?.id;
     for (const r of rows) {
@@ -862,7 +862,7 @@
       for (const k of keys) row.append(el("td", fmt(r.components[k])));
       // What the run actually ran on: its recipe's framework (or the
       // Challenge's default) and the worker record's backend and image.
-      row.append(el("td", fmt(r.fit.final_loss)), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.ran_on || (r.backend ? words(r.backend).toLowerCase() : null), r.image].filter(Boolean).join(" · ") || "–"));
+      row.append(el("td", fmt(r.fit.final_loss)), el("td", (CC.budgetLine && CC.budgetLine(r.budget_status)) || "–"), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.ran_on || (r.backend ? words(r.backend).toLowerCase() : null), r.image].filter(Boolean).join(" · ") || "–"));
       table.append(row);
     }
     wrap.append(table); box.append(wrap);
