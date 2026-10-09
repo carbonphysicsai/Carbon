@@ -17,7 +17,7 @@ Definitions (plan sections 3 and 7, measures-v1.json):
 - `D_at_P` of a run is D of its last scored submission whose `probes_case_max`
   is at most P (no averaging, no extra parameter).
 - Only `state == "SCORED"` submissions are observations. Every other state
-  (`UNAVAILABLE`, `WINDOW_USED`, `REPEATED`) is counted and excluded; it is
+  (`UNAVAILABLE`, `WINDOW_USED`, `REPEATED`, `NOT_SCORED`) is counted and excluded; it is
   never drift.
 
 Provenance. A record is `STUDY` (a real run) or `FIXTURE` (synthetic, used only
@@ -51,7 +51,10 @@ SEED_NAMESPACE = "SUBMISSION-RATE-STUDY-01/bootstrap/"
 ARMS = ("H", "S-sealed", "S-revealed", "G-sealed")
 #: The arms whose rate decides the safe rate; S-revealed is the reported bound.
 REALISTIC_ARMS = ("S-sealed", "G-sealed")
-STATES = ("SCORED", "UNAVAILABLE", "WINDOW_USED", "REPEATED")
+#: `NOT_SCORED`: the route had a candidate failure, a scored submission had no
+#: aggregate score, or the fresh-set scoring had a candidate failure. Excluded and
+#: counted like the other non-scored states; never a drift observation.
+STATES = ("SCORED", "UNAVAILABLE", "WINDOW_USED", "REPEATED", "NOT_SCORED")
 PROVENANCES = ("STUDY", "FIXTURE")
 FIELDS = (
     "arm",

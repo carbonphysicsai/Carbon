@@ -83,11 +83,13 @@ def test_only_scored_submissions_are_observations_and_the_rest_are_counted():
     records = fixtures.run_records("H", 1, 1, windows=2)
     records.append(dict(records[0], state="UNAVAILABLE", t=99))
     records.append(dict(records[0], state="REPEATED", t=100))
+    records.append(dict(records[0], state="NOT_SCORED", t=101))
     assert len(analyze.runs_of(records, "H", 1)[1]) == 6
     assert analyze.excluded_counts(records) == {
         "UNAVAILABLE": 1,
         "WINDOW_USED": 0,
         "REPEATED": 1,
+        "NOT_SCORED": 1,
     }
 
 
