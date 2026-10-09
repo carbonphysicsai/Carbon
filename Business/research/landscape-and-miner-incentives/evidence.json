@@ -1,0 +1,679 @@
+{
+  "schema": "carbon.research.landscape-miner-incentives.v1",
+  "ticket": "LANDSCAPE-AND-MINER-INCENTIVES-01",
+  "as_of": "2026-10-09",
+  "authority_main": "3a6dfdd8dffdfdaf241596033d5bf55b66abfcff",
+  "publication_base": "fe8f536513e04caf0972e24c39d6d9cf22cb3ab7",
+  "purpose": "Two short research briefs; proposal only.",
+  "expected_manifest": [
+    "Business/research/landscape-and-miner-incentives/README.md",
+    "Business/research/landscape-and-miner-incentives/competitive-landscape.md",
+    "Business/research/landscape-and-miner-incentives/early-miner-incentives.md",
+    "Business/research/landscape-and-miner-incentives/evidence.json"
+  ],
+  "numeric_policy": "All substantive numeric observations have low/base/high. Equal endpoints reproduce reported points, not statistical intervals. Censored quantities retain null endpoints and qualifiers. Dates, versions, source IDs and document structure are metadata.",
+  "sources": [
+    {
+      "id": "L01",
+      "title": "PhysicsX Series B and industrial collaboration",
+      "publisher": "PhysicsX",
+      "published": "2025-06-22",
+      "url": "https://www.physicsx.ai/newsroom/physicsx-raises-135m-series-b-to-usher-in-a-new-era-of-ai-native-engineering-and-manufacturing",
+      "kind": "COMPANY_REPORT",
+      "scope": "Enterprise engineering platform; Siemens collaboration; announced financing. Funding is not customer revenue.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "L02",
+      "title": "PhysicsNeMo product and adoption stories",
+      "publisher": "NVIDIA",
+      "published": null,
+      "url": "https://developer.nvidia.com/physicsnemo",
+      "kind": "VENDOR_DOCUMENTATION",
+      "scope": "Open construction framework and named vendor-reported applications. Not universal performance or paid ARR.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "L03",
+      "title": "PhysicsNeMo official repository",
+      "publisher": "NVIDIA",
+      "published": null,
+      "url": "https://github.com/NVIDIA/physicsnemo",
+      "kind": "OFFICIAL_REPOSITORY",
+      "scope": "Current open-source framework and license; did not execute code.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "L04",
+      "title": "Ansys SimAI product",
+      "publisher": "Synopsys / Ansys",
+      "published": null,
+      "url": "https://ansys.synopsys.com/products/ai/simai",
+      "kind": "VENDOR_DOCUMENTATION",
+      "scope": "Models learned from previous simulations; design exploration; current deployment choices.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "L05",
+      "title": "Sumitomo Riko application",
+      "publisher": "Synopsys / Ansys",
+      "published": "2025-10-08",
+      "url": "https://www.ansys.com/news-center/press-releases/10-8-25-ansys-ai-accelerates-sim-for-sumitomo-riko",
+      "kind": "VENDOR_CUSTOMER_CASE",
+      "scope": "Named analysis/experimental development workflow. Headline speed not imported as decision-level benefit.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "L06",
+      "title": "Simcenter PhysicsAI add-on release",
+      "publisher": "Siemens",
+      "published": "2026-05-27",
+      "url": "https://news.siemens.com/en-us/siemens-simcenter-physicsai/",
+      "kind": "VENDOR_DOCUMENTATION",
+      "scope": "STAR-CCM+ geometric models; retained CFD validation; combined Siemens-Altair portfolio.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "L07",
+      "title": "Kinetic Vision PhysicsAI use",
+      "publisher": "Kinetic Vision",
+      "published": "2026-08-07",
+      "url": "https://kinetic-vision.com/kinetic-vision-recognized-for-ai-powered-simulation-leadership-at-siemens-realize-live/",
+      "kind": "CUSTOMER_REPORT",
+      "scope": "Customer-side account of engineering use, not independent savings audit.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "L08",
+      "title": "Subaru and Cybernet deployment case",
+      "publisher": "Neural Concept",
+      "published": "2024-10-07",
+      "url": "https://www.neuralconcept.com/customer-stories/subaru-introduces-neural-concept-to-revolutionize-automotive-development",
+      "kind": "VENDOR_CUSTOMER_CASE",
+      "scope": "Production engineering forming/thickness prediction; not annual value or signed contract evidence.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "L09",
+      "title": "Neural Concept Series C",
+      "publisher": "Neural Concept",
+      "published": "2025-12-18",
+      "url": "https://www.neuralconcept.com/press-release/neural-concept-closes-100m-funding-round",
+      "kind": "COMPANY_REPORT",
+      "scope": "CAD-native enterprise engineering platform; announced capital, not audited revenue.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "L10",
+      "title": "Luminary Series B and collaborations",
+      "publisher": "Luminary",
+      "published": "2025-09-15",
+      "url": "https://luminary.ai/resources/luminary-cloud-secures-72m-series-b-to-lead-the-physics-ai-era/",
+      "kind": "COMPANY_REPORT",
+      "scope": "Model Factory; Honda and Otto Aerospace collaborations; named customers; announced financing.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "M01",
+      "title": "Masa incentivized testnet programme",
+      "publisher": "CoinList",
+      "published": "2024-07-09",
+      "url": "https://blog.coinlist.co/announcing-the-masa-bittensor-incentivized-testnet-rjlsb/",
+      "kind": "PROGRAMME_ANNOUNCEMENT",
+      "scope": "Pool ceiling and eligibility; future mainnet distribution with unsettled lockup terms. No verified payment receipt.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "M02",
+      "title": "Masa launch and testnet outcomes",
+      "publisher": "Masa via Chainwire",
+      "published": "2024-08-27",
+      "url": "https://chainwire.org/2024/08/27/masa-launches-bittensor-subnet-mainnet-with-genesis-institutional-validator-partners/",
+      "kind": "COMPANY_REPORT",
+      "scope": "Capacity filled and competing miner count reported; not unique-person count, retention or causal trial.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "M03",
+      "title": "Enigma mechanisms and results",
+      "publisher": "Q Bittensor Labs",
+      "published": null,
+      "url": "https://github.com/qbittensor-labs/enigma",
+      "kind": "PROJECT_REPORT",
+      "scope": "Public workbench, treasury prizes, winning methods and patched environment flaw reported; unclaimed wallet bounty is not a security qualification.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "M04",
+      "title": "Issue discovery reward rules",
+      "publisher": "Gittensor",
+      "published": "2026-10-01",
+      "url": "https://docs.gittensor.io/issue-discovery.html",
+      "kind": "PROGRAMME_DOCUMENTATION",
+      "scope": "Registered-miner issue credit tied to merged related contributions; not recruitment-outcome evidence.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "M05",
+      "title": "OSS contribution reward rules",
+      "publisher": "Gittensor",
+      "published": null,
+      "url": "https://docs.gittensor.io/oss-contributions.html",
+      "kind": "PROGRAMME_DOCUMENTATION",
+      "scope": "Merged-work eligibility and credibility/review/spam controls; no Carbon grade transfer.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "M06",
+      "title": "Incentivizing Permissionless Distributed Learning of LLMs",
+      "publisher": "Lidin et al.",
+      "published": "2025-05-27",
+      "url": "https://arxiv.org/abs/2505.21684v1",
+      "kind": "PRIMARY_RESEARCH",
+      "scope": "Gauntlet authors report permissionless training and contribution-linked token payments; not an independent recruitment study.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "M07",
+      "title": "IOTA technical primer",
+      "publisher": "Macrocosmos authors",
+      "published": "2025-07-16",
+      "url": "https://arxiv.org/html/2507.17766v1",
+      "kind": "PRIMARY_RESEARCH",
+      "scope": "Authors report earlier hoarding/hardware limitations; replacement results explicitly preliminary.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "M08",
+      "title": "Running a subnet on testnet",
+      "publisher": "Rao Foundation",
+      "published": null,
+      "url": "https://github.com/RaoFoundation/bittensor-subnet-template/blob/main/docs/running_on_testnet.md",
+      "kind": "ARCHIVED_DOCUMENTATION",
+      "scope": "Archived repository; historical test currency distinction only. Not current command guidance.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "C01",
+      "title": "Business Canon",
+      "publisher": "Carbon",
+      "published": null,
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/3a6dfdd8dffdfdaf241596033d5bf55b66abfcff/Business/Business_Canon.md",
+      "kind": "REPOSITORY_AUTHORITY",
+      "scope": "Product identity, EvidenceAudit and SponsoredDiscovery; no commercial adoption conferred.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "C02",
+      "title": "Project status snapshot",
+      "publisher": "Carbon",
+      "published": "2026-09-28",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/3a6dfdd8dffdfdaf241596033d5bf55b66abfcff/docs/publications/PROJECT_STATUS.md",
+      "kind": "REPOSITORY_STATUS_SNAPSHOT",
+      "scope": "Dated development evidence; follow linked subsequent authority. Does not establish production network or paid customer traction.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "C03",
+      "title": "Launch path development amendment",
+      "publisher": "Carbon",
+      "published": "2026-09-15",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/3a6dfdd8dffdfdaf241596033d5bf55b66abfcff/launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.7.md",
+      "kind": "REPOSITORY_AUTHORITY",
+      "scope": "Bounded development/testnet amendment; no new official/LIVE authority.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    },
+    {
+      "id": "C04",
+      "title": "Launch path predecessor and reward amendment",
+      "publisher": "Carbon",
+      "published": null,
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/3a6dfdd8dffdfdaf241596033d5bf55b66abfcff/launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.6.md",
+      "kind": "REPOSITORY_AUTHORITY",
+      "scope": "OWNER-C0-REWARD-01 direct winner plus burn; treasury optional. Later amendment also applies.",
+      "accessed": "2026-10-09",
+      "independent_outcome_audit": false
+    }
+  ],
+  "numeric_observations": [
+    {
+      "id": "N01",
+      "metric": "PhysicsX announced Series B",
+      "unit": "USD",
+      "low": 135000000,
+      "base": 135000000,
+      "high": 135000000,
+      "basis": "SOURCED",
+      "qualifier": "announced_point",
+      "sources": [
+        "L01"
+      ],
+      "use": "Financing only, not revenue or market size."
+    },
+    {
+      "id": "N02",
+      "metric": "Neural Concept announced Series C",
+      "unit": "USD",
+      "low": 100000000,
+      "base": 100000000,
+      "high": 100000000,
+      "basis": "SOURCED",
+      "qualifier": "announced_point",
+      "sources": [
+        "L09"
+      ],
+      "use": "Financing only."
+    },
+    {
+      "id": "N03",
+      "metric": "Luminary announced Series B",
+      "unit": "USD",
+      "low": 72000000,
+      "base": 72000000,
+      "high": 72000000,
+      "basis": "SOURCED",
+      "qualifier": "announced_point",
+      "sources": [
+        "L10"
+      ],
+      "use": "Financing only."
+    },
+    {
+      "id": "N04",
+      "metric": "Masa announced reward pool ceiling",
+      "unit": "MASA tokens",
+      "low": null,
+      "base": null,
+      "high": 3000000,
+      "basis": "SOURCED",
+      "qualifier": "announced_upper_bound",
+      "sources": [
+        "M01"
+      ],
+      "use": "Ceiling of planned allocation, not actual paid tokens; missing endpoints HUMAN_INPUT."
+    },
+    {
+      "id": "N05",
+      "metric": "Masa eligible miner slots / reported filled capacity",
+      "unit": "miner slots",
+      "low": 256,
+      "base": 256,
+      "high": 256,
+      "basis": "SOURCED",
+      "qualifier": "reported_point",
+      "sources": [
+        "M01",
+        "M02"
+      ],
+      "use": "Eligibility slots, not independent skilled people or retained participants."
+    },
+    {
+      "id": "N06",
+      "metric": "Masa reported competing miner entries",
+      "unit": "miner entries",
+      "low": 750,
+      "base": null,
+      "high": null,
+      "basis": "SOURCED",
+      "qualifier": "greater_than",
+      "sources": [
+        "M02"
+      ],
+      "use": "Strictly over lower endpoint. Other endpoints HUMAN_INPUT, not unique-person count."
+    }
+  ],
+  "unknowns": [
+    {
+      "metric": "Carbon paid customers",
+      "low": null,
+      "base": null,
+      "high": null,
+      "basis": "HUMAN_INPUT",
+      "reason": "Not established by cited public evidence; no invented positive scenario."
+    },
+    {
+      "metric": "Carbon recurring revenue",
+      "low": null,
+      "base": null,
+      "high": null,
+      "basis": "HUMAN_INPUT",
+      "reason": "Not established by cited public evidence; no invented positive scenario."
+    },
+    {
+      "metric": "Carbon validated pricing",
+      "low": null,
+      "base": null,
+      "high": null,
+      "basis": "HUMAN_INPUT",
+      "reason": "Not established by cited public evidence; no invented positive scenario."
+    },
+    {
+      "metric": "Carbon commercial repeat demand",
+      "low": null,
+      "base": null,
+      "high": null,
+      "basis": "HUMAN_INPUT",
+      "reason": "Not established by cited public evidence; no invented positive scenario."
+    },
+    {
+      "metric": "Miner programme total budget",
+      "low": null,
+      "base": null,
+      "high": null,
+      "basis": "HUMAN_INPUT",
+      "reason": "Not established by cited public evidence; no invented positive scenario."
+    },
+    {
+      "metric": "Miner programme per-award budget",
+      "low": null,
+      "base": null,
+      "high": null,
+      "basis": "HUMAN_INPUT",
+      "reason": "Not established by cited public evidence; no invented positive scenario."
+    },
+    {
+      "metric": "Miner programme duration",
+      "low": null,
+      "base": null,
+      "high": null,
+      "basis": "HUMAN_INPUT",
+      "reason": "Not established by cited public evidence; no invented positive scenario."
+    },
+    {
+      "metric": "Miner programme eligibility target",
+      "low": null,
+      "base": null,
+      "high": null,
+      "basis": "HUMAN_INPUT",
+      "reason": "Not established by cited public evidence; no invented positive scenario."
+    },
+    {
+      "metric": "Expected qualified entrants",
+      "low": null,
+      "base": null,
+      "high": null,
+      "basis": "HUMAN_INPUT",
+      "reason": "Not established by cited public evidence; no invented positive scenario."
+    },
+    {
+      "metric": "Expected retained miners",
+      "low": null,
+      "base": null,
+      "high": null,
+      "basis": "HUMAN_INPUT",
+      "reason": "Not established by cited public evidence; no invented positive scenario."
+    },
+    {
+      "metric": "Expected useful outputs",
+      "low": null,
+      "base": null,
+      "high": null,
+      "basis": "HUMAN_INPUT",
+      "reason": "Not established by cited public evidence; no invented positive scenario."
+    },
+    {
+      "metric": "Expected payout delay",
+      "low": null,
+      "base": null,
+      "high": null,
+      "basis": "HUMAN_INPUT",
+      "reason": "Not established by cited public evidence; no invented positive scenario."
+    },
+    {
+      "metric": "Comparable causal recruitment effect",
+      "low": null,
+      "base": null,
+      "high": null,
+      "basis": "HUMAN_INPUT",
+      "reason": "Not established by cited public evidence; no invented positive scenario."
+    },
+    {
+      "metric": "Verified Masa testnet payouts",
+      "low": null,
+      "base": null,
+      "high": null,
+      "basis": "HUMAN_INPUT",
+      "reason": "Not established by cited public evidence; no invented positive scenario."
+    },
+    {
+      "metric": "Independent Enigma payout audit",
+      "low": null,
+      "base": null,
+      "high": null,
+      "basis": "HUMAN_INPUT",
+      "reason": "Not established by cited public evidence; no invented positive scenario."
+    }
+  ],
+  "competitors": [
+    {
+      "company": "PhysicsX",
+      "sources": [
+        "L01"
+      ],
+      "traction": "COMPANY_REPORTED_PARTNERSHIP_AND_FINANCING"
+    },
+    {
+      "company": "NVIDIA",
+      "product": "PhysicsNeMo",
+      "sources": [
+        "L02",
+        "L03"
+      ],
+      "traction": "OPEN_FRAMEWORK_AND_VENDOR_REPORTED_USE"
+    },
+    {
+      "company": "Synopsys / Ansys",
+      "product": "SimAI",
+      "sources": [
+        "L04",
+        "L05"
+      ],
+      "traction": "NAMED_VENDOR_CUSTOMER_CASE"
+    },
+    {
+      "company": "Siemens",
+      "product": "Simcenter PhysicsAI",
+      "sources": [
+        "L06",
+        "L07"
+      ],
+      "traction": "PRODUCT_RELEASE_AND_CUSTOMER_REPORTED_USE"
+    },
+    {
+      "company": "Neural Concept",
+      "sources": [
+        "L08",
+        "L09"
+      ],
+      "traction": "NAMED_VENDOR_CASE_AND_FINANCING"
+    },
+    {
+      "company": "Luminary",
+      "sources": [
+        "L10"
+      ],
+      "traction": "COMPANY_REPORTED_COLLABORATIONS_AND_FINANCING"
+    }
+  ],
+  "miner_examples": [
+    {
+      "name": "Masa",
+      "stage": "PRELAUNCH_TESTNET",
+      "sources": [
+        "M01",
+        "M02"
+      ],
+      "result": "REPORTED_CAPACITY_FILL",
+      "causal_recruitment_effect": null,
+      "retention": null,
+      "payouts_verified": false
+    },
+    {
+      "name": "Enigma",
+      "stage": "INAUGURAL_BOUNTY_AND_LAUNCH_CHALLENGES",
+      "sources": [
+        "M03"
+      ],
+      "result": "REPORTED_WINNING_METHODS_AND_UNCLAIMED_SECURITY_BOUNTY",
+      "causal_recruitment_effect": null,
+      "retention": null,
+      "payouts_verified": false
+    },
+    {
+      "name": "Gittensor",
+      "stage": "CURRENT_PROGRAMME_NOT_VERIFIED_PRELAUNCH",
+      "sources": [
+        "M04",
+        "M05"
+      ],
+      "result": "DOCUMENTED_ENGINEERING_REWARD_GATES",
+      "causal_recruitment_effect": null,
+      "retention": null,
+      "payouts_verified": false
+    },
+    {
+      "name": "Gauntlet / Templar",
+      "stage": "RESEARCH_RUN",
+      "sources": [
+        "M06"
+      ],
+      "result": "AUTHORS_REPORT_TRAINING_AND_TOKEN_PAYMENTS",
+      "causal_recruitment_effect": null,
+      "retention": null,
+      "payouts_verified": false
+    },
+    {
+      "name": "SN9 / IOTA",
+      "stage": "EARLIER_MECHANISM_AND_PRELIMINARY_REPLACEMENT",
+      "sources": [
+        "M07"
+      ],
+      "result": "AUTHORS_REPORT_HOARDING_AND_HARDWARE_BARRIERS",
+      "causal_recruitment_effect": null,
+      "retention": null,
+      "payouts_verified": false
+    },
+    {
+      "name": "Foundation template",
+      "stage": "ARCHIVED_TESTNET_DOCUMENTATION",
+      "sources": [
+        "M08"
+      ],
+      "result": "TEST_CURRENCY_NOT_REAL_EMISSIONS",
+      "causal_recruitment_effect": null,
+      "retention": null,
+      "payouts_verified": false
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "R01",
+      "proposal": "Concrete public practice/construction kit",
+      "sources": [
+        "L02",
+        "M03",
+        "M08",
+        "C01",
+        "C03"
+      ],
+      "status": "RECOMMENDATION_ONLY"
+    },
+    {
+      "id": "R02",
+      "proposal": "Owner-scoped engineering bounties separated from scientific rewards",
+      "sources": [
+        "M03",
+        "M04",
+        "M05",
+        "C01"
+      ],
+      "status": "RECOMMENDATION_ONLY"
+    },
+    {
+      "id": "R03",
+      "proposal": "Qualified exam before official research superiority rewards",
+      "sources": [
+        "C01",
+        "C02",
+        "C03"
+      ],
+      "status": "RECOMMENDATION_ONLY"
+    },
+    {
+      "id": "R04",
+      "proposal": "Publish clear payout and release terms; do not infer a new emission law",
+      "sources": [
+        "M01",
+        "M07",
+        "C03",
+        "C04"
+      ],
+      "status": "RECOMMENDATION_ONLY"
+    }
+  ],
+  "search_audit": {
+    "strategy": "Primary product documentation, named customer publications, issuer announcements, official subnet documentation and author papers. No solver execution, private data, outreach or paid services.",
+    "checked_categories": [
+      "Enterprise model-building platforms",
+      "Open physics-ML construction tooling",
+      "Named industrial uses",
+      "Prelaunch incentivized testnet",
+      "Engineering and security bounties",
+      "Early research prize mechanism",
+      "Continuous contribution incentives",
+      "Reported mechanism failures"
+    ],
+    "excluded_inferences": [
+      "Funding as revenue, TAM or Carbon traction",
+      "Vendor inference speed as end-to-end admissible decision benefit",
+      "Mixed-definition customer counts as a growth trend",
+      "Carbon product specification as a production qualification",
+      "Enigma unclaimed bounty as a security audit",
+      "Masa miner entries as unique retained people",
+      "IOTA preliminary remedy as production-proven success",
+      "Archived testnet commands as current onboarding",
+      "Bitsec bounty roadmap as a delivered payout programme",
+      "Secondary token-price or miner-return claims",
+      "Unverified current global Bittensor emission formula"
+    ],
+    "retrieval_notes": [
+      "Ansys legacy product URL was unavailable in the web tool; verified current Synopsys-hosted product URL instead.",
+      "PhysicsX bare-domain retrieval failed; verified www primary announcement.",
+      "Luminary old domain redirects to luminary.ai.",
+      "Foundation template is archived; used only for historical non-real-emission distinction.",
+      "Company outcomes are attributed, not independently reproduced. No causal retention study or general optimal budget was found."
+    ]
+  },
+  "authority_ceiling": {
+    "research_only": true,
+    "commercially_validated": false,
+    "scientifically_qualified": false,
+    "security_qualified": false,
+    "incentive_adopted": false,
+    "spend_authorized": false,
+    "solver_runs": 0,
+    "hidden_data_access": false
+  },
+  "validation_scope": "Local document QA and exact additive publication verification; canonical scope/checks remain external exact-head evidence."
+}
