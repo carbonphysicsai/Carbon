@@ -1,0 +1,398 @@
+{
+  "schema": "carbon.research.open-benchmark-candidates.v1",
+  "ticket": "OPEN-BENCHMARK-CHALLENGES-01",
+  "status": "RESEARCH_NOT_RUN",
+  "authority_commit": "e1ee386e774b87ca1aeb8d705ebc537a94111f26",
+  "source_pins": {
+    "nasa": "20a39f549dbff988a6accc421ac84dafc4487695",
+    "poly": "ec9b29adcd23c62f7d1099d2b18e1ffb98cf9794",
+    "photon": "a06518872de6ec82bb4511190e544211539f55f1",
+    "sound": "e45d0436a6fbeca3db13828cbae23ca109225be3"
+  },
+  "score_rubric_file": "RESEARCH.md",
+  "currency": "EUR",
+  "hourly_rate": {
+    "low": 1.37,
+    "base": 1.37,
+    "high": 1.37,
+    "status": "ASSUMPTION owner planning basis"
+  },
+  "candidates": [
+    {
+      "id": "C1",
+      "regime": "CFD",
+      "name": "Backward-facing-step separation",
+      "priority": 1,
+      "shortcut": [
+        2,
+        3,
+        3
+      ],
+      "gain": [
+        0,
+        2,
+        3
+      ],
+      "value": [
+        1,
+        2,
+        3
+      ],
+      "hours": [
+        0.03,
+        0.2,
+        1
+      ],
+      "source": "N1",
+      "rights": "CC0 repository; preserve experimental attribution",
+      "readiness": "Published experimental anchor; design-family bridge and executable import untested",
+      "score_status": "ASSUMPTION ordinal low/base/high; no measured equal-budget gain",
+      "equivalent_complete_cases": [
+        32,
+        64,
+        128
+      ],
+      "startup_eur": [
+        1.32,
+        17.54,
+        175.36
+      ],
+      "cost_status": "ASSUMPTION; not a quote or measured affordability result",
+      "actual_equal_budget_gain": null,
+      "physical_hard_limits": "HUMAN_INPUT",
+      "population": "HUMAN_INPUT",
+      "proposal": "HUMAN_INPUT",
+      "weights": "HUMAN_INPUT",
+      "qualified": false
+    },
+    {
+      "id": "O2",
+      "regime": "optics",
+      "name": "3D periodic metagrating",
+      "priority": 2,
+      "shortcut": [
+        1,
+        2,
+        3
+      ],
+      "gain": [
+        0,
+        2,
+        3
+      ],
+      "value": [
+        1,
+        2,
+        3
+      ],
+      "hours": [
+        0.01,
+        0.08,
+        0.6
+      ],
+      "source": "P2",
+      "rights": "MIT testbed; Meep GPL-2.0-or-later",
+      "readiness": "Published independent numerical comparisons; no fabrication validation",
+      "score_status": "ASSUMPTION ordinal low/base/high; no measured equal-budget gain",
+      "equivalent_complete_cases": [
+        32,
+        64,
+        128
+      ],
+      "startup_eur": [
+        0.44,
+        7.01,
+        105.22
+      ],
+      "cost_status": "ASSUMPTION; not a quote or measured affordability result",
+      "actual_equal_budget_gain": null,
+      "physical_hard_limits": "HUMAN_INPUT",
+      "population": "HUMAN_INPUT",
+      "proposal": "HUMAN_INPUT",
+      "weights": "HUMAN_INPUT",
+      "qualified": false
+    },
+    {
+      "id": "O1",
+      "regime": "optics",
+      "name": "2D waveguide mode converter",
+      "priority": 3,
+      "shortcut": [
+        1,
+        2,
+        3
+      ],
+      "gain": [
+        0,
+        2,
+        3
+      ],
+      "value": [
+        1,
+        2,
+        3
+      ],
+      "hours": [
+        0.005,
+        0.05,
+        0.35
+      ],
+      "source": "P1",
+      "rights": "MIT testbed; Meep GPL-2.0-or-later",
+      "readiness": "Complete numerical testbed; explicitly 2D",
+      "score_status": "ASSUMPTION ordinal low/base/high; no measured equal-budget gain",
+      "equivalent_complete_cases": [
+        32,
+        64,
+        128
+      ],
+      "startup_eur": [
+        0.22,
+        4.38,
+        61.38
+      ],
+      "cost_status": "ASSUMPTION; not a quote or measured affordability result",
+      "actual_equal_budget_gain": null,
+      "physical_hard_limits": "HUMAN_INPUT",
+      "population": "HUMAN_INPUT",
+      "proposal": "HUMAN_INPUT",
+      "weights": "HUMAN_INPUT",
+      "qualified": false
+    },
+    {
+      "id": "C2",
+      "regime": "CFD",
+      "name": "Wall-mounted hump separation",
+      "priority": 4,
+      "shortcut": [
+        2,
+        3,
+        3
+      ],
+      "gain": [
+        0,
+        2,
+        3
+      ],
+      "value": [
+        1,
+        2,
+        3
+      ],
+      "hours": [
+        0.05,
+        0.35,
+        2
+      ],
+      "source": "N2",
+      "rights": "CC0 repository; external geometry provenance audit required",
+      "readiness": "Experimental anchor; material RANS discrepancy documented",
+      "score_status": "ASSUMPTION ordinal low/base/high; no measured equal-budget gain",
+      "equivalent_complete_cases": [
+        32,
+        64,
+        128
+      ],
+      "startup_eur": [
+        2.19,
+        30.69,
+        350.72
+      ],
+      "cost_status": "ASSUMPTION; not a quote or measured affordability result",
+      "actual_equal_budget_gain": null,
+      "physical_hard_limits": "HUMAN_INPUT",
+      "population": "HUMAN_INPUT",
+      "proposal": "HUMAN_INPUT",
+      "weights": "HUMAN_INPUT",
+      "qualified": false
+    },
+    {
+      "id": "S1",
+      "regime": "nonlinear structures",
+      "name": "Friction-damper contact round robin",
+      "priority": 5,
+      "shortcut": [
+        0,
+        1,
+        2
+      ],
+      "gain": [
+        0,
+        1,
+        2
+      ],
+      "value": [
+        1,
+        2,
+        3
+      ],
+      "hours": [
+        0.02,
+        0.1,
+        0.4
+      ],
+      "source": "S1",
+      "rights": "CC-BY-4.0 dataset and article",
+      "readiness": "Measured contact loops; full assembly and file-level import not established",
+      "score_status": "ASSUMPTION ordinal low/base/high; no measured equal-budget gain",
+      "equivalent_complete_cases": [
+        32,
+        64,
+        128
+      ],
+      "startup_eur": [
+        0.88,
+        8.77,
+        70.14
+      ],
+      "cost_status": "ASSUMPTION; not a quote or measured affordability result",
+      "actual_equal_budget_gain": null,
+      "physical_hard_limits": "HUMAN_INPUT",
+      "population": "HUMAN_INPUT",
+      "proposal": "HUMAN_INPUT",
+      "weights": "HUMAN_INPUT",
+      "qualified": false
+    },
+    {
+      "id": "A2",
+      "regime": "acoustics",
+      "name": "Theatre treatment / room-acoustics benchmark",
+      "priority": 6,
+      "shortcut": [
+        0,
+        1,
+        2
+      ],
+      "gain": [
+        0,
+        1,
+        2
+      ],
+      "value": [
+        1,
+        2,
+        3
+      ],
+      "hours": [
+        0.01,
+        0.12,
+        0.8
+      ],
+      "source": "A2",
+      "rights": "CC-BY-4.0 metadata; downloadable asset manifest still to audit",
+      "readiness": "Measured impulse responses and CAD announced; complete parser not checked",
+      "score_status": "ASSUMPTION ordinal low/base/high; no measured equal-budget gain",
+      "equivalent_complete_cases": [
+        32,
+        64,
+        128
+      ],
+      "startup_eur": [
+        0.44,
+        10.52,
+        140.29
+      ],
+      "cost_status": "ASSUMPTION; not a quote or measured affordability result",
+      "actual_equal_budget_gain": null,
+      "physical_hard_limits": "HUMAN_INPUT",
+      "population": "HUMAN_INPUT",
+      "proposal": "HUMAN_INPUT",
+      "weights": "HUMAN_INPUT",
+      "qualified": false
+    },
+    {
+      "id": "S2",
+      "regime": "nonlinear structures",
+      "name": "Large-stiffness-ratio contact deck",
+      "priority": 7,
+      "shortcut": [
+        1,
+        2,
+        3
+      ],
+      "gain": [
+        0,
+        1,
+        2
+      ],
+      "value": [
+        0,
+        1,
+        2
+      ],
+      "hours": [
+        0.01,
+        0.06,
+        0.3
+      ],
+      "source": "S2",
+      "rights": "MIT PolyFEM data",
+      "readiness": "Numerical verification rehearsal; exact published cross-code witness missing",
+      "score_status": "ASSUMPTION ordinal low/base/high; no measured equal-budget gain",
+      "equivalent_complete_cases": [
+        32,
+        64,
+        128
+      ],
+      "startup_eur": [
+        0.44,
+        5.26,
+        52.61
+      ],
+      "cost_status": "ASSUMPTION; not a quote or measured affordability result",
+      "actual_equal_budget_gain": null,
+      "physical_hard_limits": "HUMAN_INPUT",
+      "population": "HUMAN_INPUT",
+      "proposal": "HUMAN_INPUT",
+      "weights": "HUMAN_INPUT",
+      "qualified": false
+    },
+    {
+      "id": "A1",
+      "regime": "acoustics",
+      "name": "Rigid-sphere control leading to finite-baffle family",
+      "priority": 8,
+      "shortcut": [
+        0,
+        1,
+        2
+      ],
+      "gain": [
+        0,
+        1,
+        2
+      ],
+      "value": [
+        0,
+        1,
+        2
+      ],
+      "hours": [
+        0.01,
+        0.1,
+        0.7
+      ],
+      "source": "A1",
+      "rights": "EUPL-1.2 Mesh2HRTF; analytic-script dependencies separately required",
+      "readiness": "Sphere has cheap analytic solution; proposed baffle family lacks physical witness",
+      "score_status": "ASSUMPTION ordinal low/base/high; no measured equal-budget gain",
+      "equivalent_complete_cases": [
+        32,
+        64,
+        128
+      ],
+      "startup_eur": [
+        0.44,
+        8.77,
+        122.75
+      ],
+      "cost_status": "ASSUMPTION; not a quote or measured affordability result",
+      "actual_equal_budget_gain": null,
+      "physical_hard_limits": "HUMAN_INPUT",
+      "population": "HUMAN_INPUT",
+      "proposal": "HUMAN_INPUT",
+      "weights": "HUMAN_INPUT",
+      "qualified": false
+    }
+  ]
+}
