@@ -1,0 +1,430 @@
+{
+  "status": "DEVELOPMENT_SAMPLE",
+  "baseline": "915225242146be67e6de098d4a08324cc63dc684",
+  "framework_revision": "b0244360dbe49d534b0346779e1cebe5b21de085",
+  "number_policy": "SOURCED point low=base=high is reproduction precision, not an uncertainty estimate. Reported confidence intervals are separate. Dates, editions, versions and identifiers are metadata.",
+  "sources": [
+    {
+      "id": "R1",
+      "path": "carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+      "revision": "915225242146be67e6de098d4a08324cc63dc684",
+      "git_blob": "24c96fba84860c811acfd46155e594e1a030b5f0",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+      "locator": "decision, population, limits, reference, reviews and admission_tests",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R2",
+      "path": "docs/development/BATTERY_ENGINEERING_VALUE_EV4.md",
+      "revision": "915225242146be67e6de098d4a08324cc63dc684",
+      "git_blob": "7fb86e7aa5539e0ba51dd32a07c6d68c007816bc",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/BATTERY_ENGINEERING_VALUE_EV4.md",
+      "locator": "sections 2,4–7,10–12; retain original hypotheses and masks",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R3",
+      "path": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "revision": "915225242146be67e6de098d4a08324cc63dc684",
+      "git_blob": "3961b89a98c8877190bc010579852497057d3518",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "locator": "objective, constraints, preferences_status and reference.uncertainty",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R4",
+      "path": "docs/development/evidence/ev5-2026-10-03/README.md",
+      "revision": "915225242146be67e6de098d4a08324cc63dc684",
+      "git_blob": "5f9eddf85b0708e44aaeba7e4c057930aae346bd",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/evidence/ev5-2026-10-03/README.md",
+      "locator": "three separate verdicts; H1–H3; public Mode X and reconstruction summaries",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R5",
+      "path": "docs/development/evidence/score-value-alignment-01/README.md",
+      "revision": "915225242146be67e6de098d4a08324cc63dc684",
+      "git_blob": "d459cff71db3558becf941c1079d2c2e2cca49e0",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/evidence/score-value-alignment-01/README.md",
+      "locator": "answer, versioned table, six historical divergences and missing v3 legs",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R6",
+      "path": ".agent/tickets/VALIDATOR-26_battery_rule_v3.md",
+      "revision": "915225242146be67e6de098d4a08324cc63dc684",
+      "git_blob": "a5909dee481d275ee65d0ea652025a287247e9d5",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/.agent/tickets/VALIDATOR-26_battery_rule_v3.md",
+      "locator": "Design: registered v3 gate, candidate/reference/infrastructure separation; status plan",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R7",
+      "path": "carbon/challenge_pipeline/readiness/Q1_PANELS.md",
+      "revision": "915225242146be67e6de098d4a08324cc63dc684",
+      "git_blob": "5d91d5e294f3888031fb6a1303684c803028f924",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/carbon/challenge_pipeline/readiness/Q1_PANELS.md",
+      "locator": "Battery mapping: common resolved mask; missing output differs from abstention",
+      "access_class": "PUBLIC_COMMITTED"
+    }
+  ],
+  "quantities": [
+    {
+      "source": "R3",
+      "label": "CV crossing voltage",
+      "basis": "SOURCED",
+      "low": 4.19,
+      "base": 4.19,
+      "high": 4.19,
+      "unit": "V"
+    },
+    {
+      "source": "R3",
+      "label": "window",
+      "basis": "SOURCED",
+      "low": 3600,
+      "base": 3600,
+      "high": 3600,
+      "unit": "s"
+    },
+    {
+      "source": "R3",
+      "label": "plating threshold",
+      "basis": "SOURCED",
+      "low": 0,
+      "base": 0,
+      "high": 0,
+      "unit": "V"
+    },
+    {
+      "source": "R3",
+      "label": "temperature threshold",
+      "basis": "SOURCED",
+      "low": 45,
+      "base": 45,
+      "high": 45,
+      "unit": "degC"
+    },
+    {
+      "source": "R3",
+      "label": "reference cycles",
+      "basis": "SOURCED",
+      "low": 30,
+      "base": 30,
+      "high": 30,
+      "unit": "cycles"
+    },
+    {
+      "source": "R3",
+      "label": "time uncertainty band",
+      "basis": "SOURCED",
+      "low": 3.15,
+      "base": 3.15,
+      "high": 3.15,
+      "unit": "s"
+    },
+    {
+      "source": "R3",
+      "label": "plating uncertainty band",
+      "basis": "SOURCED",
+      "low": 0.00197,
+      "base": 0.00197,
+      "high": 0.00197,
+      "unit": "V"
+    },
+    {
+      "source": "R3",
+      "label": "temperature uncertainty band",
+      "basis": "SOURCED",
+      "low": 0.157,
+      "base": 0.157,
+      "high": 0.157,
+      "unit": "degC"
+    },
+    {
+      "source": "R2",
+      "label": "in-band minimum",
+      "basis": "SOURCED",
+      "low": 15,
+      "base": 15,
+      "high": 15,
+      "unit": "degC"
+    },
+    {
+      "source": "R2",
+      "label": "in-band maximum",
+      "basis": "SOURCED",
+      "low": 35,
+      "base": 35,
+      "high": 35,
+      "unit": "degC"
+    },
+    {
+      "source": "R2",
+      "label": "minimum initial SOC",
+      "basis": "SOURCED",
+      "low": 0.05,
+      "base": 0.05,
+      "high": 0.05,
+      "unit": "fraction"
+    },
+    {
+      "source": "R2",
+      "label": "maximum initial SOC",
+      "basis": "SOURCED",
+      "low": 0.5,
+      "base": 0.5,
+      "high": 0.5,
+      "unit": "fraction"
+    },
+    {
+      "source": "R2",
+      "label": "first protocol feasible points",
+      "basis": "SOURCED",
+      "low": 46,
+      "base": 46,
+      "high": 46,
+      "unit": "points"
+    },
+    {
+      "source": "R2",
+      "label": "first protocol infeasible points",
+      "basis": "SOURCED",
+      "low": 0,
+      "base": 0,
+      "high": 0,
+      "unit": "points"
+    },
+    {
+      "source": "R2",
+      "label": "first protocol unresolved points",
+      "basis": "SOURCED",
+      "low": 4,
+      "base": 4,
+      "high": 4,
+      "unit": "points"
+    },
+    {
+      "source": "R2",
+      "label": "in-band verification denominator",
+      "basis": "SOURCED",
+      "low": 50,
+      "base": 50,
+      "high": 50,
+      "unit": "points"
+    },
+    {
+      "source": "R2",
+      "label": "baseline reach failures",
+      "basis": "SOURCED",
+      "low": 15,
+      "base": 15,
+      "high": 15,
+      "unit": "points"
+    },
+    {
+      "source": "R2",
+      "label": "false-feasible members",
+      "basis": "SOURCED",
+      "low": 56,
+      "base": 56,
+      "high": 56,
+      "unit": "members"
+    },
+    {
+      "source": "R2",
+      "label": "eligible members",
+      "basis": "SOURCED",
+      "low": 99,
+      "base": 99,
+      "high": 99,
+      "unit": "members"
+    },
+    {
+      "source": "R2",
+      "label": "H1 delta tau",
+      "basis": "SOURCED",
+      "low": -0.142,
+      "base": -0.142,
+      "high": -0.142,
+      "unit": "dimensionless"
+    },
+    {
+      "source": "R2",
+      "label": "reference solver failures",
+      "basis": "SOURCED",
+      "low": 5,
+      "base": 5,
+      "high": 5,
+      "unit": "cases"
+    },
+    {
+      "source": "R2",
+      "label": "in-band adversarial violations",
+      "basis": "SOURCED",
+      "low": 29,
+      "base": 29,
+      "high": 29,
+      "unit": "findings"
+    },
+    {
+      "source": "R2",
+      "label": "out-of-band adversarial violations",
+      "basis": "SOURCED",
+      "low": 17,
+      "base": 17,
+      "high": 17,
+      "unit": "findings"
+    },
+    {
+      "source": "R4",
+      "label": "H1 delta tau",
+      "basis": "SOURCED",
+      "low": -0.029,
+      "base": -0.029,
+      "high": -0.029,
+      "unit": "dimensionless"
+    },
+    {
+      "source": "R4",
+      "label": "exploiting selected members",
+      "basis": "SOURCED",
+      "low": 8,
+      "base": 8,
+      "high": 8,
+      "unit": "members"
+    },
+    {
+      "source": "R4",
+      "label": "selected denominator",
+      "basis": "SOURCED",
+      "low": 10,
+      "base": 10,
+      "high": 10,
+      "unit": "members"
+    },
+    {
+      "source": "R4",
+      "label": "in-band adversarial findings",
+      "basis": "SOURCED",
+      "low": 25,
+      "base": 25,
+      "high": 25,
+      "unit": "findings"
+    },
+    {
+      "source": "R4",
+      "label": "out-of-band adversarial findings",
+      "basis": "SOURCED",
+      "low": 21,
+      "base": 21,
+      "high": 21,
+      "unit": "findings"
+    },
+    {
+      "source": "R4",
+      "label": "sign-error near false acceptance",
+      "basis": "SOURCED",
+      "low": 0.946,
+      "base": 0.946,
+      "high": 0.946,
+      "unit": "fraction"
+    },
+    {
+      "source": "R4",
+      "label": "matching reconstructions",
+      "basis": "SOURCED",
+      "low": 110,
+      "base": 110,
+      "high": 110,
+      "unit": "members"
+    },
+    {
+      "source": "R5",
+      "label": "one-panel member count",
+      "basis": "SOURCED",
+      "low": 8,
+      "base": 8,
+      "high": 8,
+      "unit": "members"
+    },
+    {
+      "source": "R5",
+      "label": "one-panel tau",
+      "basis": "SOURCED",
+      "low": -0.473,
+      "base": -0.473,
+      "high": -0.473,
+      "unit": "dimensionless"
+    },
+    {
+      "source": "R5",
+      "label": "one-panel rho",
+      "basis": "SOURCED",
+      "low": -0.539,
+      "base": -0.539,
+      "high": -0.539,
+      "unit": "dimensionless"
+    },
+    {
+      "source": "R5",
+      "label": "historical divergence count",
+      "basis": "SOURCED",
+      "low": 6,
+      "base": 6,
+      "high": 6,
+      "unit": "conditions"
+    },
+    {
+      "source": "R7",
+      "label": "resolved scenarios",
+      "basis": "SOURCED",
+      "low": 6,
+      "base": 6,
+      "high": 6,
+      "unit": "scenarios"
+    },
+    {
+      "source": "R7",
+      "label": "total scenarios",
+      "basis": "SOURCED",
+      "low": 12,
+      "base": 12,
+      "high": 12,
+      "unit": "scenarios"
+    },
+    {
+      "source": "R6",
+      "label": "v3 false-feasible cutoff",
+      "basis": "SOURCED",
+      "low": 0.05,
+      "base": 0.05,
+      "high": 0.05,
+      "unit": "fraction"
+    }
+  ],
+  "reported_intervals": [
+    {
+      "source": "R2",
+      "metric": "H1 delta tau",
+      "level": 0.95,
+      "low": -0.275,
+      "high": 0.121,
+      "method": "source paired percentile bootstrap; member dependence is approximate"
+    },
+    {
+      "source": "R4",
+      "metric": "H1 delta tau",
+      "level": 0.95,
+      "low": -0.132,
+      "high": 0.074,
+      "method": "source paired bootstrap; original EV5 population, not Q1 v3"
+    }
+  ],
+  "uninspected": [
+    "all protected/hidden/private evidence",
+    "uncommitted prediction bundles",
+    "operator ledgers"
+  ],
+  "no_qualification_claim": true
+}

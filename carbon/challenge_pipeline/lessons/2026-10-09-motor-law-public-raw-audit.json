@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-motor-law-public-raw-audit",
+  "recorded_at": "2026-10-09T16:33:06Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "coverage_run", "ref": "public motor-feasibility-02/s3.json at 5f373b199be8f8fc12c7c3e29d345e35d1c7832a", "description": "Read all seven geometry/eight span raw S3 records against the value-check summary; no solver or host data access"},
+  "expected": "Check the raw basis before treating a summary discrepancy as a reference finding.",
+  "observed": "Maximum raw cogging change 0.0025095973 Nm, below 0.02; 0.0205065116 Nm is the maximum absolute refined cogging value, not its change. Five reported peak rows remain 7.8935-9.8953 Nm; three spans lack peak data. Raw cross-check is bounded, not scientific qualification.",
+  "keep": ["Missing peak truth remains unresolved; complete buyer feasibility is not demonstrated."],
+  "change": ["Classify the 0.021 summary wording as documentation terminology, not convergence failure, and notify science of the raw reconciliation."],
+  "protocol_elements": ["evidence-basis", "reference-failure-separation", "raw-versus-summary"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

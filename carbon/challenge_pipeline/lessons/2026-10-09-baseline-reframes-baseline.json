@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-reframes-baseline",
+  "recorded_at": "2026-10-09T15:06:48Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-BASELINE-REFRAMES-01 baseline", "description": "Native value-cost and volume/leverage regression before conditional dossiers."},
+  "expected": "Preserve original scope, framework and economic arithmetic.",
+  "observed": "62 passed in 0.69s. Native Windows diagnostics; no V/T/C measurement, solver, training or spend.",
+  "keep": ["Reframe adoption and measurement remain distinct; strong incumbent cost stays honest."],
+  "change": ["Show reduced screening value and likely persistent V4 failure instead of promising rescue."],
+  "protocol_elements": ["buyer value", "baseline comparison", "history"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

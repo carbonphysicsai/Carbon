@@ -202,7 +202,13 @@ def test_the_registry_binds_r4_to_battery_main_level_1_and_the_top_rung():
         RoleName.PLANNER: len(ENGY_LADDER) - 1,
     }
     for other_id, other in grant_binding.PHASE3_GRANTS.items():
-        if other_id == R4_ID:
+        # Stage A's grants carry their own conditions
+        # (test_graphite_stage_a_grant.py); every other grant carries none.
+        if other_id == R4_ID or other.authority in (
+            grant_binding.STAGE_A_AUTHORITY,
+            grant_binding.STAGE_B_AUTHORITY,
+            grant_binding.STAGE_C_AUTHORITY,
+        ):
             continue
         assert (other.min_level, other.start_model, other.token_share_usd) == (
             0,

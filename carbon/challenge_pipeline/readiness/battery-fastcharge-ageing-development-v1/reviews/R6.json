@@ -1,0 +1,20 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-review.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": [
+  0,
+  1
+ ],
+ "item": "R6",
+ "decision": "PASS",
+ "reviewer": "Test Lead",
+ "date": "2026-10-09",
+ "evidence": [
+  {
+   "kind": "file",
+   "ref": "carbon/challenge_pipeline/readiness/policies.json",
+   "sha256": "sha256:0990a37f2803b829a82cd8044d715aa7e61ea954d3a6da21ac02532251ee7314"
+  }
+ ],
+ "notes": "ACCEPTED: Data Collection's posted host window (about 10 threads and 8 GB), relayed 2026-10-09; the window itself is a message, not a repo artifact (Test Lead stage A sign-off)."
+}

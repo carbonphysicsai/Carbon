@@ -1,0 +1,179 @@
+{
+  "accuracy_vs_development_value": {
+    "kendall_tau_b": -0.47280542884465016,
+    "spearman_rho": -0.5389318178609666
+  },
+  "development_value_common_resolved_scenarios": 6,
+  "difference_decision_minus_accuracy": {
+    "kendall_tau_b": 0.7807255724124506,
+    "spearman_rho": 0.9657928289319846
+  },
+  "limits": "Eight distinct recipes, one seed each; public six-condition practice set versus six previously used EV4 development scenarios. Retrospective association only; no exam prediction, gate, qualification, or miner-display decision.",
+  "per_recipe": [
+    {
+      "development_value": 0.0,
+      "practice_accuracy_loss": 0.07404506774171599,
+      "practice_conditions_scored": 5,
+      "practice_conditions_total": 6,
+      "practice_excluded_all_infeasible": 0,
+      "practice_reference_unresolved": 1,
+      "public_practice_abstained": 0,
+      "public_practice_chosen": 5,
+      "public_practice_decision_regret": 2.039092001072505,
+      "public_practice_false_feasible": 0.2,
+      "public_practice_outcome_counts": {
+        "SELECTED_FEASIBLE": 4,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "public_practice_over_caution": 0.0,
+      "public_practice_unresolved": 0.0,
+      "recipe": "graphite-run5-baseline"
+    },
+    {
+      "development_value": 1.6750830987590495,
+      "practice_accuracy_loss": 0.08087187900617948,
+      "practice_conditions_scored": 5,
+      "practice_conditions_total": 6,
+      "practice_excluded_all_infeasible": 0,
+      "practice_reference_unresolved": 1,
+      "public_practice_abstained": 0,
+      "public_practice_chosen": 5,
+      "public_practice_decision_regret": 2.039092001072505,
+      "public_practice_false_feasible": 0.2,
+      "public_practice_outcome_counts": {
+        "SELECTED_FEASIBLE": 4,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "public_practice_over_caution": 0.0,
+      "public_practice_unresolved": 0.0,
+      "recipe": "graphite-run5-p-1585ecbf838a"
+    },
+    {
+      "development_value": 1.7187380340238771,
+      "practice_accuracy_loss": 0.05619965871218511,
+      "practice_conditions_scored": 5,
+      "practice_conditions_total": 6,
+      "practice_excluded_all_infeasible": 0,
+      "practice_reference_unresolved": 1,
+      "public_practice_abstained": 1,
+      "public_practice_chosen": 4,
+      "public_practice_decision_regret": 4.2,
+      "public_practice_false_feasible": 0.4,
+      "public_practice_outcome_counts": {
+        "MISSED_OPPORTUNITY": 1,
+        "SELECTED_FEASIBLE": 2,
+        "SELECTED_INFEASIBLE": 2
+      },
+      "public_practice_over_caution": 0.2,
+      "public_practice_unresolved": 0.0,
+      "recipe": "graphite-run5-p-1d4aaff5d292"
+    },
+    {
+      "development_value": 1.6867423846189598,
+      "practice_accuracy_loss": 0.06304869882202477,
+      "practice_conditions_scored": 5,
+      "practice_conditions_total": 6,
+      "practice_excluded_all_infeasible": 0,
+      "practice_reference_unresolved": 1,
+      "public_practice_abstained": 0,
+      "public_practice_chosen": 5,
+      "public_practice_decision_regret": 2.0043604021853887,
+      "public_practice_false_feasible": 0.2,
+      "public_practice_outcome_counts": {
+        "SELECTED_FEASIBLE": 4,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "public_practice_over_caution": 0.0,
+      "public_practice_unresolved": 0.0,
+      "recipe": "graphite-run5-p-37985e699fe3"
+    },
+    {
+      "development_value": 1.6935579968652572,
+      "practice_accuracy_loss": 0.06050852555787488,
+      "practice_conditions_scored": 5,
+      "practice_conditions_total": 6,
+      "practice_excluded_all_infeasible": 0,
+      "practice_reference_unresolved": 1,
+      "public_practice_abstained": 0,
+      "public_practice_chosen": 5,
+      "public_practice_decision_regret": 4.0,
+      "public_practice_false_feasible": 0.4,
+      "public_practice_outcome_counts": {
+        "SELECTED_FEASIBLE": 3,
+        "SELECTED_INFEASIBLE": 2
+      },
+      "public_practice_over_caution": 0.0,
+      "public_practice_unresolved": 0.0,
+      "recipe": "graphite-run5-p-4fd7fb870d2b"
+    },
+    {
+      "development_value": 0.026891330198590583,
+      "practice_accuracy_loss": 0.05944015045043877,
+      "practice_conditions_scored": 5,
+      "practice_conditions_total": 6,
+      "practice_excluded_all_infeasible": 0,
+      "practice_reference_unresolved": 1,
+      "public_practice_abstained": 0,
+      "public_practice_chosen": 5,
+      "public_practice_decision_regret": 4.0,
+      "public_practice_false_feasible": 0.4,
+      "public_practice_outcome_counts": {
+        "SELECTED_FEASIBLE": 3,
+        "SELECTED_INFEASIBLE": 2
+      },
+      "public_practice_over_caution": 0.0,
+      "public_practice_unresolved": 0.0,
+      "recipe": "graphite-run5-p-69268f1b74ec"
+    },
+    {
+      "development_value": 1.6666666666666667,
+      "practice_accuracy_loss": 0.06520179396564059,
+      "practice_conditions_scored": 5,
+      "practice_conditions_total": 6,
+      "practice_excluded_all_infeasible": 0,
+      "practice_reference_unresolved": 1,
+      "public_practice_abstained": 0,
+      "public_practice_chosen": 5,
+      "public_practice_decision_regret": 2.043452403257894,
+      "public_practice_false_feasible": 0.2,
+      "public_practice_outcome_counts": {
+        "SELECTED_FEASIBLE": 4,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "public_practice_over_caution": 0.0,
+      "public_practice_unresolved": 0.0,
+      "recipe": "graphite-run5-p-87b76ad0a2fd"
+    },
+    {
+      "development_value": 1.6935579968652572,
+      "practice_accuracy_loss": 0.06136158904829669,
+      "practice_conditions_scored": 5,
+      "practice_conditions_total": 6,
+      "practice_excluded_all_infeasible": 0,
+      "practice_reference_unresolved": 1,
+      "public_practice_abstained": 0,
+      "public_practice_chosen": 5,
+      "public_practice_decision_regret": 2.043452403257894,
+      "public_practice_false_feasible": 0.2,
+      "public_practice_outcome_counts": {
+        "SELECTED_FEASIBLE": 4,
+        "SELECTED_INFEASIBLE": 1
+      },
+      "public_practice_over_caution": 0.0,
+      "public_practice_unresolved": 0.0,
+      "recipe": "graphite-run5-p-c41a9a1ebb82"
+    }
+  ],
+  "practice_conditions_per_recipe": 5,
+  "practice_summaries_sha256": "sha256:503b2cf04bffff3571ecc55f6a17413884e1b3739c8cee205ae36b84642c99ad",
+  "public_decision_regret_vs_development_value": {
+    "kendall_tau_b": 0.3079201435678004,
+    "spearman_rho": 0.426861011071018
+  },
+  "public_set_sha256s_sha256": "sha256:ffaed3c70a31429984f82506d6902889c4700133d5b120d2cb3fa6e578b9ad29",
+  "recipes": 8,
+  "rule_digest": "sha256:68429acd62d8ad826d4bc1ad89f012a3af96563ed3e1366f4b79b1565b6552d4",
+  "run5_q1_report_sha256": "sha256:dfa707390e2d7ebea98c3c59e407ddf3459e74a760e010ee8544b180ec70eb9b",
+  "schema": "carbon.battery.practice-decision-signal-report.v1",
+  "status": "DEVELOPMENT_DIAGNOSTIC_ONLY"
+}

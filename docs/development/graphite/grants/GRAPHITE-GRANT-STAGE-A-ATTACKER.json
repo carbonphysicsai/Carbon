@@ -1,0 +1,16 @@
+{
+ "schema": "carbon.agent-campaign.spending-grant.v1",
+ "grant_id": "GRAPHITE-GRANT-STAGE-A-ATTACKER",
+ "provider": "graphite",
+ "account": "Carbon-Account",
+ "granted_by": "owner",
+ "expires_at": "2026-12-31T23:59:59Z",
+ "currency": "USD",
+ "monetary_ceiling": "53.77",
+ "cleanup_allowance": "0.13",
+ "worst_case_run_cost": "13.41",
+ "permitted_runs": 4,
+ "max_concurrency": 2,
+ "max_runtime_s": 15600,
+ "max_submissions": 4
+}

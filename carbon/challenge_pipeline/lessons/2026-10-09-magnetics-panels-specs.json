@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-magnetics-panels-specs",
+  "recorded_at": "2026-10-09T18:36:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "tests/cpu/test_magnetics_first_panels_spec.py + tests/cpu/test_challenge_pipeline.py", "description": "Native Python 3.11 static schedules, bounds, source pins, fail-closed maturity and budget arithmetic; no solver or package execution."},
+  "expected": "Distinct normalized proposal designs and complete excitation/derivative costs; no approval inferred from a EUR20 estimate.",
+  "observed": "38 passed in 3.96s; pinned Black/Ruff and diff hygiene clean. Solenoid high estimate EUR19.8683 fits narrowly; planar high slice estimate EUR25.8678 exceeds EUR20 and 3D proof is outside the slice bill. Neither panel is approved or measured.",
+  "keep": ["Explicit unbound buyer anchors, P/Q/w separation and qualified-reference gaps.", "Complete-case counting, virtual-work probes and censored cost returns."],
+  "change": ["Request separately bounded package/3D proof and owner grant before collection; do not treat motor deck reuse as capability or affordability proof."],
+  "protocol_elements": ["reference-policy", "measurement-contract", "cost-budget", "admission"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -672,6 +672,70 @@ NEXT_ACTIONS = {
         "it against the Challenge's published contract and submit again; the "
         "frozen candidate is kept."
     ),
+    # The testnet development-ladder deployment (VALIDATOR-25). None is a
+    # verdict on the recipe.
+    "ladder_hotkey_not_listed": (
+        "This validator is Carbon's development ladder, which serves only its "
+        "listed rehearsal hotkeys, and nothing was evaluated. Point this "
+        "Challenge's intake at the main validator under Set up your "
+        "environment, then submit again; the frozen candidate is kept."
+    ),
+    "ladder_variant_not_accepted": (
+        "The development ladder does not serve this level's variant, and "
+        "nothing was evaluated. Choose a variant the ladder lists for its "
+        "level, then submit again; the frozen candidate is kept."
+    ),
+    "ladder_level_not_accepted": (
+        "The development ladder serves another level than the one this "
+        "candidate uses, and nothing was evaluated. Submit it to the ladder "
+        "deployment for its level; the frozen candidate is kept."
+    ),
+    "level4_not_served": (
+        "This validator does not take Level 4 envelopes, and nothing was stored. "
+        "Point this Challenge's intake at the development ladder that serves Level "
+        "4, then submit again; the frozen candidate is kept."
+    ),
+    "level4_part_malformed": (
+        "A Level 4 envelope part was malformed, and nothing was stored. Submit "
+        "again: Carbon rebuilds the parts from the frozen envelope; the frozen "
+        "candidate is kept."
+    ),
+    "level4_part_conflict": (
+        "The validator holds other bytes for a part of this envelope, and nothing "
+        "was replaced. Submit the candidate Carbon froze again; the frozen "
+        "candidate is kept."
+    ),
+    "level4_parts_mismatch": (
+        "An envelope part named another part count than its earlier parts, and "
+        "nothing was stored. Submit the candidate Carbon froze again; the frozen "
+        "candidate is kept."
+    ),
+    "level4_envelope_incomplete": (
+        "Not every part of the Level 4 envelope had arrived, so nothing was "
+        "evaluated or counted. Submit again: Carbon sends the missing parts first; "
+        "the frozen candidate is kept."
+    ),
+    "level4_store_not_owner_only": (
+        "The validator's Level 4 store is misconfigured, which is the validator's "
+        "to fix, and nothing was stored. Try again later; the frozen candidate is "
+        "kept."
+    ),
+    "hotkey_reserved_for_ladder": (
+        "This hotkey is Carbon's development-ladder hotkey, which the main "
+        "validator never scores, and nothing was evaluated. Point this "
+        "Challenge's intake at the ladder under Set up your environment, then "
+        "submit again; the frozen candidate is kept."
+    ),
+    "ladder_commitment_not_variant": (
+        "The development ladder expects the variant's commitment, which binds "
+        "the variant digest and the whole strategy, and nothing was evaluated. "
+        "Carbon commits that form for you; commit again, then submit again; "
+        "the frozen candidate is kept."
+    ),
+    "ladder_level_4_not_open": (
+        "Level 4 is not open on the development ladder yet, and nothing was "
+        "evaluated. The frozen candidate is kept."
+    ),
     "contract_digest_malformed": (
         "The validator could not read the contract digest Carbon sent. Check "
         "that the intake address serves this Carbon version, then submit "
@@ -1217,6 +1281,95 @@ NEXT_ACTIONS = {
     "import_invalid": (
         "Send title as 1 to 300 characters and text as 1 to 20000 characters "
         "of plain text. PDF import is not offered yet: paste the text."
+    ),
+    # Construction levels (LAUNCHPAD-LEVELS-01 S2, S3). Each is refused
+    # before anything is signed or sent.
+    "level_not_registered": (
+        "No current registered development variant serves that level (or "
+        "arm) of this Challenge, or the one your campaign froze is no longer "
+        "current. Read carbon_ladder for the levels and arms that have one; "
+        "nothing was signed or sent."
+    ),
+    "level_not_served_by_target": (
+        "Your target validator's intake does not list this level's variant "
+        "in its served_contracts, so nothing was signed or sent. A level "
+        "above 0 is DEVELOPMENT: submit it only to the development-ladder "
+        "deployment that lists it. The frozen candidate is kept."
+    ),
+    "level_compile_not_served_by_target": (
+        "Your target validator's intake does not list this level's variant "
+        "digest in its served_contracts, so the level's compile was not run "
+        "and nothing was practised or frozen. Point this Challenge's intake "
+        "at the development-ladder deployment that serves the level (Set up "
+        "your environment), then try again."
+    ),
+    "construction_level_invalid": (
+        "Send construction_level as a whole number from 0 to 5, or omit it "
+        "for Level 0. arm needs a construction_level."
+    ),
+    "construction_level_arm_invalid": (
+        "Send arm as one of the arm names carbon_ladder lists for the level, "
+        "or omit it for the level's own variant."
+    ),
+    "construction_level_needs_own_selection": (
+        "A campaign at a construction level is driven by you or your own MCP "
+        "agent: launch it with agent none."
+    ),
+    "construction_level_not_offered_for_challenge": (
+        "This Challenge's campaign does not compile at construction levels "
+        "yet. Launch at Level 0 (omit construction_level)."
+    ),
+    "level_compile_unavailable": (
+        "The level's compile could not run on this machine, and nothing was "
+        "practised, frozen or sent. Check the Launchpad's Python environment "
+        "(setup's checks) and try again."
+    ),
+    "level_strategy_refused": (
+        "The recipe does not compile at the campaign's level: a widened value "
+        "is outside the level's bounds, or the rest is refused by the base "
+        "contract. Read carbon_ladder for the level's surfaces and bounds, "
+        "fix the recipe and try again."
+    ),
+    "level4_directory_required": (
+        "A Level 4 freeze needs level4_directory: the directory "
+        "python -m carbon.level4.tooling lower wrote on this machine."
+    ),
+    "level4_directory_needs_level4": (
+        "level4_directory is only for a campaign launched at construction "
+        "level 4; omit it."
+    ),
+    "level4_size_bound_not_set": (
+        "The Level 4 variant sets no document size bound yet (HUMAN_INPUT), "
+        "so no Level 4 submission can be verified or frozen. The owners set "
+        "it; nothing was frozen."
+    ),
+    "level4_submission_refused": (
+        "The lowered Level 4 submission was refused when verified: a "
+        "document, its name, the manifest or the allowlist pin. Lower it "
+        "again with python -m carbon.level4.tooling lower and freeze again."
+    ),
+    "level4_submission_not_in_strategy": (
+        "The strategy's Level 4 field must be the submission digest the "
+        "lowering printed. Put it there and freeze again."
+    ),
+    "level4_interface_mismatch": (
+        "The lowered submission was made for another interface than this "
+        "recipe's. Lower it again with --interface set to the recipe's "
+        "interface digest and freeze again."
+    ),
+    "level4_batch_mismatch": (
+        "The lowered forward graph declares another batch than the recipe "
+        "trains at. Lower it again with --batch set to the recipe's batch "
+        "and freeze again."
+    ),
+    "level4_allowlist_mismatch": (
+        "This checkout's Level 4 allowlist is not the one the level's variant "
+        "pins. Update the Launchpad to the release that pins it."
+    ),
+    "level4_envelope_transport_unavailable": (
+        "No validator intake carries a Level 4 submission's documents yet, so "
+        "nothing was signed or sent. The frozen candidate and its envelope "
+        "are kept for when the development ladder opens Level 4."
     ),
 }
 FALLBACK_ACTION = (

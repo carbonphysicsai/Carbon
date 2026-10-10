@@ -20,7 +20,7 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import q1
+from . import evidence_checks, q1
 from .model import (
     FAIL,
     NOT_BUILT,
@@ -61,6 +61,7 @@ class Context:
     repository: Path = REPOSITORY
     data: dict = field(default_factory=dict)
     cache: dict = field(default_factory=dict)
+    evidence_paths: dict = field(default_factory=dict)
 
     def data_policy(self, item_id):
         """A registered test-side value (policies.json), never invented here."""
@@ -654,6 +655,53 @@ def _phase4_grant(ctx):
     return entry.grant_file, None
 
 
+ANALYSIS_IMAGE_ENV = "CARBON_READINESS_ANALYSIS_IMAGE_MANIFEST"
+
+
+def _analysis_image_manifest():
+    """`(path, refusal)`: the host's analysis image manifest named by the
+    environment variable, read with the consumer itself
+    (`research_image.load_analysis_image`: the closed four-key document, bounded,
+    no symlink). No manifest is invented or defaulted: unset, missing, or not that
+    document is a refusal the R1 result states."""
+    value = os.environ.get(ANALYSIS_IMAGE_ENV)
+    if not value:
+        return None, (
+            f"no analysis image manifest: set {ANALYSIS_IMAGE_ENV} to the host's manifest "
+            "file (the release produces it: schema, image_id, parent_image, runtime_digest); "
+            "prelive's carrier containment check cannot run without it"
+        )
+    path = Path(value)
+    if not path.is_file():
+        return None, f"the analysis image manifest {value} is not a file"
+    try:
+        from carbon.development_session import research_image
+
+        image = research_image.load_analysis_image(path)
+    except (OSError, ValueError, TypeError, KeyError) as error:
+        return None, (
+            f"the analysis image manifest {value} is not the closed four-key format "
+            f"({type(error).__name__})"
+        )
+    if not all(
+        isinstance(v, str) and v
+        for v in (image.image_id, image.parent_image, image.runtime_digest)
+    ):
+        return (
+            None,
+            f"the analysis image manifest {value} has an empty or non-text value",
+        )
+    return str(path), None
+
+
+def _remove_scratch(root):
+    """Best-effort removal of the prelive scratch root. The containment cell writes
+    its own scratch as the container's uid, which the host user cannot remove, so a
+    cleanup refusal must never replace the prelive verdict (it did, as a
+    PermissionError, when `TemporaryDirectory` cleaned up)."""
+    shutil.rmtree(root, ignore_errors=True)
+
+
 def prelive(item, ctx):
     """`phase4 prelive` for the challenge under a scratch root. It needs the
     committed grant on a pushed HEAD and a main to compare, so a host without
@@ -667,7 +715,11 @@ def prelive(item, ctx):
     grant, refused = _phase4_grant(ctx)
     if refused:
         return Result(FAIL, refused)
-    with tempfile.TemporaryDirectory(prefix="readiness-prelive-") as root:
+    manifest, refused = _analysis_image_manifest()
+    if refused:
+        return Result(FAIL, refused)
+    root = tempfile.mkdtemp(prefix="readiness-prelive-")
+    try:
         command = [
             sys.executable,
             "-m",
@@ -679,6 +731,8 @@ def prelive(item, ctx):
             ctx.challenge,
             "--grant",
             str(ctx.repository / grant),
+            "--analysis-image-manifest",
+            manifest,
         ]
         try:
             done = subprocess.run(
@@ -692,6 +746,8 @@ def prelive(item, ctx):
             )
         except (OSError, subprocess.TimeoutExpired) as error:
             return Result(FAIL, f"prelive could not run: {type(error).__name__}")
+    finally:
+        _remove_scratch(root)
     text = done.stdout or ""
     report = None
     start = text.find("{")
@@ -808,6 +864,8 @@ def confirmation_role(item, ctx):
 
 
 CHECKS = {
+    "gate_margin_study": evidence_checks.gate_margin_study,
+    "tuning_overlap": evidence_checks.tuning_overlap,
     "neutral_path": neutral_path,
     "admission_controller": admission_controller,
     "grant_binding": grant_binding,

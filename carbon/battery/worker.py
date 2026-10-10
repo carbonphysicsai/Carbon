@@ -113,14 +113,15 @@ def level1_reconstruct_program():
     )
 
 
-def _rebuild_development(recipe, record, material, seed):
-    """In-process development rebuild (Levels 1-3) on pinned public TRAIN v1,
-    as `compile.rebuild` rebuilds Level 0."""
+def _rebuild_development(recipe, record, material, seed, workspace=None):
+    """In-process development rebuild (Levels 1-4) on pinned public TRAIN v1,
+    as `compile.rebuild` rebuilds Level 0. `workspace` is a Level 4
+    submission's staged files (`carbon.level4.staging.workspace`)."""
     from . import development_rebuild
     from .compile import with_state
     from .recipes import Structure
 
-    model = development_rebuild.build_in_process(recipe, record)
+    model = development_rebuild.build_in_process(recipe, record, workspace)
     train = development_rebuild.training_data(record, material.train)
     stats = model.fit(train, Structure(material.ocv_soc, material.ocv_v), seed)
     return model, {
@@ -226,6 +227,24 @@ def infer_files(state, inputs):
         }
     )
     return files
+
+
+def state_kind(state):
+    """A stored model state's kind (`knn`, `mlp`, `ensemble`, or
+    `level4_graph`); reads the JSON header only. None for bytes that are not
+    a readable battery state: those keep the Level 0 path, which reads (or
+    refuses) them exactly as before Level 4."""
+    import io
+    import zipfile
+
+    import numpy as np
+
+    try:
+        with np.load(io.BytesIO(state), allow_pickle=False) as data:
+            header = json.loads(bytes(data["__header__"]).decode())
+    except (OSError, ValueError, KeyError, EOFError, TypeError, zipfile.BadZipFile):
+        return None
+    return header.get("kind") if isinstance(header, dict) else None
 
 
 def state_backend(state):
@@ -365,6 +384,7 @@ class CarrierBackend:
         runner=None,
         identity=None,
         device=None,
+        network=None,
     ):
         from carbon.development_session.research_carrier import _run
 
@@ -382,7 +402,11 @@ class CarrierBackend:
             from carbon.reconstruction.hardware_acceptance import require_accepted
 
             record = research_carrier._gpu_device()
-            require_accepted(record.device_kind, research_carrier._gpu_profile_id())
+            # The deployment's chain network: a class is accepted per network.
+            self.network = network
+            require_accepted(
+                record.device_kind, research_carrier._gpu_profile_id(), network
+            )
             if torch_image is not None:
                 # PyTorch on the validator's GPU (slice 2) is the PyTorch GPU
                 # worker (TORCH-GPU-01), never the CPU one, and its class needs
@@ -391,7 +415,9 @@ class CarrierBackend:
                     raise ValueError(
                         "a GPU validator's PyTorch image is the GPU worker"
                     )
-                require_accepted(record.device_kind, torch_profile.GPU_PROFILE_ID)
+                require_accepted(
+                    record.device_kind, torch_profile.GPU_PROFILE_ID, network
+                )
             self.accelerator = research_carrier.VALIDATOR_GPU
             gpu = {"device_kind": record.device_kind, "device_record": record.digest}
         self.images = {"jax": image, "pytorch": torch_image}
@@ -473,7 +499,7 @@ class CarrierBackend:
                 **(
                     {}
                     if self.accelerator is None
-                    else {"accelerator": self.accelerator}
+                    else {"accelerator": self.accelerator, "network": self.network}
                 ),
             )
         except WorkerFailure:
@@ -488,7 +514,7 @@ class CarrierBackend:
             ) from None
         return self._snapshot(result, names)
 
-    def reconstruct(self, identity, recipe, seed, development=None):
+    def reconstruct(self, identity, recipe, seed, development=None, workspace=None):
         program, files = RECONSTRUCT_PROGRAM, reconstruct_files(self.root, recipe, seed)
         # A development recipe (Levels 1-3): the same program with its one
         # build line replaced, and its record staged (`development_rebuild`).
@@ -497,6 +523,11 @@ class CarrierBackend:
         program, files, trainer = development_rebuild.stage(
             development, program, files, level1_program=level1_reconstruct_program
         )
+        if trainer == development_rebuild.LEVEL4 and workspace:
+            # The submission's documents, staged by the validator beside the
+            # record (`carbon.level4.staging.workspace`). Without them the
+            # Level 4 program fails closed as Carbon's environment.
+            files = {**files, **workspace}
         out = self._call(
             identity,
             program,
@@ -510,10 +541,18 @@ class CarrierBackend:
         return out["state.npz"], stats
 
     def infer(self, identity, state, inputs):
+        program, files = INFER_PROGRAM, infer_files(state, inputs)
+        if state_kind(state) == "level4_graph":
+            # A Level 4 state rebuilds its graph from the state alone, with
+            # Carbon's own modules staged; every other state is unchanged.
+            from . import level4_worker
+
+            program = level4_worker.infer_program(program)
+            files = {**files, **level4_worker.infer_staged()}
         out = self._call(
             identity,
-            INFER_PROGRAM,
-            infer_files(state, inputs),
+            program,
+            files,
             {"predictions.json": 64 * 1024**2},
             state_backend(state),
         )
@@ -540,7 +579,7 @@ class DirectBackend:
         self.material = PublicMaterial.load(self.root)
         self.calls = {"reconstruct": 0, "infer": 0}
 
-    def reconstruct(self, identity, recipe, seed, development=None):
+    def reconstruct(self, identity, recipe, seed, development=None, workspace=None):
         from .compile import rebuild
         from .recipes import state_bytes
 
@@ -550,7 +589,7 @@ class DirectBackend:
                 model, stats = rebuild(recipe, self.material, seed)
             else:
                 model, stats = _rebuild_development(
-                    recipe, development, self.material, seed
+                    recipe, development, self.material, seed, workspace
                 )
         except ImportError as missing:  # Carbon's environment, never the candidate
             raise WorkerFailure(
@@ -561,6 +600,11 @@ class DirectBackend:
             raise WorkerFailure(
                 "reconstruction_failed:" + type(failure).__name__, candidate=True
             ) from None
+        if getattr(model, "STATE_KIND", None) is not None:
+            # A Level 4 graph model writes its own state (`level4_model`).
+            from .level4_model import state_bytes as graph_state_bytes
+
+            return graph_state_bytes(model), stats
         return state_bytes(model), stats
 
     def infer(self, identity, state, inputs):
@@ -570,7 +614,12 @@ class DirectBackend:
         from .recipes import model_from_bytes, to_predictions
 
         self.calls["infer"] += 1
-        model = model_from_bytes(state)
+        if state_kind(state) == "level4_graph":
+            from .level4_model import model_from_bytes as graph_from_bytes
+
+            model = graph_from_bytes(state)
+        else:
+            model = model_from_bytes(state)
         ids = sorted(inputs)
         x = np.array([[inputs[c][k] for k in INPUTS] for c in ids], float)
         try:

@@ -1,7 +1,12 @@
 """Gate G5: compile a validated graph in isolation (development only).
 
 XLA compiles what Carbon will run on a validated submission: the rebuilt
-forward graph, a gradient step through it and the init graph. It does so in
+forward graph, a gradient step through it and the init graph. The step's
+loss is the submission's admitted loss graph (`carbon.level4.loss`, Carbon's
+mean of the per-case graph), else a sum of squared outputs. Its XLA
+`cost_analysis` FLOPs are `train_step_flops`, for one gradient step at the
+declared batch (the optimizer's update is not included); `train_step_loss`
+names which loss it measured. It does so in
 the C-03 Carbon lane (`research_carrier._run`, Carbon provenance), never on
 the host that grades. The program is Carbon's own (`PROGRAM`); the
 submission's documents enter only as staged data, parsed again inside with
@@ -50,6 +55,7 @@ MODULES = (
     "carbon.level4.allowlist",
     "carbon.level4.named",
     "carbon.level4.interpret",
+    "carbon.level4.loss",
 )
 
 PROGRAM = """
@@ -78,9 +84,20 @@ params = [a for is_param, a in avals if is_param]
 inputs = [a for is_param, a in avals if not is_param]
 def run(p, *xs):
     return forward(*p, *xs)
-def step(p, *xs):
-    return jax.grad(lambda q: sum(jnp.sum(jnp.real(o).astype(jnp.float32) ** 2) for o in forward(*q, *xs)))(p)
 result = {}
+if 'loss' in docs:
+    from carbon.level4 import loss as loss_slot
+    per_case = loss_slot.per_case_mean(interpret.rebuild(docs['loss'], allowlist))
+    targets = list(jax.eval_shape(run, params, *inputs))
+    def step(p, ts, *xs):
+        return jax.grad(lambda q: per_case(list(forward(*q, *xs)), list(ts), list(xs)))(p)
+    step_args = (params, targets, *inputs)
+    result['train_step_loss'] = 'graph'
+else:
+    def step(p, *xs):
+        return jax.grad(lambda q: sum(jnp.sum(jnp.real(o).astype(jnp.float32) ** 2) for o in forward(*q, *xs)))(p)
+    step_args = (params, *inputs)
+    result['train_step_loss'] = 'sum_of_squares'
 started = time.perf_counter()
 compiled = jax.jit(run).lower(params, *inputs).compile()
 result['forward_seconds'] = time.perf_counter() - started
@@ -90,8 +107,11 @@ cost = cost[0] if isinstance(cost, list) and cost else cost
 result['forward_temp_bytes'] = int(memory.temp_size_in_bytes)
 result['forward_flops'] = float(cost.get('flops', 0.0))
 started = time.perf_counter()
-jax.jit(step).lower(params, *inputs).compile()
+compiled_step = jax.jit(step).lower(*step_args).compile()
 result['train_step_seconds'] = time.perf_counter() - started
+cost = compiled_step.cost_analysis() or {}
+cost = cost[0] if isinstance(cost, list) and cost else cost
+result['train_step_flops'] = float(cost.get('flops', 0.0))
 if 'init' in docs:
     init = interpret.rebuild(docs['init'], allowlist)
     started = time.perf_counter()
@@ -121,7 +141,7 @@ def staged_files(parsed, allowlist, *, max_bytes):
         name + ".py": (repository / (name.replace(".", "/") + ".py")).read_bytes()
         for name in MODULES
     }
-    slots = sorted(s for s in parsed if s in ("forward", "init"))
+    slots = sorted(s for s in parsed if s in ("forward", "init", "loss"))
     for slot in slots:
         files[slot + ".json"] = graph.dumps(parsed[slot])
     files["allowlist.json"] = allowlist.raw

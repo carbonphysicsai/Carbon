@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-motor-peak-arithmetic",
+  "recorded_at": "2026-10-09T16:55:54+00:00",
+  "challenge": "motor", "stage": "design",
+  "execution": {"kind": "test_run", "ref": "MOTOR-PEAK-FEASIBILITY-01 analytic arithmetic", "description": "Native PowerShell screen followed by independent Python math-only polygon recomputation; no solver imports or runs."},
+  "expected": "Exact winding-source area, loading, saturation markers and skew agree under explicit conventions.",
+  "observed": "The initial PowerShell nested-function calculation overstated polygon areas; independent explicit Python shoelace gives 183.925 mm2 for the wide-tooth slot and 13.58-15.09 Nm marker screen. Only the corrected Python figures enter the analysis. These are hypotheses, not physical truth or a proven maximum.",
+  "keep": ["Use exact coil polygons and state peak/RMS, region/copper and whole-slot/half-slot conventions."],
+  "change": ["Never infer feasibility from an unchecked sizing spreadsheet; independently recompute geometry arithmetic."],
+  "protocol_elements": ["customer-value", "reference-custody", "analysis-not-truth"],
+  "proposed_revision": null, "status": "RECORDED"
+}

@@ -261,7 +261,15 @@ def _versions(backend):
     return {package: version(package)}
 
 
-def cost(challenge_id, strategy, *, train_cases=None, factors=None):
+def cost(
+    challenge_id,
+    strategy,
+    *,
+    train_cases=None,
+    factors=None,
+    level=0,
+    graph_compile=None,
+):
     """F0-F4 for one recipe on this host's image.
 
     The backend is the recipe's own. `train_cases` costs the recipe at a study
@@ -270,9 +278,23 @@ def cost(challenge_id, strategy, *, train_cases=None, factors=None):
     (`F3_seconds`, `F4_seconds`, each `{"setup_s", "per_unit_s"}`); each is
     HUMAN_INPUT until supplied. A recipe that trains nothing (no training
     program, as a nearest-neighbour recipe) costs 0.
+
+    `level` above 0 costs the recipe under that construction level's current
+    development variant (TRAINING-BUDGET-02): the program the development
+    rebuild trains, never a Level 0 reading of it. A graph-only level is
+    priced from its G5 compile result, `graph_compile` (`train_step_flops`, one
+    gradient step at the declared batch): F4 is its steps times that figure,
+    and F1 is HUMAN_INPUT, since G5 records no parameter count. Without one
+    it is refused `cost_level4_graph_pending`.
     """
     adapter = adapter_for(challenge_id)
-    programs = adapter.training_programs(strategy, train_cases=train_cases)
+    if level:
+        graph = {} if graph_compile is None else {"graph_compile": graph_compile}
+        programs = adapter.training_programs(
+            strategy, train_cases=train_cases, level=level, **graph
+        )
+    else:
+        programs = adapter.training_programs(strategy, train_cases=train_cases)
     backends = {program.backend for program in programs}
     if not backends <= set(adapter.backends()):
         raise CostRefused("cost_backend_unsupported", ", ".join(sorted(backends)))
@@ -280,29 +302,45 @@ def cost(challenge_id, strategy, *, train_cases=None, factors=None):
     k_opt, k_polish = factors.get("k_opt"), factors.get("k_polish")
     rows, f0, f1, f2, f4 = [], 0, 0, 0.0, 0.0
     for program in programs:
-        if program.backend not in MEASURE:
+        if program.measured_step_flops is not None:
+            m = Measured(None, float(program.measured_step_flops), 0.0, None)
+        elif program.backend not in MEASURE:
             raise CostRefused("cost_backend_unsupported", program.backend)
-        m = MEASURE[program.backend](program)
+        else:
+            m = MEASURE[program.backend](program)
         members, main, polish = (
             program.members,
             program.main_steps,
             program.polish_steps,
         )
-        p_b = m.parameters * program.cases_per_update
+        p_b = None if m.parameters is None else m.parameters * program.cases_per_update
         f0 += members * (main + polish)
-        f1 += members * p_b * (main + polish)
+        f1 = None if f1 is None or p_b is None else f1 + members * p_b * (main + polish)
         if f2 is not None:
             f2 = (
                 None
-                if k_opt is None or (polish and k_polish is None)
+                if p_b is None or k_opt is None or (polish and k_polish is None)
                 else f2
                 + members * (k_opt * p_b * main + (k_polish or 0) * p_b * polish)
             )
+        # A development recipe's recorded worst case stands in for an unset
+        # k_polish (TRAINING-BUDGET-02); a measured k_polish still decides.
+        k_poly = k_polish if k_polish is not None else program.polish_factor
         if f4 is not None:
             f4 = (
                 None
-                if polish and k_polish is None
-                else f4 + members * m.step_flops * (main + (k_polish or 0) * polish)
+                if polish and k_poly is None
+                else f4
+                + members * m.step_flops * (main + (k_poly or 0) * polish)
+                + (
+                    0
+                    if not program.polish_dense_flops_per_p2
+                    else members
+                    * polish
+                    * program.polish_dense_flops_per_p2
+                    * m.parameters
+                    * m.parameters
+                )
             )
         rows.append(
             {
@@ -332,7 +370,7 @@ def cost(challenge_id, strategy, *, train_cases=None, factors=None):
         "versions": {k: v for b in sorted(backends) for k, v in _versions(b).items()},
         "programs": rows,
         "F0_steps": f0,
-        "F1": f1,
+        "F1": HUMAN_INPUT if f1 is None else f1,
         "F2": HUMAN_INPUT if f2 is None else f2,
         "F3_seconds": seconds(f2, "F3_seconds"),
         "F4_flops": HUMAN_INPUT if f4 is None else f4,
@@ -360,10 +398,26 @@ def main(argv=None):
     parser.add_argument("--challenge", required=True)
     parser.add_argument("--strategy", required=True, help="a strategy JSON file")
     parser.add_argument("--train-cases", type=int)
+    parser.add_argument(
+        "--level",
+        type=int,
+        default=0,
+        help="cost under this construction level's development variant",
+    )
+    parser.add_argument(
+        "--graph-compile",
+        help="a Level 4 graph's G5 compile.json (its train_step_flops)",
+    )
     args = parser.parse_args(argv)
     strategy = json.loads(Path(args.strategy).read_text(encoding="utf-8"))
     try:
-        report = cost(args.challenge, strategy, train_cases=args.train_cases)
+        # Level 0 calls the calculator exactly as before the ladder.
+        ladder = {"level": args.level} if args.level else {}
+        if args.graph_compile:
+            ladder["graph_compile"] = json.loads(
+                Path(args.graph_compile).read_text(encoding="utf-8")
+            )
+        report = cost(args.challenge, strategy, train_cases=args.train_cases, **ladder)
     except CostRefused as refused:
         print(json.dumps({"refused": refused.code, "detail": str(refused)}))
         return 2

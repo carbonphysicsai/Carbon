@@ -269,7 +269,7 @@ def declared_compute_budget(item):
     return BUDGET_SET, {"unit": budget["unit"], "value": budget["value"]}
 
 
-def _measured_budget(item, strategy):
+def _measured_budget(item, strategy, level=0):
     """`(status, report)`: the budget status and the calculator's report (None
     when nothing was calculated)."""
     if type(item) is str:
@@ -298,7 +298,10 @@ def _measured_budget(item, strategy):
     from carbon.training_budget.adapter import NoAdapter
 
     try:
-        report = calculator.cost(strategy["challenge_id"], strategy)
+        # A development recipe is costed at its own level (TRAINING-BUDGET-02);
+        # Level 0 calls the calculator exactly as before.
+        ladder = {"level": level} if level else {}
+        report = calculator.cost(strategy["challenge_id"], strategy, **ladder)
     except NoAdapter:
         return {**status, "status": BUDGET_NO_ADAPTER}, None
     except calculator.CostRefused:
@@ -311,7 +314,7 @@ def _measured_budget(item, strategy):
     return {**status, "used": value, "within": value <= budget["value"]}, report
 
 
-def budget_status(item, strategy):
+def budget_status(item, strategy, level=0):
     """Whether `strategy` is inside the compute budget of `item` (a contract,
     or a Challenge id): `{schema, status, unit, used, allowed, within}`.
 
@@ -320,10 +323,10 @@ def budget_status(item, strategy):
     calculator's (`carbon.training_budget.cost`) on this host's image, and
     `within` is `used <= allowed`; the validator's figure on its pinned image
     decides. Admission (`check_compute_budget`) refuses by this same status."""
-    return _measured_budget(item, strategy)[0]
+    return _measured_budget(item, strategy, level)[0]
 
 
-def check_compute_budget(item, strategy):
+def check_compute_budget(item, strategy, level=0):
     """Refuse a recipe over the contract's declared compute budget.
 
     Only a contract whose envelope declares `compute_budget` is checked; the
@@ -332,7 +335,7 @@ def check_compute_budget(item, strategy):
     that cannot be calculated in the budget's unit is refused, never let
     through. A refusal carries `budget`: the unit, the cost (None when it
     could not be calculated) and the ceiling."""
-    status, report = _measured_budget(item, strategy)
+    status, report = _measured_budget(item, strategy, level)
     if status["status"] == BUDGET_NOT_SET:
         return None
     if status["status"] == BUDGET_MALFORMED:

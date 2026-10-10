@@ -1,0 +1,8 @@
+Synthetic fixture only; the real SaveScalars layout must be operator-mapped.
+1: res: frequency
+2: boundary int: Pressure 1 inlet
+3: boundary int: Pressure 1 outlet
+4: boundary int: Pressure 2 inlet
+5: boundary int: Pressure 2 outlet
+6: boundary int: Pabs2 inlet
+7: boundary int: Pabs2 outlet

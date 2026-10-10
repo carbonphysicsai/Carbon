@@ -10,8 +10,30 @@ live Graphite Constructor or Attacker session spends money.
 **[auto]** have, or must get, a command. Items marked **[review]** are
 recorded Test Lead review steps.
 - **The target command** is `python -m carbon.challenge_pipeline readiness
-  --challenge <id>`. It prints this checklist with PASS / FAIL / NOT_BUILT
-  for each item, and exits non-zero unless every item passes.
+  --challenge <id> [--level N]`. It prints this checklist with one status
+  per item:
+  - **PASS**: the automated check passed (an [auto] item), or the recorded
+    review passed (a [review] item).
+  - **PASS_BY_REVIEW**: an [auto] item whose automated check is NOT_BUILT,
+    accepted by a valid committed PASS review (reviewer, date, evidence). It
+    counts toward the exit code but is shown apart from an automated PASS, so
+    the missing automation stays visible. A review can never turn a FAIL into
+    a pass, and a missing, malformed or FAIL review leaves the item NOT_BUILT.
+  - **WAIVED**: a NOT_BUILT or REVIEW_REQUIRED item covered by an unexpired,
+    committed Test Lead waiver (`readiness/waivers.json`). A waiver is never a
+    PASS and never covers a FAIL; it names its challenge, items, levels and
+    stage, and applies only while its stage is the file's `active_stage`, so
+    it ends when the Test Lead moves the stage on (no carry-over). The first
+    is `STAGE_A_WAIVER` (battery S3, H2, H4, V3; measurement only, no
+    promotion, frontier or improvement claim).
+  - **FAIL**, **NOT_BUILT**, **REVIEW_REQUIRED** (a [review] item with no
+    valid review): none of these passes.
+  Two flags in the report. `green` is true only when every item is PASS or
+  PASS_BY_REVIEW, so any WAIVED item keeps it false (and the metrics honest).
+  `launch_ready`, which sets the exit code (0 when true), is true when no
+  FAIL, NOT_BUILT or REVIEW_REQUIRED remains: every non-PASS item is
+  PASS_BY_REVIEW or WAIVED under an unexpired waiver. Launch also stays gated
+  on the FAIL items (R1, A4), since a FAIL is never covered.
 - **Until that command exists,** the Test Lead runs the gate by hand and
   records the result in the challenge's wave notes.
 - **Who builds it:** owner to be assigned (see the end of this document).
@@ -92,6 +114,8 @@ fails the gate gets no live Graphite run, at any level.
 | V1 | A Q1 score-to-value check on the available panel (baselines plus constructed controls): τ/ρ with a band, and divergences listed. A negative or within-noise τ is NOT a blocker, but it is recorded, and the first Graphite runs are then framed as alignment measurements, never as improvement hunting. | [auto] the harness; [review] framing | S1 |
 | V2 | Panel discrimination: at least two distinct decision outcomes among panel members on the decision study. If not, widen the construction families first (development variant). | [auto] | S3 |
 | V3 | Promotion claims require multi-seed evidence. | [review] | S2 |
+
+READINESS-GAPS-01's [draft multi-seed promotion policy](../challenge_pipeline/readiness/MULTI_SEED_PROMOTION_PROPOSAL.md) is a proposal for the Test Lead. It does not supply a V3 review or make the item pass.
 
 ## H. Hidden path: operational evidence (OWNER-GRAPHITE-TEST-WAVE-08)
 

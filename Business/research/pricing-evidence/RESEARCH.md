@@ -1,0 +1,37 @@
+# Published price evidence and tier planning
+
+Status: research/recommendation only. Retrieval: 2026-10-10. Source point prices use **SOURCED low=base=high**; published ranges retain sourced endpoints and **HUMAN_INPUT base**, unless an explicitly marked assumption is chosen. Advertised rates, engagement sizes, supplier estimates, actual payments and Carbon prices are distinct. No currency conversion or inflation adjustment is applied. Tax treatment is unknown unless the source says it. All planning assumptions have low/base/high in [evidence.json](evidence.json).
+
+## Published comparators
+
+| Provider / category | Published offer or price | Engagement size / scope | What it supports; what it does not |
+| --- | --- | --- | --- |
+| ARKEG / simulation V&V consulting | £546.36–£1,326.57 per unit/day; midpoint not published | V&V support on the UK Digital Marketplace; specific total effort/contract payment not published in the reviewed card | Direct V&V rate comparator. Unit-to-person-day conversion is an assumption; pricing-PDF retrieval failed. No claim of a standard's typical programme cost. [Government supplier listing](https://www.applytosupply.digitalmarketplace.service.gov.uk/g-cloud/services/403132573695999) |
+| Joseph Webb / FEA services | Basic $75/h; standard $125/h; advanced $165/h | Quick assessment $1,200–$2,000; standard project $2,800–$5,500 with 20–40 h; complex project from $6,500 with 40+ h | Published individual-supplier analysis/report scopes. These are not independent V&V programme prices or physical qualification engagements. [Supplier price card](https://josephwebb.net/pricing.html) |
+| CoolSim / simulation as a service | Project pass $4,500 for up to three months; annual $9,500; team $15,000/year | Included solver hours/access vary; optional modelling services from $5,000/project and first-model assistance $2,000 | A bounded simulation package and service add-ons. CFD/data-centre scope differs from battery/model credibility; annual software access is not lifecycle re-evidence. Prices before tax, source edition 2026-B. [Supplier pricing](https://coolsimsoftware.com/pricing/) |
+| dicehub / cloud CFD | Published examples: €16.98 drone, €54.24 automotive, €237.12 wind-comfort study | Supplier estimated runtime examples, not completed customer invoices; net prices exclude taxes | Compute/service floor only. Excludes the independent evidential labor and physical validation that give a dossier value. [Supplier estimates/rate table](https://dicehub.com/pricing) |
+| Goaco / AI model audit | Usable numeric low/base/high **HUMAN_INPUT** | Published independent performance/robustness/governance audit and revalidation scope; pricing document unavailable on retrieval | Evidence that a model-audit package is offered. Fairness/governance assurance is not physics V&V; no invented engagement size or rate. [Government supplier listing](https://www.applytosupply.digitalmarketplace.service.gov.uk/g-cloud/services/156997445796315) |
+| Ansys SimAI / fast-model software | Low/base/high **HUMAN_INPUT**; licensing/pricing through sales | Product page offers AI surrogate modeling; reviewed FAQ directs pricing enquiries to sales | A relevant alternative with unobserved price. No pricing or standards-grade qualification inferred from the product description. [Official product/FAQ](https://ansys.synopsys.com/products/ai/simai) |
+| PhysicsX / engineering AI platform/services | Low/base/high **HUMAN_INPUT**; no public list price identified in reviewed official pages | Platform and customer-specific delivery; scope/quote unknown | Relevant enterprise competitor. Funding and marketing speed claims do not reveal annual contract value or audit pricing. [Official platform](https://www.physicsx.ai/platform), [contact route](https://www.physicsx.ai/contact) |
+
+No completed, narrowly comparable NASA/ASME physics-credibility audit contract value was verified in this sweep. Broader engineering/programme contracts, generic software IV&V and unrelated infrastructure audits are excluded as quantitative tier comparators. This is a limitation of the evidence, not proof those engagements have no market.
+
+## Low/base/high by framework tier
+
+**ASSUMPTION model:** convert ARKEG's unit/day to an equivalent professional person-day. Use rate **£546.36 / £1,000 / £1,326.57**: endpoints sourced, base assumed. Use the effort assumptions below. Multiply rate and effort at each scenario. The resulting envelopes are comparable labor-budget proxies, **not Carbon's quote or a sourced distribution of market prices**.
+
+| Tier and bounded scope | Assumed effort, days low/base/high | Equivalent labor budget GBP low/base/high | Exclusions and pricing implication |
+| --- | --- | --- | --- |
+| EvidenceAudit: one agreed artifact/use; existing usable data; requirement/evidence inventory, independent analysis and reviewed dossier | 5 / 15 / 30 | 2,731.80 / 15,000 / 39,797.10 | New truth generation/testing, remediation, special rights/security and customer integration excluded. First confirm exam/reference adequacy and independence; price an accepted assessment scope, not a favorable result. |
+| Decision tool plus dossier: qualified bounded model, integration/fallback evidence and scoped dossier | 30 / 90 / 180 | 16,390.80 / 90,000 / 238,782.60 | Training/discovery, physical campaigns, licenses, customer deployment and support may dominate outside this proxy. A software subscription comparator cannot establish package value. |
+| Lifecycle re-evidence: one specified material change with impact assessment, justified rechecks and revised record | 5 / 20 / 60 | 2,731.80 / 20,000 / 79,594.20 | No assumed yearly frequency. New physical campaigns, broad domain changes or a new artifact may require a new decision-tool programme. Do not promise a renewal fee without change scope. |
+
+Effort can exceed the high scenario; these are bounded examples, not ceilings. The low scenario presumes usable pre-existing evidence; it is not permission to omit mandatory independent work. The base rate is deliberately an assumption rather than an unsourced claim about a typical specialist rate.
+
+## Recommendation and missing evidence
+
+Offer-design recommendation: agree fixed scope and acceptance of the audit deliverable, while keeping subject-model qualification independent of payment. For a decision tool, separate one-time model/dossier delivery from rights, integration and support. For lifecycle, define change-triggered evidence obligations before choosing a fee; no calendar cadence is evidenced here. Commercial terms are the owner's decision.
+
+To price a real battery engagement, obtain the buyer's existing decision and validation workflow, required standard/tailoring, physical-reference data and reuse rights, incumbent total time/cost, uncertainty/failure consequences, deployment constraints and desired accepted evidence. Obtain labor and external truth/security/integration estimates from those requirements. Today Carbon has a development sample and documented failures; price ranges for an eligible commercial tier and willingness-to-pay remain **HUMAN_INPUT**.
+
+The network's competition could improve discovery, price or independent evidence. These advantages must be measured against a central team and the buyer's incumbent workflow; they are not pricing evidence in these sources. No claims about Carbon revenue, customers or commercial traction are added.

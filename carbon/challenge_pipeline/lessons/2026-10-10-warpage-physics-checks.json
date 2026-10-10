@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-warpage-physics-checks",
+  "recorded_at": "2026-10-10T03:27:31Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "WARPAGE-PROCESS-PHYSICS-01", "description": "Native UTF-8 warpage research, solver-package and pipeline suites: 39 passed in 4.21s. Ruff passed; pipeline validation: 7 records and 544 lessons; diff check clean. Black 23.7 output was diagnostic only."},
+  "expected": "Source assessments cannot be confused with earned tiers or executable materials.",
+  "observed": "All 39 static checks passed. Public catalogue checksums identify prospective inputs, not verified local data or a customer calibration receipt.",
+  "keep": ["Explicit null identities and HOLD for unmatched material/process data."],
+  "change": ["Use the exact CI formatter for subsequent handoffs after f06 exposed a version-sensitive formatting debt."],
+  "protocol_elements": ["reference policy", "readiness"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

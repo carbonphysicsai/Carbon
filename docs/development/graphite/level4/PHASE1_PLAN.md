@@ -33,6 +33,7 @@
 | 8 (part 1) | The development-only Level 4 variant `battery-l4-graph-v1` (LEVEL4-DEV-VARIANT-01). It is graph-only: `hybrid.composition_graphs` widened under allowlist v1, routed through the shared dispatch (BATTERY-DEV-DISPATCH-01), and every rebuild fails closed until D3. Also: the capability draft (`LEVEL4_CAPABILITY_DRAFT.md`, for the owner) and the lesson on lowering at the recipe batch. Part 2 is the `battery_level4` attack adapter |
 | 8 (part 2) | The `battery_level4` attack adapter, registered at (battery, 4) against `battery-l4-graph-v1`. It runs seven §8 families at Carbon's real gates (G3 parse, G4 validate, rebuild) and declares six seams NOT_RUN with owners. Every attack is HELD, every specimen FIRES, every control PASSES. Its finding: a document whose declared shapes lie now gets `declared_aval_mismatch` at G4 (abstract evaluation), where before it surfaced only during execution. Dispositions are the Test Lead's |
 | 9 (code) | The A40 harness's Level 4 B′ leg (§3), opt-in. Picks plus a relu coverage recipe are lowered on the CPU before spend, committed as staging directories and pinned in the run record. JAX pods run one B′ rebuild per recipe after the native repeats. `compare` checks B′ against native on the same host and B′ against B′ across hosts. CPU: B′ equals the native digest. The forward-only kNN leg runs `gather` and `sort`, compared bit for bit with its JAX source. The run itself waits for a grant that names the leg (proposed to the owner: its own, capped at USD 3.00) |
+| Phase 3 (rebuild) | Battery's Level 4 rebuild from staged documents. `level4_model.GraphModel` is battery's MLP whose network is the submission's graph, trained by battery's own loop. Its self-contained `level4_graph` state predicts with nothing staged. The worker program stages Carbon's `carbon.level4` modules; inference of a Level 4 state gets its own program, while Level 0's is unchanged. CPU: the worker programs, run isolated on exactly the staged files, train to the native parameters (classic MLP, general DeepONet) and predict as in process. Opening Level 4 on the ladder still needs the owner's upload bounds and the security owner's acceptance (VALIDATOR-25) |
 
 **Q5 answered (plan PR 3).** Per-case graphs batched by Carbon's `vmap` run
 forward bit-identically, but they do **not** train bit-identically for every
@@ -332,14 +333,24 @@ cross-case tricks" is enforced by structure:
 - So the graph never sees a second case. Declaring it at batch B instead
   would need an independence proof that shapes alone cannot give.
 
-**Not yet built.** The ruling's content is complete, but these pieces wait:
-- **Battery's `loss_override`.** It is a Challenge declaration, so it waits
-  for the Test Lead, and changing it changes the registered variant document,
-  which means a new version.
-- **G6 training on a submitted loss.** The battery adapter's
-  `train_graph` with `per_case_mean`, and the F4 count, are the next slice.
+**Built.**
+- **Battery's `loss_override: graph`.** The development variant
+  `battery-l4-graph-v3` declares it (LEVEL4-LOSS-OVERRIDE-01).
+- **G6 training on a submitted loss.** It is in the rebuild
+  (`carbon/battery/level4_model.py`, LEVEL4-G6-LOSS-TRAINING-01):
+  - the record carries the variant's declaration (`RECORD_BOUNDS`);
+  - G4 gates the loss graph against it;
+  - battery's own loss terms must stay neutral;
+  - both paths train on `Prepared.loss`, which is Carbon's mean of the
+    per-case graph;
+  - battery's implementation modules are unchanged.
+
+**Not yet built.**
 - **Admitting `aux` outputs.** That needs N set, and the forward interface
   check then widened to admit them.
+- **F4.** The loss graph runs inside the compiled training step, so the
+  cost calculator counts it once it costs development recipes, which it
+  does not do yet.
 
 ---
 

@@ -199,3 +199,16 @@ def test_the_forward_only_knn_equals_native_on_cpu(lowered):
     (cell,) = a40.compare(hosts)["level4"]
     assert {c["outcome"] for c in cell["same_host"].values()} == {"AGREE"}
     assert cell["across_hosts"]["outcome"] == "AGREE"
+
+
+def test_a_jax_only_run_books_two_pods(lowered):
+    """The Level 4 leg's grant (OWNER-L4-GPU-LEG-GRANT-01) runs JAX pods only:
+    the plan covers that backend alone and books 2 pods + 2 replacements;
+    both backends keep the 4 + 2 arithmetic."""
+    _, record = lowered
+    jax_only = a40.plan(record, {"jax": SMOKE}, backends=("jax",))
+    assert set(jax_only) == {"jax"} and jax_only["jax"]["pods"] == 2
+    assert jax_only["jax"]["level4_rebuilds_per_pod"] == 3
+    both = a40.plan(record, {"jax": SMOKE, "pytorch": SMOKE})
+    assert set(both) == {"jax", "pytorch"}
+    assert {b["pods"] for b in both.values()} == {4}

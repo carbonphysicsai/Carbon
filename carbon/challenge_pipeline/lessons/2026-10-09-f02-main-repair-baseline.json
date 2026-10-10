@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-f02-main-repair-baseline",
+  "recorded_at": "2026-10-09T19:13:00Z",
+  "challenge": "f02",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-F02-QUESTION-LAW-01 main reconciliation", "description": "Native focused baseline before merging main: test_f02_question_law_round2.py and test_challenge_pipeline.py"},
+  "expected": "The handed-off f02 specification passes its focused baseline before an additive index conflict repair.",
+  "observed": "32 tests passed in 5.57 seconds. The merge exposed one README introduction conflict; no physics solver ran. Native diagnostics only.",
+  "keep": ["Preserve each independent Challenge notice when main and a PR insert at the same documentation seam."],
+  "change": ["Compare the repaired diff to main and original ticket files before pushing a new exact-head handoff."],
+  "protocol_elements": ["question laws", "delivery hygiene"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

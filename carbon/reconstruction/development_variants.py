@@ -741,10 +741,19 @@ def recorded_variant(found, root=None):
 #: capability it widens has one (the reconstruction rule, OWNER-GRAPHITE-02).
 #: Battery's Level 1 registers its own (`carbon.battery.level1`) at import.
 RECONSTRUCTIONS = {}
+#: `(challenge, capability) -> (bound key, ...)`: keys of a widened
+#: capability's bounds its built record carries, when the variant states them,
+#: so a rebuild reads the variant's declaration from the record alone (battery
+#: Level 4: `loss_override`). A key the variant does not state is not added,
+#: so an earlier variant's records are unchanged.
+RECORD_BOUNDS = {}
 
 
 def _register_shipped_reconstructions():
     from carbon.battery import level1, level2, level3, level4
+
+    for key, names in level4.RECORD_BOUNDS.items():
+        RECORD_BOUNDS.setdefault(key, tuple(names))
 
     shipped = {
         **level1.RECONSTRUCTIONS,
@@ -791,7 +800,7 @@ class CompiledDevelopment:
         return binding
 
 
-def compile_development(strategy, variant_, *, without=()):
+def compile_development(strategy, variant_, *, without=(), check_budget=True):
     """Compile `strategy` under the registered development variant `variant_`.
 
     Development only: Graphite's experiment and pod phase call it when a
@@ -852,12 +861,26 @@ def compile_development(strategy, variant_, *, without=()):
     for name in sorted(values):
         widened = fields[name]
         build = RECONSTRUCTIONS[(variant_.challenge, widened.capability_id)]
-        reconstruction[widened.capability_id] = build(values[name], admitted, granted)
+        built = build(values[name], admitted, granted)
+        carried = RECORD_BOUNDS.get((variant_.challenge, widened.capability_id), ())
+        if carried and isinstance(built, dict):
+            bounds = json.loads(widened.bounds_json)
+            built = {**built, **{k: bounds[k] for k in carried if k in bounds}}
+        reconstruction[widened.capability_id] = built
     try:
         _canonical(values)
         _canonical(reconstruction)
     except (TypeError, ValueError):
         raise VariantRefused(PARAMETER_REFUSED, "values are plain JSON") from None
+    if check_budget and values:
+        # The base compiled above against the declared compute budget; the
+        # development recipe is costed as the development rebuild trains it
+        # (TRAINING-BUDGET-02). The calculator compiles without this check.
+        from carbon.reconstruction.challenge_contracts import check_compute_budget
+
+        check_compute_budget(
+            CONTRACTS[variant_.challenge], strategy, level=variant_.level
+        )
     return CompiledDevelopment(
         challenge=variant_.challenge,
         contract_digest=admitted.contract_digest,
