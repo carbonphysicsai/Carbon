@@ -66,7 +66,7 @@ To remove it:
 ## After a reboot: check
 
 ```powershell
-wsl -d carbon-fresh -u miner -- /home/miner/.local/bin/carbon-reboot-check; wsl -d Ubuntu-24.04 -u carbon -- /home/carbon/.local/bin/carbon-reboot-check
+wsl -d carbon-fresh -u miner -- ~miner/.local/bin/carbon-reboot-check; wsl -d Ubuntu-24.04 -u carbon -- ~carbon/.local/bin/carbon-reboot-check
 ```
 
 It prints the signer units, the tunnel unit, the three forwarded ports and
