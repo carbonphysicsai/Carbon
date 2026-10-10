@@ -153,5 +153,15 @@
    "observers": "flux_observers on (RMS |B| over stator iron, rotor iron, airgap per position); records carry current_a and the machine.pro sha256",
    "resume_fix": "run.py retries FAILED_INFRA records; only terminal attempts count as done (#925 item 3)"
   }
+ },
+ "train_stage1": {
+  "registered": "2026-10-10, before any TRAIN solve",
+  "authority": "OWNER-MOTOR-TRAIN-GRANT-01 (#1028), staged by the Test Lead",
+  "role": "PUBLIC_TRAIN for the DEVELOPMENT 10p/12s kit",
+  "geometries": 128,
+  "cases": 1408,
+  "rule": "scripts/dev/motor/feasibility02/train.py: seeded LHS (seed 1010), valid, normalised distance >= 0.10 from the 43 sidecar designs; bundle J0 + J10/J15 at gamma -10/-5/0/+5/+10, flux observers",
+  "plan_sha256": "89baa02126f543c72dc3cb873e12c93542ef03b3b37269ffb6dfe8779e18197c",
+  "stage2": "to 256 only on a separate decision from the stage-1 learning curve (ripple and cogging)"
  }
 }
