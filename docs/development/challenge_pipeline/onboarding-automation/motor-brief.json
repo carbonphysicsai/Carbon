@@ -1,0 +1,8 @@
+{
+  "schema": "carbon.onboarding.brief.v1",
+  "challenge": "motor",
+  "buyer": "Mock precision robot-joint integrator",
+  "decision": "Choose a geometry and precommitted holding/peak commands with low ripple and cogging, then verify the shortlist independently",
+  "physics": "Bounded static surface-PM magnetics; no thermal duty or controller qualification",
+  "solver": "Proposed Gmsh/GetDP magnetic reference with full signed torque and cogging curves"
+}
