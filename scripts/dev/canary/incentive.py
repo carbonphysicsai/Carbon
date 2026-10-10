@@ -65,7 +65,10 @@ def verify_epoch(row, hotkeys, incumbents, n_challenges, canaries, burn_uid=0):
     total = sum(weights.values())
     findings = []
     if total == 0:
-        return {"state": UNVERIFIED, "findings": [{"code": "no_weights_set"}]}
+        return {
+            "state": UNVERIFIED,
+            "findings": [{"level": UNVERIFIED, "code": "no_weights_set"}],
+        }
     paid = {hotkey for hotkey in incumbents.values() if hotkey is not None}
     for uid, value in sorted(weights.items()):
         if uid == burn_uid:
@@ -353,7 +356,7 @@ def check(
         result["shares"] = shares
         result["challenge_share"] = 1 / len(policy.challenges)
     if leaderboard is not None or config.get("sybil"):
-        levels = {f["level"] for f in result["findings"]}
+        levels = {f.get("level", UNVERIFIED) for f in result["findings"]}
         result["state"] = next(
             (s for s in (BLOCKER, ATTENTION, UNVERIFIED) if s in levels), PASS
         )

@@ -236,3 +236,29 @@ def test_summarize_fills_the_974_sybil_row_observed_half():
     assert abs(observed["attacker_weight_fraction"] - 1 / 3) < 1e-9
     assert observed["split_epochs"] == 0
     assert inc.summarize([], share)["observed"] is None
+
+
+def test_an_empty_weight_row_with_roles_is_unverified_not_a_crash():
+    config = {
+        "schema": inc.SCHEMA,
+        "validator_hotkey": "5Publisher",
+        "intake_url": "http://127.0.0.1:1",
+        "feed_key": "00" * 32,
+        "policy": "testnet-winner-v1",
+        "roles": True,
+    }
+
+    async def weights(context, hotkey):
+        return [], {0: "5Burn"}
+
+    class Testnet:
+        network = "testnet"
+
+    result = inc.check(
+        config,
+        weights_reader=weights,
+        leaderboard_reader=lambda url, key: {},
+        context=Testnet(),
+    )
+    assert result["state"] == inc.UNVERIFIED
+    assert result["findings"][0] == {"level": inc.UNVERIFIED, "code": "no_weights_set"}
