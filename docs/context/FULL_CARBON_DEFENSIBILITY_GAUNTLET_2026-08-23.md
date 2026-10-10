@@ -265,6 +265,8 @@ A claim may carry more than one status.
 
 ## Attack: “Will you do buybacks/revenue share?”
 
+> **Superseded, 2026-10-10:** Carbon intends to use a share of revenue to support Alpha, with buyback and burn as the current direction. The amount is not yet known. No revenue-share entitlement is created, and counsel reviews public wording. See OWNER-LAUNCH-STRATEGY-01. The original 2026-08-23 answer below is kept as historical record.
+
 **Defensible answer:** not a canonical assumption. Any such mechanism requires legal/economic/governance review.
 
 **Status:** `OUTSIDE_CARBON_CLAIM` today.

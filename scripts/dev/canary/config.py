@@ -184,16 +184,18 @@ def _intake_url(value, field):
 def parse(document):
     """A `Config` from the parsed JSON document, or `ConfigRefused`.
 
-    The hotkey must be a registered canary: a config naming any other hotkey
+    The hotkey must be a registered canary, or one of INCENTIVE-CANARY-01's
+    registered role miners (`roles.ROLES`): a config naming any other hotkey
     is refused here, before the runner reads, launches or sends anything."""
     from carbon.challenge_validator.canary import is_canary
+    from scripts.dev.canary import roles
 
     if type(document) is not dict or set(document) != _FIELDS:
         raise ConfigRefused("config_closed_object_required")
     if document["schema"] != SCHEMA:
         raise ConfigRefused("config_schema_unknown", "schema")
     hotkey = _ss58(document["hotkey"], "hotkey")
-    if not is_canary(hotkey):
+    if not is_canary(hotkey) and roles.role_of(hotkey) is None:
         raise ConfigRefused("hotkey_not_registered_canary", "hotkey")
     launchpad = _object(
         document["launchpad"], ("state_dir", "python", "checkout"), "launchpad"
