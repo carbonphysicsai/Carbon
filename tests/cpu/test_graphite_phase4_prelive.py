@@ -422,7 +422,7 @@ def test_mutation_a_grant_check_that_takes_a_raised_ceiling_fails_the_gate(
     copy = _grant_copy(tmp_path)
     _committed_by_digest(monkeypatch, copy)
 
-    def lax(path, repository=phase4.REPOSITORY, *, challenge):
+    def lax(path, repository=phase4.REPOSITORY, *, challenge, level=None):
         document = json.loads(Path(path).read_bytes())
         phase4.bind_grant_to_challenge(document, phase4.phase4_grant(challenge))
         return phase4.grant_digest(document)
