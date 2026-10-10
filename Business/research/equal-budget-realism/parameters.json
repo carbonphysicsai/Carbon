@@ -1,0 +1,86 @@
+{
+  "schema": "carbon.research.equal-budget-realism.v1",
+  "ticket": "EQUAL-BUDGET-REALISM-01",
+  "status": "RECOMMENDATION_NOT_EXECUTABLE",
+  "authority_commit": "567dae6491a187253d463390225e019835de33f7",
+  "no_run": true,
+  "scope": "Recommendations to optimizer/Data Collection; no scientific policy or optimizer implementation",
+  "numerical_knobs_status": "ASSUMPTION scenarios low/base/high; choose on independent development cases before evaluation",
+  "wall_budget_hours": [
+    0.5,
+    2,
+    8
+  ],
+  "core_budget": "HUMAN_INPUT measured allocated cores and registration",
+  "hourly_rate_eur": [
+    1.37,
+    1.37,
+    1.37
+  ],
+  "illustrative_host_cost_eur": [
+    0.685,
+    2.74,
+    10.96
+  ],
+  "optimizers": {
+    "battery": {
+      "direct": "Bounded derivative-free local search by discrete branch; differential-evolution/global restart challenger; gradients only after event/constraint checks",
+      "industry_baseline": "Exact supported bank, conservative observable interpolation, constrained GP/EGO with charged acquisition",
+      "partition": "All five ambient bands; discrete cooling/switch choices separate",
+      "warm_start": "Same permitted known feasible recipes for every arm; no reuse of aged state across different protocols"
+    },
+    "motor": {
+      "direct": "Pattern/COBYLA-type constrained search, multistart/global challenger; topology fixed",
+      "industry_baseline": "Full signed-curve Kriging/RBF/Fourier-observable surface with adaptive infill and final FE",
+      "partition": "Whole geometry with all commands, angles and skew slices",
+      "warm_start": "Allowed neighboring-angle/geometry states only with independent same-reference convergence"
+    },
+    "f02": {
+      "direct": "Complete enumeration if finite menu; constrained schedule optimization/adjoint challenger only if approved continuous grammar",
+      "industry_baseline": "Multi-input thermal impulse/state-space ROM, exact covered response bank",
+      "partition": "Whole waveform/cooling/initial/split groups",
+      "warm_start": "Reuse linear operators/factors and supported impulse responses; preserve event maxima"
+    }
+  },
+  "planning_knobs": {
+    "local_restarts": [
+      2,
+      4,
+      8
+    ],
+    "doe_points_per_continuous_dimension": [
+      2,
+      4,
+      8
+    ],
+    "global_population_multiplier_per_dimension": [
+      5,
+      10,
+      15
+    ],
+    "candidate_stopping": "Both wall/core caps, no mandatory physical relaxation",
+    "numerical_tolerances": "HUMAN_INPUT existing reference contract",
+    "actual_evaluation_counts": null,
+    "actual_wall_time": null,
+    "actual_gain": null
+  },
+  "registration_gap": "Current equal-budget-panel.v1 freezes complete solver_order before reference access. Adaptive closed-loop policy/trace is not represented; separate prospective implementation required.",
+  "required_trace_fields": [
+    "policy_digest",
+    "pre_experiment_receipt",
+    "per_proposal_observed_prefix_digest",
+    "proposal_timestamp",
+    "candidate_digest",
+    "mandatory_panel_identity",
+    "settled_verdict",
+    "reference_cost_wall_s",
+    "reference_cost_core_s",
+    "optimization_overhead",
+    "refinement_cost",
+    "cache_identity_and_acquisition_cost",
+    "warm_start_state_identity",
+    "failure_class",
+    "stopping_reason"
+  ],
+  "comparison_ceiling": "Reference-relative design value; no higher physical accuracy or measured network advantage"
+}
