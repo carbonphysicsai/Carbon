@@ -65,6 +65,7 @@ def panel(challenge="motor", direction="min"):
                 ),
             },
             "cost_basis": "ASSUMPTION",
+            "execution_plan": "SERIAL_COMPLETE_PANELS",
             "registrations": {
                 "solver_search": "toy-order-v1",
                 "model_screen": "toy-screen-v1",
@@ -167,6 +168,13 @@ def test_planning_bound_and_digest_fail_closed():
     body = {k: v for k, v in panel().items() if k != "panel_digest"}
     body["jobs"][0]["candidates"][0]["planning_bound"]["core_s"] = 3
     with pytest.raises(eb.EqualBudgetError, match="planning bound"):
+        eb.compare(eb.seal(body), bootstrap_replicates=100, confidence=0.95, seed=1)
+
+
+def test_parallel_wall_time_is_not_silently_added():
+    body = {k: v for k, v in panel().items() if k != "panel_digest"}
+    body["execution_plan"] = "PARALLEL"
+    with pytest.raises(eb.EqualBudgetError, match="serial complete-panel"):
         eb.compare(eb.seal(body), bootstrap_replicates=100, confidence=0.95, seed=1)
 
 

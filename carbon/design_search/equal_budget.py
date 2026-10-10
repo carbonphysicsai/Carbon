@@ -63,6 +63,7 @@ def _validate(panel):
         "decision_rule_id",
         "objective",
         "cost_basis",
+        "execution_plan",
         "budgets",
         "jobs",
         "registrations",
@@ -104,6 +105,8 @@ def _validate(panel):
             raise EqualBudgetError("positive normalized index weights required")
     if panel["cost_basis"] not in ("MEASURED", "ASSUMPTION"):
         raise EqualBudgetError("cost basis must be explicit")
+    if panel["execution_plan"] != "SERIAL_COMPLETE_PANELS":
+        raise EqualBudgetError("serial complete-panel execution plan required")
     registrations = panel["registrations"]
     if (
         type(registrations) is not dict
@@ -448,6 +451,7 @@ def compare(panel, *, bootstrap_replicates, confidence, seed):
         "decision_rule_id": panel["decision_rule_id"],
         "objective": panel["objective"],
         "registrations": panel["registrations"],
+        "execution_plan": panel["execution_plan"],
         "cost_basis": panel["cost_basis"],
         "job_count": len(panel["jobs"]),
         "independent_clusters": len(cluster_ids),

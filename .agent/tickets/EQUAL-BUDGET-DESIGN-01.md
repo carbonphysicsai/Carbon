@@ -21,7 +21,7 @@ one bank and no curves from any unresolved candidate.
 **EBD-D1 (engineering):** extend `carbon.design_search.track_b` by wrapping
 its read-only `Reference`/`Case` records in `equal_budget.py`, without changing
 Track B's existing Q1/Q2 behavior. A solver evaluation is an entire mandatory
-condition panel. The two resource limits are both hard; screening cost is paid
+condition panel under a registered serial execution plan. The two resource limits are both hard; screening cost is paid
 before verification. Each solver attempt uses a separately registered planning
 bound that covers its measured cost; it stops before the first unaffordable
 complete candidate in the registered order. A one-time fit/acquisition cost

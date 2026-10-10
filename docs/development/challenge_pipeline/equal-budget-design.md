@@ -25,6 +25,8 @@ The closed input schema is `carbon.design-search.equal-budget-panel.v1`:
 
 - `evidence_class: DEVELOPMENT`; `challenge: battery-v3|motor|f02`;
   `source_digest`, `decision_rule_id`, `cost_basis: MEASURED|ASSUMPTION`;
+  `execution_plan: SERIAL_COMPLETE_PANELS` (one candidate's full mandatory
+  condition panel completes before the next starts; wall time is additive);
   `registrations` for `solver_search`, `model_screen`, `baseline_screen` and
   `cost_plan`;
 - `objective` has `direction: min|max` and `unit`. Battery v3 also requires
