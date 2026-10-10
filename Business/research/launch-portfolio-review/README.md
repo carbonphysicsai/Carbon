@@ -24,4 +24,3 @@ The #979 read-only public-document audit returns undetermined stage for all quer
 [Review and scored comparisons](REVIEW.md) · [machine-readable scores](portfolio.json) · [status output](status-audit.json) · [input hashes](status-sources.json) · [sources and diagnostic](SOURCES.md).
 
 **Scope:** research only; no physics runs, fitting, spend, hidden/AX42 access, adoption, qualification or deployment.
-
