@@ -113,8 +113,10 @@ def test_the_pages_hold_no_spend_figure_or_account_detail():
         ), path.name
 
 
-def test_the_bank_stage_records_the_cap_as_a_process_requirement_not_a_spend_authorization():
+def test_the_bank_stage_quotes_the_owner_and_attributes_the_reading_to_the_test_lead():
     bank = next(s for s in _load("stage_map.json")["stages"] if s["id"] == "S5_bank")
+    assert "It's a cost benefit analysis for the team with a 500 max." in bank["entry"]
+    assert "The Test Lead's reading" in bank["entry"]
     assert "EUR 500" in bank["entry"]
-    assert "not a spend authorization" in bank["entry"]
-    assert "its own grant file with the exact figure" in bank["entry"]
+    assert "The grant file is what binds spend" in bank["entry"]
+    assert "nothing above EUR 500" in bank["entry"]

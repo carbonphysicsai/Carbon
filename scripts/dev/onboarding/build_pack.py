@@ -46,7 +46,11 @@ def _compact(value):
 def line(label, field):
     """One bullet: a measured value with its source, or UNMEASURED with owner and question."""
     if field["value"] == UNMEASURED:
-        text = f"- {label}: UNMEASURED (owner: {field['owner']}; question: {field['question']})"
+        if field.get("kind") == "decision":
+            detail = f"decision owner: {field['owner']}; question: {field['question']}"
+        else:
+            detail = f"measure: owner {field['owner']}; tool: {field['tool']}"
+        text = f"- {label}: UNMEASURED ({detail})"
         if field.get("flag"):
             text += f" [{field['flag']}]"
         if field.get("source"):
@@ -159,8 +163,8 @@ def cross_page(ledgers):
         "",
         "## Physics regimes covered",
         (
-            "- Regime taxonomy: UNMEASURED (owner: Test Lead; question: which regime "
-            "tags apply to each Challenge? No artefact records one.)"
+            "- Regime taxonomy: UNMEASURED (decision owner: Test Lead; question: which "
+            "regime tags apply to each Challenge? No artefact records one.)"
         ),
         "",
         "## PASSES VALUE across Challenges",

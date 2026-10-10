@@ -81,7 +81,7 @@
    "id": "S5_bank",
    "order": 5,
    "name": "Bank",
-   "entry": "An accepted question law and the design-value prerequisite. Each bank's spend is a documented cost-benefit decision by the team, capped at EUR 500 and recorded in its grant file with the exact figure; there is no separate EUR 100 tier and no 'flagship' condition (Test Lead, from the owner, 2026-10-10). The cap and the cost-benefit record are process requirements, not a spend authorization: every bank still needs its own grant file with the exact figure, and the owner approves startup spend.",
+   "entry": "An accepted question law and the design-value prerequisite. Bank spend (owner, verbatim via the Test Lead, 2026-10-10): \"We just evaluate them with a cost decision. No limiting to 100 vs 500. It's a cost benefit analysis for the team with a 500 max.\" The Test Lead's reading: the team may approve a bank spend up to EUR 500 on a documented cost-benefit decision, recorded in that bank's grant file with the exact figure. The grant file is what binds spend; nothing above EUR 500; no spend ledgers or balances in the repository.",
    "exit": "A sealed hidden bank prepared on the hidden host from a pinned validator image, never on a host every agent session can read.",
    "owner_session": "Carbon Validator (producer, bank adapters, VALIDATOR-28 family sources); Data Collection supplies each family's reference package and panel; the owner approves startup spend",
    "owner_basis": "Test Lead ruling, 2026-10-10 (relayed to the Graphite Testing Manager); Bank architecture #756 and the hidden-pool runbook; register lessons S11 and S12 constrain where and how",

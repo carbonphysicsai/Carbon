@@ -17,8 +17,9 @@
  "inputs": {
   "acceptance_criteria": {
    "customer_supplies": {
+    "kind": "decision",
     "owner": "Test Lead",
-    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "question": "Would a customer supply this input, or would Carbon source it publicly? No artefact records the choice.",
     "value": "UNMEASURED"
    },
    "open_markers": {
@@ -32,15 +33,17 @@
     ]
    },
    "time_to_obtain": {
+    "kind": "measurement",
     "owner": "Test Lead",
-    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "tool": "None yet: record the date each input is obtained in cycle_metrics.jsonl (recorder A9 in ONBOARDING_PIPELINE.md)",
     "value": "UNMEASURED"
    }
   },
   "decision_definition": {
    "customer_supplies": {
+    "kind": "decision",
     "owner": "Test Lead",
-    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "question": "Would a customer supply this input, or would Carbon source it publicly? No artefact records the choice.",
     "value": "UNMEASURED"
    },
    "open_markers": {
@@ -54,15 +57,17 @@
     ]
    },
    "time_to_obtain": {
+    "kind": "measurement",
     "owner": "Test Lead",
-    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "tool": "None yet: record the date each input is obtained in cycle_metrics.jsonl (recorder A9 in ONBOARDING_PIPELINE.md)",
     "value": "UNMEASURED"
    }
   },
   "design_space": {
    "customer_supplies": {
+    "kind": "decision",
     "owner": "Test Lead",
-    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "question": "Would a customer supply this input, or would Carbon source it publicly? No artefact records the choice.",
     "value": "UNMEASURED"
    },
    "open_markers": {
@@ -76,15 +81,17 @@
     ]
    },
    "time_to_obtain": {
+    "kind": "measurement",
     "owner": "Test Lead",
-    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "tool": "None yet: record the date each input is obtained in cycle_metrics.jsonl (recorder A9 in ONBOARDING_PIPELINE.md)",
     "value": "UNMEASURED"
    }
   },
   "material_data": {
    "customer_supplies": {
+    "kind": "decision",
     "owner": "Test Lead",
-    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "question": "Would a customer supply this input, or would Carbon source it publicly? No artefact records the choice.",
     "value": "UNMEASURED"
    },
    "open_markers": {
@@ -98,15 +105,17 @@
     ]
    },
    "time_to_obtain": {
+    "kind": "measurement",
     "owner": "Test Lead",
-    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "tool": "None yet: record the date each input is obtained in cycle_metrics.jsonl (recorder A9 in ONBOARDING_PIPELINE.md)",
     "value": "UNMEASURED"
    }
   },
   "requirements": {
    "customer_supplies": {
+    "kind": "decision",
     "owner": "Test Lead",
-    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "question": "Would a customer supply this input, or would Carbon source it publicly? No artefact records the choice.",
     "value": "UNMEASURED"
    },
    "open_markers": {
@@ -121,15 +130,17 @@
     ]
    },
    "time_to_obtain": {
+    "kind": "measurement",
     "owner": "Test Lead",
-    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "tool": "None yet: record the date each input is obtained in cycle_metrics.jsonl (recorder A9 in ONBOARDING_PIPELINE.md)",
     "value": "UNMEASURED"
    }
   },
   "solver": {
    "customer_supplies": {
+    "kind": "decision",
     "owner": "Test Lead",
-    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "question": "Would a customer supply this input, or would Carbon source it publicly? No artefact records the choice.",
     "value": "UNMEASURED"
    },
    "open_markers": {
@@ -143,83 +154,94 @@
     ]
    },
    "time_to_obtain": {
+    "kind": "measurement",
     "owner": "Test Lead",
-    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "tool": "None yet: record the date each input is obtained in cycle_metrics.jsonl (recorder A9 in ONBOARDING_PIPELINE.md)",
     "value": "UNMEASURED"
    }
   }
  },
  "network": {
   "graphite_agents_vs_real_miners": {
-   "owner": "Test Lead and Launchpad",
-   "question": "Needs scored submissions from both populations on the same Challenge; none are recorded.",
+   "kind": "measurement",
+   "owner": "Test Lead",
+   "tool": "Validator-scored Launchpad confirmations from Graphite agents and from real miners on the same Challenge",
    "value": "UNMEASURED"
   },
   "incentive_canary_payout_correctness": {
+   "kind": "measurement",
    "owner": "Test Lead",
-   "question": "INCENTIVE-CANARY-01 has not produced a record; which artefact will hold the payout check?",
+   "tool": "INCENTIVE-CANARY-01 (PR 971, merged)",
    "value": "UNMEASURED"
   },
   "leaderboard_improvement_over_time": {
+   "kind": "measurement",
    "owner": "Test Lead",
-   "question": "No confirmed-recipe series exists until stage A confirmations are scored by a validator.",
+   "tool": "Validator-scored Launchpad confirmations from stage A",
    "value": "UNMEASURED"
   }
  },
  "outputs": {
   "decision_quality_vs_cheap_baseline": {
    "flag": "required for TESTED",
+   "kind": "measurement",
    "owner": "Data Collection",
-   "question": "The cheap-baseline note states performance NOT_MEASURED; who measures V4 and when?",
    "required_for_tested": true,
    "source": "docs/development/challenge_pipeline/cheap-baselines/battery.md",
+   "tool": "Data Collection panels, PR 994 (CHEAP-BASELINE-COMPARATORS-01, open) and the evaluator PR 1003 (PASSES-VALUE-EVALUATOR-01, open)",
    "value": "UNMEASURED"
   },
   "model_accuracy": {
+   "kind": "measurement",
    "owner": "Data Collection",
-   "question": "Which reference-agreement measurement defines model accuracy for this Challenge, and where is it recorded?",
+   "tool": "Reference-agreement panel returned through docs/development/challenge_pipeline/cheap-baselines/data-collection-return.md",
    "value": "UNMEASURED"
   },
   "passes_value": {
    "a_real_buyer_decision_two_sources": {
     "condition": "A real buyer decision with at least two sources.",
     "flag": "required for PASSES VALUE",
+    "kind": "measurement",
     "owner": "Codex",
-    "question": "Which two independent public sources show a buyer making exactly this decision today?",
     "required_for": "PASSES VALUE",
+    "tool": "The Challenge packet's engineering-job section and the buyer-volume evidence (PR 939, merged)",
     "value": "UNMEASURED"
    },
    "b_regret_below_cheap_baseline_paired_bootstrap_ci": {
     "condition": "Buyer-unit regret lower than the strongest cheap baseline's at matched admissibility, paired bootstrap 95% interval excluding 0.",
     "flag": "required for PASSES VALUE",
+    "kind": "measurement",
     "owner": "Data Collection",
-    "question": "On held-out contested questions, what are the best model's and the strongest cheap baseline's buyer-unit regret at matched admissibility, and does the paired bootstrap 95% interval of the difference exclude 0?",
     "required_for": "PASSES VALUE",
+    "tool": "Data Collection panels, PR 994 comparators (open) and the evaluator PR 1003 (open)",
     "value": "UNMEASURED"
    },
    "c_speed_up_100x_per_decision_query": {
     "condition": "At least 100x faster than the reference per decision query.",
     "flag": "required for PASSES VALUE",
+    "kind": "measurement",
     "owner": "Data Collection",
-    "question": "What are the reference and the model's times per decision query on the same hardware?",
     "required_for": "PASSES VALUE",
+    "tool": "Data Collection reference timing plus the model inference cost, on the same hardware",
     "value": "UNMEASURED"
    },
    "d_value_and_volume_ranges": {
     "condition": "Sourced or assumption ranges for value and volume.",
     "flag": "required for PASSES VALUE",
+    "kind": "measurement",
     "owner": "Codex",
-    "question": "Which sourced or labelled-assumption ranges give the value per decision and the decision volume?",
     "required_for": "PASSES VALUE",
+    "tool": "The Challenge packet and the buyer-volume evidence (PR 939, merged)",
     "value": "UNMEASURED"
    },
    "e_equal_budget_screen_then_verify_beats_solver": {
     "condition": "At equal time and compute, the model-screen-then-solver-verify workflow finds a better design than the solver alone.",
     "flag": "required for PASSES VALUE",
     "harness": "carbon/design_search/track_b.py",
+    "kind": "measurement",
     "owner": "Data Collection",
-    "question": "At an equal time and compute budget, does a model-screen-then-solver-verify workflow find a better design than the solver alone (readiness D2 equal-cost harness)?",
     "required_for": "PASSES VALUE",
+    "tool": "PR 998 (EQUAL-BUDGET-DESIGN-01, open) on the design_search track_b harness",
     "value": "UNMEASURED"
    },
    "framing": "Models never beat the solver on accuracy; the solver is the reference.",
@@ -237,8 +259,9 @@
    }
   },
   "speed_up_against_reference": {
+   "kind": "measurement",
    "owner": "Data Collection",
-   "question": "The reference per-case cost (value-cost C1) and the surrogate's per-case time are both needed; neither is recorded for this Challenge.",
+   "tool": "Data Collection reference timing (value-cost C1) plus the model inference cost, on the same hardware",
    "value": "UNMEASURED"
   }
  },
@@ -309,11 +332,13 @@
    ]
   },
   "cost_per_stage": {
-   "owner": "Test Lead and executor",
-   "question": "Actual spend per stage lives in spend ledgers that stay out of the public repository; state each stage's spend as a fraction of its cap, or confirm it stays UNMEASURED here.",
+   "kind": "measurement",
+   "owner": "Executor",
+   "tool": "Stage report: each run's cap fraction; spend ledgers stay out of the repository",
    "value": "UNMEASURED"
   },
   "cycle_days_per_stage": {
+   "kind": "decision",
    "owner": "Test Lead",
    "question": "A first dated record is not the time spent. Which entry and exit records define each stage's cycle time?",
    "value": "UNMEASURED"
@@ -443,7 +468,7 @@
   }
  },
  "rules": [
-  "A field is read from a cited artefact or it is UNMEASURED with an owner and a question; nothing is estimated.",
+  "A field is read from a cited artefact, or it is UNMEASURED: a measurement names its owner and tool, and only a real owner decision carries a question. Nothing is estimated.",
   "Caps and rates only. No balance, account, spend ledger or hidden-pool material."
  ],
  "schema": "carbon.challenge-pipeline.brief-product-ledger.v1"

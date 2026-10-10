@@ -36,5 +36,84 @@
    ],
    "scorecard": "f02"
   }
+ },
+ "measurements_note": "UNMEASURED fields are measurements, not owner questions: each names the owner who measures it and the tool or PR that does. PR states are as of 2026-10-10 (verified with gh pr view); cite by number if unmerged.",
+ "measurements": {
+  "packet": {
+   "owner": "Codex",
+   "tool": "A design packet following COMMON_DESIGN_PACKET_V1 for this Challenge (docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md)"
+  },
+  "packet_sections": {
+   "owner": "Codex",
+   "tool": "The packet re-issued on COMMON_DESIGN_PACKET_V1 sections, or a section map for this packet"
+  },
+  "input_time_to_obtain": {
+   "owner": "Test Lead",
+   "tool": "None yet: record the date each input is obtained in cycle_metrics.jsonl (recorder A9 in ONBOARDING_PIPELINE.md)"
+  },
+  "dated_stage_records": {
+   "owner": "Test Lead",
+   "tool": "cycle_metrics.jsonl, hand-recorded until the A9 recorder exists"
+  },
+  "cost_per_stage": {
+   "owner": "Executor",
+   "tool": "Stage report: each run's cap fraction; spend ledgers stay out of the repository"
+  },
+  "grant_caps": {
+   "owner": "Test Lead",
+   "tool": "A stage grant file under docs/development/graphite/grants once approved"
+  },
+  "model_accuracy": {
+   "owner": "Data Collection",
+   "tool": "Reference-agreement panel returned through docs/development/challenge_pipeline/cheap-baselines/data-collection-return.md"
+  },
+  "speed_up": {
+   "owner": "Data Collection",
+   "tool": "Data Collection reference timing (value-cost C1) plus the model inference cost, on the same hardware"
+  },
+  "cheap_baseline_v4": {
+   "owner": "Data Collection",
+   "tool": "Data Collection panels, PR 994 (CHEAP-BASELINE-COMPARATORS-01, open) and the evaluator PR 1003 (PASSES-VALUE-EVALUATOR-01, open)"
+  },
+  "score_value_alignment": {
+   "owner": "Test Lead",
+   "tool": "A readiness Q1 report (carbon/challenge_pipeline/readiness/q1.py)"
+  },
+  "scorecard": {
+   "owner": "Codex",
+   "tool": "A value-cost scorecard row in docs/development/challenge_pipeline/value-cost/analysis.md"
+  },
+  "network_leaderboard": {
+   "owner": "Test Lead",
+   "tool": "Validator-scored Launchpad confirmations from stage A"
+  },
+  "network_agents_vs_miners": {
+   "owner": "Test Lead",
+   "tool": "Validator-scored Launchpad confirmations from Graphite agents and from real miners on the same Challenge"
+  },
+  "network_canary": {
+   "owner": "Test Lead",
+   "tool": "INCENTIVE-CANARY-01 (PR 971, merged)"
+  },
+  "value_a": {
+   "owner": "Codex",
+   "tool": "The Challenge packet's engineering-job section and the buyer-volume evidence (PR 939, merged)"
+  },
+  "value_b": {
+   "owner": "Data Collection",
+   "tool": "Data Collection panels, PR 994 comparators (open) and the evaluator PR 1003 (open)"
+  },
+  "value_c": {
+   "owner": "Data Collection",
+   "tool": "Data Collection reference timing plus the model inference cost, on the same hardware"
+  },
+  "value_d": {
+   "owner": "Codex",
+   "tool": "The Challenge packet and the buyer-volume evidence (PR 939, merged)"
+  },
+  "value_e": {
+   "owner": "Data Collection",
+   "tool": "PR 998 (EQUAL-BUDGET-DESIGN-01, open) on the design_search track_b harness"
+  }
  }
 }

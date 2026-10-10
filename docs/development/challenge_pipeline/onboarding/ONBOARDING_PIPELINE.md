@@ -75,7 +75,7 @@ What the map still shows:
 - **Condition 3 and 5 depend on later stages.** Condition 3 needs stages B and C for the
   higher levels, and 5 needs a chosen k and E, which are owner values.
 
-**Bank spend (Test Lead, from the owner, 2026-10-10):** each bank's spend is a documented cost-benefit decision by the team, capped at EUR 500, recorded in its grant file with the exact figure. No separate EUR 100 tier and no flagship condition. This is a cap and a process requirement, not a spend authorization: every bank still needs its own grant file with the exact figure, and the owner approves startup spend.
+**Bank spend.** Owner, verbatim via the Test Lead, 2026-10-10: "We just evaluate them with a cost decision. No limiting to 100 vs 500. It's a cost benefit analysis for the team with a 500 max." The Test Lead's reading of those words: the team may approve a bank spend up to EUR 500 on a documented cost-benefit decision, recorded in that bank's grant file with the exact figure. The grant file is what binds spend; nothing above EUR 500; no spend ledgers or balances in the repository. (This is the Test Lead's reading, not a separate owner record.)
 
 ## 2. Metrics
 
@@ -185,10 +185,13 @@ One ledger per Challenge, **produced from repository artefacts**, with four reco
 | OUTPUTS | Score-value alignment; decision quality against the cheapest baseline (V4); model accuracy; speed-up against the reference | the Q1 report, the cheap-baseline note |
 | NETWORK | Leaderboard over time; Graphite agents against real miners; incentive-canary payout correctness | none yet |
 
-A field is `{value, source}` or `{value: UNMEASURED, owner, question}`. Nothing is
-estimated. Whether a customer would supply an input, and how long it took to obtain, are
-`UNMEASURED` for every input: no artefact holds either, and each carries the question for its
-owner. Caps and rates only; no balance, account, spend ledger or hidden-pool material.
+A field is `{value, source}` or `{value: UNMEASURED, kind, owner, ...}`. Nothing is
+estimated. `UNMEASURED` is a **measurement not yet made**: it names the owner who measures it
+and the tool or PR that does (`kind: measurement`, with `tool`). Only a real owner decision
+carries a question (`kind: decision`, with `question`). The shared tools are in
+`ledger_sources.json` under `measurements`; PR numbers there were verified on 2026-10-10 and are
+cited by number when unmerged. Whether a customer would supply an input is a real owner decision (a question); how long
+an input took to obtain is a measurement with no tool yet. Caps and rates only; no balance, account, spend ledger or hidden-pool material.
 
 ```
 python scripts/dev/onboarding/build_ledger.py --challenge <id> --out onboarding/ledger/<id>.json
@@ -216,7 +219,8 @@ and the customer-supply and time-to-obtain answers on INPUTS, is `UNMEASURED`.
 one cross-Challenge page into `pack/` (battery, motor and f02 first). Each page: decision,
 value, model against the reference and the cheap baseline, the **required** equal-budget
 screen-then-verify section, speed-up, onboarding cost and time, blockers, network. Every line
-cites its artefact or reads `UNMEASURED` with its owner and question; nothing is blank or
+cites its artefact or reads `UNMEASURED` with the owner and tool that measure it (a question
+only for a real owner decision); nothing is blank or
 smoothed.
 
 The pages are measurements. They are not traction, customer, qualification or LIVE claims

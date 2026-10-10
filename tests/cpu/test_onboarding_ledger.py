@@ -94,7 +94,12 @@ def test_every_measured_field_cites_an_existing_artefact(which):
     for path, field in _fields(ledger):
         if field["value"] == "UNMEASURED":
             assert field.get("owner", "").strip(), path
-            assert field.get("question", "").strip(), path
+            if field["kind"] == "measurement":
+                assert field.get("tool", "").strip(), path
+                assert "question" not in field, path
+            else:
+                assert field["kind"] == "decision", path
+                assert field.get("question", "").strip(), path
             continue
         measured += 1
         source = field.get("source", "")
@@ -162,7 +167,8 @@ def test_passes_value_has_five_required_conditions_all_flagged_when_unmeasured(
         assert field["required_for"] == "PASSES VALUE"
         if field["value"] == "UNMEASURED":
             assert field["flag"] == "required for PASSES VALUE"
-            assert field["owner"].strip() and field["question"].strip()
+            assert field["kind"] == "measurement"
+            assert field["owner"].strip() and field["tool"].strip()
     assert (REPOSITORY / value[keys[4]]["harness"]).is_file()
 
 
@@ -176,3 +182,21 @@ def test_each_first_challenge_builds_and_its_committed_ledger_matches_the_shape(
     )
     assert set(committed) == set(generated)
     assert generated["brief"]["current_decision"]["value"] != "UNMEASURED"
+
+
+def test_the_named_prs_are_cited_and_a_measurement_never_asks_a_question():
+    module = _generator()
+    value = module.build(BATTERY)["outputs"]["passes_value"]
+    tools = {
+        k: v["tool"] for k, v in value.items() if isinstance(v, dict) and "tool" in v
+    }
+    assert "994" in tools["b_regret_below_cheap_baseline_paired_bootstrap_ci"]
+    assert "1003" in tools["b_regret_below_cheap_baseline_paired_bootstrap_ci"]
+    assert "998" in tools["e_equal_budget_screen_then_verify_beats_solver"]
+    assert "939" in tools["d_value_and_volume_ranges"]
+    measurements = json.loads(
+        (REPOSITORY / module.REGISTRY).read_text(encoding="utf-8")
+    )["measurements"]
+    for key, tool in measurements.items():
+        assert tool["owner"].strip() and tool["tool"].strip(), key
+        assert "question" not in tool, key

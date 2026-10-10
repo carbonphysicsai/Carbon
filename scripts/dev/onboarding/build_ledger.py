@@ -1,14 +1,18 @@
 """Brief-to-product ledger generator (ONBOARDING-PIPELINE-01, extension).
 
 Reads repository artefacts and writes one ledger per Challenge with four record
-types: INPUTS, PROCESS, OUTPUTS and NETWORK. A field is either
+types: INPUTS, PROCESS, OUTPUTS and NETWORK. A field is one of
 
-    {"value": ..., "source": "<repo path>"}      read from an artefact, or
-    {"value": "UNMEASURED", "owner": ..., "question": ...}   no artefact holds it.
+    {"value": ..., "source": "<repo path>"}               read from an artefact;
+    {"value": "UNMEASURED", "kind": "measurement",
+     "owner": ..., "tool": ...}                           a measurement not yet made,
+                                                          with who measures it and with what;
+    {"value": "UNMEASURED", "kind": "decision",
+     "owner": ..., "question": ...}                       a real owner decision.
 
 Nothing is estimated. The only per-Challenge input is the pointer registry
-(`ledger_sources.json`); every number comes from the artefacts it points at.
-The output is deterministic: sorted keys, no clock, no host state.
+(`ledger_sources.json`), which also holds the shared measurement tools. The output is
+deterministic: sorted keys, no clock, no host state.
 
     python scripts/dev/onboarding/build_ledger.py --challenge <id> [--out PATH]
 """
@@ -30,7 +34,7 @@ REQUIRED_FOR_VALUE = "required for PASSES VALUE"
 SCORECARDS = "docs/development/challenge_pipeline/value-cost/analysis.md"
 HARNESS = "carbon/design_search/track_b.py"
 
-# The six inputs a customer brief must resolve, mapped to the sections of
+# The six inputs a brief must resolve, mapped to the sections of
 # COMMON_DESIGN_PACKET_V1 that hold them. The mapping is a template constant.
 INPUT_KINDS = (
     ("decision_definition", (1,)),
@@ -40,9 +44,9 @@ INPUT_KINDS = (
     ("solver", (5,)),
     ("acceptance_criteria", (6,)),
 )
-INPUT_QUESTION = (
-    "Would a customer supply this input, or would Carbon source it publicly, and how long "
-    "did it take to obtain? No artefact records either."
+SUPPLY_QUESTION = (
+    "Would a customer supply this input, or would Carbon source it publicly? "
+    "No artefact records the choice."
 )
 
 
@@ -58,12 +62,38 @@ def measured(value, source):
     return {"value": value, "source": source}
 
 
-def unmeasured(owner, question):
-    return {"value": UNMEASURED, "owner": owner, "question": question}
+def decision(owner, question):
+    """A real owner decision that no artefact records."""
+    return {
+        "value": UNMEASURED,
+        "kind": "decision",
+        "owner": owner,
+        "question": question,
+    }
+
+
+_REGISTRY_CACHE = {}
+
+
+def _registry():
+    if "document" not in _REGISTRY_CACHE:
+        _REGISTRY_CACHE["document"] = json.loads(_read(REGISTRY))
+    return _REGISTRY_CACHE["document"]
+
+
+def to_measure(key):
+    """A measurement not yet made: who measures it and with which tool or PR."""
+    tool = _registry()["measurements"][key]
+    return {
+        "value": UNMEASURED,
+        "kind": "measurement",
+        "owner": tool["owner"],
+        "tool": tool["tool"],
+    }
 
 
 def load_registry(challenge):
-    registry = json.loads(_read(REGISTRY))
+    registry = _registry()
     if challenge not in registry["challenges"]:
         raise SystemExit(f"{challenge} has no entry in {REGISTRY}")
     return registry["challenges"][challenge]
@@ -88,36 +118,22 @@ def packet_sections(path):
 def build_inputs(entry):
     packet = entry.get("packet")
     if not _exists(packet):
-        return {
-            kind: unmeasured(
-                "Challenge owner", "No design packet is registered for this Challenge."
-            )
-            for kind, _ in INPUT_KINDS
-        }
+        return {kind: to_measure("packet") for kind, _ in INPUT_KINDS}
     if entry.get("packet_template") != "common-v1":
-        return {
-            kind: unmeasured(
-                "Challenge owner",
-                "The packet does not follow COMMON_DESIGN_PACKET_V1, so its sections "
-                "cannot be mapped to this input; which packet section holds it?",
-            )
-            for kind, _ in INPUT_KINDS
-        }
+        return {kind: to_measure("packet_sections") for kind, _ in INPUT_KINDS}
     sections = packet_sections(packet)
     inputs = {}
     for kind, numbers in INPUT_KINDS:
         present = [n for n in numbers if n in sections]
         if not present:
-            inputs[kind] = unmeasured(
-                "Challenge owner", "The packet has no section for this input."
-            )
+            inputs[kind] = to_measure("packet_sections")
             continue
         open_markers = sum(len(re.findall(r"\bOPEN\b", sections[n])) for n in present)
         inputs[kind] = {
             "packet_sections": measured(present, packet),
             "open_markers": measured(open_markers, packet),
-            "customer_supplies": unmeasured("Test Lead", INPUT_QUESTION),
-            "time_to_obtain": unmeasured("Test Lead", INPUT_QUESTION),
+            "customer_supplies": decision("Test Lead", SUPPLY_QUESTION),
+            "time_to_obtain": to_measure("input_time_to_obtain"),
         }
     return inputs
 
@@ -171,17 +187,11 @@ def build_process(entry):
                 metrics_path,
             )
             if dated
-            else unmeasured(
-                "Test Lead", "No dated stage record is kept for this Challenge yet."
-            )
+            else to_measure("dated_stage_records")
         ),
         "blockers": measured(blockers, taxonomy_path),
-        "cost_per_stage": unmeasured(
-            "Test Lead and executor",
-            "Actual spend per stage lives in spend ledgers that stay out of the public repository; "
-            "state each stage's spend as a fraction of its cap, or confirm it stays UNMEASURED here.",
-        ),
-        "cycle_days_per_stage": unmeasured(
+        "cost_per_stage": to_measure("cost_per_stage"),
+        "cycle_days_per_stage": decision(
             "Test Lead",
             "A first dated record is not the time spent. Which entry and exit records define each stage's cycle time?",
         ),
@@ -237,43 +247,23 @@ def build_process(entry):
             "note": "Caps and run counts only, never a balance or an account.",
         }
     else:
-        process["grant_caps"] = unmeasured(
-            "Test Lead", "No stage grant is registered for this Challenge."
-        )
+        process["grant_caps"] = to_measure("grant_caps")
     return process
 
 
 def build_outputs(entry):
     outputs = {
-        "model_accuracy": unmeasured(
-            "Data Collection",
-            "Which reference-agreement measurement defines model accuracy for this Challenge, and where is it recorded?",
-        ),
-        "speed_up_against_reference": unmeasured(
-            "Data Collection",
-            "The reference per-case cost (value-cost C1) and the surrogate's per-case time are both needed; neither is recorded for this Challenge.",
-        ),
+        "model_accuracy": to_measure("model_accuracy"),
+        "speed_up_against_reference": to_measure("speed_up"),
+        "passes_value": build_passes_value(),
     }
-    outputs["passes_value"] = build_passes_value()
     baseline = entry.get("cheap_baseline")
+    v4 = to_measure("cheap_baseline_v4")
     if _exists(baseline) and "NOT_MEASURED" in _read(baseline):
-        outputs["decision_quality_vs_cheap_baseline"] = {
-            "value": UNMEASURED,
-            "owner": "Data Collection",
-            "question": "The cheap-baseline note states performance NOT_MEASURED; who measures V4 and when?",
-            "source": baseline,
-            "required_for_tested": True,
-            "flag": REQUIRED_FOR_TESTED,
-        }
-    else:
-        outputs["decision_quality_vs_cheap_baseline"] = dict(
-            unmeasured(
-                "Data Collection",
-                "No cheap-baseline note records a measurement for V4.",
-            ),
-            required_for_tested=True,
-            flag=REQUIRED_FOR_TESTED,
-        )
+        v4["source"] = baseline
+    outputs["decision_quality_vs_cheap_baseline"] = dict(
+        v4, required_for_tested=True, flag=REQUIRED_FOR_TESTED
+    )
     q1 = entry.get("q1_report")
     if _exists(q1):
         report = json.loads(_read(q1))
@@ -290,15 +280,13 @@ def build_outputs(entry):
             q1,
         )
     else:
-        outputs["score_value_alignment"] = unmeasured(
-            "Test Lead", "No Q1 report exists for this Challenge and level."
-        )
+        outputs["score_value_alignment"] = to_measure("score_value_alignment")
     return outputs
 
 
-def _value_condition(owner, question, condition):
+def _value_condition(key, condition):
     return dict(
-        unmeasured(owner, question),
+        to_measure(key),
         condition=condition,
         required_for="PASSES VALUE",
         flag=REQUIRED_FOR_VALUE,
@@ -316,35 +304,24 @@ def build_passes_value():
             "Models never beat the solver on accuracy; the solver is the reference."
         ),
         "a_real_buyer_decision_two_sources": _value_condition(
-            "Codex",
-            "Which two independent public sources show a buyer making exactly this decision today?",
-            "A real buyer decision with at least two sources.",
+            "value_a", "A real buyer decision with at least two sources."
         ),
         "b_regret_below_cheap_baseline_paired_bootstrap_ci": _value_condition(
-            "Data Collection",
-            "On held-out contested questions, what are the best model's and the strongest "
-            "cheap baseline's buyer-unit regret at matched admissibility, and does the paired "
-            "bootstrap 95% interval of the difference exclude 0?",
+            "value_b",
             "Buyer-unit regret lower than the strongest cheap baseline's at matched "
             "admissibility, paired bootstrap 95% interval excluding 0.",
         ),
         "c_speed_up_100x_per_decision_query": _value_condition(
-            "Data Collection",
-            "What are the reference and the model's times per decision query on the same hardware?",
-            "At least 100x faster than the reference per decision query.",
+            "value_c", "At least 100x faster than the reference per decision query."
         ),
         "d_value_and_volume_ranges": _value_condition(
-            "Codex",
-            "Which sourced or labelled-assumption ranges give the value per decision and the decision volume?",
-            "Sourced or assumption ranges for value and volume.",
+            "value_d", "Sourced or assumption ranges for value and volume."
         ),
         "e_equal_budget_screen_then_verify_beats_solver": dict(
             _value_condition(
-                "Data Collection",
-                "At an equal time and compute budget, does a model-screen-then-solver-verify "
-                "workflow find a better design than the solver alone (readiness D2 equal-cost harness)?",
-                "At equal time and compute, the model-screen-then-solver-verify workflow finds "
-                "a better design than the solver alone.",
+                "value_e",
+                "At equal time and compute, the model-screen-then-solver-verify "
+                "workflow finds a better design than the solver alone.",
             ),
             harness=HARNESS,
         ),
@@ -363,27 +340,14 @@ def build_brief(entry):
                     "unresolved_or_adverse_evidence": measured(cells[3], SCORECARDS),
                     "scorecard_disposition": measured(cells[2], SCORECARDS),
                 }
-    return {
-        "current_decision": unmeasured(
-            "Codex", "No value-cost scorecard row is registered for this Challenge."
-        )
-    }
+    return {"current_decision": to_measure("scorecard")}
 
 
 def build_network():
     return {
-        "leaderboard_improvement_over_time": unmeasured(
-            "Test Lead",
-            "No confirmed-recipe series exists until stage A confirmations are scored by a validator.",
-        ),
-        "graphite_agents_vs_real_miners": unmeasured(
-            "Test Lead and Launchpad",
-            "Needs scored submissions from both populations on the same Challenge; none are recorded.",
-        ),
-        "incentive_canary_payout_correctness": unmeasured(
-            "Test Lead",
-            "INCENTIVE-CANARY-01 has not produced a record; which artefact will hold the payout check?",
-        ),
+        "leaderboard_improvement_over_time": to_measure("network_leaderboard"),
+        "graphite_agents_vs_real_miners": to_measure("network_agents_vs_miners"),
+        "incentive_canary_payout_correctness": to_measure("network_canary"),
     }
 
 
@@ -394,7 +358,7 @@ def build(challenge):
         "schema": SCHEMA,
         "challenge": challenge,
         "rules": [
-            "A field is read from a cited artefact or it is UNMEASURED with an owner and a question; nothing is estimated.",
+            "A field is read from a cited artefact, or it is UNMEASURED: a measurement names its owner and tool, and only a real owner decision carries a question. Nothing is estimated.",
             "Caps and rates only. No balance, account, spend ledger or hidden-pool material.",
         ],
         "inputs": build_inputs(entry),

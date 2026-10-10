@@ -11,27 +11,27 @@ Framing: Models never beat the solver on accuracy; the solver is the reference.
 - Scorecard disposition: Retain v3 question; extend boundary coverage, power/refinement [source: docs/development/challenge_pipeline/value-cost/analysis.md]
 
 ## Value
-- A real buyer decision with at least two sources: UNMEASURED (owner: Codex; question: Which two independent public sources show a buyer making exactly this decision today?) [required for PASSES VALUE]
-- Value and volume ranges: UNMEASURED (owner: Codex; question: Which sourced or labelled-assumption ranges give the value per decision and the decision volume?) [required for PASSES VALUE]
+- A real buyer decision with at least two sources: UNMEASURED (measure: owner Codex; tool: The Challenge packet's engineering-job section and the buyer-volume evidence (PR 939, merged)) [required for PASSES VALUE]
+- Value and volume ranges: UNMEASURED (measure: owner Codex; tool: The Challenge packet and the buyer-volume evidence (PR 939, merged)) [required for PASSES VALUE]
 
 ## Model against reference and cheap baseline
-- Model agreement with the reference (accuracy): UNMEASURED (owner: Data Collection; question: Which reference-agreement measurement defines model accuracy for this Challenge, and where is it recorded?)
-- Decision quality against the strongest cheap baseline (V4): UNMEASURED (owner: Data Collection; question: The cheap-baseline note states performance NOT_MEASURED; who measures V4 and when?) [required for TESTED] [source: docs/development/challenge_pipeline/cheap-baselines/battery.md]
-- Regret against the cheap baseline, paired bootstrap interval: UNMEASURED (owner: Data Collection; question: On held-out contested questions, what are the best model's and the strongest cheap baseline's buyer-unit regret at matched admissibility, and does the paired bootstrap 95% interval of the difference exclude 0?) [required for PASSES VALUE]
+- Model agreement with the reference (accuracy): UNMEASURED (measure: owner Data Collection; tool: Reference-agreement panel returned through docs/development/challenge_pipeline/cheap-baselines/data-collection-return.md)
+- Decision quality against the strongest cheap baseline (V4): UNMEASURED (measure: owner Data Collection; tool: Data Collection panels, PR 994 (CHEAP-BASELINE-COMPARATORS-01, open) and the evaluator PR 1003 (PASSES-VALUE-EVALUATOR-01, open)) [required for TESTED] [source: docs/development/challenge_pipeline/cheap-baselines/battery.md]
+- Regret against the cheap baseline, paired bootstrap interval: UNMEASURED (measure: owner Data Collection; tool: Data Collection panels, PR 994 comparators (open) and the evaluator PR 1003 (open)) [required for PASSES VALUE]
 - Score-value alignment: {"kendall_tau_b": -0.47280542884465016, "level": 0, "members": 8, "note": "one seed per recipe; a measurement only", "reference_provenance": "EV4_REFERENCE", "spearman_rho": -0.5389318178609666} [source: carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/q1_report.json]
 
 ## Required: equal-budget screen-then-verify
 This page is required. Models never beat the solver on accuracy; the solver is the reference. A model beats the solver only by finding a better design at equal time and compute.
-- Screen-then-verify against the solver alone: UNMEASURED (owner: Data Collection; question: At an equal time and compute budget, does a model-screen-then-solver-verify workflow find a better design than the solver alone (readiness D2 equal-cost harness)?) [required for PASSES VALUE]
+- Screen-then-verify against the solver alone: UNMEASURED (measure: owner Data Collection; tool: PR 998 (EQUAL-BUDGET-DESIGN-01, open) on the design_search track_b harness) [required for PASSES VALUE]
 
 ## Speed-up against the reference
-- Speed-up per decision query: UNMEASURED (owner: Data Collection; question: What are the reference and the model's times per decision query on the same hardware?) [required for PASSES VALUE]
-- Speed-up from the ledger outputs: UNMEASURED (owner: Data Collection; question: The reference per-case cost (value-cost C1) and the surrogate's per-case time are both needed; neither is recorded for this Challenge.)
+- Speed-up per decision query: UNMEASURED (measure: owner Data Collection; tool: Data Collection reference timing plus the model inference cost, on the same hardware) [required for PASSES VALUE]
+- Speed-up from the ledger outputs: UNMEASURED (measure: owner Data Collection; tool: Data Collection reference timing (value-cost C1) plus the model inference cost, on the same hardware)
 
 ## Onboarding cost and time
 - Dated stage records: [{"date": "2026-10-06", "event": "first_dated_record", "stage": "S1_packet"}, {"date": "2026-10-06", "event": "first_gate_run", "stage": "S6_readiness"}, {"date": "2026-10-07", "event": "first_dated_record", "stage": "S3_feasibility_value_panel"}, {"date": "2026-10-08", "event": "value_cost_framework", "stage": "S3_feasibility_value_panel"}, {"date": "2026-10-08", "event": "first_dated_record", "stage": "S4_question_law"}, {"date": "2026-10-09", "event": "baseline_2", "stage": "S6_readiness"}, {"date": "2026-10-09", "event": "stage_a_grants_approved", "stage": "S7_stage_a"}, {"date": "2026-10-10", "event": "l0_launch_ready", "stage": "S6_readiness"}, {"date": "2026-10-10", "event": "launch_preflight_merged", "stage": "S7_stage_a"}] [source: docs/development/challenge_pipeline/onboarding/cycle_metrics.jsonl]
-- Cycle days per stage: UNMEASURED (owner: Test Lead; question: A first dated record is not the time spent. Which entry and exit records define each stage's cycle time?)
-- Cost per stage: UNMEASURED (owner: Test Lead and executor; question: Actual spend per stage lives in spend ledgers that stay out of the public repository; state each stage's spend as a fraction of its cap, or confirm it stays UNMEASURED here.)
+- Cycle days per stage: UNMEASURED (decision owner: Test Lead; question: A first dated record is not the time spent. Which entry and exit records define each stage's cycle time?)
+- Cost per stage: UNMEASURED (measure: owner Executor; tool: Stage report: each run's cap fraction; spend ledgers stay out of the repository)
 - Readiness, first gate run: {"counts": {"FAIL": 3, "NOT_BUILT": 22, "PASS": 11, "REVIEW_REQUIRED": 5}, "level": 0, "utc": "2026-10-06T16:11:56Z"} [source: docs/development/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/history.jsonl]
 - Readiness, latest by level: {"0": {"counts": {"FAIL": 0, "NOT_BUILT": 0, "PASS": 22, "PASS_BY_REVIEW": 15, "REVIEW_REQUIRED": 0, "WAIVED": 4}, "green": false, "utc": "2026-10-10T12:17:01Z"}, "1": {"counts": {"FAIL": 2, "NOT_BUILT": 0, "PASS": 20, "PASS_BY_REVIEW": 15, "REVIEW_REQUIRED": 0, "WAIVED": 4}, "green": false, "utc": "2026-10-10T12:27:25Z"}} [source: docs/development/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/history.jsonl]
 - Lessons entries: {"by_stage": {"design": 2, "protocol": 2, "test_iterate": 59}, "count": 63, "first": "2026-10-02T20:01:18Z", "last": "2026-10-10T12:38:19Z"} [source: carbon/challenge_pipeline/lessons]
@@ -51,9 +51,9 @@ The taxonomy is pipeline-wide and seeded with battery stage A.
 - B10 One shared checkout for every lane: fix OWNER_ASSIGNED_NOT_YET_EXERCISED_LIVE; time lost UNKNOWN [source: docs/development/challenge_pipeline/onboarding/blocker_taxonomy.json]
 
 ## Network
-- Graphite agents vs real miners: UNMEASURED (owner: Test Lead and Launchpad; question: Needs scored submissions from both populations on the same Challenge; none are recorded.)
-- Incentive canary payout correctness: UNMEASURED (owner: Test Lead; question: INCENTIVE-CANARY-01 has not produced a record; which artefact will hold the payout check?)
-- Leaderboard improvement over time: UNMEASURED (owner: Test Lead; question: No confirmed-recipe series exists until stage A confirmations are scored by a validator.)
+- Graphite agents vs real miners: UNMEASURED (measure: owner Test Lead; tool: Validator-scored Launchpad confirmations from Graphite agents and from real miners on the same Challenge)
+- Incentive canary payout correctness: UNMEASURED (measure: owner Test Lead; tool: INCENTIVE-CANARY-01 (PR 971, merged))
+- Leaderboard improvement over time: UNMEASURED (measure: owner Test Lead; tool: Validator-scored Launchpad confirmations from stage A)
 
 ## PASSES VALUE
 - Conditions measured: 0 of 5 [source: ledger outputs.passes_value for battery-fastcharge-ageing-development-v1]
