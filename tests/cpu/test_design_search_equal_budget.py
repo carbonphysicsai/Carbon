@@ -95,6 +95,8 @@ def test_three_arms_budget_and_paired_bootstrap(challenge):
         first["estimates"]["solver_alone"]["mean_best_verified_value_conditional"] == 3
     )
     assert first["estimates"]["p_model_beats_solver"] == 0
+    assert first["estimates"]["paired_verified_value_delta"] is None
+    assert first["bootstrap_ci"]["paired_verified_value_delta"] is None
     second = report["curves"][1]
     assert (
         second["estimates"]["model_then_solver"]["mean_best_verified_value_conditional"]
@@ -109,6 +111,9 @@ def test_three_arms_budget_and_paired_bootstrap(challenge):
     )
     assert second["estimates"]["p_model_beats_solver"] == 1
     assert second["bootstrap_ci"]["p_model_beats_solver"] == [1, 1]
+    assert second["estimates"]["paired_verified_value_count"] == 4
+    assert second["estimates"]["paired_verified_value_delta"] == -1
+    assert second["bootstrap_ci"]["paired_verified_value_delta"] == [-1, -1]
     assert report == eb.compare(
         panel(challenge), bootstrap_replicates=200, confidence=0.95, seed=7
     )
