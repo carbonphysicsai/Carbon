@@ -42,6 +42,13 @@ from dataclasses import dataclass, field
 from decimal import ROUND_CEILING, ROUND_HALF_EVEN, Decimal
 from pathlib import Path
 
+from scripts.dev.exam_design.runpod import pod_env
+from scripts.dev.exam_design.runpod.pod_env import (
+    ENV_LIMIT_CHARS,
+    env_chars,
+    import_closure,
+)
+
 REPOSITORY = Path(__file__).resolve().parents[4]
 
 #: Released images, pinned by digest (worker-images-v3, release run 37855550264).
@@ -767,77 +774,14 @@ ENTRY_MODULES = (
     "carbon.reconstruction.accelerators",
     "carbon.reconstruction.torch_gpu",
 )
-#: Conservative bound on the total pod environment (names plus values); the
-#: provider's limit lies between 100,000 and 250,000 characters.
-ENV_LIMIT_CHARS = 90_000
 
 
 def read_blobs(ref, repository, paths):
     """{path: bytes} at `ref`, in one `git cat-file --batch`."""
-    request = "".join(f"{ref}:{p}\n" for p in paths).encode()
-    blob = subprocess.run(
-        ["git", "-C", str(repository), "cat-file", "--batch"],
-        input=request,
-        capture_output=True,
-        check=True,
-    ).stdout
-    out, offset = {}, 0
-    for path in paths:
-        end = blob.index(b"\n", offset)
-        header = blob[offset:end].split()
-        if len(header) != 3 or header[1] != b"blob":
-            raise Refused(f"refused: {path} is not a blob at {ref}")
-        size = int(header[2])
-        out[path] = blob[end + 1 : end + 1 + size]
-        offset = end + 1 + size + 1
-    return out
-
-
-def _module_name(path):
-    parts = list(Path(path).with_suffix("").parts)
-    if parts[-1] == "__init__":
-        parts.pop()
-    return ".".join(parts)
-
-
-def import_closure(sources, entries):
-    """Paths of `sources` ({path: bytes}) reachable from `entries` by static
-    imports (module level and inside functions), with every parent package's
-    `__init__`. Names that are not in `sources` (stdlib, third party) are
-    ignored."""
-    import ast
-
-    by_module = {_module_name(p): p for p in sources if p.endswith(".py")}
-    seen, queue = set(), []
-
-    def want(name):
-        parts = name.split(".")
-        for i in range(1, len(parts) + 1):
-            path = by_module.get(".".join(parts[:i]))
-            if path is not None and path not in seen:
-                seen.add(path)
-                queue.append(path)
-
-    for entry in entries:
-        want(entry)
-    while queue:
-        path = queue.pop()
-        package = _module_name(path).split(".")
-        if not path.endswith("__init__.py"):
-            package = package[:-1]
-        for node in ast.walk(ast.parse(sources[path])):
-            if isinstance(node, ast.Import):
-                for alias in node.names:
-                    want(alias.name)
-            elif isinstance(node, ast.ImportFrom):
-                base = package[: len(package) - (node.level - 1)] if node.level else []
-                module = ".".join(
-                    [*base, *(node.module.split(".") if node.module else [])]
-                )
-                want(module)
-                for alias in node.names:
-                    want(module + "." + alias.name)
-    return sorted(seen)
+    try:
+        return pod_env.read_blobs(ref, repository, paths)
+    except ValueError as refused:
+        raise Refused(str(refused)) from None
 
 
 def ship_paths(ref, repository=REPOSITORY, extra=(), entries=ENTRY_MODULES):
@@ -866,17 +810,12 @@ def ship_paths(ref, repository=REPOSITORY, extra=(), entries=ENTRY_MODULES):
     )
 
 
-def env_chars(env):
-    """Total characters of a pod environment (names plus values)."""
-    return sum(len(k) + len(v) for k, v in dict(env).items())
-
-
 def check_env_size(env, limit=ENV_LIMIT_CHARS):
     """Refuse an oversized pod environment here, with the cause, rather than
     meet it as an opaque provider 500."""
     total = env_chars(env)
     if total > limit:
-        biggest = max(dict(env).items(), key=lambda kv: len(kv[1]))[0]
+        biggest = pod_env.largest_variable(env)
         raise Refused(
             f"refused: the pod environment is {total} characters, over the "
             f"{limit} limit (largest variable {biggest}); RunPod rejects an "
