@@ -24,3 +24,10 @@ exact-head CI is required. Maturity ceiling: tested DEVELOPMENT tooling.
 
 Next independent tickets: READY-TO-RUN-PANELS-01, DELIVERABLE-ADAPTERS-01.
 Motor remeasurement waits for the physical-coordinate/signed-curve re-export.
+# Owner addition before handoff
+
+Export each of the four methods' measured screening cost per physical query
+and its candidate ranking for optimizer EQUAL-BUDGET-DESIGN-01. Separate
+fitting/diagnostic costs, retain abstention and frozen task tie rules, and never
+use reference truth to manufacture a screen ranking. Descriptive held-out
+exports are not equal-budget execution or deployment cost qualification.

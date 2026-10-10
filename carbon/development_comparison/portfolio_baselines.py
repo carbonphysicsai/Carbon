@@ -370,7 +370,7 @@ def fir_features(power, lags):
     return x
 
 
-def fit_impulse(training, target, lags):
+def fit_impulse_model(training, target, lags):
     """Fit on other complete waveforms only, never target temperatures."""
     if not training:
         raise cb.Unsupported("no other waveform calibration")
@@ -396,12 +396,21 @@ def fit_impulse(training, target, lags):
     coefficients, _, _, _ = np.linalg.lstsq(x, y, rcond=None)
     # Avoid untested amplitude extrapolation. Linearity itself is not qualified.
     maximum = np.max(np.concatenate([r["extra_power_w"] for r in training]), axis=0)
+    return coefficients, maximum
+
+
+def apply_impulse(model, target, lags):
+    coefficients, maximum = model
     if np.any(np.max(target["extra_power_w"], axis=0) > maximum):
         raise cb.Unsupported("outside retained input amplitude support")
     return (
         np.asarray(target["baseline_temperature_c"])
         + fir_features(target["extra_power_w"], lags) @ coefficients
     )
+
+
+def fit_impulse(training, target, lags):
+    return apply_impulse(fit_impulse_model(training, target, lags), target, lags)
 
 
 def modal_response(p):
@@ -514,6 +523,7 @@ def _predict(export, material):
     physical = {(r["candidate"], r["condition"]): r for r in cb._physical_rows(export)}
     groups = sorted({tuple(r["coordinates"]) for r in rows})
     predictions, reasons, costs, curve_errors, folds = {}, [], [], [], []
+    screening = []
     for group in groups:
         held = [r for r in rows if tuple(r["coordinates"]) == group]
         training = [r for r in rows if tuple(r["coordinates"]) != group]
@@ -527,6 +537,8 @@ def _predict(export, material):
         )
         for target in held:
             t0, c0 = time.perf_counter(), time.process_time()
+            query_start = None
+            fit_cost = query_cost = None
             key = (None, target["candidate"], target["condition"])
             try:
                 peers = [
@@ -554,6 +566,11 @@ def _predict(export, material):
                             "insufficient unique same-context geometries"
                         )
                     surface = cb.CurveSurface(list(unique), list(unique.values()))
+                    query_start = time.perf_counter(), time.process_time()
+                    fit_cost = {
+                        "wall_s": query_start[0] - t0,
+                        "cpu_s": query_start[1] - c0,
+                    }
                     result = dict(
                         zip(
                             names,
@@ -562,25 +579,50 @@ def _predict(export, material):
                     )
                 else:
                     if family == "f02":
-                        curve = fit_impulse(
+                        model = fit_impulse_model(
                             [r["payload"] for r in peers], payload, settings["lags"]
                         )
-                        truth = np.asarray(payload["temperature_c"])
+                    query_start = time.perf_counter(), time.process_time()
+                    fit_cost = {
+                        "wall_s": query_start[0] - t0,
+                        "cpu_s": query_start[1] - c0,
+                    }
+                    if family == "f02":
+                        curve = apply_impulse(model, payload, settings["lags"])
                     elif family == "f08":
                         curve = modal_response(payload)
+                    else:
+                        curve = transfer_curve(payload)
+                    result = _reduce(family, payload, curve, settings["reducers"])
+                if not all(math.isfinite(v) for v in result.values()):
+                    raise cb.Unsupported("nonfinite comparator output")
+                query_cost = {
+                    "wall_s": time.perf_counter() - query_start[0],
+                    "cpu_s": time.process_time() - query_start[1],
+                }
+                predictions[key] = result
+                # Witness diagnostics are not part of cheap-method query timing.
+                if family != "cooling-cell":
+                    if family == "f02":
+                        truth = np.asarray(payload["temperature_c"])
+                    elif family == "f08":
                         truth = np.asarray(payload["response_real"]) + 1j * np.asarray(
                             payload["response_imag"]
                         )
                     else:
-                        curve = transfer_curve(payload)
                         truth = np.asarray(payload["tl_db"])
-                    result = _reduce(family, payload, curve, settings["reducers"])
-                    # Diagnostic witness access occurs only AFTER prediction.
                     curve_errors.append((curve - truth).ravel())
-                if not all(math.isfinite(v) for v in result.values()):
-                    raise cb.Unsupported("nonfinite comparator output")
-                predictions[key] = result
             except cb.Unsupported as error:
+                if query_start is None:
+                    fit_cost = {
+                        "wall_s": time.perf_counter() - t0,
+                        "cpu_s": time.process_time() - c0,
+                    }
+                else:
+                    query_cost = {
+                        "wall_s": time.perf_counter() - query_start[0],
+                        "cpu_s": time.process_time() - query_start[1],
+                    }
                 reasons.append(
                     {
                         "candidate": target["candidate"],
@@ -588,6 +630,15 @@ def _predict(export, material):
                         "reason": str(error),
                     }
                 )
+            screening.append(
+                {
+                    "candidate": target["candidate"],
+                    "condition": target["condition"],
+                    "status": "PREDICTED" if key in predictions else "ABSTAINED",
+                    "fit_cost": fit_cost,
+                    "query_cost": query_cost,
+                }
+            )
             costs.append(
                 {"cpu_s": time.process_time() - c0, "wall_s": time.perf_counter() - t0}
             )
@@ -596,6 +647,96 @@ def _predict(export, material):
         "abstention_reasons": reasons,
         "fit_reduction_query_cost": cb._cost(costs),
         "curve_errors": _curve_errors(curve_errors),
+        "screening_rows": screening,
+    }
+
+
+def screening_export(export, predictions, rows):
+    """Predicted rankings only; no reference verdict or value repairs."""
+    rankings, ranking_costs = [], []
+    for entry in export["questions"]:
+        t0, c0 = time.perf_counter(), time.process_time()
+        task = entry["task"]
+        values = {
+            (c, cond["id"]): predictions[(None, c, cond["id"])]
+            for c in task["candidates"]
+            for cond in task["conditions"]
+            if (None, c, cond["id"]) in predictions
+        }
+        assessed = tasks.assess(task, values)
+        order = {c: i for i, c in enumerate(task["candidates"])}
+
+        def key(c, assessed=assessed, task=task, order=order):
+            row = assessed[c]
+            objective = row["objective"] * (
+                1 if task["objective"]["sense"] == "min" else -1
+            )
+            secondary = (
+                0
+                if task["secondary"] is None
+                else row["secondary"]
+                * (1 if task["secondary"]["sense"] == "min" else -1)
+            )
+            return objective, secondary, order[c]
+
+        buckets = {}
+        for verdict, label in ((True, "ranked_feasible"), (False, "ranked_infeasible")):
+            candidates = [
+                c
+                for c in task["candidates"]
+                if assessed[c]["feasible"] is verdict
+                and assessed[c]["objective"] is not None
+            ]
+            buckets[label] = [
+                {"rank": i + 1, "candidate": c, **assessed[c]}
+                for i, c in enumerate(sorted(candidates, key=key))
+            ]
+        ranked = {r["candidate"] for bucket in buckets.values() for r in bucket}
+        buckets["unranked_abstentions"] = [
+            {"candidate": c, **assessed[c]}
+            for c in task["candidates"]
+            if c not in ranked
+        ]
+        rankings.append(
+            {
+                "case": entry["case"],
+                "task_digest": task["task_digest"],
+                "objective": task["objective"],
+                "secondary": task["secondary"],
+                "candidate_count": len(task["candidates"]),
+                **buckets,
+            }
+        )
+        ranking_costs.append(
+            {"wall_s": time.perf_counter() - t0, "cpu_s": time.process_time() - c0}
+        )
+    queries = [r["query_cost"] for r in rows if r["query_cost"] is not None]
+    cost = cb._cost(queries)
+    cost["cpu_mean_s_per_attempted_query"] = (
+        cost["cpu_s"] / len(queries) if queries else None
+    )
+    cost["wall_mean_s_per_attempted_query"] = (
+        cost["wall_s"] / len(queries) if queries else None
+    )
+    return {
+        "schema": "carbon.development-cheap-screen.v1",
+        "status": "DESCRIPTIVE_HELD_OUT_NOT_EQUAL_BUDGET_RUN",
+        "export_digest": export["export_digest"],
+        "query_unit": "candidate_condition_complete_observable_vector",
+        "query_rows": rows,
+        "query_cost": cost,
+        "fold_fit_cost": cb._cost([r["fit_cost"] for r in rows]),
+        "candidate_rankings": rankings,
+        "ranking_cost": cb._cost(ranking_costs),
+        "ranking_basis": "point_predictions_only_unqualified_hard_limit_screen",
+        "tie_rule": "objective_then_secondary_then_registered_candidate_order",
+        "cost_exclusions": [
+            "process_startup",
+            "file_loading_and_validation",
+            "reference_diagnostics",
+            "original_acquisition",
+            "retained_verification",
+        ],
     }
 
 
@@ -620,9 +761,15 @@ def measure(export, *, material=None):
     }
     if material is None:
         report["held_out"] = {"status": "HOLD_MISSING_COMPARATOR_MATERIALS"}
+        report["equal_budget_screening"] = {
+            "status": "HOLD_MISSING_COMPARATOR_MATERIALS",
+            "query_cost": None,
+            "candidate_rankings": None,
+        }
         return report
     verified = validate_materials(export, material)
     predicted, diagnostics = _predict(export, verified)
+    screening_rows = diagnostics.pop("screening_rows")
     exact = {
         (r["band"], r["candidate"], r["condition"]): r["values"]
         for r in cb._physical_rows(export)
@@ -653,6 +800,10 @@ def measure(export, *, material=None):
         "value": None,
     }
     report["materials_digest"] = material["materials_digest"]
+    report["equal_budget_screening"] = screening_export(
+        export, predicted, screening_rows
+    )
+    report["equal_budget_screening"]["materials_digest"] = material["materials_digest"]
     return report
 
 

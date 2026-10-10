@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-cheap-screen-final-validation",
+  "recorded_at": "2026-10-10T19:10:56Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHEAP-BASELINE-COMPARATORS-01", "description": "Native UTF-8 focused suite: 93 passed; pinned Black check and Ruff passed; diff whitespace check passed. Canonical wrapper on this linked Windows/WSL worktree had already refused its repository-root guard; new exact-head CI remains required."},
+  "expected": "The repaired export gives optimizer measured per-query screening and per-question predicted rankings without reinterpreting reference outcomes.",
+  "observed": "Cost denominators, fit failures, unsupported rows, frozen-order ties and ranking independence from reference values passed. Synthetic timing is not deployment cost or an equal-budget comparison.",
+  "keep": ["Export physical query identities and task/export/material digests together with rankings."],
+  "change": ["Measure complete process and retained-verification cost on the real development return before making an economic comparison."],
+  "protocol_elements": ["optimizer", "cheap baseline", "lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

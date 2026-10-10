@@ -30,6 +30,38 @@ continue using #917's command.
 
 ## Companion material contract for Data Collection
 
+### Optimizer equal-budget handoff
+
+The report now includes `equal_budget_screening` (schema
+`carbon.development-cheap-screen.v1`) for EQUAL-BUDGET-DESIGN-01. Each
+`query_rows` entry identifies the physical candidate/condition, prediction or
+abstention, measured CPU/wall `query_cost`, and separate `fit_cost` (including
+context preparation). A query produces the whole registered observable vector;
+it is not a design question, frequency, scalar output or reference solve.
+Query time includes method evaluation, reduction and finite-output checks but
+excludes fitting, witness diagnostics, loading/validation and process startup.
+Unsupported queries retain attempted cost. A failed fit has null query cost,
+not a free successful query. Totals, means and wall p50/p95 report denominators.
+
+`candidate_rankings` is one list per registered question: predicted-feasible
+and predicted-infeasible candidates, each sorted by the task's objective,
+secondary objective and frozen candidate order; incomplete/unsupported designs
+are unranked. Objective/secondary values retain buyer units and task identities.
+Only comparator point predictions enter this ranking, never reference verdicts
+or repaired values. Point-predicted feasibility is **not** a safety certificate
+or a qualified uncertainty interval. Any conservative screen needs its own
+registered policy; the optimizer must not silently relabel this one.
+
+This is a held-out **measurement export, not an equal-budget workflow run**.
+Fold fitting is repeated for validation and is not a single production-model
+training cost to amortise. Both export/material digests bind the rankings and
+timings; the original export supplies exact candidate actions. Threshold-only
+questions can reuse observable predictions, but requirement aggregation and
+ranking have their own measured cost. Optimizer owns query/verification budgets,
+full process costs, fitting amortisation and a matched Carbon arm. Acquisition,
+verification, RAM and money remain separately measured or null. Synthetic
+timings are implementation diagnostics, not forecast deployment costs.
+
 Use `seal_materials(body)` after preparing this closed shape. Hashing binds
 identity, not truth, rights or independent custody.
 

@@ -243,6 +243,75 @@ def test_ready_command_methods_reproduce_synthetic_arithmetic(family, maker):
     assert result["claims"]["tested_challenge"] is False
 
 
+@pytest.mark.parametrize(
+    "family,maker",
+    [
+        ("cooling-cell", None),
+        ("f02", thermal_payloads),
+        ("f08", modal_payloads),
+        ("f13", acoustic_payloads),
+    ],
+)
+def test_equal_budget_screen_exports_physical_query_cost_and_rankings(family, maker):
+    export, material = fixture(family, maker() if maker else None)
+    report = pb.measure(export, material=material)
+    screen = report["equal_budget_screening"]
+    assert screen["export_digest"] == export["export_digest"]
+    assert screen["materials_digest"] == material["materials_digest"]
+    assert screen["status"] == "DESCRIPTIVE_HELD_OUT_NOT_EQUAL_BUDGET_RUN"
+    assert len(screen["query_rows"]) == 5
+    assert screen["query_cost"]["samples"] == 5
+    assert screen["query_cost"]["cpu_mean_s_per_attempted_query"] >= 0
+    assert screen["fold_fit_cost"]["samples"] == 5
+    ranks = screen["candidate_rankings"][0]
+    ranked = ranks["ranked_feasible"] + ranks["ranked_infeasible"]
+    assert len(ranked) + len(ranks["unranked_abstentions"]) == 5
+    assert ranks["task_digest"] == export["questions"][0]["task"]["task_digest"]
+    assert all(r["feasible"] is True for r in ranks["ranked_feasible"])
+    assert all(r["feasible"] is False for r in ranks["ranked_infeasible"])
+    if family == "cooling-cell":
+        assert [r["candidate"] for r in ranks["ranked_feasible"]] == [
+            "design1",
+            "design2",
+            "design3",
+        ]
+        assert len(ranks["unranked_abstentions"]) == 2
+
+
+def test_screen_ranking_never_uses_reference_truth_and_keeps_ties():
+    export, _ = fixture("cooling-cell")
+    predicted = {
+        (None, f"design{i}", "context"): {"metric": 1, "safety": 1} for i in range(5)
+    }
+    result = pb.screening_export(export, predicted, [])
+    assert [
+        r["candidate"] for r in result["candidate_rankings"][0]["ranked_feasible"]
+    ] == [f"design{i}" for i in range(5)]
+    changed = copy.deepcopy(export)
+    for row in changed["questions"][0]["reference"]:
+        row["values"] = {"metric": 9999, "safety": 9999}
+    assert (
+        result["candidate_rankings"]
+        == pb.screening_export(changed, predicted, [])["candidate_rankings"]
+    )
+    assert result["query_cost"]["cpu_mean_s_per_attempted_query"] is None
+
+
+def test_failed_fit_is_not_zero_cost_query_or_feasible_rank():
+    export, material = fixture("cooling-cell")
+    for i, row in enumerate(material["rows"]):
+        row["context_sha256"] = hashlib.sha256(str(i).encode()).hexdigest()
+    material = pb.seal_materials(
+        {k: v for k, v in material.items() if k != "materials_digest"}
+    )
+    screen = pb.measure(export, material=material)["equal_budget_screening"]
+    assert screen["query_cost"]["samples"] == 0
+    assert screen["query_cost"]["wall_mean_s_per_attempted_query"] is None
+    assert all(r["query_cost"] is None for r in screen["query_rows"])
+    assert all(r["fit_cost"] is not None for r in screen["query_rows"])
+    assert len(screen["candidate_rankings"][0]["unranked_abstentions"]) == 5
+
+
 def test_fir_never_uses_target_temperature_and_requires_two_sources():
     rows = thermal_payloads()
     prediction = pb.fit_impulse(rows[1:], rows[0], 1)
