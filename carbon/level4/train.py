@@ -12,11 +12,16 @@ Carbon from the documents:
   is the one the declared graph computes);
 * the Carbon key schedule (`keys`): the init key and the training key are
   Carbon's. An init graph never returns a key, so a submission cannot steer
-  data order or any other randomness of training.
+  data order or any other randomness of training;
+* `loss(pred, target, x, aux=()) -> scalar`, only for a submission carrying
+  an admitted loss graph (`carbon.level4.loss`): the rebuilt per-case graph
+  mapped over the batch by Carbon, then Carbon's mean (`per_case_mean`).
+  None otherwise, and the Challenge's own loss trains.
 
 The training loop itself is the Challenge's (its adapter's `train_graph`),
 Carbon's own code: the registered optimizer menu, the Challenge's TRAIN data
-and loss, steps within the budget. Nothing here chooses a value.
+and loss (or an admitted loss graph's), steps within the budget. Nothing here
+chooses a value.
 """
 
 from __future__ import annotations
@@ -25,6 +30,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from . import initializers, interpret, validate
+from . import loss as loss_slot
 
 #: `fold_in` data deriving the training key from the Carbon seed's key, so it
 #: differs from the init key. An engineering constant, not a tuning value.
@@ -45,6 +51,8 @@ class Prepared:
     apply: Any
     batch: int
     parameters: tuple
+    #: The admitted loss graph, per case and mapped by Carbon, or None.
+    loss: Any = None
 
     def predict(self, params, *inputs):
         """Outputs for any number of cases, through the declared batch."""
@@ -84,11 +92,17 @@ def prepare(parsed, allowlist, *, verdict):
     def apply(params, *inputs):
         return forward(*params, *inputs)
 
+    loss = None
+    if "loss" in parsed:
+        # G4 admitted it (`validate_submission` with the Challenge's
+        # `loss_override`); Carbon maps it per case and owns the mean.
+        loss = loss_slot.per_case_mean(interpret.rebuild(parsed["loss"], allowlist))
     return Prepared(
         init=init,
         apply=apply,
         batch=verdict["batch"],
         parameters=tuple(validate.parameters(parsed["forward"])),
+        loss=loss,
     )
 
 

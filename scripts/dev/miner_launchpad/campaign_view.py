@@ -52,7 +52,7 @@ from carbon.development_session.miner_guidance import (
 from carbon.development_session.miner_guidance import (
     message_digest as _message_digest,
 )
-from scripts.dev.miner_launchpad import budget_view
+from scripts.dev.miner_launchpad import budget_view, gate_breakdown
 
 SCHEMA = "carbon.control-center.campaign-view.v1"
 
@@ -1490,6 +1490,17 @@ def build(
         # record holds it (C-MLP-02-D6), with its digest; None without one.
         "research_task": research_task(own.get("research_guidance")),
         "experiments": {"rows": shown, "total": len(rows)},
+        # Count the full local PRACTICE ledger, including trials beyond the
+        # bounded recent-row feed. Public gate names come only from the
+        # Challenge contract; this same document serves browser and MCP.
+        "practice_gate_breakdown": gate_breakdown.summarize(
+            own.get("experiments"),
+            (
+                (contract.get("exam") or {}).get("gates")
+                if type(contract) is dict
+                else None
+            ),
+        ),
         "comparison": comparison(rows, view),
         "charts": charts(rows, own, view),
         "learning_curve": learning_curve_status(own, view),
