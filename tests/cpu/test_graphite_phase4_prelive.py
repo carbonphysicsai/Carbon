@@ -167,7 +167,7 @@ def _committed_by_digest(monkeypatch, copy):
     id binding and compares digests with `copy` in place of the git blobs."""
     expected = phase4.grant_digest(json.loads(copy.read_bytes()))
 
-    def check(path, repository=phase4.REPOSITORY, *, challenge):
+    def check(path, repository=phase4.REPOSITORY, *, challenge, level=None):
         document = json.loads(Path(path).read_bytes())
         phase4.bind_grant_to_challenge(document, phase4.phase4_grant(challenge))
         if phase4.grant_digest(document) != expected:
