@@ -560,6 +560,30 @@ def binding_changes(cfg, row, manifest):
     return changed
 
 
+#: A campaign frozen under a revision the runner profile no longer accepts
+#: (LA-F19).
+FROZEN_ON_OLD_REVISION = "campaign_frozen_on_old_revision"
+
+
+def frozen_revision_refusal(cfg, manifest):
+    """`campaign_frozen_on_old_revision` when the campaign's frozen manifest
+    names an implementation revision other than the one the runner profile
+    accepts now; otherwise None (LA-F19).
+
+    Practice, freeze and submit prepare the campaign on this checkout, and
+    every Challenge's preparation compares the frozen runtime with the one
+    this checkout composes: a campaign frozen before Carbon was updated and
+    the installer re-run can never pass it. Observed live (2026-10-10): the
+    submit was answered SUBMITTING and the campaign went INTERRUPTED with an
+    untyped ValueError. A manifest naming no revision is left to preparation,
+    which refuses it by its own check."""
+    implementation = manifest.get("implementation")
+    frozen = implementation.get("revision") if type(implementation) is dict else None
+    if type(frozen) is str and frozen != cfg.get("accepted_revision"):
+        return FROZEN_ON_OLD_REVISION
+    return None
+
+
 def evaluation_refusal(cfg, manifest):
     """`evaluation_unavailable` when the campaign's Challenge is evaluated by
     a validator and the profile configures none for it - neither a deployment
@@ -3695,6 +3719,8 @@ class RunnerAdapter:
         from scripts.dev.miner_launchpad.operations import strategy_value
 
         strategy = strategy_value(request)
+        # Its preparation would refuse it on the thread (LA-F19).
+        self._require_current_revision(admitted)
         # At a construction level, the level's compile first; check-design
         # then judges the recipe's Level 0 base (LAUNCHPAD-LEVELS-01 S2).
         # A Level 0 campaign never reads the profile here.
@@ -3731,6 +3757,8 @@ class RunnerAdapter:
         reason = request["reason"]
         if type(reason) is not str or not 1 <= len(reason) <= 4096:
             raise Rejected("bounded_reason_required")
+        # Its preparation would refuse it on the thread (LA-F19).
+        self._require_current_revision(admitted)
         # A Level 0 campaign never reads the profile here.
         found = levels.campaign_binding(
             admitted.campaign, getattr(admitted, "profile", None)
@@ -3777,6 +3805,7 @@ class RunnerAdapter:
         # the caller rather than answered SUBMITTING and refused where no one
         # sees it (LP-PROD-C D11; observed live: the page said "Submitted").
         self._admissible(admitted)
+        self._require_current_revision(admitted)
         self._require_frozen(admitted)
         budget = self._frozen_budget(admitted)
         self._require_evaluation(admitted)
@@ -4196,6 +4225,21 @@ class RunnerAdapter:
                 if time.monotonic() >= deadline:
                     raise
                 time.sleep(0.05)
+
+    @staticmethod
+    def _require_current_revision(admitted):
+        """`campaign_frozen_on_old_revision` now, before anything starts, for
+        a campaign frozen under a revision the runner profile no longer
+        accepts (`frozen_revision_refusal`, LA-F19): its preparation would
+        refuse it on the thread. Reads stay open; a campaign not yet prepared
+        has no frozen revision to compare."""
+        cfg = getattr(admitted, "profile", None)
+        path = Path(admitted.campaign["root"]) / "campaign-manifest.json"
+        if type(cfg) is not dict or not path.exists():
+            return
+        refusal = frozen_revision_refusal(cfg, json.loads(path.read_bytes()))
+        if refusal is not None:
+            raise Rejected(refusal, 409)
 
     @staticmethod
     def _require_frozen(admitted):

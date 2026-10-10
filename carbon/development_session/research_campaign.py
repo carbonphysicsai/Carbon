@@ -472,8 +472,36 @@ async def prepare(args, *, ledger=None):
     """
     from carbon.challenge_registry.campaigns import campaign_challenge, campaign_for
 
+    refuse_old_revision(args)
     campaign = campaign_for(campaign_challenge(args))
     return await campaign.prepare(args, ledger=ledger, campaign=campaign)
+
+
+#: A frozen campaign resumed under another accepted revision (LA-F19).
+FROZEN_ON_OLD_REVISION = "campaign_frozen_on_old_revision"
+
+
+def refuse_old_revision(args):
+    """`OperationRefused(FROZEN_ON_OLD_REVISION)` when a frozen campaign is
+    resumed under an accepted revision other than the one it was frozen
+    under (LA-F19).
+
+    Every Challenge's preparation refuses that campaign anyway, comparing
+    its frozen runtime with the one this checkout composes, but as a bare
+    ValueError, so a miner operation was recorded INTERRUPTED with no code.
+    Named here, before any Challenge's own checks. A manifest that cannot be
+    read, or names no revision, is left to those checks."""
+    accepted = getattr(args, "accepted_revision", None)
+    if getattr(args, "command", None) != "resume" or accepted is None:
+        return
+    try:
+        manifest = json.loads((Path(args.root) / "campaign-manifest.json").read_bytes())
+    except (OSError, ValueError):
+        return
+    implementation = manifest.get("implementation") if type(manifest) is dict else None
+    frozen = implementation.get("revision") if type(implementation) is dict else None
+    if type(frozen) is str and frozen != accepted:
+        raise OperationRefused(FROZEN_ON_OLD_REVISION)
 
 
 async def prepare_burgers(args, *, ledger=None, campaign):
