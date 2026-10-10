@@ -32,35 +32,35 @@ Scores A–D are **ASSUMPTION ordinal judgments on 0–4**. Every cell is low/ba
 
 | Candidate | A internal | B value | C quote | D evidence | Proposed disposition |
 | --- | --- | --- | --- | --- | --- |
-| battery-v3 — Battery ambient-indexed charge/cooling map | 2/3/4 | 1/2/3 | 3/4/4 | 2/3/4 | KEEP DEVELOPMENT PRIORITY |
-| motor — Precision-joint magnetic shortlist | 1/2/3 | 1/2/3 | 2/3/4 | 1/2/3 | RESERVE REPLACE WITH D006 IF OWNER ADOPTS |
+| battery-v3 — Battery ambient-indexed charge/cooling map | 2/3/3 | 1/2/2 | 3/4/4 | 2/3/3 | KEEP DEVELOPMENT PRIORITY |
+| motor — Precision-joint magnetic shortlist | 1/2/3 | 1/2/2 | 2/3/4 | 1/2/3 | RESERVE REPLACE WITH D006 IF OWNER ADOPTS |
 | cooling-cell — Periodic cold-plate cell screening | 1/2/3 | 0/1/2 | 2/3/4 | 1/2/3 | REPLACE TARGET D012 |
-| f02 — Transient burst-power thermal schedule | 1/2/3 | 1/2/3 | 3/4/4 | 0/1/2 | KEEP DEVELOPMENT PRIORITY |
+| f02 — Transient burst-power thermal schedule | 1/2/3 | 1/2/2 | 3/4/4 | 0/1/2 | KEEP DEVELOPMENT PRIORITY |
 | f06 — Finite-width 3D grating coupler | 0/1/2 | 0/1/2 | 3/4/4 | 0/1/2 | RESERVE OPTICS HOLD |
 | f08 — Linear resonant stage support | 1/2/3 | 0/0/1 | 1/2/3 | 0/1/2 | REPLACE TARGET D076 |
 | f13 — Offset compressor silencer | 0/0/0 | 0/1/2 | 2/3/4 | 1/2/3 | REPLACE TARGET D077 |
-| f17 — Finite passive micromixer | 0/1/2 | 1/2/3 | 3/4/4 | 0/1/2 | KEEP DEVELOPMENT PRIORITY HIGH RISK |
-| D012 — Solenoid pole | 0/1/2 | 1/2/3 | 2/3/4 | 0/0/1 | REPLACEMENT TARGET COOLING |
-| D077 — Seal gland | 0/1/2 | 1/2/3 | 2/3/4 | 0/0/1 | REPLACEMENT TARGET F13 |
-| D006 — Planar transformer magnetic subdecision | 0/1/2 | 1/2/3 | 2/3/4 | 0/0/1 | REPLACEMENT TARGET MOTOR |
-| D076 — Bolted joint | 0/1/2 | 1/2/3 | 3/4/4 | 0/0/1 | REPLACEMENT TARGET F08 |
+| f17 — Finite passive micromixer | 0/1/2 | 1/2/2 | 3/4/4 | 0/1/2 | KEEP DEVELOPMENT PRIORITY HIGH RISK |
+| D012 — Solenoid pole | 0/1/2 | 1/2/2 | 2/3/4 | 0/0/1 | REPLACEMENT TARGET COOLING |
+| D077 — Seal gland | 0/1/2 | 1/2/2 | 2/3/4 | 0/0/1 | REPLACEMENT TARGET F13 |
+| D006 — Planar transformer magnetic subdecision | 0/1/2 | 1/2/2 | 2/3/4 | 0/0/1 | REPLACEMENT TARGET MOTOR |
+| D076 — Bolted joint | 0/1/2 | 1/2/2 | 3/4/4 | 0/0/1 | REPLACEMENT TARGET F08 |
 | B008 — Connector contact spring | 0/1/2 | 0/1/2 | 2/3/4 | 0/0/1 | RESERVE NOT SELECTED |
-| B001 — Bottle wall/base | 0/1/2 | 1/2/3 | 2/3/4 | 0/0/1 | RESERVE NOT SELECTED |
+| B001 — Bottle wall/base | 0/1/2 | 1/2/2 | 2/3/4 | 0/0/1 | RESERVE NOT SELECTED |
 | B002 — Speaker baffle | 0/1/2 | 0/1/2 | 2/3/4 | 0/0/1 | RESERVE ACOUSTICS NOT SELECTED |
 | B006 — Tap-changer dielectric shield | 0/1/2 | 0/1/2 | 1/2/3 | 0/0/1 | RESERVE NOT SELECTED |
 | D072 — Flexure stage | 0/1/2 | 0/1/2 | 1/2/3 | 0/0/1 | RESERVE NOT SELECTED |
-| D071 — Compliant gripper | 0/1/2 | 1/2/3 | 2/3/4 | 0/0/1 | RESERVE NOT SELECTED |
+| D071 — Compliant gripper | 0/1/2 | 1/2/2 | 2/3/4 | 0/0/1 | RESERVE NOT SELECTED |
 | D018 — Air heat sink | 0/1/2 | 0/1/2 | 2/3/4 | 0/0/1 | RESERVE NOT SELECTED |
 | D079 — Duct fitting | 0/1/2 | 0/1/2 | 2/3/4 | 0/0/1 | RESERVE FLOW IF F17 FAILS |
-| D001 — Battery charge profile duplicate | 1/2/3 | 1/2/3 | 0/1/2 | 0/0/1 | DUPLICATE NOT AN EXTRA SLOT |
-| D016 — AI-accelerator package warpage | 0/0/0 | 1/2/3 | 3/4/4 | 0/0/1 | EXCLUDE LAUNCH |
+| D001 — Battery charge profile duplicate | 1/2/3 | 1/2/2 | 0/1/2 | 0/0/1 | DUPLICATE NOT AN EXTRA SLOT |
+| D016 — AI-accelerator package warpage | 0/0/0 | 1/2/2 | 3/4/4 | 0/0/1 | EXCLUDE LAUNCH |
 | D021 — Plain photonic ring | 0/1/2 | 0/0/1 | 1/2/3 | 0/0/1 | REJECT DESK |
 | D022 — Grating coupler duplicate | 0/1/2 | 0/1/2 | 0/1/2 | 0/0/1 | REJECT DESK |
-| D023 — Photonic crystal cavity | 0/1/2 | 1/2/3 | 3/4/4 | 0/0/1 | REJECT DESK |
+| D023 — Photonic crystal cavity | 0/1/2 | 1/2/2 | 3/4/4 | 0/0/1 | REJECT DESK |
 | D024 — Fiber taper coupler | 0/1/2 | 0/1/2 | 1/2/3 | 0/0/1 | REJECT DESK |
-| D025 — LED extraction texture | 0/1/2 | 1/2/3 | 3/4/4 | 0/0/1 | REJECT DESK |
+| D025 — LED extraction texture | 0/1/2 | 1/2/2 | 3/4/4 | 0/0/1 | REJECT DESK |
 
-Every range is an uncalibrated research judgment. Sources and a specific teaching/route/baseline/limitation reason are attached to each row in portfolio.json. All rows retain current complete startup, time-to-TESTED, volume and realized utility as null. For D016, the previous economic hypothesis does not survive as a launch-ready value assertion.
+Every range is an uncalibrated research judgment. Upper bounds are capped below the rubric's evidence-earned levels where matched incremental benefit or exact acceptance is absent; no assumed high band supplies those receipts. Sources and a specific teaching/route/baseline/limitation reason are attached to each row in portfolio.json. All rows retain current complete startup, time-to-TESTED, volume and realized utility as null. For D016, the previous economic hypothesis does not survive as a launch-ready value assertion.
 
 ## Current eight: keep, replace or reserve
 

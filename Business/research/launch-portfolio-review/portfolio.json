@@ -274,7 +274,7 @@
       "git_blob": "ace97d3be1d88e7d46bf9a01920133221fc09966"
     }
   ],
-    "external_sources": [
+  "external_sources": [
     {
       "id": "GETDP",
       "url": "https://www.getdp.info/doc/texinfo/getdp.html",
@@ -296,7 +296,7 @@
       "support": "Independent research authors compare pole force-stroke geometry using reluctance and FE; force observers differ. Vendor hosting is not an extra independent origin."
     }
   ],
-    "status_annotations": {
+  "status_annotations": {
     "battery_s6": {
       "source_ids": [
         "STATUS",
@@ -331,7 +331,7 @@
     "observations": "SOURCED; point observation L=B=H refers only to cited artifact, not statistical uncertainty; raw status counts/file metadata inherit exact source hashes.",
     "estimates": "ASSUMPTION low/base/high; no intervals are claimed to have statistical coverage.",
     "unknowns": "null = HUMAN_INPUT/UNMEASURED, not zero; exact IDs/dates/schema ordinals are identifiers.",
-    "scoring": "Ordinal 0–4 rubric, low/base/high judgment sensitivity. No weighted sum; cannot compensate failed gates."
+    "scoring": "Ordinal 0–4 rubric, low/base/high judgment sensitivity. No weighted sum; cannot compensate failed gates. Upper bands A<=3, B<=2, D<=3: uninspected or missing acceptance and matched-benefit evidence cannot establish the corresponding higher rubric level."
   },
   "rubric": {
     "A": {
@@ -435,12 +435,12 @@
           "A": [
             2,
             3,
-            4
+            3
           ],
           "B": [
             1,
             2,
-            3
+            2
           ],
           "C": [
             3,
@@ -450,7 +450,7 @@
           "D": [
             2,
             3,
-            4
+            3
           ]
         }
       },
@@ -493,7 +493,7 @@
           "B": [
             1,
             2,
-            3
+            2
           ],
           "C": [
             2,
@@ -598,7 +598,7 @@
           "B": [
             1,
             2,
-            3
+            2
           ],
           "C": [
             3,
@@ -808,7 +808,7 @@
           "B": [
             1,
             2,
-            3
+            2
           ],
           "C": [
             3,
@@ -860,7 +860,7 @@
           "B": [
             1,
             2,
-            3
+            2
           ],
           "C": [
             2,
@@ -977,7 +977,7 @@
           "B": [
             1,
             2,
-            3
+            2
           ],
           "C": [
             2,
@@ -1093,7 +1093,7 @@
           "B": [
             1,
             2,
-            3
+            2
           ],
           "C": [
             2,
@@ -1209,7 +1209,7 @@
           "B": [
             1,
             2,
-            3
+            2
           ],
           "C": [
             3,
@@ -1439,7 +1439,7 @@
           "B": [
             1,
             2,
-            3
+            2
           ],
           "C": [
             2,
@@ -1895,7 +1895,7 @@
           "B": [
             1,
             2,
-            3
+            2
           ],
           "C": [
             2,
@@ -2239,7 +2239,7 @@
           "B": [
             1,
             2,
-            3
+            2
           ],
           "C": [
             0,
@@ -2354,7 +2354,7 @@
           "B": [
             1,
             2,
-            3
+            2
           ],
           "C": [
             3,
@@ -2698,7 +2698,7 @@
           "B": [
             1,
             2,
-            3
+            2
           ],
           "C": [
             3,
@@ -2926,7 +2926,7 @@
           "B": [
             1,
             2,
-            3
+            2
           ],
           "C": [
             3,
