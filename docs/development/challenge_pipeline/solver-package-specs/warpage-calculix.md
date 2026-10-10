@@ -7,6 +7,10 @@ choice over complete manufacture/reflow/service history in **full 3D**.
 It is not f08's metal cantilever or a thermoelastic snapshot. The Challenge
 and its panel have not been adopted/authorised by this specification.
 
+The [process-physics research](warpage-process-physics/README.md) identifies
+open cure/relaxation/solder models and their calibration gaps. Public sources
+are not a matched customer material set or an earned Tier-2 reference.
+
 ## 1. Reuse and exact candidate pins
 
 KEEP f08's inspected acquisition recipe at
