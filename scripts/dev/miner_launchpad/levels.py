@@ -49,6 +49,11 @@ def _rejected(refused, status=409):
     return error
 
 
+def binding(manifest):
+    """A frozen manifest's level binding, or None for a Level 0 campaign."""
+    return _cl().binding(manifest)
+
+
 def launch_binding(request, challenge, agent, cfg=None):
     """The level binding a launch names, or None for Level 0. Refused by
     closed code before the campaign is created. The binding carries the

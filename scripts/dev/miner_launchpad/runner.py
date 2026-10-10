@@ -47,8 +47,7 @@ from carbon.development_session.private_records import private_json
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_control import CampaignControl, DispatchStopped
 from carbon.development_session.research_ledger import CampaignLedger
-from scripts.dev.miner_launchpad import budget_view
-from scripts.dev.miner_launchpad import levels
+from scripts.dev.miner_launchpad import budget_view, levels
 from scripts.dev.miner_launchpad import supervisor as supervision
 from scripts.dev.miner_launchpad.controller import Rejected, owner_lock
 
@@ -3698,7 +3697,10 @@ class RunnerAdapter:
         strategy = strategy_value(request)
         # At a construction level, the level's compile first; check-design
         # then judges the recipe's Level 0 base (LAUNCHPAD-LEVELS-01 S2).
-        found = levels.campaign_binding(admitted.campaign, admitted.profile)
+        # A Level 0 campaign never reads the profile here.
+        found = levels.campaign_binding(
+            admitted.campaign, getattr(admitted, "profile", None)
+        )
         self._design_refusal(levels.checked_strategy(found, strategy))
         hypothesis = request["hypothesis"]
         expected = request.get("expected_effect", hypothesis)
@@ -3729,7 +3731,10 @@ class RunnerAdapter:
         reason = request["reason"]
         if type(reason) is not str or not 1 <= len(reason) <= 4096:
             raise Rejected("bounded_reason_required")
-        found = levels.campaign_binding(admitted.campaign, admitted.profile)
+        # A Level 0 campaign never reads the profile here.
+        found = levels.campaign_binding(
+            admitted.campaign, getattr(admitted, "profile", None)
+        )
         self._design_refusal(levels.checked_strategy(found, strategy))
         refusal = freeze_refusal(Path(admitted.campaign["root"]), strategy)
         if refusal is not None:
@@ -3793,11 +3798,11 @@ class RunnerAdapter:
         path = Path(admitted.campaign["root"]) / "campaign-manifest.json"
         if not path.exists():
             raise Rejected("campaign_not_prepared", 409)
-        levels.require_served(
-            admitted.profile,
-            json.loads(path.read_bytes()),
-            read=self.read_intake_facts,
-        )
+        manifest = json.loads(path.read_bytes())
+        if levels.binding(manifest) is None:
+            # Level 0: nothing here reads the profile or the target.
+            return
+        levels.require_served(admitted.profile, manifest, read=self.read_intake_facts)
 
     def _require_commitment(self, admitted):
         """`commitment_required` now, before anything is signed or sent, when
