@@ -21,7 +21,7 @@ from carbon.motor.challenge import (
     TRAIN_SHA256,
     PublicMaterial,
 )
-from carbon.motor.compile import compile_recipe, rebuild
+from carbon.motor.compile import NEURAL_FAMILIES, compile_recipe, rebuild
 from carbon.motor.contracts import implementation_digest as model_digest
 from carbon.reconstruction.capability_registry import contract
 
@@ -38,6 +38,7 @@ STORE_SCHEMA = "carbon.motor.validator-store.v1"
 PUBLIC_BATCH_KIND = "public_practice"
 EVIDENCE = "DEVELOPMENT_PUBLIC_ADAPTIVE"
 MAX_STRATEGY_BYTES = 16_384
+NEURAL_NOT_SERVED = "motor_neural_family_not_served"
 
 
 class MotorAdapterError(ValueError):
@@ -227,6 +228,10 @@ class MotorAdapter(ChallengeAdapter):
                 submission_id, submission.hotkey, submission.strategy, outcome, None
             )
             return outcome
+        if recipe.family in NEURAL_FAMILIES:
+            # MOTOR-NEURAL-01: not served until the validator's neural rebuild
+            # is reviewed. Never recorded against the miner, never a score.
+            raise Unavailable(NEURAL_NOT_SERVED)
 
         try:
             model = rebuild(recipe, self.material)
