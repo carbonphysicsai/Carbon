@@ -272,6 +272,19 @@ class GeneratorTests(unittest.TestCase):
             "fixture",
         )
         revision = git("rev-parse", "HEAD").decode().strip()
+        path.write_text("replacement synthetic corruption\n", encoding="utf-8")
+        git("add", "public.md")
+        git(
+            "-c",
+            "user.name=Document Fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "commit",
+            "-m",
+            "replacement fixture",
+        )
+        replacement = git("rev-parse", "HEAD").decode().strip()
+        git("replace", revision, replacement)
         path.write_text("uncommitted synthetic corruption\n", encoding="utf-8")
         reader = GitReader(self.root, revision, revision)
         source = reader.get({"id": "T1", "path": "public.md"})

@@ -128,7 +128,7 @@ class GitReader:
 
     def _git(self, *args: str) -> bytes:
         result = subprocess.run(
-            ["git", "-C", str(self.root), *args],
+            ["git", "--no-replace-objects", "-C", str(self.root), *args],
             capture_output=True,
             check=False,
             timeout=30,
