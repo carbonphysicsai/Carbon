@@ -1,0 +1,475 @@
+{
+ "brief": {
+  "current_decision": {
+   "source": "docs/development/challenge_pipeline/value-cost/analysis.md",
+   "value": "Five ambient-indexed charge/cooling choices"
+  },
+  "scorecard_disposition": {
+   "source": "docs/development/challenge_pipeline/value-cost/analysis.md",
+   "value": "Retain v3 question; extend boundary coverage, power/refinement"
+  },
+  "unresolved_or_adverse_evidence": {
+   "source": "docs/development/challenge_pipeline/value-cost/analysis.md",
+   "value": "T5/T40 each only 3 feasible actions; indexed ordering and cross-window T3/T4 unsettled"
+  }
+ },
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "inputs": {
+  "acceptance_criteria": {
+   "customer_supplies": {
+    "kind": "decision",
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly? No artefact records the choice.",
+    "value": "UNMEASURED"
+   },
+   "open_markers": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": 1
+   },
+   "packet_sections": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": [
+     6
+    ]
+   },
+   "time_to_obtain": {
+    "kind": "measurement",
+    "owner": "Test Lead",
+    "tool": "None yet: record the date each input is obtained in cycle_metrics.jsonl (recorder A9 in ONBOARDING_PIPELINE.md)",
+    "value": "UNMEASURED"
+   }
+  },
+  "decision_definition": {
+   "customer_supplies": {
+    "kind": "decision",
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly? No artefact records the choice.",
+    "value": "UNMEASURED"
+   },
+   "open_markers": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": 1
+   },
+   "packet_sections": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": [
+     1
+    ]
+   },
+   "time_to_obtain": {
+    "kind": "measurement",
+    "owner": "Test Lead",
+    "tool": "None yet: record the date each input is obtained in cycle_metrics.jsonl (recorder A9 in ONBOARDING_PIPELINE.md)",
+    "value": "UNMEASURED"
+   }
+  },
+  "design_space": {
+   "customer_supplies": {
+    "kind": "decision",
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly? No artefact records the choice.",
+    "value": "UNMEASURED"
+   },
+   "open_markers": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": 1
+   },
+   "packet_sections": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": [
+     3
+    ]
+   },
+   "time_to_obtain": {
+    "kind": "measurement",
+    "owner": "Test Lead",
+    "tool": "None yet: record the date each input is obtained in cycle_metrics.jsonl (recorder A9 in ONBOARDING_PIPELINE.md)",
+    "value": "UNMEASURED"
+   }
+  },
+  "material_data": {
+   "customer_supplies": {
+    "kind": "decision",
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly? No artefact records the choice.",
+    "value": "UNMEASURED"
+   },
+   "open_markers": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": 1
+   },
+   "packet_sections": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": [
+     2
+    ]
+   },
+   "time_to_obtain": {
+    "kind": "measurement",
+    "owner": "Test Lead",
+    "tool": "None yet: record the date each input is obtained in cycle_metrics.jsonl (recorder A9 in ONBOARDING_PIPELINE.md)",
+    "value": "UNMEASURED"
+   }
+  },
+  "requirements": {
+   "customer_supplies": {
+    "kind": "decision",
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly? No artefact records the choice.",
+    "value": "UNMEASURED"
+   },
+   "open_markers": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": 2
+   },
+   "packet_sections": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": [
+     1,
+     4
+    ]
+   },
+   "time_to_obtain": {
+    "kind": "measurement",
+    "owner": "Test Lead",
+    "tool": "None yet: record the date each input is obtained in cycle_metrics.jsonl (recorder A9 in ONBOARDING_PIPELINE.md)",
+    "value": "UNMEASURED"
+   }
+  },
+  "solver": {
+   "customer_supplies": {
+    "kind": "decision",
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly? No artefact records the choice.",
+    "value": "UNMEASURED"
+   },
+   "open_markers": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": 1
+   },
+   "packet_sections": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": [
+     5
+    ]
+   },
+   "time_to_obtain": {
+    "kind": "measurement",
+    "owner": "Test Lead",
+    "tool": "None yet: record the date each input is obtained in cycle_metrics.jsonl (recorder A9 in ONBOARDING_PIPELINE.md)",
+    "value": "UNMEASURED"
+   }
+  }
+ },
+ "network": {
+  "graphite_agents_vs_real_miners": {
+   "kind": "measurement",
+   "owner": "Test Lead",
+   "tool": "Validator-scored Launchpad confirmations from Graphite agents and from real miners on the same Challenge",
+   "value": "UNMEASURED"
+  },
+  "incentive_canary_payout_correctness": {
+   "kind": "measurement",
+   "owner": "Test Lead",
+   "tool": "INCENTIVE-CANARY-01 (PR 971, merged)",
+   "value": "UNMEASURED"
+  },
+  "leaderboard_improvement_over_time": {
+   "kind": "measurement",
+   "owner": "Test Lead",
+   "tool": "Validator-scored Launchpad confirmations from stage A",
+   "value": "UNMEASURED"
+  }
+ },
+ "outputs": {
+  "decision_quality_vs_cheap_baseline": {
+   "flag": "required for TESTED",
+   "kind": "measurement",
+   "owner": "Data Collection",
+   "required_for_tested": true,
+   "source": "docs/development/challenge_pipeline/cheap-baselines/battery.md",
+   "tool": "Data Collection panels, PR 994 (CHEAP-BASELINE-COMPARATORS-01, open) and the evaluator PR 1003 (PASSES-VALUE-EVALUATOR-01, open)",
+   "value": "UNMEASURED"
+  },
+  "model_accuracy": {
+   "kind": "measurement",
+   "owner": "Data Collection",
+   "tool": "Reference-agreement panel returned through docs/development/challenge_pipeline/cheap-baselines/data-collection-return.md",
+   "value": "UNMEASURED"
+  },
+  "passes_value": {
+   "a_real_buyer_decision_two_sources": {
+    "condition": "A real buyer decision with at least two sources.",
+    "flag": "required for PASSES VALUE",
+    "kind": "measurement",
+    "owner": "Codex",
+    "required_for": "PASSES VALUE",
+    "tool": "The Challenge packet's engineering-job section and the buyer-volume evidence (PR 939, merged)",
+    "value": "UNMEASURED"
+   },
+   "b_regret_below_cheap_baseline_paired_bootstrap_ci": {
+    "condition": "Buyer-unit regret lower than the strongest cheap baseline's at matched admissibility, paired bootstrap 95% interval excluding 0.",
+    "flag": "required for PASSES VALUE",
+    "kind": "measurement",
+    "owner": "Data Collection",
+    "required_for": "PASSES VALUE",
+    "tool": "Data Collection panels, PR 994 comparators (open) and the evaluator PR 1003 (open)",
+    "value": "UNMEASURED"
+   },
+   "c_speed_up_100x_per_decision_query": {
+    "condition": "At least 100x faster than the reference per decision query.",
+    "flag": "required for PASSES VALUE",
+    "kind": "measurement",
+    "owner": "Data Collection",
+    "required_for": "PASSES VALUE",
+    "tool": "Data Collection reference timing plus the model inference cost, on the same hardware",
+    "value": "UNMEASURED"
+   },
+   "d_value_and_volume_ranges": {
+    "condition": "Sourced or assumption ranges for value and volume.",
+    "flag": "required for PASSES VALUE",
+    "kind": "measurement",
+    "owner": "Codex",
+    "required_for": "PASSES VALUE",
+    "tool": "The Challenge packet and the buyer-volume evidence (PR 939, merged)",
+    "value": "UNMEASURED"
+   },
+   "e_equal_budget_screen_then_verify_beats_solver": {
+    "condition": "At equal time and compute, the model-screen-then-solver-verify workflow finds a better design than the solver alone.",
+    "flag": "required for PASSES VALUE",
+    "harness": "carbon/design_search/track_b.py",
+    "kind": "measurement",
+    "owner": "Data Collection",
+    "required_for": "PASSES VALUE",
+    "tool": "PR 998 (EQUAL-BUDGET-DESIGN-01, open) on the design_search track_b harness",
+    "value": "UNMEASURED"
+   },
+   "framing": "Models never beat the solver on accuracy; the solver is the reference.",
+   "set_by": "Conditions a to d: Test Lead, delegated by the owner, 2026-10-10. Condition e: Test Lead, from the owner, 2026-10-10."
+  },
+  "score_value_alignment": {
+   "source": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/q1_report.json",
+   "value": {
+    "kendall_tau_b": -0.47280542884465016,
+    "level": 0,
+    "members": 8,
+    "note": "one seed per recipe; a measurement only",
+    "reference_provenance": "EV4_REFERENCE",
+    "spearman_rho": -0.5389318178609666
+   }
+  },
+  "speed_up_against_reference": {
+   "kind": "measurement",
+   "owner": "Data Collection",
+   "tool": "Data Collection reference timing (value-cost C1) plus the model inference cost, on the same hardware",
+   "value": "UNMEASURED"
+  }
+ },
+ "process": {
+  "blockers": {
+   "source": "docs/development/challenge_pipeline/onboarding/blocker_taxonomy.json",
+   "value": [
+    {
+     "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+     "id": "B1",
+     "name": "Wrong lane",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+     "id": "B2",
+     "name": "Keys in the wrong distro",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+     "id": "B3",
+     "name": "One controller per root",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "FIX_IN_PR_969_NOT_MERGED_NOT_EXERCISED_LIVE",
+     "id": "B4",
+     "name": "Pod ceiling below the offered price",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "VALUE_FIXED_IN_PR_969_CHECK_STILL_OPEN",
+     "id": "B5",
+     "name": "Token share and pod split",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "OPEN",
+     "id": "B6",
+     "name": "Reboot fragility",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "OPEN",
+     "id": "B7",
+     "name": "Auto-mode permission blocks",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+     "id": "B8",
+     "name": "Silent failures",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "OWNER_ASSIGNED_CHECK_PROPOSED_NOT_BUILT",
+     "id": "B9",
+     "name": "Lane install lagging the grant code",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "OWNER_ASSIGNED_NOT_YET_EXERCISED_LIVE",
+     "id": "B10",
+     "name": "One shared checkout for every lane",
+     "time_lost": "UNKNOWN"
+    }
+   ]
+  },
+  "cost_per_stage": {
+   "kind": "measurement",
+   "owner": "Executor",
+   "tool": "Stage report: each run's cap fraction; spend ledgers stay out of the repository",
+   "value": "UNMEASURED"
+  },
+  "cycle_days_per_stage": {
+   "kind": "decision",
+   "owner": "Test Lead",
+   "question": "A first dated record is not the time spent. Which entry and exit records define each stage's cycle time?",
+   "value": "UNMEASURED"
+  },
+  "dated_stage_records": {
+   "source": "docs/development/challenge_pipeline/onboarding/cycle_metrics.jsonl",
+   "value": [
+    {
+     "date": "2026-10-06",
+     "event": "first_dated_record",
+     "stage": "S1_packet"
+    },
+    {
+     "date": "2026-10-06",
+     "event": "first_gate_run",
+     "stage": "S6_readiness"
+    },
+    {
+     "date": "2026-10-07",
+     "event": "first_dated_record",
+     "stage": "S3_feasibility_value_panel"
+    },
+    {
+     "date": "2026-10-08",
+     "event": "value_cost_framework",
+     "stage": "S3_feasibility_value_panel"
+    },
+    {
+     "date": "2026-10-08",
+     "event": "first_dated_record",
+     "stage": "S4_question_law"
+    },
+    {
+     "date": "2026-10-09",
+     "event": "baseline_2",
+     "stage": "S6_readiness"
+    },
+    {
+     "date": "2026-10-09",
+     "event": "stage_a_grants_approved",
+     "stage": "S7_stage_a"
+    },
+    {
+     "date": "2026-10-10",
+     "event": "l0_launch_ready",
+     "stage": "S6_readiness"
+    },
+    {
+     "date": "2026-10-10",
+     "event": "launch_preflight_merged",
+     "stage": "S7_stage_a"
+    }
+   ]
+  },
+  "grant_caps": {
+   "note": "Caps and run counts only, never a balance or an account.",
+   "source": "docs/development/graphite/grants",
+   "value": [
+    {
+     "cap": "53.77",
+     "grant_id": "GRAPHITE-GRANT-STAGE-A-ATTACKER",
+     "permitted_runs": 4,
+     "source": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-A-ATTACKER.json"
+    },
+    {
+     "cap": "74.67",
+     "grant_id": "GRAPHITE-GRANT-STAGE-A-CONSTRUCTOR",
+     "permitted_runs": 5,
+     "source": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-A-CONSTRUCTOR.json"
+    }
+   ]
+  },
+  "lessons_entries": {
+   "source": "carbon/challenge_pipeline/lessons",
+   "value": {
+    "by_stage": {
+     "design": 2,
+     "protocol": 2,
+     "test_iterate": 59
+    },
+    "count": 63,
+    "first": "2026-10-02T20:01:18Z",
+    "last": "2026-10-10T12:38:19Z"
+   }
+  },
+  "readiness_first_run": {
+   "source": "docs/development/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/history.jsonl",
+   "value": {
+    "counts": {
+     "FAIL": 3,
+     "NOT_BUILT": 22,
+     "PASS": 11,
+     "REVIEW_REQUIRED": 5
+    },
+    "level": 0,
+    "utc": "2026-10-06T16:11:56Z"
+   }
+  },
+  "readiness_latest_by_level": {
+   "source": "docs/development/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/history.jsonl",
+   "value": {
+    "0": {
+     "counts": {
+      "FAIL": 0,
+      "NOT_BUILT": 0,
+      "PASS": 22,
+      "PASS_BY_REVIEW": 15,
+      "REVIEW_REQUIRED": 0,
+      "WAIVED": 4
+     },
+     "green": false,
+     "utc": "2026-10-10T12:17:01Z"
+    },
+    "1": {
+     "counts": {
+      "FAIL": 2,
+      "NOT_BUILT": 0,
+      "PASS": 20,
+      "PASS_BY_REVIEW": 15,
+      "REVIEW_REQUIRED": 0,
+      "WAIVED": 4
+     },
+     "green": false,
+     "utc": "2026-10-10T12:27:25Z"
+    }
+   }
+  }
+ },
+ "rules": [
+  "A field is read from a cited artefact, or it is UNMEASURED: a measurement names its owner and tool, and only a real owner decision carries a question. Nothing is estimated.",
+  "Caps and rates only. No balance, account, spend ledger or hidden-pool material."
+ ],
+ "schema": "carbon.challenge-pipeline.brief-product-ledger.v1"
+}
