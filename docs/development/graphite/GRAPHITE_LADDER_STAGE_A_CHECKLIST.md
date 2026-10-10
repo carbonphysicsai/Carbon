@@ -76,3 +76,25 @@ recorded Test Lead decision naming what replaces the check. This checklist propo
 A lessons entry (`carbon/challenge_pipeline/lessons/`), the run's evidence digest, spend as a
 count against the grant (caps only, no balance in the repo), and the executor's report to the
 Test Lead. The Testing Manager then updates the register.
+
+## 6. Post-run step: the refused-capability log
+
+Owner-approved Level 5 internal-lane strategy: stage A starts a log of every capability, op
+or construction a Graphite Constructor or Attacker requested that its level refused. It is
+input to which Level 5 ops Carbon builds first. It is data about requests, not a score and not
+a scientific result.
+
+- **File:** `docs/development/graphite/ladder-stages/stage-A/refused_capabilities.jsonl`, one
+  JSON object per distinct (level, role, refusal_code, requested name, run id), committed
+  through PR Head with the stage records.
+- **Fields:** `stage`, `level`, `role` (Constructor or Attacker), `refusal_code`, `requested`
+  (the capability or op name only), `count`, `first_seen` and `last_seen` (UTC ISO 8601), and
+  `run_id`. No hidden, protected or secret material, no request payloads, no credentials, no
+  account details.
+- **Source:** the runs' own records and ledgers that the executor already commits or shares
+  for the stage. Nothing is instrumented in a live run. The executor says where refusals are
+  logged (open question to the executor); the Testing Manager reads them after each run and
+  appends. A refusal that cannot be read from an existing record is listed as unlogged, not
+  inferred.
+- **Summary at the end of each stage:** the top refusals by code and by level (counts), as a
+  short table in the stage's closing report. It names no Level 5 design and decides nothing.
