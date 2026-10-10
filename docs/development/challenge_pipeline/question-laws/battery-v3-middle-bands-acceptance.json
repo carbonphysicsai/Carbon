@@ -1,0 +1,12 @@
+{
+ "schema": "carbon.battery.middle-bands-acceptance.v1",
+ "ticket": "BATTERY-V3-MIDDLE-BANDS-PANEL-01",
+ "sheet": "battery-v3-middle-bands-panel.json",
+ "sheet_sha256": "d5befd6524a060684c1174e9d9a73c93bc25ab4e689d02e318e81a9d021f9b32",
+ "accepted": "2026-10-10, Test Lead under OWNER-DEV-AUTONOMY-01",
+ "accepted_manifest_sha256": "bab5ae9702dc0a8ec3c8f26b9ddd9337c19152dc4d1f8692c3bc8d33c14f7e39",
+ "manifest_source": "docs/development/evidence/battery-feasibility-02/middle-bands/manifest.json on claude/motor-feasibility-02 @ 5eb029438 (300 tuples; exact reuse 16 standard, 12 rung 2, 6 rung 3)",
+ "near": {"temperature_band_k": 0.5, "plating_band_v": 0.002, "near_within_bands": 2, "status": "TEST_LEAD_WORKING_VALUES (the registered refinement bands of assess(reference=True))"},
+ "dispatch_grant": "OWNER-CCX63-EVIDENCE-GRANT-01 (#992, merged 7a9ada562): EUR 10 all-in, 7 server-hours, development evidence only",
+ "note": "The sheet stays the planning proposal its tests pin; this record is the acceptance that binds dispatch of stage A."
+}
