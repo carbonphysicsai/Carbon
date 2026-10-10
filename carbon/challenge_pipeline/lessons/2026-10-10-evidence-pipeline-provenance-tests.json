@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-evidence-pipeline-provenance-tests",
+  "recorded_at": "2026-10-10T21:49:58Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "EVIDENCE-PIPELINE-ONE-COMMAND-01", "description": "Expanded native hop, fixture-scope, fold, cost, path, resource and negative-result regressions."},
+  "expected": "Known provenance contradictions stop before a new page; complete negative findings remain visible.",
+  "observed": "125 focused native tests passed in 7.37 seconds. Ruff identified one unused fixture variable; it was repaired and requires final quality validation. No solver, cloud, model execution or spending occurred.",
+  "keep": ["A hash establishes identity, not independent custody", "Measured costs are mandatory for public-development replay"],
+  "change": ["Prevent shared support banks from masquerading as independent folds", "Give Data Collection an explicit return checklist, including separate Carbon predictions and optimizer cost registration"],
+  "protocol_elements": ["evidence_identity", "cost_measurement", "claim_control"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,0 +1,52 @@
+{
+  "schema": "carbon.onboarding.artifact-bindings.v1",
+  "challenges": {
+    "motor": {"aliases": ["electric-motor-magnetics"], "stages": {
+      "S0_brief": ["docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md"],
+      "S1_packet": ["docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md"],
+      "S2_solver_package": ["carbon/challenge_readiness/records/electric-motor-magnetics.v4.json"],
+      "S3_feasibility_value_panel": ["docs/development/challenge_pipeline/value-cost/motor.md", "docs/development/challenge_pipeline/question-laws/motor-round2.json"],
+      "S4_question_law": ["docs/development/challenge_pipeline/question-laws/motor-round2.json"],
+      "S6_readiness": ["docs/development/challenge_pipeline/readiness/electric-motor-magnetics/history.jsonl"]}},
+    "battery-v3": {"aliases": ["battery", "battery-fastcharge-ageing-development-v1"], "stages": {
+      "S0_brief": ["docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md"],
+      "S1_packet": ["docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md"],
+      "S2_solver_package": ["carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json"],
+      "S3_feasibility_value_panel": ["docs/development/challenge_pipeline/value-cost/battery.md", "docs/development/challenge_pipeline/question-laws/battery-v3-middle-bands-panel.json"],
+      "S4_question_law": ["docs/development/challenge_pipeline/question-laws/battery-v3-round2.json"],
+      "S6_readiness": ["docs/development/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/history.jsonl"]}},
+    "cooling-cell": {"aliases": ["cooling", "chip-cold-plate"], "stages": {
+      "S0_brief": ["docs/development/challenge_pipeline/round1/cooling-cell-v3.md"],
+      "S1_packet": ["docs/development/challenge_pipeline/round1/cooling-cell-v3.md"],
+      "S2_solver_package": ["carbon/challenge_readiness/records/chip-cold-plate.v6.json"],
+      "S3_feasibility_value_panel": ["docs/development/challenge_pipeline/value-cost/cooling-cell.md"],
+      "S4_question_law": ["docs/development/challenge_pipeline/question-laws/proposals-v2.json"]}},
+    "f02": {"aliases": [], "stages": {
+      "S0_brief": ["docs/development/challenge_pipeline/round1/f02-burst-thermal.md"],
+      "S1_packet": ["docs/development/challenge_pipeline/round1/f02-burst-thermal.md"],
+      "S3_feasibility_value_panel": ["docs/development/challenge_pipeline/value-cost/f02.md"],
+      "S4_question_law": ["docs/development/challenge_pipeline/question-laws/f02-round2.json"]}},
+    "f06": {"aliases": [], "stages": {
+      "S0_brief": ["docs/development/challenge_pipeline/round1/f06-grating-coupler.md"],
+      "S1_packet": ["docs/development/challenge_pipeline/round1/f06-grating-coupler.md"],
+      "S2_solver_package": ["docs/development/challenge_pipeline/solver-package-specs/f06-meep.md"],
+      "S3_feasibility_value_panel": ["docs/development/challenge_pipeline/value-cost/f06.md", "docs/development/challenge_pipeline/solver-package-specs/f06-resolution-cost/analysis.json"],
+      "S4_question_law": ["docs/development/challenge_pipeline/question-laws/proposals.json"]}},
+    "f08": {"aliases": [], "stages": {
+      "S0_brief": ["docs/development/challenge_pipeline/round1/f08-resonance-structure.md"],
+      "S1_packet": ["docs/development/challenge_pipeline/round1/f08-resonance-structure.md"],
+      "S3_feasibility_value_panel": ["docs/development/challenge_pipeline/value-cost/f08.md"],
+      "S4_question_law": ["docs/development/challenge_pipeline/question-laws/proposals.json"]}},
+    "f13": {"aliases": [], "stages": {
+      "S0_brief": ["docs/development/challenge_pipeline/round1/f13-compressor-silencer.md"],
+      "S1_packet": ["docs/development/challenge_pipeline/round1/f13-compressor-silencer.md"],
+      "S3_feasibility_value_panel": ["docs/development/challenge_pipeline/value-cost/f13.md", "docs/development/challenge_pipeline/round1/f13-power-balance-diagnosis.json"],
+      "S4_question_law": ["docs/development/challenge_pipeline/question-laws/proposals.json"]}},
+    "f17": {"aliases": [], "stages": {
+      "S0_brief": ["docs/development/challenge_pipeline/round1/f17-passive-micromixer.md"],
+      "S1_packet": ["docs/development/challenge_pipeline/round1/f17-passive-micromixer.md"],
+      "S2_solver_package": ["docs/development/challenge_pipeline/solver-package-specs/f17-openfoam.md"],
+      "S3_feasibility_value_panel": ["docs/development/challenge_pipeline/value-cost/f17.md"],
+      "S4_question_law": ["docs/development/challenge_pipeline/question-laws/proposals.json"]}}
+  }
+}
