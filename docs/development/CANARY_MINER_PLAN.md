@@ -7,8 +7,8 @@
   miner(s)." (OWNER-CANARY-MINER-01).
 - **Unattended commitments** depend on a second owner decision, relayed
   the same day: "approve testnet auto-confirm for test hotkeys"
-  (SIGNER-AUTOCONFIRM-01). That flag is a separate ticket. It is not built,
-  and it waits for the owner to confirm it in the building session (§3).
+  (SIGNER-AUTOCONFIRM-01). That flag is a separate ticket, recorded as
+  OWNER-SIGNER-TESTNET-AUTOCONFIRM-01. #861 merged it (§3).
 
 **Purpose.** A Carbon-owned miner drives the **real path** through the
 Launchpad on every window, exactly as a mainnet miner would:
@@ -119,12 +119,16 @@ auto-confirms a commitment only when all of these hold:
 
 Every auto-confirm is printed and logged.
 
-**Status.** Blocked. The auto-mode classifier refused the build in the
-Launchpad Acceptance session as a security weakening. It waits for the owner
-to confirm the decision, and the permission, in the building session. The
-canary needs it before it can run unattended. Until then, the canary can run
-attended: the owner confirms at the terminal, which is useful for proving
-the stage checks.
+**Status.** Built and merged in #861, under
+OWNER-SIGNER-TESTNET-AUTOCONFIRM-01: the signer's opt-in flag
+`--auto-confirm-commitments <allowlist-file>`
+(`docs/development/MINER_EXTERNAL_SIGNER.md`).
+- It is not security-qualified.
+- It confirms only for the hotkeys in the owner's allow-list. On carbon-fresh
+  that is one file, for the canary and minerD to minerG
+  ([`CANARY_RUNBOOK.md`](./CANARY_RUNBOOK.md)).
+- Without the flag, the canary still runs attended: the owner confirms at
+  the signer's terminal.
 
 **Risk** (for the decision record):
 - The flag removes a human from **commitments only**, for allow-listed
@@ -222,12 +226,14 @@ Renting the box is an owner purchase (a grant line).
    - It measures stages from the Launchpad readback and the intake facts.
    - It writes a journal, and pings as in §7.
    - Tests use the loopback intake and fixtures. Engineering evidence only.
+   - **Built** in `scripts/dev/canary/`, with 320 registered kNN variants.
+     The owner's steps are in [`CANARY_RUNBOOK.md`](./CANARY_RUNBOOK.md).
 2. **CANARY-01 S2: the weights check.** It reads the validator's publication
    for the epoch after a verdict, and checks the canary's UID weight is zero.
 3. **Carbon Validator (VALIDATOR domain): the registered canary list,**
    excluded from nomination, standings and weights, plus the two Ops 2
    checks in §1.
-4. **SIGNER-AUTOCONFIRM-01** (§3), blocked as stated.
+4. **SIGNER-AUTOCONFIRM-01** (§3): merged in #861.
 5. **Acceptance:** three attended cycles on carbon-fresh (stage timings
    recorded), then the owner sets the deadlines, then unattended on the box.
 
@@ -236,7 +242,7 @@ Renting the box is an owner purchase (a grant line).
 Answered 2026-10-08, recorded in OWNER-CANARY-MINER-01:
 - "approve canary 2-4": items 2, 3 and 4, as recommended;
 - "Approve all": item 6 (one cycle per rotation), plus item 1 again.
-  Item 1's build is blocked by the auto-mode classifier, not by the owner.
+  Item 1's build has since merged in #861.
 
 Item 5, the deadlines, waits for measured runs.
 

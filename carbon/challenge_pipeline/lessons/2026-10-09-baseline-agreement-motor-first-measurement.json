@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-agreement-motor-first-measurement",
+  "recorded_at": "2026-10-09T14:35:00Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "coverage_run",
+    "ref": "motor-summary.json local diagnostic",
+    "description": "BASELINE-AGREEMENT-01: motor-summary.json local diagnostic"
+  },
+  "expected": "Exact replay must not claim fitted full-curve generalization.",
+  "observed": "44 candidates/20 questions read at the granted byte identity; 20 reference comparisons unresolved. Geometry/full curves absent; held-out arm HOLD. Zero solver runs.",
+  "keep": [
+    "Never regress ordinal design IDs or simulate missing curves."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.pipeline.lessons",
+    "challenge.cheap-baseline.comparison"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

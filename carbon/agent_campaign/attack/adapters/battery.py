@@ -2401,7 +2401,7 @@ SEAMS = (
     # variants (battery-l2-spectral-v1, battery-l3-numerics-v1).
     # Level 4 is no longer a seam here: it runs in its own adapter,
     # `adapters.battery_level4`, registered at (battery, 4) against the
-    # graph-only development variant (battery-l4-graph-v2 since OWNER-L4-VALUES-01;
+    # graph-only development variant (battery-l4-graph-v3 since LEVEL4-LOSS-OVERRIDE-01;
     # LEVEL4-DEV-VARIANT-01).
     SeamSpec(
         "level_5_custom_inference",

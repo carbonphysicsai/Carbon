@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-agreement-native-interrupted",
+  "recorded_at": "2026-10-09T17:14:00Z",
+  "challenge": "protocol", "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "native comparator/consumer/library diagnostic", "description": "Windows Python 3.11 combined diagnostic suite, interrupted after extended no-output library compilation."},
+  "expected": "Bounded regression feedback without solver execution.",
+  "observed": "Partial progress included historical expected-failure markers, then no further output during the library arm. Interrupted the owned process; no final result or pass is claimed. The Linux environment subsequently exercised the two actual CI regressions and comparator tests separately.",
+  "keep": ["Record incomplete validation as incomplete."],
+  "change": ["Use the matching Linux dependency environment for focused regressions rather than a slow noncanonical native compile path."],
+  "protocol_elements": ["canonical-validation"],
+  "proposed_revision": null, "status": "RECORDED"
+}

@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-agreement-motor-v4-measurement",
+  "recorded_at": "2026-10-09T14:41:20Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "coverage_run",
+    "ref": "motor-measurement-v4.json",
+    "description": "BASELINE-AGREEMENT-01: motor-measurement-v4.json"
+  },
+  "expected": "Final source-byte pin and portable output should preserve previous measurements.",
+  "observed": "44 rows/20 questions, all decisions unresolved; full curves remain HOLD. Search/reference arithmetic median 3.28 ms. No reference solves.",
+  "keep": [
+    "Use versioned measurement output without overwriting earlier diagnostics."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.pipeline.lessons",
+    "challenge.cheap-baseline.comparison"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

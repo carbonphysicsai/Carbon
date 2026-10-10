@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-agreement-output-portability-repair",
+  "recorded_at": "2026-10-09T14:41:20Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "final CLI output portability tests",
+    "description": "BASELINE-AGREEMENT-01: final CLI output portability tests"
+  },
+  "expected": "Report artifacts should have portable LF and preserve exclusive-write behavior.",
+  "observed": "Git's diff check found CRLF whitespace in generated one-line JSON. Explicit LF repaired; 14 comparator tests, Ruff and Black passed.",
+  "keep": [
+    "Do not confuse native output formatting with numerical qualification."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.pipeline.lessons",
+    "challenge.cheap-baseline.comparison"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

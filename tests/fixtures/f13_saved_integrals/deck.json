@@ -1,0 +1,8 @@
+{
+  "scope_note": "SYNTHETIC_FIXTURE; deliberately simple units, never reference truth",
+  "rho": 0.5,
+  "c": 1.0,
+  "port_area_m2": 1.0,
+  "amplitude_pa": 1.0,
+  "frequencies_hz": [500, 1500, 2500]
+}

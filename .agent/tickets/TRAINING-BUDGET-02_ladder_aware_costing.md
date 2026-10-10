@@ -3,7 +3,9 @@
 **Authority:** OWNER-COMPUTE-BUDGET-01; TRAINING-BUDGET-01. The Test Lead
 ticketed this on 2026-10-08, from the Level 4 session's finding in #805.
 
-**Status:** specified; not started. Scheduled after pool_selection v1.
+**Status:** slices 1-4 built, with their tests (slice 6 for Levels 0-3):
+TRAINING-BUDGET-02-S1. Slice 5 (Level 4, priced from G5's `train_step_flops`)
+is TRAINING-BUDGET-02-S5. All slices are built.
 **It blocks** switching on TRAINING-BUDGET-01's compute-budget admission check
 (#742). The check stays off until this ticket lands.
 

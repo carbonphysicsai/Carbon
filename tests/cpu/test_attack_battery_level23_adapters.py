@@ -11,9 +11,11 @@ Claims tested:
 3. The refusals are the variant's own typed codes: SpecMuon off the Muon
    family, on the plateau curve or on PyTorch; a dense inverse Hessian above
    the worker's memory bound; a numerics choice with no polish stage.
-4. Seams are NOT_RUN and say why: pool selection is not in the registered
-   variant (P1-P4), no in-surface recipe diverged (M2, N2), and the cost
-   calculator refuses development recipes (M1's finding).
+4. Pool selection (battery-l2-v2): P1 and P2 are refused by their own
+   `pool.*` codes; P3 and P4 are seams. Seams are NOT_RUN and say why:
+   pool selection's budget charge and distribution chasing, no in-surface
+   recipe diverged (M2, N2), and the cost calculator refuses development
+   recipes (M1's finding).
 5. Rebuild compiles a strategy under the level's variant, labelled
    "CPU-verified only"; a recipe outside the variant is unrebuildable.
 6. M2 and N2's classification (Test Lead, 2026-10-08): a NaN or Inf injected
@@ -103,14 +105,42 @@ def test_level_3_refusals_are_the_variants_typed_codes():
     assert d.accepted(d.variant_gate(3)(l3._families()["l3_unbounded_work"].held_out))
 
 
+def test_level_2_pool_attacks_are_refused_by_their_pool_codes():
+    found = _codes(d.variant_gate(2), l2._pool_attacks())
+    expected = {
+        "pool_practice_stratum": "pool.practice_refused",
+        "pool_practice_beside_train": "pool.practice_refused",
+        "pool_unregistered_version": "pool.version_unregistered",
+        "pool_part_not_in_version": "pool.part_not_in_version",
+        "pool_names_its_cases": "pool.selection_malformed",
+        "pool_weight_above_two": "pool.weight_out_of_bounds",
+        "pool_weight_negative": "pool.weight_out_of_bounds",
+        "pool_weight_not_a_number": "pool.weight_out_of_bounds",
+        "pool_weight_boolean": "pool.weight_out_of_bounds",
+        "pool_weights_all_zero": "pool.weights_all_zero",
+        "pool_no_strata": "pool.strata_malformed",
+        "pool_no_cases": "pool.cases_out_of_bounds",
+        "pool_more_cases_than_the_pool": "pool.cases_out_of_bounds",
+        "pool_box_reversed": "pool.box_malformed",
+        "pool_box_unknown_input": "pool.box_unknown_input",
+    }
+    assert set(found) == set(expected)
+    for name, code in expected.items():
+        assert found[name]["status"] == "REFUSED", name
+        assert code in found[name]["issues"], (name, found[name])
+    honest = l2._families()["l2_pool_sources_and_weights"]
+    assert d.accepted(d.variant_gate(2)(honest.trained))
+    assert d.accepted(d.variant_gate(2)(honest.held_out))
+
+
 def test_seams_say_why_they_are_not_run(level):
     seams = {s.name: s for s in LEVELS[level].ADAPTER.level_families()}
     assert {s.state for s in seams.values()} == {b.NOT_RUN}
     assert "parameter.unknown" in seams[f"l{level}_compute_accounting"].reason
     if level == 2:
-        reason = seams["l2_pool_selection"].reason
-        assert all(row in reason for row in ("P1", "P2", "P3", "P4"))
-        assert "battery-l2-spectral-v1" in reason
+        assert "l2_pool_selection" not in seams  # P1 and P2 run (battery-l2-v2)
+        assert "P3" in seams["l2_pool_budget_evasion"].reason
+        assert "P4" in seams["l2_pool_distribution_chasing"].reason
         assert "M2" in seams["l2_divergence"].reason
     else:
         assert "N2" in seams["l3_instability"].reason

@@ -1,0 +1,276 @@
+{
+ "aliases": [],
+ "alignment": {
+  "conditions": [
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "GRAPHITE_RECONSTRUCTED",
+    "member": "graphite-run5-p-1d4aaff5d292-s3718551111",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "graphite-run5-baseline-s1801172379",
+     "graphite-run5-p-1585ecbf838a-s475176988",
+     "graphite-run5-p-37985e699fe3-s1919562590",
+     "graphite-run5-p-4fd7fb870d2b-s1132250632",
+     "graphite-run5-p-69268f1b74ec-s1551240143",
+     "graphite-run5-p-87b76ad0a2fd-s3716900652",
+     "graphite-run5-p-c41a9a1ebb82-s524989794"
+    ],
+    "value": [
+     0,
+     1.7187380340238771
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "GRAPHITE_RECONSTRUCTED",
+    "member": "graphite-run5-p-37985e699fe3-s1919562590",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "graphite-run5-baseline-s1801172379",
+     "graphite-run5-p-1585ecbf838a-s475176988",
+     "graphite-run5-p-87b76ad0a2fd-s3716900652"
+    ],
+    "value": [
+     0,
+     1.6867423846189598
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "GRAPHITE_RECONSTRUCTED",
+    "member": "graphite-run5-p-4fd7fb870d2b-s1132250632",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "graphite-run5-baseline-s1801172379",
+     "graphite-run5-p-1585ecbf838a-s475176988",
+     "graphite-run5-p-37985e699fe3-s1919562590",
+     "graphite-run5-p-87b76ad0a2fd-s3716900652"
+    ],
+    "value": [
+     0,
+     1.6935579968652572
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "GRAPHITE_RECONSTRUCTED",
+    "member": "graphite-run5-p-69268f1b74ec-s1551240143",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "graphite-run5-baseline-s1801172379"
+    ],
+    "value": [
+     0,
+     0.026891330198590583
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "GRAPHITE_RECONSTRUCTED",
+    "member": "graphite-run5-p-87b76ad0a2fd-s3716900652",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "graphite-run5-baseline-s1801172379"
+    ],
+    "value": [
+     0,
+     1.6666666666666667
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "GRAPHITE_RECONSTRUCTED",
+    "member": "graphite-run5-p-c41a9a1ebb82-s524989794",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "graphite-run5-baseline-s1801172379",
+     "graphite-run5-p-1585ecbf838a-s475176988",
+     "graphite-run5-p-37985e699fe3-s1919562590",
+     "graphite-run5-p-87b76ad0a2fd-s3716900652"
+    ],
+    "value": [
+     0,
+     1.6935579968652572
+    ],
+    "value_noise_band": null
+   }
+  ],
+  "excluded_unresolved_or_ineligible": [],
+  "kendall_tau_b": -0.47280542884465016,
+  "members_ranked": [
+   "graphite-run5-baseline-s1801172379",
+   "graphite-run5-p-1585ecbf838a-s475176988",
+   "graphite-run5-p-1d4aaff5d292-s3718551111",
+   "graphite-run5-p-37985e699fe3-s1919562590",
+   "graphite-run5-p-4fd7fb870d2b-s1132250632",
+   "graphite-run5-p-69268f1b74ec-s1551240143",
+   "graphite-run5-p-87b76ad0a2fd-s3716900652",
+   "graphite-run5-p-c41a9a1ebb82-s524989794"
+  ],
+  "schema": "carbon.design-search.score-value-alignment.v1",
+  "spearman_rho": -0.5389318178609666,
+  "tau_noise_band": {
+   "band": 0.0,
+   "panels": 1,
+   "tau_max": -0.47280542884465016,
+   "tau_min": -0.47280542884465016
+  },
+  "top_k": {
+   "by_score": [
+    "graphite-run5-p-1d4aaff5d292-s3718551111"
+   ],
+   "by_value": [
+    "graphite-run5-baseline-s1801172379"
+   ],
+   "k": 1,
+   "overlap": 0
+  },
+  "value_noise_band": null
+ },
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "decision_study": "graphite-run5-q1 (results.json, q1-report.json); common resolved mask 6 of 12 development scenarios",
+ "level": 0,
+ "member_kinds": {
+  "GRAPHITE_RECONSTRUCTED": 8
+ },
+ "members": {
+  "graphite-run5-baseline-s1801172379": {
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=1.75,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.48": "c1=1.25,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "GRAPHITE_RECONSTRUCTED",
+   "recipe": "graphite-run5-baseline",
+   "score": -0.07404506774171599,
+   "value": 0.0
+  },
+  "graphite-run5-p-1585ecbf838a-s475176988": {
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=2,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.48": "c1=1.5,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "GRAPHITE_RECONSTRUCTED",
+   "recipe": "graphite-run5-p-1585ecbf838a",
+   "score": -0.08087187900617948,
+   "value": 1.6750830987590495
+  },
+  "graphite-run5-p-1d4aaff5d292-s3718551111": {
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=2,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.48": "c1=1,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "GRAPHITE_RECONSTRUCTED",
+   "recipe": "graphite-run5-p-1d4aaff5d292",
+   "score": -0.05619965871218511,
+   "value": 1.7187380340238771
+  },
+  "graphite-run5-p-37985e699fe3-s1919562590": {
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=2,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.48": "c1=1.75,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "GRAPHITE_RECONSTRUCTED",
+   "recipe": "graphite-run5-p-37985e699fe3",
+   "score": -0.06304869882202477,
+   "value": 1.6867423846189598
+  },
+  "graphite-run5-p-4fd7fb870d2b-s1132250632": {
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=2,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.48": "c1=2,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "GRAPHITE_RECONSTRUCTED",
+   "recipe": "graphite-run5-p-4fd7fb870d2b",
+   "score": -0.06050852555787488,
+   "value": 1.6935579968652572
+  },
+  "graphite-run5-p-69268f1b74ec-s1551240143": {
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=1.75,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.48": "c1=2,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "GRAPHITE_RECONSTRUCTED",
+   "recipe": "graphite-run5-p-69268f1b74ec",
+   "score": -0.05944015045043877,
+   "value": 0.026891330198590583
+  },
+  "graphite-run5-p-87b76ad0a2fd-s3716900652": {
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=2,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.48": "c1=1.25,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "GRAPHITE_RECONSTRUCTED",
+   "recipe": "graphite-run5-p-87b76ad0a2fd",
+   "score": -0.06520179396564059,
+   "value": 1.6666666666666667
+  },
+  "graphite-run5-p-c41a9a1ebb82-s524989794": {
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=2,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.48": "c1=2,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "GRAPHITE_RECONSTRUCTED",
+   "recipe": "graphite-run5-p-c41a9a1ebb82",
+   "score": -0.06136158904829669,
+   "value": 1.6935579968652572
+  }
+ },
+ "reference": {
+  "provenance": "EV4_REFERENCE",
+  "ref": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz"
+ },
+ "schema": "carbon.challenge-pipeline.readiness-q1-report.v1",
+ "scoring_rule_digest": "sha256:d3c9fb0fbf83b2abed2128d49ab52e1338b7d5bc693cd1fb89977171f7c7b61f"
+}
