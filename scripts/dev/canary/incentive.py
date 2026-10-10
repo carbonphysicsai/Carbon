@@ -70,12 +70,23 @@ def verify_epoch(row, hotkeys, incumbents, n_challenges, canaries, burn_uid=0):
             "findings": [{"level": UNVERIFIED, "code": "no_weights_set"}],
         }
     paid = {hotkey for hotkey in incumbents.values() if hotkey is not None}
+    # The feed names the incumbent only once its windows are released; until
+    # then the publisher may rightly pay it, and the check cannot tell.
+    unreleased = any(hotkey is None for hotkey in incumbents.values())
     for uid, value in sorted(weights.items()):
         if uid == burn_uid:
             continue
         hotkey = hotkeys.get(uid)
         if hotkey in canaries:
             findings.append({"level": BLOCKER, "code": "canary_weighted", "uid": uid})
+        elif hotkey not in paid and unreleased:
+            findings.append(
+                {
+                    "level": UNVERIFIED,
+                    "code": "weight_to_unreleased_incumbent",
+                    "uid": uid,
+                }
+            )
         elif hotkey not in paid:
             findings.append(
                 {"level": BLOCKER, "code": "weight_to_non_incumbent", "uid": uid}

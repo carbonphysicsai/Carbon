@@ -262,3 +262,26 @@ def test_an_empty_weight_row_with_roles_is_unverified_not_a_crash():
     )
     assert result["state"] == inc.UNVERIFIED
     assert result["findings"][0] == {"level": inc.UNVERIFIED, "code": "no_weights_set"}
+
+
+def test_weight_before_the_feed_releases_the_incumbent_is_unverified():
+    hotkeys = {0: "5Burn", 14: "5Strong", 99: CANARY_HOTKEYS[0]}
+    row = [[0, 40000], [14, 25535]]
+    result = inc.verify_epoch(
+        row, hotkeys, {"battery": None}, 3, frozenset(CANARY_HOTKEYS)
+    )
+    assert result["state"] == inc.UNVERIFIED
+    assert {
+        "level": inc.UNVERIFIED,
+        "code": "weight_to_unreleased_incumbent",
+        "uid": 14,
+    } in (result["findings"])
+    # A canary is a blocker whether or not anything is released.
+    result = inc.verify_epoch(
+        [[0, 40000], [99, 25535]],
+        hotkeys,
+        {"battery": None},
+        3,
+        frozenset(CANARY_HOTKEYS),
+    )
+    assert result["state"] == inc.BLOCKER
