@@ -403,6 +403,7 @@ REFUSAL_FIELDS = {
     "model_provider_credential_not_configured": "model_provider",
     "campaign_busy": "campaign",
     "freeze_a_candidate_first": "campaign",
+    "campaign_frozen_on_old_revision": "campaign",
     "retired_grant_campaign": "campaign",
     "research_run_unavailable": "campaign",
     "campaign_journal_not_ready": "campaign",
