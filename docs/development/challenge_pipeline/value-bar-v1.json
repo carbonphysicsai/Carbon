@@ -1,0 +1,18 @@
+{
+  "schema": "carbon.challenge-value-rule.v1",
+  "rule_id": "VALUE-BAR-V1",
+  "owner_record": "Test Lead delegated value limits, 2026-10-10; OWNER-LAUNCH-STRATEGY-01 cheap-baseline requirement",
+  "item_2": {
+    "max_mean_regret_delta": 0.0
+  },
+  "item_3": {
+    "min_median_wall_speedup": 100.0,
+    "flagship_min_median_wall_speedup": 20.0,
+    "flagship_reference_solve_core_s": 3600.0
+  },
+  "item_5": {
+    "budget": null,
+    "confidence": 0.95,
+    "paired_verified_value_delta_excludes_zero": true
+  }
+}

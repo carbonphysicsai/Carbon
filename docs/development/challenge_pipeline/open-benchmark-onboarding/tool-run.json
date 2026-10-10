@@ -1,0 +1,70 @@
+{
+  "schema": "carbon.open-benchmark.onboarding-tool-run.v1",
+  "ticket": "OPEN-BENCHMARK-ONBOARDING-01",
+  "status": "DRAFT_GENERATORS_EXERCISED_NOT_STAGE_ACCEPTANCE",
+  "authority_main": "94b193525f5d55eb20168ebbdbcf43ddf33653f1",
+  "recorded_at": "2026-10-10T22:46:47Z",
+  "validation_environment": "NATIVE_WINDOWS_DIAGNOSTIC_NOT_CANONICAL",
+  "solver_runs": 0,
+  "spend_authorized": false,
+  "protected_material_access": false,
+  "candidate_views": [
+    {
+      "token": "backward-facing-step",
+      "field_count": 38,
+      "source_extract_count": 0,
+      "current_stage": "UNDETERMINED_WITHOUT_VERIFIED_EXIT_EVIDENCE",
+      "tested_challenge_claim": false,
+      "configured_artifacts": 4,
+      "read_artifacts": 4,
+      "verified_exits": 0,
+      "observed_artifact_stages": [
+        "S0_brief",
+        "S1_packet",
+        "S3_feasibility_value_panel",
+        "S4_question_law"
+      ]
+    },
+    {
+      "token": "metagrating-3d",
+      "field_count": 38,
+      "source_extract_count": 0,
+      "current_stage": "UNDETERMINED_WITHOUT_VERIFIED_EXIT_EVIDENCE",
+      "tested_challenge_claim": false,
+      "configured_artifacts": 4,
+      "read_artifacts": 4,
+      "verified_exits": 0,
+      "observed_artifact_stages": [
+        "S0_brief",
+        "S1_packet",
+        "S3_feasibility_value_panel",
+        "S4_question_law"
+      ]
+    }
+  ],
+  "inputs_and_tools": {
+    "Business/research/benchmark-challenge-briefs/briefs.json": "aca2ee483df3f5d16551dff6f12db59f2824d364a17b09763f66a059b43fb258",
+    "Business/research/benchmark-challenge-briefs/BACKWARD_FACING_STEP.md": "75603f040674ecc3cc978724f50864bc7e3c8a1b870b4db087eb02a945cd937d",
+    "Business/research/benchmark-challenge-briefs/METAGRATING_3D.md": "8cf1040dc96ac1af56d18d0f1c4c6f833886dbbc18320e660474c87588bcde19",
+    "Business/research/benchmark-challenge-briefs/SOURCES.md": "0d239eec53d5db578eb2e4e213d72dbf43897ddf857bd91e4afda7484670cbcd",
+    "Business/research/benchmark-contamination-policy/POLICY.md": "831e1a5882aa3e1453ef3b970fb2ba183a4970cc09dbccd30522c971a9f2720b",
+    "docs/development/challenge_pipeline/onboarding/stage_map.json": "c563d2a05548b52001d7a81c3a4bde9de93b16a1eafb16b09beb65e236956a12",
+    "carbon/challenge_pipeline/onboarding/packet.py": "3a62017c73d252f7eeca6e6bdc5025045142ae5ccaa69679b77450aa1b32c5bb",
+    "carbon/challenge_pipeline/onboarding/law.py": "0e1ae87da34551bd2ebae0161371ccc31035fa9a7c1d36900e013dee555e4ce6",
+    "carbon/challenge_pipeline/onboarding/panel.py": "94e10bb335a3d552f85059587dc34800730e41519ec588dd1df3450d0905aef8",
+    "carbon/challenge_pipeline/onboarding/status.py": "2d4feb4b26c9b818bfd4571683bd6b97787c7872c1d09fbb4bc5c673b47a0768",
+    "docs/development/challenge_pipeline/open-benchmark-onboarding/backward-facing-step-brief.json": "d2d500051917b54c718c6b2ac9acdf19abcd712f49a2a58375a6ceaaf859baa9",
+    "docs/development/challenge_pipeline/open-benchmark-onboarding/metagrating-3d-brief.json": "0c35b394563fd53141db0cd5a300e4512631970ba8dee4ae199ad601389c491d",
+    "docs/development/challenge_pipeline/open-benchmark-onboarding/artifacts.json": "76f72d78425cb4e4ed00d94ae5234f348ced72aa7e1351f6ac7edc5a55bb579d"
+  },
+  "outputs": {
+    "docs/development/challenge_pipeline/open-benchmark-onboarding/backward-facing-step-packet.md": "af1ac87b929764aa0783946e8e27e7a33fc7771c7ac3b6b3512752f32dffdd3d",
+    "docs/development/challenge_pipeline/open-benchmark-onboarding/backward-facing-step-law.json": "7153b87634a79861384b4d69e1e0cf0a717e22d1640c3edb0a510ef6b8fd0abf",
+    "docs/development/challenge_pipeline/open-benchmark-onboarding/backward-facing-step-panel.json": "76f7818f160f64667f071675834f32922763620c50429b3bd3f4b63f60f81b76",
+    "docs/development/challenge_pipeline/open-benchmark-onboarding/backward-facing-step-status.md": "a754fb046330adf6f8abaee5879ae7c1c2420cd533957b2809c6ad61c9a7bbe3",
+    "docs/development/challenge_pipeline/open-benchmark-onboarding/metagrating-3d-packet.md": "1087c1e6e082f63433f3f5fbc8b5656ccbfc6e7d0c385192b960a44547f5e37a",
+    "docs/development/challenge_pipeline/open-benchmark-onboarding/metagrating-3d-law.json": "637bee843f7e9438d63168dacb86a8f8556c5e7f3972a4e438bcc633c22aa9e9",
+    "docs/development/challenge_pipeline/open-benchmark-onboarding/metagrating-3d-panel.json": "115450a12bc5957c079aae33323af8768e2173fe318af43683d3a5b728eca5e6",
+    "docs/development/challenge_pipeline/open-benchmark-onboarding/metagrating-3d-status.md": "255b95674ab0c2caf794845549174b56fcbd6145b2784a79bba1480dc4250f85"
+  }
+}

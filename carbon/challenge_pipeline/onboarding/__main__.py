@@ -40,6 +40,9 @@ def main(argv=None):
         "--bindings", help="public artifact path bindings for additional challenges"
     )
     status_parser.add_argument("--format", choices=("text", "json"), default="text")
+    status_parser.add_argument(
+        "--main-ref", default="origin/main", help="locally available main ref; no fetch"
+    )
     args = parser.parse_args(argv)
     try:
         if args.command == "status":
@@ -49,6 +52,7 @@ def main(argv=None):
                 args.root,
                 args.challenge,
                 bindings_path=args.bindings or status.BINDINGS,
+                main_ref=args.main_ref,
             )
             if args.format == "text":
                 print(status.render(result))

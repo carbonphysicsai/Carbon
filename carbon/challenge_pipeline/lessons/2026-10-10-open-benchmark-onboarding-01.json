@@ -1,0 +1,32 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-open-benchmark-onboarding-01",
+  "recorded_at": "2026-10-10T22:49:31Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "OPEN-BENCHMARK-ONBOARDING-01",
+    "description": "Applied unchanged packet/law/panel/status tools to two public research briefs; tested complete stable output parity and fail-closed scope/accounting."
+  },
+  "expected": "Two source-linked buyer-job drafts with no inferred stage acceptance, no runtime/solver/grant activation and four reproducible offline views each.",
+  "observed": "Baseline 13 native data/panel tests passed. First suite invocation selected a nonexistent law test filename and collected nothing; corrected manifest found the question-law test. Full suite then reported 2 failures/49 passes from an extra expected terminal newline in packet render; corrected comparison to the existing renderer without weakening semantic assertions. Final 51 native tests passed; Black/Ruff passed. Both status views read 4 configured artifacts, verified 0 exits and claimed no TESTED Challenge. No solver/spend/hidden/AX42 execution. Native diagnostic results are not canonical acceptance.",
+  "keep": [
+    "Keep source extraction allow-list unchanged; Business research is explicit human drafting provenance, not automatically SOURCE_EXTRACT.",
+    "Keep complete buyer scopes, full 3D optics, strong baselines, accepted-band uncertainty and unresolved reference failures distinct from NONE_FEASIBLE.",
+    "Keep allocated-host planning cost separate from measured CPU, elapsed onboarding and authorization to spend."
+  ],
+  "change": [
+    "Discover exact test filenames before selecting a regression manifest.",
+    "Compare renderer bytes using its actual terminal-newline contract.",
+    "Record configured/read counts and zero accepted exits; file presence never marks a stage passed."
+  ],
+  "protocol_elements": [
+    "public source provenance",
+    "reference uncertainty",
+    "draft readiness",
+    "compute accounting"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
