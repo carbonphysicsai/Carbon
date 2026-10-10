@@ -27,7 +27,7 @@
     "kind": "generator",
     "what": "Generate the lane file from the lane registry (lane name to signer, Control Center, tunnels, key paths) instead of hand-writing it per wave."
    },
-   "rank": 5
+   "rank": 7
   },
   {
    "id": "B2",
@@ -47,7 +47,7 @@
     "kind": "template",
     "what": "The wave template names key slots (not paths) and the preflight reports the missing ones together as owner_needs."
    },
-   "rank": 7
+   "rank": 9
   },
   {
    "id": "B3",
@@ -67,7 +67,7 @@
     "kind": "generator",
     "what": "The wave template allocates one fresh root per planned concurrent run and prints the --root list for the preflight."
    },
-   "rank": 6
+   "rank": 8
   },
   {
    "id": "B4",
@@ -88,7 +88,7 @@
     "kind": "check",
     "what": "The wave template runs the probe before proposing a grant and states the observed offer against the proposed rate ceiling, so the proposal carries a ceiling that can launch. The proposal is the owner's to approve; nothing is authored as spend."
    },
-   "rank": 3
+   "rank": 5
   },
   {
    "id": "B5",
@@ -110,7 +110,7 @@
     "kind": "generator",
     "what": "The wave template computes the split from the model's full-window reservation and pods x rate ceiling, and the preflight refuses a grant whose split fails either."
    },
-   "rank": 2
+   "rank": 4
   },
   {
    "id": "B6",
@@ -150,7 +150,7 @@
     "kind": "template",
     "what": "The wave template lists the edit classes known to need approve-edits mode, so the owner is asked once, in the same batched question as the wave's other owner needs, before the session starts."
    },
-   "rank": 4
+   "rank": 6
   },
   {
    "id": "B8",
@@ -169,7 +169,45 @@
     "kind": "check",
     "what": "A collector that reads the shared heartbeat directory and raises one line to the coordinator when a run reads STALLED, so a stall is announced rather than found."
    },
-   "rank": 8
+   "rank": 10
+  },
+  {
+   "id": "B9",
+   "name": "Lane install lagging the grant code",
+   "stage": "S7_stage_a",
+   "cause": "The lane install code lagged behind the grant code, so a lane refused a current grant with grant_exact_fields_required.",
+   "cause_source": [
+    "Test Lead note to the Graphite Testing Manager, 2026-10-10 (stage A)"
+   ],
+   "occurrences": "1 live (stage A, 2026-10-10)",
+   "time_lost": "UNKNOWN",
+   "fix_status": "OWNER_ASSIGNED_CHECK_PROPOSED_NOT_BUILT",
+   "fix_ref": "Decided: Launchpad is the single owner of lane installs. Proposed, not built: a preflight check that the lane revision equals the grant's code revision. The existing preflight check compares the checkout HEAD with the profile's accepted_revision (carbon/agent_campaign/graphite/preflight.py), which is a different comparison.",
+   "register_row": "B9",
+   "automation": {
+    "kind": "check",
+    "what": "Preflight refuses a launch when the lane's installed revision differs from the revision the grant's code is at, and names the lane owner to reinstall."
+   },
+   "rank": 2
+  },
+  {
+   "id": "B10",
+   "name": "One shared checkout for every lane",
+   "stage": "S7_stage_a",
+   "cause": "carbon-fresh has one shared checkout, so two sessions updating it collided and every lane's profile went stale (carbon_updated_rerun_installer).",
+   "cause_source": [
+    "Test Lead note to the Graphite Testing Manager, 2026-10-10 (stage A)"
+   ],
+   "occurrences": "1 live (stage A, 2026-10-10)",
+   "time_lost": "UNKNOWN",
+   "fix_status": "OWNER_ASSIGNED_NOT_YET_EXERCISED_LIVE",
+   "fix_ref": "Decided: Launchpad is the single owner of lane installs, so only one session updates the shared checkout. No code enforces the single owner; the proposed revision-equality check (B9) would detect the stale profile.",
+   "register_row": "B10",
+   "automation": {
+    "kind": "template",
+    "what": "The wave template names the one lane-install owner and the lane-up command (B6) runs the installer, so no other session updates the shared checkout."
+   },
+   "rank": 3
   }
  ],
  "ask_owning_sessions": {
