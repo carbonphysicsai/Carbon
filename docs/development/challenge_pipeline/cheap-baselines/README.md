@@ -151,6 +151,12 @@ The later owner-authorized implementation is documented in
 f02, f08 and the scoped f13 control, using public solved panels and pinned
 companion materials. It does not adopt the proposed methods or earn V4.
 
+The additive [reduced-operator return](reduced-operator-return.md) specifies
+the stronger f08 cross-geometry common-basis ROM and f13 multimode Helmholtz
+arms. The scoped #994 caches/plane-wave method remain controls; real aligned
+operators, independent witnesses and strongest-baseline acceptance are still
+required. Toy algebra does not settle V4 or physical adequacy.
+
 [Data Collection return checklist](data-collection-return.md) is the next
 measurement specification. Inventory/reuse existing public outputs first;
 any fitting, timing, new reference, buyer-tool or paid work requires the
