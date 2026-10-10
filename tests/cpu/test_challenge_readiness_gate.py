@@ -814,6 +814,25 @@ def test_r1_passes_the_analysis_image_manifest_to_prelive(monkeypatch, tmp_path)
     assert command[flag + 1] == str(tmp_path / "analysis-image.json")
 
 
+def test_r1_verdict_survives_a_scratch_the_host_user_cannot_remove(
+    monkeypatch, tmp_path
+):
+    """The containment cell writes its scratch as the container's uid; a cleanup
+    refusal must not replace the prelive verdict with a PermissionError."""
+    calls = _r1_runner(monkeypatch, tmp_path)
+    seen = []
+
+    def refuse(path, ignore_errors=False, **kwargs):
+        seen.append(ignore_errors)
+        if not ignore_errors:
+            raise PermissionError(1, "Operation not permitted", str(path))
+
+    monkeypatch.setattr(checks.shutil, "rmtree", refuse)
+    result = checks.prelive({}, _own_grant_context())
+    assert calls and result.status == model.PASS
+    assert seen == [True], "scratch removal must be best effort"
+
+
 def test_r1_fails_closed_when_the_manifest_is_unset(monkeypatch, tmp_path):
     calls = _r1_runner(monkeypatch, tmp_path)
     monkeypatch.delenv(checks.ANALYSIS_IMAGE_ENV)
