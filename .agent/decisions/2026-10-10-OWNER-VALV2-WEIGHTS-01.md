@@ -40,15 +40,23 @@ from hidden-batch outcomes). Testnet 567 only; DEVELOPMENT.
    winner gets 1/3; the other two Challenges' shares burn until they have a
    serving validator.
 
+### Runtime and window (the owner's answers, same session)
+
+Asked whether to adopt testnet runtime spec 477 (the read-only runtime probe
+reports `COMPATIBLE_USED_SURFACE` at 477, surface digest
+`sha256:d591966daa62570c986d06f7c1e95cb4400c02ad2bba55af27a20df3034cf167`;
+it establishes names and types, not behaviour), the owner chose
+**"Adopt 477"**, whose description read:
+
+> Write expected_runtime_spec 477 in valV2's standing file and operator
+> config. The probe must still pass on the AX42 before the first run; any
+> later runtime upgrade fails closed again until rechecked.
+
+Asked how long valV2's standing authorization stays valid, the owner chose
+**"14 days"**: 100,800 blocks from the first run, then renewed.
+
 ### Not decided here
 
-- Adopting testnet runtime spec 477 as the standing authorization's
-  `expected_runtime_spec`. The read-only runtime probe reports
-  `COMPATIBLE_USED_SURFACE` at 477 (surface digest
-  `sha256:d591966daa62570c986d06f7c1e95cb4400c02ad2bba55af27a20df3034cf167`);
-  the probe establishes names and types, not behaviour, and adoption is the
-  owner's.
-- The standing authorization's block window.
 - Security qualification: the publisher is security-sensitive (AGENTS.md
   §13) and not SECURITY_QUALIFIED.
 - Any mainnet value, settlement amount or transfer.
