@@ -154,8 +154,10 @@
  },
  "outputs": {
   "decision_quality_vs_cheap_baseline": {
+   "flag": "required for TESTED",
    "owner": "Data Collection",
    "question": "The cheap-baseline note states performance NOT_MEASURED; who measures V4 and when?",
+   "required_for_tested": true,
    "source": "docs/development/challenge_pipeline/cheap-baselines/battery.md",
    "value": "UNMEASURED"
   },
@@ -170,7 +172,7 @@
     "kendall_tau_b": -0.47280542884465016,
     "level": 0,
     "members": 8,
-    "note": "one seed per recipe; a measurement, not a threshold",
+    "note": "one seed per recipe; a measurement only",
     "reference_provenance": "EV4_REFERENCE",
     "spearman_rho": -0.5389318178609666
    }

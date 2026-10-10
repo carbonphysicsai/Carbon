@@ -25,6 +25,7 @@ ONBOARDING = "docs/development/challenge_pipeline/onboarding"
 REGISTRY = f"{ONBOARDING}/ledger_sources.json"
 SCHEMA = "carbon.challenge-pipeline.brief-product-ledger.v1"
 UNMEASURED = "UNMEASURED"
+REQUIRED_FOR_TESTED = "required for TESTED"
 
 # The six inputs a customer brief must resolve, mapped to the sections of
 # COMMON_DESIGN_PACKET_V1 that hold them. The mapping is a template constant.
@@ -232,10 +233,17 @@ def build_outputs(entry):
             "owner": "Data Collection",
             "question": "The cheap-baseline note states performance NOT_MEASURED; who measures V4 and when?",
             "source": baseline,
+            "required_for_tested": True,
+            "flag": REQUIRED_FOR_TESTED,
         }
     else:
-        outputs["decision_quality_vs_cheap_baseline"] = unmeasured(
-            "Data Collection", "No cheap-baseline note records a measurement for V4."
+        outputs["decision_quality_vs_cheap_baseline"] = dict(
+            unmeasured(
+                "Data Collection",
+                "No cheap-baseline note records a measurement for V4.",
+            ),
+            required_for_tested=True,
+            flag=REQUIRED_FOR_TESTED,
         )
     q1 = entry.get("q1_report")
     if _exists(q1):
@@ -248,7 +256,7 @@ def build_outputs(entry):
                 "members": len(report["members"]),
                 "level": report["level"],
                 "reference_provenance": report["reference"]["provenance"],
-                "note": "one seed per recipe; a measurement, not a threshold",
+                "note": "one seed per recipe; a measurement only",
             },
             q1,
         )

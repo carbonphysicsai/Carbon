@@ -60,7 +60,8 @@ def test_the_stage_map_covers_the_owner_stages_in_order():
 def test_tested_is_never_defined_as_qualification():
     tested = _load("stage_map.json")["stages"][-1]
     assert tested["id"] == "S10_tested"
-    assert len(re.findall(r"\(\d\)", tested["exit"])) == 7
+    assert len(re.findall(r"\(\d\)", tested["exit"])) == 8
+    assert "cheap-baseline comparison (V4)" in tested["exit"]
     for claim in ("scientific qualification", "LIVE", "launch claim"):
         assert claim in tested["note"]
     assert "not" in tested["note"].lower()

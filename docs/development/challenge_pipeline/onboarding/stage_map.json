@@ -156,9 +156,9 @@
    "order": 10,
    "name": "Tested Challenge",
    "entry": "Graphite stages A to C closed for every enabled level, with their reports.",
-   "exit": "TESTED when ALL hold: (1) the readiness gate is launch_ready at every enabled level (no FAIL; waivers expired or closed); (2) a sealed hidden bank exists, with exposure accounting; (3) Graphite stages are complete at every enabled level, with real Launchpad confirmations scored by a validator, and every Attacker finding dispositioned (fixed, or accepted with a reason); (4) score-value alignment is measured on confirmed recipes (a Q1 report exists), and a negative result is allowed but must trigger a scoring iteration; (5) control detection (T3) meets its target at the chosen k and E; (6) the incentive canary shows the best model weighted (INCENTIVE-CANARY-01); (7) the stage-end report is filed.",
+   "exit": "TESTED when ALL hold: (1) the readiness gate is launch_ready at every enabled level (no FAIL; waivers expired or closed); (2) a sealed hidden bank exists, with exposure accounting; (3) Graphite stages are complete at every enabled level, with real Launchpad confirmations scored by a validator, and every Attacker finding dispositioned (fixed, or accepted with a reason); (4) score-value alignment is measured on confirmed recipes (a Q1 report exists), and a negative result is allowed but must trigger a scoring iteration; (5) control detection (T3) meets its target at the chosen k and E; (6) the incentive canary shows the best model weighted (INCENTIVE-CANARY-01); (7) the stage-end report is filed; (8) the cheap-baseline comparison (V4) is done: the models' decisions are compared, at matched admissibility, with the strongest cheap method a buyer would otherwise use.",
    "owner_session": "Test Lead",
-   "owner_basis": "Test Lead working definition, development, 2026-10-10 (relayed to the Graphite Testing Manager); LESSONS_REGISTER.md rules and section 8",
+   "owner_basis": "Test Lead working definition, development, 2026-10-10 (relayed to the Graphite Testing Manager); LESSONS_REGISTER.md rules and section 8; condition 8 added by OWNER-LAUNCH-STRATEGY-01 (PR 978, .agent/decisions/2026-10-10-OWNER-LAUNCH-STRATEGY-01.md once merged)",
    "evidence": [
     "docs/development/graphite/LESSONS_REGISTER.md",
     "docs/development/graphite/WAVE_RETROSPECTIVE_TEMPLATE.md"

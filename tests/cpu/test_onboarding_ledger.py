@@ -127,3 +127,22 @@ def test_the_committed_ledger_matches_the_generators_shape():
     assert set(committed["inputs"]) == set(generated["inputs"])
     assert set(committed["outputs"]) == set(generated["outputs"])
     assert set(committed["network"]) == set(generated["network"])
+
+
+@pytest.mark.parametrize("which", ["generated", "committed"])
+def test_v4_is_required_for_tested_and_flagged_when_unmeasured(which):
+    ledger = (
+        _generator().build(BATTERY)
+        if which == "generated"
+        else json.loads(COMMITTED.read_text(encoding="utf-8"))
+    )
+    field = ledger["outputs"]["decision_quality_vs_cheap_baseline"]
+    assert field["required_for_tested"] is True
+    if field["value"] == "UNMEASURED":
+        assert field["flag"] == "required for TESTED"
+
+
+def test_the_ledger_sets_no_speed_target():
+    text = json.dumps(_generator().build(BATTERY)).lower()
+    for word in ("target", "threshold", "must be faster", "at least"):
+        assert word not in text, word

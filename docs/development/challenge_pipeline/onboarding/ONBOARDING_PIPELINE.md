@@ -48,7 +48,10 @@ A Challenge is TESTED when **all** hold:
    result is allowed but must trigger a scoring iteration;
 5. control detection (T3) meets its target at the chosen k and E;
 6. the incentive canary shows the best model weighted (INCENTIVE-CANARY-01);
-7. the stage-end report is filed.
+7. the stage-end report is filed;
+8. the cheap-baseline comparison (V4) is done: the models' decisions are compared, at
+   matched admissibility, with the strongest cheap method a buyer would otherwise use
+   (added by OWNER-LAUNCH-STRATEGY-01, PR 978).
 
 TESTED is **not** scientific qualification, security acceptance, LIVE or a launch claim.
 LIVE or qualification is a separate owner step.
@@ -176,6 +179,13 @@ The only per-Challenge input is one entry in `ledger_sources.json` (artefact poi
 values). The output is deterministic, and `tests/cpu/test_onboarding_ledger.py` checks that
 and that every non-`UNMEASURED` field cites an existing artefact. The committed battery
 ledger is a snapshot; regenerate it at each milestone (the readiness history it reads grows).
+
+**Required for TESTED.** The V4 field (`decision_quality_vs_cheap_baseline`) carries
+`required_for_tested: true`. When no measurement is recorded it reads `UNMEASURED` and is
+flagged "required for TESTED".
+
+**Speed has no fixed targets** (OWNER-LAUNCH-STRATEGY-01). Each onboarding is executed as
+efficiently as possible, and only time and cost per stage are recorded.
 
 **Battery today:** score-value alignment is measured (Level 0, eight members, one seed per
 recipe: a measurement, not a threshold). Everything else on the OUTPUTS and NETWORK records,
