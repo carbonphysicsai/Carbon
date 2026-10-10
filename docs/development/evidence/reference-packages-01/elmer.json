@@ -144,5 +144,13 @@
   }
  ],
  "smoke_source": "upstream fem/tests from the verified archive, run by scripts/dev/reference_packages/elmer/smoke.sh; pass = ElmerSolver's own CompareToReferenceSolution",
- "licence": "Elmer GPL-2.0-or-later (ElmerSolver library LGPL-2.1); OpenBLAS BSD-3-Clause"
+ "licence": "Elmer GPL-2.0-or-later (ElmerSolver library LGPL-2.1); OpenBLAS BSD-3-Clause",
+ "repin_2026_10_10": {
+  "reason": "the pinned image sha256:8bcd864d... was removed from the operator Docker store (not by this session); rebuilt from the same sources.lock.json (source sha256 729809851d07... verified, same Dockerfile, Debian snapshot 20261001, base debian@sha256:a29215f6...)",
+  "image_id": "sha256:6fab746f31257236da9e91b5be681bfbd2d25bd69f5dcd9a2e350394e8bcb675",
+  "image_tag": "carbon-ref-elmer:26.2.1",
+  "smoke": "scripts/dev/reference_packages/elmer/smoke.sh: exit 0 (upstream CompareToReferenceSolution)",
+  "code_verification": "elmer-mms-heat.json (MMS, transient heat, hex808 BDF2)",
+  "note": "Docker builds are not byte-reproducible, so the id differs; every run after 2026-10-10 binds the new id; earlier evidence keeps the old id"
+ }
 }

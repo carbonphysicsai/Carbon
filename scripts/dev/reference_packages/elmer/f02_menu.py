@@ -278,7 +278,7 @@ def main(argv=None):
     parser.add_argument("--parallel", type=int, default=2)
     parser.add_argument(
         "--image",
-        default="sha256:8bcd864dd60be0a80be9769c1a95c67db76eca9e718212f63dd0460cf3a08fc6",
+        default="sha256:6fab746f31257236da9e91b5be681bfbd2d25bd69f5dcd9a2e350394e8bcb675",
     )
     parser.add_argument("--host-profile")
     args = parser.parse_args(argv)
