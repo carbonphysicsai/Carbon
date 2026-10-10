@@ -1,0 +1,286 @@
+{
+  "status": "RESEARCH_RECOMMENDATION",
+  "framework_revision": "b0244360dbe49d534b0346779e1cebe5b21de085",
+  "baseline": "915225242146be67e6de098d4a08324cc63dc684",
+  "number_policy": "points equal triplets; published range base HUMAN_INPUT; assumption scenarios not confidence intervals",
+  "sources": [
+    {
+      "id": "P1",
+      "url": "https://www.applytosupply.digitalmarketplace.service.gov.uk/g-cloud/services/403132573695999",
+      "locator": "published V&V unit/day endpoints; total engagement and unit definition unavailable",
+      "reviewed": "2026-10-10"
+    },
+    {
+      "id": "P2",
+      "url": "https://josephwebb.net/pricing.html",
+      "locator": "hourly categories and project scopes",
+      "reviewed": "2026-10-10"
+    },
+    {
+      "id": "P3",
+      "url": "https://coolsimsoftware.com/pricing/",
+      "locator": "edition 2026-B project/annual/team and optional modeling prices before tax",
+      "reviewed": "2026-10-10"
+    },
+    {
+      "id": "P4",
+      "url": "https://dicehub.com/pricing",
+      "locator": "net supplier-estimated example simulation costs",
+      "reviewed": "2026-10-10"
+    },
+    {
+      "id": "P5",
+      "url": "https://www.applytosupply.digitalmarketplace.service.gov.uk/g-cloud/services/156997445796315",
+      "locator": "audit service scope; usable numeric pricing unavailable",
+      "reviewed": "2026-10-10"
+    },
+    {
+      "id": "P6",
+      "url": "https://ansys.synopsys.com/products/ai/simai",
+      "locator": "licensing FAQ sends pricing inquiries to sales",
+      "reviewed": "2026-10-10"
+    },
+    {
+      "id": "P7",
+      "url": "https://www.physicsx.ai/platform",
+      "locator": "product/delivery scope; no usable list price identified",
+      "reviewed": "2026-10-10"
+    },
+    {
+      "id": "P8",
+      "url": "https://www.physicsx.ai/contact",
+      "locator": "public sales route; no quote requested",
+      "reviewed": "2026-10-10"
+    }
+  ],
+  "published_points": [
+    {
+      "source": "P2",
+      "label": "basic USD/hour",
+      "basis": "SOURCED",
+      "low": 75,
+      "base": 75,
+      "high": 75,
+      "interpretation": "published point or starting price; not a paid invoice, distribution or upper bound"
+    },
+    {
+      "source": "P2",
+      "label": "standard USD/hour",
+      "basis": "SOURCED",
+      "low": 125,
+      "base": 125,
+      "high": 125,
+      "interpretation": "published point or starting price; not a paid invoice, distribution or upper bound"
+    },
+    {
+      "source": "P2",
+      "label": "advanced USD/hour",
+      "basis": "SOURCED",
+      "low": 165,
+      "base": 165,
+      "high": 165,
+      "interpretation": "published point or starting price; not a paid invoice, distribution or upper bound"
+    },
+    {
+      "source": "P2",
+      "label": "complex project starting USD",
+      "basis": "SOURCED",
+      "low": 6500,
+      "base": 6500,
+      "high": 6500,
+      "interpretation": "published point or starting price; not a paid invoice, distribution or upper bound"
+    },
+    {
+      "source": "P3",
+      "label": "project pass USD",
+      "basis": "SOURCED",
+      "low": 4500,
+      "base": 4500,
+      "high": 4500,
+      "interpretation": "published point or starting price; not a paid invoice, distribution or upper bound"
+    },
+    {
+      "source": "P3",
+      "label": "project duration maximum months",
+      "basis": "SOURCED",
+      "low": 3,
+      "base": 3,
+      "high": 3,
+      "interpretation": "published point or starting price; not a paid invoice, distribution or upper bound"
+    },
+    {
+      "source": "P3",
+      "label": "annual USD/year",
+      "basis": "SOURCED",
+      "low": 9500,
+      "base": 9500,
+      "high": 9500,
+      "interpretation": "published point or starting price; not a paid invoice, distribution or upper bound"
+    },
+    {
+      "source": "P3",
+      "label": "team USD/year",
+      "basis": "SOURCED",
+      "low": 15000,
+      "base": 15000,
+      "high": 15000,
+      "interpretation": "published point or starting price; not a paid invoice, distribution or upper bound"
+    },
+    {
+      "source": "P3",
+      "label": "modeling starting USD/project",
+      "basis": "SOURCED",
+      "low": 5000,
+      "base": 5000,
+      "high": 5000,
+      "interpretation": "published point or starting price; not a paid invoice, distribution or upper bound"
+    },
+    {
+      "source": "P3",
+      "label": "first-model help USD",
+      "basis": "SOURCED",
+      "low": 2000,
+      "base": 2000,
+      "high": 2000,
+      "interpretation": "published point or starting price; not a paid invoice, distribution or upper bound"
+    },
+    {
+      "source": "P4",
+      "label": "drone example EUR",
+      "basis": "SOURCED",
+      "low": 16.98,
+      "base": 16.98,
+      "high": 16.98,
+      "interpretation": "published point or starting price; not a paid invoice, distribution or upper bound"
+    },
+    {
+      "source": "P4",
+      "label": "automotive example EUR",
+      "basis": "SOURCED",
+      "low": 54.24,
+      "base": 54.24,
+      "high": 54.24,
+      "interpretation": "published point or starting price; not a paid invoice, distribution or upper bound"
+    },
+    {
+      "source": "P4",
+      "label": "wind example EUR",
+      "basis": "SOURCED",
+      "low": 237.12,
+      "base": 237.12,
+      "high": 237.12,
+      "interpretation": "published point or starting price; not a paid invoice, distribution or upper bound"
+    }
+  ],
+  "published_ranges": [
+    {
+      "source": "P1",
+      "label": "GBP/unit/day",
+      "low": 546.36,
+      "base": "HUMAN_INPUT",
+      "high": 1326.57
+    },
+    {
+      "source": "P2",
+      "label": "quick assessment USD",
+      "low": 1200,
+      "base": "HUMAN_INPUT",
+      "high": 2000
+    },
+    {
+      "source": "P2",
+      "label": "standard project USD",
+      "low": 2800,
+      "base": "HUMAN_INPUT",
+      "high": 5500
+    },
+    {
+      "source": "P2",
+      "label": "standard project hours",
+      "low": 20,
+      "base": "HUMAN_INPUT",
+      "high": 40
+    }
+  ],
+  "tier_planning": [
+    {
+      "tier": "EVIDENCE_AUDIT",
+      "basis": "ASSUMPTION",
+      "effort_days": {
+        "low": 5,
+        "base": 15,
+        "high": 30
+      },
+      "rate_gbp_per_assumed_person_day": {
+        "low": 546.36,
+        "base": 1000,
+        "high": 1326.57,
+        "low_high_source": "P1",
+        "base_basis": "ASSUMPTION",
+        "unit_conversion": "ASSUMPTION"
+      },
+      "equivalent_labor_budget_gbp": {
+        "low": 2731.8,
+        "base": 15000,
+        "high": 39797.1
+      },
+      "carbon_quote": "HUMAN_INPUT",
+      "customer_willingness_to_pay": "HUMAN_INPUT"
+    },
+    {
+      "tier": "DECISION_TOOL_DOSSIER",
+      "basis": "ASSUMPTION",
+      "effort_days": {
+        "low": 30,
+        "base": 90,
+        "high": 180
+      },
+      "rate_gbp_per_assumed_person_day": {
+        "low": 546.36,
+        "base": 1000,
+        "high": 1326.57,
+        "low_high_source": "P1",
+        "base_basis": "ASSUMPTION",
+        "unit_conversion": "ASSUMPTION"
+      },
+      "equivalent_labor_budget_gbp": {
+        "low": 16390.8,
+        "base": 90000,
+        "high": 238782.6
+      },
+      "carbon_quote": "HUMAN_INPUT",
+      "customer_willingness_to_pay": "HUMAN_INPUT"
+    },
+    {
+      "tier": "LIFECYCLE_REEVIDENCE_EVENT",
+      "basis": "ASSUMPTION",
+      "effort_days": {
+        "low": 5,
+        "base": 20,
+        "high": 60
+      },
+      "rate_gbp_per_assumed_person_day": {
+        "low": 546.36,
+        "base": 1000,
+        "high": 1326.57,
+        "low_high_source": "P1",
+        "base_basis": "ASSUMPTION",
+        "unit_conversion": "ASSUMPTION"
+      },
+      "equivalent_labor_budget_gbp": {
+        "low": 2731.8,
+        "base": 20000,
+        "high": 79594.2
+      },
+      "carbon_quote": "HUMAN_INPUT",
+      "customer_willingness_to_pay": "HUMAN_INPUT"
+    }
+  ],
+  "unavailable_prices": [
+    "Goaco numeric audit rate",
+    "Ansys SimAI",
+    "PhysicsX",
+    "Carbon eligible tier quotes"
+  ],
+  "paid_invoices_reviewed": false
+}

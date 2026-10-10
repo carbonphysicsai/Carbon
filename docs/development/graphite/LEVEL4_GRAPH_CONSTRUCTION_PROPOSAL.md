@@ -520,6 +520,62 @@ Level 5, only where Phase 3 shows a valuable method blocked.
 10. **Rollout:** Graphite only → one Challenge with small rewards and a bug
     bounty → wider.
 
+### 12.1 The Level 5 internal lane (future phase, gated on stage C results)
+
+**Status.** This is the owner's approved strategy
+(OWNER-LEVEL5-INTERNAL-LANE-01, 2026-10-09). It is a future phase, gated on
+Level 4's stage C results, and nothing in it is built, specified or
+accepted yet. It does not open the miner-code route above. Any future
+miner-code path still needs every requirement in §12.
+
+**What it is.** Level 5 is Carbon's **internal** research lane, and miners
+never run code in it:
+- Graphite's Constructor explores honest gains there.
+- Graphite's Attacker tries to break each one.
+- Attack findings never ship.
+
+**How a gain is classified.**
+
+| The gain is | It becomes |
+|---|---|
+| Plain math | An allowed op, or a library block in the allowlist. |
+| A solver need | The solver op (§9). |
+| A speed kernel | A Carbon-owned, audited kernel, registered by name. |
+| A library | Wrapped, if it is pure. Otherwise it stays internal. |
+
+**How a gain ships.**
+1. Carbon implements it.
+2. Carbon checks its determinism and its compute counting.
+3. Carbon runs the Level 4 attack suite against it.
+4. It ships in a **versioned** image and allowlist, tied to a new Challenge
+   version.
+
+Nothing changes mid-competition, and old results stay bound to the toolkit
+they ran under.
+
+**Four conditions.**
+1. **True cost.** Every op is counted at its true cost in the compute
+   budget. Solver-calling ops get a hard rule, for example training only and
+   never at inference, so that no op defeats the fast-model purpose.
+2. **Specs, never code.** Miner proposals arrive as written specs, never
+   code. A proposer gets credit and a bounty, with **no exclusive access**.
+   The bounty terms are `HUMAN_INPUT`, for the owner to set.
+3. **Batched releases.** One toolkit version per competition period.
+4. **Parity.** Every new kernel passes the existing backend-parity and GPU
+   device-class acceptance.
+
+**Open owner items** (all `HUMAN_INPUT`):
+- which findings stay Workbench-internal rather than shipping in the base
+  image;
+- GPL and licensing, op by op;
+- per-run grants for internal Level 5 work;
+- the security sign-off for running Attacker code on disposable hosts.
+
+**Starting now: the refused-capability log.**
+`docs/development/graphite/level4/REFUSED_CAPABILITY_LOG.md` records every
+capability Graphite asks for and Level 4 refuses during stages A to C. It is
+the evidence for which Level 5 ops to build first.
+
 ---
 
 ## 13. Non-claims

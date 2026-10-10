@@ -176,6 +176,9 @@ class Phase4Grant:
     challenge: str
     grant_id: str
     grant_file: str
+    #: The construction levels an Attacker run under this grant may attack;
+    #: None: any (every grant before stage B).
+    levels: tuple | None = None
 
 
 #: The owner-approved grant each Challenge's Attacker runs under, keyed by
@@ -215,6 +218,12 @@ PHASE4_STAGE_GRANTS = types.MappingProxyType(
                 challenge=BATTERY_CHALLENGE,
                 grant_id="GRAPHITE-GRANT-STAGE-A-ATTACKER",
                 grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-STAGE-A-ATTACKER.json",
+            ),
+            Phase4Grant(
+                challenge=BATTERY_CHALLENGE,
+                grant_id="GRAPHITE-GRANT-STAGE-B-ATTACKER",
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-STAGE-B-ATTACKER.json",
+                levels=(2, 3),
             ),
         )
     }
@@ -1789,7 +1798,7 @@ def bind_grant_to_challenge(document, entry):
     raise RunnerRefused("grant_is_not_the_phase4_grant")
 
 
-def check_committed_grant(path, repository=REPOSITORY, *, challenge):
+def check_committed_grant(path, repository=REPOSITORY, *, challenge, level=None):
     """A live run's grant must be the committed phase-4 grant registered for
     `challenge` (`phase4_grant`), field for field, as HEAD holds it: never the
     working tree, which an operator could edit together with the copy passed
@@ -1820,6 +1829,13 @@ def check_committed_grant(path, repository=REPOSITORY, *, challenge):
         # A stage grant (`PHASE4_STAGE_GRANTS`) binds only its own Challenge.
         if staged.challenge != challenge:
             raise RunnerRefused("grant_is_for_another_challenge")
+        if (
+            staged.levels is not None
+            and level is not None
+            and level not in staged.levels
+        ):
+            # A stage grant bound to levels (stage B) attacks only those.
+            raise RunnerRefused(grant_binding.LEVEL_RANGE_REFUSED)
         entry = staged
     bind_grant_to_challenge(given, entry)
     return grant_binding.check_committed_blob(
@@ -1891,7 +1907,11 @@ def command_run(args):
     if missing:
         raise RunnerRefused("required: " + ", ".join(missing))
     root = _root(args.root)
-    grant, head = live_checks(args.grant, challenge=challenge)
+    grant, head = live_checks(
+        args.grant,
+        challenge=challenge,
+        level=CONSTRUCTION_LEVEL if level is None else level,
+    )
     engy = owner_only_file(args.credential_file)
     store = _store(root, False)
     from . import miner_path
@@ -1967,7 +1987,7 @@ def write_reports(store, entry, coverage):
 
 
 # -- the live run's parts, shared with the pre-live gate (`phase4_prelive`) -------------------
-def live_checks(grant_path, repository=REPOSITORY, *, challenge):
+def live_checks(grant_path, repository=REPOSITORY, *, challenge, level=None):
     """What a live run checks before anything opens: the grant file is a
     valid Graphite grant, it is the phase-4 grant registered for `challenge`
     and equals that grant's committed blob on main at a pushed HEAD with the
@@ -1977,7 +1997,7 @@ def live_checks(grant_path, repository=REPOSITORY, *, challenge):
     grant = load_grant(grant_path)
     if grant.provider != "graphite":
         raise RunnerRefused("grant_provider_must_be_graphite")
-    check_committed_grant(grant_path, repository, challenge=challenge)
+    check_committed_grant(grant_path, repository, challenge=challenge, level=level)
     head = _head(repository)
     check_code_ref(head, repository)
     return grant, head

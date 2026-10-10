@@ -273,6 +273,33 @@ labels it "untested". That covers:
   starts from is "untested" for every option. That is truthful for today's
   main, and passes flip options to tested one cell at a time.
 
+### 3.8 Construction levels (LAUNCHPAD-LEVELS-01)
+
+No level counts as passed until it passes real runs through the Launchpad
+(OWNER-LADDER-THROUGH-LAUNCHPAD-01): freeze, commit, submit and verdict on
+the testnet development-ladder deployment (`battery-dev-ladder`,
+VALIDATOR-25), from `carbon-rehearsal-minerC` only, never minerA or minerB.
+Each cell runs on both doors (browser and MCP) with the same closed codes.
+Every cell is BLOCKED until VALIDATOR-25 slice 2 publishes `served_contracts`
+and the ladder deployment runs on valV2.
+
+| Cell | Level | Exact real test | Pass means | Evidence | Cost | Acts |
+|---|---|---|---|---|---|---|
+| L1 | 1 (and arm `signed` on the attack panel only) | `carbon_launch` `agent: none`, `construction_level: 1`; practise a recipe with `loss_expressions`; freeze; commit; submit to the ladder intake | The manifest and the frozen record name `battery-l1-loss-expressions-v1` and its digest; the commitment reads back as `{challenge, variant digest, strategy hash}`; the ladder admits and returns a DEVELOPMENT verdict; the same candidate sent to the main intake is refused `level_not_served_by_target` before signing | Variant digest, commitment digest and block, submission id, verdict's public fields, the refusal cell | testnet fee | owner TTY; agent |
+| L2 | 2 | As L1 with `construction_level: 2` and `muon_spectral` or `pool_selection` | As L1 for `battery-l2-v2`; an out-of-bounds widened value refused `level_strategy_refused` at practice | As L1 | testnet fee | owner TTY; agent |
+| L3 | 3 | As L1 with `construction_level: 3` and a `numerics` menu choice | As L1 for `battery-l3-numerics-v1` | As L1 | testnet fee | owner TTY; agent |
+| L4 | 4 (graph only) | Lower a recipe with `python -m carbon.level4.tooling lower`, set `composition_graphs` to its digest, practise, freeze with `level4_directory` | Freeze verifies the submission (allowlist, Challenge, interface, batch, the variant's size bound) and keeps its envelope byte for byte; commit binds the L4 variant digest; submit is refused `level4_envelope_transport_unavailable` (and the ladder answers `ladder_level_4_not_open`) until the validator's upload slot and Level 4 Phase 3 open it | Submission digest, envelope digest, the refusal cells | none until opened | agent; owner TTY |
+
+- **Refusal cells, each level:** `level_not_registered` (an unregistered
+  arm), `level_not_served_by_target` (the main intake, which lists level 0
+  only), and the ladder's own admission codes (`ladder_hotkey_not_listed`,
+  `ladder_variant_not_accepted`, `ladder_level_not_accepted`), each with its
+  `next_step`.
+- **Practice is the Level 0 base.** A level campaign's practice trains the
+  recipe less its widened fields and says so
+  (`construction_level.widened_trained: false`); only the ladder's rebuild
+  runs the level. A cell never reads a practice score as the level's.
+
 ---
 
 ## 4. The fresh-machine install run (C-MLP-04's acceptance)
