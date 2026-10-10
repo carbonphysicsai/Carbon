@@ -1,0 +1,20 @@
+{
+ "schema": "carbon.challenge-pipeline.ledger-sources.v1",
+ "rule": "The only per-Challenge input to the ledger generator: pointers to artefacts, never values. Adding a Challenge is one entry here; the generator reads everything else from the artefacts.",
+ "challenges": {
+  "battery-fastcharge-ageing-development-v1": {
+   "packet": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+   "cheap_baseline": "docs/development/challenge_pipeline/cheap-baselines/battery.md",
+   "q1_report": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/q1_report.json",
+   "lesson_challenges": [
+    "battery",
+    "battery-fast-charge",
+    "battery-fastcharge-ageing-development-v1",
+    "battery-v3"
+   ],
+   "grant_globs": [
+    "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-A-*.json"
+   ]
+  }
+ }
+}

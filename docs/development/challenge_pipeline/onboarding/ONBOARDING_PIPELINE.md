@@ -48,7 +48,10 @@ A Challenge is TESTED when **all** hold:
    result is allowed but must trigger a scoring iteration;
 5. control detection (T3) meets its target at the chosen k and E;
 6. the incentive canary shows the best model weighted (INCENTIVE-CANARY-01);
-7. the stage-end report is filed.
+7. the stage-end report is filed;
+8. the cheap-baseline comparison (V4) is done: the models' decisions are compared, at
+   matched admissibility, with the strongest cheap method a buyer would otherwise use
+   (added by OWNER-LAUNCH-STRATEGY-01, PR 978).
 
 TESTED is **not** scientific qualification, security acceptance, LIVE or a launch claim.
 LIVE or qualification is a separate owner step.
@@ -147,3 +150,43 @@ design written before them would encode guesses.
 - It does not define scientific qualification or approve any spend; stage B spend stays
   gated on the owner's approval and the bound grant.
 - It claims no time saved. Every duration is `UNKNOWN` until a record states it.
+
+## 8. Brief-to-product ledger
+
+Owner direction (relayed by the Test Lead, 2026-10-10): the launch Challenges rehearse
+Carbon's commercial brief-to-product pipeline. After eight, we should know what a customer
+must supply and what results we deliver at what price and speed.
+
+One ledger per Challenge, **produced from repository artefacts**, with four record types:
+
+| Record | Holds | Read from |
+|---|---|---|
+| INPUTS | Decision definition, requirements, design space, material data, solver, acceptance criteria: the packet sections that hold each and how many `OPEN` markers remain | the Challenge's design packet |
+| PROCESS | Dated stage records, blockers, readiness first run and latest per level, lessons entries, grant caps | `cycle_metrics.jsonl`, `blocker_taxonomy.json`, readiness history, lessons, stage grants |
+| OUTPUTS | Score-value alignment; decision quality against the cheapest baseline (V4); model accuracy; speed-up against the reference | the Q1 report, the cheap-baseline note |
+| NETWORK | Leaderboard over time; Graphite agents against real miners; incentive-canary payout correctness | none yet |
+
+A field is `{value, source}` or `{value: UNMEASURED, owner, question}`. Nothing is
+estimated. Whether a customer would supply an input, and how long it took to obtain, are
+`UNMEASURED` for every input: no artefact holds either, and each carries the question for its
+owner. Caps and rates only; no balance, account, spend ledger or hidden-pool material.
+
+```
+python scripts/dev/onboarding/build_ledger.py --challenge <id> --out onboarding/ledger/<id>.json
+```
+
+The only per-Challenge input is one entry in `ledger_sources.json` (artefact pointers, no
+values). The output is deterministic, and `tests/cpu/test_onboarding_ledger.py` checks that
+and that every non-`UNMEASURED` field cites an existing artefact. The committed battery
+ledger is a snapshot; regenerate it at each milestone (the readiness history it reads grows).
+
+**Required for TESTED.** The V4 field (`decision_quality_vs_cheap_baseline`) carries
+`required_for_tested: true`. When no measurement is recorded it reads `UNMEASURED` and is
+flagged "required for TESTED".
+
+**Speed has no fixed targets** (OWNER-LAUNCH-STRATEGY-01). Each onboarding is executed as
+efficiently as possible, and only time and cost per stage are recorded.
+
+**Battery today:** score-value alignment is measured (Level 0, eight members, one seed per
+recipe: a measurement, not a threshold). Everything else on the OUTPUTS and NETWORK records,
+and the customer-supply and time-to-obtain answers on INPUTS, is `UNMEASURED`.

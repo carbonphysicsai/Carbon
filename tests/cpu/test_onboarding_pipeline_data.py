@@ -60,7 +60,8 @@ def test_the_stage_map_covers_the_owner_stages_in_order():
 def test_tested_is_never_defined_as_qualification():
     tested = _load("stage_map.json")["stages"][-1]
     assert tested["id"] == "S10_tested"
-    assert len(re.findall(r"\(\d\)", tested["exit"])) == 7
+    assert len(re.findall(r"\(\d\)", tested["exit"])) == 8
+    assert "cheap-baseline comparison (V4)" in tested["exit"]
     for claim in ("scientific qualification", "LIVE", "launch claim"):
         assert claim in tested["note"]
     assert "not" in tested["note"].lower()
@@ -102,7 +103,7 @@ def test_no_duration_is_invented():
 
 
 def test_the_pages_hold_no_spend_figure_or_account_detail():
-    for path in FOLDER.iterdir():
+    for path in (x for x in FOLDER.iterdir() if x.is_file()):
         text = path.read_text(encoding="utf-8")
         assert not re.search(r"\$\s?\d|USD\s?\d|\d\s?USD", text), path.name
         assert not re.search(
