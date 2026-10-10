@@ -94,7 +94,12 @@ def test_battery_is_unchanged_through_the_port(battery):
     assert battery.data_paths == SHIPPED_BEFORE == pods.data_paths(battery)
     assert battery.construction_objective == OBJECTIVE_BEFORE
     assert battery.baseline_strategy() is SCAFFOLD
-    assert battery.served_backends == ("jax",)
+    # The served backends are a versioned record (TORCH-POD-01): v1 is the
+    # port's JAX-only set, unchanged; the current version adds PyTorch.
+    from carbon.challenge_validator.battery_scoring import SERVED_BACKENDS
+
+    assert SERVED_BACKENDS["battery-scoring-v1"] == ("jax",)
+    assert battery.served_backends == SERVED_BACKENDS[battery.scoring_version]
     envelope = dict(registry.contract(registry.BATTERY_CHALLENGE).envelope)
     assert (
         pods.contract_work_seconds(battery)
@@ -136,8 +141,18 @@ def test_admission_refusals_keep_their_codes(battery):
         ex.admit({**SCAFFOLD, "backbone": "transolver"}, 0, scoring=battery)
     assert refused.value.code in ("contract_refused", "recipe_rejected")
     torch = {**SCAFFOLD, "parameters": {**SCAFFOLD["parameters"], "backend": "pytorch"}}
+    # Scoring v1 served JAX only, and its refusal keeps its code; v2
+    # (TORCH-POD-01) builds PyTorch with the PyTorch pod program.
+    from carbon.challenge_validator.battery_scoring import SERVED_BACKENDS
+    from carbon.development_session.battery_gpu import TORCH_GPU_PROGRAM
+    from carbon.development_session.profile import digest
+
+    v1 = BatteryScoring()
+    v1.served_backends = SERVED_BACKENDS["battery-scoring-v1"]
     with pytest.raises(ex.NotServed, match="backend_not_served:pytorch"):
-        ex.admit(torch, 0, scoring=battery)
+        ex.admit(torch, 0, scoring=v1)
+    admitted = ex.admit(torch, 0, scoring=battery)
+    assert admitted["program"] == digest(TORCH_GPU_PROGRAM.encode())
     # The experiment module's error types are the port's own.
     assert ex.Unrebuildable is cs.Unrebuildable and ex.NotServed is cs.NotServed
 

@@ -107,14 +107,60 @@ except BaseException as error:
     raise
 done()
 """
+#: TORCH-POD-01: PyTorch's probe, for a PyTorch pod, in the same shape. It
+#: initialises CUDA as `torch_training.rebuild_device` will (`JAX_PLATFORMS`
+#: names the platform) and runs a small computation on that device.
+TORCH_PROBE = r"""
+import json, os, sys
+result = {"ok": False, "jax_platforms": os.environ.get("JAX_PLATFORMS")}
+platforms = [p.strip() for p in (result["jax_platforms"] or "").split(",")]
+result["requires_gpu"] = any(p in ("cuda", "gpu") for p in platforms)
+
+
+def done():
+    with open(sys.argv[1], "w") as stream:
+        json.dump(result, stream)
+
+
+try:
+    import torch
+
+    result["torch"] = torch.__version__
+    cuda = torch.cuda.is_available()
+    result["backend"] = "gpu" if cuda and result["requires_gpu"] else "cpu"
+    device = torch.device("cuda", 0) if result["backend"] == "gpu" else torch.device("cpu")
+    result["devices"] = [
+        {
+            "platform": device.type,
+            "kind": torch.cuda.get_device_name(device) if device.type == "cuda" else "cpu",
+        }
+    ]
+    x = torch.arange(8.0, device=device)
+    result["checksum"] = float((x * 2.0).sum().item())
+    result["ok"] = result["checksum"] == 56.0 and (
+        not result["requires_gpu"] or result["backend"] == "gpu"
+    )
+except BaseException as error:
+    result["error_type"] = type(error).__name__
+    done()
+    raise
+done()
+"""
 #: What the probe record keeps of the probe's own result: short typed values.
 _PROBE_FIELDS = {
     "jax_platforms": str,
     "requires_gpu": bool,
     "jax": str,
+    "torch": str,
     "backend": str,
     "error_type": str,
 }
+
+
+def probe_for(cfg):
+    """Carbon's probe for the job's backend: PyTorch's for a PyTorch job, JAX's
+    for every other (whose configuration names no backend)."""
+    return TORCH_PROBE if cfg.get("backend") == "pytorch" else PROBE
 
 
 def _write(path, value):
@@ -235,11 +281,12 @@ def pinned(record, expected):
 
 
 def run(cfg, out, *, root=".", probe=None):
-    """`probe` replaces Carbon's probe code (tests only); None runs `PROBE`."""
+    """`probe` replaces Carbon's probe code (tests only); None runs the
+    probe for the job's backend (`probe_for`)."""
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     # Before any candidate code: the strategy is not even compiled yet.
-    checked = probe_environment(probe)
+    checked = probe_environment(probe_for(cfg) if probe is None else probe)
     if not checked["ok"]:
         _report(out, checked, stage=ENVIRONMENT, program_started=False)
         _write(

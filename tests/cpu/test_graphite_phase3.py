@@ -336,7 +336,13 @@ def test_an_unrecorded_contract_refuses_every_proposal(tmp_path, monkeypatch):
         ex.admit(BASELINE, 0)
 
 
-def test_a_pytorch_recipe_is_rebuildable_but_not_served_by_these_pods(tmp_path):
+def test_a_pytorch_recipe_runs_on_a_pytorch_pod(tmp_path):
+    """Battery scoring v2 serves PyTorch (TORCH-POD-01): the proposal's pod
+    job is a PyTorch job, built by the PyTorch pod program. v1's refusal is
+    held in test_challenge_validator_scoring."""
+    from carbon.development_session.battery_gpu import TORCH_GPU_PROGRAM
+    from carbon.development_session.profile import digest
+
     strategy = {
         **BASELINE,
         "parameters": {**BASELINE["parameters"], "backend": "pytorch"},
@@ -344,8 +350,14 @@ def test_a_pytorch_recipe_is_rebuildable_but_not_served_by_these_pods(tmp_path):
     account = ScriptedPods(steps=steps(1.0))
     _result, graphite, _ = session(tmp_path, [propose(strategy), text("done")], account)
     [record] = proposals(graphite, kind="proposal")
-    assert record["status"] == "REFUSED_BACKEND_NOT_SERVED"
-    assert account.launched == [] and "finding" not in record
+    assert record["status"] != "REFUSED_BACKEND_NOT_SERVED"
+    jobs = [job for _intent, job in account.launched]
+    [job] = [j for j in jobs if j.strategy == strategy]
+    # Every other pod (the session's baseline) stays a JAX job.
+    assert all(j.backend == "jax" for j in jobs if j is not job)
+    assert job.backend == "pytorch"
+    assert job.config(0)["backend"] == "pytorch"
+    assert job.expected["program"] == digest(TORCH_GPU_PROGRAM.encode())
 
 
 # -- caps ------------------------------------------------------------------------------------

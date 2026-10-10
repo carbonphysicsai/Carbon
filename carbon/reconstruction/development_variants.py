@@ -933,7 +933,8 @@ def admit(scoring, strategy, seed, root, variant_, *, without=()):
         code, issues = refused
         raise challenge_scoring.Unrebuildable(code, issues) from None
     backend = scoring.backend(built)
-    if backend not in scoring.served_backends:
+    served = getattr(scoring, "development_backends", scoring.served_backends)
+    if backend not in served:
         raise challenge_scoring.NotServed("backend_not_served:" + str(backend))
     return {
         **built,

@@ -1597,6 +1597,7 @@ class Experiment:
                 if self.development_variant is None
                 else self.development_variant.digest
             ),
+            backend=podlib.job_backend(self.scoring.backend(expected)),
         )
         return self._pod(pid, job)
 
