@@ -1,0 +1,11 @@
+# BATTERY-EVIDENCEAUDIT-SAMPLE-01 — owner brief
+
+**DEVELOPMENT SAMPLE. No qualification claim.** This sample applies the [framework template at #956's exact head](https://github.com/carbonphysicsai/Carbon/blob/b0244360dbe49d534b0346779e1cebe5b21de085/Business/research/deliverable-framework/TEMPLATE.md) to committed public battery evidence. Read the [filled dossier](SAMPLE.md), [structured record](sample.json) and [source/quantity ledger](evidence.json). Merge order for PR Head: framework first, sample next. This PR adds only this directory.
+
+The public records demonstrate reference-relative evaluation, reproducibility checks and the ability to discover failures. They also disclose reference-infeasible selections, adversarial score failures and missing matched v3 measurements. Those are part of the deliverable's conclusion. EV4, EV5 and Q1 are different panels/rules; their positive and negative results cannot be pooled into a qualification result.
+
+NASA-STD-7009B is the sample's evidence-indexing profile. Each capability and results factor has an **EVIDENCED / PARTIAL / GAP** label, references and a stated missing step. These labels assess evidence coverage, not NASA assessment levels. Physical validation, a qualified customer-specific exam, buyer-approved requirements and an exact deployable product artifact remain gaps. The proposed eligible tier is **UNESTABLISHED**.
+
+An honest first customer conversation could offer to define a requirement-specific audit, including adverse conclusions and gaps. This sample cannot be presented as a qualified fast-charge protocol, a production BMS tool, an automotive safety case or NASA/ASME compliance.
+
+Research baseline: `915225242146be67e6de098d4a08324cc63dc684`. No solver runs, spend, hidden data, operator ledgers, protected tuning results or outreach. Public summaries may mention private confirmation; its existence is not reviewed evidence here. No Challenge files or scientific rules are changed. Native document diagnostics check sources, sections, quantities and structural restrictions; scientific qualification and adoption remain human decisions. Hub source is unchanged because the Hub is retired and this is a bounded research deliverable.
