@@ -1,0 +1,32 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-graphite-stage-a-launch",
+  "recorded_at": "2026-10-10T18:00:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "campaign_session",
+    "ref": "Graphite stage A launches, 2026-10-10",
+    "description": "The first stage A Constructor launches on two lanes, and the launch faults found before and during them."
+  },
+  "expected": "A launch on a prepared lane starts its pods, holds its grant and runs to a recorded end.",
+  "observed": "Seven launch faults: executor configuration (keys and the campaigns.json floor) in a different distro and home than the executor runs in; a pod launch refused with the offered price above the ceiling and no reason text recorded; a pod create environment over the provider's size limit that came back as an opaque HTTP 500 while the probe passed on an empty environment; one controller root admits only one controller; a per-run cap that must hold the token share plus the maximum pods at the ceiling; a lane whose code revision lagged the grant code; a detached launch with no completion watcher.",
+  "keep": [
+    "The preflight checks by path only and never reads a key.",
+    "A pod's environment measured before any create, and a probe built from the real pod spec.",
+    "Roots distinct, one controller per root."
+  ],
+  "change": [
+    "Record the offered price, the ceiling and the reason code when a pod launch is refused.",
+    "Read the campaigns.json floor back from the executor's own home before launch.",
+    "Derive the per-run cap from the model reservation plus pods times the ceiling, and refuse a grant that fails either.",
+    "Compare the lane profile's accepted_revision with the checkout HEAD in the preflight.",
+    "Start every detached launch with a completion watcher that records the end state."
+  ],
+  "protocol_elements": [
+    "grants",
+    "readiness"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
