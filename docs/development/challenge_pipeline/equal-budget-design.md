@@ -20,6 +20,13 @@ wall/core budget pair. Every point reports conditional mean best verified value
 and raw regret in the objective unit, feasible-pick fraction, and the paired
 fraction where model+solver strictly improves on solver-alone. The percentile
 bootstrap resamples whole `cluster_id` banks. One bank has no interval.
+VALUE-BAR-V1 also consumes `paired_verified_value_delta`: the mean
+model-screen-then-verify minus solver-alone verified value on the same jobs,
+with a 95% cluster-bootstrap interval when requested at 0.95 confidence.
+It is null if either arm lacks a verified feasible pick on any job at that
+budget. The count of complete pairs is reported so a conditional subset
+cannot be mistaken for the whole buyer-job population. The objective
+direction determines which side of zero favours Carbon.
 
 The closed input schema is `carbon.design-search.equal-budget-panel.v1`:
 
