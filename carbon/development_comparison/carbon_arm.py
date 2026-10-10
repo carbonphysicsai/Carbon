@@ -107,7 +107,12 @@ def sha256(data):
 class Kit:
     """What one family's arm needs: its inputs (name -> scaling bounds), the
     names of the categorical ones, its observables, the TRAIN record schema
-    and the map from an export physical row to its inputs."""
+    and the map from an export physical row to its inputs.
+
+    A kit whose model predicts something other than the observables (a
+    curve, say) names its model `outputs`, the model `queries` one row needs
+    and the `reduce` from their predictions to the row's observables. A row
+    abstains when any of its queries is outside TRAIN's support."""
 
     kit_id: str
     family: str
@@ -117,10 +122,23 @@ class Kit:
     observables: tuple
     row_inputs: object  # callable(physical row) -> {name: value}
     model_id: str
+    outputs: tuple = ()  # the model's outputs; empty: the observables
+    queries: object = None  # callable(row) -> [{name: value}, ...]
+    reduce: object = None  # callable(row, [{output: value}, ...]) -> observables
 
     @property
     def names(self):
         return tuple(name for name, _ in self.inputs)
+
+    @property
+    def targets(self):
+        return self.outputs or self.observables
+
+    def row_queries(self, row):
+        return self.queries(row) if self.queries else [self.row_inputs(row)]
+
+    def row_values(self, row, predicted):
+        return self.reduce(row, predicted) if self.reduce else predicted[0]
 
 
 @dataclass(frozen=True)
@@ -145,7 +163,7 @@ def load_train(kit, data, expected_sha256):
             type(record) is not dict
             or record.get("schema") != kit.train_schema
             or set(record.get("inputs", ())) != set(kit.names)
-            or set(record.get("outputs", ())) != set(kit.observables)
+            or set(record.get("outputs", ())) != set(kit.targets)
         ):
             raise ArmRefused("TRAIN_RECORD_SHAPE")
         if any(
@@ -166,6 +184,12 @@ def load_train(kit, data, expected_sha256):
     if len(records) < 2:
         raise ArmRefused("TRAIN_TOO_SMALL")
     return Train(tuple(records), expected_sha256, fixture == {True}, excluded)
+
+
+def sources(train):
+    """The `source` labels TRAIN's records carry (a DEVELOPMENT stand-in
+    names itself), sorted; empty when none does."""
+    return sorted({r["source"] for r in train.records if "source" in r})
 
 
 # -- the network ----------------------------------------------------------------------------
@@ -194,7 +218,7 @@ class Network:
         records = train.records
         x = self._x([r["inputs"] for r in records])
         y = np.asarray(
-            [[r["outputs"][q] for q in self.kit.observables] for r in records], float
+            [[r["outputs"][q] for q in self.kit.targets] for r in records], float
         )
         self.mu, self.sd = y.mean(0), y.std(0) + 1e-9
         z = (y - self.mu) / self.sd
@@ -321,7 +345,7 @@ class Network:
             z = self._outputs(self._x([rows[i] for i in kept]))
             y = z * self.sd + self.mu
             for i, values in zip(kept, y):
-                out[i] = {q: float(v) for q, v in zip(self.kit.observables, values)}
+                out[i] = {q: float(v) for q, v in zip(self.kit.targets, values)}
         return out
 
 
@@ -353,17 +377,26 @@ def run(kit, export, train, *, scope, seed=0, backend="jax", code=None, settings
     physical = cb._physical_rows(export)
     if any(set(row["values"]) != set(kit.observables) for row in physical):
         raise ArmRefused("OBSERVABLE_INVENTORY_MISMATCH")
-    inputs = [kit.row_inputs(row) for row in physical]
+    per_row = [kit.row_queries(row) for row in physical]
+    inputs = [q for queries in per_row for q in queries]
     timings, runs = [], []
     for _ in range(2):  # cold (includes tracing and compilation), then warm
         wall, cpu = time.perf_counter(), time.process_time()
-        runs.append(network.predict(inputs))
+        predicted, values, at = network.predict(inputs), [], 0
+        for row, queries in zip(physical, per_row):
+            part = predicted[at : at + len(queries)]
+            at += len(queries)
+            values.append(
+                None if any(p is None for p in part) else kit.row_values(row, part)
+            )
+        runs.append(values)
         timings.append((time.perf_counter() - wall, time.process_time() - cpu))
     if runs[0] != runs[1]:
         raise ArmRefused("PREDICTION_NOT_REPEATABLE")
     values = runs[1]
     query = {
-        "rows": len(inputs),
+        "rows": len(physical),
+        "model_queries": len(inputs),
         "predicted": sum(v is not None for v in values),
         "cold_wall_s": timings[0][0],
         "cold_cpu_s": timings[0][1],
@@ -385,6 +418,7 @@ def run(kit, export, train, *, scope, seed=0, backend="jax", code=None, settings
             "records": len(train.records),
             "excluded_non_finite": train.excluded,
             "fixture": train.fixture,
+            "sources": sources(train),
             "support": network.support,
         },
         "recipe": {
@@ -421,10 +455,15 @@ def run(kit, export, train, *, scope, seed=0, backend="jax", code=None, settings
 
 # -- the command ----------------------------------------------------------------------------
 def kits():
-    """The registered kits, by export family."""
+    """The registered kits, by export family: each a function of the kit's
+    material bytes (None when it needs none)."""
+    from . import motor_10p12s_kit
     from .battery_v3_kit import KIT as BATTERY_V3
 
-    return {BATTERY_V3.family: BATTERY_V3}
+    return {
+        BATTERY_V3.family: lambda material: BATTERY_V3,
+        motor_10p12s_kit.FAMILY: motor_10p12s_kit.kit_from_bytes,
+    }
 
 
 def _code_identity():
@@ -437,6 +476,7 @@ def _code_identity():
     files = {
         "carbon_arm.py": here,
         "battery_v3_kit.py": here.with_name("battery_v3_kit.py"),
+        "motor_10p12s_kit.py": here.with_name("motor_10p12s_kit.py"),
         "battery/training.py": root / "carbon/battery/training.py",
         "battery/torch_training.py": root / "carbon/battery/torch_training.py",
     }
@@ -465,6 +505,8 @@ def main(argv=None):
     parser.add_argument("--export-sha256", required=True)
     parser.add_argument("--train", required=True)
     parser.add_argument("--train-sha256", required=True)
+    parser.add_argument("--material", help="the kit's material (motor: the sidecar)")
+    parser.add_argument("--material-sha256")
     parser.add_argument("--scope", required=True, choices=SCOPES)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--backend", choices=("jax", "pytorch"), default="jax")
@@ -477,7 +519,12 @@ def main(argv=None):
         raw = Path(args.export).read_bytes()
         if sha256(raw) != args.export_sha256:
             raise ArmRefused("EXPORT_SHA256_MISMATCH")
-        kit = kits()[args.family]
+        material = None
+        if args.material is not None:
+            material = Path(args.material).read_bytes()
+            if sha256(material) != args.material_sha256:
+                raise ArmRefused("MATERIAL_SHA256_MISMATCH")
+        kit = kits()[args.family](material)
         train = load_train(kit, Path(args.train).read_bytes(), args.train_sha256)
         predictions, receipt = run(
             kit,
