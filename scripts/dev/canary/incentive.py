@@ -237,6 +237,40 @@ def summarize(lines, challenge_share):
     }
 
 
+def verify_incentive(row, incentives, burn_uid=0):
+    """Whether the weight became payment: the chain's per-UID incentive (u16)
+    after Yuma. A weighted miner with no incentive, or a miner paid that this
+    validator does not weight, is ATTENTION: consensus lags one epoch step
+    after a change, and another active validator can outweigh this one."""
+    weighted = {uid for uid, value in row if value and uid != burn_uid}
+    findings = []
+    for uid in sorted(weighted):
+        value = incentives[uid] if uid < len(incentives) else 0
+        if value:
+            findings.append(
+                {
+                    "level": PASS,
+                    "code": "weighted_uid_paid",
+                    "uid": uid,
+                    "incentive": round(value / U16, 6),
+                }
+            )
+        else:
+            findings.append(
+                {"level": ATTENTION, "code": "weighted_uid_no_incentive", "uid": uid}
+            )
+    for uid, value in enumerate(incentives):
+        if value and uid != burn_uid and uid not in weighted:
+            findings.append(
+                {
+                    "level": ATTENTION,
+                    "code": "incentive_not_from_this_validator",
+                    "uid": uid,
+                }
+            )
+    return findings
+
+
 def read_leaderboard(intake_url, feed_key, challenge=BATTERY, *, opener=None):
     """The signed feed's `leaderboard` (incumbent and standing)."""
     import urllib.request
@@ -263,8 +297,9 @@ def read_incumbent(intake_url, feed_key, challenge=BATTERY, *, opener=None):
 
 
 async def read_weights(context, validator_hotkey):
-    """`(row, {uid: hotkey})` of `validator_hotkey`'s weights, read at one
-    finalized snapshot, from the endpoint whose genesis is the context's."""
+    """`(row, {uid: hotkey}, incentives)` of `validator_hotkey`'s weights and
+    the subnet's per-UID incentive (u16), read at one finalized snapshot, from
+    the endpoint whose genesis is the context's."""
     import bittensor as bt
 
     from carbon.chain.models import hash256
@@ -295,11 +330,16 @@ async def read_weights(context, validator_hotkey):
             [context.netuid, uids[0]],
             block_hash=block_hash,
         )
+        view = await client.at(snapshot.finalized_block)
+        graph = await view.read("metagraph", netuid=context.netuid)
     finally:
         await client.close()
     if type(row) is not list:
         raise Unverified("weights_malformed")
-    return [[int(u), int(v)] for u, v in row], hotkeys
+    incentives = graph.get("incentives") if type(graph) is dict else None
+    if type(incentives) is not list:
+        raise Unverified("incentives_malformed")
+    return [[int(u), int(v)] for u, v in row], hotkeys, [int(x) for x in incentives]
 
 
 def check(
@@ -326,9 +366,11 @@ def check(
         if context.network != "testnet":
             raise Unverified("testnet_only")
         policy = load_policy(config["policy"])
-        row, hotkeys = asyncio.run(
+        read = asyncio.run(
             (weights_reader or read_weights)(context, config["validator_hotkey"])
         )
+        row, hotkeys = read[0], read[1]
+        incentives = read[2] if len(read) > 2 else None
         if config.get("roles"):
             leaderboard = (leaderboard_reader or read_leaderboard)(
                 config["intake_url"], config["feed_key"]
@@ -366,7 +408,11 @@ def check(
         result["findings"] += findings
         result["shares"] = shares
         result["challenge_share"] = 1 / len(policy.challenges)
-    if leaderboard is not None or config.get("sybil"):
+    if incentives is not None:
+        result["findings"] += verify_incentive(
+            row, incentives, burn_uid=policy.burn_uid
+        )
+    if leaderboard is not None or config.get("sybil") or incentives is not None:
         levels = {f.get("level", UNVERIFIED) for f in result["findings"]}
         result["state"] = next(
             (s for s in (BLOCKER, ATTENTION, UNVERIFIED) if s in levels), PASS
