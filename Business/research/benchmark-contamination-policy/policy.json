@@ -1,0 +1,62 @@
+{
+  "schema": "carbon.research.benchmark-contamination-policy.v1",
+  "ticket": "BENCHMARK-CONTAMINATION-POLICY-01",
+  "status": "PROPOSED_NOT_IMPLEMENTED_NOT_RUN",
+  "authority_commit": "5fbac3099eaae368b23d266cce31ed7409685722",
+  "anchor_scoring": "PROPOSED_EXCLUDED_FROM_EVAL_AND_STRESS",
+  "catalogue_coverage": "KNOWN_AUDITED_SOURCES_ONLY_UNKNOWN_PUBLICATIONS_REMAIN_A_GAP",
+  "families": [
+    {
+      "id": "backward-facing-step",
+      "source_commit": "20a39f549dbff988a6accc421ac84dafc4487695",
+      "geometry_metric": "normalized_wall_profile_integral_after_similarity_canonicalization",
+      "condition_metric": "dimensionless_scalar_log_ratios_and_inlet_profile_norms",
+      "geometry_novelty_required": true,
+      "normalizers": null,
+      "thresholds": null,
+      "acceptance_status": "HUMAN_INPUT"
+    },
+    {
+      "id": "metagrating-3d",
+      "source_commit": "a06518872de6ec82bb4511190e544211539f55f1",
+      "geometry_metric": "periodic_mask_integral_minimized_over_validated_equivalences",
+      "condition_metric": "dimensionless_period_thickness_material_and_excitation_differences",
+      "geometry_novelty_required": true,
+      "normalizers": null,
+      "thresholds": null,
+      "acceptance_status": "HUMAN_INPUT"
+    }
+  ],
+  "decision_transfer": {
+    "status": "PUBLIC_DEVELOPMENT_PANEL_NOT_RUN",
+    "sample_design": null,
+    "agreement_limits": null,
+    "power": null
+  },
+  "audit": {
+    "status": "PROPOSED_NOT_RUN",
+    "official_score_effect": "NONE_UNREGISTERED",
+    "false_alarm_policy": null,
+    "protected_material_access": "FORBIDDEN_FOR_RESEARCH",
+    "anomaly_interpretation": "INVESTIGATE_NOT_PROOF_OF_MISCONDUCT"
+  },
+  "population": {
+    "P": null,
+    "Q": null,
+    "w": null,
+    "status": "HUMAN_INPUT_SEPARATE_AUTHORITIES"
+  },
+  "claims": {
+    "carbon_reproduction": "NOT_RUN",
+    "variant_adequacy": "NOT_RUN",
+    "contamination_free": false,
+    "qualification": "NOT_EARNED"
+  },
+  "owner_decisions": [
+    "policy_adoption",
+    "family_exclusion_and_equivalence_contract",
+    "novelty_thresholds_and_statistical_criteria",
+    "population_and_sampling",
+    "authorized_audit_disposition"
+  ]
+}
