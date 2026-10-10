@@ -530,6 +530,10 @@ class BatteryPractice:
     so a result never claims an isolation it did not have.
     """
 
+    #: The campaign's construction-level binding (LAUNCHPAD-LEVELS-01 S2), or
+    #: None at Level 0: also for a practice built without `__init__`.
+    level = None
+
     def __init__(
         self,
         *,
@@ -543,6 +547,7 @@ class BatteryPractice:
         gpu_image=None,
         device=None,
         remote=None,
+        level=None,
     ):
         from carbon.development_session.battery_gpu import BACKENDS, is_gpu_image
         from carbon.development_session.research_carrier import _run
@@ -573,11 +578,23 @@ class BatteryPractice:
         }
         self.material = PublicMaterial.load(self.root)
         self.practice = PracticeSet.load(self.root)
+        #: The campaign's construction-level binding (LAUNCHPAD-LEVELS-01
+        #: S2), or None at Level 0.
+        self.level = level
 
     def compile(self, strategy):
         from .compile import compile_recipe
 
-        return compile_recipe(strategy)
+        if self.level is None:
+            return compile_recipe(strategy)
+        # At a construction level: the level's compile
+        # (`compile_development`, in its own process), then the recipe's
+        # Level 0 base, which is what practice trains. A level refusal is a
+        # `LevelRefused` (a ValueError) by its closed code; the Launchpad's
+        # doors ask the same compile before a trial starts.
+        from carbon.development_session.construction_level import level_compiler
+
+        return level_compiler(self.level, compile_recipe)(strategy)
 
     def backend_refusal(self, strategy):
         """The backends this host serves, when `strategy` names another; None
@@ -732,6 +749,11 @@ class BatteryPractice:
         )
         result["recipe"] = strategy
         result["seed_source"] = "carbon_retained_randomness"
+        if self.level is not None:
+            # What this practice trained at a construction level: the base.
+            from carbon.development_session.construction_level import practice_label
+
+            result["construction_level"] = practice_label(self.level)
         ResearchWorkspace(self.ledger, self.owner).put(
             "trial-" + digest(identity.encode())[7:23] + "-battery-practice.json",
             canonical(result),
@@ -854,6 +876,10 @@ def make_battery_research_service(
     from carbon.development_session.research_service import compose_research_service
 
     parts = challenge_parts()
+    if getattr(practice, "level", None) is not None:
+        # A campaign at a construction level compiles every recipe at it,
+        # wherever the service compiles one (LAUNCHPAD-LEVELS-01 S2).
+        parts = replace(parts, recipe_compiler=practice.compile)
     if julia_image is not None:
         from carbon.development_session import julia_analysis
 

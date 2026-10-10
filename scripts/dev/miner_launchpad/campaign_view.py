@@ -221,7 +221,9 @@ def _contract(challenge_id, version):
     )
 
 
-def contract_section(challenge, feedback_mode, offered_modes=()):
+def contract_section(challenge, feedback_mode, offered_modes=(), level=None):
+    """The Contract view. `level` is the campaign's construction-level
+    binding (LAUNCHPAD-LEVELS-01 S2), or None for a Level 0 campaign."""
     if type(challenge) is not dict or type(challenge.get("id")) is not str:
         return None
     try:
@@ -238,6 +240,12 @@ def contract_section(challenge, feedback_mode, offered_modes=()):
             "shown through it, to you and to any agent reading this view."
         ),
     }
+    if level is not None:
+        from scripts.dev.miner_launchpad.levels import campaign_slot
+
+        value["construction_level"] = campaign_slot(
+            level, value.get("construction_level") or {}
+        )
     return value
 
 
@@ -1616,6 +1624,17 @@ def verified_predictions(root, view, facts, task):
     return value, None
 
 
+def _campaign_level(root):
+    """The campaign's frozen construction-level binding, or None."""
+    from carbon.development_session.construction_level import binding
+
+    path = root / "campaign-manifest.json"
+    try:
+        return binding(json.loads(path.read_bytes())) if path.exists() else None
+    except (OSError, ValueError):
+        return None
+
+
 def ledger_view(host, admitted, request):
     """`campaign_view` for a campaign on this machine (`RunnerAdapter`)."""
     from carbon.challenge_registry.campaigns import campaign_for
@@ -1633,7 +1652,9 @@ def ledger_view(host, admitted, request):
     return build(
         own,
         view=view,
-        contract=contract_section(challenge, facts["feedback_mode"], offered),
+        contract=contract_section(
+            challenge, facts["feedback_mode"], offered, level=_campaign_level(root)
+        ),
         notes=facts["notes"],
         feedback_mode=facts["feedback_mode"],
         predictions=lambda task: verified_predictions(root, view, facts, task),
