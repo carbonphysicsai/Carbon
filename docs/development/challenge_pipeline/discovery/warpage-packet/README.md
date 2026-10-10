@@ -16,8 +16,24 @@ The [common-format packet](PACKAGE_WARPAGE_DESIGN_PACKET.md) retains the origina
 
 The [panel manifest](feasibility-panel.json) contains counts, arithmetic and unresolved inputs. All estimates use low/base/high scenarios. A sourced point has a degenerate low/base/high range equal to that point; this supplies provenance, not a statistical confidence interval. No scientific threshold, population law or runtime configuration is adopted here.
 
-**Bounded delivery contract.** Research and specification only; one PR to PR Head, no adoption or merge. All authored changes are additions in this directory. No solver, paid compute, protected material, hidden evaluation or existing Challenge file is touched. Authority first read at `26324def0cda2e7211f3639087c8be461ae46180` and unchanged at publication base `f227a55a88cfe736171bb64f602a81eb1777c9ba`; source D016: [#928](https://github.com/carbonphysicsai/Carbon/pull/928) at `f6e5eea975fc19bf84aa65dc6e3093624c000860`. The original input is a scored card and flagship analysis, not an existing ten-section dossier.
+**Prospective scope alignment (CHALLENGE-WARPAGE-SCOPE-ALIGNMENT-01):** the
+existing packet now explicitly requires both feasible and infeasible designs
+within **two refinement bands**, records k as questions/window separately from
+M actions/question, maps f08's pinned CalculiX reuse/gaps, names blocked public
+registration slots and lists all eight incumbent comparison rows. The working
+rule is not a production threshold; the slots are not executable registration.
+The original 3D/history job, costs and unresolved acceptance remain unchanged.
+All eight indices stay NOT_COMPUTABLE without complete comparable C2/C3 and
+currency support. No blank cost is replaced with zero.
+
+**Original #936 bounded delivery contract (historical).** Research and specification only; one PR to PR Head, no adoption or merge by the author. All original authored changes were additions in this directory. No solver, paid compute, protected material, hidden evaluation or existing Challenge file was touched. Authority first read at `26324def0cda2e7211f3639087c8be461ae46180` and unchanged at publication base `f227a55a88cfe736171bb64f602a81eb1777c9ba`; source D016: [#928](https://github.com/carbonphysicsai/Carbon/pull/928) at `f6e5eea975fc19bf84aa65dc6e3093624c000860`. The original input is a scored card and flagship analysis, not an existing ten-section dossier.
 
 **Authority and reuse.** Reuse the [common packet](../../COMMON_DESIGN_PACKET_V1.md), [value/cost framework](../../value-cost/README.md), [cheap-baseline contract](../../cheap-baselines/README.md), reference credibility policy and constitutional P/Q/w separation. Current main retires the Development Hub; its frozen map is not edited or regenerated. No queue, runtime identity or readiness state changes.
+
+The follow-up starts from main `3a6dfdd8dffdfdaf241596033d5bf55b66abfcff`,
+which contains #936 merge `75cd4b14e826b110023cbaca1ca57d5b5b239e90`.
+The original publication-base paragraph above is historical provenance, not
+the follow-up's base. The follow-up edits these four existing files with one
+static regression file plus its ticket/decision and execution lessons.
 
 **Verification and maturity.** Native read-only checks validate JSON arithmetic, ten packet sections, evidence links, path scope and text formatting. These are documentation diagnostics. Clean PR CI supplies canonical repository checks; neither kind establishes physical adequacy. Maturity is `RESEARCH_SPECIFICATION_DRAFT`; reference credibility is `NOT_DEMONSTRATED`. The final exact-head CI result and handoff are recorded in the PR conversation, without an evidence-only commit.

@@ -1,0 +1,23 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-review.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": [
+  0,
+  1
+ ],
+ "item": "A3",
+ "decision": "PASS",
+ "reviewer": "Test Lead",
+ "date": "2026-10-09",
+ "evidence": [
+  {
+   "kind": "test",
+   "ref": "tests/cpu/test_graphite_attacker_stop_rule.py"
+  },
+  {
+   "kind": "decision",
+   "ref": "GRAPHITE-ATTACKER-STOP-RULE-01"
+  }
+ ],
+ "notes": "ACCEPTED on cited evidence (Test Lead stage A sign-off, 2026-10-09); wiring gaps are tracked as notes."
+}

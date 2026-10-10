@@ -1,0 +1,24 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-review.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": [
+  0,
+  1
+ ],
+ "item": "D1",
+ "decision": "PASS",
+ "reviewer": "Test Lead",
+ "date": "2026-10-09",
+ "evidence": [
+  {
+   "kind": "file",
+   "ref": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json",
+   "sha256": "sha256:ff35fa6f959656c55ad657bee4af622a71984f34081628c4cd3b7dbd8e42253d"
+  },
+  {
+   "kind": "decision",
+   "ref": "OWNER-EV5-FREEZE-01"
+  }
+ ],
+ "notes": "ACCEPTED on cited evidence (Test Lead stage A sign-off, 2026-10-09); wiring gaps are tracked as notes."
+}
