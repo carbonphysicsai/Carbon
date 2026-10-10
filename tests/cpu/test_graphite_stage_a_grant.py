@@ -78,7 +78,7 @@ def test_the_constructor_grant_admits_level_0_on_kimi_k3():
     grant = _grant(CONSTRUCTOR)
     entry = grant_binding.entry_of(grant)
     assert entry.min_level == 0 and entry.runner == "phase3"
-    assert entry.token_share_usd == Decimal("11.93")
+    assert entry.token_share_usd == grant_binding.STAGE_TOKEN_SHARE == Decimal("10.99")
     for level in (0, 1, 3):
         assert grant_binding.level_refusal(grant, level) is None
     top = len(ENGY_LADDER) - 1
@@ -166,4 +166,6 @@ def test_the_attacker_model_money_holds_four_full_kimi_k3_calls():
     staged = phase4.attacker_budget(_grant(ATTACKER), scoring)
     base = phase4.attacker_budget(_grant("GRAPHITE-GRANT-PHASE4"), scoring)
     assert staged.token_allowance_usd >= 4 * KIMI_FULL_CALL
-    assert staged.token_allowance_usd - base.token_allowance_usd == Decimal("10.00")
+    # At the standing 0.65/h ceiling the verify pods reserve more, so the model
+    # money is above PHASE4's by less than 10.00, and still holds four calls.
+    assert staged.token_allowance_usd > base.token_allowance_usd

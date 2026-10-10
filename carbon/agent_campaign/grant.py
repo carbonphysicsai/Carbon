@@ -46,6 +46,11 @@ FIELDS = (
     "max_runtime_s",
     "max_submissions",
 )
+#: Optional fields: absent, the grant is exactly as before (its document and
+#: digest unchanged). `pod_rate_ceiling_usd_per_hr` (GRANT-POD-CEILING-01) is
+#: the most a pod under the grant may cost an hour; absent, pod_control's
+#: constant applies.
+OPTIONAL_FIELDS = ("pod_rate_ceiling_usd_per_hr",)
 _TIME = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\Z")
 
 
@@ -74,11 +79,22 @@ class SpendingGrant:
     max_concurrency: int
     max_runtime_s: int
     max_submissions: int
+    pod_rate_ceiling_usd_per_hr: Decimal | None = None
 
     @classmethod
     def from_document(cls, document):
-        if type(document) is not dict or set(document) != set(FIELDS):
+        if type(document) is not dict or not (
+            set(FIELDS) <= set(document) <= set(FIELDS) | set(OPTIONAL_FIELDS)
+        ):
             raise GrantError("grant_exact_fields_required")
+        ceiling = document.get("pod_rate_ceiling_usd_per_hr")
+        if "pod_rate_ceiling_usd_per_hr" in document:
+            try:
+                ceiling = money(ceiling)
+            except ValueError as error:
+                raise GrantError(str(error)) from None
+            if ceiling <= 0:
+                raise GrantError("pod_rate_ceiling_usd_per_hr must be positive")
         if document["schema"] != SCHEMA:
             raise GrantError("grant_schema")
         if any(v in (None, "HUMAN_INPUT", "TODO", "") for v in document.values()):
@@ -136,6 +152,7 @@ class SpendingGrant:
                 0 if zero else _positive(document["max_submissions"], "max_submissions")
             ),
             **amounts,
+            pod_rate_ceiling_usd_per_hr=ceiling,
         )
 
     @property
@@ -169,6 +186,13 @@ class SpendingGrant:
             "max_concurrency": self.max_concurrency,
             "max_runtime_s": self.max_runtime_s,
             "max_submissions": self.max_submissions,
+            **(
+                {}
+                if self.pod_rate_ceiling_usd_per_hr is None
+                else {
+                    "pod_rate_ceiling_usd_per_hr": str(self.pod_rate_ceiling_usd_per_hr)
+                }
+            ),
         }
 
 

@@ -154,7 +154,8 @@ implementation or test evidence.
 | Validator service compensation requires assignment/execution/audit evidence | DESIGN / EXPERIMENT | Free-rider simulation, receipt/obligation implementation, audit-economics proof |
 | Network search improves economics/performance vs centralized alternatives | EXPERIMENT | Controlled comparison |
 | Commercial work creates useful network demand | DESIGN | First sponsored network-backed program |
-| OpCo revenue automatically benefits Alpha | OUTSIDE | Do not claim |
+| OpCo revenue automatically benefits Alpha | OUTSIDE | Do not claim "automatic" |
+| Carbon intends to use a share of revenue to support Alpha (buyback and burn) | CANON intent (OWNER-LAUNCH-STRATEGY-01) | Claim the intent only, never an amount, return or entitlement; counsel reviews public wording |
 | Sponsor rewards can augment participant economics | CANON | Custody/settlement implementation |
 | Alpha-native services improve product utility | UNDER_DEFINED | Product/economic experiments |
 | Sufficient high-quality participant liquidity exists | EXPERIMENT | Participation/quality evidence |

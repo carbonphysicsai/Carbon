@@ -64,7 +64,7 @@ def test_the_constructor_grant_admits_levels_2_and_3_only():
     grant = _grant(CONSTRUCTOR)
     entry = grant_binding.entry_of(grant)
     assert (entry.min_level, entry.max_level) == (2, 3)
-    assert entry.token_share_usd == Decimal("11.93")
+    assert entry.token_share_usd == grant_binding.STAGE_TOKEN_SHARE == Decimal("10.99")
     for level in (2, 3):
         assert grant_binding.level_refusal(grant, level) is None
     for level in (0, 1, 4, None, "2"):

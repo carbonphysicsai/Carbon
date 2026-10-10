@@ -271,13 +271,13 @@ CARBON NETWORK
 miners / validators / frontier rewards / Alpha / treasury
 ```
 
-OpCo revenue does not automatically create Alpha value.
+OpCo revenue reaches Alpha through an explicit, owner-approved mechanism. It is not automatic.
 
 Preferred value path:
 
 > **Create Alpha value by making the subnet economically useful and increasingly necessary to valuable scientific work.**
 
-Carbon's current commercial direction is to pay for useful subnet research output through Alpha buyback and burn. This does not implement or activate a payment policy. Operating terms and legal/economic/governance adoption remain separate requirements. It creates no revenue-share or token-holder entitlement.
+Carbon's miner workforce is paid in Alpha. **Carbon intends to use a share of company revenue to support Alpha**, as the mechanism that sustains that workforce. Buyback and burn is the current direction (founder direction, 23 September 2026; owner decision OWNER-LAUNCH-STRATEGY-01, 2026-10-10). The share, timing and mechanism are owner and board decisions, made after legal review. This record does not activate a payment policy, and it creates no revenue-share or token-holder entitlement. Customer payments never influence scoring, ranking or qualification.
 
 ---
 
