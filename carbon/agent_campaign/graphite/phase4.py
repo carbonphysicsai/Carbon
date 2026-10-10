@@ -1716,7 +1716,13 @@ def run_session(
     control.recover()
     control.launch(spec, key)
     run_id = provider.run_id_for(key)
-    final = provider.run(run_id) if provider.find(key) is not None else None
+    # GRAPHITE-LAUNCH-PREFLIGHT-01: a live run beats while it runs.
+    from .heartbeat import beating
+
+    final = None
+    if provider.find(key) is not None:
+        with beating(provider._dir(run_id), run_id):
+            final = provider.run(run_id)
     phase = control.poll(key)
     coverage = None
     findings = []
