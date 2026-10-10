@@ -67,6 +67,10 @@ phase-3 grant: outside its study it is refused `grant_is_bound_to_a_study`.
   only. The Constructor grant registers `min_level` 2 and `max_level` 3 (a
   run outside them is `grant_level_outside_the_grants_levels`); the
   Attacker grant's levels are phase 4's (`Phase4Grant.levels`).
+- GRAPHITE-GRANT-STAGE-C-CONSTRUCTOR and GRAPHITE-GRANT-STAGE-C-ATTACKER are
+  stage C (OWNER-GRAPHITE-STAGE-C-01): the same shape at Level 4 only.
+  The grant authorizes spend, never a Level 4 run: whether one runs stays
+  the owner's and the security owner's.
 
 A registered grant named for another Challenge is
 `grant_is_for_another_challenge`. A Challenge in `PHASE3_BOUND_CHALLENGES`
@@ -175,6 +179,8 @@ def check_committed_blob(given, repository, grant_file, *, phase):
 STAGE_A_AUTHORITY = "OWNER-GRAPHITE-STAGE-A-01"
 #: Stage B (GRAPHITE_LADDER_STAGE_B_PLAN.md section 7), approved by the owner.
 STAGE_B_AUTHORITY = "OWNER-GRAPHITE-STAGE-B-01"
+#: Stage C, Level 4 (GRAPHITE_LADDER_WAVE_PLAN.md section 4), approved by the owner.
+STAGE_C_AUTHORITY = "OWNER-GRAPHITE-STAGE-C-01"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -281,6 +287,27 @@ PHASE3_GRANTS = types.MappingProxyType(
                 start_model="kimi-k3",
                 start_roles=("attacker",),
                 authority=STAGE_B_AUTHORITY,
+                runner="phase4",
+            ),
+            Phase3Grant(
+                grant_id="GRAPHITE-GRANT-STAGE-C-CONSTRUCTOR",
+                challenge=BATTERY_CHALLENGE,
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-STAGE-C-CONSTRUCTOR.json",
+                main_blob=True,
+                min_level=4,
+                max_level=4,
+                start_model="kimi-k3",
+                token_share_usd=Decimal("11.93"),
+                authority=STAGE_C_AUTHORITY,
+            ),
+            Phase3Grant(
+                grant_id="GRAPHITE-GRANT-STAGE-C-ATTACKER",
+                challenge=BATTERY_CHALLENGE,
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-STAGE-C-ATTACKER.json",
+                main_blob=True,
+                start_model="kimi-k3",
+                start_roles=("attacker",),
+                authority=STAGE_C_AUTHORITY,
                 runner="phase4",
             ),
         )

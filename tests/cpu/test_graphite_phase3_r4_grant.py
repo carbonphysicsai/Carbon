@@ -207,6 +207,7 @@ def test_the_registry_binds_r4_to_battery_main_level_1_and_the_top_rung():
         if other_id == R4_ID or other.authority in (
             grant_binding.STAGE_A_AUTHORITY,
             grant_binding.STAGE_B_AUTHORITY,
+            grant_binding.STAGE_C_AUTHORITY,
         ):
             continue
         assert (other.min_level, other.start_model, other.token_share_usd) == (

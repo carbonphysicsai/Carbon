@@ -225,6 +225,12 @@ PHASE4_STAGE_GRANTS = types.MappingProxyType(
                 grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-STAGE-B-ATTACKER.json",
                 levels=(2, 3),
             ),
+            Phase4Grant(
+                challenge=BATTERY_CHALLENGE,
+                grant_id="GRAPHITE-GRANT-STAGE-C-ATTACKER",
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-STAGE-C-ATTACKER.json",
+                levels=(4,),
+            ),
         )
     }
 )

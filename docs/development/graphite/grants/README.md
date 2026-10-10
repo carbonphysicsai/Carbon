@@ -1017,3 +1017,25 @@ R4 (45.00, 3 runs, Level 1 and above) is unchanged and stays spendable.
 - **The Constructor grant** sets `min_level` 2 and `max_level` 3.
 - **The Attacker grant** sets `Phase4Grant.levels` to (2, 3).
 - **A run at any other level** is refused `grant_level_outside_the_grants_levels`.
+
+## GRAPHITE-GRANT-STAGE-C-{CONSTRUCTOR,ATTACKER} (the ladder wave's stage C, battery L4, kimi-k3)
+
+**Authority.** OWNER-GRAPHITE-STAGE-C-01
+(`.agent/decisions/2026-10-10-OWNER-GRAPHITE-STAGE-C-01.md`):
+- **The approval.** The owner replied "Approve stage C" to the Test Lead's
+  exact line "approve stage C, $71.80".
+- **Direct confirmation.** The owner confirmed it directly in the Test
+  Engineer's session.
+- **The plan.** `GRAPHITE_LADDER_WAVE_PLAN.md` section 4 (#889), stage C.
+
+| Grant | Runs | Worst case per run | Cleanup | Ceiling | Concurrency |
+|---|---|---|---|---|---|
+| STAGE-C-CONSTRUCTOR (phase 3) | 3 at Level 4 | 14.91 | 0.12 | 44.85 | 4 |
+| STAGE-C-ATTACKER (phase 4) | 2 at Level 4 | 13.41 | 0.13 | 26.95 | 4 |
+| Stage C | 5 | | 0.25 | **71.80** | |
+
+**Bindings:** stage B's, at Level 4 only.
+- **The Constructor grant** sets `min_level` = `max_level` = 4.
+- **The Attacker grant** sets `levels` to (4,).
+- **Whether a Level 4 live run happens** stays the owner's and the security
+  owner's (plan section 1). This grant authorizes spend only.
