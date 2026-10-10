@@ -1,0 +1,18 @@
+[
+  {
+    "path": "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md",
+    "sha256": "397361ad8340ccbc19f07e2a025fb9c9c29934a9b1159e0c7000fc1e061fdde0"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/value-cost/f13.md",
+    "sha256": "2f431a12f8e0ad03cfba2b3e751f5481b2b5859eec9ad9a34a2e83aa73970700"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/cheap-baselines/f13.md",
+    "sha256": "88de716e5a6c13c8e8bb4851a4718d49a97235ad158b5c76a35939f7f208d41b"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/round1/f13-saved-integral-check.md",
+    "sha256": "eed5d5a773bb77268f6d36732b551fe0028d0984b17aadd81ce6af3a1c96ee28"
+  }
+]
