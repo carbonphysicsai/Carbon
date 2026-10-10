@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-cheap-screen-first-validation",
+  "recorded_at": "2026-10-10T19:10:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHEAP-BASELINE-COMPARATORS-01", "description": "Native comparator, existing baseline, producer-panel and pipeline suites: 93 passed. Black formatted two files. Ruff found five B023 captures in the immediate ranking sort closure; no test failure."},
+  "expected": "Cost and predicted ranking exports preserve held-out predictions and registered tie rules.",
+  "observed": "All four synthetic methods export cost/rankings. Reference mutation cannot change ranking. Failed fits preserve cost without free queries; lint requires explicit loop binding.",
+  "keep": ["Keep fit, query, ranking and witness-diagnostic costs distinct; leave unsupported actions unranked."],
+  "change": ["Bind ranking closure values explicitly and rerun pinned lint before publishing."],
+  "protocol_elements": ["lessons", "optimizer", "cheap baseline"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
