@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-portfolio-baseline-existing-tests",
+  "recorded_at": "2026-10-10T18:14:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHEAP-BASELINE-COMPARATORS-01", "description": "Existing #917 comparator and producer-panel native tests: 42 passed."},
+  "expected": "Reuse the neutral decision evaluator without introducing another selection policy.",
+  "observed": "Existing tests passed; the neutral export has no coordinates/curves side channel for new families.",
+  "keep": ["Wrap the existing reporting and reference-resolution implementation."],
+  "change": ["Require a separate digest-bound producer material return, not ordinal IDs as coordinates."],
+  "protocol_elements": ["design packet", "lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
