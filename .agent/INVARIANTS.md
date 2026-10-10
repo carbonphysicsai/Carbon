@@ -43,7 +43,7 @@ Aligned with `CONSTITUTION.md`, `docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MAST
 ## Business / publication invariants
 
 29. **Commercial pressure does not rewrite scientific truth.** Customer payment, investor priority, sales urgency, or sponsor reward cannot weaken the registered scientific ruler after outcomes are observed.
-30. **OpCo revenue != Alpha value by declaration.** Network value requires an explicit useful-work/economic bridge.
+30. **Revenue reaches Alpha only through an explicit, owner-approved mechanism.** Carbon intends to use a share of company revenue to support Alpha, with buyback and burn as the current direction (OWNER-LAUNCH-STRATEGY-01). The mechanism is never automatic and never passes through scoring, ranking or qualification.
 31. **Business architecture != traction.** A designed product, price, margin, network advantage, or revenue scenario is not a commercial actual.
 32. **Publications are explanatory only.** Papers, README, decks, and investor materials never override protocol, science, business, or implementation authority.
 

@@ -1,0 +1,3150 @@
+{
+  "schema": "carbon.research.launch-portfolio-review.v1",
+  "sources": [
+    {
+      "id": "AUTH_BUSINESS",
+      "path": "Business/Business_Canon.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/Business/Business_Canon.md",
+      "support": "Business/commercial authority; value is not scientific merit.",
+      "git_blob": "9ed2ef7eddaba07855b7443622efcd8112ae3af1"
+    },
+    {
+      "id": "AUTH_CONSTITUTION",
+      "path": "CONSTITUTION.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/CONSTITUTION.md",
+      "support": "Authority and maturity separation.",
+      "git_blob": "1214f32cb77a152c6ee1c1727135d4e472c130f3"
+    },
+    {
+      "id": "FRAMEWORK",
+      "path": "Business/research/deliverable-framework/FRAMEWORK.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/Business/research/deliverable-framework/FRAMEWORK.md",
+      "support": "D01–D11 and maturity entry criteria.",
+      "git_blob": "707db692f722f778b3fb16ea589480d8bda13ac8"
+    },
+    {
+      "id": "VALUES",
+      "path": "docs/development/challenge_pipeline/value-cost/README.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/README.md",
+      "support": "#846 gates, bank cap and index; historical Already measured block is not current acceptance.",
+      "git_blob": "4f60a3b949554fbe86b7052c8e3231f510cad454"
+    },
+    {
+      "id": "V_BATTERY",
+      "path": "docs/development/challenge_pipeline/value-cost/battery.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/battery.md",
+      "support": "Current v3 value assumptions, boundary counts and incomplete current costs.",
+      "git_blob": "d83cb1cda0a1b702ad720d1ae2bd58be8ce4f437"
+    },
+    {
+      "id": "V_MOTOR",
+      "path": "docs/development/challenge_pipeline/value-cost/motor.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/motor.md",
+      "support": "Current precision-joint question, unknown revised feasibility/cost.",
+      "git_blob": "862ba1eed1591e0636bcb54fdf8c2504af034db0"
+    },
+    {
+      "id": "V_COOLING",
+      "path": "docs/development/challenge_pipeline/value-cost/cooling-cell.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/cooling-cell.md",
+      "support": "Current case plane, current Set A and baseline/adequacy holds.",
+      "git_blob": "293293776b9be8dab7d0904f906e00d61096707a"
+    },
+    {
+      "id": "V_F02",
+      "path": "docs/development/challenge_pipeline/value-cost/f02.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/f02.md",
+      "support": "Action cardinality, reported timing and unresolved current panel.",
+      "git_blob": "6bf67b6601c17093488b5e427a63fc14808ecd54"
+    },
+    {
+      "id": "V_F06",
+      "path": "docs/development/challenge_pipeline/value-cost/f06.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/f06.md",
+      "support": "Inactive 2D reframe, lower value and strong existing 2D baseline.",
+      "git_blob": "6c17b988ea907e88acdd345beb960759edea2f59"
+    },
+    {
+      "id": "V_F08",
+      "path": "docs/development/challenge_pipeline/value-cost/f08.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/f08.md",
+      "support": "Cached modal incumbent and unknown revised route.",
+      "git_blob": "4aa007bf147304198b9f2c42842b2e27a52f1442"
+    },
+    {
+      "id": "V_F13",
+      "path": "docs/development/challenge_pipeline/value-cost/f13.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/f13.md",
+      "support": "Power closure issue, expensive curve tail and conditional coaxial reframe.",
+      "git_blob": "36ca2cb15399569312cd65d0ee691869fd3f4aa0"
+    },
+    {
+      "id": "V_F17",
+      "path": "docs/development/challenge_pipeline/value-cost/f17.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/f17.md",
+      "support": "Diffusion-protected finite scalar requirements and unknown complete panel cost.",
+      "git_blob": "b245272f730af1b8797bf2383da2039a48d4c687"
+    },
+    {
+      "id": "BASELINES",
+      "path": "docs/development/challenge_pipeline/cheap-baselines/README.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/cheap-baselines/README.md",
+      "support": "#864 matched CLOSED_BANK and NEW_SUPPORTED arms; whole geometry holdout and equal cost accounting.",
+      "git_blob": "32db48afd8348a88200fda906f9fc13c26ede78a"
+    },
+    {
+      "id": "REPLACEMENTS",
+      "path": "docs/development/challenge_pipeline/value-cost/replacements/README.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/replacements/README.md",
+      "support": "#921 contingent routes, cost assumptions and no V4 PASS.",
+      "git_blob": "4eb4ccb52afd9eac8ca9bfcb2490b5c6867f3ce4"
+    },
+    {
+      "id": "SOLENOID",
+      "path": "docs/development/challenge_pipeline/value-cost/replacements/solenoid-pole.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/replacements/solenoid-pole.md",
+      "support": "Exact role/full-curve scope and excluded dynamics.",
+      "git_blob": "1bf4e448f74e834710f9800efd72fb8a8a3d8ffd"
+    },
+    {
+      "id": "SEAL",
+      "path": "docs/development/challenge_pipeline/value-cost/replacements/seal-gland.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/replacements/seal-gland.md",
+      "support": "Material/support scope; deformation does not certify leakage.",
+      "git_blob": "3c002d86850e02e3138513c34cbdd556d730d302"
+    },
+    {
+      "id": "BOLT",
+      "path": "docs/development/challenge_pipeline/value-cost/replacements/bolted-joint.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/replacements/bolted-joint.md",
+      "support": "Nonlinear local 3D contact route, singular stress caution.",
+      "git_blob": "38a96c3e7038ff48c9f0912ee79212a12fa00577"
+    },
+    {
+      "id": "TRANSFORMER",
+      "path": "docs/development/challenge_pipeline/discovery/dossiers/planar-transformer.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/discovery/dossiers/planar-transformer.md",
+      "support": "Bounded magnetic subdecision with no AC-loss/thermal claim.",
+      "git_blob": "06d8f13baa0475c862664cd3b426a53ab574a309"
+    },
+    {
+      "id": "DISCOVERY",
+      "path": "docs/development/challenge_pipeline/discovery/data.json",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/discovery/data.json",
+      "support": "#928 predecessor arithmetic; not new candidate acceptance.",
+      "git_blob": "4e7659f72d92ae40bf1d2a72fa1a6925a66d047c"
+    },
+    {
+      "id": "SEARCH",
+      "path": "docs/development/challenge_pipeline/discovery/search-completion/data.json",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/discovery/search-completion/data.json",
+      "support": "#937 all 100 scored, zero admitted; inherited scenarios and hard filters.",
+      "git_blob": "b7eea15176a1986e91a86b0545db9113c0ea8d5a"
+    },
+    {
+      "id": "BUYER_VOLUME",
+      "path": "docs/development/challenge_pipeline/discovery/buyer-volume/buyer-evidence.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/discovery/buyer-volume/buyer-evidence.md",
+      "support": "#939 exact annual volume unknown; Bosch solenoid study already uses a metamodel.",
+      "git_blob": "f03a307834d8434644e77f51ada5d5d15d913224"
+    },
+    {
+      "id": "VOLUME",
+      "path": "docs/development/challenge_pipeline/value-cost/volume-leverage.json",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/volume-leverage.json",
+      "support": "#857 cost/reuse sensitivities; not measured buyer cadence.",
+      "git_blob": "0f41df4b7a06ed0f427c872de5cab228374519d8"
+    },
+    {
+      "id": "F06_COST",
+      "path": "docs/development/challenge_pipeline/solver-package-specs/f06-resolution-cost/README.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/solver-package-specs/f06-resolution-cost/README.md",
+      "support": "#955 full 45-row original job, unproved adequate grid, cost/witness sensitivity.",
+      "git_blob": "5b9a4bba49a3b2b28a3d6d0b731a0c7c120cb2cd"
+    },
+    {
+      "id": "MOTOR_LAW",
+      "path": "docs/development/challenge_pipeline/question-laws/motor-round2.json",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/question-laws/motor-round2.json",
+      "support": "#922 raw curve missing/full-buyer HOLD, observed allocated timings vs hypothetical bundles and node bill.",
+      "git_blob": "35e881f00b420ba9dba2791cff742e20196b804b"
+    },
+    {
+      "id": "FEASIBILITY_REVISIONS",
+      "path": "docs/development/challenge_pipeline/round1/customer-feasibility-revisions.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/round1/customer-feasibility-revisions.md",
+      "support": "Separate holding/peak/cogging and prospective changes; no automatic feasibility.",
+      "git_blob": "f68824ce0e9b8952b9c5f87bb0a2963bca89c2bf"
+    },
+    {
+      "id": "F13_DIAGNOSIS",
+      "path": "docs/development/challenge_pipeline/round1/f13-power-balance-diagnosis.json",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/round1/f13-power-balance-diagnosis.json",
+      "support": "4.7% OWNER_REPORTED reference residual vs existing 1% closure; raw diagnostic gaps.",
+      "git_blob": "840736b1f734348c4e171669d3e0d8b4d6c33c1e"
+    },
+    {
+      "id": "WARPAGE_PROCESS",
+      "path": "docs/development/challenge_pipeline/solver-package-specs/warpage-process-physics/assessment.json",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/solver-package-specs/warpage-process-physics/assessment.json",
+      "support": "#957 process-history data and original job gap.",
+      "git_blob": "ea37bb40a27873e8394bca9add4a8f8f9b4afa83"
+    },
+    {
+      "id": "WARPAGE",
+      "path": "Business/research/warpage-representative-case/ASSESSMENT.md",
+      "ref": "8733db1550b02b29b2f18b08b2db095a380a4b4e",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/8733db1550b02b29b2f18b08b2db095a380a4b4e/Business/research/warpage-representative-case/ASSESSMENT.md",
+      "support": "#983 open research head, bounded no-coherent-set finding; no universal absence claim.",
+      "git_blob": "9cc009a5130d872f65dfbede23c8d6271b597130"
+    },
+    {
+      "id": "BATTERY_SAMPLE",
+      "path": "Business/research/battery-evidenceaudit-sample/SAMPLE.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/Business/research/battery-evidenceaudit-sample/SAMPLE.md",
+      "support": "Committed historical EV/Q1 adverse findings and mismatched v3 gap; citations preserved.",
+      "git_blob": "b0f778e521d350b5c5e1c859e90e7f769759e03f"
+    },
+    {
+      "id": "QUOTE",
+      "path": "Business/research/intake-spec-and-quote-model/INTAKE_AND_QUOTE.md",
+      "ref": "a0a21601e13f03c19358940d4ebf5b1e67df031c",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/a0a21601e13f03c19358940d4ebf5b1e67df031c/Business/research/intake-spec-and-quote-model/INTAKE_AND_QUOTE.md",
+      "support": "#984 open research head, unmeasured stage labels and decomposition; no fitted eight-point forecast.",
+      "git_blob": "3a267bd14d78e62dbbda5752bfd79f1a6bb9ca9a"
+    },
+    {
+      "id": "STAGES",
+      "path": "docs/development/challenge_pipeline/onboarding/stage_map.json",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/onboarding/stage_map.json",
+      "support": "#970 stages and seven-part S10 definition; definition VERIFIED is not Challenge PASS.",
+      "git_blob": "8876c32c946611208fe9253c546d0e0288e78452"
+    },
+    {
+      "id": "STATUS",
+      "path": "carbon/challenge_pipeline/onboarding/status.py",
+      "ref": "28ca01254eb6335a3e9166b2257feab0444a79a3",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/28ca01254eb6335a3e9166b2257feab0444a79a3/carbon/challenge_pipeline/onboarding/status.py",
+      "support": "#979 unmerged exact-head read-only implementation: exits never inferred from presence.",
+      "git_blob": "5d1233740e0f45e586e08a3e6a6ecdb2fa487876"
+    },
+    {
+      "id": "STATUS_BINDINGS",
+      "path": "docs/development/challenge_pipeline/onboarding-automation/artifacts.json",
+      "ref": "28ca01254eb6335a3e9166b2257feab0444a79a3",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/28ca01254eb6335a3e9166b2257feab0444a79a3/docs/development/challenge_pipeline/onboarding-automation/artifacts.json",
+      "support": "Explicit public bindings for eight; absent bindings are unknown work, not none.",
+      "git_blob": "3ded0afed21d50bfac4473ada2d0b3cf2917e168"
+    },
+    {
+      "id": "CREDIBILITY",
+      "path": "docs/development/challenge_pipeline/round1/reference-credibility.md",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/round1/reference-credibility.md",
+      "support": "Buyer Tier1/2/3 meanings; no free relabeling of internal representative study.",
+      "git_blob": "ace97d3be1d88e7d46bf9a01920133221fc09966"
+    }
+  ],
+  "external_sources": [
+    {
+      "id": "GETDP",
+      "url": "https://www.getdp.info/doc/texinfo/getdp.html",
+      "support": "Official open GPL solver, axisymmetric/3D magnetic formulations; capability is not an accepted Challenge deck. Accessed 2026-10-10."
+    },
+    {
+      "id": "CALCULIX",
+      "url": "https://www.dhondt.de/",
+      "support": "Official source, manual and test-example routes. Separate deck/material/example rights and exact support still require audit. Accessed 2026-10-10."
+    },
+    {
+      "id": "ANSYS_GRATING",
+      "url": "https://optics.ansys.com/hc/en-us/articles/360042305334-Grating-coupler",
+      "support": "Official worked workflow reports 10–20 minute 2D optimization then hours for final 3D; source range not hardware-normalized or transferred to Carbon. Accessed 2026-10-10."
+    },
+    {
+      "id": "VOGEL",
+      "url": "https://www.comsol.de/paper/theory-of-proportional-solenoids-and-magnetic-force-calculation-using-comsol-multiphysics-11391",
+      "support": "Independent research authors compare pole force-stroke geometry using reluctance and FE; force observers differ. Vendor hosting is not an extra independent origin."
+    }
+  ],
+  "status_annotations": {
+    "battery_s6": {
+      "source_ids": [
+        "STATUS",
+        "STATUS_BINDINGS"
+      ],
+      "finding": "ZERO_COUNT_COUNTER_DICT_COMPARISON_UNDERREPORTS_READINESS_ARTIFACT",
+      "observed_diagnostic": {
+        "history_and_report_digest_match": true,
+        "report_digest_field_matches": true,
+        "count_dicts_match": true,
+        "git_sha_matches": true,
+        "items_checked": 41,
+        "raw_counter_equals_history_counts": false,
+        "nonzero_counts_match": true
+      },
+      "consequence": "Historical dirty level-1 report remains launch_ready false; no stage acceptance inferred. Existing tool/gate left unchanged.",
+      "scope": "NATIVE_READ_ONLY_DOCUMENT_DIAGNOSTIC_NOT_CANONICAL_ACCEPTANCE"
+    }
+  },
+  "ticket": "LAUNCH-PORTFOLIO-REVIEW-01",
+  "as_of": "2026-10-10",
+  "source_main": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+  "status_tool_head": "28ca01254eb6335a3e9166b2257feab0444a79a3",
+  "scope": "RESEARCH_RECOMMENDATION_ONLY",
+  "solver_runs": 0,
+  "training_or_fitting_runs": 0,
+  "spend_eur": 0,
+  "protected_or_AX42_access": false,
+  "adoption": null,
+  "launch_authorized": false,
+  "numeric_policy": {
+    "observations": "SOURCED; point observation L=B=H refers only to cited artifact, not statistical uncertainty; raw status counts/file metadata inherit exact source hashes.",
+    "estimates": "ASSUMPTION low/base/high; no intervals are claimed to have statistical coverage.",
+    "unknowns": "null = HUMAN_INPUT/UNMEASURED, not zero; exact IDs/dates/schema ordinals are identifiers.",
+    "scoring": "Ordinal 0–4 rubric, low/base/high judgment sensitivity. No weighted sum; cannot compensate failed gates. Upper bands A<=3, B<=2, D<=3: uninspected or missing acceptance and matched-benefit evidence cannot establish the corresponding higher rubric level."
+  },
+  "rubric": {
+    "A": {
+      "name": "Internal runnable route",
+      "scale": [
+        "Known blocking data/reference issue",
+        "Open route; coherent deck/material/rights not established",
+        "Public package or partial source-backed runs; exact current job incomplete",
+        "Current representative case panel exists; complete adequacy/cost still incomplete",
+        "Exact internal parameter/rights/reference/cost acceptance established"
+      ]
+    },
+    "B": {
+      "name": "Incremental buyer utility",
+      "scale": [
+        "Strongest incumbent plausibly eliminates current decision advantage",
+        "Real decision class; baseline residual weak",
+        "Plausible residual against strong comparator; not measured",
+        "Matched-admissibility incremental decision utility observed",
+        "Current scoped utility plus sourced exact volume accepted"
+      ]
+    },
+    "C": {
+      "name": "Quote-model teaching",
+      "scale": [
+        "Duplicates another slot without meaningful new feature",
+        "One narrow feature change",
+        "Useful contrast with represented family",
+        "New physics/numerical/cost feature",
+        "Distinct coupled/history/transport or gate-failure interaction"
+      ]
+    },
+    "D": {
+      "name": "Evidence progress toward TESTED",
+      "scale": [
+        "Desk dossier only; no inspected task-specific execution",
+        "Packet/package specification or unbound timing",
+        "Historical or partially matched reference/model study",
+        "Current diagnostic panel with unresolved gates",
+        "Exact public S10 acceptance receipt for enabled scope"
+      ]
+    }
+  },
+  "target_portfolio": [
+    {
+      "slot": "battery",
+      "target": "battery-v3",
+      "disposition": "KEEP_PRIORITY"
+    },
+    {
+      "slot": "f02",
+      "target": "f02",
+      "disposition": "KEEP_PRIORITY"
+    },
+    {
+      "slot": "f17",
+      "target": "f17",
+      "disposition": "KEEP_PRIORITY_HIGH_RISK"
+    },
+    {
+      "slot": "cooling-cell",
+      "target": "D012",
+      "disposition": "REPLACE_TARGET_ONLY"
+    },
+    {
+      "slot": "f08",
+      "target": "D076",
+      "disposition": "REPLACE_TARGET_ONLY"
+    },
+    {
+      "slot": "f13",
+      "target": "D077",
+      "disposition": "REPLACE_TARGET_ONLY"
+    },
+    {
+      "slot": "motor",
+      "target": "D006",
+      "disposition": "PROVISIONAL_REPLACE_TARGET; MOTOR_RETURN_ALLOWED_AFTER_FULL_BUYER_AND_COST_EVIDENCE"
+    },
+    {
+      "slot": "f06",
+      "target": "f06",
+      "disposition": "OPTICS_RESERVATION_HOLD; NO_EVIDENCE_BACKED_LAUNCH_SLOT"
+    }
+  ],
+  "cleared_launch_portfolio": null,
+  "unfilled_requirement": "No demonstrated affordable adequate optical Challenge. Preferred optics seat f06 remains HOLD.",
+  "research_conclusion": "Preferred target eight is a development plan, not a final admitted launch eight. No replacement in the completed 100-candidate desk search was admitted.",
+  "assessed": [
+    {
+      "id": "battery-v3",
+      "name": "Battery ambient-indexed charge/cooling map",
+      "origin": "current",
+      "action": "KEEP_DEVELOPMENT_PRIORITY",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            2,
+            3,
+            3
+          ],
+          "B": [
+            1,
+            2,
+            2
+          ],
+          "C": [
+            3,
+            4,
+            4
+          ],
+          "D": [
+            2,
+            3,
+            3
+          ]
+        }
+      },
+      "teaches": "Coupled electrochemistry/thermal/ageing; map vs session economics; small per-programme cost with many cycles/strata.",
+      "internal_route": "Published PyBaMM parameters support internal solver-relative study; exact v3 adequacy, cold/hot boundary counts and costs remain open.",
+      "strongest_baseline": "Exact map/cache, SPMe, conservative interpolation/ROM.",
+      "principal_limit": "Battery false-feasible and adversarial score findings retained; current v3 measurements cannot inherit historical EV/Q1 results.",
+      "source_ids": [
+        "V_BATTERY",
+        "BATTERY_SAMPLE",
+        "BASELINES",
+        "STATUS"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": null
+    },
+    {
+      "id": "motor",
+      "name": "Precision-joint magnetic shortlist",
+      "origin": "current",
+      "action": "RESERVE_REPLACE_WITH_D006_IF_OWNER_ADOPTS",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            1,
+            2,
+            3
+          ],
+          "B": [
+            1,
+            2,
+            2
+          ],
+          "C": [
+            2,
+            3,
+            4
+          ],
+          "D": [
+            1,
+            2,
+            3
+          ]
+        }
+      },
+      "teaches": "Rotating nonlinear EM, signed torque/cogging curves, skew and multiplicative role cost.",
+      "internal_route": "Open Gmsh/GetDP; common geometry meeting unchanged holding/peak/cogging limits is not demonstrated.",
+      "strongest_baseline": "Cached full curves/harmonics, circuit model, Kriging/RBF.",
+      "principal_limit": "12 N m peak is separate from holding; full-buyer HOLD, raw signed-curve re-export pending and throughput not measured.",
+      "source_ids": [
+        "V_MOTOR",
+        "MOTOR_LAW",
+        "FEASIBILITY_REVISIONS",
+        "STATUS"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": null
+    },
+    {
+      "id": "cooling-cell",
+      "name": "Periodic cold-plate cell screening",
+      "origin": "current",
+      "action": "REPLACE_TARGET_D012",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            1,
+            2,
+            3
+          ],
+          "B": [
+            0,
+            1,
+            2
+          ],
+          "C": [
+            2,
+            3,
+            4
+          ],
+          "D": [
+            1,
+            2,
+            3
+          ]
+        }
+      },
+      "teaches": "Steady conjugate thermal/fluid map, spatial output plane, effective-material support.",
+      "internal_route": "Open route and historical cell studies; new lid-side TIM2 map/property/settings remain unresolved.",
+      "strongest_baseline": "Thermal/hydraulic cached outputs and ordinary response surface.",
+      "principal_limit": "Historical same-winner study cannot establish current v3 residual; map applicability and final Set A remain open.",
+      "source_ids": [
+        "V_COOLING",
+        "BASELINES",
+        "STATUS"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": null
+    },
+    {
+      "id": "f02",
+      "name": "Transient burst-power thermal schedule",
+      "origin": "current",
+      "action": "KEEP_DEVELOPMENT_PRIORITY",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            1,
+            2,
+            3
+          ],
+          "B": [
+            1,
+            2,
+            2
+          ],
+          "C": [
+            3,
+            4,
+            4
+          ],
+          "D": [
+            0,
+            1,
+            2
+          ]
+        }
+      },
+      "teaches": "3D transient event/crossing/integral objective; very strong linear convolution/RC comparator.",
+      "internal_route": "Open Elmer route; exact package material/event/observer identity and refined context panel remain open.",
+      "strongest_baseline": "Fixed-stack impulse response, RC/ROM, exact schedule lookup.",
+      "principal_limit": "Original nine-action menu cannot satisfy five designs on each side; proposed denser grammar not adopted by this recommendation.",
+      "source_ids": [
+        "V_F02",
+        "BASELINES",
+        "STATUS"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": null
+    },
+    {
+      "id": "f06",
+      "name": "Finite-width 3D grating coupler",
+      "origin": "current",
+      "action": "RESERVE_OPTICS_HOLD",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            1,
+            2
+          ],
+          "B": [
+            0,
+            1,
+            2
+          ],
+          "C": [
+            3,
+            4,
+            4
+          ],
+          "D": [
+            0,
+            1,
+            2
+          ]
+        }
+      },
+      "teaches": "Vector wave optics, memory/bandwidth, complete perturbation/wavelength panel, grid/witness economics.",
+      "internal_route": "Open Meep route; adequate affordable full-3D startup not demonstrated.",
+      "strongest_baseline": "Industry 2D optimizer plus retained 3D checks and cached/compact models.",
+      "principal_limit": "Coverage cannot waive cost or numerical adequacy; no demonstrated affordable optical replacement.",
+      "source_ids": [
+        "V_F06",
+        "F06_COST",
+        "BASELINES",
+        "STATUS"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": null
+    },
+    {
+      "id": "f08",
+      "name": "Linear resonant stage support",
+      "origin": "current",
+      "action": "REPLACE_TARGET_D076",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            1,
+            2,
+            3
+          ],
+          "B": [
+            0,
+            0,
+            1
+          ],
+          "C": [
+            1,
+            2,
+            3
+          ],
+          "D": [
+            0,
+            1,
+            2
+          ]
+        }
+      },
+      "teaches": "Linear structures, resonance and curve extraction; mostly repeatable modal-library baseline.",
+      "internal_route": "Open CalculiX route; current complete static/modal/harmonic adequacy and boundary panel remain open.",
+      "strongest_baseline": "Cached modal basis, direct modal-superposition sweep, static solve reuse.",
+      "principal_limit": "No demonstrated incremental advantage; cheaper reference modal implementation strengthens buyer incumbent too.",
+      "source_ids": [
+        "V_F08",
+        "BASELINES",
+        "STATUS"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": null
+    },
+    {
+      "id": "f13",
+      "name": "Offset compressor silencer",
+      "origin": "current",
+      "action": "REPLACE_TARGET_D077",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            0,
+            0
+          ],
+          "B": [
+            0,
+            1,
+            2
+          ],
+          "C": [
+            2,
+            3,
+            4
+          ],
+          "D": [
+            1,
+            2,
+            3
+          ]
+        }
+      },
+      "teaches": "Wave acoustics, complex modal port observer, conservation and full-curve tail.",
+      "internal_route": "Current offset reference has unresolved conservation finding; internal execution alone cannot grade it adequately.",
+      "strongest_baseline": "Transfer matrices where valid; retained modes/reduced Helmholtz and exact curves.",
+      "principal_limit": "Reported 4.7% closure exceeds 1% packet limit. Repair may restore value; no tolerance relaxation or automatic coaxial adoption.",
+      "source_ids": [
+        "V_F13",
+        "F13_DIAGNOSIS",
+        "BASELINES",
+        "STATUS"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": null
+    },
+    {
+      "id": "f17",
+      "name": "Finite passive micromixer",
+      "origin": "current",
+      "action": "KEEP_DEVELOPMENT_PRIORITY_HIGH_RISK",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            1,
+            2
+          ],
+          "B": [
+            1,
+            2,
+            2
+          ],
+          "C": [
+            3,
+            4,
+            4
+          ],
+          "D": [
+            0,
+            1,
+            2
+          ]
+        }
+      },
+      "teaches": "3D flow plus scalar transport, high-Pe numerical diffusion, finite composition and multi-condition cost.",
+      "internal_route": "Open OpenFOAM route; finite-cartridge diffusion and entry/exit adequacy/cost remain unproved.",
+      "strongest_baseline": "CFD-trained RBF/response surface; verified flow reuse with finite scalar transport.",
+      "principal_limit": "Retain finite scalar boundary and diffusion controls; if adequate route cannot fit, reserve D079 is also unproved.",
+      "source_ids": [
+        "V_F17",
+        "BASELINES",
+        "STATUS"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": null
+    },
+    {
+      "id": "D012",
+      "name": "Solenoid pole",
+      "origin": "candidate",
+      "action": "REPLACEMENT_TARGET_COOLING",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            1,
+            2
+          ],
+          "B": [
+            1,
+            2,
+            2
+          ],
+          "C": [
+            2,
+            3,
+            4
+          ],
+          "D": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "teaches": "Axisymmetric nonlinear saturation/fringing; full stroke-current envelope; cheap complete curves.",
+      "internal_route": "Coherent open B-H/winding/geometry/observer source and rights audit still required.",
+      "strongest_baseline": "Reluctance circuit plus manufacturer force map and Bosch-style calibrated metamodel.",
+      "principal_limit": "Neither open solver capability nor vendor paper establishes current deck/material rights or baseline advantage.",
+      "source_ids": [
+        "SOLENOID",
+        "SEARCH",
+        "BUYER_VOLUME",
+        "GETDP"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": {
+        "source": "SEARCH",
+        "status": "HOLD",
+        "V_scores_low_base_high": [
+          [
+            3,
+            4,
+            5
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_low_base_high": [
+          2.3333333333333335,
+          3.3333333333333335,
+          4.333333333333334
+        ],
+        "C1_cpu_h_assumption": [
+          0.01,
+          0.04,
+          0.12
+        ],
+        "C2_eur_assumption": [
+          18.982953000000002,
+          26.368212,
+          46.062236000000006
+        ],
+        "C3_weekly_eur_assumption": [
+          0.47457382500000006,
+          2.6368212,
+          18.424894400000003
+        ],
+        "VCI_assumption": [
+          5.377646495891962,
+          2113.9823771088827,
+          164907.6823088955
+        ],
+        "gates": {
+          "G1": "HOLD_EXACT_BUYER_DECISION",
+          "G2": "HOLD_EXACT_DECK_AND_PIN",
+          "G3": "HOLD_LIMITS_AND_WITNESSES",
+          "G4": "HOLD_COUNTS_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_BASELINE",
+          "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+          "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+        }
+      }
+    },
+    {
+      "id": "D077",
+      "name": "Seal gland",
+      "origin": "candidate",
+      "action": "REPLACEMENT_TARGET_F13",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            1,
+            2
+          ],
+          "B": [
+            1,
+            2,
+            2
+          ],
+          "C": [
+            2,
+            3,
+            4
+          ],
+          "D": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "teaches": "Axisymmetric nearly incompressible hyperelastic contact, load history and material-law readiness.",
+      "internal_route": "Exact published compound law, calibration support and redistribution rights unconfirmed.",
+      "strongest_baseline": "Supplier gland/squeeze/fill charts, calibrated contact response surface, lookup.",
+      "principal_limit": "Representative contact/extrusion screening only; no leakage, pressure safety, chemical compatibility or lifetime claim.",
+      "source_ids": [
+        "SEAL",
+        "SEARCH",
+        "CALCULIX"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": {
+        "source": "SEARCH",
+        "status": "HOLD",
+        "V_scores_low_base_high": [
+          [
+            3,
+            4,
+            5
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_low_base_high": [
+          1.6666666666666665,
+          2.6666666666666665,
+          3.6666666666666665
+        ],
+        "C1_cpu_h_assumption": [
+          0.015,
+          0.05,
+          0.15
+        ],
+        "C2_eur_assumption": [
+          20.213829500000003,
+          28.829965,
+          53.447494999999996
+        ],
+        "C3_weekly_eur_assumption": [
+          0.5053457375000001,
+          2.8829965000000004,
+          21.378998
+        ],
+        "VCI_assumption": [
+          5.149527733678916,
+          2014.0335282763006,
+          154865.9932354082
+        ],
+        "gates": {
+          "G1": "HOLD_EXACT_BUYER_DECISION",
+          "G2": "HOLD_EXACT_DECK_AND_PIN",
+          "G3": "HOLD_LIMITS_AND_WITNESSES",
+          "G4": "HOLD_COUNTS_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_BASELINE",
+          "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+          "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+        }
+      }
+    },
+    {
+      "id": "D006",
+      "name": "Planar transformer magnetic subdecision",
+      "origin": "candidate",
+      "action": "REPLACEMENT_TARGET_MOTOR",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            1,
+            2
+          ],
+          "B": [
+            1,
+            2,
+            2
+          ],
+          "C": [
+            2,
+            3,
+            4
+          ],
+          "D": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "teaches": "Winding-stack/gap geometry, inductance/leakage extraction and flux; contrast with axisymmetric force.",
+      "internal_route": "Exact material/geometry/winding source, output observer and rights not frozen.",
+      "strongest_baseline": "Analytical planar leakage/equivalent circuit plus cached FE surface.",
+      "principal_limit": "Magnetostatic/fringing screen only; no AC loss, frequency efficiency, thermal rating or insulation certification.",
+      "source_ids": [
+        "TRANSFORMER",
+        "SEARCH",
+        "GETDP"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": {
+        "source": "SEARCH",
+        "status": "HOLD",
+        "V_scores_low_base_high": [
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_low_base_high": [
+          3.666666666666667,
+          4.666666666666667,
+          5
+        ],
+        "C1_cpu_h_assumption": [
+          0.03,
+          0.08,
+          0.2
+        ],
+        "C2_eur_assumption": [
+          23.906459000000005,
+          36.21522399999999,
+          65.75626
+        ],
+        "C3_weekly_eur_assumption": [
+          0.5976614750000001,
+          3.6215223999999995,
+          26.302504
+        ],
+        "VCI_assumption": [
+          3.7670393969843876,
+          1539.185163782805,
+          130945.14677429623
+        ],
+        "gates": {
+          "G1": "HOLD_EXACT_BUYER_DECISION",
+          "G2": "HOLD_EXACT_DECK_AND_PIN",
+          "G3": "HOLD_LIMITS_AND_WITNESSES",
+          "G4": "HOLD_COUNTS_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_BASELINE",
+          "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+          "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+        }
+      }
+    },
+    {
+      "id": "D076",
+      "name": "Bolted joint",
+      "origin": "candidate",
+      "action": "REPLACEMENT_TARGET_F08",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            1,
+            2
+          ],
+          "B": [
+            1,
+            2,
+            2
+          ],
+          "C": [
+            3,
+            4,
+            4
+          ],
+          "D": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "teaches": "3D preload/contact/prying, load history and stress-observer definition.",
+      "internal_route": "Exact joint/material/friction/assembly source and rights not frozen.",
+      "strongest_baseline": "VDI-style compliance plus contact-aware FE response surface, exact lookup.",
+      "principal_limit": "No fatigue, loosening, flight or pressure-vessel acceptance; singular peak stress cannot define accepted quality.",
+      "source_ids": [
+        "BOLT",
+        "SEARCH",
+        "CALCULIX"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": {
+        "source": "SEARCH",
+        "status": "HOLD",
+        "V_scores_low_base_high": [
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_low_base_high": [
+          1.6666666666666665,
+          2.6666666666666665,
+          3.6666666666666665
+        ],
+        "C1_cpu_h_assumption": [
+          0.03,
+          0.08,
+          0.24
+        ],
+        "C2_eur_assumption": [
+          26.107364,
+          42.084303999999996,
+          93.21051200000001
+        ],
+        "C3_weekly_eur_assumption": [
+          0.6526841000000001,
+          4.2084304,
+          37.284204800000005
+        ],
+        "VCI_assumption": [
+          2.6574944896595842,
+          1324.5302924309017,
+          119906.19897928782
+        ],
+        "gates": {
+          "G1": "HOLD_EXACT_BUYER_DECISION",
+          "G2": "HOLD_EXACT_DECK_AND_PIN",
+          "G3": "HOLD_LIMITS_AND_WITNESSES",
+          "G4": "HOLD_COUNTS_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_BASELINE",
+          "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+          "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+        }
+      }
+    },
+    {
+      "id": "B008",
+      "name": "Connector contact spring",
+      "origin": "candidate",
+      "action": "RESERVE_NOT_SELECTED",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            1,
+            2
+          ],
+          "B": [
+            0,
+            1,
+            2
+          ],
+          "C": [
+            2,
+            3,
+            4
+          ],
+          "D": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "teaches": "Contact/plasticity and spring geometry; overlaps joint/seal.",
+      "internal_route": "Specific spring workflow and exact friction/plastic material set not established.",
+      "strongest_baseline": "Beam/elastica estimates, cached contact FE/response surfaces.",
+      "principal_limit": "Public source supports broader connector simulation; exact decision and rights remain gaps.",
+      "source_ids": [
+        "SEARCH"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": {
+        "source": "SEARCH",
+        "status": "HOLD",
+        "V_scores_low_base_high": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_low_base_high": [
+          2,
+          3,
+          4
+        ],
+        "C1_cpu_h_assumption": [
+          0.02,
+          0.06,
+          0.25
+        ],
+        "C2_eur_assumption": [
+          21.444706,
+          31.291718000000003,
+          78.065025
+        ],
+        "C3_weekly_eur_assumption": [
+          0.53611765,
+          3.1291718000000004,
+          31.226010000000002
+        ],
+        "VCI_assumption": [
+          3.525642344931871,
+          1855.5873515488106,
+          145977.0435933557
+        ],
+        "gates": {
+          "G1": "HOLD_EXACT_CURRENT_BUYER_AND_TWO_INDEPENDENT_ORIGINS",
+          "G2": "HOLD_EXACT_DECK_OUTPUTS_LICENCE_AND_PIN",
+          "G3": "HOLD_SOURCED_LIMITS_AND_FEASIBLE_WITNESSES_EACH_STRATUM",
+          "G4": "HOLD_FIVE_FEASIBLE_AND_FIVE_NEAR_INFEASIBLE_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_STRONGEST_INCUMBENT",
+          "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+          "G7": "HOLD_ALL_LIMITS_SOURCED_NO_RELAXATION"
+        }
+      }
+    },
+    {
+      "id": "B001",
+      "name": "Bottle wall/base",
+      "origin": "candidate",
+      "action": "RESERVE_NOT_SELECTED",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            1,
+            2
+          ],
+          "B": [
+            1,
+            2,
+            2
+          ],
+          "C": [
+            2,
+            3,
+            4
+          ],
+          "D": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "teaches": "Nonlinear shell/buckling/contact/rate history; added material-data burden.",
+      "internal_route": "Service history and rate-law/material fit/rights unconfirmed.",
+      "strongest_baseline": "Existing nonlinear shell cache/DOE and physics surrogate.",
+      "principal_limit": "Not finished-bottle certification; poorer data readiness than illustrative bill suggests.",
+      "source_ids": [
+        "SEARCH"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": {
+        "source": "SEARCH",
+        "status": "HOLD",
+        "V_scores_low_base_high": [
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_low_base_high": [
+          2.3333333333333335,
+          3.3333333333333335,
+          4.333333333333334
+        ],
+        "C1_cpu_h_assumption": [
+          0.02,
+          0.08,
+          0.3
+        ],
+        "C2_eur_assumption": [
+          21.444706,
+          36.21522399999999,
+          90.37379
+        ],
+        "C3_weekly_eur_assumption": [
+          0.53611765,
+          3.6215223999999995,
+          36.149516
+        ],
+        "VCI_assumption": [
+          1.8272733131906838,
+          1154.3888728371037,
+          116781.63487468453
+        ],
+        "gates": {
+          "G1": "HOLD_EXACT_CURRENT_BUYER_AND_TWO_INDEPENDENT_ORIGINS",
+          "G2": "HOLD_EXACT_DECK_OUTPUTS_LICENCE_AND_PIN",
+          "G3": "HOLD_SOURCED_LIMITS_AND_FEASIBLE_WITNESSES_EACH_STRATUM",
+          "G4": "HOLD_FIVE_FEASIBLE_AND_FIVE_NEAR_INFEASIBLE_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_STRONGEST_INCUMBENT",
+          "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+          "G7": "HOLD_ALL_LIMITS_SOURCED_NO_RELAXATION"
+        }
+      }
+    },
+    {
+      "id": "B002",
+      "name": "Speaker baffle",
+      "origin": "candidate",
+      "action": "RESERVE_ACOUSTICS_NOT_SELECTED",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            1,
+            2
+          ],
+          "B": [
+            0,
+            1,
+            2
+          ],
+          "C": [
+            2,
+            3,
+            4
+          ],
+          "D": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "teaches": "Wave acoustics/radiating boundary with linear cached field basis.",
+      "internal_route": "Exact excitation/radiation/open material measurement set unconfirmed.",
+      "strongest_baseline": "Boundary-element/modal cache and directivity map.",
+      "principal_limit": "Replacing f13 with another wave task does not establish an adequate reference or cheap-baseline deficit.",
+      "source_ids": [
+        "SEARCH"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": {
+        "source": "SEARCH",
+        "status": "HOLD",
+        "V_scores_low_base_high": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_low_base_high": [
+          2.6666666666666665,
+          3.6666666666666665,
+          4.666666666666666
+        ],
+        "C1_cpu_h_assumption": [
+          0.03,
+          0.1,
+          0.3
+        ],
+        "C2_eur_assumption": [
+          23.906459000000005,
+          41.13873000000001,
+          90.37379
+        ],
+        "C3_weekly_eur_assumption": [
+          0.5976614750000001,
+          4.113873000000001,
+          36.149516
+        ],
+        "VCI_assumption": [
+          1.8272733131906838,
+          1016.2309729275361,
+          104756.11741943698
+        ],
+        "gates": {
+          "G1": "HOLD_EXACT_CURRENT_BUYER_AND_TWO_INDEPENDENT_ORIGINS",
+          "G2": "HOLD_EXACT_DECK_OUTPUTS_LICENCE_AND_PIN",
+          "G3": "HOLD_SOURCED_LIMITS_AND_FEASIBLE_WITNESSES_EACH_STRATUM",
+          "G4": "HOLD_FIVE_FEASIBLE_AND_FIVE_NEAR_INFEASIBLE_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_STRONGEST_INCUMBENT",
+          "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+          "G7": "HOLD_ALL_LIMITS_SOURCED_NO_RELAXATION"
+        }
+      }
+    },
+    {
+      "id": "B006",
+      "name": "Tap-changer dielectric shield",
+      "origin": "candidate",
+      "action": "RESERVE_NOT_SELECTED",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            1,
+            2
+          ],
+          "B": [
+            0,
+            1,
+            2
+          ],
+          "C": [
+            1,
+            2,
+            3
+          ],
+          "D": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "teaches": "Electrostatics/boundary elements; linear unit-voltage reuse.",
+      "internal_route": "Exact field geometry/limits/rights unconfirmed.",
+      "strongest_baseline": "Unit-voltage superposition, boundary elements and cache.",
+      "principal_limit": "Field peaks do not certify breakdown/discharge or insulation safety.",
+      "source_ids": [
+        "SEARCH"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": {
+        "source": "SEARCH",
+        "status": "HOLD",
+        "V_scores_low_base_high": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_low_base_high": [
+          2,
+          3,
+          4
+        ],
+        "C1_cpu_h_assumption": [
+          0.01,
+          0.05,
+          0.25
+        ],
+        "C2_eur_assumption": [
+          18.982953000000002,
+          28.829965,
+          78.065025
+        ],
+        "C3_weekly_eur_assumption": [
+          0.47457382500000006,
+          2.8829965000000004,
+          31.226010000000002
+        ],
+        "VCI_assumption": [
+          1.0576927034795613,
+          725.0520701794682,
+          65963.07292355821
+        ],
+        "gates": {
+          "G1": "HOLD_EXACT_CURRENT_BUYER_AND_TWO_INDEPENDENT_ORIGINS",
+          "G2": "HOLD_EXACT_DECK_OUTPUTS_LICENCE_AND_PIN",
+          "G3": "HOLD_SOURCED_LIMITS_AND_FEASIBLE_WITNESSES_EACH_STRATUM",
+          "G4": "HOLD_FIVE_FEASIBLE_AND_FIVE_NEAR_INFEASIBLE_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_STRONGEST_INCUMBENT",
+          "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+          "G7": "HOLD_ALL_LIMITS_SOURCED_NO_RELAXATION"
+        }
+      }
+    },
+    {
+      "id": "D072",
+      "name": "Flexure stage",
+      "origin": "candidate",
+      "action": "RESERVE_NOT_SELECTED",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            1,
+            2
+          ],
+          "B": [
+            0,
+            1,
+            2
+          ],
+          "C": [
+            1,
+            2,
+            3
+          ],
+          "D": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "teaches": "Geometrically nonlinear flexure/parasitic coupling.",
+      "internal_route": "Exact source-backed stage material/limits remain open.",
+      "strongest_baseline": "Pseudo-rigid-body model and elastic map.",
+      "principal_limit": "Similar structures coverage; reduced model may settle current decision.",
+      "source_ids": [
+        "SEARCH"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": {
+        "source": "SEARCH",
+        "status": "HOLD",
+        "V_scores_low_base_high": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_low_base_high": [
+          2.6666666666666665,
+          3.6666666666666665,
+          4.666666666666666
+        ],
+        "C1_cpu_h_assumption": [
+          0.01,
+          0.06,
+          0.3
+        ],
+        "C2_eur_assumption": [
+          18.982953000000002,
+          31.291718000000003,
+          90.37379
+        ],
+        "C3_weekly_eur_assumption": [
+          0.47457382500000006,
+          3.1291718000000004,
+          36.149516
+        ],
+        "VCI_assumption": [
+          0.9136366565953419,
+          668.0114465575718,
+          65963.07292355821
+        ],
+        "gates": {
+          "G1": "HOLD_EXACT_CURRENT_BUYER_AND_TWO_INDEPENDENT_ORIGINS",
+          "G2": "HOLD_EXACT_DECK_OUTPUTS_LICENCE_AND_PIN",
+          "G3": "HOLD_SOURCED_LIMITS_AND_FEASIBLE_WITNESSES_EACH_STRATUM",
+          "G4": "HOLD_FIVE_FEASIBLE_AND_FIVE_NEAR_INFEASIBLE_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_STRONGEST_INCUMBENT",
+          "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+          "G7": "HOLD_ALL_LIMITS_SOURCED_NO_RELAXATION"
+        }
+      }
+    },
+    {
+      "id": "D071",
+      "name": "Compliant gripper",
+      "origin": "candidate",
+      "action": "RESERVE_NOT_SELECTED",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            1,
+            2
+          ],
+          "B": [
+            1,
+            2,
+            2
+          ],
+          "C": [
+            2,
+            3,
+            4
+          ],
+          "D": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "teaches": "Contact topology and flexible dynamics.",
+      "internal_route": "SOFA scene/object/contact/material and exact buyer contract not pinned.",
+      "strongest_baseline": "Pseudo-rigid/co-rotational contact-aware response map.",
+      "principal_limit": "Research workflows are not a current procurement contract; contact data/scene gap persists.",
+      "source_ids": [
+        "SEARCH"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": {
+        "source": "SEARCH",
+        "status": "HOLD",
+        "V_scores_low_base_high": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_low_base_high": [
+          3.333333333333333,
+          4.333333333333333,
+          5
+        ],
+        "C1_cpu_h_assumption": [
+          0.03,
+          0.08,
+          0.2
+        ],
+        "C2_eur_assumption": [
+          23.906459000000005,
+          36.21522399999999,
+          65.75626
+        ],
+        "C3_weekly_eur_assumption": [
+          0.5976614750000001,
+          3.6215223999999995,
+          26.302504
+        ],
+        "VCI_assumption": [
+          1.6742397319930613,
+          577.1944364185518,
+          41902.44696777479
+        ],
+        "gates": {
+          "G1": "HOLD_EXACT_BUYER_DECISION",
+          "G2": "HOLD_EXACT_DECK_AND_PIN",
+          "G3": "HOLD_LIMITS_AND_WITNESSES",
+          "G4": "HOLD_COUNTS_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_BASELINE",
+          "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+          "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+        }
+      }
+    },
+    {
+      "id": "D018",
+      "name": "Air heat sink",
+      "origin": "candidate",
+      "action": "RESERVE_NOT_SELECTED",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            1,
+            2
+          ],
+          "B": [
+            0,
+            1,
+            2
+          ],
+          "C": [
+            2,
+            3,
+            4
+          ],
+          "D": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "teaches": "Steady thermal/flow/fan coupling; repeats cooling baseline issue.",
+      "internal_route": "Exact thermal/fan geometry/property case unconfirmed.",
+      "strongest_baseline": "Thermal network and polynomial response surface.",
+      "principal_limit": "Existing CFD surrogate already used; high cost scenario offers little headroom.",
+      "source_ids": [
+        "SEARCH",
+        "REPLACEMENTS"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": {
+        "source": "SEARCH",
+        "status": "HOLD",
+        "V_scores_low_base_high": [
+          [
+            3,
+            4,
+            5
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_low_base_high": [
+          2,
+          3,
+          4
+        ],
+        "C1_cpu_h_assumption": [
+          0.06,
+          0.18,
+          0.38
+        ],
+        "C2_eur_assumption": [
+          29.041904,
+          54.083312,
+          95.81899200000001
+        ],
+        "C3_weekly_eur_assumption": [
+          0.7260476,
+          5.4083312,
+          38.3275968
+        ],
+        "VCI_assumption": [
+          0.8617165095981133,
+          515.3339673786155,
+          53895.13687891633
+        ],
+        "gates": {
+          "G1": "HOLD_EXACT_BUYER_DECISION",
+          "G2": "HOLD_EXACT_DECK_AND_PIN",
+          "G3": "HOLD_LIMITS_AND_WITNESSES",
+          "G4": "HOLD_COUNTS_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_BASELINE",
+          "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+          "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+        }
+      }
+    },
+    {
+      "id": "D079",
+      "name": "Duct fitting",
+      "origin": "candidate",
+      "action": "RESERVE_FLOW_IF_F17_FAILS",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            1,
+            2
+          ],
+          "B": [
+            0,
+            1,
+            2
+          ],
+          "C": [
+            2,
+            3,
+            4
+          ],
+          "D": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "teaches": "Steady turbulent flow/RANS/pressure-loss and nonstandard interaction.",
+      "internal_route": "Exact published geometry/roughness/boundary case and RANS applicability unconfirmed.",
+      "strongest_baseline": "ASHRAE fitting library and calibrated response surface.",
+      "principal_limit": "Reserve only if source-backed nonstandard interactions matter; library sufficiency is a kill condition.",
+      "source_ids": [
+        "SEARCH",
+        "REPLACEMENTS"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": {
+        "source": "SEARCH",
+        "status": "HOLD",
+        "V_scores_low_base_high": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_low_base_high": [
+          1,
+          2,
+          3
+        ],
+        "C1_cpu_h_assumption": [
+          0.05,
+          0.15,
+          0.33
+        ],
+        "C2_eur_assumption": [
+          28.829965,
+          53.447494999999996,
+          97.75904900000002
+        ],
+        "C3_weekly_eur_assumption": [
+          0.7207491250000001,
+          5.3447495,
+          39.10361960000001
+        ],
+        "VCI_assumption": [
+          0.5630769951499119,
+          195.54916284151028,
+          21716.535435327067
+        ],
+        "gates": {
+          "G1": "HOLD_EXACT_BUYER_DECISION",
+          "G2": "HOLD_EXACT_DECK_AND_PIN",
+          "G3": "HOLD_LIMITS_AND_WITNESSES",
+          "G4": "HOLD_COUNTS_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_BASELINE",
+          "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+          "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+        }
+      }
+    },
+    {
+      "id": "D001",
+      "name": "Battery charge profile duplicate",
+      "origin": "candidate",
+      "action": "DUPLICATE_NOT_AN_EXTRA_SLOT",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            1,
+            2,
+            3
+          ],
+          "B": [
+            1,
+            2,
+            2
+          ],
+          "C": [
+            0,
+            1,
+            2
+          ],
+          "D": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "teaches": "Duplicates battery programme route.",
+      "internal_route": "Same battery source/measurement caveats; no independent portfolio observation.",
+      "strongest_baseline": "SPMe plus ageing/thermal map.",
+      "principal_limit": "Does not count as a second independent physics brief or adopt current-v3 economics.",
+      "source_ids": [
+        "SEARCH",
+        "V_BATTERY"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": {
+        "source": "SEARCH",
+        "status": "HOLD",
+        "V_scores_low_base_high": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_low_base_high": [
+          3,
+          4,
+          5
+        ],
+        "C1_cpu_h_assumption": [
+          0.005,
+          0.03,
+          0.15
+        ],
+        "C2_eur_assumption": [
+          17.7520765,
+          23.906459000000005,
+          53.447494999999996
+        ],
+        "C3_weekly_eur_assumption": [
+          0.44380191250000006,
+          2.3906459000000004,
+          21.378998
+        ],
+        "VCI_assumption": [
+          1.5448583201036747,
+          874.3756574928813,
+          70536.75737841024
+        ],
+        "gates": {
+          "G1": "HOLD_EXACT_CURRENT_BUYER_AND_TWO_INDEPENDENT_ORIGINS",
+          "G2": "HOLD_EXACT_DECK_OUTPUTS_LICENCE_AND_PIN",
+          "G3": "HOLD_SOURCED_LIMITS_AND_FEASIBLE_WITNESSES_EACH_STRATUM",
+          "G4": "HOLD_FIVE_FEASIBLE_AND_FIVE_NEAR_INFEASIBLE_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_STRONGEST_INCUMBENT",
+          "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+          "G7": "HOLD_ALL_LIMITS_SOURCED_NO_RELAXATION"
+        }
+      }
+    },
+    {
+      "id": "D016",
+      "name": "AI-accelerator package warpage",
+      "origin": "candidate",
+      "action": "EXCLUDE_LAUNCH",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            0,
+            0
+          ],
+          "B": [
+            1,
+            2,
+            2
+          ],
+          "C": [
+            3,
+            4,
+            4
+          ],
+          "D": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "teaches": "Full 3D cure/relaxation/solder/process history would be valuable quote coverage.",
+      "internal_route": "No verified coherent rights-clear complete parameter/history/calibration set found in bounded search.",
+      "strongest_baseline": "Laminate estimates, cached FE, response surfaces.",
+      "principal_limit": "Post-launch customer-data opportunity only; no elastic toy substitution under original identity.",
+      "source_ids": [
+        "WARPAGE",
+        "WARPAGE_PROCESS"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": {
+        "source": "SEARCH",
+        "status": "REJECT_G6_SCENARIO",
+        "V_scores_low_base_high": [
+          [
+            3,
+            4,
+            5
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_low_base_high": [
+          3.333333333333333,
+          4.333333333333333,
+          5
+        ],
+        "C1_cpu_h_assumption": [
+          0.03,
+          0.12,
+          0.45
+        ],
+        "C2_eur_assumption": [
+          23.906459000000005,
+          46.062236000000006,
+          127.30008500000001
+        ],
+        "C3_weekly_eur_assumption": [
+          0.5976614750000001,
+          4.606223600000001,
+          50.92003400000001
+        ],
+        "VCI_assumption": [
+          0.8648206567911251,
+          453.8039752662378,
+          41902.44696777479
+        ],
+        "gates": {
+          "G1": "HOLD_EXACT_BUYER_DECISION",
+          "G2": "HOLD_EXACT_DECK_AND_PIN",
+          "G3": "HOLD_LIMITS_AND_WITNESSES",
+          "G4": "HOLD_COUNTS_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_BASELINE",
+          "G6": "FAIL_SCENARIO_NOT_MEASURED",
+          "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+        }
+      }
+    },
+    {
+      "id": "D021",
+      "name": "Plain photonic ring",
+      "origin": "candidate",
+      "action": "REJECT_DESK",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            1,
+            2
+          ],
+          "B": [
+            0,
+            0,
+            1
+          ],
+          "C": [
+            1,
+            2,
+            3
+          ],
+          "D": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "teaches": "Compact wave/geometry screening; weak extra coverage.",
+      "internal_route": "No finished task case/rights; high cost scenario exceeds startup filter.",
+      "strongest_baseline": "MODE/compact calibrated ring library.",
+      "principal_limit": "Desk G5 failure; frontier/Fano novelty is another task, not a rescue.",
+      "source_ids": [
+        "SEARCH"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": {
+        "source": "SEARCH",
+        "status": "REJECT_G5_G6_SCENARIO",
+        "V_scores_low_base_high": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_low_base_high": [
+          3.666666666666667,
+          4.666666666666667,
+          5
+        ],
+        "C1_cpu_h_assumption": [
+          0.03,
+          0.1,
+          0.4
+        ],
+        "C2_eur_assumption": [
+          23.906459000000005,
+          41.13873000000001,
+          114.99132
+        ],
+        "C3_weekly_eur_assumption": [
+          0.5976614750000001,
+          4.113873000000001,
+          45.996528000000005
+        ],
+        "VCI_assumption": [
+          0.7180438257378864,
+          508.11548646376804,
+          52378.05870971849
+        ],
+        "gates": {
+          "G1": "HOLD_EXACT_BUYER_DECISION",
+          "G2": "HOLD_EXACT_DECK_AND_PIN",
+          "G3": "HOLD_LIMITS_AND_WITNESSES",
+          "G4": "HOLD_COUNTS_EACH_STRATUM",
+          "G5": "FAIL_DESK_CASE",
+          "G6": "FAIL_SCENARIO_NOT_MEASURED",
+          "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+        }
+      }
+    },
+    {
+      "id": "D022",
+      "name": "Grating coupler duplicate",
+      "origin": "candidate",
+      "action": "REJECT_DESK",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            1,
+            2
+          ],
+          "B": [
+            0,
+            1,
+            2
+          ],
+          "C": [
+            0,
+            1,
+            2
+          ],
+          "D": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "teaches": "Duplicates f06's 3D/2D tradeoff.",
+      "internal_route": "Full 3D transfer/cost not solved.",
+      "strongest_baseline": "2D FDTD/EME plus cached geometry map.",
+      "principal_limit": "Cost scenario fails; not a separate affordable optics replacement.",
+      "source_ids": [
+        "SEARCH",
+        "F06_COST"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": {
+        "source": "SEARCH",
+        "status": "REJECT_DESK",
+        "V_scores_low_base_high": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_low_base_high": [
+          3.333333333333333,
+          4.333333333333333,
+          5
+        ],
+        "C1_cpu_h_assumption": [
+          0.05,
+          0.4,
+          2
+        ],
+        "C2_eur_assumption": [
+          28.829965,
+          114.99132,
+          508.8718
+        ],
+        "C3_weekly_eur_assumption": [
+          0.7207491250000001,
+          11.499132000000001,
+          203.54872
+        ],
+        "VCI_assumption": [
+          0.16225856362928648,
+          181.7809014319656,
+          43433.07087065413
+        ],
+        "gates": {
+          "G1": "HOLD_EXACT_CURRENT_BUYER_AND_TWO_INDEPENDENT_ORIGINS",
+          "G2": "HOLD_EXACT_DECK_OUTPUTS_LICENCE_AND_PIN",
+          "G3": "HOLD_SOURCED_LIMITS_AND_FEASIBLE_WITNESSES_EACH_STRATUM",
+          "G4": "HOLD_FIVE_FEASIBLE_AND_FIVE_NEAR_INFEASIBLE_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_STRONGEST_INCUMBENT",
+          "G6": "FAIL_HIGH_COST_SCENARIO",
+          "G7": "HOLD_ALL_LIMITS_SOURCED_NO_RELAXATION"
+        }
+      }
+    },
+    {
+      "id": "D023",
+      "name": "Photonic crystal cavity",
+      "origin": "candidate",
+      "action": "REJECT_DESK",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            1,
+            2
+          ],
+          "B": [
+            1,
+            2,
+            2
+          ],
+          "C": [
+            3,
+            4,
+            4
+          ],
+          "D": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "teaches": "High-Q radiation/decay and costly numerical verification.",
+      "internal_route": "Complete Q/radiation tail and coherent case not verified.",
+      "strongest_baseline": "Perturbation/local surrogate.",
+      "principal_limit": "High/base startup estimates exceed target; excitement cannot override cost.",
+      "source_ids": [
+        "SEARCH"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": {
+        "source": "SEARCH",
+        "status": "REJECT_DESK",
+        "V_scores_low_base_high": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_low_base_high": [
+          3.333333333333333,
+          4.333333333333333,
+          5
+        ],
+        "C1_cpu_h_assumption": [
+          0.15,
+          1,
+          6
+        ],
+        "C2_eur_assumption": [
+          53.447494999999996,
+          262.6965,
+          1493.573
+        ],
+        "C3_weekly_eur_assumption": [
+          1.336187375,
+          26.269650000000002,
+          597.4292
+        ],
+        "VCI_assumption": [
+          0.07371031956206094,
+          79.57177125105059,
+          18742.48981050997
+        ],
+        "gates": {
+          "G1": "HOLD_EXACT_CURRENT_BUYER_AND_TWO_INDEPENDENT_ORIGINS",
+          "G2": "HOLD_EXACT_DECK_OUTPUTS_LICENCE_AND_PIN",
+          "G3": "HOLD_SOURCED_LIMITS_AND_FEASIBLE_WITNESSES_EACH_STRATUM",
+          "G4": "HOLD_FIVE_FEASIBLE_AND_FIVE_NEAR_INFEASIBLE_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_STRONGEST_INCUMBENT",
+          "G6": "FAIL_HIGH_COST_SCENARIO",
+          "G7": "HOLD_ALL_LIMITS_SOURCED_NO_RELAXATION"
+        }
+      }
+    },
+    {
+      "id": "D024",
+      "name": "Fiber taper coupler",
+      "origin": "candidate",
+      "action": "REJECT_DESK",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            1,
+            2
+          ],
+          "B": [
+            0,
+            1,
+            2
+          ],
+          "C": [
+            1,
+            2,
+            3
+          ],
+          "D": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "teaches": "Adiabatic transition/wave transport.",
+      "internal_route": "Exact taper/coupled-mode residual unknown.",
+      "strongest_baseline": "Coupled mode/EME library.",
+      "principal_limit": "Startup high/base scenario fails; actual incumbent latency unknown.",
+      "source_ids": [
+        "SEARCH"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": {
+        "source": "SEARCH",
+        "status": "REJECT_DESK",
+        "V_scores_low_base_high": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "excitement_low_base_high": [
+          2.6666666666666665,
+          3.6666666666666665,
+          4.666666666666666
+        ],
+        "C1_cpu_h_assumption": [
+          0.05,
+          0.4,
+          2
+        ],
+        "C2_eur_assumption": [
+          28.829965,
+          114.99132,
+          508.8718
+        ],
+        "C3_weekly_eur_assumption": [
+          0.7207491250000001,
+          11.499132000000001,
+          203.54872
+        ],
+        "VCI_assumption": [
+          0.16225856362928648,
+          181.7809014319656,
+          43433.07087065413
+        ],
+        "gates": {
+          "G1": "HOLD_EXACT_CURRENT_BUYER_AND_TWO_INDEPENDENT_ORIGINS",
+          "G2": "HOLD_EXACT_DECK_OUTPUTS_LICENCE_AND_PIN",
+          "G3": "HOLD_SOURCED_LIMITS_AND_FEASIBLE_WITNESSES_EACH_STRATUM",
+          "G4": "HOLD_FIVE_FEASIBLE_AND_FIVE_NEAR_INFEASIBLE_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_STRONGEST_INCUMBENT",
+          "G6": "FAIL_HIGH_COST_SCENARIO",
+          "G7": "HOLD_ALL_LIMITS_SOURCED_NO_RELAXATION"
+        }
+      }
+    },
+    {
+      "id": "D025",
+      "name": "LED extraction texture",
+      "origin": "candidate",
+      "action": "REJECT_DESK",
+      "recommendation_only": true,
+      "adoption": "OWNER_RESERVED",
+      "launch_eligible": "NOT_DEMONSTRATED",
+      "scores": {
+        "basis": "ASSUMPTION_ORDINAL_RESEARCH_JUDGMENT_NOT_PASS_PROBABILITY",
+        "low_base_high": {
+          "A": [
+            0,
+            1,
+            2
+          ],
+          "B": [
+            1,
+            2,
+            2
+          ],
+          "C": [
+            3,
+            4,
+            4
+          ],
+          "D": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "teaches": "Wave emission ensemble/dispersion.",
+      "internal_route": "Emission/material/extraction reference not qualified.",
+      "strongest_baseline": "Ray optics and effective-medium response map.",
+      "principal_limit": "Startup high/base scenario fails; no qualified extraction/physical improvement.",
+      "source_ids": [
+        "SEARCH"
+      ],
+      "current_complete_C1_cpu_h": null,
+      "current_startup_C2_eur": null,
+      "current_C3_weekly_eur": null,
+      "current_time_to_TESTED_workdays": null,
+      "current_incremental_value_eur": null,
+      "current_exact_buyer_volume_year": null,
+      "current_value_cost_index": null,
+      "credibility_claim": "INTERNAL_REFERENCE_RELATIVE_DEVELOPMENT_ONLY; NO_EARNED_BUYER_TIER",
+      "historical_discovery": {
+        "source": "SEARCH",
+        "status": "REJECT_DESK",
+        "V_scores_low_base_high": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            0,
+            1,
+            2
+          ]
+        ],
+        "excitement_low_base_high": [
+          2.3333333333333335,
+          3.3333333333333335,
+          4.333333333333334
+        ],
+        "C1_cpu_h_assumption": [
+          0.2,
+          1.5,
+          8
+        ],
+        "C2_eur_assumption": [
+          65.75626,
+          385.78415,
+          1985.9236
+        ],
+        "C3_weekly_eur_assumption": [
+          1.6439065,
+          38.57841500000001,
+          794.36944
+        ],
+        "VCI_assumption": [
+          0.04157703113022552,
+          36.12248940493729,
+          9521.328562812714
+        ],
+        "gates": {
+          "G1": "HOLD_EXACT_CURRENT_BUYER_AND_TWO_INDEPENDENT_ORIGINS",
+          "G2": "HOLD_EXACT_DECK_OUTPUTS_LICENCE_AND_PIN",
+          "G3": "HOLD_SOURCED_LIMITS_AND_FEASIBLE_WITNESSES_EACH_STRATUM",
+          "G4": "HOLD_FIVE_FEASIBLE_AND_FIVE_NEAR_INFEASIBLE_EACH_STRATUM",
+          "G5": "HOLD_MATCHED_STRONGEST_INCUMBENT",
+          "G6": "FAIL_HIGH_COST_SCENARIO",
+          "G7": "HOLD_ALL_LIMITS_SOURCED_NO_RELAXATION"
+        }
+      }
+    }
+  ],
+  "conditional_economic_order": [
+    {
+      "id": "D012",
+      "I_assumption": [
+        5.377646495891962,
+        2113.9823771088827,
+        164907.6823088955
+      ],
+      "admitted": false
+    },
+    {
+      "id": "D077",
+      "I_assumption": [
+        5.149527733678916,
+        2014.0335282763006,
+        154865.9932354082
+      ],
+      "admitted": false
+    },
+    {
+      "id": "B008",
+      "I_assumption": [
+        3.525642344931871,
+        1855.5873515488106,
+        145977.0435933557
+      ],
+      "admitted": false
+    },
+    {
+      "id": "D006",
+      "I_assumption": [
+        3.7670393969843876,
+        1539.185163782805,
+        130945.14677429623
+      ],
+      "admitted": false
+    },
+    {
+      "id": "D076",
+      "I_assumption": [
+        2.6574944896595842,
+        1324.5302924309017,
+        119906.19897928782
+      ],
+      "admitted": false
+    },
+    {
+      "id": "B001",
+      "I_assumption": [
+        1.8272733131906838,
+        1154.3888728371037,
+        116781.63487468453
+      ],
+      "admitted": false
+    },
+    {
+      "id": "B002",
+      "I_assumption": [
+        1.8272733131906838,
+        1016.2309729275361,
+        104756.11741943698
+      ],
+      "admitted": false
+    },
+    {
+      "id": "D001",
+      "I_assumption": [
+        1.5448583201036747,
+        874.3756574928813,
+        70536.75737841024
+      ],
+      "admitted": false
+    },
+    {
+      "id": "B006",
+      "I_assumption": [
+        1.0576927034795613,
+        725.0520701794682,
+        65963.07292355821
+      ],
+      "admitted": false
+    },
+    {
+      "id": "D072",
+      "I_assumption": [
+        0.9136366565953419,
+        668.0114465575718,
+        65963.07292355821
+      ],
+      "admitted": false
+    },
+    {
+      "id": "D071",
+      "I_assumption": [
+        1.6742397319930613,
+        577.1944364185518,
+        41902.44696777479
+      ],
+      "admitted": false
+    },
+    {
+      "id": "D018",
+      "I_assumption": [
+        0.8617165095981133,
+        515.3339673786155,
+        53895.13687891633
+      ],
+      "admitted": false
+    },
+    {
+      "id": "D079",
+      "I_assumption": [
+        0.5630769951499119,
+        195.54916284151028,
+        21716.535435327067
+      ],
+      "admitted": false
+    }
+  ],
+  "owner_decisions": [
+    "Adopt or reject target replacements only after scoped coherent open-data, adequacy, cost and matched-baseline evidence.",
+    "Resolve whether to retain an optical reservation or launch fewer enabled Challenges if f06 fails. No failed optical alternative is admitted to fill a quota.",
+    "Keep motor in reserve pending current full-role re-export/comparator; reinstate only after unchanged feasibility and measured affordable route.",
+    "Source/reference tiers, laws, limits, rights, budget and final launch acceptance remain with their owning lanes."
+  ]
+}

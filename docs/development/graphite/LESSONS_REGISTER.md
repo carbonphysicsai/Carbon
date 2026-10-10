@@ -149,6 +149,25 @@ change to the gate tables.
 |---|---|---|---|---|
 | E10 | Coordination token cost: ack-only messages and per-step relays are waste | Context and time spent on messages that carried no decision | Message only for a decision needed, a result or PR ready, or a blocker; batch register upkeep per batch of merges; put long tables in committed files and send a pointer; read narrowly and let CI run the full suite; do not re-confirm what is already ruled | DOCUMENTED (Test Lead team rules); owner Test Lead. Not enforceable in code |
 
+## 7d. Added with the onboarding pipeline (ONBOARDING-PIPELINE-01)
+
+Battery stage A's blockers, from `docs/development/challenge_pipeline/onboarding/blocker_taxonomy.json`.
+Time lost is UNKNOWN for each: no record states it. The taxonomy, ranks and automation are on
+that page, not repeated here.
+
+| # | Lesson | Cost | Prevention | Disposition |
+|---|---|---|---|---|
+| B1 | A run was launched against a lane other than the one it needed | Part of stage A's four failed launches; time UNKNOWN | The preflight checks the lane signer, Control Center and tunnels before every launch and after any restart | ENFORCED in code (GRAPHITE-LAUNCH-PREFLIGHT-01, #967, fixture tests); not yet exercised live; OPEN: generate the lane file from a lane registry (Graphite Testing Manager) |
+| B2 | Key files were not where the executor runs (wrong distro) | Same; time UNKNOWN | Every key file must exist with mode 600, checked by path only | ENFORCED in code (#967); not yet exercised live |
+| B3 | Two runs shared one controller root | Same; time UNKNOWN | Roots distinct, not nested, outside the repository, within the grant's `max_concurrency` | ENFORCED in code (#967); not yet exercised live; extends I3 |
+| B4 | A pod ceiling below the offered price refused pods at launch (live on the stage A first launch, 2026-10-10) | Same; time UNKNOWN | `--probe` runs the launch's own offer check with one real pod. Raising a ceiling is a grant change and stays the owner's | IN PR 969 (GRANT-POD-CEILING-01: the ceiling becomes a grant field; owner-approved standing ceiling), not merged, not yet exercised live; OPEN: state the observed offer against the proposed ceiling when a grant is proposed (Graphite Testing Manager) |
+| B5 | The token and pod split can fail to fund one full-window call of the start model, or the pods at the rate ceiling (the stage A first launch also needed a different token share) | Found in planning (D35), then met live; time UNKNOWN | Derive the split from the model's reservation and pods x rate ceiling, and refuse a grant that fails either | Value fixed in PR 969 (owner-approved standing token share); OPEN, owners Test Engineer (check) and Graphite Testing Manager (wave template) |
+| B6 | After a reboot the signers and tunnels were down until the owner restarted them | Lanes could not be confirmed ready; time UNKNOWN | The preflight detects it. A lane-up command should list what is down and print the one owner action; it never starts a signer or signs | OPEN, owner Graphite Testing Manager with Launchpad; DOCUMENTED (stage A checklist precondition 5) |
+| B7 | Auto-mode permission blocks stopped an agent build (signer auto-confirm) | Time UNKNOWN | List the edit classes that need approve-edits mode and ask the owner once with the wave's other owner needs | OPEN, owner Test Lead; DOCUMENTED (OWNER-CANARY-MINER-01) |
+| B8 | A stalled run, or all pods refused, went unseen | Time UNKNOWN | A heartbeat every 2 minutes; STALLED when 15 minutes old while alive, or when every pod launch was refused | ENFORCED in code (#967); not yet exercised live; OPEN: a collector that raises one line on STALLED (Graphite Testing Manager) |
+| B9 | The lane install code lagged the grant code, so a lane refused a current grant (`grant_exact_fields_required`) | Stage A, 2026-10-10; time UNKNOWN | Launchpad is the single owner of lane installs (decided). A preflight check that the lane revision equals the grant's code revision | Owner assignment decided; the revision-equality check is PROPOSED, not built (the existing preflight check compares the checkout HEAD with the profile's `accepted_revision`); OPEN, owners Launchpad and Graphite Testing Manager |
+| B10 | carbon-fresh has one shared checkout, so two sessions updating it collided and every lane's profile went stale (`carbon_updated_rerun_installer`) | Stage A, 2026-10-10; time UNKNOWN | One owner for lane installs (Launchpad); nothing else updates the shared checkout | Owner assignment decided, not yet exercised live; DOCUMENTED (not enforceable in code today); owner Launchpad |
+
 ## 8. Metrics recorded per challenge onboarding
 
 For each challenge, at the end of its wave:
