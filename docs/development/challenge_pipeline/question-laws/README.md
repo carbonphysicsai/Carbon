@@ -1,5 +1,11 @@
 # Eight-Challenge design-question laws — DEVELOPMENT proposal
 
+Battery follow-up: [middle-band action panel](battery-v3-middle-bands-panel.md)
+ / [proposed registration](battery-v3-middle-bands-panel.json) records the Test
+Lead's two-band working near rule on BOTH sides and an exact, bounded frontier
+menu. Historical one-band wording below is not a current acceptance receipt;
+accepted widths/criteria stay HUMAN_INPUT. No solve/dispatch grant or law change.
+
 Prospective f02 round 2: [customer law, value panel and startup arithmetic](f02-round2.md)
  / [sheet](f02-round2.json). Continuous requirements and denser in-bounds actions
 are recommendations only; the nine-action history cannot meet the ten-action
