@@ -2,18 +2,18 @@
  "brief": {
   "current_decision": {
    "source": "docs/development/challenge_pipeline/value-cost/analysis.md",
-   "value": "Five ambient-indexed charge/cooling choices"
+   "value": "Thermal burst schedule"
   },
   "scorecard_disposition": {
    "source": "docs/development/challenge_pipeline/value-cost/analysis.md",
-   "value": "Retain v3 question; extend boundary coverage, power/refinement"
+   "value": "Propose f02-v2 continuous schedule actions in existing bounds"
   },
   "unresolved_or_adverse_evidence": {
    "source": "docs/development/challenge_pipeline/value-cost/analysis.md",
-   "value": "T5/T40 each only 3 feasible actions; indexed ordering and cross-window T3/T4 unsettled"
+   "value": "Nine actions make T2 mathematically impossible; reported 2–3 CPU-min not full quantile evidence"
   }
  },
- "challenge": "battery-fastcharge-ageing-development-v1",
+ "challenge": "f02",
  "inputs": {
   "acceptance_criteria": {
    "customer_supplies": {
@@ -22,11 +22,11 @@
     "value": "UNMEASURED"
    },
    "open_markers": {
-    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
-    "value": 1
+    "source": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+    "value": 0
    },
    "packet_sections": {
-    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "source": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
     "value": [
      6
     ]
@@ -44,11 +44,11 @@
     "value": "UNMEASURED"
    },
    "open_markers": {
-    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
-    "value": 1
+    "source": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+    "value": 0
    },
    "packet_sections": {
-    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "source": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
     "value": [
      1
     ]
@@ -66,11 +66,11 @@
     "value": "UNMEASURED"
    },
    "open_markers": {
-    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
-    "value": 1
+    "source": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+    "value": 0
    },
    "packet_sections": {
-    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "source": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
     "value": [
      3
     ]
@@ -88,11 +88,11 @@
     "value": "UNMEASURED"
    },
    "open_markers": {
-    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
-    "value": 1
+    "source": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+    "value": 0
    },
    "packet_sections": {
-    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "source": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
     "value": [
      2
     ]
@@ -110,11 +110,11 @@
     "value": "UNMEASURED"
    },
    "open_markers": {
-    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
-    "value": 2
+    "source": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+    "value": 0
    },
    "packet_sections": {
-    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "source": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
     "value": [
      1,
      4
@@ -133,11 +133,11 @@
     "value": "UNMEASURED"
    },
    "open_markers": {
-    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
-    "value": 1
+    "source": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+    "value": 0
    },
    "packet_sections": {
-    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "source": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
     "value": [
      5
     ]
@@ -172,7 +172,7 @@
    "owner": "Data Collection",
    "question": "The cheap-baseline note states performance NOT_MEASURED; who measures V4 and when?",
    "required_for_tested": true,
-   "source": "docs/development/challenge_pipeline/cheap-baselines/battery.md",
+   "source": "docs/development/challenge_pipeline/cheap-baselines/f02.md",
    "value": "UNMEASURED"
   },
   "model_accuracy": {
@@ -226,15 +226,9 @@
    "set_by": "Conditions a to d: Test Lead, delegated by the owner, 2026-10-10. Condition e: Test Lead, from the owner, 2026-10-10."
   },
   "score_value_alignment": {
-   "source": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/q1_report.json",
-   "value": {
-    "kendall_tau_b": -0.47280542884465016,
-    "level": 0,
-    "members": 8,
-    "note": "one seed per recipe; a measurement only",
-    "reference_provenance": "EV4_REFERENCE",
-    "spearman_rho": -0.5389318178609666
-   }
+   "owner": "Test Lead",
+   "question": "No Q1 report exists for this Challenge and level.",
+   "value": "UNMEASURED"
   },
   "speed_up_against_reference": {
    "owner": "Data Collection",
@@ -319,126 +313,24 @@
    "value": "UNMEASURED"
   },
   "dated_stage_records": {
-   "source": "docs/development/challenge_pipeline/onboarding/cycle_metrics.jsonl",
-   "value": [
-    {
-     "date": "2026-10-06",
-     "event": "first_dated_record",
-     "stage": "S1_packet"
-    },
-    {
-     "date": "2026-10-06",
-     "event": "first_gate_run",
-     "stage": "S6_readiness"
-    },
-    {
-     "date": "2026-10-07",
-     "event": "first_dated_record",
-     "stage": "S3_feasibility_value_panel"
-    },
-    {
-     "date": "2026-10-08",
-     "event": "value_cost_framework",
-     "stage": "S3_feasibility_value_panel"
-    },
-    {
-     "date": "2026-10-08",
-     "event": "first_dated_record",
-     "stage": "S4_question_law"
-    },
-    {
-     "date": "2026-10-09",
-     "event": "baseline_2",
-     "stage": "S6_readiness"
-    },
-    {
-     "date": "2026-10-09",
-     "event": "stage_a_grants_approved",
-     "stage": "S7_stage_a"
-    },
-    {
-     "date": "2026-10-10",
-     "event": "l0_launch_ready",
-     "stage": "S6_readiness"
-    },
-    {
-     "date": "2026-10-10",
-     "event": "launch_preflight_merged",
-     "stage": "S7_stage_a"
-    }
-   ]
+   "owner": "Test Lead",
+   "question": "No dated stage record is kept for this Challenge yet.",
+   "value": "UNMEASURED"
   },
   "grant_caps": {
-   "note": "Caps and run counts only, never a balance or an account.",
-   "source": "docs/development/graphite/grants",
-   "value": [
-    {
-     "cap": "53.77",
-     "grant_id": "GRAPHITE-GRANT-STAGE-A-ATTACKER",
-     "permitted_runs": 4,
-     "source": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-A-ATTACKER.json"
-    },
-    {
-     "cap": "74.67",
-     "grant_id": "GRAPHITE-GRANT-STAGE-A-CONSTRUCTOR",
-     "permitted_runs": 5,
-     "source": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-A-CONSTRUCTOR.json"
-    }
-   ]
+   "owner": "Test Lead",
+   "question": "No stage grant is registered for this Challenge.",
+   "value": "UNMEASURED"
   },
   "lessons_entries": {
    "source": "carbon/challenge_pipeline/lessons",
    "value": {
     "by_stage": {
-     "design": 2,
-     "protocol": 2,
-     "test_iterate": 59
+     "design": 8
     },
-    "count": 63,
-    "first": "2026-10-02T20:01:18Z",
-    "last": "2026-10-10T12:38:19Z"
-   }
-  },
-  "readiness_first_run": {
-   "source": "docs/development/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/history.jsonl",
-   "value": {
-    "counts": {
-     "FAIL": 3,
-     "NOT_BUILT": 22,
-     "PASS": 11,
-     "REVIEW_REQUIRED": 5
-    },
-    "level": 0,
-    "utc": "2026-10-06T16:11:56Z"
-   }
-  },
-  "readiness_latest_by_level": {
-   "source": "docs/development/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/history.jsonl",
-   "value": {
-    "0": {
-     "counts": {
-      "FAIL": 0,
-      "NOT_BUILT": 0,
-      "PASS": 22,
-      "PASS_BY_REVIEW": 15,
-      "REVIEW_REQUIRED": 0,
-      "WAIVED": 4
-     },
-     "green": false,
-     "utc": "2026-10-10T12:17:01Z"
-    },
-    "1": {
-     "counts": {
-      "FAIL": 2,
-      "NOT_BUILT": 0,
-      "PASS": 20,
-      "PASS_BY_REVIEW": 15,
-      "REVIEW_REQUIRED": 0,
-      "WAIVED": 4
-     },
-     "green": false,
-     "utc": "2026-10-10T12:27:25Z"
-    }
+    "count": 8,
+    "first": "2026-10-09T17:27:18Z",
+    "last": "2026-10-09T19:15:00Z"
    }
   }
  },

@@ -26,6 +26,9 @@ REGISTRY = f"{ONBOARDING}/ledger_sources.json"
 SCHEMA = "carbon.challenge-pipeline.brief-product-ledger.v1"
 UNMEASURED = "UNMEASURED"
 REQUIRED_FOR_TESTED = "required for TESTED"
+REQUIRED_FOR_VALUE = "required for PASSES VALUE"
+SCORECARDS = "docs/development/challenge_pipeline/value-cost/analysis.md"
+HARNESS = "carbon/design_search/track_b.py"
 
 # The six inputs a customer brief must resolve, mapped to the sections of
 # COMMON_DESIGN_PACKET_V1 that hold them. The mapping is a template constant.
@@ -91,10 +94,24 @@ def build_inputs(entry):
             )
             for kind, _ in INPUT_KINDS
         }
+    if entry.get("packet_template") != "common-v1":
+        return {
+            kind: unmeasured(
+                "Challenge owner",
+                "The packet does not follow COMMON_DESIGN_PACKET_V1, so its sections "
+                "cannot be mapped to this input; which packet section holds it?",
+            )
+            for kind, _ in INPUT_KINDS
+        }
     sections = packet_sections(packet)
     inputs = {}
     for kind, numbers in INPUT_KINDS:
         present = [n for n in numbers if n in sections]
+        if not present:
+            inputs[kind] = unmeasured(
+                "Challenge owner", "The packet has no section for this input."
+            )
+            continue
         open_markers = sum(len(re.findall(r"\bOPEN\b", sections[n])) for n in present)
         inputs[kind] = {
             "packet_sections": measured(present, packet),
@@ -148,9 +165,15 @@ def build_process(entry):
     ]
     history_path, history = _history(entry)
     process = {
-        "dated_stage_records": measured(
-            sorted(dated, key=lambda r: (r["date"], r["stage"], r["event"])),
-            metrics_path,
+        "dated_stage_records": (
+            measured(
+                sorted(dated, key=lambda r: (r["date"], r["stage"], r["event"])),
+                metrics_path,
+            )
+            if dated
+            else unmeasured(
+                "Test Lead", "No dated stage record is kept for this Challenge yet."
+            )
         ),
         "blockers": measured(blockers, taxonomy_path),
         "cost_per_stage": unmeasured(
@@ -195,7 +218,7 @@ def build_process(entry):
             "carbon/challenge_pipeline/lessons",
         )
     grants = []
-    for pattern in entry["grant_globs"]:
+    for pattern in entry.get("grant_globs", []):
         for path in sorted(glob.glob(str(REPOSITORY / pattern))):
             relative = Path(path).relative_to(REPOSITORY).as_posix()
             document = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -207,11 +230,16 @@ def build_process(entry):
                     "source": relative,
                 }
             )
-    process["grant_caps"] = {
-        "value": grants,
-        "source": "docs/development/graphite/grants",
-        "note": "Caps and run counts only, never a balance or an account.",
-    }
+    if grants:
+        process["grant_caps"] = {
+            "value": grants,
+            "source": "docs/development/graphite/grants",
+            "note": "Caps and run counts only, never a balance or an account.",
+        }
+    else:
+        process["grant_caps"] = unmeasured(
+            "Test Lead", "No stage grant is registered for this Challenge."
+        )
     return process
 
 
@@ -226,6 +254,7 @@ def build_outputs(entry):
             "The reference per-case cost (value-cost C1) and the surrogate's per-case time are both needed; neither is recorded for this Challenge.",
         ),
     }
+    outputs["passes_value"] = build_passes_value()
     baseline = entry.get("cheap_baseline")
     if _exists(baseline) and "NOT_MEASURED" in _read(baseline):
         outputs["decision_quality_vs_cheap_baseline"] = {
@@ -267,6 +296,80 @@ def build_outputs(entry):
     return outputs
 
 
+def _value_condition(owner, question, condition):
+    return dict(
+        unmeasured(owner, question),
+        condition=condition,
+        required_for="PASSES VALUE",
+        flag=REQUIRED_FOR_VALUE,
+    )
+
+
+def build_passes_value():
+    """The PASSES VALUE conditions. Each is UNMEASURED until an artefact holds it."""
+    return {
+        "set_by": (
+            "Conditions a to d: Test Lead, delegated by the owner, 2026-10-10. "
+            "Condition e: Test Lead, from the owner, 2026-10-10."
+        ),
+        "framing": (
+            "Models never beat the solver on accuracy; the solver is the reference."
+        ),
+        "a_real_buyer_decision_two_sources": _value_condition(
+            "Codex",
+            "Which two independent public sources show a buyer making exactly this decision today?",
+            "A real buyer decision with at least two sources.",
+        ),
+        "b_regret_below_cheap_baseline_paired_bootstrap_ci": _value_condition(
+            "Data Collection",
+            "On held-out contested questions, what are the best model's and the strongest "
+            "cheap baseline's buyer-unit regret at matched admissibility, and does the paired "
+            "bootstrap 95% interval of the difference exclude 0?",
+            "Buyer-unit regret lower than the strongest cheap baseline's at matched "
+            "admissibility, paired bootstrap 95% interval excluding 0.",
+        ),
+        "c_speed_up_100x_per_decision_query": _value_condition(
+            "Data Collection",
+            "What are the reference and the model's times per decision query on the same hardware?",
+            "At least 100x faster than the reference per decision query.",
+        ),
+        "d_value_and_volume_ranges": _value_condition(
+            "Codex",
+            "Which sourced or labelled-assumption ranges give the value per decision and the decision volume?",
+            "Sourced or assumption ranges for value and volume.",
+        ),
+        "e_equal_budget_screen_then_verify_beats_solver": dict(
+            _value_condition(
+                "Data Collection",
+                "At an equal time and compute budget, does a model-screen-then-solver-verify "
+                "workflow find a better design than the solver alone (readiness D2 equal-cost harness)?",
+                "At equal time and compute, the model-screen-then-solver-verify workflow finds "
+                "a better design than the solver alone.",
+            ),
+            harness=HARNESS,
+        ),
+    }
+
+
+def build_brief(entry):
+    """The Challenge's current decision, read from the value-cost scorecard table."""
+    name = entry.get("scorecard")
+    if name and _exists(SCORECARDS):
+        for line in _read(SCORECARDS).splitlines():
+            if line.startswith(f"| [{name}]"):
+                cells = [c.strip() for c in line.strip().strip("|").split("|")]
+                return {
+                    "current_decision": measured(cells[1], SCORECARDS),
+                    "unresolved_or_adverse_evidence": measured(cells[3], SCORECARDS),
+                    "scorecard_disposition": measured(cells[2], SCORECARDS),
+                }
+    return {
+        "current_decision": unmeasured(
+            "Codex", "No value-cost scorecard row is registered for this Challenge."
+        )
+    }
+
+
 def build_network():
     return {
         "leaderboard_improvement_over_time": unmeasured(
@@ -296,6 +399,7 @@ def build(challenge):
         ],
         "inputs": build_inputs(entry),
         "process": build_process(entry),
+        "brief": build_brief(entry),
         "outputs": build_outputs(entry),
         "network": build_network(),
     }

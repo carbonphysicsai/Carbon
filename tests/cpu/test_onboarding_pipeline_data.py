@@ -60,8 +60,10 @@ def test_the_stage_map_covers_the_owner_stages_in_order():
 def test_tested_is_never_defined_as_qualification():
     tested = _load("stage_map.json")["stages"][-1]
     assert tested["id"] == "S10_tested"
-    assert len(re.findall(r"\(\d\)", tested["exit"])) == 8
+    assert len(re.findall(r"\(\d\)", tested["exit"])) == 9
     assert "cheap-baseline comparison (V4)" in tested["exit"]
+    assert "PASSES VALUE" in tested["exit"]
+    assert "screen-then-solver-verify" in tested["exit"]
     for claim in ("scientific qualification", "LIVE", "launch claim"):
         assert claim in tested["note"]
     assert "not" in tested["note"].lower()
@@ -109,3 +111,10 @@ def test_the_pages_hold_no_spend_figure_or_account_detail():
         assert not re.search(
             r"(?i)balance of|account id|api[_ -]?key\s*[:=]", text
         ), path.name
+
+
+def test_the_bank_stage_records_the_cap_as_a_process_requirement_not_a_spend_authorization():
+    bank = next(s for s in _load("stage_map.json")["stages"] if s["id"] == "S5_bank")
+    assert "EUR 500" in bank["entry"]
+    assert "not a spend authorization" in bank["entry"]
+    assert "its own grant file with the exact figure" in bank["entry"]

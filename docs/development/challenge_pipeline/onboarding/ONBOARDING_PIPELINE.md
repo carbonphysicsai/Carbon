@@ -18,6 +18,8 @@ The data lives beside this page and is checked by
 
 ## 1. Stage map
 
+**Framing (Test Lead, from the owner, 2026-10-10): models never beat the solver on accuracy; the solver is the reference.** "Beats" means (a) better decisions than the strongest cheap shortcut (V4), and (b) at an equal time and compute budget, a model-screen-then-solver-verify workflow finds a better design than the solver alone. Use this when ranking the remaining Challenges: a Challenge where a strong cheap baseline already makes the right decisions (the scorecard says so for f08) or where the solver is already cheap has little room to pass.
+
 Each stage has an entry, an exit and an owner session, with the repository record it was
 checked against. UNVERIFIED marks a mapping the records do not settle.
 
@@ -52,6 +54,17 @@ A Challenge is TESTED when **all** hold:
 8. the cheap-baseline comparison (V4) is done: the models' decisions are compared, at
    matched admissibility, with the strongest cheap method a buyer would otherwise use
    (added by OWNER-LAUNCH-STRATEGY-01, PR 978).
+9. the Challenge **PASSES VALUE** (conditions a to d: Test Lead, delegated by the owner,
+   2026-10-10; condition e: Test Lead, from the owner, 2026-10-10):
+   - a. a real buyer decision with at least two sources;
+   - b. on held-out contested questions the best Carbon model's buyer-unit regret is lower
+     than the strongest cheap baseline's at matched admissibility, paired bootstrap 95%
+     interval excluding 0;
+   - c. at least 100x faster than the reference per decision query;
+   - d. sourced or assumption ranges for value and volume;
+   - e. at an equal time and compute budget, a model-screen-then-solver-verify workflow finds
+     a better design than the solver alone (readiness D2 equal-cost harness,
+     `carbon/design_search/track_b.py`).
 
 TESTED is **not** scientific qualification, security acceptance, LIVE or a launch claim.
 LIVE or qualification is a separate owner step.
@@ -61,6 +74,8 @@ What the map still shows:
   and exit are still assembled from the hidden-pool runbook and register lessons S11 and S12.
 - **Condition 3 and 5 depend on later stages.** Condition 3 needs stages B and C for the
   higher levels, and 5 needs a chosen k and E, which are owner values.
+
+**Bank spend (Test Lead, from the owner, 2026-10-10):** each bank's spend is a documented cost-benefit decision by the team, capped at EUR 500, recorded in its grant file with the exact figure. No separate EUR 100 tier and no flagship condition. This is a cap and a process requirement, not a spend authorization: every bank still needs its own grant file with the exact figure, and the owner approves startup spend.
 
 ## 2. Metrics
 
@@ -194,3 +209,18 @@ efficiently as possible, and only time and cost per stage are recorded.
 **Battery today:** score-value alignment is measured (Level 0, eight members, one seed per
 recipe: a measurement, not a threshold). Everything else on the OUTPUTS and NETWORK records,
 and the customer-supply and time-to-obtain answers on INPUTS, is `UNMEASURED`.
+
+## 9. Carbon evidence pack
+
+`scripts/dev/onboarding/build_pack.py` renders, from the ledgers, one page per Challenge and
+one cross-Challenge page into `pack/` (battery, motor and f02 first). Each page: decision,
+value, model against the reference and the cheap baseline, the **required** equal-budget
+screen-then-verify section, speed-up, onboarding cost and time, blockers, network. Every line
+cites its artefact or reads `UNMEASURED` with its owner and question; nothing is blank or
+smoothed.
+
+The pages are measurements. They are not traction, customer, qualification or LIVE claims
+(`Business/Business_Canon.md`: architecture is not traction; `docs/publications/README.md`:
+a recorded experiment supplies evidence only for the conditions it tested). A standing
+disclaimer line opens every page, and `tests/cpu/test_onboarding_pack.py` fails on those words
+anywhere else.

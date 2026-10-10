@@ -14,7 +14,27 @@
    ],
    "grant_globs": [
     "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-A-*.json"
-   ]
+   ],
+   "packet_template": "common-v1",
+   "scorecard": "Battery v3"
+  },
+  "electric-motor-magnetics": {
+   "packet": "docs/development/MOTOR_DECISION_DESIGN_PACKET.md",
+   "cheap_baseline": "docs/development/challenge_pipeline/cheap-baselines/motor.md",
+   "lesson_challenges": [
+    "electric-motor-magnetics",
+    "motor"
+   ],
+   "scorecard": "Motor"
+  },
+  "f02": {
+   "packet": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+   "packet_template": "common-v1",
+   "cheap_baseline": "docs/development/challenge_pipeline/cheap-baselines/f02.md",
+   "lesson_challenges": [
+    "f02"
+   ],
+   "scorecard": "f02"
   }
  }
 }
