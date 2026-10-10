@@ -164,6 +164,7 @@ class FakePods:
         self.cuda_versions = ("12.4",)
         self.events, self.refuse, self.runs, self.stays = [], refuse, runs, stays
         self.balance = 100.0
+        self.specs, self.oversized = [], False
         self.balance_floor = lambda: Decimal(5)
         self.economics["hourly_usd"] = Decimal("0.50")
         offer = types.SimpleNamespace(
@@ -178,6 +179,15 @@ class FakePods:
             ),
         )
         self.service = self
+
+    def pod_spec(self, job, record, *, start_command=None):
+        from carbon.agent_campaign.graphite.pods import ENV_TOO_LARGE, PodFailure
+
+        self.events.append("spec")
+        self.specs.append((job, record, start_command))
+        if self.oversized:
+            raise PodFailure("launch", ENV_TOO_LARGE + ": 131000", executed=False)
+        return types.SimpleNamespace(start_command=start_command)
 
     def observe_balance(self, campaign):
         self.events.append("balance")
@@ -225,7 +235,7 @@ def test_the_probe_creates_runs_terminates_and_verifies(monkeypatch):
     pods = FakePods()
     check = preflight.probe_pod(pods, clock=_clock(), sleep=lambda s: None)
     assert check.status == preflight.OK, check.detail
-    assert pods.events == ["balance", "created", "terminated"]
+    assert pods.events == ["spec", "balance", "created", "terminated"]
 
 
 @pytest.mark.parametrize(
@@ -387,3 +397,23 @@ def test_a_probe_that_would_breach_the_floor_creates_nothing():
     assert check.status == preflight.FAIL and check.owner
     assert "created" not in pods.events
     assert "5.01" not in check.detail
+
+
+def test_the_probe_builds_its_pod_with_the_real_launch_spec():
+    """GRAPHITE-POD-ENV-SIZE-01: an empty-environment probe passed while every
+    real create failed on the environment's size."""
+    pods = FakePods()
+    preflight.probe_pod(pods, clock=_clock(), sleep=lambda s: None)
+    [(job, record, command)] = pods.specs
+    assert command == preflight.PROBE_COMMAND
+    assert job.intent_id == record["intent_id"]
+    assert record["allowed_cuda_versions"] == list(pods.cuda_versions)
+
+
+def test_a_probe_whose_environment_is_too_large_creates_nothing():
+    pods = FakePods()
+    pods.oversized = True
+    check = preflight.probe_pod(pods, clock=_clock(), sleep=lambda s: None)
+    assert check.status == preflight.FAIL
+    assert "pod_env_too_large" in check.detail
+    assert pods.events == ["spec"]

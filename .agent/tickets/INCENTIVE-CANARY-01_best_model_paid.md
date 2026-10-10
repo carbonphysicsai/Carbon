@@ -128,6 +128,18 @@ incumbent is. That alone checks "the incumbent is paid, and only it".
 2. **Roles:** the role-scripted miners and the ordering checks in (3), once
    the hotkeys are assigned.
 3. **Challenger:** the takeover after a measured, calibrated challenger.
+   Before it, **3a. Sybil** (the Test Lead, 2026-10-10): minerJ, on its own
+   coldkey, plays a sybil of strong to test INCENTIVE-MECHANISM-SIM-01's
+   (#974) prediction that sybils gain weight through extra noisy draws.
+   - `sybil-copy` (strong's exact recipe): D6 refuses it as contested, so it
+     is never scored (#974's `copy` row: no attacker weight).
+   - `sybil-near` (strong's neighbours at train_fraction 0.985): weight in
+     one epoch going to both hotkeys is `sybil_split` (BLOCKER). A takeover
+     restarts the clock across coldkeys (`final_improvement`): that is the
+     predicted gain, recorded as an observation, not a payment bug.
+   - `check --observe FILE` journals each epoch; `summarize` fills the
+     observed half of #974's `sybil` row (2 hotkeys, where #974 assumed 4).
+     #974's predictions need a rerun at `sybil_hotkeys` 2 to compare.
 
 ## Maturity
 

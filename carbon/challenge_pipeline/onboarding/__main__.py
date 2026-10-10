@@ -18,10 +18,30 @@ def main(argv=None):
     p.add_argument("--brief", type=Path, required=True)
     p.add_argument("--compare", help="real packet path relative to repository")
     p.add_argument("--format", choices=("json", "markdown"), default="markdown")
+    law_parser = sub.add_parser("law")
+    law_parser.add_argument("--brief", type=Path, required=True)
+    law_parser.add_argument(
+        "--panel", type=Path, help="explicit non-hidden DEVELOPMENT export"
+    )
+    law_parser.add_argument(
+        "--law-source", help="existing proposal, relative public repository path"
+    )
     args = parser.parse_args(argv)
     try:
         draft = packet.generate(packet.read_json(args.brief), args.root)
-        if args.compare:
+        if args.command == "law":
+            from carbon.challenge_pipeline.onboarding import law
+
+            result = law.generate(
+                draft,
+                export=packet.read_json(args.panel) if args.panel else None,
+                law_source=(
+                    packet.read_json(packet.source_path(args.root, args.law_source))
+                    if args.law_source
+                    else None
+                ),
+            )
+        elif args.compare:
             result = packet.compare(
                 draft,
                 packet.source_path(args.root, args.compare).read_text(encoding="utf-8"),
