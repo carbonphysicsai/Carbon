@@ -137,8 +137,16 @@ try:
     ]
     x = torch.arange(8.0, device=device)
     result["checksum"] = float((x * 2.0).sum().item())
-    result["ok"] = result["checksum"] == 56.0 and (
-        not result["requires_gpu"] or result["backend"] == "gpu"
+    # The device must be the kind the run is bound to, as PyTorch's rebuild
+    # requires (`torch_gpu.require_ready`).
+    bound = os.environ.get("CARBON_ACCELERATOR_DEVICE_KIND", "")
+    result["device_kind_bound"] = bool(bound) and (
+        device.type != "cuda" or torch.cuda.get_device_name(device) == bound
+    )
+    result["ok"] = (
+        result["checksum"] == 56.0
+        and (not result["requires_gpu"] or result["backend"] == "gpu")
+        and (not result["requires_gpu"] or result["device_kind_bound"])
     )
 except BaseException as error:
     result["error_type"] = type(error).__name__
@@ -153,6 +161,7 @@ _PROBE_FIELDS = {
     "jax": str,
     "torch": str,
     "backend": str,
+    "device_kind_bound": bool,
     "error_type": str,
 }
 

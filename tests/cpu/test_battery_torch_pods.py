@@ -128,6 +128,15 @@ def test_a_pytorch_pod_runs_the_torch_image_on_cuda_only():
     assert torch_spec.image == IMAGES["pytorch"] == pods.pod_image("pytorch")
     assert dict(jax_spec.env)["JAX_PLATFORMS"] == "cuda,cpu"
     assert dict(torch_spec.env)["JAX_PLATFORMS"] == "cuda"
+    # PyTorch's CUDA rebuild is bound to the rented device kind and the pinned
+    # CUDA controls; JAX's environment gains nothing.
+    from carbon.reconstruction.accelerators import GPU_DETERMINISM_ENVIRONMENT
+
+    torch_env, jax_env = dict(torch_spec.env), dict(jax_spec.env)
+    assert torch_env["CARBON_ACCELERATOR_DEVICE_KIND"] == backend.economics["gpu"]
+    assert all(torch_env[k] == v for k, v in GPU_DETERMINISM_ENVIRONMENT.items())
+    assert "CARBON_ACCELERATOR_DEVICE_KIND" not in jax_env
+    assert set(torch_env) - set(jax_env) == {"CARBON_ACCELERATOR_DEVICE_KIND"}
     assert json.loads(dict(torch_spec.env)["PHASE_CONFIG"])["backend"] == "pytorch"
     assert "backend" not in json.loads(dict(jax_spec.env)["PHASE_CONFIG"])
     with pytest.raises(pods.PodFailure):
@@ -141,6 +150,11 @@ def test_pytorch_cuda_versions_come_from_the_torch_lock():
     assert versions[-1] == f"{major}.{minor}"
     assert _backend()._cuda_versions("pytorch") == versions
     assert _backend()._cuda_versions("jax") == ("13.0",)
+
+
+def test_the_torch_probe_requires_the_bound_device_kind():
+    assert "CARBON_ACCELERATOR_DEVICE_KIND" in pod_phase.TORCH_PROBE
+    assert pod_phase._PROBE_FIELDS["device_kind_bound"] is bool
 
 
 def test_the_pod_probes_the_jobs_backend(tmp_path, monkeypatch):
@@ -180,7 +194,16 @@ def test_the_pytorch_pod_phase_repeats_on_the_gpu(battery, tmp_path, monkeypatch
     and the runtime record is a GPU device class Carbon's identity reads."""
     if REQUIRED and not _cuda():
         pytest.fail("CARBON_REQUIRE_CUDA=1 but no CUDA device")
+    import torch
+
+    from carbon.reconstruction.accelerators import GPU_DETERMINISM_ENVIRONMENT
+
+    # The pod's own environment (`RunPodPods._env` for a PyTorch job), bound
+    # to the device this host has.
     monkeypatch.setenv("JAX_PLATFORMS", "cuda")
+    for key, value in GPU_DETERMINISM_ENVIRONMENT.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.setenv("CARBON_ACCELERATOR_DEVICE_KIND", torch.cuda.get_device_name(0))
     admitted = ex.admit(TORCH, 0, scoring=battery)
     cfg = {
         "strategy": TORCH,
@@ -196,13 +219,16 @@ def test_the_pytorch_pod_phase_repeats_on_the_gpu(battery, tmp_path, monkeypatch
         assert pod_phase.run(cfg, out, root=REPOSITORY) == 0, (
             out / "program.log"
         ).read_text()
+        fit = json.loads((out / "fit.json").read_text())
+        # Wall-clock fields (`train_s`, `compile_s`) are timings, not the build.
         runs.append(
             {
-                name: (out / name).read_bytes()
-                for name in ("predictions.json", "fit.json")
+                "predictions": (out / "predictions.json").read_bytes(),
+                "fit": {k: v for k, v in fit.items() if not k.endswith("_s")},
             }
         )
         runtime = json.loads((out / "runtime.json").read_text())
         assert runtime["framework"] == "pytorch"
         assert rebuild_identity.from_runtime(runtime)["device_class"].startswith("gpu:")
+    assert runs[0]["fit"].get("params_sha256")
     assert runs[0] == runs[1]

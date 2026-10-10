@@ -590,6 +590,19 @@ class RunPodPods:
             "JAX_ENABLE_COMPILATION_CACHE": "false",
             "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
         }
+        if job.backend == "pytorch":
+            # PyTorch's CUDA rebuild refuses a run bound to no device kind,
+            # or without the pinned CUDA library controls
+            # (`torch_gpu.require_ready`), as the validator's overlay binds
+            # them (`accelerators.worker_environment`). The kind is the GPU
+            # type the pod is rented as: RunPod's type id is the exact name
+            # the device reports (`a40_acceptance.TARGET_DEVICES`).
+            from carbon.reconstruction.accelerators import (
+                GPU_DETERMINISM_ENVIRONMENT,
+            )
+
+            env.update(GPU_DETERMINISM_ENVIRONMENT)
+            env["CARBON_ACCELERATOR_DEVICE_KIND"] = self.economics["gpu"]
         return tuple(sorted(env.items()))
 
     def _record(self, job, private):
