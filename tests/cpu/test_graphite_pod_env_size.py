@@ -10,6 +10,7 @@ because it created an empty-environment pod."""
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import inspect
 import json
 import shutil
@@ -185,7 +186,11 @@ class NoProvider:
 
 
 def test_an_oversized_environment_is_refused_before_any_provider_call(tmp_path):
-    big = {f"carbon/f{i:05d}.py": "0" * 64 for i in range(4000)}
+    # Distinct digests, so the gzip in `manifest_env` cannot shrink them.
+    big = {
+        f"carbon/f{i:05d}.py": hashlib.sha256(str(i).encode()).hexdigest()
+        for i in range(3000)
+    }
     service = NoProvider()
     backend = _backend(big, service)
     with pytest.raises(pods.PodFailure) as refused:
