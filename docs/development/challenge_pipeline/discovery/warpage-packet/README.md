@@ -1,5 +1,11 @@
 # CHALLENGE-WARPAGE-PACKET-01 — owner brief and working contract
 
+Build handoff: [warpage CalculiX extensions](../../solver-package-specs/warpage-calculix.md)
+reuses the inspected f08 source/build recipe and specifies material,
+joint-formation, residual-state/restart and full-3D observer proofs. It is
+SPECIFIED, not a built reference; calibrated inputs and physical-task smoke
+remain HOLD. No panel, solver execution or Challenge adoption is authorised.
+
 D016 has a source-confirmed engineering workflow, but it is **not a dispatch-ready customer acceptance packet**. The proposed decision is to choose an underfill and solder-stack geometry for a complete three-dimensional package over its full thermal history. Public sources establish the job and conditional measurements; they do not supply this package's complete stress, temperature or manufacturing acceptance contract.
 
 Amkor publishes a coupled package simulation workflow under a named packaging/mechanical simulation engineer; ASE independently offers customer-input package stress and warpage simulation. These are evidence of an existing buyer role and workflow, not Carbon customers, purchasing commitments or measured willingness to pay. See the [source ledger](source-evidence.md).
