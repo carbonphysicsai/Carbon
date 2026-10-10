@@ -1,5 +1,10 @@
 # Battery v3 round-two design-question law
 
+Prospective follow-up: the [middle-band boundary panel](battery-v3-middle-bands-panel.md)
+records the Test Lead's TWO-band working near rule on both feasible and
+infeasible sides, with an exact diagnostic action proposal. Historical counts
+and one-band audit wording below are preserved, not reclassified as a pass.
+
 **DEVELOPMENT / SPECIFIED; draft for owner/Test Lead approval.**
 CHALLENGE-BATTERY-V3-QUESTION-LAW-01, main
 `6848d9316c0341113ee701100e53fcc984d1531e`. This prospective supplement keeps

@@ -1,0 +1,30 @@
+{
+  "schema": "carbon.battery.middle-bands-panel-proposal.v1",
+  "ticket": "BATTERY-V3-MIDDLE-BANDS-PANEL-01",
+  "maturity": "SPECIFIED",
+  "accepted_manifest_digest": null,
+  "dispatch_grant": null,
+  "permissions": {"solver_runs": false, "spend": false, "hidden_data": false, "AX42_data": false, "runtime_registration": false, "historical_rescore": false},
+  "source": {"acquisition_head": "66ea509888e4ef0f5ac08750554db744b56b92bf", "evidence_directory": "docs/development/evidence/battery-feasibility-02", "operator_export_accessed": false, "prior_registered_refinements": {"all_bands": 115, "15": 8, "25": 40, "35": 45}, "prior_completion": "NOT_VERIFIED", "full_overlay_lock": null},
+  "slice": {"status": "HUMAN_INPUT_PANEL_RECOMMENDATION", "soc0": "0.10", "initial_state": "IDENTIFIED_FRESH", "cycles": 30, "switch_voltage_v": "4.00", "cv_voltage_v": "4.20", "cv_cutoff_c": "0.05", "cooling_h0_w_m2k": "10", "cooling_area_m2": "0.00531", "cooling_multipliers": [1, 2, 4], "c_rate_step": "0.01", "c2_le_c1": true, "global_action_bounds_adopted": false, "start_soc_observer": "CHARGE_INTEGRAL_TO_FIRST_0.80_INCLUDING_SESSION_REST"},
+  "hard_limits": {"charging_temperature_max_c": 45, "every_charge_plating_min_v": 0, "programme_voltage_max_v": 4.2, "q30_over_q1_min": 0.99, "time_hard_cap": null, "discharge_temperature_role": "DIAGNOSTIC", "producer_voltage_slack_adopted": false},
+  "near": {"authority": "TEST_LEAD_WORKING_VALUE_2026-10-08", "bands_both_sides": 2, "accepted_widths": null, "recommendation_temperature_band_k": "0.5", "recommendation_plating_band_v": "0.002", "min_resolved_feasible": 5, "min_resolved_infeasible": 5, "count_rule": "ACCEPTED_MARGIN_INTERVAL_ENTIRELY_WITHIN_NEAR_REGION_AND_SETTLED_HARD_VERDICT", "missing_intervals_are_unresolved": true, "count_distinct_union_and_per_limit": true, "widen_band_for_count": false, "current_T2a": "NOT_DEMONSTRATED"},
+  "groups": [
+    {"id": "15-p1", "ambient_c": 15, "cooling": 1, "c1_list": ["1.00", "1.25", "1.50", "1.75"], "c2_range": ["0.75", "0.95"], "rows": 84, "role": "PLATING"},
+    {"id": "15-p2a", "ambient_c": 15, "cooling": 2, "c1_list": ["1.25"], "c2_range": ["0.50", "0.60"], "rows": 11, "role": "PLATING"},
+    {"id": "15-p2b", "ambient_c": 15, "cooling": 2, "c1_range": ["1.40", "1.50"], "c2_list": ["0.40"], "rows": 11, "role": "PLATING"},
+    {"id": "15-p4-probe", "ambient_c": 15, "cooling": 4, "c1_list": ["0.75", "1.00", "1.10", "1.20", "1.25"], "c2_list": ["0.40"], "rows": 5, "role": "UNPROVED_BRACKET"},
+    {"id": "25-t1", "ambient_c": 25, "cooling": 1, "c1_range": ["1.48", "1.55"], "c2_list": ["0.70", "1.00", "1.25"], "rows": 24, "role": "TEMPERATURE"},
+    {"id": "25-p2", "ambient_c": 25, "cooling": 2, "c1_list": ["1.25", "1.50", "1.75", "2.00"], "c2_range": ["0.90", "1.05"], "rows": 64, "role": "PLATING"},
+    {"id": "25-p4", "ambient_c": 25, "cooling": 4, "c1_range": ["1.70", "1.85"], "c2_list": ["0.70"], "rows": 16, "role": "PLATING"},
+    {"id": "35-t1-probe", "ambient_c": 35, "cooling": 1, "c1_range": ["0.95", "1.10"], "c2_list": ["0.40"], "rows": 16, "role": "UNPROVED_BRACKET"},
+    {"id": "35-t2", "ambient_c": 35, "cooling": 2, "c1_range": ["1.42", "1.51"], "c2_list": ["0.70", "1.00", "1.25"], "rows": 30, "role": "TEMPERATURE"},
+    {"id": "35-p4", "ambient_c": 35, "cooling": 4, "c1_list": ["1.50", "1.75", "2.00"], "c2_range": ["1.24", "1.36"], "rows": 39, "role": "PLATING"}
+  ],
+  "stage_A": {"rows": 300, "rows_by_band": {"15": 111, "25": 104, "35": 85}, "max_new_standard": 300, "max_new_rung2": 300, "max_new_rung3": 60, "reuse_by_complete_physical_and_rung_identity": true, "check_scheduled_before_start": true, "guaranteed_5_plus_5": false},
+  "stage_B": {"status": "HUMAN_INPUT_LATER_ACCEPTED_PLAN_ONLY", "max_extra_tuples": 60, "max_extra_per_band": 20, "max_new_rung2": 60, "max_new_rung3": 12, "plating_targets_v": ["-0.003", "0.003"], "temperature_targets_c": ["44.25", "45.75"], "quantization": "NEAREST_0.01_HALF_TIES_DOWNWARD", "within_group_axis_bounds": true, "identical_fixed_coordinates": true, "interpolation_is_truth": false, "unbracketed_extrapolation": false, "automatic_retries": false},
+  "cost": {"status": "PLANNING_NOT_A_GRANT", "standard_cpu_s": "91", "standard_basis": "SUPPLIED_WORKING_C1_TRANSFER_ASSUMPTION", "refined_observed_wall_s": "378", "refined_cpu_s_proxy": "378", "refined_cpu_status": "SINGLE_THREAD_PROXY_ASSUMPTION_NOT_MEASURED_CPU", "third_rung_cpu_s_allowance": "900", "third_rung_status": "NOT_MEASURED_STOP_RECOMMENDATION", "memory": "NOT_MEASURED", "ccx63_eur_per_billed_node_h": "1.37", "effective_throughput_measured": null, "scenarios": [{"name": "low", "standard": 60, "rung2": 30, "rung3": 0, "cpu_h": "4.666666666666667"}, {"name": "base", "standard": 300, "rung2": 120, "rung3": 12, "cpu_h": "23.183333333333334"}, {"name": "A_max", "standard": 300, "rung2": 300, "rung3": 60, "cpu_h": "54.083333333333336"}, {"name": "A_B_max", "standard": 360, "rung2": 360, "rung3": 72, "cpu_h": "64.9"}], "setup_helpers_failures_included": false, "all_in_under_100_eur_demonstrated": false},
+  "global_P_Q_w_E_k_changed": false,
+  "other_challenge_laws_changed": false,
+  "EV5_journal14_live_contract_changed": false
+}
