@@ -18,7 +18,12 @@ What it verifies each epoch (`verify_epoch`):
 3. The incumbent's weight is its Challenge's 1/N share, either in full or
    halved a whole number of times (the decay). Any other fraction is a
    BLOCKER (`share_not_a_decay_level`).
-4. An incumbent with no weight is ATTENTION (`incumbent_unpaid`), not a
+4. With the incentive roles (slice 2, `roles.ROLES`): the degraded role
+   holding the incumbency while the strong role's released accuracy is
+   better, or the two ordered the wrong way in the feed's standing, is
+   ATTENTION (`role_order_inverted`). Recipe quality is a hypothesis, so
+   this is evidence about the recipes, never a payment blocker.
+5. An incumbent with no weight is ATTENTION (`incumbent_unpaid`), not a
    blocker. Its promotion may be legitimately ineligible (a same-miner
    tweak, an overdue pool), and the winner ledger saying so is private.
 
@@ -132,13 +137,40 @@ def verify_epoch(row, hotkeys, incumbents, n_challenges, canaries, burn_uid=0):
 def load_config(path):
     config = json.loads(Path(path).read_text())
     keys = {"schema", "validator_hotkey", "intake_url", "feed_key", "policy"}
-    if type(config) is not dict or set(config) != keys or config["schema"] != SCHEMA:
+    if (
+        type(config) is not dict
+        or not keys <= set(config) <= keys | {"roles"}
+        or config["schema"] != SCHEMA
+        or type(config.get("roles", False)) is not bool
+    ):
         raise ValueError("incentive_config_malformed")
     return config
 
 
-def read_incumbent(intake_url, feed_key, challenge=BATTERY, *, opener=None):
-    """The incumbent hotkey the validator's signed feed names, or None."""
+def verify_roles(leaderboard, roles):
+    """Findings on the incentive roles from the feed's leaderboard:
+    `role_order_inverted` (ATTENTION) when the degraded role ranks above the
+    strong role, or holds the incumbency while strong is ranked above it."""
+    by_role = {entry["role"]: hotkey for hotkey, entry in roles.items()}
+    strong, degraded = by_role.get("strong"), by_role.get("degraded")
+    ranks = {
+        e["hotkey"]: e.get("rank", i + 1)
+        for i, e in enumerate(leaderboard.get("standing") or [])
+    }
+    incumbent = (leaderboard.get("incumbent") or {}).get("hotkey")
+    findings = []
+    if strong in ranks and degraded in ranks:
+        if ranks[degraded] < ranks[strong] or incumbent == degraded:
+            findings.append({"level": ATTENTION, "code": "role_order_inverted"})
+        else:
+            findings.append({"level": PASS, "code": "role_order_held"})
+    else:
+        findings.append({"level": UNVERIFIED, "code": "roles_not_both_released"})
+    return findings
+
+
+def read_leaderboard(intake_url, feed_key, challenge=BATTERY, *, opener=None):
+    """The signed feed's `leaderboard` (incumbent and standing)."""
     import urllib.request
 
     from carbon.challenge_validator.feed_file import verify_feed
@@ -151,7 +183,14 @@ def read_incumbent(intake_url, feed_key, challenge=BATTERY, *, opener=None):
         raise Unverified("feed_unavailable") from None
     if not verify_feed(feed, feed_key):
         raise Unverified("feed_signature_invalid")
-    incumbent = (feed.get("leaderboard") or {}).get("incumbent")
+    leaderboard = feed.get("leaderboard")
+    return leaderboard if type(leaderboard) is dict else {}
+
+
+def read_incumbent(intake_url, feed_key, challenge=BATTERY, *, opener=None):
+    """The incumbent hotkey the validator's signed feed names, or None."""
+    leaderboard = read_leaderboard(intake_url, feed_key, challenge, opener=opener)
+    incumbent = leaderboard.get("incumbent")
     return incumbent.get("hotkey") if type(incumbent) is dict else None
 
 
@@ -195,8 +234,16 @@ async def read_weights(context, validator_hotkey):
     return [[int(u), int(v)] for u, v in row], hotkeys
 
 
-def check(config, *, weights_reader=None, incumbent_reader=None, context=None):
-    """One check of the current epoch. Returns the result line."""
+def check(
+    config,
+    *,
+    weights_reader=None,
+    incumbent_reader=None,
+    leaderboard_reader=None,
+    context=None,
+):
+    """One check of the current epoch. Returns the result line. With
+    `"roles": true` in the config, the incentive roles' ordering too."""
     from carbon.challenge_validator.canary import CANARY_HOTKEYS
     from carbon.rewards.winner_decay import load_policy
 
@@ -213,9 +260,16 @@ def check(config, *, weights_reader=None, incumbent_reader=None, context=None):
         row, hotkeys = asyncio.run(
             (weights_reader or read_weights)(context, config["validator_hotkey"])
         )
-        incumbent = (incumbent_reader or read_incumbent)(
-            config["intake_url"], config["feed_key"]
-        )
+        if config.get("roles"):
+            leaderboard = (leaderboard_reader or read_leaderboard)(
+                config["intake_url"], config["feed_key"]
+            )
+            incumbent = (leaderboard.get("incumbent") or {}).get("hotkey")
+        else:
+            leaderboard = None
+            incumbent = (incumbent_reader or read_incumbent)(
+                config["intake_url"], config["feed_key"]
+            )
     except Unverified as failed:
         return {"state": UNVERIFIED, "findings": [{"code": failed.code}]}
     except Exception as failed:  # noqa: BLE001 - infrastructure is unverified
@@ -223,7 +277,7 @@ def check(config, *, weights_reader=None, incumbent_reader=None, context=None):
             "state": UNVERIFIED,
             "findings": [{"code": "read_failed", "type": type(failed).__name__}],
         }
-    return verify_epoch(
+    result = verify_epoch(
         row,
         hotkeys,
         {BATTERY: incumbent},
@@ -231,6 +285,15 @@ def check(config, *, weights_reader=None, incumbent_reader=None, context=None):
         frozenset(CANARY_HOTKEYS),
         burn_uid=policy.burn_uid,
     )
+    if leaderboard is not None:
+        from scripts.dev.canary.roles import ROLES
+
+        result["findings"] += verify_roles(leaderboard, ROLES)
+        levels = {f["level"] for f in result["findings"]}
+        result["state"] = next(
+            (s for s in (BLOCKER, ATTENTION, UNVERIFIED) if s in levels), PASS
+        )
+    return result
 
 
 EXIT = {PASS: 0, ATTENTION: 0, UNVERIFIED: 1, BLOCKER: 3}

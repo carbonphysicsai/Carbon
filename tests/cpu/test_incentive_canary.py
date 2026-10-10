@@ -107,3 +107,76 @@ def test_check_reads_the_public_surfaces_and_refuses_mainnet():
         "state": inc.UNVERIFIED,
         "findings": [{"code": "feed_unavailable"}],
     }
+
+
+# --- slice 2: the incentive roles --------------------------------------------------
+
+
+def test_the_roles_are_registered_paid_and_off_the_canary_grid():
+    from scripts.dev.canary import roles, variants
+
+    assert {e["role"] for e in roles.ROLES.values()} == {
+        "strong",
+        "degraded",
+        "challenger",
+    }
+    assert not set(roles.ROLES) & set(CANARY_HOTKEYS)
+    canary_fractions = set(variants.TRAIN_FRACTIONS)
+    bounds = {"neighbours": (1, 64), "train_fraction": (0.1, 1.0)}
+    for entry in roles.ROLES.values():
+        for neighbours, fraction in entry["recipes"]:
+            assert fraction not in canary_fractions  # never a canary digest
+            assert bounds["neighbours"][0] <= neighbours <= bounds["neighbours"][1]
+            assert (
+                bounds["train_fraction"][0] <= fraction <= bounds["train_fraction"][1]
+            )
+
+
+def test_a_role_hotkey_passes_the_runner_config_and_others_still_do_not():
+    import pytest
+
+    from scripts.dev.canary import config, roles
+
+    strong = roles.hotkey_of("strong")
+    assert roles.role_of(strong) == "strong"
+    assert roles.role_of("5NotARole") is None
+    # parse refuses a hotkey that is neither a canary nor a role first.
+    with pytest.raises(config.ConfigRefused):
+        config.parse({"schema": config.SCHEMA})
+
+
+def test_role_order_is_attention_never_a_payment_blocker():
+    from scripts.dev.canary import roles
+
+    strong, degraded = roles.hotkey_of("strong"), roles.hotkey_of("degraded")
+    held = {
+        "incumbent": {"hotkey": strong},
+        "standing": [{"hotkey": strong, "rank": 1}, {"hotkey": degraded, "rank": 2}],
+    }
+    assert [f["code"] for f in inc.verify_roles(held, roles.ROLES)] == [
+        "role_order_held"
+    ]
+    inverted = {
+        "incumbent": {"hotkey": degraded},
+        "standing": [{"hotkey": strong, "rank": 1}, {"hotkey": degraded, "rank": 2}],
+    }
+    found = inc.verify_roles(inverted, roles.ROLES)
+    assert found == [{"level": inc.ATTENTION, "code": "role_order_inverted"}]
+    assert inc.verify_roles({}, roles.ROLES)[0]["code"] == "roles_not_both_released"
+
+
+def test_a_role_list_is_a_valid_runner_variant_list(tmp_path):
+    import pytest
+
+    from scripts.dev.canary import roles, variants
+
+    for role in ("strong", "degraded"):
+        path = tmp_path / f"{role}.json"
+        assert roles.main(["generate", "--role", role, "--out", str(path)]) == 0
+        loaded, _ = variants.load(path)
+        recipes = roles.ROLES[roles.hotkey_of(role)]["recipes"]
+        assert [v["strategy"] for v in loaded["variants"]] == [
+            variants.strategy(n, f) for n, f in recipes
+        ]
+    with pytest.raises(variants.VariantRefused):
+        roles.generate("challenger")  # slice 3 calibrates its recipes
