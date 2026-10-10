@@ -1273,7 +1273,13 @@ def run_session(control, provider, brief, number, variant=None):
     control.recover()
     phase = control.launch(spec, key)
     run_id = provider.run_id_for(key)
-    final = provider.run(run_id) if provider.find(key) is not None else None
+    # GRAPHITE-LAUNCH-PREFLIGHT-01: a live run beats while it runs.
+    from .heartbeat import beating
+
+    final = None
+    if provider.find(key) is not None:
+        with beating(provider._dir(run_id), run_id):
+            final = provider.run(run_id)
     # The session's findings are recorded before its events and artifacts are
     # ingested, so those entries carry them (conditional-evidence.v2
     # "ordering"); `sync_findings` also covers a run another process ran.
