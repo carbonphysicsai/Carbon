@@ -1,0 +1,15 @@
+{
+  "schema":"carbon.challenge-pipeline.lesson.v1",
+  "lesson_id":"2026-10-10-stronger-comparators-first-regression",
+  "recorded_at":"2026-10-10T19:47:01Z",
+  "challenge":"protocol",
+  "stage":"test_iterate",
+  "execution":{"kind":"test_run","ref":"COMPARATOR-CROSS-GEOMETRY-MULTIMODE-01","description":"Native new and existing comparator regression; syntax/resource/provenance checks, no physical runs."},
+  "expected":"Preserve the old comparators, while stronger arms hold out target matrices and basis training and retain full cost/rank reporting.",
+  "observed":"49 focused native tests passed. Ruff reported one test-expression style finding, repaired explicitly; no test was weakened. Basis-trained held geometry abstains; fluid/port/output layout mismatch is refused; synthetic modal energy includes evanescent influence and no arbitrary dB floor. Reference adequacy and calibration support remain explicitly unverified.",
+  "keep":["Carry independent basis-construction provenance", "Separate calibration validity from a green arithmetic fixture", "Report missing acquisition/projection costs as NOT_MEASURED"],
+  "change":["Keep a direct exact-lookup replay alongside OOF comparison", "Record helper source hashes as well as the main comparator file"],
+  "protocol_elements":["evidence_identity","claim_control","scientific_contracts"],
+  "proposed_revision":null,
+  "status":"RECORDED"
+}

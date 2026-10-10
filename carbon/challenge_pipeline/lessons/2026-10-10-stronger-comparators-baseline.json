@@ -1,0 +1,15 @@
+{
+  "schema":"carbon.challenge-pipeline.lesson.v1",
+  "lesson_id":"2026-10-10-stronger-comparators-baseline",
+  "recorded_at":"2026-10-10T19:39:53Z",
+  "challenge":"protocol",
+  "stage":"test_iterate",
+  "execution":{"kind":"test_run","ref":"COMPARATOR-CROSS-GEOMETRY-MULTIMODE-01","description":"23 existing portfolio comparator native baseline tests and first 10 synthetic reduced-operator tests; no reference solves or physical acquisition."},
+  "expected":"Stronger optional arms preserve witness independence, abstention, buyer-unit judgment and equal-budget screening exports.",
+  "observed":"23 existing tests and first 10 synthetic tests passed. Affine operator interpolation agreed with an independent two-DOF inverse; acoustic modal power balance closed to arithmetic precision. A common basis can itself contain held geometry information, so the next slice adds basis-source and training-coordinate provenance with fold exclusion. None of these fixtures demonstrate reference or V4 adequacy.",
+  "keep":["Interpolate aligned operators, not unrelated sorted modes", "Retain evanescent influence while counting only propagating power", "Never replace zero transmission with an invented dB floor"],
+  "change":["Hold out basis construction as well as held geometry operators", "Hash identities are provenance requirements, not proof of physical applicability"],
+  "protocol_elements":["scientific_contracts","claim_control","evidence_identity"],
+  "proposed_revision":null,
+  "status":"RECORDED"
+}
