@@ -1,0 +1,142 @@
+{
+  "schema": "carbon.onboarding.brief.v1",
+  "challenge": "metagrating-3d",
+  "buyer": "Proposed diffractive-optics R&D/design engineer choosing a silicon beam-deflector; inferred role, not an interviewed customer.",
+  "decision": "Choose a full 3D periodic binary silicon/air pattern and thickness maximizing verified desired-order efficiency under buyer fabrication, reflection and unwanted-order constraints across every mandatory scenario, or return settled NONE_FEASIBLE.",
+  "physics": "Full x/y/z periodic-cell Maxwell fields, finite silicon thickness; source nondispersive fixed-wavelength numerical job, not a fabricated-device validation claim.",
+  "solver": "Proposed Meep FDTD source b08d226ba311a04e59c984e97f3e88dd82bc56d1; independent open S4 RCWA competitor/witness; no accepted images, settings or adapters.",
+  "fields": {
+    "P": {
+      "value": "HUMAN_INPUT: proposed intended buyer briefs and independently constructed designs within reference-supported conditions; range endpoints are not a registered population. State catalogue exclusions and support explicitly.",
+      "sources": []
+    },
+    "Q": {
+      "value": "HUMAN_INPUT: public anchor verification separate from public novel-design strata and diagnostic near-limit enrichment; no redraw of forward NONE_FEASIBLE. Freeze the physical novelty/exclusion law before any future scored draws.",
+      "sources": []
+    },
+    "w": {
+      "value": "HUMAN_INPUT: buyer scenario frequencies and decision/evidence weights registered separately from P and Q; zero Q support cannot be repaired by an arbitrary weight.",
+      "sources": []
+    },
+    "independent_unit": {
+      "value": "HUMAN_INPUT: a complete independently held-out design-panel/brief group, not a mesh rung or a repeated row of the same design.",
+      "sources": []
+    },
+    "case_identity": {
+      "value": "HUMAN_INPUT: prospective immutable geometry, physical inputs, solver/environment/material/observer, catalogue/extractor and law identities; these planning tokens do not activate runtime IDs.",
+      "sources": []
+    },
+    "disclosure": {
+      "value": "Public source anchors and proposed development witnesses only. No protected case, seed, label or reversible ID is read or emitted. Published anchors, copies and physical equivalents are excluded from future scored cases under the proposed policy; enforcement is not implemented here.",
+      "sources": []
+    },
+    "hard_limits": {
+      "value": "HUMAN_INPUT: actual buyer performance, manufacturing and physical safety limits; retain uncertainty and source applicability. Do not relax limits to manufacture a feasible panel.",
+      "sources": []
+    },
+    "uncertainty": {
+      "value": "HUMAN_INPUT: accepted mesh/time/operator refinement and observer error bands; disputed reference evidence remains UNRESOLVED, never candidate failure or proof of NONE_FEASIBLE.",
+      "sources": []
+    },
+    "vocabulary": {
+      "value": "HUMAN_INPUT: construction-owner Level 0 vocabulary and approved reconstruction contract. Documentation drafts add no execution capability.",
+      "sources": []
+    },
+    "training": {
+      "value": "HUMAN_INPUT: no variant TRAIN bank exists. Public anchors may be used only with asset-level rights and declared provenance; public answers are not hidden scored questions.",
+      "sources": []
+    },
+    "permissions": {
+      "value": "No solver runs, builds, training, bank draws, spend, hidden/AX42 access or runtime registration. Future exact grants, security acceptance and qualification remain with their owners.",
+      "sources": []
+    },
+    "panel": {
+      "value": "HUMAN_INPUT: register complete design x condition x rung tuples and exact pins after scope/measurement acceptance. Separate non-scoring anchors from novel public decisions. Demonstrate complete feasibility, meaningful margins, changing answers, strong-cheap-baseline agreement and near-frontier coverage.",
+      "sources": []
+    },
+    "controls": {
+      "value": "Public anchor-answer retrieval and equivalent-copy controls; edge-optimist, over-cautious, sign-error and optimizer/lattice-aware diagnostics where valid. Refine close calls or mark UNRESOLVED. Test Lead selects power, acceptance and thresholds.",
+      "sources": []
+    },
+    "confirmation": {
+      "value": "No confirmation run authorized. Independent future witnesses and scenario-complete verification require separate registration and grants; preserve historical reference identities.",
+      "sources": []
+    },
+    "readiness": {
+      "value": "PROPOSED_NOT_RUN: registered panel, public kit and TRAIN missing; solver source pins, published anchor evidence, comparator and equal-budget route partial. No stage exit or TESTED claim is earned.",
+      "sources": []
+    },
+    "owners": {
+      "value": "Codex drafts; Test Lead reviews reference/value/law evidence; Data Collection builds and measures only under separate authorization; owner chooses adoption, limits, pricing and spend; Carbon Validator owns any future protected bank.",
+      "sources": []
+    },
+    "next_gate": {
+      "value": "Owner selects/declines the proposed family; science/Test Lead settle supported scope, buyer limits and novelty contract. Then prepare an exact non-dispatchable public panel and Data Collection package handoff. No paid or hidden execution follows automatically.",
+      "sources": []
+    },
+    "value": {
+      "value": "HUMAN_INPUT: desired-order efficiency/decision improvement and design-iteration delay saved; real decision volume, euros and positive Carbon gain unknown. Published library/adjoint workflows support the decision class only.",
+      "sources": []
+    },
+    "wrong_decision": {
+      "value": "HUMAN_INPUT: poor beam efficiency or unwanted orders and a failed fabrication/design revision; no manufacturing yield or cost claim is inferred.",
+      "sources": []
+    },
+    "exclusions": {
+      "value": "Do not reduce to 1D stripes or effective-index 2D physics. No arbitrary dispersive stack, bandwidth, fabricated-device performance or production manufacturing claim.",
+      "sources": []
+    },
+    "geometry": {
+      "value": "Proposed genuine two-direction periodic binary mask with source y-reflection symmetry and finite thickness. ASSUMPTION deflection 40/50/60 degrees and thickness 250/325/400 nm; mask grammar/degrees of freedom and fabrication tolerances HUMAN_INPUT.",
+      "sources": []
+    },
+    "materials": {
+      "value": "Source idealized nondispersive n_Si 3.45 and n_silica 1.45; lossless reference model. Buyer dispersion, loss and fabrication calibration not demonstrated.",
+      "sources": []
+    },
+    "conditions": {
+      "value": "Source vacuum wavelength 1050 nm, substrate-side normal incidence, TM polarization, desired transmitted +1 order, Py/lambda 0.5 and Px=lambda/sin(deflection). Deflection is not incidence angle. One hardware period must stay fixed across its operating scenarios.",
+      "sources": []
+    },
+    "omissions": {
+      "value": "Loss, dispersion, fabrication bias, hardware measurements and broader operating applicability are unearned; uniform z thickness does not imply 2D fields.",
+      "sources": []
+    },
+    "strata": {
+      "value": "HUMAN_INPUT: accepted full-3D mask/thickness/deflection families with source-fixed wavelength/material/polarization unless prospectively revised; period-consistent scenarios, interior and two-band frontier diagnostics.",
+      "sources": []
+    },
+    "validity": {
+      "value": "HUMAN_INPUT: deterministic binary mask/contour/material-grid interpretation, allowed symmetries and manufacturing grammar. Resampling, translations, stripe encodings and equivalent wavelength/geometry scaling of public masks do not establish novelty.",
+      "sources": []
+    },
+    "pins": {
+      "value": "NanoComp testbed a06518872de6ec82bb4511190e544211539f55f1; Meep b08d226ba311a04e59c984e97f3e88dd82bc56d1; S4 7fd00a231610bff51f5c7de5f723e3956eab7453. Container/dependencies/material/geometry/observer digests HUMAN_INPUT.",
+      "sources": []
+    },
+    "refinement": {
+      "value": "HUMAN_INPUT: spatial/time/PML/domain/decay convergence, binary-mask mapping, normalization/device runs and complete order accounting; S4 harmonic refinement and matched decision witnesses. No coarsest adequate grid or RAM has been measured for this family.",
+      "sources": []
+    },
+    "cost": {
+      "value": "ASSUMPTION low/base/high complete cases 32/64/128; host h/case including normalization/refinement 0.02/0.25/2; separate anchor h 0.5/5/25; comparator h 0.5/5/25; total h 1.64/26/306 and EUR 2.25/35.62/419.22 at planning EUR 1.37/h. CPU/RAM/actual cost unmeasured; excludes labor, model construction and full equal-budget campaign. EUR 500 planning maximum is not a grant.",
+      "sources": []
+    },
+    "outputs": {
+      "value": "HUMAN_INPUT contract: normalized desired transmitted-order efficiency, every propagating reflected/transmitted order, total R/T, energy residual and convergence intervals. Complete reflection/order/energy reductions absent; source normalization is not full output coverage.",
+      "sources": []
+    },
+    "objective": {
+      "value": "HUMAN_INPUT: maximum verified desired-order efficiency with common hard limits, complete scenarios and buyer-equivalent tie policy; reference-verified finite-bank best is not a global optimum.",
+      "sources": []
+    },
+    "public_kit": {
+      "value": "HUMAN_INPUT: asset-level cleared MIT testbed masks/scripts plus actual Meep/S4 license/dependency manifests, generalized own-seed mask generator, all output reductions, catalogue/distance checks and public practice. No executable kit supplied here.",
+      "sources": []
+    },
+    "baseline": {
+      "value": "Strong competitors: grating kinematics (not efficiency prediction), published-mask/library retrieval, calibrated response maps, converged S4 RCWA, direct RCWA shape search and compatible Meep adjoints. Full construction and reference verification charged to Carbon; cheap-method success is a legitimate negative value result.",
+      "sources": []
+    }
+  }
+}
