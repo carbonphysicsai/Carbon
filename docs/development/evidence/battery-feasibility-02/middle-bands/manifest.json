@@ -1,0 +1,2758 @@
+{
+ "schema": "carbon.battery.middle-bands-manifest.v1",
+ "ticket": "BATTERY-V3-MIDDLE-BANDS-PANEL-01",
+ "sheet_sha256": "d5befd6524a060684c1174e9d9a73c93bc25ab4e689d02e318e81a9d021f9b32",
+ "tuples": [
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.75:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.75",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.76:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.76",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.77:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.77",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.78:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.78",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.79:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.79",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.80:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.80",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.81:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.81",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.82:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.82",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.83:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.83",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.84:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.84",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.85:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.85",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.86:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.86",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.87:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.87",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.88:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.88",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.89:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.89",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.90:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.90",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.91:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.91",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.92:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.92",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.93:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.93",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.94:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.94",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.00:c2=0.95:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.95",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.75:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.75",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.76:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.76",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.77:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.77",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.78:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.78",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.79:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.79",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.80:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.80",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.81:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.81",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.82:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.82",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.83:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.83",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.84:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.84",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.85:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.85",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.86:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.86",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.87:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.87",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.88:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.88",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.89:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.89",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.90:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.90",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.91:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.91",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.92:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.92",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.93:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.93",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.94:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.94",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.25:c2=0.95:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.25",
+   "c2": "0.95",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.75:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.75",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.76:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.76",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.77:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.77",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.78:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.78",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.79:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.79",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.80:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.80",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.81:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.81",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.82:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.82",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.83:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.83",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.84:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.84",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.85:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.85",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.86:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.86",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.87:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.87",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.88:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.88",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.89:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.89",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.90:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.90",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.91:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.91",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.92:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.92",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.93:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.93",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.94:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.94",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.50:c2=0.95:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.95",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.75:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.75",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.76:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.76",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.77:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.77",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.78:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.78",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.79:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.79",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.80:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.80",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.81:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.81",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.82:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.82",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.83:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.83",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.84:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.84",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.85:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.85",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.86:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.86",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.87:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.87",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.88:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.88",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.89:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.89",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.90:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.90",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.91:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.91",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.92:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.92",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.93:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.93",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.94:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.94",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h1:c1=1.75:c2=0.95:sv=4.00:SOC=.10",
+   "group": "15-p1",
+   "ambient_c": 15,
+   "cooling": 1,
+   "c1": "1.75",
+   "c2": "0.95",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.25:c2=0.50:sv=4.00:SOC=.10",
+   "group": "15-p2a",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.50",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.25:c2=0.51:sv=4.00:SOC=.10",
+   "group": "15-p2a",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.51",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.25:c2=0.52:sv=4.00:SOC=.10",
+   "group": "15-p2a",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.52",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.25:c2=0.53:sv=4.00:SOC=.10",
+   "group": "15-p2a",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.53",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.25:c2=0.54:sv=4.00:SOC=.10",
+   "group": "15-p2a",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.54",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.25:c2=0.55:sv=4.00:SOC=.10",
+   "group": "15-p2a",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.55",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.25:c2=0.56:sv=4.00:SOC=.10",
+   "group": "15-p2a",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.56",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.25:c2=0.57:sv=4.00:SOC=.10",
+   "group": "15-p2a",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.57",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.25:c2=0.58:sv=4.00:SOC=.10",
+   "group": "15-p2a",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.58",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.25:c2=0.59:sv=4.00:SOC=.10",
+   "group": "15-p2a",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.59",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.25:c2=0.60:sv=4.00:SOC=.10",
+   "group": "15-p2a",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.60",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.40:c2=0.40:sv=4.00:SOC=.10",
+   "group": "15-p2b",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.40",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.41:c2=0.40:sv=4.00:SOC=.10",
+   "group": "15-p2b",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.41",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.42:c2=0.40:sv=4.00:SOC=.10",
+   "group": "15-p2b",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.42",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.43:c2=0.40:sv=4.00:SOC=.10",
+   "group": "15-p2b",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.43",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.44:c2=0.40:sv=4.00:SOC=.10",
+   "group": "15-p2b",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.44",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.45:c2=0.40:sv=4.00:SOC=.10",
+   "group": "15-p2b",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.45",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.46:c2=0.40:sv=4.00:SOC=.10",
+   "group": "15-p2b",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.46",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.47:c2=0.40:sv=4.00:SOC=.10",
+   "group": "15-p2b",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.47",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.48:c2=0.40:sv=4.00:SOC=.10",
+   "group": "15-p2b",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.48",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.49:c2=0.40:sv=4.00:SOC=.10",
+   "group": "15-p2b",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.49",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h2:c1=1.50:c2=0.40:sv=4.00:SOC=.10",
+   "group": "15-p2b",
+   "ambient_c": 15,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "0.40",
+   "reuse": {
+    "standard": "c1=1.5,c2=0.4:h2:T15",
+    "rung2": "refined:t5:c1=1.5,c2=0.4,sv=4:h2:T15"
+   }
+  },
+  {
+   "id": "bmid1:T15:h4:c1=0.75:c2=0.40:sv=4.00:SOC=.10",
+   "group": "15-p4-probe",
+   "ambient_c": 15,
+   "cooling": 4,
+   "c1": "0.75",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h4:c1=1.00:c2=0.40:sv=4.00:SOC=.10",
+   "group": "15-p4-probe",
+   "ambient_c": 15,
+   "cooling": 4,
+   "c1": "1.00",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h4:c1=1.10:c2=0.40:sv=4.00:SOC=.10",
+   "group": "15-p4-probe",
+   "ambient_c": 15,
+   "cooling": 4,
+   "c1": "1.10",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h4:c1=1.20:c2=0.40:sv=4.00:SOC=.10",
+   "group": "15-p4-probe",
+   "ambient_c": 15,
+   "cooling": 4,
+   "c1": "1.20",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T15:h4:c1=1.25:c2=0.40:sv=4.00:SOC=.10",
+   "group": "15-p4-probe",
+   "ambient_c": 15,
+   "cooling": 4,
+   "c1": "1.25",
+   "c2": "0.40",
+   "reuse": {
+    "standard": "c1=1.25,c2=0.4:h4:T15"
+   }
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.25:c2=0.90:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.90",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.25:c2=0.91:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.91",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.25:c2=0.92:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.92",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.25:c2=0.93:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.93",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.25:c2=0.94:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.94",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.25:c2=0.95:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.95",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.25:c2=0.96:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.96",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.25:c2=0.97:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.97",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.25:c2=0.98:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.98",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.25:c2=0.99:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "0.99",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.25:c2=1.00:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "1.00",
+   "reuse": {
+    "standard": "c1=1.25,c2=1:h2:T25",
+    "rung2": "refined:t5:c1=1.25,c2=1,sv=4:h2:T25"
+   }
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.25:c2=1.01:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "1.01",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.25:c2=1.02:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "1.02",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.25:c2=1.03:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "1.03",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.25:c2=1.04:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "1.04",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.25:c2=1.05:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.25",
+   "c2": "1.05",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.50:c2=0.90:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "0.90",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.50:c2=0.91:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "0.91",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.50:c2=0.92:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "0.92",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.50:c2=0.93:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "0.93",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.50:c2=0.94:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "0.94",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.50:c2=0.95:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "0.95",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.50:c2=0.96:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "0.96",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.50:c2=0.97:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "0.97",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.50:c2=0.98:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "0.98",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.50:c2=0.99:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "0.99",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.50:c2=1.00:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "1.00",
+   "reuse": {
+    "standard": "c1=1.5,c2=1:h2:T25",
+    "rung2": "refined:t5:c1=1.5,c2=1,sv=4:h2:T25",
+    "rung3": "rung3:t6:c1=1.5,c2=1,sv=4:h2:T25"
+   }
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.50:c2=1.01:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "1.01",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.50:c2=1.02:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "1.02",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.50:c2=1.03:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "1.03",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.50:c2=1.04:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "1.04",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.50:c2=1.05:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "1.05",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.75:c2=0.90:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.75",
+   "c2": "0.90",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.75:c2=0.91:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.75",
+   "c2": "0.91",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.75:c2=0.92:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.75",
+   "c2": "0.92",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.75:c2=0.93:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.75",
+   "c2": "0.93",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.75:c2=0.94:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.75",
+   "c2": "0.94",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.75:c2=0.95:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.75",
+   "c2": "0.95",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.75:c2=0.96:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.75",
+   "c2": "0.96",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.75:c2=0.97:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.75",
+   "c2": "0.97",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.75:c2=0.98:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.75",
+   "c2": "0.98",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.75:c2=0.99:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.75",
+   "c2": "0.99",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.75:c2=1.00:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.75",
+   "c2": "1.00",
+   "reuse": {
+    "standard": "c1=1.75,c2=1:h2:T25",
+    "rung2": "refined:t5:c1=1.75,c2=1,sv=4:h2:T25",
+    "rung3": "rung3:t6:c1=1.75,c2=1,sv=4:h2:T25"
+   }
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.75:c2=1.01:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.75",
+   "c2": "1.01",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.75:c2=1.02:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.75",
+   "c2": "1.02",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.75:c2=1.03:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.75",
+   "c2": "1.03",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.75:c2=1.04:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.75",
+   "c2": "1.04",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=1.75:c2=1.05:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "1.75",
+   "c2": "1.05",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=2.00:c2=0.90:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "2.00",
+   "c2": "0.90",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=2.00:c2=0.91:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "2.00",
+   "c2": "0.91",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=2.00:c2=0.92:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "2.00",
+   "c2": "0.92",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=2.00:c2=0.93:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "2.00",
+   "c2": "0.93",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=2.00:c2=0.94:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "2.00",
+   "c2": "0.94",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=2.00:c2=0.95:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "2.00",
+   "c2": "0.95",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=2.00:c2=0.96:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "2.00",
+   "c2": "0.96",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=2.00:c2=0.97:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "2.00",
+   "c2": "0.97",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=2.00:c2=0.98:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "2.00",
+   "c2": "0.98",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=2.00:c2=0.99:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "2.00",
+   "c2": "0.99",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=2.00:c2=1.00:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "2.00",
+   "c2": "1.00",
+   "reuse": {
+    "standard": "c1=2,c2=1:h2:T25",
+    "rung2": "refined:c1=2,c2=1:h2:T25",
+    "rung3": "rung3:t6:c1=2,c2=1,sv=4:h2:T25"
+   }
+  },
+  {
+   "id": "bmid1:T25:h2:c1=2.00:c2=1.01:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "2.00",
+   "c2": "1.01",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=2.00:c2=1.02:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "2.00",
+   "c2": "1.02",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=2.00:c2=1.03:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "2.00",
+   "c2": "1.03",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=2.00:c2=1.04:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "2.00",
+   "c2": "1.04",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h2:c1=2.00:c2=1.05:sv=4.00:SOC=.10",
+   "group": "25-p2",
+   "ambient_c": 25,
+   "cooling": 2,
+   "c1": "2.00",
+   "c2": "1.05",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h4:c1=1.70:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-p4",
+   "ambient_c": 25,
+   "cooling": 4,
+   "c1": "1.70",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h4:c1=1.71:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-p4",
+   "ambient_c": 25,
+   "cooling": 4,
+   "c1": "1.71",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h4:c1=1.72:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-p4",
+   "ambient_c": 25,
+   "cooling": 4,
+   "c1": "1.72",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h4:c1=1.73:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-p4",
+   "ambient_c": 25,
+   "cooling": 4,
+   "c1": "1.73",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h4:c1=1.74:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-p4",
+   "ambient_c": 25,
+   "cooling": 4,
+   "c1": "1.74",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h4:c1=1.75:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-p4",
+   "ambient_c": 25,
+   "cooling": 4,
+   "c1": "1.75",
+   "c2": "0.70",
+   "reuse": {
+    "standard": "c1=1.75,c2=0.7:h4:T25",
+    "rung2": "refined:t5:c1=1.75,c2=0.7,sv=4:h4:T25",
+    "rung3": "rung3:t6:c1=1.75,c2=0.7,sv=4:h4:T25"
+   }
+  },
+  {
+   "id": "bmid1:T25:h4:c1=1.76:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-p4",
+   "ambient_c": 25,
+   "cooling": 4,
+   "c1": "1.76",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h4:c1=1.77:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-p4",
+   "ambient_c": 25,
+   "cooling": 4,
+   "c1": "1.77",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h4:c1=1.78:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-p4",
+   "ambient_c": 25,
+   "cooling": 4,
+   "c1": "1.78",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h4:c1=1.79:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-p4",
+   "ambient_c": 25,
+   "cooling": 4,
+   "c1": "1.79",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h4:c1=1.80:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-p4",
+   "ambient_c": 25,
+   "cooling": 4,
+   "c1": "1.80",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h4:c1=1.81:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-p4",
+   "ambient_c": 25,
+   "cooling": 4,
+   "c1": "1.81",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h4:c1=1.82:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-p4",
+   "ambient_c": 25,
+   "cooling": 4,
+   "c1": "1.82",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h4:c1=1.83:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-p4",
+   "ambient_c": 25,
+   "cooling": 4,
+   "c1": "1.83",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h4:c1=1.84:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-p4",
+   "ambient_c": 25,
+   "cooling": 4,
+   "c1": "1.84",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h4:c1=1.85:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-p4",
+   "ambient_c": 25,
+   "cooling": 4,
+   "c1": "1.85",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.48:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.48",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.48:c2=1.00:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.48",
+   "c2": "1.00",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.48:c2=1.25:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.48",
+   "c2": "1.25",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.49:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.49",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.49:c2=1.00:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.49",
+   "c2": "1.00",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.49:c2=1.25:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.49",
+   "c2": "1.25",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.50:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "0.70",
+   "reuse": {
+    "standard": "c1=1.5,c2=0.7:h1:T25",
+    "rung2": "refined:t5:c1=1.5,c2=0.7,sv=4:h1:T25"
+   }
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.50:c2=1.00:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "1.00",
+   "reuse": {
+    "standard": "c1=1.5,c2=1:h1:T25",
+    "rung2": "refined:t5:c1=1.5,c2=1,sv=4:h1:T25"
+   }
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.50:c2=1.25:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.50",
+   "c2": "1.25",
+   "reuse": {
+    "standard": "t2:c1=1.5,c2=1.25,sv=4:h1:T25",
+    "rung2": "refined:t2:c1=1.5,c2=1.25,sv=4:h1:T25"
+   }
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.51:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.51",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.51:c2=1.00:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.51",
+   "c2": "1.00",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.51:c2=1.25:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.51",
+   "c2": "1.25",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.52:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.52",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.52:c2=1.00:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.52",
+   "c2": "1.00",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.52:c2=1.25:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.52",
+   "c2": "1.25",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.53:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.53",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.53:c2=1.00:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.53",
+   "c2": "1.00",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.53:c2=1.25:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.53",
+   "c2": "1.25",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.54:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.54",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.54:c2=1.00:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.54",
+   "c2": "1.00",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.54:c2=1.25:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.54",
+   "c2": "1.25",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.55:c2=0.70:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.55",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.55:c2=1.00:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.55",
+   "c2": "1.00",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T25:h1:c1=1.55:c2=1.25:sv=4.00:SOC=.10",
+   "group": "25-t1",
+   "ambient_c": 25,
+   "cooling": 1,
+   "c1": "1.55",
+   "c2": "1.25",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.50:c2=1.24:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.50",
+   "c2": "1.24",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.50:c2=1.25:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.50",
+   "c2": "1.25",
+   "reuse": {
+    "standard": "t2:c1=1.5,c2=1.25,sv=4:h4:T35",
+    "rung2": "refined:t5:c1=1.5,c2=1.25,sv=4:h4:T35",
+    "rung3": "rung3:t6:c1=1.5,c2=1.25,sv=4:h4:T35"
+   }
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.50:c2=1.26:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.50",
+   "c2": "1.26",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.50:c2=1.27:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.50",
+   "c2": "1.27",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.50:c2=1.28:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.50",
+   "c2": "1.28",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.50:c2=1.29:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.50",
+   "c2": "1.29",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.50:c2=1.30:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.50",
+   "c2": "1.30",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.50:c2=1.31:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.50",
+   "c2": "1.31",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.50:c2=1.32:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.50",
+   "c2": "1.32",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.50:c2=1.33:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.50",
+   "c2": "1.33",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.50:c2=1.34:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.50",
+   "c2": "1.34",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.50:c2=1.35:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.50",
+   "c2": "1.35",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.50:c2=1.36:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.50",
+   "c2": "1.36",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.75:c2=1.24:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.75",
+   "c2": "1.24",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.75:c2=1.25:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.75",
+   "c2": "1.25",
+   "reuse": {
+    "standard": "t2:c1=1.75,c2=1.25,sv=4:h4:T35",
+    "rung2": "refined:t5:c1=1.75,c2=1.25,sv=4:h4:T35",
+    "rung3": "rung3:t6:c1=1.75,c2=1.25,sv=4:h4:T35"
+   }
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.75:c2=1.26:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.75",
+   "c2": "1.26",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.75:c2=1.27:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.75",
+   "c2": "1.27",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.75:c2=1.28:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.75",
+   "c2": "1.28",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.75:c2=1.29:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.75",
+   "c2": "1.29",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.75:c2=1.30:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.75",
+   "c2": "1.30",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.75:c2=1.31:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.75",
+   "c2": "1.31",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.75:c2=1.32:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.75",
+   "c2": "1.32",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.75:c2=1.33:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.75",
+   "c2": "1.33",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.75:c2=1.34:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.75",
+   "c2": "1.34",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.75:c2=1.35:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.75",
+   "c2": "1.35",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=1.75:c2=1.36:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "1.75",
+   "c2": "1.36",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=2.00:c2=1.24:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "2.00",
+   "c2": "1.24",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=2.00:c2=1.25:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "2.00",
+   "c2": "1.25",
+   "reuse": {
+    "standard": "t2:c1=2,c2=1.25,sv=4:h4:T35",
+    "rung2": "refined:t5:c1=2,c2=1.25,sv=4:h4:T35"
+   }
+  },
+  {
+   "id": "bmid1:T35:h4:c1=2.00:c2=1.26:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "2.00",
+   "c2": "1.26",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=2.00:c2=1.27:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "2.00",
+   "c2": "1.27",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=2.00:c2=1.28:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "2.00",
+   "c2": "1.28",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=2.00:c2=1.29:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "2.00",
+   "c2": "1.29",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=2.00:c2=1.30:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "2.00",
+   "c2": "1.30",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=2.00:c2=1.31:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "2.00",
+   "c2": "1.31",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=2.00:c2=1.32:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "2.00",
+   "c2": "1.32",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=2.00:c2=1.33:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "2.00",
+   "c2": "1.33",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=2.00:c2=1.34:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "2.00",
+   "c2": "1.34",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=2.00:c2=1.35:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "2.00",
+   "c2": "1.35",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h4:c1=2.00:c2=1.36:sv=4.00:SOC=.10",
+   "group": "35-p4",
+   "ambient_c": 35,
+   "cooling": 4,
+   "c1": "2.00",
+   "c2": "1.36",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h1:c1=0.95:c2=0.40:sv=4.00:SOC=.10",
+   "group": "35-t1-probe",
+   "ambient_c": 35,
+   "cooling": 1,
+   "c1": "0.95",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h1:c1=0.96:c2=0.40:sv=4.00:SOC=.10",
+   "group": "35-t1-probe",
+   "ambient_c": 35,
+   "cooling": 1,
+   "c1": "0.96",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h1:c1=0.97:c2=0.40:sv=4.00:SOC=.10",
+   "group": "35-t1-probe",
+   "ambient_c": 35,
+   "cooling": 1,
+   "c1": "0.97",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h1:c1=0.98:c2=0.40:sv=4.00:SOC=.10",
+   "group": "35-t1-probe",
+   "ambient_c": 35,
+   "cooling": 1,
+   "c1": "0.98",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h1:c1=0.99:c2=0.40:sv=4.00:SOC=.10",
+   "group": "35-t1-probe",
+   "ambient_c": 35,
+   "cooling": 1,
+   "c1": "0.99",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h1:c1=1.00:c2=0.40:sv=4.00:SOC=.10",
+   "group": "35-t1-probe",
+   "ambient_c": 35,
+   "cooling": 1,
+   "c1": "1.00",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h1:c1=1.01:c2=0.40:sv=4.00:SOC=.10",
+   "group": "35-t1-probe",
+   "ambient_c": 35,
+   "cooling": 1,
+   "c1": "1.01",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h1:c1=1.02:c2=0.40:sv=4.00:SOC=.10",
+   "group": "35-t1-probe",
+   "ambient_c": 35,
+   "cooling": 1,
+   "c1": "1.02",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h1:c1=1.03:c2=0.40:sv=4.00:SOC=.10",
+   "group": "35-t1-probe",
+   "ambient_c": 35,
+   "cooling": 1,
+   "c1": "1.03",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h1:c1=1.04:c2=0.40:sv=4.00:SOC=.10",
+   "group": "35-t1-probe",
+   "ambient_c": 35,
+   "cooling": 1,
+   "c1": "1.04",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h1:c1=1.05:c2=0.40:sv=4.00:SOC=.10",
+   "group": "35-t1-probe",
+   "ambient_c": 35,
+   "cooling": 1,
+   "c1": "1.05",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h1:c1=1.06:c2=0.40:sv=4.00:SOC=.10",
+   "group": "35-t1-probe",
+   "ambient_c": 35,
+   "cooling": 1,
+   "c1": "1.06",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h1:c1=1.07:c2=0.40:sv=4.00:SOC=.10",
+   "group": "35-t1-probe",
+   "ambient_c": 35,
+   "cooling": 1,
+   "c1": "1.07",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h1:c1=1.08:c2=0.40:sv=4.00:SOC=.10",
+   "group": "35-t1-probe",
+   "ambient_c": 35,
+   "cooling": 1,
+   "c1": "1.08",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h1:c1=1.09:c2=0.40:sv=4.00:SOC=.10",
+   "group": "35-t1-probe",
+   "ambient_c": 35,
+   "cooling": 1,
+   "c1": "1.09",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h1:c1=1.10:c2=0.40:sv=4.00:SOC=.10",
+   "group": "35-t1-probe",
+   "ambient_c": 35,
+   "cooling": 1,
+   "c1": "1.10",
+   "c2": "0.40",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.42:c2=0.70:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.42",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.42:c2=1.00:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.42",
+   "c2": "1.00",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.42:c2=1.25:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.42",
+   "c2": "1.25",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.43:c2=0.70:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.43",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.43:c2=1.00:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.43",
+   "c2": "1.00",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.43:c2=1.25:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.43",
+   "c2": "1.25",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.44:c2=0.70:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.44",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.44:c2=1.00:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.44",
+   "c2": "1.00",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.44:c2=1.25:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.44",
+   "c2": "1.25",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.45:c2=0.70:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.45",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.45:c2=1.00:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.45",
+   "c2": "1.00",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.45:c2=1.25:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.45",
+   "c2": "1.25",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.46:c2=0.70:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.46",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.46:c2=1.00:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.46",
+   "c2": "1.00",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.46:c2=1.25:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.46",
+   "c2": "1.25",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.47:c2=0.70:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.47",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.47:c2=1.00:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.47",
+   "c2": "1.00",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.47:c2=1.25:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.47",
+   "c2": "1.25",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.48:c2=0.70:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.48",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.48:c2=1.00:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.48",
+   "c2": "1.00",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.48:c2=1.25:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.48",
+   "c2": "1.25",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.49:c2=0.70:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.49",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.49:c2=1.00:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.49",
+   "c2": "1.00",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.49:c2=1.25:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.49",
+   "c2": "1.25",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.50:c2=0.70:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "0.70",
+   "reuse": {
+    "standard": "c1=1.5,c2=0.7:h2:T35"
+   }
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.50:c2=1.00:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "1.00",
+   "reuse": {
+    "standard": "c1=1.5,c2=1:h2:T35"
+   }
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.50:c2=1.25:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.50",
+   "c2": "1.25",
+   "reuse": {
+    "standard": "t2:c1=1.5,c2=1.25,sv=4:h2:T35"
+   }
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.51:c2=0.70:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.51",
+   "c2": "0.70",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.51:c2=1.00:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.51",
+   "c2": "1.00",
+   "reuse": {}
+  },
+  {
+   "id": "bmid1:T35:h2:c1=1.51:c2=1.25:sv=4.00:SOC=.10",
+   "group": "35-t2",
+   "ambient_c": 35,
+   "cooling": 2,
+   "c1": "1.51",
+   "c2": "1.25",
+   "reuse": {}
+  }
+ ],
+ "manifest_sha256": "bab5ae9702dc0a8ec3c8f26b9ddd9337c19152dc4d1f8692c3bc8d33c14f7e39"
+}
