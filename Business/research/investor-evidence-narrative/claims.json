@@ -1,0 +1,325 @@
+{
+  "schema": "carbon.research.investor-evidence-claims.v1",
+  "ticket": "INVESTOR-EVIDENCE-NARRATIVE-01",
+  "status": "DRAFT_OWNER_REVIEW",
+  "authority_commit": "567dae6491a187253d463390225e019835de33f7",
+  "source_read_date": "2026-10-10",
+  "sources": {
+    "B": {
+      "path": "Business/Business_Canon.md",
+      "commit": "567dae6491a187253d463390225e019835de33f7",
+      "locator": "Sections 1, 6, 7, 15–17",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/567dae6491a187253d463390225e019835de33f7/Business/Business_Canon.md"
+    },
+    "P": {
+      "path": "docs/development/challenge_pipeline/onboarding/pack/cross_challenge.md",
+      "commit": "567dae6491a187253d463390225e019835de33f7",
+      "locator": "PASSES VALUE / Network evidence / Per-stage cost and time",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/567dae6491a187253d463390225e019835de33f7/docs/development/challenge_pipeline/onboarding/pack/cross_challenge.md"
+    },
+    "LB": {
+      "path": "docs/development/challenge_pipeline/onboarding/ledger/battery-fastcharge-ageing-development-v1.json",
+      "commit": "567dae6491a187253d463390225e019835de33f7",
+      "locator": "JSON pointers specified per claim",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/567dae6491a187253d463390225e019835de33f7/docs/development/challenge_pipeline/onboarding/ledger/battery-fastcharge-ageing-development-v1.json"
+    },
+    "LM": {
+      "path": "docs/development/challenge_pipeline/onboarding/ledger/electric-motor-magnetics.json",
+      "commit": "567dae6491a187253d463390225e019835de33f7",
+      "locator": "JSON pointers specified per claim",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/567dae6491a187253d463390225e019835de33f7/docs/development/challenge_pipeline/onboarding/ledger/electric-motor-magnetics.json"
+    },
+    "LF": {
+      "path": "docs/development/challenge_pipeline/onboarding/ledger/f02.json",
+      "commit": "567dae6491a187253d463390225e019835de33f7",
+      "locator": "JSON pointers specified per claim",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/567dae6491a187253d463390225e019835de33f7/docs/development/challenge_pipeline/onboarding/ledger/f02.json"
+    },
+    "EV4": {
+      "path": "docs/development/BATTERY_ENGINEERING_VALUE_EV4.md",
+      "commit": "915225242146be67e6de098d4a08324cc63dc684",
+      "locator": "Lines 431–432; historical H3",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/BATTERY_ENGINEERING_VALUE_EV4.md#L431-L432"
+    },
+    "EV5": {
+      "path": "docs/development/evidence/ev5-2026-10-03/README.md",
+      "commit": "915225242146be67e6de098d4a08324cc63dc684",
+      "locator": "Verdicts; Adversarial score; Construction integrity",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/evidence/ev5-2026-10-03/README.md"
+    },
+    "Q": {
+      "path": "docs/development/evidence/score-value-alignment-01/README.md",
+      "commit": "915225242146be67e6de098d4a08324cc63dc684",
+      "locator": "Answer; Strictly versioned measurements; Smallest evidence needed",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/evidence/score-value-alignment-01/README.md"
+    },
+    "G": {
+      "path": "Business/research/deliverable-generator/examples/battery-nasa/sample.md",
+      "commit": "567dae6491a187253d463390225e019835de33f7",
+      "locator": "Header; D08 and D11; other section gaps",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/567dae6491a187253d463390225e019835de33f7/Business/research/deliverable-generator/examples/battery-nasa/sample.md"
+    },
+    "F": {
+      "path": "Business/research/deliverable-framework/FRAMEWORK.md",
+      "commit": "567dae6491a187253d463390225e019835de33f7",
+      "locator": "Maturity tiers and section rules",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/567dae6491a187253d463390225e019835de33f7/Business/research/deliverable-framework/FRAMEWORK.md"
+    },
+    "E": {
+      "path": "docs/development/challenge_pipeline/equal-budget-design.md",
+      "commit": "567dae6491a187253d463390225e019835de33f7",
+      "locator": "Current evidence and what is still needed",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/567dae6491a187253d463390225e019835de33f7/docs/development/challenge_pipeline/equal-budget-design.md"
+    },
+    "L": {
+      "path": "Business/research/landscape-and-miner-incentives/competitive-landscape.md",
+      "commit": "567dae6491a187253d463390225e019835de33f7",
+      "locator": "Competitive set; Where Carbon could earn a different position",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/567dae6491a187253d463390225e019835de33f7/Business/research/landscape-and-miner-incentives/competitive-landscape.md"
+    }
+  },
+  "claims": [
+    {
+      "id": "I01",
+      "state": "DESIGNED",
+      "claim": "Carbon is building discovery and evidence infrastructure; EvidenceAudit is the preferred first commercial wedge.",
+      "sources": [
+        "B"
+      ],
+      "field": "Business Canon §§1,6",
+      "permitted": "Product intention; no sales or qualification inference"
+    },
+    {
+      "id": "I02",
+      "state": "GAP_AT_SNAPSHOT",
+      "claim": "Battery, motor and f02 pack value conditions are all UNMEASURED at this snapshot.",
+      "sources": [
+        "P",
+        "LB",
+        "LM",
+        "LF"
+      ],
+      "field": "/outputs/passes_value/*/value",
+      "measured_conditions": {
+        "low": 0,
+        "base": 0,
+        "high": 0,
+        "status": "SOURCED point reproduction, not uncertainty"
+      },
+      "total_conditions": {
+        "low": 5,
+        "base": 5,
+        "high": 5,
+        "status": "SOURCED point reproduction, not uncertainty"
+      },
+      "permitted": "Missing evidence; not a failed scientific result or a current live-status query"
+    },
+    {
+      "id": "I03",
+      "state": "HISTORICAL_MEASURED_DEVELOPMENT",
+      "claim": "Run-5 one-seed v2 PRACTICE Q1 has negative point alignment, with descriptive bands spanning both signs.",
+      "sources": [
+        "Q",
+        "LB"
+      ],
+      "field": "/outputs/score_value_alignment/value",
+      "members": {
+        "low": 8,
+        "base": 8,
+        "high": 8,
+        "status": "SOURCED point reproduction, not uncertainty"
+      },
+      "tau": {
+        "low": -0.473,
+        "base": -0.473,
+        "high": -0.473,
+        "status": "SOURCED point reproduction, not uncertainty"
+      },
+      "rho": {
+        "low": -0.539,
+        "base": -0.539,
+        "high": -0.539,
+        "status": "SOURCED point reproduction, not uncertainty"
+      },
+      "reported_tau_band": {
+        "low": -1,
+        "high": 0.341
+      },
+      "reported_rho_band": {
+        "low": -1,
+        "high": 0.53
+      },
+      "interval_status": "Source descriptive cluster-bootstrap bands, not qualification intervals",
+      "permitted": "Historical v2 only; no matched v3 correction claim"
+    },
+    {
+      "id": "I04",
+      "state": "HISTORICAL_MEASURED_DEVELOPMENT",
+      "claim": "EV4 reports eligible members with at least one reference-verified false acceptance.",
+      "sources": [
+        "EV4"
+      ],
+      "field": "H3 at cited lines",
+      "numerator": {
+        "low": 56,
+        "base": 56,
+        "high": 56,
+        "status": "SOURCED point reproduction, not uncertainty"
+      },
+      "denominator": {
+        "low": 99,
+        "base": 99,
+        "high": 99,
+        "status": "SOURCED point reproduction, not uncertainty"
+      },
+      "permitted": "Member count, not per-case false-feasible probability or physical safety rate"
+    },
+    {
+      "id": "I05",
+      "state": "HISTORICAL_MEASURED_DEVELOPMENT",
+      "claim": "EV5 adversarial-score FAIL is separate from construction-integrity PASS.",
+      "sources": [
+        "EV5"
+      ],
+      "field": "Verdicts / Adversarial score / Construction integrity",
+      "infeasible_selection_members": {
+        "low": 8,
+        "base": 8,
+        "high": 8,
+        "status": "SOURCED point reproduction, not uncertainty"
+      },
+      "selected_constructions": {
+        "low": 10,
+        "base": 10,
+        "high": 10,
+        "status": "SOURCED point reproduction, not uncertainty"
+      },
+      "matching_rebuilds": {
+        "low": 110,
+        "base": 110,
+        "high": 110,
+        "status": "SOURCED point reproduction, not uncertainty"
+      },
+      "rebuild_panel": {
+        "low": 110,
+        "base": 110,
+        "high": 110,
+        "status": "SOURCED point reproduction, not uncertainty"
+      },
+      "permitted": "Historical rule and panel only; reconstruction does not repair scientific score failure"
+    },
+    {
+      "id": "I06",
+      "state": "GAP_AT_SNAPSHOT",
+      "claim": "Same-panel v3 measurements are uncomputable from committed public records.",
+      "sources": [
+        "Q"
+      ],
+      "field": "Answer / Smallest evidence needed",
+      "permitted": "Gap; no zero, pass, failure or transfer of sealed tuning results"
+    },
+    {
+      "id": "I07",
+      "state": "GAP_AT_SNAPSHOT",
+      "claim": "Ledger stage costs, cycle times and decision-query speed are unmeasured.",
+      "sources": [
+        "LB",
+        "LM",
+        "LF"
+      ],
+      "field": "/process/cost_per_stage/value; /process/cycle_days_per_stage/value; /outputs/speed_up_against_reference/value",
+      "price_or_time_range": {
+        "low": null,
+        "base": null,
+        "high": null,
+        "status": "HUMAN_INPUT"
+      },
+      "permitted": "Dated events are not labor time; grants are not actual spend"
+    },
+    {
+      "id": "I08",
+      "state": "GAP_AT_SNAPSHOT",
+      "claim": "Network advantage and payout correctness remain unmeasured in the public pack.",
+      "sources": [
+        "LB",
+        "LM",
+        "LF",
+        "P"
+      ],
+      "field": "/network/graphite_agents_vs_real_miners/value; /network/incentive_canary_payout_correctness/value; /network/leaderboard_improvement_over_time/value",
+      "permitted": "Discovery diversity, price advantage and independent miner gains are hypotheses; AX42 owner-only"
+    },
+    {
+      "id": "I09",
+      "state": "COMMITTED_DEVELOPMENT_ARTIFACT",
+      "claim": "The committed generator sample includes source identities and adverse audit facts with many manual gaps.",
+      "sources": [
+        "G",
+        "F"
+      ],
+      "field": "Header / D08 / D11 / unfilled manual sections",
+      "permitted": "Report-generation artifact; eligible tier UNESTABLISHED, no NASA compliance or certification"
+    },
+    {
+      "id": "I10",
+      "state": "DESIGNED_NOT_DEMONSTRATED",
+      "claim": "Carbon's intended value test is admissible design improvement against strong cheap methods and direct solver search at equal complete budget.",
+      "sources": [
+        "B",
+        "E",
+        "LB"
+      ],
+      "field": "/outputs/passes_value/e_equal_budget_screen_then_verify_beats_solver/value; equal-budget current-evidence section",
+      "actual_gain": {
+        "low": null,
+        "base": null,
+        "high": null,
+        "status": "HUMAN_INPUT"
+      },
+      "permitted": "Prospective test criterion; no present superiority claim"
+    },
+    {
+      "id": "I11",
+      "state": "EXTERNAL_PRODUCT_EVIDENCE",
+      "claim": "PhysicsX, NVIDIA, Ansys and Siemens offer engineering AI/model-building or exploration tools; validation is not exclusive to Carbon.",
+      "sources": [
+        "L"
+      ],
+      "field": "Competitive set",
+      "permitted": "Bounded product comparison, no unsupported head-to-head accuracy/revenue claim"
+    },
+    {
+      "id": "I12",
+      "state": "HYPOTHESIS_OWNER_DECISION",
+      "claim": "Commercial value and financing assumptions need owner/customer records.",
+      "sources": [
+        "B"
+      ],
+      "field": "Business Canon §§8–12; no public paid receipt supplied here",
+      "revenue": {
+        "low": null,
+        "base": null,
+        "high": null,
+        "status": "HUMAN_INPUT"
+      },
+      "buyer_volume": {
+        "low": null,
+        "base": null,
+        "high": null,
+        "status": "HUMAN_INPUT"
+      },
+      "ask": {
+        "low": null,
+        "base": null,
+        "high": null,
+        "status": "HUMAN_INPUT"
+      },
+      "permitted": "Draft evidence plan only; no manufactured traction or quote"
+    }
+  ],
+  "hidden_data_access": false,
+  "ax42_access": false,
+  "scientific_qualification_claim": false,
+  "commercial_traction_claim": false,
+  "sent": false
+}
