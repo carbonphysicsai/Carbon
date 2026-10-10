@@ -18,6 +18,8 @@ The data lives beside this page and is checked by
 
 ## 1. Stage map
 
+**Framing (Test Lead, from the owner, 2026-10-10): models never beat the solver on accuracy; the solver is the reference.** "Beats" means (a) better decisions than the strongest cheap shortcut (V4), and (b) at an equal time and compute budget, a model-screen-then-solver-verify workflow finds a better design than the solver alone. Use this when ranking the remaining Challenges: a Challenge where a strong cheap baseline already makes the right decisions (the scorecard says so for f08) or where the solver is already cheap has little room to pass.
+
 Each stage has an entry, an exit and an owner session, with the repository record it was
 checked against. UNVERIFIED marks a mapping the records do not settle.
 
@@ -52,6 +54,17 @@ A Challenge is TESTED when **all** hold:
 8. the cheap-baseline comparison (V4) is done: the models' decisions are compared, at
    matched admissibility, with the strongest cheap method a buyer would otherwise use
    (added by OWNER-LAUNCH-STRATEGY-01, PR 978).
+9. the Challenge **PASSES VALUE** (conditions a to d: Test Lead, delegated by the owner,
+   2026-10-10; condition e: Test Lead, from the owner, 2026-10-10):
+   - a. a real buyer decision with at least two sources;
+   - b. on held-out contested questions the best Carbon model's buyer-unit regret is lower
+     than the strongest cheap baseline's at matched admissibility, paired bootstrap 95%
+     interval excluding 0;
+   - c. at least 100x faster than the reference per decision query;
+   - d. sourced or assumption ranges for value and volume;
+   - e. at an equal time and compute budget, a model-screen-then-solver-verify workflow finds
+     a better design than the solver alone (readiness D2 equal-cost harness,
+     `carbon/design_search/track_b.py`).
 
 TESTED is **not** scientific qualification, security acceptance, LIVE or a launch claim.
 LIVE or qualification is a separate owner step.
@@ -61,6 +74,8 @@ What the map still shows:
   and exit are still assembled from the hidden-pool runbook and register lessons S11 and S12.
 - **Condition 3 and 5 depend on later stages.** Condition 3 needs stages B and C for the
   higher levels, and 5 needs a chosen k and E, which are owner values.
+
+**Bank spend.** Owner, verbatim via the Test Lead, 2026-10-10: "We just evaluate them with a cost decision. No limiting to 100 vs 500. It's a cost benefit analysis for the team with a 500 max." The Test Lead's reading of those words: the team may approve a bank spend up to EUR 500 on a documented cost-benefit decision, recorded in that bank's grant file with the exact figure. The grant file is what binds spend; nothing above EUR 500; no spend ledgers or balances in the repository. (This is the Test Lead's reading, not a separate owner record.)
 
 ## 2. Metrics
 
@@ -96,9 +111,11 @@ session is in section 5.
 | B6 | Reboot fragility | After a reboot the signers and tunnels were down until the owner restarted them (Launchpad note, 2026-10-10) | UNKNOWN | OPEN: detected, not recovered |
 | B7 | Auto-mode permission blocks | The classifier blocked a build (OWNER-CANARY-MINER-01) | UNKNOWN | OPEN: workaround is the owner's approve-edits mode |
 | B8 | Silent failures | A stalled run or all-refused pods went unseen (preflight decision) | UNKNOWN | Fixed in code (#967), not yet exercised live |
+| B9 | Lane install lagging the grant code | The lane install code lagged the grant code and a lane refused a current grant (`grant_exact_fields_required`; Test Lead note, 2026-10-10) | UNKNOWN | Owner assigned (Launchpad owns lane installs); revision-equality check proposed, not built |
+| B10 | One shared checkout for every lane | carbon-fresh has one shared checkout; two sessions updating it collided and every lane's profile went stale (`carbon_updated_rerun_installer`; Test Lead note) | UNKNOWN | Owner assigned (Launchpad is the single owner of lane installs); not yet exercised live |
 
 Full rows (stage, sources, occurrences, fix reference, automation) are in
-`blocker_taxonomy.json`. Each is also a register row, B1 to B8, in section 7d of the
+`blocker_taxonomy.json`. Each is also a register row, B1 to B10, in section 7d of the
 lessons register.
 
 **Honesty notes.** "Four failures" in the preflight decision is a count of launch
@@ -114,21 +131,23 @@ ordinal and should be revisited when section 5 is answered.
 | Rank | Blocker | Change | Kind |
 |---|---|---|---|
 | 1 | B6 reboot fragility | One lane-up command per lane: list what is down, print the single owner action, re-run the preflight when the owner says it is done. It never starts a signer or signs. | generator |
-| 2 | B5 token and pod split | Compute the split from the start model's full-window reservation and pods x rate ceiling; the preflight refuses a grant whose split fails either. | generator + check |
-| 3 | B4 pod ceiling | Run the probe before proposing a grant and state the observed offer against the proposed rate ceiling. The proposal stays the owner's to approve. | check |
-| 4 | B7 permission blocks | A template list of edit classes known to need approve-edits mode, asked once with the wave's other owner needs. | template |
-| 5 | B1 wrong lane | Generate the lane file from a lane registry instead of by hand per wave. | generator |
-| 6 | B3 controller roots | Allocate one fresh root per planned concurrent run and print the `--root` list. | generator |
-| 7 | B2 keys | The template names key slots, not paths; the preflight reports missing ones together. | template |
-| 8 | B8 silent failures | A collector over the shared heartbeat directory that raises one line when a run reads STALLED. | check |
+| 2 | B9 lane install lag | Preflight check that the lane's installed revision equals the grant's code revision, naming the lane owner to reinstall. Proposed, not built. | check |
+| 3 | B10 shared checkout | Launchpad is the single owner of lane installs (decided); the wave template names that owner and the lane-up command runs the installer. | template |
+| 4 | B5 token and pod split | Compute the split from the start model's full-window reservation and pods x rate ceiling; the preflight refuses a grant whose split fails either. | generator + check |
+| 5 | B4 pod ceiling | Run the probe before proposing a grant and state the observed offer against the proposed rate ceiling. The proposal stays the owner's to approve. | check |
+| 6 | B7 permission blocks | A template list of edit classes known to need approve-edits mode, asked once with the wave's other owner needs. | template |
+| 7 | B1 wrong lane | Generate the lane file from a lane registry instead of by hand per wave. | generator |
+| 8 | B3 controller roots | Allocate one fresh root per planned concurrent run and print the `--root` list. | generator |
+| 9 | B2 keys | The template names key slots, not paths; the preflight reports missing ones together. | template |
+| 10 | B8 silent failures | A collector over the shared heartbeat directory that raises one line when a run reads STALLED. | check |
 | A9 | Cycle-time recorder | Read git history, readiness history, lessons and heartbeats into `cycle_metrics.jsonl`. | generator |
 
-Ranks 1 to 3 and 5 to 7 are the parts of the **Graphite wave template** (section 6), which
+Ranks 1, 3, 4, 5, 7, 8 and 9 are the parts of the **Graphite wave template** (section 6), which
 is why it waits for stage A results.
 
 ## 5. One batched question (to the executor, Launchpad copied)
 
-For each of B1 to B8: the time lost in stage A (hours, or UNKNOWN), the number of
+For each of B1 to B10: the time lost in stage A (hours, or UNKNOWN), the number of
 occurrences, and whether the fix has been exercised live. For B7: the edit classes the
 classifier blocked. Answers replace `UNKNOWN` in `blocker_taxonomy.json` with a citation;
 until then they stay `UNKNOWN`.
@@ -166,10 +185,13 @@ One ledger per Challenge, **produced from repository artefacts**, with four reco
 | OUTPUTS | Score-value alignment; decision quality against the cheapest baseline (V4); model accuracy; speed-up against the reference | the Q1 report, the cheap-baseline note |
 | NETWORK | Leaderboard over time; Graphite agents against real miners; incentive-canary payout correctness | none yet |
 
-A field is `{value, source}` or `{value: UNMEASURED, owner, question}`. Nothing is
-estimated. Whether a customer would supply an input, and how long it took to obtain, are
-`UNMEASURED` for every input: no artefact holds either, and each carries the question for its
-owner. Caps and rates only; no balance, account, spend ledger or hidden-pool material.
+A field is `{value, source}` or `{value: UNMEASURED, kind, owner, ...}`. Nothing is
+estimated. `UNMEASURED` is a **measurement not yet made**: it names the owner who measures it
+and the tool or PR that does (`kind: measurement`, with `tool`). Only a real owner decision
+carries a question (`kind: decision`, with `question`). The shared tools are in
+`ledger_sources.json` under `measurements`; PR numbers there were verified on 2026-10-10 and are
+cited by number when unmerged. Whether a customer would supply an input is a real owner decision (a question); how long
+an input took to obtain is a measurement with no tool yet. Caps and rates only; no balance, account, spend ledger or hidden-pool material.
 
 ```
 python scripts/dev/onboarding/build_ledger.py --challenge <id> --out onboarding/ledger/<id>.json
@@ -190,3 +212,19 @@ efficiently as possible, and only time and cost per stage are recorded.
 **Battery today:** score-value alignment is measured (Level 0, eight members, one seed per
 recipe: a measurement, not a threshold). Everything else on the OUTPUTS and NETWORK records,
 and the customer-supply and time-to-obtain answers on INPUTS, is `UNMEASURED`.
+
+## 9. Carbon evidence pack
+
+`scripts/dev/onboarding/build_pack.py` renders, from the ledgers, one page per Challenge and
+one cross-Challenge page into `pack/` (battery, motor and f02 first). Each page: decision,
+value, model against the reference and the cheap baseline, the **required** equal-budget
+screen-then-verify section, speed-up, onboarding cost and time, blockers, network. Every line
+cites its artefact or reads `UNMEASURED` with the owner and tool that measure it (a question
+only for a real owner decision); nothing is blank or
+smoothed.
+
+The pages are measurements. They are not traction, customer, qualification or LIVE claims
+(`Business/Business_Canon.md`: architecture is not traction; `docs/publications/README.md`:
+a recorded experiment supplies evidence only for the conditions it tested). A standing
+disclaimer line opens every page, and `tests/cpu/test_onboarding_pack.py` fails on those words
+anywhere else.

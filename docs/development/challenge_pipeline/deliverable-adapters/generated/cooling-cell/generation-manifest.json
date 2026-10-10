@@ -1,0 +1,349 @@
+{
+  "status": "DEVELOPMENT_SAMPLE",
+  "challenge": "cooling-cell",
+  "profile": "nasa-std-7009b",
+  "standard_rendering": {
+    "profile": "nasa-std-7009b",
+    "applicability": "HUMAN_INPUT",
+    "qualification_claim": false,
+    "section_mapping": [
+      {
+        "section": "D01",
+        "anchor": "§4.1.1.1 M&S 40; §4.3.1.1–2 M&S 22–23",
+        "source": "F3"
+      },
+      {
+        "section": "D02",
+        "anchor": "§4.1.1.4–5 M&S 42–43",
+        "source": "F3"
+      },
+      {
+        "section": "D03",
+        "anchor": "§4.2.1.6–7 M&S 13–14; §4.2.3.2 M&S 16; §4.2.5.2 M&S 18; §4.3.1.5 M&S 26",
+        "source": "F3"
+      },
+      {
+        "section": "D04",
+        "anchor": "§4.2.1.1 M&S 10; §4.2.3.1 M&S 15; §4.2.5.1 M&S 17",
+        "source": "F3"
+      },
+      {
+        "section": "D05",
+        "anchor": "§4.2.5.1–2 M&S 17–18; §4.3.6.1 M&S 31",
+        "source": "F3"
+      },
+      {
+        "section": "D06",
+        "anchor": "§4.2.7.1–2 M&S 19,21; §4.3.3.1–2 M&S 28–29; §4.3.5 M&S 30; §4.3.8.2–3 M&S 33–34",
+        "source": "F3"
+      },
+      {
+        "section": "D07",
+        "anchor": "§4.1.1.8 M&S 51; §4.3.5 M&S 30; §4.3.8.1 M&S 32",
+        "source": "F3"
+      },
+      {
+        "section": "D08",
+        "anchor": "§4.2.1.2–3 M&S 45–46; §4.3.1.3–4 M&S 24–25",
+        "source": "F3"
+      },
+      {
+        "section": "D09",
+        "anchor": "§4.3.1.5–6 M&S 26–27; §4.3.6.2 M&S 49",
+        "source": "F3"
+      },
+      {
+        "section": "D10",
+        "anchor": "§4.2.1.4,6 M&S 11,13; §4.3.8.1 M&S 32",
+        "source": "F3"
+      },
+      {
+        "section": "D11",
+        "anchor": "§4.1.1.3,7–8 M&S 41,9,51; §4.3.8.4–9 M&S 50,35–39; Appendix A",
+        "source": "F3"
+      }
+    ],
+    "factors": {
+      "capability": [
+        {
+          "name": "Data pedigree",
+          "anchor": "E.3.2",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D03",
+            "D04",
+            "D08"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Verification",
+          "anchor": "E.3.3",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D04",
+            "D08"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Validation",
+          "anchor": "E.3.4",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D04",
+            "D05"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Development technical review",
+          "anchor": "E.3.5",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D10",
+            "D11"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Development process/product management",
+          "anchor": "E.3.6",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D08",
+            "D11"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        }
+      ],
+      "results": [
+        {
+          "name": "Use assessment",
+          "anchor": "E.4.2",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D01",
+            "D03",
+            "D09"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Input pedigree",
+          "anchor": "E.4.3",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D03",
+            "D08"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Uncertainty characterization",
+          "anchor": "E.4.4",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D06"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Results robustness",
+          "anchor": "E.4.5",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D05",
+            "D07"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Use/analysis technical review",
+          "anchor": "E.4.6",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D10",
+            "D11"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Use process/product management",
+          "anchor": "E.4.7",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D08",
+            "D11"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        }
+      ]
+    }
+  },
+  "evidence_revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+  "framework_revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+  "membership_basis": "LOCAL_COMMITTED_GIT_OBJECT",
+  "sources": [
+    {
+      "id": "C1",
+      "path": "docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "c96842b9916ce159860b17e92f1cbd2cee6266e2",
+      "sha256": "d523d71f73053ffb83fa8ba9e5e7f9490db62a84739ed29cabfd838ad66df9c4",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "common packet specification"
+    },
+    {
+      "id": "C2",
+      "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "7d7de1f8c49896e70771a9d423740cd84988aedc",
+      "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "current cell-only lid-side TIM2 packet; final parameters await selection"
+    },
+    {
+      "id": "C3",
+      "path": "docs/development/challenge_pipeline/cheap-baselines/cooling-cell.md",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "1ac8387198195d657aabbcd7da7dc0129a23a420",
+      "sha256": "2930678a5d62db934d9f5cebae9f0eb6b97091e92eb10c97cd552ce24e0fc89f",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/cheap-baselines/cooling-cell.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "cell-only cheap comparator contract"
+    },
+    {
+      "id": "F1",
+      "path": "Business/research/deliverable-framework/TEMPLATE.md",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "7519d1ca8d101ba2956a7ff88e1af6fe93bf15c3",
+      "sha256": "83959e56d77e51bd382595ab301681e92de2cc481bb61300b221ce05b6dcaf38",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/Business/research/deliverable-framework/TEMPLATE.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "template"
+    },
+    {
+      "id": "F2",
+      "path": "Business/research/deliverable-framework/deliverable.schema.json",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "e5a9b8f042bd065f5995cdbb870eb6bb094123ed",
+      "sha256": "19aa4ceb442d68373420def20a7dbb1ec2733080f8f1fa083d0c489700a9a08e",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/Business/research/deliverable-framework/deliverable.schema.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "schema"
+    },
+    {
+      "id": "F3",
+      "path": "Business/research/deliverable-framework/STANDARDS.md",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "2f7db5abbf3e7fc7577e0700e9bddf8f2a2660f7",
+      "sha256": "8239f7a4faea896290e2fefd28af8cc5875149945dc132ce6512b6b245f6e502",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/Business/research/deliverable-framework/STANDARDS.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "standards crosswalk"
+    },
+    {
+      "id": "R2",
+      "path": "docs/development/evidence/ai-cooling-counted-v1/README.md",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "fb3a979a54e8957640c00c79b6d330141f1c6ccb",
+      "sha256": "0cbd3af4631bd944056faca7a22fefb207208e2d04587c3daeb67d493f352cc3",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/evidence/ai-cooling-counted-v1/README.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "historical counted CFD v1; does not qualify the current case-plane packet"
+    },
+    {
+      "id": "R3",
+      "path": "docs/development/challenge_pipeline/value-cost/cooling-cell.md",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "293293776b9be8dab7d0904f906e00d61096707a",
+      "sha256": "422f9a6e0bb21524d22f78e60d4d8cf218621405de52214fa7931009204ffe38",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/cooling-cell.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "assumption-labelled value/cost analysis, not measured commercial value"
+    }
+  ],
+  "missing_sources": [],
+  "facts": [
+    {
+      "id": "COOLING_PENDING_INPUTS",
+      "source": "C2",
+      "locator": "L7-L7",
+      "label": "Current cooling packet final-input adoption gap",
+      "value": "await the owner's selection",
+      "kind": "gap",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[C2:L7-L7](https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/round1/cooling-cell-v3.md#L7-L7)"
+    },
+    {
+      "id": "COOLING_CELL_SCOPE",
+      "source": "C2",
+      "locator": "L12-L12",
+      "label": "Current packet's cell-only claim ceiling (not assembly qualification)",
+      "value": "cell-only",
+      "kind": "gap",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[C2:L12-L12](https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/round1/cooling-cell-v3.md#L12-L12)"
+    }
+  ],
+  "extraction_gaps": [],
+  "qualification_claim": false
+}

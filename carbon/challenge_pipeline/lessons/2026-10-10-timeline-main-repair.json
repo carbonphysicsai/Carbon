@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-timeline-main-repair",
+  "recorded_at": "2026-10-10T20:10:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "ONBOARDING-TIMELINE-01", "description": "Resolve ledger conflict with current main; run timeline, status and ledger diagnostics."},
+  "expected": "Keep timeline evidence and main's explicit missing-record semantics.",
+  "observed": "48 focused native tests pass. Main's no-dated-record UNMEASURED branch and the new artifact timeline both remain. Native diagnostics are not canonical acceptance.",
+  "keep": ["Both sides' substantive behavior", "No historical milestone reclassification"],
+  "change": ["Fresh main-based PRs for previously stacked deliveries; dependency order belongs in the body"],
+  "protocol_elements": ["claim_control", "evidence_identity"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

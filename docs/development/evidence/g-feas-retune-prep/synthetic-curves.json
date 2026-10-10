@@ -1,0 +1,224 @@
+{
+  "bootstrap_replicates": 300,
+  "bootstrap_seed": 17,
+  "curves": [
+    {
+      "accepted_mean_false_feasible_rate": 0.0,
+      "accepted_with_any_false_feasible_fraction": 0.0,
+      "bootstrap_ci95": {
+        "accepted_mean_false_feasible_rate": [
+          0.0,
+          0.0
+        ],
+        "good_recipe_fail_rate_any_seed": [
+          0.0,
+          0.8
+        ],
+        "score_value_tau_b_all": [
+          -0.8310714285714286,
+          0.5871986282474561
+        ]
+      },
+      "bootstrap_defined_draws": 300,
+      "good_recipe_fail_rate_any_seed": 0.3333333333333333,
+      "good_recipes": 6,
+      "passing_members": 7,
+      "score_value_tau_b_all": -0.023816275411477048,
+      "score_value_tau_b_passing_only": -0.1,
+      "scored_members": 10,
+      "threshold": 0.005
+    },
+    {
+      "accepted_mean_false_feasible_rate": 0.0,
+      "accepted_with_any_false_feasible_fraction": 0.0,
+      "bootstrap_ci95": {
+        "accepted_mean_false_feasible_rate": [
+          0.0,
+          0.0
+        ],
+        "good_recipe_fail_rate_any_seed": [
+          0.0,
+          0.8
+        ],
+        "score_value_tau_b_all": [
+          -0.8310714285714286,
+          0.5871986282474561
+        ]
+      },
+      "bootstrap_defined_draws": 300,
+      "good_recipe_fail_rate_any_seed": 0.3333333333333333,
+      "good_recipes": 6,
+      "passing_members": 7,
+      "score_value_tau_b_all": -0.023816275411477048,
+      "score_value_tau_b_passing_only": -0.1,
+      "scored_members": 10,
+      "threshold": 0.01
+    },
+    {
+      "accepted_mean_false_feasible_rate": 0.0025,
+      "accepted_with_any_false_feasible_fraction": 0.125,
+      "bootstrap_ci95": {
+        "accepted_mean_false_feasible_rate": [
+          0.0,
+          0.007762499999999988
+        ],
+        "good_recipe_fail_rate_any_seed": [
+          0.0,
+          0.5
+        ],
+        "score_value_tau_b_all": [
+          -0.4709090909090909,
+          0.8301682692307685
+        ]
+      },
+      "bootstrap_defined_draws": 300,
+      "good_recipe_fail_rate_any_seed": 0.16666666666666666,
+      "good_recipes": 6,
+      "passing_members": 8,
+      "score_value_tau_b_all": 0.18604651162790697,
+      "score_value_tau_b_passing_only": 0.1111111111111111,
+      "scored_members": 10,
+      "threshold": 0.02
+    },
+    {
+      "accepted_mean_false_feasible_rate": 0.007513227513227513,
+      "accepted_with_any_false_feasible_fraction": 0.2222222222222222,
+      "bootstrap_ci95": {
+        "accepted_mean_false_feasible_rate": [
+          0.0,
+          0.01859523809523807
+        ],
+        "good_recipe_fail_rate_any_seed": [
+          0.0,
+          0.5
+        ],
+        "score_value_tau_b_all": [
+          -0.9216176470588235,
+          0.5100073795343804
+        ]
+      },
+      "bootstrap_defined_draws": 300,
+      "good_recipe_fail_rate_any_seed": 0.16666666666666666,
+      "good_recipes": 6,
+      "passing_members": 9,
+      "score_value_tau_b_all": -0.18604651162790697,
+      "score_value_tau_b_passing_only": -0.11595420713048969,
+      "scored_members": 10,
+      "threshold": 0.05
+    },
+    {
+      "accepted_mean_false_feasible_rate": 0.014761904761904763,
+      "accepted_with_any_false_feasible_fraction": 0.3,
+      "bootstrap_ci95": {
+        "accepted_mean_false_feasible_rate": [
+          0.0,
+          0.03141190476190473
+        ],
+        "good_recipe_fail_rate_any_seed": [
+          0.0,
+          0.0
+        ],
+        "score_value_tau_b_all": [
+          -0.72625,
+          0.6578745644599303
+        ]
+      },
+      "bootstrap_defined_draws": 300,
+      "good_recipe_fail_rate_any_seed": 0.0,
+      "good_recipes": 6,
+      "passing_members": 10,
+      "score_value_tau_b_all": 0.0,
+      "score_value_tau_b_passing_only": 0.0,
+      "scored_members": 10,
+      "threshold": 0.1
+    },
+    {
+      "accepted_mean_false_feasible_rate": 0.014761904761904763,
+      "accepted_with_any_false_feasible_fraction": 0.3,
+      "bootstrap_ci95": {
+        "accepted_mean_false_feasible_rate": [
+          0.0,
+          0.03141190476190473
+        ],
+        "good_recipe_fail_rate_any_seed": [
+          0.0,
+          0.0
+        ],
+        "score_value_tau_b_all": [
+          -0.72625,
+          0.6578745644599303
+        ]
+      },
+      "bootstrap_defined_draws": 300,
+      "good_recipe_fail_rate_any_seed": 0.0,
+      "good_recipes": 6,
+      "passing_members": 10,
+      "score_value_tau_b_all": 0.0,
+      "score_value_tau_b_passing_only": 0.0,
+      "scored_members": 10,
+      "threshold": 0.2
+    },
+    {
+      "accepted_mean_false_feasible_rate": 0.014761904761904763,
+      "accepted_with_any_false_feasible_fraction": 0.3,
+      "bootstrap_ci95": {
+        "accepted_mean_false_feasible_rate": [
+          0.0,
+          0.03141190476190473
+        ],
+        "good_recipe_fail_rate_any_seed": [
+          0.0,
+          0.0
+        ],
+        "score_value_tau_b_all": [
+          -0.72625,
+          0.6578745644599303
+        ]
+      },
+      "bootstrap_defined_draws": 300,
+      "good_recipe_fail_rate_any_seed": 0.0,
+      "good_recipes": 6,
+      "passing_members": 10,
+      "score_value_tau_b_all": 0.0,
+      "score_value_tau_b_passing_only": 0.0,
+      "scored_members": 10,
+      "threshold": 0.5
+    },
+    {
+      "accepted_mean_false_feasible_rate": 0.014761904761904763,
+      "accepted_with_any_false_feasible_fraction": 0.3,
+      "bootstrap_ci95": {
+        "accepted_mean_false_feasible_rate": [
+          0.0,
+          0.03141190476190473
+        ],
+        "good_recipe_fail_rate_any_seed": [
+          0.0,
+          0.0
+        ],
+        "score_value_tau_b_all": [
+          -0.72625,
+          0.6578745644599303
+        ]
+      },
+      "bootstrap_defined_draws": 300,
+      "good_recipe_fail_rate_any_seed": 0.0,
+      "good_recipes": 6,
+      "passing_members": 10,
+      "score_value_tau_b_all": 0.0,
+      "score_value_tau_b_passing_only": 0.0,
+      "scored_members": 10,
+      "threshold": 1.01
+    }
+  ],
+  "reason": "thresholds are prospective probes; owner selects any change",
+  "registry_sha256": "sha256:70f2943814db0531429613e6ca5e2bd1c0b656673c6ee74de08e98f540758277",
+  "rule_at_0_05": "G-FEAS/A-Q>@0.05 (strict exceeds; registry v5)",
+  "schema": "carbon.battery.g-feas-retune-curves.v1",
+  "scope": "SYNTHETIC_FIXTURE",
+  "source_digest": "sha256:2e73385add924f112146b4be7ac40bed8c0240abfc2dc78ffa3507c368ba1680",
+  "states": {
+    "SCORED": 10
+  },
+  "status": "DESCRIPTIVE_ONLY"
+}
