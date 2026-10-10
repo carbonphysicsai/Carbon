@@ -1780,6 +1780,7 @@ def command_run(args):
             raise RunnerRefused(refused.code) from None
         if compute == "runpod":
             pods = RunPodPods(
+                rate_ceiling=grant.pod_rate_ceiling_usd_per_hr,
                 root=root / "pods",
                 key_file=runpod,
                 code_ref=args.code_ref,
@@ -1881,6 +1882,7 @@ def command_reconcile(args):
         path=args.runpod_key_file, env=args.runpod_key_env, names=("RUNPOD_API_KEY",)
     ) as runpod:
         pods = RunPodPods(
+            rate_ceiling=grant.pod_rate_ceiling_usd_per_hr,
             root=root / "pods",
             key_file=runpod,
             code_ref=args.code_ref,

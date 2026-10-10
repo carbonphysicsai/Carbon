@@ -21,6 +21,14 @@ python -m carbon.agent_campaign.graphite.preflight \
 - **`--probe`:** creates one real pod and terminates it. That pod is the
   only spend.
 - **Without `--probe`,** nothing is spent.
+- **`--key-file` alone** (no spend; GRANT-POD-CEILING-01) checks two
+  things:
+  - the operator's balance-floor file (`~/.runpod/campaigns.json`) exists in
+    this distro and names a floor;
+  - the live offer is within the grant's pod rate ceiling.
+
+  An offer above the ceiling fails with `owner decision: offer X/h > grant
+  ceiling Y/h`.
 - **Every failure is printed,** and `owner_needs` lists the owner-only
   fixes together: a password, a key copy, a mode change, or a grant
   re-approval.

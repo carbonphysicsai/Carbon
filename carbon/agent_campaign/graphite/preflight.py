@@ -267,6 +267,67 @@ def check_grant(grant):
     )
 
 
+# -- the pod lane: offer and balance floor ----------------------------------------------------
+def check_offer(pods):
+    """The live offer against the grant's pod rate ceiling (`pods.economics`
+    carries it): a price above it is the owner's decision, before any run."""
+    from scripts.dev.exam_design.runpod.operator_compute import ComputeError
+
+    economics = pods.economics
+    ceiling = economics["rate_ceiling_usd_per_hr"]
+    try:
+        [offer] = pods.adapter.offers([economics["gpu"]], gpu_count=1)
+    except (ComputeError, ValueError) as failure:
+        return Check(
+            "pod_offer",
+            FAIL,
+            f"no offer: {type(failure).__name__}",
+            fix="the pod lane cannot see the GPU it launches on",
+        )
+    if offer.usd_per_hr is None or not offer.stock_status:
+        return Check(
+            "pod_offer",
+            FAIL,
+            f"no {economics['gpu']} in stock now",
+            fix="wait for stock, or the owner moves the lane's GPU",
+            owner=True,
+        )
+    price = Decimal(str(offer.usd_per_hr))
+    if price > ceiling:
+        return Check(
+            "pod_offer",
+            FAIL,
+            f"owner decision: offer {price}/h > grant ceiling {ceiling}/h",
+            fix=f"the owner approves a pod rate ceiling of at least {price}/h "
+            "in the grant (pod_rate_ceiling_usd_per_hr), or waits for a lower offer",
+            owner=True,
+        )
+    return Check("pod_offer", OK, f"offer {price}/h <= grant ceiling {ceiling}/h")
+
+
+def check_balance_floor(state_dir=None, name=None):
+    """The operator's balance-floor file exists in this distro and names a
+    floor; never prints it."""
+    from scripts.dev.exam_design.runpod import pod_control
+
+    path = Path(state_dir or pod_control.STATE_DIR) / (
+        name or pod_control.OPERATOR_CONFIG
+    )
+    try:
+        floor = json.loads(path.read_text()).get("balance_floor_usd")
+    except (OSError, ValueError, AttributeError):
+        floor = None
+    if type(floor) not in (int, float) or floor < 0:
+        return Check(
+            "balance_floor",
+            FAIL,
+            f"{path} is missing in this distro or names no balance_floor_usd",
+            fix=f"the owner writes balance_floor_usd to {path} on this host",
+            owner=True,
+        )
+    return Check("balance_floor", OK, f"{path} names a floor")
+
+
 # -- the pod probe ---------------------------------------------------------------------------
 def probe_pod(pods, *, clock=time.time, sleep=time.sleep):
     """One minimal pod through `pods` (a `pods.RunPodPods`): the launch's
@@ -280,27 +341,10 @@ def probe_pod(pods, *, clock=time.time, sleep=time.sleep):
     )
 
     economics = pods.economics
-    try:
-        [offer] = pods.adapter.offers([economics["gpu"]], gpu_count=1)
-    except (ComputeError, ValueError) as failure:
-        return Check(
-            "pod_probe",
-            FAIL,
-            f"no offer: {type(failure).__name__}",
-            fix="the pod lane cannot see the GPU it launches on",
-        )
-    if (
-        offer.usd_per_hr is None
-        or Decimal(str(offer.usd_per_hr)) > economics["rate_ceiling_usd_per_hr"]
-        or not offer.stock_status
-    ):
-        return Check(
-            "pod_probe",
-            FAIL,
-            f"no {economics['gpu']} pod at or below the rate ceiling now",
-            fix="wait for stock, or the owner moves the lane's GPU or rate ceiling",
-            owner=True,
-        )
+    offered = check_offer(pods)
+    if offered.status != OK:
+        offered.name = "pod_probe"
+        return offered
     intent = f"preflight-probe-{int(clock())}"
     spec = PodSpec(
         image=economics["image"],
@@ -315,6 +359,38 @@ def probe_pod(pods, *, clock=time.time, sleep=time.sleep):
         start_command=("/bin/sh", "-c", "sleep 900"),
         allowed_cuda_versions=tuple(pods.cuda_versions),
     )
+    # A launch's own balance step (`RunPodPods.launch`): the operator layer
+    # refuses a provision with no balance observation, and the probe's
+    # reservation must leave the floor intact. The balance is never printed.
+    from .pods import PodFailure, pod_reservation
+
+    try:
+        balance, _ = pods.service.observe_balance(pods.CAMPAIGN)
+        floor = pods.balance_floor()
+    except ComputeError as failure:
+        return Check(
+            "pod_probe",
+            FAIL,
+            f"no account balance observation: {failure.failed}",
+            fix="the pod lane cannot read the account balance",
+        )
+    except PodFailure as failure:  # the floor file: `operator_balance_floor`
+        return Check(
+            "pod_probe",
+            FAIL,
+            f"no balance floor: {type(failure).__name__}",
+            fix="the owner writes balance_floor_usd to ~/.runpod/campaigns.json",
+            owner=True,
+        )
+    reservation = pod_reservation(PROBE_RUNNING_S // 60, economics["hourly_usd"])
+    if Decimal(str(balance)) - reservation < floor:
+        return Check(
+            "pod_probe",
+            FAIL,
+            "the probe's reservation would take the balance below the floor",
+            fix="the owner tops up the account or lowers the balance floor",
+            owner=True,
+        )
     started = clock()
     try:
         resource = pods.service.provision(
@@ -383,26 +459,39 @@ def run(
     lane = json.loads(Path(args.lane).read_text())
     report.add(*check_lane(lane, opener=opener, connect=connect))
     keys = list(lane.get("keys") or [])
-    if args.probe and args.key_file:
+    if args.key_file:
         keys.append({"name": "runpod", "path": args.key_file})
     report.add(*check_keys(keys))
     from carbon.development_session.private_records import private_json
 
-    report.add(check_revision(private_json(Path(args.profile)), checkout or head()))
+    checkout = checkout or head()
+    report.add(check_revision(private_json(Path(args.profile)), checkout))
     grant = SpendingGrant.from_document(json.loads(Path(args.grant).read_text()))
     report.add(check_roots(args.root, grant), check_grant(grant))
+    if not args.key_file:
+        return report
+    # A pod lane: the balance floor and the live offer, at no cost, then the
+    # probe pod when asked (GRANT-POD-CEILING-01).
+    report.add(check_balance_floor())
+    if not report.ok:
+        report.add(Check("pod_offer", FAIL, "not read: fix the checks above first"))
+        if args.probe:
+            report.add(Check("pod_probe", FAIL, "not run: fix the checks above first"))
+        return report
+    from . import pods as podlib
+
+    pods = (make_pods or podlib.RunPodPods)(
+        root=Path(args.root[0]) / "preflight-probe",
+        key_file=args.key_file,
+        code_ref=args.code_ref or checkout,
+        rate_ceiling=grant.pod_rate_ceiling_usd_per_hr,
+    )
+    report.add(check_offer(pods))
     if args.probe:
         if report.ok:
-            from . import pods as podlib
-
-            pods = (make_pods or podlib.RunPodPods)(
-                root=Path(args.root[0]) / "preflight-probe",
-                key_file=args.key_file,
-                code_ref=args.code_ref,
-            )
             report.add(probe_pod(pods))
         else:
-            report.add(Check("pod_probe", FAIL, "not run: fix the checks above first"))
+            report.add(Check("pod_probe", FAIL, "not run: the offer check failed"))
     return report
 
 
@@ -419,7 +508,11 @@ def main(argv=None):
         action="store_true",
         help="create, check and terminate one real pod (spends)",
     )
-    parser.add_argument("--key-file", help="the RunPod key's path (for --probe)")
+    parser.add_argument(
+        "--key-file",
+        help="the RunPod key's path: checks the balance floor and the live offer "
+        "against the grant's pod rate ceiling (no spend), and enables --probe",
+    )
     parser.add_argument("--code-ref", help="the pushed commit (for --probe)")
     args = parser.parse_args(argv)
     if args.probe and not (args.key_file and args.code_ref):
