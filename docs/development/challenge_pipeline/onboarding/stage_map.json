@@ -1,0 +1,170 @@
+{
+ "schema": "carbon.challenge-pipeline.onboarding-stage-map.v1",
+ "ticket": "ONBOARDING-PIPELINE-01",
+ "as_of": "2026-10-10",
+ "stages": [
+  {
+   "id": "S0_brief",
+   "order": 0,
+   "name": "Brief",
+   "entry": "Owner direction naming a physical decision, or a discovery shortlist entry.",
+   "exit": "A one-page brief naming the buyer role, the decision and the value at stake, with sources or labelled assumptions.",
+   "owner_session": "Owner picks; Codex researches",
+   "owner_basis": "discovery/README.md (CHALLENGE-DISCOVERY-01 is research and recommendation only); Eight_Challenge_Foundation_Plan.md section 4 holds the eight briefs",
+   "evidence": [
+    "docs/development/challenge_pipeline/discovery/README.md",
+    "Design_Specs/Eight_Challenge_Foundation_Plan.md"
+   ],
+   "status": "VERIFIED",
+   "note": "Selecting a Challenge stays the owner's; nothing here admits one."
+  },
+  {
+   "id": "S1_packet",
+   "order": 1,
+   "name": "Design packet",
+   "entry": "A brief.",
+   "exit": "The ten sections of COMMON_DESIGN_PACKET_V1 filled with source-linked facts; every value without an owner decision or evidence is OPEN with owner, needed decision and held-closed behavior.",
+   "owner_session": "Codex drafts; Test Lead reviews",
+   "owner_basis": "Branch names in the packet commits (codex/*) and the value-cost framework; the packet template names no session",
+   "evidence": [
+    "docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md",
+    "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md"
+   ],
+   "status": "VERIFIED",
+   "note": "The owner-session mapping is UNVERIFIED; the sections and exit are verified."
+  },
+  {
+   "id": "S2_solver_package",
+   "order": 2,
+   "name": "Solver package",
+   "entry": "A packet whose reference route needs a package that is not yet built.",
+   "exit": "A pinned reference package with an accepted image and manifest identity, measured per-case cost and memory, and conservation checks within packet tolerances.",
+   "owner_session": "Data Collection builds and measures",
+   "owner_basis": "solver-package-specs/README.md is titled as a DC build handoff; value-cost Part C is 'Data Collection measures'",
+   "evidence": [
+    "docs/development/challenge_pipeline/solver-package-specs/README.md",
+    "docs/development/challenge_pipeline/value-cost/README.md"
+   ],
+   "status": "VERIFIED",
+   "note": "The specs are SPECIFIED, not built or qualified; accepted identities are null."
+  },
+  {
+   "id": "S3_feasibility_value_panel",
+   "order": 3,
+   "name": "Feasibility and value panel",
+   "entry": "A reference route that can run, even if slowly.",
+   "exit": "Value criteria V1-V5, validity criteria T1-T5 and cost criteria C1 onward evidenced for the Challenge, with a keep, reframe or replace decision recorded.",
+   "owner_session": "Codex packets the value case; Data Collection measures; Test Lead judges; owner sets final thresholds",
+   "owner_basis": "value-cost/README.md part headings (V: packets Codex; T: Data Collection measures, Test Lead judges; C: Data Collection measures)",
+   "evidence": [
+    "docs/development/challenge_pipeline/value-cost/README.md",
+    "docs/development/challenge_pipeline/round1/feasibility-panels.md"
+   ],
+   "status": "VERIFIED",
+   "note": "Working values only; final thresholds are the owner's."
+  },
+  {
+   "id": "S4_question_law",
+   "order": 4,
+   "name": "Question law",
+   "entry": "A passing feasibility and value panel.",
+   "exit": "A non-runtime law sheet (population, action lattice, strata, near rule) whose HUMAN_INPUT values the owner has accepted or declined; the four-check design-value prerequisite met before any new hidden bank.",
+   "owner_session": "Codex proposes; owner accepts",
+   "owner_basis": "question-laws/README.md: SPECIFIED, not an enforced runtime gate; accepted widths and criteria stay HUMAN_INPUT",
+   "evidence": [
+    "docs/development/challenge_pipeline/question-laws/README.md"
+   ],
+   "status": "VERIFIED",
+   "note": "A law sheet registers no sampler and no exposure setting."
+  },
+  {
+   "id": "S5_bank",
+   "order": 5,
+   "name": "Bank",
+   "entry": "An accepted question law and the design-value prerequisite.",
+   "exit": "A sealed hidden bank prepared on the hidden host from a pinned validator image, never on a host every agent session can read.",
+   "owner_session": "UNVERIFIED (Carbon Validator, Test Engineer and the owner's hidden host all appear in the records)",
+   "owner_basis": "Bank architecture #756 and the hidden-pool runbook; register lessons S11 and S12 constrain where and how",
+   "evidence": [
+    "docs/development/graphite/HIDDEN_POOL_AND_TUNING_RUNBOOK.md",
+    "docs/development/graphite/LESSONS_REGISTER.md (S11, S12)"
+   ],
+   "status": "UNVERIFIED",
+   "note": "Entry and exit are derived from the runbook and lessons, not from one stage definition; the Test Lead should rule the owner session."
+  },
+  {
+   "id": "S6_readiness",
+   "order": 6,
+   "name": "Readiness gate",
+   "entry": "The Challenge wired in readiness/challenges.json for the level, and a main SHA that contains every PR the stage checklist names.",
+   "exit": "launch_ready true at that exact SHA: no FAIL, NOT_BUILT or REVIEW_REQUIRED; waivers are stage-bound and measurement-only; reports committed through PR Head.",
+   "owner_session": "Graphite Testing Manager runs; Test Lead reviews and waives",
+   "owner_basis": "GRAPHITE_READINESS_GATE.md; STAGE_A_EVIDENCE_TABLE.md",
+   "evidence": [
+    "docs/development/graphite/GRAPHITE_READINESS_GATE.md",
+    "docs/development/challenge_pipeline/readiness/STAGE_A_EVIDENCE_TABLE.md"
+   ],
+   "status": "VERIFIED",
+   "note": "A waiver is never a PASS and a review never turns a FAIL into one."
+  },
+  {
+   "id": "S7_stage_a",
+   "order": 7,
+   "name": "Graphite stage A (L0 and L1)",
+   "entry": "The stage A checklist preconditions (section 1), the launch preflight green, and a launch_ready L0 gate.",
+   "exit": "The checklist runs complete with a lessons entry, evidence digest and spend count per run; L0 confirmations through the Launchpad; refused-capability extracts collected; stage report to the Test Lead.",
+   "owner_session": "Executor runs; Launchpad lanes; Test Engineer bindings; Test Lead decides",
+   "owner_basis": "GRAPHITE_LADDER_STAGE_A_CHECKLIST.md owner column",
+   "evidence": [
+    "docs/development/graphite/GRAPHITE_LADDER_STAGE_A_CHECKLIST.md",
+    "docs/development/graphite/LAUNCH_PREFLIGHT.md"
+   ],
+   "status": "VERIFIED",
+   "note": "Stage A is measurement only; L1 confirmations wait for an L1 Q1 report and VALIDATOR-25."
+  },
+  {
+   "id": "S8_stage_b",
+   "order": 8,
+   "name": "Graphite stage B (L2 and L3 on the dev-ladder)",
+   "entry": "VALIDATOR-25 slices deployed; stage A closed; the owner's spend approval and a bound grant.",
+   "exit": "Per the stage B plan: runs complete with lessons entries and a stage summary.",
+   "owner_session": "Executor runs; Carbon Validator owns VALIDATOR-25; owner approves spend",
+   "owner_basis": "GRAPHITE_LADDER_STAGE_B_PLAN.md sections 1-4",
+   "evidence": [
+    "docs/development/graphite/GRAPHITE_LADDER_STAGE_B_PLAN.md"
+   ],
+   "status": "VERIFIED",
+   "note": "Stage B's grant files do not exist; its spend line is only prepared."
+  },
+  {
+   "id": "S9_stage_c",
+   "order": 9,
+   "name": "Graphite stage C (L4, graph only)",
+   "entry": "Stage B prerequisites clear; Level 4 permission for the dev-ladder and the dev door only (granted); the owner's spend approval.",
+   "exit": "Per the wave plan section 4a: the stage C Constructor and Attacker runs complete with lessons entries.",
+   "owner_session": "Executor runs; Level 4 engineer owns the rebuild path; owner approves spend",
+   "owner_basis": "GRAPHITE_LADDER_WAVE_PLAN.md sections 4 and 4a; OWNER-LEVEL4-TESTNET-RUNS-01",
+   "evidence": [
+    "docs/development/graphite/GRAPHITE_LADDER_WAVE_PLAN.md",
+    ".agent/decisions/2026-10-09-OWNER-LEVEL4-TESTNET-RUNS-01.md"
+   ],
+   "status": "VERIFIED",
+   "note": "Permission is not spend approval."
+  },
+  {
+   "id": "S10_tested",
+   "order": 10,
+   "name": "Tested Challenge",
+   "entry": "Stages A to C closed for the levels the owner chose, with their reports.",
+   "exit": "Retrospective recorded (register section 8 metrics), every DOCUMENTED and OPEN register row re-checked, and the owner told what was and was not measured.",
+   "owner_session": "Test Lead",
+   "owner_basis": "LESSONS_REGISTER.md rules and section 8",
+   "evidence": [
+    "docs/development/graphite/LESSONS_REGISTER.md",
+    "docs/development/graphite/WAVE_RETROSPECTIVE_TEMPLATE.md"
+   ],
+   "status": "UNVERIFIED",
+   "note": "The repository has no definition of a tested Challenge; this is a proposal. It is not scientific qualification, security acceptance, LIVE or a launch claim (AGENTS.md sections 3 and 6)."
+  }
+ ]
+}

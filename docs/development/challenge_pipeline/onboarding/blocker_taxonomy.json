@@ -1,0 +1,177 @@
+{
+ "schema": "carbon.challenge-pipeline.onboarding-blocker-taxonomy.v1",
+ "ticket": "ONBOARDING-PIPELINE-01",
+ "as_of": "2026-10-10",
+ "seed": "Battery, Graphite stage A (launch conditions and host fragility). Cooling and motor have no stage A yet.",
+ "rules": [
+  "cause and fix_ref are taken only from cited records; time_lost is UNKNOWN unless a record states it",
+  "no spend figure, balance or account detail is recorded here; rates and caps live in the grant files",
+  "rank orders the automation backlog by expected time saved on the NEXT Challenge: how often it recurs at a wave start, and whether a tool already prevents it; hours stay UNKNOWN until measured"
+ ],
+ "blockers": [
+  {
+   "id": "B1",
+   "name": "Wrong lane",
+   "stage": "S7_stage_a",
+   "cause": "A run was launched against a lane (signer, Control Center, tunnels) other than the one the run needed. Hotkeys are bound to one deployment: minerD-G stay on main for L0 confirmations, the ladder uses its own hotkeys.",
+   "cause_source": [
+    ".agent/decisions/2026-10-10-GRAPHITE-LAUNCH-PREFLIGHT-01.md",
+    "docs/development/graphite/GRAPHITE_LADDER_STAGE_A_CHECKLIST.md (precondition 5)"
+   ],
+   "occurrences": "AT_LEAST_1 (stage A failed four times on launch conditions, of which this is one)",
+   "time_lost": "UNKNOWN",
+   "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+   "fix_ref": "GRAPHITE-LAUNCH-PREFLIGHT-01 (#967): lane endpoint and tunnel checks; the probe has not run against the live account",
+   "register_row": "B1",
+   "automation": {
+    "kind": "generator",
+    "what": "Generate the lane file from the lane registry (lane name to signer, Control Center, tunnels, key paths) instead of hand-writing it per wave."
+   },
+   "rank": 5
+  },
+  {
+   "id": "B2",
+   "name": "Keys in the wrong distro",
+   "stage": "S7_stage_a",
+   "cause": "Key files the launch needed were in a different WSL distro or path than the one running the executor.",
+   "cause_source": [
+    ".agent/decisions/2026-10-10-GRAPHITE-LAUNCH-PREFLIGHT-01.md",
+    "docs/development/evidence/launchpad-acceptance-2026-10-07/FINDINGS.md (LA-F6: a fresh distro lacks what the service needs; related, not the same fault)"
+   ],
+   "occurrences": "AT_LEAST_1",
+   "time_lost": "UNKNOWN",
+   "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+   "fix_ref": "GRAPHITE-LAUNCH-PREFLIGHT-01 (#967): every key file must exist with mode 600, checked by path only; no key is read",
+   "register_row": "B2",
+   "automation": {
+    "kind": "template",
+    "what": "The wave template names key slots (not paths) and the preflight reports the missing ones together as owner_needs."
+   },
+   "rank": 7
+  },
+  {
+   "id": "B3",
+   "name": "One controller per root",
+   "stage": "S7_stage_a",
+   "cause": "Two runs shared one controller root. The controller counts every run and binds one grant document, and the wave plan requires one root per run.",
+   "cause_source": [
+    ".agent/decisions/2026-10-10-GRAPHITE-LAUNCH-PREFLIGHT-01.md",
+    "docs/development/graphite/GRAPHITE_LADDER_WAVE_PLAN.md (one controller root per run)"
+   ],
+   "occurrences": "AT_LEAST_1",
+   "time_lost": "UNKNOWN",
+   "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+   "fix_ref": "GRAPHITE-LAUNCH-PREFLIGHT-01 (#967): roots distinct, not nested, outside the repository, no more than the grant's max_concurrency",
+   "register_row": "B3",
+   "automation": {
+    "kind": "generator",
+    "what": "The wave template allocates one fresh root per planned concurrent run and prints the --root list for the preflight."
+   },
+   "rank": 6
+  },
+  {
+   "id": "B4",
+   "name": "Pod ceiling below the offered price",
+   "stage": "S7_stage_a",
+   "cause": "Pods were refused at launch. The rate in the grant is a ceiling and the runner refuses a pod RunPod offers above it.",
+   "cause_source": [
+    ".agent/decisions/2026-10-10-GRAPHITE-LAUNCH-PREFLIGHT-01.md (pods refused at launch)",
+    "docs/development/graphite/grants/README.md (the rate is a ceiling)"
+   ],
+   "occurrences": "AT_LEAST_1",
+   "time_lost": "UNKNOWN",
+   "fix_status": "DETECTED_NOT_PREVENTED",
+   "fix_ref": "GRAPHITE-LAUNCH-PREFLIGHT-01 (#967): --probe runs the launch's own offer check with one real pod. Raising a ceiling is a grant change and stays the owner's.",
+   "register_row": "B4",
+   "automation": {
+    "kind": "check",
+    "what": "The wave template runs the probe before proposing a grant and states the observed offer against the proposed rate ceiling, so the proposal carries a ceiling that can launch. The proposal is the owner's to approve; nothing is authored as spend."
+   },
+   "rank": 3
+  },
+  {
+   "id": "B5",
+   "name": "Token share and pod split",
+   "stage": "S7_stage_a",
+   "cause": "A run's worst case is split between tokens and pods. With a large start model, one full-window call reserves more than the token share, so a session stops before its first call (D35 for the kimi-k3 Attacker under the phase 4 grant).",
+   "cause_source": [
+    "docs/development/graphite/GRAPHITE_LADDER_WAVE_PLAN.md (section 0, Attacker on kimi-k3)",
+    "docs/development/graphite/grants/README.md (the run's split)",
+    ".agent/decisions/2026-10-09-OWNER-GRAPHITE-STAGE-A-01.md"
+   ],
+   "occurrences": "1 (found in planning, before a live run)",
+   "time_lost": "UNKNOWN",
+   "fix_status": "OPEN",
+   "fix_ref": "Stage A grants were re-derived by hand with a larger token share (OWNER-GRAPHITE-STAGE-A-01). No check refuses a grant whose split cannot fund one full-window call of the start model, or whose pod share cannot fund the pods the run needs at the rate ceiling.",
+   "register_row": "B5",
+   "automation": {
+    "kind": "generator",
+    "what": "The wave template computes the split from the model's full-window reservation and pods x rate ceiling, and the preflight refuses a grant whose split fails either."
+   },
+   "rank": 2
+  },
+  {
+   "id": "B6",
+   "name": "Reboot fragility",
+   "stage": "S7_stage_a",
+   "cause": "After a host reboot the signers and the tunnels the lanes need were down, so the lanes could not be confirmed ready until the owner restarted both.",
+   "cause_source": [
+    "Launchpad note to the Graphite Testing Manager, 2026-10-10 (signers and tunnels down since the reboot; owner restarting)",
+    "docs/development/graphite/GRAPHITE_LADDER_STAGE_A_CHECKLIST.md (precondition 5: lane checked after the WSL restart)",
+    "docs/development/graphite/LAUNCH_PREFLIGHT.md (run before every launch and after any restart)"
+   ],
+   "occurrences": "AT_LEAST_1 (2026-10-10)",
+   "time_lost": "UNKNOWN",
+   "fix_status": "OPEN",
+   "fix_ref": "The preflight detects the state after a restart. Nothing brings the signers and tunnels back up, and a signer start stays a human act (miner-setup rule).",
+   "register_row": "B6",
+   "automation": {
+    "kind": "generator",
+    "what": "One lane-up command per lane that lists what is down, prints the single owner action to restore it, and re-runs the preflight when the owner says it is done. It never starts a signer or signs."
+   },
+   "rank": 1
+  },
+  {
+   "id": "B7",
+   "name": "Auto-mode permission blocks",
+   "stage": "S7_stage_a",
+   "cause": "Agent sessions in auto mode had edits blocked by the permission classifier, for at least one class of edit (the signer auto-confirm build, per the cited decision).",
+   "cause_source": [
+    ".agent/decisions/2026-10-08-OWNER-CANARY-MINER-01.md (SIGNER-AUTOCONFIRM-01 build blocked by the auto-mode permission classifier)"
+   ],
+   "occurrences": "AT_LEAST_1 (signer auto-confirm build, per the cited decision); other edit classes (for example GPU allocation and cleanup) are reported in session notes that are not in the repository, so they are not counted here",
+   "time_lost": "UNKNOWN",
+   "fix_status": "OPEN",
+   "fix_ref": "None in code. The workaround is the owner switching that session to approve-edits mode. Which edit classes trigger the block is not recorded in one place.",
+   "register_row": "B7",
+   "automation": {
+    "kind": "template",
+    "what": "The wave template lists the edit classes known to need approve-edits mode, so the owner is asked once, in the same batched question as the wave's other owner needs, before the session starts."
+   },
+   "rank": 4
+  },
+  {
+   "id": "B8",
+   "name": "Silent failures",
+   "stage": "S7_stage_a",
+   "cause": "A live run could stall, or every pod launch could be refused, with nothing visible to the coordinator until someone looked.",
+   "cause_source": [
+    ".agent/decisions/2026-10-10-GRAPHITE-LAUNCH-PREFLIGHT-01.md (heartbeat and the stall rule)"
+   ],
+   "occurrences": "UNKNOWN",
+   "time_lost": "UNKNOWN",
+   "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+   "fix_ref": "GRAPHITE-LAUNCH-PREFLIGHT-01 (#967): a heartbeat every 2 minutes; STALLED when it is more than 15 minutes old while the run is alive, or when every pod launch was refused",
+   "register_row": "B8",
+   "automation": {
+    "kind": "check",
+    "what": "A collector that reads the shared heartbeat directory and raises one line to the coordinator when a run reads STALLED, so a stall is announced rather than found."
+   },
+   "rank": 8
+  }
+ ],
+ "ask_owning_sessions": {
+  "to": "executor, with Launchpad copied",
+  "one_batched_question": "For each of B1-B8, give the time lost in stage A (hours or UNKNOWN), the number of occurrences, and whether the fix has been exercised live; and name the edit classes the auto-mode classifier blocked (B7)."
+ }
+}
