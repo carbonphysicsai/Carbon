@@ -1,0 +1,107 @@
+{
+  "NONE_FEASIBLE": {
+    "recommendation": "VALID_FORWARD_NO_REDRAW only with a complete settled proof; missing/uncertain support stays UNRESOLVED",
+    "status": "HUMAN_INPUT"
+  },
+  "P": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize P",
+    "owner": "science/product owner",
+    "recommendation": "**P \u2014 customer request population.** Customer joint-revision jobs: load envelope, bolt/material family, member stiffness, preload uncertainty and contact/friction variation. Define joint correlations and load-case prevalence from the buyer; a geometry box or invented independent uniform friction distribution is insufficient.\n\n**Q \u2014 diagnostic/acquisition proposal.** Enrich incipient separation, slip and applicable stress limits using the same approved friction/preload domain. Include the baseline's most confident failures and near-ties. Diagnostic points cannot be weighted as customer request frequency.\n\n**w \u2014 evidence/score use.** Sampling/evidence weighting and any correction from Q to P are **HUMAN_INPUT \u2014 scientific owner**. Prospective per-stratum admissibility and reporting precede any ranking. Equal diagnostic counts are a collection convenience, not deployment weights. No soft objective can compensate for a mandatory failure.\n\nFreeze a versioned population contract with joint variables, support, dependencies, strata/mixture probabilities, rights, exclusions, time validity and applicability. Keep request-job law distinct from the finite design menu conditional on that job. Request population and design-generation process are not interchangeable. No public draw is a hidden/protected exam draw; this researcher defines or accesses neither.",
+    "sources": [
+      {
+        "excerpt": "**P \u2014 customer request population.** Customer joint-revision jobs: load envelope, bolt/material family, member stiffness, preload uncertainty and contact/friction variation. Define joint correlations and load-case prevalence from the buyer; a geometry box or invented independent uniform friction distribution is insufficient.\n\n**Q \u2014 diagnostic/acquisition proposal.** Enrich incipient separation, slip and applicable stress limits using the same approved friction/preload domain. Include the baseline's most confident failures and near-ties. Diagnostic points cannot be weighted as customer request frequency.\n\n**w \u2014 evidence/score use.** Sampling/evidence weighting and any correction from Q to P are **HUMAN_INPUT \u2014 scientific owner**. Prospective per-stratum admissibility and reporting precede any ranking. Equal diagnostic counts are a collection convenience, not deployment weights. No soft objective can compensate for a mandatory failure.\n\nFreeze a versioned population contract with joint variables, support, dependencies, strata/mixture probabilities, rights, exclusions, time validity and applicability. Keep request-job law distinct from the finite design menu conditional on that job. Request population and design-generation process are not interchangeable. No public draw is a hidden/protected exam draw; this researcher defines or accesses neither.",
+        "path": "docs/development/challenge_pipeline/discovery/dossiers/bolted-joint.md",
+        "sha256": "bebad0c570089a193c816d74d1bd6e40a62cb180fee119d35f4ae36e45335793"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "Q": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize Q",
+    "owner": "science/product owner",
+    "recommendation": "**P \u2014 customer request population.** Customer joint-revision jobs: load envelope, bolt/material family, member stiffness, preload uncertainty and contact/friction variation. Define joint correlations and load-case prevalence from the buyer; a geometry box or invented independent uniform friction distribution is insufficient.\n\n**Q \u2014 diagnostic/acquisition proposal.** Enrich incipient separation, slip and applicable stress limits using the same approved friction/preload domain. Include the baseline's most confident failures and near-ties. Diagnostic points cannot be weighted as customer request frequency.\n\n**w \u2014 evidence/score use.** Sampling/evidence weighting and any correction from Q to P are **HUMAN_INPUT \u2014 scientific owner**. Prospective per-stratum admissibility and reporting precede any ranking. Equal diagnostic counts are a collection convenience, not deployment weights. No soft objective can compensate for a mandatory failure.\n\nFreeze a versioned population contract with joint variables, support, dependencies, strata/mixture probabilities, rights, exclusions, time validity and applicability. Keep request-job law distinct from the finite design menu conditional on that job. Request population and design-generation process are not interchangeable. No public draw is a hidden/protected exam draw; this researcher defines or accesses neither.",
+    "sources": [
+      {
+        "excerpt": "**P \u2014 customer request population.** Customer joint-revision jobs: load envelope, bolt/material family, member stiffness, preload uncertainty and contact/friction variation. Define joint correlations and load-case prevalence from the buyer; a geometry box or invented independent uniform friction distribution is insufficient.\n\n**Q \u2014 diagnostic/acquisition proposal.** Enrich incipient separation, slip and applicable stress limits using the same approved friction/preload domain. Include the baseline's most confident failures and near-ties. Diagnostic points cannot be weighted as customer request frequency.\n\n**w \u2014 evidence/score use.** Sampling/evidence weighting and any correction from Q to P are **HUMAN_INPUT \u2014 scientific owner**. Prospective per-stratum admissibility and reporting precede any ranking. Equal diagnostic counts are a collection convenience, not deployment weights. No soft objective can compensate for a mandatory failure.\n\nFreeze a versioned population contract with joint variables, support, dependencies, strata/mixture probabilities, rights, exclusions, time validity and applicability. Keep request-job law distinct from the finite design menu conditional on that job. Request population and design-generation process are not interchangeable. No public draw is a hidden/protected exam draw; this researcher defines or accesses neither.",
+        "path": "docs/development/challenge_pipeline/discovery/dossiers/bolted-joint.md",
+        "sha256": "bebad0c570089a193c816d74d1bd6e40a62cb180fee119d35f4ae36e45335793"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "T2a": {
+    "band_widths": "HUMAN_INPUT",
+    "measured": "NOT_ASSESSED_BY_DRAFTING",
+    "minimum_distinct_feasible": 5,
+    "minimum_distinct_infeasible": 5,
+    "near_refinement_bands": 2,
+    "rule": "Both sides near the limit; add frontier resolution, never widen bands",
+    "status": "TEST_LEAD_WORKING_VALUE"
+  },
+  "action_set": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize geometry",
+    "owner": "science/product owner",
+    "recommendation": "An approved joint family with bolts, clamped members, frictional contact and assembly preload followed by the customer's service loads. Begin with a bounded single-joint assembly; do not extrapolate to flight, fatigue life or fracture certification. Approved material/plasticity and friction models must match the loads. A linear modal surrogate does not itself resolve separation or slip.\n\nMandatory-stratum hypothesis (count [4,4,4]):\n\n- approved nominal clamp/service loading: numerical endpoints, joint conditions and source HUMAN_INPUT.\n- approved minimum clamp/friction loading: numerical endpoints, joint conditions and source HUMAN_INPUT.\n- approved maximum preload/service combination: numerical endpoints, joint conditions and source HUMAN_INPUT.\n- approved worst allowed member/bolt tolerance state: numerical endpoints, joint conditions and source HUMAN_INPUT.\n\nScientific owner must confirm that these strata cover the unchanged customer job. Initial/boundary conditions, histories, idealisations, material applicability, neglected physics and manufacture/assembly tolerances are HUMAN_INPUT. A missing safety/material requirement stops the affected job; it is never relaxed to save compute. No physical population claim follows from deterministic execution.",
+    "sources": [
+      {
+        "excerpt": "An approved joint family with bolts, clamped members, frictional contact and assembly preload followed by the customer's service loads. Begin with a bounded single-joint assembly; do not extrapolate to flight, fatigue life or fracture certification. Approved material/plasticity and friction models must match the loads. A linear modal surrogate does not itself resolve separation or slip.\n\nMandatory-stratum hypothesis (count [4,4,4]):\n\n- approved nominal clamp/service loading: numerical endpoints, joint conditions and source HUMAN_INPUT.\n- approved minimum clamp/friction loading: numerical endpoints, joint conditions and source HUMAN_INPUT.\n- approved maximum preload/service combination: numerical endpoints, joint conditions and source HUMAN_INPUT.\n- approved worst allowed member/bolt tolerance state: numerical endpoints, joint conditions and source HUMAN_INPUT.\n\nScientific owner must confirm that these strata cover the unchanged customer job. Initial/boundary conditions, histories, idealisations, material applicability, neglected physics and manufacture/assembly tolerances are HUMAN_INPUT. A missing safety/material requirement stops the affected job; it is never relaxed to save compute. No physical population claim follows from deterministic execution.",
+        "path": "docs/development/challenge_pipeline/discovery/dossiers/bolted-joint.md",
+        "sha256": "bebad0c570089a193c816d74d1bd6e40a62cb180fee119d35f4ae36e45335793"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "bank": {
+    "B": null,
+    "E": null,
+    "n": null,
+    "status": "HUMAN_INPUT",
+    "threshold_variation_renews_exposure": false
+  },
+  "challenge": "bolted-joint",
+  "diversity": null,
+  "held_closed": "No law approval, bank draw, runtime registration, power acceptance or spend",
+  "k": {
+    "basis": "Power and exposure owner selects; a panel's batch size is not approval",
+    "recommendation": null,
+    "status": "HUMAN_INPUT"
+  },
+  "maturity": "DRAFT_ONLY",
+  "panel_basis": null,
+  "question": {
+    "buyer_decision": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize decision",
+      "owner": "science/product owner",
+      "recommendation": "Choose preload and bracket/support geometry under unchanged eccentric service loads and opening, slip and strength limits",
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "recommendation": "One complete buyer decision, not one solver point; indexed decisions include every mandatory band",
+    "status": "HUMAN_INPUT"
+  },
+  "schema": "carbon.onboarding.question-law-draft.v1",
+  "startup_cost": {
+    "basis": "Requires unique new physical cases/rungs, measured CPU, throughput, overhead and quote; B is not a solve count",
+    "cpu_hours": null,
+    "eur": null,
+    "status": "HUMAN_INPUT"
+  },
+  "w": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize w",
+    "owner": "science/product owner",
+    "recommendation": "**P \u2014 customer request population.** Customer joint-revision jobs: load envelope, bolt/material family, member stiffness, preload uncertainty and contact/friction variation. Define joint correlations and load-case prevalence from the buyer; a geometry box or invented independent uniform friction distribution is insufficient.\n\n**Q \u2014 diagnostic/acquisition proposal.** Enrich incipient separation, slip and applicable stress limits using the same approved friction/preload domain. Include the baseline's most confident failures and near-ties. Diagnostic points cannot be weighted as customer request frequency.\n\n**w \u2014 evidence/score use.** Sampling/evidence weighting and any correction from Q to P are **HUMAN_INPUT \u2014 scientific owner**. Prospective per-stratum admissibility and reporting precede any ranking. Equal diagnostic counts are a collection convenience, not deployment weights. No soft objective can compensate for a mandatory failure.\n\nFreeze a versioned population contract with joint variables, support, dependencies, strata/mixture probabilities, rights, exclusions, time validity and applicability. Keep request-job law distinct from the finite design menu conditional on that job. Request population and design-generation process are not interchangeable. No public draw is a hidden/protected exam draw; this researcher defines or accesses neither.",
+    "sources": [
+      {
+        "excerpt": "**P \u2014 customer request population.** Customer joint-revision jobs: load envelope, bolt/material family, member stiffness, preload uncertainty and contact/friction variation. Define joint correlations and load-case prevalence from the buyer; a geometry box or invented independent uniform friction distribution is insufficient.\n\n**Q \u2014 diagnostic/acquisition proposal.** Enrich incipient separation, slip and applicable stress limits using the same approved friction/preload domain. Include the baseline's most confident failures and near-ties. Diagnostic points cannot be weighted as customer request frequency.\n\n**w \u2014 evidence/score use.** Sampling/evidence weighting and any correction from Q to P are **HUMAN_INPUT \u2014 scientific owner**. Prospective per-stratum admissibility and reporting precede any ranking. Equal diagnostic counts are a collection convenience, not deployment weights. No soft objective can compensate for a mandatory failure.\n\nFreeze a versioned population contract with joint variables, support, dependencies, strata/mixture probabilities, rights, exclusions, time validity and applicability. Keep request-job law distinct from the finite design menu conditional on that job. Request population and design-generation process are not interchangeable. No public draw is a hidden/protected exam draw; this researcher defines or accesses neither.",
+        "path": "docs/development/challenge_pipeline/discovery/dossiers/bolted-joint.md",
+        "sha256": "bebad0c570089a193c816d74d1bd6e40a62cb180fee119d35f4ae36e45335793"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  }
+}

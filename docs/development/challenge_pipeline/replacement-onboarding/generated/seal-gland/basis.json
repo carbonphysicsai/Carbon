@@ -1,0 +1,18 @@
+[
+  {
+    "path": "docs/development/challenge_pipeline/discovery/dossiers/seal-gland.md",
+    "sha256": "342fd3ffc076e0f23089685bdc599775e12fe142f7cc6f7518f13d0a8636fec9"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/replacement-onboarding/seal-gland-intake.json",
+    "sha256": "fedc6a5252f2036377f8c8e8da866a366f86d41ed037407afbd6cf50beda1f34"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/value-cost/replacements/seal-gland.md",
+    "sha256": "0990eaee3834da745748c6ec47f987ad9568f3a3a01158733d00812f5ca8f926"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/replacement-onboarding/artifacts.json",
+    "sha256": "b37d535d4f6ed3b2172f480f9af4bd171f0147b96668f45b511c136525707d9c"
+  }
+]
