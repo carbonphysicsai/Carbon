@@ -359,6 +359,38 @@ def probe_pod(pods, *, clock=time.time, sleep=time.sleep):
         start_command=("/bin/sh", "-c", "sleep 900"),
         allowed_cuda_versions=tuple(pods.cuda_versions),
     )
+    # A launch's own balance step (`RunPodPods.launch`): the operator layer
+    # refuses a provision with no balance observation, and the probe's
+    # reservation must leave the floor intact. The balance is never printed.
+    from .pods import PodFailure, pod_reservation
+
+    try:
+        balance, _ = pods.service.observe_balance(pods.CAMPAIGN)
+        floor = pods.balance_floor()
+    except ComputeError as failure:
+        return Check(
+            "pod_probe",
+            FAIL,
+            f"no account balance observation: {failure.failed}",
+            fix="the pod lane cannot read the account balance",
+        )
+    except PodFailure as failure:  # the floor file: `operator_balance_floor`
+        return Check(
+            "pod_probe",
+            FAIL,
+            f"no balance floor: {type(failure).__name__}",
+            fix="the owner writes balance_floor_usd to ~/.runpod/campaigns.json",
+            owner=True,
+        )
+    reservation = pod_reservation(PROBE_RUNNING_S // 60, economics["hourly_usd"])
+    if Decimal(str(balance)) - reservation < floor:
+        return Check(
+            "pod_probe",
+            FAIL,
+            "the probe's reservation would take the balance below the floor",
+            fix="the owner tops up the account or lowers the balance floor",
+            owner=True,
+        )
     started = clock()
     try:
         resource = pods.service.provision(

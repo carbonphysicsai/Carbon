@@ -163,6 +163,9 @@ class FakePods:
         }
         self.cuda_versions = ("12.4",)
         self.events, self.refuse, self.runs, self.stays = [], refuse, runs, stays
+        self.balance = 100.0
+        self.balance_floor = lambda: Decimal(5)
+        self.economics["hourly_usd"] = Decimal("0.50")
         offer = types.SimpleNamespace(
             usd_per_hr=0.44, stock_status="High" if stock else None
         )
@@ -175,6 +178,10 @@ class FakePods:
             ),
         )
         self.service = self
+
+    def observe_balance(self, campaign):
+        self.events.append("balance")
+        return self.balance, 0.0
 
     def provision(self, request):
         from scripts.dev.exam_design.runpod.operator_compute import (
@@ -218,7 +225,7 @@ def test_the_probe_creates_runs_terminates_and_verifies(monkeypatch):
     pods = FakePods()
     check = preflight.probe_pod(pods, clock=_clock(), sleep=lambda s: None)
     assert check.status == preflight.OK, check.detail
-    assert pods.events == ["created", "terminated"]
+    assert pods.events == ["balance", "created", "terminated"]
 
 
 @pytest.mark.parametrize(
@@ -363,3 +370,20 @@ def test_the_balance_floor_file_must_exist_and_name_a_floor(tmp_path, body, stat
     check = preflight.check_balance_floor(tmp_path, "campaigns.json")
     assert check.status == status
     assert "5" not in check.detail.replace(str(tmp_path), "")
+
+
+def test_the_probe_observes_the_balance_before_it_provisions():
+    """The executor's bug: without a balance observation the operator layer
+    refuses every probe ("no account balance observation")."""
+    pods = FakePods()
+    preflight.probe_pod(pods, clock=_clock(), sleep=lambda s: None)
+    assert pods.events.index("balance") < pods.events.index("created")
+
+
+def test_a_probe_that_would_breach_the_floor_creates_nothing():
+    pods = FakePods()
+    pods.balance = 5.01
+    check = preflight.probe_pod(pods, clock=_clock(), sleep=lambda s: None)
+    assert check.status == preflight.FAIL and check.owner
+    assert "created" not in pods.events
+    assert "5.01" not in check.detail

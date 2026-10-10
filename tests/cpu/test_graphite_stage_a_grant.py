@@ -78,7 +78,7 @@ def test_the_constructor_grant_admits_level_0_on_kimi_k3():
     grant = _grant(CONSTRUCTOR)
     entry = grant_binding.entry_of(grant)
     assert entry.min_level == 0 and entry.runner == "phase3"
-    assert entry.token_share_usd == grant_binding.STAGE_TOKEN_SHARE == Decimal("10.90")
+    assert entry.token_share_usd == grant_binding.STAGE_TOKEN_SHARE == Decimal("10.99")
     for level in (0, 1, 3):
         assert grant_binding.level_refusal(grant, level) is None
     top = len(ENGY_LADDER) - 1

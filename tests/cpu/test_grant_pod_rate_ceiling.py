@@ -139,7 +139,9 @@ def test_every_stage_constructor_runs_at_the_standing_ceiling(stage):
     budget = ex.phase3_budget(_stage(f"{stage}-CONSTRUCTOR"), _battery())
     assert budget.hourly_usd == podlib.prices(Decimal("0.65"))["hourly_usd"]
     assert budget.pod_allowance_usd >= budget.pods_need_usd
-    assert budget.token_allowance_usd == Decimal("10.90") >= 5 * KIMI_FULL_CALL
+    assert budget.token_allowance_usd == Decimal("10.99") >= 5 * KIMI_FULL_CALL
+    # 10.99 is the largest share that fits: the pods need exactly 3.92.
+    assert budget.pods_need_usd == Decimal("3.92") == budget.pod_allowance_usd
 
 
 @pytest.mark.parametrize("stage", STAGES)

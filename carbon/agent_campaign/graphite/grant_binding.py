@@ -178,10 +178,10 @@ def check_committed_blob(given, repository, grant_file, *, phase):
 #: The Graphite ladder wave's stage A (#889 section 4), approved by the owner.
 STAGE_A_AUTHORITY = "OWNER-GRAPHITE-STAGE-A-01"
 #: The stage Constructors' token share at the standing 0.65/h pod rate
-#: ceiling (GRANT-POD-CEILING-01, owner-confirmed): 10.90 of the 14.91 run
+#: ceiling (GRANT-POD-CEILING-01, owner-confirmed): 10.99 of the 14.91 run
 #: (five full kimi-k3 reservations), leaving the session's pods enough at
 #: 0.65/h. R4 keeps 11.93 at the 0.49 default.
-STAGE_TOKEN_SHARE = Decimal("10.90")
+STAGE_TOKEN_SHARE = Decimal("10.99")
 #: Stage B (GRAPHITE_LADDER_STAGE_B_PLAN.md section 7), approved by the owner.
 STAGE_B_AUTHORITY = "OWNER-GRAPHITE-STAGE-B-01"
 #: Stage C, Level 4 (GRAPHITE_LADDER_WAVE_PLAN.md section 4), approved by the owner.

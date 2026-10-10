@@ -44,19 +44,30 @@
     stages A to C.
   - **Direct confirmation.** In the Test Engineer's session the owner
     confirmed a ceiling of USD 0.65/h on all six stage grants, with the
-    Constructor token share lowered from 11.93 to USD 10.90. Stage caps are
+    Constructor token share lowered from 11.93 to USD 10.99. Stage caps are
     unchanged.
 - **The change.**
   - The six `GRAPHITE-GRANT-STAGE-{A,B,C}-{CONSTRUCTOR,ATTACKER}.json`
     files carry `"pod_rate_ceiling_usd_per_hr": "0.65"`.
   - The stage Constructors' registered token share is
-    `grant_binding.STAGE_TOKEN_SHARE`, 10.90 of each 14.91 run: five full
+    `grant_binding.STAGE_TOKEN_SHARE`, 10.99 of each 14.91 run: five full
     kimi-k3 reservations, with enough left for the session's pods at
     0.65/h. R4 keeps 11.93 at the default ceiling.
   - Every ceiling, run count and per-run cap is unchanged.
 - **The tests.**
   - Every stage Constructor's budget opens at 0.65/h, with pods covered and
-    10.90 for tokens.
+    10.99 for tokens.
   - Every stage Attacker still holds four full kimi-k3 calls; at 0.65/h its
     model money is 11.45.
   - R4's 11.93 at 0.65/h is still refused, typed.
+
+**Amendment (2026-10-10): the token share is 10.99.**
+- **The relayed split.** The Test Lead relayed the owner's "approve token
+  share $11.01, pods $3.90". At 0.65/h a stage Constructor session's 12
+  pods need exactly USD 3.92, so 3.90 is 0.02 short and every run would be
+  refused.
+- **The owner's direct choice.** Asked directly in the Test Engineer's
+  session, the owner chose **10.99**, the largest share that fits: tokens
+  10.99 and pods 3.92 inside the unchanged 14.91 run (five full kimi-k3
+  calls). Stage totals are unchanged.
+- **The Attackers fit as they are:** pods 1.96, tokens 11.45.

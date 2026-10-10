@@ -1060,8 +1060,9 @@ R4 (45.00, 3 runs, Level 1 and above) is unchanged and stays spendable.
   stages: "approve a standing pod ceiling for all stages", answering the
   Test Lead's USD 0.65/h proposal. The owner confirmed it directly in the
   Test Engineer's session, with the Constructor token share lowered to
-  USD 10.90.
+  USD 10.99 (the largest share that fits: at 0.65/h the session's pods need
+  exactly USD 3.92 of the 14.91 run).
 - **The change.** The six stage grant files carry
   `pod_rate_ceiling_usd_per_hr` 0.65, and the stage Constructors' token
-  share is 10.90 (`grant_binding.STAGE_TOKEN_SHARE`).
+  share is 10.99 (`grant_binding.STAGE_TOKEN_SHARE`).
 - **Unchanged:** stage caps, run counts and per-run caps.
