@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import re
 import subprocess
 from dataclasses import dataclass
@@ -86,6 +87,38 @@ def load_policy() -> dict:
             safe_path(item["path"])
             if not re.fullmatch(r"[A-Z]\d+", item["id"]):
                 raise ValueError("Invalid source identity")
+    for config in policy["challenges"].values():
+        ids = {item["id"] for item in config["sources"]}
+        for rule in config["extractors"]:
+            common = {"id", "source", "kind", "label", "basis"}
+            extra = (
+                {"pointer", "expected_schema", "expected_family"}
+                if rule["kind"] in {"json-number", "json-state"}
+                else {"pattern"}
+            )
+            if set(rule) != common | extra or rule["source"] not in ids:
+                raise ValueError("Closed registered extraction rule required")
+            if rule["kind"] not in {
+                "json-number",
+                "json-state",
+                "counts",
+                "rebuilds",
+                "violations",
+                "fraction",
+                "gap",
+                "verdict",
+            }:
+                raise ValueError("Unrecognized extraction kind")
+            if "pointer" in rule:
+                if not rule["pointer"].startswith("/") or not isinstance(
+                    rule["expected_schema"], str
+                ):
+                    raise ValueError("Registered aggregate pointer/schema required")
+            else:
+                if re.compile(rule["pattern"]).groups != (
+                    2 if rule["kind"] in {"counts", "rebuilds", "violations"} else 1
+                ):
+                    raise ValueError("Extraction capture count differs")
     return policy
 
 
@@ -205,10 +238,66 @@ class BundleReader:
         )
 
 
+def scalar_fact(rule: dict, source: Source) -> dict:
+    """Allow-listed aggregate pointer, not a source-object disclosure route."""
+    document = json.loads(
+        source.text,
+        parse_constant=lambda _: (_ for _ in ()).throw(
+            ValueError("Finite JSON required")
+        ),
+    )
+    if not isinstance(document, dict):
+        raise TypeError("Aggregate source object required")
+    if document.get("schema") != rule["expected_schema"] or (
+        rule["expected_family"] is not None
+        and document.get("family") != rule["expected_family"]
+    ):
+        raise ValueError("Aggregate source schema/family mismatch")
+    pointer = rule["pointer"]
+    if not isinstance(pointer, str) or not pointer.startswith("/"):
+        raise ValueError("Explicit aggregate pointer required")
+    value = document
+    for part in pointer[1:].split("/"):
+        key = part.replace("~1", "/").replace("~0", "~")
+        if not isinstance(value, dict) or key not in value:
+            raise ValueError("Registered aggregate scalar unavailable")
+        value = value[key]
+    if rule["kind"] == "json-number":
+        if type(value) not in (int, float) or not math.isfinite(value):
+            raise ValueError("Finite aggregate scalar required")
+        quantities = [{"low": value, "base": value, "high": value, "basis": "SOURCED"}]
+        kind = "metadata"
+    else:
+        if not isinstance(value, str) or not value or len(value) > 200:
+            raise ValueError("Bounded aggregate state required")
+        quantities = []
+        kind = "gap"  # Registered unresolved/specification status; no earned tier.
+    return {
+        "id": rule["id"],
+        "source": source.id,
+        "locator": pointer,
+        "label": rule["label"],
+        "value": str(value),
+        "kind": kind,
+        "basis": rule["basis"],
+        "outcome": "NOT_ASSESSED",
+        "quantities": quantities,
+        "citation": source.cite(pointer),
+    }
+
+
 def extract_facts(config: dict, sources: dict) -> tuple[list, list]:
     facts, gaps = [], []
     for rule in config["extractors"]:
         source = sources.get(rule["source"])
+        if rule["kind"] in {"json-number", "json-state"}:
+            try:
+                if source is None:
+                    raise ValueError("Source absent")
+                facts.append(scalar_fact(rule, source))
+            except (ValueError, TypeError, KeyError):
+                gaps.append(f"{rule['id']}: matched aggregate scalar unavailable")
+            continue
         matches = list(re.finditer(rule["pattern"], source.text)) if source else []
         if len(matches) != 1:
             gaps.append(f"{rule['id']}: source absent or unique anchor unavailable")
@@ -390,7 +479,10 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
                     "status": "HISTORICAL_RETAINED",
                 }
             )
-    ledgers = [sources[key].ledger() for key in sorted(sources)]
+    roles = {
+        spec["id"]: spec["role"] for spec in policy["framework"] + config["sources"]
+    }
+    ledgers = [{**sources[key].ledger(), "role": roles[key]} for key in sorted(sources)]
     record = {
         "schema_version": "PROPOSAL_V1",
         "mode": "DEVELOPMENT_SAMPLE",
@@ -422,6 +514,7 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
         "",
         f"Challenge: `{challenge}`. Evidence snapshot: `{reader.evidence_revision}`.",
         f"Framework snapshot: `{reader.framework_revision}`. Profile: `{profile}`.",
+        "Dossier source selection does not register or activate a runtime Challenge.",
         (
             f"Template {sources['F1'].cite()}; schema {sources['F2'].cite()}; "
             f"crosswalk {sources['F3'].cite()}."
@@ -450,7 +543,7 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
         if sid == "D08":
             for item in ledgers:
                 lines.append(
-                    f"- {item['id']}: Git blob `{item['git_blob']}`; "
+                    f"- {item['id']} ({item['role']}): Git blob `{item['git_blob']}`; "
                     f"public-file SHA-256 `{item['sha256']}`. "
                     f"{sources[item['id']].cite()}"
                 )
