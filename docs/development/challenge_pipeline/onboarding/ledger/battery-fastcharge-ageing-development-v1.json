@@ -234,6 +234,18 @@
      "id": "B8",
      "name": "Silent failures",
      "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "OWNER_ASSIGNED_CHECK_PROPOSED_NOT_BUILT",
+     "id": "B9",
+     "name": "Lane install lagging the grant code",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "OWNER_ASSIGNED_NOT_YET_EXERCISED_LIVE",
+     "id": "B10",
+     "name": "One shared checkout for every lane",
+     "time_lost": "UNKNOWN"
     }
    ]
   },

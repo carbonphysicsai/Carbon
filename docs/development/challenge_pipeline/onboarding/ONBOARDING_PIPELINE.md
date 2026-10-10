@@ -96,9 +96,11 @@ session is in section 5.
 | B6 | Reboot fragility | After a reboot the signers and tunnels were down until the owner restarted them (Launchpad note, 2026-10-10) | UNKNOWN | OPEN: detected, not recovered |
 | B7 | Auto-mode permission blocks | The classifier blocked a build (OWNER-CANARY-MINER-01) | UNKNOWN | OPEN: workaround is the owner's approve-edits mode |
 | B8 | Silent failures | A stalled run or all-refused pods went unseen (preflight decision) | UNKNOWN | Fixed in code (#967), not yet exercised live |
+| B9 | Lane install lagging the grant code | The lane install code lagged the grant code and a lane refused a current grant (`grant_exact_fields_required`; Test Lead note, 2026-10-10) | UNKNOWN | Owner assigned (Launchpad owns lane installs); revision-equality check proposed, not built |
+| B10 | One shared checkout for every lane | carbon-fresh has one shared checkout; two sessions updating it collided and every lane's profile went stale (`carbon_updated_rerun_installer`; Test Lead note) | UNKNOWN | Owner assigned (Launchpad is the single owner of lane installs); not yet exercised live |
 
 Full rows (stage, sources, occurrences, fix reference, automation) are in
-`blocker_taxonomy.json`. Each is also a register row, B1 to B8, in section 7d of the
+`blocker_taxonomy.json`. Each is also a register row, B1 to B10, in section 7d of the
 lessons register.
 
 **Honesty notes.** "Four failures" in the preflight decision is a count of launch
@@ -114,21 +116,23 @@ ordinal and should be revisited when section 5 is answered.
 | Rank | Blocker | Change | Kind |
 |---|---|---|---|
 | 1 | B6 reboot fragility | One lane-up command per lane: list what is down, print the single owner action, re-run the preflight when the owner says it is done. It never starts a signer or signs. | generator |
-| 2 | B5 token and pod split | Compute the split from the start model's full-window reservation and pods x rate ceiling; the preflight refuses a grant whose split fails either. | generator + check |
-| 3 | B4 pod ceiling | Run the probe before proposing a grant and state the observed offer against the proposed rate ceiling. The proposal stays the owner's to approve. | check |
-| 4 | B7 permission blocks | A template list of edit classes known to need approve-edits mode, asked once with the wave's other owner needs. | template |
-| 5 | B1 wrong lane | Generate the lane file from a lane registry instead of by hand per wave. | generator |
-| 6 | B3 controller roots | Allocate one fresh root per planned concurrent run and print the `--root` list. | generator |
-| 7 | B2 keys | The template names key slots, not paths; the preflight reports missing ones together. | template |
-| 8 | B8 silent failures | A collector over the shared heartbeat directory that raises one line when a run reads STALLED. | check |
+| 2 | B9 lane install lag | Preflight check that the lane's installed revision equals the grant's code revision, naming the lane owner to reinstall. Proposed, not built. | check |
+| 3 | B10 shared checkout | Launchpad is the single owner of lane installs (decided); the wave template names that owner and the lane-up command runs the installer. | template |
+| 4 | B5 token and pod split | Compute the split from the start model's full-window reservation and pods x rate ceiling; the preflight refuses a grant whose split fails either. | generator + check |
+| 5 | B4 pod ceiling | Run the probe before proposing a grant and state the observed offer against the proposed rate ceiling. The proposal stays the owner's to approve. | check |
+| 6 | B7 permission blocks | A template list of edit classes known to need approve-edits mode, asked once with the wave's other owner needs. | template |
+| 7 | B1 wrong lane | Generate the lane file from a lane registry instead of by hand per wave. | generator |
+| 8 | B3 controller roots | Allocate one fresh root per planned concurrent run and print the `--root` list. | generator |
+| 9 | B2 keys | The template names key slots, not paths; the preflight reports missing ones together. | template |
+| 10 | B8 silent failures | A collector over the shared heartbeat directory that raises one line when a run reads STALLED. | check |
 | A9 | Cycle-time recorder | Read git history, readiness history, lessons and heartbeats into `cycle_metrics.jsonl`. | generator |
 
-Ranks 1 to 3 and 5 to 7 are the parts of the **Graphite wave template** (section 6), which
+Ranks 1, 3, 4, 5, 7, 8 and 9 are the parts of the **Graphite wave template** (section 6), which
 is why it waits for stage A results.
 
 ## 5. One batched question (to the executor, Launchpad copied)
 
-For each of B1 to B8: the time lost in stage A (hours, or UNKNOWN), the number of
+For each of B1 to B10: the time lost in stage A (hours, or UNKNOWN), the number of
 occurrences, and whether the fix has been exercised live. For B7: the edit classes the
 classifier blocked. Answers replace `UNKNOWN` in `blocker_taxonomy.json` with a citation;
 until then they stay `UNKNOWN`.
