@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-f06-resolution-baseline",
+  "recorded_at": "2026-10-10T03:17:11Z",
+  "challenge": "grating-coupler",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "F06-RESOLUTION-AND-COST-01", "description": "Native UTF-8 baseline: solver package, foundation quiz and pipeline tests; 52 passed in 18.68s. Diagnostic, not canonical."},
+  "expected": "Existing specification invariants remain green before a route-cost analysis.",
+  "observed": "52 baseline checks passed. A literature mesh choice still cannot certify this task's decisions, and bare cell memory cannot certify a node fit.",
+  "keep": ["Retain original 45-row task and unresolved reference state."],
+  "change": ["Use effective measured throughput and complete witnesses in affordability calculations, not advertised vCPU count."],
+  "protocol_elements": ["reference policy", "readiness"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

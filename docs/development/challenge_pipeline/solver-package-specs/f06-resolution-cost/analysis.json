@@ -1,0 +1,57 @@
+{
+  "schema": "carbon.f06-resolution-cost.spec.v1",
+  "maturity": "SPECIFIED",
+  "executable": false,
+  "solver_runs_authorised": false,
+  "spend_authorised": false,
+  "protected_data_access": false,
+  "coarsest_adequate_grid_nm": null,
+  "adequacy": "COARSEST_ADEQUATE_GRID_NOT_DEMONSTRATED",
+  "cost_status": "UNMEASURED",
+  "measured_cpu_h": null,
+  "accepted_image_digest": null,
+  "adopted_grid_nm": null,
+  "grid_candidates_nm": [50, 40, 30, 20, 15, 10],
+  "existing_ladder_nm": [30, 20, 10],
+  "memory": {
+    "bare_cells_at_10nm": [573000000, 1200000000],
+    "baseline_real_bytes_per_cell": 96,
+    "scenario_bytes_per_cell": 120,
+    "scenario_domain_factor": 2.5,
+    "scenario_auxiliary_factor": 1.5,
+    "scenario_is_upper_bound": false,
+    "ccx63_advertised_ram_bytes": 192000000000
+  },
+  "cpu_hypothesis": {
+    "complete_45row_cpu_h_at_30nm_fast_tail": [4, 16],
+    "spacing_exponent": 4,
+    "measured_quantiles": false,
+    "broadband_parity_proven": false
+  },
+  "cost_assumptions": {
+    "bank_designs": 256,
+    "bank_law_adopted": false,
+    "budget_eur": 100,
+    "rate_eur_per_node_h": 1.37,
+    "quote_verified": false,
+    "other_work_allowance_eur": 20,
+    "effective_cpu_h_per_node_h_scenarios": [8, 16],
+    "throughput_measured": false,
+    "witness_alternatives_nm": [20, 10],
+    "witness_rows": 45
+  },
+  "worked_examples": [
+    {"primary_nm": 30, "effective_throughput": 8, "primary_eur": 195.36, "witnesses_20nm": 0, "witnesses_10nm": 0},
+    {"primary_nm": 30, "effective_throughput": 16, "primary_eur": 107.68, "witnesses_20nm": 0, "witnesses_10nm": 0},
+    {"primary_nm": 40, "effective_throughput": 8, "primary_eur": 75.485, "witnesses_20nm": 7, "witnesses_10nm": 0},
+    {"primary_nm": 40, "effective_throughput": 16, "primary_eur": 47.7425, "witnesses_20nm": 30, "witnesses_10nm": 1}
+  ],
+  "proof_policy": {
+    "pointwise_and_decision_required": true,
+    "rank_overlap": "UNRESOLVED",
+    "missing_truth_is_none_feasible": false,
+    "total_error_bounds": "HUMAN_INPUT: coupling 0.01 and reflection 0.005 recommended, not adopted",
+    "earned_tier": "NOT_DEMONSTRATED",
+    "runtime_ids_activated": []
+  }
+}
