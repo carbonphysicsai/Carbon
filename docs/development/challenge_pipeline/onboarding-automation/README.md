@@ -126,3 +126,13 @@ machine drafting/gap-report work only; source research, numerical evidence,
 reserved decisions and review time remain required. No quantified human time
 savings is claimed. This is onboarding automation implementation/testing, not
 a tested motor Challenge or permission to rent its bank.
+
+## Automatic milestone history (ONBOARDING-TIMELINE-01)
+
+Status now includes `artifact_timeline`: first path commit and first main
+integration, both pinned; missing/shallow/rename ambiguity and all unverified
+stage exits remain explicit. `--main-ref` uses a local ref only. The same
+timeline feeds #975's PROCESS field; a [battery reconstruction](../onboarding-timeline/README.md)
+separates pre-existing reference code and successive packet/law versions.
+Calendar milestones are not person-hours or stage duration. No speed target
+or claimed labor savings is introduced.

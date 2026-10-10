@@ -1,0 +1,18 @@
+{
+  "schema": "carbon.onboarding.history-sources.v1",
+  "challenges": {
+    "battery-v3": {
+      "S0_brief": ["docs/development/challenge_pipeline/round1/battery-ev-fast-charge.md"],
+      "S1_packet": ["docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md", "docs/development/challenge_pipeline/round1/battery-ev-fast-charge-v2.md"],
+      "S2_solver_package": ["carbon/battery/reference.py"],
+      "S3_feasibility_value_panel": ["docs/development/challenge_pipeline/round1/feasibility-panels.md", "docs/development/challenge_pipeline/round1/customer-feasibility-revisions.md"],
+      "S4_question_law": ["docs/development/challenge_pipeline/question-laws/battery-continuous-v3.md", "docs/development/challenge_pipeline/question-laws/battery-ambient-indexed-v3.md"],
+      "S5_bank": ["docs/development/graphite/HIDDEN_POOL_AND_TUNING_RUNBOOK.md"],
+      "S6_readiness": ["docs/development/challenge_pipeline/readiness/BASELINE_2026-10-06.md", "docs/development/challenge_pipeline/readiness/BASELINE_2_2026-10-09.md"],
+      "S7_stage_a": ["docs/development/graphite/GRAPHITE_LADDER_STAGE_A_CHECKLIST.md", "docs/development/challenge_pipeline/readiness/STAGE_A_EVIDENCE_TABLE.md"],
+      "S8_stage_b": ["docs/development/graphite/GRAPHITE_LADDER_STAGE_B_PLAN.md"],
+      "S9_stage_c": ["docs/development/graphite/GRAPHITE_LADDER_WAVE_PLAN.md"],
+      "S10_tested": ["docs/development/challenge_pipeline/onboarding/stage_map.json", ".agent/decisions/2026-10-10-OWNER-LAUNCH-STRATEGY-01.md"]
+    }
+  }
+}

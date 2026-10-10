@@ -6,7 +6,7 @@ import subprocess
 from collections import Counter
 from pathlib import Path
 
-from carbon.challenge_pipeline.onboarding import packet
+from carbon.challenge_pipeline.onboarding import packet, timeline
 from carbon.challenge_pipeline.readiness.model import digest as readiness_digest
 
 STAGE_MAP = "docs/development/challenge_pipeline/onboarding/stage_map.json"
@@ -182,7 +182,9 @@ def inspect(root, relative):
     return result
 
 
-def generate(root: Path, challenge: str, *, bindings_path=BINDINGS):
+def generate(
+    root: Path, challenge: str, *, bindings_path=BINDINGS, main_ref="origin/main"
+):
     root = root.resolve()
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,79}", challenge):
         raise packet.DraftError("planning challenge token required")
@@ -288,6 +290,7 @@ def generate(root: Path, challenge: str, *, bindings_path=BINDINGS):
                 "next_required": stage["exit"],
             }
         )
+    history = timeline.generate(root, challenge, rows, main_ref=main_ref)
     return {
         "schema": "carbon.onboarding.status-view.v1",
         "challenge": challenge,
@@ -302,6 +305,7 @@ def generate(root: Path, challenge: str, *, bindings_path=BINDINGS):
         },
         "binding_status": "CONFIGURED" if entry else "HUMAN_INPUT_ARTIFACT_BINDINGS",
         "stages": rows,
+        "artifact_timeline": history,
         "tested_challenge_claim": False,
         "limit": "Reports source-backed draft/gap/snapshot progress. No stage exit is adjudicated from file presence; independent stage acceptance remains with #970 owners.",
     }
@@ -310,6 +314,9 @@ def generate(root: Path, challenge: str, *, bindings_path=BINDINGS):
 def render(report):
     lines = [f"{report['challenge']}: {report['current_stage']}", report["limit"], ""]
     for stage in report["stages"]:
+        history = next(
+            s for s in report["artifact_timeline"]["stages"] if s["id"] == stage["id"]
+        )
         basis = stage["what_was_checked"]
         lines.extend(
             [
@@ -326,4 +333,13 @@ def render(report):
                     f"    Historical counts: {artifact['readiness_snapshot']['counts']}"
                 )
         lines.append(f"  Still required: {stage['next_required']}")
+        for item in history["artifacts"]:
+            first = item.get("first_recorded")
+            merged = item.get("first_main_integration")
+            lines.append(
+                f"  Artifact history {item['path']}: first commit {first['committed_utc'] if first else 'UNKNOWN'}; first main integration {merged['committed_utc'] if merged else 'UNKNOWN'}; {item['coverage']}"
+            )
+        lines.append(
+            "  Accepted stage entry/exit and effort: UNKNOWN (artifact dates are not completion)."
+        )
     return "\n".join(lines)
