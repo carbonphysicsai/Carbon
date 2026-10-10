@@ -519,3 +519,42 @@ the cause, and the slice or PR that fixes it. The plan is
 - **Decision:** `.agent/decisions/2026-10-08-LAUNCHPAD-FINDINGS-F15-F18.md`.
 - **Status:** next-step text fixed in the PR that carries this entry; the
   poll is open.
+
+## LA-F19: a campaign frozen on an old revision fails its submit untyped
+
+- **Cell:** `carbon-fresh`, 2026-10-10. The minerH and minerI incentive
+  campaigns were frozen while the shared checkout was at `93875b7dc`. The
+  checkout then moved to `b2eb2e222` and the installer re-recorded each
+  profile (`accepted_revision` at the new revision). `carbon_submit` was
+  answered SUBMITTING, then the campaign went INTERRUPTED with
+  `last_refusal.code` `operation_interrupted`. Its `interruptions.jsonl`
+  read `{"code": null, "error_type": "builtins.ValueError", "stage":
+  "operation"}`.
+- **Cause:**
+  - The operation thread prepares the campaign on this checkout
+    (`research_campaign.prepare`, then the Challenge's own prepare).
+  - `accepted_implementation` passed: the checkout was the accepted one.
+  - The Challenge's prepare then compared the frozen runtime, which embeds
+    the frozen `implementation`, with the runtime this checkout composes:
+    `battery.campaign.prepare_battery` raised a bare `ValueError("configured
+    runtime differs from the battery runtime")`. Cold plate and motor have
+    the same check.
+  - A bare ValueError carries no code, so the thread recorded an untyped
+    interruption.
+- **Fix:**
+  - Practice, freeze and submit are refused before the operation starts,
+    with the closed code `campaign_frozen_on_old_revision`
+    (`runner.frozen_revision_refusal`), when the frozen manifest names a
+    revision other than the profile's `accepted_revision`.
+  - `research_campaign.prepare` raises the same code as `OperationRefused`
+    before any Challenge's checks, so the thread records a named refusal,
+    never an untyped interruption.
+  - The refusal catalog's next step, the same at every door: launch a new
+    campaign, practise and freeze the same recipe, then submit. The hotkey's
+    on-chain commitment still applies, since its digest binds the
+    Challenge, contract and strategy, not the campaign.
+  - Resume already refused this as `profile_changed_since_launch` and is
+    unchanged. Observe and reads stay open.
+- **Recovery used:** a new campaign with the same recipe, under the same
+  commitment.
+- **Status:** fixed in this PR.
