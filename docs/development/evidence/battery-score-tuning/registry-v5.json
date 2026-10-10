@@ -1,0 +1,412 @@
+{
+  "schema": "carbon.battery.score-tuning-registry.v1",
+  "registered": "2026-10-10, registry v5: registry v4 unchanged plus G-FEAS/A-Q>, the owner rule's gate with its recorded comparison",
+  "seeds": "EV5 adversarial FAIL (8 top-half infeasible rebuild-identity constructions; Mode X violators best_deciding and best_proposed), SR-B1 (#618), run-5 diagnosis (thermal false acceptance at the limit)",
+  "candidates": [
+    {
+      "id": "CE",
+      "kind": "deciding",
+      "basis": "baseline: the deciding testnet rule control-exam-v1 (-E)"
+    },
+    {
+      "id": "CE+near2",
+      "kind": "deciding",
+      "gate": {
+        "measure": "near",
+        "cutoff": 2.0
+      },
+      "basis": "the deciding rule plus EV5's gate as frozen (failures last)"
+    },
+    {
+      "id": "SR2",
+      "weights": {
+        "r": 0.3,
+        "g": 0.6,
+        "m": 0.1
+      },
+      "basis": "EV5's SR-2 candidate sr2-a0-r0.3-g0.6-m0.1"
+    },
+    {
+      "id": "G-N",
+      "weights": {
+        "g": 0.5,
+        "n": 0.5
+      },
+      "basis": "EV5: top-half constructions and Mode X violators accept unsafe protocols; weight decision agreement and the near-limit margin only"
+    },
+    {
+      "id": "G-N+near2",
+      "weights": {
+        "g": 0.5,
+        "n": 0.5
+      },
+      "gate": {
+        "measure": "near",
+        "cutoff": 2.0
+      },
+      "basis": "G-N plus EV5's gate"
+    },
+    {
+      "id": "R-G-N",
+      "weights": {
+        "r": 0.2,
+        "g": 0.4,
+        "n": 0.4
+      },
+      "basis": "G-N keeping some important-region accuracy so good deciders are not demoted"
+    },
+    {
+      "id": "N-heavy",
+      "weights": {
+        "g": 0.3,
+        "n": 0.7
+      },
+      "basis": "run-5 diagnosis: the failure is a near-limit thermal sign error; push weight onto the near-limit margin"
+    },
+    {
+      "id": "G-P",
+      "weights": {
+        "g": 0.5,
+        "p": 0.5
+      },
+      "basis": "SR-B1's proximity-weighted optimism leg with decision agreement"
+    },
+    {
+      "id": "P1",
+      "weights": {
+        "r": 0.3,
+        "g": 0.6,
+        "p": 0.1
+      },
+      "basis": "SR-B1's registered P1"
+    },
+    {
+      "id": "S-G-N",
+      "weights": {
+        "g": 0.5,
+        "n": 0.5
+      },
+      "stable": true,
+      "basis": "G-N averaged over a recipe's seeds (SR-B1: seed luck)"
+    },
+    {
+      "id": "G-N+env1",
+      "weights": {
+        "g": 0.5,
+        "n": 0.5
+      },
+      "gate": {
+        "measure": "envelope",
+        "cutoff": 1.0
+      },
+      "basis": "G-N with SR-B1's decision-envelope gate G2 at 1.0 band"
+    },
+    {
+      "id": "A-G-N",
+      "weights": {
+        "a": 0.2,
+        "g": 0.4,
+        "n": 0.4
+      },
+      "basis": "control: G-N keeping whole-set accuracy, to test whether accuracy alone re-admits the constructions"
+    },
+    {
+      "id": "G-FEAS/CE",
+      "kind": "gate_sweep",
+      "measure": "feasibility",
+      "grid": [
+        0.005,
+        0.01,
+        0.02,
+        0.05,
+        0.1,
+        0.2,
+        0.5,
+        1.01
+      ],
+      "base": "CE",
+      "basis": "EV5: constructions and Mode X violators that select reference-infeasible designs; the per-case false-feasible rate on the scoring set (never the decision scenarios)"
+    },
+    {
+      "id": "G-FEAS/SR2",
+      "kind": "gate_sweep",
+      "measure": "feasibility",
+      "grid": [
+        0.005,
+        0.01,
+        0.02,
+        0.05,
+        0.1,
+        0.2,
+        0.5,
+        1.01
+      ],
+      "base": "SR2",
+      "basis": "EV5: constructions and Mode X violators that select reference-infeasible designs; the per-case false-feasible rate on the scoring set (never the decision scenarios)"
+    },
+    {
+      "id": "G-FEAS/G-N",
+      "kind": "gate_sweep",
+      "measure": "feasibility",
+      "grid": [
+        0.005,
+        0.01,
+        0.02,
+        0.05,
+        0.1,
+        0.2,
+        0.5,
+        1.01
+      ],
+      "base": "G-N",
+      "basis": "EV5: constructions and Mode X violators that select reference-infeasible designs; the per-case false-feasible rate on the scoring set (never the decision scenarios)"
+    },
+    {
+      "id": "G-FEAS/R-G-N",
+      "kind": "gate_sweep",
+      "measure": "feasibility",
+      "grid": [
+        0.005,
+        0.01,
+        0.02,
+        0.05,
+        0.1,
+        0.2,
+        0.5,
+        1.01
+      ],
+      "base": "R-G-N",
+      "basis": "EV5: constructions and Mode X violators that select reference-infeasible designs; the per-case false-feasible rate on the scoring set (never the decision scenarios)"
+    },
+    {
+      "id": "G-FEAS/N-heavy",
+      "kind": "gate_sweep",
+      "measure": "feasibility",
+      "grid": [
+        0.005,
+        0.01,
+        0.02,
+        0.05,
+        0.1,
+        0.2,
+        0.5,
+        1.01
+      ],
+      "base": "N-heavy",
+      "basis": "EV5: constructions and Mode X violators that select reference-infeasible designs; the per-case false-feasible rate on the scoring set (never the decision scenarios)"
+    },
+    {
+      "id": "G-PLATE/CE",
+      "kind": "gate_sweep",
+      "measure": "plating_fa",
+      "grid": [
+        0.005,
+        0.01,
+        0.02,
+        0.05,
+        0.1,
+        0.2,
+        0.5,
+        1.01
+      ],
+      "base": "CE",
+      "basis": "run 5: the winner's near-limit plating false acceptance (9.5 % on one seed)"
+    },
+    {
+      "id": "G-PLATE/SR2",
+      "kind": "gate_sweep",
+      "measure": "plating_fa",
+      "grid": [
+        0.005,
+        0.01,
+        0.02,
+        0.05,
+        0.1,
+        0.2,
+        0.5,
+        1.01
+      ],
+      "base": "SR2",
+      "basis": "run 5: the winner's near-limit plating false acceptance (9.5 % on one seed)"
+    },
+    {
+      "id": "G-PLATE/G-N",
+      "kind": "gate_sweep",
+      "measure": "plating_fa",
+      "grid": [
+        0.005,
+        0.01,
+        0.02,
+        0.05,
+        0.1,
+        0.2,
+        0.5,
+        1.01
+      ],
+      "base": "G-N",
+      "basis": "run 5: the winner's near-limit plating false acceptance (9.5 % on one seed)"
+    },
+    {
+      "id": "G-PLATE/R-G-N",
+      "kind": "gate_sweep",
+      "measure": "plating_fa",
+      "grid": [
+        0.005,
+        0.01,
+        0.02,
+        0.05,
+        0.1,
+        0.2,
+        0.5,
+        1.01
+      ],
+      "base": "R-G-N",
+      "basis": "run 5: the winner's near-limit plating false acceptance (9.5 % on one seed)"
+    },
+    {
+      "id": "G-PLATE/N-heavy",
+      "kind": "gate_sweep",
+      "measure": "plating_fa",
+      "grid": [
+        0.005,
+        0.01,
+        0.02,
+        0.05,
+        0.1,
+        0.2,
+        0.5,
+        1.01
+      ],
+      "base": "N-heavy",
+      "basis": "run 5: the winner's near-limit plating false acceptance (9.5 % on one seed)"
+    },
+    {
+      "id": "A-Q",
+      "weights": {
+        "a": 0.5,
+        "q": 0.5
+      },
+      "basis": "accuracy next to Q3 decision regret (owner: 'not gameable?'): over-caution costs score"
+    },
+    {
+      "id": "SR2-Q",
+      "weights": {
+        "r": 0.2,
+        "g": 0.4,
+        "m": 0.1,
+        "q": 0.3
+      },
+      "basis": "SR-2 with Q3 decision regret"
+    },
+    {
+      "id": "G-N-Q",
+      "weights": {
+        "g": 0.35,
+        "n": 0.35,
+        "q": 0.3
+      },
+      "basis": "G-N with Q3 decision regret"
+    },
+    {
+      "id": "R-G-N-Q",
+      "weights": {
+        "r": 0.15,
+        "g": 0.3,
+        "n": 0.3,
+        "q": 0.25
+      },
+      "basis": "R-G-N with Q3 decision regret"
+    },
+    {
+      "id": "G-FEAS/A-Q",
+      "kind": "gate_sweep",
+      "measure": "feasibility",
+      "grid": [
+        0.005,
+        0.01,
+        0.02,
+        0.05,
+        0.1,
+        0.2,
+        0.5,
+        1.01
+      ],
+      "base": "A-Q",
+      "basis": "the G-FEAS gate over A-Q: a safety gate plus a regret leg, so neither unsafe nor over-cautious models win"
+    },
+    {
+      "id": "D",
+      "weights": {
+        "q": 1.0
+      },
+      "basis": "DESIGN-PRIMARY (owner 2026-10-07): the Q3 design-regret leg is the whole score"
+    },
+    {
+      "id": "D|acc",
+      "kind": "gate_sweep",
+      "measure": "error",
+      "grid": [
+        0.05,
+        0.1,
+        0.2,
+        0.3,
+        0.5,
+        1.0,
+        2.0,
+        1000000.0
+      ],
+      "base": "D",
+      "basis": "design primary with accuracy only as a pass/fail gate on the exam error E, swept (1e6 = ungated)"
+    },
+    {
+      "id": "D|feas",
+      "kind": "gate_sweep",
+      "measure": "feasibility",
+      "grid": [
+        0.005,
+        0.01,
+        0.02,
+        0.05,
+        0.1,
+        0.2,
+        0.5,
+        1.01
+      ],
+      "base": "D",
+      "basis": "design primary with the G-FEAS safety gate, swept"
+    },
+    {
+      "id": "A-Q|acc",
+      "kind": "gate_sweep",
+      "measure": "error",
+      "grid": [
+        0.05,
+        0.1,
+        0.2,
+        0.3,
+        0.5,
+        1.0,
+        2.0,
+        1000000.0
+      ],
+      "base": "A-Q",
+      "basis": "the A-Q blend under the same accuracy gate, so the curves compare design-primary against blend at matched gating"
+    },
+    {
+      "id": "G-FEAS/A-Q>",
+      "kind": "gate_sweep",
+      "measure": "feasibility",
+      "grid": [
+        0.05
+      ],
+      "base": "A-Q",
+      "comparison": "exceeds",
+      "basis": "OWNER-BATTERY-SCORE-RULE-01's rule (G-FEAS@0.05 over A-Q) with the gate comparison the record states: fail only above 0.05 (#961)"
+    }
+  ],
+  "supersedes": "registry-v4.json (all its candidates kept unchanged)",
+  "threshold": "HUMAN_INPUT: each sweep reports a curve; the owner picks a cutoff (1.01 is the ungated reference point)",
+  "comparison_added": {
+    "exceeds": "OWNER-BATTERY-SCORE-RULE-01: a submission is ineligible if its per-case false-feasible rate exceeds 0.05. #961 (V3-RULE-ROBUSTNESS-01) found the shared gate failed at exactly 0.05 (>=); v5 registers the strict form."
+  }
+}

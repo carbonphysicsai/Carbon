@@ -12,5 +12,6 @@
  "permitted_runs": 5,
  "max_concurrency": 2,
  "max_runtime_s": 39600,
- "max_submissions": 5
+ "max_submissions": 5,
+ "pod_rate_ceiling_usd_per_hr": "0.65"
 }

@@ -89,11 +89,13 @@ def proposal_minutes(scoring=None):
     return STARTUP_MINUTES + -(-contract_work_seconds(scoring) // 60) + EXPORT_MINUTES
 
 
-def prices():
-    """The EV4 pod economics, read from pod_control (never restated here)."""
+def prices(rate_ceiling=None):
+    """The EV4 pod economics, read from pod_control (never restated here).
+    `rate_ceiling` is a grant's own pod rate ceiling (GRANT-POD-CEILING-01);
+    None: pod_control's `MAX_RATE`, as before."""
     from scripts.dev.exam_design.runpod import pod_control
 
-    rate = Decimal(str(pod_control.MAX_RATE))
+    rate = Decimal(str(pod_control.MAX_RATE if rate_ceiling is None else rate_ceiling))
     disk = (
         Decimal(pod_control.DISK_GB)
         * Decimal(str(pod_control.DISK_USD_PER_GB_MONTH))
@@ -390,6 +392,7 @@ class RunPodPods:
         transport=None,
         balance_floor=operator_balance_floor,
         scoring=None,
+        rate_ceiling=None,
     ):
         from scripts.dev.exam_design.runpod.operator_compute import (
             ComputeService,
@@ -404,7 +407,7 @@ class RunPodPods:
                 "ship", "a 40-hex pushed commit is required", executed=False
             )
         self.scoring = challenge_scoring.resolve(scoring)
-        self.economics = prices()
+        self.economics = prices(rate_ceiling)
         self.repository, self.code_ref = Path(repository), code_ref
         self.clock, self.sleep = clock, sleep
         self.balance_floor = balance_floor

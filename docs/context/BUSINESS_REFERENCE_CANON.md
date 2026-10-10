@@ -60,7 +60,7 @@ Investor and public materials must not present a designed revenue stream, assume
 12. **Strategic neutrality across CAE, model builders, engineering-AI, and infrastructure providers is valuable.**
 13. **Network/decentralization advantage must be empirically demonstrated.**
 14. **Enterprise fiat-first purchasing is permitted and expected.**
-15. **OpCo revenue does not automatically create Alpha value.**
+15. **OpCo revenue reaches Alpha through an explicit, owner-approved mechanism.** Carbon intends to use a share of revenue to support Alpha, with buyback and burn as the current direction (OWNER-LAUNCH-STRATEGY-01).
 16. **Alpha utility should arise from genuine economically useful network work.**
 17. **Market size should be modeled bottom-up and overlapping top-down markets must not be blindly added.**
 18. **If delivery scales only with bespoke headcount, the business architecture has failed.**

@@ -440,12 +440,12 @@ miners / validators / frontier rewards / Alpha / treasury
 
 Rules:
 
-1. OpCo revenue does not automatically create Alpha value.
+1. OpCo revenue reaches Alpha through an explicit, owner-approved mechanism. It is not automatic.
 2. Enterprise buying may remain fiat-first.
 3. Network value should come from genuine economically useful network work.
 4. Sponsored rewards can create additional participant incentives where appropriate.
 5. Network-native service utility may be added where it improves the product rather than customer friction.
-6. Carbon plans to treat the subnet as a research team and pay for useful output through Alpha buyback and burn, following the founder direction of 23 September 2026. This is a planned commercial mechanism, not an implemented payment policy. Legal/economic review and explicit operating terms remain required; no percentage, revenue share, token-holder right, or launch authority follows.
+6. Carbon treats the subnet as its research workforce, paid in Alpha, and **intends to use a share of company revenue to support Alpha**, with buyback and burn as the current direction (founder direction, 23 September 2026; owner decision OWNER-LAUNCH-STRATEGY-01, 2026-10-10). The share, timing and mechanism are owner and board decisions after legal review. The amount is not yet known. No percentage, revenue share, token-holder right or launch authority follows. Customer payments never influence scoring.
 
 Canon law:
 
