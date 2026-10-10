@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-intake-spec-instances-01",
+  "recorded_at": "2026-10-10T22:33:33Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "INTAKE-SPEC-INSTANCES-01", "description": "Static expansion of eight public documentary intake profiles, source checks and packet-generator regressions; no physics or customer execution."},
+  "expected": "136 intake rows retain physical needs, public rehearsal provenance, customer obligations and typed holds.",
+  "observed": "Initial run found a wrong cooling baseline path (1 failed, 11 passed). Corrected to cooling-cell.md; rerun 12 native diagnostic tests passed, Black/Ruff and diff checks passed. Canonical acceptance remains GitHub CI.",
+  "keep": ["Physics-specific overrides plus complete common intake", "INPUTS planning separated from measured PROCESS/OUTPUTS/NETWORK"],
+  "change": ["Validate every resolved source pointer before handoff; public rehearsal numbers do not satisfy customer calibration or rights"],
+  "protocol_elements": ["customer_intake", "evidence_provenance", "claim_discipline"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

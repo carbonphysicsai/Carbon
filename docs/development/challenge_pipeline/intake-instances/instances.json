@@ -1,0 +1,180 @@
+{
+  "schema": "carbon.development.intake-spec-instances.v1",
+  "ticket": "INTAKE-SPEC-INSTANCES-01",
+  "maturity": "SPECIFIED",
+  "source_revision": "f83da120a9306c259f5866deef430aa065dfbd50",
+  "source_role": "SPECIFICATION_REHEARSAL_NOT_CUSTOMER_RECEIPT",
+  "solver_runs": false,
+  "spend": false,
+  "hidden_data": false,
+  "real_customer_intakes": 0,
+  "ledger_namespace": "INPUTS_PLANNING_ONLY",
+  "total_cost": null,
+  "elapsed_delivery": null,
+  "customer_rights_accepted": false,
+  "common_inputs": {
+    "I01": {"needed": "Named buyer, actual decision/use, consequence of error and exclusions", "owner": "Buyer product/workflow owner", "customer": "CONFIRM_OR_SUPPLY", "source": "quote", "test": "Named accountable owner and real action/use receipt, not role-play persona", "missing": "HOLD decision-tool/value claim"},
+    "I02": {"needed": "Action grammar, incumbent and fabrication bounds", "owner": "Buyer design engineer", "customer": "CONFIRM_OR_SUPPLY", "source": "quote", "test": "Units, dependent coordinates, permissible alternatives and reproducible identities", "missing": "HOLD search/regret/case count"},
+    "I03": {"needed": "Hard limits, objective priorities and acceptance authority for the actual job", "owner": "Buyer systems/safety owner", "customer": "CONFIRM_OR_SUPPLY", "source": "quote", "test": "Source/observable/condition/authority per criterion; mock limits are not product acceptance", "missing": "HOLD feasibility/qualification; no safety relaxation"},
+    "I04": {"needed": "Supported operating P, strata/correlations and separate Q/w", "owner": "Buyer application owner and science", "customer": "CONFIRM_OR_SUPPLY", "source": "quote", "test": "Actual supported joint distribution and frequencies; synthetic uniform law not deployment", "missing": "HOLD population-risk/value claim"},
+    "I05": {"needed": "Actual geometry/stack/interfaces/frames and reduction permissions", "owner": "Buyer design lead", "customer": "CONFIRM_OR_SUPPLY", "source": "quote", "test": "Versioned complete geometry and units; omitted physics/reduction explicitly supported", "missing": "HOLD system/reference claim"},
+    "I06": {"needed": "Applicable material identities/laws/calibration, domain and uncertainty", "owner": "Buyer materials/process owner", "customer": "CONFIRM_OR_SUPPLY", "source": "quote", "test": "Matched formulation/batch/state/temperature and provenance; no unrelated law splicing", "missing": "HOLD reference/physical claim"},
+    "I07": {"needed": "Initial state and complete assembly/load/process/control history", "owner": "Buyer process/control owner", "customer": "CONFIRM_OR_SUPPLY", "source": "quote", "test": "Ordered boundary/initial/time/restart history with state transfer and units", "missing": "HOLD history-dependent outputs"},
+    "I08": {"needed": "Buyer solver/settings/deck/observer; Carbon route/package built separately", "owner": "Buyer simulation owner; Data Collection supplies Carbon package", "customer": "BUYER_TOOL_AND_ACCEPTANCE_REQUIRED", "source": "quote", "test": "Exact tool/environment/deck/mesh/material/extractor identities and output support", "missing": "HOLD credible reference; tool name insufficient"},
+    "I09": {"needed": "Numerical V&V, independent matched witnesses and applicable physical validation", "owner": "Buyer V&V owner and science", "customer": "WITNESSES_AND_ACCEPTANCE_REQUIRED", "source": "credibility", "test": "Conservation/convergence and pointwise plus decision agreement; non-hidden witnesses outside producer custody", "missing": "HOLD earned credibility; reference failure not model failure"},
+    "I10": {"needed": "Observer units/locations/extrema/windows/signs and unresolved/missing semantics", "owner": "Buyer metrology/test owner", "customer": "CONFIRM_OR_SUPPLY", "source": "quote", "test": "Same frozen measurement for truth, cheap method and model; no proxies for missing outputs", "missing": "HOLD measurement/decision judgment"},
+    "I11": {"needed": "Actual strongest cheap method, fit/library/query/verification costs and fallback", "owner": "Buyer workflow owner; Codex supplies comparator software where implemented", "customer": "WORKFLOW_AND_COST_RECEIPTS_REQUIRED", "source": "baselines", "test": "Matched actions/admissibility/info/budget; exact lookup included on closed banks", "missing": "HOLD V4 superiority/savings"},
+    "I12": {"needed": "Construction/calibration data, lineage and separate independent evaluation rights", "owner": "Buyer data owner and construction/security owners", "customer": "CONFIRM_OR_SUPPLY", "source": "quote", "test": "Units/support/lineage/licenses and construction/evaluation separation; no hidden release", "missing": "HOLD training/exam/disclosure"},
+    "I13": {"needed": "Asset-specific solver/data/recipe/weights/evidence/reuse/exclusivity/privacy terms", "owner": "Buyer legal/data owner and Carbon business owner", "customer": "RIGHTS_APPROVAL_REQUIRED", "source": "commercial", "test": "Written entitlement and reviewed privacy topology/audiences; public readable is not blanket license", "missing": "HOLD unsupported delivery/reuse"},
+    "I14": {"needed": "Target runtime/hardware, latency/RAM/concurrency and resource ceiling", "owner": "Buyer IT/deployment owner and compute/security", "customer": "CONFIRM_OR_SUPPLY", "source": "quote", "test": "Measured target receipts and current quote/cap; no unqualified private/VPC promise", "missing": "HOLD cost/deployment commitment"},
+    "I15": {"needed": "Real decision cadence/volume, evaluations per decision, avoided effort and cost", "owner": "Buyer workflow owner", "customer": "MEASURED_WORKFLOW_RECEIPTS_REQUIRED", "source": "quote", "test": "Exact decision units and low/base/high assumption labels; no industry TAM substitute", "missing": "HOLD annual value and quote calibration"},
+    "I16": {"needed": "Deliverable format, audience, abstention/fallback, change triggers and acceptance", "owner": "Buyer deployment/V&V and business owners", "customer": "ACCEPTANCE_REQUIRED", "source": "deliverable", "test": "Artifact/evidence/rights/runtime identities distinct; negative findings accepted honestly", "missing": "HOLD product/lifecycle commitment"},
+    "I17": {"needed": "Participation/construction scope, budget and exact per-stage permissions", "owner": "Buyer programme owner plus Carbon owner/security/compute", "customer": "PROGRAMME_APPROVAL_REQUIRED", "source": "stages", "test": "Written permitted work, independent judge and exact grant; interest not spend authority", "missing": "HOLD dispatch/bank/network"}
+  },
+  "common_sources": {
+    "quote": "Business/research/intake-spec-and-quote-model/INTAKE_AND_QUOTE.md",
+    "credibility": "docs/development/challenge_pipeline/round1/reference-credibility.md",
+    "baselines": "docs/development/challenge_pipeline/cheap-baselines/README.md",
+    "commercial": "Business/Commercial_Operating_Model.md",
+    "deliverable": "Business/research/deliverable-framework/FRAMEWORK.md",
+    "stages": "docs/development/challenge_pipeline/onboarding/stage_map.json"
+  },
+  "profiles": [
+    {
+      "challenge": "battery-v3",
+      "packet": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+      "rehearsal_status": "Role-play v3; public study existence is not complete law/variable-SOC/physical support",
+      "sources": {"packet": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md", "law": "docs/development/challenge_pipeline/question-laws/battery-v3-round2.md", "baseline": "docs/development/challenge_pipeline/cheap-baselines/battery.md"},
+      "overrides": {
+        "I02": {"needed": "Five per-band (c1,c2,switch voltage,cooling) actions; actual supported C-rate lattice and x1/x2/x4 cooling hardware permissions", "source": "law"},
+        "I04": {"needed": "Actual 5/15/25/35/40 C fleet mix, SOC 10/20/30 support and joint dependence; ageing initialization; outer P/Q/w distinct from within-map mix", "source": "packet"},
+        "I05": {"needed": "Cell/pack identity, electrode dimensions and cooling area/architecture; cell-model-to-pack applicability", "source": "packet"},
+        "I06": {"needed": "Actual electrochemical/thermal/ageing laws and calibration; OKane2022 is a rehearsal model, not buyer cell characterization", "source": "packet"},
+        "I07": {"needed": "Initial SOC/capacity/ageing state, 30-cycle charge/rest/discharge programme, whole-programme heat transfer and switch definitions", "source": "packet"},
+        "I08": {"needed": "Pinned PyBaMM DFN environment/deck/charge-integral and phase-extrema observer; buyer tool/state/parameter parity", "source": "packet"},
+        "I09": {"needed": "Cold plating and thermal frontier refinement, session SOC crossings, all-band feasibility and independent matched-tool witnesses", "source": "law"},
+        "I10": {"needed": "Session-start-to80 minutes, phase-scoped charging T/plating extrema, whole-programme voltage/capacity and discharge diagnostic; cooling heat removal", "source": "packet"},
+        "I11": {"needed": "Actual five-band precomputed map/conservative interpolation, held-out-band fallback, construction and retained verification costs", "source": "baseline"}
+      }
+    },
+    {
+      "challenge": "motor",
+      "packet": "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+      "rehearsal_status": "Mock magnetic shortlist; revised topology/peak frontier and full signed curves need exact case identity, not inferred from TRAIN medians",
+      "sources": {"packet": "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md", "law": "docs/development/challenge_pipeline/question-laws/motor-round2.md", "baseline": "docs/development/challenge_pipeline/cheap-baselines/motor.md"},
+      "overrides": {
+        "I02": {"needed": "Actual six-coordinate geometry/skew action grammar with boundary registration and winding/current/command choices, compatible pole/slot topology", "source": "law"},
+        "I04": {"needed": "Supported zero-current/holding/peak roles, actual joint-envelope request mix and correlated material/current/manufacture conditions; no dynamic claim from static roles", "source": "packet"},
+        "I05": {"needed": "Rotor/stator/tooth/magnet/gap/stack dimensions, winding/topology, skew-slice/end-effect convention and fabrication constraints", "source": "law"},
+        "I06": {"needed": "Actual steel B-H and magnet grade/temperature law, copper/winding loading and saturation/current-density applicability", "source": "packet"},
+        "I07": {"needed": "Signed angle convention and exact zero/holding/peak current commands; stack/slice normalization and selected operating points", "source": "packet"},
+        "I08": {"needed": "GetDP/Gmsh package/deck/rotation/mesh/extractor pins and buyer Maxwell settings; no parity assumed from common equations", "source": "packet"},
+        "I09": {"needed": "Compatible angle/spatial ladders, Maxwell-stress vs virtual-work torque, signed torque/cogging full curves and non-hidden decision witnesses", "source": "packet"},
+        "I10": {"needed": "Signed mean/Tpp/ripple at selected commands and unpowered absolute cogging, observed peak rather than missing-row surrogate", "source": "packet"},
+        "I11": {"needed": "Geometry-aware full-curve RBF/Kriging and exact cached lookup, held-out whole designs and independent retained verification cost", "source": "baseline"}
+      }
+    },
+    {
+      "challenge": "f02",
+      "packet": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+      "rehearsal_status": "Synthetic constant-property stack/waveforms; no empirical package, controller or reliability claim",
+      "sources": {"packet": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md", "law": "docs/development/challenge_pipeline/question-laws/f02-round2.md", "baseline": "docs/development/challenge_pipeline/cheap-baselines/f02.md"},
+      "overrides": {
+        "I02": {"needed": "Approved peak/on-time/waveform action grammar and manufacturable thermal package choices; no ungranted continuous pulse domain", "source": "law"},
+        "I04": {"needed": "Actual cooling/T0/spatial-split/workload waveform frequencies; 24 synthetic strata are not customer operating frequencies", "source": "packet"},
+        "I05": {"needed": "Actual silicon/TIM/spreader stack CAD, patch locations/contact definitions and underside cooling surface", "source": "packet"},
+        "I06": {"needed": "Actual k/rho/cp and temperature dependence/contact resistance; synthetic constants require explicit representative-only use", "source": "packet"},
+        "I07": {"needed": "Power trace/events and delivered-energy definition, initial thermal field, Robin cooling and full horizon", "source": "packet"},
+        "I08": {"needed": "Elmer transient conduction package, mesh/time/event and spatial maximum/energy observer pins; buyer thermal deck", "source": "packet"},
+        "I09": {"needed": "Equilibrium/slab/energy controls and independent mesh/time/crossing refinement, matched buyer-tool and decision witnesses", "source": "packet"},
+        "I10": {"needed": "Top-die spatial peak over full horizon, threshold-crossing times and extra delivered joules; no average-temperature proxy", "source": "packet"},
+        "I11": {"needed": "Spatial impulse-response/convolution or reduced-order thermal optimizer, setup/support/fallback/verification costs", "source": "baseline"}
+      }
+    },
+    {
+      "challenge": "f17",
+      "packet": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+      "rehearsal_status": "Synthetic finite 3D fluid/scalar task; proposed periodic flow reuse does not create full-channel mixing truth",
+      "sources": {"packet": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md", "package": "docs/development/challenge_pipeline/solver-package-specs/f17-openfoam.md", "baseline": "docs/development/challenge_pipeline/cheap-baselines/f17.md"},
+      "overrides": {
+        "I02": {"needed": "Valid groove depth/pitch/orientation action grammar, full finite cartridge and supplier fabrication bounds", "source": "packet"},
+        "I04": {"needed": "Actual supported flow/diffusivity/throughput panels and assay request mix; 3x3 synthetic conditions not fluid prevalence", "source": "packet"},
+        "I05": {"needed": "Channel/groove/inlet/outlet CAD and profiles, finite length and contact/sidewall clearance", "source": "packet"},
+        "I06": {"needed": "Actual density/viscosity/diffusivity, Newtonian/passive-solute support and reagent/temperature applicability", "source": "packet"},
+        "I07": {"needed": "Equal inlet flow/concentration definitions, no-slip/solute-wall conditions and outlet/backflow handling; finite scalar initialization", "source": "packet"},
+        "I08": {"needed": "OpenFOAM flow then scalar package and mesh/scheme/observer pins; verified conditional velocity reuse and buyer transport deck", "source": "package"},
+        "I09": {"needed": "Mass/solute/positivity, zero-D smearing and high-Pe independent mesh/scalar-layer witnesses; periodic-full decision check", "source": "packet"},
+        "I10": {"needed": "Raw concentration, flux-weighted variance/uniformity, pressure drop and hydraulic residence with specified outlet plane", "source": "packet"},
+        "I11": {"needed": "Strongest supported periodic-flow/reduced transport or response map with diffusion protection and full finite verification", "source": "baseline"}
+      }
+    },
+    {
+      "challenge": "f13",
+      "packet": "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md",
+      "rehearsal_status": "Synthetic no-flow offset acoustics; historical closure failure is a reference finding, not candidate failure",
+      "sources": {"packet": "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md", "diagnosis": "docs/development/challenge_pipeline/round1/f13-power-balance-diagnosis.md", "baseline": "docs/development/challenge_pipeline/cheap-baselines/f13.md"},
+      "overrides": {
+        "I02": {"needed": "Complete valid two-chamber/neck/offset geometry actions, package including ports and clearance", "source": "packet"},
+        "I04": {"needed": "Actual frequency-band/source weighting and supported requirement requests; adaptive frequency nodes are Q quadrature not new P trials", "source": "packet"},
+        "I05": {"needed": "3D chambers/neck/stubs and port/extraction surfaces; axisymmetric substitute only for an explicitly supported coaxial job", "source": "packet"},
+        "I06": {"needed": "Actual acoustic density/sound speed and impedance/loss law; no mean-flow/absorption or shell claim from synthetic lossless air", "source": "packet"},
+        "I07": {"needed": "Incident-power excitation, matched outlet/termination and complete band; source spectrum if the customer changes frequency weighting", "source": "packet"},
+        "I08": {"needed": "Elmer Helmholtz mesh/deck/complex-convention/port-flux and sweep identities; buyer acoustic tool witness", "source": "diagnosis"},
+        "I09": {"needed": "Saved-integral power closure, straight-duct/coaxial controls, independent mesh/port/modal/frequency checks and full-band adequacy", "source": "diagnosis"},
+        "I10": {"needed": "Complex wave/flux definitions, complete TL curve, interval-weighted p10/min/notches; sparse points never fill p10", "source": "packet"},
+        "I11": {"needed": "Transfer matrices plus strongest multimode/reduced Helmholtz sweep, full curve cost and independent peak/notch verification", "source": "baseline"}
+      }
+    },
+    {
+      "challenge": "f06",
+      "packet": "docs/development/challenge_pipeline/round1/f06-grating-coupler.md",
+      "rehearsal_status": "Synthetic finite-width full-wave mask task; nondispersive indices/tolerances not a foundry PDK or measured memory",
+      "sources": {"packet": "docs/development/challenge_pipeline/round1/f06-grating-coupler.md", "package": "docs/development/challenge_pipeline/solver-package-specs/f06-meep.md", "baseline": "docs/development/challenge_pipeline/cheap-baselines/f06.md"},
+      "overrides": {
+        "I02": {"needed": "Permitted periods/pitch/duty/etch/width mask action grammar and real line/space/fabrication rules", "source": "packet"},
+        "I04": {"needed": "Supported wavelength/etch/pitch/duty/fiber-alignment joint process law and request mix; finite synthetic tolerance panel is not yield", "source": "packet"},
+        "I05": {"needed": "Actual SOI/BOX/substrate/guide/taper/mask and finite 3D width, fiber waist/position/tilt and port planes", "source": "packet"},
+        "I06": {"needed": "Actual dispersive/loss material and process data/licensed PDK; synthetic nondispersive constants do not establish production device physics", "source": "packet"},
+        "I07": {"needed": "TE source/time/phase, normalization surfaces and termination/PML, assembly/alignment perturbations", "source": "packet"},
+        "I08": {"needed": "Meep 2D and finite 3D witness package, subpixel/grid/PML/stop/overlap pins and memory bound; actual buyer Lumerical deck", "source": "package"},
+        "I09": {"needed": "Power/mode normalization, grid/PML/time and 2D-3D convergence with matched-mask rank/feasibility witnesses", "source": "packet"},
+        "I10": {"needed": "Guided reflection and fiber-mode coupling per tolerance/wavelength, non-overlapping power closure and p10 aggregation", "source": "packet"},
+        "I11": {"needed": "Actual industry 2D optimizer plus necessary 3D confirmations, all fit/search/license/memory/query costs", "source": "baseline"}
+      }
+    },
+    {
+      "challenge": "cooling",
+      "packet": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+      "rehearsal_status": "Cell-only case-temperature/vapour-chamber input scope; final buyer parameters and value remain explicitly accepted by owner",
+      "sources": {"packet": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md", "baseline": "docs/development/challenge_pipeline/cheap-baselines/cooling-cell.md"},
+      "overrides": {
+        "I02": {"needed": "Cell-channel geometry and permitted supported flow actions; fabrication grammar and baseline cell", "source": "packet"},
+        "I04": {"needed": "Supported post-lid heat-map/inlet/flow strata and actual use mix; no full-plate distribution or manifold composition", "source": "packet"},
+        "I05": {"needed": "Cell/base/channels and interface planes; buyer vapour-chamber/lid footprint/properties/TIM layers", "source": "packet"},
+        "I06": {"needed": "Actual lid effective transport/performance and TIM resistances, coolant/solid laws and uncertainty; no arbitrary hotspot smoothing", "source": "packet"},
+        "I07": {"needed": "Die-level source and verified post-spreader interface map, power conservation, inlet/flow and cell boundary conditions", "source": "packet"},
+        "I08": {"needed": "Pinned cell OpenFOAM reference, map/pre-solve and TIM2 case observer; actual buyer CFD/settings and cell-equivalent witnesses", "source": "packet"},
+        "I09": {"needed": "Conduction/spreader verification, thermal/flow balance, cell mesh/refinement and pointwise/decision witnesses", "source": "packet"},
+        "I10": {"needed": "85 C lid-side TIM2 case scope with approved margins, cell temperature/pressure/flow and TIM/map uncertainty; no junction/full-plate proxy", "source": "packet"},
+        "I11": {"needed": "Strongest cell map/response surface with whole-geometry holdouts and retained boundary verification cost", "source": "baseline"}
+      }
+    },
+    {
+      "challenge": "f08",
+      "packet": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+      "rehearsal_status": "Synthetic linear modal support task; no actual assembled damping or nonlinear joint/fatigue evidence",
+      "sources": {"packet": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md", "baseline": "docs/development/challenge_pipeline/cheap-baselines/f08.md"},
+      "overrides": {
+        "I02": {"needed": "Actual plate/rib/relief design grammar, action eligibility and manufacturing bounds", "source": "packet"},
+        "I04": {"needed": "Supported forcing/band/damping and actual stage request distribution; frequency peak search not random customer sampling", "source": "packet"},
+        "I05": {"needed": "Support/payload/rib/relief CAD, root/clamp and exact force-pad dimensions/resultant", "source": "packet"},
+        "I06": {"needed": "Actual E/nu/rho and damping law/domain; synthetic isotropic aluminum-like and constant ratios do not characterize assemblies", "source": "packet"},
+        "I07": {"needed": "Static plus harmonic load/phase/BCs, modal damping and response frequency horizon; no settling-time inference", "source": "packet"},
+        "I08": {"needed": "CalculiX static/eigen/harmonic package with modes/mass/complex observer pins; buyer Mechanical deck", "source": "packet"},
+        "I09": {"needed": "Beam/oscillator controls, independent mesh/mode and adaptive resonance search; matched-tool peak/rank witnesses", "source": "packet"},
+        "I10": {"needed": "Mass/static compliance and full-band tip motion/phase/resonance extrema in every damping condition", "source": "packet"},
+        "I11": {"needed": "Strongest cross-geometry parametric/modal reduction and cached modal library, setup/interpolation/query/verification costs", "source": "baseline"}
+      }
+    }
+  ]
+}
