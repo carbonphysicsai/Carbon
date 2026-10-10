@@ -88,3 +88,41 @@ identity/rung reuse, both-side TWO-band boundaries, no guaranteed 5+5 yield,
 and no automatic run grant. Motor's full coordinate/curve re-export is still
 missing, so the motor-first panel output is a registration gap report, not a
 request to repeat its existing feasibility panel blindly.
+
+## Read-only status (04)
+
+`python -m carbon.challenge_pipeline.onboarding --root . status --challenge motor`
+
+`--format json` gives the exact checked-file hashes, counts, missing fields,
+stage definitions and owners. Reads #970's merged stage map and explicit
+artifact bindings, not a hand-maintained duplicate status board. Default
+bindings cover all eight and runtime aliases. For a new Challenge, supply
+`--bindings <public-repository-file>` with the same path-only shape; without
+bindings it reports unknown, not nonexistent work. It never scans hidden banks
+or hosts, launches readiness tests, calls GitHub, or reads keys.
+
+The current repository does not have machine-verifiable acceptance receipts
+for every #970 exit. Therefore the command reports **observed artifact stages**
+and **unverified exits**, not an invented single authoritative stage. It names
+each remaining exit and its owner. Ten packet sections are documentation
+coverage, not source adequacy; VERIFIED in #970 verifies a definition, not the
+Challenge. Readiness history is checked against its retained report/digest,
+item counts and recorded SHA; a historical snapshot never makes today's
+Challenge green. No file's existence, no empty read and no green fixture can
+earn the seven-part S10 TESTED exit.
+
+### Motor application
+
+01 produces the ten-section starting packet; 02 maps the existing 12-question
+motor proposal without approving it; 03 identifies the registration/reuse
+inputs still needed; 04 reads the real law's full-buyer HOLD, NOT_DEMONSTRATED
+boundary status and AWAITING_REEXPORT. Its old 41-item readiness snapshot has
+5 FAIL, 25 NOT_BUILT, 6 PASS and 5 REVIEW_REQUIRED **at its old SHA**, not current
+acceptance. The next measurements belong to Data Collection; the pending
+geometry/full signed torque-and-cogging export remains the comparator trigger.
+
+Historical battery drafting effort is UNKNOWN. Measured milliseconds are
+machine drafting/gap-report work only; source research, numerical evidence,
+reserved decisions and review time remain required. No quantified human time
+savings is claimed. This is onboarding automation implementation/testing, not
+a tested motor Challenge or permission to rent its bank.

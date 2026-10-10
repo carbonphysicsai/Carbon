@@ -34,10 +34,30 @@ def main(argv=None):
     panel_parser.add_argument(
         "--reuse", type=Path, help="non-hidden completed AND scheduled identity index"
     )
+    status_parser = sub.add_parser("status")
+    status_parser.add_argument("--challenge", required=True)
+    status_parser.add_argument(
+        "--bindings", help="public artifact path bindings for additional challenges"
+    )
+    status_parser.add_argument("--format", choices=("text", "json"), default="text")
     args = parser.parse_args(argv)
     try:
-        draft = packet.generate(packet.read_json(args.brief), args.root)
-        if args.command == "panel":
+        if args.command == "status":
+            from carbon.challenge_pipeline.onboarding import status
+
+            result = status.generate(
+                args.root,
+                args.challenge,
+                bindings_path=args.bindings or status.BINDINGS,
+            )
+            if args.format == "text":
+                print(status.render(result))
+                return 0
+        else:
+            draft = packet.generate(packet.read_json(args.brief), args.root)
+        if args.command == "status":
+            pass
+        elif args.command == "panel":
             from carbon.challenge_pipeline.onboarding import panel
 
             result = panel.generate(
