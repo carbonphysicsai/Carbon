@@ -65,7 +65,7 @@ def safe_path(path: str) -> str:
         or ".." in pure.parts
         or "\\" in path
         or path == "."
-        or re.search(r"hidden|protected|private|ax42", path, re.I)
+        or re.search(r"hidden|protected|private|ax42", path, re.IGNORECASE)
     ):
         raise ValueError("Source policy contains a forbidden path")
     return path
@@ -225,11 +225,15 @@ def extract_facts(config: dict, sources: dict) -> tuple[list, list]:
                 gaps.append(f"{rule['id']}: inconsistent source counts")
                 continue
             value = f"{values[0]} / {values[1]}"
-            quantities = [dict(low=n, base=n, high=n, basis="SOURCED") for n in values]
+            quantities = [
+                {"low": n, "base": n, "high": n, "basis": "SOURCED"} for n in values
+            ]
         elif rule["kind"] == "fraction":
             value = groups[0]
             number = float(value)
-            quantities = [dict(low=number, base=number, high=number, basis="SOURCED")]
+            quantities = [
+                {"low": number, "base": number, "high": number, "basis": "SOURCED"}
+            ]
         else:
             value, quantities = groups[0], []
         if rule["kind"] == "verdict":
@@ -316,7 +320,9 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
     sections = {}
     titles = {}
     for match in re.finditer(
-        r"^## (D\d{2}) ([^\n]+)\n(.*?)(?=^## |\Z)", template, re.M | re.S
+        r"^## (D\d{2}) ([^\n]+)\n(.*?)(?=^## |\Z)",
+        template,
+        re.MULTILINE | re.DOTALL,
     ):
         sid, title, body = match.groups()
         auto = re.search(
@@ -363,8 +369,10 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
             "validity or audit completeness is inferred.",
             evidence_refs=sorted(sources),
             gaps=[
-                "HUMAN_INPUT: product identity/parity, rights, independent "
-                "review and qualification authority",
+                (
+                    "HUMAN_INPUT: product identity/parity, rights, independent "
+                    "review and qualification authority"
+                ),
                 *gaps,
                 *[f"MISSING_SOURCE: {key}" for key in missing],
             ],
@@ -414,11 +422,15 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
         "",
         f"Challenge: `{challenge}`. Evidence snapshot: `{reader.evidence_revision}`.",
         f"Framework snapshot: `{reader.framework_revision}`. Profile: `{profile}`.",
-        f"Template {sources['F1'].cite()}; schema {sources['F2'].cite()}; "
-        f"crosswalk {sources['F3'].cite()}.",
+        (
+            f"Template {sources['F1'].cite()}; schema {sources['F2'].cite()}; "
+            f"crosswalk {sources['F3'].cite()}."
+        ),
         "",
-        "Source-derived counts are SOURCED low=base=high point reproductions, "
-        "not uncertainty estimates. Manual judgments remain gaps.",
+        (
+            "Source-derived counts are SOURCED low=base=high point reproductions, "
+            "not uncertainty estimates. Manual judgments remain gaps."
+        ),
         "",
     ]
     for sid, section in sections.items():
@@ -426,8 +438,10 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
             [
                 f"## {sid} {titles[sid]}",
                 "",
-                f"Coverage: **{section['coverage']}**. "
-                f"Automation: {section['automation']}.",
+                (
+                    f"Coverage: **{section['coverage']}**. "
+                    f"Automation: {section['automation']}."
+                ),
                 "",
                 section["statement"],
                 "",
@@ -467,16 +481,20 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
             "",
             "## Standard rendering index",
             "",
-            "Applicable clauses, formal levels and sufficiency: "
-            "HUMAN_INPUT. This is an evidence index, not compliance.",
+            (
+                "Applicable clauses, formal levels and sufficiency: "
+                "HUMAN_INPUT. This is an evidence index, not compliance."
+            ),
             "",
         ]
     )
     if profile == "asme-vv10":
         lines.extend(
             [
-                "**ASME V&V 10 clause IDs: HUMAN_INPUT.** Topic rendering "
-                "only; licensed clause review remains missing.",
+                (
+                    "**ASME V&V 10 clause IDs: HUMAN_INPUT.** Topic rendering "
+                    "only; licensed clause review remains missing."
+                ),
                 "",
             ]
         )
@@ -506,10 +524,12 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
                     "",
                     f"### NASA {group} factor evidence index",
                     "",
-                    "Coverage concerns indexed public records only. Physical "
-                    "validation, formal levels and thresholds remain HUMAN_INPUT. "
-                    f"[NASA-STD-7009B Appendix E]({NASA_STANDARD}); "
-                    f"rendering contract {sources['F3'].cite()}.",
+                    (
+                        "Coverage concerns indexed public records only. Physical "
+                        "validation, formal levels and thresholds remain HUMAN_INPUT. "
+                        f"[NASA-STD-7009B Appendix E]({NASA_STANDARD}); "
+                        f"rendering contract {sources['F3'].cite()}."
+                    ),
                     "",
                     "| Factor / anchor | Common sections | Indexed evidence coverage | Evidence / gaps |",
                     "| --- | --- | --- | --- |",
@@ -553,9 +573,11 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
                 "",
                 "### Appendix A record-location subset",
                 "",
-                "This subset indexes the framework's verified anchors; it is "
-                "not a complete requirements-compliance matrix. Remaining "
-                "requirements, tailoring and acceptance need authorized review.",
+                (
+                    "This subset indexes the framework's verified anchors; it is "
+                    "not a complete requirements-compliance matrix. Remaining "
+                    "requirements, tailoring and acceptance need authorized review."
+                ),
                 "",
                 "| Common section | Verified anchor / source | Applicability | Record location |",
                 "| --- | --- | --- | --- |",
@@ -572,14 +594,18 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
             "",
             "## Eligibility and audit limits",
             "",
-            "HUMAN_INPUT: buyer use, qualified exam/reference, product "
-            "artifact, physical evidence, rights, risk acceptance and "
-            "independent review. Reference-relative findings cannot "
-            "establish physical validation.",
+            (
+                "HUMAN_INPUT: buyer use, qualified exam/reference, product "
+                "artifact, physical evidence, rights, risk acceptance and "
+                "independent review. Reference-relative findings cannot "
+                "establish physical validation."
+            ),
             "",
-            f"Commit-membership basis: `{reader.membership_basis}`. "
-            "Offline exports require a trusted exporter; blob byte "
-            "checks alone do not authenticate commit membership.",
+            (
+                f"Commit-membership basis: `{reader.membership_basis}`. "
+                "Offline exports require a trusted exporter; blob byte "
+                "checks alone do not authenticate commit membership."
+            ),
             "",
         ]
     )
