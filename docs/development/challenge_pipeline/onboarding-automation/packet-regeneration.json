@@ -1,0 +1,10 @@
+{
+  "schema": "carbon.onboarding.packet-regeneration-diagnostic.v1",
+  "basis": "Native Windows Python; one generate plus unified-diff comparison per brief; excludes interpreter startup and human review",
+  "motor": {"seconds": 0.001387, "sections": 10, "human_input_fields": 38, "source_extracted_fields": 0},
+  "battery_v3": {"seconds": 0.000865, "sections": 10, "human_input_fields": 38, "source_extracted_fields": 0},
+  "semantic_equivalence": "NOT_CLAIMED",
+  "historical_battery_person_hours": null,
+  "human_time_saved_against_battery": "UNKNOWN",
+  "remaining_work": "Source extraction, applicability review, law/support/limit decisions and independent evidence are not saved by blank generation"
+}
