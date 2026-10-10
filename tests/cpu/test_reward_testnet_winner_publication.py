@@ -307,3 +307,46 @@ def test_an_authority_never_crosses_networks(tmp_path):
             state=snapshot(mainnet(), block=925),
         )
     assert str(refused.value) == "POLICY_NOT_FOR_THIS_NETWORK"
+
+
+# --- preview: the operator's look before signing -----------------------------------
+
+
+def test_preview_shows_the_targets_run_publishes_and_writes_nothing(tmp_path):
+    issuer, backend, publisher = composed(tmp_path)
+    state, _ = asyncio.run(backend.observe())
+    seen = twp.preview(issuer, state)
+    assert seen["signed"] is False
+    assert seen["records"][BATTERY]["hotkey"] == "miner-hotkey"
+    assert seen["records"][BATTERY]["eligible"] is True
+    # Nothing was recorded: no ledger line, no stored intent, nothing signed.
+    assert issuer.ledger.records() == []
+    with issuer.receipts.transaction() as db:
+        assert db.execute(
+            "SELECT COUNT(*) FROM testnet_winner_intent_v1"
+        ).fetchone() == (0,)
+    assert backend.signed == 0
+    # The publication that follows pays exactly the previewed targets.
+    result = publish(issuer, backend, publisher)
+    assert seen["targets"] == issuer._targets(
+        state, issuer._records(state, observe=False)
+    )
+    assert result["document"]["plan"]["q12"] == [[0, Q12 - Q12 // 3], [1, Q12 // 3]]
+
+
+def test_preview_with_no_incumbent_burns_everything(tmp_path):
+    issuer, backend, _ = composed(tmp_path, source=lambda: None)
+    state, _ = asyncio.run(backend.observe())
+    seen = twp.preview(issuer, state)
+    assert seen["records"][BATTERY] is None
+    assert seen["targets"]["winners"] == [] and seen["targets"]["burn"] == Q12
+
+
+def test_preview_reuses_a_recorded_promotion_and_its_clock(tmp_path):
+    issuer, backend, publisher = composed(tmp_path)
+    publish(issuer, backend, publisher)
+    recorded = issuer.ledger.records(BATTERY)
+    state, _ = asyncio.run(backend.observe())
+    seen = twp.preview(issuer, state)
+    assert seen["records"][BATTERY]["clock_ms"] == recorded[0]["clock_ms"]
+    assert issuer.ledger.records(BATTERY) == recorded

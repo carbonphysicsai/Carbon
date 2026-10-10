@@ -420,6 +420,62 @@ class TestnetWinnerPublisher(VerifiedWeightPublisher):
 # -- operator entry point ------------------------------------------------------------------
 
 
+def preview(issuer, snapshot):
+    """This epoch's targets exactly as `issue` would compute them, without
+    recording a promotion in the ledger or storing an intent; it opens no
+    wallet and signs nothing. For the operator's look before the first
+    publication, and for each epoch's journal line."""
+    from .winner_eligibility import decide
+
+    coldkeys = {p.hotkey: p.coldkey for p in snapshot.participants}
+    records = {}
+    for challenge in issuer.policy.challenges:
+        mine = issuer.ledger.records(challenge)
+        if challenge not in issuer.sources:
+            records[challenge] = mine[-1] if mine else None
+            continue
+        promotion = issuer.sources[challenge]()
+        if promotion is None:
+            records[challenge] = None
+            continue
+        known = [r for r in mine if r["promotion"]["model_id"] == promotion["model_id"]]
+        records[challenge] = (
+            known[0]
+            if known
+            else decide(
+                issuer.policy,
+                challenge,
+                promotion,
+                mine[-1] if mine else None,
+                coldkeys,
+                snapshot.timestamp_ms,
+            )
+        )
+    return {
+        "schema": "carbon.rewards.testnet-winner-preview.v1",
+        "identity": issuer._identity(snapshot),
+        "epoch": issuer.epoch(snapshot),
+        "finalized_block": snapshot.finalized_block,
+        "policy": issuer.policy.version,
+        "records": {
+            challenge: (
+                None
+                if record is None
+                else {
+                    "hotkey": record["promotion"]["hotkey"],
+                    "kind": record["promotion"]["kind"],
+                    "eligible": record["eligible"],
+                    "reason": record["reason"],
+                    "clock_ms": record["clock_ms"],
+                }
+            )
+            for challenge, record in sorted(records.items())
+        },
+        "targets": issuer._targets(snapshot, records),
+        "signed": False,
+    }
+
+
 def load_standing(path, context):
     """The operator's standing authorization file: owner-only JSON naming the
     owner record (whose bytes it digests), the policy digest, the publisher
@@ -455,18 +511,17 @@ def check_weight_source(target):
     return target
 
 
-async def _run(args):
+def _issuer(args, config, journal):
+    """The issuer `run` and `preview` share: the same policy, standing
+    authorization, ledger and weight sources."""
     from pathlib import Path
 
     from carbon.battery import deployment
-    from carbon.chain.sdk_weights import BittensorPublicationBackend
-    from carbon.development_testnet.operator import _wallet, load_config
     from carbon.transport.store import ReceiptJournal
 
     from .winner_decay import load_policy
     from .winner_eligibility import battery_promotion
 
-    config = load_config(Path(args.config).absolute())
     policy = load_policy(args.policy_version)
     if config.context is None or (config.context.network, config.netuid) != (
         policy.network,
@@ -489,13 +544,39 @@ async def _run(args):
         sources[target.identities()["challenge"]["id"]] = lambda: battery_promotion(
             target
         )
-    issuer = TestnetWinnerIntentIssuer(
-        ReceiptJournal(Path(args.journal), config.context),
+    return TestnetWinnerIntentIssuer(
+        ReceiptJournal(Path(journal), config.context),
         auth,
         policy,
         WinnerLedger(Path(args.ledger)),
         sources,
     )
+
+
+async def _preview(args):
+    """`preview`: the issuer over a throwaway journal, at a fresh finalized
+    snapshot read without any wallet."""
+    import tempfile
+    from pathlib import Path
+
+    from carbon.chain.sdk import BittensorReader
+    from carbon.development_testnet.operator import load_config
+
+    config = load_config(Path(args.config).absolute())
+    with tempfile.TemporaryDirectory() as scratch:
+        issuer = _issuer(args, config, Path(scratch) / "preview.sqlite3")
+        snapshot = await BittensorReader().capture(config.context)
+        return preview(issuer, snapshot)
+
+
+async def _run(args):
+    from pathlib import Path
+
+    from carbon.chain.sdk_weights import BittensorPublicationBackend
+    from carbon.development_testnet.operator import _wallet, load_config
+
+    config = load_config(Path(args.config).absolute())
+    issuer = _issuer(args, config, args.journal)
     backend = BittensorPublicationBackend(
         config.context,
         config.publisher_hotkey,
@@ -518,7 +599,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(
         prog="python -m carbon.rewards.testnet_winner_publication"
     )
-    parser.add_argument("command", choices=("run",))
+    parser.add_argument("command", choices=("run", "preview"))
     for name in ("config", "standing", "journal", "ledger"):
         parser.add_argument("--" + name, required=True)
     parser.add_argument("--battery-deployment")
@@ -529,7 +610,7 @@ def main(argv=None):
     parser.add_argument("--repository", default=".")
     args = parser.parse_args(argv)
     try:
-        result = asyncio.run(_run(args))
+        result = asyncio.run((_preview if args.command == "preview" else _run)(args))
     except WinnerPublicationRefused as refused:
         print(json.dumps({"status": "REFUSED", "reason": str(refused)}))
         return 2
