@@ -1229,9 +1229,14 @@ def frozen_commitment(record, manifest):
         # binding raises: it never falls back to the Level 0 path below.
         from carbon.development_session.construction_level import commitment_fields
 
-        from .daemon import commitment_digest
+        from .daemon import development_commitment_digest
 
-        return commitment_digest(*commitment_fields(record, manifest))
+        # The development form (VALIDATOR-25, #899): it also binds the whole
+        # submitted strategy, so every widened value. Level 0 is unchanged.
+        challenge, variant, strategy_hash = commitment_fields(record, manifest)
+        return development_commitment_digest(
+            challenge, variant, strategy_hash, record["strategy"]
+        )
     return expected_digest(
         record["strategy"],
         record.get("contract_digest") or manifest["contract_digest"],

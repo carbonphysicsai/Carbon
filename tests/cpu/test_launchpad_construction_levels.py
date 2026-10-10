@@ -249,7 +249,7 @@ def test_the_level_compile_is_compile_development():
 
 def test_freeze_records_the_variant_digest_and_the_commitment_binds_it():
     from carbon.battery import campaign
-    from carbon.battery.daemon import commitment_digest
+    from carbon.battery.daemon import development_commitment_digest
 
     found = bound(2)
     chosen = strategy(muon_spectral=True)
@@ -263,9 +263,10 @@ def test_freeze_records_the_variant_digest_and_the_commitment_binds_it():
         "construction_level": found,
     }
     digest = campaign.frozen_commitment(record, manifest)
-    # The commitment's own schema, unchanged: {challenge, contract, strategy}.
-    assert digest == commitment_digest(
-        BATTERY, found["digest"], compiled["commitment_strategy_hash"]
+    # The development form (#899): the variant digest, the base strategy
+    # hash and the whole submitted strategy.
+    assert digest == development_commitment_digest(
+        BATTERY, found["digest"], compiled["commitment_strategy_hash"], chosen
     )
     level0 = campaign.frozen_commitment(
         {"strategy": strategy()}, {"contract_digest": manifest["contract_digest"]}
@@ -620,3 +621,67 @@ def test_a_listing_for_another_level_or_digest_never_spawns(monkeypatch, no_spaw
         with pytest.raises(cl.LevelRefused):
             cl.compile_strategy(found, strategy())
     assert no_spawn == []
+
+
+# ---- The development commitment form (VALIDATOR-25, #899).
+
+
+def _level_commitment(level, chosen):
+    from carbon.battery import campaign
+
+    found = bound(level)
+    compiled, _envelope = cl.check_freeze(found, chosen)
+    record = cl.candidate_record(found, chosen, "practiced", False, compiled)
+    manifest = {
+        "contract_digest": cr.contract_digest(BATTERY),
+        "construction_level": found,
+    }
+    return campaign.frozen_commitment(record, manifest), compiled
+
+
+def test_level_0_and_level_1_commit_different_digests_for_one_strategy():
+    from carbon.battery import campaign
+    from carbon.battery.daemon import commitment_digest
+    from carbon.chain.commitment_poster import expected_digest
+
+    chosen = strategy()
+    base = cr.contract_digest(BATTERY)
+    level0 = campaign.frozen_commitment(
+        {"strategy": chosen, "contract_digest": base}, {"contract_digest": base}
+    )
+    # Level 0 stays on commitment_digest, unchanged.
+    assert level0 == expected_digest(chosen, base)
+    level1, compiled = _level_commitment(1, chosen)
+    assert level1 != level0
+    assert level1 != commitment_digest(
+        BATTERY, bound(1)["digest"], compiled["commitment_strategy_hash"]
+    )
+
+
+def test_changing_a_widened_value_changes_the_level_commitment():
+    on, compiled_on = _level_commitment(2, strategy(muon_spectral=True))
+    off, compiled_off = _level_commitment(2, strategy(muon_spectral=False))
+    # The base strategy hash cannot tell them apart; the commitment does.
+    assert compiled_on["commitment_strategy_hash"] == (
+        compiled_off["commitment_strategy_hash"]
+    )
+    assert on != off
+
+
+def test_commit_and_the_submit_pre_check_use_the_development_form():
+    """`carbon_commit`, the submit pre-check's chain read and the campaign's
+    own gate all ask the Challenge campaign's `commitment`."""
+    from carbon.battery import campaign
+    from carbon.challenge_registry.campaigns import campaign_for
+
+    assert campaign_for(challenge()).commitment is campaign.frozen_commitment
+    chosen = strategy(muon_spectral=True)
+    digest, _compiled = _level_commitment(2, chosen)
+    found = bound(2)
+    compiled, _ = cl.check_freeze(found, chosen)
+    record = cl.candidate_record(found, chosen, "practiced", False, compiled)
+    manifest = {
+        "contract_digest": cr.contract_digest(BATTERY),
+        "construction_level": found,
+    }
+    assert campaign_for(challenge()).commitment(record, manifest) == digest
