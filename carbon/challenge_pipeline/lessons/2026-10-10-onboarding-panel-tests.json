@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-onboarding-panel-tests",
+  "recorded_at": "2026-10-10T17:36:44Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "ONBOARDING-AUTOMATION-03", "description": "Native generator/pipeline tests: 49 passed; pinned Black/Ruff and diff check passed. Motor gap draft 0.0004546 s; no physical case generated or run. Canonical acceptance remains CI."},
+  "expected": "Deduplicate physical identities, account for scheduled reuse, and never price incomplete evidence as zero.",
+  "observed": "Toy full-pin/rung tests correctly account CPU and stop matching after observer changes; absent pins/index/costs remain UNKNOWN. #934/#965 registration discipline retained. Motor re-export gaps remain visible, not a new campaign request.",
+  "keep": ["Price unique physical cases/rungs, not question count or alias labels."],
+  "change": ["Validate retained receipts before accepting any planned reuse discount."],
+  "protocol_elements": ["reference policy", "evidence plan", "cost"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

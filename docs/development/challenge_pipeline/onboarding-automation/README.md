@@ -60,3 +60,31 @@ startup costs need owner/measurement decisions. B counts questions, not solves:
 shared physical cases and refinements must be priced independently. CPU-hours
 are not rented node-hours without measured throughput. TWO-band T2(a) requires
 five distinct designs on **each** side; drafting does not measure it.
+
+## Panel specification (03)
+
+`python -m carbon.challenge_pipeline.onboarding --root . panel --brief motor-brief.json --seed <proposed-panel-seed.json> --reuse <non-hidden-reuse-index.json>`
+
+From a brief alone it emits the needed boundary/value-check measures and
+missing registration, not invented geometry. A numeric seed uses
+`carbon.onboarding.panel-seed.v1`: challenge; design rows (`id`, `coordinates`);
+stratum rows (`id`, `inputs`); rung rows (`id`, `settings`); pins (`solver`,
+`environment`, `materials`, `observer`, `geometry_grammar`); optional per-rung
+`cost_cpu_seconds` entries (`seconds`, `basis`). These are **proposed** inputs,
+not geometry acceptance or registered scientific truth. A source-derived seed
+must preserve all causal inputs/units and exact version pins. The Cartesian
+manifest is capped at 10,000 and deduplicated by physical identity, not names.
+
+Reuse rows have `identity`, `state` (COMPLETED/SCHEDULED), `receipt`. Both
+completed and scheduled work are checked, but matches are recommendations for
+DC to verify against retained evidence, not proof from a string. Missing pins
+yield UNKNOWN identities, never reusable truth. Changed observers, materials,
+conditions or rung settings stop matching. CPU is reported with and without
+acceptance of reuse; billing is UNKNOWN without throughput/quote. Failure,
+frontier, witness and retained-verification overheads are listed, not buried.
+
+#934 and #965 provide the same discipline: explicit registration and full
+identity/rung reuse, both-side TWO-band boundaries, no guaranteed 5+5 yield,
+and no automatic run grant. Motor's full coordinate/curve re-export is still
+missing, so the motor-first panel output is a registration gap report, not a
+request to repeat its existing feasibility panel blindly.

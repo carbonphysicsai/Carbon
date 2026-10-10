@@ -26,10 +26,26 @@ def main(argv=None):
     law_parser.add_argument(
         "--law-source", help="existing proposal, relative public repository path"
     )
+    panel_parser = sub.add_parser("panel")
+    panel_parser.add_argument("--brief", type=Path, required=True)
+    panel_parser.add_argument(
+        "--seed", type=Path, help="explicit proposed physical/rung manifest"
+    )
+    panel_parser.add_argument(
+        "--reuse", type=Path, help="non-hidden completed AND scheduled identity index"
+    )
     args = parser.parse_args(argv)
     try:
         draft = packet.generate(packet.read_json(args.brief), args.root)
-        if args.command == "law":
+        if args.command == "panel":
+            from carbon.challenge_pipeline.onboarding import panel
+
+            result = panel.generate(
+                draft,
+                seed=packet.read_json(args.seed) if args.seed else None,
+                reuse=packet.read_json(args.reuse) if args.reuse else None,
+            )
+        elif args.command == "law":
             from carbon.challenge_pipeline.onboarding import law
 
             result = law.generate(
