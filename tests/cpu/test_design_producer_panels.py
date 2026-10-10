@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 
 import pytest
@@ -287,6 +288,65 @@ def test_battery_v3_requires_indexed_and_f02_can_register_indexed_schedule():
     assert "indexed_power_cases" in bank
 
 
+def test_indexed_power_accepts_registered_buyer_mix_per_question():
+    export = _export("battery-v3", indexed_decision=True)
+    first = export["questions"][0]
+    second = copy.deepcopy(first)
+    second["case"] = "PRIVATE-T3-SECOND-CASE"
+    original = second["task"]
+    second["task"] = indexed.indexed_task(
+        second["case"],
+        index_axis=original["identity"]["index_axis"],
+        indices=[
+            {**row, "buyer_weight": weight}
+            for row, weight in zip(original["indices"], (0.75, 0.25))
+        ],
+        query_budget=original["identity"]["query_budget"],
+        value_equivalence=original["identity"]["value_equivalence"],
+    )
+    export["questions"].append(second)
+    export["exposure"].append({"case": second["case"], "limit": 2, "used": 0})
+    export["window_sampling"] = power_accumulation.register_window_sampling(
+        case_strata=[
+            {"case": row["case"], "stratum": "only"} for row in export["questions"]
+        ],
+        quotas_by_k=[{"questions_per_batch": k, "quotas": {"only": k}} for k in (1, 2)],
+    )
+    export["laws"] = [
+        diversity.register_law(
+            {
+                "schema": diversity.LAW_SCHEMA_V2,
+                "population_status": "UNREGISTERED",
+                "kind": "grid",
+                "draw_model": "iid_with_replacement",
+                "batch_size": 1,
+                "bins": [
+                    {"case": row["case"], "q_mass": 0.5} for row in export["questions"]
+                ],
+                "mass_l1_error_bound": 0.0,
+            }
+        )
+    ]
+    export = producer_panels.seal_export(
+        {key: value for key, value in export.items() if key != "export_digest"}
+    )
+    report = producer_panels.panel_power_report(
+        export,
+        _controls(),
+        power_accumulation.register_accumulation(
+            exposure_unit="per_question_draws", max_windows=2
+        ),
+        alpha=0.05,
+        power_target=0.8,
+        simulation_seed=3,
+        replicates=20,
+        max_questions=2,
+    )
+    assert report["power"]["index_count"] == 2
+    assert len(report["power"]["laws"]["grid"]["per_index"]) == 2
+    assert "PRIVATE-T3" not in json.dumps(report)
+
+
 def test_incomplete_or_tampered_reference_never_enters_power():
     export = _export("motor")
     export["questions"][0]["reference"].pop()
@@ -401,6 +461,39 @@ def test_settled_verdict_requires_named_digest_bound_refinement_rule():
         producer_panels.adapt_export(conflicting)
 
 
+@pytest.mark.parametrize("family", ("motor", "battery-v3"))
+def test_all_unresolved_export_has_no_detection_estimate(family):
+    indexed_decision = family == "battery-v3"
+    export = _export(family, indexed_decision=indexed_decision, reference_band=0.2)
+    report = producer_panels.panel_power_report(
+        export,
+        _controls(),
+        power_accumulation.register_accumulation(
+            exposure_unit="per_question_draws", max_windows=2
+        ),
+        alpha=0.05,
+        power_target=0.8,
+        simulation_seed=3,
+        replicates=20,
+        max_questions=1,
+    )
+    law = report["power"]["laws"]["grid"]
+    q = law["aggregate"]["Q"] if indexed_decision else law["Q"]
+    assert q["unresolved_mass"] == 1.0
+    metric = q["controls"][0]["metrics"]["false_feasible"]
+    assert metric["common_mass"] == 0.0
+    assert metric["power"]["points"][0]["estimated_detection_probability"] is None
+    cross = report["power"]["sealed_bank_cross_batch"]
+    if indexed_decision:
+        assert all(
+            row["views"]["Q"]["unresolved_mass"] == 1.0 for row in law["per_index"]
+        )
+        cross = cross["aggregate"]
+    point = cross["controls"][0]["metrics"]["false_feasible"]["points"][0]
+    assert point["exposure_feasible"] is True
+    assert point["estimated_detection_probability"] is None
+
+
 def test_only_decision_relevant_unsettled_candidates_make_a_question_unresolved():
     slower = _export("motor", reference_band=0.2, unsafe_cost=2.0, settled=[])
     bank, _, _, _ = producer_panels.adapt_export(slower)
@@ -492,5 +585,20 @@ def test_control_pick_on_still_unresolved_candidate_is_unscored(family):
     assert control["unscored_control_mass"] == 1.0
     assert control["metrics"]["false_feasible"]["common_mass"] == 0
     assert control["metrics"]["false_feasible"]["control"] is None
+    assert (
+        control["metrics"]["false_feasible"]["power"]["points"][0][
+            "estimated_detection_probability"
+        ]
+        is None
+    )
+    cross_batch = report["power"]["sealed_bank_cross_batch"]
+    if indexed_decision:
+        cross_batch = cross_batch["aggregate"]
+    assert (
+        cross_batch["controls"][0]["metrics"]["false_feasible"]["points"][0][
+            "estimated_detection_probability"
+        ]
+        is None
+    )
     assert control["abstention_outcomes"]["control"]["missed_opportunity"] is None
     assert "PRIVATE-T3" not in json.dumps(report)

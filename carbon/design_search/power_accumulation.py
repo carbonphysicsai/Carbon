@@ -215,6 +215,10 @@ def cross_batch_curve(
     ):
         raise tasks.TaskError("finite registered cross-batch inputs required")
     remaining = validate_case_exposure(case_exposure, differences)
+    scorable = any(
+        remaining[case] > 0 and difference is not None
+        for case, difference in differences.items()
+    )
     strata, quotas_by_k = validate_window_sampling(
         window_sampling, differences, max_questions
     )
@@ -251,7 +255,9 @@ def cross_batch_curve(
                 nonzero_total[position] += nonzero
         for position in range(maximum_windows):
             all_feasible = feasible[position] == replicates
-            estimate = detected[position] / replicates if all_feasible else None
+            estimate = (
+                detected[position] / replicates if all_feasible and scorable else None
+            )
             points.append(
                 {
                     "questions_per_batch": k,
@@ -266,7 +272,9 @@ def cross_batch_curve(
                         else None
                     ),
                     "mean_nonzero_bank_clusters": (
-                        nonzero_total[position] / replicates if all_feasible else None
+                        nonzero_total[position] / replicates
+                        if all_feasible and scorable
+                        else None
                     ),
                 }
             )
@@ -275,7 +283,9 @@ def cross_batch_curve(
         eligible = [
             point
             for point in points
-            if point["questions_per_batch"] == k and point["exposure_feasible"]
+            if point["questions_per_batch"] == k
+            and point["exposure_feasible"]
+            and point["estimated_detection_probability"] is not None
         ]
         first = next(
             (

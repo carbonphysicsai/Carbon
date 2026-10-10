@@ -1,0 +1,430 @@
+{
+  "controls": [
+    {
+      "kind": "edge_optimist",
+      "limit_quantities": [
+        "mean_nm",
+        "pk_pk_nm",
+        "cogging_nm"
+      ],
+      "name": "edge-half-band",
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "cogging_nm": {
+          "unit": "N m",
+          "value": 0.01
+        },
+        "mean_nm": {
+          "unit": "N m",
+          "value": 0.05
+        },
+        "pk_pk_nm": {
+          "unit": "N m",
+          "value": 0.01
+        }
+      }
+    },
+    {
+      "kind": "edge_optimist",
+      "limit_quantities": [
+        "mean_nm",
+        "pk_pk_nm",
+        "cogging_nm"
+      ],
+      "name": "edge-one-band",
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "cogging_nm": {
+          "unit": "N m",
+          "value": 0.02
+        },
+        "mean_nm": {
+          "unit": "N m",
+          "value": 0.1
+        },
+        "pk_pk_nm": {
+          "unit": "N m",
+          "value": 0.02
+        }
+      }
+    },
+    {
+      "kind": "edge_optimist",
+      "limit_quantities": [
+        "mean_nm",
+        "pk_pk_nm",
+        "cogging_nm"
+      ],
+      "name": "edge-two-bands",
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "cogging_nm": {
+          "unit": "N m",
+          "value": 0.04
+        },
+        "mean_nm": {
+          "unit": "N m",
+          "value": 0.2
+        },
+        "pk_pk_nm": {
+          "unit": "N m",
+          "value": 0.04
+        }
+      }
+    },
+    {
+      "kind": "edge_optimist",
+      "limit_quantities": [
+        "mean_nm",
+        "pk_pk_nm",
+        "cogging_nm"
+      ],
+      "name": "edge-four-bands",
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "cogging_nm": {
+          "unit": "N m",
+          "value": 0.08
+        },
+        "mean_nm": {
+          "unit": "N m",
+          "value": 0.4
+        },
+        "pk_pk_nm": {
+          "unit": "N m",
+          "value": 0.08
+        }
+      }
+    },
+    {
+      "kind": "over_cautious",
+      "limit_quantities": [
+        "mean_nm",
+        "pk_pk_nm",
+        "cogging_nm"
+      ],
+      "name": "caution-half-band",
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "cogging_nm": {
+          "unit": "N m",
+          "value": 0.01
+        },
+        "mean_nm": {
+          "unit": "N m",
+          "value": 0.05
+        },
+        "pk_pk_nm": {
+          "unit": "N m",
+          "value": 0.01
+        }
+      }
+    },
+    {
+      "kind": "over_cautious",
+      "limit_quantities": [
+        "mean_nm",
+        "pk_pk_nm",
+        "cogging_nm"
+      ],
+      "name": "caution-one-band",
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "cogging_nm": {
+          "unit": "N m",
+          "value": 0.02
+        },
+        "mean_nm": {
+          "unit": "N m",
+          "value": 0.1
+        },
+        "pk_pk_nm": {
+          "unit": "N m",
+          "value": 0.02
+        }
+      }
+    },
+    {
+      "kind": "over_cautious",
+      "limit_quantities": [
+        "mean_nm",
+        "pk_pk_nm",
+        "cogging_nm"
+      ],
+      "name": "caution-two-bands",
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "cogging_nm": {
+          "unit": "N m",
+          "value": 0.04
+        },
+        "mean_nm": {
+          "unit": "N m",
+          "value": 0.2
+        },
+        "pk_pk_nm": {
+          "unit": "N m",
+          "value": 0.04
+        }
+      }
+    },
+    {
+      "kind": "over_cautious",
+      "limit_quantities": [
+        "mean_nm",
+        "pk_pk_nm",
+        "cogging_nm"
+      ],
+      "name": "caution-four-bands",
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "cogging_nm": {
+          "unit": "N m",
+          "value": 0.08
+        },
+        "mean_nm": {
+          "unit": "N m",
+          "value": 0.4
+        },
+        "pk_pk_nm": {
+          "unit": "N m",
+          "value": 0.08
+        }
+      }
+    },
+    {
+      "kind": "localized_sign_error",
+      "limit_quantities": [
+        "mean_nm",
+        "pk_pk_nm",
+        "cogging_nm"
+      ],
+      "name": "sign-half-band",
+      "region": {
+        "action": {
+          "skew_deg": {
+            "max": 4,
+            "min": 2
+          }
+        },
+        "strata": []
+      },
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "cogging_nm": {
+          "unit": "N m",
+          "value": 0.01
+        },
+        "mean_nm": {
+          "unit": "N m",
+          "value": 0.05
+        },
+        "pk_pk_nm": {
+          "unit": "N m",
+          "value": 0.01
+        }
+      }
+    },
+    {
+      "kind": "localized_sign_error",
+      "limit_quantities": [
+        "mean_nm",
+        "pk_pk_nm",
+        "cogging_nm"
+      ],
+      "name": "sign-one-band",
+      "region": {
+        "action": {
+          "skew_deg": {
+            "max": 4,
+            "min": 2
+          }
+        },
+        "strata": []
+      },
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "cogging_nm": {
+          "unit": "N m",
+          "value": 0.02
+        },
+        "mean_nm": {
+          "unit": "N m",
+          "value": 0.1
+        },
+        "pk_pk_nm": {
+          "unit": "N m",
+          "value": 0.02
+        }
+      }
+    },
+    {
+      "kind": "localized_sign_error",
+      "limit_quantities": [
+        "mean_nm",
+        "pk_pk_nm",
+        "cogging_nm"
+      ],
+      "name": "sign-two-bands",
+      "region": {
+        "action": {
+          "skew_deg": {
+            "max": 4,
+            "min": 2
+          }
+        },
+        "strata": []
+      },
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "cogging_nm": {
+          "unit": "N m",
+          "value": 0.04
+        },
+        "mean_nm": {
+          "unit": "N m",
+          "value": 0.2
+        },
+        "pk_pk_nm": {
+          "unit": "N m",
+          "value": 0.04
+        }
+      }
+    },
+    {
+      "kind": "localized_sign_error",
+      "limit_quantities": [
+        "mean_nm",
+        "pk_pk_nm",
+        "cogging_nm"
+      ],
+      "name": "sign-four-bands",
+      "region": {
+        "action": {
+          "skew_deg": {
+            "max": 4,
+            "min": 2
+          }
+        },
+        "strata": []
+      },
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "cogging_nm": {
+          "unit": "N m",
+          "value": 0.08
+        },
+        "mean_nm": {
+          "unit": "N m",
+          "value": 0.4
+        },
+        "pk_pk_nm": {
+          "unit": "N m",
+          "value": 0.08
+        }
+      }
+    },
+    {
+      "kind": "optimizer_or_lattice_aware",
+      "limit_quantities": [
+        "mean_nm",
+        "pk_pk_nm",
+        "cogging_nm"
+      ],
+      "name": "path-half-band",
+      "schema": "carbon.design-search.control.v2",
+      "scope": "registered_search_path",
+      "severity": {
+        "cogging_nm": {
+          "unit": "N m",
+          "value": 0.01
+        },
+        "mean_nm": {
+          "unit": "N m",
+          "value": 0.05
+        },
+        "pk_pk_nm": {
+          "unit": "N m",
+          "value": 0.01
+        }
+      }
+    },
+    {
+      "kind": "optimizer_or_lattice_aware",
+      "limit_quantities": [
+        "mean_nm",
+        "pk_pk_nm",
+        "cogging_nm"
+      ],
+      "name": "path-one-band",
+      "schema": "carbon.design-search.control.v2",
+      "scope": "registered_search_path",
+      "severity": {
+        "cogging_nm": {
+          "unit": "N m",
+          "value": 0.02
+        },
+        "mean_nm": {
+          "unit": "N m",
+          "value": 0.1
+        },
+        "pk_pk_nm": {
+          "unit": "N m",
+          "value": 0.02
+        }
+      }
+    },
+    {
+      "kind": "optimizer_or_lattice_aware",
+      "limit_quantities": [
+        "mean_nm",
+        "pk_pk_nm",
+        "cogging_nm"
+      ],
+      "name": "path-two-bands",
+      "schema": "carbon.design-search.control.v2",
+      "scope": "registered_search_path",
+      "severity": {
+        "cogging_nm": {
+          "unit": "N m",
+          "value": 0.04
+        },
+        "mean_nm": {
+          "unit": "N m",
+          "value": 0.2
+        },
+        "pk_pk_nm": {
+          "unit": "N m",
+          "value": 0.04
+        }
+      }
+    },
+    {
+      "kind": "optimizer_or_lattice_aware",
+      "limit_quantities": [
+        "mean_nm",
+        "pk_pk_nm",
+        "cogging_nm"
+      ],
+      "name": "path-four-bands",
+      "schema": "carbon.design-search.control.v2",
+      "scope": "registered_search_path",
+      "severity": {
+        "cogging_nm": {
+          "unit": "N m",
+          "value": 0.08
+        },
+        "mean_nm": {
+          "unit": "N m",
+          "value": 0.4
+        },
+        "pk_pk_nm": {
+          "unit": "N m",
+          "value": 0.08
+        }
+      }
+    }
+  ],
+  "registration_digest": "sha256:eac7e8eb40cc51d0e6a7085adf1486206ef72f58a6b5bc88d0091646fb485988",
+  "schema": "carbon.design-search.controls.v2"
+}

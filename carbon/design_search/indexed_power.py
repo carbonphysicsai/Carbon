@@ -128,15 +128,14 @@ def _validate(bank, laws, registration, good):
             registered["identity"]["objective"],
             registered["identity"]["value_equivalence"],
             registered["identity"]["index_axis"],
-            [
-                (row["index_value"], row["buyer_weight"])
-                for row in registered["indices"]
-            ],
+            [row["index_value"] for row in registered["indices"]],
         )
         if comparison_identity is None:
             comparison_identity = signature
         elif signature != comparison_identity:
-            raise tasks.TaskError("indexed power questions need one buyer decision law")
+            raise tasks.TaskError(
+                "indexed power questions need one objective, tolerance and index axis"
+            )
         material = tasks.digest(
             {
                 "banks": [row["task"]["bank_digest"] for row in registered["indices"]],
