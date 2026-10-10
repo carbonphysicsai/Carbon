@@ -1039,3 +1039,18 @@ R4 (45.00, 3 runs, Level 1 and above) is unchanged and stays spendable.
 - **The Attacker grant** sets `levels` to (4,).
 - **Whether a Level 4 live run happens** stays the owner's and the security
   owner's (plan section 1). This grant authorizes spend only.
+
+## The optional pod rate ceiling (GRANT-POD-CEILING-01)
+
+- **The field.** A grant may carry `pod_rate_ceiling_usd_per_hr`, the most a
+  pod under it may cost an hour. Absent, the ceiling is pod_control's
+  `MAX_RATE`, as before.
+- **Existing grants.** Every existing grant omits it, so its document, digest
+  and behaviour are unchanged.
+- **What it changes.** A grant that names it prices its pods at that ceiling
+  (`pods.prices`, `phase3_budget`), and the preflight checks the live offer
+  against it.
+- **The token share.** A raised ceiling under a fixed token share can leave
+  the session's pods too little; the run is then refused
+  `grant_token_share_leaves_too_little_for_pods`, and the grant's token
+  share or per-run worst case needs re-setting too.

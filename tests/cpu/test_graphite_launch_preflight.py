@@ -239,6 +239,9 @@ def test_a_failing_probe_is_named_and_the_pod_never_left_running(pods, owner):
 
 # -- the command --------------------------------------------------------------------------------
 def test_the_command_lists_every_owner_need_at_once(tmp_path, monkeypatch):
+    from scripts.dev.exam_design.runpod import pod_control
+
+    monkeypatch.setattr(pod_control, "STATE_DIR", str(tmp_path / "no-runpod"))
     lane = tmp_path / "lane.json"
     lane.write_text(
         json.dumps({**LANE, "keys": [{"name": "wallet", "path": str(tmp_path / "w")}]})
@@ -332,3 +335,31 @@ def test_beating_writes_while_the_block_runs(tmp_path):
     with heartbeat.beating(run, "graphite-x", interval=0.01):
         pass
     assert json.loads((run / heartbeat.NAME).read_text())["run_id"] == "graphite-x"
+
+
+# -- GRANT-POD-CEILING-01 --------------------------------------------------------------------
+def test_an_offer_above_the_grants_ceiling_is_the_owners_decision():
+    pods = FakePods()
+    pods.economics["rate_ceiling_usd_per_hr"] = Decimal("0.40")
+    check = preflight.check_offer(pods)
+    assert check.status == preflight.FAIL and check.owner
+    assert check.detail == "owner decision: offer 0.44/h > grant ceiling 0.40/h"
+    pods.economics["rate_ceiling_usd_per_hr"] = Decimal("0.44")
+    assert preflight.check_offer(pods).status == preflight.OK
+
+
+@pytest.mark.parametrize(
+    ("body", "status"),
+    [
+        (None, "FAIL"),
+        ("{}", "FAIL"),
+        ('{"balance_floor_usd": "x"}', "FAIL"),
+        ('{"balance_floor_usd": 5}', "OK"),
+    ],
+)
+def test_the_balance_floor_file_must_exist_and_name_a_floor(tmp_path, body, status):
+    if body is not None:
+        (tmp_path / "campaigns.json").write_text(body)
+    check = preflight.check_balance_floor(tmp_path, "campaigns.json")
+    assert check.status == status
+    assert "5" not in check.detail.replace(str(tmp_path), "")
