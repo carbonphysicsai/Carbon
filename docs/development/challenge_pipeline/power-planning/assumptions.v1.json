@@ -1,0 +1,82 @@
+{
+  "schema": "carbon.design-search.power-planning-assumptions.v1",
+  "alpha": 0.05,
+  "target_power": 0.8,
+  "replicates": 500,
+  "seed": 20261009,
+  "windows": [1, 2, 3, 5],
+  "challenges": [
+    {
+      "name": "battery_v3",
+      "law_source": "docs/development/challenge_pipeline/question-laws/battery-v3-round2.json",
+      "panel_shape": {"observed_unresolved_questions": 25, "mandatory_bands_c": [5, 15, 25, 35, 40], "nominal_action_rows_by_band": [80, 42, 147, 147, 77], "settled_question_comparisons": 0},
+      "bank_questions": 25,
+      "bank_status": "OBSERVED_EXPORT_SHAPE_ONLY_NOT_ADOPTED_B",
+      "independent_banks": [1, 8, 16, 24],
+      "questions_per_batch": [4, 8, 12],
+      "exposure_limits": [2, 5, 10],
+      "buyer_units": {"charging_temperature": "degC", "every_charge_plating": "V", "programme_voltage": "V", "q30_over_q1": "fraction"},
+      "severity_levels": [
+        {"name": "s1", "by_quantity": {"charging_temperature": 0.2, "every_charge_plating": 0.0002, "programme_voltage": 0.005, "q30_over_q1": 0.0005}},
+        {"name": "s2", "by_quantity": {"charging_temperature": 0.5, "every_charge_plating": 0.0005, "programme_voltage": 0.01, "q30_over_q1": 0.001}},
+        {"name": "s3", "by_quantity": {"charging_temperature": 1.0, "every_charge_plating": 0.001, "programme_voltage": 0.02, "q30_over_q1": 0.002}},
+        {"name": "s4", "by_quantity": {"charging_temperature": 2.0, "every_charge_plating": 0.002, "programme_voltage": 0.04, "q30_over_q1": 0.004}}
+      ],
+      "effect_assumptions": {
+        "edge_optimist": [0.58, 0.68, 0.78, 0.88],
+        "over_cautious": [0.54, 0.63, 0.74, 0.84],
+        "localized_sign_error": [0.52, 0.60, 0.70, 0.80],
+        "path_aware": [0.56, 0.66, 0.77, 0.87]
+      },
+      "startup_eur_per_independent_panel": {"low": null, "high": null, "basis": "V3_COMPLETE_PROGRAMME_UNMEASURED; historical battery jobs are different science"}
+    },
+    {
+      "name": "motor",
+      "law_source": "docs/development/challenge_pipeline/question-laws/motor-round2.json",
+      "panel_shape": {"observed_unresolved_questions": 20, "public_geometry_skew_candidates": 44, "mandatory_roles": ["holding", "peak", "cogging"], "settled_question_comparisons": 0},
+      "bank_questions": 120,
+      "bank_status": "PROPOSED_B_EQUALS_10_K_AT_K12_NOT_ADOPTED",
+      "independent_banks": [1, 8, 16, 32],
+      "questions_per_batch": [6, 12, 16],
+      "exposure_limits": [10],
+      "buyer_units": {"holding_mean_torque": "N m", "peak_mean_torque": "N m", "energized_ripple_fraction": "fraction", "holding_ripple_peak_to_peak": "N m", "cogging_peak_to_peak": "N m"},
+      "severity_levels": [
+        {"name": "s1", "by_quantity": {"holding_mean_torque": 0.1, "peak_mean_torque": 0.2, "energized_ripple_fraction": 0.001, "holding_ripple_peak_to_peak": 0.01, "cogging_peak_to_peak": 0.002}},
+        {"name": "s2", "by_quantity": {"holding_mean_torque": 0.2, "peak_mean_torque": 0.4, "energized_ripple_fraction": 0.002, "holding_ripple_peak_to_peak": 0.02, "cogging_peak_to_peak": 0.004}},
+        {"name": "s3", "by_quantity": {"holding_mean_torque": 0.4, "peak_mean_torque": 0.8, "energized_ripple_fraction": 0.004, "holding_ripple_peak_to_peak": 0.04, "cogging_peak_to_peak": 0.008}},
+        {"name": "s4", "by_quantity": {"holding_mean_torque": 0.8, "peak_mean_torque": 1.6, "energized_ripple_fraction": 0.008, "holding_ripple_peak_to_peak": 0.08, "cogging_peak_to_peak": 0.016}}
+      ],
+      "effect_assumptions": {
+        "edge_optimist": [0.58, 0.68, 0.78, 0.88],
+        "over_cautious": [0.54, 0.63, 0.74, 0.84],
+        "localized_sign_error": [0.52, 0.60, 0.70, 0.80],
+        "path_aware": [0.56, 0.66, 0.77, 0.87]
+      },
+      "startup_eur_per_independent_panel": {"low": 434.02, "high": 1190.26, "basis": "#922 hypothetical 44-action conservative holding through full-role/refined serial bare-node scenarios; not a quote"}
+    },
+    {
+      "name": "f02",
+      "law_source": "docs/development/challenge_pipeline/question-laws/f02-round2.json",
+      "panel_shape": {"physical_contexts": 24, "historical_actions_per_context": 9, "proposed_seed_actions_per_context": 16, "settled_question_comparisons": 0},
+      "bank_questions": 160,
+      "bank_status": "PROPOSED_B_EQUALS_20_K_AT_K8_NOT_ADOPTED",
+      "independent_banks": [1, 8, 16, 32],
+      "questions_per_batch": [4, 8, 12],
+      "exposure_limits": [5],
+      "buyer_units": {"spatial_peak_temperature": "degC", "input_energy_floor": "J"},
+      "severity_levels": [
+        {"name": "s1", "by_quantity": {"spatial_peak_temperature": 0.25, "input_energy_floor": 25}},
+        {"name": "s2", "by_quantity": {"spatial_peak_temperature": 0.5, "input_energy_floor": 50}},
+        {"name": "s3", "by_quantity": {"spatial_peak_temperature": 1.0, "input_energy_floor": 100}},
+        {"name": "s4", "by_quantity": {"spatial_peak_temperature": 2.0, "input_energy_floor": 200}}
+      ],
+      "effect_assumptions": {
+        "edge_optimist": [0.58, 0.68, 0.78, 0.88],
+        "over_cautious": [0.54, 0.63, 0.74, 0.84],
+        "localized_sign_error": [0.52, 0.60, 0.70, 0.80],
+        "path_aware": [0.56, 0.66, 0.77, 0.87]
+      },
+      "startup_eur_per_independent_panel": {"low": 17.54, "high": 26.30, "basis": "#927 proposed 24x16 standard jobs at 2-3 CPU-min and serial EUR1.37/node-h; bare-node only"}
+    }
+  ]
+}
