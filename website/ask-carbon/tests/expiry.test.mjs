@@ -86,16 +86,23 @@ test("the release expiry is held to the same windows", async () => {
   assert.deepEqual(failed.errors, ["release_expires_within_7d"]);
 });
 
-test("the committed knowledge is caught before its October cards go quiet", async () => {
-  const october = knowledge.cards.filter((card) => card.expires_at.startsWith("2026-10-16")).map((card) => card.id).sort();
-  assert.ok(october.length > 0);
-  const warned = await validate(knowledge, new Date("2026-09-23T00:00:00Z"));
-  assert.equal(warned.valid, true);
-  assert.deepEqual(warned.warnings.filter((w) => w.startsWith("card_expires")).map((w) => w.split(":")[1]).sort(), october);
+test("the committed knowledge is caught before its soonest cards go quiet", async () => {
+  // Read from the committed dates rather than a pinned month. The owner moves
+  // these on review (the whole point of the expiry), so a hardcoded month makes
+  // the refresh itself fail here instead of a regression. Both assertions are
+  // unchanged: warned inside the warning window, failed inside the failure one.
+  const soonest = knowledge.cards.map((card) => card.expires_at).sort()[0];
+  const due = knowledge.cards.filter((card) => card.expires_at === soonest).map((card) => card.id).sort();
+  assert.ok(due.length > 0);
+  const before = (days) => new Date(Date.parse(soonest) - days * DAY_MS);
 
-  const failed = await validate(knowledge, new Date("2026-10-10T00:00:00Z"));
+  const warned = await validate(knowledge, before(EXPIRY_WARN_DAYS - 1));
+  assert.equal(warned.valid, true);
+  assert.deepEqual(warned.warnings.filter((w) => w.startsWith("card_expires")).map((w) => w.split(":")[1]).sort(), due);
+
+  const failed = await validate(knowledge, before(EXPIRY_FAIL_DAYS - 1));
   assert.equal(failed.valid, false);
-  assert.deepEqual(failed.errors.map((e) => e.split(":")[1]).sort(), october);
+  assert.deepEqual(failed.errors.map((e) => e.split(":")[1]).sort(), due);
 });
 
 test("per-PR CI can demote wall-clock findings, and only those", async () => {
