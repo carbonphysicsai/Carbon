@@ -163,6 +163,9 @@ class FakePods:
         }
         self.cuda_versions = ("12.4",)
         self.events, self.refuse, self.runs, self.stays = [], refuse, runs, stays
+        self.balance = 100.0
+        self.balance_floor = lambda: Decimal(5)
+        self.economics["hourly_usd"] = Decimal("0.50")
         offer = types.SimpleNamespace(
             usd_per_hr=0.44, stock_status="High" if stock else None
         )
@@ -175,6 +178,10 @@ class FakePods:
             ),
         )
         self.service = self
+
+    def observe_balance(self, campaign):
+        self.events.append("balance")
+        return self.balance, 0.0
 
     def provision(self, request):
         from scripts.dev.exam_design.runpod.operator_compute import (
@@ -218,7 +225,7 @@ def test_the_probe_creates_runs_terminates_and_verifies(monkeypatch):
     pods = FakePods()
     check = preflight.probe_pod(pods, clock=_clock(), sleep=lambda s: None)
     assert check.status == preflight.OK, check.detail
-    assert pods.events == ["created", "terminated"]
+    assert pods.events == ["balance", "created", "terminated"]
 
 
 @pytest.mark.parametrize(
@@ -239,6 +246,9 @@ def test_a_failing_probe_is_named_and_the_pod_never_left_running(pods, owner):
 
 # -- the command --------------------------------------------------------------------------------
 def test_the_command_lists_every_owner_need_at_once(tmp_path, monkeypatch):
+    from scripts.dev.exam_design.runpod import pod_control
+
+    monkeypatch.setattr(pod_control, "STATE_DIR", str(tmp_path / "no-runpod"))
     lane = tmp_path / "lane.json"
     lane.write_text(
         json.dumps({**LANE, "keys": [{"name": "wallet", "path": str(tmp_path / "w")}]})
@@ -332,3 +342,48 @@ def test_beating_writes_while_the_block_runs(tmp_path):
     with heartbeat.beating(run, "graphite-x", interval=0.01):
         pass
     assert json.loads((run / heartbeat.NAME).read_text())["run_id"] == "graphite-x"
+
+
+# -- GRANT-POD-CEILING-01 --------------------------------------------------------------------
+def test_an_offer_above_the_grants_ceiling_is_the_owners_decision():
+    pods = FakePods()
+    pods.economics["rate_ceiling_usd_per_hr"] = Decimal("0.40")
+    check = preflight.check_offer(pods)
+    assert check.status == preflight.FAIL and check.owner
+    assert check.detail == "owner decision: offer 0.44/h > grant ceiling 0.40/h"
+    pods.economics["rate_ceiling_usd_per_hr"] = Decimal("0.44")
+    assert preflight.check_offer(pods).status == preflight.OK
+
+
+@pytest.mark.parametrize(
+    ("body", "status"),
+    [
+        (None, "FAIL"),
+        ("{}", "FAIL"),
+        ('{"balance_floor_usd": "x"}', "FAIL"),
+        ('{"balance_floor_usd": 5}', "OK"),
+    ],
+)
+def test_the_balance_floor_file_must_exist_and_name_a_floor(tmp_path, body, status):
+    if body is not None:
+        (tmp_path / "campaigns.json").write_text(body)
+    check = preflight.check_balance_floor(tmp_path, "campaigns.json")
+    assert check.status == status
+    assert "5" not in check.detail.replace(str(tmp_path), "")
+
+
+def test_the_probe_observes_the_balance_before_it_provisions():
+    """The executor's bug: without a balance observation the operator layer
+    refuses every probe ("no account balance observation")."""
+    pods = FakePods()
+    preflight.probe_pod(pods, clock=_clock(), sleep=lambda s: None)
+    assert pods.events.index("balance") < pods.events.index("created")
+
+
+def test_a_probe_that_would_breach_the_floor_creates_nothing():
+    pods = FakePods()
+    pods.balance = 5.01
+    check = preflight.probe_pod(pods, clock=_clock(), sleep=lambda s: None)
+    assert check.status == preflight.FAIL and check.owner
+    assert "created" not in pods.events
+    assert "5.01" not in check.detail
