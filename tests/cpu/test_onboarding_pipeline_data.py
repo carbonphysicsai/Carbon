@@ -102,7 +102,7 @@ def test_no_duration_is_invented():
 
 
 def test_the_pages_hold_no_spend_figure_or_account_detail():
-    for path in FOLDER.iterdir():
+    for path in (x for x in FOLDER.iterdir() if x.is_file()):
         text = path.read_text(encoding="utf-8")
         assert not re.search(r"\$\s?\d|USD\s?\d|\d\s?USD", text), path.name
         assert not re.search(

@@ -1,0 +1,316 @@
+"""Brief-to-product ledger generator (ONBOARDING-PIPELINE-01, extension).
+
+Reads repository artefacts and writes one ledger per Challenge with four record
+types: INPUTS, PROCESS, OUTPUTS and NETWORK. A field is either
+
+    {"value": ..., "source": "<repo path>"}      read from an artefact, or
+    {"value": "UNMEASURED", "owner": ..., "question": ...}   no artefact holds it.
+
+Nothing is estimated. The only per-Challenge input is the pointer registry
+(`ledger_sources.json`); every number comes from the artefacts it points at.
+The output is deterministic: sorted keys, no clock, no host state.
+
+    python scripts/dev/onboarding/build_ledger.py --challenge <id> [--out PATH]
+"""
+
+import argparse
+import glob
+import json
+import re
+import sys
+from pathlib import Path
+
+REPOSITORY = Path(__file__).resolve().parents[3]
+ONBOARDING = "docs/development/challenge_pipeline/onboarding"
+REGISTRY = f"{ONBOARDING}/ledger_sources.json"
+SCHEMA = "carbon.challenge-pipeline.brief-product-ledger.v1"
+UNMEASURED = "UNMEASURED"
+
+# The six inputs a customer brief must resolve, mapped to the sections of
+# COMMON_DESIGN_PACKET_V1 that hold them. The mapping is a template constant.
+INPUT_KINDS = (
+    ("decision_definition", (1,)),
+    ("requirements", (1, 4)),
+    ("design_space", (3,)),
+    ("material_data", (2,)),
+    ("solver", (5,)),
+    ("acceptance_criteria", (6,)),
+)
+INPUT_QUESTION = (
+    "Would a customer supply this input, or would Carbon source it publicly, and how long "
+    "did it take to obtain? No artefact records either."
+)
+
+
+def _read(path):
+    return (REPOSITORY / path).read_text(encoding="utf-8")
+
+
+def _exists(path):
+    return bool(path) and (REPOSITORY / path).is_file()
+
+
+def measured(value, source):
+    return {"value": value, "source": source}
+
+
+def unmeasured(owner, question):
+    return {"value": UNMEASURED, "owner": owner, "question": question}
+
+
+def load_registry(challenge):
+    registry = json.loads(_read(REGISTRY))
+    if challenge not in registry["challenges"]:
+        raise SystemExit(f"{challenge} has no entry in {REGISTRY}")
+    return registry["challenges"][challenge]
+
+
+def packet_sections(path):
+    """`{number: text}` for the `## N.` sections of a design packet."""
+    sections, number, lines = {}, None, []
+    for line in _read(path).splitlines():
+        found = re.match(r"^## (\d+)\.", line)
+        if found:
+            if number is not None:
+                sections[number] = "\n".join(lines)
+            number, lines = int(found.group(1)), []
+        elif number is not None:
+            lines.append(line)
+    if number is not None:
+        sections[number] = "\n".join(lines)
+    return sections
+
+
+def build_inputs(entry):
+    packet = entry.get("packet")
+    if not _exists(packet):
+        return {
+            kind: unmeasured(
+                "Challenge owner", "No design packet is registered for this Challenge."
+            )
+            for kind, _ in INPUT_KINDS
+        }
+    sections = packet_sections(packet)
+    inputs = {}
+    for kind, numbers in INPUT_KINDS:
+        present = [n for n in numbers if n in sections]
+        open_markers = sum(len(re.findall(r"\bOPEN\b", sections[n])) for n in present)
+        inputs[kind] = {
+            "packet_sections": measured(present, packet),
+            "open_markers": measured(open_markers, packet),
+            "customer_supplies": unmeasured("Test Lead", INPUT_QUESTION),
+            "time_to_obtain": unmeasured("Test Lead", INPUT_QUESTION),
+        }
+    return inputs
+
+
+def _history(entry):
+    path = f"docs/development/challenge_pipeline/readiness/{entry['challenge']}/history.jsonl"
+    rows = []
+    if _exists(path):
+        rows = [json.loads(x) for x in _read(path).splitlines() if x.strip()]
+    return path, rows
+
+
+def _lessons(entry):
+    names = set(entry["lesson_challenges"])
+    count, stages, recorded = 0, {}, []
+    for path in sorted(
+        glob.glob(str(REPOSITORY / "carbon/challenge_pipeline/lessons/*.json"))
+    ):
+        document = json.loads(Path(path).read_text(encoding="utf-8"))
+        if document.get("challenge") in names:
+            count += 1
+            stages[document["stage"]] = stages.get(document["stage"], 0) + 1
+            recorded.append(document["recorded_at"])
+    return count, stages, sorted(recorded)
+
+
+def build_process(entry):
+    challenge = entry["challenge"]
+    metrics_path = f"{ONBOARDING}/cycle_metrics.jsonl"
+    rows = [json.loads(x) for x in _read(metrics_path).splitlines() if x.strip()]
+    dated = [
+        {"stage": r["stage"], "event": r["event"], "date": r["date"]}
+        for r in rows
+        if r["challenge"] == challenge
+    ]
+    taxonomy_path = f"{ONBOARDING}/blocker_taxonomy.json"
+    blockers = [
+        {
+            "id": b["id"],
+            "name": b["name"],
+            "fix_status": b["fix_status"],
+            "time_lost": b["time_lost"],
+        }
+        for b in json.loads(_read(taxonomy_path))["blockers"]
+    ]
+    history_path, history = _history(entry)
+    process = {
+        "dated_stage_records": measured(
+            sorted(dated, key=lambda r: (r["date"], r["stage"], r["event"])),
+            metrics_path,
+        ),
+        "blockers": measured(blockers, taxonomy_path),
+        "cost_per_stage": unmeasured(
+            "Test Lead and executor",
+            "Actual spend per stage lives in spend ledgers that stay out of the public repository; "
+            "state each stage's spend as a fraction of its cap, or confirm it stays UNMEASURED here.",
+        ),
+        "cycle_days_per_stage": unmeasured(
+            "Test Lead",
+            "A first dated record is not the time spent. Which entry and exit records define each stage's cycle time?",
+        ),
+    }
+    if history:
+        first = history[0]
+        latest = {}
+        for row in history:
+            latest[row["level"]] = row
+        process["readiness_first_run"] = measured(
+            {"counts": first["counts"], "utc": first["utc"], "level": first["level"]},
+            history_path,
+        )
+        process["readiness_latest_by_level"] = measured(
+            {
+                str(level): {
+                    "counts": row["counts"],
+                    "utc": row["utc"],
+                    "green": row["green"],
+                }
+                for level, row in sorted(latest.items())
+            },
+            history_path,
+        )
+    count, stages, recorded = _lessons(entry)
+    if count:
+        process["lessons_entries"] = measured(
+            {
+                "count": count,
+                "by_stage": stages,
+                "first": recorded[0],
+                "last": recorded[-1],
+            },
+            "carbon/challenge_pipeline/lessons",
+        )
+    grants = []
+    for pattern in entry["grant_globs"]:
+        for path in sorted(glob.glob(str(REPOSITORY / pattern))):
+            relative = Path(path).relative_to(REPOSITORY).as_posix()
+            document = json.loads(Path(path).read_text(encoding="utf-8"))
+            grants.append(
+                {
+                    "grant_id": document["grant_id"],
+                    "cap": document["monetary_ceiling"],
+                    "permitted_runs": document["permitted_runs"],
+                    "source": relative,
+                }
+            )
+    process["grant_caps"] = {
+        "value": grants,
+        "source": "docs/development/graphite/grants",
+        "note": "Caps and run counts only, never a balance or an account.",
+    }
+    return process
+
+
+def build_outputs(entry):
+    outputs = {
+        "model_accuracy": unmeasured(
+            "Data Collection",
+            "Which reference-agreement measurement defines model accuracy for this Challenge, and where is it recorded?",
+        ),
+        "speed_up_against_reference": unmeasured(
+            "Data Collection",
+            "The reference per-case cost (value-cost C1) and the surrogate's per-case time are both needed; neither is recorded for this Challenge.",
+        ),
+    }
+    baseline = entry.get("cheap_baseline")
+    if _exists(baseline) and "NOT_MEASURED" in _read(baseline):
+        outputs["decision_quality_vs_cheap_baseline"] = {
+            "value": UNMEASURED,
+            "owner": "Data Collection",
+            "question": "The cheap-baseline note states performance NOT_MEASURED; who measures V4 and when?",
+            "source": baseline,
+        }
+    else:
+        outputs["decision_quality_vs_cheap_baseline"] = unmeasured(
+            "Data Collection", "No cheap-baseline note records a measurement for V4."
+        )
+    q1 = entry.get("q1_report")
+    if _exists(q1):
+        report = json.loads(_read(q1))
+        alignment = report["alignment"]
+        outputs["score_value_alignment"] = measured(
+            {
+                "kendall_tau_b": alignment["kendall_tau_b"],
+                "spearman_rho": alignment["spearman_rho"],
+                "members": len(report["members"]),
+                "level": report["level"],
+                "reference_provenance": report["reference"]["provenance"],
+                "note": "one seed per recipe; a measurement, not a threshold",
+            },
+            q1,
+        )
+    else:
+        outputs["score_value_alignment"] = unmeasured(
+            "Test Lead", "No Q1 report exists for this Challenge and level."
+        )
+    return outputs
+
+
+def build_network():
+    return {
+        "leaderboard_improvement_over_time": unmeasured(
+            "Test Lead",
+            "No confirmed-recipe series exists until stage A confirmations are scored by a validator.",
+        ),
+        "graphite_agents_vs_real_miners": unmeasured(
+            "Test Lead and Launchpad",
+            "Needs scored submissions from both populations on the same Challenge; none are recorded.",
+        ),
+        "incentive_canary_payout_correctness": unmeasured(
+            "Test Lead",
+            "INCENTIVE-CANARY-01 has not produced a record; which artefact will hold the payout check?",
+        ),
+    }
+
+
+def build(challenge):
+    entry = dict(load_registry(challenge))
+    entry["challenge"] = challenge
+    ledger = {
+        "schema": SCHEMA,
+        "challenge": challenge,
+        "rules": [
+            "A field is read from a cited artefact or it is UNMEASURED with an owner and a question; nothing is estimated.",
+            "Caps and rates only. No balance, account, spend ledger or hidden-pool material.",
+        ],
+        "inputs": build_inputs(entry),
+        "process": build_process(entry),
+        "outputs": build_outputs(entry),
+        "network": build_network(),
+    }
+    return ledger
+
+
+def render(ledger):
+    return json.dumps(ledger, indent=1, sort_keys=True, ensure_ascii=False) + "\n"
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("--challenge", required=True)
+    parser.add_argument("--out", help="write here instead of stdout")
+    args = parser.parse_args(argv)
+    text = render(build(args.challenge))
+    if args.out:
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.out).write_text(text, encoding="utf-8", newline="\n")
+    else:
+        sys.stdout.write(text)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

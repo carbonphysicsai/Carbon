@@ -1,0 +1,377 @@
+{
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "inputs": {
+  "acceptance_criteria": {
+   "customer_supplies": {
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "value": "UNMEASURED"
+   },
+   "open_markers": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": 1
+   },
+   "packet_sections": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": [
+     6
+    ]
+   },
+   "time_to_obtain": {
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "value": "UNMEASURED"
+   }
+  },
+  "decision_definition": {
+   "customer_supplies": {
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "value": "UNMEASURED"
+   },
+   "open_markers": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": 1
+   },
+   "packet_sections": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": [
+     1
+    ]
+   },
+   "time_to_obtain": {
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "value": "UNMEASURED"
+   }
+  },
+  "design_space": {
+   "customer_supplies": {
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "value": "UNMEASURED"
+   },
+   "open_markers": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": 1
+   },
+   "packet_sections": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": [
+     3
+    ]
+   },
+   "time_to_obtain": {
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "value": "UNMEASURED"
+   }
+  },
+  "material_data": {
+   "customer_supplies": {
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "value": "UNMEASURED"
+   },
+   "open_markers": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": 1
+   },
+   "packet_sections": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": [
+     2
+    ]
+   },
+   "time_to_obtain": {
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "value": "UNMEASURED"
+   }
+  },
+  "requirements": {
+   "customer_supplies": {
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "value": "UNMEASURED"
+   },
+   "open_markers": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": 2
+   },
+   "packet_sections": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": [
+     1,
+     4
+    ]
+   },
+   "time_to_obtain": {
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "value": "UNMEASURED"
+   }
+  },
+  "solver": {
+   "customer_supplies": {
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "value": "UNMEASURED"
+   },
+   "open_markers": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": 1
+   },
+   "packet_sections": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": [
+     5
+    ]
+   },
+   "time_to_obtain": {
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly, and how long did it take to obtain? No artefact records either.",
+    "value": "UNMEASURED"
+   }
+  }
+ },
+ "network": {
+  "graphite_agents_vs_real_miners": {
+   "owner": "Test Lead and Launchpad",
+   "question": "Needs scored submissions from both populations on the same Challenge; none are recorded.",
+   "value": "UNMEASURED"
+  },
+  "incentive_canary_payout_correctness": {
+   "owner": "Test Lead",
+   "question": "INCENTIVE-CANARY-01 has not produced a record; which artefact will hold the payout check?",
+   "value": "UNMEASURED"
+  },
+  "leaderboard_improvement_over_time": {
+   "owner": "Test Lead",
+   "question": "No confirmed-recipe series exists until stage A confirmations are scored by a validator.",
+   "value": "UNMEASURED"
+  }
+ },
+ "outputs": {
+  "decision_quality_vs_cheap_baseline": {
+   "owner": "Data Collection",
+   "question": "The cheap-baseline note states performance NOT_MEASURED; who measures V4 and when?",
+   "source": "docs/development/challenge_pipeline/cheap-baselines/battery.md",
+   "value": "UNMEASURED"
+  },
+  "model_accuracy": {
+   "owner": "Data Collection",
+   "question": "Which reference-agreement measurement defines model accuracy for this Challenge, and where is it recorded?",
+   "value": "UNMEASURED"
+  },
+  "score_value_alignment": {
+   "source": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/q1_report.json",
+   "value": {
+    "kendall_tau_b": -0.47280542884465016,
+    "level": 0,
+    "members": 8,
+    "note": "one seed per recipe; a measurement, not a threshold",
+    "reference_provenance": "EV4_REFERENCE",
+    "spearman_rho": -0.5389318178609666
+   }
+  },
+  "speed_up_against_reference": {
+   "owner": "Data Collection",
+   "question": "The reference per-case cost (value-cost C1) and the surrogate's per-case time are both needed; neither is recorded for this Challenge.",
+   "value": "UNMEASURED"
+  }
+ },
+ "process": {
+  "blockers": {
+   "source": "docs/development/challenge_pipeline/onboarding/blocker_taxonomy.json",
+   "value": [
+    {
+     "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+     "id": "B1",
+     "name": "Wrong lane",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+     "id": "B2",
+     "name": "Keys in the wrong distro",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+     "id": "B3",
+     "name": "One controller per root",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "FIX_IN_PR_969_NOT_MERGED_NOT_EXERCISED_LIVE",
+     "id": "B4",
+     "name": "Pod ceiling below the offered price",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "VALUE_FIXED_IN_PR_969_CHECK_STILL_OPEN",
+     "id": "B5",
+     "name": "Token share and pod split",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "OPEN",
+     "id": "B6",
+     "name": "Reboot fragility",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "OPEN",
+     "id": "B7",
+     "name": "Auto-mode permission blocks",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+     "id": "B8",
+     "name": "Silent failures",
+     "time_lost": "UNKNOWN"
+    }
+   ]
+  },
+  "cost_per_stage": {
+   "owner": "Test Lead and executor",
+   "question": "Actual spend per stage lives in spend ledgers that stay out of the public repository; state each stage's spend as a fraction of its cap, or confirm it stays UNMEASURED here.",
+   "value": "UNMEASURED"
+  },
+  "cycle_days_per_stage": {
+   "owner": "Test Lead",
+   "question": "A first dated record is not the time spent. Which entry and exit records define each stage's cycle time?",
+   "value": "UNMEASURED"
+  },
+  "dated_stage_records": {
+   "source": "docs/development/challenge_pipeline/onboarding/cycle_metrics.jsonl",
+   "value": [
+    {
+     "date": "2026-10-06",
+     "event": "first_dated_record",
+     "stage": "S1_packet"
+    },
+    {
+     "date": "2026-10-06",
+     "event": "first_gate_run",
+     "stage": "S6_readiness"
+    },
+    {
+     "date": "2026-10-07",
+     "event": "first_dated_record",
+     "stage": "S3_feasibility_value_panel"
+    },
+    {
+     "date": "2026-10-08",
+     "event": "value_cost_framework",
+     "stage": "S3_feasibility_value_panel"
+    },
+    {
+     "date": "2026-10-08",
+     "event": "first_dated_record",
+     "stage": "S4_question_law"
+    },
+    {
+     "date": "2026-10-09",
+     "event": "baseline_2",
+     "stage": "S6_readiness"
+    },
+    {
+     "date": "2026-10-09",
+     "event": "stage_a_grants_approved",
+     "stage": "S7_stage_a"
+    },
+    {
+     "date": "2026-10-10",
+     "event": "l0_launch_ready",
+     "stage": "S6_readiness"
+    },
+    {
+     "date": "2026-10-10",
+     "event": "launch_preflight_merged",
+     "stage": "S7_stage_a"
+    }
+   ]
+  },
+  "grant_caps": {
+   "note": "Caps and run counts only, never a balance or an account.",
+   "source": "docs/development/graphite/grants",
+   "value": [
+    {
+     "cap": "53.77",
+     "grant_id": "GRAPHITE-GRANT-STAGE-A-ATTACKER",
+     "permitted_runs": 4,
+     "source": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-A-ATTACKER.json"
+    },
+    {
+     "cap": "74.67",
+     "grant_id": "GRAPHITE-GRANT-STAGE-A-CONSTRUCTOR",
+     "permitted_runs": 5,
+     "source": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-A-CONSTRUCTOR.json"
+    }
+   ]
+  },
+  "lessons_entries": {
+   "source": "carbon/challenge_pipeline/lessons",
+   "value": {
+    "by_stage": {
+     "design": 2,
+     "protocol": 2,
+     "test_iterate": 59
+    },
+    "count": 63,
+    "first": "2026-10-02T20:01:18Z",
+    "last": "2026-10-10T12:38:19Z"
+   }
+  },
+  "readiness_first_run": {
+   "source": "docs/development/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/history.jsonl",
+   "value": {
+    "counts": {
+     "FAIL": 3,
+     "NOT_BUILT": 22,
+     "PASS": 11,
+     "REVIEW_REQUIRED": 5
+    },
+    "level": 0,
+    "utc": "2026-10-06T16:11:56Z"
+   }
+  },
+  "readiness_latest_by_level": {
+   "source": "docs/development/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/history.jsonl",
+   "value": {
+    "0": {
+     "counts": {
+      "FAIL": 0,
+      "NOT_BUILT": 0,
+      "PASS": 22,
+      "PASS_BY_REVIEW": 15,
+      "REVIEW_REQUIRED": 0,
+      "WAIVED": 4
+     },
+     "green": false,
+     "utc": "2026-10-10T12:17:01Z"
+    },
+    "1": {
+     "counts": {
+      "FAIL": 2,
+      "NOT_BUILT": 0,
+      "PASS": 20,
+      "PASS_BY_REVIEW": 15,
+      "REVIEW_REQUIRED": 0,
+      "WAIVED": 4
+     },
+     "green": false,
+     "utc": "2026-10-10T12:27:25Z"
+    }
+   }
+  }
+ },
+ "rules": [
+  "A field is read from a cited artefact or it is UNMEASURED with an owner and a question; nothing is estimated.",
+  "Caps and rates only. No balance, account, spend ledger or hidden-pool material."
+ ],
+ "schema": "carbon.challenge-pipeline.brief-product-ledger.v1"
+}
