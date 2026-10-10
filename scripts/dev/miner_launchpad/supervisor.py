@@ -232,6 +232,15 @@ NEXT_ACTIONS = {
         "installer so your profile accepts this checkout and its images, then "
         "launch. Campaigns frozen under the earlier revision stay readable."
     ),
+    "campaign_frozen_on_old_revision": (
+        "This campaign was frozen under an earlier Carbon revision than the "
+        "one your runner profile accepts now, so it cannot practise, freeze "
+        "or submit on this checkout. Launch a new campaign, practise and "
+        "freeze the same recipe in it, then submit. Your hotkey's on-chain "
+        "commitment for that recipe still applies: it binds the Challenge, "
+        "its contract and the strategy, not the campaign, so there is "
+        "nothing to recommit. This campaign stays readable."
+    ),
     "campaign_readback_unavailable": (
         "This campaign's records could not be read back consistently. Nothing "
         "was changed. Export its record if you need it, and launch a new "

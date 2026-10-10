@@ -1,0 +1,29 @@
+{
+  "schema": "carbon.research.conditional-quote-example.v1",
+  "status": "DEVELOPMENT_SAMPLE_NOT_A_QUOTE",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "scope": "Historical 30-cycle reference-bank component; not current ambient-map-v3",
+  "source": "https://github.com/carbonphysicsai/Carbon/blob/93875b7dc68bed83562db199427a1cb91d7639a4/docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md",
+  "source_locator": "sections 1 and 7",
+  "range_semantics": "Scenario envelope, no probability or confidence coverage",
+  "inputs": {
+    "case_count": {"status": "ASSUMPTION", "unit": "cases", "low": 400, "base": 400, "high": 400},
+    "parallel_workers": {"status": "ASSUMPTION_HISTORICAL_CONFIGURATION", "unit": "workers", "low": 7, "base": 7, "high": 7},
+    "case_time": {"status": "ASSUMPTION_BASE_USES_SOURCED_MEDIAN", "unit": "seconds", "low": 50, "base": 71, "high": 150},
+    "occupancy": {"status": "ASSUMPTION", "unit": "fraction", "low_cost_scenario": 0.8, "base_cost_scenario": 0.65, "high_cost_scenario": 0.5},
+    "setup": {"status": "ASSUMPTION", "unit": "minutes", "low": 10, "base": 30, "high": 90},
+    "pod_hourly_price": {"status": "SOURCED_HISTORICAL_NOT_CURRENT_QUOTE", "unit": "USD/hour", "low": 0.49, "base": 0.49, "high": 0.49}
+  },
+  "formula_minutes": "setup + case_count * case_time / (60 * parallel_workers * occupancy)",
+  "formula_cost": "pod_hourly_price * minutes / 60",
+  "outputs": {
+    "reference_bank_minutes": {"status": "DERIVED_FROM_ASSUMPTIONS", "low": 69.52381, "base": 134.029304, "high": 375.714286},
+    "reference_bank_cost_USD": {"status": "DERIVED_FROM_ASSUMPTIONS", "low": 0.567778, "base": 1.094573, "high": 3.068333},
+    "total_cost_USD": {"status": "UNKNOWN", "low": null, "base": null, "high": null},
+    "total_elapsed_days": {"status": "UNKNOWN_BLOCKING_TAIL_UNBOUNDED", "low": null, "base": null, "high": null},
+    "current_v3_decision_quality": {"status": "UNMEASURED", "low": null, "base": null, "high": null}
+  },
+  "exclusions": ["Authoring and rights", "Controls and numerical refinements", "Failed jobs and retries", "Baseline construction", "Model construction", "Independent validation and adversarial tests", "Integration", "Network discovery", "Storage and support", "Lifecycle re-evidence"],
+  "ledger_rule": "Do not write these estimates into #975 measured fields",
+  "authority": "Owner commercial/scientific decisions remain HUMAN_INPUT; no execution or spend authorized"
+}

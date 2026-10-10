@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "recorded_at": "2026-10-10T19:12:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "expected": "Public source adapters retain recorded scope and gaps without qualification or unauthorized disclosure.",
+  "keep": [
+    "Reuse immutable public-source identities and keep historical evidence separate from present requirements."
+  ],
+  "change": [
+    "Complete the accepted buyer/evidence sections independently; extraction success is not acceptance."
+  ],
+  "protocol_elements": [
+    "lessons",
+    "customer deliverable",
+    "readiness"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED",
+  "lesson_id": "2026-10-10-deliverable-adapters-baseline",
+  "execution": {
+    "kind": "test_run",
+    "ref": "DELIVERABLE-ADAPTERS-01",
+    "description": "Focused existing generator baseline: 11 native tests passed before adapter changes."
+  },
+  "observed": "Existing reader, renderer, manual gaps and public projection remain the baseline."
+}

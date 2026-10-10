@@ -1,0 +1,458 @@
+{
+  "status": "DEVELOPMENT_SAMPLE",
+  "challenge": "motor",
+  "profile": "nasa-std-7009b",
+  "standard_rendering": {
+    "profile": "nasa-std-7009b",
+    "applicability": "HUMAN_INPUT",
+    "qualification_claim": false,
+    "section_mapping": [
+      {
+        "section": "D01",
+        "anchor": "§4.1.1.1 M&S 40; §4.3.1.1–2 M&S 22–23",
+        "source": "F3"
+      },
+      {
+        "section": "D02",
+        "anchor": "§4.1.1.4–5 M&S 42–43",
+        "source": "F3"
+      },
+      {
+        "section": "D03",
+        "anchor": "§4.2.1.6–7 M&S 13–14; §4.2.3.2 M&S 16; §4.2.5.2 M&S 18; §4.3.1.5 M&S 26",
+        "source": "F3"
+      },
+      {
+        "section": "D04",
+        "anchor": "§4.2.1.1 M&S 10; §4.2.3.1 M&S 15; §4.2.5.1 M&S 17",
+        "source": "F3"
+      },
+      {
+        "section": "D05",
+        "anchor": "§4.2.5.1–2 M&S 17–18; §4.3.6.1 M&S 31",
+        "source": "F3"
+      },
+      {
+        "section": "D06",
+        "anchor": "§4.2.7.1–2 M&S 19,21; §4.3.3.1–2 M&S 28–29; §4.3.5 M&S 30; §4.3.8.2–3 M&S 33–34",
+        "source": "F3"
+      },
+      {
+        "section": "D07",
+        "anchor": "§4.1.1.8 M&S 51; §4.3.5 M&S 30; §4.3.8.1 M&S 32",
+        "source": "F3"
+      },
+      {
+        "section": "D08",
+        "anchor": "§4.2.1.2–3 M&S 45–46; §4.3.1.3–4 M&S 24–25",
+        "source": "F3"
+      },
+      {
+        "section": "D09",
+        "anchor": "§4.3.1.5–6 M&S 26–27; §4.3.6.2 M&S 49",
+        "source": "F3"
+      },
+      {
+        "section": "D10",
+        "anchor": "§4.2.1.4,6 M&S 11,13; §4.3.8.1 M&S 32",
+        "source": "F3"
+      },
+      {
+        "section": "D11",
+        "anchor": "§4.1.1.3,7–8 M&S 41,9,51; §4.3.8.4–9 M&S 50,35–39; Appendix A",
+        "source": "F3"
+      }
+    ],
+    "factors": {
+      "capability": [
+        {
+          "name": "Data pedigree",
+          "anchor": "E.3.2",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D03",
+            "D04",
+            "D08"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Verification",
+          "anchor": "E.3.3",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D04",
+            "D08"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Validation",
+          "anchor": "E.3.4",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D04",
+            "D05"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Development technical review",
+          "anchor": "E.3.5",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D10",
+            "D11"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Development process/product management",
+          "anchor": "E.3.6",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D08",
+            "D11"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        }
+      ],
+      "results": [
+        {
+          "name": "Use assessment",
+          "anchor": "E.4.2",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D01",
+            "D03",
+            "D09"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Input pedigree",
+          "anchor": "E.4.3",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D03",
+            "D08"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Uncertainty characterization",
+          "anchor": "E.4.4",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D06"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Results robustness",
+          "anchor": "E.4.5",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D05",
+            "D07"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Use/analysis technical review",
+          "anchor": "E.4.6",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D10",
+            "D11"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Use process/product management",
+          "anchor": "E.4.7",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D08",
+            "D11"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        }
+      ]
+    }
+  },
+  "evidence_revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+  "framework_revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+  "membership_basis": "LOCAL_COMMITTED_GIT_OBJECT",
+  "sources": [
+    {
+      "id": "C1",
+      "path": "docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "c96842b9916ce159860b17e92f1cbd2cee6266e2",
+      "sha256": "d523d71f73053ffb83fa8ba9e5e7f9490db62a84739ed29cabfd838ad66df9c4",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "common packet specification"
+    },
+    {
+      "id": "C2",
+      "path": "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "65e65e7da5353bcfc689ebb4355601830dc3bcd6",
+      "sha256": "eb2e8fef4a93df2719dc3e97c0daa68c403acb70a8f3a7c150a690327e9a6bb1",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "current prospective robot-joint buyer packet; not historical runtime qualification"
+    },
+    {
+      "id": "C3",
+      "path": "docs/development/challenge_pipeline/cheap-baselines/motor.md",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "388c8dd5d9954f8f2e7aa39524afbb3ee69627ec",
+      "sha256": "a4cd7ac520efdd14080efeec2b4705ca53b87ee0574f87cb13ac653e33a6fa7c",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/cheap-baselines/motor.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "strong cheap comparator contract"
+    },
+    {
+      "id": "F1",
+      "path": "Business/research/deliverable-framework/TEMPLATE.md",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "7519d1ca8d101ba2956a7ff88e1af6fe93bf15c3",
+      "sha256": "83959e56d77e51bd382595ab301681e92de2cc481bb61300b221ce05b6dcaf38",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/Business/research/deliverable-framework/TEMPLATE.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "template"
+    },
+    {
+      "id": "F2",
+      "path": "Business/research/deliverable-framework/deliverable.schema.json",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "e5a9b8f042bd065f5995cdbb870eb6bb094123ed",
+      "sha256": "19aa4ceb442d68373420def20a7dbb1ec2733080f8f1fa083d0c489700a9a08e",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/Business/research/deliverable-framework/deliverable.schema.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "schema"
+    },
+    {
+      "id": "F3",
+      "path": "Business/research/deliverable-framework/STANDARDS.md",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "2f7db5abbf3e7fc7577e0700e9bddf8f2a2660f7",
+      "sha256": "8239f7a4faea896290e2fefd28af8cc5875149945dc132ce6512b6b245f6e502",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/Business/research/deliverable-framework/STANDARDS.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "standards crosswalk"
+    },
+    {
+      "id": "R1",
+      "path": "carbon/challenge_readiness/records/electric-motor-magnetics.v4.json",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "af8deecf3c012d1790a04652ab1e3b9d15425fd2",
+      "sha256": "f300c669ff82f08245e9b2c9d620324c7b73eec8798de21647ec79a0d53c68d2",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "public legacy runtime readiness/reviews, not new robot-joint qualification"
+    },
+    {
+      "id": "R2",
+      "path": "docs/development/evidence/motor-decision-counted-v2/README.md",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "50ef1031e89762be8789131c0513b418068acdc0",
+      "sha256": "ad36f304e17171ad55e546593d71febd3abd6b353ab88cc8fa3c5bdfd1963922",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/evidence/motor-decision-counted-v2/README.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "historical counted study; not current-packet evidence"
+    },
+    {
+      "id": "R3",
+      "path": "docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "55333ce82c138df7dcebd2019dde56d9cefc0b80",
+      "sha256": "188a4fd077b7a724a8a1bdf0cef4b9662dff1f29dfee85f134464fbac10ab3fc",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "historical aggregate comparison; held-out arm waiting for geometry/curves"
+    }
+  ],
+  "missing_sources": [],
+  "facts": [
+    {
+      "id": "MOTOR_HELD_OUT",
+      "source": "R3",
+      "locator": "/held_out/status",
+      "label": "Historical motor comparator coverage state (not a current physical verdict)",
+      "value": "HOLD_MISSING_GEOMETRY_AND_FULL_SIGNED_CURVES",
+      "kind": "gap",
+      "basis": "decision-value",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R3:/held_out/status](https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json)"
+    },
+    {
+      "id": "MOTOR_V4",
+      "source": "R3",
+      "locator": "/v4_disposition",
+      "label": "Historical report V4 disposition; no matched Carbon advantage established",
+      "value": "UNRESOLVED_NO_MATCHED_CARBON_ARM",
+      "kind": "gap",
+      "basis": "decision-value",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R3:/v4_disposition](https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json)"
+    },
+    {
+      "id": "MOTOR_LOOKUP_RESOLVED",
+      "source": "R3",
+      "locator": "/closed_bank/decision/summary/resolved",
+      "label": "Historical lookup-replay resolved questions, not generalization",
+      "value": "0",
+      "kind": "metadata",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [
+        {
+          "low": 0,
+          "base": 0,
+          "high": 0,
+          "basis": "SOURCED"
+        }
+      ],
+      "citation": "[R3:/closed_bank/decision/summary/resolved](https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json)"
+    },
+    {
+      "id": "MOTOR_LOOKUP_TOTAL",
+      "source": "R3",
+      "locator": "/closed_bank/decision/summary/total",
+      "label": "Historical lookup-replay total question denominator",
+      "value": "20",
+      "kind": "metadata",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [
+        {
+          "low": 20,
+          "base": 20,
+          "high": 20,
+          "basis": "SOURCED"
+        }
+      ],
+      "citation": "[R3:/closed_bank/decision/summary/total](https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json)"
+    },
+    {
+      "id": "REVIEW_customer",
+      "source": "R1",
+      "locator": "/reviews/customer/state",
+      "label": "Recorded customer review state",
+      "value": "NOT_STARTED",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/customer/state](https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json)"
+    },
+    {
+      "id": "REVIEW_launch",
+      "source": "R1",
+      "locator": "/reviews/launch/state",
+      "label": "Recorded launch review state",
+      "value": "NOT_STARTED",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/launch/state](https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json)"
+    },
+    {
+      "id": "REVIEW_numerical_reference",
+      "source": "R1",
+      "locator": "/reviews/numerical_reference/state",
+      "label": "Recorded numerical_reference review state",
+      "value": "NOT_STARTED",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/numerical_reference/state](https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json)"
+    },
+    {
+      "id": "REVIEW_scientific",
+      "source": "R1",
+      "locator": "/reviews/scientific/state",
+      "label": "Recorded scientific review state",
+      "value": "NOT_STARTED",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/scientific/state](https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json)"
+    },
+    {
+      "id": "REVIEW_security",
+      "source": "R1",
+      "locator": "/reviews/security/state",
+      "label": "Recorded security review state",
+      "value": "NOT_STARTED",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/security/state](https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json)"
+    }
+  ],
+  "extraction_gaps": [],
+  "qualification_claim": false
+}
