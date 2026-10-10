@@ -285,3 +285,60 @@ def test_weight_before_the_feed_releases_the_incumbent_is_unverified():
         frozenset(CANARY_HOTKEYS),
     )
     assert result["state"] == inc.BLOCKER
+
+
+# --- the incentive readback: weight became payment ---------------------------------
+
+
+def test_a_weighted_miner_with_incentive_is_paid_and_without_is_attention():
+    row = [[0, 65535], [5, 32767]]
+    paid = inc.verify_incentive(row, [43690, 0, 0, 0, 0, 21844, 0])
+    assert paid == [
+        {
+            "level": inc.PASS,
+            "code": "weighted_uid_paid",
+            "uid": 5,
+            "incentive": 0.333318,
+        }
+    ]
+    lagging = inc.verify_incentive(row, [65535, 0, 0, 0, 0, 0, 0])
+    assert lagging == [
+        {"level": inc.ATTENTION, "code": "weighted_uid_no_incentive", "uid": 5}
+    ]
+
+
+def test_a_miner_paid_by_another_validator_is_attention():
+    found = inc.verify_incentive([[0, 65535]], [40000, 0, 0, 25535])
+    assert found == [
+        {"level": inc.ATTENTION, "code": "incentive_not_from_this_validator", "uid": 3}
+    ]
+
+
+def test_check_folds_the_incentive_readback_into_its_state():
+    config = {
+        "schema": inc.SCHEMA,
+        "validator_hotkey": "5Validator",
+        "intake_url": "http://127.0.0.1:1",
+        "feed_key": "00" * 32,
+        "policy": "testnet-winner-v1",
+    }
+
+    async def weights(context, hotkey):
+        return (
+            [[0, 65535], [5, 32767]],
+            {0: "5Burn", 5: "5MinerA"},
+            [43690] + [0] * 4 + [21844],
+        )
+
+    class Testnet:
+        network = "testnet"
+
+    result = inc.check(
+        config,
+        weights_reader=weights,
+        incumbent_reader=lambda url, key: None,
+        context=Testnet(),
+    )
+    codes = [f["code"] for f in result["findings"]]
+    assert "weight_to_unreleased_incumbent" in codes and "weighted_uid_paid" in codes
+    assert result["state"] == inc.UNVERIFIED
