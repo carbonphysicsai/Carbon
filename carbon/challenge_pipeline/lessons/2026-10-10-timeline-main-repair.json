@@ -1,7 +1,7 @@
 {
   "schema": "carbon.challenge-pipeline.lesson.v1",
   "lesson_id": "2026-10-10-timeline-main-repair",
-  "recorded_at": "2026-10-10T20:10:00Z",
+  "recorded_at": "2026-10-10T21:28:21Z",
   "challenge": "protocol",
   "stage": "test_iterate",
   "execution": {"kind": "test_run", "ref": "ONBOARDING-TIMELINE-01", "description": "Resolve ledger conflict with current main; run timeline, status and ledger diagnostics."},
