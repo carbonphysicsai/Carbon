@@ -1,7 +1,7 @@
 {
   "schema": "carbon.challenge-pipeline.lesson.v1",
   "lesson_id": "2026-10-10-onboarding-packet-tests",
-  "recorded_at": "2026-10-10T18:00:00Z",
+  "recorded_at": "2026-10-10T17:32:48Z",
   "challenge": "protocol",
   "stage": "test_iterate",
   "execution": {"kind": "test_run", "ref": "ONBOARDING-AUTOMATION-01", "description": "Native UTF-8 generator and pipeline tests: 37 passed; pinned Black and Ruff passed; diff whitespace check passed. Native output is diagnostic; CI supplies canonical acceptance. Regenerated and text-diffed motor/battery packets in 0.001387/0.000865 s, excluding interpreter/human work."},

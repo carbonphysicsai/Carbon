@@ -40,3 +40,23 @@ effort baseline is supplied. Machine drafting time is measured separately;
 missing source verification and review work is not counted as saved.
 
 Hub is retired. Existing packets and frozen results remain unchanged.
+
+## Question law (02)
+
+`python -m carbon.challenge_pipeline.onboarding --root . law --brief motor-brief.json --law-source docs/development/challenge_pipeline/question-laws/motor-round2.json --panel <explicit-development-export.json>`
+
+The panel is optional: without it, diversity is UNKNOWN, not zero or a pass.
+Use only non-hidden DEVELOPMENT exports. KEEP `producer_panels.adapt_export`
+for family/identity/seal/reference validation and `diversity_report` for
+aggregate expected winners, feasible/none-feasible mix, close-call/refinement
+rates and exposure shortages. No raw cases, winners, curves or task seeds are
+emitted. P is not inferred from Q. This does not adopt a panel law or qualify
+the panel reference. Indexed battery tasks remain complete maps.
+
+`--law-source` is an optional, pinned-by-content crosswalk from the existing
+#919/#922/#927 proposal shapes. Their recommendations, caveats and missing
+values are retained as proposals, never approvals. k, E, B, action support and
+startup costs need owner/measurement decisions. B counts questions, not solves:
+shared physical cases and refinements must be priced independently. CPU-hours
+are not rented node-hours without measured throughput. TWO-band T2(a) requires
+five distinct designs on **each** side; drafting does not measure it.
