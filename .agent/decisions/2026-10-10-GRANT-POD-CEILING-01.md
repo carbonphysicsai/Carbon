@@ -36,3 +36,27 @@
 **Not done here.**
 - **No grant figure changes.** In particular, stage A's 0.65/h approval is
   recorded in its run record (the Test Lead), not in its grant file.
+
+**Amendment (2026-10-10): the standing 0.65/h ceiling on stages A, B and C.**
+- **Authority.**
+  - **The relayed approval.** The owner replied "approve a standing pod
+    ceiling for all stages" to the Test Lead's proposal of USD 0.65/h for
+    stages A to C.
+  - **Direct confirmation.** In the Test Engineer's session the owner
+    confirmed a ceiling of USD 0.65/h on all six stage grants, with the
+    Constructor token share lowered from 11.93 to USD 10.90. Stage caps are
+    unchanged.
+- **The change.**
+  - The six `GRAPHITE-GRANT-STAGE-{A,B,C}-{CONSTRUCTOR,ATTACKER}.json`
+    files carry `"pod_rate_ceiling_usd_per_hr": "0.65"`.
+  - The stage Constructors' registered token share is
+    `grant_binding.STAGE_TOKEN_SHARE`, 10.90 of each 14.91 run: five full
+    kimi-k3 reservations, with enough left for the session's pods at
+    0.65/h. R4 keeps 11.93 at the default ceiling.
+  - Every ceiling, run count and per-run cap is unchanged.
+- **The tests.**
+  - Every stage Constructor's budget opens at 0.65/h, with pods covered and
+    10.90 for tokens.
+  - Every stage Attacker still holds four full kimi-k3 calls; at 0.65/h its
+    model money is 11.45.
+  - R4's 11.93 at 0.65/h is still refused, typed.

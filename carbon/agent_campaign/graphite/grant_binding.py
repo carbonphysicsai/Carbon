@@ -177,6 +177,11 @@ def check_committed_blob(given, repository, grant_file, *, phase):
 # -- phase 3 ------------------------------------------------------------------------------
 #: The Graphite ladder wave's stage A (#889 section 4), approved by the owner.
 STAGE_A_AUTHORITY = "OWNER-GRAPHITE-STAGE-A-01"
+#: The stage Constructors' token share at the standing 0.65/h pod rate
+#: ceiling (GRANT-POD-CEILING-01, owner-confirmed): 10.90 of the 14.91 run
+#: (five full kimi-k3 reservations), leaving the session's pods enough at
+#: 0.65/h. R4 keeps 11.93 at the 0.49 default.
+STAGE_TOKEN_SHARE = Decimal("10.90")
 #: Stage B (GRAPHITE_LADDER_STAGE_B_PLAN.md section 7), approved by the owner.
 STAGE_B_AUTHORITY = "OWNER-GRAPHITE-STAGE-B-01"
 #: Stage C, Level 4 (GRAPHITE_LADDER_WAVE_PLAN.md section 4), approved by the owner.
@@ -255,7 +260,7 @@ PHASE3_GRANTS = types.MappingProxyType(
                 main_blob=True,
                 min_level=0,
                 start_model="kimi-k3",
-                token_share_usd=Decimal("11.93"),
+                token_share_usd=STAGE_TOKEN_SHARE,
                 authority=STAGE_A_AUTHORITY,
             ),
             Phase3Grant(
@@ -276,7 +281,7 @@ PHASE3_GRANTS = types.MappingProxyType(
                 min_level=2,
                 max_level=3,
                 start_model="kimi-k3",
-                token_share_usd=Decimal("11.93"),
+                token_share_usd=STAGE_TOKEN_SHARE,
                 authority=STAGE_B_AUTHORITY,
             ),
             Phase3Grant(
@@ -297,7 +302,7 @@ PHASE3_GRANTS = types.MappingProxyType(
                 min_level=4,
                 max_level=4,
                 start_model="kimi-k3",
-                token_share_usd=Decimal("11.93"),
+                token_share_usd=STAGE_TOKEN_SHARE,
                 authority=STAGE_C_AUTHORITY,
             ),
             Phase3Grant(

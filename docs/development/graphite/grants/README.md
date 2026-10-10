@@ -1054,3 +1054,14 @@ R4 (45.00, 3 runs, Level 1 and above) is unchanged and stays spendable.
   the session's pods too little; the run is then refused
   `grant_token_share_leaves_too_little_for_pods`, and the grant's token
   share or per-run worst case needs re-setting too.
+
+**Stages A, B and C (2026-10-10).**
+- **The approval.** The owner approved a standing 0.65/h ceiling for all
+  stages: "approve a standing pod ceiling for all stages", answering the
+  Test Lead's USD 0.65/h proposal. The owner confirmed it directly in the
+  Test Engineer's session, with the Constructor token share lowered to
+  USD 10.90.
+- **The change.** The six stage grant files carry
+  `pod_rate_ceiling_usd_per_hr` 0.65, and the stage Constructors' token
+  share is 10.90 (`grant_binding.STAGE_TOKEN_SHARE`).
+- **Unchanged:** stage caps, run counts and per-run caps.

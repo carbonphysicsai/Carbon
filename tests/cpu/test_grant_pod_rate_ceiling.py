@@ -39,7 +39,11 @@ def _document(**changes):
 def test_every_committed_grant_is_unchanged(path):
     document = json.loads(path.read_text())
     grant = SpendingGrant.from_document(document)
-    assert grant.pod_rate_ceiling_usd_per_hr is None
+    # The standing 0.65/h ceiling is on the stage grants only (owner-confirmed).
+    expected = (
+        Decimal("0.65") if path.name.startswith("GRAPHITE-GRANT-STAGE-") else None
+    )
+    assert grant.pod_rate_ceiling_usd_per_hr == expected
     assert grant.document() == document
 
 
@@ -91,12 +95,56 @@ def test_the_ceiling_reaches_pod_prices_and_the_run_budget():
     assert ex.phase3_budget(named, _battery()).hourly_usd == raised["hourly_usd"]
 
 
-def test_a_raised_ceiling_under_a_fixed_token_share_is_refused_not_silently_shrunk():
-    """Stage A's Constructor keeps R4's 11.93 token share of a 14.91 run: at
-    0.65 an hour its session's pods need more than the 2.98 left, so the run
-    is refused before anything opens. A raised ceiling needs its grant's
-    token share or per-run worst case re-set too (an owner figure)."""
-    stage_a = SpendingGrant.from_document(_document(pod_rate_ceiling_usd_per_hr="0.65"))
+#: kimi-k3's full-window reservation in USD (GRAPHITE-D35).
+KIMI_FULL_CALL = Decimal("2.0646912")
+STAGES = ("A", "B", "C")
+
+
+def _stage(name):
+    document = json.loads(
+        (
+            REPOSITORY
+            / "docs/development/graphite/grants"
+            / f"GRAPHITE-GRANT-STAGE-{name}.json"
+        ).read_text()
+    )
+    return SpendingGrant.from_document(
+        {**document, "expires_at": "2099-01-01T00:00:00Z"}
+    )
+
+
+def test_a_raised_ceiling_under_r4s_token_share_is_refused_not_silently_shrunk():
+    """R4's 11.93 token share of a 14.91 run at 0.65 an hour leaves the
+    session's pods too little: the run is refused before anything opens."""
+    r4 = json.loads(
+        (
+            REPOSITORY
+            / "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3-R4.json"
+        ).read_text()
+    )
+    raised = SpendingGrant.from_document(
+        {
+            **r4,
+            "expires_at": "2099-01-01T00:00:00Z",
+            "pod_rate_ceiling_usd_per_hr": "0.65",
+        }
+    )
     with pytest.raises(ex.BudgetRefused) as refused:
-        ex.phase3_budget(stage_a, _battery())
+        ex.phase3_budget(raised, _battery())
     assert refused.value.code == "grant_token_share_leaves_too_little_for_pods"
+
+
+@pytest.mark.parametrize("stage", STAGES)
+def test_every_stage_constructor_runs_at_the_standing_ceiling(stage):
+    budget = ex.phase3_budget(_stage(f"{stage}-CONSTRUCTOR"), _battery())
+    assert budget.hourly_usd == podlib.prices(Decimal("0.65"))["hourly_usd"]
+    assert budget.pod_allowance_usd >= budget.pods_need_usd
+    assert budget.token_allowance_usd == Decimal("10.90") >= 5 * KIMI_FULL_CALL
+
+
+@pytest.mark.parametrize("stage", STAGES)
+def test_every_stage_attacker_holds_four_kimi_k3_calls_at_the_standing_ceiling(stage):
+    from carbon.agent_campaign.graphite import phase4
+
+    budget = phase4.attacker_budget(_stage(f"{stage}-ATTACKER"), _battery())
+    assert budget.token_allowance_usd >= 4 * KIMI_FULL_CALL
