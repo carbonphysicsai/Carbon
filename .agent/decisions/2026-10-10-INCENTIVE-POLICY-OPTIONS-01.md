@@ -17,7 +17,8 @@ canary. Keep actual emission and receipts outside the model.
 
 **Location.** `scripts/dev/incentive_policy_options.py`, its manifest, curves,
 tests and `docs/development/incentive-policy-options/README.md` on
-`codex/incentive-policy-options-01`, stacked on #974.
+`codex/incentive-policy-options-01`, initially stacked on #974 and then
+reconciled to merged main for canonical CI.
 
 **Alternatives.** Treating every hotkey as an independent artifact reproduces
 the #974 vulnerability; capping targets without deduplicating screens leaves

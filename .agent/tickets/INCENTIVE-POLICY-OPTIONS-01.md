@@ -1,9 +1,9 @@
 # INCENTIVE-POLICY-OPTIONS-01 — development policy comparison
 
-**Status:** working contract. **Base:** PR #974 exact head
-`a54be94dbadca0596aa7457c28bf8616b9dadf36`; one stacked PR until
-#974 merges. **Authority:** owner request of 2026-10-10, AGENTS.md §14,
-`carbon/battery/exam.py`'s development comparison, and
+**Status:** working contract. **Starting base:** PR #974 exact head
+`a54be94dbadca0596aa7457c28bf8616b9dadf36`; reconciled to merged
+main after #974 merged. **Authority:** owner request of 2026-10-10,
+AGENTS.md §14, `carbon/battery/exam.py`'s development comparison, and
 `carbon/rewards/winner_decay.py`'s target arithmetic. The owner retains every
 margin, decay, duplicate-identity, attribution and emission policy decision.
 
