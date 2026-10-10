@@ -1,0 +1,570 @@
+{
+  "schema": "carbon.research.open-data-check.v1",
+  "ticket": "OPEN-DATA-CHECK-01",
+  "maturity": "SPECIFIED_RESEARCH_ONLY",
+  "source_cutoff": "2026-10-10",
+  "repository_base": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+  "scope": {
+    "solver_runs": 0,
+    "fitting_runs": 0,
+    "training_runs": 0,
+    "spend_grant": null,
+    "hidden_data_access": false,
+    "ax42_access": false,
+    "dispatch_ready": false,
+    "existing_packets_modified": false,
+    "adoption": "OWNER_DECISION"
+  },
+  "number_convention": "Scientific/cost estimates are sourced or ASSUMPTION low/base/high. IDs, checksums and version/date identities are not uncertainty intervals.",
+  "owner_motor_observation": {
+    "source": "OWNER_DIRECTION.md",
+    "independently_verified": false,
+    "torque_Nm": {
+      "low": 12.81,
+      "base": 12.81,
+      "high": 12.81
+    },
+    "measurement_uncertainty": "HUMAN_INPUT",
+    "raw_public_receipt": "HUMAN_INPUT",
+    "working_direction": "KEEP_MOTOR_PLANAR_TRANSFORMER_RESERVE",
+    "qualification_inferred": false
+  },
+  "rubric": {
+    "type": "ASSUMPTION_ORDINAL_0_TO_4",
+    "definition_source": "ASSESSMENT.md",
+    "actual_gain_distinct_from_potential": true,
+    "failed_rights_adequacy_or_feasibility_not_compensable": true
+  },
+  "sources": [
+    {
+      "source_id": "S01",
+      "url": "https://github.com/getdp-project/getdp/tree/259f4c38ce89c3ad4775aecf515840bd3331b0aa",
+      "asset_license": "GPL-2.0-or-later",
+      "inspection_scope": "Pinned license, geometry, formulation, shared inputs and material library read; no execution.",
+      "revision": "259f4c38ce89c3ad4775aecf515840bd3331b0aa",
+      "assets": [
+        {
+          "path": "LICENSE.txt",
+          "git_blob_sha": "47160aaeaa30fcace263e41e6fffea38b3151616"
+        },
+        {
+          "path": "tutorials/03-Magnetostatics/electromagnet.geo",
+          "git_blob_sha": "4873483b5064c18aa7c1a73d1e87e9e188b716e9"
+        },
+        {
+          "path": "tutorials/03-Magnetostatics/electromagnet.pro",
+          "git_blob_sha": "001ba001e5158bf28d8f72771a3790619826a19d"
+        },
+        {
+          "path": "tutorials/03-Magnetostatics/electromagnet_common.pro",
+          "git_blob_sha": "a66a5549e7968529a587c49e07238b4ceee8f832"
+        },
+        {
+          "path": "templates/Lib_Materials.pro",
+          "git_blob_sha": "6ec5f02bc75b83443b85debd7d754e5981da23c8"
+        }
+      ]
+    },
+    {
+      "source_id": "S02",
+      "url": "https://www.compumag.org/wp/wp-content/uploads/2018/06/problem20.pdf",
+      "asset_license": "HUMAN_INPUT",
+      "inspection_scope": "Specification text: three-dimensional benchmark; no explicit reusable asset license located.",
+      "disposition": "RIGHTS_NOT_CONFIRMED"
+    },
+    {
+      "source_id": "S03",
+      "url": "https://www.femm.info/doku/doku.php?id=MagneticsTutorial",
+      "asset_license": "HUMAN_INPUT",
+      "inspection_scope": "Public air-core winding tutorial; page-asset license not confirmed.",
+      "disposition": "WRONG_NONLINEAR_POLE_CASE"
+    },
+    {
+      "source_id": "S04",
+      "url": "https://journals.sagepub.com/doi/10.3233/JAE-180022",
+      "asset_license": "HUMAN_INPUT",
+      "inspection_scope": "Primary abstract only; full raw-data set and reuse rights not verified.",
+      "disposition": "PARTIAL_TEMPERATURE_RESEARCH"
+    },
+    {
+      "source_id": "S05",
+      "url": "https://darus.uni-stuttgart.de/dataset.xhtml?persistentId=doi:10.18419/DARUS-3147",
+      "asset_license": "CC-BY-4.0",
+      "inspection_scope": "Dataset metadata and revision-D PDF text; CAD not downloaded or executed.",
+      "doi": "10.18419/DARUS-3147",
+      "version": "1.0",
+      "assets": [
+        {
+          "file_id": 148576,
+          "url": "https://darus.uni-stuttgart.de/api/access/datafile/148576",
+          "metadata_checksum": "md5:b99a3b1220eaafd1499fa38cc11d219e",
+          "observed_checksum": "md5:b99a3b1220eaafd1499fa38cc11d219e",
+          "checksum_match": true,
+          "sha256": "dd3bea93420c24a9ffca947711390e0ad74ca33d2eb81d98fcf516e7943bd948"
+        }
+      ],
+      "disposition": "RIGHTS_VERIFIED_INGREDIENT"
+    },
+    {
+      "source_id": "S06",
+      "url": "https://publikationen.bibliothek.kit.edu/1000186977",
+      "asset_license": "CC-BY-NC-ND-4.0",
+      "inspection_scope": "Dataset description and asset-specific license read; no data reuse requested.",
+      "doi": "10.35097/yjdmucmycjkbm09g",
+      "disposition": "NOT_CLEARED_FOR_INTENDED_USE"
+    },
+    {
+      "source_id": "S07",
+      "url": "https://github.com/shm-unesp/DATASET_BOLTEDBEAM",
+      "asset_license": "NONCOMMERCIAL_SHAREALIKE_TERMS",
+      "inspection_scope": "README experiment/use conditions read; data not requested.",
+      "revision": "HUMAN_INPUT",
+      "disposition": "NOT_CLEARED_FOR_INTENDED_USE"
+    },
+    {
+      "source_id": "S08",
+      "url": "https://github.com/calculix/examples/tree/a079253398c05f96b019e8c07ce076e370ddeb75",
+      "asset_license": "HUMAN_INPUT",
+      "inspection_scope": "README and listed input texts read; root license not found in inspected tree.",
+      "revision": "a079253398c05f96b019e8c07ce076e370ddeb75",
+      "assets": [
+        {
+          "path": "README.md",
+          "git_blob_sha": "7347b865997c6c98d9b8bcacb31622cdebbf7a94"
+        },
+        {
+          "path": "ccx/test/bolt.inp",
+          "git_blob_sha": "4792496d81a227b4bbcdaa5607e16da00acd0d11"
+        },
+        {
+          "path": "materials/Rubber.inp",
+          "git_blob_sha": "4b78ecdbb64889caf3aa94631298836ba80be4ed"
+        }
+      ],
+      "disposition": "VERIFICATION_FIXTURE_RIGHTS_PENDING"
+    },
+    {
+      "source_id": "S09",
+      "url": "https://zenodo.org/records/14983287",
+      "asset_license": "CC-BY-4.0",
+      "inspection_scope": "Metadata and two archives inspected read-only; no fitting.",
+      "doi": "10.5281/zenodo.14983287",
+      "metadata_api": "https://zenodo.org/api/records/14983287",
+      "assets": [
+        {
+          "filename": "Uniaxial compression.zip",
+          "url": "https://zenodo.org/api/records/14983287/files/Uniaxial%20compression.zip/content",
+          "metadata_checksum": "md5:1d445b2cc7a2393e62b8017f69710ca0",
+          "observed_checksum": "md5:1d445b2cc7a2393e62b8017f69710ca0",
+          "checksum_match": true,
+          "inspected_csv": "Uniaxial compression/Dragon Skin 30 - 1.csv",
+          "csv_header": "Strain (%),Stress (MPa)"
+        },
+        {
+          "filename": "Uniaxial tension.zip",
+          "url": "https://zenodo.org/api/records/14983287/files/Uniaxial%20tension.zip/content",
+          "metadata_checksum": "md5:961fdf0eb7650941fcadf53b8650887d",
+          "observed_checksum": "md5:961fdf0eb7650941fcadf53b8650887d",
+          "checksum_match": true,
+          "inspected_csv": "Uniaxial tension/Dragon Skin 30 - 1.csv",
+          "csv_header": "Strain (%),Stress (MPa)"
+        }
+      ],
+      "paper_asset": {
+        "url": "https://cris.vub.be/ws/portalfiles/portal/139795529/main.pdf",
+        "license": "CC-BY-NC",
+        "separate_from_dataset_license": true
+      },
+      "disposition": "RIGHTS_VERIFIED_INGREDIENT"
+    },
+    {
+      "source_id": "S10",
+      "url": "https://zenodo.org/records/15187640",
+      "asset_license": "CC-BY-4.0",
+      "inspection_scope": "Metadata/context only, not curve/field download; no same-compound bridge to S09.",
+      "doi": "10.5281/zenodo.15187640",
+      "metadata_api": "https://zenodo.org/api/records/15187640",
+      "assets": [
+        {
+          "filename": "Force-displacement curves for biaxial experiments.zip",
+          "metadata_checksum": "md5:427c5113db3368e11079ab38f5e66de2",
+          "observed_checksum": null,
+          "checksum_match": null
+        }
+      ],
+      "disposition": "RIGHTS_VERIFIED_INGREDIENT"
+    },
+    {
+      "source_id": "S11",
+      "url": "https://ms.copernicus.org/articles/17/123/2026/ms-17-123-2026.html",
+      "asset_license": "CC-BY-4.0_PUBLICATION_ONLY",
+      "inspection_scope": "Methods and data availability inspected; confidential raw data explicitly withheld.",
+      "doi": "10.5194/ms-17-123-2026",
+      "raw_data_rights": "NOT_RELEASED",
+      "coefficient_table_visual_reconciliation": "HUMAN_INPUT",
+      "disposition": "PUBLISHED_PARAMETER_MODEL_RAW_WITHHELD"
+    },
+    {
+      "source_id": "S12",
+      "url": "https://www.mdpi.com/1996-1944/15/24/8810/pdf",
+      "asset_license": "CC-BY-4.0_PUBLICATION_ONLY",
+      "inspection_scope": "Parameter tables, inferred friction and availability statement read; no raw archive established.",
+      "doi": "10.3390/ma15248810",
+      "disposition": "PUBLISHED_PARAMETER_MODEL"
+    },
+    {
+      "source_id": "S13",
+      "url": "https://ansys.synopsys.com/content/dam/resource-center/case-study/cost-function-optimization-applied-proportional-solenoid.pdf",
+      "asset_license": "COPYRIGHT_PUBLIC_CASE_STUDY",
+      "inspection_scope": "Downloaded; Workflow section text read; no reuse of design/calibration assets.",
+      "disposition": "INCUMBENT_METAMODEL_EVIDENCE"
+    }
+  ],
+  "carbon_source_ids": {
+    "R01": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/magnetics-first-panels/solenoid-pole.md",
+    "R02": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/replacements/bolted-joint.md",
+    "R03": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/replacements/seal-gland.md",
+    "R04": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/replacements/scenarios.json",
+    "R05": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/cheap-baselines/README.md",
+    "R06": "../../Business_Canon.md",
+    "R07": "../deliverable-framework/FRAMEWORK.md",
+    "R08": "https://github.com/carbonphysicsai/Carbon/pull/995"
+  },
+  "candidates": [
+    {
+      "id": "bolted-joint",
+      "proposal_source_id": "R02",
+      "source_ids": [
+        "S05",
+        "S06",
+        "S07",
+        "S08"
+      ],
+      "full_open_set_confirmed": false,
+      "launch_disposition": "HOLD_OPEN_SET_NOT_CONFIRMED",
+      "future_status": "CUSTOMER_DATA_DESIGN_CANDIDATE",
+      "requirements": [
+        {
+          "input": "matched_bracket_geometry_and_action_grammar",
+          "source_ids": [
+            "S05",
+            "S08"
+          ],
+          "status": "HUMAN_INPUT",
+          "complete_for_original_job": false
+        },
+        {
+          "input": "member_bolt_constitutive_strength_domain",
+          "source_ids": [
+            "S05",
+            "S08"
+          ],
+          "status": "HUMAN_INPUT",
+          "complete_for_original_job": false
+        },
+        {
+          "input": "applicable_faying_friction_and_uncertainty",
+          "source_ids": [
+            "S06",
+            "S07"
+          ],
+          "status": "HUMAN_INPUT",
+          "complete_for_original_job": false
+        },
+        {
+          "input": "force_preload_assembly_and_scatter",
+          "source_ids": [
+            "S05",
+            "S06"
+          ],
+          "status": "HUMAN_INPUT",
+          "complete_for_original_job": false
+        },
+        {
+          "input": "service_history_and_acceptance_limits",
+          "source_ids": [
+            "R02"
+          ],
+          "status": "HUMAN_INPUT",
+          "complete_for_original_job": false
+        },
+        {
+          "input": "contact_pretension_observer_and_convergence_witness",
+          "source_ids": [
+            "S08"
+          ],
+          "status": "HUMAN_INPUT",
+          "complete_for_original_job": false
+        }
+      ],
+      "research_priority_assumption": 1,
+      "score_basis": "ASSUMPTION_ORDINAL_SCENARIOS_NOT_CONFIDENCE_INTERVALS",
+      "scores_low_base_high": {
+        "shortcut_difficulty": [
+          2,
+          3,
+          3
+        ],
+        "equal_budget_gain_potential": [
+          0,
+          2,
+          2
+        ],
+        "equal_budget_gain_evidence": [
+          0,
+          0,
+          0
+        ]
+      },
+      "measured_objective_gain": {
+        "low": null,
+        "base": null,
+        "high": null,
+        "unit": "HUMAN_INPUT",
+        "source": "NO_EQUAL_BUDGET_EXPERIMENT"
+      },
+      "measured_value_per_euro": null,
+      "historical_bank_startup_eur": {
+        "basis": "ASSUMPTION_NOT_ALL_IN_QUOTE",
+        "low": 26.107364,
+        "base": 42.084304,
+        "high": 93.210512,
+        "source_id": "R04",
+        "json_pointer": "/cards/bolted-joint/startup_eur_scenario"
+      },
+      "matched_campaign_cost_eur": {
+        "low": null,
+        "base": null,
+        "high": null,
+        "status": "HUMAN_INPUT"
+      },
+      "narrow_rehearsal_hypothesis": "Separately specified licensed TRC assembly numerical rehearsal; matched friction/preload still missing.",
+      "value_lost_by_narrowing": "Different structural decision from compact eccentric bracket; no slip/strength acceptance claim."
+    },
+    {
+      "id": "solenoid-pole",
+      "proposal_source_id": "R01",
+      "source_ids": [
+        "S01",
+        "S02",
+        "S03",
+        "S04",
+        "S13"
+      ],
+      "full_open_set_confirmed": false,
+      "launch_disposition": "HOLD_OPEN_SET_NOT_CONFIRMED",
+      "future_status": "CUSTOMER_DATA_DESIGN_CANDIDATE",
+      "requirements": [
+        {
+          "input": "matched_pot_yoke_geometry_and_action_grammar",
+          "source_ids": [
+            "S01",
+            "S02"
+          ],
+          "status": "HUMAN_INPUT",
+          "complete_for_original_job": false
+        },
+        {
+          "input": "steel_process_and_BH_over_mandatory_temperatures",
+          "source_ids": [
+            "S01",
+            "S02",
+            "S04"
+          ],
+          "status": "HUMAN_INPUT",
+          "complete_for_original_job": false
+        },
+        {
+          "input": "winding_and_resistive_loss_over_temperature",
+          "source_ids": [
+            "S03",
+            "R01"
+          ],
+          "status": "HUMAN_INPUT",
+          "complete_for_original_job": false
+        },
+        {
+          "input": "force_envelope_and_package_electrical_limits",
+          "source_ids": [
+            "R01"
+          ],
+          "status": "HUMAN_INPUT",
+          "complete_for_original_job": false
+        },
+        {
+          "input": "axisymmetric_force_coenergy_and_loss_observer_witness",
+          "source_ids": [
+            "S01"
+          ],
+          "status": "HUMAN_INPUT",
+          "complete_for_original_job": false
+        },
+        {
+          "input": "permanent_magnet_curves",
+          "source_ids": [
+            "R01"
+          ],
+          "status": "NOT_APPLICABLE_NON_PM_ARCHITECTURE",
+          "complete_for_original_job": null
+        }
+      ],
+      "research_priority_assumption": 2,
+      "score_basis": "ASSUMPTION_ORDINAL_SCENARIOS_NOT_CONFIDENCE_INTERVALS",
+      "scores_low_base_high": {
+        "shortcut_difficulty": [
+          1,
+          2,
+          3
+        ],
+        "equal_budget_gain_potential": [
+          0,
+          1,
+          2
+        ],
+        "equal_budget_gain_evidence": [
+          0,
+          0,
+          0
+        ]
+      },
+      "measured_objective_gain": {
+        "low": null,
+        "base": null,
+        "high": null,
+        "unit": "HUMAN_INPUT",
+        "source": "NO_EQUAL_BUDGET_EXPERIMENT"
+      },
+      "measured_value_per_euro": null,
+      "historical_bank_startup_eur": {
+        "basis": "ASSUMPTION_NOT_ALL_IN_QUOTE",
+        "low": 18.982953,
+        "base": 26.368212,
+        "high": 46.062236,
+        "source_id": "R04",
+        "json_pointer": "/cards/solenoid-pole/startup_eur_scenario"
+      },
+      "matched_campaign_cost_eur": {
+        "low": null,
+        "base": null,
+        "high": null,
+        "status": "HUMAN_INPUT"
+      },
+      "narrow_rehearsal_hypothesis": "Separately specified fixed-condition open-law electromagnet numerical rehearsal; force/geometry route still needs specification.",
+      "value_lost_by_narrowing": "Drops mandatory hot-material/winding and complete least-loss actuator envelope decision."
+    },
+    {
+      "id": "seal-gland",
+      "proposal_source_id": "R03",
+      "source_ids": [
+        "S08",
+        "S09",
+        "S10",
+        "S11",
+        "S12"
+      ],
+      "full_open_set_confirmed": false,
+      "launch_disposition": "HOLD_OPEN_SET_NOT_CONFIRMED",
+      "future_status": "CUSTOMER_DATA_DESIGN_CANDIDATE",
+      "requirements": [
+        {
+          "input": "selected_same_compound_supported_strain_temperature_domain",
+          "source_ids": [
+            "S09",
+            "S10",
+            "S12"
+          ],
+          "status": "HUMAN_INPUT",
+          "complete_for_original_job": false
+        },
+        {
+          "input": "compressibility_and_constitutive_stability",
+          "source_ids": [
+            "S09",
+            "S11",
+            "S12"
+          ],
+          "status": "HUMAN_INPUT",
+          "complete_for_original_job": false
+        },
+        {
+          "input": "same_compound_metal_lubricant_friction",
+          "source_ids": [
+            "S11",
+            "S12"
+          ],
+          "status": "HUMAN_INPUT",
+          "complete_for_original_job": false
+        },
+        {
+          "input": "complete_gland_support_geometry_and_history",
+          "source_ids": [
+            "S11",
+            "S12"
+          ],
+          "status": "HUMAN_INPUT",
+          "complete_for_original_job": false
+        },
+        {
+          "input": "pressure_temperature_contact_extrusion_acceptance",
+          "source_ids": [
+            "R03",
+            "S11"
+          ],
+          "status": "HUMAN_INPUT",
+          "complete_for_original_job": false
+        },
+        {
+          "input": "incompressible_contact_force_observer_witness",
+          "source_ids": [
+            "S08"
+          ],
+          "status": "HUMAN_INPUT",
+          "complete_for_original_job": false
+        }
+      ],
+      "research_priority_assumption": 3,
+      "score_basis": "ASSUMPTION_ORDINAL_SCENARIOS_NOT_CONFIDENCE_INTERVALS",
+      "scores_low_base_high": {
+        "shortcut_difficulty": [
+          1,
+          2,
+          3
+        ],
+        "equal_budget_gain_potential": [
+          0,
+          1,
+          2
+        ],
+        "equal_budget_gain_evidence": [
+          0,
+          0,
+          0
+        ]
+      },
+      "measured_objective_gain": {
+        "low": null,
+        "base": null,
+        "high": null,
+        "unit": "HUMAN_INPUT",
+        "source": "NO_EQUAL_BUDGET_EXPERIMENT"
+      },
+      "measured_value_per_euro": null,
+      "historical_bank_startup_eur": {
+        "basis": "ASSUMPTION_NOT_ALL_IN_QUOTE",
+        "low": 20.21383,
+        "base": 28.829965,
+        "high": 53.447495,
+        "source_id": "R04",
+        "json_pointer": "/cards/seal-gland/startup_eur_scenario"
+      },
+      "matched_campaign_cost_eur": {
+        "low": null,
+        "base": null,
+        "high": null,
+        "status": "HUMAN_INPUT"
+      },
+      "narrow_rehearsal_hypothesis": "Separately specified material-calibration/component-compression rehearsal from one licensed family.",
+      "value_lost_by_narrowing": "Drops pressured gland/support and thermal-service design; no leakage or lifetime claim."
+    }
+  ]
+}
