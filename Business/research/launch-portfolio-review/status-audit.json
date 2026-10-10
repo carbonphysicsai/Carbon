@@ -1,0 +1,2963 @@
+{
+  "schema": "carbon.research.launch-portfolio-status-audit.v1",
+  "ticket": "LAUNCH-PORTFOLIO-REVIEW-01",
+  "execution": "NATIVE_READ_ONLY_PUBLIC_SNAPSHOT_DIAGNOSTIC",
+  "scope": "Public documents at pinned main; status implementation and bindings at PR979. No hidden bank or AX42 access. No readiness tests or physics solves. Not current-checkout acceptance.",
+  "repository_basis": "NO_GIT_CHECKOUT_MIXED_PINNED_PUBLIC_SNAPSHOT",
+  "reports": [
+    {
+      "challenge": "battery-v3",
+      "current_stage": "UNDETERMINED_WITHOUT_VERIFIED_EXIT_EVIDENCE",
+      "observed_artifact_stages": [
+        "S0_brief",
+        "S1_packet",
+        "S2_solver_package",
+        "S3_feasibility_value_panel",
+        "S4_question_law"
+      ],
+      "basis": {
+        "repository": {
+          "sha": null,
+          "dirty": null
+        },
+        "stage_map_sha256": "497fcef58124351f8dbb1c05fc539ece11ce85d72b9813b632efc6cb0c752be7",
+        "bindings_sha256": "982856c5120e382cb4173da2778eff174e34d1329a06fcdd11b0fab10487311c"
+      },
+      "binding_status": "CONFIGURED",
+      "tested_challenge_claim": false,
+      "limit": "Reports source-backed draft/gap/snapshot progress. No stage exit is adjudicated from file presence; independent stage acceptance remains with #970 owners.",
+      "stages": [
+        {
+          "id": "S0_brief",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md"
+          ]
+        },
+        {
+          "id": "S1_packet",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md"
+          ]
+        },
+        {
+          "id": "S2_solver_package",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json"
+          ]
+        },
+        {
+          "id": "S3_feasibility_value_panel",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 2,
+            "read": 2
+          },
+          "blockers": [
+            {
+              "path": "docs/development/challenge_pipeline/question-laws/battery-v3-middle-bands-panel.json",
+              "state": "READ",
+              "gap_count": 4
+            }
+          ],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/value-cost/battery.md",
+            "docs/development/challenge_pipeline/question-laws/battery-v3-middle-bands-panel.json"
+          ]
+        },
+        {
+          "id": "S4_question_law",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [
+            {
+              "path": "docs/development/challenge_pipeline/question-laws/battery-v3-round2.json",
+              "state": "READ",
+              "gap_count": 11
+            }
+          ],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/question-laws/battery-v3-round2.json"
+          ]
+        },
+        {
+          "id": "S5_bank",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S6_readiness",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 0
+          },
+          "blockers": [
+            {
+              "path": "docs/development/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/history.jsonl",
+              "state": "MALFORMED_OR_UNVERIFIED",
+              "gap_count": 0
+            }
+          ],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/history.jsonl"
+          ]
+        },
+        {
+          "id": "S7_stage_a",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S8_stage_b",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S9_stage_c",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S10_tested",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        }
+      ]
+    },
+    {
+      "challenge": "motor",
+      "current_stage": "UNDETERMINED_WITHOUT_VERIFIED_EXIT_EVIDENCE",
+      "observed_artifact_stages": [
+        "S0_brief",
+        "S1_packet",
+        "S2_solver_package",
+        "S3_feasibility_value_panel",
+        "S4_question_law",
+        "S6_readiness"
+      ],
+      "basis": {
+        "repository": {
+          "sha": null,
+          "dirty": null
+        },
+        "stage_map_sha256": "497fcef58124351f8dbb1c05fc539ece11ce85d72b9813b632efc6cb0c752be7",
+        "bindings_sha256": "982856c5120e382cb4173da2778eff174e34d1329a06fcdd11b0fab10487311c"
+      },
+      "binding_status": "CONFIGURED",
+      "tested_challenge_claim": false,
+      "limit": "Reports source-backed draft/gap/snapshot progress. No stage exit is adjudicated from file presence; independent stage acceptance remains with #970 owners.",
+      "stages": [
+        {
+          "id": "S0_brief",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md"
+          ]
+        },
+        {
+          "id": "S1_packet",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md"
+          ]
+        },
+        {
+          "id": "S2_solver_package",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "carbon/challenge_readiness/records/electric-motor-magnetics.v4.json"
+          ]
+        },
+        {
+          "id": "S3_feasibility_value_panel",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 2,
+            "read": 2
+          },
+          "blockers": [
+            {
+              "path": "docs/development/challenge_pipeline/question-laws/motor-round2.json",
+              "state": "READ",
+              "gap_count": 37
+            }
+          ],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/value-cost/motor.md",
+            "docs/development/challenge_pipeline/question-laws/motor-round2.json"
+          ]
+        },
+        {
+          "id": "S4_question_law",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [
+            {
+              "path": "docs/development/challenge_pipeline/question-laws/motor-round2.json",
+              "state": "READ",
+              "gap_count": 37
+            }
+          ],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/question-laws/motor-round2.json"
+          ]
+        },
+        {
+          "id": "S5_bank",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S6_readiness",
+          "progress": "HISTORICAL_READINESS_NOT_CURRENT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [
+            {
+              "path": "docs/development/challenge_pipeline/readiness/electric-motor-magnetics/history.jsonl",
+              "state": "HISTORICAL_READINESS_NOT_CURRENT",
+              "counts": {
+                "FAIL": 5,
+                "NOT_BUILT": 25,
+                "PASS": 6,
+                "REVIEW_REQUIRED": 5
+              }
+            }
+          ],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/readiness/electric-motor-magnetics/history.jsonl"
+          ]
+        },
+        {
+          "id": "S7_stage_a",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S8_stage_b",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S9_stage_c",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S10_tested",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        }
+      ]
+    },
+    {
+      "challenge": "cooling-cell",
+      "current_stage": "UNDETERMINED_WITHOUT_VERIFIED_EXIT_EVIDENCE",
+      "observed_artifact_stages": [
+        "S0_brief",
+        "S1_packet",
+        "S2_solver_package",
+        "S3_feasibility_value_panel",
+        "S4_question_law"
+      ],
+      "basis": {
+        "repository": {
+          "sha": null,
+          "dirty": null
+        },
+        "stage_map_sha256": "497fcef58124351f8dbb1c05fc539ece11ce85d72b9813b632efc6cb0c752be7",
+        "bindings_sha256": "982856c5120e382cb4173da2778eff174e34d1329a06fcdd11b0fab10487311c"
+      },
+      "binding_status": "CONFIGURED",
+      "tested_challenge_claim": false,
+      "limit": "Reports source-backed draft/gap/snapshot progress. No stage exit is adjudicated from file presence; independent stage acceptance remains with #970 owners.",
+      "stages": [
+        {
+          "id": "S0_brief",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/round1/cooling-cell-v3.md"
+          ]
+        },
+        {
+          "id": "S1_packet",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/round1/cooling-cell-v3.md"
+          ]
+        },
+        {
+          "id": "S2_solver_package",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "carbon/challenge_readiness/records/chip-cold-plate.v6.json"
+          ]
+        },
+        {
+          "id": "S3_feasibility_value_panel",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/value-cost/cooling-cell.md"
+          ]
+        },
+        {
+          "id": "S4_question_law",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [
+            {
+              "path": "docs/development/challenge_pipeline/question-laws/proposals-v2.json",
+              "state": "READ",
+              "gap_count": 38
+            }
+          ],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/question-laws/proposals-v2.json"
+          ]
+        },
+        {
+          "id": "S5_bank",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S6_readiness",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S7_stage_a",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S8_stage_b",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S9_stage_c",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S10_tested",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        }
+      ]
+    },
+    {
+      "challenge": "f02",
+      "current_stage": "UNDETERMINED_WITHOUT_VERIFIED_EXIT_EVIDENCE",
+      "observed_artifact_stages": [
+        "S0_brief",
+        "S1_packet",
+        "S3_feasibility_value_panel",
+        "S4_question_law"
+      ],
+      "basis": {
+        "repository": {
+          "sha": null,
+          "dirty": null
+        },
+        "stage_map_sha256": "497fcef58124351f8dbb1c05fc539ece11ce85d72b9813b632efc6cb0c752be7",
+        "bindings_sha256": "982856c5120e382cb4173da2778eff174e34d1329a06fcdd11b0fab10487311c"
+      },
+      "binding_status": "CONFIGURED",
+      "tested_challenge_claim": false,
+      "limit": "Reports source-backed draft/gap/snapshot progress. No stage exit is adjudicated from file presence; independent stage acceptance remains with #970 owners.",
+      "stages": [
+        {
+          "id": "S0_brief",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/round1/f02-burst-thermal.md"
+          ]
+        },
+        {
+          "id": "S1_packet",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/round1/f02-burst-thermal.md"
+          ]
+        },
+        {
+          "id": "S2_solver_package",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S3_feasibility_value_panel",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/value-cost/f02.md"
+          ]
+        },
+        {
+          "id": "S4_question_law",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [
+            {
+              "path": "docs/development/challenge_pipeline/question-laws/f02-round2.json",
+              "state": "READ",
+              "gap_count": 12
+            }
+          ],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/question-laws/f02-round2.json"
+          ]
+        },
+        {
+          "id": "S5_bank",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S6_readiness",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S7_stage_a",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S8_stage_b",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S9_stage_c",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S10_tested",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        }
+      ]
+    },
+    {
+      "challenge": "f06",
+      "current_stage": "UNDETERMINED_WITHOUT_VERIFIED_EXIT_EVIDENCE",
+      "observed_artifact_stages": [
+        "S0_brief",
+        "S1_packet",
+        "S2_solver_package",
+        "S3_feasibility_value_panel",
+        "S4_question_law"
+      ],
+      "basis": {
+        "repository": {
+          "sha": null,
+          "dirty": null
+        },
+        "stage_map_sha256": "497fcef58124351f8dbb1c05fc539ece11ce85d72b9813b632efc6cb0c752be7",
+        "bindings_sha256": "982856c5120e382cb4173da2778eff174e34d1329a06fcdd11b0fab10487311c"
+      },
+      "binding_status": "CONFIGURED",
+      "tested_challenge_claim": false,
+      "limit": "Reports source-backed draft/gap/snapshot progress. No stage exit is adjudicated from file presence; independent stage acceptance remains with #970 owners.",
+      "stages": [
+        {
+          "id": "S0_brief",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/round1/f06-grating-coupler.md"
+          ]
+        },
+        {
+          "id": "S1_packet",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/round1/f06-grating-coupler.md"
+          ]
+        },
+        {
+          "id": "S2_solver_package",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/solver-package-specs/f06-meep.md"
+          ]
+        },
+        {
+          "id": "S3_feasibility_value_panel",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 2,
+            "read": 2
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/value-cost/f06.md",
+            "docs/development/challenge_pipeline/solver-package-specs/f06-resolution-cost/analysis.json"
+          ]
+        },
+        {
+          "id": "S4_question_law",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [
+            {
+              "path": "docs/development/challenge_pipeline/question-laws/proposals.json",
+              "state": "READ",
+              "gap_count": 100
+            }
+          ],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/question-laws/proposals.json"
+          ]
+        },
+        {
+          "id": "S5_bank",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S6_readiness",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S7_stage_a",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S8_stage_b",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S9_stage_c",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S10_tested",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        }
+      ]
+    },
+    {
+      "challenge": "f08",
+      "current_stage": "UNDETERMINED_WITHOUT_VERIFIED_EXIT_EVIDENCE",
+      "observed_artifact_stages": [
+        "S0_brief",
+        "S1_packet",
+        "S3_feasibility_value_panel",
+        "S4_question_law"
+      ],
+      "basis": {
+        "repository": {
+          "sha": null,
+          "dirty": null
+        },
+        "stage_map_sha256": "497fcef58124351f8dbb1c05fc539ece11ce85d72b9813b632efc6cb0c752be7",
+        "bindings_sha256": "982856c5120e382cb4173da2778eff174e34d1329a06fcdd11b0fab10487311c"
+      },
+      "binding_status": "CONFIGURED",
+      "tested_challenge_claim": false,
+      "limit": "Reports source-backed draft/gap/snapshot progress. No stage exit is adjudicated from file presence; independent stage acceptance remains with #970 owners.",
+      "stages": [
+        {
+          "id": "S0_brief",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/round1/f08-resonance-structure.md"
+          ]
+        },
+        {
+          "id": "S1_packet",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/round1/f08-resonance-structure.md"
+          ]
+        },
+        {
+          "id": "S2_solver_package",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S3_feasibility_value_panel",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/value-cost/f08.md"
+          ]
+        },
+        {
+          "id": "S4_question_law",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [
+            {
+              "path": "docs/development/challenge_pipeline/question-laws/proposals.json",
+              "state": "READ",
+              "gap_count": 100
+            }
+          ],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/question-laws/proposals.json"
+          ]
+        },
+        {
+          "id": "S5_bank",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S6_readiness",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S7_stage_a",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S8_stage_b",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S9_stage_c",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S10_tested",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        }
+      ]
+    },
+    {
+      "challenge": "f13",
+      "current_stage": "UNDETERMINED_WITHOUT_VERIFIED_EXIT_EVIDENCE",
+      "observed_artifact_stages": [
+        "S0_brief",
+        "S1_packet",
+        "S3_feasibility_value_panel",
+        "S4_question_law"
+      ],
+      "basis": {
+        "repository": {
+          "sha": null,
+          "dirty": null
+        },
+        "stage_map_sha256": "497fcef58124351f8dbb1c05fc539ece11ce85d72b9813b632efc6cb0c752be7",
+        "bindings_sha256": "982856c5120e382cb4173da2778eff174e34d1329a06fcdd11b0fab10487311c"
+      },
+      "binding_status": "CONFIGURED",
+      "tested_challenge_claim": false,
+      "limit": "Reports source-backed draft/gap/snapshot progress. No stage exit is adjudicated from file presence; independent stage acceptance remains with #970 owners.",
+      "stages": [
+        {
+          "id": "S0_brief",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md"
+          ]
+        },
+        {
+          "id": "S1_packet",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md"
+          ]
+        },
+        {
+          "id": "S2_solver_package",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S3_feasibility_value_panel",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 2,
+            "read": 2
+          },
+          "blockers": [
+            {
+              "path": "docs/development/challenge_pipeline/round1/f13-power-balance-diagnosis.json",
+              "state": "READ",
+              "gap_count": 2
+            }
+          ],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/value-cost/f13.md",
+            "docs/development/challenge_pipeline/round1/f13-power-balance-diagnosis.json"
+          ]
+        },
+        {
+          "id": "S4_question_law",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [
+            {
+              "path": "docs/development/challenge_pipeline/question-laws/proposals.json",
+              "state": "READ",
+              "gap_count": 100
+            }
+          ],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/question-laws/proposals.json"
+          ]
+        },
+        {
+          "id": "S5_bank",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S6_readiness",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S7_stage_a",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S8_stage_b",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S9_stage_c",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S10_tested",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        }
+      ]
+    },
+    {
+      "challenge": "f17",
+      "current_stage": "UNDETERMINED_WITHOUT_VERIFIED_EXIT_EVIDENCE",
+      "observed_artifact_stages": [
+        "S0_brief",
+        "S1_packet",
+        "S2_solver_package",
+        "S3_feasibility_value_panel",
+        "S4_question_law"
+      ],
+      "basis": {
+        "repository": {
+          "sha": null,
+          "dirty": null
+        },
+        "stage_map_sha256": "497fcef58124351f8dbb1c05fc539ece11ce85d72b9813b632efc6cb0c752be7",
+        "bindings_sha256": "982856c5120e382cb4173da2778eff174e34d1329a06fcdd11b0fab10487311c"
+      },
+      "binding_status": "CONFIGURED",
+      "tested_challenge_claim": false,
+      "limit": "Reports source-backed draft/gap/snapshot progress. No stage exit is adjudicated from file presence; independent stage acceptance remains with #970 owners.",
+      "stages": [
+        {
+          "id": "S0_brief",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md"
+          ]
+        },
+        {
+          "id": "S1_packet",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md"
+          ]
+        },
+        {
+          "id": "S2_solver_package",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/solver-package-specs/f17-openfoam.md"
+          ]
+        },
+        {
+          "id": "S3_feasibility_value_panel",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/value-cost/f17.md"
+          ]
+        },
+        {
+          "id": "S4_question_law",
+          "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 1,
+            "read": 1
+          },
+          "blockers": [
+            {
+              "path": "docs/development/challenge_pipeline/question-laws/proposals.json",
+              "state": "READ",
+              "gap_count": 100
+            }
+          ],
+          "artifact_paths": [
+            "docs/development/challenge_pipeline/question-laws/proposals.json"
+          ]
+        },
+        {
+          "id": "S5_bank",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S6_readiness",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S7_stage_a",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S8_stage_b",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S9_stage_c",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S10_tested",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        }
+      ]
+    },
+    {
+      "challenge": "d012",
+      "current_stage": "UNDETERMINED_WITHOUT_VERIFIED_EXIT_EVIDENCE",
+      "observed_artifact_stages": [],
+      "basis": {
+        "repository": {
+          "sha": null,
+          "dirty": null
+        },
+        "stage_map_sha256": "497fcef58124351f8dbb1c05fc539ece11ce85d72b9813b632efc6cb0c752be7",
+        "bindings_sha256": "982856c5120e382cb4173da2778eff174e34d1329a06fcdd11b0fab10487311c"
+      },
+      "binding_status": "HUMAN_INPUT_ARTIFACT_BINDINGS",
+      "tested_challenge_claim": false,
+      "limit": "Reports source-backed draft/gap/snapshot progress. No stage exit is adjudicated from file presence; independent stage acceptance remains with #970 owners.",
+      "stages": [
+        {
+          "id": "S0_brief",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S1_packet",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S2_solver_package",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S3_feasibility_value_panel",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S4_question_law",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S5_bank",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S6_readiness",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S7_stage_a",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S8_stage_b",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S9_stage_c",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S10_tested",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        }
+      ]
+    },
+    {
+      "challenge": "d077",
+      "current_stage": "UNDETERMINED_WITHOUT_VERIFIED_EXIT_EVIDENCE",
+      "observed_artifact_stages": [],
+      "basis": {
+        "repository": {
+          "sha": null,
+          "dirty": null
+        },
+        "stage_map_sha256": "497fcef58124351f8dbb1c05fc539ece11ce85d72b9813b632efc6cb0c752be7",
+        "bindings_sha256": "982856c5120e382cb4173da2778eff174e34d1329a06fcdd11b0fab10487311c"
+      },
+      "binding_status": "HUMAN_INPUT_ARTIFACT_BINDINGS",
+      "tested_challenge_claim": false,
+      "limit": "Reports source-backed draft/gap/snapshot progress. No stage exit is adjudicated from file presence; independent stage acceptance remains with #970 owners.",
+      "stages": [
+        {
+          "id": "S0_brief",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S1_packet",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S2_solver_package",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S3_feasibility_value_panel",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S4_question_law",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S5_bank",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S6_readiness",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S7_stage_a",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S8_stage_b",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S9_stage_c",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S10_tested",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        }
+      ]
+    },
+    {
+      "challenge": "d076",
+      "current_stage": "UNDETERMINED_WITHOUT_VERIFIED_EXIT_EVIDENCE",
+      "observed_artifact_stages": [],
+      "basis": {
+        "repository": {
+          "sha": null,
+          "dirty": null
+        },
+        "stage_map_sha256": "497fcef58124351f8dbb1c05fc539ece11ce85d72b9813b632efc6cb0c752be7",
+        "bindings_sha256": "982856c5120e382cb4173da2778eff174e34d1329a06fcdd11b0fab10487311c"
+      },
+      "binding_status": "HUMAN_INPUT_ARTIFACT_BINDINGS",
+      "tested_challenge_claim": false,
+      "limit": "Reports source-backed draft/gap/snapshot progress. No stage exit is adjudicated from file presence; independent stage acceptance remains with #970 owners.",
+      "stages": [
+        {
+          "id": "S0_brief",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S1_packet",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S2_solver_package",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S3_feasibility_value_panel",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S4_question_law",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S5_bank",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S6_readiness",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S7_stage_a",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S8_stage_b",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S9_stage_c",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S10_tested",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        }
+      ]
+    },
+    {
+      "challenge": "d006",
+      "current_stage": "UNDETERMINED_WITHOUT_VERIFIED_EXIT_EVIDENCE",
+      "observed_artifact_stages": [],
+      "basis": {
+        "repository": {
+          "sha": null,
+          "dirty": null
+        },
+        "stage_map_sha256": "497fcef58124351f8dbb1c05fc539ece11ce85d72b9813b632efc6cb0c752be7",
+        "bindings_sha256": "982856c5120e382cb4173da2778eff174e34d1329a06fcdd11b0fab10487311c"
+      },
+      "binding_status": "HUMAN_INPUT_ARTIFACT_BINDINGS",
+      "tested_challenge_claim": false,
+      "limit": "Reports source-backed draft/gap/snapshot progress. No stage exit is adjudicated from file presence; independent stage acceptance remains with #970 owners.",
+      "stages": [
+        {
+          "id": "S0_brief",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S1_packet",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S2_solver_package",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S3_feasibility_value_panel",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S4_question_law",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S5_bank",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S6_readiness",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S7_stage_a",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S8_stage_b",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S9_stage_c",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        },
+        {
+          "id": "S10_tested",
+          "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+          "exit_verified": false,
+          "what_was_checked": {
+            "configured": 0,
+            "read": 0
+          },
+          "blockers": [],
+          "artifact_paths": []
+        }
+      ]
+    }
+  ],
+  "artifact_details": {
+    "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md": {
+      "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+      "sha256": "a6c1fef9469b47f933c40d0cddf2441270db771412f1b4dadf60c7ba5fa637a4",
+      "state": "READ",
+      "size_bytes": 9305,
+      "numbered_sections": 10,
+      "human_input_markers": 4
+    },
+    "carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json": {
+      "path": "carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+      "sha256": "f657bd8dfa1144ade3d58fd07e3d8115d8786b55bb0ff2168bbc30f141071c9c",
+      "state": "READ",
+      "size_bytes": 9771,
+      "gaps": []
+    },
+    "docs/development/challenge_pipeline/value-cost/battery.md": {
+      "path": "docs/development/challenge_pipeline/value-cost/battery.md",
+      "sha256": "6d71009b9826235261024fabfe1d1b319f54e38832135808f882b04fa0f7edec",
+      "state": "READ",
+      "size_bytes": 8960,
+      "numbered_sections": 0,
+      "human_input_markers": 1
+    },
+    "docs/development/challenge_pipeline/question-laws/battery-v3-middle-bands-panel.json": {
+      "path": "docs/development/challenge_pipeline/question-laws/battery-v3-middle-bands-panel.json",
+      "sha256": "d5befd6524a060684c1174e9d9a73c93bc25ab4e689d02e318e81a9d021f9b32",
+      "state": "READ",
+      "size_bytes": 5190,
+      "gaps": [
+        {
+          "field": "accepted_manifest_digest",
+          "state": null
+        },
+        {
+          "field": "dispatch_grant",
+          "state": null
+        },
+        {
+          "field": "slice.status",
+          "state": "HUMAN_INPUT_PANEL_RECOMMENDATION"
+        },
+        {
+          "field": "stage_B.status",
+          "state": "HUMAN_INPUT_LATER_ACCEPTED_PLAN_ONLY"
+        }
+      ]
+    },
+    "docs/development/challenge_pipeline/question-laws/battery-v3-round2.json": {
+      "path": "docs/development/challenge_pipeline/question-laws/battery-v3-round2.json",
+      "sha256": "9c98c03ffdd7ebce9817929a7a057187347f68646dc380d70cfc8df13ef536a6",
+      "state": "READ",
+      "size_bytes": 4440,
+      "gaps": [
+        {
+          "field": "registered_P",
+          "state": null
+        },
+        {
+          "field": "registered_Q",
+          "state": null
+        },
+        {
+          "field": "registered_outer_w",
+          "state": null
+        },
+        {
+          "field": "P_recommendation.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "Q_recommendation.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "question.k.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "question.k.registered",
+          "state": null
+        },
+        {
+          "field": "question.exposure_E.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "question.exposure_E.registered",
+          "state": null
+        },
+        {
+          "field": "question.none_feasible_policy.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "question.none_feasible_policy.registered",
+          "state": null
+        }
+      ]
+    },
+    "docs/development/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/history.jsonl": {
+      "path": "docs/development/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/history.jsonl",
+      "sha256": "8b2f3222ac318dc233db26b7b30404bd05379b7802b637dc45dbecf872bf6408",
+      "state": "MALFORMED_OR_UNVERIFIED",
+      "size_bytes": 28214
+    },
+    "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md": {
+      "path": "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+      "sha256": "eb2e8fef4a93df2719dc3e97c0daa68c403acb70a8f3a7c150a690327e9a6bb1",
+      "state": "READ",
+      "size_bytes": 19262,
+      "numbered_sections": 10,
+      "human_input_markers": 8
+    },
+    "carbon/challenge_readiness/records/electric-motor-magnetics.v4.json": {
+      "path": "carbon/challenge_readiness/records/electric-motor-magnetics.v4.json",
+      "sha256": "f300c669ff82f08245e9b2c9d620324c7b73eec8798de21647ec79a0d53c68d2",
+      "state": "READ",
+      "size_bytes": 9898,
+      "gaps": []
+    },
+    "docs/development/challenge_pipeline/value-cost/motor.md": {
+      "path": "docs/development/challenge_pipeline/value-cost/motor.md",
+      "sha256": "4508ec595189a4a5c96467280dadd83da61d96fcda844c8d085462254654571e",
+      "state": "READ",
+      "size_bytes": 7884,
+      "numbered_sections": 0,
+      "human_input_markers": 1
+    },
+    "docs/development/challenge_pipeline/question-laws/motor-round2.json": {
+      "path": "docs/development/challenge_pipeline/question-laws/motor-round2.json",
+      "sha256": "bdae930ac8bf999bfd312c5488db8f8f26d42b2bd8d6c471ec01f3de0933b56a",
+      "state": "READ",
+      "size_bytes": 7123,
+      "gaps": [
+        {
+          "field": "action_space.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "action_space.registered",
+          "state": null
+        },
+        {
+          "field": "P_job.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "P_job.registered",
+          "state": null
+        },
+        {
+          "field": "P_case.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "P_case.registered",
+          "state": null
+        },
+        {
+          "field": "Q.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "Q.registered",
+          "state": null
+        },
+        {
+          "field": "w.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "w.registered",
+          "state": null
+        },
+        {
+          "field": "requirements[0].status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "requirements[0].registered",
+          "state": null
+        },
+        {
+          "field": "requirements[1].status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "requirements[1].registered",
+          "state": null
+        },
+        {
+          "field": "requirements[2].status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "requirements[2].registered",
+          "state": null
+        },
+        {
+          "field": "requirements[3].status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "requirements[3].registered",
+          "state": null
+        },
+        {
+          "field": "requirements[4].status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "requirements[4].registered",
+          "state": null
+        },
+        {
+          "field": "objective.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "objective.registered",
+          "state": null
+        },
+        {
+          "field": "k.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "k.registered",
+          "state": null
+        },
+        {
+          "field": "NONE_FEASIBLE.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "NONE_FEASIBLE.registered",
+          "state": null
+        },
+        {
+          "field": "reference_uncertainty.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "reference_uncertainty.registered",
+          "state": null
+        },
+        {
+          "field": "T2a.reference_interval_adopted",
+          "state": false
+        },
+        {
+          "field": "T2a.per_boundary_status",
+          "state": "NOT_DEMONSTRATED"
+        },
+        {
+          "field": "T2a.full_buyer_status",
+          "state": "HOLD"
+        },
+        {
+          "field": "public_export.physical_coordinates_and_full_signed_curves",
+          "state": "AWAITING_REEXPORT"
+        },
+        {
+          "field": "bank.Q3_n.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "bank.Q3_n.registered",
+          "state": null
+        },
+        {
+          "field": "bank.Q3_B.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "bank.Q3_B.registered",
+          "state": null
+        },
+        {
+          "field": "cost.CCX63_throughput",
+          "state": null
+        }
+      ]
+    },
+    "docs/development/challenge_pipeline/readiness/electric-motor-magnetics/history.jsonl": {
+      "path": "docs/development/challenge_pipeline/readiness/electric-motor-magnetics/history.jsonl",
+      "sha256": "ca91ef6b3c6678791d70f2b1d260f3bdf3725e0bb219cb2fe8c288ce244f3dfc",
+      "state": "READ",
+      "size_bytes": 5499,
+      "readiness_snapshot": {
+        "sha": "30a6230b9fb4e7c5205d2407b9934259b88e0071",
+        "dirty": false,
+        "counts": {
+          "FAIL": 5,
+          "NOT_BUILT": 25,
+          "PASS": 6,
+          "REVIEW_REQUIRED": 5
+        },
+        "partial": false,
+        "green": false,
+        "launch_ready": null,
+        "report_digest": "sha256:796cc90242eab6530f0d1770bab2c309f2f6cd20d9283da1cfe5a84721b80703",
+        "items_checked": 41,
+        "report_verified": true
+      }
+    },
+    "docs/development/challenge_pipeline/round1/cooling-cell-v3.md": {
+      "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+      "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429",
+      "state": "READ",
+      "size_bytes": 12593,
+      "numbered_sections": 10,
+      "human_input_markers": 7
+    },
+    "carbon/challenge_readiness/records/chip-cold-plate.v6.json": {
+      "path": "carbon/challenge_readiness/records/chip-cold-plate.v6.json",
+      "sha256": "c1e5097fd7f338754bd1c4bbb7800350c0f5437372bf1f3d3e1df6476026cc8a",
+      "state": "READ",
+      "size_bytes": 11960,
+      "gaps": []
+    },
+    "docs/development/challenge_pipeline/value-cost/cooling-cell.md": {
+      "path": "docs/development/challenge_pipeline/value-cost/cooling-cell.md",
+      "sha256": "422f9a6e0bb21524d22f78e60d4d8cf218621405de52214fa7931009204ffe38",
+      "state": "READ",
+      "size_bytes": 8327,
+      "numbered_sections": 0,
+      "human_input_markers": 1
+    },
+    "docs/development/challenge_pipeline/question-laws/proposals-v2.json": {
+      "path": "docs/development/challenge_pipeline/question-laws/proposals-v2.json",
+      "sha256": "8466a835c23df62aa09112904545a3cc247f3f15fc0692d65c265fdfe6d7c2ee",
+      "state": "READ",
+      "size_bytes": 8509,
+      "gaps": [
+        {
+          "field": "challenges[0].service_contexts.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].service_contexts.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[0].requirement_axes[0].status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].requirement_axes[0].registered",
+          "state": null
+        },
+        {
+          "field": "challenges[0].requirement_axes[0].continuous_interval.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].requirement_axes[0].continuous_interval.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[0].requirement_axes[1].status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].requirement_axes[1].registered",
+          "state": null
+        },
+        {
+          "field": "challenges[0].requirement_axes[1].continuous_interval.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].requirement_axes[1].continuous_interval.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[0].objective.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].objective.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[0].bank_candidates.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].bank_candidates.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[0].questions_per_batch.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].questions_per_batch.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[0].continuous_variant.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].continuous_variant.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].service_contexts.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].service_contexts.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].requirement_axes[0].status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].requirement_axes[0].registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].requirement_axes[0].continuous_interval.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].requirement_axes[0].continuous_interval.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].requirement_axes[1].status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].requirement_axes[1].registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].requirement_axes[1].continuous_interval.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].requirement_axes[1].continuous_interval.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].spreader_properties.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].spreader_properties.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].objective.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].objective.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].bank_candidates.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].bank_candidates.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].questions_per_batch.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].questions_per_batch.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].continuous_variant.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].continuous_variant.registered",
+          "state": null
+        }
+      ]
+    },
+    "docs/development/challenge_pipeline/round1/f02-burst-thermal.md": {
+      "path": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+      "sha256": "e4d3ce14fde60ed5e9e2990ceb735f62357d6b16b9fcb34e9a8df9ed63ffd4bb",
+      "state": "READ",
+      "size_bytes": 11281,
+      "numbered_sections": 10,
+      "human_input_markers": 5
+    },
+    "docs/development/challenge_pipeline/value-cost/f02.md": {
+      "path": "docs/development/challenge_pipeline/value-cost/f02.md",
+      "sha256": "63c427e63ba8a6f4a122d83869d118358de1255d58c8090dd08f81849bbb9211",
+      "state": "READ",
+      "size_bytes": 7845,
+      "numbered_sections": 0,
+      "human_input_markers": 1
+    },
+    "docs/development/challenge_pipeline/question-laws/f02-round2.json": {
+      "path": "docs/development/challenge_pipeline/question-laws/f02-round2.json",
+      "sha256": "914e3f28b05474790837030984335f6254eb23156cc60b19fea395aecfe95702",
+      "state": "READ",
+      "size_bytes": 2147,
+      "gaps": [
+        {
+          "field": "p_job.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "p_job.registered",
+          "state": null
+        },
+        {
+          "field": "q_job.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "q_job.registered",
+          "state": null
+        },
+        {
+          "field": "w_job.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "w_job.registered",
+          "state": null
+        },
+        {
+          "field": "action_proposal.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "action_proposal.registered",
+          "state": null
+        },
+        {
+          "field": "k.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "k.registered",
+          "state": null
+        },
+        {
+          "field": "bank_recommendation.registered",
+          "state": null
+        },
+        {
+          "field": "t2a.status",
+          "state": "HUMAN_INPUT"
+        }
+      ]
+    },
+    "docs/development/challenge_pipeline/round1/f06-grating-coupler.md": {
+      "path": "docs/development/challenge_pipeline/round1/f06-grating-coupler.md",
+      "sha256": "572b8e7264467e0993d5fdb8ee8a259af3de84ffe19ec4e49b585bc83507141f",
+      "state": "READ",
+      "size_bytes": 10791,
+      "numbered_sections": 10,
+      "human_input_markers": 5
+    },
+    "docs/development/challenge_pipeline/solver-package-specs/f06-meep.md": {
+      "path": "docs/development/challenge_pipeline/solver-package-specs/f06-meep.md",
+      "sha256": "4b5a06be366829c82f88f67eb10f8d48debd5f000497ec05eb6d80aa60685287",
+      "state": "READ",
+      "size_bytes": 10918,
+      "numbered_sections": 5,
+      "human_input_markers": 8
+    },
+    "docs/development/challenge_pipeline/value-cost/f06.md": {
+      "path": "docs/development/challenge_pipeline/value-cost/f06.md",
+      "sha256": "6f03019bfce7367dc26de1f1cefed9428304bad68503769f0f710e4e82f41535",
+      "state": "READ",
+      "size_bytes": 8198,
+      "numbered_sections": 0,
+      "human_input_markers": 1
+    },
+    "docs/development/challenge_pipeline/solver-package-specs/f06-resolution-cost/analysis.json": {
+      "path": "docs/development/challenge_pipeline/solver-package-specs/f06-resolution-cost/analysis.json",
+      "sha256": "bb3e5ad5b86548455a21ad5b92ca23f9b2a25a1aeec73482967f9a468b5776cd",
+      "state": "READ",
+      "size_bytes": 2157,
+      "gaps": []
+    },
+    "docs/development/challenge_pipeline/question-laws/proposals.json": {
+      "path": "docs/development/challenge_pipeline/question-laws/proposals.json",
+      "sha256": "c27149f55d7ae69718e3e71eea0c07b12a68d723aaa8f7ecaf1b39c2c0030744",
+      "state": "READ",
+      "size_bytes": 26348,
+      "gaps": [
+        {
+          "field": "common.variant_selection.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "common.variant_selection.registered",
+          "state": null
+        },
+        {
+          "field": "common.continuous_P.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "common.continuous_P.registered",
+          "state": null
+        },
+        {
+          "field": "common.continuous_Q.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "common.continuous_Q.registered",
+          "state": null
+        },
+        {
+          "field": "common.continuous_w.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "common.continuous_w.registered",
+          "state": null
+        },
+        {
+          "field": "common.winner_expectation_method.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "common.winner_expectation_method.registered",
+          "state": null
+        },
+        {
+          "field": "common.close_call_method.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "common.close_call_method.registered",
+          "state": null
+        },
+        {
+          "field": "common.P.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "common.P.registered",
+          "state": null
+        },
+        {
+          "field": "common.Q.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "common.Q.registered",
+          "state": null
+        },
+        {
+          "field": "common.w.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "common.w.registered",
+          "state": null
+        },
+        {
+          "field": "common.questions_per_underlying_window_draw.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "common.questions_per_underlying_window_draw.registered",
+          "state": null
+        },
+        {
+          "field": "common.minimum_distinct_resolved_picks_per_batch.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "common.minimum_distinct_resolved_picks_per_batch.registered",
+          "state": null
+        },
+        {
+          "field": "common.exposure_E.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "common.exposure_E.registered",
+          "state": null
+        },
+        {
+          "field": "common.near_limit_bands.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "common.near_limit_bands.registered",
+          "state": null
+        },
+        {
+          "field": "common.feasible_none_feasible_mix.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "common.feasible_none_feasible_mix.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[0].service_contexts.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].service_contexts.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[0].requirement_axes[0].status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].requirement_axes[0].registered",
+          "state": null
+        },
+        {
+          "field": "challenges[0].requirement_axes[0].continuous_interval.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].requirement_axes[0].continuous_interval.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[0].requirement_axes[1].status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].requirement_axes[1].registered",
+          "state": null
+        },
+        {
+          "field": "challenges[0].requirement_axes[1].continuous_interval.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].requirement_axes[1].continuous_interval.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[0].requirement_axes[2].status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].requirement_axes[2].registered",
+          "state": null
+        },
+        {
+          "field": "challenges[0].requirement_axes[2].continuous_interval.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].requirement_axes[2].continuous_interval.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[0].objective.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].objective.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[0].bank_candidates.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].bank_candidates.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[0].questions_per_batch.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].questions_per_batch.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[0].continuous_variant.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[0].continuous_variant.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].service_contexts.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].service_contexts.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].requirement_axes[0].status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].requirement_axes[0].registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].requirement_axes[0].continuous_interval.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].requirement_axes[0].continuous_interval.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].requirement_axes[1].status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].requirement_axes[1].registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].requirement_axes[1].continuous_interval.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].requirement_axes[1].continuous_interval.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].requirement_axes[2].status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].requirement_axes[2].registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].requirement_axes[2].continuous_interval.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].requirement_axes[2].continuous_interval.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].requirement_axes[3].status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].requirement_axes[3].registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].requirement_axes[3].continuous_interval.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].requirement_axes[3].continuous_interval.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].requirement_axes[4].status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].requirement_axes[4].registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].requirement_axes[4].continuous_interval.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].requirement_axes[4].continuous_interval.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].objective.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].objective.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].bank_candidates.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].bank_candidates.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].questions_per_batch.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].questions_per_batch.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[1].continuous_variant.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[1].continuous_variant.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[2].service_contexts.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[2].service_contexts.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[2].requirement_axes[0].status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[2].requirement_axes[0].registered",
+          "state": null
+        },
+        {
+          "field": "challenges[2].requirement_axes[0].continuous_interval.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[2].requirement_axes[0].continuous_interval.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[2].requirement_axes[1].status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[2].requirement_axes[1].registered",
+          "state": null
+        },
+        {
+          "field": "challenges[2].requirement_axes[1].continuous_interval.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[2].requirement_axes[1].continuous_interval.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[2].objective.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[2].objective.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[2].bank_candidates.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[2].bank_candidates.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[2].questions_per_batch.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[2].questions_per_batch.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[2].continuous_variant.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[2].continuous_variant.registered",
+          "state": null
+        },
+        {
+          "field": "challenges[3].service_contexts.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "challenges[3].service_contexts.registered",
+          "state": null
+        }
+      ]
+    },
+    "docs/development/challenge_pipeline/round1/f08-resonance-structure.md": {
+      "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+      "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404",
+      "state": "READ",
+      "size_bytes": 9944,
+      "numbered_sections": 10,
+      "human_input_markers": 6
+    },
+    "docs/development/challenge_pipeline/value-cost/f08.md": {
+      "path": "docs/development/challenge_pipeline/value-cost/f08.md",
+      "sha256": "361c47b91c9c1045200239843f04c5913033ebd63fea01f67782534d8baec4d2",
+      "state": "READ",
+      "size_bytes": 7931,
+      "numbered_sections": 0,
+      "human_input_markers": 2
+    },
+    "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md": {
+      "path": "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md",
+      "sha256": "397361ad8340ccbc19f07e2a025fb9c9c29934a9b1159e0c7000fc1e061fdde0",
+      "state": "READ",
+      "size_bytes": 10399,
+      "numbered_sections": 10,
+      "human_input_markers": 6
+    },
+    "docs/development/challenge_pipeline/value-cost/f13.md": {
+      "path": "docs/development/challenge_pipeline/value-cost/f13.md",
+      "sha256": "2f431a12f8e0ad03cfba2b3e751f5481b2b5859eec9ad9a34a2e83aa73970700",
+      "state": "READ",
+      "size_bytes": 8915,
+      "numbered_sections": 0,
+      "human_input_markers": 3
+    },
+    "docs/development/challenge_pipeline/round1/f13-power-balance-diagnosis.json": {
+      "path": "docs/development/challenge_pipeline/round1/f13-power-balance-diagnosis.json",
+      "sha256": "f36699d3ac7b1294b08fb338c63a1610be679ea22e0cd21d33d38535f3fb5ac0",
+      "state": "READ",
+      "size_bytes": 2213,
+      "gaps": [
+        {
+          "field": "verification_proposal.lead_tl_tolerance_db.status",
+          "state": "HUMAN_INPUT"
+        },
+        {
+          "field": "verification_proposal.lead_tl_tolerance_db.registered",
+          "state": null
+        }
+      ]
+    },
+    "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md": {
+      "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+      "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c",
+      "state": "READ",
+      "size_bytes": 9991,
+      "numbered_sections": 10,
+      "human_input_markers": 6
+    },
+    "docs/development/challenge_pipeline/solver-package-specs/f17-openfoam.md": {
+      "path": "docs/development/challenge_pipeline/solver-package-specs/f17-openfoam.md",
+      "sha256": "33872ebdffb8ab9afc1ea676b40ddc26414bbf492f1580405196a06115c66b07",
+      "state": "READ",
+      "size_bytes": 9251,
+      "numbered_sections": 5,
+      "human_input_markers": 5
+    },
+    "docs/development/challenge_pipeline/value-cost/f17.md": {
+      "path": "docs/development/challenge_pipeline/value-cost/f17.md",
+      "sha256": "1c9b9855369e62f84f91f966e00c415a4012ebff8c7e5574051fa1fd2b8b29a3",
+      "state": "READ",
+      "size_bytes": 9449,
+      "numbered_sections": 0,
+      "human_input_markers": 3
+    }
+  },
+  "projection": "Lossless deduplication of artifact details by path; stage gap lists are referenced through artifact_details, with gap_count on blockers. No gaps truncated. Exact tool states preserved."
+}

@@ -1,0 +1,290 @@
+{
+ "brief": {
+  "current_decision": {
+   "source": "docs/development/challenge_pipeline/value-cost/analysis.md",
+   "value": "Precision-joint magnetic shortlist"
+  },
+  "scorecard_disposition": {
+   "source": "docs/development/challenge_pipeline/value-cost/analysis.md",
+   "value": "Await revised-space S3 T1/T2; no additional reframe now"
+  },
+  "unresolved_or_adverse_evidence": {
+   "source": "docs/development/challenge_pipeline/value-cost/analysis.md",
+   "value": "Old-space failure is not a result for 10p/12s/skew; complete refined receipt missing"
+  }
+ },
+ "challenge": "electric-motor-magnetics",
+ "inputs": {
+  "acceptance_criteria": {
+   "kind": "measurement",
+   "owner": "Codex",
+   "tool": "The packet re-issued on COMMON_DESIGN_PACKET_V1 sections, or a section map for this packet",
+   "value": "UNMEASURED"
+  },
+  "decision_definition": {
+   "kind": "measurement",
+   "owner": "Codex",
+   "tool": "The packet re-issued on COMMON_DESIGN_PACKET_V1 sections, or a section map for this packet",
+   "value": "UNMEASURED"
+  },
+  "design_space": {
+   "kind": "measurement",
+   "owner": "Codex",
+   "tool": "The packet re-issued on COMMON_DESIGN_PACKET_V1 sections, or a section map for this packet",
+   "value": "UNMEASURED"
+  },
+  "material_data": {
+   "kind": "measurement",
+   "owner": "Codex",
+   "tool": "The packet re-issued on COMMON_DESIGN_PACKET_V1 sections, or a section map for this packet",
+   "value": "UNMEASURED"
+  },
+  "requirements": {
+   "kind": "measurement",
+   "owner": "Codex",
+   "tool": "The packet re-issued on COMMON_DESIGN_PACKET_V1 sections, or a section map for this packet",
+   "value": "UNMEASURED"
+  },
+  "solver": {
+   "kind": "measurement",
+   "owner": "Codex",
+   "tool": "The packet re-issued on COMMON_DESIGN_PACKET_V1 sections, or a section map for this packet",
+   "value": "UNMEASURED"
+  }
+ },
+ "network": {
+  "graphite_agents_vs_real_miners": {
+   "kind": "measurement",
+   "owner": "Test Lead",
+   "tool": "Validator-scored Launchpad confirmations from Graphite agents and from real miners on the same Challenge",
+   "value": "UNMEASURED"
+  },
+  "incentive_canary_payout_correctness": {
+   "kind": "measurement",
+   "owner": "Test Lead",
+   "tool": "INCENTIVE-CANARY-01 (PR 971, merged)",
+   "value": "UNMEASURED"
+  },
+  "leaderboard_improvement_over_time": {
+   "kind": "measurement",
+   "owner": "Test Lead",
+   "tool": "Validator-scored Launchpad confirmations from stage A",
+   "value": "UNMEASURED"
+  }
+ },
+ "outputs": {
+  "decision_quality_vs_cheap_baseline": {
+   "flag": "required for TESTED",
+   "kind": "measurement",
+   "owner": "Data Collection",
+   "required_for_tested": true,
+   "source": "docs/development/challenge_pipeline/cheap-baselines/motor.md",
+   "tool": "Data Collection panels, PR 994 (CHEAP-BASELINE-COMPARATORS-01, open) and the evaluator PR 1003 (PASSES-VALUE-EVALUATOR-01, open)",
+   "value": "UNMEASURED"
+  },
+  "model_accuracy": {
+   "kind": "measurement",
+   "owner": "Data Collection",
+   "tool": "Reference-agreement panel returned through docs/development/challenge_pipeline/cheap-baselines/data-collection-return.md",
+   "value": "UNMEASURED"
+  },
+  "passes_value": {
+   "a_real_buyer_decision_two_sources": {
+    "condition": "A real buyer decision with at least two sources.",
+    "flag": "required for PASSES VALUE",
+    "kind": "measurement",
+    "owner": "Codex",
+    "required_for": "PASSES VALUE",
+    "tool": "The Challenge packet's engineering-job section and the buyer-volume evidence (PR 939, merged)",
+    "value": "UNMEASURED"
+   },
+   "b_regret_below_cheap_baseline_paired_bootstrap_ci": {
+    "condition": "Buyer-unit regret lower than the strongest cheap baseline's at matched admissibility, paired bootstrap 95% interval excluding 0.",
+    "flag": "required for PASSES VALUE",
+    "kind": "measurement",
+    "owner": "Data Collection",
+    "required_for": "PASSES VALUE",
+    "tool": "Data Collection panels, PR 994 comparators (open) and the evaluator PR 1003 (open)",
+    "value": "UNMEASURED"
+   },
+   "c_speed_up_100x_per_decision_query": {
+    "condition": "At least 100x faster than the reference per decision query.",
+    "flag": "required for PASSES VALUE",
+    "kind": "measurement",
+    "owner": "Data Collection",
+    "required_for": "PASSES VALUE",
+    "tool": "Data Collection reference timing plus the model inference cost, on the same hardware",
+    "value": "UNMEASURED"
+   },
+   "d_value_and_volume_ranges": {
+    "condition": "Sourced or assumption ranges for value and volume.",
+    "flag": "required for PASSES VALUE",
+    "kind": "measurement",
+    "owner": "Codex",
+    "required_for": "PASSES VALUE",
+    "tool": "The Challenge packet and the buyer-volume evidence (PR 939, merged)",
+    "value": "UNMEASURED"
+   },
+   "e_equal_budget_screen_then_verify_beats_solver": {
+    "condition": "At equal time and compute, the model-screen-then-solver-verify workflow finds a better design than the solver alone.",
+    "flag": "required for PASSES VALUE",
+    "harness": "carbon/design_search/track_b.py",
+    "kind": "measurement",
+    "owner": "Data Collection",
+    "required_for": "PASSES VALUE",
+    "tool": "PR 998 (EQUAL-BUDGET-DESIGN-01, open) on the design_search track_b harness",
+    "value": "UNMEASURED"
+   },
+   "framing": "Models never beat the solver on accuracy; the solver is the reference.",
+   "set_by": "Conditions a to d: Test Lead, delegated by the owner, 2026-10-10. Condition e: Test Lead, from the owner, 2026-10-10."
+  },
+  "score_value_alignment": {
+   "kind": "measurement",
+   "owner": "Test Lead",
+   "tool": "A readiness Q1 report (carbon/challenge_pipeline/readiness/q1.py)",
+   "value": "UNMEASURED"
+  },
+  "speed_up_against_reference": {
+   "kind": "measurement",
+   "owner": "Data Collection",
+   "tool": "Data Collection reference timing (value-cost C1) plus the model inference cost, on the same hardware",
+   "value": "UNMEASURED"
+  }
+ },
+ "process": {
+  "blockers": {
+   "source": "docs/development/challenge_pipeline/onboarding/blocker_taxonomy.json",
+   "value": [
+    {
+     "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+     "id": "B1",
+     "name": "Wrong lane",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+     "id": "B2",
+     "name": "Keys in the wrong distro",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+     "id": "B3",
+     "name": "One controller per root",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "FIX_IN_PR_969_NOT_MERGED_NOT_EXERCISED_LIVE",
+     "id": "B4",
+     "name": "Pod ceiling below the offered price",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "VALUE_FIXED_IN_PR_969_CHECK_STILL_OPEN",
+     "id": "B5",
+     "name": "Token share and pod split",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "OPEN",
+     "id": "B6",
+     "name": "Reboot fragility",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "OPEN",
+     "id": "B7",
+     "name": "Auto-mode permission blocks",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+     "id": "B8",
+     "name": "Silent failures",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "OWNER_ASSIGNED_CHECK_PROPOSED_NOT_BUILT",
+     "id": "B9",
+     "name": "Lane install lagging the grant code",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "OWNER_ASSIGNED_NOT_YET_EXERCISED_LIVE",
+     "id": "B10",
+     "name": "One shared checkout for every lane",
+     "time_lost": "UNKNOWN"
+    }
+   ]
+  },
+  "cost_per_stage": {
+   "kind": "measurement",
+   "owner": "Executor",
+   "tool": "Stage report: each run's cap fraction; spend ledgers stay out of the repository",
+   "value": "UNMEASURED"
+  },
+  "cycle_days_per_stage": {
+   "kind": "decision",
+   "owner": "Test Lead",
+   "question": "A first dated record is not the time spent. Which entry and exit records define each stage's cycle time?",
+   "value": "UNMEASURED"
+  },
+  "dated_stage_records": {
+   "kind": "measurement",
+   "owner": "Test Lead",
+   "tool": "cycle_metrics.jsonl, hand-recorded until the A9 recorder exists",
+   "value": "UNMEASURED"
+  },
+  "grant_caps": {
+   "kind": "measurement",
+   "owner": "Test Lead",
+   "tool": "A stage grant file under docs/development/graphite/grants once approved",
+   "value": "UNMEASURED"
+  },
+  "lessons_entries": {
+   "source": "carbon/challenge_pipeline/lessons",
+   "value": {
+    "by_stage": {
+     "design": 9,
+     "test_iterate": 53
+    },
+    "count": 62,
+    "first": "2026-10-04T16:05:26Z",
+    "last": "2026-10-09T17:05:00+00:00"
+   }
+  },
+  "readiness_first_run": {
+   "source": "docs/development/challenge_pipeline/readiness/electric-motor-magnetics/history.jsonl",
+   "value": {
+    "counts": {
+     "FAIL": 5,
+     "NOT_BUILT": 25,
+     "PASS": 6,
+     "REVIEW_REQUIRED": 5
+    },
+    "level": 0,
+    "utc": "2026-10-06T16:12:24Z"
+   }
+  },
+  "readiness_latest_by_level": {
+   "source": "docs/development/challenge_pipeline/readiness/electric-motor-magnetics/history.jsonl",
+   "value": {
+    "0": {
+     "counts": {
+      "FAIL": 5,
+      "NOT_BUILT": 25,
+      "PASS": 6,
+      "REVIEW_REQUIRED": 5
+     },
+     "green": false,
+     "utc": "2026-10-06T16:12:24Z"
+    }
+   }
+  }
+ },
+ "rules": [
+  "A field is read from a cited artefact, or it is UNMEASURED: a measurement names its owner and tool, and only a real owner decision carries a question. Nothing is estimated.",
+  "Caps and rates only. No balance, account, spend ledger or hidden-pool material."
+ ],
+ "schema": "carbon.challenge-pipeline.brief-product-ledger.v1"
+}
