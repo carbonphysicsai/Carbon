@@ -23,6 +23,7 @@ QUICK = {"steps": 300, "width": 32, "depth": 2}
 FIXTURE_KIT = dataclasses.replace(
     battery_v3_kit.KIT,
     kit_id="fixture-kit",
+    row_inputs=lambda row: {**battery_v3_kit.action_inputs(row), "soc0": 0.1},
     observables=("minutes", "temperature"),
     model_id="fixture-carbon",
 )
@@ -52,6 +53,7 @@ def train_bytes(kit=FIXTURE_KIT, *, c1=(1, 1.25, 1.5, 1.75, 2), fixture=True, ex
                         "switch_v": 4,
                         "cooling": 1,
                         "ambient_c": band,
+                        "soc0": 0.1,
                     },
                     "outputs": outputs,
                 }
@@ -136,7 +138,9 @@ def test_a_fixture_train_set_can_never_produce_public_predictions():
     assert refused.value.code == "FIXTURE_TRAIN_CANNOT_BE_PUBLIC"
 
 
-def test_the_battery_v3_kit_names_the_panels_observables_and_refuses_others():
+def test_the_battery_v3_kit_names_the_panels_observables_and_refuses_others(
+    monkeypatch,
+):
     kit = battery_v3_kit.KIT
     assert kit.observables == (
         "charging_t_max_c",
@@ -145,19 +149,29 @@ def test_the_battery_v3_kit_names_the_panels_observables_and_refuses_others():
         "q30_over_q1",
         "v_max_v",
     )
-    assert kit.names == ("c1", "c2", "switch_v", "cooling", "ambient_c")
+    assert kit.names == ("c1", "c2", "switch_v", "cooling", "ambient_c", "soc0")
     row = {
         "band": 25.0,
         "action": {"c1": 0.25, "c2": 0.3, "switch_v": 4.1, "cooling": 4},
         "values": {"never": "read"},
     }
-    assert kit.row_inputs(row) == {
+    # The panel's SOC0 is not in the export: it is the registered value, and
+    # unregistered the kit predicts nothing.
+    assert kit.row_inputs(row)["soc0"] == battery_v3_kit.PANEL_SOC0 == 0.1
+    assert "initial_soc" in battery_v3_kit.PANEL_SOC0_SOURCE
+    monkeypatch.setattr(battery_v3_kit, "PANEL_SOC0", None)
+    with pytest.raises(arm.ArmRefused) as unregistered:
+        kit.row_inputs(row)
+    assert unregistered.value.code == "PANEL_SOC0_UNREGISTERED"
+    monkeypatch.undo()
+    assert battery_v3_kit.action_inputs(row) == {
         "c1": 0.25,
         "c2": 0.3,
         "switch_v": 4.1,
         "cooling": 4,
         "ambient_c": 25.0,
     }
+    kit = dataclasses.replace(kit, row_inputs=FIXTURE_KIT.row_inputs)
     with pytest.raises(arm.ArmRefused) as refused:
         arm.run(
             kit,

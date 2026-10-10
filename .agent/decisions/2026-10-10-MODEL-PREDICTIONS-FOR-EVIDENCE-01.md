@@ -33,8 +33,11 @@
   - **lets a fixture pass as public.** Fixture TRAIN produces only
     `SYNTHETIC_FIXTURE` predictions.
 - **`battery_v3_kit`:**
-  - **inputs:** `c1`, `c2`, `switch_v`, `cooling` (categorical) and
-    `ambient_c` (the band);
+  - **inputs:** `c1`, `c2`, `switch_v`, `cooling` (categorical), `ambient_c`
+    (the band) and `soc0`. The v3 TRAIN set varies SOC0 over 0.10, 0.20 and
+    0.30. The panel's SOC0 is not in the export: it is 0.10, from battery's
+    registered requirement (`timing.initial_soc`), confirmed by Data
+    Collection. Unregistered, the kit refuses to predict;
   - **outputs:** the panel's five observables, directly;
   - **TRAIN record:** `carbon.battery-v3.train-record.v1`, specified in the
     module docstring for Data Collection.
