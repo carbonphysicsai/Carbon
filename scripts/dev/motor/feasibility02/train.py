@@ -2,7 +2,8 @@
 
     python -m scripts.dev.motor.feasibility02.train --sidecar SIDECAR --out PLAN [--size 128]
 
-Seeded Latin hypercube over the registered six-coordinate grammar; a point is
+Twelve axis anchors (each axis at its grammar min and max), then a seeded Latin
+hypercube over the registered six-coordinate grammar; a point is
 kept only if it is geometrically valid and at normalised distance >= 0.10
 from every panel/study design in the sidecar. Each geometry gets the panel's
 11-solve bundle (J 0; J 10 and J 15 at gamma -10/-5/0/+5/+10) with the flux
@@ -40,9 +41,38 @@ def _u(d):
     ]
 
 
+def anchors(existing, rng):
+    """Two designs per axis at the grammar's min and max (which bracket the
+    panel's range), the other coordinates valid random draws, so TRAIN's
+    observed per-axis range covers every panel row (#1035's support rule)."""
+    out = []
+    for axis in KEYS:
+        for bound in tp.GRAMMAR[axis]:
+            for _ in range(5000):
+                d = {
+                    k: tp.GRAMMAR[k][0]
+                    + float(rng.random()) * (tp.GRAMMAR[k][1] - tp.GRAMMAR[k][0])
+                    for k in KEYS
+                }
+                d[axis] = bound
+                if tp.validity(TOPO, d):
+                    continue
+                if (
+                    min(math.dist(_u(d), e) for e in existing + [_u(x) for x in out])
+                    < MIN_DIST
+                ):
+                    continue
+                out.append(d)
+                break
+            else:
+                raise SystemExit(f"no valid anchor at {axis} = {bound}")
+    return out
+
+
 def draw(existing, size):
     rng = np.random.default_rng(SEED)
-    kept, batch = [], 0
+    kept = anchors(existing, rng)
+    batch = 0
     while len(kept) < size:
         batch += 1
         m = size * 4  # one LHS block per round; keep valid, far points in order

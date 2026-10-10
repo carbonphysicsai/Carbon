@@ -161,7 +161,10 @@
   "geometries": 128,
   "cases": 1408,
   "rule": "scripts/dev/motor/feasibility02/train.py: seeded LHS (seed 1010), valid, normalised distance >= 0.10 from the 43 sidecar designs; bundle J0 + J10/J15 at gamma -10/-5/0/+5/+10, flux observers",
-  "plan_sha256": "89baa02126f543c72dc3cb873e12c93542ef03b3b37269ffb6dfe8779e18197c",
-  "stage2": "to 256 only on a separate decision from the stage-1 learning curve (ripple and cogging)"
+  "plan_sha256": "4a067614ee921d20069504937e3913cebb30226cafe35c489d3a9356a2f4f2cd",
+  "stage2": "to 256 only on a separate decision from the stage-1 learning curve (ripple and cogging)",
+  "revised": "2026-10-10, before any TRAIN solve (Test Lead): the first 12 geometries are axis anchors (each axis at its grammar min and max, the rest valid random draws) so TRAIN's per-axis support covers every panel row; 116 LHS follow",
+  "plan_sha256_superseded": "89baa02126f543c72dc3cb873e12c93542ef03b3b37269ffb6dfe8779e18197c",
+  "domain_check": "#1035 kit (claude/motor-10p12s-kit @ 6d5e2dcd7) support rule, TRAIN support from this plan's inputs: 44 of 44 panel rows (motor-export questions[0], J10-g0) inside"
  }
 }
