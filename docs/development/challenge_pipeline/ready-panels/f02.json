@@ -1,0 +1,18 @@
+{
+  "schema": "carbon.onboarding.panel-input-gaps.v1",
+  "challenge": "f02",
+  "authority_commit": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+  "source": "docs/development/challenge_pipeline/question-laws/f02-round2.json",
+  "registration_status": "HOLD_INPUTS",
+  "adopted": false,
+  "dispatch_authority": false,
+  "case_count": null,
+  "cases": null,
+  "cpu_hours_after_dedup": null,
+  "missing": ["accepted expanded action/condition seed", "accepted thermal/energy bands and boundary registration", "exact Elmer/material/spatial/time/observer/rung pins", "public completed AND scheduled tuple snapshot and refinement costs"],
+  "historical_menu_cardinality": 9,
+  "proposed_menu_cardinality_not_adopted": 16,
+  "contexts_in_existing_packet": 24,
+  "reported_cost_context": "Owner-reported 2-3 CPU-min standard; refinement unmeasured",
+  "value_check": "NOT_DEMONSTRATED"
+}
