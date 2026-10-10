@@ -694,6 +694,14 @@ def _analysis_image_manifest():
     return str(path), None
 
 
+def _remove_scratch(root):
+    """Best-effort removal of the prelive scratch root. The containment cell writes
+    its own scratch as the container's uid, which the host user cannot remove, so a
+    cleanup refusal must never replace the prelive verdict (it did, as a
+    PermissionError, when `TemporaryDirectory` cleaned up)."""
+    shutil.rmtree(root, ignore_errors=True)
+
+
 def prelive(item, ctx):
     """`phase4 prelive` for the challenge under a scratch root. It needs the
     committed grant on a pushed HEAD and a main to compare, so a host without
@@ -710,7 +718,8 @@ def prelive(item, ctx):
     manifest, refused = _analysis_image_manifest()
     if refused:
         return Result(FAIL, refused)
-    with tempfile.TemporaryDirectory(prefix="readiness-prelive-") as root:
+    root = tempfile.mkdtemp(prefix="readiness-prelive-")
+    try:
         command = [
             sys.executable,
             "-m",
@@ -737,6 +746,8 @@ def prelive(item, ctx):
             )
         except (OSError, subprocess.TimeoutExpired) as error:
             return Result(FAIL, f"prelive could not run: {type(error).__name__}")
+    finally:
+        _remove_scratch(root)
     text = done.stdout or ""
     report = None
     start = text.find("{")
