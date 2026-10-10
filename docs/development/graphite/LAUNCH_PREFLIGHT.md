@@ -57,7 +57,21 @@ never committed. It names the lane's endpoints and key paths:
   `max_concurrency`;
 - `runs x worst case + cleanup <= ceiling`;
 - with `--probe`: the launch's own offer check, a pod created and running,
-  then terminated and gone from the provider's listing.
+  then terminated and gone from the provider's listing. The probe pod is
+  built by the real launch's `RunPodPods.pod_spec`, with the full
+  environment (code manifest, CA bundle, phase config); only its start
+  command is a sleep (`PROBE_COMMAND`). So the env-size guard below applies
+  to the probe too (GRAPHITE-POD-ENV-SIZE-01).
+
+**The pod environment.** RunPod answers a create request whose environment
+is over about 118,000 characters with an opaque HTTP 500, which the
+operator layer records as `pod_launch_ambiguous`. A Graphite pod therefore
+ships only the import closure of what it runs (`pods.ship_list`:
+`ENTRY_MODULES`, `DYNAMIC_PACKAGES`, the non-code files beside them, and the
+scoring's data, never the lessons register, a `private` directory or a path
+the guard names). Each shipped file is still sha-pinned. `pod_spec` refuses
+an environment over 90,000 characters (`pod_env.ENV_LIMIT_CHARS`) with
+`pod_env_too_large`, before any provider call.
 
 ## 2. While a run is live: the heartbeat
 

@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-deliverable-adapters-final-validation",
+  "recorded_at": "2026-10-10T19:14:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "DELIVERABLE-ADAPTERS-01", "description": "Native UTF-8 generator/pipeline suite after typed-refusal repair: 42 passed. Pinned Black and Ruff checks and whitespace checks passed. Exact-head GitHub CI remains canonical acceptance; no native qualification claim."},
+  "expected": "The same public-source renderer supports three new source selections while retaining all gap/qualification boundaries.",
+  "observed": "Synthetic and pinned committed-source regressions passed. Generated samples preserve source roles and adverse/unresolved states; all manual sections remain open.",
+  "keep": ["Treat source extraction coverage separately from accepted requirements, test adequacy and buyer rights."],
+  "change": ["Add future accepted public aggregate adapters prospectively, not by silently overwriting these snapshots."],
+  "protocol_elements": ["customer deliverable", "readiness", "lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

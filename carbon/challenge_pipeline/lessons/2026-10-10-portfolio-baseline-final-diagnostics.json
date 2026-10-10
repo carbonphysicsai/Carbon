@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-portfolio-baseline-final-diagnostics",
+  "recorded_at": "2026-10-10T18:53:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHEAP-BASELINE-COMPARATORS-01", "description": "Final native comparator, existing #917, producer and pipeline diagnostics: 87 passed; Black, Ruff and git diff --check passed."},
+  "expected": "Different physical contexts cannot enter one interpolation fit; lessons satisfy the existing pipeline contract.",
+  "observed": "The added isolated-context fixture abstains for every row; no missing coverage becomes agreement. Canonical acceptance is still pending exact-head CI after the local wrapper refusal.",
+  "keep": ["Separate tested tooling from physical and economic findings."],
+  "change": ["Keep independent baseline identity and complete cost receipts in Data Collection's return."],
+  "protocol_elements": ["design packet", "lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

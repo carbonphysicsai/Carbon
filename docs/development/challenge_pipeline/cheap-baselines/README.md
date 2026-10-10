@@ -146,6 +146,11 @@ That is not an automatic portfolio verdict by this document.
 
 ## 5. Next handoff, no dispatch
 
+The later owner-authorized implementation is documented in
+[ready comparators](ready-comparators.md): one offline command for cooling,
+f02, f08 and the scoped f13 control, using public solved panels and pinned
+companion materials. It does not adopt the proposed methods or earn V4.
+
 [Data Collection return checklist](data-collection-return.md) is the next
 measurement specification. Inventory/reuse existing public outputs first;
 any fitting, timing, new reference, buyer-tool or paid work requires the

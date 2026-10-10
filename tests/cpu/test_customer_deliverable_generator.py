@@ -17,6 +17,7 @@ from scripts.dev.customer_deliverable.generate import (
     load_policy,
     render,
     safe_path,
+    scalar_fact,
     write_outputs,
 )
 
@@ -161,6 +162,114 @@ class GeneratorTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 render(challenge, profile, reader, self.policy)
         self.assertEqual(reader.calls, [])
+
+    def test_new_adapters_keep_gaps_and_do_not_reuse_battery_facts(self):
+        for challenge in ("motor", "cooling-cell", "f02"):
+            texts = fixture_texts()
+            if challenge == "motor":
+                texts["R3"] = json.dumps(
+                    {
+                        "schema": "carbon.development-cheap-baseline-report.v1",
+                        "family": "motor",
+                        "held_out": {
+                            "status": "HOLD_MISSING_GEOMETRY_AND_FULL_SIGNED_CURVES"
+                        },
+                        "v4_disposition": "UNRESOLVED_NO_MATCHED_CARBON_ARM",
+                        "closed_bank": {
+                            "decision": {"summary": {"resolved": 0, "total": 20}}
+                        },
+                        "unregistered_sensitive_field": "do-not-disclose",
+                    }
+                )
+            elif challenge == "cooling-cell":
+                texts["C2"] = (
+                    "Final lid/operating parameters await the owner's selection from Data\nThis is **cell-only**, not a full cold plate\n"
+                )
+            else:
+                texts["R2"] = json.dumps(
+                    {
+                        "schema": "carbon.development.f02-question-law.v1",
+                        "value_check": {"feasible": "NOT_DEMONSTRATED"},
+                        "action_proposal": {"status": "HUMAN_INPUT"},
+                        "cost": {"c2_status": "UNMEASURED"},
+                        "context_count": 24,
+                    }
+                )
+            for profile in ("nasa-std-7009b", "asme-vv10"):
+                output = render(challenge, profile, MemoryReader(texts), self.policy)
+                record = json.loads(output["sample.json"])
+                manifest = json.loads(output["generation-manifest.json"])
+                self.assertEqual(record["eligible_tier"], "UNESTABLISHED")
+                self.assertIsNone(record["qualification_record"])
+                self.assertFalse(manifest["qualification_claim"])
+                self.assertFalse(
+                    any(f["id"].startswith("EV5_") for f in manifest["facts"])
+                )
+                self.assertNotIn("do-not-disclose", output["sample.md"])
+                self.assertTrue(all("role" in src for src in manifest["sources"]))
+                self.assertEqual(record["sections"]["D01"]["coverage"], "GAP")
+
+    def test_json_aggregate_wrong_family_missing_or_nonfinite_is_gap_not_zero(self):
+        texts = fixture_texts()
+        rule = next(
+            r
+            for r in self.policy["challenges"]["motor"]["extractors"]
+            if r["id"] == "MOTOR_LOOKUP_TOTAL"
+        )
+        for raw in (
+            "[]",
+            '{"schema":"wrong","family":"motor"}',
+            '{"schema":"carbon.development-cheap-baseline-report.v1","family":"battery-v3"}',
+            '{"schema":"carbon.development-cheap-baseline-report.v1","family":"motor","closed_bank":{"decision":{"summary":{"total":NaN}}}}',
+            '{"schema":"carbon.development-cheap-baseline-report.v1","family":"motor","closed_bank":{"decision":{"summary":{"total":true}}}}',
+        ):
+            source = Source(
+                "R3",
+                "docs/development/report.json",
+                "a" * 40,
+                git_blob(raw.encode()),
+                raw,
+            )
+            with self.assertRaises((ValueError, TypeError)):
+                scalar_fact(rule, source)
+            texts["R3"] = raw
+            manifest = json.loads(
+                render("motor", "asme-vv10", MemoryReader(texts), self.policy)[
+                    "generation-manifest.json"
+                ]
+            )
+            self.assertFalse(
+                any(f["id"] == "MOTOR_LOOKUP_TOTAL" for f in manifest["facts"])
+            )
+            self.assertTrue(
+                any("MOTOR_LOOKUP_TOTAL" in gap for gap in manifest["extraction_gaps"])
+            )
+
+    def test_real_committed_adapters_extract_only_their_recorded_scope(self):
+        root = Path(__file__).resolve().parents[2]
+        reader = GitReader(
+            root,
+            "65ef88660fe02018c26f54d14655fe7b66354aa8",
+            "65ef88660fe02018c26f54d14655fe7b66354aa8",
+        )
+        expected = {
+            "motor": "MOTOR_HELD_OUT",
+            "cooling-cell": "COOLING_PENDING_INPUTS",
+            "f02": "F02_FEASIBILITY",
+        }
+        for challenge, fact_id in expected.items():
+            output = render(challenge, "nasa-std-7009b", reader, self.policy)
+            manifest = json.loads(output["generation-manifest.json"])
+            self.assertEqual(manifest["missing_sources"], [])
+            self.assertEqual(manifest["extraction_gaps"], [])
+            self.assertIn(fact_id, {f["id"] for f in manifest["facts"]})
+            self.assertEqual(
+                manifest["evidence_revision"],
+                "65ef88660fe02018c26f54d14655fe7b66354aa8",
+            )
+            self.assertTrue(
+                all(f["outcome"] == "NOT_ASSESSED" for f in manifest["facts"])
+            )
 
     def test_registered_sources_only_and_no_raw_metadata_disclosure(self):
         self.texts["R1"] = json.dumps(

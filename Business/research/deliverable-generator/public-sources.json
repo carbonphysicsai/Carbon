@@ -151,6 +151,50 @@
           "basis": "reference-relative"
         }
       ]
+    },
+    "motor": {
+      "sources": [
+        {"id": "C1", "path": "docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md", "role": "common packet specification"},
+        {"id": "C2", "path": "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md", "role": "current prospective robot-joint buyer packet; not historical runtime qualification"},
+        {"id": "C3", "path": "docs/development/challenge_pipeline/cheap-baselines/motor.md", "role": "strong cheap comparator contract"},
+        {"id": "R1", "path": "carbon/challenge_readiness/records/electric-motor-magnetics.v4.json", "role": "public legacy runtime readiness/reviews, not new robot-joint qualification"},
+        {"id": "R2", "path": "docs/development/evidence/motor-decision-counted-v2/README.md", "role": "historical counted study; not current-packet evidence"},
+        {"id": "R3", "path": "docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json", "role": "historical aggregate comparison; held-out arm waiting for geometry/curves"}
+      ],
+      "extractors": [
+        {"id": "MOTOR_HELD_OUT", "source": "R3", "pointer": "/held_out/status", "kind": "json-state", "expected_schema": "carbon.development-cheap-baseline-report.v1", "expected_family": "motor", "label": "Historical motor comparator coverage state (not a current physical verdict)", "basis": "decision-value"},
+        {"id": "MOTOR_V4", "source": "R3", "pointer": "/v4_disposition", "kind": "json-state", "expected_schema": "carbon.development-cheap-baseline-report.v1", "expected_family": "motor", "label": "Historical report V4 disposition; no matched Carbon advantage established", "basis": "decision-value"},
+        {"id": "MOTOR_LOOKUP_RESOLVED", "source": "R3", "pointer": "/closed_bank/decision/summary/resolved", "kind": "json-number", "expected_schema": "carbon.development-cheap-baseline-report.v1", "expected_family": "motor", "label": "Historical lookup-replay resolved questions, not generalization", "basis": "verification"},
+        {"id": "MOTOR_LOOKUP_TOTAL", "source": "R3", "pointer": "/closed_bank/decision/summary/total", "kind": "json-number", "expected_schema": "carbon.development-cheap-baseline-report.v1", "expected_family": "motor", "label": "Historical lookup-replay total question denominator", "basis": "verification"}
+      ]
+    },
+    "cooling-cell": {
+      "sources": [
+        {"id": "C1", "path": "docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md", "role": "common packet specification"},
+        {"id": "C2", "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md", "role": "current cell-only lid-side TIM2 packet; final parameters await selection"},
+        {"id": "C3", "path": "docs/development/challenge_pipeline/cheap-baselines/cooling-cell.md", "role": "cell-only cheap comparator contract"},
+        {"id": "R2", "path": "docs/development/evidence/ai-cooling-counted-v1/README.md", "role": "historical counted CFD v1; does not qualify the current case-plane packet"},
+        {"id": "R3", "path": "docs/development/challenge_pipeline/value-cost/cooling-cell.md", "role": "assumption-labelled value/cost analysis, not measured commercial value"}
+      ],
+      "extractors": [
+        {"id": "COOLING_PENDING_INPUTS", "source": "C2", "pattern": "Final lid/operating parameters (await the owner's selection) from Data", "kind": "gap", "label": "Current cooling packet final-input adoption gap", "basis": "verification"},
+        {"id": "COOLING_CELL_SCOPE", "source": "C2", "pattern": "This is [*][*](cell-only)[*][*], not a full cold plate", "kind": "gap", "label": "Current packet's cell-only claim ceiling (not assembly qualification)", "basis": "verification"}
+      ]
+    },
+    "f02": {
+      "sources": [
+        {"id": "C1", "path": "docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md", "role": "common packet specification"},
+        {"id": "C2", "path": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md", "role": "buyer burst-thermal packet, role-play specification"},
+        {"id": "C3", "path": "docs/development/challenge_pipeline/cheap-baselines/f02.md", "role": "spatial impulse-response/ROM comparator contract"},
+        {"id": "R2", "path": "docs/development/challenge_pipeline/question-laws/f02-round2.json", "role": "prospective question/action law, not adopted reference evidence"},
+        {"id": "R3", "path": "docs/development/challenge_pipeline/value-cost/f02.md", "role": "assumption-labelled value/cost scenarios; no pinned C2 measurement"}
+      ],
+      "extractors": [
+        {"id": "F02_FEASIBILITY", "source": "R2", "pointer": "/value_check/feasible", "kind": "json-state", "expected_schema": "carbon.development.f02-question-law.v1", "expected_family": null, "label": "Proposed f02 law's feasibility evidence state, not a solved-panel verdict", "basis": "decision-value"},
+        {"id": "F02_ACTION_STATUS", "source": "R2", "pointer": "/action_proposal/status", "kind": "json-state", "expected_schema": "carbon.development.f02-question-law.v1", "expected_family": null, "label": "Proposed expanded f02 action-registration status", "basis": "verification"},
+        {"id": "F02_COST_STATUS", "source": "R2", "pointer": "/cost/c2_status", "kind": "json-state", "expected_schema": "carbon.development.f02-question-law.v1", "expected_family": null, "label": "Proposed f02 bank startup-cost measurement state", "basis": "verification"},
+        {"id": "F02_CONTEXTS", "source": "R2", "pointer": "/context_count", "kind": "json-number", "expected_schema": "carbon.development.f02-question-law.v1", "expected_family": null, "label": "Specified context count; not acquired or qualified cases", "basis": "verification"}
+      ]
     }
   }
 }
