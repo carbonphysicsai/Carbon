@@ -1,0 +1,15 @@
+{
+ "schema": "carbon.battery.v3-train.registry.v1",
+ "registered": "2026-10-10, before any TRAIN solve",
+ "authority": "Test Lead 2026-10-10 under OWNER-DEV-AUTONOMY-01: a v3 public TRAIN set on the OWNER-CCX63-EVIDENCE-GRANT-01 run, because the battery kit cannot express v3 actions",
+ "role": "PUBLIC_TRAIN for model construction; never a test, panel, bank or hidden set",
+ "size": 4000,
+ "seed": 20261010,
+ "draw": "c1 U[0.25, 2.0] at 0.01; c2 U[0.25, c1] at 0.01; switch_v {4.00, 4.05, 4.10, 4.15}; cooling {x1, x2, x4}; ambient U[5, 40] C at 0.5; SOC0 {0.10, 0.20, 0.30}; a draw equal (two-decimal c1/c2, switch, cooling, ambient, SOC0) to a #965 manifest tuple or any solved study record is redrawn",
+ "disjoint_from": "manifest bab5ae9702dc0a8ec3c8f26b9ddd9337c19152dc4d1f8692c3bc8d33c14f7e39 and every OK record in /home/carbon/runs bfeas* (tiers 1-4, t5r, t6r3)",
+ "labels": "the feasibility02 records: all 30 cycles' per-phase temperature extrema, every-charge plating minimum, programme voltage, Q30/Q1, the charge-integral SOC clock (session start to 80 %) and cooling removal: reducible to the v3 panel observables",
+ "solver": "pinned truth overlay (PyBaMM 26.8.0.0, base image sha256:2d19b261...), standard settings (mesh 20, rtol 1e-5); no refinement for TRAIN",
+ "plan": "scripts/dev/battery/v3_train.py",
+ "plan_sha256": "b42b41f149e317832c5b41d0c533b046ad16962f47416c553c63be8b7bcf60df",
+ "cost_estimate": "about 101 CPU-h at 91 CPU-s per solve"
+}
