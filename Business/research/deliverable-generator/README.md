@@ -2,7 +2,7 @@
 
 **Implemented:** a pure Python command reads registered committed public files, fills #956's automatable-now sections, keeps manual/later sections as gaps, retains adverse findings and renders a standards index. It writes Markdown, the filled JSON record, an unchanged copy of the framework schema, and a fact/source manifest. Every output is **DEVELOPMENT SAMPLE**, **UNESTABLISHED**, with a null qualification record. This tool has no evaluator, solver, customer acceptance or qualification authority.
 
-The source manifest is [public-sources.json](public-sources.json). Initial supported Challenge: `battery-fastcharge-ageing-development-v1`. The reader/renderer is Challenge-neutral; additional Challenges need a reviewed public source map and extraction adapter. Unsupported IDs refuse before evidence access. No filesystem scan, official pool, raw reference cases, protected tuning record, private ledger, physical solver or network client is used.
+The source manifest is [public-sources.json](public-sources.json). Supported source selections: `battery-fastcharge-ageing-development-v1`, `motor`, `cooling-cell`, and `f02`. These are dossier aliases, not runtime Challenge registration. The reader/renderer is Challenge-neutral; additional Challenges need a reviewed public source map and extraction adapter. Unsupported IDs refuse before evidence access. No filesystem scan, official pool, raw reference cases, protected tuning record, private ledger, physical solver or network client is used. See the [new-adapter source/gap guide](../../../docs/development/challenge_pipeline/deliverable-adapters/README.md) for pinned samples and their limitations.
 
 ## Run from committed Git
 

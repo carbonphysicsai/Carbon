@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import secrets
 import socket
 import stat
 import subprocess
@@ -51,6 +52,9 @@ HTTP_TIMEOUT_S = 5
 TCP_TIMEOUT_S = 3
 #: How long the probe waits for its pod to run, and for it to be gone.
 PROBE_RUNNING_S = 600
+#: The probe pod's only difference from a real launch: it sleeps instead of
+#: running the bootstrap.
+PROBE_COMMAND = ("/bin/sh", "-c", "sleep 900")
 PROBE_GONE_S = 180
 
 
@@ -330,15 +334,19 @@ def check_balance_floor(state_dir=None, name=None):
 
 # -- the pod probe ---------------------------------------------------------------------------
 def probe_pod(pods, *, clock=time.time, sleep=time.sleep):
-    """One minimal pod through `pods` (a `pods.RunPodPods`): the launch's
-    own offer check, created, running, terminated and gone from the
-    provider's listing. Returns a Check; the pod is always terminated."""
+    """One pod through `pods` (a `pods.RunPodPods`), created by the same
+    `pod_spec` a real launch uses (the full environment: code manifest, CA
+    bundle, phase config), with only its start command changed to a sleep:
+    the launch's own offer and env-size checks, created, running, terminated
+    and gone from the provider's listing. Returns a Check; the pod is always
+    terminated."""
     from scripts.dev.exam_design.runpod.operator_compute import (
         ComputeError,
-        PodSpec,
         ProvisionRequest,
         ResourceState,
     )
+
+    from .pods import PodFailure, PodJob, pod_reservation
 
     economics = pods.economics
     offered = check_offer(pods)
@@ -346,23 +354,25 @@ def probe_pod(pods, *, clock=time.time, sleep=time.sleep):
         offered.name = "pod_probe"
         return offered
     intent = f"preflight-probe-{int(clock())}"
-    spec = PodSpec(
-        image=economics["image"],
-        gpu_type_id=economics["gpu"],
-        gpu_count=1,
-        cloud_type="SECURE",
-        container_disk_gb=economics["disk_gb"],
-        ports=(),
-        env={},
-        max_rate_usd_per_hr=float(economics["rate_ceiling_usd_per_hr"]),
-        storage_usd_per_gb_month=float(economics["disk_usd_per_gb_month"]),
-        start_command=("/bin/sh", "-c", "sleep 900"),
-        allowed_cuda_versions=tuple(pods.cuda_versions),
-    )
+    job = PodJob(intent, {}, "", 0, {}, PROBE_RUNNING_S // 60, 0)
+    record = {
+        "intent_id": intent,
+        "token": secrets.token_urlsafe(24),
+        "deadline_at": int(clock() + PROBE_RUNNING_S),
+        "allowed_cuda_versions": list(pods.cuda_versions),
+    }
+    try:
+        spec = pods.pod_spec(job, record, start_command=PROBE_COMMAND)
+    except PodFailure as failure:
+        return Check(
+            "pod_probe",
+            FAIL,
+            f"launch refused before any create: {failure.detail}",
+            fix="a real launch would be refused the same way",
+        )
     # A launch's own balance step (`RunPodPods.launch`): the operator layer
     # refuses a provision with no balance observation, and the probe's
     # reservation must leave the floor intact. The balance is never printed.
-    from .pods import PodFailure, pod_reservation
 
     try:
         balance, _ = pods.service.observe_balance(pods.CAMPAIGN)
