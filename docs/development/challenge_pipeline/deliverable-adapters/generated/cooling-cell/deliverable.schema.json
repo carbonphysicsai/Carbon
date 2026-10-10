@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:carbon:research:customer-deliverable:proposal-v1",
+  "title": "Carbon customer evidence record — research proposal, not qualification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "mode", "challenge", "intended_tier", "eligible_tier", "qualification_record", "source_snapshot", "sections", "sources", "adverse_review", "adverse_findings", "tier_criteria"],
+  "properties": {
+    "schema_version": {"const": "PROPOSAL_V1"},
+    "mode": {"enum": ["DEVELOPMENT_SAMPLE", "CUSTOMER_AUDIT"]},
+    "challenge": {"type": "string", "minLength": 1},
+    "intended_tier": {"enum": ["EVIDENCE_AUDIT", "DECISION_TOOL_DOSSIER", "LIFECYCLE_REEVIDENCE"]},
+    "eligible_tier": {"enum": ["UNESTABLISHED", "EVIDENCE_AUDIT", "DECISION_TOOL_DOSSIER", "LIFECYCLE_REEVIDENCE"]},
+    "qualification_record": {"type": ["string", "null"]},
+    "source_snapshot": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "sections": {
+      "type": "object", "additionalProperties": false,
+      "required": ["D01", "D02", "D03", "D04", "D05", "D06", "D07", "D08", "D09", "D10", "D11"],
+      "properties": {
+        "D01": {"$ref": "#/$defs/section"}, "D02": {"$ref": "#/$defs/section"},
+        "D03": {"$ref": "#/$defs/section"}, "D04": {"$ref": "#/$defs/section"},
+        "D05": {"$ref": "#/$defs/section"}, "D06": {"$ref": "#/$defs/section"},
+        "D07": {"$ref": "#/$defs/section"}, "D08": {"$ref": "#/$defs/section"},
+        "D09": {"$ref": "#/$defs/section"}, "D10": {"$ref": "#/$defs/section"},
+        "D11": {"$ref": "#/$defs/section"}
+      }
+    },
+    "sources": {"type": "array", "items": {"$ref": "#/$defs/source"}, "minItems": 1},
+    "adverse_review": {"enum": ["NOT_ASSESSED", "FINDINGS_RETAINED", "NONE_REPORTED_WITH_SCOPED_SEARCH"]},
+    "adverse_findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}},
+    "tier_criteria": {"type": "array", "items": {"$ref": "#/$defs/criterion"}, "minItems": 1}
+  },
+  "allOf": [
+    {"if": {"properties": {"mode": {"const": "DEVELOPMENT_SAMPLE"}}}, "then": {"properties": {"eligible_tier": {"const": "UNESTABLISHED"}, "qualification_record": {"type": "null"}}}},
+    {"if": {"properties": {"eligible_tier": {"enum": ["DECISION_TOOL_DOSSIER", "LIFECYCLE_REEVIDENCE"]}}}, "then": {"properties": {"qualification_record": {"type": "string", "minLength": 1}}}},
+    {"if": {"properties": {"adverse_review": {"const": "FINDINGS_RETAINED"}}}, "then": {"properties": {"adverse_findings": {"minItems": 1}}}}
+  ],
+  "$defs": {
+    "section": {
+      "type": "object", "additionalProperties": false,
+      "required": ["coverage", "automation", "statement", "evidence_refs", "gaps"],
+      "properties": {
+        "coverage": {"enum": ["EVIDENCED", "PARTIAL", "GAP"]},
+        "automation": {"enum": ["automatable now", "automatable later", "manual"]},
+        "statement": {"type": "string", "minLength": 1},
+        "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "gaps": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "url", "locator", "access_class"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1}, "url": {"type": "string", "pattern": "^https://"},
+        "locator": {"type": "string", "minLength": 1}, "access_class": {"const": "PUBLIC_COMMITTED"}
+      }
+    },
+    "finding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "basis", "outcome", "statement", "evidence_refs", "status"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "basis": {"enum": ["verification", "reference-relative", "physical", "decision-value"]},
+        "outcome": {"enum": ["PASS", "FAIL", "UNRESOLVED", "NOT_ASSESSED", "FAILED_REFERENCE", "FAILED_INFRA"]},
+        "statement": {"type": "string", "minLength": 1},
+        "evidence_refs": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "status": {"enum": ["OPEN", "REPAIRED_PENDING_RETEST", "RETESTED_WITH_SCOPE", "HISTORICAL_RETAINED"]}
+      }
+    },
+    "criterion": {
+      "type": "object", "additionalProperties": false,
+      "required": ["criterion", "status", "authority", "evidence_refs"],
+      "properties": {
+        "criterion": {"type": "string", "minLength": 1},
+        "status": {"enum": ["EVIDENCED", "PARTIAL", "GAP"]},
+        "authority": {"type": "string", "minLength": 1},
+        "evidence_refs": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}
