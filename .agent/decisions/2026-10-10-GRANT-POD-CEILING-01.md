@@ -1,0 +1,73 @@
+## 2026-10-10 — GRANT-POD-CEILING-01: the pod rate ceiling becomes a grant field
+
+**Authority.**
+- **The direction.** OWNER-DEV-AUTONOMY-01, through the Test Lead.
+- **The cause.** Stage A was refused at launch because the pod rate ceiling
+  is a global constant (`pod_control.MAX_RATE`) that no grant and no
+  preflight could see.
+- **The scope.** This is an engineering change. No grant's figures change
+  here.
+
+**Decision.**
+- **The grant field.** `SpendingGrant` accepts an optional
+  `pod_rate_ceiling_usd_per_hr` (a positive money string). It is emitted only
+  when set, so every existing grant's document and digest are unchanged; a
+  test re-reads every committed grant.
+- **Where the ceiling applies.** The grant's ceiling, when set, prices its
+  pods:
+  - `pods.prices(rate_ceiling)`;
+  - `RunPodPods(rate_ceiling=...)`, from both phase-3 constructions;
+  - `phase3_budget`'s hourly reservation.
+
+  Absent, `MAX_RATE` applies as before.
+- **The preflight with `--key-file`** (no spend):
+  - checks that `~/.runpod/campaigns.json` exists in the lane distro and
+    names a balance floor, which it never prints;
+  - checks the live offer against the grant's ceiling, failing with
+    `owner decision: offer X/h > grant ceiling Y/h` as an owner need.
+
+  The probe reuses the same offer check.
+- **Found while testing.** Stage A's Constructor grant keeps R4's 11.93
+  token share of a 14.91 run. At 0.65 an hour the session's pods need more
+  than the 2.98 left, so the run is refused, typed. Raising stage A's ceiling
+  needs its token share or worst case re-set too, which is an owner figure. A
+  test pins this.
+
+**Not done here.**
+- **No grant figure changes.** In particular, stage A's 0.65/h approval is
+  recorded in its run record (the Test Lead), not in its grant file.
+
+**Amendment (2026-10-10): the standing 0.65/h ceiling on stages A, B and C.**
+- **Authority.**
+  - **The relayed approval.** The owner replied "approve a standing pod
+    ceiling for all stages" to the Test Lead's proposal of USD 0.65/h for
+    stages A to C.
+  - **Direct confirmation.** In the Test Engineer's session the owner
+    confirmed a ceiling of USD 0.65/h on all six stage grants, with the
+    Constructor token share lowered from 11.93 to USD 10.99. Stage caps are
+    unchanged.
+- **The change.**
+  - The six `GRAPHITE-GRANT-STAGE-{A,B,C}-{CONSTRUCTOR,ATTACKER}.json`
+    files carry `"pod_rate_ceiling_usd_per_hr": "0.65"`.
+  - The stage Constructors' registered token share is
+    `grant_binding.STAGE_TOKEN_SHARE`, 10.99 of each 14.91 run: five full
+    kimi-k3 reservations, with enough left for the session's pods at
+    0.65/h. R4 keeps 11.93 at the default ceiling.
+  - Every ceiling, run count and per-run cap is unchanged.
+- **The tests.**
+  - Every stage Constructor's budget opens at 0.65/h, with pods covered and
+    10.99 for tokens.
+  - Every stage Attacker still holds four full kimi-k3 calls; at 0.65/h its
+    model money is 11.45.
+  - R4's 11.93 at 0.65/h is still refused, typed.
+
+**Amendment (2026-10-10): the token share is 10.99.**
+- **The relayed split.** The Test Lead relayed the owner's "approve token
+  share $11.01, pods $3.90". At 0.65/h a stage Constructor session's 12
+  pods need exactly USD 3.92, so 3.90 is 0.02 short and every run would be
+  refused.
+- **The owner's direct choice.** Asked directly in the Test Engineer's
+  session, the owner chose **10.99**, the largest share that fits: tokens
+  10.99 and pods 3.92 inside the unchanged 14.91 run (five full kimi-k3
+  calls). Stage totals are unchanged.
+- **The Attackers fit as they are:** pods 1.96, tokens 11.45.

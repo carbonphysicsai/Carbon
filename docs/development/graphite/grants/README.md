@@ -1039,3 +1039,30 @@ R4 (45.00, 3 runs, Level 1 and above) is unchanged and stays spendable.
 - **The Attacker grant** sets `levels` to (4,).
 - **Whether a Level 4 live run happens** stays the owner's and the security
   owner's (plan section 1). This grant authorizes spend only.
+
+## The optional pod rate ceiling (GRANT-POD-CEILING-01)
+
+- **The field.** A grant may carry `pod_rate_ceiling_usd_per_hr`, the most a
+  pod under it may cost an hour. Absent, the ceiling is pod_control's
+  `MAX_RATE`, as before.
+- **Existing grants.** Every existing grant omits it, so its document, digest
+  and behaviour are unchanged.
+- **What it changes.** A grant that names it prices its pods at that ceiling
+  (`pods.prices`, `phase3_budget`), and the preflight checks the live offer
+  against it.
+- **The token share.** A raised ceiling under a fixed token share can leave
+  the session's pods too little; the run is then refused
+  `grant_token_share_leaves_too_little_for_pods`, and the grant's token
+  share or per-run worst case needs re-setting too.
+
+**Stages A, B and C (2026-10-10).**
+- **The approval.** The owner approved a standing 0.65/h ceiling for all
+  stages: "approve a standing pod ceiling for all stages", answering the
+  Test Lead's USD 0.65/h proposal. The owner confirmed it directly in the
+  Test Engineer's session, with the Constructor token share lowered to
+  USD 10.99 (the largest share that fits: at 0.65/h the session's pods need
+  exactly USD 3.92 of the 14.91 run).
+- **The change.** The six stage grant files carry
+  `pod_rate_ceiling_usd_per_hr` 0.65, and the stage Constructors' token
+  share is 10.99 (`grant_binding.STAGE_TOKEN_SHARE`).
+- **Unchanged:** stage caps, run counts and per-run caps.

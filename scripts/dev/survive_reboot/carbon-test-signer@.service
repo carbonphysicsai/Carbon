@@ -1,0 +1,23 @@
+# One testnet-567 test signer, kept running across reboots (SURVIVE-REBOOT-01).
+#
+# Instance name = the lane (canary, minerC ... minerG). Its wallet name and
+# public hotkey come from ~/.config/carbon/test-signers/<lane>.env, written by
+# install_test_signers.sh only for hotkeys on the owner's auto-confirm
+# allow-list. The unit names a wallet; it never holds or reads a key.
+# The signer itself refuses any genesis but testnet 567's and auto-confirms
+# only allow-listed hotkeys (OWNER-SIGNER-TESTNET-AUTOCONFIRM-01).
+
+[Unit]
+Description=Carbon test signer %i (testnet 567, auto-confirm)
+After=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.config/carbon/test-signers/%i.env
+ExecStart=%h/carbon/.venv/bin/carbon-miner-signer --wallet ${WALLET} --hotkey default --expect ${HOTKEY} $RECEIVERS --auto-confirm-commitments %h/.config/carbon/autoconfirm-allowlist.json
+StandardInput=null
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target
