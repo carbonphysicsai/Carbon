@@ -91,10 +91,14 @@ a scientific result.
   (the capability or op name only), `count`, `first_seen` and `last_seen` (UTC ISO 8601), and
   `run_id`. No hidden, protected or secret material, no request payloads, no credentials, no
   account details.
-- **Source:** the runs' own records and ledgers that the executor already commits or shares
-  for the stage. Nothing is instrumented in a live run. The executor says where refusals are
-  logged (open question to the executor); the Testing Manager reads them after each run and
-  appends. A refusal that cannot be read from an existing record is listed as unlogged, not
-  inferred.
+- **Source:** there is no dedicated refusal ledger for phase 3 or phase 4 runs (the
+  `rejections/` directory belongs to the planner and to method-card and miner-library
+  imports). Typed refusals appear as `reason_code` in the runs' tool results and in the
+  `p3 status` and `p4 log` output under the run root. After each run the executor extracts the
+  refusal codes and requested names into `refusals-run-N.txt` in the host's shared stage-A
+  folder (read-only, no instrumentation of live runs). The Testing Manager builds the jsonl
+  from those per-run extracts after the runs. The extraction format is stated here from a real
+  extract once one exists (**TBD: no run has started**); the jsonl is created only then. A
+  refusal that is not in an extract is listed as unlogged, not inferred.
 - **Summary at the end of each stage:** the top refusals by code and by level (counts), as a
   short table in the stage's closing report. It names no Level 5 design and decides nothing.
