@@ -155,10 +155,14 @@ jobs:
           # verifies it. No image pin, Dockerfile or derived tag changes, so
           # the canonical image keeps its identity.
           sudo mkdir -p /etc/docker
-          (sudo cat /etc/docker/daemon.json 2>/dev/null || echo '{}') | python3 -c '
+          (sudo cat /etc/docker/daemon.json 2>/dev/null || true) | python3 -c '
           import json, sys
 
-          config = json.load(sys.stdin) or {}
+          # The file may be absent or present and empty, which differ: an
+          # empty read is not a failed read, so a bare `cat || echo {}`
+          # leaves nothing on the pipe and json.load refuses it.
+          raw = sys.stdin.read().strip()
+          config = json.loads(raw) if raw else {}
           mirrors = config.get("registry-mirrors") or []
           if "https://mirror.gcr.io" not in mirrors:
               mirrors.append("https://mirror.gcr.io")
