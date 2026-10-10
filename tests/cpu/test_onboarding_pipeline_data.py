@@ -120,3 +120,13 @@ def test_the_bank_stage_quotes_the_owner_and_attributes_the_reading_to_the_test_
     assert "EUR 500" in bank["entry"]
     assert "The grant file is what binds spend" in bank["entry"]
     assert "nothing above EUR 500" in bank["entry"]
+
+
+def test_the_reference_stage_requires_code_verification():
+    stage = next(
+        s for s in _load("stage_map.json")["stages"] if s["id"] == "S2_solver_package"
+    )
+    assert "Method of Manufactured Solutions" in stage["exit"]
+    assert "observed order of accuracy" in stage["exit"]
+    assert "re-run on any image rebuild or re-pin" in stage["exit"]
+    assert "Test Lead, from the owner, 2026-10-10" in stage["owner_basis"]

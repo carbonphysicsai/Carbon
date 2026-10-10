@@ -40,7 +40,10 @@ def test_the_pack_is_deterministic_and_covers_the_first_three_challenges():
     module = _pack()
     first, second = module.build(CHALLENGES), module.build(CHALLENGES)
     assert first == second
-    assert set(first) == {f"{c}.md" for c in CHALLENGES} | {"cross_challenge.md"}
+    assert set(first) == {f"{c}.md" for c in CHALLENGES} | {
+        "cross_challenge.md",
+        "credibility.md",
+    }
 
 
 @pytest.mark.parametrize("which", ["generated", "committed"])
@@ -63,7 +66,7 @@ def test_every_line_cites_an_artefact_or_reads_unmeasured(which):
 
 def test_the_required_equal_budget_section_is_on_every_challenge_page():
     for name, text in _pack().build(CHALLENGES).items():
-        if name == "cross_challenge.md":
+        if name in {"cross_challenge.md", "credibility.md"}:
             continue
         assert "## Required: equal-budget screen-then-verify" in text, name
         assert "Models never beat the solver on accuracy" in text
@@ -84,3 +87,15 @@ def test_no_spend_figure_or_hidden_material_on_a_page():
         assert not re.search(r"\$\s?\d|USD\s?\d|\d\s?USD", body), name
         for word in ("draw_id", "sealed_batch", "hidden_pool", "api_key"):
             assert word not in body, (name, word)
+
+
+def test_the_credibility_page_shows_three_layers_per_solver_without_inventing_results():
+    page = _pack().build(CHALLENGES)["credibility.md"]
+    for solver in ("PyBaMM", "GetDP", "Elmer"):
+        assert f"### {solver}" in page
+    assert page.count("Code verification (observed order matches theory)") == 3
+    assert page.count("Solution verification (refinement, conservation)") == 3
+    assert page.count("Validation (benchmarks)") == 3
+    for line in page.splitlines():
+        if line.startswith(("- Code verification", "- Solution", "- Validation")):
+            assert "UNMEASURED" in line, line

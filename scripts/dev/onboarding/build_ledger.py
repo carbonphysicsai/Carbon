@@ -31,6 +31,7 @@ SCHEMA = "carbon.challenge-pipeline.brief-product-ledger.v1"
 UNMEASURED = "UNMEASURED"
 REQUIRED_FOR_TESTED = "required for TESTED"
 REQUIRED_FOR_VALUE = "required for PASSES VALUE"
+REQUIRED_FOR_REFERENCE = "required for the reference stage exit"
 SCORECARDS = "docs/development/challenge_pipeline/value-cost/analysis.md"
 HARNESS = "carbon/design_search/track_b.py"
 
@@ -256,6 +257,7 @@ def build_outputs(entry):
         "model_accuracy": to_measure("model_accuracy"),
         "speed_up_against_reference": to_measure("speed_up"),
         "passes_value": build_passes_value(),
+        "credibility_layers": build_credibility(entry),
     }
     baseline = entry.get("cheap_baseline")
     v4 = to_measure("cheap_baseline_v4")
@@ -282,6 +284,35 @@ def build_outputs(entry):
     else:
         outputs["score_value_alignment"] = to_measure("score_value_alignment")
     return outputs
+
+
+def build_credibility(entry):
+    """The three credibility layers per pinned solver; UNMEASURED unless an artefact holds one."""
+    solvers = {}
+    for solver in entry.get("solvers", []):
+        named = solver["named_in"]
+        if not (_exists(named) and solver["name"].lower() in _read(named).lower()):
+            continue
+        solvers[solver["name"]] = {
+            "named_in": measured(solver["name"], named),
+            "code_verification": dict(
+                to_measure("code_verification"),
+                required_for="reference stage exit",
+                flag=REQUIRED_FOR_REFERENCE,
+            ),
+            "solution_verification": to_measure("solution_verification"),
+            "validation": to_measure("validation"),
+        }
+    return {
+        "rule": (
+            "Code verification is a required exit criterion of the reference stage "
+            "(Test Lead, from the owner, 2026-10-10): a Method of Manufactured Solutions test, "
+            "or an exact analytic-solution test where MMS is not practical, showing the observed "
+            "order of accuracy matches the scheme's theoretical order, re-run on any image "
+            "rebuild or re-pin. Recorded beside solution verification and validation."
+        ),
+        "solvers": solvers,
+    }
 
 
 def _value_condition(key, condition):
