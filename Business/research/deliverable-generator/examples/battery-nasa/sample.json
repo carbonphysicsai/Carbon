@@ -1,0 +1,337 @@
+{
+  "schema_version": "PROPOSAL_V1",
+  "mode": "DEVELOPMENT_SAMPLE",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "intended_tier": "EVIDENCE_AUDIT",
+  "eligible_tier": "UNESTABLISHED",
+  "qualification_record": null,
+  "source_snapshot": "915225242146be67e6de098d4a08324cc63dc684",
+  "sections": {
+    "D01": {
+      "coverage": "GAP",
+      "automation": "manual",
+      "statement": "HUMAN_INPUT: this section requires accepted evidence or human judgment; it is not automatically filled.",
+      "evidence_refs": [
+        "F1"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: section completion and responsible authority"
+      ]
+    },
+    "D02": {
+      "coverage": "GAP",
+      "automation": "manual",
+      "statement": "HUMAN_INPUT: this section requires accepted evidence or human judgment; it is not automatically filled.",
+      "evidence_refs": [
+        "F1"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: section completion and responsible authority"
+      ]
+    },
+    "D03": {
+      "coverage": "GAP",
+      "automation": "manual",
+      "statement": "HUMAN_INPUT: this section requires accepted evidence or human judgment; it is not automatically filled.",
+      "evidence_refs": [
+        "F1"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: section completion and responsible authority"
+      ]
+    },
+    "D04": {
+      "coverage": "GAP",
+      "automation": "manual",
+      "statement": "HUMAN_INPUT: this section requires accepted evidence or human judgment; it is not automatically filled.",
+      "evidence_refs": [
+        "F1"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: section completion and responsible authority"
+      ]
+    },
+    "D05": {
+      "coverage": "GAP",
+      "automation": "automatable later",
+      "statement": "HUMAN_INPUT: this section requires accepted evidence or human judgment; it is not automatically filled.",
+      "evidence_refs": [
+        "F1"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: section completion and responsible authority"
+      ]
+    },
+    "D06": {
+      "coverage": "GAP",
+      "automation": "manual",
+      "statement": "HUMAN_INPUT: this section requires accepted evidence or human judgment; it is not automatically filled.",
+      "evidence_refs": [
+        "F1"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: section completion and responsible authority"
+      ]
+    },
+    "D07": {
+      "coverage": "GAP",
+      "automation": "automatable later",
+      "statement": "HUMAN_INPUT: this section requires accepted evidence or human judgment; it is not automatically filled.",
+      "evidence_refs": [
+        "F1"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: section completion and responsible authority"
+      ]
+    },
+    "D08": {
+      "coverage": "PARTIAL",
+      "automation": "automatable now",
+      "statement": "Public committed-source identities and recorded metadata are indexed below. No artifact qualification, physical validity or audit completeness is inferred.",
+      "evidence_refs": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "F1",
+        "F2",
+        "F3",
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: product identity/parity, rights, independent review and qualification authority"
+      ]
+    },
+    "D09": {
+      "coverage": "GAP",
+      "automation": "manual",
+      "statement": "HUMAN_INPUT: this section requires accepted evidence or human judgment; it is not automatically filled.",
+      "evidence_refs": [
+        "F1"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: section completion and responsible authority"
+      ]
+    },
+    "D10": {
+      "coverage": "GAP",
+      "automation": "automatable later",
+      "statement": "HUMAN_INPUT: this section requires accepted evidence or human judgment; it is not automatically filled.",
+      "evidence_refs": [
+        "F1"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: section completion and responsible authority"
+      ]
+    },
+    "D11": {
+      "coverage": "PARTIAL",
+      "automation": "automatable now",
+      "statement": "Public committed-source identities and recorded metadata are indexed below. No artifact qualification, physical validity or audit completeness is inferred.",
+      "evidence_refs": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "F1",
+        "F2",
+        "F3",
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: product identity/parity, rights, independent review and qualification authority"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "C1",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "C2",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/graphite/GRAPHITE_READINESS_GATE.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "C3",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/graphite/PHASE4_ATTACKER.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "C4",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "F1",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/b0244360dbe49d534b0346779e1cebe5b21de085/Business/research/deliverable-framework/TEMPLATE.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "F2",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/b0244360dbe49d534b0346779e1cebe5b21de085/Business/research/deliverable-framework/deliverable.schema.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "F3",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/b0244360dbe49d534b0346779e1cebe5b21de085/Business/research/deliverable-framework/STANDARDS.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R1",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R2",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/BATTERY_ENGINEERING_VALUE_EV4.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R3",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R4",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/evidence/ev5-2026-10-03/README.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R5",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/evidence/score-value-alignment-01/README.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R6",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/.agent/tickets/VALIDATOR-26_battery_rule_v3.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/carbon/challenge_pipeline/readiness/Q1_PANELS.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    }
+  ],
+  "adverse_review": "FINDINGS_RETAINED",
+  "adverse_findings": [
+    {
+      "id": "EV4_FALSE_FEASIBLE",
+      "basis": "reference-relative",
+      "outcome": "FAIL",
+      "statement": "EV4 reported members with false acceptance / eligible members: 56 / 99",
+      "evidence_refs": [
+        "R2"
+      ],
+      "status": "HISTORICAL_RETAINED"
+    },
+    {
+      "id": "EV4_H1",
+      "basis": "decision-value",
+      "outcome": "UNRESOLVED",
+      "statement": "EV4 reported H1 outcome: UNRESOLVED",
+      "evidence_refs": [
+        "R2"
+      ],
+      "status": "HISTORICAL_RETAINED"
+    },
+    {
+      "id": "EV5_ATTACK",
+      "basis": "decision-value",
+      "outcome": "FAIL",
+      "statement": "EV5 reported adversarial-score verdict: FAIL",
+      "evidence_refs": [
+        "R4"
+      ],
+      "status": "HISTORICAL_RETAINED"
+    },
+    {
+      "id": "EV5_COUNTEREXAMPLES",
+      "basis": "reference-relative",
+      "outcome": "FAIL",
+      "statement": "EV5 reported reference-infeasible selections / selected constructions: 8 / 10",
+      "evidence_refs": [
+        "R4"
+      ],
+      "status": "HISTORICAL_RETAINED"
+    },
+    {
+      "id": "Q1_MISSING_V3",
+      "basis": "decision-value",
+      "outcome": "NOT_ASSESSED",
+      "statement": "Q1 audit reports same-panel v3 measures uncomputable (historical scope): uncomputable",
+      "evidence_refs": [
+        "R5"
+      ],
+      "status": "HISTORICAL_RETAINED"
+    },
+    {
+      "id": "EV4_MODE_X",
+      "basis": "reference-relative",
+      "outcome": "FAIL",
+      "statement": "EV4 reported adversarial violations: in-band / out-of-band: 29 / 17",
+      "evidence_refs": [
+        "R2"
+      ],
+      "status": "HISTORICAL_RETAINED"
+    },
+    {
+      "id": "EV5_MODE_X",
+      "basis": "reference-relative",
+      "outcome": "FAIL",
+      "statement": "EV5 reported adversarial findings: in-band / out-of-band: 25 / 21",
+      "evidence_refs": [
+        "R4"
+      ],
+      "status": "HISTORICAL_RETAINED"
+    },
+    {
+      "id": "EV5_SIGN_ERROR",
+      "basis": "reference-relative",
+      "outcome": "NOT_ASSESSED",
+      "statement": "EV5 reported sign-error near-limit false-acceptance rate: 0.946",
+      "evidence_refs": [
+        "R4"
+      ],
+      "status": "HISTORICAL_RETAINED"
+    }
+  ],
+  "tier_criteria": [
+    {
+      "criterion": "Customer-specific audit prerequisites and acceptance",
+      "status": "GAP",
+      "authority": "HUMAN_INPUT",
+      "evidence_refs": [
+        "F1"
+      ]
+    }
+  ]
+}
