@@ -346,7 +346,41 @@ def allowed_cuda_versions(repository=REPOSITORY):
 UNSHIPPED_DIRECTORIES = frozenset({"private"})
 
 
+#: What the pod runs: the bootstrap's phase module and Graphite's pod phase
+#: (GRAPHITE-POD-ENV-SIZE-01). The pod ships their static import closure, not
+#: the whole code trees: RunPod answers an oversized create request with an
+#: opaque 500, and the whole-tree manifest put the environment over the limit.
+ENTRY_MODULES = (
+    "scripts.dev.exam_design.runner",
+    "carbon.agent_campaign.graphite.pod_phase",
+)
+#: Packages reached by name at run time (`importlib.import_module`), which a
+#: static closure cannot see: the Challenge modules
+#: (`confirmation_sources`, the training-budget adapters) and the backbone
+#: adapters. Every module under them is an entry.
+DYNAMIC_PACKAGES = (
+    "carbon/backbones",
+    "carbon/battery",
+    "carbon/cold_plate",
+    "carbon/motor",
+    "carbon/training_budget",
+)
+#: Trees inside the closure's directories that the pod never reads: the
+#: lessons register (several hundred records).
+UNSHIPPED_TREES = ("carbon/challenge_pipeline/lessons/",)
+ENV_TOO_LARGE = "pod_env_too_large"
+
+
 def ship_list(ref, repository=REPOSITORY, scoring=None):
+    """The files a Graphite pod is shipped: the import closure of
+    `ENTRY_MODULES` and `DYNAMIC_PACKAGES`, the non-code files beside that
+    closure (contracts, policies, fixtures), and the scoring's data. Nothing
+    the guard names (`FORBIDDEN_DATA`) and nothing under a `private` directory
+    is shipped; a protected data path is still refused. A test runs the pod
+    phase from exactly these files."""
+    from scripts.dev.exam_design.runpod.a40_acceptance import read_blobs
+    from scripts.dev.exam_design.runpod.pod_env import import_closure, module_name
+
     try:
         shipped = data_paths(scoring)
     except ValueError as refused:
@@ -354,12 +388,31 @@ def ship_list(ref, repository=REPOSITORY, scoring=None):
     for path in shipped:
         if any(fragment in path.lower() for fragment in FORBIDDEN_DATA):
             raise PodFailure("ship", "forbidden data path " + path, executed=False)
-    code = [
+    candidates = [
         path
         for path in tracked(ref, SHIP_TREES, repository)
         if not {part.lower() for part in Path(path).parts[:-1]} & UNSHIPPED_DIRECTORIES
+        and not path.startswith(UNSHIPPED_TREES)
+        and not any(fragment in path.lower() for fragment in FORBIDDEN_DATA)
     ]
-    return list(dict.fromkeys(code + list(shipped)))
+    sources = [path for path in candidates if path.endswith(".py")]
+    entries = list(ENTRY_MODULES) + [
+        module_name(path)
+        for path in sources
+        if path.startswith(tuple(package + "/" for package in DYNAMIC_PACKAGES))
+    ]
+    code = import_closure(read_blobs(ref, repository, sources), entries)
+    directories = {str(Path(path).parent) for path in code}
+    beside = [
+        path
+        for path in candidates
+        if not path.endswith(".py")
+        and any(
+            str(Path(path).parent) == d or str(Path(path).parent).startswith(d + "/")
+            for d in directories
+        )
+    ]
+    return list(dict.fromkeys(code + beside + list(shipped)))
 
 
 def manifest_digest(manifest):
@@ -500,16 +553,54 @@ class RunPodPods:
             raise PodFailure("launch", "pod job record conflict", executed=False)
         return record
 
+    def pod_spec(self, job, record, *, start_command=None):
+        """The create request's `PodSpec` for `job`, its environment measured
+        first: over `ENV_LIMIT_CHARS` it is refused here (`pod_env_too_large`),
+        before any provider call, rather than met as an opaque provider 500.
+        The launch preflight's probe builds its pod with this same method,
+        changing only the start command."""
+        from scripts.dev.exam_design.runpod.operator_compute import PodSpec
+        from scripts.dev.exam_design.runpod.pod_env import (
+            ENV_LIMIT_CHARS,
+            env_chars,
+            largest_variable,
+        )
+
+        economics = self.economics
+        env = self._env(job, record)
+        if env_chars(env) > ENV_LIMIT_CHARS:
+            raise PodFailure(
+                "launch",
+                f"{ENV_TOO_LARGE}: the pod environment is {env_chars(env)} "
+                f"characters, over the {ENV_LIMIT_CHARS} limit (largest variable "
+                f"{largest_variable(env)})",
+                executed=False,
+            )
+        return PodSpec(
+            image=economics["image"],
+            gpu_type_id=economics["gpu"],
+            gpu_count=1,
+            cloud_type="SECURE",
+            container_disk_gb=economics["disk_gb"],
+            ports=("8000/http",),
+            env=env,
+            max_rate_usd_per_hr=float(economics["rate_ceiling_usd_per_hr"]),
+            storage_usd_per_gb_month=float(economics["disk_usd_per_gb_month"]),
+            start_command=start_command
+            or ("/opt/carbon-worker/bin/python", "-I", "-c", self.boot),
+            allowed_cuda_versions=tuple(record.get("allowed_cuda_versions", ())),
+        )
+
     def launch(self, job, private):
         from scripts.dev.exam_design.runpod.operator_compute import (
             ComputeError,
             Execution,
-            PodSpec,
             ProvisionRequest,
         )
 
         economics = self.economics
         record = self._record(job, private)
+        spec = self.pod_spec(job, record)
         try:
             balance, _ = self.service.observe_balance(self.CAMPAIGN)
             cost = pod_reservation(job.minutes, economics["hourly_usd"])
@@ -528,19 +619,6 @@ class RunPodPods:
                     "no A40 Secure pod at or below the rate ceiling now",
                     executed=False,
                 )
-            spec = PodSpec(
-                image=economics["image"],
-                gpu_type_id=economics["gpu"],
-                gpu_count=1,
-                cloud_type="SECURE",
-                container_disk_gb=economics["disk_gb"],
-                ports=("8000/http",),
-                env=self._env(job, record),
-                max_rate_usd_per_hr=float(economics["rate_ceiling_usd_per_hr"]),
-                storage_usd_per_gb_month=float(economics["disk_usd_per_gb_month"]),
-                start_command=("/opt/carbon-worker/bin/python", "-I", "-c", self.boot),
-                allowed_cuda_versions=tuple(record.get("allowed_cuda_versions", ())),
-            )
             resource = self.service.provision(
                 ProvisionRequest(
                     tenant="graphite",
