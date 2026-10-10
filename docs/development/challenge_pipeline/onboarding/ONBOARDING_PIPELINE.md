@@ -8,8 +8,8 @@ specialty."
 This page builds on the [lessons register](../../graphite/LESSONS_REGISTER.md), the
 [readiness gate](../../graphite/GRAPHITE_READINESS_GATE.md) and
 `carbon/challenge_pipeline/`. It decides nothing scientific, spends nothing, authors no
-grant, and registers no gate. "Tested" here means the stages below are complete and
-reported. It is not scientific qualification, security acceptance, LIVE or a launch claim.
+grant, and registers no gate. "Tested" is the Test Lead's working definition below. It is
+not scientific qualification, security acceptance, LIVE or a launch claim.
 
 The data lives beside this page and is checked by
 `tests/cpu/test_onboarding_pipeline_data.py`:
@@ -28,20 +28,36 @@ checked against. UNVERIFIED marks a mapping the records do not settle.
 | 2 | Solver package | Pinned reference package, measured cost, conservation checks | Data Collection | VERIFIED (specs are SPECIFIED, not built) |
 | 3 | Feasibility and value panel | V1-V5, T1-T5, C1+ evidenced; keep, reframe or replace | Codex, Data Collection, Test Lead; thresholds the owner's | VERIFIED |
 | 4 | Question law | Law sheet accepted or declined by the owner; design-value prerequisite met | Codex proposes; owner accepts | VERIFIED |
-| 5 | Bank | Sealed bank prepared on the hidden host from a pinned image | UNVERIFIED | UNVERIFIED |
+| 5 | Bank | Sealed bank prepared on the hidden host from a pinned image | Carbon Validator (producer, bank adapters, VALIDATOR-28 family sources); Data Collection supplies each family's reference package and panel; the owner approves startup spend | VERIFIED (Test Lead ruling, 2026-10-10) |
 | 6 | Readiness gate | `launch_ready` at the exact main SHA | Graphite Testing Manager; Test Lead waives | VERIFIED |
 | 7 | Graphite stage A (L0, L1) | Checklist runs, lessons entries, L0 confirmations, stage report | Executor, Launchpad, Test Engineer, Test Lead | VERIFIED |
 | 8 | Graphite stage B (L2, L3) | Per the stage B plan; needs VALIDATOR-25 and the owner's spend approval | Executor, Carbon Validator, owner | VERIFIED |
 | 9 | Graphite stage C (L4, graph only) | Per the wave plan section 4a; permission granted, spend not | Executor, Level 4 engineer, owner | VERIFIED |
-| 10 | Tested Challenge | Retrospective recorded; register rows re-checked; owner told what was and was not measured | Test Lead | UNVERIFIED (no repository definition) |
+| 10 | Tested Challenge | The seven conditions below, all holding | Test Lead | VERIFIED (Test Lead working definition, 2026-10-10) |
 
 The full entries and exits, with the file each came from, are in `stage_map.json`.
 
-Two things the map exposes:
-- **The bank (5) has no single stage definition.** Its entry and exit are assembled from
-  the hidden-pool runbook and register lessons S11 and S12.
-- **"Tested" (10) is undefined in the repository.** It is proposed here and needs a Test
-  Lead ruling before anything cites it.
+### Definition of TESTED (Test Lead working definition, development, 2026-10-10)
+
+A Challenge is TESTED when **all** hold:
+1. the readiness gate is `launch_ready` at every enabled level (no FAIL; waivers expired or closed);
+2. a sealed hidden bank exists, with exposure accounting;
+3. Graphite stages are complete at every enabled level, with real Launchpad confirmations
+   scored by a validator, and every Attacker finding dispositioned (fixed, or accepted with a reason);
+4. score-value alignment is measured on confirmed recipes (a Q1 report exists); a negative
+   result is allowed but must trigger a scoring iteration;
+5. control detection (T3) meets its target at the chosen k and E;
+6. the incentive canary shows the best model weighted (INCENTIVE-CANARY-01);
+7. the stage-end report is filed.
+
+TESTED is **not** scientific qualification, security acceptance, LIVE or a launch claim.
+LIVE or qualification is a separate owner step.
+
+What the map still shows:
+- **The bank (5) has no single stage definition.** Its owner is now ruled (above); its entry
+  and exit are still assembled from the hidden-pool runbook and register lessons S11 and S12.
+- **Condition 3 and 5 depend on later stages.** Condition 3 needs stages B and C for the
+  higher levels, and 5 needs a chosen k and E, which are owner values.
 
 ## 2. Metrics
 
@@ -72,8 +88,8 @@ session is in section 5.
 | B1 | Wrong lane | Run launched against a lane other than the one needed (preflight decision) | UNKNOWN | Fixed in code (#967), not yet exercised live |
 | B2 | Keys in the wrong distro | Key files not where the executor runs (preflight decision) | UNKNOWN | Fixed in code (#967), not yet exercised live |
 | B3 | One controller per root | Two runs shared one root (preflight decision; wave plan) | UNKNOWN | Fixed in code (#967), not yet exercised live |
-| B4 | Pod ceiling below the offered price | Rate in the grant is a ceiling; pods above it are refused (grants README) | UNKNOWN | Detected by `--probe`, not prevented |
-| B5 | Token share and pod split | One full-window call of the start model can exceed the token share (wave plan D35; grants README) | UNKNOWN | OPEN: no check on the split |
+| B4 | Pod ceiling below the offered price | Rate in the grant is a ceiling; pods above it are refused (grants README). **Live on the stage A first launch:** the ceiling was below the GPU class's offer (Test Lead note, 2026-10-10) | UNKNOWN | Fix in PR 969 (ceiling becomes a grant field; owner-approved standing ceiling), not merged, not yet exercised live |
+| B5 | Token share and pod split | One full-window call of the start model can exceed the token share (wave plan D35; grants README). The stage A first launch also needed a different share (Test Lead note) | UNKNOWN | Value fixed in PR 969; OPEN: no check on the split |
 | B6 | Reboot fragility | After a reboot the signers and tunnels were down until the owner restarted them (Launchpad note, 2026-10-10) | UNKNOWN | OPEN: detected, not recovered |
 | B7 | Auto-mode permission blocks | The classifier blocked a build (OWNER-CANARY-MINER-01) | UNKNOWN | OPEN: workaround is the owner's approve-edits mode |
 | B8 | Silent failures | A stalled run or all-refused pods went unseen (preflight decision) | UNKNOWN | Fixed in code (#967), not yet exercised live |

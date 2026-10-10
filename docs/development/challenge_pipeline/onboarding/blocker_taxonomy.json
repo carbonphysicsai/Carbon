@@ -76,12 +76,13 @@
    "cause": "Pods were refused at launch. The rate in the grant is a ceiling and the runner refuses a pod RunPod offers above it.",
    "cause_source": [
     ".agent/decisions/2026-10-10-GRAPHITE-LAUNCH-PREFLIGHT-01.md (pods refused at launch)",
-    "docs/development/graphite/grants/README.md (the rate is a ceiling)"
+    "docs/development/graphite/grants/README.md (the rate is a ceiling)",
+    "Test Lead note to the Graphite Testing Manager, 2026-10-10 (stage A first launch refused pods)"
    ],
-   "occurrences": "AT_LEAST_1",
+   "occurrences": "1 live: the stage A first launch failed on pod refusal because the grant's rate ceiling was below the offered price of the GPU class (Test Lead note, 2026-10-10)",
    "time_lost": "UNKNOWN",
-   "fix_status": "DETECTED_NOT_PREVENTED",
-   "fix_ref": "GRAPHITE-LAUNCH-PREFLIGHT-01 (#967): --probe runs the launch's own offer check with one real pod. Raising a ceiling is a grant change and stays the owner's.",
+   "fix_status": "FIX_IN_PR_969_NOT_MERGED_NOT_EXERCISED_LIVE",
+   "fix_ref": "PR 969 (GRANT-POD-CEILING-01) makes the pod rate ceiling a grant field and the owner approved a standing ceiling and token share; the figures are in that decision record, not repeated here. The relaunch waits on 969 merging. The preflight --probe (#967) detects the mismatch but did not run against the live account before the launch.",
    "register_row": "B4",
    "automation": {
     "kind": "check",
@@ -97,12 +98,13 @@
    "cause_source": [
     "docs/development/graphite/GRAPHITE_LADDER_WAVE_PLAN.md (section 0, Attacker on kimi-k3)",
     "docs/development/graphite/grants/README.md (the run's split)",
-    ".agent/decisions/2026-10-09-OWNER-GRAPHITE-STAGE-A-01.md"
+    ".agent/decisions/2026-10-09-OWNER-GRAPHITE-STAGE-A-01.md",
+    "Test Lead note to the Graphite Testing Manager, 2026-10-10 (token share approved alongside the pod ceiling in PR 969)"
    ],
-   "occurrences": "1 (found in planning, before a live run)",
+   "occurrences": "2: found in planning (D35), and the stage A first launch also needed a different token share (Test Lead note, 2026-10-10)",
    "time_lost": "UNKNOWN",
-   "fix_status": "OPEN",
-   "fix_ref": "Stage A grants were re-derived by hand with a larger token share (OWNER-GRAPHITE-STAGE-A-01). No check refuses a grant whose split cannot fund one full-window call of the start model, or whose pod share cannot fund the pods the run needs at the rate ceiling.",
+   "fix_status": "VALUE_FIXED_IN_PR_969_CHECK_STILL_OPEN",
+   "fix_ref": "PR 969 carries the owner-approved standing token share for the stage grants. Still OPEN: no check refuses a grant whose split cannot fund one full-window call of the start model, or whose pod share cannot fund the pods at the rate ceiling.",
    "register_row": "B5",
    "automation": {
     "kind": "generator",

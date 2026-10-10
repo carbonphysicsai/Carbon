@@ -59,8 +59,17 @@ def test_the_stage_map_covers_the_owner_stages_in_order():
 
 def test_tested_is_never_defined_as_qualification():
     tested = _load("stage_map.json")["stages"][-1]
-    assert tested["status"] == "UNVERIFIED"
-    assert "not scientific qualification" in tested["note"]
+    assert tested["id"] == "S10_tested"
+    assert len(re.findall(r"\(\d\)", tested["exit"])) == 7
+    for claim in ("scientific qualification", "LIVE", "launch claim"):
+        assert claim in tested["note"]
+    assert "not" in tested["note"].lower()
+
+
+def test_unverified_marks_are_recorded_with_what_would_clear_them():
+    for stage in _load("stage_map.json")["stages"]:
+        if stage["status"] == "UNVERIFIED":
+            assert "ruling" in stage["note"].lower() or "ask" in stage["note"].lower()
 
 
 def test_every_blocker_is_a_register_row_and_ranks_are_a_permutation():

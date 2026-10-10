@@ -83,14 +83,14 @@
    "name": "Bank",
    "entry": "An accepted question law and the design-value prerequisite.",
    "exit": "A sealed hidden bank prepared on the hidden host from a pinned validator image, never on a host every agent session can read.",
-   "owner_session": "UNVERIFIED (Carbon Validator, Test Engineer and the owner's hidden host all appear in the records)",
-   "owner_basis": "Bank architecture #756 and the hidden-pool runbook; register lessons S11 and S12 constrain where and how",
+   "owner_session": "Carbon Validator (producer, bank adapters, VALIDATOR-28 family sources); Data Collection supplies each family's reference package and panel; the owner approves startup spend",
+   "owner_basis": "Test Lead ruling, 2026-10-10 (relayed to the Graphite Testing Manager); Bank architecture #756 and the hidden-pool runbook; register lessons S11 and S12 constrain where and how",
    "evidence": [
     "docs/development/graphite/HIDDEN_POOL_AND_TUNING_RUNBOOK.md",
     "docs/development/graphite/LESSONS_REGISTER.md (S11, S12)"
    ],
-   "status": "UNVERIFIED",
-   "note": "Entry and exit are derived from the runbook and lessons, not from one stage definition; the Test Lead should rule the owner session."
+   "status": "VERIFIED",
+   "note": "Owner session settled by the Test Lead ruling. Entry and exit are still assembled from the hidden-pool runbook and register lessons S11 and S12, not from one stage definition."
   },
   {
    "id": "S6_readiness",
@@ -155,16 +155,16 @@
    "id": "S10_tested",
    "order": 10,
    "name": "Tested Challenge",
-   "entry": "Stages A to C closed for the levels the owner chose, with their reports.",
-   "exit": "Retrospective recorded (register section 8 metrics), every DOCUMENTED and OPEN register row re-checked, and the owner told what was and was not measured.",
+   "entry": "Graphite stages A to C closed for every enabled level, with their reports.",
+   "exit": "TESTED when ALL hold: (1) the readiness gate is launch_ready at every enabled level (no FAIL; waivers expired or closed); (2) a sealed hidden bank exists, with exposure accounting; (3) Graphite stages are complete at every enabled level, with real Launchpad confirmations scored by a validator, and every Attacker finding dispositioned (fixed, or accepted with a reason); (4) score-value alignment is measured on confirmed recipes (a Q1 report exists), and a negative result is allowed but must trigger a scoring iteration; (5) control detection (T3) meets its target at the chosen k and E; (6) the incentive canary shows the best model weighted (INCENTIVE-CANARY-01); (7) the stage-end report is filed.",
    "owner_session": "Test Lead",
-   "owner_basis": "LESSONS_REGISTER.md rules and section 8",
+   "owner_basis": "Test Lead working definition, development, 2026-10-10 (relayed to the Graphite Testing Manager); LESSONS_REGISTER.md rules and section 8",
    "evidence": [
     "docs/development/graphite/LESSONS_REGISTER.md",
     "docs/development/graphite/WAVE_RETROSPECTIVE_TEMPLATE.md"
    ],
-   "status": "UNVERIFIED",
-   "note": "The repository has no definition of a tested Challenge; this is a proposal. It is not scientific qualification, security acceptance, LIVE or a launch claim (AGENTS.md sections 3 and 6)."
+   "status": "VERIFIED",
+   "note": "A working definition for development, ruled by the Test Lead. TESTED is not scientific qualification, security acceptance, LIVE or a launch claim; LIVE or qualification is a separate owner step."
   }
  ]
 }
