@@ -12,6 +12,7 @@ import json
 import re
 import statistics
 from collections import Counter
+from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
@@ -20,10 +21,12 @@ from scripts.dev.battery import stage_a_alignment
 ROOT = Path(__file__).resolve().parents[3]
 GRANTS = ROOT / "docs/development/graphite/grants"
 SCOPE = "DEVELOPMENT_SUMMARY_ONLY"
-REFUSALS_SCHEMA = "carbon.graphite.refused-capability-summary.v1"
 SPEND_SCHEMA = "carbon.graphite.stage-a-spend-summary.v1"
 REPORT_SCHEMA = "carbon.graphite.stage-a-owner-report.v1"
 TOKEN = re.compile(r"[a-z][a-z0-9._-]{0,79}\Z")
+REFUSAL_CODE = re.compile(r"[a-z][a-z0-9._:-]{0,127}\Z")
+REQUESTED = re.compile(r"[A-Za-z][A-Za-z0-9._: -]{0,119}\Z")
+RUN_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
 SHA = re.compile(r"sha256:[0-9a-f]{64}\Z")
 
 
@@ -56,38 +59,85 @@ def _read(path):
 
 
 def _refusals(path):
-    value, digest = _read(path)
-    _closed(
-        value,
-        {"schema", "scope", "source_sha256", "complete", "levels_covered", "records"},
-        "refusals_shape",
-    )
-    if value["schema"] != REFUSALS_SCHEMA or value["scope"] != SCOPE:
-        raise Refused("refusals_development_summary_required")
-    _sha(value["source_sha256"], "refusals_source_digest")
-    if type(value["complete"]) is not bool:
-        raise Refused("refusals_complete_invalid")
-    levels = value["levels_covered"]
-    if (
-        type(levels) is not list
-        or not levels
-        or any(type(x) is not int or x not in range(6) for x in levels)
-        or levels != sorted(set(levels))
-    ):
-        raise Refused("refusals_levels_invalid")
-    if type(value["records"]) is not list:
-        raise Refused("refusals_records_invalid")
-    counts = Counter()
-    for row in value["records"]:
-        _closed(row, {"capability_id", "level", "refusal_code"}, "refusal_record_shape")
-        _token(row["capability_id"], "capability_id_invalid")
-        _token(row["refusal_code"], "refusal_code_invalid")
-        if type(row["level"]) is not int or row["level"] not in levels:
-            raise Refused("refusal_level_uncovered")
-        counts[(row["capability_id"], row["level"], row["refusal_code"])] += 1
+    """Read #953's post-run Stage A JSONL rows, never the raw run extracts."""
+    body = Path(path).read_bytes()
+    if len(body) > 5_000_000:
+        raise Refused("refusal_log_too_large")
+    digest = "sha256:" + hashlib.sha256(body).hexdigest()
+    counts, codes, levels, seen = Counter(), Counter(), Counter(), set()
+    for line in body.splitlines():
+        if not line.strip():
+            raise Refused("refusal_log_blank_line")
+        try:
+            row = json.loads(line)
+        except (UnicodeError, ValueError) as error:
+            raise Refused("refusal_log_invalid_json") from error
+        _closed(
+            row,
+            {
+                "stage",
+                "level",
+                "role",
+                "refusal_code",
+                "requested",
+                "count",
+                "first_seen",
+                "last_seen",
+                "run_id",
+            },
+            "refusal_record_shape",
+        )
+        if (
+            row["stage"] != "A"
+            or type(row["level"]) is not int
+            or row["level"] not in range(6)
+        ):
+            raise Refused("refusal_stage_or_level_invalid")
+        if row["role"] not in ("Constructor", "Attacker"):
+            raise Refused("refusal_role_invalid")
+        if type(row["refusal_code"]) is not str or not REFUSAL_CODE.fullmatch(
+            row["refusal_code"]
+        ):
+            raise Refused("refusal_code_invalid")
+        if type(row["requested"]) is not str or not REQUESTED.fullmatch(
+            row["requested"]
+        ):
+            raise Refused("requested_name_invalid")
+        if type(row["run_id"]) is not str or not RUN_ID.fullmatch(row["run_id"]):
+            raise Refused("run_id_invalid")
+        if type(row["count"]) is not int or row["count"] < 1:
+            raise Refused("refusal_count_invalid")
+        times = []
+        for field in ("first_seen", "last_seen"):
+            value = row[field]
+            if type(value) is not str or not value.endswith("Z"):
+                raise Refused("refusal_timestamp_not_utc")
+            try:
+                moment = datetime.fromisoformat(value)
+            except ValueError as error:
+                raise Refused("refusal_timestamp_invalid") from error
+            if moment.utcoffset() != timedelta(0):
+                raise Refused("refusal_timestamp_not_utc")
+            times.append(moment)
+        if times[0] > times[1]:
+            raise Refused("refusal_timestamp_order")
+        identity = (
+            row["level"],
+            row["role"],
+            row["refusal_code"],
+            row["requested"],
+            row["run_id"],
+        )
+        if identity in seen:
+            raise Refused("refusal_duplicate_identity")
+        seen.add(identity)
+        n = row["count"]
+        counts[(row["requested"], row["level"], row["refusal_code"])] += n
+        codes[row["refusal_code"]] += n
+        levels[row["level"]] += n
     ranked = [
         {
-            "capability_id": capability,
+            "requested": capability,
             "level": level,
             "refusal_code": code,
             "count": count,
@@ -98,11 +148,18 @@ def _refusals(path):
     ]
     return {
         "summary_sha256": digest,
-        "source_sha256": value["source_sha256"],
-        "complete_claim": value["complete"],
-        "levels_covered": levels,
-        "total_refusals": len(value["records"]),
-        "ranked_level5_investigation_candidates": ranked,
+        "completeness": "UNVERIFIED_FROM_EXTRACTS",
+        "levels_present": sorted(levels),
+        "total_refusals": sum(levels.values()),
+        "top_by_code": [
+            {"refusal_code": code, "count": n}
+            for code, n in sorted(codes.items(), key=lambda item: (-item[1], item[0]))
+        ],
+        "top_by_level": [
+            {"level": level, "count": n}
+            for level, n in sorted(levels.items(), key=lambda item: (-item[1], item[0]))
+        ],
+        "ranked_requested_investigations": ranked,
     }
 
 
@@ -269,18 +326,35 @@ def render(report):
             )
     lines += [
         "",
-        "## Refused capabilities for Level 5 investigation",
+        "## Refused capability requests for investigation",
         "",
-        f"{report['refusals']['total_refusals']} refusal events across levels {report['refusals']['levels_covered']}; producer completeness claim: {report['refusals']['complete_claim']}.",
-        "| Rank | Capability | Level | Refusal code | Events |",
+        f"{report['refusals']['total_refusals']} refusal events across levels {report['refusals']['levels_present']}; source-extract completeness: {report['refusals']['completeness']}.",
+        "| Rank | Requested name | Level | Refusal code | Events |",
         "| ---: | --- | ---: | --- | ---: |",
     ]
     for rank, row in enumerate(
-        report["refusals"]["ranked_level5_investigation_candidates"][:10], 1
+        report["refusals"]["ranked_requested_investigations"][:10], 1
     ):
         lines.append(
-            f"| {rank} | `{row['capability_id']}` | {row['level']} | `{row['refusal_code']}` | {row['count']} |"
+            f"| {rank} | `{row['requested']}` | {row['level']} | `{row['refusal_code']}` | {row['count']} |"
         )
+    lines += [
+        "",
+        "Top refusal codes: "
+        + ", ".join(
+            f"`{row['refusal_code']}` {row['count']}"
+            for row in report["refusals"]["top_by_code"][:5]
+        )
+        + ".",
+    ]
+    lines += [
+        "Top levels: "
+        + ", ".join(
+            f"L{row['level']} {row['count']}"
+            for row in report["refusals"]["top_by_level"][:5]
+        )
+        + "."
+    ]
     lines += [
         "",
         "## Spend against committed caps",
@@ -295,7 +369,7 @@ def render(report):
         )
     lines += [
         "",
-        "**Owner decision:** HUMAN_INPUT. Compare cohorts only within their registered identities. Bootstrap bands and per-recipe practice/exam rows remain in the #942 aggregate JSON. Refusal counts are demand signals, not evidence that a capability is safe or ready. The interim refusal summary's source digest and completeness claim are producer assertions, not authenticated by this script.",
+        "**Owner decision:** HUMAN_INPUT. Compare cohorts only within their registered identities. Per-recipe practice/exam rows remain in the #942 aggregate JSON. Refusal counts are demand signals, not evidence that a capability is safe or ready. #953's JSONL is built from per-run extracts; this script cannot prove every refusal was extracted or infer missing ones. No Level 5 design is selected here.",
     ]
     return "\n".join(lines) + "\n"
 

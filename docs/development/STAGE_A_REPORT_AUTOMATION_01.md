@@ -5,7 +5,7 @@ Run after Stage A aggregate records land:
 ```sh
 python -m scripts.dev.battery.stage_a_owner_report \
   --alignment-input stage-a-summary.json \
-  --refusals refused-capabilities-summary.json \
+  --refusals docs/development/graphite/ladder-stages/stage-A/refused_capabilities.jsonl \
   --spend spend-summary.json \
   --markdown-out stage-a-owner.md \
   --json-out stage-a-owner.json
@@ -19,31 +19,23 @@ including descriptive bootstrap bands, v3 term contributions, divergent
 members and the practice/exam table. The Markdown is a compact owner view.
 Missing v3 inputs remain `V2_ONLY` or `UNMEASURED`, never zero.
 
-The Graphite Testing Manager's native refused-capability log format is not yet
-committed on main. Until its format is supplied, this script accepts a strict
-**interim aggregate operator summary**, not a claim to parse its raw log:
+The refused-capability intake is #953's post-run Stage A JSONL contract,
+committed in `GRAPHITE_LADDER_STAGE_A_CHECKLIST.md` on main. It is built from
+the executor's per-run extracts after runs; no real log exists yet. One line
+has exactly these fields:
 
 ```json
-{
-  "schema": "carbon.graphite.refused-capability-summary.v1",
-  "scope": "DEVELOPMENT_SUMMARY_ONLY",
-  "source_sha256": "sha256:<digest of source log>",
-  "complete": true,
-  "levels_covered": [0, 1, 2, 3, 4],
-  "records": [
-    {"capability_id": "method.example", "level": 2, "refusal_code": "not_rebuildable"}
-  ]
-}
+{"stage":"A","level":2,"role":"Constructor","refusal_code":"not_rebuildable","requested":"method.example","count":2,"first_seen":"2026-10-10T12:00:00Z","last_seen":"2026-10-10T12:10:00Z","run_id":"toy-run-1"}
 ```
 
-One record means one refused capability occurrence. The producer must include
-every refusal in each covered level; `complete` is its assertion, which this
-script cannot independently prove. The output ranks `(capability, level,
-code)` by event count as **Level 5 investigation candidates**, not Level 5
-admission or an accepted expansion. The input accepts no recipes, prompts,
-case IDs or arbitrary details. When the Manager's native schema lands, its
-owner should provide a read-only projection into this summary or update this
-adapter with a versioned native-schema reader.
+One row holds the count for a distinct `(level, role, refusal_code, requested,
+run_id)`. The script refuses duplicate identities, non-UTC or reversed times,
+unknown fields, and request payloads. It prints aggregate top codes, levels
+and requested names, counted by events. These are investigation priorities,
+not Level 5 designs or admission. No recipe, prompt, case ID or arbitrary
+detail is accepted. The file digest binds the rows read, but cannot prove that
+every refusal from the run extracts was logged; missing refusals are not
+inferred. #953 leaves the extraction format TBD until a real run exists.
 
 Spend input is a closed list of committed Stage A grants:
 

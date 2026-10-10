@@ -13,30 +13,30 @@ def _sha(letter):
 
 
 def _inputs(tmp_path):
-    refusals = {
-        "schema": owner.REFUSALS_SCHEMA,
-        "scope": owner.SCOPE,
-        "source_sha256": _sha("a"),
-        "complete": True,
-        "levels_covered": [0, 1, 2],
-        "records": [
-            {
-                "capability_id": "method.neural",
-                "level": 2,
-                "refusal_code": "not_rebuildable",
-            },
-            {
-                "capability_id": "method.neural",
-                "level": 2,
-                "refusal_code": "not_rebuildable",
-            },
-            {
-                "capability_id": "data.pool",
-                "level": 1,
-                "refusal_code": "not_registered",
-            },
-        ],
-    }
+    refusals = [
+        {
+            "stage": "A",
+            "level": 2,
+            "role": "Constructor",
+            "refusal_code": "not_rebuildable",
+            "requested": "method.neural",
+            "count": 2,
+            "first_seen": "2026-10-10T12:00:00Z",
+            "last_seen": "2026-10-10T12:10:00Z",
+            "run_id": "toy-run-1",
+        },
+        {
+            "stage": "A",
+            "level": 1,
+            "role": "Attacker",
+            "refusal_code": "not_registered",
+            "requested": "data.pool",
+            "count": 1,
+            "first_seen": "2026-10-10T12:00:00Z",
+            "last_seen": "2026-10-10T12:00:00Z",
+            "run_id": "toy-run-2",
+        },
+    ]
     grant_id = "GRAPHITE-GRANT-STAGE-A-CONSTRUCTOR"
     grant_body = (owner.GRANTS / (grant_id + ".json")).read_bytes()
     spend = {
@@ -52,9 +52,11 @@ def _inputs(tmp_path):
             }
         ],
     }
-    rpath = tmp_path / "refusals.json"
+    rpath = tmp_path / "refused_capabilities.jsonl"
     spath = tmp_path / "spend.json"
-    rpath.write_text(json.dumps(refusals), encoding="utf-8")
+    rpath.write_text(
+        "\n".join(json.dumps(row) for row in refusals) + "\n", encoding="utf-8"
+    )
     spath.write_text(json.dumps(spend), encoding="utf-8")
     return rpath, spath, refusals, spend
 
@@ -105,9 +107,9 @@ def test_report_uses_alignment_and_ranks_refusals(tmp_path, monkeypatch):
     report = owner.build(
         tmp_path / "synthetic-alignment.json", rpath, spath, draws=10, seed=3
     )
-    ranked = report["refusals"]["ranked_level5_investigation_candidates"]
+    ranked = report["refusals"]["ranked_requested_investigations"]
     assert ranked[0] == {
-        "capability_id": "method.neural",
+        "requested": "method.neural",
         "level": 2,
         "refusal_code": "not_rebuildable",
         "count": 2,
@@ -119,18 +121,38 @@ def test_report_uses_alignment_and_ranks_refusals(tmp_path, monkeypatch):
     assert "No score-rule change or Level 5 approval" in page
     assert "practice median 0.100" in page and "exam median 0.200" in page
     assert "[0.100, 0.500]" in page
+    assert report["refusals"]["top_by_code"][0]["count"] == 2
+    assert report["refusals"]["top_by_level"][0]["level"] == 2
 
 
 def test_unknown_refusal_fields_and_tampered_grant_refused(tmp_path):
     rpath, spath, refusals, spend = _inputs(tmp_path)
-    refusals["records"][0]["recipe"] = "must-not-leak"
-    rpath.write_text(json.dumps(refusals), encoding="utf-8")
+    refusals[0]["recipe"] = "must-not-leak"
+    rpath.write_text(
+        "\n".join(json.dumps(row) for row in refusals) + "\n", encoding="utf-8"
+    )
     with pytest.raises(owner.Refused, match="refusal_record_shape"):
         owner._refusals(rpath)
     spend["grants"][0]["grant_sha256"] = _sha("0")
     spath.write_text(json.dumps(spend), encoding="utf-8")
     with pytest.raises(owner.Refused, match="grant_digest_mismatch"):
         owner._spend(spath)
+
+
+def test_duplicate_identity_and_bad_timestamp_refused(tmp_path):
+    rpath, _, refusals, _ = _inputs(tmp_path)
+    rpath.write_text(
+        "\n".join(json.dumps(row) for row in refusals + [refusals[0]]) + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(owner.Refused, match="refusal_duplicate_identity"):
+        owner._refusals(rpath)
+    refusals[0]["first_seen"] = "2026-10-10T12:00:00-05:00"
+    rpath.write_text(
+        "\n".join(json.dumps(row) for row in refusals) + "\n", encoding="utf-8"
+    )
+    with pytest.raises(owner.Refused, match="refusal_timestamp_not_utc"):
+        owner._refusals(rpath)
 
 
 def test_unresolved_spend_is_not_zero_and_overrun_is_reported(tmp_path):
