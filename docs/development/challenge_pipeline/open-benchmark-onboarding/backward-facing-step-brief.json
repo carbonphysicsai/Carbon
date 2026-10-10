@@ -1,0 +1,142 @@
+{
+  "schema": "carbon.onboarding.brief.v1",
+  "challenge": "backward-facing-step",
+  "buyer": "Proposed internal-flow design/CAE engineer at a duct, valve or flow-channel supplier; inferred role, not an interviewed customer.",
+  "decision": "Choose an expansion/recovery contour minimizing reference-verified total-pressure loss while meeting buyer separation/recovery and envelope limits across every mandatory operating scenario, or return settled NONE_FEASIBLE.",
+  "physics": "2D turbulent separated internal flow; novel geometry and conditions are reference-relative, not experimentally validated by the fixed NASA anchor.",
+  "solver": "Proposed SU2 RANS source bc15466602a687d6fb796d5df7a12ce3fde0949a; source pin only, no accepted image/settings/deck.",
+  "fields": {
+    "P": {
+      "value": "HUMAN_INPUT: proposed intended buyer briefs and independently constructed designs within reference-supported conditions; range endpoints are not a registered population. State catalogue exclusions and support explicitly.",
+      "sources": []
+    },
+    "Q": {
+      "value": "HUMAN_INPUT: public anchor verification separate from public novel-design strata and diagnostic near-limit enrichment; no redraw of forward NONE_FEASIBLE. Freeze the physical novelty/exclusion law before any future scored draws.",
+      "sources": []
+    },
+    "w": {
+      "value": "HUMAN_INPUT: buyer scenario frequencies and decision/evidence weights registered separately from P and Q; zero Q support cannot be repaired by an arbitrary weight.",
+      "sources": []
+    },
+    "independent_unit": {
+      "value": "HUMAN_INPUT: a complete independently held-out design-panel/brief group, not a mesh rung or a repeated row of the same design.",
+      "sources": []
+    },
+    "case_identity": {
+      "value": "HUMAN_INPUT: prospective immutable geometry, physical inputs, solver/environment/material/observer, catalogue/extractor and law identities; these planning tokens do not activate runtime IDs.",
+      "sources": []
+    },
+    "disclosure": {
+      "value": "Public source anchors and proposed development witnesses only. No protected case, seed, label or reversible ID is read or emitted. Published anchors, copies and physical equivalents are excluded from future scored cases under the proposed policy; enforcement is not implemented here.",
+      "sources": []
+    },
+    "hard_limits": {
+      "value": "HUMAN_INPUT: actual buyer performance, manufacturing and physical safety limits; retain uncertainty and source applicability. Do not relax limits to manufacture a feasible panel.",
+      "sources": []
+    },
+    "uncertainty": {
+      "value": "HUMAN_INPUT: accepted mesh/time/operator refinement and observer error bands; disputed reference evidence remains UNRESOLVED, never candidate failure or proof of NONE_FEASIBLE.",
+      "sources": []
+    },
+    "vocabulary": {
+      "value": "HUMAN_INPUT: construction-owner Level 0 vocabulary and approved reconstruction contract. Documentation drafts add no execution capability.",
+      "sources": []
+    },
+    "training": {
+      "value": "HUMAN_INPUT: no variant TRAIN bank exists. Public anchors may be used only with asset-level rights and declared provenance; public answers are not hidden scored questions.",
+      "sources": []
+    },
+    "permissions": {
+      "value": "No solver runs, builds, training, bank draws, spend, hidden/AX42 access or runtime registration. Future exact grants, security acceptance and qualification remain with their owners.",
+      "sources": []
+    },
+    "panel": {
+      "value": "HUMAN_INPUT: register complete design x condition x rung tuples and exact pins after scope/measurement acceptance. Separate non-scoring anchors from novel public decisions. Demonstrate complete feasibility, meaningful margins, changing answers, strong-cheap-baseline agreement and near-frontier coverage.",
+      "sources": []
+    },
+    "controls": {
+      "value": "Public anchor-answer retrieval and equivalent-copy controls; edge-optimist, over-cautious, sign-error and optimizer/lattice-aware diagnostics where valid. Refine close calls or mark UNRESOLVED. Test Lead selects power, acceptance and thresholds.",
+      "sources": []
+    },
+    "confirmation": {
+      "value": "No confirmation run authorized. Independent future witnesses and scenario-complete verification require separate registration and grants; preserve historical reference identities.",
+      "sources": []
+    },
+    "readiness": {
+      "value": "PROPOSED_NOT_RUN: registered panel, public kit and TRAIN missing; solver source pins, published anchor evidence, comparator and equal-budget route partial. No stage exit or TESTED claim is earned.",
+      "sources": []
+    },
+    "owners": {
+      "value": "Codex drafts; Test Lead reviews reference/value/law evidence; Data Collection builds and measures only under separate authorization; owner chooses adoption, limits, pricing and spend; Carbon Validator owns any future protected bank.",
+      "sources": []
+    },
+    "next_gate": {
+      "value": "Owner selects/declines the proposed family; science/Test Lead settle supported scope, buyer limits and novelty contract. Then prepare an exact non-dispatchable public panel and Data Collection package handoff. No paid or hidden execution follows automatically.",
+      "sources": []
+    },
+    "value": {
+      "value": "HUMAN_INPUT: buyer-unit pressure-loss or pumping-energy improvement and workflow delay saved; actual frequency, euros and Carbon gain unknown. Industrial CFD/DoE/adjoint workflows support the decision class, not demand.",
+      "sources": []
+    },
+    "wrong_decision": {
+      "value": "HUMAN_INPUT: excess pressure loss, poor recovery or a failed geometry revision; no safety, energy price or failure cost is invented.",
+      "sources": []
+    },
+    "exclusions": {
+      "value": "No heat transfer, combustion, arbitrary 3D ducts or high-speed compressible applicability. NASA's public case is a non-scoring verification anchor, not a novel buyer design.",
+      "sources": []
+    },
+    "geometry": {
+      "value": "ASSUMPTION proposal: normalized recovery/ramp length/H 0.5/2/4; edge radius/H 0/0.1/0.25; expansion-ratio multiplier 0.95/1/1.05. Exact contour grammar, manufacturing envelope and physical novelty threshold HUMAN_INPUT.",
+      "sources": []
+    },
+    "materials": {
+      "value": "HUMAN_INPUT: transcribe the source gas-property deck and exact turbulence closure, with source provenance and unit conventions; no inferred buyer calibration.",
+      "sources": []
+    },
+    "conditions": {
+      "value": "Source anchor approximately Re_H 36000, Re_theta 5000, boundary-layer thickness/H 1.5 and Mach 0.128. ASSUMPTION development multipliers Re_H 0.8/1/1.2 and inlet thickness 0.9/1/1.1; not an accepted operating envelope.",
+      "sources": []
+    },
+    "omissions": {
+      "value": "RANS model-form discrepancy, inlet/endwall and 2D-to-real-device limitations remain explicit; mesh convergence does not establish physical truth.",
+      "sources": []
+    },
+    "strata": {
+      "value": "HUMAN_INPUT: public reference-supported recovery/rounding/expansion families crossed with consistent inlet-profile/Reynolds conventions; separate interior and two-band frontier diagnostics. No stratum is certified from proposed endpoints.",
+      "sources": []
+    },
+    "validity": {
+      "value": "HUMAN_INPUT: positive connected channel, deterministic contour construction and consistent BCs. Reject remeshed or similarity-scaled published geometries as novel scored actions; catalogue coverage/extractor acceptance missing.",
+      "sources": []
+    },
+    "pins": {
+      "value": "Source SU2 bc15466602a687d6fb796d5df7a12ce3fde0949a; NASA/TMBWG 20a39f549dbff988a6accc421ac84dafc4487695. Container/dependency/closure/geometry/observer digests HUMAN_INPUT.",
+      "sources": []
+    },
+    "refinement": {
+      "value": "HUMAN_INPUT: nested-grid, inlet/profile and BC sensitivity; distinguish SU2 SST options from NASA SSTm conventions. Source measured reattachment 6.26 +/- 0.10 is an anchor comparison, not a buyer limit or automatic acceptance tolerance.",
+      "sources": []
+    },
+    "cost": {
+      "value": "ASSUMPTION low/base/high complete cases 32/64/128; host h/case including required refinement 0.05/0.3/1; separate anchor h 0.25/2/10; comparator h 0.5/3/15; total h 2.35/24.2/153 and EUR 3.22/33.15/209.61 at planning EUR 1.37/h. CPU, RAM, actual cost and exact allocation unmeasured; excludes labor, model construction and full equal-budget campaign. EUR 500 planning maximum is not a grant.",
+      "sources": []
+    },
+    "outputs": {
+      "value": "HUMAN_INPUT contract: mass-flow-weighted total-pressure loss between frozen planes; wall Cf/reattachment crossings, shifted Cp and selected velocity/turbulence profiles. Freeze units, coordinate normalization, pressure definitions, reductions and error bands; Cp is not total-pressure loss.",
+      "sources": []
+    },
+    "objective": {
+      "value": "HUMAN_INPUT: minimum complete-panel total-pressure loss, aggregation and ties in buyer units; admissibility precedes ranking. A missing or unresolved scenario is not a feasible finalist.",
+      "sources": []
+    },
+    "public_kit": {
+      "value": "HUMAN_INPUT: cleared NASA asset manifest, own-seed contour generator, exact SU2 setup and generalized observable adapter, public practice, rights catalogue and complete-law documentation. No kit or imported assets are produced here.",
+      "sources": []
+    },
+    "baseline": {
+      "value": "Strong competitors: valid loss correlations with applicability limits; public-answer retrieval; cached RANS response map; coarse-to-fine RANS, adjoint and DoE/metamodel search. Charge calibration, bank, construction, screening, failures and final scenario-complete verification equally.",
+      "sources": []
+    }
+  }
+}
