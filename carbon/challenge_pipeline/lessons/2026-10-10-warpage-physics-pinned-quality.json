@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-warpage-physics-pinned-quality",
+  "recorded_at": "2026-10-10T12:21:29Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "WARPAGE-PROCESS-PHYSICS-01", "description": "Previous execution used isolated Black 26.5.1 and Ruff 0.16.3: passed, no formatter change needed. Native UTF-8 research/package/pipeline tests: 39 passed in 3.20s. Resume verified main/authority unchanged and no overlapping open material-physics ticket. No solver/build."},
+  "expected": "Match CI quality tooling without modifying runtime or reference dependencies.",
+  "observed": "Pinned formatter and static tests pass. Isolated tooling installation changed no tracked dependency. Canonical acceptance still belongs to exact-head CI.",
+  "keep": ["Separate native diagnostics from canonical acceptance and scientific adequacy."],
+  "change": ["An openly documented constitutive route needs independent state/material verification, not just compilation."],
+  "protocol_elements": ["reference policy", "readiness"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
