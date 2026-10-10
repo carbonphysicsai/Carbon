@@ -1,0 +1,622 @@
+{
+  "status": "DEVELOPMENT_SAMPLE",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "profile": "nasa-std-7009b",
+  "standard_rendering": {
+    "profile": "nasa-std-7009b",
+    "applicability": "HUMAN_INPUT",
+    "qualification_claim": false,
+    "section_mapping": [
+      {
+        "section": "D01",
+        "anchor": "§4.1.1.1 M&S 40; §4.3.1.1–2 M&S 22–23",
+        "source": "F3"
+      },
+      {
+        "section": "D02",
+        "anchor": "§4.1.1.4–5 M&S 42–43",
+        "source": "F3"
+      },
+      {
+        "section": "D03",
+        "anchor": "§4.2.1.6–7 M&S 13–14; §4.2.3.2 M&S 16; §4.2.5.2 M&S 18; §4.3.1.5 M&S 26",
+        "source": "F3"
+      },
+      {
+        "section": "D04",
+        "anchor": "§4.2.1.1 M&S 10; §4.2.3.1 M&S 15; §4.2.5.1 M&S 17",
+        "source": "F3"
+      },
+      {
+        "section": "D05",
+        "anchor": "§4.2.5.1–2 M&S 17–18; §4.3.6.1 M&S 31",
+        "source": "F3"
+      },
+      {
+        "section": "D06",
+        "anchor": "§4.2.7.1–2 M&S 19,21; §4.3.3.1–2 M&S 28–29; §4.3.5 M&S 30; §4.3.8.2–3 M&S 33–34",
+        "source": "F3"
+      },
+      {
+        "section": "D07",
+        "anchor": "§4.1.1.8 M&S 51; §4.3.5 M&S 30; §4.3.8.1 M&S 32",
+        "source": "F3"
+      },
+      {
+        "section": "D08",
+        "anchor": "§4.2.1.2–3 M&S 45–46; §4.3.1.3–4 M&S 24–25",
+        "source": "F3"
+      },
+      {
+        "section": "D09",
+        "anchor": "§4.3.1.5–6 M&S 26–27; §4.3.6.2 M&S 49",
+        "source": "F3"
+      },
+      {
+        "section": "D10",
+        "anchor": "§4.2.1.4,6 M&S 11,13; §4.3.8.1 M&S 32",
+        "source": "F3"
+      },
+      {
+        "section": "D11",
+        "anchor": "§4.1.1.3,7–8 M&S 41,9,51; §4.3.8.4–9 M&S 50,35–39; Appendix A",
+        "source": "F3"
+      }
+    ],
+    "factors": {
+      "capability": [
+        {
+          "name": "Data pedigree",
+          "anchor": "E.3.2",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D03",
+            "D04",
+            "D08"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Verification",
+          "anchor": "E.3.3",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D04",
+            "D08"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "R4"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Validation",
+          "anchor": "E.3.4",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D04",
+            "D05"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "R2"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Development technical review",
+          "anchor": "E.3.5",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D10",
+            "D11"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Development process/product management",
+          "anchor": "E.3.6",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D08",
+            "D11"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        }
+      ],
+      "results": [
+        {
+          "name": "Use assessment",
+          "anchor": "E.4.2",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D01",
+            "D03",
+            "D09"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Input pedigree",
+          "anchor": "E.4.3",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D03",
+            "D08"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Uncertainty characterization",
+          "anchor": "E.4.4",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D06"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Results robustness",
+          "anchor": "E.4.5",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D05",
+            "D07"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "R4",
+            "R5"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Use/analysis technical review",
+          "anchor": "E.4.6",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D10",
+            "D11"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Use process/product management",
+          "anchor": "E.4.7",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D08",
+            "D11"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        }
+      ]
+    }
+  },
+  "evidence_revision": "915225242146be67e6de098d4a08324cc63dc684",
+  "framework_revision": "b0244360dbe49d534b0346779e1cebe5b21de085",
+  "membership_basis": "TRUSTED_EXPORTER_ASSERTION_WITH_BLOB_BYTE_CHECK",
+  "sources": [
+    {
+      "id": "C1",
+      "path": "docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md",
+      "revision": "915225242146be67e6de098d4a08324cc63dc684",
+      "git_blob": "c96842b9916ce159860b17e92f1cbd2cee6266e2",
+      "sha256": "d523d71f73053ffb83fa8ba9e5e7f9490db62a84739ed29cabfd838ad66df9c4",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "C2",
+      "path": "docs/development/graphite/GRAPHITE_READINESS_GATE.md",
+      "revision": "915225242146be67e6de098d4a08324cc63dc684",
+      "git_blob": "4b846c726a0ea614ba594384c29bfaaff0d73ba2",
+      "sha256": "cc25192a8af188ec584535a0035a68c44a513929175d4ad614aa7f39247d9462",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/graphite/GRAPHITE_READINESS_GATE.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "C3",
+      "path": "docs/development/graphite/PHASE4_ATTACKER.md",
+      "revision": "915225242146be67e6de098d4a08324cc63dc684",
+      "git_blob": "7ffdea4d5201f56d5f6cacbbb6196a338f407422",
+      "sha256": "79085bceafc0f3b1801407ce3289bc06c410e959a4137c9f33f827de7680493e",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/graphite/PHASE4_ATTACKER.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "C4",
+      "path": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+      "revision": "915225242146be67e6de098d4a08324cc63dc684",
+      "git_blob": "b7fc0d3b0dff187e1627f02cbab928095b85e9d7",
+      "sha256": "04135f64300b0548f6048a65111dcd6becb053fe5eaf2e312cf80cf9f495406a",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "F1",
+      "path": "Business/research/deliverable-framework/TEMPLATE.md",
+      "revision": "b0244360dbe49d534b0346779e1cebe5b21de085",
+      "git_blob": "7519d1ca8d101ba2956a7ff88e1af6fe93bf15c3",
+      "sha256": "83959e56d77e51bd382595ab301681e92de2cc481bb61300b221ce05b6dcaf38",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/b0244360dbe49d534b0346779e1cebe5b21de085/Business/research/deliverable-framework/TEMPLATE.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "F2",
+      "path": "Business/research/deliverable-framework/deliverable.schema.json",
+      "revision": "b0244360dbe49d534b0346779e1cebe5b21de085",
+      "git_blob": "e5a9b8f042bd065f5995cdbb870eb6bb094123ed",
+      "sha256": "19aa4ceb442d68373420def20a7dbb1ec2733080f8f1fa083d0c489700a9a08e",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/b0244360dbe49d534b0346779e1cebe5b21de085/Business/research/deliverable-framework/deliverable.schema.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "F3",
+      "path": "Business/research/deliverable-framework/STANDARDS.md",
+      "revision": "b0244360dbe49d534b0346779e1cebe5b21de085",
+      "git_blob": "2f7db5abbf3e7fc7577e0700e9bddf8f2a2660f7",
+      "sha256": "8239f7a4faea896290e2fefd28af8cc5875149945dc132ce6512b6b245f6e502",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/b0244360dbe49d534b0346779e1cebe5b21de085/Business/research/deliverable-framework/STANDARDS.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R1",
+      "path": "carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+      "revision": "915225242146be67e6de098d4a08324cc63dc684",
+      "git_blob": "24c96fba84860c811acfd46155e594e1a030b5f0",
+      "sha256": "f657bd8dfa1144ade3d58fd07e3d8115d8786b55bb0ff2168bbc30f141071c9c",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R2",
+      "path": "docs/development/BATTERY_ENGINEERING_VALUE_EV4.md",
+      "revision": "915225242146be67e6de098d4a08324cc63dc684",
+      "git_blob": "7fb86e7aa5539e0ba51dd32a07c6d68c007816bc",
+      "sha256": "a3da97a8a617164b6530c703df46424cb16abcc25b402180ce7e17a80dcf4210",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/BATTERY_ENGINEERING_VALUE_EV4.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R3",
+      "path": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "revision": "915225242146be67e6de098d4a08324cc63dc684",
+      "git_blob": "3961b89a98c8877190bc010579852497057d3518",
+      "sha256": "fc6f504f3ff69b3add10099056b7a652a28112d3ca1d63ada2fb194aac2d3e18",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R4",
+      "path": "docs/development/evidence/ev5-2026-10-03/README.md",
+      "revision": "915225242146be67e6de098d4a08324cc63dc684",
+      "git_blob": "5f9eddf85b0708e44aaeba7e4c057930aae346bd",
+      "sha256": "4db81df4b92e389af26b350c80c9dcae24b1dc6d4810915071a1f79b4eca98ba",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/evidence/ev5-2026-10-03/README.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R5",
+      "path": "docs/development/evidence/score-value-alignment-01/README.md",
+      "revision": "915225242146be67e6de098d4a08324cc63dc684",
+      "git_blob": "d459cff71db3558becf941c1079d2c2e2cca49e0",
+      "sha256": "3f1c7749c285f3cc97ac00276fbaf3844b603be8d3065098b5fa628db0252462",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/evidence/score-value-alignment-01/README.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R6",
+      "path": ".agent/tickets/VALIDATOR-26_battery_rule_v3.md",
+      "revision": "915225242146be67e6de098d4a08324cc63dc684",
+      "git_blob": "a5909dee481d275ee65d0ea652025a287247e9d5",
+      "sha256": "9a029f239cbc5b20cf3fc7ef73a8524832e74fb3de8fdb0b70441b15c4627e0c",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/.agent/tickets/VALIDATOR-26_battery_rule_v3.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R7",
+      "path": "carbon/challenge_pipeline/readiness/Q1_PANELS.md",
+      "revision": "915225242146be67e6de098d4a08324cc63dc684",
+      "git_blob": "5d91d5e294f3888031fb6a1303684c803028f924",
+      "sha256": "a3d493bc871f95707aaff5d20c3b462e9870eaa65a4b7cae583dfa69af6a630a",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/carbon/challenge_pipeline/readiness/Q1_PANELS.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    }
+  ],
+  "missing_sources": [],
+  "facts": [
+    {
+      "id": "EV4_FALSE_FEASIBLE",
+      "source": "R2",
+      "locator": "L431-L432",
+      "label": "EV4 reported members with false acceptance / eligible members",
+      "value": "56 / 99",
+      "kind": "counts",
+      "basis": "reference-relative",
+      "outcome": "FAIL",
+      "quantities": [
+        {
+          "low": 56,
+          "base": 56,
+          "high": 56,
+          "basis": "SOURCED"
+        },
+        {
+          "low": 99,
+          "base": 99,
+          "high": 99,
+          "basis": "SOURCED"
+        }
+      ],
+      "citation": "[R2:L431-L432](https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/BATTERY_ENGINEERING_VALUE_EV4.md#L431-L432)"
+    },
+    {
+      "id": "EV4_H1",
+      "source": "R2",
+      "locator": "L406-L406",
+      "label": "EV4 reported H1 outcome",
+      "value": "UNRESOLVED",
+      "kind": "verdict",
+      "basis": "decision-value",
+      "outcome": "UNRESOLVED",
+      "quantities": [],
+      "citation": "[R2:L406-L406](https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/BATTERY_ENGINEERING_VALUE_EV4.md#L406-L406)"
+    },
+    {
+      "id": "EV5_ATTACK",
+      "source": "R4",
+      "locator": "L21-L21",
+      "label": "EV5 reported adversarial-score verdict",
+      "value": "FAIL",
+      "kind": "verdict",
+      "basis": "decision-value",
+      "outcome": "FAIL",
+      "quantities": [],
+      "citation": "[R4:L21-L21](https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/evidence/ev5-2026-10-03/README.md#L21-L21)"
+    },
+    {
+      "id": "EV5_COUNTEREXAMPLES",
+      "source": "R4",
+      "locator": "L43-L43",
+      "label": "EV5 reported reference-infeasible selections / selected constructions",
+      "value": "8 / 10",
+      "kind": "counts",
+      "basis": "reference-relative",
+      "outcome": "FAIL",
+      "quantities": [
+        {
+          "low": 8,
+          "base": 8,
+          "high": 8,
+          "basis": "SOURCED"
+        },
+        {
+          "low": 10,
+          "base": 10,
+          "high": 10,
+          "basis": "SOURCED"
+        }
+      ],
+      "citation": "[R4:L43-L43](https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/evidence/ev5-2026-10-03/README.md#L43-L43)"
+    },
+    {
+      "id": "EV5_REBUILDS",
+      "source": "R4",
+      "locator": "L50-L50",
+      "label": "EV5 reported matching rebuilds / frozen panel",
+      "value": "110 / 110",
+      "kind": "rebuilds",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [
+        {
+          "low": 110,
+          "base": 110,
+          "high": 110,
+          "basis": "SOURCED"
+        },
+        {
+          "low": 110,
+          "base": 110,
+          "high": 110,
+          "basis": "SOURCED"
+        }
+      ],
+      "citation": "[R4:L50-L50](https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/evidence/ev5-2026-10-03/README.md#L50-L50)"
+    },
+    {
+      "id": "Q1_MISSING_V3",
+      "source": "R5",
+      "locator": "L7-L7",
+      "label": "Q1 audit reports same-panel v3 measures uncomputable (historical scope)",
+      "value": "uncomputable",
+      "kind": "gap",
+      "basis": "decision-value",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R5:L7-L7](https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/evidence/score-value-alignment-01/README.md#L7-L7)"
+    },
+    {
+      "id": "EV4_MODE_X",
+      "source": "R2",
+      "locator": "L479-L480",
+      "label": "EV4 reported adversarial violations: in-band / out-of-band",
+      "value": "29 / 17",
+      "kind": "violations",
+      "basis": "reference-relative",
+      "outcome": "FAIL",
+      "quantities": [
+        {
+          "low": 29,
+          "base": 29,
+          "high": 29,
+          "basis": "SOURCED"
+        },
+        {
+          "low": 17,
+          "base": 17,
+          "high": 17,
+          "basis": "SOURCED"
+        }
+      ],
+      "citation": "[R2:L479-L480](https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/BATTERY_ENGINEERING_VALUE_EV4.md#L479-L480)"
+    },
+    {
+      "id": "EV5_MODE_X",
+      "source": "R4",
+      "locator": "L44-L44",
+      "label": "EV5 reported adversarial findings: in-band / out-of-band",
+      "value": "25 / 21",
+      "kind": "violations",
+      "basis": "reference-relative",
+      "outcome": "FAIL",
+      "quantities": [
+        {
+          "low": 25,
+          "base": 25,
+          "high": 25,
+          "basis": "SOURCED"
+        },
+        {
+          "low": 21,
+          "base": 21,
+          "high": 21,
+          "basis": "SOURCED"
+        }
+      ],
+      "citation": "[R4:L44-L44](https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/evidence/ev5-2026-10-03/README.md#L44-L44)"
+    },
+    {
+      "id": "EV5_SIGN_ERROR",
+      "source": "R4",
+      "locator": "L38-L38",
+      "label": "EV5 reported sign-error near-limit false-acceptance rate",
+      "value": "0.946",
+      "kind": "fraction",
+      "basis": "reference-relative",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [
+        {
+          "low": 0.946,
+          "base": 0.946,
+          "high": 0.946,
+          "basis": "SOURCED"
+        }
+      ],
+      "citation": "[R4:L38-L38](https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/evidence/ev5-2026-10-03/README.md#L38-L38)"
+    },
+    {
+      "id": "REVIEW_customer",
+      "source": "R1",
+      "locator": "/reviews/customer/state",
+      "label": "Recorded customer review state",
+      "value": "NOT_STARTED",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/customer/state](https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json)"
+    },
+    {
+      "id": "REVIEW_launch",
+      "source": "R1",
+      "locator": "/reviews/launch/state",
+      "label": "Recorded launch review state",
+      "value": "NOT_STARTED",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/launch/state](https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json)"
+    },
+    {
+      "id": "REVIEW_numerical_reference",
+      "source": "R1",
+      "locator": "/reviews/numerical_reference/state",
+      "label": "Recorded numerical_reference review state",
+      "value": "NOT_STARTED",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/numerical_reference/state](https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json)"
+    },
+    {
+      "id": "REVIEW_scientific",
+      "source": "R1",
+      "locator": "/reviews/scientific/state",
+      "label": "Recorded scientific review state",
+      "value": "NOT_STARTED",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/scientific/state](https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json)"
+    },
+    {
+      "id": "REVIEW_security",
+      "source": "R1",
+      "locator": "/reviews/security/state",
+      "label": "Recorded security review state",
+      "value": "IN_REVIEW",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/security/state](https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json)"
+    }
+  ],
+  "extraction_gaps": [],
+  "qualification_claim": false
+}
