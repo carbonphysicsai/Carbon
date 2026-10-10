@@ -159,7 +159,7 @@ def skew(records, planned):
 def _stack(records, tag, j, span, step):
     slices = []
     for d in (-span / 2, 0.0, span / 2):
-        r = records.get(f"{tag}-j{j:g}g{-stages.PP * d:g}")
+        r = records.get(f"{tag}-j{j:g}g{-stages.PP * d + 0.0:g}")  # -0.0 formats as "-0"
         if r is None or r.get("status") != "OK":
             return None
         slices.append(tp.slice_curve(r["outputs"]["torque_nm"], round(d / step)))
