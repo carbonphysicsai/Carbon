@@ -26,6 +26,14 @@ FOLDS_SCHEMA = "carbon.challenge-value-heldout-folds.v1"
 SPEED_SCHEMA = "carbon.challenge-value-query-costs.v1"
 EQUAL_BUDGET_SCHEMA = "carbon.design-search.equal-budget-report.v1"
 PASS, FAIL, INSUFFICIENT = "PASS", "FAIL", "INSUFFICIENT_EVIDENCE"
+VALUE_BAR_V1 = "VALUE-BAR-V1"
+
+
+def _is_value_bar_v1(rule):
+    return rule is not None and (
+        rule["rule_id"] == VALUE_BAR_V1
+        or rule["rule_id"].startswith(VALUE_BAR_V1 + ":")
+    )
 
 
 class ValueBarError(ValueError):
@@ -128,6 +136,48 @@ def _owner_rule(rule):
     for item in ("item_2", "item_3", "item_5"):
         if rule[item] is not None and type(rule[item]) is not dict:
             raise ValueBarError(f"{item} rule must be an object or null")
+    if _is_value_bar_v1(rule):
+        if rule["item_2"] != {"max_mean_regret_delta": 0.0}:
+            raise ValueBarError("VALUE-BAR-V1 requires strict zero regret margin")
+        if rule["item_3"] != {
+            "min_median_wall_speedup": 100.0,
+            "flagship_min_median_wall_speedup": 20.0,
+            "flagship_reference_solve_core_s": 3600.0,
+        }:
+            raise ValueBarError("VALUE-BAR-V1 speed limits differ from registration")
+        item5 = rule["item_5"]
+        if (
+            type(item5) is not dict
+            or item5.get("confidence") != 0.95
+            or item5.get("paired_verified_value_delta_excludes_zero") is not True
+        ):
+            raise ValueBarError(
+                "VALUE-BAR-V1 equal-budget rule differs from registration"
+            )
+        if rule["rule_id"] == VALUE_BAR_V1:
+            if item5 != {
+                "budget": None,
+                "confidence": 0.95,
+                "paired_verified_value_delta_excludes_zero": True,
+            }:
+                raise ValueBarError("base VALUE-BAR-V1 cannot select a budget")
+        else:
+            if set(item5) != {
+                "budget",
+                "confidence",
+                "paired_verified_value_delta_excludes_zero",
+                "challenge",
+                "budget_registration_digest",
+            }:
+                raise ValueBarError("Challenge budget registration incomplete")
+            budget = item5["budget"]
+            if type(budget) is not dict or set(budget) != {"wall_s", "core_s"}:
+                raise ValueBarError("Challenge wall/core budget required")
+            for unit in budget:
+                _number(budget[unit], f"budget {unit}", positive=True)
+            if not isinstance(item5["challenge"], str) or not item5["challenge"]:
+                raise ValueBarError("budget Challenge identity required")
+            _sha(item5["budget_registration_digest"], "budget registration")
     return rule
 
 
@@ -162,6 +212,89 @@ def _external_receipt(value, name, evidence):
     )
 
 
+def _decision_sources(value, evidence, rule_id):
+    if value is None:
+        return _item(INSUFFICIENT, "decision-source receipt absent")
+    if type(value) is not dict or set(value) != {
+        "status",
+        "source_digests",
+        "rule_id",
+        "challenge",
+        "export_digest",
+    }:
+        raise ValueBarError("VALUE-BAR-V1 decision-source receipt invalid")
+    if (
+        value["rule_id"] != rule_id
+        or value["challenge"] != evidence["challenge"]
+        or value["export_digest"] != evidence["export_digest"]
+        or value["status"] not in (PASS, FAIL, INSUFFICIENT)
+        or type(value["source_digests"]) is not list
+    ):
+        raise ValueBarError("VALUE-BAR-V1 decision-source identity invalid")
+    sources = value["source_digests"]
+    for source in sources:
+        _sha(source, "decision source")
+    if len(set(sources)) != len(sources):
+        raise ValueBarError("decision sources must be distinct")
+    if len(sources) < 2:
+        return _item(INSUFFICIENT, "two independent decision sources required")
+    return _item(
+        value["status"],
+        "external decision receipt with at least two registered sources",
+        source_count=len(sources),
+    )
+
+
+def _reported_ranges(value, evidence, rule_id):
+    if value is None:
+        return _item(INSUFFICIENT, "value/volume ranges absent", gating=False)
+    if type(value) is not dict or set(value) != {
+        "rule_id",
+        "challenge",
+        "export_digest",
+        "value_range",
+        "volume_range",
+    }:
+        raise ValueBarError("VALUE-BAR-V1 range report invalid")
+    if (
+        value["rule_id"] != rule_id
+        or value["challenge"] != evidence["challenge"]
+        or value["export_digest"] != evidence["export_digest"]
+    ):
+        raise ValueBarError("VALUE-BAR-V1 range identity invalid")
+    ranges = {}
+    for name in ("value_range", "volume_range"):
+        row = value[name]
+        if type(row) is not dict or set(row) != {
+            "low",
+            "high",
+            "unit",
+            "basis",
+            "source_digests",
+        }:
+            raise ValueBarError(f"{name} shape invalid")
+        low, high = _number(row["low"], f"{name} low"), _number(
+            row["high"], f"{name} high"
+        )
+        if low > high or (name == "volume_range" and low < 0):
+            raise ValueBarError(f"{name} bounds invalid")
+        if (
+            not isinstance(row["unit"], str)
+            or not row["unit"]
+            or row["basis"] not in ("SOURCED", "ASSUMPTION")
+            or type(row["source_digests"]) is not list
+        ):
+            raise ValueBarError(f"{name} provenance invalid")
+        for source in row["source_digests"]:
+            _sha(source, f"{name} source")
+        if row["basis"] == "SOURCED" and not row["source_digests"]:
+            raise ValueBarError(f"{name} sourced range needs a source")
+        ranges[name] = {key: row[key] for key in ("low", "high", "unit", "basis")}
+    return _item(
+        PASS, "sourced or labelled assumption ranges reported", gating=False, **ranges
+    )
+
+
 def _quantile(values, probability):
     ordered = sorted(values)
     position = probability * (len(ordered) - 1)
@@ -170,7 +303,9 @@ def _quantile(values, probability):
     return ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower)
 
 
-def _paired_regret(evidence, settings, *, bootstrap_replicates, seed):
+def _paired_regret(
+    evidence, settings, *, bootstrap_replicates, seed, value_bar_v1=False
+):
     if settings is None:
         return _item(INSUFFICIENT, "owner item 2 decision margin absent")
     if set(settings) != {"max_mean_regret_delta"}:
@@ -354,7 +489,11 @@ def _paired_regret(evidence, settings, *, bootstrap_replicates, seed):
     low = _quantile(draws, 0.025)
     high = _quantile(draws, 0.975)
     observed = statistics.fmean(fold_means)
-    status = PASS if high < limit else FAIL if low >= limit else INSUFFICIENT
+    status = (
+        (PASS if high < limit else FAIL if low > limit else INSUFFICIENT)
+        if value_bar_v1
+        else (PASS if high < limit else FAIL if low >= limit else INSUFFICIENT)
+    )
     return _item(
         status,
         "paired 95% fold-cluster bootstrap in buyer objective units",
@@ -369,10 +508,19 @@ def _paired_regret(evidence, settings, *, bootstrap_replicates, seed):
     )
 
 
-def _speed(evidence, settings):
+def _speed(evidence, settings, *, value_bar_v1=False):
     if settings is None:
         return _item(INSUFFICIENT, "owner item 3 speed threshold absent")
-    if set(settings) != {"min_median_wall_speedup"}:
+    expected = (
+        {
+            "min_median_wall_speedup",
+            "flagship_min_median_wall_speedup",
+            "flagship_reference_solve_core_s",
+        }
+        if value_bar_v1
+        else {"min_median_wall_speedup"}
+    )
+    if set(settings) != expected:
         raise ValueBarError("item 3 requires min_median_wall_speedup")
     threshold = _number(
         settings["min_median_wall_speedup"], "speed-up threshold", positive=True
@@ -383,7 +531,20 @@ def _speed(evidence, settings):
     if (
         type(receipt) is not dict
         or set(receipt)
-        != {"schema", "export_digest", "status", "query_unit", "route", "pairs"}
+        != (
+            {
+                "schema",
+                "export_digest",
+                "status",
+                "query_unit",
+                "route",
+                "pairs",
+                "reference_solve_core_s",
+                "reference_solve_source_digest",
+            }
+            if value_bar_v1
+            else {"schema", "export_digest", "status", "query_unit", "route", "pairs"}
+        )
         or receipt["schema"] != SPEED_SCHEMA
         or receipt["export_digest"] != evidence["export_digest"]
         or receipt["query_unit"] != "full_registered_decision_query"
@@ -424,6 +585,50 @@ def _speed(evidence, settings):
     if seen != registered:
         return _item(INSUFFICIENT, "speed queries differ from held-out decisions")
     value = statistics.median(ratios)
+    if value_bar_v1:
+        flagship_cost = receipt["reference_solve_core_s"]
+        flagship_source = receipt["reference_solve_source_digest"]
+        if (flagship_cost is None) != (flagship_source is None):
+            raise ValueBarError(
+                "reference-solve CPU cost and source must travel together"
+            )
+        if flagship_cost is not None:
+            flagship_cost = _number(
+                flagship_cost, "reference solve CPU-seconds", positive=True
+            )
+            _sha(flagship_source, "reference solve cost source")
+        flagship_floor = _number(
+            settings["flagship_min_median_wall_speedup"],
+            "flagship speed-up threshold",
+            positive=True,
+        )
+        hour_floor = _number(
+            settings["flagship_reference_solve_core_s"],
+            "flagship reference CPU-seconds",
+            positive=True,
+        )
+        if value >= threshold:
+            required = threshold
+        elif value < flagship_floor:
+            required = flagship_floor
+        elif flagship_cost is None:
+            return _item(
+                INSUFFICIENT,
+                "reference-solve CPU cost absent for flagship allowance",
+                median_speedup=value,
+                pairs=len(ratios),
+            )
+        else:
+            required = flagship_floor if flagship_cost >= hour_floor else threshold
+        return _item(
+            PASS if value >= required else FAIL,
+            "measured complete-query speed-up and reference-solve CPU cost",
+            median_speedup=value,
+            required_speedup=required,
+            reference_solve_core_s=flagship_cost,
+            pairs=len(ratios),
+            route=receipt["route"],
+        )
     return _item(
         PASS if value >= threshold else FAIL,
         "measured paired complete-query wall-time speed-up",
@@ -434,10 +639,15 @@ def _speed(evidence, settings):
     )
 
 
-def _equal_budget(evidence, settings):
+def _equal_budget(evidence, settings, *, value_bar_v1=False):
     if settings is None:
         return _item(INSUFFICIENT, "owner item 5 equal-budget decision rule absent")
-    if set(settings) != {
+    if value_bar_v1:
+        if settings["budget"] is None:
+            return _item(INSUFFICIENT, "Challenge-specific budget not registered")
+        if settings["challenge"] != evidence["challenge"]:
+            raise ValueBarError("registered budget belongs to another Challenge")
+    elif set(settings) != {
         "budget",
         "min_p_lower",
         "max_regret_excess",
@@ -449,13 +659,14 @@ def _equal_budget(evidence, settings):
         raise ValueBarError("registered equal budget required")
     for key in budget:
         _number(budget[key], f"budget {key}", positive=True)
-    p_min = _number(settings["min_p_lower"], "minimum P lower")
-    regret_max = _number(settings["max_regret_excess"], "regret excess")
-    feasible_min = _number(
-        settings["min_feasible_pick_fraction"], "feasible pick floor"
-    )
-    if not 0 <= p_min <= 1 or regret_max < 0 or not 0 <= feasible_min <= 1:
-        raise ValueBarError("item 5 thresholds out of range")
+    if not value_bar_v1:
+        p_min = _number(settings["min_p_lower"], "minimum P lower")
+        regret_max = _number(settings["max_regret_excess"], "regret excess")
+        feasible_min = _number(
+            settings["min_feasible_pick_fraction"], "feasible pick floor"
+        )
+        if not 0 <= p_min <= 1 or regret_max < 0 or not 0 <= feasible_min <= 1:
+            raise ValueBarError("item 5 thresholds out of range")
     report = evidence["equal_budget"]
     if report is None:
         return _item(INSUFFICIENT, "#998 equal-budget report absent")
@@ -503,6 +714,50 @@ def _equal_budget(evidence, settings):
     row = matches[0]
     ci = row.get("bootstrap_ci")
     estimates = row.get("estimates")
+    if value_bar_v1:
+        if type(ci) is not dict or type(estimates) is not dict:
+            return _item(INSUFFICIENT, "paired verified-value interval absent")
+        delta_ci = ci.get("paired_verified_value_delta")
+        job_count = report.get("job_count")
+        paired_count = estimates.get("paired_verified_value_count")
+        if (
+            type(delta_ci) is not list
+            or len(delta_ci) != 2
+            or type(job_count) is not int
+            or job_count < 1
+            or type(paired_count) is not int
+            or paired_count != job_count
+            or estimates.get("paired_verified_value_delta") is None
+        ):
+            return _item(
+                INSUFFICIENT, "complete paired verified-value interval required"
+            )
+        low = _number(delta_ci[0], "paired value CI lower")
+        high = _number(delta_ci[1], "paired value CI upper")
+        observed = _number(
+            estimates["paired_verified_value_delta"], "paired verified value delta"
+        )
+        if low > high or not low <= observed <= high:
+            raise ValueBarError("paired verified-value interval invalid")
+        direction = report["objective"].get("direction")
+        if direction not in ("min", "max"):
+            raise ValueBarError("equal-budget objective direction invalid")
+        if direction == "min":
+            status = PASS if high < 0 else FAIL if low > 0 else INSUFFICIENT
+        else:
+            status = PASS if low > 0 else FAIL if high < 0 else INSUFFICIENT
+        return _item(
+            status,
+            "paired 95% cluster-bootstrap of solver-verified value at registered budget",
+            buyer_unit=report["objective"]["unit"],
+            objective_direction=direction,
+            mean_model_minus_solver_verified_value=observed,
+            ci95=delta_ci,
+            paired_jobs=job_count,
+            budget=budget,
+            budget_registration_digest=settings["budget_registration_digest"],
+            independent_clusters=report["independent_clusters"],
+        )
     if (
         type(ci) is not dict
         or type(estimates) is not dict
@@ -542,6 +797,7 @@ def evaluate(evidence, rule, *, bootstrap_replicates, seed):
     """Pure report: no I/O, selection or threshold defaults."""
     _identity(evidence)
     rule = _owner_rule(rule)
+    value_bar_v1 = _is_value_bar_v1(rule)
     if (
         type(bootstrap_replicates) is not int
         or bootstrap_replicates < 100
@@ -551,18 +807,37 @@ def evaluate(evidence, rule, *, bootstrap_replicates, seed):
             "explicit bootstrap replicates >=100 and integer seed required"
         )
     items = {
-        "1": _external_receipt(evidence["item_1"], "item 1", evidence),
+        "1": (
+            _decision_sources(evidence["item_1"], evidence, rule["rule_id"])
+            if value_bar_v1
+            else _external_receipt(evidence["item_1"], "item 1", evidence)
+        ),
         "2": _paired_regret(
             evidence,
             None if rule is None else rule["item_2"],
             bootstrap_replicates=bootstrap_replicates,
             seed=seed,
+            value_bar_v1=value_bar_v1,
         ),
-        "3": _speed(evidence, None if rule is None else rule["item_3"]),
-        "4": _external_receipt(evidence["item_4"], "item 4", evidence),
-        "5": _equal_budget(evidence, None if rule is None else rule["item_5"]),
+        "3": _speed(
+            evidence,
+            None if rule is None else rule["item_3"],
+            value_bar_v1=value_bar_v1,
+        ),
+        "4": (
+            _reported_ranges(evidence["item_4"], evidence, rule["rule_id"])
+            if value_bar_v1
+            else _external_receipt(evidence["item_4"], "item 4", evidence)
+        ),
+        "5": _equal_budget(
+            evidence,
+            None if rule is None else rule["item_5"],
+            value_bar_v1=value_bar_v1,
+        ),
     }
-    statuses = {row["status"] for row in items.values()}
+    statuses = {
+        row["status"] for key, row in items.items() if not (value_bar_v1 and key == "4")
+    }
     overall = FAIL if FAIL in statuses else PASS if statuses == {PASS} else INSUFFICIENT
     return {
         "schema": REPORT_SCHEMA,
@@ -571,6 +846,7 @@ def evaluate(evidence, rule, *, bootstrap_replicates, seed):
         "evidence_digest": evidence["evidence_digest"],
         "export_digest": evidence["export_digest"],
         "rule_id": None if rule is None else rule["rule_id"],
+        "non_gating_items": ["4"] if value_bar_v1 else [],
         "bootstrap_replicates": bootstrap_replicates,
         "bootstrap_seed": seed,
         "items": items,
@@ -590,7 +866,10 @@ def evidence_page(report):
         "| --- | --- | --- |",
     ]
     for item, outcome in report["items"].items():
-        lines.append(f"| {item} | {outcome['status']} | {outcome['reason']} |")
+        label = (
+            f"{item} (reported only)" if item in report["non_gating_items"] else item
+        )
+        lines.append(f"| {label} | {outcome['status']} | {outcome['reason']} |")
     item2 = report["items"]["2"]
     if "ci95" in item2:
         lines += [
@@ -603,7 +882,19 @@ def evidence_page(report):
             "",
             f"Item 3: {item3['median_speedup']:.6g}× median paired complete-query wall speed-up across {item3['pairs']} measured queries on {item3['route']}.",
         ]
+    item4 = report["items"]["4"]
+    if item4.get("gating") is False and "value_range" in item4:
+        value, volume = item4["value_range"], item4["volume_range"]
+        lines += [
+            "",
+            f"Item 4 (reported only): value [{value['low']:.6g}, {value['high']:.6g}] {value['unit']} ({value['basis']}); volume [{volume['low']:.6g}, {volume['high']:.6g}] {volume['unit']} ({volume['basis']}).",
+        ]
     item5 = report["items"]["5"]
+    if "mean_model_minus_solver_verified_value" in item5:
+        lines += [
+            "",
+            f"Item 5: model-minus-solver verified value {item5['mean_model_minus_solver_verified_value']:.6g} {item5['buyer_unit']}; paired fold-cluster 95% CI [{item5['ci95'][0]:.6g}, {item5['ci95'][1]:.6g}] at the registered wall/core budget. {item5['paired_jobs']} complete paired jobs across {item5['independent_clusters']} independent bank clusters.",
+        ]
     if "p_model_beats_solver_ci_lower" in item5:
         lines += [
             "",
@@ -611,7 +902,12 @@ def evidence_page(report):
         ]
     lines += [
         "",
-        "PASS requires the registered owner rule and all five evidence items. No absent, unresolved or unmatched record is treated as a pass.",
+        (
+            "VALUE-BAR-V1 gates on items 1, 2, 3 and 5; item 4 value/volume ranges are reported only. No absent, unresolved or unmatched gate evidence is treated as a pass."
+            if report["rule_id"] is not None
+            and report["rule_id"].startswith(VALUE_BAR_V1)
+            else "PASS requires the registered owner rule and all five evidence items. No absent, unresolved or unmatched record is treated as a pass."
+        ),
         "",
     ]
     return "\n".join(lines)

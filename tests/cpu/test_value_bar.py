@@ -2,6 +2,7 @@
 
 import copy
 import json
+from pathlib import Path
 
 import pytest
 
@@ -274,3 +275,172 @@ def test_cli_writes_page_once(tmp_path):
     assert json.loads(out.read_text(encoding="utf-8"))["status"] == vb.PASS
     with pytest.raises(FileExistsError):
         vb.main(args)
+
+
+def v1_fixture(*, register_budget=True):
+    evidence, _ = fixture()
+    rule_path = (
+        Path(__file__).resolve().parents[2]
+        / "docs/development/challenge_pipeline/value-bar-v1.json"
+    )
+    rule = json.loads(rule_path.read_text(encoding="utf-8"))
+    if register_budget:
+        rule["rule_id"] = "VALUE-BAR-V1:f02:toy-budget"
+        rule["item_5"].update(
+            budget={"wall_s": 12.0, "core_s": 12.0},
+            challenge="f02",
+            budget_registration_digest=sha("9"),
+        )
+    evidence["item_1"] = {
+        "status": vb.PASS,
+        "source_digests": [sha("1"), sha("2")],
+        "rule_id": rule["rule_id"],
+        "challenge": "f02",
+        "export_digest": evidence["export_digest"],
+    }
+    evidence["item_4"] = {
+        "rule_id": rule["rule_id"],
+        "challenge": "f02",
+        "export_digest": evidence["export_digest"],
+        "value_range": {
+            "low": 1.0,
+            "high": 3.0,
+            "unit": "toy-currency/decision",
+            "basis": "SOURCED",
+            "source_digests": [sha("3")],
+        },
+        "volume_range": {
+            "low": 10.0,
+            "high": 30.0,
+            "unit": "decisions/month",
+            "basis": "ASSUMPTION",
+            "source_digests": [],
+        },
+    }
+    evidence["speed"].update(
+        reference_solve_core_s=None,
+        reference_solve_source_digest=None,
+    )
+    evidence["equal_budget"]["job_count"] = 4
+    point = evidence["equal_budget"]["curves"][0]
+    point["estimates"].update(
+        paired_verified_value_count=4,
+        paired_verified_value_delta=-1.5,
+    )
+    point["bootstrap_ci"]["paired_verified_value_delta"] = [-2.0, -1.0]
+    for pair in evidence["speed"]["pairs"]:
+        pair["reference_wall_s"] = 100.0
+    return reseal(evidence), rule
+
+
+def test_registered_value_bar_v1_passes_and_reports_ranges_without_gating():
+    evidence, rule = v1_fixture()
+    report = evaluate(evidence, rule)
+    assert report["rule_id"] == "VALUE-BAR-V1:f02:toy-budget"
+    assert report["status"] == vb.PASS
+    assert report["non_gating_items"] == ["4"]
+    assert report["items"]["2"]["ci95"] == [-1.5, -1.5]
+    assert report["items"]["3"]["required_speedup"] == 100.0
+    assert report["items"]["5"]["ci95"] == [-2.0, -1.0]
+    assert "reported only" in vb.evidence_page(report)
+    assert "ASSUMPTION" in vb.evidence_page(report)
+    evidence["item_4"] = None
+    report = evaluate(reseal(evidence), rule)
+    assert report["items"]["4"]["status"] == vb.INSUFFICIENT
+    assert report["status"] == vb.PASS
+
+
+def test_unregistered_budget_is_insufficient_and_wrong_challenge_refused():
+    evidence, rule = v1_fixture(register_budget=False)
+    report = evaluate(evidence, rule)
+    assert report["items"]["5"]["status"] == vb.INSUFFICIENT
+    assert report["status"] == vb.INSUFFICIENT
+    evidence, rule = v1_fixture()
+    rule["item_5"]["challenge"] = "motor"
+    with pytest.raises(vb.ValueBarError, match="another Challenge"):
+        evaluate(evidence, rule)
+
+
+@pytest.mark.parametrize(
+    ("model_regrets", "expected"),
+    [
+        ([0.5, 0.5, 0.5, 0.5], vb.PASS),
+        ([2.0, 2.0, 2.0, 2.0], vb.INSUFFICIENT),
+        ([3.0, 3.0, 3.0, 3.0], vb.FAIL),
+        ([1.0, 1.0, 3.0, 3.0], vb.INSUFFICIENT),
+    ],
+)
+def test_v1_regret_ci_must_exclude_zero_strictly(model_regrets, expected):
+    evidence, rule = v1_fixture()
+    for row, regret in zip(evidence["carbon_report"]["decisions"], model_regrets):
+        row["regret"] = regret
+    assert evaluate(reseal(evidence), rule)["items"]["2"]["status"] == expected
+
+
+@pytest.mark.parametrize(
+    ("speedup", "solve_core_s", "expected"),
+    [
+        (100.0, None, vb.PASS),
+        (25.0, 3600.0, vb.PASS),
+        (20.0, 3600.0, vb.PASS),
+        (25.0, 3599.0, vb.FAIL),
+        (25.0, None, vb.INSUFFICIENT),
+        (19.0, 3600.0, vb.FAIL),
+    ],
+)
+def test_v1_speed_flagship_allowance_needs_measured_solve_cpu_cost(
+    speedup, solve_core_s, expected
+):
+    evidence, rule = v1_fixture()
+    for pair in evidence["speed"]["pairs"]:
+        pair["reference_wall_s"] = speedup
+    evidence["speed"].update(
+        reference_solve_core_s=solve_core_s,
+        reference_solve_source_digest=sha("8") if solve_core_s else None,
+    )
+    assert evaluate(reseal(evidence), rule)["items"]["3"]["status"] == expected
+
+
+@pytest.mark.parametrize(
+    ("interval", "expected"),
+    [
+        ([-2.0, -1.0], vb.PASS),
+        ([1.0, 2.0], vb.FAIL),
+        ([-1.0, 1.0], vb.INSUFFICIENT),
+        ([-1.0, 0.0], vb.INSUFFICIENT),
+    ],
+)
+def test_v1_equal_budget_requires_strict_paired_value_interval(interval, expected):
+    evidence, rule = v1_fixture()
+    point = evidence["equal_budget"]["curves"][0]
+    point["bootstrap_ci"]["paired_verified_value_delta"] = interval
+    point["estimates"]["paired_verified_value_delta"] = sum(interval) / 2
+    assert evaluate(reseal(evidence), rule)["items"]["5"]["status"] == expected
+
+
+def test_v1_maximization_uses_the_other_side_of_zero():
+    evidence, rule = v1_fixture()
+    evidence["equal_budget"]["objective"]["direction"] = "max"
+    point = evidence["equal_budget"]["curves"][0]
+    point["bootstrap_ci"]["paired_verified_value_delta"] = [1.0, 2.0]
+    point["estimates"]["paired_verified_value_delta"] = 1.5
+    assert evaluate(reseal(evidence), rule)["items"]["5"]["status"] == vb.PASS
+
+
+def test_v1_incomplete_pair_and_one_decision_source_never_pass():
+    evidence, rule = v1_fixture()
+    evidence["equal_budget"]["curves"][0]["estimates"][
+        "paired_verified_value_count"
+    ] = 3
+    evidence["item_1"]["source_digests"] = [sha("1")]
+    report = evaluate(reseal(evidence), rule)
+    assert report["items"]["1"]["status"] == vb.INSUFFICIENT
+    assert report["items"]["5"]["status"] == vb.INSUFFICIENT
+    assert report["status"] == vb.INSUFFICIENT
+
+
+def test_v1_rejects_changed_registered_limits():
+    evidence, rule = v1_fixture()
+    rule["item_3"]["min_median_wall_speedup"] = 99.0
+    with pytest.raises(vb.ValueBarError, match="speed limits"):
+        evaluate(evidence, rule)
