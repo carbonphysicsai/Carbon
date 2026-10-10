@@ -35,7 +35,14 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 RHO, C = 1.2, 343.0
-R_PORT, STUB, R_NECK = 25.0, 10.0, 20.0
+R_PORT, STUB, R_NECK = 25.0, 60.0, 20.0
+#: f13-deck.v2 (2026-10-10): 60 mm port stubs. v1 used 10 mm, where offset
+#: necks leave evanescent non-planar content at the port planes (power
+#: residual 4.7-11.2 %); at 60 mm every probed geometry closes to <= 0.02 %
+#: (f13-power-probe.json). Transmission loss is plane-position invariant in
+#: the uniform matched port (coaxial control: |dTL| <= 0.037 dB), so the
+#: observable keeps the panel's definition. Frozen v1 decks keep 10 mm.
+DECK_VERSION = "f13-deck.v2"
 S_PORT = math.pi * (R_PORT * 1e-3) ** 2
 AMPLITUDE = math.sqrt(2 * RHO * C / S_PORT)  # unit incident power
 PANELS = Path(
@@ -212,7 +219,7 @@ def write_case(case, out, h_mm=8.0, step_hz=10.0, freqs=None, stub_mm=STUB):
     (out / "case.sif").write_text(sif(freqs))
     (out / "ELMERSOLVER_STARTINFO").write_text("case.sif\n1\n")
     meta = {"case": case, "h_mm": h_mm, "frequencies_hz": freqs, "amplitude_pa": AMPLITUDE,
-            "port_area_m2": S_PORT, "stub_mm": stub_mm, "rho": RHO, "c": C, "mesh_image": MESH_IMAGE}  # fmt: skip
+            "port_area_m2": S_PORT, "stub_mm": stub_mm, "deck_version": DECK_VERSION, "rho": RHO, "c": C, "mesh_image": MESH_IMAGE}  # fmt: skip
     (out / "deck.json").write_text(json.dumps(meta, indent=1) + "\n")
     return meta
 
