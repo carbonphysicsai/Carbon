@@ -1,0 +1,65 @@
+{
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "claims": {
+  "authority_to_run": false,
+  "live_run": false,
+  "spend": false
+ },
+ "counts": {
+  "FAIL": 0,
+  "NOT_BUILT": 0,
+  "PASS": 1,
+  "REVIEW_REQUIRED": 1
+ },
+ "git": {
+  "dirty": false,
+  "sha": "dd8e837d078a7735ec78b07ad61be57aead2c33e"
+ },
+ "green": false,
+ "items": [
+  {
+   "detail": "no recorded review (expected V1.json)",
+   "evidence": [
+    "report:sha256:5f8ec705b8f1835f370f904ac204a9da76d5a110144d8472ecdbe11a027832e5",
+    "tau:-0.47280542884465016",
+    "rho:-0.5389318178609666",
+    "tau_band:0.0",
+    "divergence:graphite-run5-p-1d4aaff5d292-s3718551111",
+    "divergence:graphite-run5-p-37985e699fe3-s1919562590",
+    "divergence:graphite-run5-p-4fd7fb870d2b-s1132250632",
+    "divergence:graphite-run5-p-69268f1b74ec-s1551240143",
+    "divergence:graphite-run5-p-87b76ad0a2fd-s3716900652",
+    "divergence:graphite-run5-p-c41a9a1ebb82-s524989794"
+   ],
+   "evidence_digest": "sha256:566fa9b680a90c9b4a7250aadc12155bfbb72b41dd60f109b91fa97adc1f7c11",
+   "id": "V1",
+   "kind": "auto+review",
+   "lesson": "S1",
+   "status": "REVIEW_REQUIRED",
+   "title": "A Q1 score-to-value check on the available panel (baselines plus constructed controls): \u03c4/\u03c1 with a band, and divergences listed. A negative or within-noise \u03c4 is NOT a blocker, but it is recorded, and the first Graphite runs are then framed as alignment measurements, never as improvement hunting."
+  },
+  {
+   "detail": "7 distinct decision outcomes among panel members",
+   "evidence": [
+    "{\"D-T14-S0.33\":\"c1=1,c2=0.6\",\"D-T24-S0.12\":\"c1=1.75,c2=1\",\"D-T24-S0.33\":\"c1=1.25,c2=1\",\"D-T34-S0.12\":\"c1=1,c2=1\",\"D-T34-S0.48\":\"c1=1.25,c2=1\",\"D-T5-S0.12\":\"ABSTAIN\"}:graphite-run5-baseline-s1801172379",
+    "{\"D-T14-S0.33\":\"c1=1,c2=0.6\",\"D-T24-S0.12\":\"c1=1.75,c2=1\",\"D-T24-S0.33\":\"c1=1.25,c2=1\",\"D-T34-S0.12\":\"c1=1,c2=1\",\"D-T34-S0.48\":\"c1=2,c2=1\",\"D-T5-S0.12\":\"ABSTAIN\"}:graphite-run5-p-69268f1b74ec-s1551240143",
+    "{\"D-T14-S0.33\":\"c1=1,c2=0.6\",\"D-T24-S0.12\":\"c1=2,c2=1\",\"D-T24-S0.33\":\"c1=1.25,c2=1\",\"D-T34-S0.12\":\"c1=1,c2=1\",\"D-T34-S0.48\":\"c1=1,c2=1\",\"D-T5-S0.12\":\"ABSTAIN\"}:graphite-run5-p-1d4aaff5d292-s3718551111",
+    "{\"D-T14-S0.33\":\"c1=1,c2=0.6\",\"D-T24-S0.12\":\"c1=2,c2=1\",\"D-T24-S0.33\":\"c1=1.25,c2=1\",\"D-T34-S0.12\":\"c1=1,c2=1\",\"D-T34-S0.48\":\"c1=1.25,c2=1\",\"D-T5-S0.12\":\"ABSTAIN\"}:graphite-run5-p-87b76ad0a2fd-s3716900652",
+    "{\"D-T14-S0.33\":\"c1=1,c2=0.6\",\"D-T24-S0.12\":\"c1=2,c2=1\",\"D-T24-S0.33\":\"c1=1.25,c2=1\",\"D-T34-S0.12\":\"c1=1,c2=1\",\"D-T34-S0.48\":\"c1=1.5,c2=1\",\"D-T5-S0.12\":\"ABSTAIN\"}:graphite-run5-p-1585ecbf838a-s475176988",
+    "{\"D-T14-S0.33\":\"c1=1,c2=0.6\",\"D-T24-S0.12\":\"c1=2,c2=1\",\"D-T24-S0.33\":\"c1=1.25,c2=1\",\"D-T34-S0.12\":\"c1=1,c2=1\",\"D-T34-S0.48\":\"c1=1.75,c2=1\",\"D-T5-S0.12\":\"ABSTAIN\"}:graphite-run5-p-37985e699fe3-s1919562590",
+    "{\"D-T14-S0.33\":\"c1=1,c2=0.6\",\"D-T24-S0.12\":\"c1=2,c2=1\",\"D-T24-S0.33\":\"c1=1.25,c2=1\",\"D-T34-S0.12\":\"c1=1,c2=1\",\"D-T34-S0.48\":\"c1=2,c2=1\",\"D-T5-S0.12\":\"ABSTAIN\"}:graphite-run5-p-4fd7fb870d2b-s1132250632,graphite-run5-p-c41a9a1ebb82-s524989794"
+   ],
+   "evidence_digest": "sha256:4f18ea0941a41d9a8f985ef8651aed4f7e63bce43a150dfa789b391dccc9edc2",
+   "id": "V2",
+   "kind": "auto",
+   "lesson": "S3",
+   "status": "PASS",
+   "title": "Panel discrimination: at least two distinct decision outcomes among panel members on the decision study. If not, widen the construction families first (development variant)."
+  }
+ ],
+ "level": 0,
+ "partial": true,
+ "report_digest": "sha256:27825431456049bf6c5ca88053ec3b1b75ce3c4883101faeae38064e53bf927c",
+ "schema": "carbon.challenge-pipeline.readiness-report.v1",
+ "utc": "2026-10-09T13:02:29Z"
+}
