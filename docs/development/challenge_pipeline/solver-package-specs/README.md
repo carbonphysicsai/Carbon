@@ -14,6 +14,10 @@ recommendation where possible; a recommendation is not an accepted pin.
 | [f06 Meep](f06-meep.md) | Finite-width 3D fibre coupling, reflection and robust 45-point summary | Vector mode/fibre observation, independent 3D witness and fine-grid memory |
 | [Warpage CalculiX](warpage-calculix.md) | Full 3D underfill/solder choice over complete process/service history | Calibrated material evolution, joint formation and restart state |
 
+Follow-up: [f06 resolution and cost](f06-resolution-cost/README.md) separates
+published coarse-grid evidence from task-specific decision adequacy and
+calculates conditional bank/witness capacity. It selects no new grid.
+
 No full cold plate, motor comparator, hidden bank, solver build scripts or
 runtime adapters are added. This is not a second copy of the buyer packets.
 DC owns the eventual implementation and measured return; science/customer
