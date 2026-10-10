@@ -180,3 +180,59 @@ def test_a_role_list_is_a_valid_runner_variant_list(tmp_path):
         ]
     with pytest.raises(variants.VariantRefused):
         roles.generate("challenger")  # slice 3 calibrates its recipes
+
+
+# --- slice 3a: the sybil scenario --------------------------------------------------
+
+
+def test_the_sybil_scenarios_copy_strong_exactly_or_near_off_the_canary_grid():
+    from scripts.dev.canary import roles, variants
+
+    strong = roles.ROLES[roles.hotkey_of("strong")]["recipes"]
+    copy, near = roles.SCENARIOS["sybil-copy"], roles.SCENARIOS["sybil-near"]
+    assert copy["recipes"][0] in strong  # D6 must refuse it as contested
+    for scenario in (copy, near):
+        assert roles.role_of(scenario["hotkey"]) == "challenger"
+        assert roles.role_of(scenario["of"]) == "strong"
+    for neighbours, fraction in near["recipes"]:
+        assert (neighbours, fraction) not in strong
+        assert fraction not in set(variants.TRAIN_FRACTIONS)
+        assert 1 <= neighbours <= 64 and 0.1 <= fraction <= 1.0
+
+
+def test_a_sybil_list_is_a_valid_runner_variant_list(tmp_path):
+    from scripts.dev.canary import roles, variants
+
+    for name in roles.SCENARIOS:
+        path = tmp_path / f"{name}.json"
+        assert roles.main(["generate", "--scenario", name, "--out", str(path)]) == 0
+        document, _ = variants.load(path)
+        assert document["grid"]["scenario"] == name
+
+
+def test_a_sybil_split_is_a_blocker_and_one_holder_is_not():
+    honest, sybil = "5Honest", "5Sybil"
+    hotkeys = {0: "5Burn", 14: honest, 16: sybil}
+    found, shares = inc.verify_sybil(
+        [[0, 1000], [14, 500], [16, 500]], hotkeys, honest, sybil
+    )
+    assert found == [{"level": inc.BLOCKER, "code": "sybil_split"}]
+    found, shares = inc.verify_sybil([[0, 1500], [14, 500]], hotkeys, honest, sybil)
+    assert found[0]["code"] == "sybil_not_split" and shares["sybil"] == 0
+
+
+def test_summarize_fills_the_974_sybil_row_observed_half():
+    share = 1 / 8
+    lines = [
+        {"shares": {"honest": share, "sybil": 0.0}},
+        {"shares": {"honest": share, "sybil": 0.0}},
+        {"shares": {"honest": 0.0, "sybil": share}},
+        {"state": "UNVERIFIED", "findings": []},
+    ]
+    row = inc.summarize(lines, share)
+    assert row["strategy"] == "sybil" and row["sybil_hotkeys"] == 2
+    observed = row["observed"]
+    assert observed["epochs"] == 3 and observed["sybil_takeovers"] == 1
+    assert abs(observed["attacker_weight_fraction"] - 1 / 3) < 1e-9
+    assert observed["split_epochs"] == 0
+    assert inc.summarize([], share)["observed"] is None

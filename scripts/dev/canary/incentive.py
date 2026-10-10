@@ -36,9 +36,11 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import itertools
 import json
 import math
 import sys
+import time
 from pathlib import Path
 
 SCHEMA = "carbon.incentive-canary.config.v1"
@@ -134,14 +136,21 @@ def verify_epoch(row, hotkeys, incumbents, n_challenges, canaries, burn_uid=0):
 # --- the public surfaces --------------------------------------------------------
 
 
+def _sybil_scenarios():
+    from scripts.dev.canary.roles import SCENARIOS
+
+    return SCENARIOS
+
+
 def load_config(path):
     config = json.loads(Path(path).read_text())
     keys = {"schema", "validator_hotkey", "intake_url", "feed_key", "policy"}
     if (
         type(config) is not dict
-        or not keys <= set(config) <= keys | {"roles"}
+        or not keys <= set(config) <= keys | {"roles", "sybil"}
         or config["schema"] != SCHEMA
         or type(config.get("roles", False)) is not bool
+        or config.get("sybil", "sybil-near") not in _sybil_scenarios()
     ):
         raise ValueError("incentive_config_malformed")
     return config
@@ -167,6 +176,51 @@ def verify_roles(leaderboard, roles):
     else:
         findings.append({"level": UNVERIFIED, "code": "roles_not_both_released"})
     return findings
+
+
+def verify_sybil(row, hotkeys, honest, sybil):
+    """`(findings, shares)` for one sybil pair: `sybil_split` (BLOCKER) when
+    both hotkeys hold weight in one epoch (one incumbent per Challenge), else
+    `sybil_not_split`. `shares`: each one's fraction of the row."""
+    weights = {hotkeys.get(uid): value for uid, value in row if value}
+    total = sum(weights.values()) or 1
+    shares = {
+        "honest": weights.get(honest, 0) / total,
+        "sybil": weights.get(sybil, 0) / total,
+    }
+    if shares["honest"] and shares["sybil"]:
+        return [{"level": BLOCKER, "code": "sybil_split"}], shares
+    return [{"level": PASS, "code": "sybil_not_split"}], shares
+
+
+def summarize(lines, challenge_share):
+    """The observed half of a #974 `sybil` prediction row, from `check
+    --observe` lines (one per epoch, oldest first)."""
+    epochs = [line for line in lines if "shares" in line]
+    if not epochs:
+        return {"strategy": "sybil", "sybil_hotkeys": 2, "observed": None}
+    holders = [
+        "sybil" if e["shares"]["sybil"] else "honest" if e["shares"]["honest"] else None
+        for e in epochs
+    ]
+    takeovers = sum(
+        1 for a, b in itertools.pairwise(holders) if a == "honest" and b == "sybil"
+    )
+    return {
+        "strategy": "sybil",
+        "sybil_hotkeys": 2,
+        "observed": {
+            "epochs": len(epochs),
+            "attacker_weight_fraction": sum(e["shares"]["sybil"] for e in epochs)
+            / (challenge_share * len(epochs)),
+            "honest_weight_fraction": sum(e["shares"]["honest"] for e in epochs)
+            / (challenge_share * len(epochs)),
+            "split_epochs": sum(
+                1 for e in epochs if e["shares"]["sybil"] and e["shares"]["honest"]
+            ),
+            "sybil_takeovers": takeovers,
+        },
+    }
 
 
 def read_leaderboard(intake_url, feed_key, challenge=BATTERY, *, opener=None):
@@ -243,7 +297,8 @@ def check(
     context=None,
 ):
     """One check of the current epoch. Returns the result line. With
-    `"roles": true` in the config, the incentive roles' ordering too."""
+    `"roles": true` in the config, the incentive roles' ordering too; with
+    `"sybil": "<scenario>"`, the sybil pair's split and shares."""
     from carbon.challenge_validator.canary import CANARY_HOTKEYS
     from carbon.rewards.winner_decay import load_policy
 
@@ -289,6 +344,15 @@ def check(
         from scripts.dev.canary.roles import ROLES
 
         result["findings"] += verify_roles(leaderboard, ROLES)
+    if config.get("sybil"):
+        scenario = _sybil_scenarios()[config["sybil"]]
+        findings, shares = verify_sybil(
+            row, hotkeys, scenario["of"], scenario["hotkey"]
+        )
+        result["findings"] += findings
+        result["shares"] = shares
+        result["challenge_share"] = 1 / len(policy.challenges)
+    if leaderboard is not None or config.get("sybil"):
         levels = {f["level"] for f in result["findings"]}
         result["state"] = next(
             (s for s in (BLOCKER, ATTENTION, UNVERIFIED) if s in levels), PASS
@@ -302,8 +366,22 @@ EXIT = {PASS: 0, ATTENTION: 0, UNVERIFIED: 1, BLOCKER: 3}
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="scripts.dev.canary.incentive")
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("check").add_argument("--config", required=True)
+    checked = sub.add_parser("check")
+    checked.add_argument("--config", required=True)
+    checked.add_argument(
+        "--observe", type=Path, help="append the result line to this JSONL file"
+    )
+    sub.add_parser("summarize").add_argument("--observations", required=True)
     args = parser.parse_args(argv)
+    if args.command == "summarize":
+        lines = [
+            json.loads(line)
+            for line in Path(args.observations).read_text().splitlines()
+            if line.strip()
+        ]
+        share = next((x["challenge_share"] for x in lines if "challenge_share" in x), 1)
+        print(json.dumps(summarize(lines, share), sort_keys=True))
+        return 0
     try:
         config = load_config(args.config)
     except (OSError, ValueError):
@@ -311,6 +389,10 @@ def main(argv=None):
         return 2
     result = check(config)
     print(json.dumps(result, sort_keys=True))
+    if args.observe is not None:
+        stamped = {"at": int(time.time()), **result}
+        with args.observe.open("a") as journal:
+            journal.write(json.dumps(stamped, sort_keys=True) + "\n")
     return EXIT[result["state"]]
 
 
