@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-evidence-pipeline-final-diagnostics",
+  "recorded_at": "2026-10-10T21:52:24Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "EVIDENCE-PIPELINE-ONE-COMMAND-01", "description": "Final native comparator, replay, value, pack, producer and lessons regressions before and after reconciling main."},
+  "expected": "Preserve main behavior and deliver a normal main-based PR with honest readiness boundaries.",
+  "observed": "153 tests passed before reconciliation (10.03 seconds) and 153 after main 9256c812d (10.80 seconds). Black and Ruff passed. GitHub canonical acceptance is pending; the previously diagnosed local canonical wrapper limitation is unchanged. Lessons are recorded retrospectively at this timestamp, not asserted as solver evidence.",
+  "keep": ["KEEP existing comparator, replay, value evaluator and page renderer", "Explicit missing routes and missing owner evidence"],
+  "change": ["Fresh normal main PRs, never stack to suppress CI", "Require measured producer costs and a separately selected Carbon arm before claiming a full comparison"],
+  "protocol_elements": ["delivery", "evidence_identity", "claim_control"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
