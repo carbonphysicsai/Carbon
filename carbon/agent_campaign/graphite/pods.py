@@ -371,6 +371,17 @@ UNSHIPPED_TREES = ("carbon/challenge_pipeline/lessons/",)
 ENV_TOO_LARGE = "pod_env_too_large"
 
 
+def shippable(path):
+    """A tracked file the pod may be shipped: not under a `private`
+    directory (a file whose own name says private is still code), not under
+    `UNSHIPPED_TREES`, and no path the guard names (`FORBIDDEN_DATA`)."""
+    return (
+        not {part.lower() for part in Path(path).parts[:-1]} & UNSHIPPED_DIRECTORIES
+        and not path.startswith(UNSHIPPED_TREES)
+        and not any(fragment in path.lower() for fragment in FORBIDDEN_DATA)
+    )
+
+
 def ship_list(ref, repository=REPOSITORY, scoring=None):
     """The files a Graphite pod is shipped: the import closure of
     `ENTRY_MODULES` and `DYNAMIC_PACKAGES`, the non-code files beside that
@@ -389,11 +400,7 @@ def ship_list(ref, repository=REPOSITORY, scoring=None):
         if any(fragment in path.lower() for fragment in FORBIDDEN_DATA):
             raise PodFailure("ship", "forbidden data path " + path, executed=False)
     candidates = [
-        path
-        for path in tracked(ref, SHIP_TREES, repository)
-        if not {part.lower() for part in Path(path).parts[:-1]} & UNSHIPPED_DIRECTORIES
-        and not path.startswith(UNSHIPPED_TREES)
-        and not any(fragment in path.lower() for fragment in FORBIDDEN_DATA)
+        path for path in tracked(ref, SHIP_TREES, repository) if shippable(path)
     ]
     sources = [path for path in candidates if path.endswith(".py")]
     entries = list(ENTRY_MODULES) + [

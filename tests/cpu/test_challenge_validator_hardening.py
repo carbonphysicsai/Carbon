@@ -218,8 +218,11 @@ def test_no_private_directory_ships_to_a_graphite_pod():
     )
     assert not [p for p in shipped if "private" in Path(p).parts[:-1]]
     assert "scripts/dev/exam_design/private/refs-b-v1.bin" not in shipped
-    # A module whose file name says "private" is code, and still ships.
-    assert "carbon/development_session/private_records.py" in shipped
+    # A module whose file name says "private" is code, and may still ship
+    # (GRAPHITE-POD-ENV-SIZE-01: the pod ships only its import closure, which
+    # no longer reaches this module, so the filter itself is checked).
+    assert pods.shippable("carbon/development_session/private_records.py")
+    assert not pods.shippable("scripts/dev/exam_design/private/refs-b-v1.bin")
 
 
 # --- 6. hostile pod files ------------------------------------------------------------
