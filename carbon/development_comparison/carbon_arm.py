@@ -354,14 +354,14 @@ def run(kit, export, train, *, scope, seed=0, backend="jax", code=None, settings
     if any(set(row["values"]) != set(kit.observables) for row in physical):
         raise ArmRefused("OBSERVABLE_INVENTORY_MISMATCH")
     inputs = [kit.row_inputs(row) for row in physical]
-    timings = []
+    timings, runs = [], []
     for _ in range(2):  # cold (includes tracing and compilation), then warm
         wall, cpu = time.perf_counter(), time.process_time()
-        values = network.predict(inputs)
+        runs.append(network.predict(inputs))
         timings.append((time.perf_counter() - wall, time.process_time() - cpu))
-        if len(timings) == 2 and values != first:
-            raise ArmRefused("PREDICTION_NOT_REPEATABLE")
-        first = values
+    if runs[0] != runs[1]:
+        raise ArmRefused("PREDICTION_NOT_REPEATABLE")
+    values = runs[1]
     query = {
         "rows": len(inputs),
         "predicted": sum(v is not None for v in values),
