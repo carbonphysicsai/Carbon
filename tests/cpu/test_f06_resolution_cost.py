@@ -49,9 +49,7 @@ def test_lower_bound_and_larger_domain_memory_are_not_rss_proof():
         (30, "1.90 / 3.97"),
         (10, "51.23 / 107.29"),
     ):
-        values = [
-            n * (10 / h) ** 3 * 96 / 2**30 for n in memory["bare_cells_at_10nm"]
-        ]
+        values = [n * (10 / h) ** 3 * 96 / 2**30 for n in memory["bare_cells_at_10nm"]]
         assert " / ".join(f"{value:.2f}" for value in values) == expected
         assert expected in document
     scenario = 1200000000 * 120 / 2**30 * 2.5 * 1.5
