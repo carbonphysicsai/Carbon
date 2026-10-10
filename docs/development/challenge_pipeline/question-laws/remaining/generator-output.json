@@ -1,0 +1,38 @@
+{
+  "f13": {
+    "schema": "carbon.onboarding.question-law-draft.v1",
+    "challenge": "f13",
+    "maturity": "DRAFT_ONLY",
+    "P": {"status": "HUMAN_INPUT", "recommendation": null, "sources": [], "owner": "science/product owner", "needed_decision": "Confirm applicability and authorize P", "held_closed": "No runtime registration, bank draw, execution, qualification or spend"},
+    "Q": {"status": "HUMAN_INPUT", "recommendation": null, "sources": [], "owner": "science/product owner", "needed_decision": "Confirm applicability and authorize Q", "held_closed": "No runtime registration, bank draw, execution, qualification or spend"},
+    "w": {"status": "HUMAN_INPUT", "recommendation": null, "sources": [], "owner": "science/product owner", "needed_decision": "Confirm applicability and authorize w", "held_closed": "No runtime registration, bank draw, execution, qualification or spend"},
+    "action_set": {"status": "HUMAN_INPUT", "recommendation": null, "sources": [], "owner": "science/product owner", "needed_decision": "Confirm applicability and authorize geometry", "held_closed": "No runtime registration, bank draw, execution, qualification or spend"},
+    "question": {"status": "HUMAN_INPUT", "recommendation": "One complete buyer decision, not one solver point; indexed decisions include every mandatory band", "buyer_decision": {"status": "HUMAN_INPUT", "recommendation": "Choose a complete supported two-chamber silencer curve within package limits, maximizing interval-weighted band p10 TL, with independently verified narrow notches", "sources": [], "owner": "science/product owner", "needed_decision": "Confirm applicability and authorize decision", "held_closed": "No runtime registration, bank draw, execution, qualification or spend"}},
+    "k": {"status": "HUMAN_INPUT", "recommendation": null, "basis": "Power and exposure owner selects; a panel's batch size is not approval"},
+    "NONE_FEASIBLE": {"status": "HUMAN_INPUT", "recommendation": "VALID_FORWARD_NO_REDRAW only with a complete settled proof; missing/uncertain support stays UNRESOLVED"},
+    "T2a": {"status": "TEST_LEAD_WORKING_VALUE", "near_refinement_bands": 2, "minimum_distinct_feasible": 5, "minimum_distinct_infeasible": 5, "measured": "NOT_ASSESSED_BY_DRAFTING", "band_widths": "HUMAN_INPUT", "rule": "Both sides near the limit; add frontier resolution, never widen bands"},
+    "bank": {"status": "HUMAN_INPUT", "E": null, "B": null, "n": null, "threshold_variation_renews_exposure": false},
+    "startup_cost": {"status": "HUMAN_INPUT", "cpu_hours": null, "eur": null, "basis": "Requires unique new physical cases/rungs, measured CPU, throughput, overhead and quote; B is not a solve count"},
+    "panel_basis": null,
+    "diversity": null,
+    "held_closed": "No law approval, bank draw, runtime registration, power acceptance or spend"
+  },
+  "f17": {
+    "schema": "carbon.onboarding.question-law-draft.v1",
+    "challenge": "f17",
+    "maturity": "DRAFT_ONLY",
+    "P": {"status": "HUMAN_INPUT", "recommendation": null, "sources": [], "owner": "science/product owner", "needed_decision": "Confirm applicability and authorize P", "held_closed": "No runtime registration, bank draw, execution, qualification or spend"},
+    "Q": {"status": "HUMAN_INPUT", "recommendation": null, "sources": [], "owner": "science/product owner", "needed_decision": "Confirm applicability and authorize Q", "held_closed": "No runtime registration, bank draw, execution, qualification or spend"},
+    "w": {"status": "HUMAN_INPUT", "recommendation": null, "sources": [], "owner": "science/product owner", "needed_decision": "Confirm applicability and authorize w", "held_closed": "No runtime registration, bank draw, execution, qualification or spend"},
+    "action_set": {"status": "HUMAN_INPUT", "recommendation": null, "sources": [], "owner": "science/product owner", "needed_decision": "Confirm applicability and authorize geometry", "held_closed": "No runtime registration, bank draw, execution, qualification or spend"},
+    "question": {"status": "HUMAN_INPUT", "recommendation": "One complete buyer decision, not one solver point; indexed decisions include every mandatory band", "buyer_decision": {"status": "HUMAN_INPUT", "recommendation": "Choose supported groove geometry with best worst-condition outlet uniformity across the complete nine-condition panel while preserving pressure and residence hard limits", "sources": [], "owner": "science/product owner", "needed_decision": "Confirm applicability and authorize decision", "held_closed": "No runtime registration, bank draw, execution, qualification or spend"}},
+    "k": {"status": "HUMAN_INPUT", "recommendation": null, "basis": "Power and exposure owner selects; a panel's batch size is not approval"},
+    "NONE_FEASIBLE": {"status": "HUMAN_INPUT", "recommendation": "VALID_FORWARD_NO_REDRAW only with a complete settled proof; missing/uncertain support stays UNRESOLVED"},
+    "T2a": {"status": "TEST_LEAD_WORKING_VALUE", "near_refinement_bands": 2, "minimum_distinct_feasible": 5, "minimum_distinct_infeasible": 5, "measured": "NOT_ASSESSED_BY_DRAFTING", "band_widths": "HUMAN_INPUT", "rule": "Both sides near the limit; add frontier resolution, never widen bands"},
+    "bank": {"status": "HUMAN_INPUT", "E": null, "B": null, "n": null, "threshold_variation_renews_exposure": false},
+    "startup_cost": {"status": "HUMAN_INPUT", "cpu_hours": null, "eur": null, "basis": "Requires unique new physical cases/rungs, measured CPU, throughput, overhead and quote; B is not a solve count"},
+    "panel_basis": null,
+    "diversity": null,
+    "held_closed": "No law approval, bank draw, runtime registration, power acceptance or spend"
+  }
+}
