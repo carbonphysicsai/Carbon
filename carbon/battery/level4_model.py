@@ -24,9 +24,19 @@ battery's target statistics, the manifest and every document. Inference
 rebuilds and re-validates the graph from the state alone; nothing is staged
 at inference.
 
-A submission carrying a loss graph is not trained here yet: training on a
-submitted loss is the next slice (`PHASE1_PLAN.md` section 4.5). Until then
-it fails closed as Carbon's environment, never ignored.
+**A submitted loss graph (G6, `PHASE1_PLAN.md` section 4.5)** replaces
+battery's loss only where the record's variant declares `loss_override:
+graph` (battery-l4-graph-v3); anywhere else G4 refuses it
+(`loss_not_permitted`). The graph is per case. Carbon maps it over the batch
+and takes the plain mean (`carbon.level4.loss.per_case_mean`), so battery's
+own loss terms, which weight, select or reshape cases, must stay at their
+neutral values (`NEUTRAL`). Otherwise the submission is refused
+(`LOSS_TERMS`), never silently ignored. The loss is the only thing that
+changes:
+* the classic path keeps its written-out loop (`classic_fit`, `objective=`);
+* the general path keeps `training.train`'s optimizer, schedule, batch draw,
+  microbatches, averaging and polish (`objective_fit`), pinned to it by a test.
+Battery's implementation modules are not edited.
 """
 
 from __future__ import annotations
@@ -44,8 +54,21 @@ CHALLENGE = "battery-fastcharge-ageing-development-v1"
 #: Battery families whose network a Level 4 graph replaces; the
 #: nearest-neighbour recipe has no trained network.
 FAMILIES = ("mlp", "deeponet")
-LOSS_NOT_BUILT = "level4_loss_graph_training_not_built"
 CAPS_UNSET = "level4_caps_human_input"
+#: A loss graph beside one of battery's own loss terms (the candidate's).
+LOSS_TERMS = "loss_graph_with_loss_terms"
+#: Battery's loss-term settings at their neutral values (the catalog defaults):
+#: under a loss graph the loss is the graph's, reduced by Carbon's plain mean.
+NEUTRAL = {
+    "important_region_weight": 1.0,
+    "relative_loss": False,
+    "time_weighting": "uniform",
+    "h1_weight": 0.0,
+    "h2_weight": 0.0,
+    "spectral_weight": 0.0,
+    "curriculum": "none",
+    "hard_example_weight": 0.0,
+}
 _PCA_ARRAYS = ("vm", "tm", "pv", "pt", "zmu", "zsd")
 
 
@@ -62,12 +85,16 @@ def dims(model):
     return n_in, lay.nv + lay.nt + 1 + lay.k
 
 
-def classic_fit(model, d, y, seed, net, make_params):
+def classic_fit(model, d, y, seed, net, make_params, objective=None):
     """`recipes.MLP._fit_classic`'s loop with `net` and `make_params(key)`
     supplied: the Level 0 MLP's written-out full-batch Adam(W) with cosine
     decay, statement for statement (history recording off). Run with the
     native `net` it must reproduce `MLP.fit`'s digest exactly; that pins this
-    copy to the declarative path before the rebuilt `net` is compared."""
+    copy to the declarative path before the rebuilt `net` is compared.
+
+    `objective(pred, target, x)`, when given, is the loss instead of
+    battery's (an admitted loss graph's, `Prepared.loss`); each argument is a
+    list of arrays with the cases leading."""
     import hashlib
 
     import jax
@@ -82,9 +109,16 @@ def classic_fit(model, d, y, seed, net, make_params):
     gw = model._group_weights(z.shape[1]).astype(np.float32)
     params = make_params(jax.random.PRNGKey(seed), f.shape[1], z.shape[1])
 
-    def loss(p, xx, yy):
-        r = (net(p, xx) - yy) ** 2
-        return jnp.sum(sw[:, None] * r * gw[None, :]) / jnp.sum(sw)
+    if objective is None:
+
+        def loss(p, xx, yy):
+            r = (net(p, xx) - yy) ** 2
+            return jnp.sum(sw[:, None] * r * gw[None, :]) / jnp.sum(sw)
+
+    else:
+
+        def loss(p, xx, yy):
+            return objective([net(p, xx)], [yy], [xx])
 
     initial = float(jax.jit(loss)(params, f, z))
 
@@ -133,12 +167,114 @@ def classic_fit(model, d, y, seed, net, make_params):
     }
 
 
+def objective_train(*, init, apply, f, z, settings, seed, objective):
+    """`training.train` with its loss replaced by `objective(pred, target,
+    x)`, Carbon's mean over the drawn cases (an admitted loss graph's,
+    `Prepared.loss`). Everything else is `training.train`'s, statement for
+    statement: the optimizer menu (`training.optimizer`), the step count, the
+    batch draw from Carbon's key, microbatches, plateau, EMA, tail averaging,
+    schedule-free evaluation, polish and history recording. The case
+    weighting `training.train` applies (`sw`, curriculum, hard examples) is
+    absent: under a loss graph those settings are refused at their
+    non-neutral values (`NEUTRAL`). A test pins this copy: with battery's own
+    case loss as `objective` it reproduces `training.train`'s parameters."""
+    import jax
+    import jax.numpy as jnp
+    import optax
+
+    from . import training
+
+    s = settings
+    n = f.shape[0]
+    steps = s["steps"] - s["polish_steps"]
+    batch = min(s["batch_size"], n)
+    micro = s["microbatches"]
+    key = jax.random.PRNGKey(seed)
+    key, params = init(key)
+    f, z = jnp.asarray(f), jnp.asarray(z)
+    tx = training.optimizer(jax, optax, s, steps)
+
+    def loss(p, idx):
+        return objective([apply(p, f[idx])], [z[idx]], [f[idx]])
+
+    def gradient(p, idx):
+        if micro == 1:
+            return jax.value_and_grad(loss)(p, idx)
+        chunks = idx.reshape(micro, -1)
+        total = None
+        for c in range(micro):
+            v, g = jax.value_and_grad(loss)(p, chunks[c])
+            if total is None:
+                total = (v, g)
+            else:
+                total = (
+                    total[0] + v,
+                    jax.tree_util.tree_map(jnp.add, total[1], g),
+                )
+        return total[0] / micro, jax.tree_util.tree_map(lambda g: g / micro, total[1])
+
+    tail = int(steps * (1.0 - s["tail_averaging"])) if s["tail_averaging"] else steps
+    decay = s["ema_decay"]
+    use_ema = s["inference_weights"] == "ema"
+    plateau = s["learning_rate_curve"] == "train_loss_plateau"
+    everything = jnp.arange(n)
+    recording = training.recording_history()
+
+    def step_fn(carry, i):
+        p, state, ema, avg, k = carry
+        k, sub = jax.random.split(k)
+        idx = everything if batch >= n else jax.random.permutation(sub, n)[:batch]
+        value, g = gradient(p, idx)
+        if plateau:
+            updates, state = tx.update(g, state, p, value=value)
+        else:
+            updates, state = tx.update(g, state, p)
+        p = optax.apply_updates(p, updates)
+        if use_ema:
+            ema = jax.tree_util.tree_map(
+                lambda e, x: decay * e + (1 - decay) * x, ema, p
+            )
+        if s["tail_averaging"]:
+            count = jnp.maximum(i - tail + 1, 1).astype(f.dtype)
+            avg = jax.tree_util.tree_map(
+                lambda a, x: jnp.where(i >= tail, a + (x - a) / count, a), avg, p
+            )
+        return (p, state, ema, avg, k), (value if recording else None)
+
+    @jax.jit
+    def run(params, key):
+        carry = (params, tx.init(params), params, params, key)
+        (p, state, ema, avg, _), values = jax.lax.scan(
+            step_fn, carry, jnp.arange(steps, dtype=f.dtype)
+        )
+        return p, state, ema, avg, values
+
+    p, state, ema, avg, values = run(params, key)
+    if recording:
+        training.keep_history(enumerate(np.asarray(values).tolist()), steps)
+    if s["optimizer_family"] == "free_adamw":
+        from optax.contrib import schedule_free_eval_params
+
+        p = schedule_free_eval_params(state, p)
+    if use_ema:
+        p = ema
+    elif s["tail_averaging"]:
+        p = avg
+    if s["polish_steps"]:
+        p = training.polish(
+            jax, optax, p, lambda q: loss(q, everything), s["polish_steps"]
+        )
+    return jax.block_until_ready(p)
+
+
 class GraphModel(recipes.MLP):
     """Battery's MLP whose network is a submission's rebuilt graph."""
 
     STATE_KIND = STATE_KIND
 
-    def __init__(self, family, settings, files, raw_manifest, submission):
+    def __init__(
+        self, family, settings, files, raw_manifest, submission, loss_override="none"
+    ):
         if family not in FAMILIES:
             raise ImportError("level4_family_not_served:" + str(family))
         # Carbon trains every graph in JAX, whatever framework authored it.
@@ -146,6 +282,9 @@ class GraphModel(recipes.MLP):
         self.files = dict(files)
         self.raw_manifest = raw_manifest
         self.submission = submission
+        #: The variant's declaration, from the record (`RECORD_BOUNDS`); a
+        #: record without one admits no loss graph.
+        self.loss_override = loss_override
         self.prepared = None
 
     # -- the submission, verified and validated --------------------------------------
@@ -160,7 +299,7 @@ class GraphModel(recipes.MLP):
 
     def _prepare(self, batch):
         from carbon.level4 import allowlist as allowlist_module
-        from carbon.level4 import intake, submission, train, validate
+        from carbon.level4 import graph, intake, submission, train, validate
 
         allowlist = allowlist_module.load()
         interface = self._interface()
@@ -172,15 +311,21 @@ class GraphModel(recipes.MLP):
             interface=interface.digest(),
             max_bytes=intake.BOUNDS["document_bytes"],
         )
-        if "loss" in parsed:
-            raise ImportError(LOSS_NOT_BUILT)
         verdict = validate.validate_submission(
-            parsed, allowlist, interface=interface, batch=batch
+            parsed,
+            allowlist,
+            interface=interface,
+            batch=batch,
+            loss_override=self.loss_override,
         )
         if verdict["status"] != "admitted":
             # An unset owner cap blocks; it never trains. The value is the
             # owner's to set, so the failure is Carbon's, not the candidate's.
             raise ImportError(CAPS_UNSET)
+        if "loss" in parsed:
+            terms = sorted(k for k, v in NEUTRAL.items() if self.settings[k] != v)
+            if terms:
+                raise graph.GraphRefused(LOSS_TERMS, ",".join(terms))
         return train.prepare(parsed, allowlist, verdict=verdict)
 
     # -- training ------------------------------------------------------------------
@@ -229,6 +374,7 @@ class GraphModel(recipes.MLP):
             seed,
             self._forward(),
             lambda key, _n_in, _n_out: self.prepared.init(key),
+            objective=self.prepared.loss,
         )
         self.params, self.x64 = list(result["params"]), False
         return {
@@ -238,6 +384,51 @@ class GraphModel(recipes.MLP):
             "params_sha256": result["params_sha256"],
             "n_params": int(sum(np.size(a) for a in self.params)),
         }
+
+    def _fit_general(self, d, y, seed):
+        """Battery's `training.train` (`recipes.MLP._fit_general`, unchanged)
+        with no loss graph; `objective_train` with one."""
+        objective = self.prepared.loss
+        if objective is None:
+            return super()._fit_general(d, y, seed)
+        import hashlib
+
+        import jax
+        import jax.numpy as jnp
+
+        from .training import take_history
+
+        self.x64 = self.settings["precision"] == "float64"
+        dtype = np.float64 if self.x64 else np.float32
+        started = time.perf_counter()
+        with jax.enable_x64(self.x64):
+            z = self._encode(y).astype(dtype)
+            f = recipes.features(d.x, self.rich).astype(dtype)
+            init, apply = self._network(jax, dtype, f.shape[1], z.shape[1])
+            params = objective_train(
+                init=init,
+                apply=apply,
+                f=f,
+                z=z,
+                settings=self.settings,
+                seed=seed,
+                objective=objective,
+            )
+            leaves = [np.asarray(a) for a in jax.tree_util.tree_leaves(params)]
+            zz, ff = jnp.asarray(z), jnp.asarray(f)
+            final = float(objective([apply(params, ff)], [zz], [ff]))
+        self.params, self._apply = params, apply
+        blob = b"".join(a.tobytes() for a in leaves)
+        return recipes._with_history(
+            {
+                "compile_s": 0.0,
+                "train_s": time.perf_counter() - started,
+                "final_loss": final,
+                "params_sha256": hashlib.sha256(blob).hexdigest(),
+                "n_params": int(sum(a.size for a in leaves)),
+            },
+            take_history(),
+        )
 
     # -- inference -----------------------------------------------------------------
     def _leaves(self):
@@ -286,6 +477,7 @@ class GraphModel(recipes.MLP):
             "x64": bool(getattr(self, "x64", False)),
             "leaves": len(leaves),
             "batch": self.prepared.batch,
+            "loss_override": self.loss_override,
         }
         return header, arrays
 
@@ -346,7 +538,12 @@ def import_state(header, arrays, layout, structure):
         for k, name in enumerate(header["documents"])
     }
     model = GraphModel(
-        header["family"], header["settings"], files, raw_manifest, header["submission"]
+        header["family"],
+        header["settings"],
+        files,
+        raw_manifest,
+        header["submission"],
+        loss_override=header["loss_override"],
     )
     model.layout, model.s = layout, structure
     model.classic, model.x64 = header["classic"], header["x64"]
@@ -376,7 +573,15 @@ def build(recipe, found, workspace):
     except staging.StagingCorrupt as corrupt:
         raise ImportError("level4_staging_corrupt:" + str(corrupt)) from None
     family, settings = _recipe(recipe)
-    return GraphModel(family, settings, files, raw_manifest, found["submission"])
+    return GraphModel(
+        family,
+        settings,
+        files,
+        raw_manifest,
+        found["submission"],
+        # The variant's declaration, carried by the record; none admits no loss.
+        loss_override=found.get("loss_override", "none"),
+    )
 
 
 def build_from_work(recipe, work):

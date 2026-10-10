@@ -1,0 +1,664 @@
+{
+  "schema": "carbon.research.buyer-volume-evidence.v1",
+  "ticket": "BUYER-VOLUME-EVIDENCE-01",
+  "date": "2026-10-09",
+  "source_main": "3a6dfdd8dffdfdaf241596033d5bf55b66abfcff",
+  "adoption": "HUMAN_INPUT",
+  "dispatch_ready": false,
+  "protected_material": false,
+  "solver_runs": 0,
+  "spend": 0,
+  "currency_conversion": false,
+  "range_convention": "low/base/high are scenario triples; repeated points preserve a reported fact, not uncertainty bounds. Censored/interval facts keep missing values null. Dates, versions, identifiers and section numbers are metadata, not estimates.",
+  "sources": [
+    {
+      "id": "B01",
+      "owner": "MathWorks / Exponent Energy",
+      "url": "https://www.mathworks.com/company/user_stories/exponent-energy-develops-a-15-minute-fast-charging-battery-system-for-electric-vehicles-using-model-based-design.html",
+      "kind": "Customer case, Richard Davis, lead system architect",
+      "support": "BMS/charger/thermal workflow; whole-development speed claim. No annual cadence or exact DOE count.",
+      "accessed": "2026-10-09",
+      "exact_annual_decision_count": false
+    },
+    {
+      "id": "B02",
+      "owner": "MathWorks / Mahindra Electric",
+      "url": "https://in.mathworks.com/company/user_stories/case-studies/mahindra-electric-uses-system-level-simulation-to-optimize-battery-thermal-management-system-for-an-electric-vehicle.html",
+      "kind": "Customer engineering presentation, Vipin K. Venugopal",
+      "support": "BTMS component selection and compressor control with Simulink/Simscape; no annual counts.",
+      "accessed": "2026-10-09",
+      "exact_annual_decision_count": false
+    },
+    {
+      "id": "B03",
+      "owner": "MathWorks / PATAC",
+      "url": "https://www.mathworks.com/company/user_stories/patac-optimizes-ev-thermal-management-modeling.html",
+      "kind": "Customer case, Chen Bowen, vehicle energy consumption integration engineer",
+      "support": "Low-temperature vehicle thermal workflow and avoided physical testing; adjacent to charge-map construction.",
+      "accessed": "2026-10-09",
+      "exact_annual_decision_count": false
+    },
+    {
+      "id": "B04",
+      "owner": "Volkswagen UK",
+      "url": "https://www.volkswagen.co.uk/en/owners-and-services/my-car/software-update/software-update-3-0.html/__layer/layers/owners/software_update/software-update-3-0/improved-charging-performance/master.layer",
+      "kind": "OEM software-update description",
+      "support": "Charging-performance change on installed vehicles; does not provide an annual recalibration law.",
+      "accessed": "2026-10-09",
+      "exact_annual_decision_count": false
+    },
+    {
+      "id": "B05",
+      "owner": "Electrify America / California Energy Commission filing",
+      "url": "https://efiling.energy.ca.gov/GetDocument.aspx?DocumentContentId=103159&tn=266135",
+      "kind": "Company statement filed 2025-09-24, attachment p. 1 / PDF p. 3",
+      "support": "National annual sessions, broader than Carbon-compatible vehicles or one buyer-controlled fleet.",
+      "accessed": "2026-10-09",
+      "exact_annual_decision_count": false
+    },
+    {
+      "id": "B06",
+      "owner": "Attia et al., Nature (author copy)",
+      "url": "https://web.mit.edu/braatzgroup/Attia_Nature_2020.pdf",
+      "kind": "Primary paper, 2020",
+      "support": "Protocol menu and actual untested candidates; experimental study, different chemistry and limits.",
+      "accessed": "2026-10-09",
+      "exact_annual_decision_count": false
+    },
+    {
+      "id": "B07",
+      "owner": "Ansys Fluent documentation",
+      "url": "https://ansyshelp.ansys.com/public/Views/Secured/corp/v242/en/flu_ug/flu_bat_MSMD_sec_use_battery_model.html",
+      "kind": "Public vendor reference manual",
+      "support": "DOD/temperature fast-charge current lookup table and interpolation; incumbent cached-map route.",
+      "accessed": "2026-10-09",
+      "exact_annual_decision_count": false
+    },
+    {
+      "id": "M01",
+      "owner": "Kollmorgen / Universal Robots",
+      "url": "https://www.kollmorgen.com/en-us/service-and-support/knowledge-center/success-stories/direct-drives-in-lightweight-robots",
+      "kind": "Supplier customer case, Esben H. Ostergaard, technical business manager",
+      "support": "Adapted frameless motors integrated into robot joints; neither arm axes nor motor shipments count new magnetic designs.",
+      "accessed": "2026-10-09",
+      "exact_annual_decision_count": false
+    },
+    {
+      "id": "M02",
+      "owner": "Siemens Simcenter",
+      "url": "https://blogs.sw.siemens.com/simcenter/robotics-engineering/",
+      "kind": "Vendor engineering workflow",
+      "support": "Mission profiles and actuator selection from catalogues; not annual custom motor design volume.",
+      "accessed": "2026-10-09",
+      "exact_annual_decision_count": false
+    },
+    {
+      "id": "M03",
+      "owner": "Figure, employer posting",
+      "url": "https://job-boards.greenhouse.io/figureai/jobs/4688381006",
+      "kind": "Electrical Engineer, Actuator Systems",
+      "support": "PCBA and motor-control trade studies; LTspice. Adjacent role, not evidence of magnetic geometry simulation frequency.",
+      "accessed": "2026-10-09",
+      "exact_annual_decision_count": false
+    },
+    {
+      "id": "M04",
+      "owner": "Huang, Dong and Zhao",
+      "url": "https://arxiv.org/html/2609.22795v1",
+      "kind": "Primary research, 2026-09-19, sections III-C and III-F",
+      "support": "Robotic actuator surrogate/co-design study. Training and cheap optimizer counts are separate; not commercial annual cadence.",
+      "accessed": "2026-10-09",
+      "exact_annual_decision_count": false
+    },
+    {
+      "id": "W01",
+      "owner": "Amkor",
+      "url": "https://amkor.com/blog/thermal-simulation-of-dsmbga-coupled-thermal-mechanical-simulation-of-large-body-hdfo/",
+      "kind": "Supplier engineering publication, Nathan Whitchurch, 2022-10-26",
+      "support": "Coupled package thermal/structural comparison with Icepak and Workbench Mechanical; no annual design frequency.",
+      "accessed": "2026-10-09",
+      "exact_annual_decision_count": false
+    },
+    {
+      "id": "W02",
+      "owner": "ASE",
+      "url": "https://ase.aseglobal.com/package-design/",
+      "kind": "Supplier service workflow",
+      "support": "ANSYS stress/warpage service; thermal service latency is not warpage latency.",
+      "accessed": "2026-10-09",
+      "exact_annual_decision_count": false
+    },
+    {
+      "id": "W03",
+      "owner": "Amkor",
+      "url": "https://amkor.com/kr/wp-content/uploads/2018/02/Mechanical_Package_Characterization_SS23.pdf",
+      "kind": "Supplier service sheet",
+      "support": "Quick calculators and DOE precede detailed FE and measured warpage/reliability validation; no annual counts.",
+      "accessed": "2026-10-09",
+      "exact_annual_decision_count": false
+    },
+    {
+      "id": "S01",
+      "owner": "Bosch authors / Ansys",
+      "url": "https://ansys.synopsys.com/content/dam/resource-center/case-study/cost-function-optimization-applied-proportional-solenoid.pdf",
+      "kind": "Primary industrial case, Fuchs, Ott, Bauer and Mantwill, copyright 2021",
+      "support": "Force-stroke requirements, topology/material/tolerance design, optiSLang metamodel; no annual frequency or monetized incremental benefit.",
+      "accessed": "2026-10-09",
+      "exact_annual_decision_count": false
+    },
+    {
+      "id": "S02",
+      "owner": "Magnet-Schultz",
+      "url": "https://www.magnet-schultz.com/produkte",
+      "kind": "Supplier engineering workflow",
+      "support": "Customer-specific development using simulation/calculation; no annual programme counts.",
+      "accessed": "2026-10-09",
+      "exact_annual_decision_count": false
+    },
+    {
+      "id": "S03",
+      "owner": "Siemens / IMI Precision Engineering",
+      "url": "https://resources.sw.siemens.com/en-US/case-study-imi-precision-engineering/",
+      "kind": "Customer case, Murray Schofield, Simulation Design Engineer",
+      "support": "Fast Amesim valve/system model. Adjacent to pole geometry; not Carbon's complete magnetic panel.",
+      "accessed": "2026-10-09",
+      "exact_annual_decision_count": false
+    }
+  ],
+  "observations": [
+    {
+      "id": "battery_sessions_external_2024",
+      "source": "B05",
+      "unit": "national network charging sessions in 2024",
+      "status": "SOURCED_REPORTED_LOWER_BOUND",
+      "low_base_high": [
+        16000000,
+        null,
+        null
+      ],
+      "qualifier": "greater_than",
+      "transfer": "Eligibility, adoption and buyer control are HUMAN_INPUT; never substitute this count into exact V3."
+    },
+    {
+      "id": "exponent_whole_workflow_speed",
+      "source": "B01",
+      "unit": "development/testing/verification acceleration factor",
+      "status": "SOURCED_REPORTED_LOWER_BOUND",
+      "low_base_high": [
+        5,
+        null,
+        null
+      ],
+      "qualifier": "at_least",
+      "transfer": "Whole toolchain vendor/customer claim, not incremental Carbon speed or value."
+    },
+    {
+      "id": "patac_model_setup",
+      "source": "B03",
+      "unit": "months to develop a new vehicle thermal model",
+      "status": "SOURCED_REPORTED_INTERVAL",
+      "low_base_high": [
+        3,
+        null,
+        4
+      ],
+      "transfer": "No invented midpoint; elapsed setup is not annual cadence."
+    },
+    {
+      "id": "patac_physical_test_avoided",
+      "source": "B03",
+      "unit": "physical test hours avoided in reported workflow",
+      "status": "SOURCED_REPORTED_POINT",
+      "low_base_high": [
+        2000,
+        2000,
+        2000
+      ],
+      "transfer": "Low-temperature driving workflow; not count of charging-map solver evaluations."
+    },
+    {
+      "id": "attia_candidate_menu",
+      "source": "B06",
+      "unit": "candidate charging protocols in one experimental study",
+      "status": "SOURCED_REPORTED_POINT",
+      "low_base_high": [
+        224,
+        224,
+        224
+      ],
+      "transfer": "Menu size, not full reference runs or programmes/year."
+    },
+    {
+      "id": "attia_untested",
+      "source": "B06",
+      "unit": "protocols never experimentally tested in that study",
+      "status": "SOURCED_REPORTED_POINT",
+      "low_base_high": [
+        117,
+        117,
+        117
+      ],
+      "transfer": "Does not imply failed designs or Carbon exclusions."
+    },
+    {
+      "id": "actuator_surrogate_topologies",
+      "source": "M04",
+      "unit": "retained slot-pole combinations",
+      "status": "SOURCED_REPORTED_POINT",
+      "low_base_high": [
+        7,
+        7,
+        7
+      ],
+      "transfer": "Research architecture differs from Carbon's magnetic family."
+    },
+    {
+      "id": "actuator_training_designs_per_topology",
+      "source": "M04",
+      "unit": "valid cross-sectional training designs per slot-pole combination",
+      "status": "SOURCED_REPORTED_POINT",
+      "low_base_high": [
+        1000,
+        1000,
+        1000
+      ],
+      "transfer": "Reported field-based surrogate setup; complete solver-call ledger and annual reuse absent."
+    },
+    {
+      "id": "actuator_cheap_optimization_per_case",
+      "source": "M04",
+      "unit": "surrogate/analytical hardware evaluations per enumerated optimization case",
+      "status": "SOURCED_REPORTED_POINT",
+      "low_base_high": [
+        1488,
+        1488,
+        1488
+      ],
+      "transfer": "NOT 1488 fresh field solves."
+    },
+    {
+      "id": "solenoid_sensitivity_designs",
+      "source": "S01",
+      "unit": "designs in metamodel sensitivity study",
+      "status": "SOURCED_REPORTED_POINT",
+      "low_base_high": [
+        4000,
+        4000,
+        4000
+      ],
+      "transfer": "One industrial workflow; panel multiplicity and yearly repetition absent."
+    },
+    {
+      "id": "solenoid_solver_latency",
+      "source": "S01",
+      "unit": "minutes per reported solver call",
+      "status": "SOURCED_REPORTED_APPROXIMATE_POINT",
+      "low_base_high": [
+        5,
+        5,
+        5
+      ],
+      "transfer": "Approximate source point, not uncertainty range, CCX63 timing or complete force/current/temperature panel."
+    },
+    {
+      "id": "solenoid_robustness_variants",
+      "source": "S01",
+      "unit": "additional metamodel design variants per robustness analysis",
+      "status": "SOURCED_REPORTED_POINT",
+      "low_base_high": [
+        50,
+        50,
+        50
+      ],
+      "transfer": "Cheap predictions, not independent FE solves."
+    },
+    {
+      "id": "imi_incumbent_latency",
+      "source": "S03",
+      "unit": "minutes per reported Amesim analysis",
+      "status": "SOURCED_REPORTED_POINT",
+      "low_base_high": [
+        5,
+        5,
+        5
+      ],
+      "transfer": "Already-fast valve/system incumbent; not pole-geometry reference cost."
+    }
+  ],
+  "cards": [
+    {
+      "id": "battery",
+      "old_source": {
+        "head": "3a6dfdd8dffdfdaf241596033d5bf55b66abfcff",
+        "path": "docs/development/challenge_pipeline/value-cost/volume-leverage.json"
+      },
+      "old": {
+        "unit": "ELIGIBLE_CHARGING_SESSIONS_PER_YEAR",
+        "cohort_low_base_high": [
+          100,
+          1000,
+          10000
+        ],
+        "cadence_low_base_high": [
+          0.3,
+          0.7,
+          1
+        ],
+        "operating_days_low_base_high": [
+          250,
+          300,
+          330
+        ],
+        "V3_low_base_high": [
+          7500,
+          210000,
+          3300000
+        ],
+        "V2_currency": "USD",
+        "V2_low_base_high": [
+          0.2,
+          1.5,
+          6
+        ],
+        "annual_gross_low_base_high": [
+          1500,
+          315000,
+          19800000
+        ],
+        "N_low_base_high": [
+          224,
+          1120,
+          11200
+        ],
+        "status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET"
+      },
+      "proposed": {
+        "preserve_old_scenarios": true,
+        "exact_annual_volume_low_base_high": [
+          null,
+          null,
+          null
+        ],
+        "exact_incremental_V2_low_base_high": [
+          null,
+          null,
+          null
+        ],
+        "engineering_cadence_low_base_high": [
+          null,
+          null,
+          null
+        ],
+        "exact_evaluations_per_decision_low_base_high": [
+          null,
+          null,
+          null
+        ],
+        "buyer_eligibility": "HUMAN_INPUT",
+        "realized_value": "HUMAN_INPUT",
+        "volume_evidence": "PARTIAL_PUBLIC_OPERATIONAL_ANCHOR_ONLY",
+        "V3_pass": "NOT_DEMONSTRATED",
+        "V2_pass": "NOT_DEMONSTRATED",
+        "numeric_score_increase": false,
+        "sources": [
+          "B01",
+          "B02",
+          "B03",
+          "B04",
+          "B05",
+          "B06",
+          "B07"
+        ]
+      }
+    },
+    {
+      "id": "motor",
+      "old_source": {
+        "head": "3a6dfdd8dffdfdaf241596033d5bf55b66abfcff",
+        "path": "docs/development/challenge_pipeline/value-cost/volume-leverage.json"
+      },
+      "old": {
+        "unit": "IN_SCOPE_REVISIONS_PER_YEAR",
+        "cohort_low_base_high": [
+          10,
+          30,
+          100
+        ],
+        "cadence_low_base_high": [
+          2,
+          6,
+          12
+        ],
+        "operating_days_low_base_high": null,
+        "V3_low_base_high": [
+          20,
+          180,
+          1200
+        ],
+        "V2_currency": "USD",
+        "V2_low_base_high": [
+          200,
+          900,
+          3200
+        ],
+        "annual_gross_low_base_high": [
+          4000,
+          162000,
+          3840000
+        ],
+        "N_low_base_high": [
+          50,
+          505,
+          2000
+        ],
+        "status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET"
+      },
+      "proposed": {
+        "preserve_old_scenarios": true,
+        "exact_annual_volume_low_base_high": [
+          null,
+          null,
+          null
+        ],
+        "exact_incremental_V2_low_base_high": [
+          null,
+          null,
+          null
+        ],
+        "engineering_cadence_low_base_high": [
+          null,
+          null,
+          null
+        ],
+        "exact_evaluations_per_decision_low_base_high": [
+          null,
+          null,
+          null
+        ],
+        "buyer_eligibility": "HUMAN_INPUT",
+        "realized_value": "HUMAN_INPUT",
+        "volume_evidence": "BUYER_WORKFLOW_CONFIRMED_ANNUAL_COUNT_ABSENT",
+        "V3_pass": "NOT_DEMONSTRATED",
+        "V2_pass": "NOT_DEMONSTRATED",
+        "numeric_score_increase": false,
+        "sources": [
+          "M01",
+          "M02",
+          "M03",
+          "M04"
+        ]
+      }
+    },
+    {
+      "id": "D016",
+      "old_source": {
+        "head": "3a6dfdd8dffdfdaf241596033d5bf55b66abfcff",
+        "path": "docs/development/challenge_pipeline/discovery/data.json"
+      },
+      "old": {
+        "unit": "fresh in-scope engineering decisions/year",
+        "cohort_low_base_high": [
+          5,
+          20,
+          50
+        ],
+        "cadence_low_base_high": [
+          4,
+          12,
+          24
+        ],
+        "V3_low_base_high": [
+          20,
+          240,
+          1200
+        ],
+        "V2_currency": "EUR",
+        "V2_low_base_high": [
+          120,
+          540,
+          1920
+        ],
+        "annual_gross_low_base_high": [
+          2400,
+          129600,
+          2304000
+        ],
+        "ordinal_V2_low_base_high": [
+          1,
+          2,
+          3
+        ],
+        "ordinal_V3_low_base_high": [
+          0,
+          1,
+          2
+        ],
+        "status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET"
+      },
+      "proposed": {
+        "preserve_old_scenarios": true,
+        "exact_annual_volume_low_base_high": [
+          null,
+          null,
+          null
+        ],
+        "exact_incremental_V2_low_base_high": [
+          null,
+          null,
+          null
+        ],
+        "exact_evaluations_per_decision_low_base_high": [
+          null,
+          null,
+          null
+        ],
+        "buyer_eligibility": "HUMAN_INPUT",
+        "realized_value": "HUMAN_INPUT",
+        "volume_evidence": "BUYER_WORKFLOW_CONFIRMED_ANNUAL_COUNT_ABSENT",
+        "V3_pass": "NOT_DEMONSTRATED",
+        "V2_pass": "NOT_DEMONSTRATED",
+        "numeric_score_increase": false,
+        "sources": [
+          "W01",
+          "W02",
+          "W03"
+        ]
+      }
+    },
+    {
+      "id": "D012",
+      "old_source": {
+        "head": "3a6dfdd8dffdfdaf241596033d5bf55b66abfcff",
+        "path": "docs/development/challenge_pipeline/discovery/data.json"
+      },
+      "old": {
+        "unit": "fresh in-scope engineering decisions/year",
+        "cohort_low_base_high": [
+          5,
+          20,
+          50
+        ],
+        "cadence_low_base_high": [
+          6,
+          24,
+          60
+        ],
+        "V3_low_base_high": [
+          30,
+          480,
+          3000
+        ],
+        "V2_currency": "EUR",
+        "V2_low_base_high": [
+          180,
+          720,
+          2400
+        ],
+        "annual_gross_low_base_high": [
+          5400,
+          345600,
+          7200000
+        ],
+        "ordinal_V2_low_base_high": [
+          1,
+          2,
+          3
+        ],
+        "ordinal_V3_low_base_high": [
+          0,
+          1,
+          2
+        ],
+        "status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET"
+      },
+      "proposed": {
+        "preserve_old_scenarios": true,
+        "exact_annual_volume_low_base_high": [
+          null,
+          null,
+          null
+        ],
+        "exact_incremental_V2_low_base_high": [
+          null,
+          null,
+          null
+        ],
+        "exact_evaluations_per_decision_low_base_high": [
+          null,
+          null,
+          null
+        ],
+        "buyer_eligibility": "HUMAN_INPUT",
+        "realized_value": "HUMAN_INPUT",
+        "volume_evidence": "BUYER_WORKFLOW_CONFIRMED_ANNUAL_COUNT_ABSENT",
+        "V3_pass": "NOT_DEMONSTRATED",
+        "V2_pass": "NOT_DEMONSTRATED",
+        "numeric_score_increase": false,
+        "sources": [
+          "S01",
+          "S02",
+          "S03"
+        ]
+      }
+    }
+  ],
+  "engineering_battery_map_cadence": {
+    "old_assumption_low_base_high": [
+      2,
+      6,
+      12
+    ],
+    "unit": "map-building revisions per BMS team/year",
+    "source": {
+      "head": "3a6dfdd8dffdfdaf241596033d5bf55b66abfcff",
+      "path": "docs/development/challenge_pipeline/value-cost/battery.md"
+    },
+    "proposed_low_base_high": [
+      null,
+      null,
+      null
+    ],
+    "new_verified_count": false
+  },
+  "commercial_conclusion": "No exact annual decision volume or incremental Carbon value verified in reviewed public sources. No change to framework, packets, scientific gates or existing rankings."
+}

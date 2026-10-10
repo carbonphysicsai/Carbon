@@ -1,0 +1,755 @@
+{
+  "schema": "carbon.business.customer-deliverable.research.v1",
+  "ticket": "CUSTOMER-DELIVERABLE-01",
+  "status": "RESEARCH_RECOMMENDATION_ONLY",
+  "research_date": "2026-10-09",
+  "repository_evidence_snapshot": {
+    "head": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+    "tree": "c64db2bf6798204f9ae9a9074ac913f04a26b50b"
+  },
+  "scope": {
+    "allowed": "Research, additive documentation, one PR to PR Head.",
+    "forbidden": [
+      "Solver execution",
+      "Spend",
+      "Hidden/AX42 data access",
+      "Editing existing Challenges or packets",
+      "Commercial terms adoption",
+      "Qualification or deployment claims",
+      "Merge"
+    ]
+  },
+  "quantity_convention": "Quantitative estimates carry low/base/high. A sourced point has identical endpoints; a sourced interval with no central statistic has base null. Identifiers, editions, dates, section numbers and Git hashes are metadata, not measured numeric estimates. HUMAN_INPUT is null/null/null, never zero. Ordinal package scores are assumptions with scenario envelopes, not statistical confidence intervals.",
+  "external_sources": [
+    {
+      "id": "S01",
+      "title": "ASME published V&V/VVUQ standards list",
+      "url": "https://www.asme.org/codes-standards/publications-information/verification-validation-uncertainty",
+      "kind": "ISSUER_CATALOG",
+      "scope": "Edition and subject metadata; no licensed clause-level compliance review.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S02",
+      "title": "ASME V&V 10-2019 (R2025) catalogue",
+      "url": "https://www.asme.org/codes-standards/find-codes-standards/standard-for-verification-and-validation-in-computational-solid-mechanics/2019/pdf",
+      "kind": "ISSUER_CATALOG",
+      "scope": "Computational solid-mechanics VVUQ framework; full normative text not purchased.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S03",
+      "title": "ASME V&V 20 publisher preview",
+      "url": "https://files.asme.org/Catalog/Codes/PrintBook/21356.pdf",
+      "kind": "ISSUER_PREVIEW",
+      "scope": "Public preview of CFD/heat-transfer verification, validation and uncertainty contents; edition checked against S01.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S04",
+      "title": "ASME introduction to V&V 40",
+      "url": "https://www.asme.org/topics-resources/society-news/asme-news/webinar-to-offer-an-introduction-to-asmes-new-v-v-40-standard",
+      "kind": "ISSUER_EXPLANATION",
+      "scope": "Risk-informed medical-device model credibility; not the licensed full standard.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S05",
+      "title": "FDA final credibility guidance landing page, November 2023",
+      "url": "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/assessing-credibility-computational-modeling-and-simulation-medical-device-submissions",
+      "kind": "REGULATOR_GUIDANCE",
+      "scope": "Guidance scope and status verified. Linked final PDF was unavailable in this research session; no full clause-level review claimed.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S06",
+      "title": "FDA credibility-guidance webinar slides, January 11, 2024",
+      "url": "https://www.fda.gov/media/175363/download",
+      "kind": "REGULATOR_EXPLANATION",
+      "scope": "Official explanatory slides, especially pages 8, 11-12, 16-20 and 25-28. This is not the final guidance PDF. Standalone data-driven/statistical models are out of scope.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S07",
+      "title": "FDA Reporting of Computational Modeling Studies, September 2016",
+      "url": "https://www.fda.gov/media/87586/download",
+      "kind": "REGULATOR_GUIDANCE",
+      "scope": "Public reporting guidance read, including structural validation reporting. Nonbinding recommendations; not clearance.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S08",
+      "title": "NASA-STD-7009 active registry",
+      "url": "https://standards.nasa.gov/standard/NASA/NASA-STD-7009",
+      "kind": "ISSUER_CATALOG",
+      "scope": "Active revision B; registry labels it not a NASA Mandatory Standard. PDF cover controls revision date where portal legacy fields conflict.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S09",
+      "title": "NASA-STD-7009B, March 5, 2024",
+      "url": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+      "kind": "PUBLIC_STANDARD",
+      "scope": "Public requirements and traceability matrix read. Appendix E.3.4 explicitly permits a higher-fidelity model as a surrogate referent; this is not empirical proof of its real-world fidelity.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S10",
+      "title": "DoD current instructions index",
+      "url": "https://www.esd.whs.mil/Directives/issuances/dodi/Homeland/",
+      "kind": "ISSUER_CATALOG",
+      "scope": "DoDI 5000.61 dated September 17, 2024; do not use the superseded 2009 edition as current.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S11",
+      "title": "DoDI 5000.61, September 17, 2024",
+      "url": "https://www.esd.whs.mil/Portals/54/Documents/DD/issuances/dodi/500061p.pdf",
+      "kind": "ISSUER_INDEXED_TEXT",
+      "scope": "Official indexed policy, documentation headings and accreditation definitions available; direct PDF access returned HTTP 403. Detailed paragraph-level implementation requires the full current issuance.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S12",
+      "title": "DLA ASSIST MIL-STD-3022 record",
+      "url": "https://quicksearch.dla.mil/qsDocDetails.aspx?ident_number=275961",
+      "kind": "ISSUER_CATALOG",
+      "scope": "Active; base 2008 with Change 1 incorporated in 2012 and a validation notice in 2026. Public scope identifies the four core plan/report products. No claim of a new substantive 2026 revision.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S13",
+      "title": "ISO 26262-8:2018 official scope",
+      "url": "https://www.iso.org/standard/68390.html",
+      "kind": "ISSUER_CATALOG",
+      "scope": "Functional-safety supporting processes and software-tool confidence; full normative text not purchased.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S14",
+      "title": "MathWorks: using Simulink for ISO 26262 projects",
+      "url": "https://la.mathworks.com/company/technical-articles/how-to-use-simulink-for-iso-26262-projects.html",
+      "kind": "FIRST_PARTY_IMPLEMENTER",
+      "scope": "Project-specific tool classification, reference workflows, qualification plans and validation tests; implementation explanation, not a substitute for the licensed standard.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S15",
+      "title": "FAA AC 20-115D, July 21, 2017",
+      "url": "https://www.faa.gov/documentLibrary/media/Advisory_Circular/AC_20-115D.pdf",
+      "kind": "REGULATOR_GUIDANCE",
+      "scope": "Accepted means for airborne software assurance, recognition of DO-330 and tool-qualification life-cycle data; applicability is project/use dependent.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S16",
+      "title": "FAA report DOT/FAA/TC-17/67, Explicate '78",
+      "url": "https://www.faa.gov/sites/faa.gov/files/aircraft/air_cert/design_approvals/air_software/TC-17-67.pdf",
+      "kind": "PRIMARY_RESEARCH_INDEXED_TEXT",
+      "scope": "FAA-hosted research on assurance cases; indexed sections list configuration/accomplishment/qualification data. Full PDF exceeded the retrieval limit. It is not normative DO-330.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S17",
+      "title": "RTCA Forum for Aeronautical Software",
+      "url": "https://www.rtca.org/sc-240/forum-for-aeronautical-software/",
+      "kind": "ISSUER_EXPLANATION",
+      "scope": "DO-330 operational-requirement validation topics and errata; full DO-330 text not purchased.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S18",
+      "title": "NAFEMS ASSESS credibility theme",
+      "url": "https://www.nafems.org/community/assess/themes/credibility/",
+      "kind": "INDUSTRY_GUIDANCE",
+      "scope": "VVUQ, simulation governance and evidence-management guidance; not regulatory accreditation.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S19",
+      "title": "NAFEMS What Is Verification and Validation?",
+      "url": "https://www.nafems.org/publications/resource_center/wt09/",
+      "kind": "INDUSTRY_GUIDANCE",
+      "scope": "Introductory V&V guidance for analysts and managers; not a certificate.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S20",
+      "title": "IEC 61508-3:2010 official scope",
+      "url": "https://webstore.iec.ch/en/publication/5517",
+      "kind": "ISSUER_CATALOG",
+      "scope": "Safety-related software lifecycle and support-tool requirements, relevant to energy/industrial systems. Full normative text not purchased.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S21",
+      "title": "Amkor Mechanical Package Characterization",
+      "url": "https://amkormarcomexternal.blob.core.windows.net/amkordotcom/wp-content/uploads/2018/02/Mechanical_Package_Characterization_SS23.pdf",
+      "kind": "CUSTOMER_SIDE_ENGINEERING",
+      "scope": "Package warpage shadow-moire measurement referencing JESD22-B112, FE/stress/thermal and reliability characterization. Does not establish a universal warpage acceptance threshold or confirm the latest JEDEC edition.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S22",
+      "title": "ASME 2018 V&V symposium programme",
+      "url": "https://www.asme.org/wwwasmeorg/media/resourcefiles/events/vandv/2018v-v_program.pdf",
+      "kind": "PRIMARY_CONFERENCE_ABSTRACTS",
+      "scope": "Qualitative medical-model examples: testing avoided and additional testing requested when credibility was insufficient. No typical project price or independently audited general saving.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S23",
+      "title": "ARKE independent modelling V&V, UK Digital Marketplace",
+      "url": "https://www.applytosupply.digitalmarketplace.service.gov.uk/g-cloud/services/403132573695999",
+      "kind": "PUBLISHED_SUPPLIER_RATE",
+      "scope": "Public G-Cloud listing: GBP 546.36-1326.57 per unit/day. Actual sales, grade mix, central rate, total project effort and included taxes are not established; linked pricing PDF could not be retrieved.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S24",
+      "title": "Ansys SimAI current product and licensing FAQ",
+      "url": "https://ansys.synopsys.com/products/ai/simai",
+      "kind": "VENDOR_PRODUCT",
+      "scope": "Surrogates trained from simulation data; licensing/pricing directs the reader to sales. No comparable contract price disclosed on this page.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S25",
+      "title": "NVIDIA PhysicsNeMo official repository",
+      "url": "https://github.com/NVIDIA/physicsnemo",
+      "kind": "VENDOR_SOURCE",
+      "scope": "Apache-2.0 framework licence; framework availability is not zero total model-development cost.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S26",
+      "title": "NVIDIA PhysicsNeMo product",
+      "url": "https://developer.nvidia.com/physicsnemo",
+      "kind": "VENDOR_PRODUCT",
+      "scope": "Open physics-ML construction framework; claims are vendor descriptions, not qualification of a Carbon task.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S27",
+      "title": "PhysicsX product homepage",
+      "url": "https://www.physicsx.ai/",
+      "kind": "VENDOR_PRODUCT",
+      "scope": "Integrated simulation/physics-AI engineering platform. No public package price observed on the reviewed page; not a claim that prices are undisclosed everywhere.",
+      "accessed": "2026-10-09"
+    },
+    {
+      "id": "S28",
+      "title": "Siemens Simcenter PhysicsAI release, May 27, 2026",
+      "url": "https://news.siemens.com/en-us/siemens-simcenter-physicsai/",
+      "kind": "VENDOR_PRODUCT",
+      "scope": "Uses historical CFD data and high-fidelity validation; do not claim that incumbent validation or data reuse is absent.",
+      "accessed": "2026-10-09"
+    }
+  ],
+  "repository_sources": [
+    {
+      "id": "R01",
+      "path": "Business/Business_Canon.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/Business/Business_Canon.md",
+      "scope": "Commercial authority: EvidenceAudit, SponsoredDiscovery, measured network advantage, qualification and lifecycle."
+    },
+    {
+      "id": "R02",
+      "path": "AGENTS.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/AGENTS.md",
+      "scope": "Current agent authority and retired Hub."
+    },
+    {
+      "id": "R03",
+      "path": "CONSTITUTION.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/CONSTITUTION.md",
+      "scope": "Repository-wide authority."
+    },
+    {
+      "id": "R04",
+      "path": ".agent/INVARIANTS.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/.agent/INVARIANTS.md",
+      "scope": "Always-on scientific, disclosure, maturity and economic invariants."
+    },
+    {
+      "id": "R05",
+      "path": ".agent/DELIVERY_PROTOCOL.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/.agent/DELIVERY_PROTOCOL.md",
+      "scope": "Current OWNER-DX-03 delivery; supersedes old review procedure; PR-only user scope controls."
+    },
+    {
+      "id": "R06",
+      "path": ".agent/WAVE.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/.agent/WAVE.md",
+      "scope": "Current wave context; not a new execution grant."
+    },
+    {
+      "id": "R07",
+      "path": "docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md",
+      "scope": "Scientific qualification, P/Q/w, uncertainty dependence and challenge-bound scores."
+    },
+    {
+      "id": "R08",
+      "path": "docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md",
+      "scope": "Ten-section documentation template; not a registered contract."
+    },
+    {
+      "id": "R09",
+      "path": "docs/development/CHALLENGE_READINESS.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/docs/development/CHALLENGE_READINESS.md",
+      "scope": "Proposed development readiness and separate review axes."
+    },
+    {
+      "id": "R10",
+      "path": "docs/development/graphite/GRAPHITE_READINESS_GATE.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/docs/development/graphite/GRAPHITE_READINESS_GATE.md",
+      "scope": "Engineering readiness gate, waivers, hidden-evaluation separation, V3 repeat evidence."
+    },
+    {
+      "id": "R11",
+      "path": "docs/development/challenge_pipeline/readiness/MULTI_SEED_PROMOTION_PROPOSAL.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/docs/development/challenge_pipeline/readiness/MULTI_SEED_PROMOTION_PROPOSAL.md",
+      "scope": "Draft multi-seed promotion, not an accepted pass rule."
+    },
+    {
+      "id": "R12",
+      "path": "docs/development/graphite/PHASE4_ATTACKER.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/docs/development/graphite/PHASE4_ATTACKER.md",
+      "scope": "Attacker design/implemented bounded controls and explicit NOT_RUN limitations."
+    },
+    {
+      "id": "R13",
+      "path": "docs/development/challenge_pipeline/value-cost/README.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/docs/development/challenge_pipeline/value-cost/README.md",
+      "scope": "Value-cost rubric and budget boundary; actual directory differs from user shorthand."
+    },
+    {
+      "id": "R14",
+      "path": "docs/development/challenge_pipeline/value-cost/analysis.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/docs/development/challenge_pipeline/value-cost/analysis.md",
+      "scope": "Value-cost scenario analysis, no qualification from ranking."
+    },
+    {
+      "id": "R15",
+      "path": "docs/development/challenge_pipeline/round1/reference-credibility.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/docs/development/challenge_pipeline/round1/reference-credibility.md",
+      "scope": "Reference tiers and independent witness/evidence rules."
+    },
+    {
+      "id": "R16",
+      "path": "docs/development/challenge_pipeline/question-laws/battery-ambient-indexed-v3.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/docs/development/challenge_pipeline/question-laws/battery-ambient-indexed-v3.md",
+      "scope": "Battery v3 question-law proposal; not registered and not EV5 evidence."
+    },
+    {
+      "id": "R17",
+      "path": "docs/development/challenge_pipeline/value-cost/battery.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/docs/development/challenge_pipeline/value-cost/battery.md",
+      "scope": "Battery decision value and cached baseline risks."
+    },
+    {
+      "id": "R18",
+      "path": "docs/development/challenge_pipeline/value-cost/motor.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/docs/development/challenge_pipeline/value-cost/motor.md",
+      "scope": "Motor historical feasibility failure and revised evidence gap."
+    },
+    {
+      "id": "R19",
+      "path": "docs/development/evidence/ev5-2026-10-03/README.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/docs/development/evidence/ev5-2026-10-03/README.md",
+      "scope": "Public synthetic EV5 result summary only; protected confirmation report was not read."
+    },
+    {
+      "id": "R20",
+      "path": "docs/development/MQ008_EVIDENCE_PACKAGE.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/docs/development/MQ008_EVIDENCE_PACKAGE.md",
+      "scope": "Measured hardware-specific reproducibility, remaining holder review and unqualified orchestration."
+    },
+    {
+      "id": "R21",
+      "path": "carbon/challenge_pipeline/protocol.json",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/carbon/challenge_pipeline/protocol.json",
+      "scope": "Protocol DEFINING; lock and suite version null."
+    },
+    {
+      "id": "R22",
+      "path": "Design_Specs/Product_Qualification_Evidence.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/Design_Specs/Product_Qualification_Evidence.md",
+      "scope": "Proposed product-plane model-card/battery/qualification chain and disclosure tiers."
+    },
+    {
+      "id": "R23",
+      "path": "Business/research/landscape-and-miner-incentives/competitive-landscape.md",
+      "revision": "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/4578d20b27f3d88641a8fe06b3bdbbde8aca17f7/Business/research/landscape-and-miner-incentives/competitive-landscape.md",
+      "scope": "Previously merged competitive brief; corroborating context, not a replacement for primary sources."
+    },
+    {
+      "id": "R24",
+      "path": "docs/development/challenge_pipeline/discovery/warpage-packet/PACKAGE_WARPAGE_DESIGN_PACKET.md",
+      "revision": "8879529d959bf81472e120f4430a65651afb552a",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/8879529d959bf81472e120f4430a65651afb552a/docs/development/challenge_pipeline/discovery/warpage-packet/PACKAGE_WARPAGE_DESIGN_PACKET.md",
+      "scope": "PR #936 source-confirmed full-3D specification only; no solver route executed, customer limits/acceptance and reference tier unearned."
+    }
+  ],
+  "quantities": [
+    {
+      "id": "N01",
+      "quantity": "Published V&V service unit/day rate",
+      "unit": "GBP per unit/day",
+      "basis": "SOURCED_INTERVAL",
+      "low": 546.36,
+      "base": null,
+      "high": 1326.57,
+      "sources": [
+        "S23"
+      ],
+      "note": "Source does not report a base rate or establish that every unit is a person-day."
+    },
+    {
+      "id": "N02",
+      "quantity": "Illustrative labour rate, assuming one billed unit is one person-day",
+      "unit": "GBP per person-day",
+      "basis": "ASSUMPTION",
+      "low": 546.36,
+      "base": 1000,
+      "high": 1326.57,
+      "sources": [
+        "S23"
+      ],
+      "note": "Endpoints use advertised units/day interval; day-unit interpretation and central rate are assumptions, not a vendor quote."
+    },
+    {
+      "id": "N03",
+      "scope": "L1 diagnostic evidence audit",
+      "workload": {
+        "basis": "ASSUMPTION",
+        "unit": "person-days",
+        "low": 5,
+        "base": 10,
+        "high": 20
+      },
+      "labour": {
+        "basis": "ASSUMPTION_DERIVED",
+        "unit": "GBP",
+        "low": 2731.8,
+        "base": 10000,
+        "high": 26531.4
+      },
+      "formula": "workload endpoint x N02 corresponding rate endpoint",
+      "note": "Illustration only, not a typical cost, fixed quote, budget request or total programme cost. Taxes, experiments, solver/tool licences, compute, integration support, legal/export work and contingency excluded."
+    },
+    {
+      "id": "N04",
+      "scope": "L2 model integration plus reference-bounded dossier",
+      "workload": {
+        "basis": "ASSUMPTION",
+        "unit": "person-days",
+        "low": 20,
+        "base": 60,
+        "high": 120
+      },
+      "labour": {
+        "basis": "ASSUMPTION_DERIVED",
+        "unit": "GBP",
+        "low": 10927.2,
+        "base": 60000,
+        "high": 159188.4
+      },
+      "formula": "workload endpoint x N02 corresponding rate endpoint",
+      "note": "Illustration only, not a typical cost, fixed quote, budget request or total programme cost. Taxes, experiments, solver/tool licences, compute, integration support, legal/export work and contingency excluded."
+    },
+    {
+      "id": "N05",
+      "scope": "L3 high-consequence evidence programme",
+      "workload": {
+        "basis": "ASSUMPTION",
+        "unit": "person-days",
+        "low": 100,
+        "base": 250,
+        "high": 500
+      },
+      "labour": {
+        "basis": "ASSUMPTION_DERIVED",
+        "unit": "GBP",
+        "low": 54636,
+        "base": 250000,
+        "high": 663285
+      },
+      "formula": "workload endpoint x N02 corresponding rate endpoint",
+      "note": "Illustration only, not a typical cost, fixed quote, budget request or total programme cost. Taxes, experiments, solver/tool licences, compute, integration support, legal/export work and contingency excluded."
+    },
+    {
+      "id": "N06",
+      "quantity": "PhysicsNeMo framework licence fee under Apache-2.0",
+      "unit": "USD",
+      "basis": "SOURCED_POINT",
+      "low": 0,
+      "base": 0,
+      "high": 0,
+      "sources": [
+        "S25"
+      ],
+      "note": "Framework licence only, excludes all data, training, compute, labour, deployment, support and liability costs."
+    }
+  ],
+  "variants": [
+    {
+      "id": "A",
+      "rank": 1,
+      "name": "Industrial decision EvidenceAudit",
+      "buyer": "EV cell/BMS simulation lead and validation manager",
+      "industry": "Energy storage / automotive engineering",
+      "value": {
+        "low": 3,
+        "base": 4,
+        "high": 5
+      },
+      "feasibility": {
+        "low": 3,
+        "base": 4,
+        "high": 5
+      },
+      "basis": "ASSUMPTION",
+      "index": {
+        "low": 9,
+        "base": 16,
+        "high": 25
+      },
+      "index_definition": "Ordinal value x feasibility; not WTP, ROI, physical score or calibrated expected value.",
+      "price_GBP": {
+        "basis": "HUMAN_INPUT",
+        "low": null,
+        "base": null,
+        "high": null
+      }
+    },
+    {
+      "id": "B",
+      "rank": 2,
+      "name": "Decision tool plus reference-bounded credibility dossier",
+      "buyer": "Battery model owner or semiconductor package mechanical/reliability lead",
+      "industry": "Energy storage / semiconductor packaging",
+      "value": {
+        "low": 3,
+        "base": 4,
+        "high": 5
+      },
+      "feasibility": {
+        "low": 2,
+        "base": 3,
+        "high": 4
+      },
+      "basis": "ASSUMPTION",
+      "index": {
+        "low": 6,
+        "base": 12,
+        "high": 20
+      },
+      "index_definition": "Ordinal value x feasibility; not WTP, ROI, physical score or calibrated expected value.",
+      "price_GBP": {
+        "basis": "HUMAN_INPUT",
+        "low": null,
+        "base": null,
+        "high": null
+      }
+    },
+    {
+      "id": "C",
+      "rank": 3,
+      "name": "Aerospace/defence accreditation-support package",
+      "buyer": "Programme modelling lead and designated technical/accreditation authority",
+      "industry": "Aerospace / defence",
+      "value": {
+        "low": 4,
+        "base": 5,
+        "high": 5
+      },
+      "feasibility": {
+        "low": 1,
+        "base": 2,
+        "high": 3
+      },
+      "basis": "ASSUMPTION",
+      "index": {
+        "low": 4,
+        "base": 10,
+        "high": 15
+      },
+      "index_definition": "Ordinal value x feasibility; not WTP, ROI, physical score or calibrated expected value.",
+      "price_GBP": {
+        "basis": "HUMAN_INPUT",
+        "low": null,
+        "base": null,
+        "high": null
+      }
+    },
+    {
+      "id": "D",
+      "rank": 4,
+      "name": "Lifecycle and re-evidence service",
+      "buyer": "Engineering model-library owner and product quality manager",
+      "industry": "Energy / automotive / semiconductors",
+      "value": {
+        "low": 2,
+        "base": 3,
+        "high": 4
+      },
+      "feasibility": {
+        "low": 2,
+        "base": 3,
+        "high": 4
+      },
+      "basis": "ASSUMPTION",
+      "index": {
+        "low": 4,
+        "base": 9,
+        "high": 16
+      },
+      "index_definition": "Ordinal value x feasibility; not WTP, ROI, physical score or calibrated expected value.",
+      "price_GBP": {
+        "basis": "HUMAN_INPUT",
+        "low": null,
+        "base": null,
+        "high": null
+      }
+    },
+    {
+      "id": "E",
+      "rank": 5,
+      "name": "Medical-device submission-support package",
+      "buyer": "Device manufacturer's simulation and regulatory-affairs leads",
+      "industry": "Medical devices",
+      "value": {
+        "low": 4,
+        "base": 5,
+        "high": 5
+      },
+      "feasibility": {
+        "low": 1,
+        "base": 1,
+        "high": 2
+      },
+      "basis": "ASSUMPTION",
+      "index": {
+        "low": 4,
+        "base": 5,
+        "high": 10
+      },
+      "index_definition": "Ordinal value x feasibility; not WTP, ROI, physical score or calibrated expected value.",
+      "price_GBP": {
+        "basis": "HUMAN_INPUT",
+        "low": null,
+        "base": null,
+        "high": null
+      }
+    }
+  ],
+  "unknowns": [
+    {
+      "quantity": "Typical total V&V cost by standard",
+      "basis": "HUMAN_INPUT",
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    {
+      "quantity": "Comparable executed fast-model contract prices",
+      "basis": "HUMAN_INPUT",
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    {
+      "quantity": "Carbon buyer willingness to pay",
+      "basis": "HUMAN_INPUT",
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    {
+      "quantity": "Named pilot customer's requirements and payer budget",
+      "basis": "HUMAN_INPUT",
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    {
+      "quantity": "Annual exact engineering-decision frequency",
+      "basis": "HUMAN_INPUT",
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    {
+      "quantity": "Total first-pilot budget",
+      "basis": "HUMAN_INPUT",
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    {
+      "quantity": "Physical measurement plan and cost",
+      "basis": "HUMAN_INPUT",
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    {
+      "quantity": "Approved model/exam/reference qualification",
+      "basis": "HUMAN_INPUT",
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    {
+      "quantity": "Independent evaluator governance and conflicts policy",
+      "basis": "HUMAN_INPUT",
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    {
+      "quantity": "Medical data-driven surrogate regulatory applicability",
+      "basis": "HUMAN_INPUT",
+      "low": null,
+      "base": null,
+      "high": null
+    }
+  ],
+  "thesis_status": {
+    "discovery": "DESIGN_HYPOTHESIS: no matched network-vs-centralised benefit established.",
+    "price": "UNDEMONSTRATED: miner competition does not establish lower full delivered cost.",
+    "independent_validation": "PARTLY_IMPLEMENTED_DEVELOPMENT_EVIDENCE: protected reference-relative testing and reconstruction do not establish real-world model credibility or accreditation."
+  },
+  "pilot": {
+    "challenge": "Battery: offline fast-charge/cooling-map evidence audit",
+    "standard": "NASA-STD-7009B-structured voluntary engineering audit; ASME V&V 20 thermal component crosswalk only where applicable.",
+    "current_v3_evidence": "SPECIFIED only; historical EV5 and other development results are not evidence for the new v3 law.",
+    "authorization": "Research recommendation only; all execution/spend and qualification require their existing owners."
+  }
+}

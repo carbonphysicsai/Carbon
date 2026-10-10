@@ -1362,3 +1362,15 @@ def _reconstructions():
 
 
 RECONSTRUCTIONS = _reconstructions()
+
+
+def _record_bounds():
+    from ..reconstruction.capability_registry import BATTERY_CHALLENGE
+
+    return {(BATTERY_CHALLENGE, CAPABILITY): ("loss_override",)}
+
+
+#: The variant's bounds a Level 4 record carries
+#: (`development_variants.RECORD_BOUNDS`): v3's `loss_override`, so the
+#: rebuild admits a loss graph only under the variant that declares it.
+RECORD_BOUNDS = _record_bounds()

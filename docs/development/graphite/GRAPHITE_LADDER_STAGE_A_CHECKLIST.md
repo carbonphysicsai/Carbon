@@ -76,3 +76,29 @@ recorded Test Lead decision naming what replaces the check. This checklist propo
 A lessons entry (`carbon/challenge_pipeline/lessons/`), the run's evidence digest, spend as a
 count against the grant (caps only, no balance in the repo), and the executor's report to the
 Test Lead. The Testing Manager then updates the register.
+
+## 6. Post-run step: the refused-capability log
+
+Owner-approved Level 5 internal-lane strategy: stage A starts a log of every capability, op
+or construction a Graphite Constructor or Attacker requested that its level refused. It is
+input to which Level 5 ops Carbon builds first. It is data about requests, not a score and not
+a scientific result.
+
+- **File:** `docs/development/graphite/ladder-stages/stage-A/refused_capabilities.jsonl`, one
+  JSON object per distinct (level, role, refusal_code, requested name, run id), committed
+  through PR Head with the stage records.
+- **Fields:** `stage`, `level`, `role` (Constructor or Attacker), `refusal_code`, `requested`
+  (the capability or op name only), `count`, `first_seen` and `last_seen` (UTC ISO 8601), and
+  `run_id`. No hidden, protected or secret material, no request payloads, no credentials, no
+  account details.
+- **Source:** there is no dedicated refusal ledger for phase 3 or phase 4 runs (the
+  `rejections/` directory belongs to the planner and to method-card and miner-library
+  imports). Typed refusals appear as `reason_code` in the runs' tool results and in the
+  `p3 status` and `p4 log` output under the run root. After each run the executor extracts the
+  refusal codes and requested names into `refusals-run-N.txt` in the host's shared stage-A
+  folder (read-only, no instrumentation of live runs). The Testing Manager builds the jsonl
+  from those per-run extracts after the runs. The extraction format is stated here from a real
+  extract once one exists (**TBD: no run has started**); the jsonl is created only then. A
+  refusal that is not in an extract is listed as unlogged, not inferred.
+- **Summary at the end of each stage:** the top refusals by code and by level (counts), as a
+  short table in the stage's closing report. It names no Level 5 design and decides nothing.

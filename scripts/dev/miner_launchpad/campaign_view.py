@@ -52,7 +52,7 @@ from carbon.development_session.miner_guidance import (
 from carbon.development_session.miner_guidance import (
     message_digest as _message_digest,
 )
-from scripts.dev.miner_launchpad import budget_view
+from scripts.dev.miner_launchpad import budget_view, gate_breakdown
 
 SCHEMA = "carbon.control-center.campaign-view.v1"
 
@@ -221,7 +221,9 @@ def _contract(challenge_id, version):
     )
 
 
-def contract_section(challenge, feedback_mode, offered_modes=()):
+def contract_section(challenge, feedback_mode, offered_modes=(), level=None):
+    """The Contract view. `level` is the campaign's construction-level
+    binding (LAUNCHPAD-LEVELS-01 S2), or None for a Level 0 campaign."""
     if type(challenge) is not dict or type(challenge.get("id")) is not str:
         return None
     try:
@@ -238,6 +240,12 @@ def contract_section(challenge, feedback_mode, offered_modes=()):
             "shown through it, to you and to any agent reading this view."
         ),
     }
+    if level is not None:
+        from scripts.dev.miner_launchpad.levels import campaign_slot
+
+        value["construction_level"] = campaign_slot(
+            level, value.get("construction_level") or {}
+        )
     return value
 
 
@@ -1482,6 +1490,17 @@ def build(
         # record holds it (C-MLP-02-D6), with its digest; None without one.
         "research_task": research_task(own.get("research_guidance")),
         "experiments": {"rows": shown, "total": len(rows)},
+        # Count the full local PRACTICE ledger, including trials beyond the
+        # bounded recent-row feed. Public gate names come only from the
+        # Challenge contract; this same document serves browser and MCP.
+        "practice_gate_breakdown": gate_breakdown.summarize(
+            own.get("experiments"),
+            (
+                (contract.get("exam") or {}).get("gates")
+                if type(contract) is dict
+                else None
+            ),
+        ),
         "comparison": comparison(rows, view),
         "charts": charts(rows, own, view),
         "learning_curve": learning_curve_status(own, view),
@@ -1605,6 +1624,17 @@ def verified_predictions(root, view, facts, task):
     return value, None
 
 
+def _campaign_level(root):
+    """The campaign's frozen construction-level binding, or None."""
+    from carbon.development_session.construction_level import binding
+
+    path = root / "campaign-manifest.json"
+    try:
+        return binding(json.loads(path.read_bytes())) if path.exists() else None
+    except (OSError, ValueError):
+        return None
+
+
 def ledger_view(host, admitted, request):
     """`campaign_view` for a campaign on this machine (`RunnerAdapter`)."""
     from carbon.challenge_registry.campaigns import campaign_for
@@ -1622,7 +1652,9 @@ def ledger_view(host, admitted, request):
     return build(
         own,
         view=view,
-        contract=contract_section(challenge, facts["feedback_mode"], offered),
+        contract=contract_section(
+            challenge, facts["feedback_mode"], offered, level=_campaign_level(root)
+        ),
         notes=facts["notes"],
         feedback_mode=facts["feedback_mode"],
         predictions=lambda task: verified_predictions(root, view, facts, task),

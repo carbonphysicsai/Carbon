@@ -1,0 +1,318 @@
+{
+  "schema_version": "PROPOSAL_V1",
+  "mode": "DEVELOPMENT_SAMPLE",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "intended_tier": "EVIDENCE_AUDIT",
+  "eligible_tier": "UNESTABLISHED",
+  "qualification_record": null,
+  "source_snapshot": "915225242146be67e6de098d4a08324cc63dc684",
+  "sections": {
+    "D01": {
+      "coverage": "PARTIAL",
+      "automation": "manual",
+      "statement": "Model-relative protocol-selection workflow; no named customer or accepted use.",
+      "evidence_refs": [
+        "R1",
+        "R2"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: customer, use authority, error consequences, cooling-map evidence"
+      ]
+    },
+    "D02": {
+      "coverage": "PARTIAL",
+      "automation": "manual",
+      "statement": "Development constraints exist; no physical or customer approval.",
+      "evidence_refs": [
+        "R1",
+        "R3",
+        "R5",
+        "R6"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: scientific/customer limits and measurement acceptance"
+      ]
+    },
+    "D03": {
+      "coverage": "PARTIAL",
+      "automation": "manual",
+      "statement": "Finite development Q and provisional w; approved customer P is absent.",
+      "evidence_refs": [
+        "R1",
+        "R2",
+        "R3",
+        "R7"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: P, strata, representative evidence and matching v3 population"
+      ]
+    },
+    "D04": {
+      "coverage": "PARTIAL",
+      "automation": "manual",
+      "statement": "Pinned DFN/OKane2022 reference; execution is not physical validation.",
+      "evidence_refs": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: physical referents, reference adequacy and qualified exam"
+      ]
+    },
+    "D05": {
+      "coverage": "PARTIAL",
+      "automation": "automatable later",
+      "statement": "Versioned EV4/EV5 and Q1 outcomes retained; missing v3 legs are uncomputable.",
+      "evidence_refs": [
+        "R2",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: one deployable artifact, matched v3 and physical validation"
+      ]
+    },
+    "D06": {
+      "coverage": "PARTIAL",
+      "automation": "manual",
+      "statement": "Development reference bands and sampling intervals, with dependence limitations.",
+      "evidence_refs": [
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: customer-use physical uncertainty and propagation"
+      ]
+    },
+    "D07": {
+      "coverage": "PARTIAL",
+      "automation": "automatable later",
+      "statement": "Adverse findings evidenced; robustness coverage incomplete.",
+      "evidence_refs": [
+        "R2",
+        "R4",
+        "R5"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: complete current-rule coverage and remediation retests"
+      ]
+    },
+    "D08": {
+      "coverage": "PARTIAL",
+      "automation": "automatable now",
+      "statement": "Public snapshot and source identities; EV5 reconstruction outcomes are scoped.",
+      "evidence_refs": [
+        "R1",
+        "R2",
+        "R4"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: product artifact and deployment parity"
+      ]
+    },
+    "D09": {
+      "coverage": "PARTIAL",
+      "automation": "manual",
+      "statement": "Development abstention and failure separation; customer fallback untested.",
+      "evidence_refs": [
+        "R2",
+        "R3",
+        "R6"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: customer integration, fallback acceptance and operator"
+      ]
+    },
+    "D10": {
+      "coverage": "PARTIAL",
+      "automation": "automatable later",
+      "statement": "Known development limits and adverse findings included.",
+      "evidence_refs": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: qualified customer limits, physical evidence and accepted use"
+      ]
+    },
+    "D11": {
+      "coverage": "PARTIAL",
+      "automation": "automatable now",
+      "statement": "Immutable public source ledger; human review and complete qualification trail absent.",
+      "evidence_refs": [
+        "R1",
+        "R2",
+        "R4",
+        "R5"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: rights, independence review, authority and lifecycle record"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "R1",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+      "locator": "decision, population, limits, reference, reviews and admission_tests",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R2",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/BATTERY_ENGINEERING_VALUE_EV4.md",
+      "locator": "sections 2,4–7,10–12; retain original hypotheses and masks",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R3",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "locator": "objective, constraints, preferences_status and reference.uncertainty",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R4",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/evidence/ev5-2026-10-03/README.md",
+      "locator": "three separate verdicts; H1–H3; public Mode X and reconstruction summaries",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R5",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/docs/development/evidence/score-value-alignment-01/README.md",
+      "locator": "answer, versioned table, six historical divergences and missing v3 legs",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R6",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/.agent/tickets/VALIDATOR-26_battery_rule_v3.md",
+      "locator": "Design: registered v3 gate, candidate/reference/infrastructure separation; status plan",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/915225242146be67e6de098d4a08324cc63dc684/carbon/challenge_pipeline/readiness/Q1_PANELS.md",
+      "locator": "Battery mapping: common resolved mask; missing output differs from abstention",
+      "access_class": "PUBLIC_COMMITTED"
+    }
+  ],
+  "adverse_review": "FINDINGS_RETAINED",
+  "adverse_findings": [
+    {
+      "id": "A1",
+      "basis": "reference-relative",
+      "outcome": "FAIL",
+      "statement": "EV4: false-feasible decisions among eligible models and reference-verified adversarial violations.",
+      "evidence_refs": [
+        "R2"
+      ],
+      "status": "HISTORICAL_RETAINED"
+    },
+    {
+      "id": "A2",
+      "basis": "decision-value",
+      "outcome": "FAIL",
+      "statement": "EV5 adversarial-score adequacy FAIL; construction integrity PASS is a separate verdict.",
+      "evidence_refs": [
+        "R4"
+      ],
+      "status": "HISTORICAL_RETAINED"
+    },
+    {
+      "id": "A3",
+      "basis": "decision-value",
+      "outcome": "UNRESOLVED",
+      "statement": "Q1 v2 negative point alignment; same-member v3 legs absent and cannot be inferred.",
+      "evidence_refs": [
+        "R5",
+        "R6"
+      ],
+      "status": "OPEN"
+    },
+    {
+      "id": "A4",
+      "basis": "reference-relative",
+      "outcome": "UNRESOLVED",
+      "statement": "EV4 selected protocol retains unresolved in-band reference points.",
+      "evidence_refs": [
+        "R2",
+        "R3"
+      ],
+      "status": "HISTORICAL_RETAINED"
+    },
+    {
+      "id": "A5",
+      "basis": "physical",
+      "outcome": "NOT_ASSESSED",
+      "statement": "Real-cell validation and customer qualification absent from inspected public evidence.",
+      "evidence_refs": [
+        "R1",
+        "R3"
+      ],
+      "status": "OPEN"
+    }
+  ],
+  "tier_criteria": [
+    {
+      "criterion": "Buyer use and rights",
+      "status": "GAP",
+      "authority": "HUMAN_INPUT",
+      "evidence_refs": [
+        "R1"
+      ]
+    },
+    {
+      "criterion": "Exact audited artifact",
+      "status": "GAP",
+      "authority": "HUMAN_INPUT",
+      "evidence_refs": [
+        "R2",
+        "R4",
+        "R5"
+      ]
+    },
+    {
+      "criterion": "Qualified exam and credible reference",
+      "status": "PARTIAL",
+      "authority": "HUMAN_INPUT",
+      "evidence_refs": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    },
+    {
+      "criterion": "Domain measurements and independence",
+      "status": "PARTIAL",
+      "authority": "HUMAN_INPUT",
+      "evidence_refs": [
+        "R1",
+        "R3",
+        "R5"
+      ]
+    },
+    {
+      "criterion": "Approved disclosure and records",
+      "status": "PARTIAL",
+      "authority": "HUMAN_INPUT",
+      "evidence_refs": [
+        "R2",
+        "R4"
+      ]
+    },
+    {
+      "criterion": "Accepted audit scope",
+      "status": "GAP",
+      "authority": "HUMAN_INPUT",
+      "evidence_refs": [
+        "R1"
+      ]
+    }
+  ]
+}

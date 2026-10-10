@@ -565,7 +565,9 @@ SAFETY_MODULES = {
     "carbon.motor.practice_safety",
 }
 #: The only modules that may import the safety code: the three practice
-#: research providers, and the safety modules themselves.
+#: research providers, the safety modules themselves, and the public-only
+#: PRACTICE-DECISION-SIGNAL-01 development diagnostic. The diagnostic is never
+#: imported by a practice, exam, validator, or miner runtime module.
 IMPORTERS = {
     "carbon/battery/research.py",
     "carbon/cold_plate/research.py",
@@ -573,6 +575,7 @@ IMPORTERS = {
     "carbon/battery/practice_safety.py",
     "carbon/cold_plate/practice_safety.py",
     "carbon/motor/practice_safety.py",
+    "scripts/dev/battery/practice_decision_signal.py",
 }
 
 

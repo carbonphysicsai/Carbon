@@ -1,5 +1,11 @@
 # First customer-shaped DEVELOPMENT round
 
+Missing-package build handoff: [SOLVER-PACKAGE-SPECS-01](../solver-package-specs/README.md)
+specifies f17 OpenFOAM and f06 Meep source/base candidates, observer proofs,
+convergence/conservation and unmeasured sizing. It grants no builds or runs
+and keeps the original tasks; 2D Meep is screening only. The same handoff
+maps the full-history warpage CalculiX gaps without adopting a new Challenge.
+
 > **f13 reference finding:** [power-balance diagnosis](f13-power-balance-diagnosis.md)
 > proposes a retained-integral check before new solves. Mixed plane/all-field
 > extraction and short-port treatment remain unresolved; no repaired truth,
