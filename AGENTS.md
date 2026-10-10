@@ -492,7 +492,7 @@ Agents must not autonomously:
 - activate real economic settlement;
 - alter live economic parameters;
 - infer missing treasury policy;
-- create a direct OpCo-revenue-to-Alpha mechanism;
+- create or change a revenue-to-Alpha mechanism without an owner decision (Carbon intends to use a share of revenue to support Alpha: OWNER-LAUNCH-STRATEGY-01);
 - perform irreversible economic actions.
 
 Current/legacy score-to-weight transport must not be mistaken for the long-term constitutional settlement design.
@@ -523,7 +523,7 @@ Hard rules:
 - customer payment != score;
 - commercial acceptance != scientific qualification;
 - sponsor reward != scientific merit;
-- OpCo revenue != Alpha value by declaration;
+- revenue supports Alpha only through an explicit, owner-approved mechanism, and never through scoring;
 - customer/private evidence reuse only where rights permit;
 - architecture-specified products are not commercial traction.
 
