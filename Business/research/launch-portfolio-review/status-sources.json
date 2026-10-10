@@ -1,0 +1,234 @@
+{
+  "schema": "carbon.research.public-status-sources.v1",
+  "ticket": "LAUNCH-PORTFOLIO-REVIEW-01",
+  "inputs": [
+    {
+      "path": "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+      "git_blob": "65e65e7da5353bcfc689ebb4355601830dc3bcd6",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "eb2e8fef4a93df2719dc3e97c0daa68c403acb70a8f3a7c150a690327e9a6bb1"
+    },
+    {
+      "path": "carbon/challenge_readiness/records/electric-motor-magnetics.v4.json",
+      "git_blob": "af8deecf3c012d1790a04652ab1e3b9d15425fd2",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "f300c669ff82f08245e9b2c9d620324c7b73eec8798de21647ec79a0d53c68d2"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/value-cost/motor.md",
+      "git_blob": "862ba1eed1591e0636bcb54fdf8c2504af034db0",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "4508ec595189a4a5c96467280dadd83da61d96fcda844c8d085462254654571e"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/question-laws/motor-round2.json",
+      "git_blob": "35e881f00b420ba9dba2791cff742e20196b804b",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "bdae930ac8bf999bfd312c5488db8f8f26d42b2bd8d6c471ec01f3de0933b56a"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/readiness/electric-motor-magnetics/history.jsonl",
+      "git_blob": "0435cdefb17829a643c22a586f7a7742412aadc0",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "ca91ef6b3c6678791d70f2b1d260f3bdf3725e0bb219cb2fe8c288ce244f3dfc"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+      "git_blob": "2e90e7fd28568a5448ca2b10662ed4ec14adfd26",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "a6c1fef9469b47f933c40d0cddf2441270db771412f1b4dadf60c7ba5fa637a4"
+    },
+    {
+      "path": "carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+      "git_blob": "24c96fba84860c811acfd46155e594e1a030b5f0",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "f657bd8dfa1144ade3d58fd07e3d8115d8786b55bb0ff2168bbc30f141071c9c"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/value-cost/battery.md",
+      "git_blob": "d83cb1cda0a1b702ad720d1ae2bd58be8ce4f437",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "6d71009b9826235261024fabfe1d1b319f54e38832135808f882b04fa0f7edec"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/question-laws/battery-v3-middle-bands-panel.json",
+      "git_blob": "89f1caaf2c45d1237793b31e84391efadc44397b",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "d5befd6524a060684c1174e9d9a73c93bc25ab4e689d02e318e81a9d021f9b32"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/question-laws/battery-v3-round2.json",
+      "git_blob": "c4685d9d1181ba30d8e9fe1780d1ea40537a7366",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "9c98c03ffdd7ebce9817929a7a057187347f68646dc380d70cfc8df13ef536a6"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/history.jsonl",
+      "git_blob": "963ee54bc65cfb9761c9f3ef77366a791dee0b93",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "8b2f3222ac318dc233db26b7b30404bd05379b7802b637dc45dbecf872bf6408"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+      "git_blob": "7d7de1f8c49896e70771a9d423740cd84988aedc",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+    },
+    {
+      "path": "carbon/challenge_readiness/records/chip-cold-plate.v6.json",
+      "git_blob": "840e603c3897a4805724b3f4917951bb2c82ccb5",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "c1e5097fd7f338754bd1c4bbb7800350c0f5437372bf1f3d3e1df6476026cc8a"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/value-cost/cooling-cell.md",
+      "git_blob": "293293776b9be8dab7d0904f906e00d61096707a",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "422f9a6e0bb21524d22f78e60d4d8cf218621405de52214fa7931009204ffe38"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/question-laws/proposals-v2.json",
+      "git_blob": "b39abce6f1e9a348e95ee46067852f0a30424351",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "8466a835c23df62aa09112904545a3cc247f3f15fc0692d65c265fdfe6d7c2ee"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+      "git_blob": "be47cd3c3349145018d9a584af7f1949263b9291",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "e4d3ce14fde60ed5e9e2990ceb735f62357d6b16b9fcb34e9a8df9ed63ffd4bb"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/value-cost/f02.md",
+      "git_blob": "6bf67b6601c17093488b5e427a63fc14808ecd54",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "63c427e63ba8a6f4a122d83869d118358de1255d58c8090dd08f81849bbb9211"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/question-laws/f02-round2.json",
+      "git_blob": "fc475c1fd648e81de2e38918b42bcd732d455076",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "914e3f28b05474790837030984335f6254eb23156cc60b19fea395aecfe95702"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/round1/f06-grating-coupler.md",
+      "git_blob": "41a985325b8948b730ad9ee01c0842faa66d404d",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "572b8e7264467e0993d5fdb8ee8a259af3de84ffe19ec4e49b585bc83507141f"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/solver-package-specs/f06-meep.md",
+      "git_blob": "048740a3c672c1f6bbf792bfdee4b7e5e33cb691",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "4b5a06be366829c82f88f67eb10f8d48debd5f000497ec05eb6d80aa60685287"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/value-cost/f06.md",
+      "git_blob": "6c17b988ea907e88acdd345beb960759edea2f59",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "6f03019bfce7367dc26de1f1cefed9428304bad68503769f0f710e4e82f41535"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/solver-package-specs/f06-resolution-cost/analysis.json",
+      "git_blob": "df72470b5bf55bc4bb85e689801b485729ac59b8",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "bb3e5ad5b86548455a21ad5b92ca23f9b2a25a1aeec73482967f9a468b5776cd"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/question-laws/proposals.json",
+      "git_blob": "4830c0c894bdd557d56283e799c8978c2be4396d",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "c27149f55d7ae69718e3e71eea0c07b12a68d723aaa8f7ecaf1b39c2c0030744"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+      "git_blob": "880fe26f37829fc1996b2df5ca97649655c2a3de",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/value-cost/f08.md",
+      "git_blob": "4aa007bf147304198b9f2c42842b2e27a52f1442",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "361c47b91c9c1045200239843f04c5913033ebd63fea01f67782534d8baec4d2"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md",
+      "git_blob": "7b343a111fce3852e2949323cf0109812a883f96",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "397361ad8340ccbc19f07e2a025fb9c9c29934a9b1159e0c7000fc1e061fdde0"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/value-cost/f13.md",
+      "git_blob": "36ca2cb15399569312cd65d0ee691869fd3f4aa0",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "2f431a12f8e0ad03cfba2b3e751f5481b2b5859eec9ad9a34a2e83aa73970700"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/round1/f13-power-balance-diagnosis.json",
+      "git_blob": "840736b1f734348c4e171669d3e0d8b4d6c33c1e",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "f36699d3ac7b1294b08fb338c63a1610be679ea22e0cd21d33d38535f3fb5ac0"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+      "git_blob": "ba7f22088410f05f3d0d6a398ee0adae73a851b5",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/solver-package-specs/f17-openfoam.md",
+      "git_blob": "46fb848d8c27bd3f852e2deece2a973bdbb8fa22",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "33872ebdffb8ab9afc1ea676b40ddc26414bbf492f1580405196a06115c66b07"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/value-cost/f17.md",
+      "git_blob": "b245272f730af1b8797bf2383da2039a48d4c687",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "1c9b9855369e62f84f91f966e00c415a4012ebff8c7e5574051fa1fd2b8b29a3"
+    },
+    {
+      "path": "carbon/challenge_pipeline/onboarding/status.py",
+      "git_blob": "5d1233740e0f45e586e08a3e6a6ecdb2fa487876",
+      "ref": "28ca01254eb6335a3e9166b2257feab0444a79a3",
+      "sha256": "2d4feb4b26c9b818bfd4571683bd6b97787c7872c1d09fbb4bc5c673b47a0768"
+    },
+    {
+      "path": "carbon/challenge_pipeline/onboarding/packet.py",
+      "git_blob": "92bf0bdbeccff98d2264a9e57a1f4f7738021feb",
+      "ref": "28ca01254eb6335a3e9166b2257feab0444a79a3",
+      "sha256": "3a62017c73d252f7eeca6e6bdc5025045142ae5ccaa69679b77450aa1b32c5bb"
+    },
+    {
+      "path": "carbon/challenge_pipeline/readiness/model.py",
+      "git_blob": "7e96327f5db14309f9c42c5401f2237953bac894",
+      "ref": "28ca01254eb6335a3e9166b2257feab0444a79a3",
+      "sha256": "1cd03e41e6a9547f5d76b9fe2c5510de28de220b624e74d5c85051a90b7ecc62"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/onboarding/stage_map.json",
+      "git_blob": "8876c32c946611208fe9253c546d0e0288e78452",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "497fcef58124351f8dbb1c05fc539ece11ce85d72b9813b632efc6cb0c752be7"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/onboarding-automation/artifacts.json",
+      "git_blob": "3ded0afed21d50bfac4473ada2d0b3cf2917e168",
+      "ref": "28ca01254eb6335a3e9166b2257feab0444a79a3",
+      "sha256": "982856c5120e382cb4173da2778eff174e34d1329a06fcdd11b0fab10487311c"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/readiness/electric-motor-magnetics/reports/796cc90242eab653.json",
+      "git_blob": "1de9d73c814ced847247bf33f94346dd26f96245",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "500b252355161316efac2a79a57945364932658b95a30ead835a92ab4850231c"
+    },
+    {
+      "path": "docs/development/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/reports/6598ed16782ea4cd.json",
+      "git_blob": "2192a0bedb49cf7bec542dcf3c698e6e1fa02fd0",
+      "ref": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "sha256": "2c09ad85cb000e2dd9dd3fe15800cd7a6a6a667bda85a1e02af60c346b45d619"
+    }
+  ]
+}
