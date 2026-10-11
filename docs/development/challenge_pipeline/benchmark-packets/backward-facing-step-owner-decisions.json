@@ -3,7 +3,7 @@
   "ticket": "BENCHMARK-PACKETS-01",
   "family": "backward-facing-step",
   "maturity": "SPECIFIED",
-  "decision_status": "HUMAN_INPUT",
+  "decision_status": "DECIDED_DEVELOPMENT",
   "runtime_config": false,
   "source_basis": {
     "research_merge": "94b193525f5d55eb20168ebbdbcf43ddf33653f1",
@@ -36,139 +36,377 @@
   "decisions": [
     {
       "id": "buyer_decision_and_limits",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Product owner / buyer / Test Lead",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Choose one action for the complete service brief; all mandatory limits apply at every condition. Requirement levels are drawn under P; VALUE-BAR-V1 needs two sources and labelled ranges.",
+        "objective": "minimize duty-weighted mean total-pressure loss",
+        "hard_limits": [
+          "reattachment_length <= drawn_requirement",
+          "no_reverse_flow_at_exit_plane"
+        ]
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Select one recovery contour minimizing total-pressure loss across a complete service brief, subject to buyer separation/recovery and envelope limits. State Pa/W value, duty, workflow latency and actual decision volume; adjacent published workflows do not supply acceptance numbers.",
       "source": "backward-facing-step.md#1-engineering-job",
-      "blocks": "Accepted buyer question, hard limits and value claim"
+      "blocks": "Accepted buyer question, hard limits and value claim",
+      "pending_inputs": [
+        {
+          "id": "buyer_requirement_intervals",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        },
+        {
+          "id": "minimum_useful_improvement",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        }
+      ]
     },
     {
       "id": "geometry_and_action_grammar",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Science / Test Lead / buyer",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Adopt research's proposed grammar, DOFs and precision prospectively; register DEVELOPMENT endpoint assumptions before truth. No silent scope narrowing.",
+        "grammar": "monotone recovery-contour spline"
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Approve a connected monotone recovery-contour grammar, DOFs, dimensional envelope, precision, curvature/clearance and boundary-design registration. Research range endpoints are assumptions, not approved cases.",
       "source": "backward-facing-step.md#2-physical-system",
-      "blocks": "Exact action bank and registered geometry tuples"
+      "blocks": "Exact action bank and registered geometry tuples",
+      "pending_inputs": [
+        {
+          "id": "exact_dofs_precision_and_feature_rule",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        }
+      ]
     },
     {
       "id": "conditions_material_support",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Science / reference owner",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Adopt the source conventions and research-proposed DEVELOPMENT condition support; never infer absent endpoints from a source point.",
+        "support": "NASA Re_H/Mach/developed-inlet conventions; proposed research ranges"
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Bind density/viscosity law, Re_H/U_ref versus Re_theta conventions, full developed inlet/turbulence profile, Mach and outlet pressure with source-supported applicability. Derive expansion ratio from source geometry.",
       "source": "backward-facing-step.md#2-physical-system",
-      "blocks": "Supported service tuples and reference applicability"
+      "blocks": "Supported service tuples and reference applicability",
+      "pending_inputs": [
+        {
+          "id": "complete_condition_support_and_boundary_data",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        }
+      ]
     },
     {
       "id": "P",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Science / statistics / buyer",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "REPRESENTATIVE, internal-only, uniform joint distribution over the accepted envelope. Calibrate requirement levels on public development evidence so each stratum has 20–80% passing, meaningful margin spread, a feasible design and changing answers. Exclude all catalogue anchors/equivalents. Freeze the calibrated law before candidate outcomes. Independent unit: complete service brief."
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Register joint service and continuous buyer-requirement distributions on accepted support, with explicit anchor/copy exclusions; grid stays an audit baseline. Document independent question unit and correlations.",
       "source": "backward-facing-step-law.md",
-      "blocks": "Any population or question draw"
+      "blocks": "Any population or question draw",
+      "pending_inputs": [
+        {
+          "id": "measured_requirement_intervals",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        },
+        {
+          "id": "measured_margin_spread",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        }
+      ]
     },
     {
       "id": "Q",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Test Lead / statistics",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Register before truth: nominal 0.40, corners 0.20, frontier 0.30, transition 0.10. Track rejections; no redraw of settled NONE_FEASIBLE. Weights never repair absent coverage.",
+        "allocation": {
+          "nominal": 0.4,
+          "corners": 0.2,
+          "frontier": 0.3,
+          "transition": 0.1
+        }
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Register nominal/corner/frontier/transition allocations and rejection law before truth, retain supported coverage; no redraw of settled NONE_FEASIBLE and no zero-support correction by weights.",
       "source": "backward-facing-step-law.md",
-      "blocks": "Diagnostic sampling and power claim"
+      "blocks": "Diagnostic sampling and power claim",
+      "pending_inputs": []
     },
     {
       "id": "w",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Science / statistics / buyer",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Buyer frequency under P; diagnostic weights are separate and never enter score. A mandatory failure at any condition cannot be compensated.",
+        "aggregation": "duty-weighted mean"
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "State buyer scenario frequency versus diagnostic estimation weights; select mean or worst loss objective separately. Never compensate a mandatory stratum failure.",
       "source": "backward-facing-step-law.md",
-      "blocks": "Aggregation and score/value weighting"
+      "blocks": "Aggregation and score/value weighting",
+      "pending_inputs": [
+        {
+          "id": "buyer_frequency_within_brief",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        }
+      ]
     },
     {
       "id": "measurement_and_objective",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Measurement owner / Test Lead",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Adopt the packet's observer contract. Tie-equivalence equals 0.5 × minimum useful improvement.",
+        "observables": "mass-flow-weighted total-pressure loss Pa and dynamic-pressure normalization; shifted Cp is not loss"
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Freeze mass-flow-weighted total-pressure planes/loss in Pa, dynamic-pressure normalization, signed shear/crossing policy and Cp shift metadata; shifted Cp is not total-pressure loss. Define objective aggregation, secondary and tie-equivalence units.",
       "source": "backward-facing-step.md#6-output-and-measurement-contract",
-      "blocks": "Truth extraction, verdict and pick/regret"
+      "blocks": "Truth extraction, verdict and pick/regret",
+      "pending_inputs": [
+        {
+          "id": "minimum_useful_improvement",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        },
+        {
+          "id": "observer_locations_and_normalization",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        }
+      ]
     },
     {
       "id": "reference_package_and_models",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Data Collection / reference owner",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Adopt proposed immutable source pins, conditional on complete dependency/image/deck/observer pins and passing CODE-VERIFICATION-MMS-01. A source pin alone never authorizes dispatch.",
+        "pins": {
+          "SU2": "bc15466602a687d6fb796d5df7a12ce3fde0949a"
+        },
+        "model_mapping": "NASA SSTm; must verify exact option mapping"
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Use proposed SU2 source bc15466602a687d6fb796d5df7a12ce3fde0949a only after a dependency/image/deck/observer pin and explicit NASA SSTm option mapping. Register mesh/wall/inlet/outlet sensitivity ladder and CPU execution policy.",
       "source": "backward-facing-step.md#5-reference-policy",
-      "blocks": "Pinned dispatchable reference package"
+      "blocks": "Pinned dispatchable reference package",
+      "pending_inputs": [
+        {
+          "id": "complete_package_pins_and_verification",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        }
+      ]
     },
     {
       "id": "reference_acceptance_and_witnesses",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Science / Test Lead / buyer",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Code order inside the registered band. Last-two-rung decision observable difference < 0.5 × minimum useful improvement, unchanged pick and verdict. Cross-tool picks agree and regret difference < tie-equivalence. Only independent non-hidden, non-tuning witnesses; target is not an earned tier.",
+        "target": "NASA reattachment within published experimental uncertainty, for that observable only; no general reality claim"
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Set unit-bearing code/convergence/conservation and cross-tool pointwise plus verdict/pick/regret thresholds. Target Tier 2 against the confirmed buyer tool; NASA reattachment data validate only their stated observable/scope. Independent witnesses never use hidden/tuning cases.",
       "source": "backward-facing-step.md#5-reference-policy",
-      "blocks": "Reference adequacy and earned credibility tier"
+      "blocks": "Reference adequacy and earned credibility tier",
+      "pending_inputs": [
+        {
+          "id": "registered_accuracy_band",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        },
+        {
+          "id": "minimum_useful_improvement",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        },
+        {
+          "id": "conservation_criterion",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        },
+        {
+          "id": "matched_witness_measurements",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        }
+      ]
     },
     {
       "id": "novelty_catalogue",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Research / data-rights owner / science",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Freeze full rights-audited reconstructable anchor/tutorial/derivative catalogue before outcomes, including coverage gaps. No cherry-picking."
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Freeze audited reconstructable public anchors, tutorial geometries and derivative catalogue, rights, coverage gaps and supported exclusion scope before candidate outcomes.",
       "source": "contamination-contract.md",
-      "blocks": "Known-source coverage and clean-novelty claim"
+      "blocks": "Known-source coverage and clean-novelty claim",
+      "pending_inputs": [
+        {
+          "id": "rights_audit_and_frozen_catalogue",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        }
+      ]
     },
     {
       "id": "novelty_equivalence_and_normalizers",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Science / Test Lead",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Adopt packet descriptors and physically valid symmetry groups; remeshing/resampling/valid rescaling are not novelty. An order-swapping mirror is not automatically equivalent."
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Use normalized wall-contour and expansion/feature descriptors plus separate log-Re_H, Mach and inlet-profile components; freeze x/H window, floors, quadrature and physically valid coordinate/scaling group. Remeshing is never new physics.",
       "source": "backward-facing-step.md#4-case-contract",
-      "blocks": "Deterministic physical-distance and equivalent-copy audit"
+      "blocks": "Deterministic physical-distance and equivalent-copy audit",
+      "pending_inputs": [
+        {
+          "id": "exact_normalizers_quadrature_and_valid_group",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        }
+      ]
     },
     {
       "id": "novelty_acceptance",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Science / Test Lead",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Require geometry/mask novelty AND public decision evidence that the anchor answer/cached map no longer makes the same admissible decision. Conditions-only changes never rescue a copy. Component threshold is the smallest distance where the registered decision test passes, set and recorded from measurement."
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Register component weights, per-component thresholds and far-enough predicate against every complete catalogue entry, with mandatory geometry novelty; changing only Re must not rescue an anchor copy. Unknown coverage/rules are UNRESOLVED.",
       "source": "contamination-contract.md",
-      "blocks": "Scored-case eligibility and hidden bank construction"
+      "blocks": "Scored-case eligibility and hidden bank construction",
+      "pending_inputs": [
+        {
+          "id": "measured_component_thresholds",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        },
+        {
+          "id": "public_anchor_variant_decision_evidence",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        }
+      ]
     },
     {
       "id": "frontier_power_and_ties",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Test Lead / statistics / buyer",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "At least five feasible and five infeasible designs within two accepted refinement bands; band width = minimum useful improvement. Add frontier actions, never widen bands. Power and false alarm follow #1045."
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Use Test Lead working five feasible/five infeasible within two accepted refinement bands, adding frontier resolution rather than wider bands. Set band widths, meaningful margin spread, winner diversity, close-call/refinement policy, power/false-alarm/dependence and tie acceptance.",
       "source": "backward-facing-step-law.md",
-      "blocks": "T2/T3, accepted value check and decision-equivalence claim"
+      "blocks": "T2/T3, accepted value check and decision-equivalence claim",
+      "pending_inputs": [
+        {
+          "id": "minimum_useful_improvement",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        },
+        {
+          "id": "public_power_and_false_alarm_measurements",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        }
+      ]
     },
     {
       "id": "question_and_bank_counts",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Protocol / statistics / Test Lead",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "E = 1. k, m, n come from #1045-style public development power analysis; B from per-Challenge cost/cadence rule. Requirement-only variants do not renew exposure.",
+        "exposure_E": 1
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Set questions k, actions m, independent units n, exposure E and bank B explicitly; B=10n is a plan only. Threshold-only variants reuse E. Report expected winner diversity from the bank under the accepted law, not grid cardinality.",
       "source": "backward-facing-step-law.md",
-      "blocks": "Bank sizing, exposure and batch-cost/power registration"
+      "blocks": "Bank sizing, exposure and batch-cost/power registration",
+      "pending_inputs": [
+        {
+          "id": "measured_k_m_n_B",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        }
+      ]
     },
     {
       "id": "panel_registration_and_reuse",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Data Collection / reference owner",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Adopt packet panel/reuse method. Expand exact tuples, audit every attempted solve and completed/scheduled reuse, register on main; unknown index is unknown, not zero."
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Expand exact public action-condition-reference-observer-rung tuples after support acceptance; check all completed and scheduled solves, compatible reuse, total launch count and attempted costs; register digest on main. No claim of zero prior work without an index.",
       "source": "backward-facing-step-panel.md",
-      "blocks": "Registered, deduplicated public panel manifest"
+      "blocks": "Registered, deduplicated public panel manifest",
+      "pending_inputs": [
+        {
+          "id": "registered_tuples_and_reuse_index",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        }
+      ]
     },
     {
       "id": "construction_training_and_rights",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Construction / security / data-rights owners",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Rights-clear public TRAIN on the same envelope, disjoint from panel; kit domain check must cover 100% of panel before evidence. No arbitrary evaluator execution."
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Provide training-kit domain coverage, approved disjoint TRAIN, bounded rebuild vocabulary/resources and legal source/asset use; no public access to protected data and no arbitrary reference-execution permission.",
       "source": "backward-facing-step.md#7-construction-contract",
-      "blocks": "Construction readiness and permitted data use"
+      "blocks": "Construction readiness and permitted data use",
+      "pending_inputs": [
+        {
+          "id": "registered_train_and_domain_coverage",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        }
+      ]
     },
     {
       "id": "execution_and_adoption",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Carbon owner / compute / qualification owners",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "All seven readiness items YES before evidence spend. Initial measurement pilot capped at EUR10 per family; subsequent bank decision uses team cost-benefit and EUR500 maximum. Admission only after VALUE-BAR-V1 against strongest cheap baseline and equal-budget search. Priority after battery v3/motor/f02. These recorded ceilings are not dispatch or qualification."
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Require seven-item evidence readiness, exact resource/spend grant and retained artifacts before runs. Measure actual costs: research high EUR209.61 exceeds EUR100 startup target. Select keep/reframe/replace only after reference/value and strong-baseline/equal-budget evidence; no automatic admission.",
       "source": "backward-facing-step-panel.md",
-      "blocks": "Solver run, spend, bank build, adoption or qualification"
+      "blocks": "Solver run, spend, bank build, adoption or qualification",
+      "pending_inputs": [
+        {
+          "id": "execution_readiness_and_exact_grant",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        },
+        {
+          "id": "measured_cost_and_admission_evidence",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        }
+      ]
     }
-  ]
+  ],
+  "decision_authority": {
+    "decided_by": "Test Lead",
+    "delegated_by": "Carbon owner",
+    "owner_quote": "You make optimal decisions on those 17 questions focused on carbon value prop.",
+    "record": ".agent/decisions/2026-10-11-BENCHMARK-TEST-LEAD-DECISIONS.md",
+    "scope": "DEVELOPMENT_ONLY",
+    "measurement_rules_are_not_measured_values": true
+  }
 }

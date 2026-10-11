@@ -3,7 +3,7 @@
   "ticket": "BENCHMARK-PACKETS-01",
   "family": "metagrating-3d",
   "maturity": "SPECIFIED",
-  "decision_status": "HUMAN_INPUT",
+  "decision_status": "DECIDED_DEVELOPMENT",
   "runtime_config": false,
   "source_basis": {
     "research_merge": "94b193525f5d55eb20168ebbdbcf43ddf33653f1",
@@ -36,139 +36,381 @@
   "decisions": [
     {
       "id": "buyer_decision_and_limits",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Product owner / buyer / Test Lead",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Choose one action for the complete service brief; all mandatory limits apply at every condition. Requirement levels are drawn under P; VALUE-BAR-V1 needs two sources and labelled ranges.",
+        "objective": "maximize worst-case desired-order efficiency",
+        "hard_limits": [
+          "reflection <= drawn_requirement",
+          "unwanted_order_efficiency <= drawn_requirement"
+        ]
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Choose one genuinely full 3D periodic device across a complete operating brief. State desired efficiency, reflection/unwanted orders, fabrication limits and power/iteration value, workflow volume and latency. Published numerical masks are not accepted buyer requirements.",
       "source": "metagrating-3d.md#1-engineering-job",
-      "blocks": "Accepted buyer question, hard limits and value claim"
+      "blocks": "Accepted buyer question, hard limits and value claim",
+      "pending_inputs": [
+        {
+          "id": "buyer_requirement_intervals",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        },
+        {
+          "id": "minimum_useful_improvement",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        }
+      ]
     },
     {
       "id": "geometry_and_action_grammar",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Science / Test Lead / buyer",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Adopt research's proposed grammar, DOFs and precision prospectively; register DEVELOPMENT endpoint assumptions before truth. No silent scope narrowing.",
+        "grammar": "binary x/y mask, fixed physical periods, finite thickness, testbed minimum-feature rule",
+        "full_3d_required": true,
+        "stripe_only_allowed": false
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Approve binary masks varying in x/y, finite thickness, physical periods, DOFs/precision and fabrication/minimum-feature rules; register boundary actions. Keep vector fields full 3D. Source pixel counts and stripe examples are not a silently narrowed grammar.",
       "source": "metagrating-3d.md#2-physical-system",
-      "blocks": "Exact physical action bank and mask tuples"
+      "blocks": "Exact physical action bank and mask tuples",
+      "pending_inputs": [
+        {
+          "id": "exact_dofs_precision_and_feature_rule",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        }
+      ]
     },
     {
       "id": "conditions_material_support",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Science / reference owner / buyer",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Adopt the source conventions and research-proposed DEVELOPMENT condition support; never infer absent endpoints from a source point.",
+        "support": "ideal nondispersive lossless silicon; action periods fixed across service conditions",
+        "hardware_claim": false
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Freeze supported wavelength/incidence/polarization, substrate/silicon material and fabrication laws. Source indices are ideal nondispersive/lossless; no inferred broad hardware support. Fix each action's periods across its scenarios; nominal outgoing angle is not incidence.",
       "source": "metagrating-3d.md#2-physical-system",
-      "blocks": "Supported hardware-consistent service tuples"
+      "blocks": "Supported hardware-consistent service tuples",
+      "pending_inputs": [
+        {
+          "id": "complete_condition_support_and_boundary_data",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        }
+      ]
     },
     {
       "id": "P",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Science / statistics / buyer",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "REPRESENTATIVE, internal-only, uniform joint distribution over the accepted envelope. Calibrate requirement levels on public development evidence so each stratum has 20–80% passing, meaningful margin spread, a feasible design and changing answers. Exclude all catalogue anchors/equivalents. Freeze the calibrated law before candidate outcomes. Independent unit: complete service brief."
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Register joint nominal device brief, supported service conditions and continuous buyer requirements with correlations; retain grid as audit baseline. Exclude catalogue anchors/equivalents and state independent question unit.",
       "source": "metagrating-3d-law.md",
-      "blocks": "Population and question draw"
+      "blocks": "Population and question draw",
+      "pending_inputs": [
+        {
+          "id": "measured_requirement_intervals",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        },
+        {
+          "id": "measured_margin_spread",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        }
+      ]
     },
     {
       "id": "Q",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Test Lead / statistics",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Register before truth: nominal 0.40, corners 0.20, frontier 0.30, transition 0.10. Track rejections; no redraw of settled NONE_FEASIBLE. Weights never repair absent coverage.",
+        "transition_library_failure_fraction": 0.05,
+        "allocation": {
+          "nominal": 0.4,
+          "corners": 0.2,
+          "frontier": 0.3,
+          "transition": 0.1
+        }
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Register supported corner/frontier/order-transition and cheap-library failure allocations prospectively. Track rejection and support; diagnostic anchors never scored. No redraw of settled NONE_FEASIBLE, no weights to repair absent Q coverage.",
       "source": "metagrating-3d-law.md",
-      "blocks": "Diagnostic sampling and power claim"
+      "blocks": "Diagnostic sampling and power claim",
+      "pending_inputs": []
     },
     {
       "id": "w",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Science / statistics / buyer",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Buyer frequency under P; diagnostic weights are separate and never enter score. A mandatory failure at any condition cannot be compensated.",
+        "aggregation": "worst-case"
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Set buyer usage or robust-service weighting separately from diagnostic sampling. Select mean/worst desired-order efficiency, preserving hard limits at every condition.",
       "source": "metagrating-3d-law.md",
-      "blocks": "Aggregation and score/value weighting"
+      "blocks": "Aggregation and score/value weighting",
+      "pending_inputs": [
+        {
+          "id": "buyer_frequency_within_brief",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        }
+      ]
     },
     {
       "id": "measurement_and_objective",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Measurement owner / Test Lead",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Adopt the packet's observer contract. Tie-equivalence equals 0.5 × minimum useful improvement.",
+        "observables": "incident-flux normalized all propagating R/T orders, both polarizations, energy residual; percentage-point units"
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Freeze incident normalization, ports, reciprocal/order/phase/flux conventions; all propagating R/T including cross-polarization, energy residual, absorption scope and cutoff uncertainty. Specify consistent fraction/percentage-point objective, constraints, aggregate and buyer-equivalent ties.",
       "source": "metagrating-3d.md#6-output-and-measurement-contract",
-      "blocks": "Truth extraction, verdict and pick/regret"
+      "blocks": "Truth extraction, verdict and pick/regret",
+      "pending_inputs": [
+        {
+          "id": "minimum_useful_improvement",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        },
+        {
+          "id": "observer_locations_and_normalization",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        }
+      ]
     },
     {
       "id": "reference_package_and_models",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Data Collection / reference owner",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Adopt proposed immutable source pins, conditional on complete dependency/image/deck/observer pins and passing CODE-VERIFICATION-MMS-01. A source pin alone never authorizes dispatch.",
+        "pins": {
+          "Meep": "b08d226ba311a04e59c984e97f3e88dd82bc56d1",
+          "S4": "7fd00a231610bff51f5c7de5f723e3956eab7453"
+        }
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Complete Meep source b08d226ba311a04e59c984e97f3e88dd82bc56d1 and independent S4 source 7fd00a231610bff51f5c7de5f723e3956eab7453 build/dependency/image/deck pins. Freeze binary/material-grid mapping and spatial/time/PML/decay or harmonic ladders. RETICOLO executable rights are not assumed.",
       "source": "metagrating-3d.md#5-reference-policy",
-      "blocks": "Pinned dispatchable full 3D reference package"
+      "blocks": "Pinned dispatchable full 3D reference package",
+      "pending_inputs": [
+        {
+          "id": "complete_package_pins_and_verification",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        }
+      ]
     },
     {
       "id": "reference_acceptance_and_witnesses",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Science / Test Lead / buyer",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Code order inside the registered band. Last-two-rung decision observable difference < 0.5 × minimum useful improvement, unchanged pick and verdict. Cross-tool picks agree and regret difference < tie-equivalence. Only independent non-hidden, non-tuning witnesses; target is not an earned tier.",
+        "target": "agreement with numerical testbed; not agreement with reality"
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Set analytic/code, convergence, energy and cross-tool pointwise plus verdict/pick/regret acceptance with absolute near-zero floors. Confirm buyer tool for Tier2 target. Non-hidden matched task witnesses beyond public anchors; numerical agreement is not reality or unrelated experiment validation.",
       "source": "metagrating-3d.md#5-reference-policy",
-      "blocks": "Reference adequacy and earned credibility tier"
+      "blocks": "Reference adequacy and earned credibility tier",
+      "pending_inputs": [
+        {
+          "id": "registered_accuracy_band",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        },
+        {
+          "id": "minimum_useful_improvement",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        },
+        {
+          "id": "conservation_criterion",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        },
+        {
+          "id": "matched_witness_measurements",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        }
+      ]
     },
     {
       "id": "novelty_catalogue",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Research / data-rights owner / science",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Freeze full rights-audited reconstructable anchor/tutorial/derivative catalogue before outcomes, including coverage gaps. No cherry-picking."
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Freeze all audited reconstructable masks, interpolations, later known devices/stripes and derivative sources, rights and coverage gaps; do not select only three convenient masks or silently replace a source revision.",
       "source": "contamination-contract.md",
-      "blocks": "Known-source coverage and clean-novelty claim"
+      "blocks": "Known-source coverage and clean-novelty claim",
+      "pending_inputs": [
+        {
+          "id": "rights_audit_and_frozen_catalogue",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        }
+      ]
     },
     {
       "id": "novelty_equivalence_and_normalizers",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Science / Test Lead",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Adopt packet descriptors and physically valid symmetry groups; remeshing/resampling/valid rescaling are not novelty. An order-swapping mirror is not automatically equivalent."
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Register periodic physical occupancy integral and separate period/thickness/material/excitation distances, quadrature/floors and valid translation/symmetry/scaling group. A mirror swapping desired orders is not automatically equivalent; dispersion can break scaling equivalence.",
       "source": "metagrating-3d.md#4-case-contract",
-      "blocks": "Deterministic physical-distance and equivalent-copy audit"
+      "blocks": "Deterministic physical-distance and equivalent-copy audit",
+      "pending_inputs": [
+        {
+          "id": "exact_normalizers_quadrature_and_valid_group",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        }
+      ]
     },
     {
       "id": "novelty_acceptance",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Science / Test Lead",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Require geometry/mask novelty AND public decision evidence that the anchor answer/cached map no longer makes the same admissible decision. Conditions-only changes never rescue a copy. Component threshold is the smallest distance where the registered decision test passes, set and recorded from measurement."
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Freeze component thresholds/weights and far-enough predicate against all complete catalogue entries, with mandatory mask novelty; changing only thickness/angle must not rescue a copied mask. Incomplete audit or unaccepted rule means UNRESOLVED.",
       "source": "contamination-contract.md",
-      "blocks": "Scored-case eligibility and hidden bank construction"
+      "blocks": "Scored-case eligibility and hidden bank construction",
+      "pending_inputs": [
+        {
+          "id": "measured_component_thresholds",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        },
+        {
+          "id": "public_anchor_variant_decision_evidence",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        }
+      ]
     },
     {
       "id": "frontier_power_and_ties",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Test Lead / statistics / buyer",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "At least five feasible and five infeasible designs within two accepted refinement bands; band width = minimum useful improvement. Add frontier actions, never widen bands. Power and false alarm follow #1045."
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Apply Test Lead working five feasible/five infeasible within two accepted refinement bands; settle band widths, full-route edge/cutoff policy, meaningful margin spread, winner diversity, power/dependence and tie acceptance. Add frontier actions, never widen bands to pass.",
       "source": "metagrating-3d-law.md",
-      "blocks": "T2/T3, accepted value check and decision-equivalence claim"
+      "blocks": "T2/T3, accepted value check and decision-equivalence claim",
+      "pending_inputs": [
+        {
+          "id": "minimum_useful_improvement",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        },
+        {
+          "id": "public_power_and_false_alarm_measurements",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        }
+      ]
     },
     {
       "id": "question_and_bank_counts",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Protocol / statistics / Test Lead",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "E = 1. k, m, n come from #1045-style public development power analysis; B from per-Challenge cost/cadence rule. Requirement-only variants do not renew exposure.",
+        "exposure_E": 1
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Set questions k, actions m, units n, exposure E and bank B separately; assess B=10n planning only after complete-case costs. New thresholds reuse E. Winner diversity comes from bank outcomes under an accepted law, not the size of a grid.",
       "source": "metagrating-3d-law.md",
-      "blocks": "Bank sizing, exposure and batch-cost/power registration"
+      "blocks": "Bank sizing, exposure and batch-cost/power registration",
+      "pending_inputs": [
+        {
+          "id": "measured_k_m_n_B",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        }
+      ]
     },
     {
       "id": "panel_registration_and_reuse",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Data Collection / reference owner",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Adopt packet panel/reuse method. Expand exact tuples, audit every attempted solve and completed/scheduled reuse, register on main; unknown index is unknown, not zero."
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Expand exact full 3D action-condition-reference-observer-rung rows after support approval; audit completed/scheduled reuse, applicable normalization, all launches and memory/attempt costs; register digest on main. Unknown index is not zero previous solves.",
       "source": "metagrating-3d-panel.md",
-      "blocks": "Registered, deduplicated public full-route manifest"
+      "blocks": "Registered, deduplicated public full-route manifest",
+      "pending_inputs": [
+        {
+          "id": "registered_tuples_and_reuse_index",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        }
+      ]
     },
     {
       "id": "construction_training_and_rights",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Construction / security / data-rights owners",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "Rights-clear public TRAIN on the same envelope, disjoint from panel; kit domain check must cover 100% of panel before evidence. No arbitrary evaluator execution."
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Provide approved disjoint TRAIN, exact kit domain coverage and bounded model/rebuild/resource contract; audit source masks/assets and licenses separately. Never disclose protected samples or permit arbitrary evaluator execution.",
       "source": "metagrating-3d.md#7-construction-contract",
-      "blocks": "Construction readiness and permitted data use"
+      "blocks": "Construction readiness and permitted data use",
+      "pending_inputs": [
+        {
+          "id": "registered_train_and_domain_coverage",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        }
+      ]
     },
     {
       "id": "execution_and_adoption",
-      "status": "HUMAN_INPUT", "value": null,
-      "owner": "Carbon owner / compute / qualification owners",
+      "status": "DECIDED_DEVELOPMENT",
+      "value": {
+        "rule": "All seven readiness items YES before evidence spend. Initial measurement pilot capped at EUR10 per family; subsequent bank decision uses team cost-benefit and EUR500 maximum. Admission only after VALUE-BAR-V1 against strongest cheap baseline and equal-budget search. Priority after battery v3/motor/f02. These recorded ceilings are not dispatch or qualification."
+      },
+      "owner": "Test Lead under owner delegation",
       "recommendation": "Require seven-item evidence readiness, actual memory sizing, exact resource/spend grant and retained artifacts before runs. Research high EUR419.22 exceeds EUR100 startup target. Measure strong RCWA/direct-search equal-budget value; no silent 2D reframe or automatic portfolio admission.",
       "source": "metagrating-3d-panel.md",
-      "blocks": "Solver run, spend, bank build, adoption or qualification"
+      "blocks": "Solver run, spend, bank build, adoption or qualification",
+      "pending_inputs": [
+        {
+          "id": "execution_readiness_and_exact_grant",
+          "status": "CLOSED_PENDING_REGISTRATION",
+          "value": null
+        },
+        {
+          "id": "measured_cost_and_admission_evidence",
+          "status": "CLOSED_PENDING_MEASUREMENT",
+          "value": null
+        }
+      ]
     }
-  ]
+  ],
+  "decision_authority": {
+    "decided_by": "Test Lead",
+    "delegated_by": "Carbon owner",
+    "owner_quote": "You make optimal decisions on those 17 questions focused on carbon value prop.",
+    "record": ".agent/decisions/2026-10-11-BENCHMARK-TEST-LEAD-DECISIONS.md",
+    "scope": "DEVELOPMENT_ONLY",
+    "measurement_rules_are_not_measured_values": true
+  }
 }

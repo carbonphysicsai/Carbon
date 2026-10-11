@@ -1,0 +1,29 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-benchmark-delegation-applied",
+  "recorded_at": "2026-10-11T02:01:32Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "BENCHMARK-PACKETS-01 / APPLY-DECISIONS",
+    "description": "Native delegated-inventory diagnostic: 16 tests, Black, Ruff, pipeline validation and diff check."
+  },
+  "expected": "Selected delegated rules can be recorded without turning measurement rules into measured inputs.",
+  "observed": "16 native tests passed; all 34 decisions carry Test Lead attribution and owner quote; pending numeric/registration inputs remain null; no execution or activation.",
+  "keep": [
+    "Separate authority, selected rules, measured values and dispatch permissions.",
+    "Preserve original source decision record and historical generated pack."
+  ],
+  "change": [
+    "Do not describe selected DEVELOPMENT P/Q/w as awaiting a second owner approval.",
+    "Prospective 20–80% calibration does not reinterpret historical value checks."
+  ],
+  "protocol_elements": [
+    "decision delegation",
+    "measurement readiness",
+    "historical evidence"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

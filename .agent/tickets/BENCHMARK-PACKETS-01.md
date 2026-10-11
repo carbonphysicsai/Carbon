@@ -48,3 +48,18 @@ Conditional completion: documents/tests shipped and canonical required CI
 green on the handed-off exact head. PR Head owns merge. No tested Challenge,
 reference tier, scientific/security/customer/production qualification earned.
 Handoff wording: "Codex is done; PR Lead may take over."
+
+## APPLY-DECISIONS prospective amendment (2026-10-11)
+
+The owner returned this branch to Codex to apply Test Lead's 17 + 17
+decisions, delegated with the verbatim quote recorded in
+../decisions/2026-10-11-BENCHMARK-TEST-LEAD-DECISIONS.md. Both inventories
+now record DECIDED_DEVELOPMENT rules, not production inputs. This supersedes
+the original contract's all-HUMAN_INPUT statement only for selected rules.
+Measurement-derived inputs remain null and closed. Missing source-specific
+DOFs/precision/feature or package details are not invented. No reference
+solve, bank draw, rights grant, image build, spend or hidden-data access.
+
+Native updated inventory acceptance: 16 focused tests passed, Black/Ruff
+and diff checks passed; pipeline validation passed. Canonical CI must
+validate the new pushed head; PR Head still owns merge.

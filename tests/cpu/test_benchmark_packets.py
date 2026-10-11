@@ -64,7 +64,7 @@ def test_full_packet_maps_all_ten_sections_and_does_not_claim_an_earned_tier(tok
 
 
 @pytest.mark.parametrize("token", TOKENS)
-def test_one_closed_owner_inventory_keeps_every_reserved_choice_unselected(token):
+def test_delegated_rules_are_decided_but_unmeasured_inputs_stay_closed(token):
     data = inventory(token)
     assert set(data) == {
         "schema",
@@ -72,6 +72,7 @@ def test_one_closed_owner_inventory_keeps_every_reserved_choice_unselected(token
         "family",
         "maturity",
         "decision_status",
+        "decision_authority",
         "runtime_config",
         "source_basis",
         "artifacts",
@@ -82,7 +83,16 @@ def test_one_closed_owner_inventory_keeps_every_reserved_choice_unselected(token
     assert data["schema"] == "carbon.benchmark-packet.owner-decisions.v1"
     assert data["ticket"] == "BENCHMARK-PACKETS-01"
     assert data["family"] == token and data["maturity"] == "SPECIFIED"
-    assert data["decision_status"] == "HUMAN_INPUT"
+    assert data["decision_status"] == "DECIDED_DEVELOPMENT"
+    authority = data["decision_authority"]
+    assert authority["decided_by"] == "Test Lead"
+    assert authority["delegated_by"] == "Carbon owner"
+    assert authority["owner_quote"] == (
+        "You make optimal decisions on those 17 questions focused on carbon value prop."
+    )
+    assert authority["scope"] == "DEVELOPMENT_ONLY"
+    assert authority["measurement_rules_are_not_measured_values"] is True
+    assert (ROOT / authority["record"]).is_file()
     assert data["runtime_config"] is False
     assert len(data["decisions"]) == len(DECISIONS)
     assert {d["id"] for d in data["decisions"]} == DECISIONS
@@ -95,14 +105,49 @@ def test_one_closed_owner_inventory_keeps_every_reserved_choice_unselected(token
             "recommendation",
             "source",
             "blocks",
+            "pending_inputs",
         }
-        assert decision["status"] == "HUMAN_INPUT" and decision["value"] is None
+        assert decision["status"] == "DECIDED_DEVELOPMENT"
+        assert decision["owner"] == "Test Lead under owner delegation"
+        assert decision["value"]["rule"].strip()
+        for pending in decision["pending_inputs"]:
+            assert set(pending) == {"id", "status", "value"}
+            assert pending["value"] is None
+            assert pending["status"] in {
+                "CLOSED_PENDING_MEASUREMENT",
+                "CLOSED_PENDING_REGISTRATION",
+            }
         assert all(
             decision[key].strip() for key in ("owner", "recommendation", "blocks")
         )
         assert (FOLDER / decision["source"].split("#")[0]).is_file()
     separate = {d["id"]: d for d in data["decisions"] if d["id"] in {"P", "Q", "w"}}
     assert len({d["recommendation"] for d in separate.values()}) == 3
+
+
+@pytest.mark.parametrize("token", TOKENS)
+def test_adopted_allocations_exposure_and_measurement_holds(token):
+    decisions = {d["id"]: d for d in inventory(token)["decisions"]}
+    assert decisions["Q"]["value"]["allocation"] == {
+        "nominal": 0.4,
+        "corners": 0.2,
+        "frontier": 0.3,
+        "transition": 0.1,
+    }
+    assert decisions["question_and_bank_counts"]["value"]["exposure_E"] == 1
+    for key in (
+        "measurement_and_objective",
+        "novelty_acceptance",
+        "frontier_power_and_ties",
+        "question_and_bank_counts",
+    ):
+        assert decisions[key]["pending_inputs"]
+        assert all(p["value"] is None for p in decisions[key]["pending_inputs"])
+    if token == "metagrating-3d":
+        assert decisions["Q"]["value"]["transition_library_failure_fraction"] == 0.05
+        assert decisions["geometry_and_action_grammar"]["value"]["full_3d_required"]
+    assert "20–80%" in decisions["P"]["value"]["rule"]
+    assert "no redraw" in decisions["Q"]["value"]["rule"]
 
 
 @pytest.mark.parametrize("token", TOKENS)

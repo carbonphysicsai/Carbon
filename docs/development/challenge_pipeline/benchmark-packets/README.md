@@ -1,5 +1,19 @@
 # Benchmark customer packets — prospective expansion
 
+> **Prospective 2026-10-11 adoption:** [Test Lead's owner-delegated decisions](../../../../.agent/decisions/2026-10-11-BENCHMARK-TEST-LEAD-DECISIONS.md)
+> and the family owner-decision JSON supersede the original proposal's
+> HUMAN_INPUT statements **for selected DEVELOPMENT rules only**. Both
+> inventories now contain 17 DECIDED_DEVELOPMENT rules. Q = 40/20/30/10;
+> E = 1; BFS uses duty-mean loss and MG worst-case efficiency. P's 20–80%
+> per-stratum calibration is a prospective delegated rule, not an earned
+> result or reinterpretation of sealed data. Tie = 0.5 × minimum useful
+> improvement; frontier band = that improvement. Their numerical values,
+> novelty cutoffs, power-derived k/m/n/B, complete package pins, exact
+> absent grammar details, rights/reuse and acceptance evidence remain
+> closed until measured or registered. No dispatch, spend, qualification,
+> runtime activation or adoption is conferred. The text below records the
+> original specification/recommendations; do not execute stale placeholders.
+
 BENCHMARK-PACKETS-01 · DEVELOPMENT / SPECIFIED · 2026-10-11.
 No builds, training, reference solver runs, spend or hidden/AX42 data.
 
