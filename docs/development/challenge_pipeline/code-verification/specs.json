@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.code-verification.specifications.v1",
+  "scope": "PUBLIC_DEVELOPMENT",
+  "status": "HUMAN_INPUT",
+  "tests": [
+    {"kind": "elmer-heat", "family": "f02", "worker": "scripts/dev/reference_packages/elmer/mms_heat.py", "h": [0.125, 0.0625, 0.03125], "t": 0.5, "order_band": [1.7, 2.3], "format": "carbon.reference-package.mms.v1", "native_state": "REUSE_PENDING_MAIN_1030"},
+    {"kind": "getdp-a", "family": "motor", "worker": "scripts/dev/code_verification/getdp_mms.py", "h": [0.125, 0.0625, 0.03125], "t": 0, "order_band": [1.7, 2.3], "format": "carbon.code-verification.fields.v1", "native_state": "UNMEASURED"},
+    {"kind": "pybamm-particle", "family": "battery-v3", "worker": "scripts/dev/code_verification/pybamm_submodels.py", "h": [0.05, 0.025, 0.0125], "t": 0.2, "order_band": [1.7, 2.3], "format": "carbon.code-verification.fields.v1", "native_state": "UNMEASURED"},
+    {"kind": "elmer-helmholtz", "family": "f13", "worker": "scripts/dev/code_verification/elmer_helmholtz.py", "h": [0.125, 0.0625, 0.03125], "t": 0, "order_band": [1.7, 2.3], "format": "carbon.code-verification.fields.v1", "native_state": "UNMEASURED_LINEAR_HEX_ONLY"},
+    {"kind": "openfoam-periodic", "family": "f17", "worker": "scripts/dev/code_verification/openfoam_periodic.py", "h": [0.0625, 0.03125, 0.015625], "t": 0.125, "order_band": [1.7, 2.3], "format": "carbon.code-verification.fields.v1", "native_state": "UNMEASURED_SCALAR_ONLY"},
+    {"kind": "meep-bloch-mode", "family": "f06", "worker": "scripts/dev/code_verification/meep_mode.py", "h": [0.05, 0.025, 0.0125], "t": 0, "order_band": [1.7, 2.3], "format": "carbon.code-verification.fields.v1", "native_state": "UNMEASURED_VACUUM_ONLY"},
+    {"kind": "calculix-rod-mode", "family": "f08", "worker": "scripts/dev/code_verification/calculix_modes.py", "h": [0.25, 0.125, 0.0625], "t": 0, "order_band": [3.5, 4.5], "format": "carbon.code-verification.fields.v1", "native_state": "UNMEASURED_AXIAL_ONLY"}
+  ],
+  "adoption": "Science must accept applicable fixture/order bands before stage exit. No tests have been run in the native solvers by this ticket. Supplemental feature specifications and gaps are in README.md."
+}

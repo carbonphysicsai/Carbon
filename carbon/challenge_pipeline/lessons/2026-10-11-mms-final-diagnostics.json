@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-mms-final-diagnostics",
+  "recorded_at": "2026-10-11T00:47:55Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CODE-VERIFICATION-MMS-01 focused repair acceptance", "description": "Native Windows arithmetic/source/deck/parser diagnostics and the three repaired pipeline regression tests."},
+  "expected": "All focused checks and repaired closed-schema lessons pass without native solver execution.",
+  "observed": "28 passed in 3.03s; pipeline validate passed with protocol DEFINING, seven records valid and no lesson awaiting a decision. Native-host output is diagnostic, not canonical acceptance or solver verification.",
+  "keep": ["Keep image/spec/worker binding and absence-of-evidence refusals."],
+  "change": ["Data Collection must return actual image-bound solver results and adopted criteria before reference-stage exit."],
+  "protocol_elements": ["reference identity", "code verification", "human authority"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

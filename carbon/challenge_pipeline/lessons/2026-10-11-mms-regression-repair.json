@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-mms-regression-repair",
+  "recorded_at": "2026-10-11T00:47:55Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CODE-VERIFICATION-MMS-01 wider diagnostic", "description": "Native Windows synthetic verification, pipeline and onboarding regression checks."},
+  "expected": "New lessons use the existing closed stage enum, without changing protocol authority.",
+  "observed": "63 passed and three pipeline tests failed because the new lessons used an unsupported reference stage. Both new lessons were corrected to test_iterate. Black and Ruff passed. No reference solver ran.",
+  "keep": ["Keep the pipeline's closed lesson contract and existing tests."],
+  "change": ["Represent reference verification as a test_iterate execution lesson; do not widen the enum for a documentation convenience."],
+  "protocol_elements": ["lessons", "closed schemas", "regression repair"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

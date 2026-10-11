@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-mms-seven-route-diagnostics",
+  "recorded_at": "2026-10-11T00:47:55Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CODE-VERIFICATION-MMS-01 seven-route diagnostics", "description": "Native Windows parser/deck/analytic/symbolic tests only; native solver workers were not executed."},
+  "expected": "CPU workers preserve complete native fields, ordered modes, exact source math and proposed criteria.",
+  "observed": "25 tests passed. Black formatted eight files; Ruff found one import-order issue, repaired separately. No package build, native physics or spend occurred.",
+  "keep": ["Keep distinct basic-worker and application-feature coverage in the handoff."],
+  "change": ["Never treat a vacuum-mode, linear-hex or axial-rod proof as complete case-family verification."],
+  "protocol_elements": ["code verification", "feature gaps", "unadopted criteria"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
