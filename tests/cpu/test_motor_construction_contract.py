@@ -34,13 +34,22 @@ def strategy(**parameters):
     }
 
 
-def test_contract_is_exactly_the_published_krr_surface():
+def test_contract_is_the_published_krr_surface_and_the_neural_menu():
     from carbon import learned_baseline
 
+    # MOTOR-NEURAL-01 (expansion record 0001) adds the two neural families.
     assert dict(registry.rebuildable_families(TOKEN)) == {
-        "kernel_ridge": "motor_kernel_ridge"
+        "kernel_ridge": "motor_kernel_ridge",
+        "mlp": "motor_mlp",
+        "deeponet": "motor_deeponet",
     }
     surfaces = registry.catalog_surfaces(TOKEN)
+    assert surfaces["length"][5] == surfaces["ridge"][5] == ("kernel_ridge",)
+    assert surfaces["basis_functions"][5] == ("deeponet",)
+    assert all(
+        surfaces[name][5] == registry.MOTOR_NEURAL
+        for name in ("width", "depth", "activation", "steps", "learning_rate")
+    )
     assert tuple(registry.MOTOR_LENGTHS) == tuple(learned_baseline.LENGTHS)
     assert tuple(registry.MOTOR_RIDGES) == tuple(learned_baseline.RIDGES)
     assert surfaces["length"][2] == registry.MOTOR_LENGTH_CHOICES
@@ -68,7 +77,7 @@ def test_submission_dispatches_by_challenge_and_refuses_cross_challenge():
     assert compiled.challenge == TOKEN
     assert isinstance(compiled.construction, MotorRecipe)
     wrong = strategy(length="length_4", ridge="ridge_1e_4")
-    wrong["backbone"] = "mlp"
+    wrong["backbone"] = "fno"
     assert {
         (issue.code, issue.path) for issue in validate_for_challenge(wrong).errors
     } == {("backbone.not_in_contract", "/backbone")}
