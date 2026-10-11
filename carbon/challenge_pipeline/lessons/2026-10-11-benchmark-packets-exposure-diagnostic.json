@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-benchmark-packets-exposure-diagnostic",
+  "recorded_at": "2026-10-11T01:44:30Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "BENCHMARK-PACKETS-01/exposure-contract-check",
+    "description": "Focused packet/generator/pipeline diagnostics plus pipeline-data validation, without reference solves."
+  },
+  "expected": "Both laws explicitly state the inherited exposure rule and preserve the drafting tools.",
+  "observed": "33 passed, one exposure phrase check failed: the step law said threshold variants consume original exposure/no fresh evidence but lacked the explicit 'do not renew E' phrase. Added it without changing the policy or test. Pipeline validation passed with 589 valid lessons; Black/Ruff passed. Native output is diagnostic only.",
+  "keep": ["Threshold changes do not create fresh bank evidence", "Immutable generated drafts and no runtime changes"],
+  "change": ["State exposure semantics explicitly in each family law rather than relying on implication"],
+  "protocol_elements": ["bank exposure", "question law", "draft contract"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
