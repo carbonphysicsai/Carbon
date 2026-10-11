@@ -4,8 +4,8 @@ This sheet solves the sealed confirmation questions for the interim look, 150 **
 Hetzner CCX63, under the startup-host custody procedure. The rest happens
 on the AX42.
 
-- **Grant:** OWNER-SCORE-PROOF-CCX63-GRANT-01, a cap of **EUR 8 and 5.8
-  server-hours**, whichever comes first.
+- **Grant:** OWNER-SCORE-PROOF-CCX63-GRANT-01 as amended by -02, a cap of
+  **EUR 8 and 5.8 server-hours**, whichever comes first.
 - **Custody:** OWNER-STARTUP-HOST-CUSTODY-02, following
   [STARTUP_HOST_RUNBOOK.md](../../graphite/STARTUP_HOST_RUNBOOK.md).
 - **The design:** registered in `proof-sequential-v1.json` (target ±0.15,
@@ -24,8 +24,9 @@ directory and `Q` its quiz.
 
 ## 0. Before
 
-- The release containing #1044 is installed on the AX42. The cloud-init
-  for the host names the same release tag.
+- Release **r7** (commit `7b8e89c34`) is installed on the AX42, and the
+  host's cloud-init names the same tag. The shard manifests pin the code
+  commit, so both sides must run r7.
 - **Run 1 of [SCORE_PROOF_OWNER_SHEET.md](SCORE_PROOF_OWNER_SHEET.md) is
   done**, and you have picked a rule from `selection.md`. Call it `<PICK>`.
 
@@ -156,5 +157,17 @@ Per-level screens are FAIL-able, and per-level τ is descriptive.
   wall-time p50;
 - the sealed contract's digest from step 1.
 
-Nothing else leaves the AX42. Shred `$W/seed` once the final look is done
-or abandoned.
+Nothing else leaves the AX42.
+
+## Keep the sealed references (operator custody)
+
+**Keep `$W` on the AX42**, owner-only, after the run: the sealed contract,
+`records.jsonl` (the merged and refined references) and `experiment/`.
+The Level 1–3 members (`panels/proof-panel-levels-v1.json`) are added
+later, through the level-aware experiment, on these same references
+without re-solving. Only the members' rebuilds and evaluation rerun.
+
+- **The seed.** Shred `$W/seed` only after the final look and the
+  level-aware rounds are done or abandoned.
+- **Nothing sealed is copied anywhere else**: not the PC, and not the
+  CCX63 after its wipe.
