@@ -196,6 +196,10 @@ class LevelSpec:
     rebuild_label: Callable
     families: Callable
     seams: tuple
+    #: The family a construction door probes (`b.construction_door`): the
+    #: level's own artifact-and-dependency family, as Level 1's expression
+    #: surface.
+    surface: str
 
 
 class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
@@ -225,6 +229,12 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
 
     def _table(self):
         return self.spec.families()
+
+    def family_for(self, tool, arguments=None):
+        """Which family of this level a research tool call probes, or None."""
+        if b.construction_door(tool, arguments):
+            return self.spec.surface
+        return None
 
     def _engine(self, name):
         row = self._table()[name]
