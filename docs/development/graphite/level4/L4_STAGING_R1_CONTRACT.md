@@ -45,10 +45,17 @@
 
 | Slice | Content | State |
 |---|---|---|
-| 1 | The analysis image carries the tooling closure; the closure test | done (this branch) |
-| 2 | The `envelope` subcommand; `graphite_level4_stage`; the Level 4 role variant | in progress |
-| 3 | The proposal carries the envelope; staged documents in the record | todo |
-| 4 | Pod transport; G6 on the pod; a Level 4 phase-3 dry run that proposes a graph | todo |
+| 1 | The analysis image carries the tooling closure (`research_image.LEVEL4_TOOLING`, staging included); the closure test | done |
+| 2 | The tooling's `envelope` subcommand; `graphite_level4_stage`; the Level 4 role variant (the brief's `level4_stage`) | done |
+| 3 | The proposal carries the envelope (`expected.staged` pins the documents); a never-staged digest is unrebuildable | done |
+| 4 | The pod job carries the envelope; the pod builds with it; the practice program takes the Level 4 build; the bundle carries it, so the clean rebuild is REBUILT | done |
+
+**Tested on the CPU:** a scripted Level 4 Constructor stages a lowered graph through a stand-in miner door, proposes it, is scored on scripted pods and bundled (`test_graphite_level4_session.py`).
+
+**Not yet exercised:**
+- **A live lowering in the miner lane.** It needs the analysis image release carrying slice 1.
+- **G6 training of a graph on a real pod.** The first live Level 4 run exercises it.
+- **G5 (compile in isolation)** stays unwired here, as stated above.
 
 ## Owner-reserved
 
