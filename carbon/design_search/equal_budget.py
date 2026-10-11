@@ -27,6 +27,7 @@ CHALLENGES = {
     "backward-facing-step",
     "bolted-joint",
     "metagrating-3d",
+    "f17",
 }
 ARMS = ("solver_alone", "model_then_solver", "baseline_then_solver")
 
@@ -402,6 +403,8 @@ def compare(panel, *, bootstrap_replicates, confidence, seed, registration=None)
     validate_registration = budget_registration.validate
     if panel["challenge"] == "backward-facing-step":
         from .bfs_budget import validate as validate_registration
+    elif panel["challenge"] == "f17":
+        from .micromixer_budget import validate as validate_registration
     elif panel["challenge"] == "metagrating-3d":
         from .metagrating_budget import validate as validate_registration
     elif panel["challenge"] == "bolted-joint":

@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-f17-main-readiness-inspection",
+  "recorded_at": "2026-10-11T14:24:16Z",
+  "challenge": "f17",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "F17-MICROMIXER-READINESS-BUILD-01", "description": "Native pipeline validate/render --check and read-only onboarding readiness inspection at main 2245f97dfdbe6f605c7c4c3c5485242953003a74. 7 records and 604 lessons valid before these two lessons; readiness 0 YES / 7 PLANNED. No solver/store/hidden enumeration or spend."},
+  "expected": "No unmerged preparation should earn main implementation or reference evidence.",
+  "observed": "The tool inspected the main solver-package specification but could not inspect proposed family implementation yet; it reported plans, not passes. Same authority/domain files as ticket base 5dec44fe7, with no automatic base refresh.",
+  "keep": ["Readiness is immutable-main evidence, not a working-tree readiness declaration."],
+  "change": ["After merge, Data Collection must provide exact image/store, accepted reference checks and registered solved TRAIN; a green software fixture cannot supply them."],
+  "protocol_elements": ["reference policy", "measurement authority", "cost"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

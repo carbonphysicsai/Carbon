@@ -448,6 +448,74 @@ def code_route(tree, family, optimizer=False):
         return "UNKNOWN", "Main unavailable; no implementation inspected", []
     if family in BENCHMARK_ROUTES:
         return benchmark_route(tree, family, optimizer)
+    if family == "f17":
+        requirements = (
+            [
+                (
+                    "carbon/design_search/micromixer_budget.py",
+                    {"validate"},
+                    {"f17", "F17-DEVELOPMENT-PROPOSED-V1"},
+                ),
+                (
+                    "carbon/design_search/equal_budget.py",
+                    {"compare", "_validate"},
+                    {"f17"},
+                ),
+            ]
+            if optimizer
+            else [
+                (
+                    "carbon/challenge_pipeline/micromixer_readiness.py",
+                    {"measure", "decision_report"},
+                    {"f17"},
+                )
+            ]
+        )
+        for path, functions, literals in requirements:
+            raw = tree.read(path)
+            if raw is None:
+                return (
+                    "PLANNED",
+                    "Family preparation not yet on inspected main",
+                    [p for p, _, _ in requirements],
+                )
+            parsed = ast.parse(raw)
+            declared = {n.name for n in parsed.body if isinstance(n, ast.FunctionDef)}
+            values = {
+                n.value
+                for n in ast.walk(parsed)
+                if isinstance(n, ast.Constant) and type(n.value) is str
+            }
+            if not functions <= declared or not literals <= values:
+                return "NO", "Required f17 route incomplete", [path]
+            if optimizer and path.endswith("equal_budget.py"):
+                compare = next(
+                    n
+                    for n in parsed.body
+                    if isinstance(n, ast.FunctionDef) and n.name == "compare"
+                )
+                wired = any(
+                    isinstance(n, ast.ImportFrom)
+                    and n.module == "micromixer_budget"
+                    and any(
+                        a.name == "validate" and a.asname == "validate_registration"
+                        for a in n.names
+                    )
+                    for n in ast.walk(compare)
+                )
+                called = any(
+                    isinstance(n, ast.Call)
+                    and isinstance(n.func, ast.Name)
+                    and n.func.id == "validate_registration"
+                    for n in ast.walk(compare)
+                )
+                if not wired or not called:
+                    return "NO", "f17 budget validator not wired into compare", [path]
+        return (
+            "YES",
+            "Offline family comparison route implemented; real panel/verification/empirical advantage not implied",
+            [p for p, _, _ in requirements],
+        )
     if optimizer:
         path = "carbon/development_comparison/evidence_pipeline.py"
         functions = {"run", "_baseline"}

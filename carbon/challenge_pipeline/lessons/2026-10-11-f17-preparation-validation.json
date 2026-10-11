@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-f17-preparation-validation",
+  "recorded_at": "2026-10-11T14:24:16Z",
+  "challenge": "f17",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "F17-MICROMIXER-READINESS-BUILD-01", "description": "Native pytest: micromixer, equal-budget, budget-registration, portfolio-baseline and evidence-readiness tests; first 85 passed, then 87 after adding label-independence and real-route inspection regressions. Black/Ruff and diff checks passed. No physical solver/build/spend."},
+  "expected": "Preserve all nine conditions, no held-geometry label leakage, no free flow cache or hidden qualification.",
+  "observed": "Toy comparator abstains on geometric extrapolation; all nine conditions of the held geometry remain outside fitting. Raw mixing is unclipped; missing phi/cache pins and malformed or relaxed requirements are refused. Budget extension preserves historical registrations.",
+  "keep": ["Use actual whole-geometry held-out fits, retained phi and separate advective/diffusive balance."],
+  "change": ["Include geometry-hull construction in fit cost and domain/support checks in query cost; do not report only RBF arithmetic as cheap-screen cost."],
+  "protocol_elements": ["measurement authority", "cost", "reference policy"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

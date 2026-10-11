@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-f17-preparation-baseline",
+  "recorded_at": "2026-10-11T14:24:16Z",
+  "challenge": "f17",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "F17-MICROMIXER-READINESS-BUILD-01", "description": "Native existing panel, portfolio comparator and budget tests: 35 passed. No physical solver/build/spend."},
+  "expected": "Reuse neutral preparation/accounting without lowering the complete service envelope.",
+  "observed": "Shared tools pass; exact flow-cache/scalar balance and full-geometry holdouts still need family-specific checks.",
+  "keep": ["Nine conditions belong to one design decision, not nine independent questions."],
+  "change": ["Prepare both velocity and scalar accounting and a strong response-surface competitor."],
+  "protocol_elements": ["reference policy", "measurement authority", "cost"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
