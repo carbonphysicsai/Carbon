@@ -250,6 +250,7 @@ def test_prospective_candidate_uses_v_and_is_invariant_to_unused_predictions():
     assert v.candidate_score(
         blend, registered, report["aggregate"], accuracy=0.25
     ) == pytest.approx(0.5)
+    assert v.candidate_score(blend, registered, report["aggregate"], accuracy=0) == 0
     tampered = copy.deepcopy(candidate)
     tampered["weights"]["v"] = 0.5
     with pytest.raises(v.VerifyAwareError):

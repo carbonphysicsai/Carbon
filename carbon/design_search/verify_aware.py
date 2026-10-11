@@ -541,9 +541,11 @@ def candidate_score(candidate, rule, result, *, accuracy=None, gate_verdict="PAS
     if "a" in candidate["weights"]:
         if accuracy is None:
             return None
-        legs["a"] = _number(accuracy, "accuracy leg", positive=True)
+        legs["a"] = _number(accuracy, "accuracy leg")
         if legs["a"] > 1:
             raise VerifyAwareError("accuracy leg exceeds one")
+    if any(value == 0 for value in legs.values()):
+        return 0.0
     return math.exp(
         sum(
             weight * math.log(legs[name])
