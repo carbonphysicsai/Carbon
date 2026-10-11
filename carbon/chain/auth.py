@@ -135,3 +135,20 @@ class BittensorMessageSigner:
             receiver_ss58=receiver,
             nonce_ns=nonce_ns,
         )
+
+    def sign_status_read(
+        self, body: bytes, *, receiver: str, nonce_ns: int
+    ) -> dict[str, str]:
+        """Sign one `battery_status` read through the signer's read-only kind
+        (`status_read`, LA-F18): the signer is sent the body as well, and
+        signs only when it is exactly one status read. Always the MCP
+        endpoint."""
+        bt = _sdk()
+        return bt.http_auth.sign(
+            self._signer.status_reader(body),
+            method="POST",
+            path="/carbon/v1/mcp",
+            body=body,
+            receiver_ss58=receiver,
+            nonce_ns=nonce_ns,
+        )

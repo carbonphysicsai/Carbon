@@ -9,6 +9,11 @@ Wire protocol, one request per connection, one JSON object per line:
     <- {"ok": true, "signature": "0x<hex>"}
     <- {"ok": false, "refusal": "<Refusal>"}
 
+    -> {"protocol": PROTOCOL, "op": "status_read",
+        "payload": "<btauth/1 payload>", "body": "<the request body>"}
+    <- {"ok": true, "signature": "0x<hex>"}
+    <- {"ok": false, "refusal": "<Refusal>"}
+
     -> {"protocol": PROTOCOL, "op": "commit", "netuid": 567,
         "digest": "sha256:<64 hex>", "unsigned": {...}, "fee": {...}}
     <- {"ok": true, "signature": "0x<hex>", "call": "0x<hex>",
@@ -18,6 +23,13 @@ Wire protocol, one request per connection, one JSON object per line:
 The ``sign`` payload is the exact ``btauth/1`` byte string the verifier
 rebuilds (``bittensor.http_auth.build_payload``). The signer parses it only to
 decide whether to sign; that op never signs anything but these bytes.
+
+``status_read`` (LA-F18, module ``status_read``) is the one read-only kind: the same
+payload, signed only when the body sent beside it hashes to the payload's
+body hash and is exactly one ``battery_status`` request for one submission
+id. It is signed without asking, as ``sign`` signs a status poll; it never
+touches the commitment policy, ledger or auto-confirm allow-list, and it can
+never sign a submission, a commitment or any other extrinsic.
 
 ``commit`` (OWNER-COMMITMENT-POSTER-01) is the one chain extrinsic: a strategy
 commitment, rebuilt and checked by ``commitment.check_request``, and signed
@@ -47,6 +59,7 @@ from pathlib import Path
 
 from . import autoconfirm as ac
 from . import commitment as cm
+from . import status_read as sr
 
 PROTOCOL = "carbon.miner-signer.v1"
 #: The one request target Carbon's miner session signs for.
@@ -82,6 +95,9 @@ class Refusal(str, Enum):
     WRONG_SENDER = "WRONG_SENDER"
     STALE_NONCE = "STALE_NONCE"
     RECEIVER_NOT_ALLOWED = "RECEIVER_NOT_ALLOWED"
+    #: A `status_read` whose body is not exactly one `battery_status` read
+    #: covered by its payload (LA-F18).
+    NOT_A_STATUS_READ = "NOT_A_STATUS_READ"
 
 
 def default_socket(hotkey: str) -> Path:
@@ -284,6 +300,8 @@ class SignerServer:
             }
         if request.get("op") == "commit":
             return self.commit(request)
+        if request.get("op") == sr.OP:
+            return self.status_read(request)
         if (
             request.get("op") != "sign"
             or set(request) != {"protocol", "op", "payload"}
@@ -308,6 +326,42 @@ class SignerServer:
             f"signed a Carbon request ({lines[3]}) for receiver {lines[7]}, "
             f"body sha256 {lines[4][:16]}"
         )
+        return {"ok": True, "signature": "0x" + signature.hex()}
+
+    def status_read(self, request) -> dict:
+        """One `battery_status` read, signed unasked (LA-F18, `status_read`).
+
+        Never the commit path: the commitment policy, ledger, terminal and
+        auto-confirm allow-list are not read, and only the MCP request target
+        is signed for, never the answer-key fetch."""
+        if (
+            set(request) != {"protocol", "op", "payload", "body"}
+            or type(request["payload"]) is not str
+            or type(request["body"]) is not str
+        ):
+            return self._refuse(Refusal.MALFORMED_REQUEST)
+        try:
+            payload = request["payload"].encode("ascii")
+            body = request["body"].encode("ascii")
+        except UnicodeEncodeError:
+            return self._refuse(Refusal.NOT_A_CARBON_REQUEST)
+        refusal = refusal_for(
+            payload,
+            hotkey=self.hotkey,
+            scheme=self.scheme,
+            receivers=self.receivers,
+            now_ns=self._clock(),
+            paths=self.paths & {PATH},
+        )
+        if refusal is not None:
+            return self._refuse(refusal)
+        submission_id = sr.status_read_id(payload, body)
+        if submission_id is None:
+            return self._refuse(Refusal.NOT_A_STATUS_READ)
+        with self._signing:
+            signature = bytes(self._keypair.sign(payload))
+        receiver = payload.decode("ascii").split("\n")[7]
+        self._note(f"signed a read-only status read of {submission_id} for {receiver}")
         return {"ok": True, "signature": "0x" + signature.hex()}
 
     def commit(self, request) -> dict:

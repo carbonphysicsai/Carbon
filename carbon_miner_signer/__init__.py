@@ -10,6 +10,10 @@ it is deliberately not part of Carbon's product process:
 - it listens on a Unix socket only the miner's own user can reach, and signs
   only Carbon ``btauth/1`` request payloads from its own hotkey, with a fresh
   nonce, never an arbitrary message;
+- its one read-only kind, ``status_read`` (LA-F18), signs only a
+  ``battery_status`` read of one submission id, checked against the request
+  body it is sent with, unasked; it never reaches the commit path
+  (``status_read``);
 - its one chain extrinsic is a strategy commitment
   (``Commitments.set_commitment``, OWNER-COMMITMENT-POSTER-01): it rebuilds
   the call and checks every bound itself (``commitment``), never opens a
