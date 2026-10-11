@@ -1,5 +1,14 @@
 # BFS readiness build — PUBLIC DEVELOPMENT only
 
+## #1047 bridge after PR Head base sync
+
+The retained BFS-DEVELOPMENT-PROPOSED-V1 proposal now validates through
+`carbon.design_search.bfs_budget` and the conditional family route in
+`equal_budget.compare`. It reuses the shared BudgetLedger and provenance/tier
+form. Historical EQUAL-BUDGET-V1 remains the closed four-family registration.
+Every evaluation is one complete duty-weighted contour/service brief, including
+refinement and final verification. Proposal acceptance is not spend authority.
+
 BENCHMARK-READINESS-BUILD-BFS-01. No solver installation/build/run, paid
 dispatch, hidden data, bank draw, activation or adoption. #1053 carries the
 17 delegated decisions; its merge is required before authority-dependent
