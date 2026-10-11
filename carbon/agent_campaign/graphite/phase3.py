@@ -177,9 +177,9 @@ from ..provider import (
     RunStatus,
     TaskSpec,
 )
+from . import capability_log, grant_binding, level_domain, model_providers, next_level
 from . import delivery as deliver_
 from . import experiment as ex
-from . import grant_binding, level_domain, model_providers, next_level
 from . import literature as lit
 from . import score_variant as sv
 from . import tools as toolbox
@@ -1021,6 +1021,7 @@ def session_brief(
     scoring=None,
     variant=None,
     tool_text=TOOL_TEXT_V2,
+    capability_wish_text=False,
     score_variant=None,
     study=None,
     level_domain_text=False,
@@ -1069,6 +1070,10 @@ def session_brief(
             "say why."
         ),
     }
+    if capability_wish_text:
+        # Opt-in: a brief recorded without it keeps its digest (replays byte for byte).
+        observation["capability_wish"] = capability_log.WISH_BRIEF
+        observation["instructions"] += capability_log.WISH_INSTRUCTIONS
     if score_variant is not None:
         observation["score_variant"] = score_variant
     # The level's declared domain, intersected with the backends this Challenge's
@@ -1087,6 +1092,12 @@ def session_brief(
             " The level's domain is in level_domain: use only the families, names and "
             "values it lists, and keep to its combination rules."
         )
+        if domain.get("level") and domain.get("level_additions"):
+            observation["instructions"] += (
+                " level_domain.level_additions lists what this level adds over "
+                "Level 0 and the strategy field each goes in; a recipe may use them "
+                "or not."
+            )
     return SessionBrief(
         role=RoleName.CONSTRUCTOR,
         initial_observation=observation,
@@ -1171,10 +1182,12 @@ def recorded_level(opened, scoring, score_variant=None):
     return None if found is None else found.level
 
 
-def controller_for(root, provider, grant, clock=None):
+def controller_for(root, provider, grant, clock=None, shared_runs=False):
     from ..controller import CampaignController
 
     kwargs = {} if clock is None else {"clock": clock}
+    if shared_runs:
+        kwargs["shared_runs"] = True
     return CampaignController(
         root=Path(root) / "controller",
         provider=provider,
@@ -1802,6 +1815,7 @@ def command_run(args):
                 key_file=runpod,
                 code_ref=args.code_ref,
                 scoring=scoring,
+                retry_ambiguous_create=True,
             )
         else:
             pods = carrier_pods(root / "carrier", args.image_manifest)
@@ -1831,7 +1845,7 @@ def command_run(args):
             check_resume(provider, args.session)
         except ResumeRefused as refused:
             raise RunnerRefused(refused.code) from None
-        control = controller_for(root, provider, grant)
+        control = controller_for(root, provider, grant, shared_runs=True)
         try:
             budget = provider.budget
             brief = session_brief(
@@ -1840,6 +1854,7 @@ def command_run(args):
                 literature=literature,
                 scoring=scoring,
                 variant=variant,
+                capability_wish_text=True,
                 score_variant=sv.identity_of(scored),
                 study=getattr(args, "study", None),
                 level_domain_text=True,

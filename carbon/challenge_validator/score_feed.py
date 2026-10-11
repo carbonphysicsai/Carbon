@@ -434,9 +434,12 @@ def build(target, *, key, hotkey, network, device_class="cpu", with_showcase=Fal
             # `active_batches` rotations (OWNER-BANK-EXPOSURE-E1-TESTNET-01).
             # At E > 1 a window waits for its slowest case's E-th draw, which
             # no single figure states, so none is shown.
+            # A scheduled draw (OWNER-BANK-SCHEDULED-ROTATION-01) fixes it
+            # too: a window's freshest cases take their E-th exposure (E - 1)
+            # strides of `active_batches` later, then that window's live span.
             "expected_lag_blocks": (
-                rule["active_batches"] * rotation
-                if bank.get("retire_at") == 1
+                bank["retire_at"] * rule["active_batches"] * rotation
+                if (bank.get("retire_at") == 1 or bank.get("draw") == "scheduled")
                 and rotation is not None
                 and type(rule.get("active_batches")) is int
                 else None

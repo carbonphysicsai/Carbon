@@ -841,7 +841,10 @@ class Producer:
                 # A bank the operator's timer refills (`top_up: False`) that
                 # is short leaves the slot unfilled: a case is never drawn
                 # twice, and the tick still retires and releases.
-                if str(refused) != "producer_bank_short":
+                if str(refused) not in (
+                    "producer_bank_short",
+                    "producer_design_bank_short",
+                ):
                     raise
                 drawn, short = None, True
         if fingerprint is None and drawn is not None:

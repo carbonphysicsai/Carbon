@@ -166,5 +166,14 @@
   "revised": "2026-10-10, before any TRAIN solve (Test Lead): the first 12 geometries are axis anchors (each axis at its grammar min and max, the rest valid random draws) so TRAIN's per-axis support covers every panel row; 116 LHS follow",
   "plan_sha256_superseded": "89baa02126f543c72dc3cb873e12c93542ef03b3b37269ffb6dfe8779e18197c",
   "domain_check": "#1035 kit (claude/motor-10p12s-kit @ 6d5e2dcd7) support rule, TRAIN support from this plan's inputs: 44 of 44 panel rows (motor-export questions[0], J10-g0) inside"
+ },
+ "amendment_4": {
+  "registered": "2026-10-11, before any amendment-4 solve",
+  "authority": "Test Lead under dev autonomy, 2026-10-11: test both ripple levers before NONE_FEASIBLE; local CPU only; limits unchanged",
+  "skew_6deg": "versioned action-grammar change: skew span 6 deg added (slices d = -3, 0, +3 deg; gamma - 5 d); applied to r00, r01, r03, r04, f00, f07 (r00 nearest, the rest reach 12 N m): J 10 and J 15 at gamma -15/+15, 24 solves",
+  "bisection": "f00 (peak) -> f02 (ripple) at t = 1/6..5/6 (5 points, all geometrically valid), each with the full 0/2/4/6-deg bundle: J 0 + J 10 and J 15 at gamma 0, +-5, +-10, +-15 = 15 solves, 75 solves",
+  "plan_sha256": "afc5ccc4677a4e8cda120b6fbc665a5927afdb1925e76651cce8fbafadab07ad",
+  "cpu_estimate": "99 standard solves, about 55-120 allocated CPU-h (recent 0.55, loaded-host bound 1.2 per solve)",
+  "report": "full-question feasible count (holding + 12 N m peak + cogging, limits unchanged) over every action including 6 deg; if 0, NONE_FEASIBLE stands and the buyer-limit question goes to the Test Lead"
  }
 }
