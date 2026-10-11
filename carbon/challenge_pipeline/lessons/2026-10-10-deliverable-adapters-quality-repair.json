@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-deliverable-adapters-quality-repair",
+  "recorded_at": "2026-10-10T19:13:30Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "DELIVERABLE-ADAPTERS-01", "description": "Native generator and pipeline tests: 42 passed; Black check passed. Ruff found TRY004 on malformed aggregate source type; changed its refusal to TypeError and the test to accept the typed refusal."},
+  "expected": "All malformed public source documents refuse with a visible extraction gap.",
+  "observed": "Scientific/source behavior passed; lint requested a more precise exception type. The renderer already catches TypeError to preserve a gap.",
+  "keep": ["Do not repair missing aggregate values or publish arbitrary source objects."],
+  "change": ["Rerun pinned quality and focused tests after the exception repair."],
+  "protocol_elements": ["customer deliverable", "lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

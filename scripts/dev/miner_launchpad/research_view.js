@@ -519,6 +519,7 @@
       if (byId.trend_score) chart(trend, byId.trend_score); else para(trend, "No practice run yet. Each completed run adds a point.", "empty-state");
       if (byId.trend_components) chart(trend, byId.trend_components);
     });
+    part(grid, "gate-breakdown", JSON.stringify(doc.practice_gate_breakdown || null), box => drawGateBreakdown(box, doc.practice_gate_breakdown), "rs-gate-breakdown rs-panel rs-wide", "section");
     part(grid, "compare", JSON.stringify([byId.components || null, doc.comparison]), compare => {
       head(compare, "This run against the previous", "Experiment output");
       if (byId.components) chart(compare, byId.components);
@@ -718,7 +719,56 @@
       // machine code a status sentence stands for).
       const own = [...card.querySelectorAll(":scope > details")].pop();
       if (own) card.insertBefore(box, own); else card.append(box);
+      // Its construction levels (LAUNCHPAD-LEVELS-01 S1), read when opened:
+      // one generic table, the same for every level and every Challenge.
+      const levels = el("details", undefined, "rs-ladder");
+      levels.append(el("summary", "Construction levels"));
+      const levelsBody = el("div", undefined, "detail-body");
+      levels.append(levelsBody);
+      levels.addEventListener("toggle", async () => {
+        if (!levels.open || levelsBody.dataset.loaded) return;
+        levelsBody.dataset.loaded = "1";
+        levelsBody.replaceChildren(el("p", "Reading the construction levels…", "hint"));
+        try {
+          const view = await CC.api("/api/v1/operations/ladder", {challenge: card.dataset.challenge}, undefined, 20000);
+          levelsBody.replaceChildren(); renderLadder(levelsBody, view);
+        } catch (error) { levelsBody.replaceChildren(el("p", "Not available: " + words(error.message) + ". It needs a runner profile on this controller.", "hint")); levelsBody.dataset.loaded = ""; }
+      });
+      if (own) card.insertBefore(levels, own); else card.append(levels);
     }
+  }
+  // A Challenge's construction levels, read only (LAUNCHPAD-LEVELS-01 S1).
+  // Every level is drawn by the same code from the same keys.
+  function renderLadder(parent, view) {
+    if (!view || view.status === "UNAVAILABLE") { para(parent, "The construction levels could not be read" + (view?.reason ? ": " + words(view.reason) : "") + ".", "hint"); return; }
+    para(parent, view.status === "ON_LADDER" ? "On the ladder at Level " + view.ladder.level + "; chosen level: " + (view.ladder.chosen === null ? "none yet" : view.ladder.chosen) + "." : "Not yet on the construction ladder.", "lede");
+    para(parent, view.read_only, "hint");
+    para(parent, view.audience_basis, "hint");
+    const wrap = el("div", undefined, "table-wrap"); const table = el("table", undefined, "metrics-table");
+    const head = el("tr"); for (const n of ["Level", "State", "For", "Variant", "Capabilities", "Left out", "Compute budget"]) head.append(el("th", n)); table.append(head);
+    for (const row of view.levels) {
+      const tr = el("tr");
+      const level = el("td"); level.append(el("strong", String(row.level)), el("span", " " + row.text, "hint"));
+      const variant = row.variant ? row.variant.name + (row.variant.refusal ? " · " + words(row.variant.refusal) : "") + (row.arms.length ? " · arms: " + row.arms.map(a => a.arm).join(", ") : "") : (row.variant_refusal ? words(row.variant_refusal) : "–");
+      const caps = el("td");
+      if (row.capabilities.length) {
+        const box = el("details"); box.append(el("summary", String(row.capabilities.length)));
+        const list = el("ul", undefined, "rs-list");
+        for (const c of row.capabilities) {
+          const li = el("li"); li.append(el("strong", c.id), el("span", " " + (c.summary || ""), "hint"));
+          for (const w of c.widened) li.append(el("span", " Widened by " + w.variant + (w.arm ? " (arm " + w.arm + ")" : "") + ": " + JSON.stringify(w.surface) + " " + JSON.stringify(w.bounds), "hint"));
+          if (c.proposal) li.append(el("span", " Bounds: " + c.proposal.bounds, "hint"));
+          list.append(li);
+        }
+        box.append(list); caps.append(box);
+      } else caps.textContent = "none";
+      const left = el("td");
+      if (row.left_out.length) { const box = el("details"); box.append(el("summary", String(row.left_out.length))); const list = el("ul", undefined, "rs-list"); for (const t of row.left_out) list.append(el("li", t)); box.append(list); left.append(box); } else left.textContent = "–";
+      const budget = row.compute_budget.status === "SET" ? row.compute_budget.value + " " + row.compute_budget.unit : words(row.compute_budget.status);
+      tr.append(level, el("td", words(row.state)), el("td", words(row.audience)), el("td", variant), caps, left, el("td", budget));
+      table.append(tr);
+    }
+    wrap.append(table); parent.append(wrap);
   }
   function metricsTable(parent, doc) {
     const c = doc.comparison;
@@ -795,6 +845,32 @@
     if (run && run.selects === "miner" && CC.renderJourneyPractice) part(panel, "journey", journeyKey(run, "practice"), box => CC.renderJourneyPractice(box, run), "rs-journey-part", "div");
     part(panel, "runs", JSON.stringify([doc.experiments, doc.charts, doc.declaration?.components || null, (doc.toolbox?.runtimes || []).find(r => r.default)?.id || null]), box => drawExperiments(box, doc));
   }
+  function drawGateBreakdown(box, breakdown) {
+    head(box, "Practice gate failures", "Local campaign");
+    if (!breakdown || breakdown.status === "UNAVAILABLE_PUBLIC_GATE_LIST") {
+      para(box, "Per-gate counts are unavailable because this Challenge has no registered public gate list here.", "hint");
+      return;
+    }
+    if (breakdown.status === "NO_TRIALS") {
+      para(box, "No practice trials recorded yet. No gate outcome has been measured.", "hint");
+      return;
+    }
+    para(box, breakdown.checked_trials + " of " + breakdown.exported_trials + " trials have usable summaries; " + breakdown.unverified_trial_summaries + " are missing, incomplete, or contradictory. " + breakdown.trials_passing_all_gates + " trial summaries report passing every practice gate.", "hint");
+    if (breakdown.status === "INSUFFICIENT_VERIFIED_SUMMARIES") para(box, "No trial summary is usable. Reported failure counts below may include contradictory feedback.", "reason");
+    const wrap = el("div", undefined, "table-wrap");
+    const table = el("table", undefined, "metrics-table");
+    const labels = el("tr");
+    for (const label of ["Gate", "Trials failed", "Cases failed"]) labels.append(el("th", label));
+    table.append(labels);
+    for (const [name, counts] of Object.entries(breakdown.gate_failures || {})) {
+      const row = el("tr");
+      row.append(el("td", words(name)), el("td", String(counts.trials)), el("td", String(counts.cases)));
+      table.append(row);
+    }
+    wrap.append(table); box.append(wrap);
+    if (breakdown.unrecognized_gate_names) para(box, breakdown.unrecognized_gate_names + " unrecognized gate name(s) were withheld.", "hint");
+    para(box, "Counts use your local public PRACTICE summaries. One trial may fail more than one gate; this does not change a gate or the exam.", "hint");
+  }
   function drawExperiments(box, doc) {
     const rows = doc.experiments.rows.slice().reverse();
     head(box, "Practice runs", doc.experiments.total + " recorded");
@@ -804,7 +880,7 @@
     const wrap = el("div", undefined, "table-wrap");
     const table = el("table", undefined, "metrics-table");
     const headRow = el("tr");
-    for (const name of ["Run", "Model", "Gates", "Score", ...keys.map(k => labels[k] || k), "Final loss", "Framework", "Ran on"]) headRow.append(el("th", name));
+    for (const name of ["Run", "Model", "Gates", "Score", ...keys.map(k => labels[k] || k), "Final loss", "Compute budget", "Framework", "Ran on"]) headRow.append(el("th", name));
     table.append(headRow);
     const fallback = (doc.toolbox?.runtimes || []).find(r => r.default)?.id;
     for (const r of rows) {
@@ -813,7 +889,7 @@
       for (const k of keys) row.append(el("td", fmt(r.components[k])));
       // What the run actually ran on: its recipe's framework (or the
       // Challenge's default) and the worker record's backend and image.
-      row.append(el("td", fmt(r.fit.final_loss)), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.ran_on || (r.backend ? words(r.backend).toLowerCase() : null), r.image].filter(Boolean).join(" · ") || "–"));
+      row.append(el("td", fmt(r.fit.final_loss)), el("td", (CC.budgetLine && CC.budgetLine(r.budget_status)) || "–"), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.ran_on || (r.backend ? words(r.backend).toLowerCase() : null), r.image].filter(Boolean).join(" · ") || "–"));
       table.append(row);
     }
     wrap.append(table); box.append(wrap);
@@ -878,7 +954,8 @@
     fact("Contract digest", c.contract_digest || "unavailable");
     fact("Exam rule", [c.exam.rule.status, c.exam.rule.authority].filter(Boolean).map(words).join(" · ") || "unavailable");
     fact("Feedback mode", (c.feedback_mode?.frozen || "FULL") + " · " + (c.feedback_mode?.basis || ""));
-    fact("Construction level", c.construction_level.level === null ? "Not yet defined. " + c.construction_level.basis : String(c.construction_level.level));
+    const cl = c.construction_level;
+    fact("Construction level", cl.level === null ? "Not yet defined. " + cl.basis : ["Level " + cl.level, cl.text, cl.state && words(cl.state), cl.audience && words(cl.audience)].filter(Boolean).join(" · ") + ". " + (cl.basis || ""));
     top.append(facts);
     const models = section(panel, "Rebuildable models", c.rebuildable_models.length + " families");
     const ml = el("ul", undefined, "rs-list");

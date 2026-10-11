@@ -32,6 +32,8 @@ from . import research_guidance as guidance
 from .data import write_once
 from .gpu_research import PublicGPUPractice, registered_gpu_image
 from .model_provider import (
+    INPUT_DEFAULT_V2,
+    INPUT_DEFAULTS,
     MODEL,
     OUTPUT_DEFAULT_V2,
     OUTPUT_DEFAULTS,
@@ -470,8 +472,36 @@ async def prepare(args, *, ledger=None):
     """
     from carbon.challenge_registry.campaigns import campaign_challenge, campaign_for
 
+    refuse_old_revision(args)
     campaign = campaign_for(campaign_challenge(args))
     return await campaign.prepare(args, ledger=ledger, campaign=campaign)
+
+
+#: A frozen campaign resumed under another accepted revision (LA-F19).
+FROZEN_ON_OLD_REVISION = "campaign_frozen_on_old_revision"
+
+
+def refuse_old_revision(args):
+    """`OperationRefused(FROZEN_ON_OLD_REVISION)` when a frozen campaign is
+    resumed under an accepted revision other than the one it was frozen
+    under (LA-F19).
+
+    Every Challenge's preparation refuses that campaign anyway, comparing
+    its frozen runtime with the one this checkout composes, but as a bare
+    ValueError, so a miner operation was recorded INTERRUPTED with no code.
+    Named here, before any Challenge's own checks. A manifest that cannot be
+    read, or names no revision, is left to those checks."""
+    accepted = getattr(args, "accepted_revision", None)
+    if getattr(args, "command", None) != "resume" or accepted is None:
+        return
+    try:
+        manifest = json.loads((Path(args.root) / "campaign-manifest.json").read_bytes())
+    except (OSError, ValueError):
+        return
+    implementation = manifest.get("implementation") if type(manifest) is dict else None
+    frozen = implementation.get("revision") if type(implementation) is dict else None
+    if type(frozen) is str and frozen != accepted:
+        raise OperationRefused(FROZEN_ON_OLD_REVISION)
 
 
 async def prepare_burgers(args, *, ledger=None, campaign):
@@ -765,12 +795,13 @@ async def prepare_burgers(args, *, ledger=None, campaign):
     )
 
 
-def supplied_selection(args, *, output_default=None):
+def supplied_selection(args, *, output_default=None, input_default=None):
     """The miner's `args.model_selection` ({provider_id, model_id, settings?,
     endpoint?, declared_pricing?, credential?}), or the pinned default when
     none is given. A file credential is the `--api-key-file` supplied at run
-    time; its path is never recorded. `output_default` is how an unset
-    output cap is chosen (`model_provider.select`)."""
+    time; its path is never recorded. `output_default` and `input_default`
+    are how an unset output cap and input window are chosen
+    (`model_provider.select`)."""
     supplied = getattr(args, "model_selection", None)
     path = getattr(args, "api_key_file", None)
     spec = (
@@ -782,8 +813,25 @@ def supplied_selection(args, *, output_default=None):
         raise ValueError("model selection must be an object")
     credential = {"kind": "file", "reference": "unset" if path is None else str(path)}
     return select(
-        **{"credential": credential, **spec, "output_default": output_default}
+        **{
+            "credential": credential,
+            **spec,
+            "output_default": output_default,
+            "input_default": input_default,
+        }
     )
+
+
+def new_plan_input_default(args, agent):
+    """How a new campaign's input window is chosen when the miner sets none.
+    A Graphite miner-edition product campaign reads whole discovery documents
+    on the miner's own budget, so it opens with the selected model's
+    published context less its output cap (`INPUT_DEFAULT_V2`,
+    OWNER-GRAPHITE-MINER-INPUT-WINDOW-01). Every other campaign keeps the
+    historical 65,536."""
+    if agent == "graphite" and getattr(args, "product", None) is not None:
+        return INPUT_DEFAULT_V2
+    return None
 
 
 def new_plan_output_default(args):
@@ -799,16 +847,21 @@ def resolve_selection(args, record):
     """A frozen campaign's selection from its recorded block; a differing
     `model_selection` supplied on resume is refused.
 
-    A supplied choice that sets no output cap names the frozen one under
-    either output default: the plan recorded the cap its own rule chose, and
-    resolving it again under today's rule must not refuse an earlier plan."""
+    A supplied choice that sets no output cap or input window names the
+    frozen one under either default: the plan recorded the values its own
+    rules chose, and resolving it again under today's rules must not refuse
+    an earlier plan."""
     path = getattr(args, "api_key_file", None)
     chosen = selection_from_record(
         record, credential_file=None if path is None else str(path)
     )
     if getattr(args, "model_selection", None) is not None and all(
-        supplied_selection(args, output_default=rule).record() != chosen.record()
-        for rule in OUTPUT_DEFAULTS
+        supplied_selection(
+            args, output_default=output_rule, input_default=input_rule
+        ).record()
+        != chosen.record()
+        for output_rule in OUTPUT_DEFAULTS
+        for input_rule in INPUT_DEFAULTS
     ):
         raise ValueError("model selection differs from the frozen campaign's")
     return chosen
@@ -1172,14 +1225,23 @@ def freeze_refusal(root, strategy):
     return None
 
 
-async def freeze_candidate(prepared, *, strategy, reason, used_feedback=False):
+async def freeze_candidate(
+    prepared, *, strategy, reason, used_feedback=False, level4_directory=None
+):
     """A miner freezes a practiced recipe as this epoch's candidate.
 
     The record is the one the agent's SELECT writes, built by the same
     function. Refused, with nothing written, for a recipe with no practice
     result, while a frozen candidate awaits submission, or once both committed
     final exams are used.
+
+    A campaign launched at a construction level freezes at it
+    (LAUNCHPAD-LEVELS-01): the level's compile, the variant's digest as the
+    record's `contract_digest`, and for Level 4 the lowered submission in
+    `level4_directory`, checked and kept beside the record as its staging
+    envelope (`construction_level`). Its refusals are closed codes.
     """
+    from . import construction_level as cl
     from .research_loop import _epoch_paths, candidate_record
 
     ledger, owner = prepared.ledger, prepared.owner
@@ -1187,10 +1249,21 @@ async def freeze_candidate(prepared, *, strategy, reason, used_feedback=False):
     refusal = freeze_refusal(ledger.root, strategy)
     if refusal is not None:
         raise OperationRefused(refusal)
+    found = cl.binding(prepared.manifest)
+    try:
+        compiled, envelope = cl.check_freeze(found, strategy, level4_directory)
+    except cl.LevelRefused as refused:
+        raise OperationRefused(refused.code) from None
     epoch = _open_epoch(prepared)
-    record = candidate_record(strategy, reason, used_feedback)
+    record = (
+        candidate_record(strategy, reason, used_feedback)
+        if found is None
+        else cl.candidate_record(found, strategy, reason, used_feedback, compiled)
+    )
     ledger.checkpoint()
     folder = _epoch_paths(ledger, epoch)
+    if envelope is not None:
+        cl.write_envelope(folder, envelope)
     write_once(folder / "selected-recipe.json", canonical(record))
     write_once(
         folder / "outcome.json",

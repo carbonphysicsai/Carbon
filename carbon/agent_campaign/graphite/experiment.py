@@ -199,7 +199,10 @@ def phase3_budget(grant, scoring=None, hourly_usd=None):
     tokens); otherwise the RunPod rate ceiling (`pods.prices`)."""
     scoring = challenge_scoring.resolve(scoring)
     if hourly_usd is None:
-        hourly_usd = podlib.prices()["hourly_usd"]
+        # The grant's own pod rate ceiling when it names one.
+        hourly_usd = podlib.prices(getattr(grant, "pod_rate_ceiling_usd_per_hr", None))[
+            "hourly_usd"
+        ]
     minutes = podlib.proposal_minutes(scoring)
     # A tokens-only grant (`grant_binding.tokens_only`) has a pod money
     # budget of 0: the whole run cost is its token share, and a pod that

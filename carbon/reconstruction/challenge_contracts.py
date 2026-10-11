@@ -18,6 +18,7 @@ Challenge, is refused by name (`development_variant_not_served`).
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 from carbon.reconstruction.capability_registry import (
@@ -48,7 +49,18 @@ ISSUE_MESSAGES = {
         "This names a development-only contract variant, which is never served "
         "to miners."
     ),
+    "budget.over_compute_budget": (
+        "This recipe's calculated compute cost is over the Challenge's compute budget."
+    ),
+    "budget.cost_unmeasurable": (
+        "This recipe's compute cost cannot be calculated in the budget's unit."
+    ),
 }
+#: The contract envelope key a Challenge declares its compute budget under
+#: (OWNER-COMPUTE-BUDGET-01): `{"unit": <cost report key>, "value": <ceiling>}`.
+#: No live contract declares one yet; a Challenge switches on only after the
+#: owner's decision on its study (TRAINING-BUDGET-01).
+COMPUTE_BUDGET = "compute_budget"
 
 
 def _issue(code, path):
@@ -145,10 +157,12 @@ def _result(issues):
 class SubmissionRefused(ValueError):
     """A submission refused with every reason named by code and path."""
 
-    def __init__(self, issues):
+    def __init__(self, issues, *, budget=None):
         self.issues = tuple(issues)
         if not self.issues or not all(type(i) is ValidationIssue for i in self.issues):
             raise TypeError("named ValidationIssue reasons required")
+        #: For a compute budget refusal: `{unit, used, allowed}`; else None.
+        self.budget = budget
         super().__init__(
             "submission refused: " + ",".join(f"{i.code}@{i.path}" for i in self.issues)
         )
@@ -204,4 +218,136 @@ def compile_submission(strategy, *, contract_digest=None):
         # A registered construction contract without a compiler is a repository
         # defect, not a candidate refusal or a fallback to another Challenge.
         raise RuntimeError("no compiler for a registered contract") from None
+    check_compute_budget(item, strategy)
     return CompiledSubmission(challenge, item.digest, compiled, construction)
+
+
+#: Whether a recipe is inside its Challenge's compute budget, as every door
+#: shows it (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01). `budget_status` gives it and
+#: `check_compute_budget` admits by it, so a display and a refusal cannot
+#: disagree on the same recipe.
+BUDGET_STATUS_SCHEMA = "carbon.compute-budget-status.v1"
+#: No declared budget: no number is shown, and admission computes nothing.
+BUDGET_NOT_SET = "NOT_SET"
+#: A declared budget and the recipe's cost in its unit: `used`, `allowed` and
+#: `within` are all known.
+BUDGET_SET = "SET"
+#: A declaration that is not `{"unit": <str>, "value": <number above 0>}`: a
+#: repository defect, never a recipe's.
+BUDGET_MALFORMED = "MALFORMED"
+#: The calculator refused this recipe, or gave no number in the budget's unit.
+BUDGET_UNMEASURABLE = "UNMEASURABLE"
+#: The Challenge has no training budget adapter, so no cost can be calculated.
+BUDGET_NO_ADAPTER = "NO_ADAPTER"
+#: The budget's unit needs factors the Challenge's study has not fitted yet
+#: (`HUMAN_INPUT`).
+BUDGET_UNIT_NOT_CALIBRATED = "UNIT_NOT_CALIBRATED"
+#: A declared budget the recipe's cost cannot be compared with: admission
+#: refuses each `budget.cost_unmeasurable`, never lets it through.
+BUDGET_UNMEASURED = frozenset(
+    {BUDGET_UNMEASURABLE, BUDGET_NO_ADAPTER, BUDGET_UNIT_NOT_CALIBRATED}
+)
+
+
+def declared_compute_budget(item):
+    """`(status, budget)` for a contract's envelope: `(NOT_SET, None)`,
+    `(MALFORMED, None)` or `(SET, {"unit", "value"})`. The one parse of the
+    declaration every reader uses; no budget is ever invented here."""
+    envelope = dict(item.document()["envelope"])
+    budget = envelope.get(COMPUTE_BUDGET)
+    if budget is None:
+        return BUDGET_NOT_SET, None
+    if not (
+        type(budget) is dict
+        and set(budget) == {"unit", "value"}
+        and type(budget["unit"]) is str
+        and type(budget["value"]) in (int, float)
+        and math.isfinite(budget["value"])
+        and budget["value"] > 0
+    ):
+        return BUDGET_MALFORMED, None
+    return BUDGET_SET, {"unit": budget["unit"], "value": budget["value"]}
+
+
+def _measured_budget(item, strategy, level=0):
+    """`(status, report)`: the budget status and the calculator's report (None
+    when nothing was calculated)."""
+    if type(item) is str:
+        # No construction contract, so no envelope declares a budget.
+        item = CONTRACTS.get(item)
+    status = {
+        "schema": BUDGET_STATUS_SCHEMA,
+        "status": BUDGET_NOT_SET,
+        "unit": None,
+        "used": None,
+        "allowed": None,
+        "within": None,
+    }
+    if item is None:
+        return status, None
+    state, budget = declared_compute_budget(item)
+    if state != BUDGET_SET:
+        return {**status, "status": state}, None
+    status = {
+        **status,
+        "status": BUDGET_SET,
+        "unit": budget["unit"],
+        "allowed": budget["value"],
+    }
+    from carbon.training_budget import cost as calculator
+    from carbon.training_budget.adapter import NoAdapter
+
+    try:
+        # A development recipe is costed at its own level (TRAINING-BUDGET-02);
+        # Level 0 calls the calculator exactly as before.
+        ladder = {"level": level} if level else {}
+        report = calculator.cost(strategy["challenge_id"], strategy, **ladder)
+    except NoAdapter:
+        return {**status, "status": BUDGET_NO_ADAPTER}, None
+    except calculator.CostRefused:
+        return {**status, "status": BUDGET_UNMEASURABLE}, None
+    value = report.get(budget["unit"])
+    if value == calculator.HUMAN_INPUT:
+        return {**status, "status": BUDGET_UNIT_NOT_CALIBRATED}, report
+    if type(value) not in (int, float) or not math.isfinite(value):
+        return {**status, "status": BUDGET_UNMEASURABLE}, report
+    return {**status, "used": value, "within": value <= budget["value"]}, report
+
+
+def budget_status(item, strategy, level=0):
+    """Whether `strategy` is inside the compute budget of `item` (a contract,
+    or a Challenge id): `{schema, status, unit, used, allowed, within}`.
+
+    NOT_SET (no declared budget) and MALFORMED carry no number and compute
+    nothing. With a declared budget the cost is the training budget
+    calculator's (`carbon.training_budget.cost`) on this host's image, and
+    `within` is `used <= allowed`; the validator's figure on its pinned image
+    decides. Admission (`check_compute_budget`) refuses by this same status."""
+    return _measured_budget(item, strategy, level)[0]
+
+
+def check_compute_budget(item, strategy, level=0):
+    """Refuse a recipe over the contract's declared compute budget.
+
+    Only a contract whose envelope declares `compute_budget` is checked; the
+    others keep their per-setting caps and nothing is computed. The verdict is
+    `budget_status`'s, so the doors that show it and this check agree. A cost
+    that cannot be calculated in the budget's unit is refused, never let
+    through. A refusal carries `budget`: the unit, the cost (None when it
+    could not be calculated) and the ceiling."""
+    status, report = _measured_budget(item, strategy, level)
+    if status["status"] == BUDGET_NOT_SET:
+        return None
+    if status["status"] == BUDGET_MALFORMED:
+        # A malformed declaration is a repository defect, not a refusal.
+        raise RuntimeError("malformed compute budget declaration")
+    detail = {key: status[key] for key in ("unit", "used", "allowed")}
+    if status["status"] in BUDGET_UNMEASURED:
+        raise SubmissionRefused(
+            (_issue("budget.cost_unmeasurable", "/parameters"),), budget=detail
+        )
+    if not status["within"]:
+        raise SubmissionRefused(
+            (_issue("budget.over_compute_budget", "/parameters"),), budget=detail
+        )
+    return report

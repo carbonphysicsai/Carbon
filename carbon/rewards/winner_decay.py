@@ -33,6 +33,34 @@ POLICY_DIR = Path(__file__).resolve().parent / "weight_policies"
 POLICY_SCHEMA = "carbon.rewards.testnet-winner-policy.v1"
 REGISTRY_SCHEMA = "carbon.rewards.weight-policy-registry.v1"
 AUTHORITY = "OWNER-TESTNET-WEIGHTS-01"
+#: The owner records that may author a registered policy, per network.
+#: OWNER-TESTNET-WEIGHTS-01 covers testnet 567 only. OWNER-WEIGHTS-AUTHORITY-01
+#: (no authorization-only weight blocks, testnet or mainnet; its hold lifted
+#: by OWNER-WEIGHTS-HOLD-LIFT-01) covers both, so the same rule runs on
+#: mainnet. A network outside this table has no policy.
+MAINNET_AUTHORITY = "OWNER-WEIGHTS-AUTHORITY-01"
+NETWORK_AUTHORITIES = {
+    "testnet": frozenset({AUTHORITY, MAINNET_AUTHORITY}),
+    "finney": frozenset({MAINNET_AUTHORITY}),
+}
+TESTNET_NETUID = 567
+
+
+def network_authorized(network, netuid, authority):
+    """Whether `authority` may name `network`/`netuid`: a network in
+    `NETWORK_AUTHORITIES`, one of its records, a real netuid, and testnet
+    567 only under OWNER-TESTNET-WEIGHTS-01."""
+    return (
+        type(network) is str
+        and network in NETWORK_AUTHORITIES
+        and type(authority) is str
+        and authority in NETWORK_AUTHORITIES[network]
+        and type(netuid) is int
+        and 0 < netuid <= 65535
+        and (authority != AUTHORITY or netuid == TESTNET_NETUID)
+    )
+
+
 _KEYS = frozenset(
     {
         "schema",
@@ -71,6 +99,8 @@ class WinnerPolicy:
     #: None while testnet keeps the validator's first-incumbent rule
     #: (OWNER-TESTNET-WEIGHTS-01 §2b).
     baselines: tuple = ()
+    #: The owner record the policy names (`NETWORK_AUTHORITIES`).
+    authority: str = AUTHORITY
 
     def baseline(self, challenge):
         return dict(self.baselines)[challenge]
@@ -105,9 +135,9 @@ def load_policy(version=None, directory=None):
         or set(document) != _KEYS
         or document["schema"] != POLICY_SCHEMA
         or document["version"] != version
-        or document["authority"] != AUTHORITY
-        or document["network"] != "testnet"
-        or document["netuid"] != 567
+        or not network_authorized(
+            document["network"], document["netuid"], document["authority"]
+        )
         or type(challenges) is not list
         or not challenges
         or len(set(challenges)) != len(challenges)
@@ -134,6 +164,7 @@ def load_policy(version=None, directory=None):
         burn_uid=document["burn_uid"],
         cadence_blocks=document["cadence_blocks"],
         baselines=tuple(sorted(baselines.items())),
+        authority=document["authority"],
     )
 
 

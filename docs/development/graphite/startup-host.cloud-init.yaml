@@ -1,0 +1,57 @@
+#cloud-config
+# Carbon startup host (PRODUCER-STARTUP-HOST-01): one hourly Hetzner Cloud
+# CCX63, created for one bank startup and DELETED afterwards. Paste this as
+# the server's "Cloud config" in the Hetzner Cloud console.
+#
+# Replace the three <...> values:
+# - <AX42_STARTUP_PUBLIC_KEY>: the line of /var/lib/carbon-producer/.ssh/startup.key.pub
+#   on the AX42 (the producer's startup push key; public);
+# - <OWNER_SSH_PUBLIC_KEY>: your own key for root (or pick it in the console);
+# - <RELEASE_TAG>: the producer code tag the AX42 runs (for example producer-code-r2).
+#
+# What it sets up, the AX42's custody (HIDDEN_HOST_SETUP.md): key-only SSH,
+# ufw allowing SSH only, fail2ban, the carbon-producer account with an
+# owner-only state directory, Docker, uv with Python 3.11.16, and the
+# released code. No agent ever has access. The host holds hidden material
+# only for the duration of the startup, then the owner deletes the server.
+
+package_update: true
+packages: [ufw, fail2ban, rsync, git, curl, docker.io, zstd]
+
+users:
+  - name: root
+    ssh_authorized_keys:
+      - "<OWNER_SSH_PUBLIC_KEY>"
+  - name: carbon-producer
+    system: true
+    homedir: /var/lib/carbon-producer
+    shell: /bin/sh          # rrsync's forced command needs a real login shell
+    groups: [docker]
+    ssh_authorized_keys:
+      - 'restrict,command="/usr/bin/rrsync /var/lib/carbon-producer/startup" <AX42_STARTUP_PUBLIC_KEY>'
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/50-carbon-startup.conf
+    permissions: "0644"
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin prohibit-password
+      AllowUsers root carbon-producer
+      Match User carbon-producer
+          AllowTcpForwarding no
+          AllowAgentForwarding no
+          X11Forwarding no
+          PermitTTY no
+
+runcmd:
+  - install -d -m 0700 -o carbon-producer -g carbon-producer /var/lib/carbon-producer/startup
+  - ufw default deny incoming && ufw allow OpenSSH && ufw --force enable
+  - systemctl enable --now fail2ban
+  - sshd -t && systemctl reload ssh
+  - curl -LsSf https://astral.sh/uv/0.12.7/install.sh | env UV_INSTALL_DIR=/usr/local/bin INSTALLER_NO_MODIFY_PATH=1 sh
+  - git clone --depth 1 --branch <RELEASE_TAG> https://github.com/carbonphysicsai/Carbon.git /opt/carbon
+  - cd /opt/carbon && UV_PYTHON_INSTALL_DIR=/opt/uv-python uv python install 3.11.16
+  - cd /opt/carbon && UV_PYTHON_INSTALL_DIR=/opt/uv-python uv sync --frozen --python 3.11.16 --group chain --group science-jax --group science-torch --group archive
+  - chown -R root:root /opt/carbon /opt/uv-python && chmod -R go-w /opt/carbon /opt/uv-python
+  - touch /var/lib/carbon-startup-ready

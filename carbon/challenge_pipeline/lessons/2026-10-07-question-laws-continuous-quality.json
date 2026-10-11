@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-question-laws-continuous-quality",
+  "recorded_at": "2026-10-07T22:44:55+00:00",
+  "challenge": "protocol", "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-QUESTION-LAWS-01 formatter", "description": "Native Windows Black formatting of the changed static proposal tests."},
+  "expected": "Keep static tests in repository formatting without changing proposal semantics.",
+  "observed": "Black reformatted one test file successfully. This is formatting evidence only, not canonical acceptance or scientific adequacy.",
+  "keep": ["Use formatting tools for mechanical edits; keep runtime and scientific choices unchanged."],
+  "change": ["No runtime change requested."],
+  "protocol_elements": ["static-validation", "quality"],
+  "proposed_revision": null, "status": "RECORDED"
+}

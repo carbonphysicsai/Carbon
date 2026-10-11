@@ -1,0 +1,39 @@
+{
+  "schema": "carbon.onboarding.artifact-bindings.v1",
+  "challenges": {
+    "backward-facing-step": {
+      "aliases": [],
+      "stages": {
+        "S0_brief": [
+          "docs/development/challenge_pipeline/open-benchmark-onboarding/backward-facing-step-brief.json"
+        ],
+        "S1_packet": [
+          "docs/development/challenge_pipeline/open-benchmark-onboarding/backward-facing-step-packet.md"
+        ],
+        "S3_feasibility_value_panel": [
+          "docs/development/challenge_pipeline/open-benchmark-onboarding/backward-facing-step-panel.json"
+        ],
+        "S4_question_law": [
+          "docs/development/challenge_pipeline/open-benchmark-onboarding/backward-facing-step-law.json"
+        ]
+      }
+    },
+    "metagrating-3d": {
+      "aliases": [],
+      "stages": {
+        "S0_brief": [
+          "docs/development/challenge_pipeline/open-benchmark-onboarding/metagrating-3d-brief.json"
+        ],
+        "S1_packet": [
+          "docs/development/challenge_pipeline/open-benchmark-onboarding/metagrating-3d-packet.md"
+        ],
+        "S3_feasibility_value_panel": [
+          "docs/development/challenge_pipeline/open-benchmark-onboarding/metagrating-3d-panel.json"
+        ],
+        "S4_question_law": [
+          "docs/development/challenge_pipeline/open-benchmark-onboarding/metagrating-3d-law.json"
+        ]
+      }
+    }
+  }
+}

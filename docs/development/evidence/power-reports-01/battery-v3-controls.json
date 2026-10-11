@@ -1,0 +1,350 @@
+{
+  "controls": [
+    {
+      "kind": "edge_optimist",
+      "limit_quantities": [
+        "charging_t_max_c",
+        "plating_min_v"
+      ],
+      "name": "edge-half-band",
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "charging_t_max_c": {
+          "unit": "C",
+          "value": 0.25
+        },
+        "plating_min_v": {
+          "unit": "V",
+          "value": 0.001
+        }
+      }
+    },
+    {
+      "kind": "edge_optimist",
+      "limit_quantities": [
+        "charging_t_max_c",
+        "plating_min_v"
+      ],
+      "name": "edge-one-band",
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "charging_t_max_c": {
+          "unit": "C",
+          "value": 0.5
+        },
+        "plating_min_v": {
+          "unit": "V",
+          "value": 0.002
+        }
+      }
+    },
+    {
+      "kind": "edge_optimist",
+      "limit_quantities": [
+        "charging_t_max_c",
+        "plating_min_v"
+      ],
+      "name": "edge-two-bands",
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "charging_t_max_c": {
+          "unit": "C",
+          "value": 1
+        },
+        "plating_min_v": {
+          "unit": "V",
+          "value": 0.004
+        }
+      }
+    },
+    {
+      "kind": "edge_optimist",
+      "limit_quantities": [
+        "charging_t_max_c",
+        "plating_min_v"
+      ],
+      "name": "edge-four-bands",
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "charging_t_max_c": {
+          "unit": "C",
+          "value": 2
+        },
+        "plating_min_v": {
+          "unit": "V",
+          "value": 0.008
+        }
+      }
+    },
+    {
+      "kind": "over_cautious",
+      "limit_quantities": [
+        "charging_t_max_c",
+        "plating_min_v"
+      ],
+      "name": "caution-half-band",
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "charging_t_max_c": {
+          "unit": "C",
+          "value": 0.25
+        },
+        "plating_min_v": {
+          "unit": "V",
+          "value": 0.001
+        }
+      }
+    },
+    {
+      "kind": "over_cautious",
+      "limit_quantities": [
+        "charging_t_max_c",
+        "plating_min_v"
+      ],
+      "name": "caution-one-band",
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "charging_t_max_c": {
+          "unit": "C",
+          "value": 0.5
+        },
+        "plating_min_v": {
+          "unit": "V",
+          "value": 0.002
+        }
+      }
+    },
+    {
+      "kind": "over_cautious",
+      "limit_quantities": [
+        "charging_t_max_c",
+        "plating_min_v"
+      ],
+      "name": "caution-two-bands",
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "charging_t_max_c": {
+          "unit": "C",
+          "value": 1
+        },
+        "plating_min_v": {
+          "unit": "V",
+          "value": 0.004
+        }
+      }
+    },
+    {
+      "kind": "over_cautious",
+      "limit_quantities": [
+        "charging_t_max_c",
+        "plating_min_v"
+      ],
+      "name": "caution-four-bands",
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "charging_t_max_c": {
+          "unit": "C",
+          "value": 2
+        },
+        "plating_min_v": {
+          "unit": "V",
+          "value": 0.008
+        }
+      }
+    },
+    {
+      "kind": "localized_sign_error",
+      "limit_quantities": [
+        "charging_t_max_c",
+        "plating_min_v"
+      ],
+      "name": "sign-half-band",
+      "region": {
+        "action": {
+          "c1": {
+            "max": 2.0,
+            "min": 1.5
+          }
+        },
+        "strata": []
+      },
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "charging_t_max_c": {
+          "unit": "C",
+          "value": 0.25
+        },
+        "plating_min_v": {
+          "unit": "V",
+          "value": 0.001
+        }
+      }
+    },
+    {
+      "kind": "localized_sign_error",
+      "limit_quantities": [
+        "charging_t_max_c",
+        "plating_min_v"
+      ],
+      "name": "sign-one-band",
+      "region": {
+        "action": {
+          "c1": {
+            "max": 2.0,
+            "min": 1.5
+          }
+        },
+        "strata": []
+      },
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "charging_t_max_c": {
+          "unit": "C",
+          "value": 0.5
+        },
+        "plating_min_v": {
+          "unit": "V",
+          "value": 0.002
+        }
+      }
+    },
+    {
+      "kind": "localized_sign_error",
+      "limit_quantities": [
+        "charging_t_max_c",
+        "plating_min_v"
+      ],
+      "name": "sign-two-bands",
+      "region": {
+        "action": {
+          "c1": {
+            "max": 2.0,
+            "min": 1.5
+          }
+        },
+        "strata": []
+      },
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "charging_t_max_c": {
+          "unit": "C",
+          "value": 1
+        },
+        "plating_min_v": {
+          "unit": "V",
+          "value": 0.004
+        }
+      }
+    },
+    {
+      "kind": "localized_sign_error",
+      "limit_quantities": [
+        "charging_t_max_c",
+        "plating_min_v"
+      ],
+      "name": "sign-four-bands",
+      "region": {
+        "action": {
+          "c1": {
+            "max": 2.0,
+            "min": 1.5
+          }
+        },
+        "strata": []
+      },
+      "schema": "carbon.design-search.control.v2",
+      "severity": {
+        "charging_t_max_c": {
+          "unit": "C",
+          "value": 2
+        },
+        "plating_min_v": {
+          "unit": "V",
+          "value": 0.008
+        }
+      }
+    },
+    {
+      "kind": "optimizer_or_lattice_aware",
+      "limit_quantities": [
+        "charging_t_max_c",
+        "plating_min_v"
+      ],
+      "name": "path-half-band",
+      "schema": "carbon.design-search.control.v2",
+      "scope": "registered_search_path",
+      "severity": {
+        "charging_t_max_c": {
+          "unit": "C",
+          "value": 0.25
+        },
+        "plating_min_v": {
+          "unit": "V",
+          "value": 0.001
+        }
+      }
+    },
+    {
+      "kind": "optimizer_or_lattice_aware",
+      "limit_quantities": [
+        "charging_t_max_c",
+        "plating_min_v"
+      ],
+      "name": "path-one-band",
+      "schema": "carbon.design-search.control.v2",
+      "scope": "registered_search_path",
+      "severity": {
+        "charging_t_max_c": {
+          "unit": "C",
+          "value": 0.5
+        },
+        "plating_min_v": {
+          "unit": "V",
+          "value": 0.002
+        }
+      }
+    },
+    {
+      "kind": "optimizer_or_lattice_aware",
+      "limit_quantities": [
+        "charging_t_max_c",
+        "plating_min_v"
+      ],
+      "name": "path-two-bands",
+      "schema": "carbon.design-search.control.v2",
+      "scope": "registered_search_path",
+      "severity": {
+        "charging_t_max_c": {
+          "unit": "C",
+          "value": 1
+        },
+        "plating_min_v": {
+          "unit": "V",
+          "value": 0.004
+        }
+      }
+    },
+    {
+      "kind": "optimizer_or_lattice_aware",
+      "limit_quantities": [
+        "charging_t_max_c",
+        "plating_min_v"
+      ],
+      "name": "path-four-bands",
+      "schema": "carbon.design-search.control.v2",
+      "scope": "registered_search_path",
+      "severity": {
+        "charging_t_max_c": {
+          "unit": "C",
+          "value": 2
+        },
+        "plating_min_v": {
+          "unit": "V",
+          "value": 0.008
+        }
+      }
+    }
+  ],
+  "registration_digest": "sha256:e09fa1aa65d0c20975d7e43585af12efda9b9261adec73f56174511bfe181c95",
+  "schema": "carbon.design-search.controls.v2"
+}

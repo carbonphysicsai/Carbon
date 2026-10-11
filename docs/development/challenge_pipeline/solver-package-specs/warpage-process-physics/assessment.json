@@ -1,0 +1,33 @@
+{
+  "schema": "carbon.warpage-process-physics.spec.v1",
+  "maturity": "SPECIFIED",
+  "executable": false,
+  "solver_runs_authorised": false,
+  "spend_authorised": false,
+  "protected_data_access": false,
+  "adopted_challenge": false,
+  "scope": "full_3d_complete_history",
+  "finding": "OPEN_MODELS_PARTIAL_DATA",
+  "earned_tier": "NOT_DEMONSTRATED",
+  "tier_target": 2,
+  "dispatch": "HOLD",
+  "matched_customer_law_hash": null,
+  "accepted_image_digest": null,
+  "cost_status": "UNMEASURED",
+  "model_forms_found": ["dual_reaction_cure", "diffusion_controlled_cure", "generalized_maxwell", "solid_state_anand"],
+  "coherent_matched_data_found": false,
+  "open_formation_calibration_found": false,
+  "parameter_sets_adopted": [],
+  "synthetic_controls_are_buyer_evidence": false,
+  "source_grades_are_earned_tiers": false,
+  "minimum_data_return": ["material_identity_and_rights", "cure_gel_shrinkage_modulus", "relaxation_and_cte_with_domains", "solder_and_formation_history", "full_3d_geometry_supports", "independent_matched_tool_and_observers"],
+  "verification_stages": ["cure", "thermal_chemical_expansion", "relaxation", "solid_solder", "formation_state_transfer", "full3d_restart", "matched_witness_decisions"],
+  "must_preserve": ["surrounding_residual_state", "integration_point_state", "full_3d", "complete_history", "sealed_reference_identity"],
+  "nist_catalogue": {
+    "dataset_doi": "10.18434/mds2-4162",
+    "version": "1.0",
+    "file": "Figure 4 data.xlsx",
+    "published_sha256": "a2b729e1a98ed5214fae0d96865be399e6fcda0acf779767e6f017df280ee208",
+    "file_downloaded_or_verified": false
+  }
+}

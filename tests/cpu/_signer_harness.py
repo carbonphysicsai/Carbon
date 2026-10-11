@@ -16,10 +16,12 @@ from carbon_miner_signer import SignerServer
 
 
 @contextmanager
-def in_thread_signer(keypair, *, clock=None):
-    """Yield an `ExternalSigner` for `keypair`, served until the block exits."""
+def in_thread_signer(keypair, *, clock=None, **options):
+    """Yield an `ExternalSigner` for `keypair`, served until the block exits.
+    Other `options` (`receivers`, `requests`) go to the `SignerServer`."""
     with tempfile.TemporaryDirectory(prefix="cs-", dir="/tmp") as directory:
-        options = {} if clock is None else {"clock": clock}
+        if clock is not None:
+            options["clock"] = clock
         server = SignerServer(
             keypair, Path(directory) / "s.sock", log=io.StringIO(), **options
         ).bind()

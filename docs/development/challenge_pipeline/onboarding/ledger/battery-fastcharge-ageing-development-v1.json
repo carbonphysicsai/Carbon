@@ -1,0 +1,1271 @@
+{
+ "brief": {
+  "current_decision": {
+   "source": "docs/development/challenge_pipeline/value-cost/analysis.md",
+   "value": "Five ambient-indexed charge/cooling choices"
+  },
+  "scorecard_disposition": {
+   "source": "docs/development/challenge_pipeline/value-cost/analysis.md",
+   "value": "Retain v3 question; extend boundary coverage, power/refinement"
+  },
+  "unresolved_or_adverse_evidence": {
+   "source": "docs/development/challenge_pipeline/value-cost/analysis.md",
+   "value": "T5/T40 each only 3 feasible actions; indexed ordering and cross-window T3/T4 unsettled"
+  }
+ },
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "inputs": {
+  "acceptance_criteria": {
+   "customer_supplies": {
+    "kind": "decision",
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly? No artefact records the choice.",
+    "value": "UNMEASURED"
+   },
+   "open_markers": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": 1
+   },
+   "packet_sections": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": [
+     6
+    ]
+   },
+   "time_to_obtain": {
+    "kind": "measurement",
+    "owner": "Test Lead",
+    "tool": "None yet: record the date each input is obtained in cycle_metrics.jsonl (recorder A9 in ONBOARDING_PIPELINE.md)",
+    "value": "UNMEASURED"
+   }
+  },
+  "decision_definition": {
+   "customer_supplies": {
+    "kind": "decision",
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly? No artefact records the choice.",
+    "value": "UNMEASURED"
+   },
+   "open_markers": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": 1
+   },
+   "packet_sections": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": [
+     1
+    ]
+   },
+   "time_to_obtain": {
+    "kind": "measurement",
+    "owner": "Test Lead",
+    "tool": "None yet: record the date each input is obtained in cycle_metrics.jsonl (recorder A9 in ONBOARDING_PIPELINE.md)",
+    "value": "UNMEASURED"
+   }
+  },
+  "design_space": {
+   "customer_supplies": {
+    "kind": "decision",
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly? No artefact records the choice.",
+    "value": "UNMEASURED"
+   },
+   "open_markers": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": 1
+   },
+   "packet_sections": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": [
+     3
+    ]
+   },
+   "time_to_obtain": {
+    "kind": "measurement",
+    "owner": "Test Lead",
+    "tool": "None yet: record the date each input is obtained in cycle_metrics.jsonl (recorder A9 in ONBOARDING_PIPELINE.md)",
+    "value": "UNMEASURED"
+   }
+  },
+  "material_data": {
+   "customer_supplies": {
+    "kind": "decision",
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly? No artefact records the choice.",
+    "value": "UNMEASURED"
+   },
+   "open_markers": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": 1
+   },
+   "packet_sections": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": [
+     2
+    ]
+   },
+   "time_to_obtain": {
+    "kind": "measurement",
+    "owner": "Test Lead",
+    "tool": "None yet: record the date each input is obtained in cycle_metrics.jsonl (recorder A9 in ONBOARDING_PIPELINE.md)",
+    "value": "UNMEASURED"
+   }
+  },
+  "requirements": {
+   "customer_supplies": {
+    "kind": "decision",
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly? No artefact records the choice.",
+    "value": "UNMEASURED"
+   },
+   "open_markers": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": 2
+   },
+   "packet_sections": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": [
+     1,
+     4
+    ]
+   },
+   "time_to_obtain": {
+    "kind": "measurement",
+    "owner": "Test Lead",
+    "tool": "None yet: record the date each input is obtained in cycle_metrics.jsonl (recorder A9 in ONBOARDING_PIPELINE.md)",
+    "value": "UNMEASURED"
+   }
+  },
+  "solver": {
+   "customer_supplies": {
+    "kind": "decision",
+    "owner": "Test Lead",
+    "question": "Would a customer supply this input, or would Carbon source it publicly? No artefact records the choice.",
+    "value": "UNMEASURED"
+   },
+   "open_markers": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": 1
+   },
+   "packet_sections": {
+    "source": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+    "value": [
+     5
+    ]
+   },
+   "time_to_obtain": {
+    "kind": "measurement",
+    "owner": "Test Lead",
+    "tool": "None yet: record the date each input is obtained in cycle_metrics.jsonl (recorder A9 in ONBOARDING_PIPELINE.md)",
+    "value": "UNMEASURED"
+   }
+  }
+ },
+ "network": {
+  "graphite_agents_vs_real_miners": {
+   "kind": "measurement",
+   "owner": "Test Lead",
+   "tool": "Validator-scored Launchpad confirmations from Graphite agents and from real miners on the same Challenge",
+   "value": "UNMEASURED"
+  },
+  "incentive_canary_payout_correctness": {
+   "kind": "measurement",
+   "owner": "Test Lead",
+   "tool": "INCENTIVE-CANARY-01 (PR 971, merged)",
+   "value": "UNMEASURED"
+  },
+  "leaderboard_improvement_over_time": {
+   "kind": "measurement",
+   "owner": "Test Lead",
+   "tool": "Validator-scored Launchpad confirmations from stage A",
+   "value": "UNMEASURED"
+  }
+ },
+ "outputs": {
+  "decision_quality_vs_cheap_baseline": {
+   "flag": "required for TESTED",
+   "kind": "measurement",
+   "owner": "Data Collection",
+   "required_for_tested": true,
+   "source": "docs/development/challenge_pipeline/cheap-baselines/battery.md",
+   "tool": "Data Collection panels, PR 994 (CHEAP-BASELINE-COMPARATORS-01, open) and the evaluator PR 1003 (PASSES-VALUE-EVALUATOR-01, open)",
+   "value": "UNMEASURED"
+  },
+  "model_accuracy": {
+   "kind": "measurement",
+   "owner": "Data Collection",
+   "tool": "Reference-agreement panel returned through docs/development/challenge_pipeline/cheap-baselines/data-collection-return.md",
+   "value": "UNMEASURED"
+  },
+  "passes_value": {
+   "a_real_buyer_decision_two_sources": {
+    "condition": "A real buyer decision with at least two sources.",
+    "flag": "required for PASSES VALUE",
+    "kind": "measurement",
+    "owner": "Codex",
+    "required_for": "PASSES VALUE",
+    "tool": "The Challenge packet's engineering-job section and the buyer-volume evidence (PR 939, merged)",
+    "value": "UNMEASURED"
+   },
+   "b_regret_below_cheap_baseline_paired_bootstrap_ci": {
+    "condition": "Buyer-unit regret lower than the strongest cheap baseline's at matched admissibility, paired bootstrap 95% interval excluding 0.",
+    "flag": "required for PASSES VALUE",
+    "kind": "measurement",
+    "owner": "Data Collection",
+    "required_for": "PASSES VALUE",
+    "tool": "Data Collection panels, PR 994 comparators (open) and the evaluator PR 1003 (open)",
+    "value": "UNMEASURED"
+   },
+   "c_speed_up_100x_per_decision_query": {
+    "condition": "At least 100x faster than the reference per decision query.",
+    "flag": "required for PASSES VALUE",
+    "kind": "measurement",
+    "owner": "Data Collection",
+    "required_for": "PASSES VALUE",
+    "tool": "Data Collection reference timing plus the model inference cost, on the same hardware",
+    "value": "UNMEASURED"
+   },
+   "d_value_and_volume_ranges": {
+    "condition": "Sourced or assumption ranges for value and volume.",
+    "flag": "required for PASSES VALUE",
+    "kind": "measurement",
+    "owner": "Codex",
+    "required_for": "PASSES VALUE",
+    "tool": "The Challenge packet and the buyer-volume evidence (PR 939, merged)",
+    "value": "UNMEASURED"
+   },
+   "e_equal_budget_screen_then_verify_beats_solver": {
+    "condition": "At equal time and compute, the model-screen-then-solver-verify workflow finds a better design than the solver alone.",
+    "flag": "required for PASSES VALUE",
+    "harness": "carbon/design_search/track_b.py",
+    "kind": "measurement",
+    "owner": "Data Collection",
+    "required_for": "PASSES VALUE",
+    "tool": "PR 998 (EQUAL-BUDGET-DESIGN-01, open) on the design_search track_b harness",
+    "value": "UNMEASURED"
+   },
+   "framing": "Models never beat the solver on accuracy; the solver is the reference.",
+   "set_by": "Conditions a to d: Test Lead, delegated by the owner, 2026-10-10. Condition e: Test Lead, from the owner, 2026-10-10."
+  },
+  "score_value_alignment": {
+   "source": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/q1_report.json",
+   "value": {
+    "kendall_tau_b": -0.47280542884465016,
+    "level": 0,
+    "members": 8,
+    "note": "one seed per recipe; a measurement only",
+    "reference_provenance": "EV4_REFERENCE",
+    "spearman_rho": -0.5389318178609666
+   }
+  },
+  "speed_up_against_reference": {
+   "kind": "measurement",
+   "owner": "Data Collection",
+   "tool": "Data Collection reference timing (value-cost C1) plus the model inference cost, on the same hardware",
+   "value": "UNMEASURED"
+  }
+ },
+ "process": {
+  "artifact_calendar_timeline": {
+   "source": "carbon/challenge_pipeline/onboarding/timeline.py",
+   "value": {
+    "basis": {
+     "head": "cb539d0057ed3cea38281573291655276e10a915",
+     "main": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+     "shallow": false,
+     "supplement_sha256": "2f64020444335a1f9692e6440cf66d894780e6a868c3c8982d4f9317e7b05eb6"
+    },
+    "brief_to_tested_seconds": null,
+    "challenge": "battery-v3",
+    "coverage": "PINNED_GIT_HISTORY",
+    "human_effort_saved_hours": null,
+    "limits": [
+     "Artifact creation and integration are not stage entry or completion.",
+     "First is path-history topology, not oldest wall-clock timestamp; renames and repeated additions are ambiguous.",
+     "Main integration time is Git committer time, not GitHub mergedAt; main is the locally available pinned ref, never fetched here.",
+     "Missing or shallow history cannot establish absence. Legacy versions and pre-brief reusable infrastructure do not qualify the current contract.",
+     "Calendar milestones are not effort, blocked time, spend or measured time saved. TESTED requires #970 plus the owner's cheap-baseline comparison."
+    ],
+    "schema": "carbon.onboarding.artifact-timeline.v1",
+    "stages": [
+     {
+      "accepted_entry_utc": null,
+      "accepted_exit_utc": null,
+      "artifacts": [
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-08T17:51:05Z",
+         "commit": "ce2b3b79d676cc2727fad8e2bd5ac609633385be",
+         "committed_utc": "2026-10-08T17:51:05Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "60a394af58368ff6ed01e479481bd9de88abf08f",
+          "561bee38aee376e2dc601753d843689e663d2c71"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-08T15:07:33Z",
+         "commit": "561bee38aee376e2dc601753d843689e663d2c71",
+         "committed_utc": "2026-10-08T15:07:33Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "209ae6094e07de07e92692014c0504ffd4ec51f9"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "path_additions": 1,
+        "rename_seen": false
+       },
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-07T18:41:19Z",
+         "commit": "ddac443a5814de4a18995286f1dbb0c22bde1c9b",
+         "committed_utc": "2026-10-07T18:41:19Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "66d134538acbe14aa00448c28a2cb640e2826722",
+          "8f12c8c377bd0eb5190d98bafffcc0a8b16ab72d"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-07T17:23:08Z",
+         "commit": "8f12c8c377bd0eb5190d98bafffcc0a8b16ab72d",
+         "committed_utc": "2026-10-07T17:23:08Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "0e7308fe9e7f494ded0d80b2748b8afabb76ab8c"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/challenge_pipeline/round1/battery-ev-fast-charge.md",
+        "path_additions": 1,
+        "rename_seen": false
+       }
+      ],
+      "effort_person_hours": null,
+      "id": "S0_brief",
+      "stage_cycle_seconds": null
+     },
+     {
+      "accepted_entry_utc": null,
+      "accepted_exit_utc": null,
+      "artifacts": [
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-08T17:51:05Z",
+         "commit": "ce2b3b79d676cc2727fad8e2bd5ac609633385be",
+         "committed_utc": "2026-10-08T17:51:05Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "60a394af58368ff6ed01e479481bd9de88abf08f",
+          "561bee38aee376e2dc601753d843689e663d2c71"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-08T15:07:33Z",
+         "commit": "561bee38aee376e2dc601753d843689e663d2c71",
+         "committed_utc": "2026-10-08T15:07:33Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "209ae6094e07de07e92692014c0504ffd4ec51f9"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "path_additions": 1,
+        "rename_seen": false
+       },
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-07T13:32:04Z",
+         "commit": "ba686ab6c87a5892554801d476445bbf0bbcf740",
+         "committed_utc": "2026-10-07T13:32:04Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "d6fca2e04b9acfc5b811ed7e10d37152b206b8ac",
+          "e135365d7b046d97e41b99c379f2e7322981e8be"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-06T20:30:47Z",
+         "commit": "b6e3653bf5ea5d40575d95f9dbaf2624b36c1357",
+         "committed_utc": "2026-10-06T20:30:47Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "37ed2912cf4b5c590ceef8965a432652884bea9c"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+        "path_additions": 1,
+        "rename_seen": false
+       },
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-08T12:34:34Z",
+         "commit": "d4deabe2b48f00173d04130dcfbcd8ef4905b451",
+         "committed_utc": "2026-10-08T12:34:34Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "588aa18cb0407677c99a53f1338feb49b786d8c1",
+          "fed634974f92575cbde509ddc83f5fc4a3fe28da"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-08T11:02:49Z",
+         "commit": "fed634974f92575cbde509ddc83f5fc4a3fe28da",
+         "committed_utc": "2026-10-08T11:02:49Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "689692c0694ad4d184ef6bd58ce5decc811d4d4a"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/challenge_pipeline/round1/battery-ev-fast-charge-v2.md",
+        "path_additions": 1,
+        "rename_seen": false
+       }
+      ],
+      "effort_person_hours": null,
+      "id": "S1_packet",
+      "stage_cycle_seconds": null
+     },
+     {
+      "accepted_entry_utc": null,
+      "accepted_exit_utc": null,
+      "artifacts": [
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "AMBIGUOUS_RENAME_OR_MULTIPLE_ADDITIONS",
+        "first_main_integration": {
+         "authored_utc": "2026-09-29T03:28:41Z",
+         "commit": "727aef2c6d291a8e5be6c62fa91e60fbc2268720",
+         "committed_utc": "2026-09-29T03:28:41Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "4bfcc980deb77c530ea7f308762ba6ed79f8aa11",
+          "7e5a3bf4cf19aed81a35282e551b6f408620a569"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-09-29T02:17:06Z",
+         "commit": "6ecc2523439a2c2eee1fee94b7fb5cc3bfd3fa70",
+         "committed_utc": "2026-09-29T02:17:06Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "f1370e7654c6f7d23babd5b9608e3cec2e3bedf7"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+        "path_additions": 1,
+        "rename_seen": true
+       },
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-09-25T18:26:05Z",
+         "commit": "978137cda8cf5fdebe8d5b6c9dd6627f3e6e585e",
+         "committed_utc": "2026-09-25T18:26:05Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "1501c6d91bb9f5f951d40dda1dd2ec7bebb92a4e",
+          "86274d3f94ac2ad217dce4b1872b701d4a0ce6bd"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-09-25T13:13:20Z",
+         "commit": "51f6b977fbef739793d13907467e78a57fb9c5f3",
+         "committed_utc": "2026-09-25T16:37:27Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "1ae25a272b759b6683a09403b1215aeed6f9bba8"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "carbon/battery/reference.py",
+        "path_additions": 1,
+        "rename_seen": false
+       }
+      ],
+      "effort_person_hours": null,
+      "id": "S2_solver_package",
+      "stage_cycle_seconds": null
+     },
+     {
+      "accepted_entry_utc": null,
+      "accepted_exit_utc": null,
+      "artifacts": [
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-08T22:48:01Z",
+         "commit": "0accdc568e10a439ed97e34272b6bdee4ddf4e46",
+         "committed_utc": "2026-10-08T22:48:01Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "76224d6035968dbaf58cb5067ef218507ba02010",
+          "ebde5b577c00d44ec7eca257c3112d122f3bd264"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-08T21:19:38Z",
+         "commit": "ebde5b577c00d44ec7eca257c3112d122f3bd264",
+         "committed_utc": "2026-10-08T21:19:38Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "35bb89ad85087de259b3c5c285db863f2bb44ca4"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/challenge_pipeline/value-cost/battery.md",
+        "path_additions": 1,
+        "rename_seen": false
+       },
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-10T13:17:34Z",
+         "commit": "6974ce9ff74607fff83be7b5680e832d510caff9",
+         "committed_utc": "2026-10-10T13:17:34Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "5aacb1809c402f6196eb48483049cb5ad483299e",
+          "d2eb09890b9955e7edec14404d348364986e3af8"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-10T12:40:07Z",
+         "commit": "d2eb09890b9955e7edec14404d348364986e3af8",
+         "committed_utc": "2026-10-10T12:40:07Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "915225242146be67e6de098d4a08324cc63dc684"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/challenge_pipeline/question-laws/battery-v3-middle-bands-panel.json",
+        "path_additions": 1,
+        "rename_seen": false
+       },
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-07T21:51:55Z",
+         "commit": "b9fa4950327a7d46ccc02b8747e368677be82c45",
+         "committed_utc": "2026-10-07T21:51:55Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "9573c8d419851fae85c44035c455010ef8eed6ea",
+          "bb003451afdbf30abec55cfdc08b40fdd3aaf5aa"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-07T19:23:32Z",
+         "commit": "1ac5acfa69dd8f2af5d6b5d4f6a2ec52c5b9d975",
+         "committed_utc": "2026-10-07T19:23:32Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "312bd2e4e31e605ea02b3df0dd9a79cbcf4ec6bb"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/challenge_pipeline/round1/feasibility-panels.md",
+        "path_additions": 1,
+        "rename_seen": false
+       },
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-07T21:51:55Z",
+         "commit": "b9fa4950327a7d46ccc02b8747e368677be82c45",
+         "committed_utc": "2026-10-07T21:51:55Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "9573c8d419851fae85c44035c455010ef8eed6ea",
+          "bb003451afdbf30abec55cfdc08b40fdd3aaf5aa"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-07T19:23:32Z",
+         "commit": "1ac5acfa69dd8f2af5d6b5d4f6a2ec52c5b9d975",
+         "committed_utc": "2026-10-07T19:23:32Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "312bd2e4e31e605ea02b3df0dd9a79cbcf4ec6bb"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/challenge_pipeline/round1/customer-feasibility-revisions.md",
+        "path_additions": 1,
+        "rename_seen": false
+       }
+      ],
+      "effort_person_hours": null,
+      "id": "S3_feasibility_value_panel",
+      "stage_cycle_seconds": null
+     },
+     {
+      "accepted_entry_utc": null,
+      "accepted_exit_utc": null,
+      "artifacts": [
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-09T18:58:46Z",
+         "commit": "399d46894f5fe05240ed47b796429f9bc34ff35e",
+         "committed_utc": "2026-10-09T18:58:46Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "294ffeebd37231ffbe6fc6c3618f4e04fa16e1a7",
+          "891a77bc29aacfb53a60451d19279e88459827df"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-09T15:02:40Z",
+         "commit": "891a77bc29aacfb53a60451d19279e88459827df",
+         "committed_utc": "2026-10-09T15:02:40Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "6848d9316c0341113ee701100e53fcc984d1531e"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/challenge_pipeline/question-laws/battery-v3-round2.json",
+        "path_additions": 1,
+        "rename_seen": false
+       },
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-08T15:21:36Z",
+         "commit": "b1dda51935cc9cf61e3063bcd5f650c66dbb2eaa",
+         "committed_utc": "2026-10-08T15:21:36Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "907ea609904a1b07285f992f2bdb50e9066ed525",
+          "209ae6094e07de07e92692014c0504ffd4ec51f9"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-08T14:12:27Z",
+         "commit": "209ae6094e07de07e92692014c0504ffd4ec51f9",
+         "committed_utc": "2026-10-08T14:12:27Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "ce0fe89b62beb0ff3cb2ce1f2511ee4856bf3545"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/challenge_pipeline/question-laws/battery-continuous-v3.md",
+        "path_additions": 1,
+        "rename_seen": false
+       },
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-08T17:51:05Z",
+         "commit": "ce2b3b79d676cc2727fad8e2bd5ac609633385be",
+         "committed_utc": "2026-10-08T17:51:05Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "60a394af58368ff6ed01e479481bd9de88abf08f",
+          "561bee38aee376e2dc601753d843689e663d2c71"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-08T15:07:33Z",
+         "commit": "561bee38aee376e2dc601753d843689e663d2c71",
+         "committed_utc": "2026-10-08T15:07:33Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "209ae6094e07de07e92692014c0504ffd4ec51f9"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/challenge_pipeline/question-laws/battery-ambient-indexed-v3.md",
+        "path_additions": 1,
+        "rename_seen": false
+       }
+      ],
+      "effort_person_hours": null,
+      "id": "S4_question_law",
+      "stage_cycle_seconds": null
+     },
+     {
+      "accepted_entry_utc": null,
+      "accepted_exit_utc": null,
+      "artifacts": [
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-06T00:51:40Z",
+         "commit": "40605734e85f06d42ab5f1811ba0a20b5b654f9d",
+         "committed_utc": "2026-10-06T00:51:40Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "c69c4be143585438c2c15c103a35a86bfa2606a6",
+          "9647524a6b618125cf11fbbaea2574c5e467eeb1"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-05T18:55:27Z",
+         "commit": "7b73af4b83046e1f4b37bc72058e95301fdf5fe1",
+         "committed_utc": "2026-10-05T18:55:27Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "1e99ad120c5894dc1348200630e6e6be19e7e7d2"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/graphite/HIDDEN_POOL_AND_TUNING_RUNBOOK.md",
+        "path_additions": 1,
+        "rename_seen": false
+       }
+      ],
+      "effort_person_hours": null,
+      "id": "S5_bank",
+      "stage_cycle_seconds": null
+     },
+     {
+      "accepted_entry_utc": null,
+      "accepted_exit_utc": null,
+      "artifacts": [
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-06T16:42:07Z",
+         "commit": "e0751f7bf34e3e953186036d7f7c20f2a50ff6a8",
+         "committed_utc": "2026-10-06T16:42:07Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "c907074268c20d5fb9921dfb72299b0abb61d57f",
+          "2bfb3d18274cb2be2a6e99e8324df6c13006160e"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-06T16:13:15Z",
+         "commit": "2bfb3d18274cb2be2a6e99e8324df6c13006160e",
+         "committed_utc": "2026-10-06T16:13:15Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "30a6230b9fb4e7c5205d2407b9934259b88e0071"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/history.jsonl",
+        "path_additions": 1,
+        "rename_seen": false
+       },
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-06T16:42:07Z",
+         "commit": "e0751f7bf34e3e953186036d7f7c20f2a50ff6a8",
+         "committed_utc": "2026-10-06T16:42:07Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "c907074268c20d5fb9921dfb72299b0abb61d57f",
+          "2bfb3d18274cb2be2a6e99e8324df6c13006160e"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-06T16:13:15Z",
+         "commit": "2bfb3d18274cb2be2a6e99e8324df6c13006160e",
+         "committed_utc": "2026-10-06T16:13:15Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "30a6230b9fb4e7c5205d2407b9934259b88e0071"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/challenge_pipeline/readiness/BASELINE_2026-10-06.md",
+        "path_additions": 1,
+        "rename_seen": false
+       },
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-09T21:07:47Z",
+         "commit": "1fafcbf3b18f0ac0a5521bcea5c427c0389a2d79",
+         "committed_utc": "2026-10-09T21:07:47Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "18f0b1870262a7f64481f8eb2f299535579738a8",
+          "045a2ec81ce2354336d035d6ba9b9e5035e1a21f"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-09T12:57:53Z",
+         "commit": "dd8e837d078a7735ec78b07ad61be57aead2c33e",
+         "committed_utc": "2026-10-09T12:57:53Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "c0b9a86ec43cca971c2c93eda959aa36fc0951eb"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/challenge_pipeline/readiness/BASELINE_2_2026-10-09.md",
+        "path_additions": 1,
+        "rename_seen": false
+       }
+      ],
+      "effort_person_hours": null,
+      "id": "S6_readiness",
+      "stage_cycle_seconds": null
+     },
+     {
+      "accepted_entry_utc": null,
+      "accepted_exit_utc": null,
+      "artifacts": [
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-09T18:50:56Z",
+         "commit": "26324def0cda2e7211f3639087c8be461ae46180",
+         "committed_utc": "2026-10-09T18:50:56Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "80ac6bb586351aa901c264144fd388d581d45725",
+          "545d1445f14bdecc759dcf4873267cf3712d234f"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-09T11:28:47Z",
+         "commit": "eb9bac31decf71505f56869c5807bff622d4f574",
+         "committed_utc": "2026-10-09T11:28:47Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "8b19f012dad6133076af443de990eba554271ed3"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/graphite/GRAPHITE_LADDER_STAGE_A_CHECKLIST.md",
+        "path_additions": 1,
+        "rename_seen": false
+       },
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-09T21:07:47Z",
+         "commit": "1fafcbf3b18f0ac0a5521bcea5c427c0389a2d79",
+         "committed_utc": "2026-10-09T21:07:47Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "18f0b1870262a7f64481f8eb2f299535579738a8",
+          "045a2ec81ce2354336d035d6ba9b9e5035e1a21f"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-09T13:02:39Z",
+         "commit": "1d46d905b4f5a7f0e1cc4ba72e7e37b4c186de35",
+         "committed_utc": "2026-10-09T13:02:39Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "dd8e837d078a7735ec78b07ad61be57aead2c33e"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/challenge_pipeline/readiness/STAGE_A_EVIDENCE_TABLE.md",
+        "path_additions": 1,
+        "rename_seen": false
+       }
+      ],
+      "effort_person_hours": null,
+      "id": "S7_stage_a",
+      "stage_cycle_seconds": null
+     },
+     {
+      "accepted_entry_utc": null,
+      "accepted_exit_utc": null,
+      "artifacts": [
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-09T18:50:56Z",
+         "commit": "26324def0cda2e7211f3639087c8be461ae46180",
+         "committed_utc": "2026-10-09T18:50:56Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "80ac6bb586351aa901c264144fd388d581d45725",
+          "545d1445f14bdecc759dcf4873267cf3712d234f"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-09T11:28:47Z",
+         "commit": "eb9bac31decf71505f56869c5807bff622d4f574",
+         "committed_utc": "2026-10-09T11:28:47Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "8b19f012dad6133076af443de990eba554271ed3"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/graphite/GRAPHITE_LADDER_STAGE_B_PLAN.md",
+        "path_additions": 1,
+        "rename_seen": false
+       }
+      ],
+      "effort_person_hours": null,
+      "id": "S8_stage_b",
+      "stage_cycle_seconds": null
+     },
+     {
+      "accepted_entry_utc": null,
+      "accepted_exit_utc": null,
+      "artifacts": [
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-09T18:57:46Z",
+         "commit": "b5c5b3c9ab0c550c81d3a56497c4d9cde2f023e1",
+         "committed_utc": "2026-10-09T18:57:46Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "26324def0cda2e7211f3639087c8be461ae46180",
+          "1382a7d28eeef6ed115a06f37472e1a0e72dd188"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-09T11:25:12Z",
+         "commit": "25401d2bc26d606b1b915e66af3acd21e1ccb6a3",
+         "committed_utc": "2026-10-09T11:25:12Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "8b19f012dad6133076af443de990eba554271ed3"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/graphite/GRAPHITE_LADDER_WAVE_PLAN.md",
+        "path_additions": 1,
+        "rename_seen": false
+       }
+      ],
+      "effort_person_hours": null,
+      "id": "S9_stage_c",
+      "stage_cycle_seconds": null
+     },
+     {
+      "accepted_entry_utc": null,
+      "accepted_exit_utc": null,
+      "artifacts": [
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-10T17:35:57Z",
+         "commit": "9f8149592c4ffe17a3565562d2cf1729d9171b32",
+         "committed_utc": "2026-10-10T17:35:57Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "b2eb2e222a560ee0420e67765f4cb0422cca9d62",
+          "6b60cdd235b2ccda38339a72899c9c7f262b8bf5"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-10T17:00:35Z",
+         "commit": "d199af5a35761e78e9f1694040c20b8ff410a88e",
+         "committed_utc": "2026-10-10T17:00:35Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "b58bc2d54205d063264173f7b5969ac5e11d42b2"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": "docs/development/challenge_pipeline/onboarding/stage_map.json",
+        "path_additions": 1,
+        "rename_seen": false
+       },
+       {
+        "accepted_stage_completion_utc": null,
+        "coverage": "PATH_HISTORY_OBSERVED",
+        "first_main_integration": {
+         "authored_utc": "2026-10-10T17:47:57Z",
+         "commit": "f65b62e3573f0b3b03c0ccec38b3200db20badb0",
+         "committed_utc": "2026-10-10T17:47:57Z",
+         "kind": "MERGE_INTEGRATION",
+         "parents": [
+          "9f8149592c4ffe17a3565562d2cf1729d9171b32",
+          "27aecf8977fc11f34d66229d8a38169d514305a6"
+         ]
+        },
+        "first_recorded": {
+         "authored_utc": "2026-10-10T17:44:01Z",
+         "commit": "27aecf8977fc11f34d66229d8a38169d514305a6",
+         "committed_utc": "2026-10-10T17:44:01Z",
+         "kind": "DIRECT_COMMIT",
+         "parents": [
+          "9f8149592c4ffe17a3565562d2cf1729d9171b32"
+         ]
+        },
+        "main_additions": 1,
+        "main_state": "INTEGRATION_OBSERVED",
+        "path": ".agent/decisions/2026-10-10-OWNER-LAUNCH-STRATEGY-01.md",
+        "path_additions": 1,
+        "rename_seen": false
+       }
+      ],
+      "effort_person_hours": null,
+      "id": "S10_tested",
+      "stage_cycle_seconds": null
+     }
+    ]
+   }
+  },
+  "blockers": {
+   "source": "docs/development/challenge_pipeline/onboarding/blocker_taxonomy.json",
+   "value": [
+    {
+     "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+     "id": "B1",
+     "name": "Wrong lane",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+     "id": "B2",
+     "name": "Keys in the wrong distro",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+     "id": "B3",
+     "name": "One controller per root",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "FIX_IN_PR_969_NOT_MERGED_NOT_EXERCISED_LIVE",
+     "id": "B4",
+     "name": "Pod ceiling below the offered price",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "VALUE_FIXED_IN_PR_969_CHECK_STILL_OPEN",
+     "id": "B5",
+     "name": "Token share and pod split",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "OPEN",
+     "id": "B6",
+     "name": "Reboot fragility",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "OPEN",
+     "id": "B7",
+     "name": "Auto-mode permission blocks",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "FIXED_IN_CODE_NOT_YET_EXERCISED_LIVE",
+     "id": "B8",
+     "name": "Silent failures",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "OWNER_ASSIGNED_CHECK_PROPOSED_NOT_BUILT",
+     "id": "B9",
+     "name": "Lane install lagging the grant code",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "OWNER_ASSIGNED_NOT_YET_EXERCISED_LIVE",
+     "id": "B10",
+     "name": "One shared checkout for every lane",
+     "time_lost": "UNKNOWN"
+    }
+   ]
+  },
+  "cost_per_stage": {
+   "kind": "measurement",
+   "owner": "Executor",
+   "tool": "Stage report: each run's cap fraction; spend ledgers stay out of the repository",
+   "value": "UNMEASURED"
+  },
+  "cycle_days_per_stage": {
+   "kind": "decision",
+   "owner": "Test Lead",
+   "question": "A first dated record is not the time spent. Which entry and exit records define each stage's cycle time?",
+   "value": "UNMEASURED"
+  },
+  "dated_stage_records": {
+   "source": "docs/development/challenge_pipeline/onboarding/cycle_metrics.jsonl",
+   "value": [
+    {
+     "date": "2026-10-06",
+     "event": "first_dated_record",
+     "stage": "S1_packet"
+    },
+    {
+     "date": "2026-10-06",
+     "event": "first_gate_run",
+     "stage": "S6_readiness"
+    },
+    {
+     "date": "2026-10-07",
+     "event": "first_dated_record",
+     "stage": "S3_feasibility_value_panel"
+    },
+    {
+     "date": "2026-10-08",
+     "event": "value_cost_framework",
+     "stage": "S3_feasibility_value_panel"
+    },
+    {
+     "date": "2026-10-08",
+     "event": "first_dated_record",
+     "stage": "S4_question_law"
+    },
+    {
+     "date": "2026-10-09",
+     "event": "baseline_2",
+     "stage": "S6_readiness"
+    },
+    {
+     "date": "2026-10-09",
+     "event": "stage_a_grants_approved",
+     "stage": "S7_stage_a"
+    },
+    {
+     "date": "2026-10-10",
+     "event": "l0_launch_ready",
+     "stage": "S6_readiness"
+    },
+    {
+     "date": "2026-10-10",
+     "event": "launch_preflight_merged",
+     "stage": "S7_stage_a"
+    }
+   ]
+  },
+  "grant_caps": {
+   "note": "Caps and run counts only, never a balance or an account.",
+   "source": "docs/development/graphite/grants",
+   "value": [
+    {
+     "cap": "53.77",
+     "grant_id": "GRAPHITE-GRANT-STAGE-A-ATTACKER",
+     "permitted_runs": 4,
+     "source": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-A-ATTACKER.json"
+    },
+    {
+     "cap": "74.67",
+     "grant_id": "GRAPHITE-GRANT-STAGE-A-CONSTRUCTOR",
+     "permitted_runs": 5,
+     "source": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-A-CONSTRUCTOR.json"
+    }
+   ]
+  },
+  "lessons_entries": {
+   "source": "carbon/challenge_pipeline/lessons",
+   "value": {
+    "by_stage": {
+     "design": 2,
+     "protocol": 2,
+     "test_iterate": 59
+    },
+    "count": 63,
+    "first": "2026-10-02T20:01:18Z",
+    "last": "2026-10-10T12:38:19Z"
+   }
+  },
+  "readiness_first_run": {
+   "source": "docs/development/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/history.jsonl",
+   "value": {
+    "counts": {
+     "FAIL": 3,
+     "NOT_BUILT": 22,
+     "PASS": 11,
+     "REVIEW_REQUIRED": 5
+    },
+    "level": 0,
+    "utc": "2026-10-06T16:11:56Z"
+   }
+  },
+  "readiness_latest_by_level": {
+   "source": "docs/development/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/history.jsonl",
+   "value": {
+    "0": {
+     "counts": {
+      "FAIL": 0,
+      "NOT_BUILT": 0,
+      "PASS": 22,
+      "PASS_BY_REVIEW": 15,
+      "REVIEW_REQUIRED": 0,
+      "WAIVED": 4
+     },
+     "green": false,
+     "utc": "2026-10-10T12:17:01Z"
+    },
+    "1": {
+     "counts": {
+      "FAIL": 2,
+      "NOT_BUILT": 0,
+      "PASS": 20,
+      "PASS_BY_REVIEW": 15,
+      "REVIEW_REQUIRED": 0,
+      "WAIVED": 4
+     },
+     "green": false,
+     "utc": "2026-10-10T12:27:25Z"
+    }
+   }
+  }
+ },
+ "rules": [
+  "A field is read from a cited artefact, or it is UNMEASURED: a measurement names its owner and tool, and only a real owner decision carries a question. Nothing is estimated.",
+  "Caps and rates only. No balance, account, spend ledger or hidden-pool material."
+ ],
+ "schema": "carbon.challenge-pipeline.brief-product-ledger.v1"
+}

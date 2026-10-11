@@ -7,6 +7,27 @@ construction vocabularies, reference material and scoring never enter it.
 from __future__ import annotations
 
 AGENT_BUDGET_KEYS = ("provider_attempts", "provider_nanodollars")
+#: The closed code for a Graphite campaign whose budget does not cap both
+#: `AGENT_BUDGET_KEYS` with whole numbers (LA-F4): the launch doors refuse it
+#: before anything is queued, and a plan that still meets one raises it typed.
+GRAPHITE_CEILINGS_REQUIRED = "graphite_ceilings_required"
+
+
+def finite_ceilings(budget):
+    """Whether `budget` caps every `AGENT_BUDGET_KEYS` ceiling with a whole
+    number: what a model-calling campaign's plan needs before any call. The
+    one predicate the plans and the launch doors read, so they cannot drift."""
+    ceilings = (budget or {}).get("ceilings") or {}
+    return type(ceilings) is dict and all(
+        type(ceilings.get(key)) is int for key in AGENT_BUDGET_KEYS
+    )
+
+
+class CeilingsRequired(ValueError):
+    """A Graphite plan without finite ceilings, typed so a run that meets one
+    records its closed code (`code`), not a bare ValueError (LA-F4)."""
+
+    code = GRAPHITE_CEILINGS_REQUIRED
 
 
 def provider_plan(agent, budget, selection=None, graphite=None):
@@ -87,12 +108,12 @@ def graphite_plan(budget, selection, graphite):
         TOOLS_RULE,
     )
 
-    ceilings = (budget or {}).get("ceilings") or {}
-    if any(type(ceilings.get(key)) is not int for key in AGENT_BUDGET_KEYS):
-        raise ValueError(
+    if not finite_ceilings(budget):
+        raise CeilingsRequired(
             "a Graphite campaign needs finite provider_attempts and "
             "provider_nanodollars ceilings"
         )
+    ceilings = budget["ceilings"]
     if graphite is None:
         raise ValueError("a Graphite plan freezes its launch block")
     block = edition.check_block(graphite)
@@ -127,6 +148,10 @@ def graphite_plan(budget, selection, graphite):
     }
     if not selection.is_historical_default:
         plan["model_selection"] = selection.record()
+    window = getattr(selection, "input_window", None)
+    if window is not None:
+        # OWNER-GRAPHITE-MINER-INPUT-WINDOW-01: how the window was chosen.
+        plan["input_window"] = window
     return plan
 
 

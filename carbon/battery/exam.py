@@ -82,8 +82,109 @@ DEVELOPMENT_RULE_V2 = {
     "rotation": {"basis": "finalized_block", "every_blocks": 1080},
 }
 
+#: OWNER-BANK-ARCHITECTURE-01 (2026-10-07): rule v2 with every window drawn
+#: from a pre-solved bank (VALIDATOR-23). Scoring, rotation, the per-hotkey
+#: cap and miner disclosure are v2's, unchanged. Only how a batch's cases are
+#: sourced changes: each screening or finalist window draws its
+#: `window_cases` distinct cases (plus v2's two hidden duplicates) without
+#: replacement from the live pool bank. A case retires after `retire_at`
+#: draws, and the bank is kept at `size` live cases. These are the owner's
+#: cheap-class testing values (B = 20n with n = 100 cases per window,
+#: E = 5; screening and finalist windows share the one bank), not
+#: production values. Battery's current v2 deployments are unaffected: a
+#: deployment moves onto the bank only by naming this rule.
+DEVELOPMENT_RULE_V2_BANK = {
+    **DEVELOPMENT_RULE_V2,
+    "authority": (
+        "OWNER-BATTERY-TESTNET-01 OD-2, amended by "
+        "OWNER-BATTERY-SCORING-WINDOW-01 and OWNER-BANK-ARCHITECTURE-01"
+    ),
+    "bank": {
+        "class": "cheap",
+        "pool": {
+            "window_cases": DEVELOPMENT_RULE_V2["screening_batch_size"] - 2,
+            "hidden_duplicates": 2,
+            "size": 20 * DEVELOPMENT_RULE_V2["screening_batch_size"],
+            "retire_at": 5,
+        },
+    },
+}
+
+#: Rule `v2-bank-design` (VALIDATOR-23 slice 3b): `v2-bank`, unchanged,
+#: plus design questions on every screening window, drawn from a sealed
+#: design bank (`design:<id>`) without replacement and disjoint from the
+#: active windows. `k` questions per window; each draw is one exposure, and a
+#: question retires after `retire_at`. Development working values (the Test
+#: Lead's slice 3 decision D2): a single window's k questions cannot separate
+#: a bad control on their own, so evidence accumulates across windows. The
+#: questions are carried and verified; scoring them is slice 3c.
+DEVELOPMENT_RULE_V2_BANK_DESIGN = {
+    **DEVELOPMENT_RULE_V2_BANK,
+    "authority": (
+        DEVELOPMENT_RULE_V2_BANK["authority"]
+        + "; design questions: VALIDATOR-23 slice 3, the Test Lead's D1-D3 "
+        "(2026-10-08), development working values"
+    ),
+    "design": {"bank": "design:battery-q3", "k": 8, "retire_at": 5},
+}
+
+#: Rule `v2-bank-e2` (OWNER-BANK-EXPOSURE-E2-01): `v2-bank` with the pool
+#: bank's exposure E lowered from 5 to 2, so a window's cases retire and
+#: publish sooner and the score feed's release lag shortens. A new rule
+#: version, never an edit of `v2-bank`: a deployment's seed pin binds its
+#: rule digest. The bank's tranches carry no E (it is counted per window
+#: draw), so a bank filled under `v2-bank` serves this rule unchanged.
+DEVELOPMENT_RULE_V2_BANK_E2 = {
+    **DEVELOPMENT_RULE_V2_BANK,
+    "authority": (
+        DEVELOPMENT_RULE_V2_BANK["authority"]
+        + "; pool E = 2: OWNER-BANK-EXPOSURE-E2-01"
+    ),
+    "bank": {
+        **DEVELOPMENT_RULE_V2_BANK["bank"],
+        "pool": {**DEVELOPMENT_RULE_V2_BANK["bank"]["pool"], "retire_at": 2},
+    },
+}
+
+
+def _rate_study_rule(window_blocks):
+    """SUBMISSION-RATE-STUDY-01's development rule variants (VALIDATOR-30):
+    `v2-bank` with the per-hotkey window at `window_blocks` (360, 180, 90 for
+    the rates 1, 2, 4), the shared sacrificial study bank sized to the
+    study's draws (3,000 cases), and no top-up when a window is drawn, so the
+    windows draw down the sealed bank. Tagged `study`, so each digest is its
+    own and a study package never imports into a `v2-bank` validator."""
+    pool = DEVELOPMENT_RULE_V2_BANK["bank"]["pool"]
+    return {
+        **DEVELOPMENT_RULE_V2_BANK,
+        "authority": (
+            "OWNER-RATE-STUDY-D1-01 (SUBMISSION-RATE-STUDY-01, development "
+            "only), on OWNER-BANK-ARCHITECTURE-01"
+        ),
+        "study": "SUBMISSION-RATE-STUDY-01",
+        "per_hotkey": {
+            **DEVELOPMENT_RULE_V2_BANK["per_hotkey"],
+            "window_blocks": window_blocks,
+        },
+        "bank": {
+            **DEVELOPMENT_RULE_V2_BANK["bank"],
+            "pool": {**pool, "size": 3000, "top_up": False},
+        },
+    }
+
+
 #: The rules a deployment may run, by the name its configuration gives.
-RULES = {"v1": DEVELOPMENT_RULE, "v2": DEVELOPMENT_RULE_V2}
+RULES = {
+    "v1": DEVELOPMENT_RULE,
+    "v2": DEVELOPMENT_RULE_V2,
+    "v2-bank": DEVELOPMENT_RULE_V2_BANK,
+    "v2-bank-e2": DEVELOPMENT_RULE_V2_BANK_E2,
+    # SUBMISSION-RATE-STUDY-01's rates m = 1, 2, 4 (VALIDATOR-30).
+    "v2-bank-rate-1": _rate_study_rule(360),
+    "v2-bank-rate-2": _rate_study_rule(180),
+    "v2-bank-rate-4": _rate_study_rule(90),
+    "v2-bank-design": DEVELOPMENT_RULE_V2_BANK_DESIGN,
+}
 
 #: OWNER-BATTERY-3B-AND-EXPOSURE-01 (2026-10-01): what a miner may see, by
 #: rule version. A hidden batch, and everything computed from it

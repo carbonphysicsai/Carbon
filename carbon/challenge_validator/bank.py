@@ -40,16 +40,28 @@ import hmac
 import json
 import os
 import random
+import re
 import sqlite3
 import stat
 from pathlib import Path
 
 from . import bank_proof
 from .batch_source import ProducerRefused
+from .training_pool import TRAINING_FILE_SCHEMA, TRAINING_MANIFEST_SCHEMA
 
 JOURNAL_SCHEMA = "carbon.challenge-validator.bank-journal.v1"
 STORE_SCHEMA = "carbon.challenge-validator.bank-store.v1"
 LIVE_STATUS = "OK"
+#: The only bank names a ledger holds: the pool, the quiz strata and the
+#: canary. Tuning, confirmation, study and EV material live in their own
+#: custodies and can never be banked here, so they can never be published
+#: from here.
+BANK_NAME = re.compile(
+    r"(pool|q2|canary|fresh|q3:[a-z0-9_-]{1,40}|design:[a-z0-9_-]{1,40})"
+)
+#: Banks no window may draw from: the rate study's fresh sets (VALIDATOR-30),
+#: read only by its non-consuming scorer.
+NOT_WINDOW_DRAWABLE = frozenset({"fresh"})
 
 
 def _canonical(value):
@@ -137,12 +149,14 @@ class BankLedger:
         slot INTEGER NOT NULL,
         cases TEXT NOT NULL,
         selection_digest TEXT NOT NULL,
+        revealed INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY(bank, slot)
     );
     CREATE TABLE IF NOT EXISTS release(
         case_id TEXT PRIMARY KEY,
         bank TEXT NOT NULL,
-        slot INTEGER NOT NULL
+        slot INTEGER NOT NULL,
+        published TEXT
     );
     """
 
@@ -239,6 +253,8 @@ class BankLedger:
     def draw_tranche(self, bank, count):
         """Draw and journal-commit the bank's next tranche of `count` cases
         before any use. Returns `{tranche, fingerprint, cases}`."""
+        if type(bank) is not str or not BANK_NAME.fullmatch(bank):
+            raise BankRefused("bank_name_not_bankable")
         if type(count) is not int or count < 1:
             raise BankRefused("bank_tranche_size_malformed")
         number = len(self.tranches(bank)) + 1
@@ -305,8 +321,8 @@ class BankLedger:
             ).fetchone()
             if state is None:
                 raise BankRefused("bank_unknown_tranche")
-            if state["state"] == "SEALED":
-                raise BankRefused("bank_tranche_sealed")
+            if state["state"] in ("SEALED", "QUARANTINED"):
+                raise BankRefused("bank_tranche_" + state["state"].lower())
             for record in records:
                 case_id = record.get("case_id") if type(record) is dict else None
                 row = db.execute(
@@ -361,6 +377,8 @@ class BankLedger:
                     "SELECT * FROM tranches WHERE role = ?", (tranche,)
                 ).fetchone()
             )
+        if found["state"] == "QUARANTINED":
+            raise BankRefused("bank_tranche_quarantined")
         if found["state"] == "SEALED":
             if (found["root"], found["references_digest"]) != (root, references):
                 raise BankRefused("bank_tranche_changed")
@@ -427,6 +445,8 @@ class BankLedger:
         release queue. Returns the drawn case ids, sorted."""
         if type(retire_at) is not int or retire_at < 1:
             raise BankRefused("bank_retirement_malformed")
+        if bank in NOT_WINDOW_DRAWABLE:
+            raise BankRefused("bank_not_window_drawable")
         with self._db() as db:
             db.execute("BEGIN IMMEDIATE")
             stored = db.execute(
@@ -452,7 +472,7 @@ class BankLedger:
                 drawn += rng.sample(pool, count)
             drawn = sorted(drawn)
             db.execute(
-                "INSERT INTO windows VALUES (?, ?, ?, ?)",
+                "INSERT INTO windows(bank, slot, cases, selection_digest) VALUES (?, ?, ?, ?)",
                 (bank, slot, _canonical(drawn), _digest(drawn)),
             )
             retired = 0
@@ -470,7 +490,8 @@ class BankLedger:
                         (slot, case_id),
                     )
                     db.execute(
-                        "INSERT INTO release VALUES (?, ?, ?)", (case_id, bank, slot)
+                        "INSERT INTO release(case_id, bank, slot) VALUES (?, ?, ?)",
+                        (case_id, bank, slot),
                     )
                     retired += 1
         self._append(
@@ -503,7 +524,18 @@ class BankLedger:
                 r["role"]: dict(r)
                 for r in db.execute("SELECT * FROM tranches").fetchall()
             }
-        of = {row["case_id"]: row["tranche"] for row in rows}
+        cases, used = self._proven(
+            {row["case_id"]: row["tranche"] for row in rows}, tranches
+        )
+        return {
+            "cases": cases,
+            "tranches": used,
+            "selection_digest": stored["selection_digest"],
+        }
+
+    def _proven(self, of, tranches):
+        """`({case_id: {inputs, reference, tranche, proof}}, [tranche
+        commitments])` for the cases in `of` (case id to tranche). Private."""
         cases, used = {}, {}
         for tranche in sorted(set(of.values())):
             rows = self._leaves(tranche)
@@ -517,11 +549,7 @@ class BankLedger:
                         "proof": bank_proof.proof(leaves, index),
                     }
             used[tranche] = self._commitment(tranches[tranche])
-        return {
-            "cases": cases,
-            "tranches": [used[t] for t in sorted(used)],
-            "selection_digest": stored["selection_digest"],
-        }
+        return cases, [used[t] for t in sorted(used)]
 
     def deficit(self, bank, size):
         """Cases the bank needs to return to `size` live cases, counting
@@ -536,13 +564,190 @@ class BankLedger:
         return max(0, size - live - pending)
 
     def released(self):
-        """The release queue's public counts by bank. Releasing stays
-        HUMAN_INPUT."""
+        """The release queue's public counts by bank."""
         with self._db() as db:
             rows = db.execute(
                 "SELECT bank, COUNT(*) FROM release GROUP BY bank ORDER BY bank"
             ).fetchall()
         return {bank: count for bank, count in rows}
+
+    def quarantine_tranche(self, tranche, slot, reason):
+        """Take a tranche out of service at once (VALIDATOR-24): it is never
+        drawn again, and every solved case of it retires into the release
+        queue at `slot`, so it publishes through the normal path once every
+        window that drew it is revealed. `reason` is a public code, never a
+        case. Idempotent; the bank tops up as usual."""
+        if type(reason) is not str or not re.fullmatch(r"[a-z0-9_]{1,64}", reason):
+            raise BankRefused("bank_reason_malformed")
+        with self._db() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute(
+                "SELECT bank, state FROM tranches WHERE role = ?", (tranche,)
+            ).fetchone()
+            if row is None:
+                raise BankRefused("bank_unknown_tranche")
+            if row["state"] == "QUARANTINED":
+                return None
+            db.execute(
+                "UPDATE tranches SET state = 'QUARANTINED' WHERE role = ?", (tranche,)
+            )
+            # Only a sealed tranche's cases can be proven, so only they
+            # release; an unsealed tranche's cases were never drawn.
+            cases = (
+                [
+                    r["case_id"]
+                    for r in db.execute(
+                        "SELECT case_id FROM cases WHERE tranche = ? AND reference "
+                        "IS NOT NULL AND retired_slot IS NULL ORDER BY case_id",
+                        (tranche,),
+                    )
+                ]
+                if row["state"] == "SEALED"
+                else []
+            )
+            for case_id in cases:
+                db.execute(
+                    "UPDATE cases SET retired_slot = ? WHERE case_id = ?",
+                    (slot, case_id),
+                )
+                db.execute(
+                    "INSERT OR IGNORE INTO release(case_id, bank, slot) VALUES (?, ?, ?)",
+                    (case_id, row["bank"], slot),
+                )
+        return self._append(
+            "tranche_quarantined",
+            bank=row["bank"],
+            tranche=tranche,
+            slot=slot,
+            reason=reason,
+            retired=len(cases),
+        )
+
+    # --- reveal and publication (OWNER-AUTO-PUBLISH-RETIRED-01) ---------------
+
+    def reveal_window(self, bank, slot):
+        """Journal an ended window's selection, so its commitment can be
+        checked: the case ids, which digest to its `selection_digest`. The
+        caller reveals a window only after its retire block. Idempotent."""
+        with self._db() as db:
+            row = db.execute(
+                "SELECT cases, selection_digest, revealed FROM windows "
+                "WHERE bank = ? AND slot = ?",
+                (bank, slot),
+            ).fetchone()
+            if row is None:
+                raise BankRefused("bank_window_not_drawn")
+            if row["revealed"]:
+                return
+            db.execute(
+                "UPDATE windows SET revealed = 1 WHERE bank = ? AND slot = ?",
+                (bank, slot),
+            )
+        self._append(
+            "window_revealed",
+            bank=bank,
+            slot=slot,
+            selection_digest=row["selection_digest"],
+            cases=json.loads(row["cases"]),
+        )
+
+    @staticmethod
+    def _publishable(db, case_id):
+        """Refuse unless `case_id` retired at E and every window that drew it
+        is revealed. Returns its release row."""
+        row = db.execute(
+            "SELECT bank, published FROM release WHERE case_id = ?", (case_id,)
+        ).fetchone()
+        if row is None:
+            raise BankRefused("bank_case_not_retired")
+        for window in db.execute(
+            "SELECT cases, revealed FROM windows WHERE bank = ?", (row["bank"],)
+        ).fetchall():
+            if case_id in json.loads(window["cases"]) and not window["revealed"]:
+                raise BankRefused("bank_window_not_revealed")
+        return row
+
+    def publishable(self):
+        """Case ids ready to publish: retired, every drawing window revealed,
+        not yet published. Private ids; their count is public."""
+        ready = []
+        with self._db() as db:
+            for (case_id,) in db.execute(
+                "SELECT case_id FROM release WHERE published IS NULL ORDER BY case_id"
+            ).fetchall():
+                try:
+                    self._publishable(db, case_id)
+                except BankRefused:
+                    continue
+                ready.append(case_id)
+        return ready
+
+    def publish(self, directory, signer, case_ids=None):
+        """Publish retired cases into the Challenge's public training pool:
+        one signed training file per bank in `directory`. Each case carries
+        its inputs, reference, tranche and Merkle proof, and the file its
+        tranche commitments, so anyone can check it came from the sealed
+        bank. `case_ids` defaults to every publishable case; naming any case
+        that is not publishable refuses the whole call before anything is
+        written. Returns public summaries."""
+        chosen = self.publishable() if case_ids is None else list(case_ids)
+        with self._db() as db:
+            banks = {}
+            for case_id in chosen:
+                row = self._publishable(db, case_id)
+                if row["published"] is not None:
+                    raise BankRefused("bank_case_already_published")
+                banks.setdefault(row["bank"], []).append(case_id)
+            tranches = {
+                r["role"]: dict(r) for r in db.execute("SELECT * FROM tranches")
+            }
+            of = {
+                r["case_id"]: r["tranche"]
+                for r in db.execute("SELECT case_id, tranche FROM cases")
+                if r["case_id"] in chosen
+            }
+        directory = _owner_only_dir(directory)
+        summaries = []
+        for bank, ids in sorted(banks.items()):
+            proven, used = self._proven({c: of[c] for c in ids}, tranches)
+            records = [{"case_id": c, **proven[c]} for c in sorted(proven)]
+            manifest = {
+                "schema": TRAINING_MANIFEST_SCHEMA,
+                "challenge_id": self.challenge_id,
+                "bank": bank,
+                "cases": len(records),
+                "records_digest": _digest(records),
+                "tranches": used,
+            }
+            value = training_file(signer, manifest, records)
+            name = manifest["records_digest"].removeprefix("sha256:") + ".json"
+            path = directory / name
+            if not path.exists():
+                fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                with os.fdopen(fd, "w") as handle:
+                    handle.write(_canonical(value) + "\n")
+            with self._db() as db:
+                for case_id in ids:
+                    db.execute(
+                        "UPDATE release SET published = ? WHERE case_id = ?",
+                        (manifest["records_digest"], case_id),
+                    )
+            entry = self._append(
+                "published",
+                bank=bank,
+                cases=len(records),
+                records_digest=manifest["records_digest"],
+                file=name,
+            )
+            summaries.append(
+                {
+                    "bank": bank,
+                    "cases": len(records),
+                    "file": name,
+                    "sequence": entry["sequence"],
+                }
+            )
+        return summaries
 
     # --- diagnostics (public) -------------------------------------------------
 
@@ -624,4 +829,21 @@ class BankLedger:
         return report
 
 
-__all__ = ["BankLedger", "BankRefused", "BankSource"]
+def training_file(signer, manifest, records):
+    """A signed training file: the manifest signed with Carbon's producer
+    key, and its records."""
+    from .answer_key import ProducerKey, key_id
+
+    if type(signer) is not ProducerKey:
+        raise TypeError("a ProducerKey is required")
+    return {
+        "schema": TRAINING_FILE_SCHEMA,
+        "manifest": manifest,
+        "key_id": key_id(signer.public_key),
+        "public_key": signer.public_key,
+        "signature": signer.sign(manifest),
+        "records": records,
+    }
+
+
+__all__ = ["BankLedger", "BankRefused", "BankSource", "training_file"]

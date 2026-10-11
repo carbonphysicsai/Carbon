@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-f02-law-baseline",
+  "recorded_at": "2026-10-09T17:27:18Z",
+  "challenge": "f02",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-F02-QUESTION-LAW-01",
+    "description": "Existing native packet/pipeline baseline."
+  },
+  "expected": "Check documents and arithmetic while retaining pending owner/science authority.",
+  "observed": "42 native packet/pipeline tests passed in 5.23 s. Diagnostic, not canonical acceptance.",
+  "keep": [
+    "Retain the fixed stack and 95 C ceiling."
+  ],
+  "change": [
+    "Add frontier resolution rather than widening truth bands; benchmark the strong impulse-response incumbent."
+  ],
+  "protocol_elements": [
+    "question law",
+    "contested decision",
+    "exposure",
+    "cost"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

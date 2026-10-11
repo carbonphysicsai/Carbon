@@ -30,7 +30,7 @@ RELEASED_TORCH = a40.TORCH_IMAGE
         "ghcr.io/carbonphysicsai/carbon-accelerator-worker:latest",
         "ghcr.io/carbonphysicsai/carbon-accelerator-worker",
         "ghcr.io/carbonphysicsai/carbon-accelerator-worker@sha256:" + "0" * 64,
-        "ghcr.io/other/worker@sha256:" + "8f16c105" + "0" * 56,
+        "ghcr.io/other/worker@sha256:" + "4ef87d81" + "0" * 56,
         "ghcr.io/carbonphysicsai/carbon-torch-gpu-worker@sha256:abc",
         "",
         None,
@@ -43,10 +43,10 @@ def test_only_released_digest_pinned_images_are_accepted(image):
 
 def test_released_images_are_the_briefs_digests():
     assert a40.check_image(RELEASED_ACCELERATOR).endswith(
-        "8f16c1055e14ebe4c35efe6d12c9b4230f5758cb87f383bdc6d9bc80557ce409"
+        "4ef87d81f412123b4cd6e0d37d4f764a49f2883dea1e03a27e5c7d1e5c1f9732"
     )
     assert a40.check_image(RELEASED_TORCH).endswith(
-        "056bd77c5d8195206b42102b92e818176999266281bb485522b3c57b451a8a09"
+        "5867207e35b2fd54d1cbf4d1fb2a7e0a6b88654a1485f138e3f0054d6b702186"
     )
     assert a40.IMAGES == {"jax": RELEASED_ACCELERATOR, "pytorch": RELEASED_TORCH}
 
@@ -55,10 +55,17 @@ def test_rate_ceiling_derives_from_the_committed_grant():
     from pathlib import Path
 
     grant = Path(a40.REPOSITORY, a40.GRANT_RECORD).read_text()
-    assert a40.RATE_CEILING_USD_PER_HR == Decimal(
-        re.search(r"Rate ceiling \| USD ([0-9.]+) per pod-hour", grant).group(1)
+    amended = re.findall(
+        r"^\d{4}-\d{2}-\d{2}, owner: ceiling ([0-9.]+)/h, cap USD ([0-9.]+)$",
+        grant,
+        flags=re.MULTILINE,
     )
+    assert amended[-1] == ("0.95", "8")
+    assert a40.RATE_CEILING_USD_PER_HR == Decimal(amended[-1][0])
+    assert a40.DEFAULT_CAP_USD == Decimal(amended[-1][1])
     assert a40.RATE_CEILING_USD_PER_HR == a40.grant_rate()
+    # The original table's terms stay in the record, unchanged.
+    assert "0.492739726" in grant and "4.25" in grant
 
 
 def test_the_pod_phase_leaves_the_process_environment_untouched(tmp_path, monkeypatch):
@@ -75,21 +82,21 @@ def test_the_pod_phase_leaves_the_process_environment_untouched(tmp_path, monkey
 
 
 def test_rate_is_the_grants_rate():
-    assert a40.hourly_rate() == Decimal("0.492739726")
+    assert a40.hourly_rate() == Decimal("0.95")
 
 
 def test_budget_gate_is_the_test_leads_inequality():
     hours = 1.0
     gate = a40.budget_gate(3600)
-    expected = (4 + 2) * Decimal(hours) * Decimal("0.492739726") + Decimal("0.25")
+    expected = (4 + 2) * Decimal(hours) * Decimal("0.95") + Decimal("0.25")
     assert Decimal(gate["worst_case_usd"]) == expected.quantize(Decimal("0.0001"))
-    # The grant's own 2.0 h deadline cannot fit six pods under USD 4.25.
+    # The grant's own 2.0 h deadline cannot fit six pods under USD 8.00.
     with pytest.raises(a40.Refused, match="exceeds the cap"):
         a40.budget_gate(2 * 3600)
     # A smoke pod's reservation counts against the same cap.
     with pytest.raises(a40.Refused):
-        a40.budget_gate(3600, Decimal("3.25"), smoke_reserved=Decimal("0.5"))
-    assert a40.budget_gate(3600, Decimal("3.25"))["cap_usd"] == "3.25"
+        a40.budget_gate(3600, Decimal("6.00"), smoke_reserved=Decimal("0.5"))
+    assert a40.budget_gate(3600, Decimal("6.00"))["cap_usd"] == "6.00"
 
 
 def test_deadline_is_measured_times_one_and_a_half():
@@ -238,11 +245,11 @@ class Fleet:
     def post(self, url, token, timeout):
         """The barrier release: only valid once two live pods of the backend
         have both served their identity (and probe)."""
-        found = re.fullmatch(r"https://(\w+)-8001\.proxy\.runpod\.net/go", url)
+        found = re.fullmatch(r"https://(\w+)-8000\.proxy\.runpod\.net/go", url)
         assert found, url
         pod_id = found.group(1)
         pod = self.fake.pods[pod_id]
-        assert token == pod["env"]["GO_TOKEN"]
+        assert token == pod["env"]["PROBE_TOKEN"]
         backend = json.loads(pod["env"]["PHASE_CONFIG"])["backend"]
         seen = {
             p
@@ -333,15 +340,30 @@ SMOKES = {"jax": SMOKE, "pytorch": SMOKE}
 def world(tmp_path):
     clock = Clock()
     fake = FakeRunPod(rate=0.40)
+    fake.fail_creates = 0
     bodies = []
 
     def transport(method, url, *, body, headers, timeout):
+        if method == "POST" and url.endswith("/v1/pods") and fake.fail_creates:
+            fake.fail_creates -= 1
+            return 500, b'{"error": "There are no instances currently available"}'
         if method == "POST" and url.endswith("/v1/pods"):
             bodies.append(json.loads(body))
-        return fake(method, url, body=body, headers=headers, timeout=timeout)
+        reply = fake(method, url, body=body, headers=headers, timeout=timeout)
+        if method == "POST" and url.endswith("/v1/pods") and fake.pods:
+            newest = max(fake.pods)
+            fake.pods[newest].setdefault(
+                "machine", {"dataCenterId": f"DC-{len(bodies)}"}
+            )
+        return reply
 
-    def make(behaviours, **fleet_options):
+    def make(behaviours, retry_window_seconds=None, **fleet_options):
         fleet = Fleet(fake, behaviours, **fleet_options)
+        runner_options = (
+            {}
+            if retry_window_seconds is None
+            else {"retry_window_seconds": retry_window_seconds}
+        )
         runner = a40.PodRunner(
             work_dir=tmp_path / "work",
             key_file=key_file(tmp_path),
@@ -355,6 +377,7 @@ def world(tmp_path):
             balance_floor=lambda: 1.0,
             poll_seconds=15.0,
             run_id="t1",
+            **runner_options,
         )
         fake.fleet = fleet
         return runner, fleet
@@ -526,9 +549,9 @@ def test_launch_refuses_below_the_balance_floor(world):
 
 def test_launch_refuses_an_offer_above_the_rate_ceiling(world):
     make, fake, _bodies = world
-    fake.rate = 0.60
+    fake.rate = 1.00
     runner, _fleet = make([])
-    with pytest.raises(a40.Refused, match="rate ceiling"):
+    with pytest.raises(a40.NoA40):  # above the ceiling is never created
         a40.run_acceptance(runner, RECORD, SMOKES)
     runner.close()
     assert fake.creates() == 0
@@ -898,15 +921,28 @@ def test_ship_list_excludes_protected_code_and_still_refuses_protected_data(
         "carbon/private/x.py",
         "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
         "carbon/challenge_validator/confirmation_sets/registry.json",
+        "carbon/b.py",
+        "carbon/unused.py",
     ]
     monkeypatch.setattr(pods, "tracked", lambda ref, prefixes, repository=None: tracked)
-    paths = a40.ship_paths("a" * 40)
-    assert "carbon/a.py" in paths
+    sources = {
+        "carbon/a.py": b"import carbon.b\n",
+        "carbon/b.py": b"",
+        "carbon/unused.py": b"",
+    }
+    monkeypatch.setattr(
+        a40,
+        "read_blobs",
+        lambda ref, repo, paths: {p: sources.get(p, b"") for p in paths},
+    )
+    paths = a40.ship_paths("a" * 40, entries=("carbon.a",))
+    assert "carbon/a.py" in paths and "carbon/b.py" in paths
+    assert "carbon/unused.py" not in paths
     assert not [p for p in paths if a40.is_protected(p) or "/private/" in p]
     assert set(a40.DATA_PATHS) <= set(paths) and set(a40.SHIPPED_FILES) <= set(paths)
     monkeypatch.setattr(a40, "DATA_PATHS", ("docs/secret/train.jsonl.gz",))
     with pytest.raises(a40.Refused, match="forbidden data path"):
-        a40.ship_paths("a" * 40)
+        a40.ship_paths("a" * 40, entries=("carbon.a",))
 
 
 def test_the_real_tree_ships_without_a_refusal():
@@ -985,3 +1021,428 @@ def test_one_rebuild_hashes_weights_and_predictions_in_a_fresh_interpreter(tmp_p
         assert re.fullmatch(r"[0-9a-f]{64}", first[key])
         assert first[key] == second[key]
     assert first["backend"] == "jax"
+
+
+# ----------------------------------------------------------------- launch diagnostics
+def _runner_and_clock(world):
+    make, fake, _bodies = world
+    runner, _fleet = make([])
+    return runner, fake
+
+
+def test_ports_are_exactly_the_bootstrap_port(world):
+    _summary, _results, _fake, bodies = run(world, [])
+    assert {tuple(b["ports"]) for b in bodies} == {("8000/http",)}
+    assert not any("GO_TOKEN" in b["env"] for b in bodies)
+
+
+def test_provider_text_redacts_key_shapes_and_is_bounded():
+    from scripts.dev.exam_design.runpod.operator_compute.runpod import provider_text
+
+    body = {
+        "error": f"no instances; key {MOCK_KEY} Bearer abcdef0123 "
+        + "A1b2C3d4" * 6
+        + " x" * 300
+    }
+    text = provider_text(body)
+    assert len(text) <= 200
+    assert MOCK_KEY not in text and "abcdef0123" not in text
+    assert "A1b2C3d4" * 3 not in text
+    assert "[redacted]" in text and "no instances" in text
+    assert provider_text(None) == "no JSON body"
+
+
+def test_create_failure_carries_status_and_redacted_body(world):
+    from scripts.dev.exam_design.runpod.operator_compute import ComputeError
+
+    runner, fake = _runner_and_clock(world)
+    fake.fail_next_create_with = 400
+    with pytest.raises(a40.LaunchFailed) as caught:
+        runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    runner.close()
+    assert caught.value.status == 400 and "mock refusal" in caught.value.message
+    assert MOCK_KEY not in str(caught.value)
+    assert ComputeError  # the typed error is what the adapter raised
+
+
+def test_definitive_failure_stops_at_once_and_the_intent_is_rejected(world):
+    runner, fake = _runner_and_clock(world)
+    fake.fail_next_create_with = 400
+    with pytest.raises(a40.LaunchFailed):
+        runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    assert len(runner.launch_attempts) == 1
+    assert runner.launch_attempts[0]["capacity"] is False
+    state = runner.store.intent("a40-acceptance", "a40-t1-jax-a-1").state
+    runner.close()
+    assert str(state) == "rejected"
+
+
+def test_a_failed_secure_attempt_falls_back_to_community_in_the_same_round(
+    world, capsys
+):
+    runner, fake = _runner_and_clock(world)
+    fake.fail_creates = 1
+    start = runner.clock()
+    pod = runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    assert pod.cloud == "COMMUNITY" and runner.clock() == start  # no wait
+    [attempt] = runner.launch_attempts
+    assert attempt["cloud"] == "SECURE" and attempt["status"] == 500
+    assert attempt["capacity"] is True
+    assert "no instances" in attempt["message"]
+    err = capsys.readouterr().err
+    assert "cloud=SECURE" in err and "status=500" in err and "no instances" in err
+    assert MOCK_KEY not in err
+    assert pod.summary()["cloud"] == "COMMUNITY"
+    runner.terminate(pod)
+    runner.close()
+
+
+def test_a_whole_round_failing_waits_ten_minutes_then_secure_is_tried_again(world):
+    runner, fake = _runner_and_clock(world)
+    fake.fail_creates = 2  # SECURE and COMMUNITY of round one
+    start = runner.clock()
+    pod = runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    assert pod.cloud == "SECURE"
+    assert runner.clock() - start == a40.RETRY_SECONDS
+    assert [a_["cloud"] for a_ in runner.launch_attempts] == ["SECURE", "COMMUNITY"]
+    runner.terminate(pod)
+    runner.close()
+
+
+def test_no_capacity_in_the_window_is_the_named_result_after_every_round(world):
+    runner, fake = _runner_and_clock(world)
+    fake.fail_creates = 10**6
+    start = runner.clock()
+    with pytest.raises(a40.NoA40) as caught:
+        runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    runner.close()
+    assert caught.value.result == "NO_A40_AFTER_60_MIN"
+    assert runner.clock() - start == 3600
+    # rounds at 0, 10, ..., 60 minutes, SECURE then COMMUNITY in each
+    assert len(runner.launch_attempts) == 14
+    assert {a_["cloud"] for a_ in runner.launch_attempts} == {"SECURE", "COMMUNITY"}
+    assert fake.pods == {}
+
+
+def test_the_retry_window_is_configurable(world):
+    make, fake, _bodies = world
+    runner, _fleet = make([], retry_window_seconds=1200)
+    fake.fail_creates = 10**6
+    with pytest.raises(a40.NoA40) as caught:
+        runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    runner.close()
+    assert caught.value.result == "NO_A40_AFTER_20_MIN"
+
+
+def test_the_cli_exits_with_the_named_result_when_no_a40_comes(
+    monkeypatch, capsys, tmp_path
+):
+    record = tmp_path / "r.json"
+    a40.write_record(RECORD, record)
+    smoke_path = tmp_path / "s.json"
+    smoke_path.write_text(json.dumps(SMOKE))
+    seen = {}
+
+    def runner_that_never_gets_one(args, record):
+        seen["window"] = args.retry_window_minutes
+        raise a40.NoA40(args.retry_window_minutes * 60)
+
+    monkeypatch.setattr(a40, "_runner", runner_that_never_gets_one)
+    code = a40.main(
+        ["smoke", "--record", str(record), "--smoke-record", str(smoke_path),
+         "--work-dir", str(tmp_path / "w"), "--retry-window-minutes", "30"]
+    )  # fmt: skip
+    assert code == 3 and seen["window"] == 30
+    assert json.loads(capsys.readouterr().out) == {"result": "NO_A40_AFTER_30_MIN"}
+
+
+def test_a_definitive_refusal_does_not_try_the_other_cloud(world):
+    runner, fake = _runner_and_clock(world)
+    fake.fail_next_create_with = 400
+    with pytest.raises(a40.LaunchFailed):
+        runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    runner.close()
+    assert [a_["cloud"] for a_ in runner.launch_attempts] == ["SECURE"]
+    assert fake.creates() == 1
+
+
+def test_cuda_versions_are_derived_from_both_image_locks(world):
+    assert a40.supported_cuda_versions() == ("13.0",)
+    _summary, _results, _fake, bodies = run(world, [])
+    assert {tuple(b["allowedCudaVersions"]) for b in bodies} == {("13.0",)}
+
+
+def test_the_decision_record_names_its_allowances_and_changes_no_figure():
+    text = (a40.REPOSITORY / a40.GRANT_RECORD).read_text()
+    lines = [line.strip() for line in text.splitlines()]
+    assert "Community allowed per owner direction 2026-10-08" in lines
+    assert "Vast.ai A40 allowed, owner-rented, per owner direction 2026-10-08" in lines
+    assert (
+        "2026-10-08, owner: target device RTX 4090 (A40 unallocatable); "
+        "ceiling and cap unchanged"
+    ) in lines
+    assert "0.492739726" in text and "4.25" in text
+
+
+def test_the_bootstrap_accepts_post_go_only_with_the_token(tmp_path, monkeypatch):
+    import http.server
+    import importlib.util
+    import threading
+    import urllib.error
+    import urllib.request
+
+    marker = tmp_path / "go"
+    monkeypatch.setenv("PROBE_TOKEN", "tok-123")
+    monkeypatch.setenv("GO_FILE", str(marker))
+    spec = importlib.util.spec_from_file_location(
+        "a40_bootstrap_under_test",
+        a40.REPOSITORY / "scripts/dev/exam_design/runpod/bootstrap.py",
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    server = http.server.HTTPServer(("127.0.0.1", 0), module.H)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{server.server_address[1]}"
+
+    def post(path, token):
+        request = urllib.request.Request(
+            base + path, data=b"", method="POST", headers={"X-Probe-Token": token}
+        )
+        try:
+            return urllib.request.urlopen(request, timeout=10).status
+        except urllib.error.HTTPError as refused:
+            return refused.code
+
+    try:
+        assert post("/go", "wrong") == 404 and not marker.exists()
+        assert post("/other", "tok-123") == 404 and not marker.exists()
+        assert post("/go", "tok-123") == 200 and marker.exists()
+    finally:
+        server.shutdown()
+
+
+def test_the_phase_barrier_sees_the_marker_or_times_out(tmp_path):
+    marker = tmp_path / "go"
+    assert phase.wait_for_go(0.2, path=marker) is False
+    marker.write_text("go")
+    assert phase.wait_for_go(5, path=marker) is True
+
+
+def test_each_pods_datacenter_and_driver_build_are_recorded(world):
+    summary, results, _fake, _bodies = run(world, [])
+    assert all(p["datacenter"].startswith("DC-") for p in summary["pods"])
+    assert {p["driver_version"] for p in summary["pods"]} == {"580.159.03"}
+    flat = a40.pod_results([p for pods in results.values() for p in pods])
+    cell = a40.compare(flat)["cells"][0]
+    assert len(cell["datacenters"]) == 2 and cell["driver_builds"] == ["580.159.03"]
+
+
+# ----------------------------------------------------------------- --skip-fno
+def test_skip_fno_drops_the_leg_from_recipes_rebuilds_and_deadline():
+    full = a40.phase_config("pytorch", RECORD)["recipes"]
+    skipped = a40.phase_config("pytorch", RECORD, skip_fno=True)["recipes"]
+    assert [r["id"] for r in full] == ["r1", "r2", "fno_defaults"]
+    assert [r["id"] for r in skipped] == ["r1", "r2"]
+    assert a40.phase_config("jax", RECORD, skip_fno=True)["recipes"] == (
+        a40.phase_config("jax", RECORD)["recipes"]
+    )
+    plan = a40.plan(RECORD, SMOKES)
+    short = a40.plan(RECORD, SMOKES, skip_fno=True)
+    assert plan["pytorch"]["rebuilds_per_pod"] == 6
+    assert short["pytorch"]["rebuilds_per_pod"] == 4
+    assert short["pytorch"]["deadline_seconds"] < plan["pytorch"]["deadline_seconds"]
+    assert short["jax"] == plan["jax"]
+
+
+def test_pytorch_smoke_with_skip_fno_rebuilds_the_largest_pick(world, tmp_path):
+    make, _fake, _bodies = world
+    runner, _fleet = make([])
+    measured = a40.smoke(
+        runner, RECORD, backend="pytorch", out=tmp_path / "s.json", skip_fno=True
+    )
+    runner.close()
+    assert measured["recipe_id"] == "r2" and measured["outcome"] == "COMPLETE"
+
+
+def test_a_skipped_fno_run_records_the_skip_and_never_launches_the_fno(world):
+    make, fake, bodies = world
+    runner, _fleet = make([])
+    try:
+        summary, results = a40.run_acceptance(runner, RECORD, SMOKES, skip_fno=True)
+    finally:
+        runner.close()
+    configs = [json.loads(dict(b["env"])["PHASE_CONFIG"]) for b in bodies]
+    assert all("fno_defaults" not in [r["id"] for r in c["recipes"]] for c in configs)
+    assert summary["skipped"]["fno"]["skipped"] is True
+    assert "v3" in summary["skipped"]["fno"]["reason"]
+    flat = a40.pod_results([p for pods in results.values() for p in pods])
+    document = a40.compare(flat, skipped=a40.SKIPPED_FNO)
+    assert document["skipped"] == a40.SKIPPED_FNO
+    assert "fno_defaults" not in {c["recipe_id"] for c in document["cells"]}
+    assert fake.pods == {}
+
+
+def test_the_run_record_is_not_changed_by_skip_fno(tmp_path, capsys, monkeypatch):
+    record_path = tmp_path / "record.json"
+    digest = a40.write_record(RECORD, record_path)
+    for name in ("s.json", "t.json"):
+        (tmp_path / name).write_text(json.dumps(SMOKE))
+    monkeypatch.setattr(a40, "build_manifest", lambda ref, repository=None: {"a": "b"})
+    code = a40.main(
+        [
+            "run", "--record", str(record_path), "--smoke-record", str(tmp_path / "s.json"),
+            "--smoke-record-pytorch", str(tmp_path / "t.json"),
+            "--work-dir", str(tmp_path / "w"), "--code-ref", "a" * 40,
+            "--dry-run", "--skip-fno",
+        ]
+    )  # fmt: skip
+    printed = json.loads(capsys.readouterr().out)
+    assert code == 0 and printed["plan"]["pytorch"]["rebuilds_per_pod"] == 4
+    assert digest == a40.hashlib.sha256(record_path.read_bytes()).hexdigest()
+    assert a40.load_record(record_path) == RECORD
+
+
+# ----------------------------------------------------------------- target device
+def test_target_devices_are_exactly_the_two_names():
+    assert a40.TARGET_DEVICES == {
+        "A40": "NVIDIA A40",
+        "RTX 4090": "NVIDIA GeForce RTX 4090",
+    }
+    assert a40.DEFAULT_TARGET == "A40"
+
+
+def test_the_runpod_gpu_type_follows_the_target(world):
+    make, _fake, bodies = world
+    runner, _fleet = make([])
+    runner.target_device = "RTX 4090"
+    pod = runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    assert bodies[-1]["gpuTypeIds"] == ["NVIDIA GeForce RTX 4090"]
+    runner.terminate(pod)
+    runner.close()
+    default, _f = make([])
+    pod = default.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    assert bodies[-1]["gpuTypeIds"] == ["NVIDIA A40"]
+    default.terminate(pod)
+    default.close()
+
+
+def test_the_cli_accepts_only_the_two_target_devices(tmp_path, capsys):
+    with pytest.raises(SystemExit):
+        a40.main(
+            ["run", "--record", str(tmp_path / "r"), "--work-dir", str(tmp_path),
+             "--target-device", "H100"]
+        )  # fmt: skip
+    assert "invalid choice" in capsys.readouterr().err
+
+
+# ----------------------------------------------------------------- request size
+def test_import_closure_follows_static_lazy_and_relative_imports():
+    sources = {
+        "carbon/__init__.py": b"",
+        "carbon/p/__init__.py": b"from . import sibling\n",
+        "carbon/p/sibling.py": b"",
+        "carbon/p/entry.py": (
+            b"from .sibling import x\n"
+            b"def f():\n    from carbon.q import deep\n    import carbon.r.leaf\n"
+        ),
+        "carbon/q/__init__.py": b"",
+        "carbon/q/deep.py": b"import json\nfrom ..s import t\n",
+        "carbon/s/__init__.py": b"",
+        "carbon/s/t.py": b"",
+        "carbon/r/__init__.py": b"",
+        "carbon/r/leaf.py": b"",
+        "carbon/unrelated.py": b"import carbon.nothing\n",
+    }
+    got = a40.import_closure(sources, ("carbon.p.entry",))
+    assert set(got) == set(sources) - {"carbon/unrelated.py"}
+
+
+def test_an_oversized_environment_is_refused_before_any_create(world):
+    make, fake, _bodies = world
+    runner, _fleet = make([])
+    runner.manifest = {
+        f"carbon/f{i}.py": hashlib.sha256(str(i).encode()).hexdigest()
+        for i in range(6000)
+    }
+    with pytest.raises(a40.Refused, match="over the 90000 limit"):
+        runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    runner.close()
+    assert fake.creates() == 0
+
+
+def test_the_guard_counts_names_and_values():
+    assert a40.env_chars((("AB", "cde"),)) == 5
+    assert a40.check_env_size((("A", "x" * 100),), limit=200) == 101
+    with pytest.raises(a40.Refused, match="BIG"):
+        a40.check_env_size((("BIG", "x" * 300), ("S", "y")), limit=200)
+
+
+def _head():
+    import subprocess
+
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=a40.REPOSITORY,
+    ).stdout.strip()
+
+
+def test_the_real_pod_environment_fits_well_under_the_provider_limit():
+    ref = _head()
+    manifest = a40.build_manifest(ref)
+    assert len(manifest) < 600  # the closure, not the 1,400-file tree
+    runner = object.__new__(a40.PodRunner)
+    runner.code_ref, runner.manifest = ref, manifest
+    config = a40.phase_config(
+        "pytorch",
+        {"recipes_by_backend": {"pytorch": [{"id": "x", "strategy": {}}]}, "fno": {"id": "f"},
+         "repeats": 2, "seed": 0},
+        barrier=True,
+    )  # fmt: skip
+    env = runner._env("pytorch", config, "t" * 32, 1.0)
+    assert a40.check_env_size(env) < 60_000
+
+
+def _copy_shipped(tmp_path):
+    import shutil
+
+    for path in a40.ship_paths(_head()):
+        target = tmp_path / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(a40.REPOSITORY / path, target)
+
+
+def test_the_pod_phase_modules_import_from_the_shipped_closure_alone(tmp_path):
+    import subprocess
+    import sys
+
+    _copy_shipped(tmp_path)
+    code = (
+        "import carbon.agent_campaign.graphite.pod_phase, carbon.reconstruction.torch_gpu, "
+        "carbon.reconstruction.accelerators, carbon.battery.torch_families, "
+        "carbon.battery.torch_training, scripts.dev.exam_design.runpod.a40_pod_phase, "
+        "scripts.dev.gpu_determinism_study.device_identity"
+    )
+    pytest.importorskip("torch")
+    done = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert done.returncode == 0, done.stderr[-600:]
+
+
+def test_a_pytorch_rebuild_runs_from_the_shipped_closure_alone(tmp_path):
+    pytest.importorskip("torch")
+    _copy_shipped(tmp_path)
+    strategy = a40._strategy(
+        "mlp", {"steps": 32, "width": 8, "depth": 1, "backend": "pytorch"}
+    )
+    record = phase.run_repeat(
+        strategy, 0, tmp_path, phase.pinned_environment("pytorch", device=None)
+    )
+    assert "error" not in record, record

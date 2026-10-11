@@ -64,9 +64,40 @@ def _strings(value):
             yield from _strings(item)
 
 
+#: The public PRACTICE sets' repository paths, exactly as each Challenge's
+#: practice result pins its material (`safety.material.path`, beside the
+#: file's sha256): `battery.practice.PRACTICE_SOURCE_PATH` and the motor and
+#: cold-plate `challenge.PRACTICE_PATH`. They are public files of the public
+#: repository, adaptively seen practice evidence and never the exam
+#: (invariant 12), but they sit under `docs/development/evidence/`, a
+#: checkout deny prefix, so every practice result was withheld from Graphite
+#: (LAUNCHPAD-FINDINGS-F8-F9, LA-F9). Each is exempt from the checkout deny
+#: rule only when a string is exactly it, case and all: any other string
+#: under that prefix, the same path with anything before or after it, and
+#: every Graphite marker are still refused. Written out here so this module
+#: imports nothing from a Challenge; a test holds each to its Challenge's own
+#: constant.
+PUBLIC_PRACTICE_PATHS = frozenset(
+    {
+        (
+            "docs/development/evidence/exam-design-2026-09-24/"
+            "refs-a-part2/out/records.jsonl"
+        ),
+        "docs/development/evidence/motor-pools-v1/practice.jsonl",
+        "docs/development/evidence/cold-plate-pools-v1/practice.jsonl",
+    }
+)
+
+
+def _checkout_denied(text, lowered):
+    """The checkout deny rule, except for a string that is exactly one of
+    `PUBLIC_PRACTICE_PATHS`."""
+    return text not in PUBLIC_PRACTICE_PATHS and boundaries._denied(lowered)
+
+
 def _protected_text(text):
     lowered = text.lower()
-    return boundaries._denied(lowered) or any(
+    return _checkout_denied(text, lowered) or any(
         marker in lowered for marker in PROTECTED_MARKERS
     )
 
@@ -124,7 +155,7 @@ def marker_classes(value):
             if any(marker in lowered for marker in markers):
                 found.add(name)
                 hit = True
-        if not hit and boundaries._denied(lowered):
+        if not hit and _checkout_denied(text, lowered):
             found.add(CHECKOUT_DENY_CLASS)
     return sorted(found)
 

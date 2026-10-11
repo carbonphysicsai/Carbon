@@ -43,8 +43,8 @@ python -m carbon.miner_mcp.standard_cli \
   accepted as the same choices; a new `autonomous` launch is refused
   `autonomous_agent_replaced`, and one recorded before Graphite replaced it
   still replays), `carbon_observe`, `carbon_practice`,
-  `carbon_freeze_candidate`, `carbon_submit`, `carbon_halt`, `carbon_resume`,
-  and the Graphite Library's `carbon_library_search`, `carbon_library_card`,
+  `carbon_freeze_candidate`, `carbon_commit`, `carbon_submit`, `carbon_halt`,
+  `carbon_resume`, and the Graphite Library's `carbon_library_search`, `carbon_library_card`,
   `carbon_library_list`, `carbon_library_pin` / `unpin` / `ban` / `unban`,
   `carbon_library_import`, `carbon_plan_list`, `carbon_plan_get` and
   `carbon_plan_edit`, which change only your own library and start no work -
@@ -82,6 +82,29 @@ submission is not an operation on either door. A campaign an MCP session
 launched with Graphite is carried out by the campaigns' supervisor, not the
 session; closing the Control Center pauses it, and resume continues it.
 
+A validator that requires an on-chain commitment admits a submission only
+against your hotkey's commitment of the frozen candidate's digest
+(OWNER-COMMITMENT-POSTER-01). Before the first send through such an intake,
+`carbon_submit` reads that commitment, read-only, and is refused
+`commitment_required` before anything is signed or sent unless it matches.
+`carbon_commit` (browser: `POST /api/v1/operations/commit`) commits it:
+- It answers with the plan: the digest, which is the frozen candidate's own;
+  your hotkey's current commitment and its block; and the warning that it
+  replaces it.
+- Your `carbon-miner-signer` then asks you in its own terminal.
+  `carbon_observe`'s `commitment` reads `human_action_required:
+  confirm_commitment` until you type the digest's last 8 characters there.
+  No tool and no agent can confirm it.
+- Then it shows the digest, block and extrinsic id read back at finality.
+- A post whose outcome is unknown is never sent again: it reads
+  `RECONCILING` while the chain is read.
+- A validator's `commitment_stale` is answered by `carbon_commit` with
+  `recommit=true`.
+- The signer's and the poster's refusals come back as their closed codes,
+  each with its next step.
+- A Graphite campaign asks for its own commitment when it submits, and only
+  you confirm it.
+
 What a miner can and cannot do today: a campaign can be launched,
 practised, observed, and stopped or paused on any Challenge.
 `carbon_submit` needs a validator deployment or intake for the campaign's
@@ -90,6 +113,83 @@ a Challenge (`carbon_setup_status`'s `evaluation` says which have one), a
 submit is refused `evaluation_unavailable` before anything is sent, and the
 frozen candidate is kept; review setup again once one is published, or name
 an intake you run yourself, then submit again.
+
+A Challenge's construction levels are a read, outside any campaign:
+`carbon_ladder` (browser: `POST /api/v1/operations/ladder`, and each
+Challenge card's Construction levels) takes `challenge` and an optional
+`challenge_version` (LAUNCHPAD-LEVELS-01 S1). For each level 0 to 5 it gives
+the ladder's text and state; who the level is for (`MINER_FACING` only where
+the ladder record names it chosen, `DEVELOPMENT` only above a named
+deployment's own level, otherwise `NOT_OFFERED`); its capabilities from
+Graphite's accepted proposal, with the surface and bounds a registered
+development variant widens; that variant's name, digest and arm, or the
+registry's refusal (Level 5 is refused until isolation is accepted);
+what the level leaves out; and the contract's `compute_budget`, or
+`NOT_SET`. Everything is read from repository data. Where your profile names
+an intake for the Challenge, every level above the lowest one its
+`served_contracts` lists is `DEVELOPMENT`.
+
+### Choosing a construction level (LAUNCHPAD-LEVELS-01 S2, S3)
+
+A level is chosen at launch and frozen with the campaign. Every level above
+0 is DEVELOPMENT: it is sent only to a validator that says it serves it (the
+testnet development-ladder deployment), never to the main one.
+
+1. Read `carbon_ladder` for the Challenge: each level's variant (name,
+   digest, arms) and the surfaces and bounds it widens.
+2. `carbon_launch` with `agent: none`, `construction_level: N` and, where the
+   ladder lists one, `arm`. The manifest freezes the level's current variant
+   by name and digest. Omitted or 0 is Level 0, exactly as before. Refusals:
+   `level_not_registered` (no current variant for N or the arm),
+   `construction_level_needs_own_selection` (Graphite does not drive levels
+   yet).
+3. `carbon_practice` and `carbon_freeze_candidate` compile at the level
+   (`compile_development`): a widened value out of bounds is
+   `level_strategy_refused`. Practice trains the recipe's Level 0 base; its
+   result carries `construction_level.widened_trained: false`. Only the
+   validator's rebuild runs the level.
+4. Freeze records the variant's digest as the candidate's `contract_digest`,
+   so `carbon_commit` commits `{challenge, variant digest, strategy hash}`.
+5. `carbon_commit` and `carbon_submit` are refused before anything is signed
+   with `level_not_served_by_target` unless your target intake's public facts
+   list the variant in `served_contracts` (`{level, variant, digest}`), and
+   with `level_not_registered` if the frozen variant is no longer current.
+
+**Level 4 (graph only).** Lower your model on your own machine:
+`python -m carbon.level4.tooling lower SPEC OUT --challenge ID --interface
+DIGEST --batch N`, put the printed submission digest in the strategy's Level
+4 field (battery: `parameters.composition_graphs`), practise, then
+`carbon_freeze_candidate` with `level4_directory: OUT`. Freeze verifies the
+submission against the variant's pinned allowlist, the Challenge, the
+recipe's interface and batch, with the variant's pinned document size bound
+(`level4_size_bound_not_set` while it has none), and keeps its staging
+envelope beside the candidate, bytes unchanged. Submit is refused
+`level4_envelope_transport_unavailable` until a validator intake carries the
+envelope.
+
+Whether a recipe is inside a Challenge's submission compute budget is a read
+too: `carbon_budget_status` (browser: `POST /api/v1/operations/budget_status`)
+takes `challenge` and a `strategy` that names it
+(LAUNCHPAD-COMPUTE-BUDGET-STATUS-01). It answers
+`{schema, status, unit, used, allowed, within}` by the rule admission refuses
+by (`challenge_contracts.budget_status`):
+- `NOT_SET`: the Challenge declares no budget. This is every Challenge today.
+  No number is given and nothing is computed.
+- `SET`: `used` is the recipe's cost from the training budget calculator on
+  this machine, `allowed` is the ceiling, both in `unit`, and `within` is
+  `used <= allowed`.
+- `MALFORMED`, `UNMEASURABLE`, `NO_ADAPTER` (no cost adapter for the
+  Challenge) or `UNIT_NOT_CALIBRATED` (the unit's factors are still
+  `HUMAN_INPUT`). Each one under a declared budget is refused at submission.
+
+The same status is on each practice result in `carbon_observe` and
+`carbon_campaign_view` (`budget_status`); practice is never refused by it.
+`carbon_freeze_candidate`, `carbon_commit` and `carbon_submit` show it in
+their answer. They refuse a recipe the budget would refuse before anything is
+signed or sent: `over_compute_budget` or `cost_unmeasurable`, with
+`budget: {unit, used, allowed}` and a next step naming the numbers. Each
+Challenge's budget comes from its own training budget study and the owner's
+decision on it. The validator's calculation on its pinned image decides.
 
 ## Starting without a campaign
 

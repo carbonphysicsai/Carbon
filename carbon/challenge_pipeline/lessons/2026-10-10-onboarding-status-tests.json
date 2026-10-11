@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-onboarding-status-tests",
+  "recorded_at": "2026-10-10T17:43:49Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "ONBOARDING-AUTOMATION-04", "description": "First native suite: 41 tests passed, two Ruff findings repaired. Integrated native packet/law/panel/status/stage-map/producer/pipeline suite: 97 passed, pinned Black/Ruff pass. Pipeline validation: 7 records and 554 lessons valid before this lesson; diff check pass. Canonical CI pending. Motor tools processed in 0.1068133 s, excluding human/physics work."},
+  "expected": "A source-backed status command should expose missing acceptance, owners and old evidence without earning stages from file presence.",
+  "observed": "All eight have artifact views; unknown Challenges receive missing-binding diagnostics. Motor's old 41-item readiness report is digest/count checked and remains historical. Its law still needs re-export and boundary evidence. #970 definition VERIFIED is not stage completion.",
+  "keep": ["Read ownership and exits from the merged stage map; show the basis and freshness of snapshots."],
+  "change": ["Do not turn dates or millisecond generation into claimed human effort saved; stage acceptance needs independent evidence."],
+  "protocol_elements": ["readiness", "evidence plan", "lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

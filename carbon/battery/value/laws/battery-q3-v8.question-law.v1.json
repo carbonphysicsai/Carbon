@@ -1,0 +1,22 @@
+{
+  "schema": "carbon.battery.q3-v8.question-law.v1",
+  "job": "battery-q3-v8",
+  "draw": {
+    "rule": "independent_uniform_then_numpy_round_4",
+    "t_amb_c": [5.0, 40.0],
+    "soc0": [0.05, 0.5],
+    "protected_exclusion": {
+      "rule": "both_axes_strict_less_than",
+      "t_amb_c": 2.0,
+      "soc0": 0.03
+    },
+    "first_round": 12,
+    "additional_per_round": 4
+  },
+  "selection": {
+    "rule": "first_settled_reference_feasible_in_draw_order",
+    "requires_v8_refinement": true
+  },
+  "batch_size": 8,
+  "registration_digest": "sha256:b05ee2326cf25e40dd420e857c2632a103f15e845d29ac9166226d0755521cbd"
+}

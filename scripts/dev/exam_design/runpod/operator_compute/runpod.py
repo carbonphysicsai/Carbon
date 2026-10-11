@@ -177,6 +177,21 @@ def _refuse_non_owned(target: object, operation: str) -> CarbonOwnedResource:
     )
 
 
+_SECRET_SHAPES = re.compile(
+    r"(?i)(bearer\s+\S+|rpa_\w+|[A-Za-z0-9+/=_-]{24,}|[0-9a-f]{16,})"
+)
+
+
+def provider_text(payload, limit: int = 200) -> str:
+    """The provider's own reply text for a failed create: the response BODY only
+    (never a header or a request echo), key- or token-shaped runs redacted, cut
+    to `limit` characters (EV4's `pod_control` keeps 300 the same way)."""
+    if payload is None:
+        return "no JSON body"
+    text = payload if isinstance(payload, str) else json.dumps(payload, sort_keys=True)
+    return _SECRET_SHAPES.sub("[redacted]", text)[:limit]
+
+
 class RunPodAdapter:
     name = "runpod"
 
@@ -392,7 +407,8 @@ class RunPodAdapter:
         definitive = status in {400, 401, 403, 404, 422}
         raise ComputeError(
             operation="provision",
-            failed="provider did not return a resource id",
+            failed="provider did not return a resource id: "
+            + provider_text(payload, 500),
             execution=Execution.EXECUTED if definitive else Execution.MAY_HAVE_EXECUTED,
             resources_may_remain=not definitive,
             retry_safe=False,
@@ -433,6 +449,27 @@ class RunPodAdapter:
             payload.get("name"),
             None if rate is None else float(rate),
             now,
+        )
+
+    def datacenter(self, resource_id: str) -> str | None:
+        """The datacenter id RunPod reports for a pod, or None when it reports
+        none. Reads the pod record only; the value is shape-checked."""
+        if not _POD_ID.fullmatch(resource_id):
+            raise ValueError("invalid pod id")
+        status, payload = self._send(
+            "status", "GET", f"{REST}/pods/{resource_id}", mutating=False
+        )
+        if status != 200 or not isinstance(payload, dict):
+            return None
+        machine = payload.get("machine")
+        value = (
+            (machine or {}).get("dataCenterId") if isinstance(machine, dict) else None
+        )
+        value = value or payload.get("dataCenterId")
+        return (
+            value
+            if isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,32}", value)
+            else None
         )
 
     def list_resources(self) -> list[ListedResource]:

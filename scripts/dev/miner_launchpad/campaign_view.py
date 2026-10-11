@@ -52,6 +52,7 @@ from carbon.development_session.miner_guidance import (
 from carbon.development_session.miner_guidance import (
     message_digest as _message_digest,
 )
+from scripts.dev.miner_launchpad import budget_view, gate_breakdown
 
 SCHEMA = "carbon.control-center.campaign-view.v1"
 
@@ -143,6 +144,7 @@ def research_view_for(challenge):
 def _contract(challenge_id, version):
     from carbon.challenge_registry import registry
     from carbon.reconstruction.capability_registry import public_registry
+    from scripts.dev.miner_launchpad.ladder_view import construction_slot
 
     described = registry.describe(challenge_id, version)
     capabilities = public_registry(challenge_id)
@@ -209,23 +211,19 @@ def _contract(challenge_id, version):
                 },
                 "limits": described.get("limits") or {},
                 "authority": described.get("authority"),
-                # RSURF-D10: filled from data when the construction ladder is
-                # merged; empty until then, never inferred.
-                "construction_level": {
-                    "level": None,
-                    "status": "NOT_YET_DEFINED",
-                    "basis": (
-                        "The construction ladder is not part of this build. "
-                        "This slot is filled from the Challenge's data when it is."
-                    ),
-                },
+                # RSURF-D10: filled from the Challenge's ladder data
+                # (LAUNCHPAD-LEVELS-01 S1); NOT_YET_DEFINED without it, never
+                # inferred. Its keys only grow.
+                "construction_level": construction_slot(challenge_id),
             },
             allow_nan=False,
         )
     )
 
 
-def contract_section(challenge, feedback_mode, offered_modes=()):
+def contract_section(challenge, feedback_mode, offered_modes=(), level=None):
+    """The Contract view. `level` is the campaign's construction-level
+    binding (LAUNCHPAD-LEVELS-01 S2), or None for a Level 0 campaign."""
     if type(challenge) is not dict or type(challenge.get("id")) is not str:
         return None
     try:
@@ -242,6 +240,12 @@ def contract_section(challenge, feedback_mode, offered_modes=()):
             "shown through it, to you and to any agent reading this view."
         ),
     }
+    if level is not None:
+        from scripts.dev.miner_launchpad.levels import campaign_slot
+
+        value["construction_level"] = campaign_slot(
+            level, value.get("construction_level") or {}
+        )
     return value
 
 
@@ -314,6 +318,10 @@ def experiment_rows(own, view):
                     ),
                     "train_s": finite(fit.get("train_s")),
                 },
+                # The recipe against its Challenge's compute budget, by
+                # admission's own rule (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01);
+                # NOT_SET carries no number. Never refuses the practice.
+                "budget_status": budget_view.status(experiment.get("recipe")),
                 "backend": _str(backend.get("kind"), 64),
                 # CPU or GPU, and where (RSURF-D19), from the run's own record.
                 "ran_on": ran_on(backend),
@@ -611,6 +619,11 @@ def stages(own):
                 "code": refused["code"],
                 "next_action": refused["next_action"],
                 "kind": refused["kind"],
+                **(
+                    {"intake_outcome": refused["intake_outcome"]}
+                    if "intake_outcome" in refused
+                    else {}
+                ),
             }
         out.append(stage)
     return out
@@ -712,7 +725,19 @@ STAGE_OF_OPERATION = {
     "practice": "practice",
     "freeze_candidate": "candidate",
     "submit": "submit",
+    # The strategy commitment comes before the submit (LAUNCHPAD-ACCEPT-02).
+    "commit": "submit",
 }
+
+
+def commitment(own):
+    """The campaign's strategy commitment (`commitment.view`), already a
+    closed document of digests, blocks, closed codes and fixed text; None
+    when none was requested."""
+    from scripts.dev.miner_launchpad.commitment import SCHEMA as COMMITMENT
+
+    value = own.get("commitment")
+    return value if type(value) is dict and value.get("schema") == COMMITMENT else None
 
 
 #: States Resume acts on. PAUSE_REQUESTED too: resuming cancels a pause that
@@ -755,6 +780,8 @@ def controls(own, *, fixture):
 
 
 _REFUSAL_CODE = re.compile(r"[a-z][a-z0-9_]{0,63}|[A-Z][A-Z0-9_]{0,63}")
+#: `runner.INTAKE_OUTCOMES`, restated so this view imports no runner.
+INTAKE_OUTCOMES = ("QUEUED", "UNAVAILABLE", "REFUSED")
 
 
 def last_refusal(own):
@@ -769,7 +796,7 @@ def last_refusal(own):
         or isinstance(value.get("at"), bool)
     ):
         return None
-    return {
+    shown = {
         "code": value["code"],
         "next_action": clean_text(value.get("next_action"), 512),
         "at": value["at"],
@@ -780,6 +807,11 @@ def last_refusal(own):
             else "refused"
         ),
     }
+    # A submit through a validator intake that was not a verdict: queued,
+    # the validator's side, or the miner's to act on (LAUNCHPAD-ACCEPT-04).
+    if value.get("intake_outcome") in INTAKE_OUTCOMES:
+        shown["intake_outcome"] = value["intake_outcome"]
+    return shown
 
 
 def in_flight(own):
@@ -1037,9 +1069,23 @@ def outcomes(own, view, mode):
             shown = {"state": _str(result.get("state"), 64)}
             if fields is not None:
                 outcome_fields, screening_fields = fields
-                for key in ("submission_id", "evidence", "nominated", "waiting"):
+                for key in (
+                    "submission_id",
+                    "evidence",
+                    "nominated",
+                    "waiting",
+                    # The public identity every mode discloses
+                    # (LAUNCHPAD-ACCEPT-04), as observe shows it.
+                    "rule",
+                    "recipe_digest",
+                    "contract_digest",
+                    "reconstruction",
+                    "failure",
+                ):
                     if key in outcome_fields and key in result:
                         shown[key] = result[key]
+                if type(result.get("sealed")) is bool:
+                    shown["sealed"] = result["sealed"]
                 if "finals" in outcome_fields and type(result.get("finals")) is list:
                     shown["finals"] = result["finals"]
                 screening = result.get("screening")
@@ -1421,6 +1467,10 @@ def build(
         "last_refusal": last_refusal(own),
         "in_flight": in_flight(own),
         "recovery": recovery(own),
+        # The frozen candidate's on-chain commitment: what the miner is asked
+        # to confirm in their signer's terminal, and what read back
+        # (LAUNCHPAD-ACCEPT-02). Null when none was requested.
+        "commitment": commitment(own),
         # Model calls whose outcome was unknown: what Reconcile settled at
         # the full reservation and what still awaits it (LP-PROD-W2).
         "reconciliation": reconciliation(own),
@@ -1440,6 +1490,17 @@ def build(
         # record holds it (C-MLP-02-D6), with its digest; None without one.
         "research_task": research_task(own.get("research_guidance")),
         "experiments": {"rows": shown, "total": len(rows)},
+        # Count the full local PRACTICE ledger, including trials beyond the
+        # bounded recent-row feed. Public gate names come only from the
+        # Challenge contract; this same document serves browser and MCP.
+        "practice_gate_breakdown": gate_breakdown.summarize(
+            own.get("experiments"),
+            (
+                (contract.get("exam") or {}).get("gates")
+                if type(contract) is dict
+                else None
+            ),
+        ),
         "comparison": comparison(rows, view),
         "charts": charts(rows, own, view),
         "learning_curve": learning_curve_status(own, view),
@@ -1563,6 +1624,17 @@ def verified_predictions(root, view, facts, task):
     return value, None
 
 
+def _campaign_level(root):
+    """The campaign's frozen construction-level binding, or None."""
+    from carbon.development_session.construction_level import binding
+
+    path = root / "campaign-manifest.json"
+    try:
+        return binding(json.loads(path.read_bytes())) if path.exists() else None
+    except (OSError, ValueError):
+        return None
+
+
 def ledger_view(host, admitted, request):
     """`campaign_view` for a campaign on this machine (`RunnerAdapter`)."""
     from carbon.challenge_registry.campaigns import campaign_for
@@ -1580,7 +1652,9 @@ def ledger_view(host, admitted, request):
     return build(
         own,
         view=view,
-        contract=contract_section(challenge, facts["feedback_mode"], offered),
+        contract=contract_section(
+            challenge, facts["feedback_mode"], offered, level=_campaign_level(root)
+        ),
         notes=facts["notes"],
         feedback_mode=facts["feedback_mode"],
         predictions=lambda task: verified_predictions(root, view, facts, task),

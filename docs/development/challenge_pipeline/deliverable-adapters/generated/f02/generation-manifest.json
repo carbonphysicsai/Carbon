@@ -1,0 +1,380 @@
+{
+  "status": "DEVELOPMENT_SAMPLE",
+  "challenge": "f02",
+  "profile": "nasa-std-7009b",
+  "standard_rendering": {
+    "profile": "nasa-std-7009b",
+    "applicability": "HUMAN_INPUT",
+    "qualification_claim": false,
+    "section_mapping": [
+      {
+        "section": "D01",
+        "anchor": "§4.1.1.1 M&S 40; §4.3.1.1–2 M&S 22–23",
+        "source": "F3"
+      },
+      {
+        "section": "D02",
+        "anchor": "§4.1.1.4–5 M&S 42–43",
+        "source": "F3"
+      },
+      {
+        "section": "D03",
+        "anchor": "§4.2.1.6–7 M&S 13–14; §4.2.3.2 M&S 16; §4.2.5.2 M&S 18; §4.3.1.5 M&S 26",
+        "source": "F3"
+      },
+      {
+        "section": "D04",
+        "anchor": "§4.2.1.1 M&S 10; §4.2.3.1 M&S 15; §4.2.5.1 M&S 17",
+        "source": "F3"
+      },
+      {
+        "section": "D05",
+        "anchor": "§4.2.5.1–2 M&S 17–18; §4.3.6.1 M&S 31",
+        "source": "F3"
+      },
+      {
+        "section": "D06",
+        "anchor": "§4.2.7.1–2 M&S 19,21; §4.3.3.1–2 M&S 28–29; §4.3.5 M&S 30; §4.3.8.2–3 M&S 33–34",
+        "source": "F3"
+      },
+      {
+        "section": "D07",
+        "anchor": "§4.1.1.8 M&S 51; §4.3.5 M&S 30; §4.3.8.1 M&S 32",
+        "source": "F3"
+      },
+      {
+        "section": "D08",
+        "anchor": "§4.2.1.2–3 M&S 45–46; §4.3.1.3–4 M&S 24–25",
+        "source": "F3"
+      },
+      {
+        "section": "D09",
+        "anchor": "§4.3.1.5–6 M&S 26–27; §4.3.6.2 M&S 49",
+        "source": "F3"
+      },
+      {
+        "section": "D10",
+        "anchor": "§4.2.1.4,6 M&S 11,13; §4.3.8.1 M&S 32",
+        "source": "F3"
+      },
+      {
+        "section": "D11",
+        "anchor": "§4.1.1.3,7–8 M&S 41,9,51; §4.3.8.4–9 M&S 50,35–39; Appendix A",
+        "source": "F3"
+      }
+    ],
+    "factors": {
+      "capability": [
+        {
+          "name": "Data pedigree",
+          "anchor": "E.3.2",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D03",
+            "D04",
+            "D08"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Verification",
+          "anchor": "E.3.3",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D04",
+            "D08"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Validation",
+          "anchor": "E.3.4",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D04",
+            "D05"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Development technical review",
+          "anchor": "E.3.5",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D10",
+            "D11"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Development process/product management",
+          "anchor": "E.3.6",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D08",
+            "D11"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        }
+      ],
+      "results": [
+        {
+          "name": "Use assessment",
+          "anchor": "E.4.2",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D01",
+            "D03",
+            "D09"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Input pedigree",
+          "anchor": "E.4.3",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D03",
+            "D08"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Uncertainty characterization",
+          "anchor": "E.4.4",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D06"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Results robustness",
+          "anchor": "E.4.5",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D05",
+            "D07"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Use/analysis technical review",
+          "anchor": "E.4.6",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D10",
+            "D11"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Use process/product management",
+          "anchor": "E.4.7",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D08",
+            "D11"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        }
+      ]
+    }
+  },
+  "evidence_revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+  "framework_revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+  "membership_basis": "LOCAL_COMMITTED_GIT_OBJECT",
+  "sources": [
+    {
+      "id": "C1",
+      "path": "docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "c96842b9916ce159860b17e92f1cbd2cee6266e2",
+      "sha256": "d523d71f73053ffb83fa8ba9e5e7f9490db62a84739ed29cabfd838ad66df9c4",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "common packet specification"
+    },
+    {
+      "id": "C2",
+      "path": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "be47cd3c3349145018d9a584af7f1949263b9291",
+      "sha256": "e4d3ce14fde60ed5e9e2990ceb735f62357d6b16b9fcb34e9a8df9ed63ffd4bb",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "buyer burst-thermal packet, role-play specification"
+    },
+    {
+      "id": "C3",
+      "path": "docs/development/challenge_pipeline/cheap-baselines/f02.md",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "ebe1e1a660fac715964da886619e2a99e7d45aa3",
+      "sha256": "805aa163e1625a453e7368bb22cd4d9e40a2086bdb266feeb822bd36b272ff95",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/cheap-baselines/f02.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "spatial impulse-response/ROM comparator contract"
+    },
+    {
+      "id": "F1",
+      "path": "Business/research/deliverable-framework/TEMPLATE.md",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "7519d1ca8d101ba2956a7ff88e1af6fe93bf15c3",
+      "sha256": "83959e56d77e51bd382595ab301681e92de2cc481bb61300b221ce05b6dcaf38",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/Business/research/deliverable-framework/TEMPLATE.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "template"
+    },
+    {
+      "id": "F2",
+      "path": "Business/research/deliverable-framework/deliverable.schema.json",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "e5a9b8f042bd065f5995cdbb870eb6bb094123ed",
+      "sha256": "19aa4ceb442d68373420def20a7dbb1ec2733080f8f1fa083d0c489700a9a08e",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/Business/research/deliverable-framework/deliverable.schema.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "schema"
+    },
+    {
+      "id": "F3",
+      "path": "Business/research/deliverable-framework/STANDARDS.md",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "2f7db5abbf3e7fc7577e0700e9bddf8f2a2660f7",
+      "sha256": "8239f7a4faea896290e2fefd28af8cc5875149945dc132ce6512b6b245f6e502",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/Business/research/deliverable-framework/STANDARDS.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "standards crosswalk"
+    },
+    {
+      "id": "R2",
+      "path": "docs/development/challenge_pipeline/question-laws/f02-round2.json",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "fc475c1fd648e81de2e38918b42bcd732d455076",
+      "sha256": "914e3f28b05474790837030984335f6254eb23156cc60b19fea395aecfe95702",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/question-laws/f02-round2.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "prospective question/action law, not adopted reference evidence"
+    },
+    {
+      "id": "R3",
+      "path": "docs/development/challenge_pipeline/value-cost/f02.md",
+      "revision": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "git_blob": "6bf67b6601c17093488b5e427a63fc14808ecd54",
+      "sha256": "63c427e63ba8a6f4a122d83869d118358de1255d58c8090dd08f81849bbb9211",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/f02.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "assumption-labelled value/cost scenarios; no pinned C2 measurement"
+    }
+  ],
+  "missing_sources": [],
+  "facts": [
+    {
+      "id": "F02_FEASIBILITY",
+      "source": "R2",
+      "locator": "/value_check/feasible",
+      "label": "Proposed f02 law's feasibility evidence state, not a solved-panel verdict",
+      "value": "NOT_DEMONSTRATED",
+      "kind": "gap",
+      "basis": "decision-value",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R2:/value_check/feasible](https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/question-laws/f02-round2.json)"
+    },
+    {
+      "id": "F02_ACTION_STATUS",
+      "source": "R2",
+      "locator": "/action_proposal/status",
+      "label": "Proposed expanded f02 action-registration status",
+      "value": "HUMAN_INPUT",
+      "kind": "gap",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R2:/action_proposal/status](https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/question-laws/f02-round2.json)"
+    },
+    {
+      "id": "F02_COST_STATUS",
+      "source": "R2",
+      "locator": "/cost/c2_status",
+      "label": "Proposed f02 bank startup-cost measurement state",
+      "value": "UNMEASURED",
+      "kind": "gap",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R2:/cost/c2_status](https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/question-laws/f02-round2.json)"
+    },
+    {
+      "id": "F02_CONTEXTS",
+      "source": "R2",
+      "locator": "/context_count",
+      "label": "Specified context count; not acquired or qualified cases",
+      "value": "24",
+      "kind": "metadata",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [
+        {
+          "low": 24,
+          "base": 24,
+          "high": 24,
+          "basis": "SOURCED"
+        }
+      ],
+      "citation": "[R2:/context_count](https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/question-laws/f02-round2.json)"
+    }
+  ],
+  "extraction_gaps": [],
+  "qualification_claim": false
+}

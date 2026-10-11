@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-baseline-reframes-regression",
+  "recorded_at": "2026-10-09T15:14:40Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-BASELINE-REFRAMES-01 four-file affected regression", "description": "Native static reframe, value-cost, volume/leverage and pipeline regression after explicit Cooling input repair."},
+  "expected": "Preserve original framework/history while testing lower-value conditional proposals.",
+  "observed": "99 passed in 2.75s; Black/Ruff/diff checks clean. Applicable PR CI remains canonical; no empirical V/T/C or reference credibility earned.",
+  "keep": ["Narrowing must disclose lost value and retain final safety verification."],
+  "change": ["Measure the same strong incumbent before consuming an adopted-fix allowance; likely V4 failure remains visible."],
+  "protocol_elements": ["regression", "buyer value", "strong baselines"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

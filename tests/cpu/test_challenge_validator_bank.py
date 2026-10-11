@@ -117,9 +117,9 @@ def test_window_draws_are_seeded_stored_and_disjoint(tmp_path, ledger):
 
 
 def test_stratum_quotas_are_drawn_within_their_strata(ledger):
-    fill(ledger, "q3", 60)
-    drawn = ledger.draw_window("q3", 1, {"lo": 4, "hi": 4}, retire_at=5)
-    window = ledger.window_cases("q3", 1)["cases"]
+    fill(ledger, "q3:conditions", 60)
+    drawn = ledger.draw_window("q3:conditions", 1, {"lo": 4, "hi": 4}, retire_at=5)
+    window = ledger.window_cases("q3:conditions", 1)["cases"]
     strata = [("lo" if window[c]["inputs"]["x"] < 0.5 else "hi") for c in drawn]
     assert strata.count("lo") == 4 and strata.count("hi") == 4
 
@@ -196,3 +196,190 @@ def test_the_ledger_is_owner_only(tmp_path):
     with pytest.raises(BankRefused) as refused:
         BankLedger(tmp_path / "open", Synthetic())
     assert refused.value.code == "bank_dir_not_owner_only"
+
+
+# --- automatic publication of retired cases (OWNER-AUTO-PUBLISH-RETIRED-01) ---
+
+
+def retire_all(ledger, count=10, retire_at=5):
+    fill(ledger, "pool", count)
+    for slot in range(1, retire_at + 1):
+        ledger.draw_window("pool", slot, {"all": count}, retire_at=retire_at)
+
+
+def key(tmp_path):
+    from carbon.challenge_validator.answer_key import ProducerKey
+
+    return ProducerKey.create(tmp_path / "producer.key")
+
+
+def test_a_case_within_its_e_budget_can_never_be_published(tmp_path, ledger):
+    fill(ledger, "pool", 10)
+    drawn = ledger.draw_window("pool", 1, {"all": 10}, retire_at=5)
+    ledger.reveal_window("pool", 1)
+    assert ledger.publishable() == []
+    with pytest.raises(BankRefused) as refused:
+        ledger.publish(tmp_path / "training", key(tmp_path), case_ids=drawn[:1])
+    assert refused.value.code == "bank_case_not_retired"
+    assert not (tmp_path / "training").exists()
+
+
+def test_publication_waits_for_every_drawing_window_to_be_revealed(tmp_path, ledger):
+    retire_all(ledger)
+    assert ledger.publishable() == []
+    retired = sorted(ledger.window_cases("pool", 5)["cases"])
+    with pytest.raises(BankRefused) as refused:
+        ledger.publish(tmp_path / "training", key(tmp_path), case_ids=retired[:1])
+    assert refused.value.code == "bank_window_not_revealed"
+    for slot in range(1, 5):
+        ledger.reveal_window("pool", slot)
+    assert ledger.publishable() == []  # window 5 still unrevealed
+    ledger.reveal_window("pool", 5)
+    assert ledger.publishable() == retired
+    revealed = [e for e in ledger.entries() if e["event"] == "window_revealed"]
+    assert len(revealed) == 5
+    assert all(
+        e["selection_digest"]
+        == "sha256:"
+        + hashlib.sha256(
+            json.dumps(e["cases"], sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        for e in revealed
+    )
+
+
+def test_a_published_file_proves_every_case_from_the_sealed_bank(tmp_path, ledger):
+    from carbon.challenge_validator import training_pool as tp
+
+    retire_all(ledger)
+    for slot in range(1, 6):
+        ledger.reveal_window("pool", slot)
+    signer = key(tmp_path)
+    [summary] = ledger.publish(tmp_path / "training" / "synthetic-bank", signer)
+    assert summary["cases"] == 10 and ledger.publishable() == []
+    path = tmp_path / "training" / "synthetic-bank" / summary["file"]
+    value = json.loads(path.read_text())
+    manifest = tp.verify(value, signer.public_key)
+    assert manifest["bank"] == "pool" and manifest["challenge_id"] == "synthetic-bank"
+    tampered = json.loads(path.read_text())
+    tampered["records"][0]["reference"]["y"] += 1.0
+    tampered["manifest"]["records_digest"] = tp._digest(tampered["records"])
+    with pytest.raises(tp.TrainingRefused) as refused:
+        tp.verify(tampered, signer.public_key)
+    assert refused.value.code == "training_signature"
+    with pytest.raises(BankRefused) as refused:
+        ledger.publish(
+            tmp_path / "training", signer, case_ids=[value["records"][0]["case_id"]]
+        )
+    assert refused.value.code == "bank_case_already_published"
+    # The distribution host lists and serves it, to anyone, read-only.
+    pool = tp.TrainingPool(tmp_path / "training", signer.public_key)
+    status, listing = pool.answer(tp.TRAINING_PATH + "synthetic-bank")
+    assert status == 200 and [f["file"] for f in listing["files"]] == [summary["file"]]
+    status, served = pool.answer(tp.TRAINING_PATH + "synthetic-bank/" + summary["file"])
+    assert status == 200 and served == value
+    assert pool.answer(tp.TRAINING_PATH + "../etc")[0] == 404
+    # A file that fails verification is never served.
+    path.write_text(json.dumps(tampered))
+    assert pool.answer(tp.TRAINING_PATH + "synthetic-bank")[1]["files"] == []
+
+
+@pytest.mark.parametrize(
+    "bank",
+    ["tuning", "confirmation", "study-train", "ev5", "graphite-tuning-v2", "q3:"],
+)
+def test_reserved_material_can_never_be_banked_or_published(ledger, bank):
+    with pytest.raises(BankRefused) as refused:
+        ledger.draw_tranche(bank, 3)
+    assert refused.value.code == "bank_name_not_bankable"
+
+
+def test_the_distribution_host_serves_the_pool_without_authentication(tmp_path):
+    from carbon.challenge_validator import distribution as dist
+    from carbon.challenge_validator import training_pool as tp
+
+    notes = []
+
+    class Log:
+        def note(self, **fields):
+            notes.append(fields)
+
+    service = dist.DistributionService(
+        None,
+        receiver="r",
+        verifier=None,
+        permits=None,
+        nonces=None,
+        log=Log(),
+        training=tp.TrainingPool(tmp_path / "training", "00" * 32),
+    )
+    status, answer = service.handle_training(tp.TRAINING_PATH + "synthetic-bank")
+    assert status == 200 and answer["files"] == []
+    assert notes[-1]["verdict"] == "TRAINING_SERVED" and notes[-1]["hotkey"] is None
+    bare = dist.DistributionService(
+        None, receiver="r", verifier=None, permits=None, nonces=None, log=Log()
+    )
+    assert bare.handle_training(tp.TRAINING_PATH + "x")[0] == 404
+
+
+# --- quarantine (VALIDATOR-24) -----------------------------------------------------------
+
+
+def test_a_quarantined_tranche_is_never_drawn_and_publishes_after_reveal(
+    tmp_path, ledger
+):
+    first = fill(ledger, "pool", 10)
+    second = fill(ledger, "pool", 10)
+    drawn = ledger.draw_window("pool", 1, {"all": 5}, retire_at=5)
+    entry = ledger.quarantine_tranche(first["tranche"], 1, "bank_copy_leaked")
+    assert entry["event"] == "tranche_quarantined" and entry["retired"] == 10
+    assert ledger.quarantine_tranche(first["tranche"], 1, "bank_copy_leaked") is None
+    window = ledger.window_cases("pool", 1)["cases"]
+    second_ids = {
+        c for c, case in window.items() if case["tranche"] == second["tranche"]
+    }
+    later = set(
+        ledger.draw_window("pool", 2, {"all": 5}, active_slots=(1,), retire_at=5)
+    )
+    assert all(
+        ledger.window_cases("pool", 2)["cases"][c]["tranche"] == second["tranche"]
+        for c in later
+    )
+    assert not later & set(drawn)
+    # Its cases retire now; those a window drew publish only after reveal.
+    ready = ledger.publishable()
+    assert len(ready) == 10 - len(set(drawn) - second_ids)
+    ledger.reveal_window("pool", 1)
+    assert len(ledger.publishable()) == 10
+    with pytest.raises(BankRefused) as refused:
+        ledger.seal(first["tranche"])
+    assert refused.value.code == "bank_tranche_quarantined"
+    assert ledger.deficit("pool", 20) == 10
+
+
+@pytest.mark.parametrize("reason", ["", "Has Spaces", "x" * 65])
+def test_a_quarantine_reason_is_a_public_code(ledger, reason):
+    first = fill(ledger, "pool", 3)
+    with pytest.raises(BankRefused) as refused:
+        ledger.quarantine_tranche(first["tranche"], 1, reason)
+    assert refused.value.code == "bank_reason_malformed"
+
+
+def test_a_withdrawn_motor_batch_is_never_active(tmp_path):
+    from carbon.challenge_validator.motor import MotorAdapterError
+    from carbon.challenge_validator.motor_hidden import open_store
+
+    store = open_store(tmp_path / "store")
+    fingerprint = store.add(
+        {"cases": [{"case_id": "a"}]}, role="r", kind="screening", sequence=1
+    )
+    assert store.ingest(
+        fingerprint, [{"case_id": "a", "status": "OK"}], terminal=("OK",)
+    )
+    store.set_window(fingerprint, {"slot": 1, "activate_block": 10, "retire_block": 40})
+    assert store.active(20) == [fingerprint]
+    assert store.withdraw(fingerprint, "leak_suspected", 15) is True
+    assert store.active(20) == [] and store.latest_active(50) == []
+    with pytest.raises(MotorAdapterError) as refused:
+        store.withdraw(fingerprint, "other", 15)
+    assert refused.value.code == "motor_withdrawal_changed"

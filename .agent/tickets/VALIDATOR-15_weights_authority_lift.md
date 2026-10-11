@@ -1,6 +1,8 @@
 # VALIDATOR-15: lift the authorization-only weight blocks
 
-**Status:** partly implemented. The mainnet part is held.
+**Status:** implemented. The held parts were lifted by
+OWNER-WEIGHTS-HOLD-LIFT-01 (2026-10-08) and built on
+`agent/weights-mainnet`.
 
 **Authority:** OWNER-WEIGHTS-AUTHORITY-01 (2026-10-05).
 
@@ -25,11 +27,27 @@
 - **Kept, as integrity:** `rewards.intents`'s reserved families. Localnet
   fixtures still cannot mint public or treasury intents (invariant 9).
 
-## Held (the owner: "The block is fine and can stay")
+## Formerly held, now implemented (OWNER-WEIGHTS-HOLD-LIFT-01)
 
-- Generalizing `winner_decay.load_policy` and `testnet_winner_publication` to
-  any network a registered policy names (mainnet `finney`).
-- Switching on `ALLOW_OWNER_COLDKEY_WINNER` for the testnet winner publisher.
+The owner had said "The block is fine and can stay". The owner lifted the
+hold on 2026-10-08 ("Lift both held parts", confirmed directly).
+
+- **`winner_decay.load_policy` and `testnet_winner_publication` serve any
+  network a registered policy names** (`NETWORK_AUTHORITIES`):
+  - testnet 567;
+  - mainnet `finney`, under OWNER-WEIGHTS-AUTHORITY-01 only.
+
+  The authorization, the policy and the snapshot must name the same network,
+  netuid and record (`POLICY_NOT_FOR_THIS_NETWORK`, `NETWORK_NOT_AUTHORIZED`).
+  A mainnet intent is `mainnet-winner-…`, `PUBLIC_MAINNET`,
+  `MAINNET_OWNER_AUTHORIZED`; testnet intents are unchanged.
+- **`ALLOW_OWNER_COLDKEY_WINNER` is on for the testnet winner publisher** and
+  off on mainnet.
+- **Still needed for a mainnet run (fail closed):**
+  - mainnet's registered policy (netuid, launch Challenges);
+  - a mainnet operator configuration (the operator loader is the
+    development testnet's);
+  - the owner's standing authorization file.
 
 ## Validation (canonical)
 

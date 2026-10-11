@@ -1,0 +1,159 @@
+# Bolted joint: conditional common design packet
+
+CHALLENGE-DISCOVERY-01 / D076; conditional queue position 4. **No admitted finalist; no dispatch/spend grant; adoption HUMAN_INPUT.** This follows the [common packet's ten sections](../sources.md) and adds a question-law sketch, first panel and comparison. This is a research draft for a possible customer packet; it does not prove actual fit without the required customer inputs. Every estimate/count proposal below is **ASSUMPTION**, with low/base/high shown or a degenerate range for a fixed draft count. No scientific limit is set.
+
+## 1. Engineering job
+
+A mechanical joint-design engineer selects bolt pattern/size, preload and local support geometry for a known load envelope. BOLT1 documents simulation-informed sizing/preload; BOLT2 is an independent fastener-design manual. BOLT3 offers independent FE research at abstract level, so the exact current simulation decision/customer source must still be confirmed.
+
+Buyer role: **Joint-design engineer**. Proposed decision: **Choose preload/bolt pattern/support geometry**. Independent role/workflow evidence: [BOLT1: Ansys](https://learninghub.ansys.com/learn/course/external/view/elearning/36/ansys-mechanical-bolt-pretension); [BOLT2: Richard T. Barrett / NASA](https://ntrs.nasa.gov/api/citations/19900009424/downloads/19900009424.pdf); [BOLT3: Independent bolted-connection researchers](https://www.sciencedirect.com/science/article/pii/S1350630719304686). Manufacturer and independent research origins are distinguished; neither is a confirmed Carbon customer. Buyer identity/authorised contact, actual current simulation tool, decision latency/cadence, allowed materials/data rights, acceptance criteria and value interview are **HUMAN_INPUT — business/customer owner; blocks G1/adoption**.
+
+V2 proposed avoidable effort 3.00 / 8.00 / 20.00 hours/revision × 60.00 / 90.00 / 120.00 EUR/hour gives 180.00 / 720.00 / 2400.00 EUR/revision. V3 assumes 5.00 / 20.00 / 50.00 teams × 6.00 / 24.00 / 60.00 revisions/team/year = 30.00 / 480.00 / 3000.00 revisions/year. These are conditional cohort scenarios, not buyers/market size, actual savings or willingness to pay. Demonstrated commercial floor is zero.
+
+## 2. Physical system
+
+An approved joint family with bolts, clamped members, frictional contact and assembly preload followed by the customer's service loads. Begin with a bounded single-joint assembly; do not extrapolate to flight, fatigue life or fracture certification. Approved material/plasticity and friction models must match the loads. A linear modal surrogate does not itself resolve separation or slip.
+
+Mandatory-stratum hypothesis (count [4,4,4]):
+
+- approved nominal clamp/service loading: numerical endpoints, joint conditions and source HUMAN_INPUT.
+- approved minimum clamp/friction loading: numerical endpoints, joint conditions and source HUMAN_INPUT.
+- approved maximum preload/service combination: numerical endpoints, joint conditions and source HUMAN_INPUT.
+- approved worst allowed member/bolt tolerance state: numerical endpoints, joint conditions and source HUMAN_INPUT.
+
+Scientific owner must confirm that these strata cover the unchanged customer job. Initial/boundary conditions, histories, idealisations, material applicability, neglected physics and manufacture/assembly tolerances are HUMAN_INPUT. A missing safety/material requirement stops the affected job; it is never relaxed to save compute. No physical population claim follows from deterministic execution.
+
+## 3. Population P, Q and w
+
+**P — customer request population.** Customer joint-revision jobs: load envelope, bolt/material family, member stiffness, preload uncertainty and contact/friction variation. Define joint correlations and load-case prevalence from the buyer; a geometry box or invented independent uniform friction distribution is insufficient.
+
+**Q — diagnostic/acquisition proposal.** Enrich incipient separation, slip and applicable stress limits using the same approved friction/preload domain. Include the baseline's most confident failures and near-ties. Diagnostic points cannot be weighted as customer request frequency.
+
+**w — evidence/score use.** Sampling/evidence weighting and any correction from Q to P are **HUMAN_INPUT — scientific owner**. Prospective per-stratum admissibility and reporting precede any ranking. Equal diagnostic counts are a collection convenience, not deployment weights. No soft objective can compensate for a mandatory failure.
+
+Freeze a versioned population contract with joint variables, support, dependencies, strata/mixture probabilities, rights, exclusions, time validity and applicability. Keep request-job law distinct from the finite design menu conditional on that job. Request population and design-generation process are not interchangeable. No public draw is a hidden/protected exam draw; this researcher defines or accesses neither.
+
+## 4. Case contract
+
+CAD/parameterisation; bolt/thread modelling convention; owned material data; preload method; friction/contact definitions; full assembly/service sequence; geometry/load/tolerance envelope; allowable stress/slip/separation rules. All numeric loads, factors and thresholds are HUMAN_INPUT.
+
+A proposed case contains a customer-job version, action geometry, stratum/condition, material version, initial/boundary/history version and exact requested outputs. Freeze canonical units/order, numerical representation, valid-geometry checks, action eligibility, case/material/extractor identities and failure semantics before collecting evidence. A draft schema outline, all registration fields unresolved:
+
+```json
+{
+  "customer_job_version": "HUMAN_INPUT",
+  "action_geometry_version": "HUMAN_INPUT",
+  "stratum_and_condition_contract": "HUMAN_INPUT",
+  "material_and_rights_version": "HUMAN_INPUT",
+  "initial_boundary_history_version": "HUMAN_INPUT",
+  "reference_image_deck_mesh_extractor_pins": "HUMAN_INPUT",
+  "measurement_and_limit_contract": "HUMAN_INPUT",
+  "request_population_P_version": "HUMAN_INPUT",
+  "proposal_Q_and_evidence_w_versions": "HUMAN_INPUT"
+}
+```
+
+This is an explanatory outline, not a public runtime schema migration. Supply only an allow-listed public research case. Internal reference diagnostics, protected identities/metadata and future evaluation/reconstruction-sensitive state cannot enter miner/public outputs. Mock/practice cases must remain structurally separated from official evaluation. No existing Challenge identifier or file is changed.
+
+## 5. Reference policy
+
+CalculiX nonlinear structural/contact route with approved preload and service sequencing. Validate balances, pretension force, mesh/contact/load-step sensitivity and independent buyer structural FE results. VDI-style compliance is a baseline and limiting-case check, not a disqualified competitor. Applicable criteria/uncertainty and pins are HUMAN_INPUT.
+
+Open route: [CALC: CalculiX authors](https://www.dhondt.de/). Pin reviewed open licence/dependencies, source revision, container digest, compiler/math environment, meshing/solver/deck/material versions and extraction definition. None is supplied here as a fake immutable pin. Reproducibility within documented tolerances is necessary; physical adequacy is separate.
+
+Credibility **earned: NOT_DEMONSTRATED**; target: framework Tier 2 via an applicable independent buyer tool. Tier 3 would require applicable physical experiments and their own rights/budget/acceptance; it is not priced or earned by this report. A successful balance or cross-tool check is evidence for an owner, not qualification itself.
+
+Infrastructure failures preserve FAILED_INFRA/retry/non-scientific semantics. Nonconvergence, inappropriate constitutive law, extraction ambiguity or failed physical balance are reference inadequacy/UNRESOLVED and never candidate scientific failure. Stop grading until the affected reference is adequate. Tolerances, uncertainty bands, convergence thresholds and credibility acceptance are **HUMAN_INPUT — reference/science owners**.
+
+## 6. Output and measurement contract
+
+Joint opening/separation, slip, clamp load transfer, applicable bolt/member stress and displacement over every registered assembly/service step. Grade explicitly defined regularised stresses or resultants; stress singularities, absent thread detail and solver contact residuals need prospective handling.
+
+Hard-limit family: Customer separation/slip permissions, material stress/strain allowables, required load cases, bolt/preload and package/manufacturing limits. NASA examples are not authority for a new industrial or aerospace limit. Friction uncertainty cannot be narrowed to make the menu feasible.
+
+Freeze each quantity's units, sample locations, aggregation, sign convention, mask, extrema treatment, applicability and reference uncertainty. Register output field/array shape and the decision projection prospectively. The same definitions and limits apply to reference, strongest cheap baseline and model. Measurement definition, qualification, applicability and score use are distinct approvals.
+
+Admissibility must be established for **every required output in every mandatory stratum** before the customer's objective can rank actions. Near-infeasible means outside a prospectively approved uncertainty/refinement band for a specified hard limit while other mandatory conditions are respected; ambiguous reference signs remain UNRESOLVED. No new scalar score, scientific tolerance, safety factor or loss-based exemption is authorised. Customer objective: Customer's preference among fully admissible joint configurations, such as manufacturing/assembly effort or material use, is HUMAN_INPUT.
+
+## 7. Construction contract
+
+Research a fast model predicting the frozen physical outputs/decision projection from allowed geometry, condition and material inputs. The current bounded Carbon search surface is neural-operator **TrainingStrategy**, subject to its current contracts. This draft does not widen it to arbitrary solver/code execution or a future ModelConstructionStrategy.
+
+Parameterised geometry generation, meshing, reference runs and official grading remain owner-controlled. Learners can use only authorised public research examples/features under reviewed licences; exact permitted inputs, architecture/dependency/compute bounds, training split and geometry-to-fixed-output representation are **HUMAN_INPUT — construction/security owners**. No private samples, hidden seeds or reference authority are provided to participants. Any prototype stays developmental and structurally unable to emit LIVE ranking/frontier/treasury/product authority.
+
+Strong baseline: **VDI-style joint compliance calculation plus contact-aware cached structural FE response surface and buyer's existing sizing worksheet**. Incremental-value hypothesis: separation/slip topology changes can alter joint admissibility. Demonstrate a decision residual beyond cached contact-aware FE; pure elastic stiffness may reduce to current f08's cheap response-map failure. Complete acquisition/build/fit/search/verification and retained high-fidelity calls must be counted for both alternatives. A good imitation of an inadequate reference is not a useful model.
+
+## 8. Research kit
+
+Proposed public kit only: source-linked solver documentation, independently licensed geometry/material examples, canonical explanatory schema, output/measurement definitions, baseline specification, openly generated diagnostic cases and failure-report format. Release actual files only after owner rights/applicability review. It contains no official bank, private metadata, seeds, protected samples, reversible draw identities or AX42 material.
+
+Training/support/domain claims require separate authorisation. Include both cheap-baseline and reference costs, convergence diagnostics and known limitations in public research reports where disclosure allows. A practice kit remains incomplete and cannot substitute for the independent exam. No kit is built or solver installed by this researcher.
+
+## 9. Evidence plan
+
+Before any new collection: get a real customer job with unchanged sourced limits and rights; confirm the open route exactly produces the needed outputs; check independent reference applicability and the buyer's actual current latency; and obtain the baseline's cheapest complete decisions. Source-first work may reject the candidate without a solve.
+
+Then a separately authorised Data Collection task can run the panel below. It must demonstrate refined feasible witnesses and prospective contested counts per stratum before a full bank. Qualification owners choose tolerances, T3 power, alpha, effect severity, question law and reference acceptance. These are HUMAN_INPUT, not selected from cheap runtimes.
+
+Full-bank hypothesis: designs [24,24,24], strata [4,4,4], primary cases [96,96,96], refined cases [32,32,32] at multiplier [2,2,2], charged failed attempts [20,20,20], independent witness pairs [8,8,8] with two tools each. Total equivalent complete cases U=[196,196,196]. This draft budget is not proof that the menu has the required feasible/near-infeasible counts.
+
+C1 complete-case CPU-hours **0.03 / 0.08 / 0.24**, RAM GiB **1.00 / 4.00 / 12.00**; p50/p95 and elapsed/CPU ratio are NOT_MEASURED. Charged startup C2 **EUR 26.11 / 42.08 / 93.21**, under the [common formula](../methodology.md). All estimates are ASSUMPTION. Witness licence assumption is zero incremental charge only if the buyer has rights/access; otherwise reprice and reject if the cap fails. No spend is authorised.
+
+V4 compares analytical/library, interpolation, calibrated response surface, reduced physics and actual buyer tool at matched admissibility, with complete overhead and retained verification over M=[1,10,100] served revisions (ASSUMPTION sensitivity). Acceptable false-feasible rate, regret/decision agreement and economic threshold are HUMAN_INPUT. An equal cheap decision, infeasible stratum or unqualified reference stops admission. The discovery estimate screen fits EUR100, but an actual bill above the cap stops the proposed bank.
+
+## 10. Readiness and claim record
+
+| Field | Present record / owner / blocked behaviour |
+| --- | --- |
+| Customer packet/acceptance | HUMAN_INPUT — customer/business owner; G1 and adoption blocked |
+| Scientific limits, P/Q/w and coverage | HUMAN_INPUT — science/customer owner; official draws and grading blocked |
+| Exact image/deck/material/measurement pins | HUMAN_INPUT — reference owner; reference execution/grading blocked |
+| G3 feasible witnesses / G4 counts | NOT_DEMONSTRATED — Data Collection evidence required; no finalist |
+| G5 baseline advantage | NOT_DEMONSTRATED — matched V4 panel required |
+| C1/C2/C3/C4 | ASSUMPTION or NOT_MEASURED; no approved bank affordability/benefit |
+| Credibility / qualification | NOT_DEMONSTRATED; target Tier 2 is a plan, not earned |
+| Question/power/security contracts | HUMAN_INPUT — relevant owners; no new execution authority |
+| Adoption / replacement / dispatch | HUMAN_INPUT; false dispatch readiness; no grant or runtime ID |
+
+Earned maturity is a sourced conditional research specification. Scientific, security, network, commercial and production qualification are not earned. Final scientific/adoption decisions belong to owners. Nothing here qualifies the exam or candidates, relaxes a limit, activates LIVE, creates a frontier/settlement obligation, or changes historical evidence.
+
+## 11. Question-law sketch
+
+**One question** is one real customer request/job version, unchanged hard limits and all mandatory strata, together with a finite approved geometry/action menu. The answer selects an admissible action according to the approved customer objective, or returns NONE_FEASIBLE/UNRESOLVED. A fixed customer-approved bolt/preload/support menu, retaining the same required load envelope. No load reduction or unapproved material substitution is a valid action.
+
+Propose menu N=[24,24,24] for the bank scenario; this is a candidate count, **not k**. Propose exploratory question batch k=[4,8,12] complete questions as an ASSUMPTION sensitivity; k is neither a power calculation nor adopted law. Test Lead owns final k, question pool size, alpha/control/effect choices and question turnover. The first triage panel below is one diagnostic job/menu, not evidence of question diversity or k independent buyer questions.
+
+P draws actual jobs; Q enriches diagnostic jobs/actions with separately reported strata. Freeze valid menu eligibility and prospective question/answer rule versions. Report distinct winners/actions, active limits, ties, duplicate exposure, feasible/NONE_FEASIBLE/UNRESOLVED counts and per-stratum P/Q coverage. A nearly constant winner is a value/learning warning even if every design solves.
+
+Proposed NONE_FEASIBLE handling: retain valid forward P questions; never redraw until feasible. NONE_FEASIBLE requires every eligible menu action to have a certified hard failure in its full registered conditions. A single unresolved action/reference prevents that terminal conclusion unless it is already independently proven infeasible on another mandatory limit. Infrastructure failure never counts as infeasibility. No global physical infeasibility is inferred beyond the menu. This is a draft recommendation; actual status/score treatment remains HUMAN_INPUT.
+
+Require at least five feasible and five near-infeasible designs in **each** mandatory stratum under the prospective one-band screen, plus explicit full-job all-strata feasibility. Counts or question diversity cannot be manufactured by widening limits, uncertainty bands, changing objects/current/load or dropping a required stratum. Report any two-band draft sensitivity separately without changing admission.
+
+## 12. First feasibility and value-check panel
+
+**Recommendation for Data Collection after separate owner authorisation; no runs or spend here.** Start with the source/customer-limit/reference preflight. If it fails, stop with HUMAN_INPUT; do not buy compute.
+
+Proposed minimal triage budget (each fixed count has a degenerate low/base/high):
+
+| Work | Count proposal | Purpose |
+| --- | --- | --- |
+| Registered action candidates | [10,10,10] across every proposed stratum | Mix handbook/circuit-selected and plausible boundary actions without presupposing feasible labels |
+| Primary full cases | [40,40,40] | Complete outputs/limits per stratum; test any feasible witness first |
+| Refined full cases | [8,8,8] at [2,2,2] cost | Recheck prospective boundary/witness designs; do not certify all cases from this subset |
+| Diagnostic controls | [4,4,4] complete-case equivalents | preload force balance, linear compliance limit, contact separation transition and slip transition within the approved load/friction domain |
+| Independent witnesses | [4,4,4] case equivalents, two paired designs | Independent buyer structural/contact model for contrasting preload/support configurations with unchanged load history, friction and measurement definitions. |
+| Charged failed attempts | [4,4,4] case equivalents | Bound the cost hypothesis; real failures beyond allowance are charged and reprice the panel |
+
+Equivalent complete cases U_panel=[68,68,68]. Using the same C1 and setup/tax/reserve/serial assumptions gives **first-panel EUR 19.85 / 25.39 / 43.13**, low/base/high ASSUMPTION, including the baseline fit/benchmark allowance in the common setup reserve. If independent-tool charges, fit time, extra conditions or retries exceed allowances, reprice before approval. This is an alternative early-stop bill; do not add its setup twice when reusing cases in the full bank. Physical experiments and human labour are not priced.
+
+Return: sourced unchanged limits, every action's per-stratum margins and unresolved states, converged feasible witness or explicit lack thereof, actual feasible/near-infeasible counts, reference checks and discrepancy, complete CPU/wall/RAM/failure ledger, actual bill, and strongest cheap-baseline same-decision audit. Ten actions are only the theoretical minimum for five plus five; no successful counts are presumed. If inadequate, stop or propose a priced additional panel within the cap; never enlarge scientific bands to reach counts.
+
+Only after this triage should a separately approved bank proceed with all necessary refinements, witnesses and power/coverage evidence. First-panel cost is not a full-bank C2 receipt and its small timing sample cannot establish a p95 tail.
+
+## 13. Comparison with current eight and #921
+
+Reuses #921's top-ranked f08-slot replacement hypothesis. Its base index trails seal/solenoid and the new planar scenario, and exceeds the gripper scenario. It inherits none of f08's qualified data and fixes no reference problem by declaration.
+
+Under the same explicit index `I=(V2×V3)/(C2+52×C3_weekly)`, this dossier's **ASSUMPTION** index is **2.66 / 1324.53 / 119906.20** and C3 is **EUR 0.65 / 4.21 / 37.28/week**. The scenario base diagnostic rank is 5; excitement 1.67 / 2.67 / 3.67 is a tiebreaker only. No eligible/admitted rank exists.
+
+See the [complete same-index comparison](../comparison.md): all eight current tasks have missing complete C2/C3 and a USD scenario basis, so their index is NOT_COMPUTABLE. No exchange rate, absent cost or scientific-score comparison is invented. Existing motor feasibility, f08/cooling cheap-baseline, f13 reference/cost and f06 latency failures inform this preflight. No new candidate is demonstrated to beat them. The owner may retain current tasks or #921 and reject this proposal.

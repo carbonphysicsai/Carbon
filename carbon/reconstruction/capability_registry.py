@@ -48,6 +48,9 @@ class Dimension(str, Enum):
     HYBRID = "hybrid"
     PREDICTION = "prediction"
     INFERENCE = "inference"
+    #: Training-time numerical routines (Admission section 3, Level 3); used by
+    #: development-only variants (BATTERY-CLIMB-1-REVIEW).
+    NUMERICS = "numerics"
 
 
 class Status(str, Enum):
@@ -1533,6 +1536,33 @@ def development_variant_registry(directory=None):
 
 
 _ARM = re.compile(r"[a-z][a-z0-9_]{0,31}\Z")
+
+
+_VARIANT_VERSION = re.compile(r"[a-z0-9][a-z0-9-]{0,80}\Z")
+
+
+def development_variant_document(value, directory=None):
+    """A registered development variant's document, by digest or version
+    name, with its pinned digest rechecked: data only, so a door may read a
+    variant's level without importing the variant module (VALIDATOR-25).
+    None when `value` names no registered variant; an unreadable or changed
+    document raises, so a door consulting it fails closed."""
+    path = Path(DEVELOPMENT_VARIANT_DIR if directory is None else directory)
+    versions = development_variant_registry(directory)["versions"]
+    by_digest = {pinned: name for name, pinned in versions.items()}
+    name = value if value in versions else by_digest.get(value)
+    if type(name) is not str or not _VARIANT_VERSION.fullmatch(name):
+        return None
+    try:
+        document = json.loads((path / f"{name}.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        raise RuntimeError("development variant document unreadable") from None
+    body = json.dumps(
+        document, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode("utf-8")
+    if "sha256:" + hashlib.sha256(body).hexdigest() != versions[name]:
+        raise RuntimeError("development variant document changed")
+    return document
 
 
 def development_variant_names(directory=None):

@@ -79,10 +79,12 @@ def _controls_pass(name, split="trained"):
 def test_the_registry_loads_battery_level_0_and_refuses_anything_else():
     assert adapters.load(b.CHALLENGE_ID, 0) is A
     assert (b.CHALLENGE_ID, 0) in adapters.registered()
-    # Level 1 has its own adapter (GRAPHITE-L1-BUILD-01); Level 2 has none.
-    assert adapters.load(b.CHALLENGE_ID, 1) is not A
+    # Levels 1-3 have their own adapters (GRAPHITE-L1-BUILD-01,
+    # battery_level2, battery_level3); Level 5 has none.
+    for level in (1, 2, 3):
+        assert adapters.load(b.CHALLENGE_ID, level) is not A
     with pytest.raises(adapters.AdapterNotRegistered):
-        adapters.load(b.CHALLENGE_ID, 2)
+        adapters.load(b.CHALLENGE_ID, 5)
     with pytest.raises(adapters.AdapterNotRegistered):
         adapters.load("burgers-dynamics-v1", 0)
 
@@ -761,6 +763,23 @@ def test_higher_level_families_are_not_run_seams_with_nothing_to_execute():
         assert not any(callable(v) for v in dataclasses.asdict(seam).values())
         if seam.level >= 3:
             assert "reserved: security owner" in seam.reason
+
+
+def test_a_seam_names_the_registered_variant_it_waits_on():
+    """A seam at a level whose development variant is registered names that
+    variant and why the level is still not run; it never claims the level
+    has no proposal (the Level 2 reason did, after battery-l2-spectral-v1)."""
+    from carbon.reconstruction import development_variants as dv
+
+    registry = dv.load()
+    for seam in A.level_families():
+        found = registry.current.get((b.CHALLENGE_ID, seam.level))
+        if found is None or seam.level == dv.GRAPH_ONLY_LEVEL:
+            # Level 4's seam is replaced by its own adapter, battery_level4.
+            continue
+        assert dv.variant(b.CHALLENGE_ID, seam.level).version in seam.reason
+        assert "no attack adapter" in seam.reason
+        assert "no Level" not in seam.reason
 
 
 def test_a_research_tool_call_maps_to_the_family_it_probes():

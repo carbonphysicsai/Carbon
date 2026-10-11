@@ -144,6 +144,7 @@ def test_green_only_when_every_item_passes(monkeypatch, tmp_path):
         _write_review(tmp_path, item_id, _review(item_id))
     report = runner.run_gate(CHALLENGE, 0, root=tmp_path)
     assert report["green"] and report["counts"][model.PASS] == len(model.load_items())
+    assert report["counts"][model.PASS_BY_REVIEW] == 0
     partial = runner.run_gate(CHALLENGE, 0, only=["P1"], root=tmp_path)
     assert not partial["green"] and partial["partial"]
 
@@ -203,7 +204,9 @@ def test_history_is_append_only_and_drives_metrics(tmp_path):
     metrics = runner.history_metrics(CHALLENGE, root=tmp_path)
     assert metrics["runs"] == 2
     assert metrics["first_run_not_passing"] == sum(
-        1 for r in first["items"] if r["status"] != model.PASS
+        1
+        for r in first["items"]
+        if r["status"] not in (model.PASS, model.PASS_BY_REVIEW)
     )
     assert metrics["first_green_utc"] is None
 
@@ -627,12 +630,32 @@ def test_a_gate_run_leaves_carbon_clean(monkeypatch, tmp_path):
     assert sorted(str(p) for p in model.PACKAGE.rglob("*")) == before
 
 
-def _r1_runner(monkeypatch):
-    calls = []
-    # Import the runner's grant binding before os.name is faked: pathlib cannot
-    # be instantiated for a faked platform.
-    from carbon.agent_campaign.graphite import phase4  # noqa: F401
+def _analysis_manifest(tmp_path, **over):
+    """A fixture manifest in the closed four-key format the consumer reads
+    (`research_image.load_analysis_image`); a test value, not a built image."""
+    from carbon.development_session import research_image
 
+    document = {
+        "schema": research_image.SCHEMA,
+        "image_id": "sha256:" + "1" * 64,
+        "parent_image": "sha256:" + "2" * 64,
+        "runtime_digest": "sha256:" + "3" * 64,
+    }
+    document.update(over)
+    path = tmp_path / "analysis-image.json"
+    path.write_text(json.dumps(document), encoding="utf-8")
+    return path
+
+
+def _r1_runner(monkeypatch, tmp_path):
+    calls = []
+    # Import what the check imports before os.name is faked: pathlib cannot be
+    # instantiated for a faked platform.
+    from carbon.agent_campaign.graphite import phase4  # noqa: F401
+    from carbon.development_session import research_image  # noqa: F401
+
+    manifest = _analysis_manifest(tmp_path)
+    monkeypatch.setenv(checks.ANALYSIS_IMAGE_ENV, str(manifest))
     monkeypatch.setattr(checks.os, "name", "posix")
 
     def fake(command, **kwargs):
@@ -646,8 +669,8 @@ def _r1_runner(monkeypatch):
 BATTERY = "battery-fastcharge-ageing-development-v1"
 
 
-def test_r1_never_passes_for_a_challenge_with_no_bound_grant(monkeypatch):
-    calls = _r1_runner(monkeypatch)
+def test_r1_never_passes_for_a_challenge_with_no_bound_grant(monkeypatch, tmp_path):
+    calls = _r1_runner(monkeypatch, tmp_path)
     motor = checks.Context(
         challenge="electric-motor-magnetics",
         level=0,
@@ -660,8 +683,8 @@ def test_r1_never_passes_for_a_challenge_with_no_bound_grant(monkeypatch):
     assert calls == [], "prelive must not run without the challenge's own grant"
 
 
-def test_r1_never_passes_on_another_challenges_grant(monkeypatch):
-    calls = _r1_runner(monkeypatch)
+def test_r1_never_passes_on_another_challenges_grant(monkeypatch, tmp_path):
+    calls = _r1_runner(monkeypatch, tmp_path)
     # challenges.json (or anything else) naming battery's grant for cooling.
     cooling = checks.Context(
         challenge="chip-cold-plate",
@@ -685,9 +708,9 @@ def test_r1_never_passes_on_another_challenges_grant(monkeypatch):
     ],
 )
 def test_r1_passes_the_challenges_own_bound_grant_to_prelive(
-    monkeypatch, challenge, grant
+    monkeypatch, tmp_path, challenge, grant
 ):
-    calls = _r1_runner(monkeypatch)
+    calls = _r1_runner(monkeypatch, tmp_path)
     ctx = checks.Context(
         challenge=challenge, level=0, data=checks.load_challenge_data(challenge)
     )
@@ -744,10 +767,12 @@ def test_a4_passes_only_a_designated_controller_with_an_identity(monkeypatch, tm
 
 
 def test_the_committed_designations_fail_a4_until_an_identity_is_recorded():
-    battery = checks.Context(
-        challenge="battery-fastcharge-ageing-development-v1", level=0
-    )
-    assert checks.admission_controller({}, battery).status == model.FAIL
+    # Battery levels 0-4 are designated; cooling still waits.
+    for level in range(5):
+        battery = checks.Context(
+            challenge="battery-fastcharge-ageing-development-v1", level=level
+        )
+        assert checks.admission_controller({}, battery).status == model.PASS
     cooling = checks.Context(challenge="chip-cold-plate", level=0)
     assert checks.admission_controller({}, cooling).status == model.FAIL
 
@@ -772,3 +797,387 @@ def test_r5_never_passes_and_never_borrows_another_grant(monkeypatch):
     assert checks.grant_binding({}, cooling).status == model.FAIL
     own = checks.Context(challenge="chip-cold-plate", level=0)
     assert checks.grant_binding({}, own).status == model.NOT_BUILT
+
+
+def _own_grant_context():
+    battery = "battery-fastcharge-ageing-development-v1"
+    return checks.Context(
+        challenge=battery, level=0, data=checks.load_challenge_data(battery)
+    )
+
+
+def test_r1_passes_the_analysis_image_manifest_to_prelive(monkeypatch, tmp_path):
+    calls = _r1_runner(monkeypatch, tmp_path)
+    assert checks.prelive({}, _own_grant_context()).status == model.PASS
+    command = calls[0]
+    flag = command.index("--analysis-image-manifest")
+    assert command[flag + 1] == str(tmp_path / "analysis-image.json")
+
+
+def test_r1_verdict_survives_a_scratch_the_host_user_cannot_remove(
+    monkeypatch, tmp_path
+):
+    """The containment cell writes its scratch as the container's uid; a cleanup
+    refusal must not replace the prelive verdict with a PermissionError."""
+    calls = _r1_runner(monkeypatch, tmp_path)
+    seen = []
+
+    def refuse(path, ignore_errors=False, **kwargs):
+        seen.append(ignore_errors)
+        if not ignore_errors:
+            raise PermissionError(1, "Operation not permitted", str(path))
+
+    monkeypatch.setattr(checks.shutil, "rmtree", refuse)
+    result = checks.prelive({}, _own_grant_context())
+    assert calls and result.status == model.PASS
+    assert seen == [True], "scratch removal must be best effort"
+
+
+def test_r1_fails_closed_when_the_manifest_is_unset(monkeypatch, tmp_path):
+    calls = _r1_runner(monkeypatch, tmp_path)
+    monkeypatch.delenv(checks.ANALYSIS_IMAGE_ENV)
+    result = checks.prelive({}, _own_grant_context())
+    assert result.status == model.FAIL and checks.ANALYSIS_IMAGE_ENV in result.detail
+    assert calls == [], "prelive must not run without a manifest"
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        {"extra": "x"},
+        {"schema": "another.schema"},
+    ],
+)
+def test_r1_refuses_a_manifest_that_is_not_the_closed_format(
+    monkeypatch, tmp_path, mutation
+):
+    calls = _r1_runner(monkeypatch, tmp_path)
+    _analysis_manifest(tmp_path, **mutation)
+    result = checks.prelive({}, _own_grant_context())
+    assert result.status == model.FAIL and "four-key" in result.detail
+    assert calls == []
+
+
+def test_r1_refuses_a_missing_unreadable_or_empty_valued_manifest(
+    monkeypatch, tmp_path
+):
+    calls = _r1_runner(monkeypatch, tmp_path)
+    monkeypatch.setenv(checks.ANALYSIS_IMAGE_ENV, str(tmp_path / "nowhere.json"))
+    assert checks.prelive({}, _own_grant_context()).status == model.FAIL
+    (tmp_path / "bad.json").write_text("{not json", encoding="utf-8")
+    monkeypatch.setenv(checks.ANALYSIS_IMAGE_ENV, str(tmp_path / "bad.json"))
+    assert checks.prelive({}, _own_grant_context()).status == model.FAIL
+    _analysis_manifest(tmp_path, image_id="")
+    monkeypatch.setenv(checks.ANALYSIS_IMAGE_ENV, str(tmp_path / "analysis-image.json"))
+    result = checks.prelive({}, _own_grant_context())
+    assert result.status == model.FAIL and "empty" in result.detail
+    assert calls == []
+
+
+# -- the manifest helper on its own (needs no phase-4 import) -----------------------------------
+def test_manifest_helper_accepts_the_closed_format(monkeypatch, tmp_path):
+    path = _analysis_manifest(tmp_path)
+    monkeypatch.setenv(checks.ANALYSIS_IMAGE_ENV, str(path))
+    assert checks._analysis_image_manifest() == (str(path), None)
+
+
+@pytest.mark.parametrize(
+    "setup, fragment",
+    [
+        ("unset", checks.ANALYSIS_IMAGE_ENV),
+        ("missing", "is not a file"),
+        ("garbage", "four-key"),
+        ("extra", "four-key"),
+        ("schema", "four-key"),
+        ("empty", "empty or non-text"),
+    ],
+)
+def test_manifest_helper_fails_closed_with_a_reason(
+    monkeypatch, tmp_path, setup, fragment
+):
+    monkeypatch.delenv(checks.ANALYSIS_IMAGE_ENV, raising=False)
+    if setup == "missing":
+        monkeypatch.setenv(checks.ANALYSIS_IMAGE_ENV, str(tmp_path / "nowhere.json"))
+    elif setup == "garbage":
+        (tmp_path / "m.json").write_text("{not json", encoding="utf-8")
+        monkeypatch.setenv(checks.ANALYSIS_IMAGE_ENV, str(tmp_path / "m.json"))
+    elif setup != "unset":
+        over = {
+            "extra": {"extra": "x"},
+            "schema": {"schema": "other"},
+            "empty": {"image_id": ""},
+        }[setup]
+        monkeypatch.setenv(
+            checks.ANALYSIS_IMAGE_ENV, str(_analysis_manifest(tmp_path, **over))
+        )
+    path, refusal = checks._analysis_image_manifest()
+    assert path is None and fragment in refusal
+
+
+# -- a ruling that covers several levels, and a NOT_BUILT check accepted by review --------------
+def test_a_review_may_cover_several_levels(tmp_path):
+    _write_review(tmp_path, "O1", _review("O1", level=[0, 1]))
+    for level in (0, 1):
+        assert runner.load_review(CHALLENGE, level, "O1", root=tmp_path).status == (
+            model.PASS
+        )
+    assert runner.load_review(CHALLENGE, 2, "O1", root=tmp_path).status == (
+        model.REVIEW_REQUIRED
+    )
+
+
+@pytest.mark.parametrize("level", [[], [0, 0], ["0"], [0, True], "0", None])
+def test_a_malformed_level_list_is_review_required(tmp_path, level):
+    _write_review(tmp_path, "O1", _review("O1", level=level))
+    assert runner.load_review(CHALLENGE, 0, "O1", root=tmp_path).status == (
+        model.REVIEW_REQUIRED
+    )
+
+
+def test_notes_must_be_text(tmp_path):
+    _write_review(tmp_path, "O1", _review("O1", notes=["x"]))
+    assert runner.load_review(CHALLENGE, 0, "O1", root=tmp_path).status == (
+        model.REVIEW_REQUIRED
+    )
+    _write_review(tmp_path, "O1", _review("O1", notes="a note"))
+    assert runner.load_review(CHALLENGE, 0, "O1", root=tmp_path).status == model.PASS
+
+
+def _item_with(check_result, monkeypatch, check="not_built_check"):
+    monkeypatch.setitem(checks.CHECKS, check, lambda item, ctx: check_result)
+    return {"id": "P3", "kind": "auto", "lesson": "N1", "title": "t", "check": check}
+
+
+def test_a_not_built_check_is_accepted_only_by_a_valid_pass_review(
+    monkeypatch, tmp_path
+):
+    ctx = checks.Context(challenge=CHALLENGE, level=0)
+    nb = model.Result(model.NOT_BUILT, "no check yet", ())
+    item = _item_with(nb, monkeypatch)
+    assert runner.evaluate_item(item, ctx, tmp_path)["status"] == model.NOT_BUILT
+    _write_review(tmp_path, "P3", _review("P3", decision="FAIL"))
+    assert runner.evaluate_item(item, ctx, tmp_path)["status"] == model.NOT_BUILT
+    _write_review(tmp_path, "P3", _review("P3", level=[1]))
+    assert runner.evaluate_item(item, ctx, tmp_path)["status"] == model.NOT_BUILT
+    _write_review(tmp_path, "P3", _review("P3"))
+    row = runner.evaluate_item(item, ctx, tmp_path)
+    assert row["status"] == model.PASS_BY_REVIEW
+    assert "not built" in row["detail"] and "accepted by" in row["detail"]
+
+
+def test_a_review_never_overrides_a_failing_check(monkeypatch, tmp_path):
+    ctx = checks.Context(challenge=CHALLENGE, level=0)
+    item = _item_with(model.Result(model.FAIL, "red", ()), monkeypatch, "failing_check")
+    _write_review(tmp_path, "P3", _review("P3"))
+    assert runner.evaluate_item(item, ctx, tmp_path)["status"] == model.FAIL
+
+
+def test_a_failing_item_with_a_pass_review_stays_fail_in_the_report(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setitem(
+        checks.CHECKS,
+        "registered_l0",
+        lambda item, ctx: model.Result(model.FAIL, "red", ()),
+    )
+    _write_review(tmp_path, "P1", _review("P1"))
+    (row,) = runner.run_gate(CHALLENGE, 0, only=["P1"], root=tmp_path)["items"]
+    assert row["status"] == model.FAIL
+
+
+def _all_pass_except_one_by_review(monkeypatch, tmp_path):
+    monkeypatch.setattr(runner, "load_conditions", lambda challenge: [])
+    items = model.load_items()
+    for ref in {i["check"] for i in items}:
+        monkeypatch.setitem(
+            checks.CHECKS, ref, lambda item, ctx: model.Result(model.PASS, "ok", ("e",))
+        )
+    # One auto item has no automation: accept it by review.
+    victim = next(i for i in items if i["kind"] == "auto")
+    monkeypatch.setitem(
+        checks.CHECKS,
+        victim["check"],
+        lambda item, ctx: (
+            model.Result(model.NOT_BUILT, "no check yet", ())
+            if item["id"] == victim["id"]
+            else model.Result(model.PASS, "ok", ("e",))
+        ),
+    )
+    for item in items:
+        if item["kind"] != "auto" or item["id"] == victim["id"]:
+            _write_review(tmp_path, item["id"], _review(item["id"]))
+    return victim
+
+
+def test_pass_by_review_counts_toward_green_but_is_shown_apart(monkeypatch, tmp_path):
+    victim = _all_pass_except_one_by_review(monkeypatch, tmp_path)
+    report = runner.run_gate(CHALLENGE, 0, root=tmp_path)
+    counts = report["counts"]
+    assert counts[model.PASS_BY_REVIEW] == 1
+    assert counts[model.PASS] == len(model.load_items()) - 1
+    assert report["green"] is True
+    by_id = {r["id"]: r["status"] for r in report["items"]}
+    assert by_id[victim["id"]] == model.PASS_BY_REVIEW
+    text = runner.render_text(report)
+    assert "PASS_BY_REVIEW 1" in text and "green: True" in text
+    record = runner.run_record(report)
+    assert record["schema"] == runner.RUN_SCHEMA and record["green"] is True
+    assert record["counts"][model.PASS_BY_REVIEW] == 1
+
+
+def test_a_failing_item_makes_the_run_not_green_even_with_every_review(
+    monkeypatch, tmp_path
+):
+    _all_pass_except_one_by_review(monkeypatch, tmp_path)
+    assert runner.run_gate(CHALLENGE, 0, root=tmp_path)["green"]
+    monkeypatch.setitem(
+        checks.CHECKS, "registered_l0", lambda i, c: model.Result(model.FAIL, "r", ())
+    )
+    assert not runner.run_gate(CHALLENGE, 0, root=tmp_path)["green"]
+
+
+# -- the stage waiver (WAIVED) -------------------------------------------------------------------
+BATTERY = "battery-fastcharge-ageing-development-v1"
+
+
+def _waivers(tmp_path, **over):
+    document = {
+        "schema": runner.WAIVER_SCHEMA,
+        "active_stage": "stage-A",
+        "waivers": [
+            {
+                "id": "STAGE_A_WAIVER",
+                "challenge": BATTERY,
+                "stage": "stage-A",
+                "items": ["S3", "H2"],
+                "levels": [0, 1],
+                "reviewer": "Test Lead",
+                "date": "2026-10-09",
+                "scope": "measurement only",
+            }
+        ],
+    }
+    document.update(over)
+    (tmp_path / "waivers.json").write_text(json.dumps(document), encoding="utf-8")
+
+
+def _row(tmp_path, item_id, challenge=BATTERY, level=0):
+    report = runner.run_gate(challenge, level, only=[item_id], root=tmp_path)
+    return report["items"][0], report
+
+
+def test_a_waiver_turns_an_unbuilt_item_into_waived_never_pass(tmp_path):
+    _waivers(tmp_path)
+    row, report = _row(tmp_path, "S3")
+    assert row["status"] == model.WAIVED
+    assert (
+        "waived under STAGE_A_WAIVER" in row["detail"]
+        and "measurement only" in row["detail"]
+    )
+    assert report["counts"][model.WAIVED] == 1 and report["counts"][model.PASS] == 0
+    assert "WAIVED 1" in runner.render_text(report)
+
+
+def test_a_waiver_expires_when_the_active_stage_moves_on(tmp_path):
+    _waivers(tmp_path, active_stage="stage-B")
+    assert _row(tmp_path, "S3")[0]["status"] == model.NOT_BUILT
+
+
+def test_a_waiver_covers_only_its_challenge_items_and_levels(tmp_path):
+    _waivers(tmp_path)
+    assert (
+        _row(tmp_path, "S3", challenge="chip-cold-plate")[0]["status"]
+        == model.NOT_BUILT
+    )
+    assert _row(tmp_path, "S1")[0]["status"] == model.NOT_BUILT  # not a waived item
+    assert (
+        _row(tmp_path, "S3", level=2)[0]["status"] == model.NOT_BUILT
+    )  # not a waived level
+    assert _row(tmp_path, "S3", level=1)[0]["status"] == model.WAIVED
+
+
+def test_a_waiver_never_covers_a_failing_item(monkeypatch, tmp_path):
+    _waivers(tmp_path)
+    monkeypatch.setitem(
+        checks.CHECKS,
+        "gate_margin_study",
+        lambda item, ctx: model.Result(model.FAIL, "red", ()),
+    )
+    assert _row(tmp_path, "S3")[0]["status"] == model.FAIL
+
+
+def test_a_malformed_waiver_file_waives_nothing_and_says_so(tmp_path):
+    (tmp_path / "waivers.json").write_text("{not json", encoding="utf-8")
+    row, report = _row(tmp_path, "S3")
+    assert row["status"] == model.NOT_BUILT
+    assert report["waivers"]["problem"] == "waivers.json is not valid JSON"
+    _waivers(tmp_path, waivers=[{"id": "x"}])
+    assert _row(tmp_path, "S3")[0]["status"] == model.NOT_BUILT
+    _waivers(tmp_path)
+    document = json.loads((tmp_path / "waivers.json").read_text(encoding="utf-8"))
+    document["waivers"][0]["items"] = ["ZZ"]
+    (tmp_path / "waivers.json").write_text(json.dumps(document), encoding="utf-8")
+    assert _row(tmp_path, "S3")[0]["status"] == model.NOT_BUILT
+
+
+def test_green_stays_false_while_waived_but_launch_ready_is_true(monkeypatch, tmp_path):
+    _waivers(tmp_path, waivers=[])
+    victim = _all_pass_except_one_by_review(monkeypatch, tmp_path)
+    document = json.loads((tmp_path / "waivers.json").read_text(encoding="utf-8"))
+    document["waivers"] = [
+        {
+            "id": "STAGE_A_WAIVER",
+            "challenge": CHALLENGE,
+            "stage": "stage-A",
+            "items": [victim["id"]],
+            "levels": [0],
+            "reviewer": "Test Lead",
+            "date": "2026-10-09",
+            "scope": "measurement only",
+        }
+    ]
+    (tmp_path / "waivers.json").write_text(json.dumps(document), encoding="utf-8")
+    # No review for the victim now, so it is NOT_BUILT and the waiver covers it.
+    (tmp_path / CHALLENGE / "reviews" / f"{victim['id']}.json").unlink()
+    report = runner.run_gate(CHALLENGE, 0, root=tmp_path)
+    assert report["counts"][model.WAIVED] == 1
+    assert report["green"] is False
+    assert report["launch_ready"] is True
+    assert report["waivers"]["applied"] == [victim["id"]]
+    record = runner.run_record(report)
+    assert record["schema"] == runner.RUN_SCHEMA and record["launch_ready"] is True
+    # A FAIL anywhere ends launch readiness.
+    monkeypatch.setitem(
+        checks.CHECKS, "registered_l0", lambda i, c: model.Result(model.FAIL, "r", ())
+    )
+    assert runner.run_gate(CHALLENGE, 0, root=tmp_path)["launch_ready"] is False
+
+
+def test_history_metrics_keeps_green_apart_from_launch_ready(tmp_path):
+    line = {
+        "schema": runner.RUN_SCHEMA,
+        "utc": "2026-10-09T00:00:00Z",
+        "partial": False,
+        "items": [{"id": "S3", "status": model.WAIVED, "evidence_digest": "d"}],
+        "counts": {},
+        "green": False,
+        "launch_ready": True,
+    }
+    directory = tmp_path / CHALLENGE
+    directory.mkdir()
+    (directory / "history.jsonl").write_text(json.dumps(line) + "\n", encoding="utf-8")
+    metrics = runner.history_metrics(CHALLENGE, root=tmp_path)
+    assert metrics["first_green_utc"] is None
+    assert metrics["first_launch_ready_utc"] == "2026-10-09T00:00:00Z"
+
+
+def test_the_committed_waiver_is_stage_a_battery_only():
+    active, waivers, problem = runner.load_waivers()
+    assert problem is None and active == "stage-A"
+    (w,) = waivers
+    assert (w["id"], w["challenge"], w["stage"]) == (
+        "STAGE_A_WAIVER",
+        BATTERY,
+        "stage-A",
+    )
+    assert set(w["items"]) == {"S3", "H2", "H4", "V3"} and w["levels"] == [0, 1]

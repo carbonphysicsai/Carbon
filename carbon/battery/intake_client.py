@@ -17,6 +17,11 @@ and sends bytes with headers the miner produced, for example::
 
 A signature is valid for 10 seconds and the snapshot for 60, so sign and send
 straight after building. Poll with `status_message` the same way.
+
+The Launchpad signs for `facts["receiver"]` only once it equals the receiver
+the miner's profile pins for the Challenge (`remote_submission.check_receiver`,
+LAUNCHPAD-ACCEPT-03): an intake reporting another is refused
+`intake_receiver_mismatch` before anything is signed or sent.
 """
 
 from __future__ import annotations
@@ -166,6 +171,58 @@ REFUSALS = {
         "is never served to miners. Nothing was sent for evaluation; write the "
         "recipe against the Challenge's published contract digest."
     ),
+    # The testnet development-ladder deployment (VALIDATOR-25): its own
+    # admission, before anything is compiled or rebuilt.
+    "ladder_hotkey_not_listed": (
+        "This is Carbon's development-ladder validator, which serves only its "
+        "listed rehearsal hotkeys. Nothing was evaluated; submit to the main "
+        "validator instead."
+    ),
+    "ladder_variant_not_accepted": (
+        "The development-ladder validator does not serve that development "
+        "variant. Nothing was evaluated; use one of the variants it lists for "
+        "its level."
+    ),
+    "ladder_level_not_accepted": (
+        "The development-ladder validator serves another level than the "
+        "variant names. Nothing was evaluated; submit to the ladder deployment "
+        "for that level."
+    ),
+    "level4_not_served": (
+        "This validator does not take Level 4 envelopes. Send them to the "
+        "development ladder that serves Level 4."
+    ),
+    "level4_part_malformed": (
+        "The Level 4 envelope part is malformed (its submission digest, part "
+        "numbers or base64 data). Rebuild it with Carbon and send it again."
+    ),
+    "level4_part_conflict": (
+        "The validator already holds other bytes for that part of this Level 4 "
+        "envelope. Nothing was replaced; send the envelope Carbon froze."
+    ),
+    "level4_parts_mismatch": (
+        "That part names another part count than the envelope's earlier parts. "
+        "Nothing was stored; send the envelope Carbon froze."
+    ),
+    "level4_envelope_incomplete": (
+        "Not every part of this Level 4 envelope has arrived yet. Nothing was "
+        "evaluated or counted; send the missing parts, then submit again."
+    ),
+    "level4_store_not_owner_only": (
+        "The validator's Level 4 store is misconfigured. Nothing was stored; this "
+        "is the validator's, not yours. Try again later."
+    ),
+    "hotkey_reserved_for_ladder": (
+        "This hotkey belongs to Carbon's development-ladder validator and is "
+        "never scored here. Nothing was evaluated; submit it to the ladder."
+    ),
+    "ladder_commitment_not_variant": (
+        "The development ladder binds the variant's commitment (the variant "
+        "digest and the whole strategy). Commit that form on chain, then resend."
+    ),
+    "ladder_level_4_not_open": (
+        "Level 4 is not open on the development ladder yet. Nothing was " "evaluated."
+    ),
     "status_fields": "A status request needs exactly submission_id.",
     # The validator's neutral checks (`challenge_validator.Validator.screen`),
     # answered at once; nothing was queued, evaluated or counted.
@@ -206,6 +263,11 @@ REFUSALS = {
         "The validator cannot read the chain right now. This is on the "
         "validator's side; retry in a minute."
     ),
+    "feed_not_served": "This validator does not publish a score feed.",
+    "feed_unavailable": (
+        "This validator's score feed cannot be served right now. This is on "
+        "the validator's side; try again later."
+    ),
     "hotkey_window_used": (
         "Your hotkey already has its submission for this tempo. Send this one "
         "again once the next window opens."
@@ -244,6 +306,11 @@ REFUSALS = {
         "The configured intake serves another chain or Challenge, or is not a "
         "battery intake. Nothing was sent for evaluation; check the intake "
         "address."
+    ),
+    "intake_receiver_mismatch": (
+        "The intake reports another receiver hotkey than the one your profile "
+        "pins for this Challenge. Nothing was signed or sent; review the "
+        "evaluation endpoint's address and receiver hotkey in setup."
     ),
     "intake_signer_changed": (
         "This epoch's candidate was submitted under another hotkey than the "
@@ -347,6 +414,13 @@ def describe(status, answer):
         return (
             f"Submitted as {answer['submission_id']}. Ask for its status in a "
             "few minutes; rebuilding and scoring take several."
+        )
+    if state == "VOID":
+        return (
+            "Void: the hidden window it was scored on was withdrawn after an "
+            "incident. That is not a result about your model: it was never a "
+            "score, it is not ranked or weighted, and it does not use your "
+            "scoring slot. Submit again when you are ready."
         )
     if state == "SCORED" and "screening" not in answer:
         return (

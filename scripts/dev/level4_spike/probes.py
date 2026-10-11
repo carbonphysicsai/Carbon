@@ -11,7 +11,8 @@ import resource
 import time
 import zipfile
 
-from . import graph, lower_jax
+from carbon.level4 import graph
+from carbon.level4.tooling import lower_jax
 
 
 def _rss_mb():

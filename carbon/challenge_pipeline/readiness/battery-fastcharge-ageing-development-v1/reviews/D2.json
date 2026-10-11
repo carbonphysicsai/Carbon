@@ -1,0 +1,25 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-review.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": [
+  0,
+  1
+ ],
+ "item": "D2",
+ "decision": "PASS",
+ "reviewer": "Test Lead",
+ "date": "2026-10-09",
+ "evidence": [
+  {
+   "kind": "file",
+   "ref": "carbon/design_search/track_b.py",
+   "sha256": "sha256:c58fada9366e284d554260f9b6bd6fcbe8744ad26d1b415e9df5be68095e4dab"
+  },
+  {
+   "kind": "file",
+   "ref": "carbon/battery/value/design_search_adapter.py",
+   "sha256": "sha256:7d8b1e74778e5746863fe37542091d8b42cef6277c340f06331849de66835233"
+  }
+ ],
+ "notes": "ACCEPTED: track_b's default B ladder (Test Lead stage A sign-off, 2026-10-09)."
+}

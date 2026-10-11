@@ -21,7 +21,17 @@ promises without running Docker:
   Docker's images needs room for both, a plain reinstall rebuilds the GPU
   worker too, an `--update` to an installer without `--update` stops before
   the checkout moves, the service log is owner-only before the service
-  starts, and the launcher's session token reaches a file while it runs.
+  starts, and the launcher's session token reaches a file while it runs;
+- after the 2026-10-07 acceptance run (LA-F6): with the service, the
+  systemd user manager itself must reach Docker, or the install stops in
+  step 1 with the fix;
+- LA-F10 (OWNER-WORKER-IMAGES-V2-01): `--release TAG` moves the checkout to
+  a release tag in main and pulls each image the release records name, by
+  digest, building none; anything else, a failed pull included, stops before
+  recording, with the command that builds instead; `--update` with a release
+  moves forward only; and remote setup names the released GPU worker's
+  reference from the installed record. Fixture tags and records only: no
+  such release exists, and nothing is pulled.
 """
 
 from __future__ import annotations
@@ -119,6 +129,14 @@ FAKE_TOOLS = {
     "uv": '#!/bin/sh\necho "uv 0.12.7"\n',
     "curl": '#!/bin/sh\necho "curl ran" >&2\nexit 9\n',
     "systemctl": '#!/bin/sh\necho "systemctl $*" >> "$CARBON_TEST_LOG"\n',
+    # The user manager's own view of Docker (LA-F6): it reaches Docker unless
+    # the test says the manager lacks the docker group.
+    "systemd-run": (
+        '#!/bin/sh\necho "systemd-run $*" >> "$CARBON_TEST_LOG"\n'
+        'if [ "$CARBON_TEST_MANAGER_DOCKER" = "denied" ]; then\n'
+        '  echo "permission denied while trying to connect to the docker API" >&2\n'
+        "  exit 1\nfi\necho 27.0.0\n"
+    ),
     "df": (
         "#!/bin/sh\necho 'Filesystem 1024-blocks Used Available Capacity Mounted on'\n"
         "echo 'fixture 1073741824 0 1073741824 0% /'\n"
@@ -153,11 +171,14 @@ FAKE_CHECKOUT = {
     ),
     "scripts/dev/c03_worker_image.sh": (
         '#!/bin/sh\nmkdir -p "$(dirname "$1")"\n'
-        'echo "{\\"image_id\\": \\"sha256:$(git rev-parse HEAD)\\"}" > "$1"\n'
+        # A rebuild at the same revision is a new image (LA-F16): the id
+        # carries the build's process id too.
+        'echo "{\\"image_id\\": \\"sha256:$(git rev-parse HEAD)-$$\\"}" > "$1"\n'
         'echo "worker $(git rev-parse HEAD)" >> "$CARBON_TEST_LOG"\n'
     ),
     "scripts/dev/accelerator_worker_image.sh": (
-        '#!/bin/sh\nmkdir -p "$(dirname "$1")"\necho "{}" > "$1"\n'
+        '#!/bin/sh\nmkdir -p "$(dirname "$1")"\n'
+        'echo "{\\"image_id\\": \\"sha256:gpu-$(git rev-parse HEAD)-$$\\"}" > "$1"\n'
         'echo "gpu worker" >> "$CARBON_TEST_LOG"\n'
     ),
 }
@@ -173,8 +194,29 @@ case "$2" in
     case "$3" in
       gpu-installed) echo "${CARBON_TEST_GPU_INSTALLED:-no}" ;;
       after-install) echo "What this install changed: (fixture)" ;;
-      service-unit) echo "[Unit]" ;;
+      service-unit)
+        echo "[Unit]"
+        echo "ExecStart=/fixture/carbon-control-center --state-dir $5 --port $7" ;;
     esac ;;
+  scripts.dev.miner_launchpad.installed)
+    # current --manifest PATH: the worker named there was built at this
+    # revision and Docker still holds it, unless the test removed it.
+    case "$3" in
+      current)
+        if grep -qs "$(git rev-parse HEAD)" "$5" \\
+          && [ "${CARBON_TEST_IMAGES_GONE:-no}" != yes ]; then
+          echo yes
+        else
+          echo no
+        fi ;;
+    esac ;;
+  scripts.dev.worker_image_release)
+    # pull --record RECORD --out MANIFEST: pulls nothing; a named kind fails.
+    case "$5" in
+      *"/${CARBON_TEST_PULL_FAILS:-none}-worker-image.release.json")
+        echo '{"refused": "pull_failed"}' >&2; exit 2 ;;
+    esac
+    cp "$5" "$7" ;;
 esac
 """
 FAKE_CONTROL_CENTER = '#!/bin/sh\necho "control center $*" >> "$CARBON_TEST_LOG"\n'
@@ -549,7 +591,10 @@ def test_the_service_option_writes_and_starts_the_user_unit(sandbox):
     completed = sandbox.run("--service")
     assert completed.returncode == 0, completed.stderr
     unit = sandbox.tmp / "home/.config/systemd/user/carbon-control-center.service"
-    assert unit.read_text() == "[Unit]\n"
+    assert unit.read_text() == (
+        "[Unit]\nExecStart=/fixture/carbon-control-center --state-dir "
+        f"{sandbox.state} --port 8788\n"
+    )
     log = sandbox.logged()
     assert log[-3:] == [
         "systemctl --user daemon-reload",
@@ -564,6 +609,614 @@ def test_the_service_option_writes_and_starts_the_user_unit(sandbox):
     assert completed.returncode == 0, completed.stderr
     assert (
         sandbox.logged()[-1] == "systemctl --user restart carbon-control-center.service"
+    )
+
+
+#: How the installer asks the user manager itself to reach Docker (LA-F6).
+MANAGER_DOCKER_CHECK = "systemd-run --user --wait --quiet --collect --pipe"
+
+
+def test_the_service_checks_docker_from_the_user_manager_before_anything(sandbox):
+    """LA-F6: the service runs under the systemd user manager, so the
+    installer asks the manager, not this shell, to reach Docker, in step 1
+    before anything is synced or built. A plain install asks nothing."""
+    assert sandbox.run("--no-start").returncode == 0
+    assert not any(line.startswith("systemd-run") for line in sandbox.logged())
+    completed = sandbox.run("--service")
+    assert completed.returncode == 0, completed.stderr
+    log = sandbox.logged()
+    asked = [i for i, line in enumerate(log) if line.startswith(MANAGER_DOCKER_CHECK)]
+    assert len(asked) == 1
+    assert log[asked[0]].endswith("/docker info --format {{.ServerVersion}}")
+    synced = [i for i, line in enumerate(log) if line.startswith("bootstrap")]
+    assert asked[0] < synced[-1]
+
+
+@pytest.mark.parametrize(
+    "environment,fix",
+    [
+        (
+            {"WSL_DISTRO_NAME": "carbon-fresh"},
+            "From Windows, run: wsl --terminate carbon-fresh, then open the distro again",
+        ),
+        ({}, "sudo systemctl restart user@"),
+    ],
+)
+def test_a_user_manager_without_docker_stops_the_service_install_first(
+    sandbox, environment, fix
+):
+    """LA-F6, as the fresh WSL distro met it: the docker group was added after
+    the user manager started, so this shell reaches Docker and the manager
+    does not. The install stops in step 1 with the fix and what it stops;
+    nothing is synced, built or written, and no unit is enabled or started."""
+    before = sandbox.head()
+    completed = sandbox.run(
+        "--service", CARBON_TEST_MANAGER_DOCKER="denied", **environment
+    )
+    assert completed.returncode == 2
+    assert "Docker answers this shell but not your systemd user manager" in (
+        completed.stderr
+    )
+    assert fix in completed.stderr
+    assert "That stops" in completed.stderr or "that stops" in completed.stderr
+    assert "Nothing was changed" in completed.stderr
+    assert sandbox.head() == before
+    log = sandbox.logged()
+    assert len(log) == 2
+    assert log[0] == "systemctl --user show-environment"
+    assert log[1].startswith(MANAGER_DOCKER_CHECK)
+    unit = sandbox.tmp / "home/.config/systemd/user/carbon-control-center.service"
+    assert not unit.exists()
+
+
+# --- Two installs sharing one checkout (LA-F15, LA-F16) -----------------------
+#
+# As on the fresh distro on 2026-10-08: minerB in the default state directory
+# with --service on 8788, minerA in its own CARBON_STATE_DIR on 8789.
+
+DEFAULT_UNIT = "carbon-control-center.service"
+
+
+def units(sandbox) -> Path:
+    return sandbox.tmp / "home/.config/systemd/user"
+
+
+def miner_a(sandbox) -> Path:
+    return sandbox.tmp / "home/.carbon/minerA"
+
+
+def unit_names(sandbox) -> list[str]:
+    return sorted(path.name for path in units(sandbox).iterdir())
+
+
+def test_a_second_install_without_service_never_touches_the_first_ones_unit(
+    sandbox,
+):
+    """LA-F15: minerA's install, without --service, rewrote minerB's unit to
+    minerA's state directory and port; a restart would have started the
+    wrong Control Center. It now writes, reloads, enables and starts no unit."""
+    assert sandbox.run("--service").returncode == 0
+    default = units(sandbox) / DEFAULT_UNIT
+    first = default.read_text()
+    assert f"--state-dir {sandbox.state} --port 8788" in first
+    before = len(sandbox.logged())
+    completed = sandbox.run(
+        "--no-start", "--port", "8789", CARBON_STATE_DIR=str(miner_a(sandbox))
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert default.read_text() == first
+    assert unit_names(sandbox) == [DEFAULT_UNIT]
+    assert not any(
+        line.startswith(("systemctl", "systemd-run"))
+        for line in sandbox.logged()[before:]
+    )
+    assert f"--state-dir {miner_a(sandbox)} --port 8789" in completed.stdout
+
+
+def test_each_state_directory_has_its_own_service_and_updates_only_its_own(
+    sandbox,
+):
+    """LA-F15: the default state directory keeps carbon-control-center;
+    another one gets a unit named after it, and the installer prints that
+    unit's own restart, stop, state and output commands. Each later update
+    rewrites and restarts only its own unit, on its own port."""
+    assert sandbox.run("--service").returncode == 0
+    default = units(sandbox) / DEFAULT_UNIT
+    first = default.read_text()
+    completed = sandbox.run(
+        "--service", "--port", "8789", CARBON_STATE_DIR=str(miner_a(sandbox))
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert default.read_text() == first
+    (own,) = [name for name in unit_names(sandbox) if name != DEFAULT_UNIT]
+    assert own.startswith("carbon-control-center-minerA-") and own.endswith(".service")
+    assert (
+        f"--state-dir {miner_a(sandbox)} --port 8789"
+        in (units(sandbox) / own).read_text()
+    )
+    assert sandbox.logged()[-3:] == [
+        "systemctl --user daemon-reload",
+        f"systemctl --user enable --quiet {own}",
+        f"systemctl --user restart {own}",
+    ]
+    service = own.removesuffix(".service")
+    for command in ("restart", "stop", "status"):
+        assert f"systemctl --user {command} {service}" in completed.stdout
+    assert f"tail -f {miner_a(sandbox)}/control-center.log" in completed.stdout
+    # minerA's update keeps its port and restarts its own service only.
+    completed = sandbox.run("--update", CARBON_STATE_DIR=str(miner_a(sandbox)))
+    assert completed.returncode == 0, completed.stderr
+    assert sandbox.logged()[-1] == f"systemctl --user restart {own}"
+    assert "--port 8789" in (units(sandbox) / own).read_text()
+    assert default.read_text() == first
+    # minerB's update restarts carbon-control-center only.
+    completed = sandbox.run("--update")
+    assert completed.returncode == 0, completed.stderr
+    assert sandbox.logged()[-1] == f"systemctl --user restart {DEFAULT_UNIT}"
+    assert default.read_text() == first
+    assert unit_names(sandbox) == sorted([DEFAULT_UNIT, own])
+
+
+def test_a_default_unit_rewritten_for_another_state_directory_is_left_alone(
+    sandbox,
+):
+    """The fresh distro's unit after LA-F15: carbon-control-center runs
+    minerA's state directory. Neither install rewrites it unasked; both say
+    what they found. Only the default install with --service takes it back."""
+    units(sandbox).mkdir(parents=True)
+    default = units(sandbox) / DEFAULT_UNIT
+    rewritten = (
+        "[Unit]\nExecStart=/old/carbon-control-center --state-dir "
+        f"{miner_a(sandbox)} --port 8789\n"
+    )
+    default.write_text(rewritten)
+    completed = sandbox.run("--no-start")
+    assert completed.returncode == 0, completed.stderr
+    assert default.read_text() == rewritten
+    assert "This install left it alone" in completed.stdout
+    assert not any(line.startswith("systemctl") for line in sandbox.logged())
+    completed = sandbox.run("--no-start", CARBON_STATE_DIR=str(miner_a(sandbox)))
+    assert completed.returncode == 0, completed.stderr
+    assert default.read_text() == rewritten
+    assert "belongs to the default state directory" in completed.stdout
+    assert unit_names(sandbox) == [DEFAULT_UNIT]
+    completed = sandbox.run("--service")
+    assert completed.returncode == 0, completed.stderr
+    assert f"--state-dir {sandbox.state} --port 8788" in default.read_text()
+
+
+def manifests(sandbox) -> dict[str, bytes]:
+    artifacts = sandbox.clone / ".carbon-artifacts"
+    return {
+        name: (artifacts / name).read_bytes()
+        for name in ("c03-worker-image.json", "accelerator-worker-image.json")
+    }
+
+
+def worker_builds(log) -> list[str]:
+    return [line for line in log if line.startswith(("worker ", "gpu worker"))]
+
+
+def test_a_second_install_at_the_same_revision_uses_the_first_ones_images(sandbox):
+    """LA-F16: both installs record the checkout's manifests, at fixed paths.
+    A rebuild at the same revision is a new image id, so minerA's rebuild
+    changed minerB's record under it, and paired minerA's analysis image
+    with another worker. A second install at the same source tree now builds
+    nothing and both records name the same, unchanged manifests; an image
+    Docker no longer holds, or a new revision, is built again."""
+    gpu = {"CARBON_TEST_GPU_INSTALLED": "yes"}
+    assert sandbox.run("--no-start", **gpu).returncode == 0
+    first = manifests(sandbox)
+    assert len(worker_builds(sandbox.logged())) == 2
+    before = len(sandbox.logged())
+    completed = sandbox.run("--no-start", CARBON_STATE_DIR=str(miner_a(sandbox)), **gpu)
+    assert completed.returncode == 0, completed.stderr
+    log = sandbox.logged()[before:]
+    assert worker_builds(log) == []
+    assert manifests(sandbox) == first
+    assert "The worker image built here from this exact source tree" in completed.stdout
+    assert "The GPU worker built here from this exact source tree" in completed.stdout
+    recorded = [line for line in sandbox.logged() if "installed write" in line]
+    worker = sandbox.clone / ".carbon-artifacts/c03-worker-image.json"
+    assert [f"--image-manifest {worker}" in line for line in recorded] == [True, True]
+    assert f"--state-dir {miner_a(sandbox)}" in recorded[1]
+    # The images are gone: built again, a new id.
+    before = len(sandbox.logged())
+    assert (
+        sandbox.run("--no-start", CARBON_TEST_IMAGES_GONE="yes", **gpu).returncode == 0
+    )
+    assert len(worker_builds(sandbox.logged()[before:])) == 2
+    assert manifests(sandbox)["c03-worker-image.json"] != first["c03-worker-image.json"]
+    # A new revision: built again.
+    newer = sandbox.publish("a newer main")
+    before = len(sandbox.logged())
+    assert sandbox.run("--no-start", **gpu).returncode == 0
+    assert f"worker {newer}" in sandbox.logged()[before:]
+
+
+def test_only_a_present_worker_of_this_source_tree_is_used_again(tmp_path):
+    """`installed.current`: setup's own source-tree test, and Docker still
+    holds that image id with that source-tree label. Anything else builds."""
+    from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+
+    tree, other = "sha256:" + "1" * 64, "sha256:" + "2" * 64
+    image_id = "sha256:" + "3" * 64
+    manifest = tmp_path / "c03-worker-image.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "schema": "carbon.c03.worker-image.v1",
+                "image_id": image_id,
+                "config_digest": image_id,
+                "source_tree_digest": tree,
+                **{
+                    field: "sha256:" + "4" * 64
+                    for field in (
+                        "wheel_digest",
+                        "lock_digest",
+                        "base_image_digest",
+                        "build_recipe_digest",
+                        "entrypoint_digest",
+                    )
+                },
+            }
+        )
+    )
+
+    class Docker:
+        def __init__(self, held):
+            self.held = held
+
+        def json(self, arguments, timeout=30):
+            assert arguments[:2] == ["image", "inspect"]
+            if arguments[2] not in self.held:
+                raise WorkerFailure(WorkerCode.RUNTIME)
+            return self.held[arguments[2]]
+
+    def held(label=tree):
+        return Docker(
+            {
+                image_id: {
+                    "Id": image_id,
+                    "Config": {"Labels": {installed.SOURCE_TREE_LABEL: label}},
+                }
+            }
+        )
+
+    here = {"source_tree_digest": tree}
+    assert installed.current(manifest, implementation=here, cli=held())
+    assert not installed.current(
+        manifest, implementation={"source_tree_digest": other}, cli=held()
+    )
+    assert not installed.current(manifest, implementation=here, cli=Docker({}))
+    assert not installed.current(manifest, implementation=here, cli=held(other))
+    assert not installed.current(
+        tmp_path / "absent.json", implementation=here, cli=held()
+    )
+    link = tmp_path / "link.json"
+    link.symlink_to(manifest)
+    assert not installed.current(link, implementation=here, cli=held())
+    manifest.write_text("{}")
+    assert not installed.current(manifest, implementation=here, cli=held())
+
+
+# --- Released images (LA-F10, OWNER-WORKER-IMAGES-V2-01) ------------------------
+
+#: Fixture release tags: no such release exists, and nothing is pulled.
+RELEASE, NEWER_RELEASE = "worker-images-v90", "worker-images-v91"
+RELEASE_URL = "https://releases.invalid/download"
+RELEASE_KINDS = ("c03", "analysis", "accelerator")
+#: curl serving the release assets from the sandbox's own directory, by the
+#: path below the release URL; a missing asset fails as `curl --fail` does.
+FAKE_RELEASE_CURL = r"""#!/bin/sh
+out=""; url=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --output) out="$2"; shift ;;
+    -*) ;;
+    *) url="$1" ;;
+  esac
+  shift
+done
+cp "$CARBON_TEST_RELEASES/${url#"$CARBON_RELEASE_URL"/}" "$out" 2>/dev/null || exit 22
+"""
+
+
+def publish_release(
+    sandbox, tag=RELEASE, *, commit=None, kinds=RELEASE_KINDS, **changes
+):
+    """Tag `commit` (origin's main by default) as `tag` on origin, and serve a
+    fixture record for each of `kinds`, as the release workflow attaches them
+    (canonical JSON)."""
+    commit = commit or sandbox.git("rev-parse", "HEAD")
+    sandbox.git("tag", "-f", tag, commit)
+    sandbox.git("push", "--quiet", "-f", "origin", f"refs/tags/{tag}")
+    directory = sandbox.tmp / "releases" / tag
+    directory.mkdir(parents=True, exist_ok=True)
+    for kind in kinds:
+        value = {
+            "kind": kind,
+            "release_tag": tag,
+            "source_commit": commit,
+            "fixture": "never released",
+            **changes,
+        }
+        (directory / f"{kind}-worker-image.release.json").write_text(
+            json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n"
+        )
+    return commit
+
+
+def run_release(sandbox, *args, **env):
+    sandbox._executable(sandbox.tools / "curl", FAKE_RELEASE_CURL)
+    return sandbox.run(
+        *args,
+        CARBON_RELEASE_URL=RELEASE_URL,
+        CARBON_TEST_RELEASES=str(sandbox.tmp / "releases"),
+        **env,
+    )
+
+
+def built(log) -> list[str]:
+    """What the install built: the image build stand-ins and the analysis
+    builder."""
+    return [
+        line
+        for line in log
+        if line.startswith(("worker ", "gpu worker"))
+        or "carbon.development_session.research_image" in line
+    ]
+
+
+def pulled(log) -> list[str]:
+    return [
+        line.split("--record ", 1)[1].split()[0].rsplit("/", 1)[1]
+        for line in log
+        if "scripts.dev.worker_image_release pull" in line
+    ]
+
+
+def test_a_release_install_pulls_each_recorded_image_and_builds_nothing(sandbox):
+    commit = publish_release(sandbox)
+    completed = run_release(sandbox, "--release", RELEASE, "--no-start")
+    assert completed.returncode == 0, completed.stderr
+    assert sandbox.head() == commit
+    log = sandbox.logged()
+    assert built(log) == []
+    assert pulled(log) == [
+        "c03-worker-image.release.json",
+        "analysis-worker-image.release.json",
+    ]
+    assert "nothing was built" in completed.stdout
+    releases = sandbox.clone / ".carbon-artifacts" / "releases" / RELEASE
+    for kind in RELEASE_KINDS:
+        assert (releases / f"{kind}-worker-image.release.json").is_file()
+    # Recorded as built images are, and the GPU worker's release record for
+    # remote setup, though this machine pulled no GPU worker.
+    (recorded,) = [line for line in log if "installed write" in line]
+    assert f"--image-manifest {releases}/c03-worker-image.json" in recorded
+    assert (
+        f"--analysis-image-manifest {releases}/analysis-worker-image.json" in recorded
+    )
+    assert "--gpu-image-manifest" not in recorded
+    assert (
+        f"--gpu-release-record {releases}/accelerator-worker-image.release.json"
+        in recorded
+    )
+    # Pulled before recorded, recorded before setup is checked.
+    last_pull = max(i for i, line in enumerate(log) if "worker_image_release" in line)
+    assert (
+        last_pull
+        < log.index(recorded)
+        < next(i for i, line in enumerate(log) if "after-install" in line)
+    )
+    # The checkout stays clean: setup accepts only a clean revision in main.
+    assert sandbox.git("status", "--porcelain", cwd=sandbox.clone) == ""
+
+
+def test_a_release_install_pulls_a_gpu_worker_installed_before(sandbox):
+    publish_release(sandbox)
+    completed = run_release(
+        sandbox, "--release", RELEASE, "--no-start", CARBON_TEST_GPU_INSTALLED="yes"
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert "this install pulls it too" in completed.stdout
+    log = sandbox.logged()
+    assert built(log) == []
+    assert pulled(log)[-1] == "accelerator-worker-image.release.json"
+    releases = sandbox.clone / ".carbon-artifacts" / "releases" / RELEASE
+    (recorded,) = [line for line in log if "installed write" in line]
+    assert f"--gpu-image-manifest {releases}/accelerator-worker-image.json" in recorded
+
+
+@pytest.mark.parametrize(
+    "arguments,refusal",
+    [
+        (("--release", "v1.0"), "is not a release of Carbon's worker images"),
+        (("--release", "main"), "is not a release of Carbon's worker images"),
+        (("--release", "worker-images-v89"), "origin has no such release tag"),
+        (("--release", RELEASE, "--ref", "main"), "name one of --ref and --release"),
+    ],
+)
+def test_anything_but_a_release_tag_is_refused_before_anything_moves(
+    sandbox, arguments, refusal
+):
+    publish_release(sandbox)
+    before = sandbox.head()
+    completed = run_release(sandbox, *arguments, "--no-start")
+    assert completed.returncode == 2
+    assert refusal in completed.stderr
+    assert sandbox.head() == before
+    assert sandbox.logged() == []
+
+
+def test_a_release_tag_outside_main_is_refused_before_anything_moves(sandbox):
+    before = sandbox.head()
+    off_main = sandbox.publish("a branch revision", branch="feature")
+    publish_release(sandbox, commit=off_main)
+    completed = run_release(sandbox, "--release", RELEASE, "--no-start")
+    assert completed.returncode == 2
+    assert "is not in Carbon's main, so it is not a release" in completed.stderr
+    assert sandbox.head() == before
+    assert sandbox.logged() == []
+
+
+@pytest.mark.parametrize(
+    "kinds,changes,refusal",
+    [
+        (("c03", "analysis"), {}, "could not download the accelerator release record"),
+        (RELEASE_KINDS, {"source_commit": "0" * 40}, "is not for worker-images-v90"),
+    ],
+)
+def test_a_release_without_its_records_is_refused_before_anything_moves(
+    sandbox, kinds, changes, refusal
+):
+    """A tag whose records are missing, or name another revision, is not a
+    published release of that revision: nothing moves, syncs or builds."""
+    before = sandbox.head()
+    publish_release(
+        sandbox, commit=sandbox.publish("a newer main"), kinds=kinds, **changes
+    )
+    completed = run_release(sandbox, "--release", RELEASE, "--no-start")
+    assert completed.returncode == 2
+    assert refusal in completed.stderr
+    assert "Nothing was pulled or built" in completed.stderr
+    assert sandbox.head() == before
+    assert sandbox.logged() == []
+
+
+def test_a_release_whose_installer_has_no_release_option_is_refused(sandbox):
+    """The release's own installer carries on after the move, so a release
+    from before `--release` would refuse it with the checkout moved; the
+    install stops first and names the command that builds it."""
+    before = sandbox.head()
+    script = sandbox.work / "scripts" / "install_miner.sh"
+    script.write_text("#!/usr/bin/env bash\necho 'an installer without it'\nexit 2\n")
+    publish_release(sandbox, commit=sandbox.publish("an installer without --release"))
+    completed = run_release(sandbox, "--release", RELEASE, "--no-start")
+    assert completed.returncode == 2
+    assert "has no --release" in completed.stderr
+    assert (
+        f"{sandbox.clone}/scripts/install_miner.sh --ref {RELEASE}" in completed.stderr
+    )
+    assert sandbox.head() == before
+    assert sandbox.logged() == []
+
+
+def test_a_failed_pull_stops_before_recording_with_the_build_command(sandbox):
+    publish_release(sandbox)
+    completed = run_release(
+        sandbox, "--release", RELEASE, "--no-start", CARBON_TEST_PULL_FAILS="analysis"
+    )
+    assert completed.returncode == 2
+    assert "could not pull or verify the released analysis image" in completed.stderr
+    assert "Nothing was built, and nothing was recorded for setup" in completed.stderr
+    assert (
+        f"run without --release: {sandbox.clone}/scripts/install_miner.sh --ref {RELEASE}"
+        in completed.stderr
+    )
+    log = sandbox.logged()
+    assert built(log) == []
+    assert not any("installed write" in line or "after-install" in line for line in log)
+
+
+def test_an_update_with_a_release_moves_forward_only(sandbox):
+    """`--update --release TAG` moves to TAG when it is this install's revision
+    or newer, and refuses an older one; a plain `--release` may go back."""
+    first = publish_release(sandbox)
+    assert run_release(sandbox, "--release", RELEASE, "--no-start").returncode == 0
+    newer = publish_release(
+        sandbox, NEWER_RELEASE, commit=sandbox.publish("a newer main")
+    )
+    completed = run_release(sandbox, "--update", "--release", NEWER_RELEASE)
+    assert completed.returncode == 0, completed.stderr
+    assert sandbox.head() == newer
+    assert f"Carbon moved from {first[:12]} to {newer[:12]}." in completed.stdout
+    recorded = [line for line in sandbox.logged() if "installed write" in line]
+    assert f"releases/{NEWER_RELEASE}/c03-worker-image.json" in recorded[-1]
+    assert built(sandbox.logged()) == []
+    assert not any(line.startswith("control center") for line in sandbox.logged())
+    seen = len(sandbox.logged())
+    completed = run_release(sandbox, "--update", "--release", RELEASE)
+    assert completed.returncode == 2
+    assert "--update moves forward only" in completed.stderr
+    assert f"install this one without --update: {sandbox.clone}" in completed.stderr
+    assert sandbox.head() == newer
+    assert len(sandbox.logged()) == seen
+    completed = run_release(sandbox, "--release", RELEASE, "--no-start")
+    assert completed.returncode == 0, completed.stderr
+    assert sandbox.head() == first
+
+
+def test_remote_setup_names_the_released_gpu_worker_from_the_installed_record(
+    tmp_path,
+):
+    from test_miner_launchpad_environment_setup import Checks, Onboarding
+    from test_worker_image_release import manifest, record
+
+    from scripts.dev import worker_image_release as release
+    from scripts.dev.miner_launchpad.environment_setup import (
+        EnvironmentSetup,
+        guide_commands,
+    )
+
+    prefix = "org.opencontainers.image.carbon.accelerator."
+    gpu_value = manifest("2")
+    released = record(
+        gpu_value,
+        kind="accelerator",
+        repository="ghcr.io/carbonphysicsai/carbon-gpu-worker",
+        **{prefix + "profile": "sha256:" + "3" * 64},
+        **{prefix + "environment": "sha256:" + "4" * 64},
+    )
+    release.check_record(released)
+    state = tmp_path / "state"
+    state.mkdir(mode=0o700)
+    record_path = tmp_path / "accelerator-worker-image.release.json"
+    record_path.write_text(release.canonical(released))
+    gpu = tmp_path / "accelerator-worker-image.json"
+    gpu.write_text(release.canonical(gpu_value))
+    worker = tmp_path / "worker.json"
+    worker.write_text("{}")
+    installed.write(
+        state,
+        image_manifest=worker,
+        analysis_image_manifest=worker,
+        gpu_image_manifest=gpu,
+        gpu_release_record=record_path,
+    )
+    # The release record is never read as an image manifest.
+    assert set(installed.read(state)) == set(installed.FIELDS)
+    named = installed.released_gpu(state, str(gpu))
+    assert named == {
+        "release_tag": "worker-images-v1",
+        "reference": released["reference"],
+    }
+    # A container rental starts from the released reference; the push helper
+    # is the fallback. A machine with Docker is still sent its worker.
+    container = guide_commands("runpod", "ssh-container", str(gpu), named)
+    assert container[0]["command"] == released["reference"]
+    assert "worker-images-v1" in container[0]["label"]
+    assert container[1]["label"].startswith("Or, if your provider cannot pull it")
+    assert f"push_worker_image.sh --manifest {gpu}" in container[1]["command"]
+    machine = guide_commands("lambda", "ssh-docker", str(gpu), named)
+    assert machine == guide_commands("lambda", "ssh-docker", str(gpu))
+    # Setup offers it from the installed record.
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Checks())
+    assert released["reference"] in json.dumps(setup.offered())
+    # Another GPU worker found (a local build), none found, or a record that
+    # fails its checks: nothing is named, and the push helper comes first.
+    other = tmp_path / "other.json"
+    other.write_text(release.canonical(manifest("5")))
+    assert installed.released_gpu(state, str(other)) is None
+    assert installed.released_gpu(state, None) is None
+    record_path.write_text(
+        release.canonical({**released, "reference": "ghcr.io/x/y@sha256:" + "9" * 64})
+    )
+    assert installed.released_gpu(state, str(gpu)) is None
+    assert (
+        "push_worker_image.sh"
+        in guide_commands("runpod", "ssh-container", str(gpu))[0]["command"]
     )
 
 

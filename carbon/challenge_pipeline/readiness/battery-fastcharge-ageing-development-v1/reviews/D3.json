@@ -1,0 +1,20 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-review.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": [
+  0,
+  1
+ ],
+ "item": "D3",
+ "decision": "PASS",
+ "reviewer": "Test Lead",
+ "date": "2026-10-09",
+ "evidence": [
+  {
+   "kind": "file",
+   "ref": "docs/development/evidence/battery-quiz-designs/README.md",
+   "sha256": "sha256:0182dad984164e3fc795c95568d2630658d7c8fd600e53072b522a3c1b6d4f1b"
+  }
+ ],
+ "notes": "not applicable: battery has no counted plan; reopens if one is added"
+}

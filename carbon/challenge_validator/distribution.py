@@ -98,7 +98,14 @@ class Inbox:
         if not stat.S_ISDIR(info.st_mode) or info.st_mode & 0o077:
             raise AnswerKeyRefused("answer_key_inbox_not_owner_only")
         found, skipped = {}, 0
-        for path in sorted(self.directory.glob("*.json")):
+        # The producer pushes its whole outbox: one subdirectory per
+        # Challenge (VALIDATOR-21); a flat inbox from earlier pushes still
+        # serves.
+        paths = [*self.directory.glob("*.json"), *self.directory.glob("*/*.json")]
+        withdrawn = {m["fingerprint"] for m, _ in self._withdrawals(challenge_id)}
+        for path in sorted(paths):
+            if path.parent.name in ("withdrawals", "training"):
+                continue
             try:
                 value = read_private(path)
                 commitment, _ = verify(value, self.producer_public_key)
@@ -106,6 +113,9 @@ class Inbox:
                 skipped += 1
                 continue
             if commitment["challenge_id"] != challenge_id:
+                continue
+            if commitment["fingerprint"] in withdrawn:
+                # Withdrawn (VALIDATOR-24): never served, even if pushed.
                 continue
             window = commitment.get("window")
             if block is not None and (
@@ -115,6 +125,29 @@ class Inbox:
                 continue
             found[commitment["fingerprint"]] = value
         return found, skipped
+
+    def _withdrawals(self, challenge_id):
+        """`[(manifest, notice)]`, each verified against the producer key."""
+        from .answer_key import verify_withdrawal
+
+        found = []
+        paths = [
+            *self.directory.glob("withdrawals/*.json"),
+            *self.directory.glob("*/withdrawals/*.json"),
+        ]
+        for path in sorted(paths):
+            try:
+                value = read_private(path)
+                manifest = verify_withdrawal(value, self.producer_public_key)
+            except (AnswerKeyRefused, OSError, ValueError):
+                continue
+            if manifest["challenge_id"] == challenge_id:
+                found.append((manifest, value))
+        return found
+
+    def withdrawals(self, challenge_id):
+        """The verified withdrawal notices for `challenge_id`."""
+        return [value for _, value in self._withdrawals(challenge_id)]
 
 
 class FetchLog:
@@ -146,10 +179,27 @@ class DistributionService:
         nonces,
         log,
         clock_ns=time.time_ns,
+        training=None,
     ):
         self.inbox, self.receiver = inbox, receiver
         self.verifier, self.permits = verifier, permits
         self.nonces, self.log, self.clock_ns = nonces, log, clock_ns
+        #: The public training pool (OWNER-AUTO-PUBLISH-RETIRED-01): retired
+        #: cases only, read-only, to anyone. None serves nothing.
+        self.training = training
+
+    def handle_training(self, path):
+        """`(status, answer)` for one public `GET` of the training pool. No
+        authentication: it serves only signed files of retired cases."""
+        if self.training is None:
+            return 404, {"refused": "training_not_served"}
+        status, answer = self.training.answer(path)
+        self.log.note(
+            hotkey=None,
+            verdict="TRAINING_SERVED" if status == 200 else "TRAINING_REFUSED",
+            path=path[:200],
+        )
+        return status, answer
 
     def handle(self, headers, body):
         """`(status, answer)` for one request."""
@@ -210,7 +260,8 @@ class DistributionService:
                 hotkey=hotkey, block=block, fingerprint=None, verdict="LISTED"
             )
             return 200, {
-                "packages": [listing_entry(packages[f]) for f in sorted(packages)]
+                "packages": [listing_entry(packages[f]) for f in sorted(packages)],
+                "withdrawals": self.inbox.withdrawals(request["challenge_id"]),
             }
         if fingerprint not in packages:
             return refuse(404, "answer_key_unknown_batch", block)
@@ -243,6 +294,10 @@ def fetchers(log_path, fingerprint, *, from_block=None, to_block=None):
     return sorted(found)
 
 
+#: The `service` of this host's structured log lines (on stderr).
+SERVICE = "answer-key-distribution"
+
+
 def load_config(path, *, repository=REPOSITORY):
     from carbon.battery.intake import require_exposure
 
@@ -273,16 +328,20 @@ def load_config(path, *, repository=REPOSITORY):
 
 def make_server(service, config, *, repository=REPOSITORY):
     """The host's server, not yet serving. Loopback unless the owner's exposure
-    record and TLS are configured (`intake.require_exposure`)."""
-    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    record and TLS are configured (`intake.require_exposure`).
 
-    from carbon.battery.intake import require_exposure, tls_context
+    It listens through the intake's hardened listener: each TLS handshake in
+    its connection's own thread, every read under a socket timeout, bounded
+    connections per peer and in total, and a queue of `LISTEN_BACKLOG`. Its
+    first listener ran every handshake inside `accept`, so one silent client
+    froze it for everyone (3a, 2026-10-08)."""
+    from carbon.battery.intake import LoggedHandler, hardened_listener, require_exposure
 
     require_exposure(config, repository=repository)
 
-    class Handler(BaseHTTPRequestHandler):
-        def log_message(self, *args):  # the fetch log is the only record
-            return
+    class Handler(LoggedHandler):
+        server_version = "carbon-answer-key"
+        sys_version = ""
 
         def _answer(self, status, value):
             body = json.dumps(value, sort_keys=True).encode()
@@ -291,6 +350,13 @@ def make_server(service, config, *, repository=REPOSITORY):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+
+        def do_GET(self):
+            from .training_pool import TRAINING_PATH
+
+            if not self.path.startswith(TRAINING_PATH):
+                return self._answer(404, {"refused": "not_found"})
+            return self._answer(*service.handle_training(self.path))
 
         def do_POST(self):
             if self.path != PATH:
@@ -305,17 +371,15 @@ def make_server(service, config, *, repository=REPOSITORY):
                 return self._answer(400, {"refused": "answer_key_headers"})
             return self._answer(*service.handle(headers, body))
 
-    server = ThreadingHTTPServer((config["host"], config["port"]), Handler)
-    context = tls_context(config)
-    if context is not None:
-        server.socket = context.wrap_socket(server.socket, server_side=True)
-    return server
+    return hardened_listener(config, Handler, service=SERVICE)
 
 
 def build(config):
     from carbon.chain.auth import BittensorHotkeyVerifier
     from carbon.chain.models import ChainContext
     from carbon.chain.permits import ValidatorPermitReader
+
+    from .training_pool import TrainingPool
 
     return DistributionService(
         Inbox(config["inbox"], config["producer_public_key"]),
@@ -324,6 +388,10 @@ def build(config):
         permits=ValidatorPermitReader(ChainContext(**config["chain"])),
         nonces=NonceStore(config["nonces"]),
         log=FetchLog(config["fetch_log"]),
+        # The producer pushes `training/<challenge>/` beside the packages.
+        training=TrainingPool(
+            Path(config["inbox"]) / "training", config["producer_public_key"]
+        ),
     )
 
 
@@ -362,4 +430,10 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # The package module's own main: under `python -m` this file is
+    # `__main__`, a second copy whose classes the package's are not.
+    import sys
+
+    from carbon.challenge_validator.distribution import main as _main
+
+    sys.exit(_main())

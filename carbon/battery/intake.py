@@ -106,9 +106,23 @@ from carbon.transport.models import (
 SCHEMA = "carbon.battery.intake.v1"
 PUBLIC_SCHEMA = "carbon.battery.intake-public.v1"
 INFO_PATH = "/carbon/v1/battery/intake"
+#: The validator's public score feed (VALIDATOR-29): released windows only,
+#: signed; `GET FEED_PATH + <challenge id>`.
+FEED_PATH = "/carbon/v1/feed/"
 STATUS_TOOL = "battery_status"
+#: The development ladder's Level 4 envelope tools (`level4_parts`).
+LEVEL4_TOOLS = ("battery_level4_part", "battery_level4_status")
+_LEVEL4_CONFLICTS = frozenset({"level4_part_conflict", "level4_parts_mismatch"})
 REQUIRED = {"schema", "deployment", "transport_journal", "inbox", "receiver"}
-OPTIONAL = {"host", "port", "exposure_record", "tls_cert", "tls_key", "attempt_ledger"}
+OPTIONAL = {
+    "host",
+    "port",
+    "exposure_record",
+    "tls_cert",
+    "tls_key",
+    "attempt_ledger",
+    "feed",
+}
 #: The attempt ledger beside the inbox when the configuration names none.
 ATTEMPT_LEDGER_SUFFIX = ".attempts.sqlite3"
 
@@ -157,6 +171,7 @@ _TERMINAL = {
     "INVALID_CONSTRUCTION",
     "RECONSTRUCTION_FAILED",
     "FAILED_INFRA_EXHAUSTED",
+    "VOID",
 }
 
 
@@ -417,7 +432,19 @@ def neutral_door(target, ledger):
     from carbon.challenge_validator import Adapters, Validator
     from carbon.challenge_validator.battery import BatteryAdapter
 
-    return Validator(Adapters([BatteryAdapter(target)]), ledger)
+    adapter = BatteryAdapter(target)
+    ladder = getattr(target, "ladder", None)
+    # The development-ladder deployment (VALIDATOR-25) declares its variants;
+    # every other deployment declares none, so every variant stays refused.
+    development = {
+        digest: {
+            "base": adapter.contract_digest,
+            "level": served["level"],
+            "variant": served["version"],
+        }
+        for digest, served in (ladder or {}).get("variants", {}).items()
+    }
+    return Validator(Adapters([adapter]), ledger, development=development)
 
 
 # --- the durable inbox ----------------------------------------------------------
@@ -584,6 +611,7 @@ RECEIVED_AGAIN = frozenset(
         "receipt_block_missing",
         "commitment_required",
         "commitment_stale",
+        "ladder_commitment_not_variant",
         "commitment_reader_unavailable",
         "backend_not_served",
     }
@@ -616,6 +644,23 @@ def _window_answer(next_block, block):
 # --- the intake -----------------------------------------------------------------
 
 
+def commitment_fact(target):
+    """The intake's public fact on chain commitments, from the deployment it
+    serves. Admission (`BatteryValidator.admit`) does the checking."""
+    if not getattr(target, "require_commitment", False):
+        return "not_checked: this deployment does not require a chain commitment"
+    if getattr(target, "commitments", None) is None:
+        return (
+            "required: no chain reader is configured, so every submission is "
+            "refused as commitment_reader_unavailable"
+        )
+    return (
+        "required: the recipe's chain commitment is read at admission and a "
+        "submission is refused by name as commitment_required, "
+        "commitment_stale or commitment_contested (D6)"
+    )
+
+
 class BatteryIntake:
     """Framework-free request handling; `serve` puts it behind HTTP."""
 
@@ -633,6 +678,9 @@ class BatteryIntake:
         rule=None,
         limits=None,
         clock_ns=time.time_ns,
+        commitment=None,
+        feed=None,
+        level4_parts=None,
     ):
         from carbon.challenge_validator import Validator
 
@@ -643,6 +691,9 @@ class BatteryIntake:
         #: Every submission passes the neutral checks here, and every attempt
         #: is recorded in the operator's ledger, before the inbox sees it.
         self.door = door
+        #: The development ladder's Level 4 envelope parts (VALIDATOR-25 slice
+        #: 4; `level4_parts.Level4Parts`), on a ladder serving Level 4 only.
+        self.level4_parts = level4_parts
         self.context = context
         self.challenge = CHALLENGE
         self.receiver = receiver
@@ -653,9 +704,29 @@ class BatteryIntake:
         self.status_reader = status_reader
         #: The deployment's exam rule; rule v2 adds the per-hotkey window.
         self.rule = rule
+        #: The public fact on chain commitments: the deployment's real mode
+        #: (`commitment_fact`), checked at admission, not here.
+        # Built without its deployment's mode (not through `_serve`): say so,
+        # rather than claim a mode the deployment may not have.
+        self.commitment = commitment or (
+            "unstated: this door was built without its deployment's commitment mode"
+        )
         self.limits = PeerLimits() if limits is None else limits
         self.clock_ns = clock_ns
+        #: The signed score feed's reader (`score_feed.read_feed`), or None
+        #: when this door serves no feed.
+        self.feed = feed
         self.wake = threading.Event()
+
+    def score_feed(self):
+        """The signed score feed: released windows only (VALIDATOR-29). Served
+        only when its signature verifies."""
+        if self.feed is None:
+            return _refused(404, "feed_not_served")
+        found = self.feed()
+        if found is None:
+            return _refused(503, "feed_unavailable")
+        return Answer(200, found)
 
     def public(self):
         snapshot = self.window.latest()
@@ -679,14 +750,18 @@ class BatteryIntake:
                     "timestamp_ms": snapshot.timestamp_ms,
                 },
                 "path": PATH,
-                "tools": ["battery_submit", STATUS_TOOL],
+                "tools": ["battery_submit", STATUS_TOOL]
+                + ([] if self.level4_parts is None else list(LEVEL4_TOOLS)),
+                # What this deployment admits (VALIDATOR-25): level 0, plus a
+                # development-ladder deployment's declared variants.
+                "served_contracts": self.door.served_contracts(),
                 "limits": {
                     "max_body": MAX_BODY,
                     "snapshot_max_age_s": SNAPSHOT_MAX_AGE_S,
                     "signature_max_age_s": 10.0,
                 },
                 "submission_rule": self._rule_facts(snapshot.finalized_block),
-                "commitment": "not_checked: no chain commitment reader exists (OD-7(a))",
+                "commitment": self.commitment,
                 "qualification": False,
                 "reward": False,
             },
@@ -728,6 +803,8 @@ class BatteryIntake:
     def route(self, method, path, headers, body):
         if method == "GET" and path == INFO_PATH:
             return self.public()
+        if method == "GET" and path == FEED_PATH + self.challenge.challenge_id:
+            return self.score_feed()
         if method != "POST" or path != PATH:
             return _refused(404, "not_found")
         return asyncio.run(self._post(headers, body))
@@ -772,6 +849,12 @@ class BatteryIntake:
             if type(screened) is Answer:
                 return screened
             neutral, submission = screened
+            incomplete = self._level4_incomplete(submission)
+            if incomplete is not None:
+                self.door.note(
+                    neutral, kind="REFUSED", code="level4_envelope_incomplete"
+                )
+                return incomplete
             _, submission_id = submission_identity(submission)
             refused = self._window_check(hotkey, submission_id, submission)
             if refused is not None:
@@ -803,7 +886,60 @@ class BatteryIntake:
             ):
                 return _refused(400, "status_fields")
             return self.status(hotkey, fields["submission_id"])
+        if received.call.tool in LEVEL4_TOOLS:
+            fields = {f.name: f.value for f in received.call.fields}
+            return self._level4(hotkey, received.call.tool, fields)
         return _refused(400, "tool")
+
+    def _level4(self, hotkey, tool, fields):
+        """A Level 4 envelope part, or which parts are held (VALIDATOR-25)."""
+        import base64
+        import binascii
+
+        from .level4_parts import PART_TOOL, PartRefused
+
+        if self.level4_parts is None:
+            return _refused(404, "level4_not_served")
+        try:
+            if tool == PART_TOOL:
+                if set(fields) != {"submission", "part", "parts", "data"} or (
+                    type(fields["data"]) is not str
+                ):
+                    raise PartRefused("level4_part_malformed")
+                try:
+                    data = base64.b64decode(fields["data"], validate=True)
+                except (binascii.Error, ValueError):
+                    raise PartRefused("level4_part_malformed") from None
+                held = self.level4_parts.put(
+                    hotkey, fields["submission"], fields["part"], fields["parts"], data
+                )
+            else:
+                if set(fields) != {"submission"}:
+                    raise PartRefused("level4_part_malformed")
+                if hotkey not in self.level4_parts.hotkeys:
+                    raise PartRefused("ladder_hotkey_not_listed")
+                held = self.level4_parts.held(fields["submission"])
+        except PartRefused as refused:
+            status = 409 if refused.code in _LEVEL4_CONFLICTS else 400
+            return _refused(status, refused.code)
+        return Answer(200, {"submission": fields["submission"], **held})
+
+    def _level4_incomplete(self, submission):
+        """409 `level4_envelope_incomplete` for a Level 4 submission whose
+        envelope parts are not all held yet; never a verdict, never counted
+        against the hotkey's window."""
+        from .level4_parts import FIELD, PartRefused
+
+        if self.level4_parts is None:
+            return None
+        parameters = submission.strategy.get("parameters")
+        if type(parameters) is not dict or FIELD not in parameters:
+            return None
+        try:
+            complete = self.level4_parts.complete(parameters[FIELD])
+        except PartRefused:
+            complete = False
+        return None if complete else _refused(409, "level4_envelope_incomplete")
 
     def _screen(self, received, gateway):
         """The neutral checks for one authenticated `battery_submit`
@@ -904,6 +1040,7 @@ def work_once(inbox, target):
     from .daemon import (
         BackendNotServed,
         CommitmentContested,
+        CommitmentNotVariant,
         CommitmentRequired,
         CommitmentStale,
     )
@@ -931,6 +1068,9 @@ def work_once(inbox, target):
                 # D6: another hotkey committed this digest first; never
                 # received again.
                 code = "commitment_contested"
+            elif isinstance(missing, CommitmentNotVariant):
+                # The ladder binds the variant's form; recommit and resend.
+                code = "ladder_commitment_not_variant"
             elif isinstance(missing, CommitmentStale):
                 # D6: the matching commitment was spent by an earlier
                 # admission; a fresh one makes this resend count.
@@ -988,10 +1128,9 @@ def worker(inbox, target, wake, *, stop, idle_s=30.0, out=None):
 
 
 def _handler(intake):
-    class Handler(BaseHTTPRequestHandler):
+    class Handler(LoggedHandler):
         server_version = "carbon-battery-intake"
         sys_version = ""
-        timeout = SOCKET_TIMEOUT_S
 
         def _answer(self, answer):
             payload = json.dumps(answer.body, sort_keys=True).encode()
@@ -1101,21 +1240,44 @@ class ConnectionSlots:
             return sum(self._open.values())
 
 
+#: Connections the kernel queues before this listener accepts them. The
+#: socketserver default of 5 is a full queue at the sixth waiting client.
+LISTEN_BACKLOG = 128
+
+
+class LoggedHandler(BaseHTTPRequestHandler):
+    """The base of every Carbon public door's handler: each read or write
+    waits at most `timeout`, the base class's own log stays silent, and a
+    connection that times out is one structured line (event only)."""
+
+    timeout = SOCKET_TIMEOUT_S
+
+    def log_message(self, *_args):
+        return
+
+    def log_error(self, format, *args):
+        if format.startswith("Request timed out"):
+            log("connection_timed_out", service=self.server.service)
+
+
 class _Server(ThreadingHTTPServer):
     """The listener. A connection that fails outside a request (a TLS
     handshake that never completes or is malformed) is logged by exception
     type only: the base class would print the peer's address and a trace.
-    Connections beyond `ConnectionSlots` are closed at once, so no address
-    can hold every thread."""
+    Connections beyond `ConnectionSlots` are closed at once, and logged, so
+    no address can hold every thread."""
 
     daemon_threads = True
+    request_queue_size = LISTEN_BACKLOG
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, address, handler, *, service=SERVICE):
         self.slots = ConnectionSlots()
-        super().__init__(*args, **kwargs)
+        self.service = service
+        super().__init__(address, handler)
 
     def process_request(self, request, client_address):
         if not self.slots.acquire(client_address[0]):
+            log("connection_refused", service=self.service, reason="busy")
             self.shutdown_request(request)
             return
         try:
@@ -1131,24 +1293,38 @@ class _Server(ThreadingHTTPServer):
             self.slots.release(client_address[0])
 
     def handle_error(self, request, client_address):
-        log("connection_failed", type=getattr(sys.exc_info()[0], "__name__", None))
+        log(
+            "connection_failed",
+            service=self.service,
+            type=getattr(sys.exc_info()[0], "__name__", None),
+        )
 
 
-def listener(config, intake):
-    """Bind the configured address; with TLS, wrap it so each connection's
-    handshake runs in that connection's own thread, under its socket timeout.
+def hardened_listener(config, handler, *, service=SERVICE):
+    """Bind the configured address for `handler` (a `LoggedHandler`); with
+    TLS, wrap it so each connection's handshake runs in that connection's own
+    thread, under its socket timeout.
 
     Wrapping with the default `do_handshake_on_connect` would run every
     handshake inside `accept`, in the single serving thread: one client that
-    connects and sends nothing would stop the intake for everyone.
+    connects and sends nothing would stop the door for everyone. Every
+    Carbon public door listens through this: the intake, the answer-key
+    distribution host and the development submission door.
     """
+    if not issubclass(handler, LoggedHandler):
+        raise TypeError("a public door's handler is a LoggedHandler")
     tls = tls_context(config)
-    httpd = _Server((config["host"], config["port"]), _handler(intake))
+    httpd = _Server((config["host"], config["port"]), handler, service=service)
     if tls is not None:
         httpd.socket = tls.wrap_socket(
             httpd.socket, server_side=True, do_handshake_on_connect=False
         )
     return httpd
+
+
+def listener(config, intake):
+    """The intake's listener (`hardened_listener`)."""
+    return hardened_listener(config, _handler(intake))
 
 
 def serve_lock_path(config):
@@ -1240,6 +1416,34 @@ def serve(
         os.close(lock)
 
 
+def _feed_reader(config):
+    """The reader of the configured signed feed file, or None."""
+    if "feed" not in config:
+        return None
+    import functools
+
+    # The file helpers only: the door never reaches the feed builder's science.
+    from carbon.challenge_validator.feed_file import read_feed
+
+    from .challenge import CHALLENGE
+
+    return functools.partial(read_feed, config["feed"], CHALLENGE.challenge_id)
+
+
+def level4_parts_for(deployment_path, target):
+    """The Level 4 envelope parts store of a development ladder serving Level 4
+    (VALIDATOR-25 slice 4), under its deployment's owner-only work directory;
+    None for every other deployment."""
+    from . import deployment
+    from .level4_parts import Level4Parts
+
+    ladder = getattr(target, "ladder", None)
+    if ladder is None or 4 not in ladder["levels"]:
+        return None
+    work = deployment.load_config(deployment_path)["work"]
+    return Level4Parts(Path(work) / "level4-parts", ladder["hotkeys"])
+
+
 def _serve(config, target, repository, stop, reader, verifier, ready):
     """`serve` once the deployment is built: the refresher, the worker and
     the listener, until `stop` is set."""
@@ -1265,6 +1469,9 @@ def _serve(config, target, repository, stop, reader, verifier, ready):
         status_reader=status.outcome,
         door=neutral_door(target, attempt_ledger(config)),
         rule=target.rule,
+        commitment=commitment_fact(target),
+        feed=_feed_reader(config),
+        level4_parts=level4_parts_for(config["deployment"], target),
     )
     httpd = listener(config, intake)
     threads = [
@@ -1342,4 +1549,8 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    # The package module's own main: under `python -m` this file is
+    # `__main__`, a second copy whose classes the package's are not.
+    from carbon.battery.intake import main as _main
+
+    raise SystemExit(_main())

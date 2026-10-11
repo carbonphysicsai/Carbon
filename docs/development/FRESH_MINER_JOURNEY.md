@@ -28,6 +28,11 @@ with the fields in [Record](#record).
   images (24 GiB with the GPU worker). When one filesystem holds both, as on
   WSL by default, it needs the sum: 17 GiB, or 29 GiB with the GPU worker.
   The installer checks before it builds anything.
+- **Never prune Docker on a machine others share** (`docker image prune`,
+  `system prune` and the like). Prune deletes whatever the engine holds that
+  matches, other people's images included. To free space on an engine of
+  your own, remove only Carbon's images, by their tags (`carbon-c03-worker:`,
+  `carbon-cw1d4-parent:`, `carbon-analysis:`, `carbon-gpu-worker:`).
 - **A registered hotkey on subnet 567.** Register it in your own wallet;
   Wallet & Identity prepares the unsigned call.
 - **Your inference key** for Engy (Chat Completions) or Chutes.
@@ -40,12 +45,33 @@ with the fields in [Record](#record).
     (OWNER-INTAKE-EXPOSURE-01), Carbon publishes it in
     `scripts/dev/miner_launchpad/published_endpoints.json`, and setup's Review
     writes it into your profile. You type nothing. The receiver hotkey listed
-    beside it is for reference: nothing checks it yet, and your signer signs
-    for the receiver the intake reports when you submit.
+    beside it is binding (LAUNCHPAD-ACCEPT-03): Review pins it in your
+    profile, and before your signer signs a submission, a resend or a status
+    request, Carbon checks that the intake reports that receiver. An intake
+    reporting another is refused `intake_receiver_mismatch`, with nothing
+    signed or sent.
+  - **A profile written before receivers were pinned** keeps submitting,
+    unchecked; setup's Evaluation step and the prelaunch review warn
+    (`intake_receiver_not_pinned`). Review again to pin it.
   - **Until one is published,** setup and the prelaunch review say so: your
     profile can practise and freeze, but cannot submit. Run the validator on
     this machine, tunnel to its loopback yourself, or give setup your own
     intake's URL under Review.
+  - **A validator through a tunnel (LAUNCHPAD-ACCEPT-04).** A validator that
+    binds its own loopback is reached from your machine as a loopback intake,
+    for example `ssh -N -L 18467:127.0.0.1:8467 <validator host>` and then
+    `http://127.0.0.1:18467`. Name it at Review as your own intake, with the
+    validator's public receiver hotkey: `carbon_setup_review` with
+    `intakes.<challenge>` and `receiver_hotkey`, or the browser's Review
+    step under "Advanced: a validator's intake". Review reads its public facts
+    first. The network must be Carbon's testnet, netuid 567, for the
+    Challenge you named, or Review refuses
+    `intake_serves_another_chain_or_challenge`; the receiver must be the one
+    you named (`intake_receiver_mismatch`). If nothing answers, the refusal
+    is `intake_unreachable`: start the tunnel or the validator, since Carbon
+    cannot tell which is down. Such an address works only on a machine that
+    holds the tunnel's key, so Carbon never publishes it
+    (`published_endpoints.json` stays empty).
 
 ## Steps
 
@@ -56,10 +82,58 @@ with the fields in [Record](#record).
    - It checks the machine, its free disk, and that the checkout is clean.
      A checkout with local changes stops it before anything changes, with
      the `git stash` command that sets them aside.
+   - With `--service`, it also checks that your systemd user manager, which
+     runs the service, reaches Docker. If you joined the `docker` group after
+     the manager started, the install stops here (LA-F6). On WSL, run
+     `wsl --terminate <distro>` from Windows and reopen it; elsewhere, run
+     `sudo systemctl restart user@$(id -u).service`. Then install again.
    - It installs the locked environment, builds the worker and analysis
      images (and the GPU worker) locally, records them for setup, and checks
      setup against them.
    - It prints how to start the Control Center again, then starts it.
+   - **A second install on the same checkout (LA-F15, LA-F16).** Give it
+     its own state directory and port, for example
+     `CARBON_STATE_DIR=$HOME/.carbon/minerA ~/carbon/scripts/install_miner.sh --port 8789`.
+     - With `--service`, each state directory has its own user service. The
+       default state directory's is `carbon-control-center`; any other is
+       `carbon-control-center-<directory>-<hash>`. The installer prints the
+       exact restart, stop, status and log commands for its own service.
+     - An install never writes, starts or stops another state directory's
+       service, and an install without `--service` writes no unit at all.
+       If `carbon-control-center` runs another state directory (an
+       installer before LA-F15 could rewrite it), the installer says so
+       and leaves it alone. Run the default install again with `--service`
+       to give it back.
+     - At the same revision the second install builds no image. It uses
+       the worker, analysis image and GPU worker already built from that
+       exact source tree, as long as Docker still holds them, so both
+       installs' records and compute checks stay valid.
+     - Moving the checkout to another revision changes it for every
+       install that shares it. Run each of the other installs again
+       (`--no-start`, with its own `CARBON_STATE_DIR`) so setup checks it
+       against the new images.
+   - **Or install Carbon's released images (LA-F10,
+     OWNER-WORKER-IMAGES-V2-01):** add `--release worker-images-vN`, for
+     example `~/carbon/scripts/install_miner.sh --release worker-images-v2`.
+     - The installer moves the checkout to that release tag. The tag must be
+       on main.
+     - It downloads the release's records from its GitHub release, then pulls
+       each image they name from `ghcr.io/carbonphysicsai` by digest: the
+       worker, the analysis image, and the GPU worker with `--gpu`. It checks
+       each image against its record and builds nothing.
+     - Setup accepts these images because the checkout is at the revision
+       they were built from.
+     - A tag that is not a release on main, a release without its records,
+       or a failed pull stops the install before anything is recorded. The
+       message names the command that builds the images locally instead
+       (`--ref <tag>`, without `--release`).
+     - Releases from before `--release` existed (`worker-images-v1`) cannot
+       be pulled this way. Build them with `--ref`.
+     - `--update --release <tag>` moves to that release only if it is at this
+       install's revision or newer. To go back to an older release, run
+       `--release <tag>` without `--update`.
+     - Registry access is your own machine's. The public images need no
+       login, and Carbon reads no credential.
    Record its output.
 2. **Start your signer.** In your own terminal, run
    `~/carbon/.venv/bin/carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey>`
@@ -82,8 +156,9 @@ with the fields in [Record](#record).
      ([MINER_REMOTE_SETUP.md](MINER_REMOTE_SETUP.md)).
      - Choose the transport: `ssh-docker` for a machine with Docker and the
        NVIDIA Container Toolkit; `ssh-container` for a container you started
-       from the pinned GPU worker, pushed with
-       `scripts/dev/push_worker_image.sh`.
+       from the pinned GPU worker. After a `--release` install, setup names
+       the released `repository@sha256:...` reference. Otherwise, push the
+       worker with `scripts/dev/push_worker_image.sh`.
      - Give the SSH destination and port, the GPU worker manifest and the
        Challenge.
      - The check uses only your SSH and starts nothing.
@@ -101,7 +176,9 @@ with the fields in [Record](#record).
 7. **Review.** Write the profile. Review writes the evaluation endpoint
    Carbon publishes for each Challenge. It warns, and setup's Evaluation step
    keeps saying, when none is published. To use an intake you run yourself,
-   give its URL; setup reads its public facts first.
+   give its URL and its validator's public receiver hotkey (required); setup
+   reads its public facts first and refuses `intake_receiver_mismatch` when
+   the intake reports another receiver.
 8. **Choose a Challenge and launch.** Under Challenges, read each one's
    description and research environment, and choose an implemented one. For
    Carbon's agent, launch from Campaigns with finite ceilings. For Hermes, run `hermes -p carbon chat` and ask it to launch,
@@ -116,18 +193,60 @@ with the fields in [Record](#record).
    Record two practices. For a remote setup, check afterwards that no
    `carbon-job-*` container or `/tmp/carbon-job-*` directory is left on it,
    then stop it yourself.
-10. **Freeze and submit.** Record the submission and its verdict. When the
-    validator runs elsewhere, also record the intake URL and the submission id.
+
+   Each practice result also says whether its recipe is inside the
+   Challenge's submission compute budget, next to its training seconds
+   (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01). The line is admission's own rule:
+   - "Within budget: X of Y <unit>" or "Over budget: X of Y <unit>", once the
+     Challenge declares a budget;
+   - "Budget not set for this Challenge" until then. This is every Challenge
+     today. No number is shown, and the per-setting caps are the limit;
+   - "Budget unit not calibrated yet" while the budget's unit needs factors
+     the Challenge's study has not fitted.
+
+   Each Challenge's budget comes from its own training budget study and the
+   owner's decision on it. Practice is never refused by it. Freeze, commit
+   and submit are: an over-budget recipe is refused `over_compute_budget`,
+   with its cost and the ceiling, before anything is signed or sent.
+   `carbon_budget_status` checks any recipe first.
+10. **Freeze, commit and submit.** Record the submission and its verdict.
+    When the validator runs elsewhere, also record the intake URL and the
+    submission id. An intake whose validator requires an on-chain commitment
+    refuses a submit `commitment_required`, before anything is sent, until
+    the frozen candidate's digest is your hotkey's commitment:
+    - Commit it with `carbon_commit` (or `POST /api/v1/operations/commit`).
+    - Type the digest's last 8 characters in your signer's terminal when it
+      asks; observe shows `confirm_commitment` meanwhile.
+    - Record the digest, block and extrinsic id that observe shows read back.
+    - Then submit. A `commitment_stale` refusal is answered by committing
+      again with `recommit=true`.
+    Observe and the campaign view show the same readback on both doors:
+    - the submission id;
+    - for a submit that was not a verdict, its refusal with `intake_outcome`
+      (`QUEUED`, `UNAVAILABLE` or `REFUSED`). Observe does not ask the
+      validator again. For a `QUEUED` submit, submit again later: that asks
+      the intake for the recorded submission's result, and it is never a
+      second submission (LA-F18);
+    - a verdict's public fields: its state, exam rule, recipe and contract
+      digests, and how it was rebuilt.
+    Under a sealed rule (v2) a scored outcome is `sealed`: no screening,
+    score, nomination or finals are shown.
 
 ## Updating
 
-Stop the Control Center first: Ctrl-C in its terminal, or
-`systemctl --user stop carbon-control-center`. A running Control Center stops
-the update before anything changes. Then run:
+Stop the Control Center first: Ctrl-C in its terminal, or stop its own
+service: `systemctl --user stop carbon-control-center` for the default state
+directory, or the `carbon-control-center-<directory>-<hash>` name the
+installer printed for another one. A running Control Center stops the update
+before anything changes. Then run:
 
 ```sh
 ~/carbon/scripts/install_miner.sh --update
 ```
+
+For another state directory, run it with that install's own
+`CARBON_STATE_DIR`. An update restarts only that install's own service, on
+the port its unit already has unless you give `--port`.
 
 An install made before 2026-10-03 has an installer without `--update`, which
 refuses it. Run `~/carbon/scripts/install_miner.sh --no-start` once: that

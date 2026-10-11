@@ -1,0 +1,170 @@
+{
+ "schema": "carbon.challenge-pipeline.onboarding-stage-map.v1",
+ "ticket": "ONBOARDING-PIPELINE-01",
+ "as_of": "2026-10-10",
+ "stages": [
+  {
+   "id": "S0_brief",
+   "order": 0,
+   "name": "Brief",
+   "entry": "Owner direction naming a physical decision, or a discovery shortlist entry.",
+   "exit": "A one-page brief naming the buyer role, the decision and the value at stake, with sources or labelled assumptions.",
+   "owner_session": "Owner picks; Codex researches",
+   "owner_basis": "discovery/README.md (CHALLENGE-DISCOVERY-01 is research and recommendation only); Eight_Challenge_Foundation_Plan.md section 4 holds the eight briefs",
+   "evidence": [
+    "docs/development/challenge_pipeline/discovery/README.md",
+    "Design_Specs/Eight_Challenge_Foundation_Plan.md"
+   ],
+   "status": "VERIFIED",
+   "note": "Selecting a Challenge stays the owner's; nothing here admits one."
+  },
+  {
+   "id": "S1_packet",
+   "order": 1,
+   "name": "Design packet",
+   "entry": "A brief.",
+   "exit": "The ten sections of COMMON_DESIGN_PACKET_V1 filled with source-linked facts; every value without an owner decision or evidence is OPEN with owner, needed decision and held-closed behavior.",
+   "owner_session": "Codex drafts; Test Lead reviews",
+   "owner_basis": "Branch names in the packet commits (codex/*) and the value-cost framework; the packet template names no session",
+   "evidence": [
+    "docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md",
+    "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md"
+   ],
+   "status": "VERIFIED",
+   "note": "The owner-session mapping is UNVERIFIED; the sections and exit are verified."
+  },
+  {
+   "id": "S2_solver_package",
+   "order": 2,
+   "name": "Solver package",
+   "entry": "A packet whose reference route needs a package that is not yet built.",
+   "exit": "A pinned reference package with an accepted image and manifest identity, measured per-case cost and memory, and conservation checks within packet tolerances.",
+   "owner_session": "Data Collection builds and measures",
+   "owner_basis": "solver-package-specs/README.md is titled as a DC build handoff; value-cost Part C is 'Data Collection measures'",
+   "evidence": [
+    "docs/development/challenge_pipeline/solver-package-specs/README.md",
+    "docs/development/challenge_pipeline/value-cost/README.md"
+   ],
+   "status": "VERIFIED",
+   "note": "The specs are SPECIFIED, not built or qualified; accepted identities are null."
+  },
+  {
+   "id": "S3_feasibility_value_panel",
+   "order": 3,
+   "name": "Feasibility and value panel",
+   "entry": "A reference route that can run, even if slowly.",
+   "exit": "Value criteria V1-V5, validity criteria T1-T5 and cost criteria C1 onward evidenced for the Challenge, with a keep, reframe or replace decision recorded.",
+   "owner_session": "Codex packets the value case; Data Collection measures; Test Lead judges; owner sets final thresholds",
+   "owner_basis": "value-cost/README.md part headings (V: packets Codex; T: Data Collection measures, Test Lead judges; C: Data Collection measures)",
+   "evidence": [
+    "docs/development/challenge_pipeline/value-cost/README.md",
+    "docs/development/challenge_pipeline/round1/feasibility-panels.md"
+   ],
+   "status": "VERIFIED",
+   "note": "Working values only; final thresholds are the owner's."
+  },
+  {
+   "id": "S4_question_law",
+   "order": 4,
+   "name": "Question law",
+   "entry": "A passing feasibility and value panel.",
+   "exit": "A non-runtime law sheet (population, action lattice, strata, near rule) whose HUMAN_INPUT values the owner has accepted or declined; the four-check design-value prerequisite met before any new hidden bank.",
+   "owner_session": "Codex proposes; owner accepts",
+   "owner_basis": "question-laws/README.md: SPECIFIED, not an enforced runtime gate; accepted widths and criteria stay HUMAN_INPUT",
+   "evidence": [
+    "docs/development/challenge_pipeline/question-laws/README.md"
+   ],
+   "status": "VERIFIED",
+   "note": "A law sheet registers no sampler and no exposure setting."
+  },
+  {
+   "id": "S5_bank",
+   "order": 5,
+   "name": "Bank",
+   "entry": "An accepted question law and the design-value prerequisite. Bank spend (owner, verbatim via the Test Lead, 2026-10-10): \"We just evaluate them with a cost decision. No limiting to 100 vs 500. It's a cost benefit analysis for the team with a 500 max.\" The Test Lead's reading: the team may approve a bank spend up to EUR 500 on a documented cost-benefit decision, recorded in that bank's grant file with the exact figure. The grant file is what binds spend; nothing above EUR 500; no spend ledgers or balances in the repository.",
+   "exit": "A sealed hidden bank prepared on the hidden host from a pinned validator image, never on a host every agent session can read.",
+   "owner_session": "Carbon Validator (producer, bank adapters, VALIDATOR-28 family sources); Data Collection supplies each family's reference package and panel; the owner approves startup spend",
+   "owner_basis": "Test Lead ruling, 2026-10-10 (relayed to the Graphite Testing Manager); Bank architecture #756 and the hidden-pool runbook; register lessons S11 and S12 constrain where and how",
+   "evidence": [
+    "docs/development/graphite/HIDDEN_POOL_AND_TUNING_RUNBOOK.md",
+    "docs/development/graphite/LESSONS_REGISTER.md (S11, S12)"
+   ],
+   "status": "VERIFIED",
+   "note": "Owner session settled by the Test Lead ruling. Entry and exit are still assembled from the hidden-pool runbook and register lessons S11 and S12, not from one stage definition."
+  },
+  {
+   "id": "S6_readiness",
+   "order": 6,
+   "name": "Readiness gate",
+   "entry": "The Challenge wired in readiness/challenges.json for the level, and a main SHA that contains every PR the stage checklist names.",
+   "exit": "launch_ready true at that exact SHA: no FAIL, NOT_BUILT or REVIEW_REQUIRED; waivers are stage-bound and measurement-only; reports committed through PR Head.",
+   "owner_session": "Graphite Testing Manager runs; Test Lead reviews and waives",
+   "owner_basis": "GRAPHITE_READINESS_GATE.md; STAGE_A_EVIDENCE_TABLE.md",
+   "evidence": [
+    "docs/development/graphite/GRAPHITE_READINESS_GATE.md",
+    "docs/development/challenge_pipeline/readiness/STAGE_A_EVIDENCE_TABLE.md"
+   ],
+   "status": "VERIFIED",
+   "note": "A waiver is never a PASS and a review never turns a FAIL into one."
+  },
+  {
+   "id": "S7_stage_a",
+   "order": 7,
+   "name": "Graphite stage A (L0 and L1)",
+   "entry": "The stage A checklist preconditions (section 1), the launch preflight green, and a launch_ready L0 gate.",
+   "exit": "The checklist runs complete with a lessons entry, evidence digest and spend count per run; L0 confirmations through the Launchpad; refused-capability extracts collected; stage report to the Test Lead.",
+   "owner_session": "Executor runs; Launchpad lanes; Test Engineer bindings; Test Lead decides",
+   "owner_basis": "GRAPHITE_LADDER_STAGE_A_CHECKLIST.md owner column",
+   "evidence": [
+    "docs/development/graphite/GRAPHITE_LADDER_STAGE_A_CHECKLIST.md",
+    "docs/development/graphite/LAUNCH_PREFLIGHT.md"
+   ],
+   "status": "VERIFIED",
+   "note": "Stage A is measurement only; L1 confirmations wait for an L1 Q1 report and VALIDATOR-25."
+  },
+  {
+   "id": "S8_stage_b",
+   "order": 8,
+   "name": "Graphite stage B (L2 and L3 on the dev-ladder)",
+   "entry": "VALIDATOR-25 slices deployed; stage A closed; the owner's spend approval and a bound grant.",
+   "exit": "Per the stage B plan: runs complete with lessons entries and a stage summary.",
+   "owner_session": "Executor runs; Carbon Validator owns VALIDATOR-25; owner approves spend",
+   "owner_basis": "GRAPHITE_LADDER_STAGE_B_PLAN.md sections 1-4",
+   "evidence": [
+    "docs/development/graphite/GRAPHITE_LADDER_STAGE_B_PLAN.md"
+   ],
+   "status": "VERIFIED",
+   "note": "Stage B's grant files do not exist; its spend line is only prepared."
+  },
+  {
+   "id": "S9_stage_c",
+   "order": 9,
+   "name": "Graphite stage C (L4, graph only)",
+   "entry": "Stage B prerequisites clear; Level 4 permission for the dev-ladder and the dev door only (granted); the owner's spend approval.",
+   "exit": "Per the wave plan section 4a: the stage C Constructor and Attacker runs complete with lessons entries.",
+   "owner_session": "Executor runs; Level 4 engineer owns the rebuild path; owner approves spend",
+   "owner_basis": "GRAPHITE_LADDER_WAVE_PLAN.md sections 4 and 4a; OWNER-LEVEL4-TESTNET-RUNS-01",
+   "evidence": [
+    "docs/development/graphite/GRAPHITE_LADDER_WAVE_PLAN.md",
+    ".agent/decisions/2026-10-09-OWNER-LEVEL4-TESTNET-RUNS-01.md"
+   ],
+   "status": "VERIFIED",
+   "note": "Permission is not spend approval."
+  },
+  {
+   "id": "S10_tested",
+   "order": 10,
+   "name": "Tested Challenge",
+   "entry": "Graphite stages A to C closed for every enabled level, with their reports.",
+   "exit": "TESTED when ALL hold: (1) the readiness gate is launch_ready at every enabled level (no FAIL; waivers expired or closed); (2) a sealed hidden bank exists, with exposure accounting; (3) Graphite stages are complete at every enabled level, with real Launchpad confirmations scored by a validator, and every Attacker finding dispositioned (fixed, or accepted with a reason); (4) score-value alignment is measured on confirmed recipes (a Q1 report exists), and a negative result is allowed but must trigger a scoring iteration; (5) control detection (T3) meets its target at the chosen k and E; (6) the incentive canary shows the best model weighted (INCENTIVE-CANARY-01); (7) the stage-end report is filed; (8) the cheap-baseline comparison (V4) is done: the models' decisions are compared, at matched admissibility, with the strongest cheap method a buyer would otherwise use; (9) the Challenge PASSES VALUE: (a) a real buyer decision with at least two sources; (b) on held-out contested questions the best Carbon model's buyer-unit regret is lower than the strongest cheap baseline's at matched admissibility, paired bootstrap 95% interval excluding 0; (c) at least 100x faster than the reference per decision query; (d) sourced or assumption ranges for value and volume; (e) at an equal time and compute budget, a model-screen-then-solver-verify workflow finds a better design than the solver alone (readiness D2 equal-cost harness).",
+   "owner_session": "Test Lead",
+   "owner_basis": "Test Lead working definition, development, 2026-10-10 (relayed to the Graphite Testing Manager); LESSONS_REGISTER.md rules and section 8; condition 8 added by OWNER-LAUNCH-STRATEGY-01 (PR 978, .agent/decisions/2026-10-10-OWNER-LAUNCH-STRATEGY-01.md once merged); PASSES VALUE conditions a to d: Test Lead, delegated by the owner, 2026-10-10; condition e: Test Lead, from the owner, 2026-10-10",
+   "evidence": [
+    "docs/development/graphite/LESSONS_REGISTER.md",
+    "docs/development/graphite/WAVE_RETROSPECTIVE_TEMPLATE.md"
+   ],
+   "status": "VERIFIED",
+   "note": "A working definition for development, ruled by the Test Lead. TESTED is not scientific qualification, security acceptance, LIVE or a launch claim; LIVE or qualification is a separate owner step."
+  }
+ ]
+}

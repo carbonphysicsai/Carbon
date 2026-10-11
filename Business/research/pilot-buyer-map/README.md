@@ -1,0 +1,13 @@
+# PILOT-BUYER-MAP-01 — owner brief
+
+**Recommended first technical target: Porsche's cell/charging development function**, or its Cellforce R&D route, because the public workflow explicitly models lithium plating and fast-charge operating strategies and compares simulation with experiments. **Alternative first partner: AVL's battery simulation/validation team**, which already serves this workflow and can challenge Carbon's evidence against a strong incumbent. This ranks technical fit, not likelihood of purchase. No company has expressed interest in Carbon.
+
+The [ranked map](BUYERS.md) covers EV OEMs, cell developers and BMS suppliers. It names company-level roles, sources the underlying workflows and distinguishes inferred owner roles from verified job titles. LG Energy Solution and Verkor provide relevant cell/algorithm evidence; Electra and NXP provide BMS/digital-twin routes; Mahindra is a broader thermal-system fit. Public contact routes are recommendations only. No individuals, private contacts, outreach or quote requests are included.
+
+The battery [development sample](https://github.com/carbonphysicsai/Carbon/pull/959) is useful for a scoping conversation: it discloses false-feasible decisions, adversarial score failures and missing matched v3 measurements. It is not a deployable charge controller or qualified audit. Every target would need customer-specific chemistry, limits, physical references, evidence rights, an adequate exam and a scoped acceptance authority before an eligible commercial EvidenceAudit.
+
+The shortest proposed conversation asks for the team's existing decision and acceptance process, then whether an independent model-relative audit would address a concrete gap. Bring the adverse-evidence page with the sample. Ask who owns cell/reference validation, BMS calibration, procurement and acceptance separately. NASA-STD-7009B is an organizing profile; no evidence says these automotive companies require it.
+
+There are no estimated conversion probabilities, budgets or annual decision volumes. Their low/base/high remain **HUMAN_INPUT**. Ranking positions are recommendation order, not market measurements. Actual offer, outreach and adoption remain the owner's decisions.
+
+Research only under [Business Canon](../../Business_Canon.md). Public sources reviewed 2026-10-10; research evidence snapshot `915225242146be67e6de098d4a08324cc63dc684`. New files only in this directory; no solver, spend, hidden data or existing Challenge edits. Native map/source checks and canonical contract-only CI provide documentation acceptance. Hub is retired. Maturity: sourced prospect research, **not customer validation or traction**.

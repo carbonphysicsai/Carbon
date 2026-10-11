@@ -1,0 +1,16 @@
+{
+ "schema": "carbon.agent-campaign.spending-grant.v1",
+ "grant_id": "GRAPHITE-GRANT-RATE-STUDY-TOKENS",
+ "provider": "graphite",
+ "account": "Carbon-Account",
+ "granted_by": "owner",
+ "expires_at": "2026-12-31T23:59:59Z",
+ "currency": "USD",
+ "monetary_ceiling": "30.00",
+ "cleanup_allowance": "0.25",
+ "worst_case_run_cost": "4.91",
+ "permitted_runs": 6,
+ "max_concurrency": 1,
+ "max_runtime_s": 39600,
+ "max_submissions": 144
+}

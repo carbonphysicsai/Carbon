@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-question-laws-regressions",
+  "recorded_at": "2026-10-07T21:33:37+00:00",
+  "challenge": "protocol", "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-QUESTION-LAWS-01 Part A regressions", "description": "Native Windows: python -X utf8 -m pytest tests/cpu/test_challenge_question_laws.py tests/cpu/test_portfolio_f1_packet.py tests/cpu/test_first_three_customer_packets.py tests/cpu/test_challenge_pipeline.py -q; Black check of the new test."},
+  "expected": "The new static proposal coexists with the customer packets and current pipeline without activation or weakened scientific boundaries.",
+  "observed": "59 passed in 24.95 s; Black check passed. No solver, protected bank, model or provider execution. Native host diagnostics only; #758 remained open at its repair head with canonical CI in progress.",
+  "keep": ["Use the reported old Motor/cell infeasibility to identify a single-answer bank, not to relax the original buyer job.", "Distinguish context-answer cells from distinct canonical action picks and keep shared-bank dependence."],
+  "change": ["Motor/cell quiz content remains gated on the explicit #758 merge; independent Part A need not wait."],
+  "protocol_elements": ["answer-diversity", "bank-exposure", "dependency-gates"],
+  "proposed_revision": null, "status": "RECORDED"
+}

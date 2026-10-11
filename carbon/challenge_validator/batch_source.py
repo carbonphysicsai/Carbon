@@ -22,11 +22,23 @@ SERVED_KINDS = ("screening", "finalist")
 
 
 class ProducerRefused(ValueError):
-    """A typed refusal; its code carries no private case, input or output."""
+    """A typed refusal; its code carries no private case, input or output.
 
-    def __init__(self, code):
+    `path` names the operator's own file or directory at fault when that is
+    the fix (for example a directory another account can read): a local
+    path, never a case value."""
+
+    def __init__(self, code, *, path=None):
         super().__init__(code)
         self.code = code
+        self.path = None if path is None else str(path)
+
+    def record(self):
+        """What a command prints when it refuses."""
+        found = {"refused": self.code}
+        if self.path is not None:
+            found["path"] = self.path
+        return found
 
 
 # --- one Challenge's batches ----------------------------------------------------------
@@ -71,6 +83,12 @@ class BatchSource(abc.ABC):
         """The batch's public identity once its references are complete:
         `role`, `kind`, `journal_sequence`, `cases` and `references_digest`.
         None while any reference is pending."""
+
+    def kinds(self):
+        """The served kinds this Challenge's validators use. The producer
+        draws and rotates only these: a Challenge without finals is never
+        given finalist batches it would solve and never score."""
+        return SERVED_KINDS
 
     def cadence(self):
         """`{"every_blocks", "active"}` from the Challenge's own registered

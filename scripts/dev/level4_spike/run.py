@@ -30,6 +30,8 @@ if str(REPOSITORY) not in sys.path:
     sys.path.insert(0, str(REPOSITORY))
 
 SCHEMA = "carbon.development.level4-phase0-results.v0"
+#: The Phase 0 record was made with allowlist v0.
+PATH_V0 = REPOSITORY / "docs/development/graphite/level4/allowlist_v0.json"
 
 
 def environment():
@@ -56,7 +58,9 @@ def environment():
 def jax_section(adapter, allowlist):
     import jax
 
-    from level4_spike import graph, interpret, lower_jax, probes
+    from carbon.level4 import graph, interpret
+    from carbon.level4.tooling import lower_jax
+    from level4_spike import probes
 
     rows, union = [], {}
     first_forward = None
@@ -104,7 +108,9 @@ def torch_section(adapter, allowlist, max_bytes, *, include_largest=True):
     import numpy as np
     import torch
 
-    from level4_spike import graph, interpret, lower_torch, probes
+    from carbon.level4 import graph, interpret
+    from carbon.level4.tooling import lower_torch
+    from level4_spike import probes
 
     rows, union, serialization = [], {}, None
     for label, strategy, largest in adapter.torch_cases():
@@ -176,11 +182,12 @@ def main(argv=None):
     parser.add_argument("--skip-torch", action="store_true")
     args = parser.parse_args(argv)
 
-    from level4_spike import allowlist as allowlist_module
-    from level4_spike import probes, specimens
+    from carbon.level4 import allowlist as allowlist_module
+    from carbon.level4 import specimens
+    from level4_spike import probes
 
-    adapter = importlib.import_module(f"level4_spike.adapters.{args.adapter}")
-    allowlist = allowlist_module.load(allowlist_module.PATH_V0)  # the Phase 0 record
+    adapter = importlib.import_module(f"carbon.{args.adapter}.level4")
+    allowlist = allowlist_module.load(PATH_V0)  # the Phase 0 record
     started = time.perf_counter()
     record = {
         "schema": SCHEMA,

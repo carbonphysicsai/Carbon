@@ -31,6 +31,25 @@ report worst condition separately. Q feasibility uses three fixed geometries
 relief40 mm) at damping
 0.005 and0.02. No population estimate from six diagnostic cases.
 
+### Prospective population of buyer design questions — `HUMAN_INPUT`
+
+The three damping values and 80–600-Hz search belong to one support bank.
+A future `P_job` can vary supported peak-motion, stiffness or mass limits and
+the required excitation/damping service panel if the solved bank covers it.
+An automation buyer recognizes the question from its stage acceptance sheet,
+payload schedule and vibration specification. Reapplying different limits to
+stored peak, stiffness and mass outputs needs no new solve, but the
+reference-best support must demonstrably change. New payloads, clamp
+boundaries, contact or damping laws are optional axes requiring new qualified
+reference work. Modes, frequency samples and optimizer starts are not fresh
+buyer questions.
+
+**Size recommendation, not a selected law:** catalogue eight distinct
+condition/requirement questions for a development scoping pilot on a
+complete-band bank. `HUMAN_INPUT`: eligible limits and panels, `P_job`,
+protected `Q_job`, weights, answer diversity, shared-frame clustering,
+exposure and hidden `n` from power and measured reference cost.
+
 ## 4. Case contract
 
 Bind complete CAD, material, clamp/load pad, damping, extraction coordinates
@@ -59,6 +78,42 @@ need18; oscillator/beam controls use4; two finer nominal meshes share static/
 eigen solves between damping settings and use8; four additional modal-retention
 and two frequency-refinement harmonic launches use6. Missing rungs mean
 unresolved reference, not a claimed adequate grid or silently higher damping.
+
+### Reference credibility target
+
+**Buyer tool:** Ansys Mechanical modal/harmonic analysis is the assumed stage
+designer's workflow, not a verified adoption claim. **Carbon reference:**
+proposed CalculiX static/eigen/harmonic solves, **not the same tool**; exact
+task build/decks remain packaging work. Tier 1 requires the buyer's actual
+model, materials, supports, damping, mesh and extraction settings.
+
+**Target tier:** Tier 2 for linear structural-design shortlisting. Tier 3
+measured modal frequencies and force/response curves are required before
+assembled-support precision reliance; full-machine settling, joints and
+nonlinear dynamics remain excluded. **Credibility evidence: NOT_DEMONSTRATED**.
+
+**Benchmark cases:** published NAFEMS **P18.FV4** (cantilever with off-centre
+point masses), **P18.FV73** (cantilevered thin square plate) and **R0016.5H**
+(deep simply supported beam, harmonic forced response), identified in
+[NAFEMS's code-verification catalogue](https://www.nafems.org/publications/code-verification/nastran-code-verification/).
+Run the same benchmark definitions in CalculiX and Mechanical and compare
+published reference quantities; the catalogue is not a Carbon/tool pass.
+Add matched ribbed/relieved-plate static and harmonic witnesses at both damping
+extremes, with identical force normalization/probes and adaptive resonance
+resolution. Eigenfrequency agreement alone cannot establish FRF peak accuracy.
+
+**Acceptance tolerance: HUMAN_INPUT.** Recommend eigen/peak frequency difference
+≤1%, static-compliance difference ≤2%, mass difference ≤0.5%, and
+peak-location difference ≤min(2 Hz, 1% of peak frequency), peak
+displacement-per-force difference ≤5%, and wrapped phase difference ≤5° at
+resolved nonzero peaks. An absolute response floor for phase/relative error
+away from peaks remains HUMAN_INPUT. Resolve the same resonance and output
+convention; do not increase damping or smooth away a missed peak to pass.
+These bound simulator decision error, not unknown physical joint damping.
+
+**Claim boundary:** [common credibility contract](reference-credibility.md).
+After accepted evidence, “matches the reference simulator” for this linear
+support/forcing scope, not “matches reality” or full-machine positioning.
 
 ## 6. Output and measurement contract
 
@@ -93,6 +148,22 @@ later evidence. If modal reduction already solves this job cheaply, park it
 instead of selecting a grid to manufacture a learned advantage.
 
 ## 10. Readiness and claim record
+
+Current prospective T2: [buyer value/cost scorecard](../value-cost/f08.md)
+and [owner framework](../value-cost/README.md). Require at least five feasible
+and five distinct near-limit infeasible actions per mandatory stratum. Report
+the overall fraction; it is not a gate. Other value checks still require
+evidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.
+The original fraction-based observations below retain their historical meaning.
+
+**Before any new hidden bank:** the owner-selected [four-check value prerequisite](../question-laws/value-check-v1.md)
+requires per-stratum discrimination and meaningful buyer-unit spread, one
+complete feasible action, and changing best/equivalent answers. Numeric
+thresholds remain HUMAN_INPUT recommendations; receipt **NOT_DEMONSTRATED**.
+For this buyer, report resolved worst-band compliance and stiffness/mass margins across the mandatory
+damping panel, not an eigenfrequency-only or coarse-grid pass.
+No favorable redraw, exposure reset, solver grant or qualification follows.
+
 
 Selected requirements, offline beam/mass screen only. New modal/harmonic
 reference, numerical adequacy, kit and reconstruction are NOT_DEMONSTRATED.

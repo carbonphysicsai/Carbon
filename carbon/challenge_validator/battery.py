@@ -223,9 +223,14 @@ class BatteryAdapter(ChallengeAdapter):
         ]
         profiles = []
         with self._writer():
+            from .canary import is_canary
+
             for submission_id in sorted(scored):
                 score = store.score(submission_id)
                 row = store.submission(submission_id)
+                if is_canary(row["hotkey"]):
+                    # A canary is never a leak-detection baseline (CANARY-01).
+                    continue
                 current = set(score["record"]["active_batches"])
                 block = (row["binding"].get("receipt") or {}).get("block")
                 batches = {}
@@ -355,6 +360,164 @@ class BatteryAdapter(ChallengeAdapter):
             "panel_version": document["panel_version"],
         }
 
+    def _checked_bank(self, commitment, payload, batch, references, needed):
+        """Under a bank rule (`v2-bank`, VALIDATOR-23), every drawn case must
+        prove into a sealed tranche the commitment names: its id, inputs and
+        reference, by Merkle proof. The commitment's bank values must be this
+        validator's rule's, and its selection digest the drawn ids'. A
+        package with a bank under a rule without one is refused too."""
+        from . import bank_proof
+        from .answer_key import AnswerKeyRefused
+
+        rule = (self.target.rule.get("bank") or {}).get("pool")
+        held = "bank" in commitment, "bank" in payload
+        if rule is None:
+            if any(held):
+                raise AnswerKeyRefused("answer_key_bank_mismatch")
+            return
+        if not all(held):
+            raise AnswerKeyRefused("answer_key_bank_missing")
+        bank, proofs = commitment["bank"], payload["bank"].get("proofs")
+        try:
+            roots = {
+                t["tranche"]: t["root"]
+                for t in bank["tranches"]
+                if type(t.get("root")) is str
+            }
+            if (
+                bank["rule"] != rule
+                or type(proofs) is not dict
+                or sorted(proofs) != needed
+                or bank["selection_digest"] != bank_proof.selection_digest(needed)
+            ):
+                raise ValueError
+        except (KeyError, TypeError, ValueError, AttributeError):
+            raise AnswerKeyRefused("answer_key_bank_mismatch") from None
+        inputs = dict(batch.cases)
+        for case_id in needed:
+            proof = proofs[case_id]
+            if type(proof) is not dict or not bank_proof.verify(
+                case_id,
+                dict(inputs[case_id]),
+                references[case_id],
+                proof.get("proof"),
+                roots.get(proof.get("tranche")),
+            ):
+                raise AnswerKeyRefused("answer_key_bank_proof")
+
+    def _checked_design(self, commitment, payload):
+        """Under a design rule (`v2-bank-design`, slice 3b), a screening
+        window carries exactly `k` design questions and nothing else does.
+        Each question proves into a sealed design tranche the commitment
+        names (its id, inputs and reference), its task digest re-derives, and
+        it is live (`OK`). The commitment's bank and k must be the rule's,
+        and its selection digest the question ids'. Returns the verified
+        questions, or None."""
+        from carbon.design_search import tasks
+
+        from . import bank_proof
+        from .answer_key import AnswerKeyRefused
+
+        rule = self.target.rule.get("design")
+        held = "design" in commitment, "design" in payload
+        if rule is None or commitment["kind"] != "screening":
+            if any(held):
+                raise AnswerKeyRefused("answer_key_design_mismatch")
+            return None
+        if not all(held):
+            raise AnswerKeyRefused("answer_key_design_missing")
+        design = commitment["design"]
+        questions = payload["design"].get("questions")
+        try:
+            roots = {
+                t["tranche"]: t["root"]
+                for t in design["tranches"]
+                if type(t.get("root")) is str
+            }
+            ids = sorted(questions)
+            if (
+                set(design) != {"bank", "k", "tranches", "selection_digest"}
+                or design["bank"] != rule["bank"]
+                or design["k"] != rule["k"]
+                or len(ids) != rule["k"]
+                or design["selection_digest"] != bank_proof.selection_digest(ids)
+            ):
+                raise ValueError
+        except (KeyError, TypeError, ValueError, AttributeError):
+            raise AnswerKeyRefused("answer_key_design_mismatch") from None
+        for question_id in ids:
+            question = questions[question_id]
+            try:
+                inputs, reference = question["inputs"], question["reference"]
+                task = inputs["task"]
+                if task.get("schema") == tasks.INDEXED_SCHEMA:
+                    from carbon.design_search import indexed
+
+                    indexed.validate_indexed(task)
+                else:
+                    tasks._verify_task_digest(task)
+                if (
+                    inputs["task_digest"] != task["task_digest"]
+                    or reference.get("status") != "OK"
+                ):
+                    raise ValueError
+            except (KeyError, TypeError, ValueError, AttributeError):
+                raise AnswerKeyRefused("answer_key_design_malformed") from None
+            if not bank_proof.verify(
+                question_id,
+                inputs,
+                reference,
+                question.get("proof"),
+                roots.get(question.get("tranche")),
+            ):
+                raise AnswerKeyRefused("answer_key_design_proof")
+        # The law's draw is kept with the task: it is proven with it, and
+        # scoring needs it to rebuild the question's truth jobs (slice 3c).
+        return {
+            question_id: {
+                "task": questions[question_id]["inputs"]["task"],
+                "draw": questions[question_id]["inputs"].get("draw"),
+                "reference": questions[question_id]["reference"],
+            }
+            for question_id in ids
+        }
+
+    def observe_head(self, block):
+        """Record the finalized chain head and rotate if a producer window
+        opened or closed: windows follow the chain's clock. Returns the pool's
+        public state."""
+        from carbon.battery.pool_store import StateError
+
+        from .answer_key import AnswerKeyRefused
+
+        try:
+            with self._writer():
+                self.target.store.observe_head(block)
+        except StateError as refused:
+            raise AnswerKeyRefused("answer_key_" + refused.code) from None
+        pool = self.target.store.pool()
+        return {
+            "block": block,
+            "pool": None if pool is None else pool["status"],
+            "version": None if pool is None else pool["version"],
+        }
+
+    def withdraw_answer_key(self, manifest):
+        """Apply a verified producer withdrawal (VALIDATOR-24): the batch
+        stops scoring at once and is never imported again. Typed, never a
+        score."""
+        from carbon.battery.pool_store import StateError
+
+        from .answer_key import AnswerKeyRefused
+
+        try:
+            with self._writer():
+                return self.target.store.withdraw_batch(
+                    manifest["fingerprint"], manifest["reason"], manifest["block"]
+                )
+        except StateError as refused:
+            raise AnswerKeyRefused("answer_key_" + refused.code) from None
+
     def import_answer_key(self, commitment, payload):
         """Import a producer batch, verified in full first:
         - the commitment's contract and rule are this validator's;
@@ -378,6 +541,8 @@ class BatteryAdapter(ChallengeAdapter):
             or commitment["rule_digest"] != identities["rule_digest"]
         ):
             raise AnswerKeyRefused("answer_key_identity_mismatch")
+        if self.target.store.batch_withdrawn(commitment["fingerprint"]):
+            raise AnswerKeyRefused("answer_key_withdrawn")
         window = commitment.get("window")
         if (
             type(window) is not dict
@@ -391,7 +556,7 @@ class BatteryAdapter(ChallengeAdapter):
             batch = PrivateBatch.from_document(payload["document"])
             references = payload["references"]
             salt = payload["reconstruction_salt"]
-            if set(payload) - {"quiz"} != {
+            if set(payload) - {"quiz", "bank", "design"} != {
                 "document",
                 "references",
                 "reconstruction_salt",
@@ -416,6 +581,8 @@ class BatteryAdapter(ChallengeAdapter):
         if digest != commitment["references_digest"]:
             raise AnswerKeyRefused("answer_key_references_mismatch")
         quiz = self._checked_quiz(commitment, payload, batch)
+        self._checked_bank(commitment, payload, batch, references, needed)
+        design = self._checked_design(commitment, payload)
         try:
             with self._writer():
                 fingerprint = self.target.import_batch(batch, kind=commitment["kind"])
@@ -426,6 +593,10 @@ class BatteryAdapter(ChallengeAdapter):
                 self.target.store.set_salt(fingerprint, salt)
                 if quiz is not None:
                     self.target.store.set_quiz(fingerprint, quiz)
+                if design is not None:
+                    self.target.store.set_design(
+                        fingerprint, commitment["design"]["bank"], design
+                    )
         except StateError as refused:
             raise AnswerKeyRefused("answer_key_" + refused.code) from None
         except PublishedCaseRefused:

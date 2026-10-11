@@ -42,45 +42,80 @@ from dataclasses import dataclass, field
 from decimal import ROUND_CEILING, ROUND_HALF_EVEN, Decimal
 from pathlib import Path
 
+from scripts.dev.exam_design.runpod import pod_env
+from scripts.dev.exam_design.runpod.pod_env import (
+    ENV_LIMIT_CHARS,
+    env_chars,
+    import_closure,
+)
+
 REPOSITORY = Path(__file__).resolve().parents[4]
 
-#: Released images, pinned by digest (the brief; WAVE release record).
+#: Released images, pinned by digest (worker-images-v3, release run 37855550264).
 ACCELERATOR_IMAGE = (
     "ghcr.io/carbonphysicsai/carbon-accelerator-worker@sha256:"
-    "8f16c1055e14ebe4c35efe6d12c9b4230f5758cb87f383bdc6d9bc80557ce409"
+    "4ef87d81f412123b4cd6e0d37d4f764a49f2883dea1e03a27e5c7d1e5c1f9732"
 )
 TORCH_IMAGE = (
     "ghcr.io/carbonphysicsai/carbon-torch-gpu-worker@sha256:"
-    "056bd77c5d8195206b42102b92e818176999266281bb485522b3c57b451a8a09"
+    "5867207e35b2fd54d1cbf4d1fb2a7e0a6b88654a1485f138e3f0054d6b702186"
 )
 IMAGES = {"jax": ACCELERATOR_IMAGE, "pytorch": TORCH_IMAGE}
 BACKENDS = ("jax", "pytorch")
 
 GPU_TYPE = "NVIDIA A40"
-CUDA_VERSIONS = ("13.0",)
-#: The grant's rate: RunPod's pod ceiling plus container disk
-#: (OWNER-A40-ACCEPTANCE-GRANT-01): 0.49 + 20 GB x 0.10 / 730 h.
-POD_RATE_USD_PER_HR = 0.49
+#: The target device of a run: exactly two values. The RunPod GPU type id and
+#: the exact device name `nvidia-smi` reports are the same string. The RTX 4090
+#: is an UNQUALIFIED development device (not in `QUALIFIED_PARTS`); this harness
+#: only records digests for it and qualifies nothing.
+TARGET_DEVICES = {"A40": "NVIDIA A40", "RTX 4090": "NVIDIA GeForce RTX 4090"}
+DEFAULT_TARGET = "A40"
+TORCH_LOCK = ".devcontainer/torch/torch-cu130-py311.txt"
+#: The grant's rate is the all-in pod ceiling (compute plus a 20 GB container
+#: disk at 0.10 / GB-month over 730 h), read from the grant record below.
 DISK_GB = 20
 DISK_USD_PER_GB_MONTH = 0.10
 GRANT_RECORD = ".agent/decisions/2026-10-06-OWNER-A40-ACCEPTANCE-GRANT-01.md"
 
 
-def grant_rate(repository=REPOSITORY):
-    """The pod-hour rate ceiling, read from the committed grant record (the
-    `Rate ceiling` row of its decision table), never restated here."""
+def grant_terms(repository=REPOSITORY):
+    """The pod-hour rate ceiling and the monetary cap, read from the committed
+    grant record, never restated here. The record's table states the original
+    terms; a later owner amendment line (`<date>, owner: ceiling <rate>/h, cap
+    USD <cap>`) supersedes them, the last one winning."""
     import re
 
     text = (Path(repository) / GRANT_RECORD).read_text()
     found = re.search(r"\|\s*Rate ceiling\s*\|\s*USD\s+([0-9.]+)\s+per pod-hour", text)
-    if found is None:
-        raise RuntimeError("the grant record names no rate ceiling")
-    return Decimal(found.group(1))
+    cap = re.search(r"\|\s*\*\*Monetary cap\*\*\s*\|\s*\*\*USD\s+([0-9.]+)\*\*", text)
+    if found is None or cap is None:
+        raise RuntimeError("the grant record names no rate ceiling or cap")
+    ceiling, cap_usd = Decimal(found.group(1)), Decimal(cap.group(1))
+    amendments = re.findall(
+        r"^\d{4}-\d{2}-\d{2}, owner: ceiling ([0-9.]+)/h, cap USD ([0-9.]+)$",
+        text,
+        flags=re.MULTILINE,
+    )
+    if amendments:
+        ceiling, cap_usd = (Decimal(value) for value in amendments[-1])
+    return ceiling, cap_usd
+
+
+def grant_rate(repository=REPOSITORY):
+    """The all-in (compute plus disk) pod-hour ceiling in force."""
+    return grant_terms(repository)[0]
 
 
 RATE_CEILING_USD_PER_HR = grant_rate()
+#: The compute-only rate is the all-in ceiling less the container disk's hour.
+POD_RATE_USD_PER_HR = float(
+    RATE_CEILING_USD_PER_HR
+    - (Decimal(DISK_GB) * Decimal("0.10") / Decimal(730)).quantize(
+        Decimal("0.000000001"), rounding=ROUND_HALF_EVEN
+    )
+)
 CLEANUP_RESERVE_USD = Decimal("0.25")
-DEFAULT_CAP_USD = Decimal("4.25")
+DEFAULT_CAP_USD = grant_terms()[1]
 PODS, REPLACEMENTS = 4, 2
 DEADLINE_FACTOR = Decimal("1.5")
 POLL_SECONDS = 15.0
@@ -108,6 +143,32 @@ SHIPPED_FILES = (
     "scripts/dev/gpu_determinism_study/device_identity.py",
 )
 SHIP_TREES = ("carbon",)
+#: The Level 4 B' leg (`docs/development/graphite/level4/PHASE1_PLAN.md`
+#: section 3, plan PR 9): each JAX pick lowered to B' documents on the CPU
+#: before any spend (`level4-lower`), committed here as one
+#: `carbon.level4.staging` directory per pick, and shipped to the pods as data.
+LEVEL4_DIR = "docs/development/graphite/level4/a40_leg"
+LEVEL4_LEG = "level4"
+#: Recipes the leg adds beyond the picks, so each review op is on the GPU
+#: (plan section 3, item 5). A relu MLP lowers relu as a named function; it
+#: is trained, and gets native repeats too (the same-host comparison needs
+#: them). `gather` and `sort` appear only in the nearest-neighbour graph,
+#: which Carbon does not train: it runs forward-only (`LEVEL4_FORWARD`), its
+#: same-host comparison inside the one rebuild, against the JAX function it
+#: was lowered from (battery's NumPy kNN differs at 1e-15 and is recorded).
+LEVEL4_COVERAGE = (
+    {
+        "id": "level4_relu_layer_norm_mlp",
+        "backbone": "mlp",
+        "parameters": {
+            "steps": 1500,
+            "width": 64,
+            "depth": 2,
+            "activation": "relu",
+            "normalization": "layer_norm",
+        },
+    },
+)
 
 RECORD_SCHEMA = "carbon.a40-acceptance.run-record.v1"
 SMOKE_SCHEMA = "carbon.a40-acceptance.smoke-record.v1"
@@ -130,6 +191,37 @@ SELECTION_RULE = (
     "toward larger n_params, the largest toward smaller); plus one PyTorch-only "
     "fno recipe at the contract's defaults"
 )
+
+
+def supported_cuda_versions(repository=None):
+    """The host CUDA versions both released GPU images support and RunPod
+    accepts, derived and never guessed. The accelerator lock pins the JAX CUDA
+    plugin and `nvidia-cuda-runtime` (13.0.x); the torch-gpu lock pins
+    `nvidia-cuda-runtime` (13.0.x, the cu130 torch build). Each image supports
+    host CUDA from its runtime's MAJOR.MINOR (CUDA minor-version compatibility
+    within the major) up to RunPod's REST schema ceiling, 13.0
+    (`pods.RUNPOD_CUDA_CEILING`; EV4 created every pod with ["13.0"]). The
+    answer is the intersection: today exactly ("13.0",), because both runtimes
+    are 13.0 and RunPod accepts nothing above 13.0; a lower host CUDA cannot run
+    the cu13 wheels, so there is nothing further to widen to."""
+    import re
+
+    from carbon.agent_campaign.graphite import pods
+
+    repository = Path(repository or REPOSITORY)
+    accelerator = pods.allowed_cuda_versions(repository)
+    text = (repository / TORCH_LOCK).read_text()
+    runtime = re.search(r"^nvidia-cuda-runtime==(\d+)\.(\d+)\.", text, re.MULTILINE)
+    ceiling_major, ceiling_minor = pods.RUNPOD_CUDA_CEILING
+    if runtime is None or int(runtime.group(1)) != ceiling_major:
+        raise Refused("refused: the torch-gpu lock names no usable CUDA runtime")
+    torch = tuple(
+        f"{ceiling_major}.{m}" for m in range(int(runtime.group(2)), ceiling_minor + 1)
+    )
+    both = tuple(v for v in accelerator if v in torch)
+    if not both:
+        raise Refused("refused: no CUDA version serves both released images")
+    return both
 
 
 class Refused(RuntimeError):
@@ -200,12 +292,18 @@ def budget_gate(
     }
 
 
-def pod_deadline_seconds(smoke, rebuilds):
+def pod_deadline_seconds(smoke, rebuilds, level4_rebuilds=0):
     """Each pod's deadline: measured x 1.5. Measured is the smoke pod's
     start-up (create to first running phase) plus `rebuilds` times the
-    measured wall seconds of one rebuild in a fresh interpreter."""
-    measured = Decimal(str(smoke["startup_seconds"])) + rebuilds * Decimal(
-        str(smoke["rebuild_wall_seconds"])
+    measured wall seconds of one rebuild in a fresh interpreter, plus
+    `level4_rebuilds` times the smoke's own Level 4 rebuild seconds (the
+    leg's own measurement; the native one when the smoke had no leg)."""
+    native = Decimal(str(smoke["rebuild_wall_seconds"]))
+    leg = Decimal(str(smoke.get("level4_wall_seconds") or native))
+    measured = (
+        Decimal(str(smoke["startup_seconds"]))
+        + rebuilds * native
+        + level4_rebuilds * leg
     )
     return int((measured * DEADLINE_FACTOR).to_integral_value(rounding=ROUND_CEILING))
 
@@ -416,10 +514,19 @@ def actual_n_params(strategy, backend, train):
     return total
 
 
-def build_record(panel_name=PANEL, *, root=".", counter=actual_n_params):
+def build_record(
+    panel_name=PANEL,
+    *,
+    root=".",
+    counter=actual_n_params,
+    level4=False,
+    repository=REPOSITORY,
+):
     """The run record: pool, picks, fno recipe, each pick cross-checked against
     an actual CPU count on every backend. Raises Refused on any mismatch or
-    when a backend cannot be exercised (a skipped cross-check is not a pass)."""
+    when a backend cannot be exercised (a skipped cross-check is not a pass).
+    With `level4`, the record also pins each pick's committed B' documents
+    (`level4_section`)."""
     from carbon.battery.challenge import PublicMaterial
 
     pool = pool_counts(panel_name)
@@ -484,7 +591,118 @@ def build_record(panel_name=PANEL, *, root=".", counter=actual_n_params):
         "repeats": REPEATS,
     }
     record["recipes_by_backend"] = recipes_by_backend(record)
+    if level4:
+        record["level4"] = level4_section(record, repository)
     return record
+
+
+def _level4_strategy(pick):
+    return for_backend(pick["strategy"], "jax")
+
+
+#: The forward-only leg: battery's panel kNN (Test Lead, 2026-10-08).
+LEVEL4_FORWARD = ("level4_knn_forward",)
+
+
+def _knn_strategy():
+    from carbon.battery import level4 as battery
+
+    return battery.level0_strategies()["panel_knn"]
+
+
+def _level4_recipes(record):
+    """`(id, JAX strategy, kind)` for every recipe the leg rebuilds: the picks,
+    the coverage recipes (trained), then the forward-only kNN."""
+    out = [(p["id"], _level4_strategy(p), "train") for p in record["picks"]]
+    out += [
+        (c["id"], _strategy(c["backbone"], copy.deepcopy(c["parameters"])), "train")
+        for c in LEVEL4_COVERAGE
+    ]
+    out += [(i, _knn_strategy(), "forward") for i in LEVEL4_FORWARD]
+    return out
+
+
+def level4_lower(record, repository=REPOSITORY):
+    """Lower each pick (JAX) to its B' documents on this CPU and write them as
+    `carbon.level4.staging` directories under LEVEL4_DIR, replacing any older
+    ones; nothing is lowered on a pod. Returns the record's Level 4 section.
+    The directories are then committed, so the pods read them at the pushed
+    ref."""
+    from carbon.battery import level4 as battery
+    from carbon.level4 import allowlist as allowlist_module
+    from carbon.level4 import intake, staging, submission
+
+    allowlist = allowlist_module.load()
+    for recipe_id, strategy, kind in _level4_recipes(record):
+        lower = battery.lower_knn if kind == "forward" else battery.lower_recipe
+        manifest, files = lower(
+            strategy, allowlist, max_bytes=intake.BOUNDS["document_bytes"]
+        )
+        directory = Path(repository) / LEVEL4_DIR / recipe_id
+        if directory.exists():
+            shutil.rmtree(directory)
+        staging.write_directory(directory, submission.canonical(manifest), files)
+    return level4_section(record, repository)
+
+
+def level4_section(record, repository=REPOSITORY):
+    """The run record's Level 4 section, read from the committed directories:
+    per pick, its directory, submission digest, files, and whether its graphs
+    hold a `gather` and a named function (the leg must include both). Refused
+    when a pick has no documents."""
+    from carbon.level4 import allowlist as allowlist_module
+    from carbon.level4 import graph, staging
+
+    allowlist = allowlist_module.load()
+    picks, ops = [], set()
+    for recipe_id, strategy, kind in _level4_recipes(record):
+        relative = f"{LEVEL4_DIR}/{recipe_id}"
+        try:
+            digest, _raw, files = staging.read_directory(Path(repository) / relative)
+        except (OSError, graph.GraphRefused):
+            raise Refused(
+                f"refused: no Level 4 documents for {recipe_id} "
+                "(run `level4-lower` and commit them)"
+            ) from None
+        held = set()
+        for raw in files.values():
+            document = json.loads(raw)
+            for body in (document.get("graphs") or {}).values():
+                held |= {node["op"] for node in body.get("nodes", ())}
+        ops |= held
+        picks.append(
+            {
+                "id": recipe_id,
+                "kind": kind,
+                "strategy": strategy,
+                "directory": relative,
+                "submission": digest,
+                "files": sorted(
+                    [f"{relative}/{staging.MANIFEST}"]
+                    + [f"{relative}/{n.split(':', 1)[1]}.json" for n in files]
+                ),
+                "ops": {
+                    "gather": "gather" in held,
+                    "named_function": "named_function" in held,
+                },
+            }
+        )
+    return {
+        "allowlist": {"version": allowlist.version, "digest": allowlist.digest},
+        "picks": picks,
+        "coverage": [c["id"] for c in LEVEL4_COVERAGE],
+        "covers": {
+            "gather": "gather" in ops,
+            "named_function": "named_function" in ops,
+        },
+    }
+
+
+def level4_files(record):
+    """Every committed Level 4 file the pods need, from the sealed record."""
+    return [
+        f for p in (record.get("level4") or {}).get("picks", ()) for f in p["files"]
+    ]
 
 
 def recipes_by_backend(record):
@@ -541,35 +759,132 @@ def is_protected(path):
     return any(fragment in path.lower() for fragment in pods.FORBIDDEN_DATA)
 
 
-def ship_paths(ref, repository=REPOSITORY):
-    """Every tracked file the pod needs. Code files the guard names (sealed
-    confirmation sets, EV4 contracts, `private` directories) are not shipped;
-    the rebuild path imports none of them (a test rebuilds without them). The
-    guard itself is unchanged: a protected DATA path is still refused."""
+#: The modules the pod phase and the rebuild child import (the phase's lazy
+#: imports, `a40_pod_phase.CHILD`, the probes, the PyTorch device binding). The
+#: pod ships their static import closure inside `carbon/`, not the whole tree:
+#: RunPod rejects an oversized create request with an opaque 500, and the full
+#: manifest was over the limit (docs: `A40_ACCEPTANCE_RUNBOOK.md`).
+ENTRY_MODULES = (
+    "carbon.battery.challenge",
+    "carbon.battery.compile",
+    "carbon.battery.training",
+    "carbon.battery.torch_training",
+    "carbon.battery.torch_families",
+    "carbon.agent_campaign.graphite.pod_phase",
+    "carbon.reconstruction.accelerators",
+    "carbon.reconstruction.torch_gpu",
+)
+
+
+def read_blobs(ref, repository, paths):
+    """{path: bytes} at `ref`, in one `git cat-file --batch`."""
+    try:
+        return pod_env.read_blobs(ref, repository, paths)
+    except ValueError as refused:
+        raise Refused(str(refused)) from None
+
+
+def ship_paths(ref, repository=REPOSITORY, extra=(), entries=ENTRY_MODULES):
+    """The files the pod needs: the import closure of `entries` inside the
+    tracked `carbon` tree, the two shipped scripts, the two public datasets and
+    `extra`. Code files the guard names (sealed confirmation sets, EV4
+    contracts, `private` directories) are never shipped; the rebuild path
+    imports none of them (a test rebuilds from exactly these files). The guard
+    itself is unchanged: a protected DATA path is still refused."""
     from carbon.agent_campaign.graphite import pods
 
-    code = [
+    tracked = [
         path
         for path in pods.tracked(ref, SHIP_TREES, repository)
-        if not {part.lower() for part in Path(path).parts[:-1]}
+        if path.endswith(".py")
+        and not {part.lower() for part in Path(path).parts[:-1]}
         & pods.UNSHIPPED_DIRECTORIES
         and not is_protected(path)
     ]
-    for path in (*SHIPPED_FILES, *DATA_PATHS):
+    code = import_closure(read_blobs(ref, repository, tracked), entries)
+    for path in (*SHIPPED_FILES, *DATA_PATHS, *extra):
         if is_protected(path):
             raise Refused("refused: forbidden data path " + path)
-    return list(dict.fromkeys(code + list(SHIPPED_FILES) + list(DATA_PATHS)))
+    return list(
+        dict.fromkeys(code + list(SHIPPED_FILES) + list(DATA_PATHS) + list(extra))
+    )
 
 
-def build_manifest(ref, repository=REPOSITORY):
+def check_env_size(env, limit=ENV_LIMIT_CHARS):
+    """Refuse an oversized pod environment here, with the cause, rather than
+    meet it as an opaque provider 500."""
+    total = env_chars(env)
+    if total > limit:
+        biggest = pod_env.largest_variable(env)
+        raise Refused(
+            f"refused: the pod environment is {total} characters, over the "
+            f"{limit} limit (largest variable {biggest}); RunPod rejects an "
+            "oversized create request with an HTTP 500"
+        )
+    return total
+
+
+def build_manifest(ref, repository=REPOSITORY, extra=()):
     from carbon.agent_campaign.graphite import pods
 
     if type(ref) is not str or len(ref) != 40:
         raise Refused("refused: a 40-hex pushed commit is required")
-    return pods.code_manifest(ref, ship_paths(ref, repository), repository)
+    return pods.code_manifest(ref, ship_paths(ref, repository, extra), repository)
 
 
 # ------------------------------------------------------------------ the operator side
+#: Capacity retry: the first round is immediate, then one round every 10
+#: minutes until the window (default 60 minutes; `--retry-window-minutes`).
+RETRY_SECONDS = 600
+DEFAULT_RETRY_WINDOW_SECONDS = 3600
+#: A round tries SECURE, then COMMUNITY (owner direction 2026-10-08), each at
+#: the same rate ceiling, public images only.
+CLOUDS = ("SECURE", "COMMUNITY")
+DEFINITIVE_STATUSES = frozenset({400, 401, 403, 404, 422})
+
+
+class LaunchFailed(Refused):
+    """A refused create, with the provider's status and redacted message."""
+
+    def __init__(
+        self,
+        *,
+        status,
+        message,
+        intent_id,
+        capacity,
+        cloud,
+        next_action="",
+    ):
+        self.status, self.message, self.intent_id = status, message, intent_id
+        self.capacity, self.cloud = capacity, cloud
+        super().__init__(
+            f"launch failed on {cloud}: {message} (HTTP {status}); next={next_action}"
+        )
+
+    @classmethod
+    def from_compute(cls, failure, intent_id, cloud):
+        text = failure.failed.lower()
+        status = failure.http_status
+        return cls(
+            status=status,
+            message=failure.failed,
+            intent_id=intent_id,
+            capacity=status not in DEFINITIVE_STATUSES
+            and (status is None or status >= 500 or "no instances" in text),
+            cloud=cloud,
+            next_action=failure.next_action,
+        )
+
+
+class NoA40(Refused):
+    """Capacity never came within the window."""
+
+    def __init__(self, window_seconds):
+        self.result = f"NO_A40_AFTER_{window_seconds // 60}_MIN"
+        super().__init__(self.result)
+
+
 @dataclass
 class Pod:
     label: str  # "A" or "B": the host within a backend pair
@@ -591,8 +906,9 @@ class Pod:
     finished: bool = False
     terminated: bool | None = None
     reason: str | None = None
-    go_token: str = ""
+    cloud: str | None = None
     probe: dict | None = None
+    datacenter: str | None = None
 
     def summary(self):
         return {
@@ -607,6 +923,9 @@ class Pod:
             "deadline_seconds": self.deadline_seconds,
             "booked_usd": str(reservation_usd(self.deadline_seconds)),
             "rate_usd_per_hr": self.rate,
+            "datacenter": self.datacenter,
+            "cloud": self.cloud,
+            "driver_version": (self.identity or {}).get("driver_version"),
         }
 
 
@@ -628,6 +947,8 @@ class PodRunner:
         transport=None,
         http=None,
         post=None,
+        retry_window_seconds=DEFAULT_RETRY_WINDOW_SECONDS,
+        target_device=DEFAULT_TARGET,
         balance_floor=None,
         poll_seconds=POLL_SECONDS,
         run_id=None,
@@ -661,22 +982,25 @@ class PodRunner:
         self.http = http or _https_get
         self.post = post or _https_post
         self.balance_floor = balance_floor
+        self.cuda_versions = supported_cuda_versions(repository)
         self.boot = (
             self.repository / "scripts/dev/exam_design/runpod/bootstrap.py"
         ).read_text()
         self.pods: list[Pod] = []
         self.replacements_used = 0
         self.driver_problems: list[dict] = []
+        self.launch_attempts: list[dict] = []
+        self.retry_window_seconds = retry_window_seconds
+        self.target_device = target_device
         self._n = 0
 
     # -- launching
-    def _env(self, backend, config, token, deadline_at, go_token):
+    def _env(self, backend, config, token, deadline_at):
         from carbon.agent_campaign.graphite import pods
         from scripts.dev.exam_design.runpod import pod_control
 
         env = {
             "PROBE_TOKEN": token,
-            "GO_TOKEN": go_token,
             "PROBE_DEADLINE": str(int(deadline_at + 60)),
             "PROBE_CA_GZ_B64": pods._ca_bundle(),
             "CODE_REF": self.code_ref,
@@ -697,7 +1021,9 @@ class PodRunner:
         if Decimal(str(balance)) - reserve < Decimal(str(floor)):
             raise Refused("refused: balance would fall below the floor")
 
-    def launch(self, backend, label, config, deadline_seconds, *, replaces=None):
+    def _launch_once(
+        self, backend, label, config, deadline_seconds, *, replaces=None, cloud="SECURE"
+    ):
         from scripts.dev.exam_design.runpod.operator_compute import (
             ComputeError,
             PodSpec,
@@ -706,31 +1032,39 @@ class PodRunner:
 
         image = check_image(IMAGES[backend])
         self._check_balance(reservation_usd(deadline_seconds, self.rate))
-        [offer] = self.adapter.offers([GPU_TYPE], gpu_count=1)
+        gpu_type = TARGET_DEVICES[self.target_device]
+        [offer] = self.adapter.offers([gpu_type], gpu_count=1, cloud_type=cloud)
         if (
             offer.usd_per_hr is None
             or Decimal(str(offer.usd_per_hr)) > Decimal(str(POD_RATE_USD_PER_HR))
             or not offer.stock_status
         ):
-            raise Refused("refused: no A40 Secure pod at or below the rate ceiling")
+            raise LaunchFailed(
+                status=None,
+                message=f"no {self.target_device} {cloud} offer in stock at or below "
+                "the rate ceiling",
+                intent_id=None,
+                capacity=True,
+                cloud=cloud,
+            )
         self._n += 1
         intent = f"a40-{self.run_id}-{backend}-{label.lower()}-{self._n}"
         token = secrets.token_urlsafe(24)
-        go_token = secrets.token_urlsafe(24)
         deadline_at = self.clock() + deadline_seconds
         spec = PodSpec(
             image=image,
-            gpu_type_id=GPU_TYPE,
+            gpu_type_id=gpu_type,
             gpu_count=1,
-            cloud_type="SECURE",
+            cloud_type=cloud,
             container_disk_gb=DISK_GB,
-            ports=("8000/http", "8001/http"),
-            env=self._env(backend, config, token, deadline_at, go_token),
+            ports=("8000/http",),
+            env=self._env(backend, config, token, deadline_at),
             max_rate_usd_per_hr=POD_RATE_USD_PER_HR,
             storage_usd_per_gb_month=DISK_USD_PER_GB_MONTH,
             start_command=(PYTHON, "-I", "-c", self.boot),
-            allowed_cuda_versions=CUDA_VERSIONS,
+            allowed_cuda_versions=self.cuda_versions,
         )
+        check_env_size(spec.env)
         launched_at = self.clock()
         try:
             resource = self.service.provision(
@@ -744,14 +1078,13 @@ class PodRunner:
                 )
             )
         except ComputeError as failure:
-            raise Refused("launch failed: " + failure.failed) from None
+            raise LaunchFailed.from_compute(failure, intent, cloud) from None
         pod = Pod(
             label=label,
             backend=backend,
             intent_id=intent,
             pod_id=resource.resource_id,
             token=token,
-            go_token=go_token,
             deadline_at=deadline_at,
             deadline_seconds=deadline_seconds,
             launched_at=launched_at,
@@ -762,11 +1095,72 @@ class PodRunner:
             ),
             recipes=len(config["recipes"]),
             replaces=replaces,
+            cloud=cloud,
         )
+        try:
+            pod.datacenter = self.adapter.datacenter(pod.pod_id)
+        except ComputeError:
+            pod.datacenter = None
         self.pods.append(pod)
         return pod
 
     # -- talking to a pod
+    def launch(self, backend, label, config, deadline_seconds, *, replaces=None):
+        """One create in flight. Each round tries SECURE, then COMMUNITY (same
+        ceiling); the first round is immediate and a capacity-type refusal
+        (non-definitive 5xx, or no instances/offer) leads to another round every
+        RETRY_SECONDS until the window closes (NoA40). Every failed create is
+        recorded (cloud, status, redacted body) and printed to stderr, and its
+        intent is reconciled by ownership tag; any other failure stops at once.
+        Never widens the CUDA versions."""
+        started = self.clock()
+        while True:
+            for cloud in CLOUDS:
+                try:
+                    return self._launch_once(
+                        backend,
+                        label,
+                        config,
+                        deadline_seconds,
+                        replaces=replaces,
+                        cloud=cloud,
+                    )
+                except LaunchFailed as failed:
+                    self.launch_attempts.append(
+                        {
+                            "at": self.clock(),
+                            "backend": backend,
+                            "label": label,
+                            "cloud": failed.cloud,
+                            "status": failed.status,
+                            "message": failed.message[:500],
+                            "capacity": failed.capacity,
+                        }
+                    )
+                    print(
+                        f"[a40] create failed cloud={failed.cloud} "
+                        f"status={failed.status} body={failed.message[:500]}",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    if failed.intent_id:
+                        self._reconcile_intent(failed.intent_id)
+                    if not failed.capacity:
+                        raise
+            if self.clock() - started + RETRY_SECONDS > self.retry_window_seconds:
+                raise NoA40(self.retry_window_seconds)
+            self.sleep(RETRY_SECONDS)
+
+    def _reconcile_intent(self, intent_id):
+        """Recover the failed create by ownership tag; a pod that turned up is
+        terminated (cancel_provisioning), so none is left or double-created."""
+        from scripts.dev.exam_design.runpod.operator_compute import ComputeError
+
+        try:
+            self.service.cancel_provisioning(CAMPAIGN, intent_id)
+        except ComputeError:
+            pass  # unresolved until the grace period; recover again later
+
     def _get(self, pod, path, timeout=60):
         owned = self.service.owned(CAMPAIGN, pod.intent_id, pod.pod_id)
         base = self.adapter.connect_url(owned, 8000)
@@ -870,8 +1264,8 @@ class PodRunner:
         """Release the barrier: only after both drivers were seen to match."""
         for pod in pods:
             owned = self.service.owned(CAMPAIGN, pod.intent_id, pod.pod_id)
-            url = self.adapter.connect_url(owned, 8001) + "/go"
-            code, _body = self.post(url, pod.go_token, 60)
+            url = self.adapter.connect_url(owned, 8000) + "/go"
+            code, _body = self.post(url, pod.token, 60)
             if code != 200:
                 raise Refused("the barrier release was not accepted")
 
@@ -1016,33 +1410,84 @@ def _https_post(url, token, timeout):
         return 0, b""
 
 
-def phase_config(backend, record, *, barrier=False):
+#: The PyTorch fno leg is skipped (`--skip-fno`) until the v3 images: it fails on
+#: the GPU with a neuralop CPU/CUDA device mismatch. The run record is not
+#: changed or re-hashed; the recipe is filtered where it is used.
+SKIPPED_FNO = {
+    "fno": {
+        "skipped": True,
+        "reason": "known GPU device bug (neuralop CPU/CUDA device mismatch); "
+        "to be re-run on v3 images",
+    }
+}
+
+
+def phase_config(backend, record, *, barrier=False, skip_fno=False):
+    fno_id = record["fno"]["id"]
     return {
         "barrier": barrier,
         "backend": backend,
-        "recipes": record["recipes_by_backend"][backend],
+        "recipes": [
+            r
+            for r in record["recipes_by_backend"][backend]
+            if not (skip_fno and r["id"] == fno_id)
+        ]
+        + (
+            [
+                {"id": p["id"], "strategy": p["strategy"]}
+                for p in record["level4"]["picks"]
+                if p["id"] in record["level4"]["coverage"]
+            ]
+            if backend == "jax" and record.get("level4")
+            else []
+        ),
         "repeats": record["repeats"],
         "seed": record["seed"],
+        **(
+            {"level4": level4_entries(record)}
+            if backend == "jax" and record.get("level4")
+            else {}
+        ),
     }
 
 
-def smoke(runner, record, *, backend="jax", out):
+def level4_entries(record):
+    """The pod configuration's Level 4 leg: one rebuild per pick, of its
+    committed documents, against the submission digest the record pins."""
+    return [
+        {
+            "id": p["id"],
+            "kind": p["kind"],
+            "directory": p["directory"],
+            "submission": p["submission"],
+            "strategy": p["strategy"],
+        }
+        for p in record["level4"]["picks"]
+    ]
+
+
+def smoke(runner, record, *, backend="jax", out, skip_fno=False):
     """One rebuild (the record's largest pick on `backend`) on one pod; records
     the measured start-up and wall seconds that set every later deadline."""
-    config = phase_config(backend, record)
-    # JAX: the largest pick. PyTorch: the single fno rebuild (the slowest).
+    config = phase_config(backend, record, skip_fno=skip_fno)
+    # JAX: the largest pick. PyTorch: the single fno rebuild (the slowest),
+    # or the largest MLP/DeepONet pick when the fno is skipped.
     target = (
         record["fno"]["id"]
-        if backend == "pytorch"
+        if backend == "pytorch" and not skip_fno
         else next(p for p in record["picks"] if p["role"] == "largest")["id"]
     )
     config["recipes"] = [r for r in config["recipes"] if r["id"] == target]
     config["repeats"] = 1
+    if "level4" in config:  # the leg measures its own deadline on the same pick
+        config["level4"] = [e for e in config["level4"] if e["id"] == target]
     deadline = SMOKE_DEADLINE_SECONDS
     budget_gate(deadline, pods=1, replacements=0, cap=DEFAULT_CAP_USD)
     pod = runner.launch(backend, "A", config, deadline)
     runner.drive([pod], config)
-    row = (_json(pod.files.get("results.json")).get("rows") or [{}])[0]
+    rows = _json(pod.files.get("results.json")).get("rows") or [{}]
+    row = rows[0]
+    leg = next((r for r in rows if r.get("leg") == LEVEL4_LEG), None)
     measured = {
         "schema": SMOKE_SCHEMA,
         "backend": backend,
@@ -1053,9 +1498,11 @@ def smoke(runner, record, *, backend="jax", out):
         ),
         "rebuild_wall_seconds": row.get("wall_seconds"),
         "rebuild_child_seconds": row.get("seconds"),
+        **({"level4_wall_seconds": leg.get("wall_seconds")} if leg else {}),
         "device": _json(pod.files.get("identity.json")) or None,
         "booked_usd": str(reservation_usd(deadline)),
         "pod": pod.summary(),
+        "launch_attempts": runner.launch_attempts,
         "reconciliation": runner.reconcile(),
     }
     Path(out).write_text(json.dumps(measured, indent=1, sort_keys=True) + "\n")
@@ -1075,33 +1522,44 @@ def load_smoke(path):
     return smoke_record
 
 
-def plan(record, smokes, cap=DEFAULT_CAP_USD):
+def plan(record, smokes, cap=DEFAULT_CAP_USD, skip_fno=False, backends=BACKENDS):
     """Each backend's deadline (its own smoke x 1.5) and budget, with no pod.
-    The cap gate applies per backend with the 4 pods + 2 replacements
-    arithmetic; refused unless every backend fits."""
+    The cap gate applies per backend with 2 pods per backend run (4 for the
+    two backends) + 2 replacements; refused unless every backend fits. A
+    JAX-only run (`backends=("jax",)`, the Level 4 leg's grant) books 2 pods."""
     out = {}
-    for backend in BACKENDS:
-        rebuilds = len(record["recipes_by_backend"][backend]) * record["repeats"]
+    pods = 2 * len(backends)
+    for backend in backends:
+        config = phase_config(backend, record, skip_fno=skip_fno)
+        rebuilds = len(config["recipes"]) * record["repeats"]
+        level4_rebuilds = len(config.get("level4", ()))
         smoke_record = smokes[backend]
-        deadline = pod_deadline_seconds(smoke_record, rebuilds)
+        deadline = pod_deadline_seconds(smoke_record, rebuilds, level4_rebuilds)
         gate = budget_gate(
             deadline,
             cap,
+            pods=pods,
             smoke_reserved=Decimal(smoke_record.get("booked_usd", "0")),
         )
-        out[backend] = {"rebuilds_per_pod": rebuilds, **gate}
+        out[backend] = {
+            "rebuilds_per_pod": rebuilds,
+            "level4_rebuilds_per_pod": level4_rebuilds,
+            **gate,
+        }
     return out
 
 
-def run_acceptance(runner, record, smokes, *, cap=DEFAULT_CAP_USD):
+def run_acceptance(
+    runner, record, smokes, *, cap=DEFAULT_CAP_USD, skip_fno=False, backends=BACKENDS
+):
     """Two A40 hosts per backend. Backends one after the other (two pods at a
     time, the grant's concurrency). Returns the run summary and results."""
-    budget = plan(record, smokes, cap)
+    budget = plan(record, smokes, cap, skip_fno, backends)
     results = {}
     try:
-        for backend in BACKENDS:
+        for backend in backends:
             deadline = budget[backend]["deadline_seconds"]
-            config = phase_config(backend, record, barrier=True)
+            config = phase_config(backend, record, barrier=True, skip_fno=skip_fno)
             config["go_timeout_seconds"] = deadline
             group = [
                 runner.launch(backend, "A", config, deadline),
@@ -1119,17 +1577,106 @@ def run_acceptance(runner, record, smokes, *, cap=DEFAULT_CAP_USD):
         "pods": [p.summary() for p in runner.pods],
         "replacements_used": runner.replacements_used,
         "driver_problems": runner.driver_problems,
+        "launch_attempts": runner.launch_attempts,
         "reconciliation": reconciliation,
         "booked_usd": str(
             sum((reservation_usd(p.deadline_seconds) for p in runner.pods), Decimal(0))
         ),
     }
+    if skip_fno:
+        summary["skipped"] = SKIPPED_FNO
     return summary, results
 
 
 # ------------------------------------------------------------------ comparison
 def _digests(rows, recipe_id, key):
-    return [r.get(key) for r in rows if r.get("recipe_id") == recipe_id]
+    """A native recipe's digests; Level 4 leg rows are compared separately."""
+    return [
+        r.get(key)
+        for r in rows
+        if r.get("recipe_id") == recipe_id and r.get("leg") is None
+    ]
+
+
+def _leg_row(rows, recipe_id):
+    return next(
+        (
+            r
+            for r in rows
+            if r.get("recipe_id") == recipe_id and r.get("leg") == LEVEL4_LEG
+        ),
+        None,
+    )
+
+
+def level4_cells(pod_results):
+    """The Level 4 leg's two comparisons, digest equality only:
+
+    * same host: the B' rebuild's `params_sha256` against that host's native
+      rebuild of the same pick (every native repeat must agree first);
+    * across hosts: B' against B' (`params_sha256` and `outputs_sha256`),
+      only between hosts whose driver builds match (the barrier rule).
+
+    A mismatch is a recorded R1 finding, never a harness failure; a missing
+    or failed row is INCOMPLETE."""
+    cells = []
+    hosts = [r for r in pod_results if r["backend"] == "jax"]
+    ids = sorted(
+        {row["recipe_id"] for h in hosts for row in h["rows"] if row.get("leg")}
+    )
+    builds = sorted(
+        {
+            h["identity"].get("driver_version")
+            for h in hosts
+            if h.get("identity") and h["identity"].get("driver_version")
+        }
+    )
+    for recipe_id in ids:
+        same_host, legs = {}, {}
+        for h in hosts:
+            native = _host_cell(h["rows"], recipe_id)
+            leg = _leg_row(h["rows"], recipe_id)
+            legs[h["label"]] = leg
+            if leg is not None and "native_outputs_sha256" in leg:
+                # Forward-only: the native kNN ran beside the graph in the
+                # same child; compare their outputs.
+                equal = leg["outputs_sha256"] == leg["native_outputs_sha256"]
+                same_host[h["label"]] = {
+                    "outcome": "AGREE" if equal else "DISAGREE",
+                    "native_outputs_sha256": leg["native_outputs_sha256"],
+                    "level4_outputs_sha256": leg["outputs_sha256"],
+                }
+            elif leg is None or "error" in leg or not native["complete"]:
+                same_host[h["label"]] = {"outcome": "INCOMPLETE"}
+            elif not native["weights_equal"]:
+                same_host[h["label"]] = {"outcome": "NO_SINGLE_NATIVE_DIGEST"}
+            else:
+                equal = leg["params_sha256"] == native["params_sha256"][0]
+                same_host[h["label"]] = {
+                    "outcome": "AGREE" if equal else "DISAGREE",
+                    "native_params_sha256": native["params_sha256"][0],
+                    "level4_params_sha256": leg["params_sha256"],
+                }
+        if len(hosts) < 2:
+            across = {"outcome": "REFUSED_ONE_UNIT"}
+        elif len(builds) > 1:
+            across = {"outcome": "REFUSED_DRIVER_MISMATCH", "driver_builds": builds}
+        elif any(leg is None or "error" in leg for leg in legs.values()):
+            across = {"outcome": "INCOMPLETE"}
+        else:
+            params = {leg["params_sha256"] for leg in legs.values()}
+            outputs = {leg["outputs_sha256"] for leg in legs.values()}
+            across = {
+                "outcome": (
+                    "AGREE" if len(params) == 1 and len(outputs) == 1 else "DISAGREE"
+                ),
+                "params_equal": len(params) == 1,
+                "outputs_equal": len(outputs) == 1,
+            }
+        cells.append(
+            {"recipe_id": recipe_id, "same_host": same_host, "across_hosts": across}
+        )
+    return cells
 
 
 def _host_cell(rows, recipe_id):
@@ -1146,7 +1693,7 @@ def _host_cell(rows, recipe_id):
     }
 
 
-def compare(pod_results, *, deviation=None, cpu=None):
+def compare(pod_results, *, deviation=None, cpu=None, skipped=None):
     """Per (backend, recipe): within-host equality, across-host equality, driver
     builds, device ids, and the CPU-vs-GPU record. Digest equality only; a
     driver difference between the compared hosts is REFUSED_DRIVER_MISMATCH
@@ -1210,13 +1757,22 @@ def compare(pod_results, *, deviation=None, cpu=None):
                     "across_hosts": across,
                     "driver_builds": builds,
                     "device_ids": devices,
+                    "datacenters": sorted(
+                        {h.get("datacenter") for h in hosts if h.get("datacenter")}
+                    ),
+                    "clouds": sorted({h["cloud"] for h in hosts if h.get("cloud")}),
                     "preflight_problems": problems,
                 }
             )
     document = {"schema": COMPARISON_SCHEMA, "cells": cells, "cpu_vs_gpu": []}
+    level4 = level4_cells(pod_results)
+    if level4:
+        document["level4"] = level4
     if cpu is not None:
         document["cpu_vs_gpu"] = cpu_vs_gpu(cpu, pod_results)
     document["jax_fno"] = "not applicable: the fno is PyTorch-only"
+    if skipped:
+        document["skipped"] = skipped
     return document
 
 
@@ -1263,6 +1819,8 @@ def pod_results(pods):
                 "backend": pod.backend,
                 "label": pod.label,
                 "identity": _json(pod.files.get("identity.json")) or None,
+                "datacenter": pod.datacenter,
+                "cloud": pod.cloud,
                 "rows": results.get("rows", []),
             }
         )
@@ -1365,7 +1923,7 @@ def cpu_summary(dry):
 # ------------------------------------------------------------------ command line
 def _cmd_select(args):
     try:
-        record = build_record(args.panel, root=args.root)
+        record = build_record(args.panel, root=args.root, level4=args.level4)
     except Refused as refusal:
         print(str(refusal), file=sys.stderr)
         return 1
@@ -1387,8 +1945,16 @@ def _cmd_select(args):
     return 0
 
 
+def _manifest(args, record):
+    """The code manifest, with the record's Level 4 files when it pins any (a
+    record without the leg ships exactly what it did before)."""
+    files = level4_files(record)
+    extra = {"extra": files} if files else {}
+    return build_manifest(args.code_ref, Path(args.repository), **extra)
+
+
 def _runner(args, record):
-    manifest = build_manifest(args.code_ref, Path(args.repository))
+    manifest = _manifest(args, record)
     from scripts.dev.exam_design.runpod import pod_control
 
     if not pod_control.ref_is_pushed(args.code_ref):
@@ -1401,6 +1967,8 @@ def _runner(args, record):
         code_ref=args.code_ref,
         manifest=manifest,
         repository=Path(args.repository),
+        retry_window_seconds=args.retry_window_minutes * 60,
+        target_device=args.target_device,
     )
 
 
@@ -1408,7 +1976,13 @@ def _cmd_smoke(args):
     record = load_record(args.record)
     runner = _runner(args, record)
     try:
-        measured = smoke(runner, record, backend=args.backend, out=args.smoke_record)
+        measured = smoke(
+            runner,
+            record,
+            backend=args.backend,
+            out=args.smoke_record,
+            skip_fno=args.skip_fno,
+        )
     finally:
         runner.close()
     print(
@@ -1437,26 +2011,35 @@ def _cmd_run(args):
         )
         complete = all(d["complete"] for d in dry["documents"].values())
         return 0 if dry["documents"] and complete else 1
+    backends = tuple(args.backends or BACKENDS)
     if args.smoke_record is None:
         raise Refused("refused: --smoke-record is required (run `smoke` first)")
-    if args.smoke_record_pytorch is None:
+    if "pytorch" in backends and args.smoke_record_pytorch is None:
         raise Refused("refused: --smoke-record-pytorch is required")
-    smoke_record = {
-        "jax": load_smoke(args.smoke_record),
-        "pytorch": load_smoke(args.smoke_record_pytorch),
-    }
+    smoke_record = {"jax": load_smoke(args.smoke_record)}
+    if "pytorch" in backends:
+        smoke_record["pytorch"] = load_smoke(args.smoke_record_pytorch)
     cap = Decimal(args.cap)
     if args.dry_run:
-        manifest = build_manifest(args.code_ref, Path(args.repository))
+        manifest = _manifest(args, record)
         print(json.dumps({"dry_run": True, "pods_created": 0, "images": IMAGES,
-                          "code_files": len(manifest), "plan": plan(record, smoke_record, cap)}, indent=1))  # fmt: skip
+                          "code_files": len(manifest), "plan": plan(record, smoke_record, cap, args.skip_fno, backends)}, indent=1))  # fmt: skip
         return 0
-    plan(record, smoke_record, cap)  # refuse before touching the provider
+    plan(
+        record, smoke_record, cap, args.skip_fno, backends
+    )  # refuse before touching the provider
     runner = _runner(args, record)
     try:
-        summary, results = run_acceptance(runner, record, smoke_record, cap=cap)
+        summary, results = run_acceptance(
+            runner,
+            record,
+            smoke_record,
+            cap=cap,
+            skip_fno=args.skip_fno,
+            backends=backends,
+        )
         flat = pod_results([p for pods in results.values() for p in pods])
-        document = compare(flat)
+        document = compare(flat, skipped=SKIPPED_FNO if args.skip_fno else None)
         out = Path(args.work_dir)
         (out / "summary.json").write_text(
             json.dumps(summary, indent=1, sort_keys=True) + "\n"
@@ -1475,6 +2058,15 @@ def _cmd_run(args):
         )
     )
     return 0 if summary["reconciliation"]["clean"] else 1
+
+
+def _cmd_level4_lower(args):
+    """Lower the picks of a record selected without the leg (`select`), so
+    `select --level4` can pin the committed documents."""
+    record = build_record(args.panel, root=args.root)
+    section = level4_lower(record, Path(args.repository))
+    print(json.dumps(section, indent=1, sort_keys=True))
+    return 0
 
 
 def _cmd_compare(args):
@@ -1503,7 +2095,19 @@ def main(argv=None):
     s.add_argument("--stdout", action="store_true", help="print the record only")
     s.add_argument("--panel", default=PANEL)
     s.add_argument("--root", default=str(REPOSITORY))
+    s.add_argument(
+        "--level4",
+        action="store_true",
+        help="pin each pick's committed Level 4 B' documents (run level4-lower first)",
+    )
     s.set_defaults(handler=_cmd_select)
+    lower = sub.add_parser(
+        "level4-lower", help="lower the picks to B' documents on this CPU"
+    )
+    lower.add_argument("--panel", default=PANEL)
+    lower.add_argument("--root", default=str(REPOSITORY))
+    lower.add_argument("--repository", default=str(REPOSITORY))
+    lower.set_defaults(handler=_cmd_level4_lower)
     for name, handler in (("smoke", _cmd_smoke), ("run", _cmd_run)):
         p = sub.add_parser(name)
         p.add_argument("--record", type=Path, required=True)
@@ -1517,6 +2121,23 @@ def main(argv=None):
         p.add_argument("--code-ref", default="")
         p.add_argument("--repository", default=str(REPOSITORY))
         p.add_argument("--cap", default=str(DEFAULT_CAP_USD))
+        p.add_argument(
+            "--target-device",
+            choices=sorted(TARGET_DEVICES),
+            default=DEFAULT_TARGET,
+            help="A40 (default) or RTX 4090 (unqualified development device)",
+        )
+        p.add_argument(
+            "--retry-window-minutes",
+            type=int,
+            default=DEFAULT_RETRY_WINDOW_SECONDS // 60,
+            help="minutes of capacity retries (rounds every 10 minutes)",
+        )
+        p.add_argument(
+            "--skip-fno",
+            action="store_true",
+            help="skip the PyTorch fno leg (known GPU device bug) until the v3 images",
+        )
         p.set_defaults(handler=handler)
         if name == "smoke":
             p.add_argument("--backend", choices=BACKENDS, default="jax")
@@ -1534,6 +2155,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         return args.handler(args)
+    except NoA40 as none:
+        print(json.dumps({"result": none.result}))
+        return 3
     except Refused as refusal:
         print(str(refusal), file=sys.stderr)
         return 2

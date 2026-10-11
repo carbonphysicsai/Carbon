@@ -59,6 +59,13 @@ REGISTRY_SCHEMA = "carbon.battery.score-tuning-registry.v1"
 RESULT_SCHEMA = "carbon.battery.score-tuning-result.v1"
 LEGS = ("a", "r", "g", "m", "n", "p", "q")
 GATES = ("near", "envelope", "feasibility", "plating_fa", "error")
+#: How a gate compares its measure with its cutoff. "at_or_above" fails at
+#: or above the cutoff (`admissibility.verdict`, pinned, and every candidate
+#: registered before v5 without a `comparison`). "exceeds" fails only above
+#: it: OWNER-BATTERY-SCORE-RULE-01's wording, "ineligible if [the rate]
+#: exceeds 0.05", aligned prospectively in registry v5 (#961's boundary
+#: finding: exactly 0.05 failed under the shared `>=`).
+COMPARISONS = ("at_or_above", "exceeds")
 #: A registered threshold sweep expands to one candidate per cutoff (`load_registry`).
 SWEEP_KIND = "gate_sweep"
 DECIDING = "control-exam-v1"
@@ -102,7 +109,8 @@ def parse_candidate(entry):
             raise TuningError("candidate_weights_sum", entry.get("id"))
     gate = entry.get("gate")
     if gate is not None and (
-        set(gate) != {"measure", "cutoff"}
+        set(gate) - {"comparison"} != {"measure", "cutoff"}
+        or gate.get("comparison", COMPARISONS[0]) not in COMPARISONS
         or gate["measure"] not in GATES
         or not isinstance(gate["cutoff"], (int, float))
     ):
@@ -146,15 +154,39 @@ def load_registry(path, *, repository=None):
     }
     if repository is not None:
         root = Path(repository)
+        # The producer reads a root-owned checkout (/opt/carbon) as its own
+        # service account; git refuses that as "dubious ownership" unless the
+        # checkout is named safe for this one call (2026-10-08, AX42 step 12).
         rel = str(path.resolve().relative_to(root.resolve()))
         dirty = subprocess.run(
-            ["git", "-C", str(root), "status", "--porcelain", "--", rel],
+            [
+                "git",
+                "-c",
+                "safe.directory=" + str(root.resolve()),
+                "-C",
+                str(root),
+                "status",
+                "--porcelain",
+                "--",
+                rel,
+            ],
             capture_output=True,
             text=True,
             check=True,
         ).stdout.strip()
         commit = subprocess.run(
-            ["git", "-C", str(root), "log", "-1", "--format=%H", "--", rel],
+            [
+                "git",
+                "-c",
+                "safe.directory=" + str(root.resolve()),
+                "-C",
+                str(root),
+                "log",
+                "-1",
+                "--format=%H",
+                "--",
+                rel,
+            ],
             capture_output=True,
             text=True,
             check=False,  # a repository with no commit yet: unregistered
@@ -168,8 +200,13 @@ def load_registry(path, *, repository=None):
 def expand_sweep(entry, registered):
     """A registered threshold sweep: one candidate per cutoff, each the base
     candidate's weighting gated at that cutoff. No cutoff is chosen here."""
-    if set(entry) - {"id", "kind", "measure", "grid", "base", "basis"}:
+    if set(entry) - {"id", "kind", "measure", "grid", "base", "basis", "comparison"}:
         raise TuningError("sweep_fields", entry.get("id"))
+    if entry.get("comparison", COMPARISONS[0]) not in COMPARISONS:
+        raise TuningError("sweep_comparison", entry.get("id"))
+    # A sweep registered without `comparison` keeps its gate exactly as
+    # before (two keys), so no earlier registry's candidates change.
+    comparison = {"comparison": entry["comparison"]} if "comparison" in entry else {}
     if entry.get("measure") not in GATES:
         raise TuningError("sweep_measure", entry.get("id"))
     base = registered.get(entry.get("base"))
@@ -188,7 +225,7 @@ def expand_sweep(entry, registered):
             f"{entry['id']}@{cutoff:g}",
             base.kind,
             dict(base.weights),
-            {"measure": entry["measure"], "cutoff": float(cutoff)},
+            {"measure": entry["measure"], "cutoff": float(cutoff), **comparison},
             base.stable,
             f"sweep {entry['id']} of {base.id} at {cutoff:g}",
         )
@@ -334,9 +371,19 @@ def gate_verdict(candidate, row):
     """The candidate's gate verdict for one member (None without a gate)."""
     if candidate.gate is None:
         return None
-    return admissibility.verdict(
-        row["gates"][candidate.gate["measure"]], threshold=candidate.gate["cutoff"]
-    )
+    measured = row["gates"][candidate.gate["measure"]]
+    cutoff = candidate.gate["cutoff"]
+    if candidate.gate.get("comparison") == "exceeds":
+        return exceeds_verdict(measured, cutoff)
+    return admissibility.verdict(measured, threshold=cutoff)
+
+
+def exceeds_verdict(measured, cutoff):
+    """FAIL only when `measured` exceeds `cutoff` (strictly), or is unmeasured
+    (never waved through); PASS at or below it."""
+    if measured is None:
+        return admissibility.FAIL
+    return admissibility.FAIL if measured > cutoff else admissibility.PASS
 
 
 def candidate_scores(candidate, legs, recipe_of):

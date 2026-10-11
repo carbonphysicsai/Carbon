@@ -726,6 +726,34 @@ def canary_hits(result, canaries):
     return tuple(sorted({t for t in tokens if t in blob}))
 
 
+def _request_refused(result, depth=0):
+    """Whether a recorded result says the path refused the request itself:
+    a refusal status (`_refusal`), or a workspace task that completed as
+    `REQUEST_REFUSED` (the executor's own value check)."""
+    if depth > 6:
+        return False
+    if type(result) is dict:
+        if result.get("outcome") == "REQUEST_REFUSED" or _refusal(result.get("status")):
+            return True
+        return any(_request_refused(v, depth + 1) for v in result.values())
+    if type(result) is list:
+        return any(_request_refused(v, depth + 1) for v in result)
+    return False
+
+
+def refused_out_of_sandbox(attempt):
+    """A workspace read or write that named a target outside the sandbox and
+    that the path refused: the isolation held (ATTACKER-D-01). Not a breach,
+    and kept apart from an attempt that stayed inside."""
+    action = attempt.arguments.get("action")
+    if action not in ("read_file", "write_file"):
+        return False
+    name = _inner_arguments(attempt.arguments).get("name")
+    return not _within_sandbox(name) and (
+        attempt.accepted is False or _request_refused(attempt.result)
+    )
+
+
 def isolation_breach(attempt, *, canaries=(), carrier=None):
     """Whether a miner-local attempt breached the carrier's isolation, from
     the attempt's own recorded result and the carrier's own evidence:
@@ -739,14 +767,17 @@ def isolation_breach(attempt, *, canaries=(), carrier=None):
       hook: a mapping, or a callable of the attempt).
 
     None when the attempt stayed inside its own sandbox and staged files
-    (reading its own workspace is not a breach). Evidence is kept by digest,
+    (reading its own workspace is not a breach), or when the path refused an
+    out-of-sandbox name (`refused_out_of_sandbox`): a name the tool never
+    acted on is the isolation holding. A result that does not say it was
+    refused is judged a breach (fail closed). Evidence is kept by digest,
     never raw bytes."""
     result = attempt.result if type(attempt.result) is dict else {}
     reasons = []
     action = attempt.arguments.get("action")
     if action in ("read_file", "write_file"):
         name = _inner_arguments(attempt.arguments).get("name")
-        if not _within_sandbox(name):
+        if not _within_sandbox(name) and not refused_out_of_sandbox(attempt):
             reasons.append("out_of_sandbox_file")
     hits = canary_hits(result, canaries)
     if hits:

@@ -616,3 +616,27 @@ different thing, and none is implemented; those remain listed as unavailable
 with the reason each is missing, rather than appearing as choices that would
 fail when selected. No provider quote, GPU SKU or working provider integration
 is claimed anywhere.
+
+## Construction levels (LAUNCHPAD-LEVELS-01 S1)
+
+Under OWNER-LADDER-THROUGH-LAUNCHPAD-01, a Challenge's construction levels are
+shown in the Launchpad from data, read only, on both doors. The operation is
+`ladder` in the operations table: browser `POST /api/v1/operations/ladder`
+(each Challenge card's Construction levels) and MCP `carbon_ladder`. It takes
+`challenge` and an optional `challenge_version`, with the same gates as
+`options`, and admits no work.
+
+`scripts/dev/miner_launchpad/ladder_view.py` builds it from the ladder
+(`carbon/challenge_pipeline/ladder.py` and the Challenge's pipeline record),
+Graphite's accepted level proposals, the development-variant registry read as
+data, and the contract envelope's `compute_budget` (`NOT_SET` when absent).
+No level has its own code or screen. A variant document is shown only when it
+matches its pinned digest and its base is the live contract. Otherwise it is
+named with its refusal code, and nothing it widens is shown. The Contract
+view's `construction_level` (RSURF-D10) is filled from the same data: the
+campaign's own level, which is Level 0 for every campaign today, and that
+level's ladder state. It stays `NOT_YET_DEFINED` for a Challenge with no
+ladder record.
+
+S2 adds choosing a level at freeze, and refusing a submit before signing
+when the target does not serve the frozen variant digest.

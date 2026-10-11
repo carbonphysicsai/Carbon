@@ -28,6 +28,7 @@ submission twice, rotate twice or repeat a completed solve.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sqlite3
@@ -51,6 +52,9 @@ SUBMISSION_STATES = (
     "RECONSTRUCTION_FAILED",  # the candidate's own build or prediction failed
     "FAILED_INFRA",  # infrastructure; retryable, never a score
     "FAILED_INFRA_EXHAUSTED",  # infrastructure, retry cap reached; parked
+    "VOID",  # scored on a window the producer withdrew (VALIDATOR-24): not
+    # scientific, never a score, never ranked or weighted; its tempo slot is
+    # not consumed
 )
 #: Identity fields a deployment may carry over in place (`PoolStore.rebind`).
 CARRY_OVER_KEYS = frozenset(
@@ -82,9 +86,24 @@ CREATE TABLE IF NOT EXISTS pool(
 CREATE TABLE IF NOT EXISTS pool_clock(
   id INTEGER PRIMARY KEY CHECK(id = 1),
   block INTEGER);
+CREATE TABLE IF NOT EXISTS chain_head(
+  id INTEGER PRIMARY KEY CHECK(id = 1),
+  block INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS batch_salts(
   fingerprint TEXT PRIMARY KEY,
   salt TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS withdrawn_batches(
+    fingerprint TEXT PRIMARY KEY,
+    reason TEXT NOT NULL,
+    block INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS design_reports(
+  submission_id TEXT PRIMARY KEY,
+  body TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS batch_design(
+  fingerprint TEXT PRIMARY KEY,
+  bank TEXT NOT NULL,
+  questions TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS batch_windows(
   fingerprint TEXT PRIMARY KEY,
   slot INTEGER NOT NULL,
@@ -97,6 +116,13 @@ CREATE TABLE IF NOT EXISTS batch_quizzes(
   quiz_digest TEXT NOT NULL,
   references_digest TEXT NOT NULL,
   panel_version INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS published_cases(
+  case_id TEXT PRIMARY KEY,
+  file TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS feed_versions(
+  version INTEGER PRIMARY KEY,
+  digest TEXT NOT NULL,
+  body TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS quiz_reports(
   submission_id TEXT PRIMARY KEY,
   body TEXT NOT NULL);
@@ -611,6 +637,44 @@ class PoolStore:
                 return
             db.execute("INSERT INTO batch_salts VALUES(?,?)", (fingerprint, salt))
 
+    def set_design(self, fingerprint, bank, questions):
+        """Store a screening batch's verified design questions (slice 3b):
+        private, once; the same questions again are a no-op."""
+        body = canonical(questions)
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT bank, questions FROM batch_design WHERE fingerprint=?",
+                (fingerprint,),
+            ).fetchone()
+            if row is not None:
+                if (row[0], row[1]) != (bank, body):
+                    raise StateError("design_questions_changed")
+                return
+            db.execute(
+                "INSERT INTO batch_design VALUES(?,?,?)", (fingerprint, bank, body)
+            )
+
+    def design(self, fingerprint):
+        """`{"bank", "questions"}` for a batch, or None. Private."""
+        with self.db() as db:
+            row = db.execute(
+                "SELECT bank, questions FROM batch_design WHERE fingerprint=?",
+                (fingerprint,),
+            ).fetchone()
+        return (
+            None if row is None else {"bank": row[0], "questions": json.loads(row[1])}
+        )
+
+    def design_counts(self):
+        """Public counts: design questions held by the active pool's batches."""
+        pool = self.pool()
+        active = [] if pool is None else pool["active"]
+        held = [self.design(f) for f in active]
+        return {
+            "windows": sum(1 for d in held if d is not None),
+            "questions": sum(len(d["questions"]) for d in held if d is not None),
+        }
+
     def set_quiz(self, fingerprint, quiz):
         """Record an imported batch's quiz (VALIDATOR-19 slice Q), verified
         against its commitment by the importer; idempotent. Private: its
@@ -684,6 +748,121 @@ class PoolStore:
             )
         return json.loads(_json(body))
 
+    def record_design_report(self, submission_id, body):
+        """Store a scored submission's operator-only design-question report
+        (VALIDATOR-23 slice 3c). A measured report is kept; only a
+        FAILED_INFRA one may be replaced."""
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT body FROM design_reports WHERE submission_id=?",
+                (submission_id,),
+            ).fetchone()
+            if row is not None and json.loads(row[0]).get("state") != "FAILED_INFRA":
+                return json.loads(row[0])
+            db.execute(
+                "INSERT OR REPLACE INTO design_reports VALUES(?,?)",
+                (submission_id, _json(body)),
+            )
+            self._event(
+                db,
+                "design_reported",
+                {"submission_id": submission_id, "state": body.get("state")},
+            )
+        return json.loads(_json(body))
+
+    def design_report(self, submission_id):
+        with self.db() as db:
+            row = db.execute(
+                "SELECT body FROM design_reports WHERE submission_id=?",
+                (submission_id,),
+            ).fetchone()
+        return None if row is None else json.loads(row[0])
+
+    def design_reports(self):
+        """Every stored design-question report, oldest submission first.
+        Operator-only."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM design_reports ORDER BY submission_id"
+            ).fetchall()
+        return [json.loads(row[0]) for row in rows]
+
+    # --- the score feed's records (VALIDATOR-29) -------------------------------------
+
+    def record_published(self, file, case_ids):
+        """Record cases this validator verified in a published training file
+        (the public pool). Idempotent; returns how many were new."""
+        added = 0
+        with self.transaction() as db:
+            for case_id in case_ids:
+                added += db.execute(
+                    "INSERT OR IGNORE INTO published_cases VALUES(?,?)", (case_id, file)
+                ).rowcount
+        return added
+
+    def published_case_ids(self):
+        with self.db() as db:
+            return {r[0] for r in db.execute("SELECT case_id FROM published_cases")}
+
+    def batch_fingerprints(self):
+        with self.db() as db:
+            return [r[0] for r in db.execute("SELECT fingerprint FROM batches")]
+
+    def scored_submissions(self):
+        """`[{submission_id, hotkey, binding, state, score}]` for every scored
+        submission, oldest first. Operator-only."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT s.submission_id, b.hotkey, b.binding, b.state, s.pool_version, "
+                "s.record FROM scores s JOIN submissions b USING(submission_id) "
+                "ORDER BY b.created, s.submission_id"
+            ).fetchall()
+        return [
+            {
+                "submission_id": r[0],
+                "hotkey": r[1],
+                "binding": json.loads(r[2]),
+                "state": r[3],
+                "pool_version": r[4],
+                "record": json.loads(r[5]),
+            }
+            for r in rows
+        ]
+
+    def finals_rows(self):
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT final_id, challenger, incumbent, state FROM finals"
+            ).fetchall()
+        return [
+            {"final_id": r[0], "challenger": r[1], "incumbent": r[2], "state": r[3]}
+            for r in rows
+        ]
+
+    def record_feed(self, body):
+        """Store a feed document as a new version when it differs from the
+        latest; returns the version that holds it."""
+        digest = "sha256:" + hashlib.sha256(_json(body).encode()).hexdigest()
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT version, digest FROM feed_versions ORDER BY version DESC LIMIT 1"
+            ).fetchone()
+            if row is not None and row[1] == digest:
+                return row[0]
+            version = 1 if row is None else row[0] + 1
+            db.execute(
+                "INSERT INTO feed_versions VALUES(?,?,?)",
+                (version, digest, _json(body)),
+            )
+            return version
+
+    def latest_feed(self):
+        with self.db() as db:
+            row = db.execute(
+                "SELECT body FROM feed_versions ORDER BY version DESC LIMIT 1"
+            ).fetchone()
+        return None if row is None else json.loads(row[0])
+
     def quiz_report(self, submission_id):
         with self.db() as db:
             row = db.execute(
@@ -715,10 +894,128 @@ class PoolStore:
                 "SELECT w.fingerprint FROM batch_windows w JOIN batches b "
                 "ON b.fingerprint = w.fingerprint WHERE b.kind='screening' "
                 "AND b.references_state='COMPLETE' AND w.activate_block <= ? "
-                "AND ? < w.retire_block ORDER BY w.activate_block, w.fingerprint",
+                "AND ? < w.retire_block AND w.fingerprint NOT IN "
+                "(SELECT fingerprint FROM withdrawn_batches) "
+                "ORDER BY w.activate_block, w.fingerprint",
                 (block, block),
             )
         ]
+
+    @staticmethod
+    def _withdrawn_set(db):
+        return {
+            row[0] for row in db.execute("SELECT fingerprint FROM withdrawn_batches")
+        }
+
+    def withdraw_batch(self, fingerprint, reason, block):
+        """Record a producer withdrawal (VALIDATOR-24): the batch never
+        activates again, leaves the active pool at the next rotation step, and
+        is never imported again. Recorded even before the batch is held.
+        Idempotent; a different reason or block for the same batch is
+        refused."""
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT reason, block FROM withdrawn_batches WHERE fingerprint=?",
+                (fingerprint,),
+            ).fetchone()
+            if row is not None:
+                if tuple(row) != (reason, block):
+                    raise StateError("withdrawal_changed")
+                return False
+            db.execute(
+                "INSERT INTO withdrawn_batches VALUES(?,?,?)",
+                (fingerprint, reason, block),
+            )
+            self._event(
+                db,
+                "batch_withdrawn",
+                {"fingerprint": fingerprint, "reason": reason, "block": block},
+            )
+            if self.windowed:
+                self._windowed_rotate(db)
+            self._void_withdrawn(db, fingerprint)
+            return True
+
+    def _void_withdrawn(self, db, fingerprint):
+        """Everything scored on a withdrawn window becomes VOID
+        (VALIDATOR-24): a non-scientific outcome, never a score, never ranked
+        or weighted, and it does not use the hotkey's tempo slot. Scores stay
+        in the record (invariant 10). Every validator applies the same signed
+        notice, so they agree on which windows count.
+        - A screening batch voids the submissions scored on any pool version it
+          was active in.
+        - A final that a voided challenger froze, or that ran on the withdrawn
+          finalist batch, is decided as withdrawn, never as a promotion. A
+          promotion it already made is undone: the incumbent returns to the
+          one it beat.
+        - A first incumbent set by a voided submission is cleared."""
+        row = db.execute(
+            "SELECT kind, activated_version, retired_version FROM batches "
+            "WHERE fingerprint=?",
+            (fingerprint,),
+        ).fetchone()
+        if row is None:
+            return []
+        kind, activated, retired = row
+        voided = []
+        if kind == "screening" and activated is not None:
+            if retired is None:
+                retired = self._pool_row(db)["version"] + 1
+            voided = [
+                r[0]
+                for r in db.execute(
+                    "SELECT s.submission_id FROM scores s JOIN submissions u ON "
+                    "u.submission_id = s.submission_id WHERE u.state='SCORED' AND "
+                    "s.pool_version >= ? AND s.pool_version < ? ORDER BY s.rowid",
+                    (activated, retired),
+                )
+            ]
+        failure = canonical({"code": "window_withdrawn"})
+        for submission_id in voided:
+            db.execute(
+                "UPDATE submissions SET state='VOID', failure=?, updated=? "
+                "WHERE submission_id=?",
+                (failure, self.clock(), submission_id),
+            )
+            self._event(
+                db,
+                "submission_voided",
+                {"submission_id": submission_id, "fingerprint": fingerprint},
+            )
+        withdrawn = {"withdrawn": "window_withdrawn", "promotable": False}
+        marks = ",".join("?" * len(voided)) or "NULL"
+        for final_id, state, challenger, incumbent, outcome in db.execute(
+            "SELECT final_id, state, challenger, incumbent, outcome FROM finals "
+            f"WHERE finalist=? OR challenger IN ({marks}) ORDER BY rowid",
+            (fingerprint, *voided),
+        ).fetchall():
+            if state != "DECIDED":
+                db.execute(
+                    "UPDATE finals SET state='DECIDED', outcome=? WHERE final_id=?",
+                    (_json(withdrawn), final_id),
+                )
+            elif (outcome and json.loads(outcome).get("promotable")) and (
+                self._incumbent_id(db) == challenger
+            ):
+                self._set_incumbent(
+                    db, incumbent, "window_withdrawn", expected=challenger
+                )
+            self._event(
+                db, "final_voided", {"final_id": final_id, "fingerprint": fingerprint}
+            )
+        current = self._incumbent_id(db)
+        if current in voided:
+            db.execute("DELETE FROM incumbent WHERE id=1")
+            self._event(
+                db,
+                "incumbent",
+                {"model_id": None, "reason": "window_withdrawn", "previous": current},
+            )
+        return voided
+
+    def batch_withdrawn(self, fingerprint):
+        with self.db() as db:
+            return fingerprint in self._withdrawn_set(db)
 
     def window(self, fingerprint):
         with self.db() as db:
@@ -736,11 +1033,17 @@ class PoolStore:
         a submission was received against. Never stalls: when no window covers
         it, the current batches keep scoring and the overdue rotation is
         recorded."""
-        latest = self._latest_block(db)
+        latest = self._clock_block(db)
         if latest is None:
             return None
         active = self._windows_at(db, latest)
         pool = self._pool_row(db)
+        if not active:
+            # No window covers the block: the current batches keep scoring,
+            # except a withdrawn one, which leaves at once (VALIDATOR-24).
+            withdrawn = self._withdrawn_set(db)
+            if any(f in withdrawn for f in pool["active"]):
+                active = [f for f in pool["active"] if f not in withdrawn]
         if active == pool["active"]:
             return None
         if not active:
@@ -855,6 +1158,36 @@ class PoolStore:
         )
         return retired
 
+    def _clock_block(self, db):
+        """A windowed pool's clock: the newest finalized block it has seen,
+        from an admission's receipt or the observed chain head
+        (`observe_head`)."""
+        latest = self._latest_block(db)
+        row = db.execute("SELECT block FROM chain_head WHERE id=1").fetchone()
+        head = None if row is None else row[0]
+        if latest is None or (head is not None and head > latest):
+            return head
+        return latest
+
+    def observe_head(self, block):
+        """Record the chain's finalized head, as this validator read it, and
+        rotate if due. An import-only pool's producer windows then open and
+        close on the chain's clock, not only when a submission arrives (3a,
+        2026-10-08: a pool stayed ROTATION_PENDING past its window's start
+        because its only submission was received before it). The head never
+        moves backwards."""
+        if type(block) is not int or block < 0:
+            raise StateError("chain_head_malformed")
+        with self.transaction() as db:
+            db.execute(
+                "INSERT INTO chain_head VALUES(1, ?) ON CONFLICT(id) DO UPDATE "
+                "SET block=MAX(block, excluded.block)",
+                (block,),
+            )
+            if db.execute("SELECT 1 FROM pool WHERE id=1").fetchone() is None:
+                return None
+            return self._try_rotate(db)
+
     def _latest_block(self, db):
         """The newest finalized block any admission was received against."""
         row = db.execute(
@@ -947,7 +1280,7 @@ class PoolStore:
                 start, end, limit = window
                 used = db.execute(
                     "SELECT COUNT(*) FROM submissions WHERE hotkey=? AND "
-                    "state!='INVALID_CONSTRUCTION' AND "
+                    "state NOT IN ('INVALID_CONSTRUCTION', 'VOID') AND "
                     "json_extract(binding, '$.receipt.block') >= ? AND "
                     "json_extract(binding, '$.receipt.block') < ?",
                     (hotkey, start, end),
@@ -1299,6 +1632,8 @@ class PoolStore:
                         "ON w.fingerprint = b.fingerprint WHERE b.kind='finalist' "
                         "AND b.state='PREPARED' AND b.references_state='COMPLETE' "
                         "AND w.activate_block <= ? AND ? < w.retire_block "
+                        "AND b.fingerprint NOT IN "
+                        "(SELECT fingerprint FROM withdrawn_batches) "
                         "ORDER BY w.activate_block, b.fingerprint LIMIT 1",
                         (latest, latest),
                     ).fetchone()

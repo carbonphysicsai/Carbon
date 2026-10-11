@@ -252,6 +252,7 @@ def _run_locked(
     miner_authored=False,
     before_finish=None,
     accelerator=None,
+    network=None,
 ):
     before_finish = before_finish or (lambda: None)
     # The miner's own research has no Carbon limits (owner direction): any
@@ -293,12 +294,29 @@ def _run_locked(
         # host's installed record, bound to this request, so a replaced or
         # withdrawn record is a different request. Absent for every CPU run,
         # so their identities are unchanged.
-        if accelerator != MINER_GPU or (miner_lane and not miner_authored):
+        if accelerator == MINER_GPU:
+            # The validator's scored rebuild never runs in the miner lane.
+            if (
+                miner_lane and not miner_authored
+            ) or provenance == VALIDATOR_PROVENANCE:
+                raise ValueError("unsupported accelerator request")
+        elif accelerator == VALIDATOR_GPU:
+            # The validator's own GPU (VALIDATOR-27): only its scored rebuild,
+            # and only on a device class a hardware acceptance has passed.
+            if provenance != VALIDATOR_PROVENANCE:
+                raise ValueError("unsupported accelerator request")
+        else:
             raise ValueError("unsupported accelerator request")
         device = _gpu_device()
+        profile_id = _gpu_pins(image, accelerator)[0]
+        if accelerator == VALIDATOR_GPU:
+            from carbon.reconstruction.hardware_acceptance import require_accepted
+
+            # The deployment's network: an acceptance names its networks.
+            require_accepted(device.device_kind, profile_id, network)
         request["accelerator"] = {
-            "kind": MINER_GPU,
-            "profile": _gpu_profile_id(),
+            "kind": accelerator,
+            "profile": profile_id,
             "device": device.digest,
         }
     launch = digest(
@@ -394,7 +412,7 @@ def _run_locked(
         else:
             checked = doctor(image_id=image.image_id, image_identity=image, cli=cli)
             if device is not None:
-                _check_gpu_host(cli, image, device)
+                _check_gpu_host(cli, image, device, _gpu_pins(image, accelerator))
         if not checked.eligible:
             # No attempt is automatically retried and its reservation remains
             # visible.
@@ -433,7 +451,7 @@ def _run_locked(
             before_finish=before_finish,
             device=device,
         )
-    worker = _worker_profile(device)
+    worker = _worker_profile(device, provenance)
     create_attempted = False
     output = operation / "export.stream"
     lease = ExitStack()
@@ -565,6 +583,11 @@ def _run_locked(
 #: Carbon's fixed practice program or, in the miner lane's isolated
 #: container, the miner's own code cell (RSURF-D20).
 MINER_GPU = "MINER_OWN_GPU"
+#: The validator's own GPU for its scored rebuild (VALIDATOR-27), under the
+#: validator reconstruction role, on an accepted device class only.
+VALIDATOR_GPU = "VALIDATOR_OWN_GPU"
+#: The battery validator's scored rebuild (`battery.worker.CarrierBackend`).
+VALIDATOR_PROVENANCE = "BATTERY_VALIDATOR"
 
 
 def _gpu_profile_id():
@@ -586,7 +609,32 @@ def _gpu_device():
         ) from None
 
 
-def _check_gpu_host(cli, image, device):
+def _gpu_pins(image, accelerator):
+    """`(profile_id, profile_digest, lock_digest)` a GPU run's pinned worker
+    carries: JAX's accelerator worker, or, for the validator's scored rebuild
+    only, the PyTorch GPU worker (VALIDATOR-27 slice 2; TORCH-GPU-01), named
+    by its own exact-hashed lock. The image's labels are then checked against
+    these pins, so a claimed lock alone admits nothing."""
+    from carbon.reconstruction import torch_profile
+    from carbon.reconstruction.accelerators import GPU_PROFILE
+
+    if (
+        accelerator == VALIDATOR_GPU
+        and getattr(image, "lock_digest", None) == torch_profile.GPU_LOCK_DIGEST
+    ):
+        return (
+            torch_profile.GPU_PROFILE_ID,
+            torch_profile.GPU_PROFILE_DIGEST,
+            torch_profile.GPU_LOCK_DIGEST,
+        )
+    return (
+        GPU_PROFILE.profile_id,
+        GPU_PROFILE.digest,
+        GPU_PROFILE.environment_lock_digest,
+    )
+
+
+def _check_gpu_host(cli, image, device, pins=None):
     """The miner-lane readiness the GPU controller requires, and no more.
 
     `image` is the pinned Python GPU worker, checked by its lock and labels
@@ -604,17 +652,38 @@ def _check_gpu_host(cli, image, device):
         info = cli.json(["info", "--format", "{{json .}}"])
         if type(info) is not dict or "nvidia" not in (info.get("Runtimes") or {}):
             raise ValueError("the NVIDIA container runtime is not available")
-    else:
+    elif pins is None:
         verify_image_and_toolkit(cli=cli, image=image)
+    else:
+        _, profile_digest, lock_digest = pins
+        verify_image_and_toolkit(
+            cli=cli, image=image, profile_digest=profile_digest, lock_digest=lock_digest
+        )
     if miner_lane_blockers(doctor_report(root=HOST_ROOT, cli=cli, image=image)):
         raise ValueError("GPU host not ready")
     if _gpu_device().digest != device.digest:
         raise ValueError("installed host device record changed before dispatch")
 
 
-def _worker_profile(device):
-    """The carrier's worker profile: CPU, or the miner lane on `device`."""
+#: The one provenance that runs under the G5 compile lane's profile
+#: (`carbon.level4.compile.PROVENANCE`; LEVEL4-G5-LANE-MEMORY-01).
+G5_PROVENANCE = "LEVEL4_G5_COMPILE_DEVELOPMENT"
+
+
+def _worker_profile(device, provenance=None):
+    """The carrier's worker profile: CPU, the G5 compile lane's CPU profile
+    (only for G5's own provenance, never with a device), or the miner lane on
+    `device`."""
     policy = digest(b"carbon.autoresearch.public-research.v1")
+    if device is None and provenance == G5_PROVENANCE:
+        from carbon.reconstruction.worker.model import G5_PROFILE_ID, PROFILE_VERSION
+
+        return DevelopmentWorkerProfile(
+            policy,
+            digest(b"2cpu-8gib-noswap-600seconds"),
+            G5_PROFILE_ID,
+            PROFILE_VERSION,
+        )
     resources = digest(b"2cpu-4gib-noswap-600seconds")
     if device is None:
         return DevelopmentWorkerProfile(policy, resources)
@@ -624,6 +693,14 @@ def _worker_profile(device):
         registered_run_controls,
     )
 
+    # The validator's scored rebuild runs under the validator reconstruction
+    # role (C-CORE-19 admits both roles on a self-service host); every other
+    # GPU run stays the miner lane.
+    role = (
+        AcceleratorRole.VALIDATOR_RECONSTRUCTION
+        if provenance == VALIDATOR_PROVENANCE
+        else AcceleratorRole.MINER_RESEARCH
+    )
     return DevelopmentWorkerProfile(
         policy,
         resources,
@@ -631,7 +708,7 @@ def _worker_profile(device):
         "1.0",
         GPU_PROFILE.profile_id,
         device.digest,
-        AcceleratorRole.MINER_RESEARCH.value,
+        role.value,
         MINER_HOST_AUTHORITY,
         None,
         device.device_uuid,

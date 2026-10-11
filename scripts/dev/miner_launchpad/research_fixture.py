@@ -273,6 +273,17 @@ class FixtureRunner:
 
         return {**toolbox.for_request(self, request, LANES), "evidence": EVIDENCE}
 
+    def ladder_admitted(self, admitted, request):
+        from scripts.dev.miner_launchpad import ladder_view
+
+        return {**ladder_view.for_request(request), "evidence": EVIDENCE}
+
+    def budget_status_admitted(self, admitted, request):
+        # Read from the repository's contracts, as the runner's is.
+        from scripts.dev.miner_launchpad import budget_view
+
+        return budget_view.for_request(request)
+
     def miner_message(self, identity, value):
         """The page's message route, kept in memory only."""
         if type(value) is not dict or set(value) != {"text"}:

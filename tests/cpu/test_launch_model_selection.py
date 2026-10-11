@@ -44,6 +44,8 @@ BURGERS = {"challenge": "burgers-dynamics-v1", "challenge_version": "1.0"}
 ENGY_KEY = "sk-engy-PLANTED-SPECIMEN-7f3a9c"
 OPENAI_KEY = "sk-openai-PLANTED-SPECIMEN-2b81"
 LAUNCH_FIELDS = {"model_provider", "model", "feedback_mode"}
+#: Fixture ceilings only, never a production budget.
+GRAPHITE_BUDGET = {"ceilings": {"provider_attempts": 5, "provider_nanodollars": 10**9}}
 
 
 @pytest.fixture(autouse=True)
@@ -93,7 +95,9 @@ def host(tmp_path, monkeypatch, cfg, chain=None):
 
     def launch_naming_graphite(value, key):
         if type(value) is dict and "agent" not in value:
-            value = {**value, "agent": "graphite"}
+            # A Graphite launch caps both provider ceilings (LA-F4): fixture
+            # ceilings, unless the body sets its own budget.
+            value = {"budget": GRAPHITE_BUDGET, **value, "agent": "graphite"}
         return launch(value, key)
 
     monkeypatch.setattr(bridge, "launch", launch_naming_graphite)
@@ -223,6 +227,15 @@ def test_an_unconfigured_provider_is_refused_by_name_before_anything(
 
     extra = key_file(tmp_path, provider + ".key", "sk-other-fixture")
     cfg["provider_credentials"][provider] = str(extra)
+    if provider == "anthropic":
+        # Past the key now. The fixture model has no listed or declared
+        # price, so it cannot enforce the provider_nanodollars ceiling a
+        # Graphite launch must set (LA-F4): refused by name, before
+        # anything is started, rather than queued to fail in its plan.
+        with pytest.raises(Rejected, match="model_selection_refused"):
+            bridge.launch(request, fresh)
+        assert started == [] and bridge.recent() == []
+        return
     bridge.launch(request, fresh)
     assert len(started) == 1 and len(bridge.recent()) == 1
     assert Path(started[0][4].selection.credential.reference) == extra
@@ -484,6 +497,139 @@ def test_a_resume_keeps_the_frozen_choice(tmp_path, monkeypatch):
     del cfg["provider_credentials"]["engy-anthropic"]
     with pytest.raises(Rejected, match="model_provider_credential_not_configured"):
         bridge._frozen_credential(cfg, root)
+
+
+def test_a_resume_before_the_manifest_checks_the_launchs_own_provider(
+    tmp_path, monkeypatch
+):
+    """LA-F5: a launch named its provider, whose key is the profile's only
+    one (`api_key_file` names that provider's key too, as the installer's
+    profile does), and was interrupted before its manifest froze. Its resume
+    checks the key of the provider the launch recorded, not the pinned
+    default's, which refused it `model_provider_credential_not_configured`."""
+    from scripts.dev.miner_launchpad import runner
+
+    engy = key_file(tmp_path, "engy.key", ENGY_KEY)
+    cfg = profile(tmp_path, credentials={"engy-anthropic": str(engy)})
+    cfg["paths"]["api_key_file"] = str(engy)
+    assert runner.foreign_default_key(cfg)
+    bridge, started = host(tmp_path, monkeypatch, cfg)
+    identity = bridge.launch(
+        {
+            "profile": "opaque-profile",
+            **BATTERY,
+            "model_provider": "engy-anthropic",
+            "model": "qwen3.8-27b",
+        },
+        KEY,
+    )["id"]
+    root = started[0][2]
+    assert not (root / "campaign-manifest.json").exists()
+    row = dict(bridge._bound(identity)[0])
+    assert runner.launch_provider(cfg, row) == "engy-anthropic"
+    assert bridge._frozen_credential(cfg, root, row) == engy
+    # The specimen: without the launch record, the pinned default's rule
+    # refuses this profile, as the acceptance run met it.
+    with pytest.raises(Rejected, match="model_provider_credential_not_configured"):
+        bridge._frozen_credential(cfg, root)
+    # The resume door itself: admitted, and carried out from the record.
+    product_campaign(root, identity)
+    assert not (root / "campaign-manifest.json").exists()
+    dispatched = []
+    monkeypatch.setattr(bridge, "checkout_refusal", lambda cfg: None)
+    monkeypatch.setattr(bridge, "_dispatch_run", lambda *args: dispatched.append(args))
+    bridge._control(identity, "resume")
+    assert len(dispatched) == 1
+    # Never another provider's key: the launch's provider unconfigured is
+    # refused by name, not answered with the profile's default key.
+    del cfg["provider_credentials"]["engy-anthropic"]
+    with pytest.raises(Rejected, match="model_provider_credential_not_configured"):
+        bridge._frozen_credential(cfg, root, row)
+
+
+def test_a_campaign_whose_agent_is_none_needs_no_model_key(tmp_path):
+    """LA-F11: setup wrote an Engy key, which also names `api_key_file`, as the
+    installer's profile does. An own-agent campaign (agent `none`) calls no
+    Carbon model, yet every practice in it was refused
+    `model_provider_credential_not_configured` by the pinned default's rule
+    (the fresh-machine run, cell C3). Its key check now passes with no key, and
+    a campaign whose Carbon agent does call a model keeps the refusal."""
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter, foreign_default_key
+
+    engy = key_file(tmp_path, "engy.key", ENGY_KEY)
+    cfg = profile(tmp_path, credentials={"engy-chat": str(engy)})
+    cfg["paths"]["api_key_file"] = str(engy)
+    assert foreign_default_key(cfg)
+
+    def frozen(name, agent):
+        root = tmp_path / name
+        root.mkdir()
+        (root / "campaign-manifest.json").write_text(json.dumps({"agent": agent}))
+        return root
+
+    assert RunnerAdapter._frozen_credential(cfg, frozen("own", "none")) is None
+    with pytest.raises(Rejected, match="model_provider_credential_not_configured"):
+        RunnerAdapter._frozen_credential(cfg, frozen("auto", "autonomous"))
+    # Before its manifest freezes, the admitted launch's agent decides.
+    unfrozen = tmp_path / "unfrozen"
+    unfrozen.mkdir()
+    for name in ("none", "own-agent"):
+        row = {"launch_request": json.dumps({"agent": name}).encode()}
+        assert RunnerAdapter._frozen_credential(cfg, unfrozen, row) is None
+    unreadable = {"launch_request": b"{not json"}
+    with pytest.raises(Rejected, match="model_provider_credential_not_configured"):
+        RunnerAdapter._frozen_credential(cfg, unfrozen, unreadable)
+
+
+def test_the_recorded_launch_provider_is_read_as_the_launch_reads_it():
+    """LA-F5: the provider is the one the launch named; else, for a model
+    agent naming no model, the miner's setup choice; else None (the pinned
+    default's rule, unchanged); and None for a record that cannot be read."""
+    from scripts.dev.miner_launchpad.runner import launch_provider
+
+    cfg = {"model_selection": {"provider_id": "engy-chat", "model_id": "m"}}
+
+    def row(request):
+        # As admission keeps it: canonical JSON bytes.
+        return {"launch_request": json.dumps(request).encode()}
+
+    assert launch_provider(cfg, row({"agent": "graphite"})) == "engy-chat"
+    assert launch_provider({}, row({"agent": "graphite"})) is None
+    assert launch_provider(cfg, row({"agent": "none"})) is None
+    named = {"agent": "graphite", "model_provider": "engy-anthropic"}
+    assert launch_provider(cfg, row(named)) == "engy-anthropic"
+    assert launch_provider(cfg, {"launch_request": json.dumps(named)}) == (
+        "engy-anthropic"
+    )
+    for broken in (
+        {},
+        {"launch_request": None},
+        {"launch_request": b"{"},
+        {"launch_request": 7},
+        row([1]),
+    ):
+        assert launch_provider(cfg, broken) is None
+    assert launch_provider(cfg, None) is None
+
+
+def test_the_browser_door_refuses_a_graphite_launch_without_both_ceilings(
+    tmp_path, monkeypatch
+):
+    """LA-F4 on the browser's door: the same closed code, before anything is
+    started; with both ceilings the same launch is admitted."""
+    bridge, started = host(tmp_path, monkeypatch, profile(tmp_path))
+    body = {
+        "profile": "opaque-profile",
+        **BATTERY,
+        "agent": "graphite",
+        "budget": {"ceilings": {"epochs": 1, "provider_nanodollars": 500000000}},
+    }
+    with pytest.raises(Rejected) as refused:
+        bridge.launch(body, KEY)
+    assert refused.value.code == "graphite_ceilings_required"
+    assert started == [] and bridge.recent() == []
+    bridge.launch({**body, "budget": GRAPHITE_BUDGET}, KEY)
+    assert len(started) == 1
 
 
 def test_options_and_capabilities_offer_only_configured_providers(

@@ -1,5 +1,71 @@
 # First customer-shaped DEVELOPMENT round
 
+Missing-package build handoff: [SOLVER-PACKAGE-SPECS-01](../solver-package-specs/README.md)
+specifies f17 OpenFOAM and f06 Meep source/base candidates, observer proofs,
+convergence/conservation and unmeasured sizing. It grants no builds or runs
+and keeps the original tasks; 2D Meep is screening only. The same handoff
+maps the full-history warpage CalculiX gaps without adopting a new Challenge.
+
+> **f13 reference finding:** [power-balance diagnosis](f13-power-balance-diagnosis.md)
+> proposes a retained-integral check before new solves. Mixed plane/all-field
+> extraction and short-port treatment remain unresolved; no repaired truth,
+> weakened limits, solver execution or package change is claimed.
+
+Motor peak follow-up: [analytic sizing, setup coverage and search recommendation](motor-peak-feasibility.md)
+retains 12 N·m. It is an analysis-only supplement, not a feasibility result,
+material/geometry adoption or permission to execute a reference.
+
+Saved-output tooling: [f13 saved-integral power-balance check](f13-saved-integral-check.md)
+is a read-only DC diagnostic. Its accounting closure never qualifies physical
+reference power, silently repairs historical TL or authorizes new solves.
+
+> **Current value/cost and contested-boundary rule:**
+> [eight buyer scorecards](../value-cost/analysis.md) apply the
+> [owner framework](../value-cost/README.md). At least five feasible and five
+> distinct near-limit infeasible actions are needed per mandatory stratum;
+> the old pass-fraction gate is superseded, not its historical observations.
+> Candidate reframes have not changed registered laws, safety limits or earned
+> reference tiers. No Challenge is KEEP without the missing measured C/T rows.
+
+> **Current owner readiness amendment:** [design-value prerequisite](../question-laws/value-check-v1.md)
+> applies before new hidden-bank construction across all eight. See each
+> current packet's readiness section and the public Battery v3/Motor audit.
+> Cooling uses [cell v3](cooling-cell-v3.md), 85 C at lid-side TIM2 with a
+> buyer-stated vapour-chamber lid. Final parameters remain owner-pending.
+> [Motor v2](motor-precision-joint-v2.md) adds readiness without changing buyer
+> limits. Earlier pinned packets remain history; no hidden bank is released.
+
+> **Current follow-up to #817:** [Battery ambient-map v3](battery-ambient-map-v3.md)
+> supersedes the shared-protocol decision: one protocol/switch/cooling action
+> per band, band-local hard limits and buyer-mix-weighted minutes. Use its
+> [continuous law](../question-laws/battery-ambient-indexed-v3.md) and
+> [optimizer](../optimizers/battery-ambient-map-v3.md). Numerical distributions,
+> action/observer support and value resolution remain explicit seams.
+> Cooling's 53-job recipe is **ON HOLD** pending spreading/value evidence
+> and final owner inputs. The [analytic copper budget](cooling-thermal-budget-v2.md)
+> remains history; the temperature plane is now owner-selected.
+> Earlier supplements below are preserved prospective history where superseded.
+
+> **Historical #817 input proposals:** [Cooling v2 spreader/TIM inputs and panel](cooling-spreader-v2.md)
+> await owner approval; the [panel recipe](cooling-spreader-panel-v2.json) has
+> no dispatch authority. Battery uses the [continuous-primary law proposal](../question-laws/battery-continuous-v3.md)
+> and [prospective optimizer v2](../optimizers/battery-ev-fast-charge-v2.md).
+> Numeric distributions/aggregation and variable-SOC/restart support remain
+> explicit owner/reference seams. Earlier packet versions are preserved.
+
+> **Historical #804 Battery/Cooling versions (2026-10-08):**
+> [Battery v2](battery-ev-fast-charge-v2.md) (minimise admissible session time;
+> no hard 30-minute limit; charging 45 C, test-discharge diagnostics) and
+> [Cooling cell v2](cooling-cell-v2.md) (post-spreader interface heat map,
+> stated buyer properties; no selected TIM/ratio/inlet alternative).
+> [Planning amendment v2](first-three-requirements-v2.json) and
+> [#776 law/quiz impacts](../question-laws/quiz-impact-v2.md) record the changes.
+> The first-three v1 rows/packets/sheet and feasibility follow-up below are
+> **historical**, not the current Battery/Cooling brief. The 35.6-min probe
+> report is explicitly corrected to a 63.3-min charge-integral observation,
+> distinct from the reported 32.9-min best within limits. No historical rescore.
+> Motor and the five new-family packets are unchanged.
+
 **Authority:** [OWNER-PORTFOLIO-DEV-ROUND-01](../../../../.agent/decisions/2026-10-06-OWNER-PORTFOLIO-DEV-ROUND-01.md),
 the owner's direct rolling delegation on 2026-10-06, extended prospectively
 to the first three buyer briefs by
@@ -11,9 +77,9 @@ or production tolerances. Material constants are explicitly synthetic fixtures.
 
 | Packet | What the buyer wants Carbon to choose | Why a wrong decision costs them | Main new work / reuse |
 | --- | --- | --- | --- |
-| [Motor precision joint](motor-precision-joint.md) | A geometry/command pair providing 6-N·m holding and smooth torque | Commissioning stop or geometry/prototype redo | Reuse 60-angle reference; new command-role/cogging decision policy; no thermal/dynamic joint certification |
-| [Cooling full manifold](cooling-accelerator-manifold.md) | A plate/manifold and flow meeting 85 °C / 50 kPa / 2.5 W | Prototype redo or a thermally interrupted module | Reuse periodic assets, not periodic truth as full-manifold evidence |
-| [Battery EV fast charge](battery-ev-fast-charge.md) | A cell protocol meeting warm 30-min turnaround and 45-°C / 0-V model constraints | Lost driver time or investigation/replacement burden | Retain 30 cycles; prospective SOC/timing observer; no EV5/live-contract change |
+| [Motor precision joint v2](motor-precision-joint-v2.md) | A geometry/command pair providing 6-N·m holding and smooth torque | Commissioning stop or geometry/prototype redo | Revised-space value evidence pending; no thermal/dynamic joint certification |
+| [Cooling cell v3](cooling-cell-v3.md) | A cell geometry/flow meeting 85 °C at the buyer vapour-chamber lid-side TIM2 interface | Prototype redo or a thermally interrupted module | Preflight/value check and final buyer settings before any 53-job panel; no full plate |
+| [Battery ambient map v3](battery-ambient-map-v3.md) | Five band-specific protocol/cooling choices minimizing fleet-weighted safe session minutes | Lost driver time or investigation/replacement burden | Retain 30 cycles; no time cap; no EV5/live-contract change |
 | [f02 burst thermal](f02-burst-thermal.md) | The highest-energy permitted burst that stays under 95 °C | Throttling or a thermal-limit breach | New transient solid reference; reuse thermal representations/custody, not steady CFD truth |
 | [f06 grating coupler](f06-grating-coupler.md) | A TE coupling geometry robust to the declared offsets over 1530–1570 nm | A mask with poor coupling or excess reflection | New 3D grating/mode overlap; keep old supermode asset only as a baseline/control |
 | [f08 resonant structure](f08-resonance-structure.md) | A light support with low worst-band motion and adequate stiffness | Precision loss from a missed resonant peak | New CAD/modal/harmonic adapter; reuse generic case/evidence contracts |
@@ -33,6 +99,22 @@ separate planning sheet. It grants no execution or money and is not imported
 by runtime scoring. Their new numerical reference criteria are demands to
 verify, not a reinterpretation of existing adequacy/study outcomes. Test Lead
 and Carbon Validator own later versioned gate/quiz/tuning integration.
+
+## Buyer reference credibility targets
+
+Each packet's Reference policy now states the assumed buyer tool, Carbon's
+current/proposed reference, target tier, published benchmark candidates and
+HUMAN_INPUT agreement recommendations. The [shared credibility contract](reference-credibility.md)
+defines the three tiers, evidence custody and claim boundary. Targets are
+not earned evidence; no benchmark comparison or lab test ran for this addition.
+Battery's real EV-use target needs Tier 3; the other seven offline simulator
+design jobs target Tier 2, with hardware claims requiring the named later lab
+evidence. Same solver name alone cannot establish Tier 1.
+
+Latest owner scope: ignore full-cold-plate packaging/cost work. Cooling's new
+credibility recommendation is cell-level only; the older full-assembly brief
+remains deferred, not satisfied by a green periodic-cell result. None of the
+new recommendations edits numeric sheets, grants, scorers or existing evidence.
 
 ## Selected reference-feasibility allowances
 
@@ -77,6 +159,31 @@ declares synthetic `P_dev`, diagnostic `Q` and the interpretation of `w`.
 Quota/boundary feasibility panels cannot be treated as draws from P or as a
 population reliability trial. Reused curves, wavelengths and time probes are
 correlated within a case; model arms share the decision problem.
+
+Each packet now also names a **prospective population of buyer design
+questions** in §3. A question fixes the physical context, service conditions,
+buyer requirement vector, allowed actions and a committed choice or abstention
+rule; f02 chooses a schedule separately for each declared scenario. Different
+questions may use the **same physical design/reference bank** when that bank
+already resolves all needed conditions and quantitative outputs. Varying a
+requirement can change the reference-best admissible design without a new
+solver run; the eligible range and answer diversity must be verified, not
+assumed. Changing only a seed, grid order or probe on an unchanged question
+does not create a fresh answer. Questions sharing a cell, assembly or bank
+remain clustered for power and exposure accounting.
+
+Each Challenge still has **one quiz per batch**. Its design questions must be
+fresh draws from a registered `P_job`/protected `Q_job`, with their bank exposure
+counted under the bank lifecycle; a retired or published question cannot return
+to hidden use. The current eight packets mostly fix one question each. Their
+proposed question axes and scoping inventory sizes are `HUMAN_INPUT`
+recommendations, not an adopted law, powered hidden batch or reference grant.
+Before scoring, the buyer/authoring owner must approve eligible conditions and
+requirements, the reference owner must demonstrate bank coverage and cost, and
+Test Lead must establish sufficient unexposed questions, answer diversity,
+attack separation and clustering. Otherwise the design leg is diagnostic.
+Question variation cannot silently alter the registered Challenge or turn a
+fixture into a deployment claim.
 
 Public generated TRAIN and intentionally incomplete PRACTICE may be exposed
 after implementation. Protected EVAL/STRESS, their seeds and labels, and final

@@ -189,6 +189,7 @@ async def prepare_motor(args, *, ledger=None, campaign):
     from carbon.development_session.research_campaign import (
         PreparedCampaign,
         accepted_implementation,
+        new_plan_input_default,
         new_plan_output_default,
         private_file,
         requester,
@@ -231,7 +232,9 @@ async def prepare_motor(args, *, ledger=None, campaign):
             raise ValueError("a campaign agent runs only under its registered policy")
         if frozen is None:
             selection = supplied_selection(
-                args, output_default=new_plan_output_default(args)
+                args,
+                output_default=new_plan_output_default(args),
+                input_default=new_plan_input_default(args, agent),
             )
             if agent == "graphite":
                 from carbon.agent_campaign.graphite.miner.driver import freeze_launch

@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-volume-leverage-baseline",
+  "recorded_at": "2026-10-08T23:12:23Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-VOLUME-LEVERAGE-01 baseline",
+    "description": "Native Windows value-cost and credibility regressions before V3/V4 follow-up."
+  },
+  "expected": "Preserve #846's framework, history and reference boundaries.",
+  "observed": "54 passed in 9.98s. Native-host diagnostic only, not canonical acceptance or measured economic value.",
+  "keep": [
+    "Separate empirical C/T authority from scenario arithmetic."
+  ],
+  "change": [
+    "Add workflow evidence without treating response-surface queries as new reference solves."
+  ],
+  "protocol_elements": [
+    "buyer value",
+    "workflow leverage",
+    "historical evidence"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

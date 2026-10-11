@@ -1,0 +1,105 @@
+{
+ "adapter": "battery",
+ "limits_mib": [
+  96,
+  128,
+  192,
+  256,
+  384,
+  512
+ ],
+ "not_lowered": {},
+ "rows": {
+  "largest_deeponet@128MiB": {
+   "submission_bytes": 74702,
+   "verdict": "ok",
+   "wall_seconds": 0.136
+  },
+  "largest_deeponet@192MiB": {
+   "submission_bytes": 74702,
+   "verdict": "ok",
+   "wall_seconds": 0.182
+  },
+  "largest_deeponet@256MiB": {
+   "submission_bytes": 74702,
+   "verdict": "ok",
+   "wall_seconds": 0.147
+  },
+  "largest_deeponet@384MiB": {
+   "submission_bytes": 74702,
+   "verdict": "ok",
+   "wall_seconds": 0.148
+  },
+  "largest_deeponet@512MiB": {
+   "submission_bytes": 74702,
+   "verdict": "ok",
+   "wall_seconds": 0.155
+  },
+  "largest_deeponet@96MiB": {
+   "submission_bytes": 74702,
+   "verdict": "ok",
+   "wall_seconds": 0.137
+  },
+  "largest_fno@128MiB": {
+   "submission_bytes": 84888,
+   "verdict": "ok",
+   "wall_seconds": 0.155
+  },
+  "largest_fno@192MiB": {
+   "submission_bytes": 84888,
+   "verdict": "ok",
+   "wall_seconds": 0.172
+  },
+  "largest_fno@256MiB": {
+   "submission_bytes": 84888,
+   "verdict": "ok",
+   "wall_seconds": 0.173
+  },
+  "largest_fno@384MiB": {
+   "submission_bytes": 84888,
+   "verdict": "ok",
+   "wall_seconds": 0.145
+  },
+  "largest_fno@512MiB": {
+   "submission_bytes": 84888,
+   "verdict": "ok",
+   "wall_seconds": 0.275
+  },
+  "largest_fno@96MiB": {
+   "submission_bytes": 84888,
+   "verdict": "ok",
+   "wall_seconds": 0.151
+  },
+  "largest_mlp@128MiB": {
+   "submission_bytes": 33816,
+   "verdict": "ok",
+   "wall_seconds": 0.135
+  },
+  "largest_mlp@192MiB": {
+   "submission_bytes": 33816,
+   "verdict": "ok",
+   "wall_seconds": 0.121
+  },
+  "largest_mlp@256MiB": {
+   "submission_bytes": 33816,
+   "verdict": "ok",
+   "wall_seconds": 0.109
+  },
+  "largest_mlp@384MiB": {
+   "submission_bytes": 33816,
+   "verdict": "ok",
+   "wall_seconds": 0.136
+  },
+  "largest_mlp@512MiB": {
+   "submission_bytes": 33816,
+   "verdict": "ok",
+   "wall_seconds": 0.122
+  },
+  "largest_mlp@96MiB": {
+   "submission_bytes": 33816,
+   "verdict": "ok",
+   "wall_seconds": 0.147
+  }
+ },
+ "schema": "carbon.development.level4-g3-memory-probe.v1"
+}

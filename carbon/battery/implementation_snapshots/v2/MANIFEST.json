@@ -1,0 +1,13 @@
+{
+  "implementation_digest": "sha256:01ff1d6adca47cf0b9b1aaff885f77126538f5b8f1fb131b64c40c5b3d5450c2",
+  "modules": {
+    "domain.py": "sha256:4268c9a222ab9082a15bf9d34202b4db0a6d7eb943c91840543f3317491e9da4",
+    "recipes.py": "sha256:115209fc1ab4cd3a62f50ad6d1c2d12eb8e77e71553ad29aef5ff9b450d7da5e",
+    "torch_families.py": "sha256:50dda533800deb18ebd6f432732b3cc49a23ef24ba1c5ce4284c9cb2acda21d6",
+    "torch_training.py": "sha256:fe320cedcf10a14a279e71c8feeb2343b79a3c036b3d96022abdf194d754a7d9",
+    "training.py": "sha256:421b8f36a1e90156240ff3a1ede07acac316f821c554be9a400a25de15f70338"
+  },
+  "schema": "carbon.battery-implementation-snapshot.v1",
+  "source": "git HEAD carbon/battery/<module>, the implementation main shipped up to BATTERY-IMPL-3 (the PyTorch CUDA rebuild device)",
+  "version": "2.0"
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-07-question-laws-02-baseline-infrastructure",
+  "recorded_at": "2026-10-07T23:30:00+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-QUESTION-LAWS-02 baseline",
+    "description": "Native py -3.11 -m pytest -q tests/cpu/test_portfolio_round1_screen.py tests/cpu/test_customer_feasibility_panels.py"
+  },
+  "expected": "Read-only baseline packet/panel tests before quiz-content changes.",
+  "observed": "No baseline tests executed. Windows py launcher could not create the registered WindowsApps Python 3.11 process. The bundled runtime lookup did not return and was stopped; WSL probes also did not return usable output. Python 3.9 starts but has no pytest. These are host infrastructure limitations, not solver costs, reference failures or passing baseline results.",
+  "keep": ["Continue independent SPECIFIED-only documentation without solver, model, hidden material or spend."],
+  "change": ["Use an available host interpreter for static diagnostics only and rely on pinned GitHub CI for canonical acceptance; do not repeat the unavailable Python 3.11 command."],
+  "protocol_elements": ["host-versus-canonical-validation", "claim-basis", "reference-failure-separation"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

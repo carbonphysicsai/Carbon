@@ -1,0 +1,17 @@
+{
+  "schema": "carbon.onboarding.motor-application-diagnostic.v1",
+  "mode": "OFFLINE_NATIVE_DIAGNOSTIC_NO_PHYSICS_EXECUTION",
+  "motor_brief": "motor-brief.json",
+  "law_source": "../question-laws/motor-round2.json",
+  "stage_map": "../onboarding/stage_map.json",
+  "packet": {"seconds": 0.0004357, "numbered_sections": 10, "human_input_fields": 38},
+  "law": {"seconds": 0.0004723, "k_recommendation": 12, "registered": false, "panel_measured": false},
+  "panel": {"seconds": 0.0000383, "physical_case_count": null, "reuse_index": "MISSING", "cost": "UNKNOWN", "why": "Full physical/rung/pin seed and verified completed/scheduled index required; do not repeat existing feasibility work"},
+  "status": {"seconds": 0.105867, "observed_artifact_stages": ["S0_brief", "S1_packet", "S2_solver_package", "S3_feasibility_value_panel", "S4_question_law", "S6_readiness"], "exit_acceptance": "NOT_ADJUDICATED", "legacy_readiness": "HISTORICAL_NOT_CURRENT"},
+  "total_machine_seconds": 0.1068133,
+  "excluded": ["interpreter startup", "source research", "human decisions", "source applicability review", "numerical measurements", "CI", "retained final verification"],
+  "battery_historical_person_hours": null,
+  "human_time_saved_against_battery": "UNKNOWN_NO_MATCHED_EFFORT_BASELINE",
+  "motor_comparator_queue": {"trigger": "DC re-export with physical geometry coordinates plus full signed torque and cogging curves", "acquisition_branch_head_checked": "66ea509888e4ef0f5ac08750554db744b56b92bf", "rerun_performed": false},
+  "no_solver_no_spend_no_hidden_no_AX42": true
+}

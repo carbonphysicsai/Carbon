@@ -1,0 +1,58 @@
+{
+  "schema": "carbon.development.remaining-question-law-proposals.v1",
+  "ticket": "QUESTION-LAWS-REMAINING-01",
+  "maturity": "SPECIFIED",
+  "source_revision": "526de8c44304a4014c52c048e5d15e005b089f49",
+  "registered": null,
+  "runtime_adoption": false,
+  "solver_runs": 0,
+  "spend": 0,
+  "two_band_rule": {"status": "TEST_LEAD_WORKING_VALUE", "near_refinement_bands": 2, "minimum_distinct_feasible": 5, "minimum_distinct_infeasible": 5, "band_widths_registered": null, "both_sides_near": true, "shortage_action": "MORE_FRONTIER_RESOLUTION_NEVER_WIDER_BANDS"},
+  "none_feasible": "VALID_FORWARD_NO_REDRAW_WITH_COMPLETE_SETTLED_MENU_PROOF",
+  "unresolved": "REFERENCE_INFRA_OR_INTERVAL_UNCERTAINTY_IS_NOT_INFEASIBILITY",
+  "exposure": {"E": null, "B": null, "n": null, "recommendation": "B=10n costing sensitivity only; owner/Validator selects E, bank architecture and grants", "threshold_variation_renews_E": false, "B_is_physical_design_count": false},
+  "families": [
+    {
+      "family": "f13",
+      "packet": "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md",
+      "packet_sha256": "397361ad8340ccbc19f07e2a025fb9c9c29934a9b1159e0c7000fc1e061fdde0",
+      "legacy_law": "docs/development/challenge_pipeline/question-laws/proposals.json",
+      "primary_variant": "CONTINUOUS_RECOMMENDATION_NOT_ADOPTED",
+      "P": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "One complete fixed-medium/matched-port 500-2500 Hz service context; independent uniform tighter-within-anchor requirements, conditional on reference support"},
+      "Q": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Q3 forward P; Q2 separate near-TL/package/low-notch enrichment; retain failure/unresolved draws"},
+      "w": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Outer questions unit weight only if accepted Q3=P; within-curve weights are frequency interval measure, not adaptive node count"},
+      "axes": [
+        {"quantity": "band_p10_transmission_loss_min", "unit": "dB", "op": ">=", "status": "HUMAN_INPUT", "registered": null, "primary_continuous": [5, 7], "audit_grid": [3, 5, 7], "packet_anchor": 5},
+        {"quantity": "package_length_max", "unit": "mm", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "primary_continuous": [240, 300], "audit_grid": [240, 270, 300], "packet_anchor": 300},
+        {"quantity": "package_diameter_max", "unit": "mm", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "primary_continuous": [120, 140], "audit_grid": [120, 130, 140], "packet_anchor": 140}
+      ],
+      "action_set": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Packet continuous chamber/neck/offset grammar; first bank hypothesis M=16 distinct pre-registered geometry actions plus distinct frontier registrations; dimensions and stubs all included", "legacy_M": 16},
+      "question": {"status": "HUMAN_INPUT", "recommendation": "One requirement vector and complete service-band decision over every eligible full-curve action; maximize interval-weighted p10 TL subject to all hard limits"},
+      "k": {"status": "HUMAN_INPUT", "registered": null, "low": 4, "base": 8, "high": 12},
+      "diversity": {"grid_vectors": 27, "expected_distinct_winners_P": null, "expected_distinct_winners_Q": null, "close_call_rate": null, "M_bounds_distinct_winners": true, "reported": "NOT_DEMONSTRATED"},
+      "reference_holds": ["Accepted complete-band power closure and port/modal extraction", "Independent mesh and adaptive frequency convergence", "Matched whole-design cheap multimode/reduced Helmholtz baseline", "Settled extrema/quantile and two-sided contested counts"],
+      "cost": {"complete_curve_C1_status": "UNMEASURED_FOR_REGISTERED_LAW", "complete_curve_cpu_hours": null, "startup_eur": null, "legacy_initial_frequencies": 201, "legacy_separate_frequency_launches": 3216, "single_process_per_curve_is_not_free_frequency_work": true, "refinement_controls_and_failures_extra": true}
+    },
+    {
+      "family": "f17",
+      "packet": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+      "packet_sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c",
+      "legacy_law": "docs/development/challenge_pipeline/question-laws/proposals.json",
+      "primary_variant": "CONTINUOUS_RECOMMENDATION_NOT_ADOPTED",
+      "P": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Each question retains all nine fixed flow/diffusivity conditions; independent uniform tighter-within-anchor requirements, conditional on reference support"},
+      "Q": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Q3 forward P; Q2 separate mixing/pressure/residence/high-Pe frontier enrichment; no easy-condition selection"},
+      "w": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Outer questions unit weight only if accepted Q3=P; within question worst-condition objective and all-condition hard admissibility; no score compensation"},
+      "axes": [
+        {"quantity": "mixing_index_min", "unit": "1", "op": ">=", "status": "HUMAN_INPUT", "registered": null, "primary_continuous": [0.8, 0.85], "audit_grid": [0.75, 0.8, 0.85], "packet_anchor": 0.8},
+        {"quantity": "pressure_drop_max", "unit": "Pa", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "primary_continuous": [200, 250], "audit_grid": [200, 250, 300], "packet_anchor": 250},
+        {"quantity": "residence_time_max", "unit": "s", "op": "<=", "status": "HUMAN_INPUT", "registered": null, "primary_continuous": [15, 20], "audit_grid": [15, 20, 25], "packet_anchor": 20}
+      ],
+      "action_set": {"status": "HUMAN_INPUT", "registered": null, "recommendation": "Packet continuous groove depth/pitch plus integer reversal period; full finite-channel outputs; legacy M=45 hypothesis plus distinct prospective frontier actions", "legacy_M": 45},
+      "question": {"status": "HUMAN_INPUT", "recommendation": "One requirement vector and full nine-condition decision over eligible groove actions; maximize worst-condition flux-weighted outlet mixing while all pressure/residence limits hold"},
+      "k": {"status": "HUMAN_INPUT", "registered": null, "low": 4, "base": 8, "high": 12},
+      "diversity": {"grid_vectors": 27, "expected_distinct_winners_P": null, "expected_distinct_winners_Q": null, "close_call_rate": null, "M_bounds_distinct_winners": true, "reported": "NOT_DEMONSTRATED"},
+      "reference_holds": ["Complete flow/scalar package and frozen flux-weighted observer", "Mass/solute/positivity and high-Pe diffusion refinement", "Conditional velocity reuse with finite scalar history and full-route witnesses", "Two-sided counts per mandatory condition and complete feasible answer", "Strongest reduced-transport/map comparator"],
+      "cost": {"complete_case_C1_status": "UNMEASURED_FOR_REGISTERED_LAW", "complete_case_cpu_hours": null, "startup_eur": null, "legacy_geometry_condition_pairs": 405, "legacy_no_reuse_process_launches": 810, "conditional_flow_reuse_launches_before_controls": 540, "reuse_is_not_earned": true, "refinement_controls_and_failures_extra": true}
+    }
+  ]
+}

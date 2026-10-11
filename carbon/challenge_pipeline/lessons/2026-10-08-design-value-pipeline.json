@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-design-value-pipeline",
+  "recorded_at": "2026-10-08T19:03:00+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-DESIGN-VALUE-01 pipeline", "description": "Read-only native public protocol/record/lesson validation after the first three execution lessons."},
+  "expected": "Readiness specification does not move protocol or admission authority.",
+  "observed": "Exit0: protocol DEFINING; 7 records valid; 457 lessons valid before this entry, 0 awaiting a decision; 3 admission controllers designated and 3 pending identity. This record audit is not physical value or admission evidence.",
+  "keep": ["Do not confuse a valid governance record with an approved reference, question law or hidden bank."],
+  "change": ["Carry the owner-required value check as SPECIFIED while each accepted evidence receipt remains null."],
+  "protocol_elements": ["stage authority", "reference adequacy", "buyer value"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

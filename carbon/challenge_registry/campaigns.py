@@ -69,6 +69,10 @@ class ChallengeCampaign:
     #: (url) -> the validator intake's public facts, checked to serve this
     #: chain and Challenge; raises ValueError or OSError. None: no intake.
     intake_check: Callable | None = None
+    #: (code) -> QUEUED, UNAVAILABLE or REFUSED for a closed code a submit
+    #: through its intake ended with, or None for a code that is not one
+    #: (LAUNCHPAD-ACCEPT-04: both doors read it back beside the refusal).
+    intake_outcome: Callable | None = None
     #: (image) -> the GPU practice scope for the pinned GPU worker; None when
     #: the Challenge offers no GPU practice.
     gpu_scope: Callable | None = None
@@ -87,6 +91,21 @@ class ChallengeCampaign:
     practice_provenance: str | None = None
     #: Reconstruction backends this campaign may name in corrective feedback.
     backends: tuple = ()
+    #: (record, manifest) -> the `sha256:` digest a miner commits on chain for
+    #: a frozen candidate (`selected-recipe.json`) before its validator admits
+    #: it (OWNER-COMMITMENT-POSTER-01). None: the Challenge uses no commitment.
+    commitment: Callable | None = None
+    #: (args, root, epoch) -> whether that commitment must read back on chain
+    #: before this epoch's candidate is sent: its first send through the
+    #: Challenge's validator intake (LAUNCHPAD-ACCEPT-02). A deployment on
+    #: this machine checks its own setting; a submission the intake already
+    #: holds is not gated again.
+    commitment_due: Callable | None = None
+    #: Whether this campaign compiles, freezes and commits at a construction
+    #: level its launch names (LAUNCHPAD-LEVELS-01 S2,
+    #: `carbon.development_session.construction_level`). False: a launch at
+    #: any level above 0 is refused, never silently run at Level 0.
+    construction_levels: bool = False
 
     def remote_runner(self, runtime, machine, gpu_image):
         """The campaign's practice runner on the miner's own remote setup, or
@@ -143,6 +162,18 @@ def _battery_intake(url):
     return facts
 
 
+def _battery_intake_outcome(code):
+    """The battery intake's outcome class for `code` (`campaign.intake_outcome`),
+    or None when `code` is not one a trip through its intake reports."""
+    from carbon.battery import campaign as battery
+    from carbon.battery import intake_client
+
+    known = (
+        set(intake_client.REFUSALS) | battery.INTAKE_QUEUED | battery.INTAKE_UNAVAILABLE
+    )
+    return battery.intake_outcome(code) if code in known else None
+
+
 def _battery():
     from carbon.battery import campaign as battery
     from carbon.battery import research_view as battery_view
@@ -162,12 +193,16 @@ def _battery():
         feedback_modes=tuple(getattr(battery, "FEEDBACK_MODES", ("FULL",))),
         feedback_schema="carbon.battery.permitted-feedback.v1",
         intake_check=_battery_intake,
+        intake_outcome=_battery_intake_outcome,
         gpu_scope=battery_gpu.gpu_scope,
         declared_gpu=battery_gpu.declared_scope,
         remote_worker=battery_gpu.remote_worker,
         research_view=battery_view.research_view,
         practice_provenance="BATTERY_PUBLIC_PRACTICE",
         backends=tuple(BATTERY_BACKENDS),
+        commitment=battery.frozen_commitment,
+        commitment_due=battery.commitment_due,
+        construction_levels=True,
     )
 
 

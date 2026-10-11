@@ -42,6 +42,17 @@ import asyncio
 import json
 import time
 from pathlib import Path
+from types import SimpleNamespace
+
+# What an agent campaign must cap before any model call (`AGENT_BUDGET_KEYS`):
+# the miner's (or operator's) own ceilings, never a default supplied here. The
+# registry's one definition and predicate, which the launch doors read too
+# (LA-F4).
+from carbon.challenge_registry.agent_plan import (
+    AGENT_BUDGET_KEYS,
+    CeilingsRequired,
+    finite_ceilings,
+)
 
 from .challenge import CHALLENGE
 
@@ -54,9 +65,6 @@ REPLICAS = {
     "reconstructions_per_submission": 1,
     "seed": "Carbon-derived from the evaluation deployment's private root",
 }
-#: What an autonomous battery campaign must cap before any model call: the
-#: miner's (or operator's) own ceilings, never a default supplied here.
-AGENT_BUDGET_KEYS = ("provider_attempts", "provider_nanodollars")
 
 
 def provider_plan(agent, budget, selection=None, graphite=None):
@@ -175,12 +183,15 @@ def graphite_plan(budget, selection, graphite):
         TOOLS_RULE,
     )
 
-    ceilings = (budget or {}).get("ceilings") or {}
-    if any(type(ceilings.get(k)) is not int for k in AGENT_BUDGET_KEYS):
-        raise ValueError(
+    # The launch doors' own predicate (LA-F4): admission refuses a launch
+    # without these, by code, before it is queued; one that still reaches
+    # here is typed, so its interruption carries the code.
+    if not finite_ceilings(budget):
+        raise CeilingsRequired(
             "a Graphite battery campaign needs finite provider_attempts and "
             "provider_nanodollars ceilings"
         )
+    ceilings = budget["ceilings"]
     if graphite is None:
         raise ValueError("a Graphite plan freezes its launch block")
     block = edition.check_block(graphite)
@@ -219,6 +230,12 @@ def graphite_plan(budget, selection, graphite):
     }
     if not selection.is_historical_default:
         plan["model_selection"] = selection.record()
+    window = getattr(selection, "input_window", None)
+    if window is not None:
+        # How the window was chosen (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01):
+        # the published context it came from and any bound that applied, or
+        # that Carbon records none. A plan frozen before has no record.
+        plan["input_window"] = window
     return plan
 
 
@@ -363,6 +380,7 @@ def manifest_document(
     selection=None,
     feedback=FEEDBACK_FULL,
     graphite=None,
+    construction_level=None,
 ):
     from carbon.development_session.research_ledger import VERSION
     from carbon.reconstruction.capability_registry import contract_digest
@@ -392,6 +410,14 @@ def manifest_document(
         "new_network_transactions": 0,
         "feedback_mode": feedback_mode(feedback),
         **product.manifest_fields(),
+        # A launch at a construction level (LAUNCHPAD-LEVELS-01 S2): the
+        # level's registered variant, frozen by name and digest. Level 0
+        # records nothing, so its manifest is what it was.
+        **(
+            {"construction_level": dict(construction_level)}
+            if construction_level
+            else {}
+        ),
     }
 
 
@@ -442,6 +468,7 @@ async def prepare_battery(args, *, ledger=None, campaign):
         from carbon.development_session.agent import ResponsesTransport
         from carbon.development_session.model_provider import SelectionTransport
         from carbon.development_session.research_campaign import (
+            new_plan_input_default,
             new_plan_output_default,
             supplied_selection,
         )
@@ -451,9 +478,14 @@ async def prepare_battery(args, *, ledger=None, campaign):
         if frozen is None:
             # A new plan: its agent's output cap defaults to the selected
             # model's own maximum, unless the miner set one
-            # (OWNER-LAUNCHPAD-PROD-02). The plan records the cap it chose.
+            # (OWNER-LAUNCHPAD-PROD-02), and a Graphite plan's input window
+            # to the model's published context less that cap, unless the
+            # miner set one (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01). The plan
+            # records what it chose.
             selection = supplied_selection(
-                args, output_default=new_plan_output_default(args)
+                args,
+                output_default=new_plan_output_default(args),
+                input_default=new_plan_input_default(args, agent),
             )
             if agent == "graphite":
                 # The miner's launch fields and library, read once and frozen
@@ -549,6 +581,7 @@ async def prepare_battery(args, *, ledger=None, campaign):
             selection=selection,
             feedback=getattr(args, "feedback_mode", FEEDBACK_FULL),
             graphite=graphite,
+            construction_level=getattr(args, "construction_level", None),
         )
         write_once(manifest_path, canonical(manifest))
     else:
@@ -609,6 +642,14 @@ async def prepare_battery(args, *, ledger=None, campaign):
     )
 
 
+def _frozen_level(root):
+    """The frozen manifest's construction-level binding, or None."""
+    from carbon.development_session.construction_level import binding
+
+    path = Path(root) / "campaign-manifest.json"
+    return binding(json.loads(path.read_bytes())) if path.exists() else None
+
+
 def compose(
     *,
     ledger,
@@ -645,9 +686,14 @@ def compose(
 
     from .research import BatteryPractice, make_battery_research_service
 
+    # A campaign launched at a construction level compiles at it, whichever
+    # door composes it (its own run or an attachment): read from its frozen
+    # manifest (LAUNCHPAD-LEVELS-01 S2).
+    level = _frozen_level(ledger.root)
     # `runner`/`backend` exist for tests; every campaign door passes neither,
     # so practice runs in the isolated carrier and says so.
     practice = BatteryPractice(
+        level=level,
         ledger=ledger,
         owner=owner,
         image=image,
@@ -832,6 +878,16 @@ def _intake(prepared):
     return found or getattr(prepared.args, "battery_intake", None)
 
 
+def _receiver(prepared):
+    """The receiver hotkey the profile pins for this Challenge's intake
+    (`receivers`, LAUNCHPAD-ACCEPT-03), or None for a profile written before
+    receivers were pinned, which is not checked."""
+    found = (getattr(prepared.args, "receivers", None) or {}).get(
+        CHALLENGE.challenge_id
+    )
+    return found if type(found) is str else None
+
+
 async def evaluate_candidate(prepared, epoch, record):
     """Submit a frozen battery candidate to the validator daemon (M3).
 
@@ -855,6 +911,13 @@ async def evaluate_candidate(prepared, epoch, record):
 
     config = evaluation_config(prepared)
     intake = _intake(prepared)
+    _level_record_bound(prepared, record)
+    if (getattr(prepared, "manifest", None) or {}).get("construction_level") and (
+        intake is None
+    ):
+        # A level candidate goes only through a target intake that lists
+        # its variant, never to a deployment on this machine.
+        raise OperationRefused("level_not_served_by_target")
     if config is None and intake is not None:
         # The validator runs elsewhere: submit through its intake, signed by
         # the miner's own signer (C-MLP-03 slice 6).
@@ -924,6 +987,9 @@ async def evaluate_candidate(prepared, epoch, record):
 #: the miner's signer not signing (`signer_unavailable`), an intake for
 #: another chain or Challenge (`intake_mismatch`), and a resend that would
 #: name another hotkey's submission (`intake_signer_changed`) are REFUSED.
+#: So is an intake reporting another receiver than the profile pins
+#: (`intake_receiver_mismatch`, LAUNCHPAD-ACCEPT-03), refused before anything
+#: is signed or sent.
 #: `intake_client.explain(code)` gives each one's plain explanation.
 INTAKE_QUEUED = frozenset({"evaluation_queued"})
 INTAKE_UNAVAILABLE = frozenset(
@@ -962,9 +1028,13 @@ def intake_outcome(code):
     return "UNAVAILABLE" if code in INTAKE_UNAVAILABLE else "REFUSED"
 
 
-def _resend(url, signer, submission_id, failure, strategy, contract_digest, io):
+def _resend(
+    url, signer, submission_id, failure, strategy, contract_digest, io, receiver=None
+):
     """Send the epoch's frozen candidate again, so the intake receives it
-    again under the same submission id.
+    again under the same submission id. The intake's facts are read again
+    and must report the profile's pinned `receiver` before the resend is
+    signed (`remote_submission.check_receiver`).
 
     Before anything is sent, the id the resend would name is worked out from
     the signer's public hotkey (`intake_client.submission_id`). If it is not
@@ -985,7 +1055,7 @@ def _resend(url, signer, submission_id, failure, strategy, contract_digest, io):
         != submission_id
     ):
         raise rs.IntakeRefusal("intake_signer_changed")
-    facts = io["read"](url)
+    facts = rs.check_receiver(io["read"](url), receiver)
     next_block = (failure or {}).get("next_block")
     block = (facts.get("snapshot") or {}).get("finalized_block")
     if next_block is not None and type(block) is int and block < next_block:
@@ -1008,7 +1078,17 @@ def _resend(url, signer, submission_id, failure, strategy, contract_digest, io):
 
 
 def submit_through_intake(
-    url, signer, *, root, epoch, strategy, contract_digest, read=None, post=None
+    url,
+    signer,
+    *,
+    root,
+    epoch,
+    strategy,
+    contract_digest,
+    read=None,
+    post=None,
+    receiver=None,
+    construction_level=None,
 ):
     """The epoch's frozen candidate through a validator intake, to a verdict.
 
@@ -1023,8 +1103,14 @@ def submit_through_intake(
     submission (`_resend`; otherwise `intake_signer_changed`, nothing sent).
     A candidate recorded against another intake is refused
     (`intake_changed_since_submission`): an epoch's submission belongs to the
-    validator that received it. Returns `(status, answer, submission_id)`;
-    raises `IntakeRefusal` with the intake's or the transport's code.
+    validator that received it. `receiver`, the profile's pinned receiver
+    hotkey, is checked against the intake's reported one before every submit,
+    resend and status poll is signed (`intake_receiver_mismatch`, nothing
+    signed or sent; None for a profile written before receivers were
+    pinned). Returns `(status, answer, submission_id)`; raises
+    `IntakeRefusal` with the intake's or the transport's code.
+    `construction_level` is the frozen record's level binding
+    (LAUNCHPAD-LEVELS-01), or None: a variant digest is sent only with it.
     """
     from carbon.reconstruction.capability_registry import (
         DEVELOPMENT_VARIANT_NOT_SERVED,
@@ -1037,9 +1123,24 @@ def submit_through_intake(
 
     if is_development_variant(contract_digest):
         # A development-only contract variant is never served to a miner, so
-        # the Launchpad sends nothing (OWNER-GRAPHITE-TEST-WAVE-03 §1).
-        raise rs.IntakeRefusal(DEVELOPMENT_VARIANT_NOT_SERVED)
+        # the Launchpad sends nothing (OWNER-GRAPHITE-TEST-WAVE-03 §1), except
+        # a candidate frozen at a construction level under that variant, to a
+        # target whose public facts list it among the variants it serves
+        # (OWNER-LADDER-THROUGH-LAUNCHPAD-01's amendment): the development-
+        # ladder deployment. Anything else is refused with nothing read;
+        # a level candidate's target facts are read, and the receiver
+        # checked, before anything is signed.
+        from carbon.development_session.construction_level import lists_digest
+
+        frozen = construction_level if type(construction_level) is dict else {}
+        if frozen.get("digest") != contract_digest:
+            raise rs.IntakeRefusal(DEVELOPMENT_VARIANT_NOT_SERVED)
+        facts = rs.check_receiver((read or intake_client.read_intake)(url), receiver)
+        if not lists_digest(facts, contract_digest):
+            raise rs.IntakeRefusal(DEVELOPMENT_VARIANT_NOT_SERVED)
     passed = {} if read is None else {"read": read, "post": post}
+    if receiver is not None:
+        passed["receiver"] = receiver
     io = {
         "read": read or intake_client.read_intake,
         "post": post or intake_client.post,
@@ -1066,12 +1167,14 @@ def submit_through_intake(
         if refused.code != "not_found" or recorded is None:
             raise
         sid = recorded["submission_id"]
-        _resend(url, signer, sid, None, strategy, contract_digest, io)
+        _resend(url, signer, sid, None, strategy, contract_digest, io, receiver)
         return wait()
     failure = answer.get("failure") or {}
     if answer.get("state") != "REFUSED" or failure.get("code") not in RECEIVED_AGAIN:
         return status, answer, submission_id
-    _resend(url, signer, submission_id, failure, strategy, contract_digest, io)
+    _resend(
+        url, signer, submission_id, failure, strategy, contract_digest, io, receiver
+    )
     return wait()
 
 
@@ -1111,49 +1214,174 @@ def _failure_code(failure):
     return "intake_answer_unrecognised"
 
 
+def frozen_commitment(record, manifest):
+    """L1: the digest a miner commits on chain for this frozen candidate
+    (`selected-recipe.json`), as the validator recomputes it
+    (`daemon.commitment_digest`, through `commitment_poster.expected_digest`):
+    its Challenge, the contract it was frozen under and its strategy hash."""
+    from carbon.chain.commitment_poster import expected_digest
+
+    if "construction_level" in record or "construction_level" in manifest:
+        # A candidate of a campaign at a construction level
+        # (LAUNCHPAD-LEVELS-01 S2): the same digest over the variant's
+        # contract digest, never the base contract's, and the strategy hash
+        # the level's compile gives it. A level campaign's record without its
+        # binding raises: it never falls back to the Level 0 path below.
+        from carbon.development_session.construction_level import commitment_fields
+
+        from .daemon import development_commitment_digest
+
+        # The development form (VALIDATOR-25, #899): it also binds the whole
+        # submitted strategy, so every widened value. Level 0 is unchanged.
+        challenge, variant, strategy_hash = commitment_fields(record, manifest)
+        return development_commitment_digest(
+            challenge, variant, strategy_hash, record["strategy"]
+        )
+    return expected_digest(
+        record["strategy"],
+        record.get("contract_digest") or manifest["contract_digest"],
+    )
+
+
+def commitment_due(args, root, epoch):
+    """Whether the commitment must read back on chain before this epoch's
+    candidate is sent: its first send through this Challenge's validator
+    intake. A deployment on this machine checks its own `require_commitment`;
+    a submission the intake already holds is polled, and any resend is the
+    intake's to refuse (`intake.RECEIVED_AGAIN`)."""
+    from . import remote_submission as rs
+
+    prepared = SimpleNamespace(args=args)
+    if evaluation_config(prepared) is not None or _intake(prepared) is None:
+        return False
+    return not rs._record_path(root, epoch).exists()
+
+
+async def _committed(gate, root, epoch, record, manifest, *, request, recommit=False):
+    """The commitment gate before a send: `OperationRefused` with its closed
+    code unless the frozen candidate's digest reads back as the hotkey's
+    commitment at the finalized head (`CommitmentGate.before_submit`)."""
+    from carbon.development_session.research_campaign import OperationRefused
+
+    try:
+        digest = frozen_commitment(record, manifest)
+    except (ValueError, KeyError, TypeError):
+        raise OperationRefused("commitment_digest_unavailable") from None
+    code = await asyncio.to_thread(
+        gate.before_submit,
+        root,
+        digest,
+        request=request,
+        epoch=epoch,
+        recommit=recommit,
+    )
+    if code is not None:
+        raise OperationRefused(code)
+
+
+def _level_record_bound(prepared, record):
+    """`level_not_registered` (`OperationRefused`) when a campaign launched at
+    a construction level holds a candidate not frozen under its variant: its
+    record's `contract_digest` and binding must both be the manifest's
+    variant digest. A level candidate is never sent under the base contract
+    digest (LAUNCHPAD-LEVELS-01 S2)."""
+    from carbon.development_session.research_campaign import OperationRefused
+
+    found = (getattr(prepared, "manifest", None) or {}).get("construction_level")
+    frozen = record.get("construction_level")
+    if found is None and frozen is None:
+        return
+    digest = record.get("contract_digest")
+    if not (
+        type(found) is dict
+        and type(frozen) is dict
+        and digest == found.get("digest") == frozen.get("digest")
+    ):
+        raise OperationRefused("level_not_registered")
+
+
 async def _evaluate_through_intake(prepared, epoch, record, url):
     """One frozen candidate through the validator's intake; see
     `submit_through_intake`. The epoch is consumed only by a verdict: SCORED,
     or the daemon's INVALID_CONSTRUCTION or RECONSTRUCTION_FAILED. Anything
     else raises `OperationRefused` with a closed code (`intake_outcome`),
     including every way the trip itself can fail (`_failure_code`), so the
-    campaign keeps its frozen candidate instead of ending on an exception."""
+    campaign keeps its frozen candidate instead of ending on an exception.
+
+    With the Launchpad's commitment gate (`args.commitment_gate`,
+    LAUNCHPAD-ACCEPT-02), the candidate's first send waits for its
+    commitment to read back on chain (`_committed`). A campaign whose agent
+    selects asks for the commitment itself, and once for a recommit when the
+    validator answers `commitment_stale` (D10, L7); only the miner confirms
+    either, on the signer's terminal."""
     import http.client
 
+    from carbon.chain.commitment_poster import STALE
     from carbon.chain.external_signer import SignerFailure
     from carbon.development_session.research_campaign import OperationRefused
 
     from .intake_client import describe
     from .remote_submission import IntakeRefusal
 
-    try:
-        status, answer, submission_id = await asyncio.to_thread(
-            submit_through_intake,
-            url,
-            prepared.sdk.connection.miner_key,
-            root=prepared.ledger.root,
-            epoch=epoch,
-            strategy=record["strategy"],
-            contract_digest=record.get("contract_digest")
-            or prepared.manifest["contract_digest"],
-        )
-    except IntakeRefusal as refused:
-        raise OperationRefused(intake_code(refused.code)) from None
-    except (
-        SignerFailure,
-        OSError,
-        http.client.HTTPException,
-        ValueError,
-        KeyError,
-        TypeError,
-        AttributeError,
-    ) as failure:
-        raise OperationRefused(_failure_code(failure)) from None
-    state = answer.get("state")
-    if state == "REFUSED":
+    root = prepared.ledger.root
+    _level_record_bound(prepared, record)
+    frozen_level = record.get("construction_level")
+    if type(frozen_level) is dict and frozen_level.get("level") == 4:
+        # A Level 4 candidate travels with its staging envelope beside the
+        # signed strategy (LEVEL4_STAGING_CONTRACT §4). It is read and checked
+        # here, unchanged; no intake carries it yet (the validator's upload,
+        # VALIDATOR-25 slice 4), so nothing is signed or sent.
+        from carbon.development_session import construction_level as cl
+
+        try:
+            cl.read_envelope(root / ("epoch-" + str(epoch)), record)
+        except cl.LevelRefused as refused:
+            raise OperationRefused(refused.code) from None
+        raise OperationRefused(cl.LEVEL4_TRANSPORT_UNAVAILABLE)
+    gate = getattr(prepared.args, "commitment_gate", None)
+    asks = getattr(prepared, "agent", "none") != "none"
+    if gate is not None and commitment_due(prepared.args, root, epoch):
+        await _committed(gate, root, epoch, record, prepared.manifest, request=asks)
+    recommitted = False
+    while True:
+        try:
+            status, answer, submission_id = await asyncio.to_thread(
+                submit_through_intake,
+                url,
+                prepared.sdk.connection.miner_key,
+                root=root,
+                epoch=epoch,
+                strategy=record["strategy"],
+                contract_digest=record.get("contract_digest")
+                or prepared.manifest["contract_digest"],
+                receiver=_receiver(prepared),
+                construction_level=record.get("construction_level"),
+            )
+        except IntakeRefusal as refused:
+            raise OperationRefused(intake_code(refused.code)) from None
+        except (
+            SignerFailure,
+            OSError,
+            http.client.HTTPException,
+            ValueError,
+            KeyError,
+            TypeError,
+            AttributeError,
+        ) as failure:
+            raise OperationRefused(_failure_code(failure)) from None
+        if answer.get("state") != "REFUSED":
+            break
         # Refused at admission and not received again: never a verdict.
-        failure = answer.get("failure") or {}
-        raise OperationRefused(intake_code(failure.get("code")))
+        code = intake_code((answer.get("failure") or {}).get("code"))
+        if code != STALE or gate is None or not asks or recommitted:
+            raise OperationRefused(code)
+        # The agent asks for the recommit; the intake then receives the same
+        # submission again (`intake.RECEIVED_AGAIN`), never a second one.
+        recommitted = True
+        await _committed(
+            gate, root, epoch, record, prepared.manifest, request=True, recommit=True
+        )
+    state = answer.get("state")
     if state == "FAILED_INFRA_EXHAUSTED":
         raise OperationRefused("evaluation_failed_infra")
     if state not in ("SCORED", "INVALID_CONSTRUCTION", "RECONSTRUCTION_FAILED"):

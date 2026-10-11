@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-value-cost-scope-correction-diagnostics",
+  "recorded_at": "2026-10-08T21:16:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-VALUE-COST-01 scope-correction-diagnostics",
+    "description": "Focused static, historical-readiness and credibility validation; no solver/reference or paid execution."
+  },
+  "expected": "Maintain source identities, arithmetic and buyer scope while retaining fail-closed evidence.",
+  "observed": "74 focused tests passed in 6.98s; Black/Ruff and diff whitespace passed after the micromixer/silencer scope correction. Native Windows only.",
+  "keep": [
+    "Separate target tiers, proposal tests and measured scientific/cost acceptance."
+  ],
+  "change": [
+    "The original micromixer already repeats grooves: a cheaper reference route preserves its V2. Keep silencer offsets if repaired full-3D truth meets C/T."
+  ],
+  "protocol_elements": [
+    "buyer scope",
+    "cost arithmetic",
+    "historical evidence",
+    "reference credibility"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

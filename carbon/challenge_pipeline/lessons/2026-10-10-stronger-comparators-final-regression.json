@@ -1,0 +1,15 @@
+{
+  "schema":"carbon.challenge-pipeline.lesson.v1",
+  "lesson_id":"2026-10-10-stronger-comparators-final-regression",
+  "recorded_at":"2026-10-10T19:50:28Z",
+  "challenge":"protocol",
+  "stage":"test_iterate",
+  "execution":{"kind":"test_run","ref":"COMPARATOR-CROSS-GEOMETRY-MULTIMODE-01","description":"Final offline reduced/portfolio/cheap comparators, neutral producer-panel and pipeline/lesson regression plus Black/Ruff/diff diagnostics."},
+  "expected":"The stronger method classes should coexist with existing controls and preserve the neutral screening export without implying physical/decision adequacy.",
+  "observed":"105 native tests passed; Black, Ruff and diff diagnostics passed. Whole-geometry and basis-provenance holdouts, common-layout refusal, convex-hull abstention, multimode/evanescent influence and power accounting are synthetic-tested. Query costs/rankings retain the #998-compatible schema. Actual projected operators, physical witnesses and full costs remain absent; canonical acceptance is still pending, and no V4 or qualification state is earned. Motor's public export branch remains 66ea50988.",
+  "keep":["Charge assembly/projection/alignment rather than treating a ROM as free", "Carry helper source identities and exact byte pins", "Keep scoped controls alongside stronger applicable comparator arms"],
+  "change":["Real-data material and reference coverage must be returned before claiming empirical gap closure", "No green fixture can settle the buyer's strongest-baseline comparison"],
+  "protocol_elements":["scientific_contracts","claim_control","evidence_identity"],
+  "proposed_revision":null,
+  "status":"RECORDED"
+}
