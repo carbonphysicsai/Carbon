@@ -13,6 +13,12 @@ baseline: `43f664319e1c2f977908186d7a017f2eb0771251`. Current delivery policy
 OWNER-DX-03 supersedes historical review ceremony; the Development Hub is
 retired. This user-assigned research job does not select a WAVE implementation.
 
+Pre-handoff reconciliation: main advanced to
+`0e5eb8403fdc043e9d4e6c1f39a8897710c08f30` with OWNER-BATTERY-V3-FINALS-01.
+The crosswalk now distinguishes v3's registered A-Q nomination from its paired
+accuracy final, both retaining the inherited margin. That owner decision
+controls current development; future rule options do not adopt replacements.
+
 KEEP the Challenge-owned exam and promotion contracts. Propose options without
 changing packets, optimizer, runtime, score packs, thresholds or economics.
 Scientific promotion, incumbent deployment, weight entitlement and observed

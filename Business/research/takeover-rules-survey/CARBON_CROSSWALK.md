@@ -1,15 +1,20 @@
 # Carbon: screen, final, artifact and reward are separate
 
-Source snapshot `43f664319e1c2f977908186d7a017f2eb0771251`. All source constants
-are fixed low/base/high triples. Inspection is read-only; no evaluation data or
-operator state was accessed.
+Initial source snapshot `43f664319e1c2f977908186d7a017f2eb0771251`, reconciled
+with `0e5eb8403fdc043e9d4e6c1f39a8897710c08f30` before handoff. The latter adds
+the owner-decided v3 registered score and gate; it preserves the relative
+margin, paired accuracy final and fresh recipe rebuilds. All source constants
+are fixed low/base/high triples. Inspection is read-only; no protected
+evaluation data or operator state was accessed. This is source behavior, not a
+claim that a particular rule is deployed or scientifically qualified.
 
 | Surface | What the pinned source does | Recommendation / gap |
 |---|---|---|
-| Screening | `exam.nominate` requires eligibility, same pool version, same device class, score `< incumbent*(1-margin)` and an important-region check | It compares aggregates without a paired uncertainty test. This is the owner's “unpaired screen” shorthand; the source already requires the same pool, so do not claim disjoint case sets |
+| Screening | v2 `exam.nominate` uses lower-is-better accuracy loss; new v3 `nominate_registered` uses registered higher-is-better A-Q `> incumbent*(1+margin)`, its gate and the v2 important-region guard; both require the same pool version and device class | Aggregate nomination lacks a paired uncertainty test. This is the owner's “unpaired screen” shorthand; do not claim disjoint case sets. A-Q includes Q3 only here |
 | Margin | `equivalence_margin_rel = 0.056993107446249414`, displayed approximately 5.70% | Same setting feeds nomination and the frozen final. Split screen-cost policy, practical gain and inference confidence prospectively |
 | Final test | Paired case differences, 4,000 percentile draws, alpha 0.05 (two-sided quantiles); n_min 30, important_min 10 | Minimum counts are availability checks, not power guarantees. Case-IID bootstrap does not cover bank/source dependence or rebuild uncertainty by itself |
 | Final improvement | Interval excludes zero **and** point gain exceeds practical margin | Current rule does not require the whole interval beyond that margin. Proposed `LCB > delta_useful` is a different, stricter estimand and must be explicit |
+| v3 final gate / quantity | OWNER-BATTERY-V3-FINALS-01 keeps the v2 paired accuracy final and adds the challenger's registered candidate gate on that fresh batch; Q3 is not evaluated there | Respect the adopted development contract. Decision-value finals would need separately authorized measurement/producer changes; this survey proposes no runtime override |
 | Regional rule | Significant practical important-region regression blocks; too few important cases blocks | Failure to detect regression is not affirmative noninferiority. A required no-harm bound and its tolerances remain science/owner input |
 | Artifact | `process_final` reconstructs both recipes under the frozen matched training seed and retains final-specific models | VALIDATOR-32's stored-both proposal would test actual deployed artifacts; it would not prove recipe repeatability |
 | Changed incumbent | Final is withdrawn if the frozen incumbent has changed | Keep. A stale duel cannot automatically depose a different artifact |
@@ -23,20 +28,32 @@ Primary sources: [nomination](https://github.com/carbonphysicsai/Carbon/blob/43f
 [shared-key parity](https://github.com/carbonphysicsai/Carbon/blob/43f664319e1c2f977908186d7a017f2eb0771251/carbon/challenge_validator/acceptance.py),
 [eligibility contract](https://github.com/carbonphysicsai/Carbon/blob/43f664319e1c2f977908186d7a017f2eb0771251/.agent/tickets/VALIDATOR-14_testnet_winner_weights.md).
 
+Reconciliation sources: [owner's v3 finals decision](https://github.com/carbonphysicsai/Carbon/blob/0e5eb8403fdc043e9d4e6c1f39a8897710c08f30/.agent/decisions/2026-10-11-OWNER-BATTERY-V3-FINALS-01.md),
+[registered nomination and v3 rule](https://github.com/carbonphysicsai/Carbon/blob/0e5eb8403fdc043e9d4e6c1f39a8897710c08f30/carbon/battery/exam.py),
+[registered screening and final gate](https://github.com/carbonphysicsai/Carbon/blob/0e5eb8403fdc043e9d4e6c1f39a8897710c08f30/carbon/battery/daemon.py).
+The registered candidate is deployment-bound. The owner decision specifies
+`G-FEAS/A-Q>@0.05`: exactly 0.05 passes; these are fixed sourced low/base/high
+0.05/0.05/0.05, not new research choices. The feasibility gate does not remove
+either improvement margin and does not independently prove physical safety.
+
 ## A small gain cannot currently pass even without noise
 
-For lower-is-better score S, define gain `g=(S_inc-S_chal)/S_inc` only where the
-denominator is positive. Under identical hypothetical records, gains below the
-registered margin fail nomination; in the final they also cannot be “better”
-under its point-margin condition. More cases shrink uncertainty but cannot
-remove this deterministic barrier. Relative score gain is not automatically
-equal-budget design gain or customer value.
+For v2 lower-is-better loss S, define gain `g=(S_inc-S_chal)/S_inc` only where
+the denominator is positive. For v3 higher-is-better registered score R,
+nomination instead uses `g_R=(R_chal-R_inc)/R_inc`. Gains below the margin fail
+their respective screens. Independently, the final accuracy gain below its
+point-margin cannot be “better.” There is no assumed identity between A-Q gain
+and accuracy gain. More cases shrink uncertainty but cannot remove these
+deterministic barriers. Neither relative gain is automatically equal-budget
+design gain or customer value.
 
 Illustration **ASSUMPTION**: normalized incumbent score low/base/high = 1/1/1;
-true relative gain low/base/high = 0.005/0.01/0.02 (0.5%/1%/2%). All are below
-the sourced margin; all fail the ideal noise-free screen and final. This is an
-algebraic example, not observed Carbon performance. Near a zero denominator,
-use a registered absolute/decision-unit contrast rather than unstable ratios.
+true relative gain low/base/high = 0.005/0.01/0.02 (0.5%/1%/2%). Consider the
+screen-score and final-accuracy scenarios separately: each is below its sourced
+margin and fails even without noise. This algebra does not assert that one
+model has equal improvements in both quantities, and is not observed Carbon
+performance. Near a zero denominator, use a registered absolute/decision-unit
+contrast rather than unstable ratios.
 
 The existing [incentive simulation](https://github.com/carbonphysicsai/Carbon/blob/43f664319e1c2f977908186d7a017f2eb0771251/docs/development/incentive-mechanism-sim/README.md#L44)
 already gives a conditional path-dependence counterexample: repeated admission
