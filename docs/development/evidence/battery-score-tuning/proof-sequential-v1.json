@@ -1,0 +1,37 @@
+{
+  "schema": "carbon.battery.score-proof-sequential.v1",
+  "ticket": "SCORE-PROOF-01",
+  "registered": "2026-10-11, before any confirmation question is drawn or solved",
+  "owner_decision": {
+    "quote": "Go with ±0.15 and the early check at 150",
+    "relayed_by": "Test Lead, 2026-10-11 (the owner's precision target and interim look)"
+  },
+  "primary": "pooled across construction levels: the picked rule's tau-b between score rank and decision-value rank on the sealed confirmation questions, with the crossed recipe x question bootstrap interval at each look's nominal level",
+  "target_half_width": 0.15,
+  "planned_questions": 280,
+  "interim_questions": 150,
+  "alpha_two_sided": 0.05,
+  "spending": "Lan-DeMets O'Brien-Fleming, two looks: the interim at its actual information fraction (resolved questions / 280) and the final at 1",
+  "boundaries_at_plan": [
+    {"look": "interim", "fraction": 0.5357142857142857, "critical_z": 2.677820593684795, "nominal_alpha": 0.007410289824913985},
+    {"look": "final", "fraction": 1.0, "critical_z": 1.985425030412873, "nominal_alpha": 0.04709720342756096}
+  ],
+  "stopping": {
+    "PROVEN": "every screen passes and the pooled tau interval (at the look's nominal level) lies above 0: stop",
+    "FAIL": "any screen fails, or the pooled tau interval lies below 0: stop",
+    "FUTILE": "interim only, non-binding (alpha is unaffected): the pooled tau point estimate is at or below 0",
+    "CONTINUE": "interim, otherwise: draw and solve to about 280 questions",
+    "UNPROVEN": "final, otherwise"
+  },
+  "screens": [
+    "no known-bad member in the top half",
+    "no adversarial member in the top half",
+    "gate recall: every unsafe member fails the gate (or, with no gate, every unsafe member is in the bottom half)",
+    "a real recipe is deployable (not NONE_ELIGIBLE), and its top-1 regret is within the value noise band",
+    "no adversarial divergence"
+  ],
+  "screen_scope": "pooled, and each construction level with at least `minimum_level_members` members; per-level tau is reported descriptively, and a level that fails a screen gets its own powered proof",
+  "minimum_level_members": 10,
+  "registry": "registry-v5 is authoritative for SCORE-PROOF-01: 130 expanded rules (registry-v4's 129 plus the rule in force); confirmation tests one frozen pick against the rule in force (G-FEAS/A-Q>@0.05), so one contrast",
+  "questions": "drawn and sealed on the operator host (`score_proof_questions draw`): EV4's decision contract with new operating conditions from a host-generated seed, disjoint from EV4's 24 public conditions and from the quiz's Q3 scenarios; only the contract digest is public"
+}
