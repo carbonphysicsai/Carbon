@@ -452,6 +452,7 @@ plus USD 5 per run for compute, USD 45 over 3 runs.
 | `worst_case_run_cost` | `14.91` USD | R3's compute-inclusive 4.91 plus 10.00 for the model |
 | `permitted_runs` | `3` | the approval |
 | `max_submissions` | `3` | one per run |
+| `pod_rate_ceiling_usd_per_hr` | `0.65` USD | OWNER-GRAPHITE-PHASE3-R4-CEILING-01: the standing ceiling; the token share is 10.99 (was 11.93), leaving the session's 12 pods their 3.92 |
 | everything else | as GRAPHITE-GRANT-PHASE3-R3 | unchanged |
 
 **Run conditions** (`grant_binding.PHASE3_GRANTS`; recorded in each new
@@ -469,6 +470,10 @@ session's `run_conditions`):
   pods' 2.96 at today's rate ceiling, or the budget is refused
   `grant_token_share_leaves_too_little_for_pods`. Without the fixed share the
   split would follow the rate ceiling (today 11.95);
+- **from OWNER-GRAPHITE-PHASE3-R4-CEILING-01 (2026-10-11)** the grant names
+  the standing 0.65/h pod ceiling and the token share is USD 10.99 (still
+  five full kimi-k3 reservations); its pods get 3.92, exactly the 12 pods at
+  0.65/h. The split below is the original 11.93 one;
 - bound to battery and to main's committed blob.
 
 ### Arithmetic

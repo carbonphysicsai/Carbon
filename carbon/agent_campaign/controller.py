@@ -75,7 +75,7 @@ from pathlib import Path
 
 from carbon.challenge_readiness import admission, conditional_evidence
 
-from . import boundaries
+from . import boundaries, grant_runs
 from .grant import SpendingGrant
 from .provider import (
     TERMINAL,
@@ -192,6 +192,7 @@ class CampaignController:
         operator,
         clock=_now,
         crash_at=None,
+        shared_runs=False,
     ):
         root = Path(root)
         if not root.is_absolute() or root.is_symlink():
@@ -208,6 +209,9 @@ class CampaignController:
         self.grant = grant
         self.clock = clock
         self.crash_at = crash_at
+        #: A LIVE controller counts a grant's runs across every root on the host
+        #: (`grant_runs`); dry runs, prelive and tests leave it off.
+        self.shared_runs = shared_runs is True
         if crash_at is not None and crash_at not in CRASH_POINTS:
             raise ValueError("unknown crash point")
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -669,6 +673,18 @@ class CampaignController:
             rows = self._rows(db)
             if len(rows) >= self.grant.permitted_runs:
                 raise ControllerError("run_limit_reached")
+            if self.shared_runs:
+                # The grant's runs across every root on this host; fails closed.
+                try:
+                    grant_runs.claim(
+                        self.grant,
+                        self.store_id,
+                        idempotency_key,
+                        seed_keys=[row["key"] for row in rows],
+                        clock=lambda: self.clock().timestamp(),
+                    )
+                except grant_runs.SharedRunsError as error:
+                    raise ControllerError(error.code, str(error)) from None
             if (
                 sum(Phase(r["phase"]) in OPEN for r in rows)
                 >= self.grant.max_concurrency
@@ -888,10 +904,23 @@ class CampaignController:
             )
         return usage if known else None
 
+    def _weekly_settle(self, key, usage):
+        """A live run's reported cost replaces its worst-case reservation in the weekly
+        window. A failure leaves the reservation (the conservative side)."""
+        if not self.shared_runs or usage is None:
+            return
+        try:
+            grant_runs.settle(
+                self.grant, self.store_id, key, usage.settled + usage.pending
+            )
+        except grant_runs.SharedRunsError:
+            return
+
     def _settle(self, key, final, status):
         with self._db() as db:
             row = self._rows(db, "WHERE key=?", (key,))[0]
         usage = self._usage(key, row)
+        self._weekly_settle(key, usage)
         with self._db() as db:
             db.execute("UPDATE runs SET phase=? WHERE key=?", (final.value, key))
             if usage is not None:

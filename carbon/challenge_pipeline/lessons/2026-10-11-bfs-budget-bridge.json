@@ -1,0 +1,10 @@
+{
+ "schema":"carbon.challenge-pipeline.lesson.v1", "lesson_id":"2026-10-11-bfs-budget-bridge",
+ "recorded_at":"2026-10-11T12:30:34Z", "challenge":"backward-facing-step", "stage":"test_iterate",
+ "execution":{"kind":"test_run", "ref":"BENCHMARK-READINESS-BUILD-BFS-01", "description":"Offline bridge and budget regression diagnostics after PR Head's base sync"},
+ "expected":"Reuse #1047 ledger with the existing BFS proposal and leave historical four-family identity closed.",
+ "observed":"25 focused native tests passed. The bridge preserves the existing BFS-DEVELOPMENT-PROPOSED-V1 identity rather than renaming the proposal. Ruff found an import grouping issue, repaired before candidate push. Native diagnostics are not canonical acceptance.",
+ "keep":["Verified sync parents before author work", "Full-contour/service-brief charging", "No mutation of historical budget registry"],
+ "change":["Static readiness inventory must use the proposal's actual ID"],
+ "protocol_elements":["equal_budget", "source_bound_readiness"], "proposed_revision":null, "status":"RECORDED"
+}

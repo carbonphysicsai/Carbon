@@ -235,6 +235,18 @@ def classify_path(raw_path: str) -> PathClassification:
         )
     if path in _RUNTIME_EXACT:
         return PathClassification(path, ChangeScope.RUNTIME_FULL, "runtime exact path")
+    # Python is runtime wherever it lives (OWNER-CW1-DEVELOPMENT-CI-02).
+    # Classification is otherwise by path prefix, so a .py file outside the
+    # runtime prefixes took a contract or documentation lane and never met the
+    # quality job: 17 files under Business/ scored that way, and Business
+    # research Python reached main failing strict Black and Ruff (#1055,
+    # #1059), which then counted as new debt against every pull request that
+    # synced onto main. Deliberately before the contract and documentation
+    # prefixes below. This is the one rule whose scoring differs from the
+    # classifier pinned by OWNER-CW1-DEVELOPMENT-CI-01, which is why the owner
+    # authorized a new migration rather than it being changed quietly.
+    if path.endswith(".py"):
+        return PathClassification(path, ChangeScope.RUNTIME_FULL, "python is runtime")
     if path.startswith(_RUNTIME_PREFIXES):
         return PathClassification(path, ChangeScope.RUNTIME_FULL, "runtime prefix")
     # Deliberately after the runtime checks above: docs/DEVELOPMENT.md and

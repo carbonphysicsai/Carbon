@@ -19,7 +19,17 @@ from . import budget_registration, track_b
 
 SCHEMA = "carbon.design-search.equal-budget-panel.v1"
 REPORT_SCHEMA = "carbon.design-search.equal-budget-report.v1"
-CHALLENGES = {"battery-v3", "motor", "f02", "f13"}
+CHALLENGES = {
+    "f08",
+    "battery-v3",
+    "motor",
+    "f02",
+    "f13",
+    "backward-facing-step",
+    "bolted-joint",
+    "metagrating-3d",
+    "f17",
+}
 ARMS = ("solver_alone", "model_then_solver", "baseline_then_solver")
 
 
@@ -55,7 +65,7 @@ def seal(body):
 
 
 def _validate(panel):
-    if type(panel) is not dict or set(panel) != {
+    expected_keys = {
         "schema",
         "evidence_class",
         "challenge",
@@ -68,12 +78,20 @@ def _validate(panel):
         "jobs",
         "registrations",
         "panel_digest",
-    }:
+    }
+    if type(panel) is dict and panel.get("challenge") == "bolted-joint":
+        expected_keys.update({"evidence_scope", "customer_result"})
+    if type(panel) is not dict or set(panel) != expected_keys:
         raise EqualBudgetError("closed equal-budget panel schema required")
     if panel["schema"] != SCHEMA or panel["evidence_class"] != "DEVELOPMENT":
         raise EqualBudgetError("development panel required")
     if panel["challenge"] not in CHALLENGES:
         raise EqualBudgetError("unsupported Challenge")
+    if panel["challenge"] == "bolted-joint" and (
+        panel["evidence_scope"] != "REPRESENTATIVE"
+        or panel["customer_result"] is not False
+    ):
+        raise EqualBudgetError("representative non-customer rehearsal required")
     if panel["panel_digest"] != _digest(
         {k: v for k, v in panel.items() if k != "panel_digest"}
     ):
@@ -383,9 +401,23 @@ def _summarize(results, direction):
 def compare(panel, *, bootstrap_replicates, confidence, seed, registration=None):
     """Return paired, cluster-bootstrap curves; no inference or solver calls."""
     _validate(panel)
-    registered = (
-        None if registration is None else budget_registration.validate(registration)
-    )
+    validate_registration = budget_registration.validate
+    if panel["challenge"] == "backward-facing-step":
+        from .bfs_budget import validate as validate_registration
+    elif panel["challenge"] == "f17":
+        from .micromixer_budget import validate as validate_registration
+    elif panel["challenge"] == "metagrating-3d":
+        from .metagrating_budget import validate as validate_registration
+    elif panel["challenge"] == "bolted-joint":
+        from .bolted_budget import validate as validate_registration
+
+        # bolted-joint keeps its own rule: the proposal is not optional.
+        if registration is None:
+            raise EqualBudgetError("representative budget proposal required")
+    elif panel["challenge"] == "f08":
+        from .structures_budget import validate as validate_registration
+
+    registered = None if registration is None else validate_registration(registration)
     if registered is not None:
         expected = [
             registered.cap(panel["challenge"], tier).time_compute
@@ -418,6 +450,10 @@ def compare(panel, *, bootstrap_replicates, confidence, seed, registration=None)
             ),
             "curves": [],
         }
+        if panel["challenge"] == "bolted-joint":
+            unresolved_report.update(
+                evidence_scope="REPRESENTATIVE", customer_result=False
+            )
         if registered is not None:
             unresolved_report.update(
                 budget_registration_digest=registered.registration_digest,
@@ -509,6 +545,8 @@ def compare(panel, *, bootstrap_replicates, confidence, seed, registration=None)
         "bootstrap_seed": seed,
         "curves": curves,
     }
+    if panel["challenge"] == "bolted-joint":
+        report.update(evidence_scope="REPRESENTATIVE", customer_result=False)
     if registered is not None:
         report.update(
             budget_registration_digest=registered.registration_digest,

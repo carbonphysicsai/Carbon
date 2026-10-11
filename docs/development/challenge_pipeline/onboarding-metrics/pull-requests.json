@@ -1,0 +1,408 @@
+{
+  "captured_at": "2026-10-11T17:04:20Z",
+  "errors": {},
+  "prs": {
+    "722": {
+      "closedAt": "2026-10-07T13:43:18Z",
+      "createdAt": "2026-10-06T21:40:44Z",
+      "headRefOid": "4b2b308a00577841ecf8a3c78b097ff63732f6ae",
+      "mergeCommit": {
+        "oid": "27dc151f3599b1f28a2f9be99a5a3b8a1b229ed4"
+      },
+      "mergedAt": "2026-10-07T13:43:18Z",
+      "number": 722,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/722"
+    },
+    "752": {
+      "closedAt": "2026-10-07T18:41:20Z",
+      "createdAt": "2026-10-07T17:25:27Z",
+      "headRefOid": "8f12c8c377bd0eb5190d98bafffcc0a8b16ab72d",
+      "mergeCommit": {
+        "oid": "ddac443a5814de4a18995286f1dbb0c22bde1c9b"
+      },
+      "mergedAt": "2026-10-07T18:41:20Z",
+      "number": 752,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/752"
+    },
+    "776": {
+      "closedAt": "2026-10-08T02:11:34Z",
+      "createdAt": "2026-10-07T21:42:38Z",
+      "headRefOid": "63d641b65a7e54ee547c1dd7b2aafece3b4d1366",
+      "mergeCommit": {
+        "oid": "0318521193df5ec810c0bf324499eae952683487"
+      },
+      "mergedAt": "2026-10-08T02:11:34Z",
+      "number": 776,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/776"
+    },
+    "804": {
+      "closedAt": "2026-10-08T12:34:35Z",
+      "createdAt": "2026-10-08T11:03:38Z",
+      "headRefOid": "fed634974f92575cbde509ddc83f5fc4a3fe28da",
+      "mergeCommit": {
+        "oid": "d4deabe2b48f00173d04130dcfbcd8ef4905b451"
+      },
+      "mergedAt": "2026-10-08T12:34:35Z",
+      "number": 804,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/804"
+    },
+    "822": {
+      "closedAt": "2026-10-08T17:51:06Z",
+      "createdAt": "2026-10-08T15:12:25Z",
+      "headRefOid": "561bee38aee376e2dc601753d843689e663d2c71",
+      "mergeCommit": {
+        "oid": "ce2b3b79d676cc2727fad8e2bd5ac609633385be"
+      },
+      "mergedAt": "2026-10-08T17:51:06Z",
+      "number": 822,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/822"
+    },
+    "837": {
+      "closedAt": "2026-10-08T19:43:26Z",
+      "createdAt": "2026-10-08T19:05:16Z",
+      "headRefOid": "e2edf9fced4320e6a0407225a15874df22a0053e",
+      "mergeCommit": {
+        "oid": "3db7af3fe520aaa39add68cfbbb78adc92180733"
+      },
+      "mergedAt": "2026-10-08T19:43:26Z",
+      "number": 837,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/837"
+    },
+    "917": {
+      "closedAt": "2026-10-09T18:58:37Z",
+      "createdAt": "2026-10-09T14:42:45Z",
+      "headRefOid": "57807f1ecb70d24d1f0705805468dc86f99ef8d5",
+      "mergeCommit": {
+        "oid": "294ffeebd37231ffbe6fc6c3618f4e04fa16e1a7"
+      },
+      "mergedAt": "2026-10-09T18:58:37Z",
+      "number": 917,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/917"
+    },
+    "919": {
+      "closedAt": "2026-10-09T18:58:47Z",
+      "createdAt": "2026-10-09T15:02:59Z",
+      "headRefOid": "891a77bc29aacfb53a60451d19279e88459827df",
+      "mergeCommit": {
+        "oid": "399d46894f5fe05240ed47b796429f9bc34ff35e"
+      },
+      "mergedAt": "2026-10-09T18:58:47Z",
+      "number": 919,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/919"
+    },
+    "922": {
+      "closedAt": "2026-10-09T18:59:18Z",
+      "createdAt": "2026-10-09T16:35:27Z",
+      "headRefOid": "cfc306b9b9160a87d3f9d62dcf69ece995b1cbad",
+      "mergeCommit": {
+        "oid": "e9dc7711c73907f894346508b528ab6bb7c2d13f"
+      },
+      "mergedAt": "2026-10-09T18:59:18Z",
+      "number": 922,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/922"
+    },
+    "927": {
+      "closedAt": "2026-10-09T19:57:50Z",
+      "createdAt": "2026-10-09T17:29:00Z",
+      "headRefOid": "c91ffbdfd9e5b033492f0d4f52b6166e59d23fef",
+      "mergeCommit": {
+        "oid": "4c94091ebaf60cdd8263fca4cfd5236f6d637bed"
+      },
+      "mergedAt": "2026-10-09T19:57:50Z",
+      "number": 927,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/927"
+    },
+    "928": {
+      "closedAt": "2026-10-09T19:14:10Z",
+      "createdAt": "2026-10-09T17:36:32Z",
+      "headRefOid": "f6e5eea975fc19bf84aa65dc6e3093624c000860",
+      "mergeCommit": {
+        "oid": "2e97aa1ba70806dc285e7eaceca1c7656f5495a3"
+      },
+      "mergedAt": "2026-10-09T19:14:10Z",
+      "number": 928,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/928"
+    },
+    "936": {
+      "closedAt": "2026-10-09T19:56:13Z",
+      "createdAt": "2026-10-09T19:10:27Z",
+      "headRefOid": "8879529d959bf81472e120f4430a65651afb552a",
+      "mergeCommit": {
+        "oid": "75cd4b14e826b110023cbaca1ca57d5b5b239e90"
+      },
+      "mergedAt": "2026-10-09T19:56:13Z",
+      "number": 936,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/936"
+    },
+    "965": {
+      "closedAt": "2026-10-10T13:17:35Z",
+      "createdAt": "2026-10-10T12:40:35Z",
+      "headRefOid": "d2eb09890b9955e7edec14404d348364986e3af8",
+      "mergeCommit": {
+        "oid": "6974ce9ff74607fff83be7b5680e832d510caff9"
+      },
+      "mergedAt": "2026-10-10T13:17:35Z",
+      "number": 965,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/965"
+    },
+    "994": {
+      "closedAt": "2026-10-10T21:16:59Z",
+      "createdAt": "2026-10-10T18:48:25Z",
+      "headRefOid": "9fd45a55486dcd32080ab9d473f25fdfdee3062f",
+      "mergeCommit": {
+        "oid": "e1ee386e774b87ca1aeb8d705ebc537a94111f26"
+      },
+      "mergedAt": "2026-10-10T21:16:59Z",
+      "number": 994,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/994"
+    },
+    "998": {
+      "closedAt": "2026-10-10T21:08:13Z",
+      "createdAt": "2026-10-10T19:13:24Z",
+      "headRefOid": "7ad19e79592c9513bd29bc91b168427ceb71227f",
+      "mergeCommit": {
+        "oid": "e352170fdbaab2bba5f340162132ba98d27d4149"
+      },
+      "mergedAt": "2026-10-10T21:08:13Z",
+      "number": 998,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/998"
+    },
+    "1010": {
+      "closedAt": "2026-10-11T01:32:19Z",
+      "createdAt": "2026-10-10T21:28:57Z",
+      "headRefOid": "b59c2e1fedd4517e3063af2e66b70617ba7712d8",
+      "mergeCommit": {
+        "oid": "d3915e7dae53e673de234129ff5bbe78366e9a87"
+      },
+      "mergedAt": "2026-10-11T01:32:19Z",
+      "number": 1010,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/1010"
+    },
+    "1011": {
+      "closedAt": "2026-10-10T22:06:47Z",
+      "createdAt": "2026-10-10T21:29:06Z",
+      "headRefOid": "c12f18e953c696c9778585c89b41d6194d1d8cd9",
+      "mergeCommit": {
+        "oid": "5fbac3099eaae368b23d266cce31ed7409685722"
+      },
+      "mergedAt": "2026-10-10T22:06:47Z",
+      "number": 1011,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/1011"
+    },
+    "1024": {
+      "closedAt": "2026-10-10T22:43:14Z",
+      "createdAt": "2026-10-10T22:39:41Z",
+      "headRefOid": "e3f587384887c7f1893ea805659b648053366ebe",
+      "mergeCommit": {
+        "oid": "94b193525f5d55eb20168ebbdbcf43ddf33653f1"
+      },
+      "mergedAt": "2026-10-10T22:43:14Z",
+      "number": 1024,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/1024"
+    },
+    "1025": {
+      "closedAt": "2026-10-10T23:11:35Z",
+      "createdAt": "2026-10-10T22:40:20Z",
+      "headRefOid": "a32a6f20efdc28b8b4a1dc1e5527ee94e6187c35",
+      "mergeCommit": {
+        "oid": "5bec2ac5cc1a36316eaa07b4dfb6082a268e2b2b"
+      },
+      "mergedAt": "2026-10-10T23:11:35Z",
+      "number": 1025,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/1025"
+    },
+    "1030": {
+      "closedAt": "2026-10-11T01:52:45Z",
+      "createdAt": "2026-10-10T23:10:14Z",
+      "headRefOid": "d2f62d39b9dab69463c3bbca365a03a88fa5ce5e",
+      "mergeCommit": {
+        "oid": "a975a96bb5038ac213c527f30d4c3d6617076c9c"
+      },
+      "mergedAt": "2026-10-11T01:52:45Z",
+      "number": 1030,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/1030"
+    },
+    "1039": {
+      "closedAt": "2026-10-11T13:42:07Z",
+      "createdAt": "2026-10-11T00:28:10Z",
+      "headRefOid": "38e8733dfd07e99cbf941db1636b1dc7f6c840c5",
+      "mergeCommit": {
+        "oid": "e520e816dd77412ae329879453ccb366886757c3"
+      },
+      "mergedAt": "2026-10-11T13:42:07Z",
+      "number": 1039,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/1039"
+    },
+    "1046": {
+      "closedAt": "2026-10-11T14:34:29Z",
+      "createdAt": "2026-10-11T00:49:23Z",
+      "headRefOid": "0c5374859d2e30f814ceaf76349b6d1501cf6be3",
+      "mergeCommit": {
+        "oid": "a0e3d1eb6d41b6d23087f14df6c6962bb6b5dfbe"
+      },
+      "mergedAt": "2026-10-11T14:34:29Z",
+      "number": 1046,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/1046"
+    },
+    "1050": {
+      "closedAt": "2026-10-11T12:13:43Z",
+      "createdAt": "2026-10-11T01:31:02Z",
+      "headRefOid": "ce775359f1c77c7037cf86ed2b5595aacd495277",
+      "mergeCommit": {
+        "oid": "07d414638f1ede517d59cca2a30554360d934716"
+      },
+      "mergedAt": "2026-10-11T12:13:43Z",
+      "number": 1050,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/1050"
+    },
+    "1053": {
+      "closedAt": "2026-10-11T13:48:42Z",
+      "createdAt": "2026-10-11T01:46:17Z",
+      "headRefOid": "0e568fabd77afd299aee2177c7a0bf832ca209ec",
+      "mergeCommit": {
+        "oid": "9e25e948583638c72045d3007e71c0ed2ece2e30"
+      },
+      "mergedAt": "2026-10-11T13:48:42Z",
+      "number": 1053,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/1053"
+    },
+    "1061": {
+      "closedAt": "2026-10-11T15:29:10Z",
+      "createdAt": "2026-10-11T02:24:16Z",
+      "headRefOid": "21f6dcbd7b4a84f7fe9b43dd7d8c654ba7a1b169",
+      "mergeCommit": {
+        "oid": "dfaf2115b629696f824abf78bbf50ec359b9ca3c"
+      },
+      "mergedAt": "2026-10-11T15:29:10Z",
+      "number": 1061,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/1061"
+    },
+    "1065": {
+      "closedAt": "2026-10-11T13:42:20Z",
+      "createdAt": "2026-10-11T02:44:58Z",
+      "headRefOid": "acba6a6234ad72eceffd3c2e358460cb789ff679",
+      "mergeCommit": {
+        "oid": "dadb2fb509548fc6f9e222acfde61a20f000920e"
+      },
+      "mergedAt": "2026-10-11T13:42:20Z",
+      "number": 1065,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/1065"
+    },
+    "1074": {
+      "closedAt": null,
+      "createdAt": "2026-10-11T12:05:19Z",
+      "headRefOid": "a227a41ba8c747a6e65f81c1d1111195b5652671",
+      "mergeCommit": null,
+      "mergedAt": null,
+      "number": 1074,
+      "state": "OPEN",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/1074"
+    },
+    "1077": {
+      "closedAt": "2026-10-11T13:49:16Z",
+      "createdAt": "2026-10-11T12:10:34Z",
+      "headRefOid": "d05ea1c1b1f396d4901885a66780f0bc392fc630",
+      "mergeCommit": {
+        "oid": "80dad6f35963d51c36429a28f3e8f354414cdb19"
+      },
+      "mergedAt": "2026-10-11T13:49:16Z",
+      "number": 1077,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/1077"
+    },
+    "1086": {
+      "closedAt": "2026-10-11T13:49:24Z",
+      "createdAt": "2026-10-11T12:41:09Z",
+      "headRefOid": "b7534e9dc86342f16bca039cfa4540bcc844c1b2",
+      "mergeCommit": {
+        "oid": "59fc17a74134afd5628771e462ac567bf79e9120"
+      },
+      "mergedAt": "2026-10-11T13:49:24Z",
+      "number": 1086,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/1086"
+    },
+    "1091": {
+      "closedAt": "2026-10-11T16:31:35Z",
+      "createdAt": "2026-10-11T13:08:21Z",
+      "headRefOid": "77971d62cff3d89f826be8d5c46b5213eff3a9a7",
+      "mergeCommit": {
+        "oid": "2cfc2508e267e1b794d32fa617603bcc7e122397"
+      },
+      "mergedAt": "2026-10-11T16:31:35Z",
+      "number": 1091,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/1091"
+    },
+    "1093": {
+      "closedAt": "2026-10-11T15:34:18Z",
+      "createdAt": "2026-10-11T13:51:49Z",
+      "headRefOid": "c7c67da253e746bf4b96046e1023df93ca949bc1",
+      "mergeCommit": {
+        "oid": "946eb0b6495fbbb56cc2f0297d39986945295e36"
+      },
+      "mergedAt": "2026-10-11T15:34:18Z",
+      "number": 1093,
+      "state": "MERGED",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/1093"
+    },
+    "1095": {
+      "closedAt": null,
+      "createdAt": "2026-10-11T14:01:32Z",
+      "headRefOid": "592fc9bc51766a1bb9de4a25324f9cd06f017bfc",
+      "mergeCommit": null,
+      "mergedAt": null,
+      "number": 1095,
+      "state": "OPEN",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/1095"
+    },
+    "1102": {
+      "closedAt": null,
+      "createdAt": "2026-10-11T14:26:35Z",
+      "headRefOid": "d770f0e00c485908deff1f231b0d4f1c4cf27fe7",
+      "mergeCommit": null,
+      "mergedAt": null,
+      "number": 1102,
+      "state": "OPEN",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/1102"
+    },
+    "1109": {
+      "closedAt": null,
+      "createdAt": "2026-10-11T16:27:06Z",
+      "headRefOid": "e103251b168c192b8711a40383d70dd9c16a8509",
+      "mergeCommit": null,
+      "mergedAt": null,
+      "number": 1109,
+      "state": "OPEN",
+      "url": "https://github.com/carbonphysicsai/Carbon/pull/1109"
+    }
+  },
+  "schema": "carbon.onboarding.public-pr-capture.v1",
+  "capture_started_at": "2026-10-11T16:55:28.522647Z"
+}
