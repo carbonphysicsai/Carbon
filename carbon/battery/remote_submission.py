@@ -81,6 +81,93 @@ def check_receiver(facts, receiver):
     return facts
 
 
+#: The intake takes no Level 4 envelope parts (LAUNCHPAD-LEVELS-01 S4).
+LEVEL4_TRANSPORT_UNAVAILABLE = "level4_envelope_transport_unavailable"
+
+
+def _level4_held(url, signer, submission, read, post, receiver):
+    """`(held indices, part count or None)` the intake answers for the
+    envelope named `submission`; `IntakeRefusal` for any refusal."""
+    facts = check_receiver(read(url), receiver)
+    body = intake_client.level4_status_message(facts, submission)
+    status, answer = post(url, body, _signed(signer, facts, body))
+    if "refused" in answer:
+        raise IntakeRefusal(answer["refused"], intake_client.describe(status, answer))
+    held, parts = answer.get("held"), answer.get("parts")
+    if (
+        status != 200
+        or answer.get("submission") != submission
+        or type(held) is not list
+        or any(type(i) is not int for i in held)
+        or (parts is not None and type(parts) is not int)
+    ):
+        raise IntakeRefusal("intake_answer_unrecognised")
+    return set(held), parts
+
+
+def send_level4_envelope(
+    url,
+    signer,
+    *,
+    submission,
+    envelope,
+    read=intake_client.read_intake,
+    post=intake_client.post,
+    receiver=None,
+):
+    """A Level 4 candidate's frozen staging envelope, sent ahead of its
+    `battery_submit` as signed `battery_level4_part` calls
+    (`carbon.battery.level4_parts`, VALIDATOR-25 slice 4).
+
+    The envelope's bytes are sent exactly as frozen, cut by
+    `level4_parts.split`. The intake is asked first which parts it holds
+    (`battery_level4_status`) and only the missing ones are sent, so a
+    resumed or replayed send uploads nothing twice. Each request is signed by
+    the miner's signer for the intake's receiver after `check_receiver`.
+    Every refusal raises `IntakeRefusal` with its code, never retried: an
+    intake that lists no part tools is `level4_envelope_transport_unavailable`
+    (nothing signed); a part the intake holds with other bytes is
+    `level4_part_conflict`, and another part count `level4_parts_mismatch`.
+    Returns the number of parts sent; raises `level4_envelope_incomplete`
+    unless the intake then holds every part."""
+    from .level4_parts import PartRefused, carries_parts, split
+
+    try:
+        chunks = split(envelope)
+    except PartRefused as refused:
+        raise IntakeRefusal(refused.code, intake_client.explain(refused.code)) from None
+    if not carries_parts(check_receiver(read(url), receiver)):
+        raise IntakeRefusal(
+            LEVEL4_TRANSPORT_UNAVAILABLE,
+            intake_client.explain(LEVEL4_TRANSPORT_UNAVAILABLE),
+        )
+    held, parts = _level4_held(url, signer, submission, read, post, receiver)
+    if parts is not None and parts != len(chunks):
+        code = "level4_parts_mismatch"
+        raise IntakeRefusal(code, intake_client.explain(code))
+    sent = 0
+    for index, data in enumerate(chunks):
+        if index in held:
+            continue
+        facts = check_receiver(read(url), receiver)
+        body = intake_client.level4_part_message(
+            facts, submission, index, len(chunks), data
+        )
+        status, answer = post(url, body, _signed(signer, facts, body))
+        if "refused" in answer:
+            raise IntakeRefusal(
+                answer["refused"], intake_client.describe(status, answer)
+            )
+        if status != 200:
+            raise IntakeRefusal("intake_answer_unrecognised")
+        sent += 1
+    held, parts = _level4_held(url, signer, submission, read, post, receiver)
+    if parts != len(chunks) or held != set(range(len(chunks))):
+        code = "level4_envelope_incomplete"
+        raise IntakeRefusal(code, intake_client.explain(code))
+    return sent
+
+
 def submit_and_wait(
     url,
     signer,

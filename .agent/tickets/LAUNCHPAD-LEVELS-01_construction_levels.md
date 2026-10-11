@@ -9,8 +9,10 @@
 fixture intakes and registry fixtures (2026-10-09; decisions in
 `.agent/decisions/2026-10-09-LAUNCHPAD-LEVELS-01-S2-S3.md`). Real-run
 acceptance (plan §3.8, cells L1–L4) is pending VALIDATOR-25 slice 2's
-`served_contracts` and the ladder deployment for `carbon-rehearsal-minerC`;
-Level 4's send also waits for the validator's envelope transport. It follows
+`served_contracts` and the ladder deployment for `carbon-rehearsal-minerC`.
+S4 (Level 4's envelope sent in signed parts to a target whose `tools` list
+them; decisions in `.agent/decisions/2026-10-10-LAUNCHPAD-LEVELS-01-S4.md`)
+is IMPLEMENTED and TESTED with a fixture ladder intake. It follows
 LAUNCHPAD-ACCEPT-04 (#778).
 
 ## What exists (origin/main df26107c2)

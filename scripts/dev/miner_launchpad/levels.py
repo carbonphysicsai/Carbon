@@ -14,8 +14,9 @@ facts. It names no Challenge and imports no variant module.
 - **Submit and commit** refuse, before anything is signed, a binding no
   longer registered (`level_not_registered`) and a target whose
   `served_contracts` do not list it (`level_not_served_by_target`), and, for
-  Level 4, every send while no intake carries the staging envelope
-  (`level4_envelope_transport_unavailable`).
+  Level 4, a target whose public `tools` do not take the staging envelope's
+  signed parts (`level4_envelope_transport_unavailable`, S4). Where they do,
+  the campaign sends the envelope's parts, then the candidate.
 """
 
 from __future__ import annotations
@@ -156,8 +157,10 @@ def require_served(cfg, manifest, read=None):
     `level_not_registered` when its frozen variant is no longer its level's
     current one, `level_not_served_by_target` when the target intake's
     `served_contracts` do not list it (while it publishes none, every level
-    above 0), and `level4_envelope_transport_unavailable` for Level 4. A
-    Level 0 campaign is not checked here."""
+    above 0), and `level4_envelope_transport_unavailable` for Level 4 when
+    the target lists no envelope part tools (fail closed; where it lists
+    them the campaign sends the envelope in signed parts first). A Level 0
+    campaign is not checked here."""
     cl = _cl()
     found = cl.binding(manifest)
     if found is None:
@@ -173,7 +176,10 @@ def require_served(cfg, manifest, read=None):
     if facts is None or not cl.lists(facts, found):
         raise _rejected(cl.LevelRefused(cl.NOT_SERVED))
     if found["level"] == cl.LEVEL4:
-        raise _rejected(cl.LevelRefused(cl.LEVEL4_TRANSPORT_UNAVAILABLE))
+        from carbon.battery.level4_parts import carries_parts
+
+        if not carries_parts(facts):
+            raise _rejected(cl.LevelRefused(cl.LEVEL4_TRANSPORT_UNAVAILABLE))
 
 
 def campaign_slot(found, base_slot):
