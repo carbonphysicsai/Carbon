@@ -1,0 +1,406 @@
+"""Campaign orchestration on three synthetic jobs; never a reference solve."""
+
+from __future__ import annotations
+
+import copy
+import json
+from pathlib import Path
+
+import pytest
+from test_design_search_adaptive_arms import _panel as adaptive_fixture
+from test_evidence_pipeline import bundle
+
+from carbon.design_search import adaptive_arms, budget_registration, equal_budget
+from carbon.development_comparison import evidence_campaign as campaign
+
+ROOT = Path(__file__).resolve().parents[2]
+REGISTRATION = (
+    ROOT / "docs/development/challenge_pipeline/equal-budget-registration-v1.json"
+)
+RULE = ROOT / "docs/development/challenge_pipeline/value-bar-v1.json"
+
+
+def _write(path, value):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    return {"path": path.name, "sha256": campaign._sha(path.read_bytes())}
+
+
+def _adaptive(documents, registration, family):
+    example, _ = adaptive_fixture(battery=family == "battery-v3", f02=family == "f02")
+    policy = adaptive_arms.seal(
+        {
+            **{k: v for k, v in example["policy"].items() if k != "policy_digest"},
+            "decision_rule_id": documents["replay"]["decision_rule_id"],
+        },
+        "policy_digest",
+    )
+    jobs = []
+    for base in documents["replay"]["jobs"]:
+        candidates = base["candidates"]
+        actions = []
+        for index, candidate in enumerate(candidates):
+            verdict = candidate["reference"]
+            if family == "battery-v3":
+                margins = {
+                    band: {
+                        "limit_a": -1.0 if row["status"] == "INFEASIBLE" else 1.0,
+                        "limit_b": 1.0,
+                    }
+                    for band, row in verdict["per_index"].items()
+                }
+            else:
+                margins = {
+                    "limit_a": -1.0 if verdict["status"] == "INFEASIBLE" else 1.0,
+                    "limit_b": 1.0,
+                }
+            actions.append(
+                {
+                    "design_id": candidate["design_id"],
+                    "branch": "synthetic-branch",
+                    "coordinates": {"setting": index},
+                    "margins": margins,
+                    "reference_cause": None,
+                    "warm_start_from": None,
+                    "attempts": [
+                        {
+                            "kind": "final",
+                            "cost": candidate["solve_cost"],
+                            "planning_bound": candidate["planning_bound"],
+                            "peak_ram_bytes": 1024,
+                        }
+                    ],
+                }
+            )
+        jobs.append(
+            {
+                "job_id": base["job_id"],
+                "axes": [
+                    {
+                        "name": "setting",
+                        "type": "ordinal",
+                        "values": list(range(len(actions))),
+                    }
+                ],
+                "actions": actions,
+                "starts": [actions[0]["design_id"]],
+                "common_cache": [],
+                "cache_source": None,
+                "condition_panel_digest": "sha256:" + "e" * 64,
+                "cache_acquisition": {"wall_s": 0, "core_s": 0},
+                "cache_acquisition_peak_ram_bytes": 0,
+            }
+        )
+    panel = adaptive_arms.seal(
+        {
+            "schema": adaptive_arms.SCHEMA,
+            "base_panel": documents["replay"],
+            "policy": policy,
+            "jobs": jobs,
+        },
+        "adaptive_digest",
+    )
+    adaptive_arms.validate(panel, registration)
+    return panel
+
+
+def _fixture(tmp_path):
+    registration = json.loads(REGISTRATION.read_text(encoding="utf-8"))
+    rule = json.loads(RULE.read_text(encoding="utf-8"))
+    reg_file = tmp_path / "registration.json"
+    rule_file = tmp_path / "value-rule.json"
+    _write(reg_file, registration)
+    _write(rule_file, rule)
+    readiness, stages = {}, []
+    module = ROOT / "carbon/development_comparison/campaign_fixture.py"
+    module_sha = campaign._sha(module.read_bytes())
+    for family in campaign.FAMILIES:
+        source = tmp_path / family
+        manifest, docs = bundle(family, full_f02=family == "f02")
+        replay = copy.deepcopy(docs["replay"])
+        body = {k: v for k, v in replay.items() if k != "panel_digest"}
+        body["budgets"] = [
+            budget_registration.validate(registration).cap(family, tier).time_compute
+            for tier in budget_registration.TIERS
+        ]
+        body["registrations"]["cost_plan"] = budget_registration.REGISTRATION_ID
+        docs["replay"] = equal_budget.seal(body)
+        panel = _adaptive(docs, registration, family)
+        for role, document in docs.items():
+            if document is None:
+                manifest["files"][role] = None
+            else:
+                descriptor = _write(source / (role + ".json"), document)
+                manifest["files"][role] = descriptor
+        _write(source / "manifest.json", manifest)
+        _write(source / "adaptive_panel.json", panel)
+        receipt = {
+            "schema": campaign.READINESS,
+            "challenge": family,
+            "main": "a" * 40,
+            "observed_at": "2026-10-11T00:00:00+00:00",
+            "items": [
+                {
+                    "item": i,
+                    "label": label,
+                    "state": "YES",
+                    "basis": "SYNTHETIC FIXTURE ONLY",
+                    "owner": "fixture",
+                    "pointers": ["fixture"],
+                }
+                for i, label in enumerate(campaign.READINESS_LABELS, 1)
+            ],
+            "yes_count": 7,
+            "all_prerequisites_yes": True,
+            "spend_authorized": False,
+            "qualified": False,
+            "paid_run_output_exception": "none",
+            "examined_sources": {},
+        }
+        readiness_file = tmp_path / (family + "-readiness.json")
+        readiness[family] = _write(readiness_file, receipt)
+        for phase in ("reference", "train", "assemble"):
+            shards = 2 if phase == "reference" else 1
+            for shard in range(shards):
+                inputs = (
+                    {
+                        "manifest": {
+                            "path": f"{family}/manifest.json",
+                            "sha256": campaign._sha(
+                                (source / "manifest.json").read_bytes()
+                            ),
+                            "role": "SYNTHETIC_FIXTURE",
+                        },
+                        "adaptive_panel": {
+                            "path": f"{family}/adaptive_panel.json",
+                            "sha256": campaign._sha(
+                                (source / "adaptive_panel.json").read_bytes()
+                            ),
+                            "role": "SYNTHETIC_FIXTURE",
+                        },
+                    }
+                    if phase == "assemble"
+                    else {}
+                )
+                stages.append(
+                    {
+                        "family": family,
+                        "phase": phase,
+                        "shard": shard,
+                        "shards": shards,
+                        "module": "carbon.development_comparison.campaign_fixture",
+                        "module_sha256": module_sha,
+                        "vcpus": 1,
+                        "planned_wall_s": 30,
+                        "planned_core_s": 1,
+                        "inputs": inputs,
+                    }
+                )
+        if family == "battery-v3":
+            stages.append(
+                {
+                    "family": family,
+                    "phase": "score",
+                    "shard": 0,
+                    "shards": 1,
+                    "module": "carbon.development_comparison.campaign_fixture",
+                    "module_sha256": module_sha,
+                    "vcpus": 1,
+                    "planned_wall_s": 30,
+                    "planned_core_s": 1,
+                    "inputs": {},
+                }
+            )
+    plan = campaign.seal(
+        {
+            "schema": campaign.SCHEMA,
+            "scope": "SYNTHETIC_FIXTURE",
+            "campaign_id": "synthetic-three-challenge",
+            "readiness": readiness,
+            "budget_registration": {
+                "path": reg_file.name,
+                "sha256": campaign._sha(reg_file.read_bytes()),
+            },
+            "value_rule": {
+                "path": rule_file.name,
+                "sha256": campaign._sha(rule_file.read_bytes()),
+            },
+            "stages": stages,
+            "pricing": {
+                "eur_per_node_hour": 1.37,
+                "fixed_eur": 0.1,
+                "basis": "ASSUMPTION",
+                "source": "synthetic-fixture",
+            },
+            "hard_cap_eur": 1.0,
+            "analysis": {"bootstrap_replicates": 100, "confidence": 0.95, "seed": 7},
+            "analysis_reserve": {
+                family: {"wall_s": 60, "core_s": 60} for family in campaign.FAMILIES
+            },
+        },
+        "plan_digest",
+    )
+    plan_path = tmp_path / "plan.json"
+    _write(plan_path, plan)
+    return plan, plan_path
+
+
+def test_three_challenge_dry_run_and_resume(tmp_path):
+    plan, path = _fixture(tmp_path)
+    workspace = tmp_path / "work"
+    (workspace / "motor/reference/0/attempt-1").mkdir(parents=True)
+    result = campaign.run(plan, tmp_path, workspace, dry_run=True)
+    assert set(result["challenges"]) == set(campaign.FAMILIES)
+    assert all(
+        row["value_status"] == "INSUFFICIENT_EVIDENCE"
+        for row in result["challenges"].values()
+    )
+    assert all(row["adaptive_status"] == "OK" for row in result["challenges"].values())
+    assert result["sheet"]["planned_cpu_hours"] > 0
+    assert result["challenges"]["battery-v3"]["score_plugin"] == "RECORDED_NOT_ADOPTED"
+    assert result["challenges"]["f02"]["score_plugin"] == "NOT_REGISTERED"
+    assert (workspace / "battery-v3/evidence-pack/score-plugin.json").is_file()
+    for family in campaign.FAMILIES:
+        assert (
+            "SYNTHETIC FIXTURE"
+            in (workspace / family / "evidence-pack/evidence.md").read_text()
+        )
+    assert (
+        campaign.run(plan, tmp_path, workspace, dry_run=True)["challenges"]
+        == result["challenges"]
+    )
+    assert path.is_file()
+    checkpoint = workspace / "checkpoint.json"
+    original_state = checkpoint.read_bytes()
+    assert json.loads(original_state)["completed"]["motor/reference/0"][
+        "attempt_dir"
+    ].endswith("attempt-2")
+    altered_state = json.loads(original_state)
+    altered_state["billed_wall_s"] = 0
+    checkpoint.write_text(json.dumps(altered_state), encoding="utf-8")
+    with pytest.raises(campaign.CampaignRefused, match="PLAN_IDENTITY_MISMATCH"):
+        campaign.run(plan, tmp_path, workspace, dry_run=True)
+    checkpoint.write_bytes(original_state)
+    assembly = json.loads((workspace / "checkpoint.json").read_text())["completed"][
+        "motor/assemble/0"
+    ]
+    manifest = workspace / assembly["attempt_dir"] / "manifest.json"
+    manifest.write_text("tampered\n", encoding="utf-8")
+    with pytest.raises(campaign.CampaignRefused, match="BYTE_PIN_MISMATCH"):
+        campaign.run(plan, tmp_path, workspace, dry_run=True)
+
+
+def test_readiness_and_cap_fail_before_dispatch(tmp_path):
+    plan, _ = _fixture(tmp_path)
+    receipt_path = tmp_path / "motor-readiness.json"
+    receipt = json.loads(receipt_path.read_text())
+    receipt["items"][3]["state"] = "NO"
+    receipt["yes_count"] = 6
+    receipt["all_prerequisites_yes"] = False
+    _write(receipt_path, receipt)
+    plan["readiness"]["motor"]["sha256"] = campaign._sha(receipt_path.read_bytes())
+    plan = campaign.seal(
+        {k: v for k, v in plan.items() if k != "plan_digest"}, "plan_digest"
+    )
+    with pytest.raises(campaign.CampaignRefused, match="ITEM_NOT_YES"):
+        campaign.run(plan, tmp_path, tmp_path / "blocked", dry_run=True)
+    assert not (tmp_path / "blocked").exists()
+    _, _, tasks = campaign.validate(plan, tmp_path, require_ready=False)
+    assert (
+        campaign.server_sheet(plan, tasks)["by_challenge"]["f02"]["planned_cpu_hours"]
+        > 0
+    )
+
+
+def test_cap_and_train_role_refuse_before_dispatch(tmp_path):
+    plan, _ = _fixture(tmp_path)
+    tiny = copy.deepcopy(plan)
+    tiny["hard_cap_eur"] = 0.100001
+    tiny = campaign.seal(
+        {k: v for k, v in tiny.items() if k != "plan_digest"}, "plan_digest"
+    )
+    with pytest.raises(
+        campaign.CampaignRefused, match="PLANNED_CAMPAIGN_EXCEEDS_HARD_CAP"
+    ):
+        campaign.run(tiny, tmp_path, tmp_path / "over-cap", dry_run=True)
+    assert not (tmp_path / "over-cap").exists()
+
+    heldout = tmp_path / "heldout.json"
+    _write(heldout, {"synthetic": True})
+    invalid = copy.deepcopy(plan)
+    next(task for task in invalid["stages"] if task["phase"] == "train")["inputs"] = {
+        "forbidden": {
+            "path": heldout.name,
+            "sha256": campaign._sha(heldout.read_bytes()),
+            "role": "HELDOUT_REFERENCE",
+        }
+    }
+    invalid = campaign.seal(
+        {k: v for k, v in invalid.items() if k != "plan_digest"}, "plan_digest"
+    )
+    with pytest.raises(campaign.CampaignRefused, match="TRAIN_MAY_NOT_READ_HELDOUT"):
+        campaign.run(invalid, tmp_path, tmp_path / "heldout-blocked", dry_run=True)
+
+
+def test_public_execution_requires_approval_and_registered_adapter(tmp_path):
+    plan, _ = _fixture(tmp_path)
+    plan["scope"] = "PUBLIC_DEVELOPMENT"
+    plan = campaign.seal(
+        {k: v for k, v in plan.items() if k != "plan_digest"}, "plan_digest"
+    )
+    with pytest.raises(campaign.CampaignRefused, match="TRUSTED_MODULE_REQUIRED"):
+        campaign.run(plan, tmp_path, tmp_path / "work", dry_run=False)
+
+
+def test_sheet_can_be_planned_with_unregistered_public_stages(tmp_path):
+    plan, _ = _fixture(tmp_path)
+    plan["scope"] = "PUBLIC_DEVELOPMENT"
+    for task in plan["stages"]:
+        task["module"] = "HUMAN_INPUT_DATA_COLLECTION_REGISTRATION"
+        for input_file in task["inputs"].values():
+            input_file["role"] = "PUBLIC_INPUT"
+    plan = campaign.seal(
+        {k: v for k, v in plan.items() if k != "plan_digest"}, "plan_digest"
+    )
+    _, _, tasks = campaign.validate(
+        plan, tmp_path, require_ready=False, require_modules=False
+    )
+    assert campaign.server_sheet(plan, tasks)["total"]["eur_estimate"] > 0
+    with pytest.raises(campaign.CampaignRefused, match="TRUSTED_MODULE_REQUIRED"):
+        campaign.run(plan, tmp_path, tmp_path / "blocked", dry_run=False)
+    assert not (tmp_path / "blocked").exists()
+
+
+def test_one_command_sheet_lists_registration_gaps(tmp_path, capsys):
+    plan, path = _fixture(tmp_path)
+    plan["scope"] = "PUBLIC_DEVELOPMENT"
+    for task in plan["stages"]:
+        task["module"] = "HUMAN_INPUT_DATA_COLLECTION_REGISTRATION"
+        for input_file in task["inputs"].values():
+            input_file["role"] = "PUBLIC_INPUT"
+    plan = campaign.seal(
+        {k: v for k, v in plan.items() if k != "plan_digest"}, "plan_digest"
+    )
+    _write(path, plan)
+    assert (
+        campaign.main(
+            [
+                "--plan",
+                str(path),
+                "--plan-sha256",
+                campaign._sha(path.read_bytes()),
+                "--workspace",
+                str(tmp_path / "unused"),
+                "--sheet-only",
+            ]
+        )
+        == 0
+    )
+    sheet = json.loads(capsys.readouterr().out)
+    assert sheet["planning_only"] is True
+    assert sheet["dispatch_authorized"] is False
+    assert sheet["registration_gap_owner"] == "Data Collection"
+    assert len(sheet["registration_gaps"]["motor"]) == 4
+    assert sheet["total"]["eur_estimate"] > 0
