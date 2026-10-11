@@ -69,10 +69,19 @@ def _gzip_json(value):
     )
 
 
+LEVEL_REFUSED = "level_compile_refused"
+LEVEL_COMPILER_REQUIRED = "level_compiler_required"
+
+
 class Experiment:
-    def __init__(self, root, *, repository=REPOSITORY):
+    def __init__(self, root, *, repository=REPOSITORY, level_compiler=None):
         self.root = Path(root)
         self.repository = Path(repository)
+        # A panel member above Level 0 is compiled at its own level by the injected
+        # `level_compile` module (LEVEL-AWARE-PROOF-01). It is injected, not imported:
+        # nothing a miner surface reaches may import the development-variant module,
+        # and this module is reachable from the validator's side.
+        self.level_compiler = level_compiler
 
     # --- layout and locking ------------------------------------------------------
 
@@ -118,15 +127,16 @@ class Experiment:
     def _base_strategy(self, member, strategy):
         """The Level 0 strategy `member`'s recipe is compiled from: the strategy
         itself at Level 0, the strategy less its level's widened fields above it."""
-        from . import level_compile
-
         level, arm = pn.levels(self.contract().get("panel", "ev1")).get(
             member, (0, None)
         )
+        if not level:
+            return strategy
+        compiler = self._level_compiler(member)
         try:
-            return level_compile.base_for(strategy, level, arm)
-        except level_compile.LevelCompileRefused as refused:
-            raise ExperimentError(level_compile.LEVEL_REFUSED, member) from refused
+            return compiler.base_for(strategy, level, arm)
+        except compiler.LevelCompileRefused as refused:
+            raise ExperimentError(LEVEL_REFUSED, member) from refused
 
     def _recipe_digests(self, member, strategy):
         """The recipe digests a member's bundle may carry, one per registered
@@ -134,20 +144,32 @@ class Experiment:
         member the panel places at a level above 0 is compiled at its OWN level
         (`level_compile`), so its decision values are computed exactly as Level 0's."""
         from .. import implementation_versions
-        from . import level_compile
+        from ..compile import compile_recipe
 
         level, arm = pn.levels(self.contract().get("panel", "ev1")).get(
             member, (0, None)
         )
+        if not level:
+            # As it always was.
+            return {
+                compile_recipe(strategy, implementation=version)[1].recipe_digest
+                for version in implementation_versions.VERSIONS
+            }
+        compiler = self._level_compiler(member)
         try:
-            return level_compile.recipe_digests(
+            return compiler.recipe_digests(
                 strategy,
                 versions=implementation_versions.VERSIONS,
                 level=level,
                 arm=arm,
             )
-        except level_compile.LevelCompileRefused as refused:
-            raise ExperimentError(level_compile.LEVEL_REFUSED, member) from refused
+        except compiler.LevelCompileRefused as refused:
+            raise ExperimentError(LEVEL_REFUSED, member) from refused
+
+    def _level_compiler(self, member):
+        if self.level_compiler is None:
+            raise ExperimentError(LEVEL_COMPILER_REQUIRED, member)
+        return self.level_compiler
 
     # --- 1. freeze -----------------------------------------------------------------
 

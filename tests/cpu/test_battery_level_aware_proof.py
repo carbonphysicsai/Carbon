@@ -83,8 +83,14 @@ def levels_panel(tmp_path, monkeypatch):
     return "fx-levels"
 
 
-def stub(panel):
-    return SimpleNamespace(contract=lambda: {"panel": panel})
+def stub(panel, compiler=lc):
+    return SimpleNamespace(
+        contract=lambda: {"panel": panel},
+        level_compiler=compiler,
+        _level_compiler=lambda member: xp.Experiment._level_compiler(
+            SimpleNamespace(level_compiler=compiler), member
+        ),
+    )
 
 
 def test_level_zero_digests_are_byte_for_byte_the_old_expression():
@@ -137,13 +143,13 @@ def test_a_level_strategy_the_variant_refuses_is_a_typed_experiment_error(levels
     bad["parameters"]["quasi_newton_family"] = "not_a_routine"
     with pytest.raises(xp.ExperimentError) as refused:
         xp.Experiment._recipe_digests(stub(levels_panel), "fx-l3-s11", bad)
-    assert refused.value.code == lc.LEVEL_REFUSED
+    assert refused.value.code == xp.LEVEL_REFUSED
 
 
 def test_import_predictions_accepts_a_level_bundle_and_refuses_a_wrong_digest(
     levels_panel, tmp_path, monkeypatch
 ):
-    experiment = xp.Experiment(tmp_path / "root")
+    experiment = xp.Experiment(tmp_path / "root", level_compiler=lc)
     monkeypatch.setattr(experiment, "contract", lambda: {"panel": levels_panel})
     good = lc.recipe_digests(strategy(), versions=[iv.VERSIONS[-1]])
     [digest] = good
@@ -162,7 +168,7 @@ def test_import_predictions_accepts_a_level_bundle_and_refuses_a_wrong_digest(
     (wrong / "fx-l3-s11.json.gz").write_bytes(
         bundle("fx-l3-s11", "sha256:" + "0" * 64, 11)
     )
-    other = xp.Experiment(tmp_path / "root2")
+    other = xp.Experiment(tmp_path / "root2", level_compiler=lc)
     monkeypatch.setattr(other, "contract", lambda: {"panel": levels_panel})
     with pytest.raises(xp.ExperimentError) as mismatch:
         other.import_predictions(wrong)
@@ -172,7 +178,7 @@ def test_import_predictions_accepts_a_level_bundle_and_refuses_a_wrong_digest(
 def test_a_level_member_is_never_reconstructed_locally(
     levels_panel, tmp_path, monkeypatch
 ):
-    experiment = xp.Experiment(tmp_path / "root")
+    experiment = xp.Experiment(tmp_path / "root", level_compiler=lc)
     monkeypatch.setattr(experiment, "contract", lambda: {"panel": levels_panel})
     monkeypatch.setattr(xp, "panel_inputs", lambda *_a, **_k: {})
     with pytest.raises(xp.ExperimentError) as refused:
@@ -260,3 +266,40 @@ def test_a_default_registration_carries_the_attack_constructions_like_the_proof_
     assert pn.register_levels(path, name="fx-default") == ("fx-l2",)
     assert "fx-default" in pn.ATTACK_PANELS
     assert len(pn.PANELS["fx-default"]) == len(pn.PANELS["ev4-dev-proof"]) + 1
+
+
+def test_without_an_injected_level_compiler_a_level_member_is_refused_not_guessed(
+    levels_panel,
+):
+    with pytest.raises(xp.ExperimentError) as refused:
+        xp.Experiment._recipe_digests(
+            stub(levels_panel, compiler=None), "fx-l3-s11", L3
+        )
+    assert refused.value.code == xp.LEVEL_COMPILER_REQUIRED
+    # Level 0 never needs one.
+    assert xp.Experiment._recipe_digests(
+        stub("ev4-dev-proof", compiler=None),
+        "x",
+        strategy(),
+    )
+
+
+def test_the_experiment_module_never_imports_the_variant_module_or_level_compile():
+    import ast
+    from pathlib import Path
+
+    tree = ast.parse(Path(xp.__file__).read_text(encoding="utf-8"))
+    imported = {
+        (node.module or "") + "." + alias.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom)
+        for alias in node.names
+    } | {
+        alias.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Import)
+        for alias in node.names
+    }
+    assert not [
+        m for m in imported if "level_compile" in m or "development_variants" in m
+    ]
