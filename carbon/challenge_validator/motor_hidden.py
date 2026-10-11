@@ -303,8 +303,9 @@ class MotorHiddenAdapter(FamilyHiddenImport, MotorAdapter):
     def evaluate(self, submission):
         from carbon.development_session.research_catalog import RecipeRejected
         from carbon.motor import exam
-        from carbon.motor.compile import compile_recipe, rebuild
+        from carbon.motor.compile import NEURAL_FAMILIES, compile_recipe, rebuild
 
+        from .motor import NEURAL_NOT_SERVED
         from .scoring import cover
 
         if type(submission) is not Admitted:
@@ -338,6 +339,9 @@ class MotorHiddenAdapter(FamilyHiddenImport, MotorAdapter):
                 block=block,
             )
             return outcome
+        if recipe.family in NEURAL_FAMILIES:
+            # MOTOR-NEURAL-01: as the public adapter; the window is not used.
+            raise Unavailable(NEURAL_NOT_SERVED)
         references = {}
         for fingerprint in active:
             references.update(self.store.references(fingerprint))

@@ -1,0 +1,107 @@
+{
+  "NONE_FEASIBLE": {
+    "recommendation": "VALID_FORWARD_NO_REDRAW only with a complete settled proof; missing/uncertain support stays UNRESOLVED",
+    "status": "HUMAN_INPUT"
+  },
+  "P": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize P",
+    "owner": "science/product owner",
+    "recommendation": "Actions: valid geometry; reference-input geometry law is uniform independent\nparameters conditioned on packaging/clearance. Exogenous `P_dev` is uniform\nfrequency on the declared band, approximated by an explicitly converged\nfrequency integration. Q first-round **reference preflight only**: straight\nduct and coaxial single-chamber limiting controls plus low/nominal/high\ntwo-chamber geometries at selected500/1500/2500-Hz diagnostic points. A complete\ncurve begins with a10-Hz grid (201 frequencies), then adapts around resonances;\nit is not promised by40 launches. Grid density is Q, not\nextra target weight; w is frequency interval width /2000 Hz. Do not overweight\nan adaptively refined resonance by counting its nodes equally. No random-trial\nreliability interpretation for a frequency curve.\n\nThe three diagnostic geometries use both chamber radii55/62.5/70 mm and\nlengths40/75/110 mm, neck lengths10/30/50 mm and offsets0/12.5/25 mm respectively;\nneck radius remains20 mm. Controls are outside that design-input law. The\nrunner must publish its exact sparse panel/control allocation before reference\naccess; missing full-band evidence remains explicit, not a reconstructed p10.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe 500\u20132500-Hz curve and its refined nodes belong to one compressor/duct\nbank. A future `P_job` can vary the buyer's permitted attenuation target,\nminimum narrow-band loss, or supported operating band while asking for a\ndifferent silencer from the **same complete curve bank**. A compressor OEM\nrecognizes the question from its source spectrum, duct drawing and acoustic\nacceptance sheet. Re-evaluating stored curves needs no new solver launch if\nthe whole requested band and valid geometry are covered, and the best design\nmust demonstrably change. New duct terminations or media are optional axes\nrequiring new acoustics truth. Pressure drop is not measured by the present\nreference and cannot become a mandatory limit through this variation.\n\n**Size recommendation, not a selected law:** catalogue four distinct\ncondition/requirement questions first, then expand after a full-curve cost\nstudy. `HUMAN_INPUT`: eligible requirements, `P_job`, protected `Q_job`,\nweights, answer diversity, shared-bank clustering, exposure and powered\nhidden `n`. Frequency nodes are within-question evidence. The 16-design\ncomplete bank still implies at least 3,216 solver launches once; asking more\nquestions of it does not reset its exposure limit.",
+    "sources": [
+      {
+        "excerpt": "Actions: valid geometry; reference-input geometry law is uniform independent\nparameters conditioned on packaging/clearance. Exogenous `P_dev` is uniform\nfrequency on the declared band, approximated by an explicitly converged\nfrequency integration. Q first-round **reference preflight only**: straight\nduct and coaxial single-chamber limiting controls plus low/nominal/high\ntwo-chamber geometries at selected500/1500/2500-Hz diagnostic points. A complete\ncurve begins with a10-Hz grid (201 frequencies), then adapts around resonances;\nit is not promised by40 launches. Grid density is Q, not\nextra target weight; w is frequency interval width /2000 Hz. Do not overweight\nan adaptively refined resonance by counting its nodes equally. No random-trial\nreliability interpretation for a frequency curve.\n\nThe three diagnostic geometries use both chamber radii55/62.5/70 mm and\nlengths40/75/110 mm, neck lengths10/30/50 mm and offsets0/12.5/25 mm respectively;\nneck radius remains20 mm. Controls are outside that design-input law. The\nrunner must publish its exact sparse panel/control allocation before reference\naccess; missing full-band evidence remains explicit, not a reconstructed p10.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe 500\u20132500-Hz curve and its refined nodes belong to one compressor/duct\nbank. A future `P_job` can vary the buyer's permitted attenuation target,\nminimum narrow-band loss, or supported operating band while asking for a\ndifferent silencer from the **same complete curve bank**. A compressor OEM\nrecognizes the question from its source spectrum, duct drawing and acoustic\nacceptance sheet. Re-evaluating stored curves needs no new solver launch if\nthe whole requested band and valid geometry are covered, and the best design\nmust demonstrably change. New duct terminations or media are optional axes\nrequiring new acoustics truth. Pressure drop is not measured by the present\nreference and cannot become a mandatory limit through this variation.\n\n**Size recommendation, not a selected law:** catalogue four distinct\ncondition/requirement questions first, then expand after a full-curve cost\nstudy. `HUMAN_INPUT`: eligible requirements, `P_job`, protected `Q_job`,\nweights, answer diversity, shared-bank clustering, exposure and powered\nhidden `n`. Frequency nodes are within-question evidence. The 16-design\ncomplete bank still implies at least 3,216 solver launches once; asking more\nquestions of it does not reset its exposure limit.",
+        "path": "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md",
+        "sha256": "397361ad8340ccbc19f07e2a025fb9c9c29934a9b1159e0c7000fc1e061fdde0"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "Q": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize Q",
+    "owner": "science/product owner",
+    "recommendation": "Actions: valid geometry; reference-input geometry law is uniform independent\nparameters conditioned on packaging/clearance. Exogenous `P_dev` is uniform\nfrequency on the declared band, approximated by an explicitly converged\nfrequency integration. Q first-round **reference preflight only**: straight\nduct and coaxial single-chamber limiting controls plus low/nominal/high\ntwo-chamber geometries at selected500/1500/2500-Hz diagnostic points. A complete\ncurve begins with a10-Hz grid (201 frequencies), then adapts around resonances;\nit is not promised by40 launches. Grid density is Q, not\nextra target weight; w is frequency interval width /2000 Hz. Do not overweight\nan adaptively refined resonance by counting its nodes equally. No random-trial\nreliability interpretation for a frequency curve.\n\nThe three diagnostic geometries use both chamber radii55/62.5/70 mm and\nlengths40/75/110 mm, neck lengths10/30/50 mm and offsets0/12.5/25 mm respectively;\nneck radius remains20 mm. Controls are outside that design-input law. The\nrunner must publish its exact sparse panel/control allocation before reference\naccess; missing full-band evidence remains explicit, not a reconstructed p10.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe 500\u20132500-Hz curve and its refined nodes belong to one compressor/duct\nbank. A future `P_job` can vary the buyer's permitted attenuation target,\nminimum narrow-band loss, or supported operating band while asking for a\ndifferent silencer from the **same complete curve bank**. A compressor OEM\nrecognizes the question from its source spectrum, duct drawing and acoustic\nacceptance sheet. Re-evaluating stored curves needs no new solver launch if\nthe whole requested band and valid geometry are covered, and the best design\nmust demonstrably change. New duct terminations or media are optional axes\nrequiring new acoustics truth. Pressure drop is not measured by the present\nreference and cannot become a mandatory limit through this variation.\n\n**Size recommendation, not a selected law:** catalogue four distinct\ncondition/requirement questions first, then expand after a full-curve cost\nstudy. `HUMAN_INPUT`: eligible requirements, `P_job`, protected `Q_job`,\nweights, answer diversity, shared-bank clustering, exposure and powered\nhidden `n`. Frequency nodes are within-question evidence. The 16-design\ncomplete bank still implies at least 3,216 solver launches once; asking more\nquestions of it does not reset its exposure limit.",
+    "sources": [
+      {
+        "excerpt": "Actions: valid geometry; reference-input geometry law is uniform independent\nparameters conditioned on packaging/clearance. Exogenous `P_dev` is uniform\nfrequency on the declared band, approximated by an explicitly converged\nfrequency integration. Q first-round **reference preflight only**: straight\nduct and coaxial single-chamber limiting controls plus low/nominal/high\ntwo-chamber geometries at selected500/1500/2500-Hz diagnostic points. A complete\ncurve begins with a10-Hz grid (201 frequencies), then adapts around resonances;\nit is not promised by40 launches. Grid density is Q, not\nextra target weight; w is frequency interval width /2000 Hz. Do not overweight\nan adaptively refined resonance by counting its nodes equally. No random-trial\nreliability interpretation for a frequency curve.\n\nThe three diagnostic geometries use both chamber radii55/62.5/70 mm and\nlengths40/75/110 mm, neck lengths10/30/50 mm and offsets0/12.5/25 mm respectively;\nneck radius remains20 mm. Controls are outside that design-input law. The\nrunner must publish its exact sparse panel/control allocation before reference\naccess; missing full-band evidence remains explicit, not a reconstructed p10.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe 500\u20132500-Hz curve and its refined nodes belong to one compressor/duct\nbank. A future `P_job` can vary the buyer's permitted attenuation target,\nminimum narrow-band loss, or supported operating band while asking for a\ndifferent silencer from the **same complete curve bank**. A compressor OEM\nrecognizes the question from its source spectrum, duct drawing and acoustic\nacceptance sheet. Re-evaluating stored curves needs no new solver launch if\nthe whole requested band and valid geometry are covered, and the best design\nmust demonstrably change. New duct terminations or media are optional axes\nrequiring new acoustics truth. Pressure drop is not measured by the present\nreference and cannot become a mandatory limit through this variation.\n\n**Size recommendation, not a selected law:** catalogue four distinct\ncondition/requirement questions first, then expand after a full-curve cost\nstudy. `HUMAN_INPUT`: eligible requirements, `P_job`, protected `Q_job`,\nweights, answer diversity, shared-bank clustering, exposure and powered\nhidden `n`. Frequency nodes are within-question evidence. The 16-design\ncomplete bank still implies at least 3,216 solver launches once; asking more\nquestions of it does not reset its exposure limit.",
+        "path": "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md",
+        "sha256": "397361ad8340ccbc19f07e2a025fb9c9c29934a9b1159e0c7000fc1e061fdde0"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "T2a": {
+    "band_widths": "HUMAN_INPUT",
+    "measured": "NOT_ASSESSED_BY_DRAFTING",
+    "minimum_distinct_feasible": 5,
+    "minimum_distinct_infeasible": 5,
+    "near_refinement_bands": 2,
+    "rule": "Both sides near the limit; add frontier resolution, never widen bands",
+    "status": "TEST_LEAD_WORKING_VALUE"
+  },
+  "action_set": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize geometry",
+    "owner": "science/product owner",
+    "recommendation": "Rigid-walled 3D chambers, radii55\u201370 mm, lengths40\u2013110 mm; coaxial50-mm-ID inlet\nand outlet. Inter-chamber neck radius20 mm,length10\u201350 mm, lateral x offset\n0\u201325 mm; require\u226510-mm clearance from chamber walls. Package dimensions include\nthe two chambers, neck and two fixed10-mm port stubs. No shell vibration,\nabsorption or mean flow. Synthetic air rho1.2 kg/m\u00b3,c343 m/s. Unit incident\nplane-wave acoustic power, matched outlet impedance rho*c. Frequency500\u20132500 Hz.\nStaggering is a physical design action; coaxial geometry is a strong control.",
+    "sources": [
+      {
+        "excerpt": "Rigid-walled 3D chambers, radii55\u201370 mm, lengths40\u2013110 mm; coaxial50-mm-ID inlet\nand outlet. Inter-chamber neck radius20 mm,length10\u201350 mm, lateral x offset\n0\u201325 mm; require\u226510-mm clearance from chamber walls. Package dimensions include\nthe two chambers, neck and two fixed10-mm port stubs. No shell vibration,\nabsorption or mean flow. Synthetic air rho1.2 kg/m\u00b3,c343 m/s. Unit incident\nplane-wave acoustic power, matched outlet impedance rho*c. Frequency500\u20132500 Hz.\nStaggering is a physical design action; coaxial geometry is a strong control.",
+        "path": "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md",
+        "sha256": "397361ad8340ccbc19f07e2a025fb9c9c29934a9b1159e0c7000fc1e061fdde0"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "bank": {
+    "B": null,
+    "E": null,
+    "n": null,
+    "status": "HUMAN_INPUT",
+    "threshold_variation_renews_exposure": false
+  },
+  "challenge": "f13",
+  "diversity": null,
+  "held_closed": "No law approval, bank draw, runtime registration, power acceptance or spend",
+  "k": {
+    "basis": "Power and exposure owner selects; a panel's batch size is not approval",
+    "recommendation": null,
+    "status": "HUMAN_INPUT"
+  },
+  "maturity": "DRAFT_ONLY",
+  "panel_basis": null,
+  "question": {
+    "buyer_decision": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize decision",
+      "owner": "science/product owner",
+      "recommendation": "Choose compact silencer geometry with admissible full-band transmission loss, not installed-noise compliance",
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "recommendation": "One complete buyer decision, not one solver point; indexed decisions include every mandatory band",
+    "status": "HUMAN_INPUT"
+  },
+  "schema": "carbon.onboarding.question-law-draft.v1",
+  "startup_cost": {
+    "basis": "Requires unique new physical cases/rungs, measured CPU, throughput, overhead and quote; B is not a solve count",
+    "cpu_hours": null,
+    "eur": null,
+    "status": "HUMAN_INPUT"
+  },
+  "w": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize w",
+    "owner": "science/product owner",
+    "recommendation": "Actions: valid geometry; reference-input geometry law is uniform independent\nparameters conditioned on packaging/clearance. Exogenous `P_dev` is uniform\nfrequency on the declared band, approximated by an explicitly converged\nfrequency integration. Q first-round **reference preflight only**: straight\nduct and coaxial single-chamber limiting controls plus low/nominal/high\ntwo-chamber geometries at selected500/1500/2500-Hz diagnostic points. A complete\ncurve begins with a10-Hz grid (201 frequencies), then adapts around resonances;\nit is not promised by40 launches. Grid density is Q, not\nextra target weight; w is frequency interval width /2000 Hz. Do not overweight\nan adaptively refined resonance by counting its nodes equally. No random-trial\nreliability interpretation for a frequency curve.\n\nThe three diagnostic geometries use both chamber radii55/62.5/70 mm and\nlengths40/75/110 mm, neck lengths10/30/50 mm and offsets0/12.5/25 mm respectively;\nneck radius remains20 mm. Controls are outside that design-input law. The\nrunner must publish its exact sparse panel/control allocation before reference\naccess; missing full-band evidence remains explicit, not a reconstructed p10.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe 500\u20132500-Hz curve and its refined nodes belong to one compressor/duct\nbank. A future `P_job` can vary the buyer's permitted attenuation target,\nminimum narrow-band loss, or supported operating band while asking for a\ndifferent silencer from the **same complete curve bank**. A compressor OEM\nrecognizes the question from its source spectrum, duct drawing and acoustic\nacceptance sheet. Re-evaluating stored curves needs no new solver launch if\nthe whole requested band and valid geometry are covered, and the best design\nmust demonstrably change. New duct terminations or media are optional axes\nrequiring new acoustics truth. Pressure drop is not measured by the present\nreference and cannot become a mandatory limit through this variation.\n\n**Size recommendation, not a selected law:** catalogue four distinct\ncondition/requirement questions first, then expand after a full-curve cost\nstudy. `HUMAN_INPUT`: eligible requirements, `P_job`, protected `Q_job`,\nweights, answer diversity, shared-bank clustering, exposure and powered\nhidden `n`. Frequency nodes are within-question evidence. The 16-design\ncomplete bank still implies at least 3,216 solver launches once; asking more\nquestions of it does not reset its exposure limit.",
+    "sources": [
+      {
+        "excerpt": "Actions: valid geometry; reference-input geometry law is uniform independent\nparameters conditioned on packaging/clearance. Exogenous `P_dev` is uniform\nfrequency on the declared band, approximated by an explicitly converged\nfrequency integration. Q first-round **reference preflight only**: straight\nduct and coaxial single-chamber limiting controls plus low/nominal/high\ntwo-chamber geometries at selected500/1500/2500-Hz diagnostic points. A complete\ncurve begins with a10-Hz grid (201 frequencies), then adapts around resonances;\nit is not promised by40 launches. Grid density is Q, not\nextra target weight; w is frequency interval width /2000 Hz. Do not overweight\nan adaptively refined resonance by counting its nodes equally. No random-trial\nreliability interpretation for a frequency curve.\n\nThe three diagnostic geometries use both chamber radii55/62.5/70 mm and\nlengths40/75/110 mm, neck lengths10/30/50 mm and offsets0/12.5/25 mm respectively;\nneck radius remains20 mm. Controls are outside that design-input law. The\nrunner must publish its exact sparse panel/control allocation before reference\naccess; missing full-band evidence remains explicit, not a reconstructed p10.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe 500\u20132500-Hz curve and its refined nodes belong to one compressor/duct\nbank. A future `P_job` can vary the buyer's permitted attenuation target,\nminimum narrow-band loss, or supported operating band while asking for a\ndifferent silencer from the **same complete curve bank**. A compressor OEM\nrecognizes the question from its source spectrum, duct drawing and acoustic\nacceptance sheet. Re-evaluating stored curves needs no new solver launch if\nthe whole requested band and valid geometry are covered, and the best design\nmust demonstrably change. New duct terminations or media are optional axes\nrequiring new acoustics truth. Pressure drop is not measured by the present\nreference and cannot become a mandatory limit through this variation.\n\n**Size recommendation, not a selected law:** catalogue four distinct\ncondition/requirement questions first, then expand after a full-curve cost\nstudy. `HUMAN_INPUT`: eligible requirements, `P_job`, protected `Q_job`,\nweights, answer diversity, shared-bank clustering, exposure and powered\nhidden `n`. Frequency nodes are within-question evidence. The 16-design\ncomplete bank still implies at least 3,216 solver launches once; asking more\nquestions of it does not reset its exposure limit.",
+        "path": "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md",
+        "sha256": "397361ad8340ccbc19f07e2a025fb9c9c29934a9b1159e0c7000fc1e061fdde0"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  }
+}

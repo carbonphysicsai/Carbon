@@ -1,0 +1,67 @@
+{
+  "boundary_designs": {
+    "intervals_and_frontier_results": "NOT_DEMONSTRATED",
+    "recommendation": "Register physical-coordinate brackets near each hard limit in every stratum; at least 5 settled feasible AND 5 settled infeasible within TWO accepted refinement bands; no guaranteed yield, no widening",
+    "status": "HUMAN_INPUT"
+  },
+  "buyer_decision": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize decision",
+    "owner": "science/product owner",
+    "recommendation": "Choose a linear resonance-resistant structure with admissible response across the service envelope",
+    "sources": [],
+    "status": "HUMAN_INPUT"
+  },
+  "case_count": null,
+  "cases": [],
+  "challenge": "f08",
+  "cost": {
+    "billed_node_hours": null,
+    "cpu_hours_if_reuse_accepted": null,
+    "cpu_hours_without_reuse": null,
+    "eur": null,
+    "omitted": [
+      "failures",
+      "setup",
+      "witnesses",
+      "new frontier actions",
+      "storage",
+      "tax",
+      "retained verification"
+    ],
+    "status": "UNKNOWN"
+  },
+  "designs": null,
+  "held_closed": "No solver, bank draw, hidden data, registration adoption or spend; DC accepts geometry/pins/reuse before execution",
+  "maturity": "DRAFT_ONLY",
+  "registration_status": "PROPOSED_NOT_DISPATCHABLE",
+  "reuse_check": {
+    "completed_matches": 0,
+    "scheduled_matches": 0,
+    "status": "UNKNOWN_NO_INDEX"
+  },
+  "schema": "carbon.onboarding.panel-draft.v1",
+  "strata": null,
+  "strata_basis": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize strata",
+    "owner": "science/product owner",
+    "recommendation": "Geometry is a design action. Reference-input geometry law: independent uniform\ngrammar parameters conditioned on valid shape. Exogenous `P_dev` is uniform\nover three modal damping ratios; frequency is an adversarial peak search, not\na random customer state. Later decision comparisons weight damping1/3 and\nreport worst condition separately. Q feasibility uses three fixed geometries\n(rib heights8/12/16 mm, rib thickness4 mm, length220,width80,thickness6,\nrelief40 mm) at damping\n0.005 and0.02. No population estimate from six diagnostic cases.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three damping values and 80\u2013600-Hz search belong to one support bank.\nA future `P_job` can vary supported peak-motion, stiffness or mass limits and\nthe required excitation/damping service panel if the solved bank covers it.\nAn automation buyer recognizes the question from its stage acceptance sheet,\npayload schedule and vibration specification. Reapplying different limits to\nstored peak, stiffness and mass outputs needs no new solve, but the\nreference-best support must demonstrably change. New payloads, clamp\nboundaries, contact or damping laws are optional axes requiring new qualified\nreference work. Modes, frequency samples and optimizer starts are not fresh\nbuyer questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\ncomplete-band bank. `HUMAN_INPUT`: eligible limits and panels, `P_job`,\nprotected `Q_job`, weights, answer diversity, shared-frame clustering,\nexposure and hidden `n` from power and measured reference cost.",
+    "sources": [
+      {
+        "excerpt": "Geometry is a design action. Reference-input geometry law: independent uniform\ngrammar parameters conditioned on valid shape. Exogenous `P_dev` is uniform\nover three modal damping ratios; frequency is an adversarial peak search, not\na random customer state. Later decision comparisons weight damping1/3 and\nreport worst condition separately. Q feasibility uses three fixed geometries\n(rib heights8/12/16 mm, rib thickness4 mm, length220,width80,thickness6,\nrelief40 mm) at damping\n0.005 and0.02. No population estimate from six diagnostic cases.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three damping values and 80\u2013600-Hz search belong to one support bank.\nA future `P_job` can vary supported peak-motion, stiffness or mass limits and\nthe required excitation/damping service panel if the solved bank covers it.\nAn automation buyer recognizes the question from its stage acceptance sheet,\npayload schedule and vibration specification. Reapplying different limits to\nstored peak, stiffness and mass outputs needs no new solve, but the\nreference-best support must demonstrably change. New payloads, clamp\nboundaries, contact or damping laws are optional axes requiring new qualified\nreference work. Modes, frequency samples and optimizer starts are not fresh\nbuyer questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\ncomplete-band bank. `HUMAN_INPUT`: eligible limits and panels, `P_job`,\nprotected `Q_job`, weights, answer diversity, shared-frame clustering,\nexposure and hidden `n` from power and measured reference cost.",
+        "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+        "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "value_measures": [
+    "complete feasible answer",
+    "both-side contested boundaries",
+    "buyer-unit margin spread",
+    "best/equivalent answer changes",
+    "cheap-baseline decision regret",
+    "CPU/wall/memory/failures"
+  ]
+}

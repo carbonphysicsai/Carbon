@@ -61,21 +61,21 @@
     "docs/development/challenge_pipeline/round1/feasibility-panels.md"
    ],
    "status": "VERIFIED",
-   "note": "Working values only; final thresholds are the owner's."
+   "note": "Working values only; final thresholds are the owner's. The panel's actions, conditions and observables feed the kit coverage criterion at the next stage."
   },
   {
    "id": "S4_question_law",
    "order": 4,
    "name": "Question law",
    "entry": "A passing feasibility and value panel.",
-   "exit": "A non-runtime law sheet (population, action lattice, strata, near rule) whose HUMAN_INPUT values the owner has accepted or declined; the four-check design-value prerequisite met before any new hidden bank.",
+   "exit": "A non-runtime law sheet (population, action lattice, strata, near rule) whose HUMAN_INPUT values the owner has accepted or declined; the four-check design-value prerequisite met before any new hidden bank. The stage cannot exit until the research kit covers the panel's actions, conditions and observables (kit-versus-panel coverage; Test Lead, 2026-10-10; blocker B11).",
    "owner_session": "Codex proposes; owner accepts",
    "owner_basis": "question-laws/README.md: SPECIFIED, not an enforced runtime gate; accepted widths and criteria stay HUMAN_INPUT",
    "evidence": [
     "docs/development/challenge_pipeline/question-laws/README.md"
    ],
    "status": "VERIFIED",
-   "note": "A law sheet registers no sampler and no exposure setting."
+   "note": "A law sheet registers no sampler and no exposure setting. The coverage criterion is decided; the check that enforces it is not built."
   },
   {
    "id": "S5_bank",

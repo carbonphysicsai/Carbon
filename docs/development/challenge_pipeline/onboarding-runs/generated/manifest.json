@@ -1,0 +1,283 @@
+{
+  "basis": {
+    "dirty": true,
+    "sha": "0dece5122775ba468dc60e96eecfc89055dabaec"
+  },
+  "challenges": {
+    "cooling-cell": {
+      "basis": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/cooling-cell/basis.json",
+        "sha256": "e97edaf8c6205fa599bf468b1e6b3feb74a7ba49f6cd694848a99f04ecde0931"
+      },
+      "brief": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/cooling-cell/brief.json",
+        "sha256": "1db285daeb896efe068e469a1050ede1570ecc8e883e50652e7f4fab53a87075"
+      },
+      "law": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/cooling-cell/law.json",
+        "sha256": "4a30a0cf374b29285b5c4f0cffadf87e23a3a8031bfbf1ab54757850d7b24741"
+      },
+      "limits": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/cooling-cell/limits.json",
+        "sha256": "102c7aad25d62fe0358452da7e35fc8651c62a3ec12b6c053715037def2f881e"
+      },
+      "packet": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/cooling-cell/packet.json",
+        "sha256": "b36dcf8efb91f2e44117c1a87e9aae5a1d6a0ac038a5b856c9bd6cce9c7c3aa2"
+      },
+      "packet_markdown": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/cooling-cell/packet.md",
+        "sha256": "c02cb05528f42cd3e80b3207638d18cac16508eaaf264439827b0d9c5389dd0a"
+      },
+      "panel": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/cooling-cell/panel.json",
+        "sha256": "6060c3be05e21758a08ba789597fda1c412cfd2dccd06e331660dad3e4811fe3"
+      },
+      "status": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/cooling-cell/status.json",
+        "sha256": "ac918210390aecbc9305d6d60553a43ce2a2b949b5ac8182f2a037c538aa0050"
+      }
+    },
+    "f02": {
+      "basis": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f02/basis.json",
+        "sha256": "934ce552daa5758804a017664a4bcc9dd1ee2861645932f96f77f347fa0ac185"
+      },
+      "brief": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f02/brief.json",
+        "sha256": "f1278178294631305a7e674b700632b6c9145d32b4a249900114b1a17f263fa1"
+      },
+      "law": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f02/law.json",
+        "sha256": "fad65cf9870a2fbacb1fd8ce1fb013e90ee4a1e78e45089bc89cbb05298a5b5a"
+      },
+      "limits": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f02/limits.json",
+        "sha256": "102c7aad25d62fe0358452da7e35fc8651c62a3ec12b6c053715037def2f881e"
+      },
+      "packet": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f02/packet.json",
+        "sha256": "2e4a354f1170e73cdcafab6a609336abcafb32014c29532823221d8794b8ea86"
+      },
+      "packet_markdown": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f02/packet.md",
+        "sha256": "758147111cde62f557ae6a5a5b44c25bcce2a6e84159f25ef6d559f18ea2dac9"
+      },
+      "panel": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f02/panel.json",
+        "sha256": "0be07aa7b64ecdbb09a4a981a139bfe131c1949dcbd4554b78a7c78f4b86e988"
+      },
+      "status": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f02/status.json",
+        "sha256": "1784cc8920dccf3d2c8e61b78a084ccb4a11d6a91b2fb517bdc8d72cbe8052d3"
+      }
+    },
+    "f06": {
+      "basis": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f06/basis.json",
+        "sha256": "c0e6bcc819e4ac139a62e4deace092be2a7703ce54a43c26336dc34db38588b4"
+      },
+      "brief": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f06/brief.json",
+        "sha256": "643d5eb69f74a6fcf1435cf626012ca3fb492ed46e82946bf72fb49a476019ec"
+      },
+      "law": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f06/law.json",
+        "sha256": "141b87fee9dd5ec3bcdd4648326ed8c9d13fb92ee5647a5a7b6d12743d3edae2"
+      },
+      "limits": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f06/limits.json",
+        "sha256": "102c7aad25d62fe0358452da7e35fc8651c62a3ec12b6c053715037def2f881e"
+      },
+      "packet": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f06/packet.json",
+        "sha256": "2833f6d2c62d88c5d29abbb90aa36251eb9508dd5cfcba722fb63f0f12181a5b"
+      },
+      "packet_markdown": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f06/packet.md",
+        "sha256": "29c78390549c9b8fef6b53135a825eb6a2c5f0ec7cfc4b78987a3d2c67a64b27"
+      },
+      "panel": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f06/panel.json",
+        "sha256": "d3aeb03d9f3a30b7ce93a3d7399683662773594f1d3a7a0954aa6b7e4f5e4ce9"
+      },
+      "status": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f06/status.json",
+        "sha256": "52a1f192e8908774969cdc4de77f5efde38ef6c89930382712c3ece4a9df85e7"
+      }
+    },
+    "f08": {
+      "basis": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f08/basis.json",
+        "sha256": "2584b41c598144a049fa3753958a1868732ae318035fd6911cc4a799da7f8a9f"
+      },
+      "brief": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f08/brief.json",
+        "sha256": "2c15f096f43b02a4da4b1455d4c629d8979ad1319c8efb61afb141674f682330"
+      },
+      "law": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f08/law.json",
+        "sha256": "93a1754d56625b836e2985a9410ac85e8a168b9b8fd55a7d36506655b3e1adb6"
+      },
+      "limits": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f08/limits.json",
+        "sha256": "102c7aad25d62fe0358452da7e35fc8651c62a3ec12b6c053715037def2f881e"
+      },
+      "packet": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f08/packet.json",
+        "sha256": "60729aac2219c8b0ed10e1e4b6b8b01c2e13314604f0c48f2605f4e0fd08ff26"
+      },
+      "packet_markdown": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f08/packet.md",
+        "sha256": "c1fddcdf23c22057de7b9c9f23c008fc8ea35a5c78873ae27e9a454cc7122d67"
+      },
+      "panel": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f08/panel.json",
+        "sha256": "e3dbadf0daae255cc78cd66dcb35c2d662f46c490c887c3d33539a30ebdf280a"
+      },
+      "status": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f08/status.json",
+        "sha256": "4093b8b13a56f4fb9e4f9d9614915c3cc2b81bbac3ffe296759dfedb69fbfc02"
+      }
+    },
+    "f13": {
+      "basis": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f13/basis.json",
+        "sha256": "ec665760c793d1cf652c540462fec6e88a96def8d7fe2457837b519f533a0bdc"
+      },
+      "brief": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f13/brief.json",
+        "sha256": "e636be8681c32a4165f8f5e9bff45e39ae5653adf0064b6f0a568551654e7b0d"
+      },
+      "law": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f13/law.json",
+        "sha256": "2d199b9559fc3cdca66f27c4a167b9f1cd40f81074efe25773219ec61ae20912"
+      },
+      "limits": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f13/limits.json",
+        "sha256": "102c7aad25d62fe0358452da7e35fc8651c62a3ec12b6c053715037def2f881e"
+      },
+      "packet": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f13/packet.json",
+        "sha256": "ea3473ea543d8735b2e6ab9bf64f97caf6aaaa7b18b2ec50313b4c45f72ce65e"
+      },
+      "packet_markdown": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f13/packet.md",
+        "sha256": "474c76b19685ec584c799a1cf2d7e9b9d060279f06796f06fb8b95246f173cc6"
+      },
+      "panel": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f13/panel.json",
+        "sha256": "b9b6a9ab808083451b236067ae17868b2bbe8a3901b35dc10822c3dd2b3730cc"
+      },
+      "status": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f13/status.json",
+        "sha256": "e874cfa8b4bcd4ec0de69a7f7fc2e099389706f8db49f0cbb8a766a6e723b375"
+      }
+    },
+    "f17": {
+      "basis": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f17/basis.json",
+        "sha256": "3bd0698620555ca3821bac41d15e4e9d5a2e1533e76920e1992cf79c5180613f"
+      },
+      "brief": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f17/brief.json",
+        "sha256": "6d4e623635af6474f9e1e21a8ac3c4d6048a15c5e316bd02acecc92dfc7c397f"
+      },
+      "law": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f17/law.json",
+        "sha256": "43432da67a90903ea846c2054a621ae052f415194021175b69e73202e5852236"
+      },
+      "limits": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f17/limits.json",
+        "sha256": "102c7aad25d62fe0358452da7e35fc8651c62a3ec12b6c053715037def2f881e"
+      },
+      "packet": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f17/packet.json",
+        "sha256": "372ddf825967212cc0a7808c67b8f42fa0600bd017a0b11d9f6bb4791c45bb6d"
+      },
+      "packet_markdown": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f17/packet.md",
+        "sha256": "48c7c5e1e3fc80016adcf2a0df4379197f0c40541d18ad288015c8621309d703"
+      },
+      "panel": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f17/panel.json",
+        "sha256": "83f6f4616d68d507973493ec6c42a6742651fc87c23c4385288a7baa01e92b86"
+      },
+      "status": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f17/status.json",
+        "sha256": "e6899879c2aab1b5038d6978b7e75a9ab85138ff454b6163c5a3b8798e94a294"
+      }
+    },
+    "seal-gland": {
+      "basis": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/seal-gland/basis.json",
+        "sha256": "583c253fc208eb505102f5b7a4209ece61ae65e3b58b5b98d9dca0f4e9c57e40"
+      },
+      "brief": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/seal-gland/brief.json",
+        "sha256": "ca355e0218757a74747f7320ef1d3c91a9e9874aeb319d638d75a16bc69ea1ac"
+      },
+      "law": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/seal-gland/law.json",
+        "sha256": "6578bdc63340e2d6ac0e733c95ed851e3b043c306f844827e0303c61c12ea115"
+      },
+      "limits": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/seal-gland/limits.json",
+        "sha256": "102c7aad25d62fe0358452da7e35fc8651c62a3ec12b6c053715037def2f881e"
+      },
+      "packet": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/seal-gland/packet.json",
+        "sha256": "ea5e52357bc69649ef33488ffb3bdbae800c1d46f575d2b547c07335a2fa8a65"
+      },
+      "packet_markdown": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/seal-gland/packet.md",
+        "sha256": "c191b990f89f4de48673bb75d6bd763cf34cf395b7da3bb05ca3c92d820fba43"
+      },
+      "panel": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/seal-gland/panel.json",
+        "sha256": "6f72052027b59e11ee89eeaee68fc86209f73b573d8781e4593300947c824154"
+      },
+      "status": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/seal-gland/status.json",
+        "sha256": "86a1d11bd07be4c6bd05b63c81164d2078de5d870bb4125772c8fcf04df2074c"
+      }
+    },
+    "solenoid-pole": {
+      "basis": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/solenoid-pole/basis.json",
+        "sha256": "95f07f92ada6d857d3d7547c0a0b8f935595db487109ffd4ba88bcf9eca81abe"
+      },
+      "brief": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/solenoid-pole/brief.json",
+        "sha256": "e9cfbebc2de3ba4daf202d092303a0aa24a1b57c49ae4f7d20cec6fb3af85975"
+      },
+      "law": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/solenoid-pole/law.json",
+        "sha256": "007cbec5ce41f76bbe733376889c7cbaf6329fce4d2180d0486b33aba8e12d23"
+      },
+      "limits": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/solenoid-pole/limits.json",
+        "sha256": "102c7aad25d62fe0358452da7e35fc8651c62a3ec12b6c053715037def2f881e"
+      },
+      "packet": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/solenoid-pole/packet.json",
+        "sha256": "6c7ec873beee39e2536fcec743a5a538ae412edea8f89832568e49cf608a9805"
+      },
+      "packet_markdown": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/solenoid-pole/packet.md",
+        "sha256": "0ceb3315121965c6b91bfbf8a64d9ad6932f6f6f8b44ee86d763222ab4578940"
+      },
+      "panel": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/solenoid-pole/panel.json",
+        "sha256": "b66899005dac35bc381a9e80b4387e952c0fc5b2e54e247a425989db6b092388"
+      },
+      "status": {
+        "path": "docs/development/challenge_pipeline/onboarding-runs/generated/solenoid-pole/status.json",
+        "sha256": "d29b19b9202ab0baf6e6acb262c65244e3a6643545200e7019b61e3591bd8cc1"
+      }
+    }
+  },
+  "drafts_not_adoption": true,
+  "input_sha256": "850e2af73f9da263a8ab981ba892260c88121981547233efa78d993c4aa98d81",
+  "schema": "carbon.onboarding.application-run.v1"
+}

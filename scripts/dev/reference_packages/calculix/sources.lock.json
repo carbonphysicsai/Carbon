@@ -1,0 +1,18 @@
+{
+ "schema": "carbon.reference-package.sources-lock.v1",
+ "package": "calculix-ccx-2.23 (serves f08-ccx-modal-support)",
+ "ticket": "REFERENCE-PACKAGES-01",
+ "base_image": "debian@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f",
+ "debian_snapshot": "http://snapshot.debian.org/archive/debian/20261001T000000Z trixie main (Debian 13.7)",
+ "sources": [
+  {"name": "ccx_2.23.src.tar.bz2", "url": "https://www.dhondt.de/ccx_2.23.src.tar.bz2", "sha256": "9c88385c10fb04f5dc6c4e98027a51bebdd8aee3920e05190d6c1dd08357d6e7", "size": 1551289, "checksum_source": "recorded at acquisition 2026-10-08 (upstream publishes no checksum)"},
+  {"name": "ccx_2.23.test.tar.bz2", "url": "https://www.dhondt.de/ccx_2.23.test.tar.bz2", "sha256": "be2259fd9a7b990d0453b30708e1b05f2cd4b6df4a90fa96f0e4abd1ae7beaa0", "size": 13468187, "checksum_source": "recorded at acquisition 2026-10-08 (upstream publishes no checksum)"},
+  {"name": "spooles.2.2.tgz", "url": "https://www.netlib.org/linalg/spooles/spooles.2.2.tgz", "sha256": "a84559a0e987a1e423055ef4fdf3035d55b65bbe4bf915efaa1a35bef7f8c5dd", "size": 4510271, "checksum_source": "recorded at acquisition 2026-10-08 (netlib publishes no checksum)"}
+ ],
+ "build_packages": ["build-essential", "gfortran", "perl", "bzip2", "libarpack2-dev", "libopenblas-dev", "liblapack-dev"],
+ "runtime_packages": ["libgfortran5", "libgomp1", "libarpack2t64", "libopenblas0", "liblapack3"],
+ "compiler_options": "SPOOLES and ccx C sources with -fpermissive-class relaxations for GCC 14 (implicit declarations, incompatible pointer types, int conversion); Fortran with -fallow-argument-mismatch; ARPACK from Debian 3.9.1; serial SPOOLES; OpenMP runtime linked (ccx default), run with OMP_NUM_THREADS=1",
+ "blas": "Debian OpenBLAS (OPENBLAS_NUM_THREADS=1)",
+ "mpi": "none",
+ "licence": "CalculiX ccx GPL-2.0; SPOOLES public domain; ARPACK-NG BSD-3-Clause"
+}

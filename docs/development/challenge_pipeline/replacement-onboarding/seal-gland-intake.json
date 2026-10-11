@@ -1,0 +1,38 @@
+{
+  "schema":"carbon.onboarding.replacement-intake.v1",
+  "challenge":"seal-gland",
+  "disposition":"HOLD_OPEN_SET_NOT_CONFIRMED",
+  "run_authorized":false,
+  "research_basis":{"pr":1001,"commit":"2861b3bee63d8c7f143821fcbde6f2a941741775","status":"OPEN_RESEARCH_NOT_ACCEPTANCE","assessment":"https://github.com/carbonphysicsai/Carbon/blob/2861b3bee63d8c7f143821fcbde6f2a941741775/Business/research/open-data-check/ASSESSMENT.md","sources":"https://github.com/carbonphysicsai/Carbon/blob/2861b3bee63d8c7f143821fcbde6f2a941741775/Business/research/open-data-check/SOURCES.md"},
+  "inputs":[
+    {"field":"open raw elastomer calibration ingredients","state":"RIGHTS_IDENTIFIED_INGREDIENT","evidence":"S09 Zenodo 14983287 tension/compression archives, CC-BY-4.0, research checksum/header-inspected; S10 Zenodo 15187640 separate biaxial family, CC-BY-4.0 metadata","gap":"S09 soft-robotics compound is not a matched gland law. Do not splice different S10 material/preparation into S09; paper and dataset rights differ","owner":"Research supplies provenance; science checks applicability; owner/counsel accepts rights"},
+    {"field":"published O-ring models","state":"PARAMETER_MODELS_NOT_COMPLETE_CALIBRATION","evidence":"S11 supported O-ring paper CC-BY but raw experiments withheld; coefficient prose needs table/unit reconciliation. S12 parameter paper CC-BY, inferred friction, no raw archive established","gap":"No complete same-compound pressure/temperature/friction set; paper license does not clear confidential raw data","owner":"Research/science"},
+    {"field":"material and law domain","state":"HUMAN_INPUT","gap":"Exact compound/cure, supported strain modes, compressibility/volumetric response and stability at all conditions. No guessed Poisson ratio, bulk modulus or hardness conversion","owner":"Science/reference owner; research or rights-permitted customer supplies coherent calibration"},
+    {"field":"friction and assembly geometry","state":"HUMAN_INPUT","gap":"Same-compound metal/lubricant law, temperature/pressure applicability, gland/gap/back-up geometry/finish and assembly sequence with rights","owner":"Research and mock owner or later customer"},
+    {"field":"buyer requirements and population","state":"CUSTOMER_OR_MOCK_OWNER_INPUT","gap":"Supported pressure/temperature history and strain/contact/extrusion/assembly-force requirements; no conversion of contact pressure to leakage certification","owner":"Mock owner/customer and Test Lead"},
+    {"field":"reference implementation","state":"NOT_DEMONSTRATED","gap":"Pinned nearly incompressible hyperelastic/contact mapping, force/contact/extrusion observers, convergence and independent witnesses","owner":"Data Collection packages; Test Lead/science accepts adequacy"}
+  ],
+  "question_law_review":{
+    "status":"SPECIFIED_HUMAN_INPUT",
+    "P":"Matched seal revision jobs within compound, lubricant, pressure/temperature and assembly applicability; preserve correlations",
+    "Q":"Separately labelled contact-loss/extrusion and assembly-force frontier enrichment",
+    "w":"Buyer/job prevalence independently approved, not diagnostic sampling frequency",
+    "action_set":"Registered gland, squeeze and back-up support geometry under fixed selected seal/compound; exact bounds and boundary actions absent",
+    "one_question":"One unchanged seal job through all assembly/service conditions; choose only completely admissible support geometry under buyer objective",
+    "k":{"low_base_high":[4,8,12],"basis":"Discovery section 11 ASSUMPTION sensitivity, not accepted power or law"},
+    "NONE_FEASIBLE":"Valid forward no-redraw only with settled mandatory failures for every eligible menu action; absent or uncertain references stay UNRESOLVED",
+    "T2a":{"working_refinement_bands":2,"minimum_feasible":5,"minimum_infeasible":5,"accepted_widths":null,"measured":false},
+    "E":null,"B":null,"distinct_winners":null,"threshold_variation_renews_E":false
+  },
+  "panel_review":{
+    "status":"PROPOSED_NOT_DISPATCHABLE",
+    "source":"Discovery dossier section 12; counts are ASSUMPTION, not registered tuples",
+    "candidate_designs":10,"mandatory_strata":3,"primary_cases":30,"refined_cases":6,"refined_cost_multiplier":2,"control_equivalents":4,"independent_witness_equivalents":4,"failed_attempt_allowance":4,"equivalent_cases":54,
+    "hypothesis_cost_eur_low_base_high":[17.84,20.92,29.73],
+    "CPU_cost":"UNMEASURED; historical proposal includes setup/tax/reserve, not an execution grant",
+    "exact_design_condition_rung_tuples":null,"accepted_pins":null,"completed_and_scheduled_reuse_inventory":null,
+    "return":"Per-stratum force/contact/extrusion margins without leakage claims, TWO-band contested counts, complete feasible witness, changing picks, strongest calibrated handbook/contact-map baseline, CPU/wall/RAM/failures and material/rights/reference receipts"
+  },
+  "next_action":{"owner":"Research with science/reference owner","action":"Choose one coherent strain/temperature/friction calibration family and confirm selected gland applicability/rights. Otherwise retain original job for rights-permitted customer data; do not join incompatible raw datasets"},
+  "path_to_product":"Conditional customer-data design candidate, not customer-ready executable package or adopted launch Challenge"
+}

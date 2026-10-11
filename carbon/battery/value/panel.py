@@ -34,6 +34,8 @@ from __future__ import annotations
 
 import copy
 import functools
+import json
+from pathlib import Path
 
 from carbon.challenge_readiness.combined_run import (
     ATTACK_CONSTRUCTION,
@@ -387,6 +389,19 @@ GRAPHITE_RUN5 = (
     ),
 )
 PANELS["graphite-run5"] = GRAPHITE_RUN5
+#: ev4-dev-tuning-v1 (the battery score-tuning loop, Test Lead GO 2026-10-05):
+#: EV4's 100 members, Graphite run 5's rebuilds, and (ATTACK_PANELS) the Track
+#: A constructions, decided on EV4's development conditions. DEVELOPMENT only.
+PANELS["ev4-dev-tuning"] = PANELS["ev4"] + GRAPHITE_RUN5
+#: ev4-dev-proof (SCORE-PROOF-01): ev4-dev-tuning plus the registered proof
+#: members (`panels/proof-panel-l0-v1.json`), each `(label, strategy,
+#: seeds)`, registered before any of their values is computed.
+PROOF_PANEL = Path(__file__).with_name("panels") / "proof-panel-l0-v1.json"
+PROOF_L0 = tuple(
+    (m["label"], m["strategy"], tuple(m["seeds"]))
+    for m in json.loads(PROOF_PANEL.read_text(encoding="utf-8"))["members"]
+)
+PANELS["ev4-dev-proof"] = PANELS["ev4-dev-tuning"] + PROOF_L0
 
 #: The Track A harness families whose attempts are declarative recipes
 #: (strategy documents). The other families attack Python objects,
@@ -394,7 +409,7 @@ PANELS["graphite-run5"] = GRAPHITE_RUN5
 ATTACK_FAMILIES = ("recipe_surface", "rebuild_identity")
 ATTACK_ORIGIN = "track_a_harness"
 #: Panels that carry the harness's attack constructions.
-ATTACK_PANELS = ("ev5",)
+ATTACK_PANELS = ("ev5", "ev4-dev-tuning", "ev4-dev-proof")
 
 
 def family(strategy):

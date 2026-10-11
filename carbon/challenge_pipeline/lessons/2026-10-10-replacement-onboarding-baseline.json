@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-replacement-onboarding-baseline",
+  "recorded_at": "2026-10-10T19:28:01Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind":"test_run","ref":"REPLACEMENT-ONBOARDING-01","description":"Existing four-tool and eight-brief native baseline; no solvers, builds, providers or protected data."},
+  "expected": "The existing tools should generate drafts without granting stage acceptance.",
+  "observed": "40 focused native tests passed. Research #1001 appeared during orientation: all three complete input sets remain unconfirmed, despite some licensed ingredients. Native tests are diagnostic, not canonical acceptance.",
+  "keep": ["Keep source identity distinct from source applicability", "Keep tool output draft-only"],
+  "change": ["Use the newly available research audit instead of assuming the open-data return is still pending"],
+  "protocol_elements": ["claim_control", "evidence_identity"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

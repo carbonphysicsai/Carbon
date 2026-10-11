@@ -1,0 +1,22 @@
+[
+  {
+    "path": "docs/development/challenge_pipeline/discovery/dossiers/solenoid-pole.md",
+    "sha256": "8ab318c38c01bdc460afa213fdbf8f6b7b679deb946ae034bc92ffe40e524bc6"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/replacement-onboarding/solenoid-pole-intake.json",
+    "sha256": "ebc905813dc4b38beb3edc9883a6787544734dfa9bce3d287aff3afa5911f2bc"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/magnetics-first-panels/solenoid-pole.md",
+    "sha256": "99df90ce0ab5a9f7f865387e467c24b204808c1261bb159f4d6c427a0ed02881"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/value-cost/replacements/solenoid-pole.md",
+    "sha256": "2b2896b7b753c9e1f95561371cadd66cc17d7f9c068cd613eb6ce65b00e33365"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/replacement-onboarding/artifacts.json",
+    "sha256": "b37d535d4f6ed3b2172f480f9af4bd171f0147b96668f45b511c136525707d9c"
+  }
+]

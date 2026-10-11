@@ -1,0 +1,107 @@
+{
+  "NONE_FEASIBLE": {
+    "recommendation": "VALID_FORWARD_NO_REDRAW only with a complete settled proof; missing/uncertain support stays UNRESOLVED",
+    "status": "HUMAN_INPUT"
+  },
+  "P": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize P",
+    "owner": "science/product owner",
+    "recommendation": "**P \u2014 customer request population.** Joint distribution of customer seal-sizing requests: gland envelopes, pressure/temperature histories, approved material/lot variation, and mating tolerances. Conditional joint behaviour matters; independent uniform squeeze and pressure boxes are not a customer law.\n\n**Q \u2014 diagnostic/acquisition proposal.** Enrich near contact-loss, overstrain and support/extrusion boundaries while retaining the same material and pressure-service domain. Oversample disagreement with the supplier-handbook/contact-surface baseline. Tag every diagnostic design; do not interpret its density as P.\n\n**w \u2014 evidence/score use.** Sampling/evidence weighting and any correction from Q to P are **HUMAN_INPUT \u2014 scientific owner**. Prospective per-stratum admissibility and reporting precede any ranking. Equal diagnostic counts are a collection convenience, not deployment weights. No soft objective can compensate for a mandatory failure.\n\nFreeze a versioned population contract with joint variables, support, dependencies, strata/mixture probabilities, rights, exclusions, time validity and applicability. Keep request-job law distinct from the finite design menu conditional on that job. Request population and design-generation process are not interchangeable. No public draw is a hidden/protected exam draw; this researcher defines or accesses neither.",
+    "sources": [
+      {
+        "excerpt": "**P \u2014 customer request population.** Joint distribution of customer seal-sizing requests: gland envelopes, pressure/temperature histories, approved material/lot variation, and mating tolerances. Conditional joint behaviour matters; independent uniform squeeze and pressure boxes are not a customer law.\n\n**Q \u2014 diagnostic/acquisition proposal.** Enrich near contact-loss, overstrain and support/extrusion boundaries while retaining the same material and pressure-service domain. Oversample disagreement with the supplier-handbook/contact-surface baseline. Tag every diagnostic design; do not interpret its density as P.\n\n**w \u2014 evidence/score use.** Sampling/evidence weighting and any correction from Q to P are **HUMAN_INPUT \u2014 scientific owner**. Prospective per-stratum admissibility and reporting precede any ranking. Equal diagnostic counts are a collection convenience, not deployment weights. No soft objective can compensate for a mandatory failure.\n\nFreeze a versioned population contract with joint variables, support, dependencies, strata/mixture probabilities, rights, exclusions, time validity and applicability. Keep request-job law distinct from the finite design menu conditional on that job. Request population and design-generation process are not interchangeable. No public draw is a hidden/protected exam draw; this researcher defines or accesses neither.",
+        "path": "docs/development/challenge_pipeline/discovery/dossiers/seal-gland.md",
+        "sha256": "342fd3ffc076e0f23089685bdc599775e12fe142f7cc6f7518f13d0a8636fec9"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "Q": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize Q",
+    "owner": "science/product owner",
+    "recommendation": "**P \u2014 customer request population.** Joint distribution of customer seal-sizing requests: gland envelopes, pressure/temperature histories, approved material/lot variation, and mating tolerances. Conditional joint behaviour matters; independent uniform squeeze and pressure boxes are not a customer law.\n\n**Q \u2014 diagnostic/acquisition proposal.** Enrich near contact-loss, overstrain and support/extrusion boundaries while retaining the same material and pressure-service domain. Oversample disagreement with the supplier-handbook/contact-surface baseline. Tag every diagnostic design; do not interpret its density as P.\n\n**w \u2014 evidence/score use.** Sampling/evidence weighting and any correction from Q to P are **HUMAN_INPUT \u2014 scientific owner**. Prospective per-stratum admissibility and reporting precede any ranking. Equal diagnostic counts are a collection convenience, not deployment weights. No soft objective can compensate for a mandatory failure.\n\nFreeze a versioned population contract with joint variables, support, dependencies, strata/mixture probabilities, rights, exclusions, time validity and applicability. Keep request-job law distinct from the finite design menu conditional on that job. Request population and design-generation process are not interchangeable. No public draw is a hidden/protected exam draw; this researcher defines or accesses neither.",
+    "sources": [
+      {
+        "excerpt": "**P \u2014 customer request population.** Joint distribution of customer seal-sizing requests: gland envelopes, pressure/temperature histories, approved material/lot variation, and mating tolerances. Conditional joint behaviour matters; independent uniform squeeze and pressure boxes are not a customer law.\n\n**Q \u2014 diagnostic/acquisition proposal.** Enrich near contact-loss, overstrain and support/extrusion boundaries while retaining the same material and pressure-service domain. Oversample disagreement with the supplier-handbook/contact-surface baseline. Tag every diagnostic design; do not interpret its density as P.\n\n**w \u2014 evidence/score use.** Sampling/evidence weighting and any correction from Q to P are **HUMAN_INPUT \u2014 scientific owner**. Prospective per-stratum admissibility and reporting precede any ranking. Equal diagnostic counts are a collection convenience, not deployment weights. No soft objective can compensate for a mandatory failure.\n\nFreeze a versioned population contract with joint variables, support, dependencies, strata/mixture probabilities, rights, exclusions, time validity and applicability. Keep request-job law distinct from the finite design menu conditional on that job. Request population and design-generation process are not interchangeable. No public draw is a hidden/protected exam draw; this researcher defines or accesses neither.",
+        "path": "docs/development/challenge_pipeline/discovery/dossiers/seal-gland.md",
+        "sha256": "342fd3ffc076e0f23089685bdc599775e12fe142f7cc6f7518f13d0a8636fec9"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "T2a": {
+    "band_widths": "HUMAN_INPUT",
+    "measured": "NOT_ASSESSED_BY_DRAFTING",
+    "minimum_distinct_feasible": 5,
+    "minimum_distinct_infeasible": 5,
+    "near_refinement_bands": 2,
+    "rule": "Both sides near the limit; add frontier resolution, never widen bands",
+    "status": "TEST_LEAD_WORKING_VALUE"
+  },
+  "action_set": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize geometry",
+    "owner": "science/product owner",
+    "recommendation": "An explicitly bounded gland/seal geometry, nonlinear elastomer and rigid or deformable support, with assembly then service loading. An axisymmetric ring/gland is the cheapest proposed starting scope; permitting non-axisymmetric cuts or complex damage models changes the reference and price. Contact-pressure/extrusion proxies screen mechanics only; leakage, permeation, chemical compatibility and lifetime require separately applicable evidence if the buyer needs them.\n\nMandatory-stratum hypothesis (count [3,3,3]):\n\n- approved low-temperature/assembly condition: numerical endpoints, joint conditions and source HUMAN_INPUT.\n- approved nominal service condition: numerical endpoints, joint conditions and source HUMAN_INPUT.\n- approved hot/high-pressure service condition: numerical endpoints, joint conditions and source HUMAN_INPUT.\n\nScientific owner must confirm that these strata cover the unchanged customer job. Initial/boundary conditions, histories, idealisations, material applicability, neglected physics and manufacture/assembly tolerances are HUMAN_INPUT. A missing safety/material requirement stops the affected job; it is never relaxed to save compute. No physical population claim follows from deterministic execution.",
+    "sources": [
+      {
+        "excerpt": "An explicitly bounded gland/seal geometry, nonlinear elastomer and rigid or deformable support, with assembly then service loading. An axisymmetric ring/gland is the cheapest proposed starting scope; permitting non-axisymmetric cuts or complex damage models changes the reference and price. Contact-pressure/extrusion proxies screen mechanics only; leakage, permeation, chemical compatibility and lifetime require separately applicable evidence if the buyer needs them.\n\nMandatory-stratum hypothesis (count [3,3,3]):\n\n- approved low-temperature/assembly condition: numerical endpoints, joint conditions and source HUMAN_INPUT.\n- approved nominal service condition: numerical endpoints, joint conditions and source HUMAN_INPUT.\n- approved hot/high-pressure service condition: numerical endpoints, joint conditions and source HUMAN_INPUT.\n\nScientific owner must confirm that these strata cover the unchanged customer job. Initial/boundary conditions, histories, idealisations, material applicability, neglected physics and manufacture/assembly tolerances are HUMAN_INPUT. A missing safety/material requirement stops the affected job; it is never relaxed to save compute. No physical population claim follows from deterministic execution.",
+        "path": "docs/development/challenge_pipeline/discovery/dossiers/seal-gland.md",
+        "sha256": "342fd3ffc076e0f23089685bdc599775e12fe142f7cc6f7518f13d0a8636fec9"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "bank": {
+    "B": null,
+    "E": null,
+    "n": null,
+    "status": "HUMAN_INPUT",
+    "threshold_variation_renews_exposure": false
+  },
+  "challenge": "seal-gland",
+  "diversity": null,
+  "held_closed": "No law approval, bank draw, runtime registration, power acceptance or spend",
+  "k": {
+    "basis": "Power and exposure owner selects; a panel's batch size is not approval",
+    "recommendation": null,
+    "status": "HUMAN_INPUT"
+  },
+  "maturity": "DRAFT_ONLY",
+  "panel_basis": null,
+  "question": {
+    "buyer_decision": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize decision",
+      "owner": "science/product owner",
+      "recommendation": "Choose gland, squeeze and back-up support within a stated compound, pressure and temperature envelope",
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "recommendation": "One complete buyer decision, not one solver point; indexed decisions include every mandatory band",
+    "status": "HUMAN_INPUT"
+  },
+  "schema": "carbon.onboarding.question-law-draft.v1",
+  "startup_cost": {
+    "basis": "Requires unique new physical cases/rungs, measured CPU, throughput, overhead and quote; B is not a solve count",
+    "cpu_hours": null,
+    "eur": null,
+    "status": "HUMAN_INPUT"
+  },
+  "w": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize w",
+    "owner": "science/product owner",
+    "recommendation": "**P \u2014 customer request population.** Joint distribution of customer seal-sizing requests: gland envelopes, pressure/temperature histories, approved material/lot variation, and mating tolerances. Conditional joint behaviour matters; independent uniform squeeze and pressure boxes are not a customer law.\n\n**Q \u2014 diagnostic/acquisition proposal.** Enrich near contact-loss, overstrain and support/extrusion boundaries while retaining the same material and pressure-service domain. Oversample disagreement with the supplier-handbook/contact-surface baseline. Tag every diagnostic design; do not interpret its density as P.\n\n**w \u2014 evidence/score use.** Sampling/evidence weighting and any correction from Q to P are **HUMAN_INPUT \u2014 scientific owner**. Prospective per-stratum admissibility and reporting precede any ranking. Equal diagnostic counts are a collection convenience, not deployment weights. No soft objective can compensate for a mandatory failure.\n\nFreeze a versioned population contract with joint variables, support, dependencies, strata/mixture probabilities, rights, exclusions, time validity and applicability. Keep request-job law distinct from the finite design menu conditional on that job. Request population and design-generation process are not interchangeable. No public draw is a hidden/protected exam draw; this researcher defines or accesses neither.",
+    "sources": [
+      {
+        "excerpt": "**P \u2014 customer request population.** Joint distribution of customer seal-sizing requests: gland envelopes, pressure/temperature histories, approved material/lot variation, and mating tolerances. Conditional joint behaviour matters; independent uniform squeeze and pressure boxes are not a customer law.\n\n**Q \u2014 diagnostic/acquisition proposal.** Enrich near contact-loss, overstrain and support/extrusion boundaries while retaining the same material and pressure-service domain. Oversample disagreement with the supplier-handbook/contact-surface baseline. Tag every diagnostic design; do not interpret its density as P.\n\n**w \u2014 evidence/score use.** Sampling/evidence weighting and any correction from Q to P are **HUMAN_INPUT \u2014 scientific owner**. Prospective per-stratum admissibility and reporting precede any ranking. Equal diagnostic counts are a collection convenience, not deployment weights. No soft objective can compensate for a mandatory failure.\n\nFreeze a versioned population contract with joint variables, support, dependencies, strata/mixture probabilities, rights, exclusions, time validity and applicability. Keep request-job law distinct from the finite design menu conditional on that job. Request population and design-generation process are not interchangeable. No public draw is a hidden/protected exam draw; this researcher defines or accesses neither.",
+        "path": "docs/development/challenge_pipeline/discovery/dossiers/seal-gland.md",
+        "sha256": "342fd3ffc076e0f23089685bdc599775e12fe142f7cc6f7518f13d0a8636fec9"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "NONE_FEASIBLE": {
+    "recommendation": "VALID_FORWARD_NO_REDRAW only with a complete settled proof; missing/uncertain support stays UNRESOLVED",
+    "status": "HUMAN_INPUT"
+  },
+  "P": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize P",
+    "owner": "science/product owner",
+    "recommendation": "Geometry is an action; reference-input geometry law is uniform valid parameters.\nExogenous `P_dev` is uniform over the3\u00d73 flow/diffusivity conditions, w=1/9 for\na later complete decision panel, with worst condition separately mandatory.\nQ feasibility: nominal groove geometry at all nine conditions plus controls\nand refinement as caps permit. These shared conditions do not establish a\ncustomer fluid distribution or population reliability. High-Peclet behavior\nis explicitly reported, not filtered out as an inconvenient case.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three flows by three diffusivities are one cartridge operating panel.\nA future `P_job` can vary supported outlet-mixing, pressure-drop or residence\nlimits and required throughput subsets against one fully solved groove bank.\nA lab-instrument buyer recognizes each question from its assay uniformity,\npump and throughput acceptance sheet. Re-evaluating stored flow/scalar outputs\nneeds no new solve if the whole requested panel is covered and the preferred\ngroove demonstrably changes. New fluids, inlet chemistry or port interfaces\nare optional axes that may need new flow/scalar references. Outlet pixels,\nflow probes and solver seeds are not fresh questions by themselves.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and panels,\n`P_job`, protected `Q_job`, weights, answer diversity, shared-assay clustering,\nexposure and power-justified hidden `n`. The complete 3 \u00d7 3 panel stays\nmandatory for any question that claims that service envelope.",
+    "sources": [
+      {
+        "excerpt": "Geometry is an action; reference-input geometry law is uniform valid parameters.\nExogenous `P_dev` is uniform over the3\u00d73 flow/diffusivity conditions, w=1/9 for\na later complete decision panel, with worst condition separately mandatory.\nQ feasibility: nominal groove geometry at all nine conditions plus controls\nand refinement as caps permit. These shared conditions do not establish a\ncustomer fluid distribution or population reliability. High-Peclet behavior\nis explicitly reported, not filtered out as an inconvenient case.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three flows by three diffusivities are one cartridge operating panel.\nA future `P_job` can vary supported outlet-mixing, pressure-drop or residence\nlimits and required throughput subsets against one fully solved groove bank.\nA lab-instrument buyer recognizes each question from its assay uniformity,\npump and throughput acceptance sheet. Re-evaluating stored flow/scalar outputs\nneeds no new solve if the whole requested panel is covered and the preferred\ngroove demonstrably changes. New fluids, inlet chemistry or port interfaces\nare optional axes that may need new flow/scalar references. Outlet pixels,\nflow probes and solver seeds are not fresh questions by themselves.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and panels,\n`P_job`, protected `Q_job`, weights, answer diversity, shared-assay clustering,\nexposure and power-justified hidden `n`. The complete 3 \u00d7 3 panel stays\nmandatory for any question that claims that service envelope.",
+        "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+        "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "Q": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize Q",
+    "owner": "science/product owner",
+    "recommendation": "Geometry is an action; reference-input geometry law is uniform valid parameters.\nExogenous `P_dev` is uniform over the3\u00d73 flow/diffusivity conditions, w=1/9 for\na later complete decision panel, with worst condition separately mandatory.\nQ feasibility: nominal groove geometry at all nine conditions plus controls\nand refinement as caps permit. These shared conditions do not establish a\ncustomer fluid distribution or population reliability. High-Peclet behavior\nis explicitly reported, not filtered out as an inconvenient case.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three flows by three diffusivities are one cartridge operating panel.\nA future `P_job` can vary supported outlet-mixing, pressure-drop or residence\nlimits and required throughput subsets against one fully solved groove bank.\nA lab-instrument buyer recognizes each question from its assay uniformity,\npump and throughput acceptance sheet. Re-evaluating stored flow/scalar outputs\nneeds no new solve if the whole requested panel is covered and the preferred\ngroove demonstrably changes. New fluids, inlet chemistry or port interfaces\nare optional axes that may need new flow/scalar references. Outlet pixels,\nflow probes and solver seeds are not fresh questions by themselves.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and panels,\n`P_job`, protected `Q_job`, weights, answer diversity, shared-assay clustering,\nexposure and power-justified hidden `n`. The complete 3 \u00d7 3 panel stays\nmandatory for any question that claims that service envelope.",
+    "sources": [
+      {
+        "excerpt": "Geometry is an action; reference-input geometry law is uniform valid parameters.\nExogenous `P_dev` is uniform over the3\u00d73 flow/diffusivity conditions, w=1/9 for\na later complete decision panel, with worst condition separately mandatory.\nQ feasibility: nominal groove geometry at all nine conditions plus controls\nand refinement as caps permit. These shared conditions do not establish a\ncustomer fluid distribution or population reliability. High-Peclet behavior\nis explicitly reported, not filtered out as an inconvenient case.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three flows by three diffusivities are one cartridge operating panel.\nA future `P_job` can vary supported outlet-mixing, pressure-drop or residence\nlimits and required throughput subsets against one fully solved groove bank.\nA lab-instrument buyer recognizes each question from its assay uniformity,\npump and throughput acceptance sheet. Re-evaluating stored flow/scalar outputs\nneeds no new solve if the whole requested panel is covered and the preferred\ngroove demonstrably changes. New fluids, inlet chemistry or port interfaces\nare optional axes that may need new flow/scalar references. Outlet pixels,\nflow probes and solver seeds are not fresh questions by themselves.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and panels,\n`P_job`, protected `Q_job`, weights, answer diversity, shared-assay clustering,\nexposure and power-justified hidden `n`. The complete 3 \u00d7 3 panel stays\nmandatory for any question that claims that service envelope.",
+        "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+        "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "T2a": {
+    "band_widths": "HUMAN_INPUT",
+    "measured": "NOT_ASSESSED_BY_DRAFTING",
+    "minimum_distinct_feasible": 5,
+    "minimum_distinct_infeasible": 5,
+    "near_refinement_bands": 2,
+    "rule": "Both sides near the limit; add frontier resolution, never widen bands",
+    "status": "TEST_LEAD_WORKING_VALUE"
+  },
+  "action_set": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize geometry",
+    "owner": "science/product owner",
+    "recommendation": "300\u00d7100-\u00b5m base channel,10 mm axial length, two equal-flow side-by-side inlets\nconcentrations0 and1. Bottom staggered-herringbone recessed grooves:\ndepth20\u201340 \u00b5m,width50 \u00b5m,pitch100\u2013250 \u00b5m,45\u00b0 angle, asymmetry corner at1/3 width;\nreverse orientation every6\u201310 grooves (integer). Groove ends stop10 \u00b5m before\nsidewalls. No-slip walls, zero solute wall flux, prescribed equal inlet flux,\noutlet pressure0. Synthetic Newtonian rho998 kg/m\u00b3,mu0.001 Pa s; total flow\n1,3,5 \u00b5L/min; D=0.5,1,2\u00d710\u207b\u00b9\u2070 m\u00b2/s. Independently solve and charge laminar\nvelocity before steady passive-scalar transport. No unpriced velocity oracle.",
+    "sources": [
+      {
+        "excerpt": "300\u00d7100-\u00b5m base channel,10 mm axial length, two equal-flow side-by-side inlets\nconcentrations0 and1. Bottom staggered-herringbone recessed grooves:\ndepth20\u201340 \u00b5m,width50 \u00b5m,pitch100\u2013250 \u00b5m,45\u00b0 angle, asymmetry corner at1/3 width;\nreverse orientation every6\u201310 grooves (integer). Groove ends stop10 \u00b5m before\nsidewalls. No-slip walls, zero solute wall flux, prescribed equal inlet flux,\noutlet pressure0. Synthetic Newtonian rho998 kg/m\u00b3,mu0.001 Pa s; total flow\n1,3,5 \u00b5L/min; D=0.5,1,2\u00d710\u207b\u00b9\u2070 m\u00b2/s. Independently solve and charge laminar\nvelocity before steady passive-scalar transport. No unpriced velocity oracle.",
+        "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+        "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "bank": {
+    "B": null,
+    "E": null,
+    "n": null,
+    "status": "HUMAN_INPUT",
+    "threshold_variation_renews_exposure": false
+  },
+  "challenge": "f17",
+  "diversity": null,
+  "held_closed": "No law approval, bank draw, runtime registration, power acceptance or spend",
+  "k": {
+    "basis": "Power and exposure owner selects; a panel's batch size is not approval",
+    "recommendation": null,
+    "status": "HUMAN_INPUT"
+  },
+  "maturity": "DRAFT_ONLY",
+  "panel_basis": null,
+  "question": {
+    "buyer_decision": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize decision",
+      "owner": "science/product owner",
+      "recommendation": "Choose a repeated-groove mixing design under mixing, pressure and residence requirements",
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "recommendation": "One complete buyer decision, not one solver point; indexed decisions include every mandatory band",
+    "status": "HUMAN_INPUT"
+  },
+  "schema": "carbon.onboarding.question-law-draft.v1",
+  "startup_cost": {
+    "basis": "Requires unique new physical cases/rungs, measured CPU, throughput, overhead and quote; B is not a solve count",
+    "cpu_hours": null,
+    "eur": null,
+    "status": "HUMAN_INPUT"
+  },
+  "w": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize w",
+    "owner": "science/product owner",
+    "recommendation": "Geometry is an action; reference-input geometry law is uniform valid parameters.\nExogenous `P_dev` is uniform over the3\u00d73 flow/diffusivity conditions, w=1/9 for\na later complete decision panel, with worst condition separately mandatory.\nQ feasibility: nominal groove geometry at all nine conditions plus controls\nand refinement as caps permit. These shared conditions do not establish a\ncustomer fluid distribution or population reliability. High-Peclet behavior\nis explicitly reported, not filtered out as an inconvenient case.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three flows by three diffusivities are one cartridge operating panel.\nA future `P_job` can vary supported outlet-mixing, pressure-drop or residence\nlimits and required throughput subsets against one fully solved groove bank.\nA lab-instrument buyer recognizes each question from its assay uniformity,\npump and throughput acceptance sheet. Re-evaluating stored flow/scalar outputs\nneeds no new solve if the whole requested panel is covered and the preferred\ngroove demonstrably changes. New fluids, inlet chemistry or port interfaces\nare optional axes that may need new flow/scalar references. Outlet pixels,\nflow probes and solver seeds are not fresh questions by themselves.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and panels,\n`P_job`, protected `Q_job`, weights, answer diversity, shared-assay clustering,\nexposure and power-justified hidden `n`. The complete 3 \u00d7 3 panel stays\nmandatory for any question that claims that service envelope.",
+    "sources": [
+      {
+        "excerpt": "Geometry is an action; reference-input geometry law is uniform valid parameters.\nExogenous `P_dev` is uniform over the3\u00d73 flow/diffusivity conditions, w=1/9 for\na later complete decision panel, with worst condition separately mandatory.\nQ feasibility: nominal groove geometry at all nine conditions plus controls\nand refinement as caps permit. These shared conditions do not establish a\ncustomer fluid distribution or population reliability. High-Peclet behavior\nis explicitly reported, not filtered out as an inconvenient case.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three flows by three diffusivities are one cartridge operating panel.\nA future `P_job` can vary supported outlet-mixing, pressure-drop or residence\nlimits and required throughput subsets against one fully solved groove bank.\nA lab-instrument buyer recognizes each question from its assay uniformity,\npump and throughput acceptance sheet. Re-evaluating stored flow/scalar outputs\nneeds no new solve if the whole requested panel is covered and the preferred\ngroove demonstrably changes. New fluids, inlet chemistry or port interfaces\nare optional axes that may need new flow/scalar references. Outlet pixels,\nflow probes and solver seeds are not fresh questions by themselves.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and panels,\n`P_job`, protected `Q_job`, weights, answer diversity, shared-assay clustering,\nexposure and power-justified hidden `n`. The complete 3 \u00d7 3 panel stays\nmandatory for any question that claims that service envelope.",
+        "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+        "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  }
+}

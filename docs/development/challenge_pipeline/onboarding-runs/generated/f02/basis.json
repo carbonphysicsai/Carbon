@@ -1,0 +1,18 @@
+[
+  {
+    "path": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+    "sha256": "e4d3ce14fde60ed5e9e2990ceb735f62357d6b16b9fcb34e9a8df9ed63ffd4bb"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/value-cost/f02.md",
+    "sha256": "63c427e63ba8a6f4a122d83869d118358de1255d58c8090dd08f81849bbb9211"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/cheap-baselines/f02.md",
+    "sha256": "805aa163e1625a453e7368bb22cd4d9e40a2086bdb266feeb822bd36b272ff95"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/question-laws/f02-round2.json",
+    "sha256": "914e3f28b05474790837030984335f6254eb23156cc60b19fea395aecfe95702"
+  }
+]

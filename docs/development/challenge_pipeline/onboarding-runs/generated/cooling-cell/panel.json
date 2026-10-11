@@ -1,0 +1,67 @@
+{
+  "boundary_designs": {
+    "intervals_and_frontier_results": "NOT_DEMONSTRATED",
+    "recommendation": "Register physical-coordinate brackets near each hard limit in every stratum; at least 5 settled feasible AND 5 settled infeasible within TWO accepted refinement bands; no guaranteed yield, no widening",
+    "status": "HUMAN_INPUT"
+  },
+  "buyer_decision": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize decision",
+    "owner": "science/product owner",
+    "recommendation": "Shortlist periodic cell geometry at a declared lid-side TIM2 case plane, not a full cold plate",
+    "sources": [],
+    "status": "HUMAN_INPUT"
+  },
+  "case_count": null,
+  "cases": [],
+  "challenge": "cooling-cell",
+  "cost": {
+    "billed_node_hours": null,
+    "cpu_hours_if_reuse_accepted": null,
+    "cpu_hours_without_reuse": null,
+    "eur": null,
+    "omitted": [
+      "failures",
+      "setup",
+      "witnesses",
+      "new frontier actions",
+      "storage",
+      "tax",
+      "retained verification"
+    ],
+    "status": "UNKNOWN"
+  },
+  "designs": null,
+  "held_closed": "No solver, bank draw, hidden data, registration adoption or spend; DC accepts geometry/pins/reuse before execution",
+  "maturity": "DRAFT_ONLY",
+  "registration_status": "PROPOSED_NOT_DISPATCHABLE",
+  "reuse_check": {
+    "completed_matches": 0,
+    "scheduled_matches": 0,
+    "status": "UNKNOWN_NO_INDEX"
+  },
+  "schema": "carbon.onboarding.panel-draft.v1",
+  "strata": null,
+  "strata_basis": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize strata",
+    "owner": "science/product owner",
+    "recommendation": "Customer-recognizable planning contexts remain cold uniform, typical load,\nwarm uniform, warm central hotspot and warm outlet-side hotspot. In v2 every\nnonuniform map is specified **at the post-spreader cold-plate interface**;\nthe source/lid definition and resulting flux map are buyer inputs, not design\nactions secretly optimized by the model. Do not choose ratio, TIM or inlet\nfrom alternatives after seeing which one passes. Freeze each scenario first.\n\nThe complete panel, supported maps and P_job/Q_job/w_job registration remain\nHUMAN_INPUT in [question-law v2](../question-laws/proposals-v2.json). Preserve\nseparate population, near-limit diagnostic enrichment and diagnostic weights.\nReport each stratum; a uniform pass cannot average away a hotspot breach.\nUnsupported reduced-supply flow stays excluded/unresolved, never clamped.\nService/input alternatives are separate clearly labelled sensitivity results,\nnot additional equivalent questions or fresh bank exposure.",
+    "sources": [
+      {
+        "excerpt": "Customer-recognizable planning contexts remain cold uniform, typical load,\nwarm uniform, warm central hotspot and warm outlet-side hotspot. In v2 every\nnonuniform map is specified **at the post-spreader cold-plate interface**;\nthe source/lid definition and resulting flux map are buyer inputs, not design\nactions secretly optimized by the model. Do not choose ratio, TIM or inlet\nfrom alternatives after seeing which one passes. Freeze each scenario first.\n\nThe complete panel, supported maps and P_job/Q_job/w_job registration remain\nHUMAN_INPUT in [question-law v2](../question-laws/proposals-v2.json). Preserve\nseparate population, near-limit diagnostic enrichment and diagnostic weights.\nReport each stratum; a uniform pass cannot average away a hotspot breach.\nUnsupported reduced-supply flow stays excluded/unresolved, never clamped.\nService/input alternatives are separate clearly labelled sensitivity results,\nnot additional equivalent questions or fresh bank exposure.",
+        "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+        "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "value_measures": [
+    "complete feasible answer",
+    "both-side contested boundaries",
+    "buyer-unit margin spread",
+    "best/equivalent answer changes",
+    "cheap-baseline decision regret",
+    "CPU/wall/memory/failures"
+  ]
+}

@@ -136,3 +136,10 @@ timeline feeds #975's PROCESS field; a [battery reconstruction](../onboarding-ti
 separates pre-existing reference code and successive packet/law versions.
 Calendar milestones are not person-hours or stage duration. No speed target
 or claimed labor savings is introduced.
+
+## Remaining-brief applications
+
+[Eight retained runs and reviewed next-action order](../onboarding-runs/README.md)
+apply all four tools to the six remaining portfolio briefs and two conditional
+replacement candidates. These preserve source excerpts and missing numeric
+registrations; a generated draft or observed artefact does not pass a stage.
