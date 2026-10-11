@@ -308,10 +308,14 @@ def evaluate_question(rule, question, commitment, verifier_receipt, eligibility)
             "weight": question["weight"],
         }
     ledger = budget_registration.BudgetLedger(cap)
-    overhead_fit = all(
-        ledger.charge_overhead(verifier_receipt[key])
-        for key in ("startup_cost", "search_cost")
-    )
+    overhead = {
+        unit: _number(
+            sum(verifier_receipt[key][unit] for key in ("startup_cost", "search_cost")),
+            f"total overhead.{unit}",
+        )
+        for unit in ("wall_s", "core_s")
+    }
+    overhead_fit = ledger.charge_overhead(overhead)
     attempted = []
     if overhead_fit:
         for action in commitment["ordered_actions"]:
@@ -331,9 +335,12 @@ def evaluate_question(rule, question, commitment, verifier_receipt, eligibility)
         "attempt_statuses": [row["reference"]["status"] for row in attempted],
         "spent": {
             "complete_panels": ledger.solver_evaluations,
-            "wall_s": ledger.wall_s,
-            "core_s": ledger.core_s,
+            "wall_s": overhead["wall_s"]
+            + sum(row["actual_cost"]["wall_s"] for row in attempted),
+            "core_s": overhead["core_s"]
+            + sum(row["actual_cost"]["core_s"] for row in attempted),
         },
+        "overhead_over_budget": not overhead_fit,
         "budget_stopped": len(attempted) < len(commitment["ordered_actions"]),
         "correct_abstention": not commitment["ordered_actions"]
         and set(statuses) == {"INFEASIBLE"},

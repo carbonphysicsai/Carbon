@@ -19,6 +19,9 @@ panel, including rejected or band-unresolved panels, and stop before one whose
 independent planning bound cannot fit. Return the best verified feasible
 design, with a full service loss when nothing can be returned. Missing or failed
 reference evidence and missing model output withhold the numeric leg.
+An already-incurred startup/search overrun is reported at its actual cost even
+when it prevents every verification attempt; no overhead becomes free because
+it exceeded the registered cap.
 
 Register a candidate separately from registry v5, which remains unchanged.
 The new `v` leg may be passed to the existing proof code as a prospective

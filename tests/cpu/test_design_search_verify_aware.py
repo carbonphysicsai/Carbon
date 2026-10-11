@@ -114,6 +114,16 @@ def test_complete_panel_budget_stops_before_unaffordable_action():
     assert result["spent"]["wall_s"] == 4.0
 
 
+def test_unaffordable_search_overhead_is_still_reported_as_spent():
+    registered = rule(budget={"complete_panels": 3, "wall_s": 5.0, "core_s": 5.0})
+    result = run(registered, question(registered), ["best"], startup=4, search=4)
+    assert result["attempted"] == []
+    assert result["budget_stopped"] is True
+    assert result["overhead_over_budget"] is True
+    assert result["spent"] == {"complete_panels": 0, "wall_s": 8.0, "core_s": 8.0}
+    assert result["score"] == 1.0
+
+
 def test_unresolved_consumes_slot_and_no_return_is_service_loss():
     registered = rule(budget={"complete_panels": 1, "wall_s": 12, "core_s": 12})
     q = question(registered, [action("x", "UNRESOLVED"), action("best", "FEASIBLE", 5)])
