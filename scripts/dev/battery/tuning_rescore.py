@@ -77,9 +77,10 @@ def _standin(dirs):
     return store, ids, predictions
 
 
-def rescore(
-    store, ids, predictions, dev_results, registry_path=REGISTRY, q3_regret=None
-):
+def assemble(store, ids, predictions, dev_results, q3_regret=None):
+    """The panel the rescore and the score proof (SCORE-PROOF-01) share: each
+    decided member's legs, decision value and outcomes, recipe and seed
+    grouping, and what the legs were computed from."""
     from carbon.battery.value import panel as pn
     from carbon.battery.value import score_tuning as st
     from carbon.battery.value.contract import load
@@ -111,23 +112,48 @@ def rescore(
         if m.startswith(("control-", "attack_"))
         or int(m.rsplit("-s", 1)[1]) == first.get(recipe_of[m])
     ]
+    return {
+        "contract": contract,
+        "store": store,
+        "ids": ids,
+        "predictions": members,
+        "q3_regret": q3_regret,
+        "results": results,
+        "names": names,
+        "legs": legs,
+        "values": values,
+        "mask": mask,
+        "outcomes": outcomes,
+        "recipe_of": recipe_of,
+        "one_seed": one_seed,
+        "missing_from_decisions": sorted(set(members) - decided),
+    }
+
+
+def rescore(
+    store, ids, predictions, dev_results, registry_path=REGISTRY, q3_regret=None
+):
+    from carbon.battery.value import score_tuning as st
+
+    p = assemble(store, ids, predictions, dev_results, q3_regret)
+    names = p["names"]
     registry = st.load_registry(registry_path, repository=ROOT)
     out = st.evaluate_all(
         registry,
-        legs,
-        values,
-        outcomes,
-        recipe_of,
+        p["legs"],
+        p["values"],
+        p["outcomes"],
+        p["recipe_of"],
         names,
-        one_seed,
+        p["one_seed"],
         unsafe=[u for u in UNSAFE if u in names],
         adversarial=[a for a in ADVERSARIAL if a in names],
     )
     out["panel"] = {
         "members": len(names),
-        "one_seed": len(one_seed),
-        "dev_mask": len(mask),
-        "missing_from_decisions": sorted(set(members) - decided),
+        "one_seed": len(p["one_seed"]),
+        "dev_mask": len(p["mask"]),
+        "missing_from_decisions": p["missing_from_decisions"],
     }
     return out
 

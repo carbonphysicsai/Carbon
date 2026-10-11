@@ -1,0 +1,15 @@
+{
+ "schema": "carbon.cooling.feasibility02-registry.v1",
+ "registered": "2026-10-07, before any study solve",
+ "authority": "CHALLENGE-CUSTOMER-FEASIBILITY-02, #758 at head 1ac5acfa69dd8f2af5d6b5d4f6a2ec52c5b9d975 (cooling: improve the ideal cell first); cooling packet #752 round1/cooling-accelerator-manifold.md; Test Lead relay. DEVELOPMENT; periodic-cell solves only on free host CPU; no full-plate witness (needs a separate owner decision)",
+ "question": "can the improved straight-channel cell meet <= 85 C at the local die-side TIM-interface estimate in the warm strata (45 C inlet, 1,500 W, <= 3 L/min), before any manifold composition",
+ "grammar": {"channel_width_mm": [0.2, 1.0], "fin_width_mm": [0.2, 0.5], "channel_depth_mm": [3.0, 6.0], "base_mm": [0.5, 1.0], "lid_mm": 0.5, "footprint_mm": 30},
+ "designs": "24 public uniform draws (sha256('COOLING-FEAS02-CELL')) plus 8 frozen heat-transfer corners: width {0.2, 0.4} x fin {0.2, 0.35} x depth 6 x base {0.5, 1.0}",
+ "strata": {"warm_uniform": "45 C, 1,500 W, ratio 1", "warm_central_hotspot": "ratio 3 at 15 mm, width 2.5", "warm_outlet_hotspot": "ratio 3 at 25 mm", "reduced_flow_outlet_hotspot": "the outlet hotspot at 0.625 x flow"},
+ "flow": "2.0 L/min/kW (3 L/min at 1,500 W, the cap); reduced stratum 1.25 L/min/kW",
+ "reference": "registered periodic-cell OpenFOAM deck, pinned image opencfd/openfoam-default@sha256:33fb575a..., resolution 2, its reference checks (mass, energy, iteration change), PG25 <= 99 C and Re <= 2,000 applicability; the registered module's bounds and base thickness are widened per case only (scripts/dev/cold_plate/feasibility02.py)",
+ "observer": "max over the heated face of T(x, y) + 5e-6 m^2K/W x q(x) (packet section 6) with its location; cell pressure drop and dp x flow reported against the 50 kPa / 2.5 W totals and the 30 kPa channel allocation (bookkeeping, not a measured manifold loss)",
+ "resolution_check": "any design within 2 C of 85 C in a stratum is re-solved at resolution 3; a change that straddles 85 C makes it REFERENCE_UNRESOLVED",
+ "outcomes_per_stratum": ["RESOLVED_FEASIBLE (cell, necessary only)", "RESOLVED_INFEASIBLE", "REFERENCE_UNRESOLVED (incl. applicability: Re or PG25 range)", "FAILED_INFRA"],
+ "maturity": "a cell pass is necessary, not sufficient: no headers, edges, maldistribution or lateral spreading across channels"
+}

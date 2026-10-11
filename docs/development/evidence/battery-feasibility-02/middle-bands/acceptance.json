@@ -1,0 +1,8 @@
+{
+ "schema": "carbon.battery.middle-bands-acceptance.v1",
+ "accepted": "2026-10-10, Test Lead under OWNER-DEV-AUTONOMY-01",
+ "accepted_manifest_sha256": "bab5ae9702dc0a8ec3c8f26b9ddd9337c19152dc4d1f8692c3bc8d33c14f7e39",
+ "reuse": {"standard": 16, "rung2": 12, "rung3": 6, "at": "5eb029438"},
+ "near": {"temperature_band_k": 0.5, "plating_band_v": 0.002, "near_within_bands": 2, "status": "Test Lead working values (the registered refinement bands of assess(reference=True))"},
+ "dispatch_grant": "OWNER-CCX63-EVIDENCE-GRANT-01 (#992, merged 7a9ada562), EUR 10 all-in, 7 server-hours"
+}
