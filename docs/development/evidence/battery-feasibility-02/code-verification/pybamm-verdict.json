@@ -1,0 +1,43 @@
+{
+  "schema": "carbon.code-verification.result.v1",
+  "kind": "code_verification",
+  "family": "battery-v3",
+  "image_digest": "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940",
+  "source_digest": "sha256:094f8ab8d13a44964a6e2ec0c695a5adfe4d2e6aa9ed775fdfc2c0fe6a2798d7",
+  "criteria_digest": "sha256:2182e04bce3612f898e00184ce1e491cca8a54334192e35c4f2cd6fc1d1870c5",
+  "norms": [
+    {
+      "l2": 0.003784853498809245,
+      "linf": 0.004400838550357,
+      "samples": 20
+    },
+    {
+      "l2": 0.0009465152815789035,
+      "linf": 0.0011020355080928468,
+      "samples": 40
+    },
+    {
+      "l2": 0.00023664769015273215,
+      "linf": 0.0002756414115752115,
+      "samples": 80
+    }
+  ],
+  "orders": {
+    "l2": [
+      1.999539754886768,
+      1.999884958134595
+    ],
+    "linf": [
+      1.9976077368774452,
+      1.9993061531543845
+    ]
+  },
+  "metrics": {
+    "l2_order": 1.999884958134595,
+    "linf_order": 1.9993061531543845
+  },
+  "recommendation_agrees": true,
+  "accepted_development_pass": false,
+  "state": "HUMAN_INPUT",
+  "qualified": false
+}

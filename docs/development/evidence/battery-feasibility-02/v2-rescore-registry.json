@@ -1,0 +1,23 @@
+{
+ "schema": "carbon.battery.feasibility02-v2-rescore-registry.v1",
+ "registered": "2026-10-08, before the v2 re-score is computed (the 435 records exist; their v1 verdicts were reported earlier)",
+ "authority": "battery packet v2 (#804, merged at fed634974f92575cbde509ddc83f5fc4a3fe28da, round1/battery-ev-fast-charge-v2.md); Test Lead relay. Local re-score of existing records only; no new solve",
+ "records": "battery-feasibility-02 tier 1 (184), tier 2 (244) and refined (7) records on the operator host, summarised in summary.json",
+ "hard_criteria": {
+  "charging_temperature": "max volume-averaged temperature over every cc1, cc2 and cv leg of all 30 cycles <= 45 C",
+  "plating": "min plating overpotential over every charge leg >= 0 V",
+  "voltage": "programme max <= 4.2 V (+1e-6 numerical tolerance)",
+  "retention": "Q30/Q1 >= 0.99"
+ },
+ "diagnostics": "initial-rest, inter-leg rest (rest after CV), discharge and post-discharge rest temperature extrema, reported, never a hard rule; whole-programme maximum reported beside the charging maximum",
+ "objective": "session-start 10-80 % time (charge-integral SOC clock incl. the 120 s rest), minimised; NOT_REACHED is UNRESOLVED for the objective",
+ "bands": "a hard margin within 0.5 C (temperature) or 2 mV (plating) is REFERENCE_UNRESOLVED unless a refined solve settles it (rung change below the band and no sign change), as in the v1 summary",
+ "per_stratum": "per ambient (5, 15, 25, 35, 40 C) and action: FEASIBLE, INFEASIBLE (with the failing hard criterion), REFERENCE_UNRESOLVED or COVERAGE_MISSING; the feasible set, best feasible time, unresolved count and discharge diagnostics",
+ "decision": {
+  "question": "one protocol + cooling action over the complete five-ambient mandatory panel",
+  "admissible": "FEASIBLE at all five ambients; any REFERENCE_UNRESOLVED or COVERAGE_MISSING ambient makes the action UNRESOLVED (tier-2 actions were solved at 25 and 35 C only)",
+  "aggregation": "#776 recommendation, HUMAN_INPUT in v2: worst of the 25 and 35 C session times",
+  "pick": "minimum aggregate time; the pick is UNRESOLVED if another admissible or unresolved action is within 0.5 min (the 30 s time-convergence demand) of it",
+  "cooling": "reported in two lanes: protocol-only (h x 1, the pinned reference cooling) and with the h-multiplier history actions (2, 4). v2 selects no cooling multiplier"
+ }
+}

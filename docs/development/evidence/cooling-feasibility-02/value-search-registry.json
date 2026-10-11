@@ -1,0 +1,25 @@
+{
+ "schema": "carbon.cooling.value-search-registry.v1",
+ "registered": "2026-10-08, before the vapour-chamber sweep and the parameter search are computed",
+ "authority": "owner 2026-10-08 ('I approve the cooling plate changes and want a design around what we can show is valuable'), relayed by the Test Lead; existing linear model (lid-spreading.json method) and existing cell solves only, plus lid conduction runs; no new CFD; the 53-job panel stays on hold; thresholds are the Test Lead's working values, final parameters are the owner's",
+ "fixed": {"limit": "85 C at the lid-side TIM2 interface", "R2": 6e-6, "tim1": "die-side diagnostic only", "flow_law": "2 L/min/kW", "hotspot": "raw ratio 3, width 2.5 mm, centres 15 and 24 mm", "designs": "the 32 existing cell designs; a design whose existing solve left the PG25 range stays UNRESOLVED in that stratum (no new solve)"},
+ "step1": "post-spreader peak/mean per band for an isotropic effective lid k in {2000, 3000, 4000, 5000} W/mK at t 1.5, 2.0 and 3.0 mm (copper 391 for reference), nominal R2'' and the median cell conductance",
+ "search_grid": {
+  "warm_inlet_c": [30, 32.5, 35, 37.5, 40, 42.5, 45],
+  "lid": [[391, 1.5], [391, 3.0], [2000, 1.5], [2000, 3.0], [3000, 1.5], [3000, 3.0], [5000, 1.5], [5000, 3.0]],
+  "warm_power_w": [1200, 1350, 1500],
+  "cold_power_w": [500, 1000, 1500],
+  "fixed_strata": "cold inlet 30 C; typical 1000 W at inlet min(40, warm inlet)"
+ },
+ "prediction": "as lid-spreading.json step 2: face rise above inlet from the design's warm solves, scaled by power; hotspot strata add the post-spreader departure through the design's own raw-hotspot response; interface = face + R2'' q_b. Inlet shifts the whole field (property change with temperature neglected and stated)",
+ "criteria_per_stratum": {
+  "classes": "PASS margin >= +2 K, FAIL <= -2 K, NEAR between; resolved = PASS + NEAR + FAIL",
+  "a_discrimination": "0.20 <= PASS / resolved <= 0.80",
+  "b_spread": "max - min margin over resolved designs >= 5 K"
+ },
+ "criteria_global": {
+  "c_feasibility": "at least one design is PASS in all five strata",
+  "d_answer_change": "the best design (packet objective: lowest hydraulic power among PASS designs, ties by margin; hydraulic power = cell dp x flow scaled by power^2) differs in at least two strata; the best-by-margin is also reported"
+ },
+ "report": "every grid point's per-criterion values; the candidates meeting (a)-(d) in every stratum; if none, the failing criterion and its shortfall for the closest points; 2-3 candidates with a realism note and one recommendation (owner decides)"
+}
