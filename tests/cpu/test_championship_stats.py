@@ -86,6 +86,15 @@ def test_holm_is_full_family_and_ties_keep_incumbent():
         select_winner((Contender(Evidence("c", "i", _mixture(), 20), False),), ledger)
 
 
+def test_contenders_must_share_the_fresh_championship_batch():
+    a = Evidence("a", "i", _mixture(), 20).update(_round())
+    b = Evidence("b", "i", _mixture(), 20).update(_round("b", offset=20))
+    ledger = AlphaLedger("day", 0.05).invest("a", "i", 0.025)
+    ledger = ledger.invest("b", "i", 0.025)
+    with pytest.raises(ValueError, match="same fresh championship batch"):
+        select_winner((Contender(a, True), Contender(b, True)), ledger)
+
+
 def test_alpha_is_spent_once_per_artifact_and_globally_capped():
     ledger = AlphaLedger("day", 0.05).invest("digest-a", "i", 0.03)
     with pytest.raises(ValueError, match="already allocated"):

@@ -133,6 +133,8 @@ class Evidence:
     count: int = 0
     max_e_value: float = 1.0
     g_feas_passed: bool = True
+    last_round_id: str | None = None
+    last_round_case_ids: frozenset[str] = frozenset()
 
     def __post_init__(self) -> None:
         _identity(self.artifact_id, "artifact")
@@ -145,6 +147,16 @@ class Evidence:
             raise ValueError("registered positive N required")
         if type(self.count) is not int or self.count != len(self.case_ids):
             raise ValueError("case count must match accounted case identities")
+        if self.count == 0 and (
+            self.last_round_id is not None or self.last_round_case_ids
+        ):
+            raise ValueError("empty evidence cannot claim a last round")
+        if self.count > 0 and (
+            not self.last_round_id
+            or len(self.last_round_case_ids) != self.cases_per_round
+            or not self.last_round_case_ids <= self.case_ids
+        ):
+            raise ValueError("last round must bind its complete paired case set")
         _finite(self.centered_sum, "centered sum")
         if self.max_e_value < 1 or math.isnan(self.max_e_value):
             raise ValueError("max e-value must be at least one")
@@ -181,6 +193,8 @@ class Evidence:
                 self.max_e_value, self.mixture.e_value(count, centered_sum)
             ),
             g_feas_passed=self.g_feas_passed and round_.g_feas_passed,
+            last_round_id=round_.round_id,
+            last_round_case_ids=new_ids,
         )
 
     @property
@@ -277,6 +291,11 @@ def select_winner(contenders: tuple[Contender, ...], ledger: AlphaLedger) -> str
         raise ValueError("duplicate artifact in championship")
     if len({c.evidence.incumbent_id for c in contenders}) != 1:
         raise ValueError("all contenders must face the same incumbent")
+    if (
+        len({c.evidence.last_round_id for c in contenders}) != 1
+        or len({c.evidence.last_round_case_ids for c in contenders}) != 1
+    ):
+        raise ValueError("contenders must share the same fresh championship batch")
     family_alpha = math.fsum(
         ledger.allocation(c.evidence.artifact_id, c.evidence.incumbent_id)
         for c in contenders
