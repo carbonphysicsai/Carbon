@@ -1,5 +1,6 @@
 """Toy-only championship statistics and MARGIN-SIZING-04 planning parity."""
 
+import itertools
 import json
 import math
 from pathlib import Path
@@ -55,6 +56,16 @@ def test_only_confirmed_positive_evidence_wins():
     assert evidence.anytime_p_value < 0.05
     assert select_winner((Contender(evidence, True),), ledger) == "a"
     assert select_winner((Contender(evidence, False),), ledger) is None
+
+
+def test_bounded_mixture_has_no_null_expected_gain_on_toy_pairs():
+    mixture = _mixture()
+    for count in (1, 2, 3):
+        outcomes = itertools.product((-1.0, 1.0), repeat=count)
+        expected = math.fsum(
+            mixture.e_value(count, math.fsum(sequence)) for sequence in outcomes
+        ) / (2**count)
+        assert expected <= 1.0 + 1e-12
 
 
 def test_carry_forward_requires_new_cases_and_same_artifacts():
