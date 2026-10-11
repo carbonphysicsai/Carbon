@@ -41,6 +41,11 @@ class FakeRunPod:
         self.balance = balance
         self.rate = rate
         self.lose_next_create_response = False
+        # The request itself is lost (a timeout before any pod exists): this many creates.
+        self.lose_create_requests = 0
+        self.fail_next_list_with: int | None = None
+        # The provider's list lag: this many list calls return no pods yet.
+        self.hide_pods_for_lists = 0
         self.echo_key_in_next_failure = False
         self.ignore_deletes = False
         self.fail_next_create_with: int | None = None
@@ -94,6 +99,9 @@ class FakeRunPod:
                 },
             )
         if url == "https://rest.runpod.io/v1/pods" and method == "POST":
+            if self.lose_create_requests > 0:
+                self.lose_create_requests -= 1
+                raise TimeoutError("MOCK: request lost before any pod was created")
             if self.fail_next_create_with is not None:
                 status, self.fail_next_create_with = self.fail_next_create_with, None
                 return self._reply(status, {"error": "mock refusal"})
@@ -105,6 +113,12 @@ class FakeRunPod:
                 raise TimeoutError("MOCK: response lost after the pod was created")
             return self._reply(200, dict(self.pods[pod_id]))
         if url == "https://rest.runpod.io/v1/pods" and method == "GET":
+            if self.fail_next_list_with is not None:
+                status, self.fail_next_list_with = self.fail_next_list_with, None
+                return self._reply(status, {"error": "mock list failure"})
+            if self.hide_pods_for_lists > 0:
+                self.hide_pods_for_lists -= 1
+                return self._reply(200, [])
             return self._reply(200, list(self.pods.values()))
         match = re.fullmatch(r"https://rest\.runpod\.io/v1/pods/(\w+)(/stop)?", url)
         if match:

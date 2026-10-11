@@ -1802,6 +1802,7 @@ def command_run(args):
                 key_file=runpod,
                 code_ref=args.code_ref,
                 scoring=scoring,
+                retry_ambiguous_create=True,
             )
         else:
             pods = carrier_pods(root / "carrier", args.image_manifest)
