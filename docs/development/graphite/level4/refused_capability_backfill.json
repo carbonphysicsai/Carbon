@@ -1,0 +1,18 @@
+{
+ "schema": "carbon.graphite.refused-capability-backfill.v1",
+ "rule": "Rows for refusals that happened before the log existed, from the cited source. Names and out-of-range values only: no key, seed, account or hidden material. The log file starts with these rows; later rows are appended by capability_log.py.",
+ "source": "GRAPHITE_STAGE_A_REFUSALS.md (the executor's stage A extract of the Constructor L0 runs D2, D3 and E1, read from each proposal's result.json and intent.json under the lane controller roots; the file is not committed)",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": 0,
+ "when": "2026-10-10",
+ "rows": [
+  {"run": "D2", "proposal": "p-c41a9a1ebb82", "status": "REFUSED_UNREBUILDABLE", "code": "parameter.domain_mismatch", "field": "steps", "requested": "30000"},
+  {"run": "D2", "proposal": "p-8d5d61fc1308", "status": "REFUSED_UNREBUILDABLE", "code": "parameter.dependency_unsatisfied", "field": "ensemble_members", "requested": "3 (steps 14000, not divisible)"},
+  {"run": "D3", "proposal": "p-69268f1b74ec", "status": "REFUSED_UNREBUILDABLE", "code": "parameter.domain_mismatch", "field": "weight_decay_mask", "requested": "weights"},
+  {"run": "D3", "proposal": "p-5a3b8fe3c06f", "status": "REFUSED_UNREBUILDABLE", "code": "parameter.domain_mismatch", "field": "normalization", "requested": "layer"},
+  {"run": "D3", "proposal": "p-22e81b9d0595", "status": "REFUSED_UNREBUILDABLE", "code": "parameter.domain_mismatch", "field": "ensemble_members", "requested": "5"},
+  {"run": "E1", "proposal": "p-1585ecbf838a", "status": "REFUSED_UNREBUILDABLE", "code": "parameter.domain_mismatch", "field": "ensemble_members", "requested": "5"},
+  {"run": "E1", "proposal": "p-37985e699fe3", "status": "REFUSED_UNREBUILDABLE", "code": "parameter.domain_mismatch", "field": "steps", "requested": "24000"},
+  {"run": "D3", "proposal": "p-74b8c69ead59", "status": "REFUSED_BACKEND_NOT_SERVED", "code": "backend_not_served:pytorch", "field": "backend", "requested": "pytorch (backbone fno)"}
+ ]
+}

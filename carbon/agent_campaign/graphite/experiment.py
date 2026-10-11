@@ -66,6 +66,7 @@ from carbon.development_session.profile import canonical, digest
 
 from . import (
     baseline_retry,
+    capability_log,
     grant_binding,
     hidden_score,
     pod_logs,
@@ -798,6 +799,7 @@ class Experiment:
             # labelled with it (VALIDATOR-09); without one, nothing changes.
             record = {**record, "label": self.score_variant["label"]}
         write_once(self._dir(pid) / "result.json", canonical(record))
+        self._log_refusal(pid, record)
         self.emit(
             "proposal-" + pid,
             {
@@ -808,6 +810,52 @@ class Experiment:
             },
         )
         return record
+
+    # -- the refused-capability log (opt-in, log only) --------------------------------------
+    def _capability_context(self):
+        level = (
+            0 if self.development_variant is None else self.development_variant.level
+        )
+        return {
+            "challenge": self.scoring.challenge_id,
+            "level": level,
+            "run": self.run_id,
+            "when": capability_log.now(),
+        }
+
+    def _log_wish(self, pid, intent):
+        """A capability wish in the proposal's hypothesis, if the log is on."""
+        if capability_log.log_path() is None:
+            return
+        try:
+            entry = capability_log.wish_entry(
+                proposal=pid,
+                hypothesis=(intent.get("why") or {}).get("hypothesis"),
+                **self._capability_context(),
+            )
+            capability_log.append([entry] if entry else [])
+        except (OSError, KeyError, TypeError, ValueError):
+            return  # logging never affects a run
+
+    def _log_refusal(self, pid, record):
+        """A refused proposal's rows, if the log is on."""
+        if capability_log.log_path() is None or not record["status"].startswith(
+            "REFUSED"
+        ):
+            return
+        try:
+            intent = json.loads((self._dir(pid) / "intent.json").read_bytes())
+            capability_log.append(
+                capability_log.refusal_entries(
+                    proposal=pid,
+                    record=record,
+                    strategy=intent.get("strategy") or {},
+                    why=intent.get("why") or {},
+                    **self._capability_context(),
+                )
+            )
+        except (OSError, KeyError, TypeError, ValueError):
+            return  # logging never affects a run
 
     # -- spend -----------------------------------------------------------------------------
     def pod_committed(self):
@@ -1261,6 +1309,7 @@ class Experiment:
                 ),
             )
         intent = json.loads(intent_path.read_bytes())
+        self._log_wish(pid, intent)
         base = {
             "schema": PROPOSAL_SCHEMA,
             "proposal_id": pid,
