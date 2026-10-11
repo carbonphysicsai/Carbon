@@ -453,6 +453,7 @@ class RunPodPods:
         balance_floor=operator_balance_floor,
         scoring=None,
         rate_ceiling=None,
+        retry_ambiguous_create=False,
     ):
         from scripts.dev.exam_design.runpod.operator_compute import (
             ComputeService,
@@ -471,6 +472,9 @@ class RunPodPods:
         self.repository, self.code_ref = Path(repository), code_ref
         self.clock, self.sleep = clock, sleep
         self.balance_floor = balance_floor
+        # One safe retry after an ambiguous create (reconcile by tag first); off
+        # unless asked, so every earlier caller behaves exactly as before.
+        self.retry_ambiguous_create = retry_ambiguous_create is True
         self.http = http or _https_get
         self._record_lock = threading.Lock()
         root = Path(root)
@@ -634,7 +638,8 @@ class RunPodPods:
                     intent_id=job.intent_id,
                     spec=spec,
                     deadline_at=float(record["deadline_at"]),
-                )
+                ),
+                retry_ambiguous=self.retry_ambiguous_create,
             )
         except ComputeError as failure:
             raise PodFailure(

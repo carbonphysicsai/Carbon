@@ -52,12 +52,22 @@ class ComputeService:
 
     # provisioning -------------------------------------------------------
     def provision(
-        self, request: ProvisionRequest, *, offer: Offer | None = None
+        self,
+        request: ProvisionRequest,
+        *,
+        offer: Offer | None = None,
+        retry_ambiguous: bool = False,
     ) -> ResourceRecord:
         """Idempotent per (campaign, intent id); never resends an ambiguous create.
 
         ``offer`` (an observed price) is kept as the estimate fallback when the
         provider's create response carries no rate.
+
+        ``retry_ambiguous`` (off by default) makes ONE safe retry after an
+        ambiguous create: reconcile by ownership tag first (adopt what is
+        found), and only if the reconcile succeeds and finds nothing resend
+        the create once with the same tag. Any reconcile failure, a second
+        ambiguity, or a resend already claimed fails closed.
         """
 
         if self.store.campaign_status(request.campaign_id) != "active":
@@ -126,7 +136,12 @@ class ComputeService:
                 self.store.set_intent_state(
                     intent.campaign_id, intent.intent_id, IntentState.REJECTED
                 )
+            if retry_ambiguous and failure.execution is Execution.MAY_HAVE_EXECUTED:
+                return self._reconcile_then_resend_once(intent, request, failure)
             raise
+        return self._bind_created(intent, request, created)
+
+    def _bind_created(self, intent, request, created) -> ResourceRecord:
         record = self.store.bind_resource(
             intent,
             created.resource_id,
@@ -148,6 +163,56 @@ class ComputeService:
                 next_action="choose another offer and use a new intent_id",
             )
         return record
+
+    def _reconcile_then_resend_once(
+        self, intent: IntentRecord, request: ProvisionRequest, ambiguous: ComputeError
+    ) -> ResourceRecord:
+        """After an ambiguous create: reconcile by ownership tag, adopt what is
+        found, resend ONCE only if the reconcile succeeded and found nothing.
+        Never a second create without that check; every other path fails
+        closed (the error says resources may remain)."""
+
+        def stop(failed: str) -> ComputeError:
+            return ComputeError(
+                operation="provision",
+                failed=failed,
+                execution=Execution.MAY_HAVE_EXECUTED,
+                resources_may_remain=True,
+                retry_safe=False,
+                next_action="do not resend; the reconciler adopts and terminates any resource with this tag",
+            )
+
+        name = ownership_name(intent.ownership_tag)
+        try:
+            listed = self.provider.list_resources()
+        except ComputeError:
+            raise stop("ambiguous create and the reconcile failed; no retry") from None
+        matches = sorted(item.resource_id for item in listed if item.name == name)
+        for resource_id in matches:
+            self.store.bind_resource(
+                intent,
+                resource_id,
+                rate_usd_per_hr=None,
+                discovered_via="tag_reconcile",
+            )
+        if matches:
+            refreshed = self.store.intent(intent.campaign_id, intent.intent_id)
+            assert refreshed is not None
+            return self._primary(refreshed)
+        if not self.store.claim_resend(intent.campaign_id, intent.intent_id):
+            raise stop("ambiguous create and the one resend was already claimed")
+        log.info(
+            "compute provision resending once campaign=%s intent=%s",
+            intent.campaign_id,
+            intent.intent_id,
+        )
+        try:
+            created = self.provider.create(
+                request.spec, ownership_tag=intent.ownership_tag
+            )
+        except ComputeError:
+            raise stop("ambiguous create twice; stopped, no third create") from None
+        return self._bind_created(intent, request, created)
 
     def observe_balance(self, campaign_id: str) -> tuple[float, float]:
         """Read the account balance from the provider and record it for the campaign."""

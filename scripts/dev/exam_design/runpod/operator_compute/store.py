@@ -95,6 +95,12 @@ CREATE TABLE IF NOT EXISTS state_events (
     state TEXT NOT NULL,
     at REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS resend_claims (
+    campaign_id TEXT NOT NULL,
+    intent_id TEXT NOT NULL,
+    claimed_at REAL NOT NULL,
+    PRIMARY KEY (campaign_id, intent_id)
+);
 CREATE TABLE IF NOT EXISTS provider_charges (
     provider TEXT NOT NULL,
     resource_id TEXT NOT NULL,
@@ -379,6 +385,19 @@ class ComputeStore:
                 ),
             ).rowcount
         return moved == 1
+
+    def claim_resend(self, campaign_id: str, intent_id: str) -> bool:
+        """True for the ONE caller that may resend an ambiguous create for
+        this intent, once ever: the claim is a primary-key insert, so two
+        threads or processes can never both resend, and a claim survives a
+        restart."""
+
+        with self._tx() as db:
+            inserted = db.execute(
+                "INSERT OR IGNORE INTO resend_claims VALUES (?,?,?)",
+                (campaign_id, intent_id, self.clock()),
+            ).rowcount
+        return inserted == 1
 
     # resources ----------------------------------------------------------
     def bind_resource(
