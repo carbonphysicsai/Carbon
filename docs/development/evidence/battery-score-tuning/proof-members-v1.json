@@ -83,7 +83,7 @@
   "missing": {
     "L0": [
       {
-        "members": "none open: stage A's 5 bundles and minerH/minerI's 6 submissions are registered in carbon/battery/value/contracts/proof-panel-l0-v1.json (before any value)",
+        "members": "none open: stage A's 5 bundles and minerH/minerI's 6 submissions are registered in carbon/battery/value/panels/proof-panel-l0-v1.json (before any value)",
         "fill": "the owner's score_proof_run (free host CPU)"
       }
     ],

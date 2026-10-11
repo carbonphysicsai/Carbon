@@ -7,7 +7,7 @@
    members' rebuilds, from each recipe's steps and ensemble size, before
    anything runs.
 2. **Rebuild on free host CPU.** The registered Level 0 proof members
-   (`carbon/battery/value/contracts/proof-panel-l0-v1.json`: stage A's 5
+   (`carbon/battery/value/panels/proof-panel-l0-v1.json`: stage A's 5
    bundles, minerH's and minerI's 6 submissions) predict the sealed tuning
    set and the quiz (`challenge_validator.tuning predict`). `score` then
    rewrites the scores and `q3-regret.json` for every member.

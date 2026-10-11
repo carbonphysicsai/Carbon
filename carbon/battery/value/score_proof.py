@@ -62,8 +62,18 @@ def _tau(scores, values, members):
     return b1._tau(scores, values, members)
 
 
-def _interval(xs):
-    return b1._interval(xs)
+def _interval(xs, level=0.95):
+    """The percentile interval of `xs` at `level` (None values dropped); at
+    0.95 it is `score_candidates_b1._interval`."""
+    import math
+
+    if level == 0.95:
+        return b1._interval(xs)
+    xs = sorted(x for x in xs if x is not None)
+    if not xs:
+        return None
+    tail = (1 - level) / 2
+    return [xs[int(tail * (len(xs) - 1))], xs[math.ceil((1 - tail) * (len(xs) - 1))]]
 
 
 def _ranked(scores, members):
@@ -110,7 +120,15 @@ def tie_counts(scores, values, members):
 
 
 def bootstrap(
-    scores, base_scores, losses, recipe_of, members, *, n=BOOTSTRAP, seed=SEED
+    scores,
+    base_scores,
+    losses,
+    recipe_of,
+    members,
+    *,
+    n=BOOTSTRAP,
+    seed=SEED,
+    level=0.95,
 ):
     """Crossed recipe x decision-question resampling (SCORE-PROOF-DESIGN-01).
 
@@ -170,10 +188,11 @@ def bootstrap(
             if paired and mode == "joint":
                 tb = tau_b(b[rows], value)
                 deltas.append(None if tau is None or tb is None else tau - tb)
-        out[mode] = _interval(taus)
+        out[mode] = _interval(taus, level)
         if mode == "joint":
+            out["level"] = level
             out["undefined_fraction"] = sum(x is None for x in taus) / count
-            out["delta_joint"] = _interval(deltas) if paired else None
+            out["delta_joint"] = _interval(deltas, level) if paired else None
     return out
 
 
@@ -280,6 +299,7 @@ def level_report(
     unscored=(),
     purposive=(),
     losses=None,
+    level=0.95,
 ):
     """One candidate's proof metrics on one pool of members. `unscored` are
     the members with no raw score under the candidate. `purposive` members
@@ -334,6 +354,7 @@ def level_report(
         recipe_of,
         primary,
         n=n_bootstrap,
+        level=level,
     )
     unsafe = [u for u in unsafe if u in members]
     sensitivity = (
@@ -346,7 +367,13 @@ def level_report(
         if intervals is None
         else {
             k: intervals[k]
-            for k in ("replicates", "questions", "scoring_cases", "undefined_fraction")
+            for k in (
+                "replicates",
+                "questions",
+                "scoring_cases",
+                "undefined_fraction",
+                "level",
+            )
         }
     )
     return {
@@ -401,6 +428,7 @@ def prove(
     baseline="CE",
     folds=FOLDS,
     n_bootstrap=BOOTSTRAP,
+    level=0.95,
 ):
     """Every requested registered candidate, at each level and pooled.
 
@@ -480,6 +508,7 @@ def prove(
                 unscored=unscored[cid],
                 purposive=purposive,
                 losses=pool_losses[name],
+                level=level,
             )
             for name, pool in pools.items()
         }
@@ -544,40 +573,136 @@ def split_members(split, members, recipe_of, levels, anchors, phase):
     return kept, split_levels
 
 
-def verdict(report, rule, minimum_level_members=10):
-    """PROVEN only when the chosen rule meets every registered confirmation
-    criterion, pooled and at each level with enough members; else UNPROVEN
-    with each failed criterion named."""
-    failed = []
+# --- the pre-registered group-sequential confirmation --------------------------------
+SEQUENTIAL_SCHEMA = "carbon.battery.score-proof-sequential.v1"
+CONTINUE, FUTILE, FAIL = "CONTINUE", "FUTILE", "FAIL"
+
+
+def obf_boundaries(fractions, alpha=0.05):
+    """Two-sided Lan-DeMets O'Brien-Fleming alpha spending for looks at the
+    information `fractions` (increasing, the last 1.0): each look's critical
+    z, its nominal two-sided alpha, and the cumulative alpha spent. Exact for
+    up to two looks (bivariate normal, correlation sqrt(t1 / t2))."""
+    import math
+
+    from scipy.optimize import brentq
+    from scipy.stats import multivariate_normal, norm
+
+    fractions = [float(f) for f in fractions]
+    if (
+        not fractions
+        or len(fractions) > 2
+        or fractions[-1] != 1.0
+        or any(not 0 < f <= 1 for f in fractions)
+        or fractions != sorted(set(fractions))
+    ):
+        raise ValueError("one or two increasing information fractions ending at 1")
+    z = norm.ppf(1 - alpha / 2)
+    spent = [2 - 2 * norm.cdf(z / math.sqrt(f)) for f in fractions]
+    looks = []
+    first = norm.ppf(1 - spent[0] / 2)
+    looks.append(first)
+    if len(fractions) == 2:
+        rho = math.sqrt(fractions[0] / fractions[1])
+        mvn = multivariate_normal(mean=[0, 0], cov=[[1, rho], [rho, 1]])
+
+        def inside(c1, c2):
+            return (
+                mvn.cdf([c1, c2])
+                - mvn.cdf([-c1, c2])
+                - mvn.cdf([c1, -c2])
+                + mvn.cdf([-c1, -c2])
+            )
+
+        stay = 1 - spent[0]  # P(|Z1| < c1)
+        target = spent[1] - spent[0]
+
+        def gap(c2):
+            return (stay - inside(first, c2)) - target
+
+        looks.append(brentq(gap, 0.5, 8.0, xtol=1e-10))
+    return [
+        {
+            "fraction": f,
+            "critical_z": c,
+            "nominal_alpha": 2 * (1 - norm.cdf(c)),
+            "cumulative_alpha": s,
+        }
+        for f, c, s in zip(fractions, looks, spent, strict=True)
+    ]
+
+
+def screens(report, rule, minimum_level_members=10):
+    """The per-level screens, all FAIL-able, none needing a precise tau:
+    known-bad and adversarial placement, gate recall, top-1 regret within
+    the value noise band (no forced deployment), and adversarial divergence.
+    Returns {pool: [failed screen, ...]} for every pool screened."""
     check = report["gate_recall_check"].get(rule, {})
-    for level, r in report["candidates"][rule].items():
-        if level != POOLED and r["members"] < minimum_level_members:
+    out = {}
+    for pool, r in report["candidates"][rule].items():
+        if pool != POOLED and r["members"] < minimum_level_members:
             continue
-
-        def fail(what, level=level):
-            failed.append(f"{level}: {what}")
-
+        failed = []
         if r.get("status") != "COMPLETE":
-            fail("incomplete legs")
+            out[pool] = ["incomplete legs"]
             continue
-        ci = r["tau_ci95"]
-        if ci is None or ci[0] <= 0:
-            fail("tau interval does not exclude 0")
         if r["known_bad_in_top_half"]:
-            fail("known-bad member in the top half")
+            failed.append("known-bad member in the top half")
         if r["adversarial_in_top_half"]:
-            fail("adversarial member in the top half")
+            failed.append("adversarial member in the top half")
         status = check.get("status")
         if status == "FAIL":
-            fail("gate misses an unsafe member")
+            failed.append("gate misses an unsafe member")
         elif status == "NO_GATE" and any(
             rank is None or 2 * rank <= n for rank, n in r["unsafe_ranks"].values()
         ):
-            fail("no gate, and an unsafe member is not in the bottom half")
+            failed.append("no gate, and an unsafe member is not in the bottom half")
+        if r["deployment"] == "NONE_ELIGIBLE":
+            failed.append("no real recipe is deployable")
+        elif r["top1_regret"] is not None and r["top1_regret"] > (
+            r["value_noise_band"] or 0.0
+        ):
+            failed.append("top-1 regret above the value noise band")
         if r["adversarial_divergence"]:
-            fail("adversarial divergence")
-        for kind in ("scenario_folds", "case_folds"):
-            spread = r["fold_stability"][kind]
-            if spread is not None and spread["min"] <= 0:
-                fail(f"a {kind.replace('_', ' ')} tau is not above 0")
-    return {"rule": rule, "verdict": UNPROVEN if failed else PROVEN, "failed": failed}
+            failed.append("adversarial divergence")
+        out[pool] = failed
+    return out
+
+
+def sequential_verdict(report, rule, look, design):
+    """The pre-registered verdict at one look of the group-sequential
+    confirmation. A clear PROVEN or FAIL stops; a non-binding futility stop
+    is offered at the interim; otherwise CONTINUE (interim) or UNPROVEN
+    (final). The pooled tau interval is at the look's nominal level."""
+    pooled = report["candidates"][rule][POOLED]
+    failed = screens(report, rule, design["minimum_level_members"])
+    failures = [f"{pool}: {f}" for pool, fs in failed.items() for f in fs]
+    ci = pooled.get("tau_ci95")
+    final = look["fraction"] == 1.0
+    width = None if ci is None else (ci[1] - ci[0]) / 2
+    if failures:
+        verdict = FAIL
+    elif ci is not None and ci[1] < 0:
+        verdict = FAIL
+        failures.append("pooled: tau interval below 0")
+    elif ci is not None and ci[0] > 0:
+        verdict = PROVEN
+    elif not final and (pooled.get("tau") is None or pooled["tau"] <= 0):
+        verdict = FUTILE
+    else:
+        verdict = UNPROVEN if final else CONTINUE
+    return {
+        "rule": rule,
+        "look": look,
+        "verdict": verdict,
+        "failed": failures,
+        "pooled_tau": pooled.get("tau"),
+        "pooled_tau_interval": ci,
+        "interval_half_width": width,
+        "target_half_width": design["target_half_width"],
+        "per_level_tau": {
+            pool: r.get("tau")
+            for pool, r in report["candidates"][rule].items()
+            if pool != POOLED
+        },
+    }

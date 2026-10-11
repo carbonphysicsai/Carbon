@@ -550,6 +550,26 @@ def test_the_ev4_path_runs_end_to_end_through_pod_outputs(
     )
 
 
+def test_a_bundle_made_under_an_earlier_implementation_version_imports(
+    tmp_path, small_panel
+):
+    """As `evaluate` verifies it (TORCH-GPU-01): retained predictions keep the
+    registered implementation version they were made under."""
+    from carbon.battery import implementation_versions
+    from carbon.battery.compile import compile_recipe
+
+    experiment = Experiment(tmp_path / "ev4", repository=REPOSITORY)
+    experiment.freeze(EV4_PATH)
+    member, _family, strategy, seed = experiment._members()[0]
+    first = implementation_versions.VERSIONS[0]
+    digest = compile_recipe(strategy, implementation=first)[1].recipe_digest
+    source = tmp_path / "src"
+    source.mkdir()
+    body = {"member": member, "recipe_digest": digest, "seed": seed}
+    (source / f"{member}.json.gz").write_bytes(gzip.compress(json.dumps(body).encode()))
+    assert experiment.import_predictions(source)["imported"] == [member]
+
+
 def test_imports_refuse_foreign_or_mismatched_outputs(tmp_path, small_panel):
     experiment = Experiment(tmp_path / "ev4", repository=REPOSITORY)
     experiment.freeze(EV4_PATH)

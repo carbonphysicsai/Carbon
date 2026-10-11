@@ -394,9 +394,9 @@ PANELS["graphite-run5"] = GRAPHITE_RUN5
 #: A constructions, decided on EV4's development conditions. DEVELOPMENT only.
 PANELS["ev4-dev-tuning"] = PANELS["ev4"] + GRAPHITE_RUN5
 #: ev4-dev-proof (SCORE-PROOF-01): ev4-dev-tuning plus the registered proof
-#: members (`contracts/proof-panel-l0-v1.json`), each `(label, strategy,
+#: members (`panels/proof-panel-l0-v1.json`), each `(label, strategy,
 #: seeds)`, registered before any of their values is computed.
-PROOF_PANEL = Path(__file__).with_name("contracts") / "proof-panel-l0-v1.json"
+PROOF_PANEL = Path(__file__).with_name("panels") / "proof-panel-l0-v1.json"
 PROOF_L0 = tuple(
     (m["label"], m["strategy"], tuple(m["seeds"]))
     for m in json.loads(PROOF_PANEL.read_text(encoding="utf-8"))["members"]

@@ -37,17 +37,22 @@ cd ~/Carbon && python -m scripts.dev.battery.score_proof_run --work <W> --quiz <
 - **Read** `<W>/proof/selection.md` and pick a rule there. Nothing on that
   page is proof.
 
-## Run 2: the proof for your pick (confirmation)
+## Run 2: the proof for your pick (confirmation, sealed questions)
 
-```bash
-cd ~/Carbon && python -m scripts.dev.battery.score_proof --phase confirmation --rule <RULE> --work <W> --dev-results <DEV_RESULTS> --q3-regret <W>/q3-regret.json --out <W>/proof
-```
+The confirmation runs on new, sealed decision questions, never the
+development data that selection used. It is a pre-registered
+group-sequential design (`proof-sequential-v1.json`: target ±0.15, an
+interim look at 150 questions, O'Brien–Fleming spending). Follow
+[SCORE_PROOF_CCX63_SHEET.md](SCORE_PROOF_CCX63_SHEET.md):
+- the AX42 draws and keeps the sealed questions;
+- one hourly CCX63 solves them under the startup-host custody procedure;
+- the AX42 merges, rebuilds the members and runs the interim look with
+  `--rule <PICK>`.
 
-It takes about 5 minutes. The candidates are locked to your pick and the rule
-in force. It reports the proof criteria on the held-apart confirmation fold.
-`<W>/proof/confirmation.md` opens with **PROVEN** or **UNPROVEN** and names
-each failed criterion. A gate that misses an unsafe member reports FAIL with
-the cutoff range that would catch it; the cutoff stays yours.
+`<W>/proof/confirmation.md` opens with **PROVEN**, **FAIL**, **FUTILE** or
+**CONTINUE** and names each failed screen. A gate that misses an unsafe
+member reports FAIL with the cutoff range that would catch it; the cutoff
+stays yours.
 
 ## Return
 

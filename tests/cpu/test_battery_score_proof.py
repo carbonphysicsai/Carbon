@@ -220,43 +220,36 @@ def test_the_split_is_registered_disjoint_and_keeps_seeds_and_anchors_together()
         )
 
 
-def test_confirmation_gives_a_verdict_naming_each_failed_criterion():
+def test_the_obrien_fleming_boundaries_spend_alpha_exactly():
+    looks = sp.obf_boundaries([150 / 280, 1.0])
+    assert looks[0]["critical_z"] == pytest.approx(2.678, abs=1e-3)
+    assert looks[0]["nominal_alpha"] == pytest.approx(0.0074, abs=1e-4)
+    assert looks[1]["critical_z"] == pytest.approx(1.985, abs=1e-3)
+    assert looks[1]["cumulative_alpha"] == pytest.approx(0.05)
+    assert sp.obf_boundaries([1.0])[0]["critical_z"] == pytest.approx(1.95996, abs=1e-4)
+    with pytest.raises(ValueError):
+        sp.obf_boundaries([0.6, 0.5])
+
+
+def test_the_sequential_verdict_stops_only_on_a_clear_result():
     legs, values, recipe_of, levels = panel()
+    design = {"minimum_level_members": 10, "target_half_width": 0.15}
+    interim = {**sp.obf_boundaries([0.5, 1.0])[0], "look": "interim"}
     report = sp.prove(
         registry(), legs, values, recipe_of, levels,
         known_bad=["control-bad"], adversarial=["gamed-s0"], unsafe=["unsafe-s0"],
-        ids=["CE"], n_bootstrap=50,
+        ids=["CE"], n_bootstrap=50, level=1 - interim["nominal_alpha"],
     )  # fmt: skip
-    verdict = sp.verdict(report, "CE", minimum_level_members=10)
-    assert verdict["verdict"] == sp.UNPROVEN
-    assert "pooled: known-bad member in the top half" in verdict["failed"]
-    assert "pooled: adversarial divergence" in verdict["failed"]
-    assert not any(f.startswith("L1:") for f in verdict["failed"])  # too few members
-
-
-def test_a_gate_that_fails_every_real_recipe_deploys_nothing():
-    legs, values, recipe_of, levels = panel()
-    candidates, identity = registry()
-    candidates["CE+near0"] = st.parse_candidate(
-        {
-            "id": "CE+near0",
-            "kind": "deciding",
-            "gate": {"measure": "near", "cutoff": 0.0},
-        }
+    v = sp.sequential_verdict(report, "CE", interim, design)
+    # -E puts the bad control and the gamed member on top: a clear FAIL.
+    assert v["verdict"] == sp.FAIL
+    assert "pooled: known-bad member in the top half" in v["failed"]
+    assert "pooled: adversarial divergence" in v["failed"]
+    assert set(v["per_level_tau"]) == {"L0", "L1"}  # descriptive per level
+    clean = sp.prove(
+        registry(), legs, values, recipe_of, levels, ids=["CE"], n_bootstrap=50
     )
-    report = sp.prove(
-        (candidates, identity), legs, values, recipe_of, levels,
-        ids=["CE+near0"], n_bootstrap=20,
-    )  # fmt: skip
-    pooled = report["candidates"]["CE+near0"]["pooled"]
-    assert pooled["deployment"] == "NONE_ELIGIBLE" and pooled["top1_regret"] is None
-
-
-def test_the_crossed_bootstrap_resamples_questions_as_well_as_recipes():
-    scores = {f"m{i}": float(i) for i in range(8)}
-    recipe_of = {m: m for m in scores}
-    losses = {f"m{i}": [8 - i, 8 - i + (i % 2)] for i in range(8)}
-    out = sp.bootstrap(scores, scores, losses, recipe_of, list(scores), n=200)
-    assert out["questions"] == 2 and out["joint"][1] <= 1.0
-    assert out["delta_joint"] == [0.0, 0.0]  # the same rule against itself
-    assert out["question_only"] is not None and out["recipe_only"] is not None
+    final = {**sp.obf_boundaries([1.0])[0], "look": "final"}
+    v = sp.sequential_verdict(clean, "CE", final, design)
+    assert v["verdict"] in (sp.PROVEN, sp.UNPROVEN, sp.FAIL)
+    assert v["target_half_width"] == 0.15

@@ -49,6 +49,9 @@ REGISTRY = ROOT / "docs/development/evidence/battery-score-tuning/registry-v5.js
 RULE_IN_FORCE = "G-FEAS/A-Q>@0.05"
 MEMBERS_SCHEMA = "carbon.battery.score-proof-members.v1"
 SPLIT = ROOT / "docs/development/evidence/battery-score-tuning/proof-split-v1.json"
+SEQUENTIAL = (
+    ROOT / "docs/development/evidence/battery-score-tuning/proof-sequential-v1.json"
+)
 
 
 def load_members(path=MEMBERS):
@@ -74,6 +77,42 @@ def load_split(path=SPLIT):
     if document.get("schema") != sp.SPLIT_SCHEMA:
         raise SystemExit("refused: unknown split schema")
     return document
+
+
+def load_sequential(path=SEQUENTIAL):
+    from carbon.battery.value import score_proof as sp
+
+    document = json.loads(Path(path).read_text(encoding="utf-8"))
+    if document.get("schema") != sp.SEQUENTIAL_SCHEMA:
+        raise SystemExit("refused: unknown sequential design schema")
+    return document
+
+
+def sequential_look(design, questions, which, interim_fraction=None):
+    """This look's boundary, by the registered spending: the interim at its
+    actual information fraction (resolved questions over the planned
+    count), the final at 1 after the interim's recorded fraction."""
+    from carbon.battery.value import score_proof as sp
+
+    alpha = design["alpha_two_sided"]
+    planned = design["planned_questions"]
+    if which == "interim":
+        if interim_fraction is not None:
+            raise SystemExit("refused: --interim-fraction is for the final look")
+        fraction = questions / planned
+        if fraction >= 1:
+            return {**sp.obf_boundaries([1.0], alpha)[0], "look": "final"}
+        return {
+            **sp.obf_boundaries([fraction, 1.0], alpha)[0],
+            "look": "interim",
+            "questions": questions,
+        }
+    looks = (
+        sp.obf_boundaries([interim_fraction, 1.0], alpha)
+        if interim_fraction is not None
+        else sp.obf_boundaries([1.0], alpha)
+    )
+    return {**looks[-1], "look": "final", "questions": questions}
 
 
 def phase_panel(panel, members, split, phase):
@@ -137,6 +176,7 @@ def proof(
     candidates=None,
     registry_path=REGISTRY,
     baseline=RULE_IN_FORCE,
+    level=0.95,
 ):
     from carbon.battery.value import score_proof as sp
     from carbon.battery.value import score_tuning as st
@@ -161,6 +201,7 @@ def proof(
         baseline=baseline,
         folds=folds,
         n_bootstrap=n_bootstrap,
+        level=level,
     )
     report["benign_controls_ranks"] = _benign(report, panel, roles, registry)
     report["panel"] = {
@@ -284,6 +325,18 @@ def main(argv=None):
         "the proof criteria for --rule only, on the held-apart fold",
     )
     parser.add_argument("--rule", help="confirmation: the rule the owner picked")
+    parser.add_argument("--sequential", type=Path, default=SEQUENTIAL)
+    parser.add_argument(
+        "--look",
+        choices=("interim", "final"),
+        default="interim",
+        help="confirmation: the pre-registered group-sequential look",
+    )
+    parser.add_argument(
+        "--interim-fraction",
+        type=float,
+        help="final look only: the information fraction the interim look recorded",
+    )
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
     from carbon.battery.value import score_proof as sp
@@ -306,9 +359,15 @@ def main(argv=None):
         split,
         args.phase,
     )
+    level, look, design = 0.95, None, None
     if args.phase == "confirmation":
         # Candidates locked: the owner's pick and the rule in force only.
         candidates = sorted({args.rule, args.baseline})
+        design = load_sequential(args.sequential)
+        look = sequential_look(
+            design, len(panel["mask"]), args.look, args.interim_fraction
+        )
+        level = 1 - look["nominal_alpha"]
     else:
         candidates = args.candidates.split(",") if args.candidates else None
     report = proof(
@@ -319,6 +378,7 @@ def main(argv=None):
         candidates=candidates,
         registry_path=args.registry,
         baseline=args.baseline,
+        level=level,
     )
     report["phase"] = {
         "phase": args.phase,
@@ -327,9 +387,7 @@ def main(argv=None):
         "member_split_levels": panel["split_levels"],
     }
     if args.phase == "confirmation":
-        report["verdict"] = sp.verdict(
-            report, args.rule, split["minimum_level_members"]
-        )
+        report["verdict"] = sp.sequential_verdict(report, args.rule, look, design)
     report["source"] = (
         "PUBLIC_STANDIN (plumbing only; not proof)"
         if args.public_standin
@@ -343,8 +401,14 @@ def main(argv=None):
         )
     else:
         v = report["verdict"]
-        lead = f"**CONFIRMATION fold, {v['rule']}: {v['verdict']}.**" + "".join(
-            f"\n- {f}" for f in v["failed"]
+        lk = v["look"]
+        lead = (
+            f"**CONFIRMATION fold, {v['rule']}, {lk['look']} look at "
+            f"{lk.get('questions', '?')} questions: {v['verdict']}.** Pooled tau "
+            f"{v['pooled_tau']}, {100 * (1 - lk['nominal_alpha']):.2f} % interval "
+            f"{v['pooled_tau_interval']} (half-width {v['interval_half_width']}, "
+            f"target {v['target_half_width']})."
+            + "".join(f"\n- {f}" for f in v["failed"])
         )
     phase = report["phase"]
     header = (
