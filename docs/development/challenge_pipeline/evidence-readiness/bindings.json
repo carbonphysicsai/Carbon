@@ -45,7 +45,14 @@
       ],
       "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/f17.json",
       "proposal": "docs/development/challenge_pipeline/solver-package-specs/f17-openfoam.md",
-      "pending": null
+      "pending": null,
+      "plans": {
+        "1": {"basis": "Full finite action/condition/rung proposals await CAD freeze, actual completed/scheduled reuse and main registration", "pointers": ["carbon/challenge_pipeline/micromixer_readiness.py"]},
+        "2": {"basis": "OpenCFD source commit is not an archive/dependency/image/store receipt", "pointers": ["docs/development/challenge_pipeline/solver-package-specs/f17-openfoam.md"]},
+        "3": {"basis": "MMS/duct/high-Pe and zero-D checks await pinned image runs and accepted conservation/refinement", "pointers": ["docs/development/challenge_pipeline/micromixer-readiness/verification.json"]},
+        "4": {"basis": "Full finite scalar/flux domain hook awaits actual kit coverage", "pointers": ["carbon/challenge_pipeline/micromixer_readiness.py"]},
+        "5": {"basis": "Disjoint proposed TRAIN actions are not registered solved training data", "pointers": ["carbon/challenge_pipeline/micromixer_readiness.py"]}
+      }
     },
     {
       "challenge": "f06",
