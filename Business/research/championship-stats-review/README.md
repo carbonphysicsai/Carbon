@@ -17,9 +17,12 @@ of transferring that result. At N=3,000, the same proxy boundary crosses under
 the null **8.31%** when actual SD is 1.5 times the proxy, **6.88%** with
 Gaussian round correlation phi=0.5, and **8.53%** with rare positively skewed
 batch shocks having the same marginal mean/variance. These are hypothetical
-counterexamples, not measured Carbon distribution estimates. The raw public
-case rows were requested; supplied SD summaries cannot establish tail or
-dependence behavior. [Measured diagnostics and limits](REVIEW.md).
+counterexamples, not measured Carbon distribution estimates. The additional
+public case resampling panel is in [EMPIRICAL_AUDIT](EMPIRICAL_AUDIT.md).
+With pair-specific SDs, public-data null rates remain near the Gaussian result;
+using the median SD for a wider pair gives about 8.5% in one direction.
+Fresh-case independence and future tails remain assumptions.
+[Measured diagnostics and limits](REVIEW.md).
 
 Required repairs/decisions:
 

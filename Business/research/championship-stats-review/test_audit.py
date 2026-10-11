@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import math
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -60,6 +62,54 @@ class AuditTest(unittest.TestCase):
         self.assertTrue(math.isclose(high, 0.03699349820698568))
         with self.assertRaises(ValueError):
             AUDIT.wilson(1, 0)
+
+    def test_empirical_vectors_centered_and_aggregate_only(self):
+        # Entirely synthetic parser/numerical fixture, never source evidence.
+        records = []
+        for member, values in (
+            ("stage-a-fixture-A", [1, 2, 3, 4]),
+            ("stage-a-fixture-B", [4, 3, 2, 1]),
+        ):
+            records.append(
+                {
+                    "member": member,
+                    "seed": 1,
+                    "exit": 0,
+                    "frozen_rule": {"eligible": True},
+                    "rows": [
+                        {
+                            "case_id": f"practice-fixture-{i}",
+                            "error": value,
+                            "important": False,
+                        }
+                        for i, value in enumerate(values)
+                    ],
+                }
+            )
+        test_root = Path(__file__).resolve().parent
+        with tempfile.TemporaryDirectory(
+            dir=test_root, prefix=".audit-fixture-"
+        ) as temporary:
+            self.assertTrue(Path(temporary).resolve().is_relative_to(test_root))
+            path = Path(temporary) / "rows.jsonl"
+            path.write_text(
+                "\n".join(json.dumps(record) for record in records), encoding="utf-8"
+            )
+            result = AUDIT.empirical_audit(path, 32, 1)
+            self.assertEqual(result["distinct_cases"], 4)
+            self.assertEqual(result["source_run_count"], 2)
+            diag = result["pair_diagnostics"][0]
+            self.assertAlmostEqual(diag["correlation"], -1)
+            self.assertAlmostEqual(diag["skewness_centered"], 0)
+            self.assertAlmostEqual(diag["excess_kurtosis_centered"], -1.36)
+            self.assertNotIn("practice-fixture-", json.dumps(result))
+            self.assertNotIn("stage-a-fixture-", json.dumps(result))
+            records[0]["rows"][0]["case_id"] = "not-approved-source"
+            path.write_text(
+                "\n".join(json.dumps(record) for record in records), encoding="utf-8"
+            )
+            with self.assertRaisesRegex(ValueError, "PRACTICE"):
+                AUDIT.empirical_audit(path, 32, 1)
 
 
 if __name__ == "__main__":

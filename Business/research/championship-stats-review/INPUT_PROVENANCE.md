@@ -27,16 +27,23 @@ No source paths beyond the owner-approved files were followed or executed.
 | I12 | margin_03.py | 2952 | 643e89d4449d6a05dbaa9e442722ad99d20ee9a9b6f3645cc7cdf54b61d33ebe |
 | I13 | margin_sizing.py | 6011 | 689f4c64ea1baee8587172ee5941149ade6c65d4af35b05ef68b57385e1fd65c |
 | I14 | paired.py | 1893 | ea9b23eabeab2108f058d8cb6161462a5d7fccb0ffd60ca9c43963f08ad95e44 |
+| I15 | seed-variance-01/rows.jsonl | 1377867 | 1a84f00220d6b3af8aac96ad6b64f338122bcbe52e9c472a5d6005fb9dbcea0a |
 
 I9 contains six pair summaries and four same-recipe/different-seed summaries,
 not raw per-case arrays. I14 reads `seed-variance-01/rows.jsonl` on its original
-WSL path, which is not in the supplied set. The owner was asked for a permitted
-copy of those public rows. Until supplied, distribution/tail/block validation
-is an explicit gap. I9's correlation is **between two models on the same cases**;
+WSL path. The owner subsequently supplied I15 in the read-only Windows folder
+`codex-queue/inputs/seed-variance-01/`, explicitly confirming it is public PRACTICE
+evidence. It contains 15 retained runs, five recipes and the same 200 cases,
+including 39 marked important. The empirical panel uses the four MLP seed-one
+artifacts to reproduce I9's six contrasts; all source runs were eligible under
+their historical frozen rule. This is not a v3 gate requalification. The supplied
+REPORT.md was also read for historical interpretation (including its relative-
+margin correction); the calculation input is I15 only. No training was run.
+Source/time blocks remain absent. I9's correlation is **between two models on the same cases**;
 it is not measured between-round dependence.
 
 The audit output stores these fingerprints, reproduced counts and synthetic
-aggregate diagnostics only. Public simulation seeds 3 and 731 are typed as
+aggregate diagnostics only. Public simulation seeds 3, 731 and 733 are typed as
 synthetic; no official seed, case identifier or protected sample is published.
 The review's numerical inputs are sourced fixed points or labeled assumptions;
 its Wilson intervals concern independent Monte Carlo paths only.

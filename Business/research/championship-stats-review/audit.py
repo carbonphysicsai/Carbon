@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import itertools
 import json
 import math
 import random
@@ -219,6 +220,196 @@ def fingerprint_inputs(root: Path) -> list[dict]:
     return records
 
 
+def empirical_audit(rows_path: Path, trials: int, seed: int) -> dict:
+    """Conditional public-case bootstrap, not new physical/reference cases.
+
+    The same multinomial counts resample whole contender vectors. Centering
+    imposes an all-null counterfactual; batch reuse is an explicit stress.
+    """
+    content = rows_path.read_bytes()
+    records = [
+        json.loads(line)
+        for line in content.decode("utf-8").splitlines()
+        if line.strip()
+    ]
+    if trials <= 0 or not records:
+        raise ValueError("empty empirical audit")
+    errors, important = {}, {}
+    for record in records:
+        if record["exit"] != 0:
+            raise ValueError("failed source run")
+        key = (record["member"], record["seed"])
+        if key in errors:
+            raise ValueError("duplicate source artifact/seed")
+        errors[key] = {}
+        for row in record["rows"]:
+            case_id = row["case_id"]
+            if not case_id.startswith("practice-"):
+                raise ValueError("only explicitly public PRACTICE rows permitted")
+            if case_id in errors[key] or not math.isfinite(row["error"]):
+                raise ValueError("duplicate case or invalid error")
+            errors[key][case_id] = row["error"]
+            if case_id in important and important[case_id] != row["important"]:
+                raise ValueError("inconsistent case metadata")
+            important[case_id] = row["important"]
+    case_sets = [set(value) for value in errors.values()]
+    if any(value != case_sets[0] for value in case_sets):
+        raise ValueError("public runs do not share identical cases")
+    ids = sorted(case_sets[0])
+    members = sorted({member for member, _ in errors if member.startswith("stage-a")})
+    if len(members) < 2 or any((member, 1) not in errors for member in members):
+        raise ValueError("missing public MLP seed-one panel")
+    matrix = np.array(
+        [[errors[(member, 1)][case_id] for member in members] for case_id in ids]
+    )
+    pairs = list(itertools.combinations(range(len(members)), 2))
+    differences = np.column_stack([matrix[:, a] - matrix[:, b] for a, b in pairs])
+    bases = np.array(
+        [(matrix[:, a].mean() + matrix[:, b].mean()) / 2 for a, b in pairs]
+    )
+    centered = differences - differences.mean(axis=0)
+    sigma = centered.std(axis=0, ddof=0)
+    if np.any(sigma <= 0) or np.any(bases <= 0):
+        raise ValueError("degenerate empirical contrast")
+    standardized = centered / sigma
+    diagnostics = []
+    for index, (a, b) in enumerate(pairs):
+        squares = np.sort(centered[:, index] ** 2)
+        top_count = max(1, math.ceil(len(ids) * 0.05))
+        diagnostics.append(
+            {
+                "pair": f"M{a + 1}-M{b + 1}",
+                "correlation": float(np.corrcoef(matrix[:, a], matrix[:, b])[0, 1]),
+                "sample_sd_relative_pair_average": float(
+                    differences[:, index].std(ddof=1) / bases[index]
+                ),
+                "empirical_population_sd_relative_pair_average": float(
+                    sigma[index] / bases[index]
+                ),
+                "skewness_centered": float(np.mean(standardized[:, index] ** 3)),
+                "excess_kurtosis_centered": float(
+                    np.mean(standardized[:, index] ** 4) - 3
+                ),
+                "largest_abs_centered_in_sd": float(
+                    np.max(np.abs(standardized[:, index]))
+                ),
+                "top_5_percent_cases_variance_share": float(
+                    squares[-top_count:].sum() / squares.sum()
+                ),
+            }
+        )
+    rng = np.random.default_rng(seed)
+    n, rounds, alpha = 3000, 14, 0.05
+    increments = np.empty((trials, rounds, len(pairs)))
+    probabilities = np.full(len(ids), 1 / len(ids))
+    for round_index in range(rounds):
+        counts = rng.multinomial(n, probabilities, size=trials)
+        increments[:, round_index, :] = counts @ centered
+    scenarios = []
+    for label, reuse, proxy in (
+        ("IID_correct_empirical_population_sd", 1, sigma),
+        ("IID_fixed_median_relative_proxy", 1, 0.46 * bases),
+        ("reused_batch_twice_counted_as_fresh", 2, sigma),
+        ("reused_batch_three_times_counted_as_fresh", 3, sigma),
+    ):
+        selected = increments[:, np.arange(rounds) // reuse, :]
+        results = []
+        for index, diag in enumerate(diagnostics):
+            for sign in (1, -1):
+                results.append(
+                    {
+                        "pair": diag["pair"],
+                        "direction": sign,
+                        **rate_record(
+                            crossings(
+                                sign * selected[:, :, index],
+                                n,
+                                float(proxy[index]),
+                                alpha,
+                            )
+                        ),
+                    }
+                )
+        scenarios.append(
+            {
+                "scenario": label,
+                "assumption": "empirical centered case vectors IID with replacement; reuse is deliberately not fresh evidence",
+                "distinct_batches": math.ceil(rounds / reuse),
+                "pairs": results,
+            }
+        )
+    power = []
+    for index, diag in enumerate(diagnostics):
+        for alpha_art in (0.05, 0.01):
+            for delta in (0.01, 0.02, 0.03):
+                for sign in (1, -1):
+                    shifted = sign * increments[:, :, index] + delta * bases[index] * n
+                    thresholds = boundary(
+                        n, float(sigma[index]), alpha_art, n * np.arange(1, rounds + 1)
+                    )
+                    events = np.maximum.accumulate(
+                        np.cumsum(shifted, axis=1) >= thresholds, axis=1
+                    )
+                    rates = events.mean(axis=0)
+                    reached = np.flatnonzero(rates >= 0.8)
+                    power.append(
+                        {
+                            "pair": diag["pair"],
+                            "direction": sign,
+                            "alpha_art": alpha_art,
+                            "assumed_relative_pair_average_gain": delta,
+                            "rounds_to_80_percent_point_estimate": (
+                                int(reached[0] + 1) if reached.size else None
+                            ),
+                            "win_by_14_rounds": {
+                                "wins": int(events[:, -1].sum()),
+                                "trials": trials,
+                                "wilson95_low_point_high": wilson(
+                                    int(events[:, -1].sum()), trials
+                                ),
+                            },
+                        }
+                    )
+    # The first len(members)-1 combinations share M1 as incumbent.
+    cohort_size = len(members) - 1
+    z = increments[:, :, :cohort_size] / (sigma[:cohort_size] * math.sqrt(n))
+    events = (
+        holm_rejections(z.reshape(-1, cohort_size), alpha)
+        .reshape(trials, rounds, cohort_size)
+        .any(axis=2)
+    )
+    return {
+        "status": "EMPIRICAL_PUBLIC_CONDITIONAL_DIAGNOSTIC_NOT_PRODUCTION_VALIDATION",
+        "source": {
+            "name": "seed-variance-01/rows.jsonl",
+            "bytes": len(content),
+            "sha256": hashlib.sha256(content).hexdigest(),
+        },
+        "source_run_count": len(records),
+        "distinct_cases": len(ids),
+        "distinct_recipes": len({member for member, _ in errors}),
+        "source_eligible_runs": sum(
+            bool(record["frozen_rule"]["eligible"]) for record in records
+        ),
+        "important_cases": sum(bool(important[case_id]) for case_id in ids),
+        "seed_one_MLP_count": len(members),
+        "alias_policy": "M1... in lexicographic public recipe-id order; no raw case/run identifiers published",
+        "bootstrap_assumptions": "N=3000, 14 rounds, empirical vectors centered to zero mean; uniform IID sampling with replacement from public cases; not 3000 distinct physical cases",
+        "bootstrap_trials": trials,
+        "public_synthetic_seed": seed,
+        "unidentified_dependence": "no source/time blocks supplied; case-id ordering is not chronological; round dependence is not estimated",
+        "pair_diagnostics": diagnostics,
+        "carry_null_scenarios": scenarios,
+        "assumption_power_sensitivity": power,
+        "normal_approximation_daily_Holm_shared_M1": {
+            "cohort_size": cohort_size,
+            "day1": rate_record(events[:, 0]),
+            "any_of_14_days": rate_record(events.any(axis=1)),
+            "limit": "normal-approximate p-values, fixed all-null centered cohort; not full adaptive championship",
+        },
+    }
+
+
 def run(root: Path, trials: int, seed: int) -> dict:
     if trials <= 0:
         raise ValueError("trials must be positive")
@@ -265,11 +456,25 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--trials", type=int, default=40000)
     parser.add_argument("--seed", type=int, default=731)
+    parser.add_argument("--empirical-rows", type=Path)
+    parser.add_argument("--empirical-trials", type=int, default=10000)
     args = parser.parse_args()
     inputs, output = args.inputs.resolve(), args.output.resolve()
     if output == inputs or inputs in output.parents:
         parser.error("input directory is read-only; output must be elsewhere")
+    if args.empirical_rows and (
+        output == args.empirical_rows.resolve()
+        or args.empirical_rows.resolve().parent in output.parents
+    ):
+        parser.error("empirical input directory is read-only; output must be elsewhere")
     result = run(inputs, args.trials, args.seed)
+    if args.empirical_rows:
+        result["empirical_public_audit"] = empirical_audit(
+            args.empirical_rows, args.empirical_trials, args.seed + 2
+        )
+        result["empirical_distribution_status"] = (
+            "PUBLIC_CASE_RESAMPLING_COMPLETE_REALISTIC_BANK_DEPENDENCE_UNVALIDATED"
+        )
     output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(
         json.dumps(

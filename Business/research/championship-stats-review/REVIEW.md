@@ -143,13 +143,15 @@ if nothing else consumes them and an outage does not exceed that interval.
 
 ## Still needed to validate realistic distributions
 
-The supplied analysis.json/paired.json contain summaries, not case arrays or
-case-family/block metadata. paired.py's public rows source was not included in
-the copied set at audit time. Owner was asked to provide those public PRACTICE
-rows; no WSL search beyond the explicit request or private-bank access occurred.
-Without them, **empirical tails, within-family dependence and resampled
-championship behavior remain a gap**. Even 200 empirical cases would not prove
-tail coverage of 3,000 fresh cases or production validity.
+The owner subsequently supplied the 200 public per-case rows (I15). The
+[empirical resampling panel](EMPIRICAL_AUDIT.md) reproduces all six source SDs,
+measures their skew/tail concentration, and resamples whole shared-case contender
+vectors under an explicitly IID empirical law. Correct pair SDs preserve null
+rates near 0.6% in that limited test; a fixed median proxy on wider pairs does not.
+No source/time blocks were supplied, so **realistic between-round dependence,
+unseen tails and the complete adaptive championship remain unvalidated**.
+Resampling 200 rows does not create 3,000 distinct physical cases or prove future
+coverage. No WSL/private-bank access or solver run occurred.
 
 Required public next panel: inspect centered paired-loss tails and strata,
 bootstrap complete shared-case contender vectors and relevant blocks, test
