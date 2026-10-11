@@ -16,7 +16,13 @@
     "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-A-*.json"
    ],
    "packet_template": "common-v1",
-   "scorecard": "Battery v3"
+   "scorecard": "Battery v3",
+   "solvers": [
+    {
+     "name": "PyBaMM",
+     "named_in": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md"
+    }
+   ]
   },
   "electric-motor-magnetics": {
    "packet": "docs/development/MOTOR_DECISION_DESIGN_PACKET.md",
@@ -25,7 +31,13 @@
     "electric-motor-magnetics",
     "motor"
    ],
-   "scorecard": "Motor"
+   "scorecard": "Motor",
+   "solvers": [
+    {
+     "name": "GetDP",
+     "named_in": "docs/development/MOTOR_DECISION_DESIGN_PACKET.md"
+    }
+   ]
   },
   "f02": {
    "packet": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
@@ -34,7 +46,13 @@
    "lesson_challenges": [
     "f02"
    ],
-   "scorecard": "f02"
+   "scorecard": "f02",
+   "solvers": [
+    {
+     "name": "Elmer",
+     "named_in": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md"
+    }
+   ]
   }
  },
  "measurements_note": "UNMEASURED fields are measurements, not owner questions: each names the owner who measures it and the tool or PR that does. PR states are as of 2026-10-10 (verified with gh pr view); cite by number if unmerged.",
@@ -114,6 +132,18 @@
   "value_e": {
    "owner": "Data Collection",
    "tool": "PR 998 (EQUAL-BUDGET-DESIGN-01, open) on the design_search track_b harness"
+  },
+  "code_verification": {
+   "owner": "Data Collection",
+   "tool": "None yet: a Method of Manufactured Solutions test, or an exact analytic-solution test where MMS is not practical, per pinned image; re-run on any rebuild or re-pin"
+  },
+  "solution_verification": {
+   "owner": "Data Collection",
+   "tool": "Refinement and conservation checks on the pinned package (value-cost T5, reference adequacy)"
+  },
+  "validation": {
+   "owner": "Data Collection",
+   "tool": "Benchmark comparisons for the pinned package, recorded beside the other two layers"
   }
  }
 }

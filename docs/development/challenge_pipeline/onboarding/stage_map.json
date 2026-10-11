@@ -38,9 +38,9 @@
    "order": 2,
    "name": "Solver package",
    "entry": "A packet whose reference route needs a package that is not yet built.",
-   "exit": "A pinned reference package with an accepted image and manifest identity, measured per-case cost and memory, and conservation checks within packet tolerances.",
+   "exit": "A pinned reference package with an accepted image and manifest identity, measured per-case cost and memory, and conservation checks within packet tolerances. Code verification is a required exit criterion: for every pinned reference solver image, a Method of Manufactured Solutions test, or an exact analytic-solution test where MMS is not practical (Meep: analytic modes; PyBaMM: per sub-model), showing the observed order of accuracy matches the scheme's theoretical order; re-run on any image rebuild or re-pin. Results are recorded beside solution verification (refinement, conservation) and validation (benchmarks) as the three credibility layers.",
    "owner_session": "Data Collection builds and measures",
-   "owner_basis": "solver-package-specs/README.md is titled as a DC build handoff; value-cost Part C is 'Data Collection measures'",
+   "owner_basis": "solver-package-specs/README.md is titled as a DC build handoff; value-cost Part C is 'Data Collection measures'; code verification criterion: Test Lead, from the owner, 2026-10-10",
    "evidence": [
     "docs/development/challenge_pipeline/solver-package-specs/README.md",
     "docs/development/challenge_pipeline/value-cost/README.md"

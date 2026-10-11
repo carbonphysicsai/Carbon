@@ -27,7 +27,7 @@ checked against. UNVERIFIED marks a mapping the records do not settle.
 |---|---|---|---|---|
 | 0 | Brief | One page: buyer role, decision, value at stake | Owner picks; Codex researches | VERIFIED |
 | 1 | Design packet | Ten packet sections filled; the rest `OPEN` with an owner | Codex drafts; Test Lead reviews | VERIFIED (owner mapping inferred) |
-| 2 | Solver package | Pinned reference package, measured cost, conservation checks | Data Collection | VERIFIED (specs are SPECIFIED, not built) |
+| 2 | Solver package | Pinned reference package, measured cost, conservation checks, and code verification (observed order matches theory) | Data Collection | VERIFIED (specs are SPECIFIED, not built) |
 | 3 | Feasibility and value panel | V1-V5, T1-T5, C1+ evidenced; keep, reframe or replace | Codex, Data Collection, Test Lead; thresholds the owner's | VERIFIED |
 | 4 | Question law | Law sheet accepted or declined by the owner; design-value prerequisite met | Codex proposes; owner accepts | VERIFIED |
 | 5 | Bank | Sealed bank prepared on the hidden host from a pinned image | Carbon Validator (producer, bank adapters, VALIDATOR-28 family sources); Data Collection supplies each family's reference package and panel; the owner approves startup spend | VERIFIED (Test Lead ruling, 2026-10-10) |
@@ -38,6 +38,10 @@ checked against. UNVERIFIED marks a mapping the records do not settle.
 | 10 | Tested Challenge | The seven conditions below, all holding | Test Lead | VERIFIED (Test Lead working definition, 2026-10-10) |
 
 The full entries and exits, with the file each came from, are in `stage_map.json`.
+
+### Code verification at the reference stage (Test Lead, from the owner, 2026-10-10)
+
+Code verification is a required exit criterion of the reference stage (stage 2). For every pinned reference solver image: a Method of Manufactured Solutions test, or an exact analytic-solution test where MMS is not practical (Meep: analytic modes; PyBaMM: per sub-model), showing the observed order of accuracy matches the scheme's theoretical order. Re-run it on any image rebuild or re-pin. The result is recorded beside **solution verification** (refinement, conservation) and **validation** (benchmarks) as the three credibility layers. Per-solver status is on the evidence pack's credibility page; every layer is `UNMEASURED` until an artefact holds it.
 
 ### Definition of TESTED (Test Lead working definition, development, 2026-10-10)
 
@@ -228,3 +232,5 @@ The pages are measurements. They are not traction, customer, qualification or LI
 a recorded experiment supplies evidence only for the conditions it tested). A standing
 disclaimer line opens every page, and `tests/cpu/test_onboarding_pack.py` fails on those words
 anywhere else.
+
+`pack/credibility.md` shows the three credibility layers per solver for each Challenge.

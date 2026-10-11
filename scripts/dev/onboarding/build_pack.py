@@ -195,11 +195,51 @@ def cross_page(ledgers):
     return "\n".join(lines)
 
 
+LAYERS = (
+    ("code_verification", "Code verification (observed order matches theory)"),
+    ("solution_verification", "Solution verification (refinement, conservation)"),
+    ("validation", "Validation (benchmarks)"),
+)
+
+
+def credibility_page(ledgers):
+    lines = [
+        "# Evidence pack: credibility layers",
+        "",
+        DISCLAIMER,
+        "",
+        f"Framing: {FRAMING}",
+        "",
+        (
+            "Three layers record how far a pinned reference solver can be trusted as the "
+            "reference. Code verification is a required exit criterion of the reference "
+            "stage (Test Lead, from the owner, 2026-10-10). A layer with no artefact reads "
+            "UNMEASURED."
+        ),
+        "",
+    ]
+    for ledger in ledgers:
+        layers = ledger["outputs"]["credibility_layers"]
+        lines.append(f"## {ledger['challenge']}")
+        if not layers["solvers"]:
+            lines.append(
+                "- Pinned solvers: no solver is registered for this Challenge [source: ledger outputs.credibility_layers]"
+            )
+        for name, solver in sorted(layers["solvers"].items()):
+            lines.append(f"### {name}")
+            lines.append(line("Named in", solver["named_in"]))
+            for key, label in LAYERS:
+                lines.append(line(label, solver[key]))
+        lines.append("")
+    return "\n".join(lines)
+
+
 def build(challenges):
     """`{file name: text}` for the pack. Deterministic."""
     ledgers = [ledger_module.build(c) for c in challenges]
     pages = {f"{ledger['challenge']}.md": challenge_page(ledger) for ledger in ledgers}
     pages["cross_challenge.md"] = cross_page(ledgers)
+    pages["credibility.md"] = credibility_page(ledgers)
     return pages
 
 

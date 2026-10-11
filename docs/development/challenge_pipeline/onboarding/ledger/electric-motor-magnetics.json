@@ -73,6 +73,37 @@
   }
  },
  "outputs": {
+  "credibility_layers": {
+   "rule": "Code verification is a required exit criterion of the reference stage (Test Lead, from the owner, 2026-10-10): a Method of Manufactured Solutions test, or an exact analytic-solution test where MMS is not practical, showing the observed order of accuracy matches the scheme's theoretical order, re-run on any image rebuild or re-pin. Recorded beside solution verification and validation.",
+   "solvers": {
+    "GetDP": {
+     "code_verification": {
+      "flag": "required for the reference stage exit",
+      "kind": "measurement",
+      "owner": "Data Collection",
+      "required_for": "reference stage exit",
+      "tool": "None yet: a Method of Manufactured Solutions test, or an exact analytic-solution test where MMS is not practical, per pinned image; re-run on any rebuild or re-pin",
+      "value": "UNMEASURED"
+     },
+     "named_in": {
+      "source": "docs/development/MOTOR_DECISION_DESIGN_PACKET.md",
+      "value": "GetDP"
+     },
+     "solution_verification": {
+      "kind": "measurement",
+      "owner": "Data Collection",
+      "tool": "Refinement and conservation checks on the pinned package (value-cost T5, reference adequacy)",
+      "value": "UNMEASURED"
+     },
+     "validation": {
+      "kind": "measurement",
+      "owner": "Data Collection",
+      "tool": "Benchmark comparisons for the pinned package, recorded beside the other two layers",
+      "value": "UNMEASURED"
+     }
+    }
+   }
+  },
   "decision_quality_vs_cheap_baseline": {
    "flag": "required for TESTED",
    "kind": "measurement",
