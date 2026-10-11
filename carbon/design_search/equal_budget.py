@@ -15,11 +15,11 @@ import random
 import re
 from collections import defaultdict
 
-from . import track_b
+from . import budget_registration, track_b
 
 SCHEMA = "carbon.design-search.equal-budget-panel.v1"
 REPORT_SCHEMA = "carbon.design-search.equal-budget-report.v1"
-CHALLENGES = {"battery-v3", "motor", "f02"}
+CHALLENGES = {"battery-v3", "motor", "f02", "f13"}
 ARMS = ("solver_alone", "model_then_solver", "baseline_then_solver")
 
 
@@ -251,7 +251,7 @@ def _best(rows, direction):
     return min(feasible, key=lambda r: (sign * r["reference"]["value"], r["design_id"]))
 
 
-def _one(job, budget, direction):
+def _one(job, budget, direction, *, cap=None):
     rows = {row["design_id"]: row for row in job["candidates"]}
     reference = track_b.Reference(
         {
@@ -266,14 +266,19 @@ def _one(job, budget, direction):
     true_best = _best(job["candidates"], direction)
     results = {}
     for arm in ARMS:
+        ledger = budget_registration.BudgetLedger(
+            cap
+            if cap is not None
+            else budget_registration.BudgetCap(len(rows), budget[0], budget[1])
+        )
         if arm == "solver_alone":
             order = job["solver_order"]
-            spent = [0.0, 0.0]
+            overhead = {"wall_s": 0.0, "core_s": 0.0}
         else:
             kind = "model" if arm == "model_then_solver" else "baseline"
             order = sorted(rows, key=lambda i: (rows[i]["screen_rank"][kind], i))
-            spent = list(_cost(job["screen_cost"][kind], "screen cost"))
-        if any(spent[i] > budget[i] + 1e-12 for i in (0, 1)):
+            overhead = job["screen_cost"][kind]
+        if not ledger.charge_overhead(overhead):
             results[arm] = {
                 "value": None,
                 "regret": None,
@@ -286,13 +291,10 @@ def _one(job, budget, direction):
         verified = []
         for design_id in order:
             row = rows[design_id]
-            bound = _cost(row["planning_bound"], "planning bound")
-            if any(spent[i] + bound[i] > budget[i] + 1e-12 for i in (0, 1)):
+            if not ledger.charge_solver_attempt(
+                row["planning_bound"], row["solve_cost"]
+            ):
                 break  # hard stop before an unaffordable complete solve
-            spent = [
-                spent[i] + row["solve_cost"][key]
-                for i, key in enumerate(("wall_s", "core_s"))
-            ]
             observed = reference.case((job["job_id"], design_id)).quantities
             verified.append({"design_id": design_id, "reference": observed})
         best = _best(verified, direction)
@@ -306,9 +308,9 @@ def _one(job, budget, direction):
         results[arm] = {
             "value": None if best is None else best["reference"]["value"],
             "regret": regret,
-            "verified_count": len(verified),
-            "spent_wall_s": spent[0],
-            "spent_core_s": spent[1],
+            "verified_count": ledger.solver_evaluations,
+            "spent_wall_s": ledger.wall_s,
+            "spent_core_s": ledger.core_s,
             "status": "RAN",
         }
     return results
@@ -378,9 +380,21 @@ def _summarize(results, direction):
     return metrics
 
 
-def compare(panel, *, bootstrap_replicates, confidence, seed):
+def compare(panel, *, bootstrap_replicates, confidence, seed, registration=None):
     """Return paired, cluster-bootstrap curves; no inference or solver calls."""
     _validate(panel)
+    registered = (
+        None if registration is None else budget_registration.validate(registration)
+    )
+    if registered is not None:
+        expected = [
+            registered.cap(panel["challenge"], tier).time_compute
+            for tier in budget_registration.TIERS
+        ]
+        if panel["budgets"] != expected:
+            raise EqualBudgetError("panel ladder differs from registered budgets")
+        if panel["registrations"]["cost_plan"] != registered.registration_id:
+            raise EqualBudgetError("panel cost plan differs from registration")
     if type(bootstrap_replicates) is not int or bootstrap_replicates < 100:
         raise EqualBudgetError("at least 100 bootstrap replicates required")
     if type(confidence) not in (int, float) or not 0 < confidence < 1:
@@ -392,7 +406,7 @@ def compare(panel, *, bootstrap_replicates, confidence, seed):
         for job in panel["jobs"]
         for row in job["candidates"]
     ):
-        return {
+        unresolved_report = {
             "schema": REPORT_SCHEMA,
             "status": "UNRESOLVED_PANEL",
             "challenge": panel["challenge"],
@@ -404,16 +418,29 @@ def compare(panel, *, bootstrap_replicates, confidence, seed):
             ),
             "curves": [],
         }
+        if registered is not None:
+            unresolved_report.update(
+                budget_registration_digest=registered.registration_digest,
+                budget_registration_id=registered.registration_id,
+                budget_basis=registration["challenge_budgets"][panel["challenge"]][
+                    "basis"
+                ],
+            )
+        return unresolved_report
     clusters = defaultdict(list)
     for job in panel["jobs"]:
         clusters[job["cluster_id"]].append(job)
     cluster_ids = sorted(clusters)
     direction = panel["objective"]["direction"]
     curves = []
-    for budget in panel["budgets"]:
+    for position, budget in enumerate(panel["budgets"]):
         limit = _cost(budget, "budget")
+        tier = budget_registration.TIERS[position] if registered is not None else None
+        cap = None if registered is None else registered.cap(panel["challenge"], tier)
         by_cluster = {
-            cluster_id: [_one(job, limit, direction) for job in clusters[cluster_id]]
+            cluster_id: [
+                _one(job, limit, direction, cap=cap) for job in clusters[cluster_id]
+            ]
             for cluster_id in cluster_ids
         }
         observed = _summarize(
@@ -460,10 +487,11 @@ def compare(panel, *, bootstrap_replicates, confidence, seed):
                     _quantile(paired_deltas, 1 - tail),
                 ]
             )
-        curves.append(
-            {"budget": budget, "estimates": observed, "bootstrap_ci": intervals}
-        )
-    return {
+        curve = {"budget": budget, "estimates": observed, "bootstrap_ci": intervals}
+        if cap is not None:
+            curve.update(tier=tier, solver_evaluation_limit=cap.solver_evaluations)
+        curves.append(curve)
+    report = {
         "schema": REPORT_SCHEMA,
         "status": "OK",
         "challenge": panel["challenge"],
@@ -481,6 +509,13 @@ def compare(panel, *, bootstrap_replicates, confidence, seed):
         "bootstrap_seed": seed,
         "curves": curves,
     }
+    if registered is not None:
+        report.update(
+            budget_registration_digest=registered.registration_digest,
+            budget_registration_id=registered.registration_id,
+            budget_basis=registration["challenge_budgets"][panel["challenge"]]["basis"],
+        )
+    return report
 
 
 def main(argv=None):
@@ -490,9 +525,16 @@ def main(argv=None):
     parser.add_argument("--bootstrap-replicates", type=int, required=True)
     parser.add_argument("--confidence", type=float, required=True)
     parser.add_argument("--seed", type=int, required=True)
+    parser.add_argument(
+        "--budget-registration", help="prospective three-tier development budget JSON"
+    )
     args = parser.parse_args(argv)
     with open(args.panel, encoding="utf-8") as stream:
         panel = json.load(stream)
+    registration = None
+    if args.budget_registration is not None:
+        with open(args.budget_registration, encoding="utf-8") as stream:
+            registration = json.load(stream)
     print(
         json.dumps(
             compare(
@@ -500,6 +542,7 @@ def main(argv=None):
                 bootstrap_replicates=args.bootstrap_replicates,
                 confidence=args.confidence,
                 seed=args.seed,
+                registration=registration,
             ),
             indent=2,
             sort_keys=True,

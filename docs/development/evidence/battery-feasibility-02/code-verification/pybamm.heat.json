@@ -1,0 +1,23 @@
+{
+  "image_digest": "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940",
+  "submodel": "lumped-heat",
+  "exact": "1-exp(-t)",
+  "rows": [
+    {
+      "rtol": 0.0001,
+      "value": 0.6321221903222223,
+      "absolute_error": 1.6314936646111278e-06
+    },
+    {
+      "rtol": 1e-06,
+      "value": 0.6321207157811103,
+      "absolute_error": 1.5695255262127006e-07
+    },
+    {
+      "rtol": 1e-08,
+      "value": 0.632120553942818,
+      "absolute_error": 4.88573970169881e-09
+    }
+  ],
+  "accepted_pass": null
+}

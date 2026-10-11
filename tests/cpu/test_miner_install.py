@@ -118,9 +118,11 @@ def test_the_install_script_refuses_off_linux_before_doing_anything(tmp_path):
 # --- The script in a sandbox checkout (LP-PROD-E) ------------------------------
 
 #: Stand-ins on PATH, ahead of the real tools: Docker answers without a
-#: daemon, uv is the pinned version, curl, nvidia-smi and systemctl are
-#: never the real ones, and df reports 1 TiB free on one filesystem, so no
-#: test depends on the host's free disk.
+#: daemon, uv is the pinned version, curl, nvidia-smi, systemctl and
+#: loginctl are never the real ones, and df reports 1 TiB free on one
+#: filesystem, so no test depends on the host's free disk. loginctl reports
+#: linger on unless a test names a file holding its state
+#: (MINER-SURVIVE-REBOOT-01), and logs only to its own log, if named.
 FAKE_TOOLS = {
     "docker": (
         '#!/bin/sh\nif [ "$*" = "info --format {{.DockerRootDir}}" ]; then\n'
@@ -129,6 +131,21 @@ FAKE_TOOLS = {
     "uv": '#!/bin/sh\necho "uv 0.12.7"\n',
     "curl": '#!/bin/sh\necho "curl ran" >&2\nexit 9\n',
     "systemctl": '#!/bin/sh\necho "systemctl $*" >> "$CARBON_TEST_LOG"\n',
+    "loginctl": (
+        "#!/bin/sh\n"
+        '[ -z "$CARBON_TEST_LINGER_LOG" ] || echo "loginctl $*" >> "$CARBON_TEST_LINGER_LOG"\n'
+        'file="$CARBON_TEST_LINGER_FILE"\n'
+        'case "$1" in\n'
+        "  show-user)\n"
+        '    if [ -n "$file" ]; then cat "$file"; else echo yes; fi ;;\n'
+        "  enable-linger)\n"
+        '    if [ "$CARBON_TEST_ENABLE_LINGER" = denied ]; then\n'
+        '      echo "Could not enable linger: Access denied" >&2\n'
+        "      exit 1\n"
+        "    fi\n"
+        '    [ -z "$file" ] || echo yes > "$file" ;;\n'
+        "esac\n"
+    ),
     # The user manager's own view of Docker (LA-F6): it reaches Docker unless
     # the test says the manager lacks the docker group.
     "systemd-run": (
