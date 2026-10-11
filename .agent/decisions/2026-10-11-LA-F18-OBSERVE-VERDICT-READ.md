@@ -49,7 +49,7 @@ added rather than `sign` reused.
    2026-10-11).** Observe reads only the open epoch with a recorded
    submission (`intake-submission-epoch-N.json`) and no verdict. The
    Launchpad reads no chain on observe, so before the intake is contacted the
-   floor is one tempo of nominal blocks, `READ_FLOOR_S` = 360 × 12 s, its
+   floor is one tempo of nominal blocks, `READ_FLOOR_S` = 360 Ã— 12 s, its
    time recorded in `intake-status-read-epoch-N.json` first. Once the
    intake's facts are read, a read in the tempo of its finalized block
    (`block // 360`, the battery rule's window and the signer's
