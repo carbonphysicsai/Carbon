@@ -225,10 +225,14 @@ with the fields in [Record](#record).
     Observe and the campaign view show the same readback on both doors:
     - the submission id;
     - for a submit that was not a verdict, its refusal with `intake_outcome`
-      (`QUEUED`, `UNAVAILABLE` or `REFUSED`). Observe does not ask the
-      validator again. For a `QUEUED` submit, submit again later: that asks
-      the intake for the recorded submission's result, and it is never a
-      second submission (LA-F18);
+      (`QUEUED`, `UNAVAILABLE` or `REFUSED`). For a `QUEUED` submit on
+      testnet 567 you need not submit again: observe asks the intake for the
+      recorded submission's result, at most once per chain epoch (tempo),
+      with a read-only status read your signer signs without asking (its
+      `status_read` kind, never a commitment). The verdict then shows as a
+      submit's would. On any other chain your signer refuses that read, and
+      you submit again later to ask. Neither is ever a second submission
+      (LA-F18);
     - a verdict's public fields: its state, exam rule, recipe and contract
       digests, and how it was rebuilt.
     Under a sealed rule (v2) a scored outcome is `sealed`: no screening,

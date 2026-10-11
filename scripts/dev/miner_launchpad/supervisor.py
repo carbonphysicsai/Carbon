@@ -337,13 +337,17 @@ NEXT_ACTIONS = {
         "Both final exams of this campaign are used. Launch a new campaign to continue."
     ),
     # The validator's answer to a DEVELOPMENT submission (carbon.battery).
-    # LA-F18: observe and the campaign view read only this machine's record
-    # of the campaign; only a submit asks the validator for the verdict.
+    # LA-F18: in a campaign where the miner selects, on testnet 567, observe
+    # asks the validator for the recorded submission's verdict (read-only, at
+    # most once per chain epoch) and stores it as a submit would. Elsewhere
+    # the signer refuses that read, and only a submit asks.
     "evaluation_queued": (
-        "The validator queued your submission and has no verdict yet. Observe "
-        "does not ask the validator: submit again later (carbon_submit) to "
-        "ask for its result. The frozen candidate is kept, and it is the same "
-        "submission, never a second one."
+        "The validator queued your submission and has no verdict yet. On "
+        "testnet 567 you need not submit again: observe asks the validator for "
+        "its result, at most once per chain epoch (tempo), and shows the "
+        "verdict once there is one. Elsewhere, submit again later "
+        "(carbon_submit) to ask for it. The frozen candidate is kept, and it "
+        "is the same submission, never a second one."
     ),
     # LAUNCHPAD-PAGE-USABILITY-01: says what still works and what to do,
     # since a miner usually cannot add an intake until one is published.

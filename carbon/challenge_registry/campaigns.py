@@ -101,6 +101,16 @@ class ChallengeCampaign:
     #: this machine checks its own setting; a submission the intake already
     #: holds is not gated again.
     commitment_due: Callable | None = None
+    #: (args, root, epoch, connect) -> the permitted feedback when one read of
+    #: the epoch's queued submission at its validator intake finds a verdict,
+    #: else None (LA-F18). Read-only: signed through the signer's read-only
+    #: kind, throttled per epoch; nothing is submitted or committed.
+    #: `connect()` reaches the miner's signer once a read is due. None: the
+    #: Challenge offers no such read.
+    queued_verdict: Callable | None = None
+    #: (ledger, owner, epoch, feedback) -> None: store a verdict exactly as
+    #: its `evaluate` stores a submit's. Set with `queued_verdict`.
+    record_verdict: Callable | None = None
     #: Whether this campaign compiles, freezes and commits at a construction
     #: level its launch names (LAUNCHPAD-LEVELS-01 S2,
     #: `carbon.development_session.construction_level`). False: a launch at
@@ -202,6 +212,8 @@ def _battery():
         backends=tuple(BATTERY_BACKENDS),
         commitment=battery.frozen_commitment,
         commitment_due=battery.commitment_due,
+        queued_verdict=battery.queued_verdict,
+        record_verdict=battery.record_verdict,
         construction_levels=True,
     )
 

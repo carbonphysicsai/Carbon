@@ -516,9 +516,27 @@ the cause, and the slice or PR that fixes it. The plan is
   verdict, observe, or the supervisor on a timer, would poll the intake
   once. That puts the signer on the observe path, which is read-only today,
   so it needs its own decision.
+- **Fixed (2026-10-11, the Test Lead's ruling):** observe now asks.
+  - In a campaign where the miner selects, observe reads the open epoch's
+    recorded submission once, only when it has no verdict, at most once per
+    chain epoch (tempo, 360 blocks; recorded first in
+    `intake-status-read-epoch-N.json`), and only when submit itself would be
+    admitted and nothing runs for the campaign
+    (`scripts/dev/miner_launchpad/verdict_read.py`).
+  - The read is signed through the signer's new read-only kind,
+    `status_read` (`carbon_miner_signer/status_read.py`). The signer is sent
+    the request body too and signs only one `battery_status` read of one
+    submission id, unasked only on testnet 567 (auto-confirm's genesis
+    check) and refused on any other chain; it never reaches the commit path
+    or the auto-confirm allow-list. Observe never asks for `sign` or
+    `commit`.
+  - A verdict is stored as a replayed submit stores it (`record_verdict`,
+    `after_stored_verdict`), so observe, the campaign view and the journey
+    show it. The `evaluation_queued` next step and `FRESH_MINER_JOURNEY.md`
+    step 10 say observe asks on testnet 567, and to submit again elsewhere.
 - **Decision:** `.agent/decisions/2026-10-08-LAUNCHPAD-FINDINGS-F15-F18.md`.
-- **Status:** next-step text fixed in the PR that carries this entry; the
-  poll is open.
+- **Status:** fixed. Touches the signer: the owner's security review is
+  needed before merge.
 
 ## LA-F19: a campaign frozen on an old revision fails its submit untyped
 

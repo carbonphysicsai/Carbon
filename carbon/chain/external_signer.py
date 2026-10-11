@@ -38,8 +38,13 @@ SIGNER_REFUSALS = frozenset(
         "WRONG_SENDER",
         "STALE_NONCE",
         "RECEIVER_NOT_ALLOWED",
+        "NOT_A_STATUS_READ",
+        "STATUS_READ_NOT_TESTNET",
     }
 )
+#: The signer's one read-only request kind (LA-F18): a `battery_status` read,
+#: sent with the body its payload covers. Never a commitment or extrinsic.
+STATUS_READ_OP = "status_read"
 #: Its closed commit refusals (`carbon_miner_signer.CommitRefusal`).
 COMMIT_REFUSALS = frozenset(
     {
@@ -221,17 +226,76 @@ class ExternalSigner:
             {"protocol": PROTOCOL, "op": "sign", "payload": payload.decode("ascii")},
             self._timeout,
         )
-        encoded = response.get("signature")
-        if type(encoded) is not str or not _SIGNATURE.fullmatch(encoded):
-            raise SignerFailure(SignerCode.PROTOCOL)
-        signature = bytes.fromhex(encoded[2:])
-        from bittensor.sp_core import verify
+        return _verified(self, payload, response)
 
-        if not verify(payload, signature, self.ss58_address, self.crypto_type):
-            raise SignerFailure(SignerCode.INVALID_SIGNATURE)
-        self.issued += 1
-        _count_signature()
-        return signature
+    def status_reader(self, body: bytes) -> StatusReadSigner:
+        """A signer for one `battery_status` read whose request body is
+        `body`, through the signer's read-only kind (LA-F18)."""
+        return StatusReadSigner(_TOKEN, self, body)
+
+
+def _verified(signer: ExternalSigner, payload: bytes, response: dict) -> bytes:
+    """The signature in `response`, once it verifies over `payload` for the
+    hotkey; counted as obtained."""
+    encoded = response.get("signature")
+    if type(encoded) is not str or not _SIGNATURE.fullmatch(encoded):
+        raise SignerFailure(SignerCode.PROTOCOL)
+    signature = bytes.fromhex(encoded[2:])
+    from bittensor.sp_core import verify
+
+    if not verify(payload, signature, signer.ss58_address, signer.crypto_type):
+        raise SignerFailure(SignerCode.INVALID_SIGNATURE)
+    signer.issued += 1
+    _count_signature()
+    return signature
+
+
+class StatusReadSigner:
+    """A bittensor ``Signer`` for one read-only `battery_status` request.
+
+    Built only by ``ExternalSigner.status_reader``, bound to the request body.
+    Its ``sign`` asks the miner's signer for the read-only ``status_read``
+    kind, sending the payload and the body it covers, so the signer can check
+    that it signs a status read and nothing else. It has no way to ask for a
+    ``sign`` of an arbitrary payload or for a ``commit``.
+    """
+
+    __slots__ = ("_body", "_signer")
+
+    def __init__(self, token, signer, body):
+        if token is not _TOKEN or type(signer) is not ExternalSigner:
+            raise TypeError("a StatusReadSigner comes only from status_reader")
+        if type(body) is not bytes:
+            raise TypeError("a status read signs a request body")
+        self._signer, self._body = signer, body
+
+    @property
+    def ss58_address(self) -> str:
+        return self._signer.ss58_address
+
+    @property
+    def crypto_type(self) -> int:
+        return self._signer.crypto_type
+
+    @property
+    def public_key(self) -> bytes:
+        return self._signer.public_key
+
+    def __repr__(self):
+        return f"StatusReadSigner(hotkey={self.ss58_address!r})"
+
+    def sign(self, payload: bytes) -> bytes:
+        response = _exchange(
+            self._signer._path,
+            {
+                "protocol": PROTOCOL,
+                "op": STATUS_READ_OP,
+                "payload": payload.decode("ascii"),
+                "body": self._body.decode("ascii"),
+            },
+            self._signer._timeout,
+        )
+        return _verified(self._signer, payload, response)
 
 
 def request_commitment(signer: ExternalSigner, request: dict) -> dict:
