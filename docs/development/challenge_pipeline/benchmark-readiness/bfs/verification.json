@@ -1,0 +1,48 @@
+{
+  "schema": "carbon.benchmark-reference-verification.v1",
+  "family": "backward-facing-step",
+  "status": "SPECIFIED_UNEXECUTED",
+  "source_commit": "bc15466602a687d6fb796d5df7a12ce3fde0949a",
+  "image_digest": null,
+  "dependency_lock": null,
+  "mms": {
+    "equations": "steady compressible Navier-Stokes, constant mu/Pr, ideal gas; laminar subsystem, not SST",
+    "source": "Common/src/toolboxes/MMS/CMMSNSUnitQuadSolution.cpp",
+    "field_and_source_generator": "carbon.challenge_pipeline.benchmark_bfs.manufactured_sources",
+    "builtin": "MMS_NS_UNIT_QUAD",
+    "boundary": "exact manufactured state on unit quad; MARKER_CUSTOM and built-in BC",
+    "ladder_nodes": [
+      17,
+      33,
+      65,
+      129
+    ],
+    "expected_asymptotic_order": 2,
+    "order_band": {
+      "status": "HUMAN_INPUT_RECOMMENDATION",
+      "value": null,
+      "recommendation": [
+        1.8,
+        2.2
+      ]
+    },
+    "norms": [
+      "volume-weighted L2",
+      "Linf"
+    ],
+    "fields": [
+      "rho",
+      "rho_u",
+      "rho_v",
+      "rho_E"
+    ],
+    "iteration_error": "must be negligible relative to discretization; criterion closed until registered",
+    "acceptance": "every field, all last two orders inside adopted band; all physical source residuals retained; no zero/errorless fabricated passes"
+  },
+  "missing": [
+    "SSTm equation/limiter audit and turbulence verification",
+    "developed inlet reproduction and NASA mesh/closure applicability",
+    "actual image-bound code/convergence/conservation evidence",
+    "conservation tolerance, MUI and matched pick/verdict acceptance"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "scope": "PUBLIC_DEVELOPMENT",
+  "family": "backward-facing-step",
+  "rows": [
+    {
+      "id": "NASA-20a39f5-step",
+      "custody": "PUBLIC_REFERENCE_ANCHOR",
+      "geometry_novel": false,
+      "source_commit": "20a39f549dbff988a6accc421ac84dafc4487695",
+      "published_reattachment_over_H": 6.26,
+      "published_uncertainty_over_H": 0.1,
+      "task": null,
+      "reference": null,
+      "shortcut_values": null
+    }
+  ]
+}

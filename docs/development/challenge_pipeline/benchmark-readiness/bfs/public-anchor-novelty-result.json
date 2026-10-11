@@ -1,0 +1,6 @@
+{
+  "family": "backward-facing-step",
+  "rows": [{"id": "NASA-20a39f5-step", "status": "PUBLIC_ANCHOR_EXCLUDED", "variant_decision_test": "UNRESOLVED_NO_VARIANT_TRUTH", "scored": false}],
+  "status": "DESCRIPTIVE",
+  "hidden_bank_authorized": false
+}

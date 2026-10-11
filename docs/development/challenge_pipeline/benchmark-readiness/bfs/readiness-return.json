@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.benchmark-readiness-return.v1",
+  "family": "backward-facing-step",
+  "tool_pr": 1039,
+  "tool_head": "98a236bf6d891d4383b85ec0f511949a31a5fbf7",
+  "main": "cfb60d3d5fdc7c83ecb5ff779470dc5a0856335c",
+  "observed_at": "2026-10-11T02:42:52Z",
+  "yes_count": 0,
+  "states": ["UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN"],
+  "basis": "No configured public evidence adapter for this family on inspected main; visibility gaps do not mean seven demonstrated failures",
+  "spend_authorized": false,
+  "qualified": false
+}

@@ -1,0 +1,35 @@
+{
+  "schema": "carbon.design-search.equal-budget-registration.v1",
+  "registration_id": "BFS-DEVELOPMENT-PROPOSED-V1",
+  "authority": "Test Lead delegated benchmark decisions; engineering ASSUMPTION proposal only",
+  "evidence_scope": "DEVELOPMENT",
+  "challenge_budgets": {
+    "backward-facing-step": {
+      "decision_scope": "one contour across complete service brief with final all-condition verification",
+      "basis": "ASSUMPTION",
+      "justification": "Prospective four-host-hour base allowance and eight complete verified contours. A complete contour may require multiple service points and rungs; these caps are not a prediction that eight contours fit, measured buyer spend or bank cost.",
+      "source_refs": [
+        "Business/research/benchmark-challenge-briefs/BACKWARD_FACING_STEP.md",
+        "#1047 registration form"
+      ],
+      "tiers": {
+        "half": {
+          "solver_evaluations": 4,
+          "wall_s": 7200,
+          "core_s": 115200
+        },
+        "base": {
+          "solver_evaluations": 8,
+          "wall_s": 14400,
+          "core_s": 230400
+        },
+        "double": {
+          "solver_evaluations": 16,
+          "wall_s": 28800,
+          "core_s": 460800
+        }
+      }
+    }
+  },
+  "registration_digest": "sha256:4df722d075dff792685b480564c7701bdedc156fa025474d51fc8b55756490c7"
+}
