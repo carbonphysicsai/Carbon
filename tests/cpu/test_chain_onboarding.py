@@ -242,11 +242,12 @@ def test_prepare_gives_the_command_the_miner_runs_in_their_own_wallet():
     )
     command = value["command"]
     assert command["text"] == (
-        "btcli subnet register --netuid 567 --network test "
-        "--wallet.name <your wallet name> --wallet.hotkey <your hotkey name>"
+        "btcli subnets register --netuid 567 --wallet-name <your wallet name> "
+        "--hotkey <your hotkey name> --network test"
     )
     assert command["fill_in"] == ["<your wallet name>", "<your hotkey name>"]
-    assert command["verified"].startswith("UNVERIFIED")
+    # LA-F3: the form that ran, with the btcli version it ran on.
+    assert command["verified"].startswith("Run on testnet 567 with btcli 9.23.2")
     assert value["signed"] is False and value["cost"]["value"] == "NOT_READ"
     assert "run this command or read its cost" in value["carbon_did_not"]
     # The hotkey's address is not a wallet name: nothing of the miner's is
@@ -271,9 +272,9 @@ def test_the_registration_command_is_written_from_the_context_it_describes():
     assert "--netuid 999 " in onboarding.register_command(elsewhere)["text"]
     # The short btcli name only for the endpoint Carbon's testnet pins.
     moved = dataclasses.replace(context, endpoint="wss://test.example.org:443")
-    assert (
-        "--network wss://test.example.org:443 "
-        in onboarding.register_command(moved)["text"]
+    # LA-F3: `--network` ends the form that ran.
+    assert onboarding.register_command(moved)["text"].endswith(
+        "--network wss://test.example.org:443"
     )
     assert onboarding.btcli_network(context) == "test"
 
