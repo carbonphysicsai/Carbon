@@ -471,3 +471,17 @@ def test_execution_lesson_is_in_the_validated_log_not_only_a_document_folder():
 
     p = LESSONS / "2026-10-11-mg-preparation.json"
     assert validate(json.loads(p.read_text()), p.stem, {})["challenge"] == b.FAMILY
+
+
+def test_numeric_verification_requires_a_real_sha256_shape_not_only_length():
+    with pytest.raises(b.PreparationError, match="acceptance identity"):
+        decks.verify_analytic_output(
+            "planar-lossless-slab",
+            [],
+            controls(),
+            acceptance={
+                "record_sha256": "z" * 64,
+                "absolute_power_fraction": 0.001,
+                "energy_residual_fraction": 0.001,
+            },
+        )

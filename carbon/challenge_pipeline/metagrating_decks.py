@@ -311,6 +311,7 @@ def verify_analytic_output(case, rows, controls, *, acceptance):
     if (
         not isinstance(acceptance.get("record_sha256"), str)
         or len(acceptance["record_sha256"]) != 64
+        or any(c not in "0123456789abcdef" for c in acceptance["record_sha256"])
     ):
         raise b.PreparationError("registered numerical acceptance identity required")
     power_band = b.number(acceptance["absolute_power_fraction"], positive=True)
