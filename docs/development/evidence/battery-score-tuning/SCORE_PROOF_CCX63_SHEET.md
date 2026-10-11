@@ -1,11 +1,11 @@
 # Score proof, interim look: the CCX63 run (SCORE-PROOF-01)
 
-This sheet solves the first 150 sealed confirmation questions on one hourly
+This sheet solves the sealed confirmation questions for the interim look, 150 **resolved** (about 267 offered), on one hourly
 Hetzner CCX63, under the startup-host custody procedure. The rest happens
 on the AX42.
 
-- **Grant:** OWNER-SCORE-PROOF-CCX63-GRANT-01, a cap of **EUR 5 and 3.6
-  server-hours**, whichever comes first.
+- **Grant:** OWNER-SCORE-PROOF-CCX63-GRANT-01 as amended by -02, a cap of
+  **EUR 8 and 5.8 server-hours**, whichever comes first.
 - **Custody:** OWNER-STARTUP-HOST-CUSTODY-02, following
   [STARTUP_HOST_RUNBOOK.md](../../graphite/STARTUP_HOST_RUNBOOK.md).
 - **The design:** registered in `proof-sequential-v1.json` (target ±0.15,
@@ -24,19 +24,21 @@ directory and `Q` its quiz.
 
 ## 0. Before
 
-- The release containing #1044 is installed on the AX42. The cloud-init
-  for the host names the same release tag.
+- **The release containing registry v6** (SCORE-PROOF-01 amendment 5),
+  cut after #1070 merges, is installed on the AX42, and the host's
+  cloud-init names the same tag. r7 cannot read registry v6, and the
+  shard manifests pin the code commit, so both sides run that release.
 - **Run 1 of [SCORE_PROOF_OWNER_SHEET.md](SCORE_PROOF_OWNER_SHEET.md) is
   done**, and you have picked a rule from `selection.md`. Call it `<PICK>`.
 
 ## 1. [AX42] Draw the sealed questions
 
 ```bash
-P scripts.dev.battery.score_proof_questions draw --work $W --questions 150 --quiz $Q
+P scripts.dev.battery.score_proof_questions draw --work $W --questions 267 --quiz $Q
 ```
 
 - **The seed.** The AX42 makes its own seed in `$W/seed`.
-- **What it prints:** the question count, the job count (5,250) and the
+- **What it prints:** the question count, the job count (9,345) and the
   sealed contract's digest. Only the digest is public: send it to the Test
   Lead before any solve.
 
@@ -83,8 +85,8 @@ sudo -u carbon-producer -H sh -c 'cd /opt/carbon && .venv/bin/python -m carbon.c
   --work /var/lib/carbon-producer/startup/shard-0 --overlay /var/lib/carbon-producer/startup/overlay --workers $(( $(nproc) - 2 ))'
 ```
 
-This is about 2.1 hours on 46 workers, by estimate. If the server is near
-**3.2 server-hours** and the solve is still running, stop it and go to
+This is about 3.8 hours on 46 workers, by estimate. If the server is near
+**5.2 server-hours** and the solve is still running, stop it and go to
 step 6: whatever merged is kept, and the rest stays for the AX42.
 
 ## 6. [AX42] Pull, journal and merge (runbook §6)
@@ -99,8 +101,8 @@ all-or-nothing.** On a `startup_*` refusal, stop and report the code.
 P scripts.dev.battery.score_proof_questions refine --work $W
 ```
 
-**If it prints refine jobs and the server has more than 40 minutes left
-before 3.6 hours**, repeat steps 4–6 for them:
+**If it prints refine jobs and the server has more than 1 hour left
+before 5.8 hours**, repeat steps 4–6 for them:
 - split into `$W/shards-refine`;
 - on the host, solve with `--workers 20`, because refined solves need much
   more memory.
@@ -140,8 +142,8 @@ P scripts.dev.battery.score_proof --phase confirmation --look interim --rule <PI
 ```
 
 `$W/proof/confirmation.md` opens with the verdict at the pre-registered
-O'Brien–Fleming level for the resolved question count (99.26 % at 150
-questions):
+O'Brien–Fleming level for the **resolved** question count, that is the
+common resolved mask, never the offered count (99.26 % at 150 resolved):
 - **PROVEN or FAIL:** stop.
 - **FUTILE:** stopping is offered, and is your call.
 - **CONTINUE:** the next tranche draws more questions towards about 280,
@@ -156,5 +158,17 @@ Per-level screens are FAIL-able, and per-level τ is descriptive.
   wall-time p50;
 - the sealed contract's digest from step 1.
 
-Nothing else leaves the AX42. Shred `$W/seed` once the final look is done
-or abandoned.
+Nothing else leaves the AX42.
+
+## Keep the sealed references (operator custody)
+
+**Keep `$W` on the AX42**, owner-only, after the run: the sealed contract,
+`records.jsonl` (the merged and refined references) and `experiment/`.
+The Level 1–3 members (`panels/proof-panel-levels-v1.json`) are added
+later, through the level-aware experiment, on these same references
+without re-solving. Only the members' rebuilds and evaluation rerun.
+
+- **The seed.** Shred `$W/seed` only after the final look and the
+  level-aware rounds are done or abandoned.
+- **Nothing sealed is copied anywhere else**: not the PC, and not the
+  CCX63 after its wipe.

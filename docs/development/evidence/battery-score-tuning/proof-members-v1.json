@@ -5,6 +5,11 @@
   "note": "The member set the score proof ranks. A member's level comes from the first rule whose pattern matches its name. Controls are level-agnostic anchors and join every level's pool. Roles name the registered known-bad, benign, adversarial and unsafe members. `missing` lists what each level lacks; filling it needs each member's sealed tuning-set predictions plus its development decision values, so it is an owner decision (no spend authorized here).",
   "levels": [
     {
+      "pattern": "^l4v3-plain-",
+      "level": null,
+      "source": "lane G's runs under battery-l4-graph-v3 without a composition graph: registered (proof-panel-levels-v1.json), not a Level 4 member; excluded from every pool until the level-aware ticket labels them"
+    },
+    {
       "pattern": "^control-",
       "level": null,
       "source": "battery.value.panel controls, derived from the references"
@@ -89,30 +94,30 @@
     ],
     "L1": [
       {
-        "members": "Level 1 constructions",
-        "why": "the decision experiment compiles at Level 0 only",
-        "fill": "the level-aware ticket (required, Test Lead); the L1 round's D-G bundles are pre-registered at submit time, or the 8469 ladder's submissions if it holds any"
+        "members": "9 registered (proof-panel-levels-v1.json, lane D)",
+        "why": "their decision values need the level-aware decision experiment",
+        "fill": "the level-aware ticket, then the sealed run"
       }
     ],
     "L2": [
       {
-        "members": "Level 2 constructions",
+        "members": "28 registered (lane E)",
         "why": "as Level 1",
         "fill": "as Level 1"
       }
     ],
     "L3": [
       {
-        "members": "Level 3 constructions",
+        "members": "31 registered (lane F)",
         "why": "as Level 1",
         "fill": "as Level 1"
       }
     ],
     "L4": [
       {
-        "members": "any Level 4 graph construction",
-        "why": "graph compile and training stay fail closed until the security owner accepts the G5 profile (LEVEL4-DEV-VARIANT-01)",
-        "cheapest_fill": "none until G5 is accepted; then rebuild the dry-run graphs (#893) operator-side"
+        "members": "none: lane G's 32 bound battery-l4-graph-v3 and built no composition graph, so Level 4's graph freedom was never exercised",
+        "why": "the L4 runs did not build graphs (diagnosis follows separately), and graph compile and training wait for G5",
+        "fill": "a re-run under the ladder's graph-v2 that builds graphs (new grant), after G5"
       }
     ]
   }

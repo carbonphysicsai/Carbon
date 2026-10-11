@@ -43,7 +43,7 @@ if str(ROOT) not in sys.path:
 from scripts.dev.battery import tuning_rescore as tr
 
 MEMBERS = ROOT / "docs/development/evidence/battery-score-tuning/proof-members-v1.json"
-REGISTRY = ROOT / "docs/development/evidence/battery-score-tuning/registry-v5.json"
+REGISTRY = ROOT / "docs/development/evidence/battery-score-tuning/registry-v6.json"
 #: The rule in force (OWNER-BATTERY-SCORE-RULE-01): A-Q with the G-FEAS gate at
 #: 0.05, recorded as "exceeds" (registry v5's `G-FEAS/A-Q>@0.05`).
 RULE_IN_FORCE = "G-FEAS/A-Q>@0.05"
