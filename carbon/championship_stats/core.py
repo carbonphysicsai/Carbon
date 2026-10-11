@@ -55,12 +55,20 @@ class PairedCase:
 class PairedRound:
     artifact_id: str
     incumbent_id: str
+    rule_digest: str
+    contract_digest: str
     round_id: str
     cases: tuple[PairedCase, ...]
     g_feas_passed: bool
 
     def __post_init__(self) -> None:
-        for name in ("artifact_id", "incumbent_id", "round_id"):
+        for name in (
+            "artifact_id",
+            "incumbent_id",
+            "rule_digest",
+            "contract_digest",
+            "round_id",
+        ):
             _identity(getattr(self, name), name)
         if self.artifact_id == self.incumbent_id:
             raise ValueError("contender and incumbent must be distinct artifacts")
@@ -121,10 +129,12 @@ class BoundedMixture:
 
 @dataclass(frozen=True)
 class Evidence:
-    """Immutable carry-forward state bound to an artifact and incumbent."""
+    """Immutable carry-forward state bound to a registered comparison identity."""
 
     artifact_id: str
     incumbent_id: str
+    rule_digest: str
+    contract_digest: str
     mixture: BoundedMixture
     cases_per_round: int
     case_ids: frozenset[str] = frozenset()
@@ -139,6 +149,8 @@ class Evidence:
     def __post_init__(self) -> None:
         _identity(self.artifact_id, "artifact")
         _identity(self.incumbent_id, "incumbent")
+        _identity(self.rule_digest, "rule digest")
+        _identity(self.contract_digest, "contract digest")
         if self.artifact_id == self.incumbent_id:
             raise ValueError("contender and incumbent must differ")
         if type(self.mixture) is not BoundedMixture:
@@ -164,11 +176,20 @@ class Evidence:
             raise ValueError("settled G-FEAS boolean required")
 
     def update(self, round_: PairedRound) -> Evidence:
-        if (round_.artifact_id, round_.incumbent_id) != (
+        if (
+            round_.artifact_id,
+            round_.incumbent_id,
+            round_.rule_digest,
+            round_.contract_digest,
+        ) != (
             self.artifact_id,
             self.incumbent_id,
+            self.rule_digest,
+            self.contract_digest,
         ):
-            raise ValueError("artifact or incumbent changed: start fresh evidence")
+            raise ValueError(
+                "artifact, incumbent, rule or contract changed: start fresh evidence"
+            )
         if round_.round_id in self.round_ids:
             raise ValueError("round already accounted")
         if len(round_.cases) != self.cases_per_round:
@@ -214,43 +235,64 @@ class AlphaLedger:
 
     day_id: str
     global_alpha: float
-    allocations: tuple[tuple[str, str, float], ...] = ()
+    allocations: tuple[tuple[str, str, str, str, float], ...] = ()
 
     def __post_init__(self) -> None:
         _identity(self.day_id, "day")
         _probability(self.global_alpha, "global daily alpha")
-        for artifact, incumbent, allocation in self.allocations:
+        for artifact, incumbent, rule, contract, allocation in self.allocations:
             _identity(artifact, "artifact")
             _identity(incumbent, "incumbent")
+            _identity(rule, "rule digest")
+            _identity(contract, "contract digest")
             _probability(allocation, "artifact alpha")
-        if math.fsum(row[2] for row in self.allocations) > self.global_alpha + 1e-15:
+        if math.fsum(row[4] for row in self.allocations) > self.global_alpha + 1e-15:
             raise ValueError("daily alpha overspent")
-        if len({row[:2] for row in self.allocations}) != len(self.allocations):
-            raise ValueError("duplicate artifact/incumbent allocation")
+        if len({row[:4] for row in self.allocations}) != len(self.allocations):
+            raise ValueError("duplicate comparison allocation")
 
     @property
     def remaining(self) -> float:
-        return max(0.0, self.global_alpha - math.fsum(r[2] for r in self.allocations))
+        return max(0.0, self.global_alpha - math.fsum(r[4] for r in self.allocations))
 
-    def invest(self, artifact_id: str, incumbent_id: str, alpha: float) -> AlphaLedger:
+    def invest(
+        self,
+        artifact_id: str,
+        incumbent_id: str,
+        rule_digest: str,
+        contract_digest: str,
+        alpha: float,
+    ) -> AlphaLedger:
         _identity(artifact_id, "artifact")
         _identity(incumbent_id, "incumbent")
+        _identity(rule_digest, "rule digest")
+        _identity(contract_digest, "contract digest")
         if artifact_id == incumbent_id:
             raise ValueError("artifact and incumbent must differ")
         alpha = _probability(alpha, "artifact alpha")
-        if any(row[:2] == (artifact_id, incumbent_id) for row in self.allocations):
-            raise ValueError("artifact/incumbent already allocated")
+        comparison = (artifact_id, incumbent_id, rule_digest, contract_digest)
+        if any(row[:4] == comparison for row in self.allocations):
+            raise ValueError("comparison already allocated")
         if alpha > self.remaining + 1e-15:
             raise ValueError("daily global alpha exhausted")
-        return replace(
-            self, allocations=self.allocations + ((artifact_id, incumbent_id, alpha),)
-        )
+        return replace(self, allocations=self.allocations + ((*comparison, alpha),))
 
-    def allocation(self, artifact_id: str, incumbent_id: str) -> float:
-        for artifact, incumbent, alpha in self.allocations:
-            if (artifact, incumbent) == (artifact_id, incumbent_id):
+    def allocation(
+        self,
+        artifact_id: str,
+        incumbent_id: str,
+        rule_digest: str,
+        contract_digest: str,
+    ) -> float:
+        for artifact, incumbent, rule, contract, alpha in self.allocations:
+            if (artifact, incumbent, rule, contract) == (
+                artifact_id,
+                incumbent_id,
+                rule_digest,
+                contract_digest,
+            ):
                 return alpha
-        raise ValueError("artifact/incumbent has no daily alpha allocation")
+        raise ValueError("comparison has no daily alpha allocation")
 
 
 def holm(p_values: dict[str, float], alpha: float) -> frozenset[str]:
@@ -292,12 +334,22 @@ def select_winner(contenders: tuple[Contender, ...], ledger: AlphaLedger) -> str
     if len({c.evidence.incumbent_id for c in contenders}) != 1:
         raise ValueError("all contenders must face the same incumbent")
     if (
+        len({(c.evidence.rule_digest, c.evidence.contract_digest) for c in contenders})
+        != 1
+    ):
+        raise ValueError("contenders must share one rule and contract")
+    if (
         len({c.evidence.last_round_id for c in contenders}) != 1
         or len({c.evidence.last_round_case_ids for c in contenders}) != 1
     ):
         raise ValueError("contenders must share the same fresh championship batch")
     family_alpha = math.fsum(
-        ledger.allocation(c.evidence.artifact_id, c.evidence.incumbent_id)
+        ledger.allocation(
+            c.evidence.artifact_id,
+            c.evidence.incumbent_id,
+            c.evidence.rule_digest,
+            c.evidence.contract_digest,
+        )
         for c in contenders
     )
     # Keep gated or unconfirmed artifacts in the multiplicity family.
@@ -356,11 +408,18 @@ def confirm_noninferiority(
         raise ValueError("registered positive confirmation N required")
     if len(confirmation.cases) != confirmation_cases:
         raise ValueError("confirmation does not match registered N")
-    if (confirmation.artifact_id, confirmation.incumbent_id) != (
+    if (
+        confirmation.artifact_id,
+        confirmation.incumbent_id,
+        confirmation.rule_digest,
+        confirmation.contract_digest,
+    ) != (
         evidence.artifact_id,
         evidence.incumbent_id,
+        evidence.rule_digest,
+        evidence.contract_digest,
     ):
-        raise ValueError("confirmation artifact or incumbent mismatch")
+        raise ValueError("confirmation artifact, incumbent, rule or contract mismatch")
     if confirmation.round_id in evidence.round_ids or any(
         case.case_id in evidence.case_ids for case in confirmation.cases
     ):

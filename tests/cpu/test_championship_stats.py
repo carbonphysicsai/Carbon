@@ -23,15 +23,29 @@ from carbon.championship_stats.planning import (
     m04_rounds_to_win,
 )
 
+RULE = "sha256:" + "a" * 64
+CONTRACT = "sha256:" + "b" * 64
+
 
 def _mixture() -> BoundedMixture:
     return BoundedMixture(-1, 1, 0, (0.5, 1), (0.5, 0.5))
 
 
-def _round(artifact="a", incumbent="i", round_id="r1", *, gate=True, offset=0):
+def _round(
+    artifact="a",
+    incumbent="i",
+    round_id="r1",
+    *,
+    gate=True,
+    offset=0,
+    rule=RULE,
+    contract=CONTRACT,
+):
     return PairedRound(
         artifact,
         incumbent,
+        rule,
+        contract,
         round_id,
         tuple(PairedCase(f"c{offset + j}", 0.5, 0.1) for j in range(20)),
         gate,
@@ -39,20 +53,22 @@ def _round(artifact="a", incumbent="i", round_id="r1", *, gate=True, offset=0):
 
 
 def test_accuracy_is_paired_and_g_feas_is_hard_gate():
-    evidence = Evidence("a", "i", _mixture(), 20).update(_round(gate=False))
+    evidence = Evidence("a", "i", RULE, CONTRACT, _mixture(), 20).update(
+        _round(gate=False)
+    )
     assert evidence.count == 20
     assert evidence.mean_improvement == pytest.approx(0.4)
     assert evidence.g_feas_passed is False
-    ledger = AlphaLedger("day", 0.05).invest("a", "i", 0.05)
+    ledger = AlphaLedger("day", 0.05).invest("a", "i", RULE, CONTRACT, 0.05)
     assert select_winner((Contender(evidence, True),), ledger) is None
 
 
 def test_only_confirmed_positive_evidence_wins():
     cases = tuple(PairedCase(f"winner-{j}", 0.5, 0.1) for j in range(100))
-    evidence = Evidence("a", "i", _mixture(), 100).update(
-        PairedRound("a", "i", "r", cases, True)
+    evidence = Evidence("a", "i", RULE, CONTRACT, _mixture(), 100).update(
+        PairedRound("a", "i", RULE, CONTRACT, "r", cases, True)
     )
-    ledger = AlphaLedger("day", 0.05).invest("a", "i", 0.05)
+    ledger = AlphaLedger("day", 0.05).invest("a", "i", RULE, CONTRACT, 0.05)
     assert evidence.anytime_p_value < 0.05
     assert select_winner((Contender(evidence, True),), ledger) == "a"
     assert select_winner((Contender(evidence, False),), ledger) is None
@@ -69,57 +85,83 @@ def test_bounded_mixture_has_no_null_expected_gain_on_toy_pairs():
 
 
 def test_carry_forward_requires_new_cases_and_same_artifacts():
-    first = Evidence("a", "i", _mixture(), 20).update(_round())
+    first = Evidence("a", "i", RULE, CONTRACT, _mixture(), 20).update(_round())
     second = first.update(_round(round_id="r2", offset=20))
     assert second.count == 40 and second.max_e_value >= first.max_e_value
     with pytest.raises(ValueError, match="round already"):
         first.update(_round())
     with pytest.raises(ValueError, match="case already"):
         first.update(_round(round_id="r2"))
-    with pytest.raises(ValueError, match="artifact or incumbent changed"):
+    with pytest.raises(
+        ValueError, match="artifact, incumbent, rule or contract changed"
+    ):
         first.update(_round(incumbent="other", round_id="r2", offset=20))
-    with pytest.raises(ValueError, match="artifact or incumbent changed"):
+    with pytest.raises(
+        ValueError, match="artifact, incumbent, rule or contract changed"
+    ):
         first.update(_round(artifact="other", round_id="r2", offset=20))
-    fresh = Evidence("a", "other", _mixture(), 20)
+    with pytest.raises(ValueError, match="rule or contract changed"):
+        first.update(_round(round_id="r2", offset=20, rule="new-rule"))
+    with pytest.raises(ValueError, match="rule or contract changed"):
+        first.update(_round(round_id="r2", offset=20, contract="new-contract"))
+    fresh = Evidence("a", "other", RULE, CONTRACT, _mixture(), 20)
     assert fresh.count == 0 and fresh.max_e_value == 1
 
 
 def test_holm_is_full_family_and_ties_keep_incumbent():
     assert holm({"a": 0.01, "b": 0.02, "c": 0.9}, 0.05) == {"a", "b"}
     assert holm({"a": 0.025, "b": 0.04}, 0.05) == frozenset()
-    a = Evidence("a", "i", _mixture(), 20).update(_round())
-    b = Evidence("b", "i", _mixture(), 20).update(_round("b"))
-    ledger = AlphaLedger("day", 0.05).invest("a", "i", 0.025)
-    ledger = ledger.invest("b", "i", 0.025)
+    a = Evidence("a", "i", RULE, CONTRACT, _mixture(), 20).update(_round())
+    b = Evidence("b", "i", RULE, CONTRACT, _mixture(), 20).update(_round("b"))
+    ledger = AlphaLedger("day", 0.05).invest("a", "i", RULE, CONTRACT, 0.025)
+    ledger = ledger.invest("b", "i", RULE, CONTRACT, 0.025)
     assert select_winner((Contender(a, True), Contender(b, True)), ledger) is None
     assert select_winner((Contender(a, False),), ledger) is None
     with pytest.raises(ValueError, match="no daily alpha allocation"):
-        select_winner((Contender(Evidence("c", "i", _mixture(), 20), False),), ledger)
+        select_winner(
+            (Contender(Evidence("c", "i", RULE, CONTRACT, _mixture(), 20), False),),
+            ledger,
+        )
 
 
 def test_contenders_must_share_the_fresh_championship_batch():
-    a = Evidence("a", "i", _mixture(), 20).update(_round())
-    b = Evidence("b", "i", _mixture(), 20).update(_round("b", offset=20))
-    ledger = AlphaLedger("day", 0.05).invest("a", "i", 0.025)
-    ledger = ledger.invest("b", "i", 0.025)
+    a = Evidence("a", "i", RULE, CONTRACT, _mixture(), 20).update(_round())
+    b = Evidence("b", "i", RULE, CONTRACT, _mixture(), 20).update(
+        _round("b", offset=20)
+    )
+    ledger = AlphaLedger("day", 0.05).invest("a", "i", RULE, CONTRACT, 0.025)
+    ledger = ledger.invest("b", "i", RULE, CONTRACT, 0.025)
     with pytest.raises(ValueError, match="same fresh championship batch"):
         select_winner((Contender(a, True), Contender(b, True)), ledger)
+    changed = Evidence("b", "i", "new-rule", CONTRACT, _mixture(), 20).update(
+        _round("b", rule="new-rule")
+    )
+    with pytest.raises(ValueError, match="one rule and contract"):
+        select_winner((Contender(a, True), Contender(changed, True)), ledger)
 
 
 def test_alpha_is_spent_once_per_artifact_and_globally_capped():
-    ledger = AlphaLedger("day", 0.05).invest("digest-a", "i", 0.03)
+    ledger = AlphaLedger("day", 0.05).invest("digest-a", "i", RULE, CONTRACT, 0.03)
     with pytest.raises(ValueError, match="already allocated"):
-        ledger.invest("digest-a", "i", 0.01)
+        ledger.invest("digest-a", "i", RULE, CONTRACT, 0.01)
     with pytest.raises(ValueError, match="exhausted"):
-        ledger.invest("digest-b", "i", 0.03)
-    assert ledger.invest("digest-b", "i", 0.02).remaining == pytest.approx(0)
+        ledger.invest("digest-b", "i", RULE, CONTRACT, 0.03)
+    with pytest.raises(ValueError, match="exhausted"):
+        ledger.invest("digest-a", "i", "new-rule", CONTRACT, 0.03)
+    assert ledger.invest(
+        "digest-b", "i", RULE, CONTRACT, 0.02
+    ).remaining == pytest.approx(0)
+    with pytest.raises(ValueError, match="no daily alpha allocation"):
+        ledger.allocation("digest-a", "i", "new-rule", CONTRACT)
 
 
 def test_confirmation_needs_fresh_bounded_evidence_and_strict_margin():
-    evidence = Evidence("a", "i", _mixture(), 20).update(_round())
+    evidence = Evidence("a", "i", RULE, CONTRACT, _mixture(), 20).update(_round())
     positive = PairedRound(
         "a",
         "i",
+        RULE,
+        CONTRACT,
         "confirm",
         tuple(PairedCase(f"fresh-{j}", 0.6, 0.1) for j in range(100)),
         True,
@@ -127,6 +169,8 @@ def test_confirmation_needs_fresh_bounded_evidence_and_strict_margin():
     negative = PairedRound(
         "a",
         "i",
+        RULE,
+        CONTRACT,
         "confirm",
         tuple(PairedCase(f"fresh-{j}", 0.1, 0.6) for j in range(100)),
         True,
@@ -149,9 +193,19 @@ def test_confirmation_needs_fresh_bounded_evidence_and_strict_margin():
         upper=1,
         alpha=0.05,
     )
+    with pytest.raises(ValueError, match="rule or contract mismatch"):
+        confirm_noninferiority(
+            evidence,
+            _round(round_id="new", offset=1000, contract="new-contract"),
+            confirmation_cases=20,
+            delta_c=0.1,
+            lower=-1,
+            upper=1,
+            alpha=0.05,
+        )
     assert not confirm_noninferiority(
         evidence,
-        PairedRound("a", "i", "confirm", positive.cases, False),
+        PairedRound("a", "i", RULE, CONTRACT, "confirm", positive.cases, False),
         confirmation_cases=100,
         delta_c=0.1,
         lower=-1,
@@ -171,7 +225,15 @@ def test_confirmation_needs_fresh_bounded_evidence_and_strict_margin():
     with pytest.raises(ValueError, match="exceeds registered bounds"):
         confirm_noninferiority(
             evidence,
-            PairedRound("a", "i", "confirm", (PairedCase("fresh", 2.0, 0),), True),
+            PairedRound(
+                "a",
+                "i",
+                RULE,
+                CONTRACT,
+                "confirm",
+                (PairedCase("fresh", 2.0, 0),),
+                True,
+            ),
             confirmation_cases=1,
             delta_c=0.1,
             lower=-1,
@@ -182,16 +244,18 @@ def test_confirmation_needs_fresh_bounded_evidence_and_strict_margin():
 
 def test_invalid_predictions_and_bounds_refused():
     with pytest.raises(ValueError, match="registered positive N"):
-        Evidence("a", "i", _mixture(), 0)
+        Evidence("a", "i", RULE, CONTRACT, _mixture(), 0)
     with pytest.raises(ValueError, match="registered N"):
-        Evidence("a", "i", _mixture(), 21).update(_round())
+        Evidence("a", "i", RULE, CONTRACT, _mixture(), 21).update(_round())
     with pytest.raises(ValueError, match="finite"):
         PairedCase("c", math.nan, 0.1)
     with pytest.raises(ValueError, match="duplicate case"):
-        PairedRound("a", "i", "r", (PairedCase("c", 0.1, 0.2),) * 2, True)
+        PairedRound(
+            "a", "i", RULE, CONTRACT, "r", (PairedCase("c", 0.1, 0.2),) * 2, True
+        )
     with pytest.raises(ValueError, match="exceeds registered bounds"):
-        Evidence("a", "i", _mixture(), 1).update(
-            PairedRound("a", "i", "r", (PairedCase("c", 5, 0),), True)
+        Evidence("a", "i", RULE, CONTRACT, _mixture(), 1).update(
+            PairedRound("a", "i", RULE, CONTRACT, "r", (PairedCase("c", 5, 0),), True)
         )
 
 
