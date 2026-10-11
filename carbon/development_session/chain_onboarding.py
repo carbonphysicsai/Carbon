@@ -91,11 +91,15 @@ COST_VALUE = "NOT_READ"
 #: the Bittensor CLI if that is their tooling (LP-PROD-E). A template only:
 #: the names in angle brackets are the miner's own wallet and hotkey names,
 #: which Carbon never asks for. Carbon runs nothing, signs nothing and reads
-#: no cost; btcli shows the cost and asks before anything is sent.
+#: no cost; btcli shows the cost and asks before anything is sent. This is
+#: the form that registered minerB on testnet 567 with btcli 9.23.2 (UID 4,
+#: extrinsic 8173606-6, 2026-10-07; LA-F3).
 REGISTER_COMMAND = (
-    "btcli subnet register --netuid {netuid} --network {network} "
-    "--wallet.name <your wallet name> --wallet.hotkey <your hotkey name>"
+    "btcli subnets register --netuid {netuid} --wallet-name <your wallet name> "
+    "--hotkey <your hotkey name> --network {network}"
 )
+#: The btcli version the command above was run with.
+REGISTER_COMMAND_BTCLI = "9.23.2"
 #: The Bittensor CLI's own name for each Carbon network, by
 #: `carbon.chain.models.CARBON_NETWORK`'s name for it.
 BTCLI_NETWORKS = {"testnet": "test"}
@@ -134,8 +138,9 @@ def register_command(context) -> dict[str, object]:
             "your wallet asks for its own password there, never Carbon."
         ),
         "verified": (
-            "UNVERIFIED: Carbon has not run this command. Check it with "
-            "`btcli subnet register --help` for your btcli version."
+            f"Run on testnet 567 with btcli {REGISTER_COMMAND_BTCLI}. With "
+            "another btcli version, check it with `btcli subnets register "
+            "--help`."
         ),
     }
 
