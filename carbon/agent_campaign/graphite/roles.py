@@ -183,6 +183,39 @@ STUDY_PROBE_TOOL = {
         "additionalProperties": False,
     },
 }
+#: GRAPHITE-L4-STAGING-01 (R1): the Level 4 stage tool. Only a Level 4
+#: development session's Constructor offers it (`study_role`'s
+#: `level4_stage`), so every other role's manifest, and its digest, is
+#: unchanged. The agent lowers its own model in its own sandbox; Carbon reads
+#: the one envelope it wrote, as data, and never runs the agent's code.
+LEVEL4_STAGE = "graphite_level4_stage"
+LEVEL4_STAGE_TOOL = {
+    "type": "function",
+    "name": LEVEL4_STAGE,
+    "strict": True,
+    "description": (
+        "Stage a Level 4 graph submission for a recipe. With task_id empty, "
+        "the reply is the recipe's Level 4 interface digest, inputs and "
+        "training batch, and the two commands to run in a workspace run_python "
+        "task: lower your model spec with python -m carbon.level4.tooling "
+        "lower, then pack it with python -m carbon.level4.tooling envelope "
+        "into /scratch/output/level4-envelope.json.gz. With task_id set to "
+        "that finished run's task id, Carbon reads that one export as data, "
+        "checks it (gates G0, G3 and G4) and keeps it; the reply names the "
+        "submission digest. Put that digest in the strategy's "
+        "parameters.composition_graphs and propose it with "
+        "graphite_run_proposal. strategy_json is the recipe, as a JSON string."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "strategy_json": {"type": "string"},
+            "task_id": {"type": "string"},
+        },
+        "required": ["strategy_json", "task_id"],
+        "additionalProperties": False,
+    },
+}
 #: The studies a role may be bound to (`study_role`).
 STUDIES = ("SUBMISSION-RATE-STUDY-01",)
 
@@ -199,6 +232,7 @@ def _registry():
     tools[PROPOSAL_TOOL["name"]] = PROPOSAL_TOOL
     tools[NEXT_LEVEL_TOOL["name"]] = NEXT_LEVEL_TOOL
     tools[STUDY_PROBE_TOOL["name"]] = STUDY_PROBE_TOOL
+    tools[LEVEL4_STAGE_TOOL["name"]] = LEVEL4_STAGE_TOOL
     return tools
 
 
@@ -631,14 +665,20 @@ ROLES = {
 }
 
 
-def study_role(name, study=None):
+def study_role(name, study=None, level4_stage=False):
     """The role a session of `name` runs as. With no study, the ordinary role
     (`ROLES`), unchanged. In a study (SUBMISSION-RATE-STUDY-01's G-sealed arm),
     the Constructor with the study probe tool added and the study recorded;
-    any other study or role is refused (`ValueError`)."""
+    any other study or role is refused (`ValueError`). `level4_stage` adds the
+    Level 4 stage tool to the Constructor (GRAPHITE-L4-STAGING-01); any other
+    role is refused."""
     import dataclasses
 
     role = ROLES[name]
+    if level4_stage:
+        if name is not RoleName.CONSTRUCTOR or study is not None:
+            raise ValueError("the Level 4 stage tool is the Constructor's")
+        return dataclasses.replace(role, tools=(*role.tools, LEVEL4_STAGE))
     if study is None:
         return role
     if study not in STUDIES or name is not RoleName.CONSTRUCTOR:

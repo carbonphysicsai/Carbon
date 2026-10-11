@@ -116,6 +116,7 @@ from .literature import (
 )
 from .model_providers import DEFAULT_MODEL_PROVIDER
 from .roles import (
+    LEVEL4_STAGE,
     MODEL_SETTINGS,
     PARALLEL_RULES,
     ROLES,  # noqa: F401 - re-exported: tests patch the shared role table here
@@ -216,12 +217,16 @@ class SessionBrief:
     #: The study the session belongs to (`roles.study_role`), or None: an
     #: ordinary brief's document is exactly as before.
     study: str | None = None
+    #: A Level 4 session's Constructor offers the stage tool
+    #: (GRAPHITE-L4-STAGING-01); False keeps every other brief as before.
+    level4_stage: bool = False
 
     def __post_init__(self):
         if type(self.role) is not RoleName:
             raise TypeError("exact RoleName required")
         tool_text_known(self.tool_text)
-        study_role(self.role, self.study)  # refuses an unknown study or role
+        # Refuses an unknown study or role, and the stage tool off the Constructor.
+        study_role(self.role, self.study, self.level4_stage)
         if type(self.initial_observation) is not dict:
             raise TypeError("the initial observation is a JSON object")
         canonical(self.initial_observation)  # JSON-serialisable, finite
@@ -234,7 +239,7 @@ class SessionBrief:
             raise ValueError("refused: a brief names protected material")
 
     def document(self):
-        role = study_role(self.role, self.study)
+        role = study_role(self.role, self.study, self.level4_stage)
         tool_text = role.effective_tool_text(self.tool_text)
         document = {
             "schema": BRIEF_SCHEMA,
@@ -252,6 +257,9 @@ class SessionBrief:
             document["tool_text"] = tool_text
         if self.study is not None:
             document["study"] = self.study
+        if self.level4_stage:
+            # Every other brief has no key at all.
+            document["level4_stage"] = True
         return document
 
     @property
@@ -768,7 +776,11 @@ class GraphiteProvider:
             raise ProviderUnavailable("unknown_brief")
         if brief.get("study") != self.study:
             raise ProviderUnavailable("brief_study_mismatch")
-        role = study_role(RoleName(brief["role"]), brief.get("study"))
+        role = study_role(
+            RoleName(brief["role"]),
+            brief.get("study"),
+            brief.get("level4_stage") is True,
+        )
         _check_role(role, spec)
         # The tool text the brief selected (absent: v1, as every brief before
         # the versions); the session records it and every turn reads it.
@@ -957,7 +969,11 @@ class GraphiteProvider:
         if state["cancel_requested"]:
             return self._finish(run_id, "cancelled", None, None)
         opened = self._opened(run_id)
-        role = study_role(RoleName(opened["role"]["name"]), opened["role"].get("study"))
+        role = study_role(
+            RoleName(opened["role"]["name"]),
+            opened["role"].get("study"),
+            LEVEL4_STAGE in opened["role"].get("tool_manifest", ()),
+        )
         try:
             brief = self._brief(opened["brief"]["digest"])
             if brief is None:
