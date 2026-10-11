@@ -40,8 +40,10 @@ public values only: no case id, input, reference or score.
   the same for every validator. Each tick:
   - retires every published batch whose window has ended. It leaves the
     outbox, so the push removes it from the distribution host, and it enters
-    the owner-only release queue. Releasing it is HUMAN_INPUT and never
-    automatic.
+    the owner-only release queue. A batch from a bank releases itself
+    (OWNER-AUTO-PUBLISH-RETIRED-01): the tick reveals each ended bank window
+    and publishes its retired cases to the training pool (`_release`).
+    Releasing any other batch stays HUMAN_INPUT and is never automatic.
   - fills the next slots ahead of their windows: it takes the earliest
     sealed, unscheduled batch, or draws, solves and seals a new one, then
     schedules and publishes it.
@@ -804,8 +806,14 @@ class Producer:
                 fingerprint=fingerprint,
                 block=block,
                 # OWNER-BATTERY-3B-AND-EXPOSURE-01: retirement releases
-                # nothing; the release decision is HUMAN_INPUT.
-                release="HUMAN_INPUT",
+                # nothing by itself. A bank's retired cases publish through
+                # `_release` (OWNER-AUTO-PUBLISH-RETIRED-01); any other
+                # batch's release stays HUMAN_INPUT.
+                release=(
+                    "AUTO_PUBLISH_RETIRED"
+                    if callable(getattr(self.sources[challenge_id], "release", None))
+                    else "HUMAN_INPUT"
+                ),
             )
             retired.append(fingerprint)
         return retired
@@ -825,8 +833,18 @@ class Producer:
             and not self._withdrawn(challenge_id, e["fingerprint"])
         ]
         fingerprint = sealed[0] if sealed else None
+        short = False
         if fingerprint is None:
-            drawn = self.draw(challenge_id, f"{role_prefix}{slot}", kind=kind)
+            try:
+                drawn = self.draw(challenge_id, f"{role_prefix}{slot}", kind=kind)
+            except ProducerRefused as refused:
+                # A bank the operator's timer refills (`top_up: False`) that
+                # is short leaves the slot unfilled: a case is never drawn
+                # twice, and the tick still retires and releases.
+                if str(refused) != "producer_bank_short":
+                    raise
+                drawn, short = None, True
+        if fingerprint is None and drawn is not None:
             fingerprint = drawn["fingerprint"]
             if self.journal.find("sealed", challenge_id, fingerprint) is None:
                 self.solve(challenge_id, fingerprint)
@@ -852,6 +870,7 @@ class Producer:
                     slot=slot,
                     kind=kind,
                     block=block,
+                    **({"reason": "bank_short"} if short else {}),
                 )
             return None
         self.schedule(challenge_id, fingerprint, slot, block=block)
@@ -876,6 +895,7 @@ class Producer:
                 report[challenge_id] = {"cadence": None}
                 continue
             retired = self._retire(challenge_id, block)
+            released = self._release(challenge_id, block)
             republished = self._republish(challenge_id)
             current = block // cadence["every_blocks"]
             filled, unfilled = [], []
@@ -902,7 +922,42 @@ class Producer:
             }
             if republished:
                 report[challenge_id]["republished"] = republished
+            if released is not None:
+                report[challenge_id]["released"] = released
+                report[challenge_id]["bank"] = self.sources[challenge_id].bank_health()
         return report
+
+    def _release(self, challenge_id, block):
+        """OWNER-AUTO-PUBLISH-RETIRED-01: reveal every ended bank window and
+        publish its retired cases to the public training pool. The files go
+        beside the packages the push carries (`outbox/<cid>/training/<cid>/`,
+        the host's `inbox/training/<cid>/`) and stay there, so the push never
+        deletes them. None for a source without a bank: it publishes
+        nothing."""
+        source = self.sources[challenge_id]
+        if not callable(getattr(source, "release", None)):
+            return None
+        ended = [
+            e["fingerprint"]
+            for e in self.journal.entries()
+            if e["event"] == "scheduled"
+            and e["challenge_id"] == challenge_id
+            and e["window"]["retire_block"] <= block
+        ]
+        directory = self._private_dir("outbox", challenge_id, "training", challenge_id)
+        result = source.release(ended, directory, self.signing_key)
+        for item in result["published"]:
+            self.journal.append(
+                "released",
+                challenge_id=challenge_id,
+                file=item["file"],
+                cases=item["cases"],
+                block=block,
+            )
+        return {
+            "revealed": result["revealed"],
+            "published_cases": sum(i["cases"] for i in result["published"]),
+        }
 
     def _republish(self, challenge_id):
         """Publish every scheduled batch that is neither published, retired
