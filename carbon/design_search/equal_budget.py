@@ -20,6 +20,7 @@ from . import budget_registration, track_b
 SCHEMA = "carbon.design-search.equal-budget-panel.v1"
 REPORT_SCHEMA = "carbon.design-search.equal-budget-report.v1"
 CHALLENGES = {
+    "f08",
     "battery-v3",
     "motor",
     "f02",
@@ -413,6 +414,8 @@ def compare(panel, *, bootstrap_replicates, confidence, seed, registration=None)
         # bolted-joint keeps its own rule: the proposal is not optional.
         if registration is None:
             raise EqualBudgetError("representative budget proposal required")
+    elif panel["challenge"] == "f08":
+        from .structures_budget import validate as validate_registration
 
     registered = None if registration is None else validate_registration(registration)
     if registered is not None:
