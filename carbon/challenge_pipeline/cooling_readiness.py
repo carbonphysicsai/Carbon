@@ -29,6 +29,105 @@ SERVICE_VALUES = (
     "hotspot_width_mm",
 )
 SHA = re.compile(r"sha256:[0-9a-f]{64}\Z")
+OPERATING_SOURCE = "https://github.com/carbonphysicsai/Carbon/pull/1084"
+OPERATING_RECORD = "Business/research/ai-chip-cooling-sources/operating-points.json"
+OPERATING_POINTS = {
+    "B": {
+        "inlet_c": 40,
+        "heat_load_w": 1000,
+        "flow_lpm": 1.50,
+        "cell_pressure_limit_pa": 25000,
+    },
+    "C": {
+        "inlet_c": 45,
+        "heat_load_w": 1400,
+        "flow_lpm": 2.80,
+        "cell_pressure_limit_pa": 30000,
+    },
+}
+
+
+def operating_point(point="B", *, value_check=None):
+    """Owner-relayed Test Lead selection; not a characterized map or run grant."""
+    if point not in OPERATING_POINTS:
+        raise ValueError("central B or conditional stress C only")
+    if point == "C":
+        if (
+            type(value_check) is not dict
+            or set(value_check) != {"challenge", "scope", "finding", "source_digest"}
+            or value_check["challenge"] != FAMILY
+            or value_check["scope"] != "PUBLIC_DEVELOPMENT"
+            or value_check["finding"] != "NEEDS_OPTIONAL_STRESS_C"
+        ):
+            raise ValueError(
+                "Data Collection value-check finding required for optional C"
+            )
+        _hash(value_check["source_digest"])
+    return {
+        "point": point,
+        "role": "CENTRAL" if point == "B" else "OPTIONAL_STRESS_NOT_P",
+        "scope": "REPRESENTATIVE_DEVELOPMENT",
+        "selection": "Test Lead under owner relay, 2026-10-11",
+        "values": deepcopy(OPERATING_POINTS[point]),
+        "source_per_value": {
+            k: OPERATING_SOURCE + " : " + OPERATING_RECORD + "/points/" + point
+            for k in OPERATING_POINTS[point]
+        },
+        "fixed_interface": {
+            "plane": PLANE,
+            "limit_c": 85,
+            "tim2_m2k_w": 5e-6,
+            "source": OPERATING_SOURCE + " : /fixed_inputs",
+        },
+        "lid": {
+            "scope": "REPRESENTATIVE",
+            "type": "vapor-chamber",
+            "thickness_range_mm": [1, 10],
+            "typical_thickness_range_mm": [3, 4],
+            "source": OPERATING_SOURCE + " : SOURCE_REVIEW.md, Boyd datasheet p.2",
+            "effective_k_sensitivity_w_mk": [2000, 5000, 10000],
+            "effective_k_basis": "ASSUMPTION_SCREEN_ONLY_NOT_A_MATERIAL_LAW; #1084 fixed_inputs",
+            "characterization": None,
+            "post_spreader_map": None,
+        },
+        "value_check": deepcopy(value_check),
+        "dispatch_allowed": False,
+    }
+
+
+def bind_operating_point(registration, point="B", *, value_check=None):
+    """Freeze selected inlet/heat/flow/cell cap while preserving supplied maps.
+
+    A complete existing registration is still mandatory. This cannot fabricate
+    vapor-chamber calibration, uncertainty, P/Q/w, an objective or source pins.
+    B and optional C are separate panels, not one flow action forced on both.
+    """
+    r = validate(registration)
+    selected = operating_point(point, value_check=value_check)
+    values = selected["values"]
+    for s in r["services"]:
+        if (
+            s["inlet_c"] != values["inlet_c"]
+            or s["heat_load_w"] != values["heat_load_w"]
+        ):
+            raise ValueError(
+                "map/material registration must already cover the selected inlet and heat; recharacterize rather than relabel old maps"
+            )
+        s.update(
+            {k: values[k] for k in ("inlet_c", "heat_load_w", "cell_pressure_limit_pa")}
+        )
+        s["tim2_m2k_w"] = selected["fixed_interface"]["tim2_m2k_w"]
+    flow = values["flow_lpm"] / (values["heat_load_w"] / 1000)
+    r["grammar"]["flow_lpm_per_kw"] = {
+        "min": flow,
+        "max": flow,
+        "step": r["grammar"]["flow_lpm_per_kw"]["step"],
+    }
+    r["authority"] += (
+        " | COOLING-OPERATING-POINT-01 " + point + " REPRESENTATIVE; source #1084"
+    )
+    r.pop("digest")
+    return {"selection": selected, "registration": validate(seal(r))}
 
 
 def seal(body):

@@ -19,3 +19,10 @@ analytic/MMS reference-verification spec; strongest same-context held-geometry
 map hook and screening exports; hard shared budget accounting; kit coverage;
 <=EUR10 pilot plan with all assumptions and remaining 7-item evidence gaps.
 No earned qualification, store-presence assertion or automatic run release.
+
+COOLING-OPERATING-POINT-01 follow-up, owner relay 2026-10-11: research #1084
+point B is now the central service: 40 C, 1000 W, 1.50 L/min, 25 kPa.
+C (45 C, 1400 W, 2.80 L/min, 30 kPa) requires a retained Data Collection
+finding that optional stress is needed. Lid remains REPRESENTATIVE and needs
+its calibrated map. Reject relabelling an old-condition map as selected truth.
+No solver runs/spend or release from readiness gates.

@@ -68,6 +68,56 @@ def action():
     }
 
 
+def test_decided_B_fixes_central_service_and_flow_without_inventing_lid_map():
+    r = registration()
+    with pytest.raises(ValueError, match="recharacterize"):
+        cr.bind_operating_point(r)
+    r["services"][0]["heat_load_w"] = 1000
+    r = reseal(r)
+    result = cr.bind_operating_point(r)
+    selected, bound = result["selection"], result["registration"]
+    assert selected["point"] == "B" and not selected["dispatch_allowed"]
+    assert all("1084" in src for src in selected["source_per_value"].values())
+    assert selected["lid"]["scope"] == "REPRESENTATIVE"
+    assert selected["lid"]["characterization"] is None
+    service = bound["services"][0]
+    assert (
+        service["inlet_c"],
+        service["heat_load_w"],
+        service["cell_pressure_limit_pa"],
+    ) == (40, 1000, 25000)
+    assert bound["grammar"]["flow_lpm_per_kw"]["min"] == 1.5
+    assert bound["grammar"]["flow_lpm_per_kw"]["max"] == 1.5
+    assert service["map_digest"] == r["services"][0]["map_digest"]
+    assert service["objective"] is None and bound["P"] == r["P"]
+    assert (
+        cr.case(bound, action(), service["id"], resolution=2)["inputs"]["heat_load_w"]
+        == 1000
+    )
+
+
+def test_optional_C_needs_public_value_check_not_a_boolean_or_default_stratum():
+    with pytest.raises(ValueError, match="value-check"):
+        cr.operating_point("C")
+    with pytest.raises(ValueError):
+        cr.operating_point("C", value_check=True)
+    finding = {
+        "challenge": cr.FAMILY,
+        "scope": "PUBLIC_DEVELOPMENT",
+        "finding": "NEEDS_OPTIONAL_STRESS_C",
+        "source_digest": "sha256:" + "c" * 64,
+    }
+    candidate = registration()
+    candidate["services"][0].update({"inlet_c": 45, "heat_load_w": 1400})
+    result = cr.bind_operating_point(reseal(candidate), "C", value_check=finding)
+    r = result["registration"]
+    assert result["selection"]["role"] == "OPTIONAL_STRESS_NOT_P"
+    assert r["services"][0]["cell_pressure_limit_pa"] == 30000
+    assert r["grammar"]["flow_lpm_per_kw"]["min"] == pytest.approx(2)
+    with pytest.raises(ValueError):
+        cr.case(r, action(), "fixture-warm", resolution=2)
+
+
 def faces(r, temperatures=(74, 80)):
     c = cr.case(r, action(), "fixture-warm", resolution=2)
     return [

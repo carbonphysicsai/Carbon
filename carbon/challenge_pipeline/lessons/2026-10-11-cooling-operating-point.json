@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-cooling-operating-point",
+  "recorded_at": "2026-10-11T15:59:46Z",
+  "challenge": "cooling-cell",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "COOLING-OPERATING-POINT-01", "description": "Native cooling/equal-budget tests: 39 passed. An earlier invocation named a nonexistent cold-plate test file and collected no tests; corrected to existing scoped tests. No physical solver runs or spend."},
+  "expected": "Bind the decided point without fabricating a lid law or repurposing an old-condition heat map.",
+  "observed": "B is central, C requires a documentary public value-check finding; map coverage and complete registrations remain mandatory.",
+  "keep": ["Use the existing strict physical registration and co-located lid-side TIM2 observer."],
+  "change": ["Changing a service operating point requires recharacterization, not merely renaming an old map."],
+  "protocol_elements": ["reference policy", "measurement authority"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

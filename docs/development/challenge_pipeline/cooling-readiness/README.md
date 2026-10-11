@@ -11,12 +11,35 @@ and [baseline](../cheap-baselines/cooling-cell.md).
 
 ## Inputs and owners
 
-Test Lead selects the sourced inlet/lid operating point from Data Collection's
-candidates. Supply an ASHRAE W-class source and actual coolant applicability,
+The Test Lead's owner-relayed selection is now **point B** from
+[#1084](https://github.com/carbonphysicsai/Carbon/pull/1084): actual cell inlet
+40 °C, interface heat 1000 W, total footprint flow 1.50 L/min, and 25 kPa cell
+allocation. These are DECIDED_DEVELOPMENT **REPRESENTATIVE** settings, not
+vendor-qualified GPU conditions. Every value and its basis is in #1084's
+`operating-points.json`, point B. `bind_operating_point` freezes these in a
+complete supplied registration and fixes the flow action to 1.5 L/min/kW;
+the remaining geometry coordinates stay actions. P/Q/w and the objective
+are not silently selected.
+The supplied map/material registration must already cover the selected inlet
+and heat; the binder refuses to relabel an old-condition map as point-B truth.
+
+Point C from the same [source](https://github.com/carbonphysicsai/Carbon/pull/1084)
+(45 °C, 1400 W, 2.80 L/min, 30 kPa) is **optional stress only**, off by default.
+It needs Data Collection's retained public NEEDS_OPTIONAL_STRESS_C value-check
+finding and source digest. It is a separate panel with flow 2 L/min/kW, never
+a hidden addition to B's population or sampling law. A documentary finding
+does not grant execution or scientific acceptance.
+
+The buyer lid is **REPRESENTATIVE vapor-chamber**: #1084 SOURCE_REVIEW.md,
+Boyd datasheet p.2 gives thickness 1–10 mm, typically 3–4 mm. #1084's
+2000/5000/10000 W/m/K sensitivity is **ASSUMPTION**, not a characterized law.
+No scalar conductivity is installed into the cell renderer. Supply actual
+coolant applicability,
 characterized vapour-chamber identity, normalized **post-spreader** interface
 map and uncertainty, TIM2 resistance, and cell-scale hydraulic allocations and
 objective. The old 3 L/min / 50 kPa / 2.5 W assembly constraints are **not** cell
-constraints. No final inlet or lid is selected by this build.
+constraints. Inlet/heat/flow/cell allocation are decided; matched lid
+characterization, post-spreader map and uncertainty remain HOLD.
 
 [Registration template](registration-template.json) deliberately contains null
 HUMAN_INPUT fields and cannot pass the generator. Test Lead/Data Collection
