@@ -1,0 +1,107 @@
+{
+  "NONE_FEASIBLE": {
+    "recommendation": "VALID_FORWARD_NO_REDRAW only with a complete settled proof; missing/uncertain support stays UNRESOLVED",
+    "status": "HUMAN_INPUT"
+  },
+  "P": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize P",
+    "owner": "science/product owner",
+    "recommendation": "Actions: valid geometry within that grammar; draw/reference-input geometry law\nis uniform independent parameters conditioned on valid line/space\u2265180 nm.\nExogenous `P_dev` is uniform over nine tolerance vectors, each reporting five\nequally weighted wavelengths. Vector order is (pitch nm,etch nm,duty,dx \u00b5m,dy \u00b5m):\n(0,0,0,0,0), (\u221210,\u221210,\u22120.03,0,0), (+10,+10,+0.03,0,0),\n(0,0,0,\u22121,0), (0,0,0,+1,0), (0,0,0,0,\u22121), (0,0,0,0,+1),\n(\u221210,+10,+0.03,\u22121,+1), (+10,\u221210,\u22120.03,+1,\u22121).\nThis finite synthetic panel is not a process/alignment distribution. Q for\nfeasibility: four geometry/vector cases selected before solves, plus controls\nand refinements within cap; no P-wide outcome from those four. For a later\ncomplete panel, w=1/45 per geometry, and p10 is the fifth ordered coupling\nvalue (nearest-rank rule). Wavelengths within a run are not independent trials.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe nine tolerance vectors and five wavelengths are one mask/package\nrobustness panel. A future `P_job` can vary supported coupling and reflection\nrequirements or the required tolerance/wavelength service subset while\nreusing a full-wave bank that covers the whole panel. A photonics buyer\nrecognizes each question from its link budget, fiber alignment and PDK\nacceptance sheet. Requirement re-evaluation needs no new solve if the bank\nstores all relevant coupling/reflection outputs and the best admissible mask\nreally changes. Different process stacks, PDKs or package laws are optional\naxes requiring new qualified 3D truth. Wavelengths and offsets themselves\nare correlated measurements, not separate questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and service\nsubsets, `P_job`, protected `Q_job`, weights, answer diversity, clustering,\nexposure and hidden `n` after power and full-wave cost studies. Re-drawing an\noffset or seed without changing the buyer question is not freshness.",
+    "sources": [
+      {
+        "excerpt": "Actions: valid geometry within that grammar; draw/reference-input geometry law\nis uniform independent parameters conditioned on valid line/space\u2265180 nm.\nExogenous `P_dev` is uniform over nine tolerance vectors, each reporting five\nequally weighted wavelengths. Vector order is (pitch nm,etch nm,duty,dx \u00b5m,dy \u00b5m):\n(0,0,0,0,0), (\u221210,\u221210,\u22120.03,0,0), (+10,+10,+0.03,0,0),\n(0,0,0,\u22121,0), (0,0,0,+1,0), (0,0,0,0,\u22121), (0,0,0,0,+1),\n(\u221210,+10,+0.03,\u22121,+1), (+10,\u221210,\u22120.03,+1,\u22121).\nThis finite synthetic panel is not a process/alignment distribution. Q for\nfeasibility: four geometry/vector cases selected before solves, plus controls\nand refinements within cap; no P-wide outcome from those four. For a later\ncomplete panel, w=1/45 per geometry, and p10 is the fifth ordered coupling\nvalue (nearest-rank rule). Wavelengths within a run are not independent trials.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe nine tolerance vectors and five wavelengths are one mask/package\nrobustness panel. A future `P_job` can vary supported coupling and reflection\nrequirements or the required tolerance/wavelength service subset while\nreusing a full-wave bank that covers the whole panel. A photonics buyer\nrecognizes each question from its link budget, fiber alignment and PDK\nacceptance sheet. Requirement re-evaluation needs no new solve if the bank\nstores all relevant coupling/reflection outputs and the best admissible mask\nreally changes. Different process stacks, PDKs or package laws are optional\naxes requiring new qualified 3D truth. Wavelengths and offsets themselves\nare correlated measurements, not separate questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and service\nsubsets, `P_job`, protected `Q_job`, weights, answer diversity, clustering,\nexposure and hidden `n` after power and full-wave cost studies. Re-drawing an\noffset or seed without changing the buyer question is not freshness.",
+        "path": "docs/development/challenge_pipeline/round1/f06-grating-coupler.md",
+        "sha256": "572b8e7264467e0993d5fdb8ee8a259af3de84ffe19ec4e49b585bc83507141f"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "Q": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize Q",
+    "owner": "science/product owner",
+    "recommendation": "Actions: valid geometry within that grammar; draw/reference-input geometry law\nis uniform independent parameters conditioned on valid line/space\u2265180 nm.\nExogenous `P_dev` is uniform over nine tolerance vectors, each reporting five\nequally weighted wavelengths. Vector order is (pitch nm,etch nm,duty,dx \u00b5m,dy \u00b5m):\n(0,0,0,0,0), (\u221210,\u221210,\u22120.03,0,0), (+10,+10,+0.03,0,0),\n(0,0,0,\u22121,0), (0,0,0,+1,0), (0,0,0,0,\u22121), (0,0,0,0,+1),\n(\u221210,+10,+0.03,\u22121,+1), (+10,\u221210,\u22120.03,+1,\u22121).\nThis finite synthetic panel is not a process/alignment distribution. Q for\nfeasibility: four geometry/vector cases selected before solves, plus controls\nand refinements within cap; no P-wide outcome from those four. For a later\ncomplete panel, w=1/45 per geometry, and p10 is the fifth ordered coupling\nvalue (nearest-rank rule). Wavelengths within a run are not independent trials.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe nine tolerance vectors and five wavelengths are one mask/package\nrobustness panel. A future `P_job` can vary supported coupling and reflection\nrequirements or the required tolerance/wavelength service subset while\nreusing a full-wave bank that covers the whole panel. A photonics buyer\nrecognizes each question from its link budget, fiber alignment and PDK\nacceptance sheet. Requirement re-evaluation needs no new solve if the bank\nstores all relevant coupling/reflection outputs and the best admissible mask\nreally changes. Different process stacks, PDKs or package laws are optional\naxes requiring new qualified 3D truth. Wavelengths and offsets themselves\nare correlated measurements, not separate questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and service\nsubsets, `P_job`, protected `Q_job`, weights, answer diversity, clustering,\nexposure and hidden `n` after power and full-wave cost studies. Re-drawing an\noffset or seed without changing the buyer question is not freshness.",
+    "sources": [
+      {
+        "excerpt": "Actions: valid geometry within that grammar; draw/reference-input geometry law\nis uniform independent parameters conditioned on valid line/space\u2265180 nm.\nExogenous `P_dev` is uniform over nine tolerance vectors, each reporting five\nequally weighted wavelengths. Vector order is (pitch nm,etch nm,duty,dx \u00b5m,dy \u00b5m):\n(0,0,0,0,0), (\u221210,\u221210,\u22120.03,0,0), (+10,+10,+0.03,0,0),\n(0,0,0,\u22121,0), (0,0,0,+1,0), (0,0,0,0,\u22121), (0,0,0,0,+1),\n(\u221210,+10,+0.03,\u22121,+1), (+10,\u221210,\u22120.03,+1,\u22121).\nThis finite synthetic panel is not a process/alignment distribution. Q for\nfeasibility: four geometry/vector cases selected before solves, plus controls\nand refinements within cap; no P-wide outcome from those four. For a later\ncomplete panel, w=1/45 per geometry, and p10 is the fifth ordered coupling\nvalue (nearest-rank rule). Wavelengths within a run are not independent trials.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe nine tolerance vectors and five wavelengths are one mask/package\nrobustness panel. A future `P_job` can vary supported coupling and reflection\nrequirements or the required tolerance/wavelength service subset while\nreusing a full-wave bank that covers the whole panel. A photonics buyer\nrecognizes each question from its link budget, fiber alignment and PDK\nacceptance sheet. Requirement re-evaluation needs no new solve if the bank\nstores all relevant coupling/reflection outputs and the best admissible mask\nreally changes. Different process stacks, PDKs or package laws are optional\naxes requiring new qualified 3D truth. Wavelengths and offsets themselves\nare correlated measurements, not separate questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and service\nsubsets, `P_job`, protected `Q_job`, weights, answer diversity, clustering,\nexposure and hidden `n` after power and full-wave cost studies. Re-drawing an\noffset or seed without changing the buyer question is not freshness.",
+        "path": "docs/development/challenge_pipeline/round1/f06-grating-coupler.md",
+        "sha256": "572b8e7264467e0993d5fdb8ee8a259af3de84ffe19ec4e49b585bc83507141f"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "T2a": {
+    "band_widths": "HUMAN_INPUT",
+    "measured": "NOT_ASSESSED_BY_DRAFTING",
+    "minimum_distinct_feasible": 5,
+    "minimum_distinct_infeasible": 5,
+    "near_refinement_bands": 2,
+    "rule": "Both sides near the limit; add frontier resolution, never widen bands",
+    "status": "TEST_LEAD_WORKING_VALUE"
+  },
+  "action_set": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize geometry",
+    "owner": "science/product owner",
+    "recommendation": "220-nm Si on 2-\u00b5m silica BOX and semi-infinite Si substrate, air above;\nsynthetic lossless nondispersive indices Si=3.48, silica=1.44, air=1. Rectangular\nstraight grating: 12\u201320 integer periods, pitch580\u2013680 nm, unetched duty0.35\u20130.65,\netch70\u2013130 nm, width8\u201312 \u00b5m; fixed 500-nm input TE0 guide and 10-\u00b5m linear taper.\nOptical absorption is zero by the fixture law, not by experimental observation.\nFiber overlap: Gaussian MFD10.4 \u00b5m, waist at z=2 \u00b5m above grating top, axis10\u00b0\nfrom surface normal in x/z; x/y offsets relative to grating center. Time/phase,\noverlap surface and coordinate conventions must be pinned in the deck.",
+    "sources": [
+      {
+        "excerpt": "220-nm Si on 2-\u00b5m silica BOX and semi-infinite Si substrate, air above;\nsynthetic lossless nondispersive indices Si=3.48, silica=1.44, air=1. Rectangular\nstraight grating: 12\u201320 integer periods, pitch580\u2013680 nm, unetched duty0.35\u20130.65,\netch70\u2013130 nm, width8\u201312 \u00b5m; fixed 500-nm input TE0 guide and 10-\u00b5m linear taper.\nOptical absorption is zero by the fixture law, not by experimental observation.\nFiber overlap: Gaussian MFD10.4 \u00b5m, waist at z=2 \u00b5m above grating top, axis10\u00b0\nfrom surface normal in x/z; x/y offsets relative to grating center. Time/phase,\noverlap surface and coordinate conventions must be pinned in the deck.",
+        "path": "docs/development/challenge_pipeline/round1/f06-grating-coupler.md",
+        "sha256": "572b8e7264467e0993d5fdb8ee8a259af3de84ffe19ec4e49b585bc83507141f"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "bank": {
+    "B": null,
+    "E": null,
+    "n": null,
+    "status": "HUMAN_INPUT",
+    "threshold_variation_renews_exposure": false
+  },
+  "challenge": "f06",
+  "diversity": null,
+  "held_closed": "No law approval, bank draw, runtime registration, power acceptance or spend",
+  "k": {
+    "basis": "Power and exposure owner selects; a panel's batch size is not approval",
+    "recommendation": null,
+    "status": "HUMAN_INPUT"
+  },
+  "maturity": "DRAFT_ONLY",
+  "panel_basis": null,
+  "question": {
+    "buyer_decision": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize decision",
+      "owner": "science/product owner",
+      "recommendation": "Screen grating masks for coupling and reflection; do not substitute a 2D proxy for final 3D acceptance",
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "recommendation": "One complete buyer decision, not one solver point; indexed decisions include every mandatory band",
+    "status": "HUMAN_INPUT"
+  },
+  "schema": "carbon.onboarding.question-law-draft.v1",
+  "startup_cost": {
+    "basis": "Requires unique new physical cases/rungs, measured CPU, throughput, overhead and quote; B is not a solve count",
+    "cpu_hours": null,
+    "eur": null,
+    "status": "HUMAN_INPUT"
+  },
+  "w": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize w",
+    "owner": "science/product owner",
+    "recommendation": "Actions: valid geometry within that grammar; draw/reference-input geometry law\nis uniform independent parameters conditioned on valid line/space\u2265180 nm.\nExogenous `P_dev` is uniform over nine tolerance vectors, each reporting five\nequally weighted wavelengths. Vector order is (pitch nm,etch nm,duty,dx \u00b5m,dy \u00b5m):\n(0,0,0,0,0), (\u221210,\u221210,\u22120.03,0,0), (+10,+10,+0.03,0,0),\n(0,0,0,\u22121,0), (0,0,0,+1,0), (0,0,0,0,\u22121), (0,0,0,0,+1),\n(\u221210,+10,+0.03,\u22121,+1), (+10,\u221210,\u22120.03,+1,\u22121).\nThis finite synthetic panel is not a process/alignment distribution. Q for\nfeasibility: four geometry/vector cases selected before solves, plus controls\nand refinements within cap; no P-wide outcome from those four. For a later\ncomplete panel, w=1/45 per geometry, and p10 is the fifth ordered coupling\nvalue (nearest-rank rule). Wavelengths within a run are not independent trials.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe nine tolerance vectors and five wavelengths are one mask/package\nrobustness panel. A future `P_job` can vary supported coupling and reflection\nrequirements or the required tolerance/wavelength service subset while\nreusing a full-wave bank that covers the whole panel. A photonics buyer\nrecognizes each question from its link budget, fiber alignment and PDK\nacceptance sheet. Requirement re-evaluation needs no new solve if the bank\nstores all relevant coupling/reflection outputs and the best admissible mask\nreally changes. Different process stacks, PDKs or package laws are optional\naxes requiring new qualified 3D truth. Wavelengths and offsets themselves\nare correlated measurements, not separate questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and service\nsubsets, `P_job`, protected `Q_job`, weights, answer diversity, clustering,\nexposure and hidden `n` after power and full-wave cost studies. Re-drawing an\noffset or seed without changing the buyer question is not freshness.",
+    "sources": [
+      {
+        "excerpt": "Actions: valid geometry within that grammar; draw/reference-input geometry law\nis uniform independent parameters conditioned on valid line/space\u2265180 nm.\nExogenous `P_dev` is uniform over nine tolerance vectors, each reporting five\nequally weighted wavelengths. Vector order is (pitch nm,etch nm,duty,dx \u00b5m,dy \u00b5m):\n(0,0,0,0,0), (\u221210,\u221210,\u22120.03,0,0), (+10,+10,+0.03,0,0),\n(0,0,0,\u22121,0), (0,0,0,+1,0), (0,0,0,0,\u22121), (0,0,0,0,+1),\n(\u221210,+10,+0.03,\u22121,+1), (+10,\u221210,\u22120.03,+1,\u22121).\nThis finite synthetic panel is not a process/alignment distribution. Q for\nfeasibility: four geometry/vector cases selected before solves, plus controls\nand refinements within cap; no P-wide outcome from those four. For a later\ncomplete panel, w=1/45 per geometry, and p10 is the fifth ordered coupling\nvalue (nearest-rank rule). Wavelengths within a run are not independent trials.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe nine tolerance vectors and five wavelengths are one mask/package\nrobustness panel. A future `P_job` can vary supported coupling and reflection\nrequirements or the required tolerance/wavelength service subset while\nreusing a full-wave bank that covers the whole panel. A photonics buyer\nrecognizes each question from its link budget, fiber alignment and PDK\nacceptance sheet. Requirement re-evaluation needs no new solve if the bank\nstores all relevant coupling/reflection outputs and the best admissible mask\nreally changes. Different process stacks, PDKs or package laws are optional\naxes requiring new qualified 3D truth. Wavelengths and offsets themselves\nare correlated measurements, not separate questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and service\nsubsets, `P_job`, protected `Q_job`, weights, answer diversity, clustering,\nexposure and hidden `n` after power and full-wave cost studies. Re-drawing an\noffset or seed without changing the buyer question is not freshness.",
+        "path": "docs/development/challenge_pipeline/round1/f06-grating-coupler.md",
+        "sha256": "572b8e7264467e0993d5fdb8ee8a259af3de84ffe19ec4e49b585bc83507141f"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  }
+}

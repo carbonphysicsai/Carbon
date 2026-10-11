@@ -1,0 +1,49 @@
+{
+ "case": {
+  "coolant_c": 30.0,
+  "h_w_m2_k": 2500.0,
+  "initial_c": 30.0,
+  "left_source_fraction": 0.5,
+  "waveform": "rectangular",
+  "peak_w": 110.0,
+  "on_time_s": 5.0
+ },
+ "mesh": {
+  "nodes": 325,
+  "hexes": 192,
+  "boundary_quads": 32,
+  "level": 1
+ },
+ "steps": 1802,
+ "dt_scale": 1.0,
+ "schedule_w": [
+  [
+   0,
+   20.0
+  ],
+  [
+   20.0,
+   20.0
+  ],
+  [
+   20.000001,
+   110.0
+  ],
+  [
+   25.0,
+   110.0
+  ],
+  [
+   25.000001,
+   20.0
+  ],
+  [
+   120.0,
+   20.0
+  ]
+ ],
+ "steady": false,
+ "source": true,
+ "slab": true,
+ "linear_solver": "cg-ilu0-1e-12"
+}

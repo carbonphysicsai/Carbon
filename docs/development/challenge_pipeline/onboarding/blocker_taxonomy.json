@@ -27,7 +27,7 @@
     "kind": "generator",
     "what": "Generate the lane file from the lane registry (lane name to signer, Control Center, tunnels, key paths) instead of hand-writing it per wave."
    },
-   "rank": 7
+   "rank": 9
   },
   {
    "id": "B2",
@@ -47,7 +47,7 @@
     "kind": "template",
     "what": "The wave template names key slots (not paths) and the preflight reports the missing ones together as owner_needs."
    },
-   "rank": 9
+   "rank": 11
   },
   {
    "id": "B3",
@@ -67,7 +67,7 @@
     "kind": "generator",
     "what": "The wave template allocates one fresh root per planned concurrent run and prints the --root list for the preflight."
    },
-   "rank": 8
+   "rank": 10
   },
   {
    "id": "B4",
@@ -88,7 +88,7 @@
     "kind": "check",
     "what": "The wave template runs the probe before proposing a grant and states the observed offer against the proposed rate ceiling, so the proposal carries a ceiling that can launch. The proposal is the owner's to approve; nothing is authored as spend."
    },
-   "rank": 5
+   "rank": 7
   },
   {
    "id": "B5",
@@ -110,7 +110,7 @@
     "kind": "generator",
     "what": "The wave template computes the split from the model's full-window reservation and pods x rate ceiling, and the preflight refuses a grant whose split fails either."
    },
-   "rank": 4
+   "rank": 6
   },
   {
    "id": "B6",
@@ -150,7 +150,7 @@
     "kind": "template",
     "what": "The wave template lists the edit classes known to need approve-edits mode, so the owner is asked once, in the same batched question as the wave's other owner needs, before the session starts."
    },
-   "rank": 6
+   "rank": 8
   },
   {
    "id": "B8",
@@ -169,7 +169,7 @@
     "kind": "check",
     "what": "A collector that reads the shared heartbeat directory and raises one line to the coordinator when a run reads STALLED, so a stall is announced rather than found."
    },
-   "rank": 10
+   "rank": 12
   },
   {
    "id": "B9",
@@ -188,7 +188,7 @@
     "kind": "check",
     "what": "Preflight refuses a launch when the lane's installed revision differs from the revision the grant's code is at, and names the lane owner to reinstall."
    },
-   "rank": 2
+   "rank": 3
   },
   {
    "id": "B10",
@@ -207,7 +207,46 @@
     "kind": "template",
     "what": "The wave template names the one lane-install owner and the lane-up command (B6) runs the installer, so no other session updates the shared checkout."
    },
-   "rank": 3
+   "rank": 4
+  },
+  {
+   "id": "B11",
+   "name": "Training kit does not cover the panel's action space",
+   "stage": "S4_question_law",
+   "cause": "The research kit did not cover the actions, conditions and observables the question-law panel needs: battery's kit lacks switch_v and cooling and stops c1 at 0.5 while the v3 panel needs all three; f02 has no kit or TRAIN at all. Found late, at evidence time.",
+   "cause_source": [
+    "Test Lead note to the Graphite Testing Manager, 2026-10-10",
+    "docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md (section 8, research kit)"
+   ],
+   "occurrences": "2 (battery, f02), both found at evidence time",
+   "time_lost": "UNKNOWN",
+   "fix_status": "CRITERION_DECIDED_CHECK_NOT_BUILT",
+   "fix_ref": "Decided (Test Lead, 2026-10-10): a kit-versus-panel coverage check is a stage exit criterion; the question-law and panel stage cannot exit until the kit covers the panel's actions, conditions and observables. The check itself is not built.",
+   "register_row": "B11",
+   "automation": {
+    "kind": "generator",
+    "what": "A kit-versus-panel coverage check that reads the panel's actions, conditions and observables and the kit's, and lists every uncovered one before the stage can exit."
+   },
+   "rank": 2
+  },
+  {
+   "id": "B12",
+   "name": "Pinned solver image missing from the operator store",
+   "stage": "S2_solver_package",
+   "cause": "A pinned solver image was not in the operator store (f02's Elmer), found when it was needed.",
+   "cause_source": [
+    "Test Lead note to the Graphite Testing Manager, 2026-10-10"
+   ],
+   "occurrences": "1 (f02)",
+   "time_lost": "UNKNOWN",
+   "fix_status": "OPEN",
+   "fix_ref": "No check exists that every pinned solver image is present in the operator store before the bank stage.",
+   "register_row": "B12",
+   "automation": {
+    "kind": "check",
+    "what": "A pre-bank check that every solver image pinned by the Challenge's packages is present in the operator store, listing the missing ones together."
+   },
+   "rank": 5
   }
  ],
  "ask_owning_sessions": {

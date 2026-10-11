@@ -1,0 +1,714 @@
+{
+ "schema": "carbon.reference-triage.frozen-decks.v1",
+ "ticket": "REFERENCE-PACKAGES-01",
+ "grant": "OWNER-REFERENCE-ROUTE-TRIAGE-GRANT-01",
+ "image": "sha256:8bcd864dd60be0a80be9769c1a95c67db76eca9e718212f63dd0460cf3a08fc6",
+ "mesh_image_f13": "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+ "cases": [
+  {
+   "family": "f02",
+   "case": "cool-rect-low-primary",
+   "reservation": "primary",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "7e97eef3255d53abc8c69d7c542335cbb205ab7bd42437a06e878fbf252b7139",
+    "deck.json": "298e9a1940602c2a882b3bd378cec3149deb22d76c0bb6f98338b29bdb566b1d",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-low-mesh2",
+   "reservation": "mesh_and_time",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "7e97eef3255d53abc8c69d7c542335cbb205ab7bd42437a06e878fbf252b7139",
+    "deck.json": "abc0a39a2dd30eb847765add0f0cea5e6662ce97f6d2d5d7bd90c6f9dc61fa7d",
+    "mesh/mesh.boundary": "d1794d12f426c6e0e1bb38b3a78e729a338404b4295f2d9b8b5a29841304bd8c",
+    "mesh/mesh.elements": "747905cc33e0b3b4240442e8dd401a27049ad50822d831f17ffbdb3eb4fff03a",
+    "mesh/mesh.header": "a85441a42c3ed194d73c2402ad5b60faedde248c9507e8ff1c4948494ebb6202",
+    "mesh/mesh.nodes": "339e09e966228fb60b689edc9a761b5170c7c3ba37e53ea12fe9b1d5962e6703"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-low-dt0.5",
+   "reservation": "mesh_and_time",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "a5e60e1d232bb4b4d71fd13314041df2da8a7dc29c2639425c3bfdf8c88e6cbc",
+    "deck.json": "ddb731f79126fab845631e1563aba476fbaf2fc1a3103a4a0699499c63920878",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-middle-primary",
+   "reservation": "primary",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "526075758d7028e50fdf2df39bf1002ba075bdb96feabf7701ef37deb90597ee",
+    "deck.json": "226842a2f241a670647229dee74bf0868f291fd6d0535da1447b05d1dc701571",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-middle-mesh2",
+   "reservation": "mesh_and_time",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "526075758d7028e50fdf2df39bf1002ba075bdb96feabf7701ef37deb90597ee",
+    "deck.json": "96cd87e8395151a8e50dcc9c3518222d35ee0e4cdd4ad12c5a6b24335bc8f1ca",
+    "mesh/mesh.boundary": "d1794d12f426c6e0e1bb38b3a78e729a338404b4295f2d9b8b5a29841304bd8c",
+    "mesh/mesh.elements": "747905cc33e0b3b4240442e8dd401a27049ad50822d831f17ffbdb3eb4fff03a",
+    "mesh/mesh.header": "a85441a42c3ed194d73c2402ad5b60faedde248c9507e8ff1c4948494ebb6202",
+    "mesh/mesh.nodes": "339e09e966228fb60b689edc9a761b5170c7c3ba37e53ea12fe9b1d5962e6703"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-middle-dt0.5",
+   "reservation": "mesh_and_time",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "c42fa3b4cbfd23ce967e13672d06e5a6aed733be0fce78444c0845835f5a1d28",
+    "deck.json": "80f7046f6c47ffc2a3f4c5330fb15dbabfe475841de36dea0d1d2f8479c16d91",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-short-high-primary",
+   "reservation": "primary",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "6c726248625d99b00cb358dba2a697fe40a03e33a7cbf081205fa69db5f93d1d",
+    "deck.json": "3d59e3cd3760d15201638b64c473cd781e49fc8ab23e76a280928c3b1c241f6f",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-short-high-mesh2",
+   "reservation": "mesh_and_time",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "6c726248625d99b00cb358dba2a697fe40a03e33a7cbf081205fa69db5f93d1d",
+    "deck.json": "a935fbdb877eb2954f32ec9b91d691edf2eedab0610c6372cdbb7e1e68d3c5f4",
+    "mesh/mesh.boundary": "d1794d12f426c6e0e1bb38b3a78e729a338404b4295f2d9b8b5a29841304bd8c",
+    "mesh/mesh.elements": "747905cc33e0b3b4240442e8dd401a27049ad50822d831f17ffbdb3eb4fff03a",
+    "mesh/mesh.header": "a85441a42c3ed194d73c2402ad5b60faedde248c9507e8ff1c4948494ebb6202",
+    "mesh/mesh.nodes": "339e09e966228fb60b689edc9a761b5170c7c3ba37e53ea12fe9b1d5962e6703"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-short-high-dt0.5",
+   "reservation": "mesh_and_time",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "a11b3faa642f90a1af297d049c27cf507e8f58d97c25694ff590a5845d6f4cff",
+    "deck.json": "9e58277ba30f17724dee08e369e68f002a6b45a643a4db3bac279ff5cb11326a",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-long-high-primary",
+   "reservation": "primary",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "2065803ce517eae0d19f67b97169ee900b7d6d9681183e1e85ce3f884bcc051c",
+    "deck.json": "1021966e1f7a9c3546d2a3855abfc9a0213a972a3bfcd59c98ee19aea4d859c5",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-long-high-mesh2",
+   "reservation": "mesh_and_time",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "2065803ce517eae0d19f67b97169ee900b7d6d9681183e1e85ce3f884bcc051c",
+    "deck.json": "be51b9b57dc56e26a3b1ff33254e8004581de4c7c39eebeec17ba31a736a294f",
+    "mesh/mesh.boundary": "d1794d12f426c6e0e1bb38b3a78e729a338404b4295f2d9b8b5a29841304bd8c",
+    "mesh/mesh.elements": "747905cc33e0b3b4240442e8dd401a27049ad50822d831f17ffbdb3eb4fff03a",
+    "mesh/mesh.header": "a85441a42c3ed194d73c2402ad5b60faedde248c9507e8ff1c4948494ebb6202",
+    "mesh/mesh.nodes": "339e09e966228fb60b689edc9a761b5170c7c3ba37e53ea12fe9b1d5962e6703"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-long-high-dt0.5",
+   "reservation": "mesh_and_time",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "4adbd4080f88ad821313d72832e5534d6ed83195362f3874cf443ef61b64f8d8",
+    "deck.json": "62889e23d3b620cbe332cf60ddf6b709bdfe0b7e05b6c74c0d8ce47366834c72",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "warm-ramp-low-primary",
+   "reservation": "primary",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "5931e35512e281cc3959514803f7c58567e7e648cbf3e6fce89ed5c7898a62af",
+    "deck.json": "bf46e0c68f888537c063b61274cee4902491e792f4b0bbbf057959027dbd7c1b",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "warm-ramp-low-mesh2",
+   "reservation": "mesh_and_time",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "5931e35512e281cc3959514803f7c58567e7e648cbf3e6fce89ed5c7898a62af",
+    "deck.json": "ab6729d5ce44a8bcb90e96fd7a4951cdf77a77db647d145c8106bae7ef2ee86e",
+    "mesh/mesh.boundary": "d1794d12f426c6e0e1bb38b3a78e729a338404b4295f2d9b8b5a29841304bd8c",
+    "mesh/mesh.elements": "747905cc33e0b3b4240442e8dd401a27049ad50822d831f17ffbdb3eb4fff03a",
+    "mesh/mesh.header": "a85441a42c3ed194d73c2402ad5b60faedde248c9507e8ff1c4948494ebb6202",
+    "mesh/mesh.nodes": "339e09e966228fb60b689edc9a761b5170c7c3ba37e53ea12fe9b1d5962e6703"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "warm-ramp-low-dt0.5",
+   "reservation": "mesh_and_time",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "9f7e43df0f65e4b9cd2fccc63d753ed613a8688cfe15840c5f10b86011b0cf39",
+    "deck.json": "26614dfb818c101d670c57833fcdac0344467e431e146d344514b4272f947f0c",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "warm-ramp-high-primary",
+   "reservation": "primary",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "ec54315f91abf3d4379b0f352f856028644e50ab28b7cd20393ec3fdfbf9a09a",
+    "deck.json": "988f1f7b3a20d4dbc95ba7a5654b6d479879a239c6828a80bf259ea632bcd268",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "warm-ramp-high-mesh2",
+   "reservation": "mesh_and_time",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "ec54315f91abf3d4379b0f352f856028644e50ab28b7cd20393ec3fdfbf9a09a",
+    "deck.json": "95c154b36546342551e777b7fda936d0b9e65459eba5fc796bd151e550ea0f0e",
+    "mesh/mesh.boundary": "d1794d12f426c6e0e1bb38b3a78e729a338404b4295f2d9b8b5a29841304bd8c",
+    "mesh/mesh.elements": "747905cc33e0b3b4240442e8dd401a27049ad50822d831f17ffbdb3eb4fff03a",
+    "mesh/mesh.header": "a85441a42c3ed194d73c2402ad5b60faedde248c9507e8ff1c4948494ebb6202",
+    "mesh/mesh.nodes": "339e09e966228fb60b689edc9a761b5170c7c3ba37e53ea12fe9b1d5962e6703"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "warm-ramp-high-dt0.5",
+   "reservation": "mesh_and_time",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "c21d66198dc96378f0e539f673aab35303034d1d9921b118be3835ecd2efc836",
+    "deck.json": "ccab2cedfcb70e539ed9a4036c638b15c5cb237582ae25a916fa780901aef466",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "warm-two-short-primary",
+   "reservation": "primary",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "76729223463ff2d8db0452b597f6cc8debc81297bf22709b2d80e3739cc88702",
+    "deck.json": "cc30ba3d29084fa9e42eb09da96182be345795bebf18a5af3f67181bf8f60147",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "warm-two-short-mesh2",
+   "reservation": "mesh_and_time",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "76729223463ff2d8db0452b597f6cc8debc81297bf22709b2d80e3739cc88702",
+    "deck.json": "405f33bbae7fc4c54502535aba12c11a7b518808e7bef6c31742fa8208c15e26",
+    "mesh/mesh.boundary": "d1794d12f426c6e0e1bb38b3a78e729a338404b4295f2d9b8b5a29841304bd8c",
+    "mesh/mesh.elements": "747905cc33e0b3b4240442e8dd401a27049ad50822d831f17ffbdb3eb4fff03a",
+    "mesh/mesh.header": "a85441a42c3ed194d73c2402ad5b60faedde248c9507e8ff1c4948494ebb6202",
+    "mesh/mesh.nodes": "339e09e966228fb60b689edc9a761b5170c7c3ba37e53ea12fe9b1d5962e6703"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "warm-two-short-dt0.5",
+   "reservation": "mesh_and_time",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "1e6598057637915b95cf9728ddfa98b0873c4bb03e81da03990e48d573891410",
+    "deck.json": "cd0112cd46753ea5b4395b409b317bd0d8c0e0af64d26c1a72e8b84ef1a023a0",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "warm-two-long-primary",
+   "reservation": "primary",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "ac88ae1f2544765227c1311417c5927c641534bd4efaa35b74c077242dce1f2a",
+    "deck.json": "a24b195aab44a349c775ec4f0aa4c49a38444cfdde32438dfa0cd6a9e83bd780",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "warm-two-long-mesh2",
+   "reservation": "mesh_and_time",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "ac88ae1f2544765227c1311417c5927c641534bd4efaa35b74c077242dce1f2a",
+    "deck.json": "5ed7d67715d82b3671a4c31bd96ed8453543e81d34d17797f4487e190fd76b8b",
+    "mesh/mesh.boundary": "d1794d12f426c6e0e1bb38b3a78e729a338404b4295f2d9b8b5a29841304bd8c",
+    "mesh/mesh.elements": "747905cc33e0b3b4240442e8dd401a27049ad50822d831f17ffbdb3eb4fff03a",
+    "mesh/mesh.header": "a85441a42c3ed194d73c2402ad5b60faedde248c9507e8ff1c4948494ebb6202",
+    "mesh/mesh.nodes": "339e09e966228fb60b689edc9a761b5170c7c3ba37e53ea12fe9b1d5962e6703"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "warm-two-long-dt0.5",
+   "reservation": "mesh_and_time",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "ce6cb668438691a2ea9b4ca546ab75f08c35201cc7026f2e36ed4a9b0edfe535",
+    "deck.json": "f798297989ca17ea310679219fa67e12efcad7919f43742cdc056cd4e9f980b3",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "control-equilibrium",
+   "reservation": "controls",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "85e1df2c788b2d505beded750afc59dd9882b834197262e231f72043a9331daa",
+    "deck.json": "f131ff9055bfa740107342eddeadbcf5e490aacffd6a9b969c4c76c0f24502e1",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "control-slab_step",
+   "reservation": "controls",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "a48782c1f82c53caf6a93d145f10a997b4675e92fa206abcf5698813d1d8ba9e",
+    "deck.json": "11ad4e1c299661c06a45c59865e316cc737a0f2f7160becb93ab5ea19b7916c9",
+    "mesh/mesh.boundary": "2fc7c80ab330b8f51acfbc99ca59d7c2c3f9b0bda04bea657fa3de7a8363d46a",
+    "mesh/mesh.elements": "ca36161d79204c614977c21f3b5a219042955a2fc8a4d253549a391f81a29134",
+    "mesh/mesh.header": "6092f781b98ae7c59e7b4abaebdce107d6a40b16401722a0c5579c1915ee6711",
+    "mesh/mesh.nodes": "43d913d29af2ba7a39e20d66aabc20c1b50b76f5db4a27eb40fcf87a5eb74b1a"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "control-slab_pulse",
+   "reservation": "controls",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "6e744d669b67fee10611f89959b2afc36c7e42aa3d54a3b61b2519e066d508ec",
+    "deck.json": "0f12902b89c4576cfa3e9712bd7a58126bdbcf26d51e67439029a817400ec2f3",
+    "mesh/mesh.boundary": "2fc7c80ab330b8f51acfbc99ca59d7c2c3f9b0bda04bea657fa3de7a8363d46a",
+    "mesh/mesh.elements": "ca36161d79204c614977c21f3b5a219042955a2fc8a4d253549a391f81a29134",
+    "mesh/mesh.header": "6092f781b98ae7c59e7b4abaebdce107d6a40b16401722a0c5579c1915ee6711",
+    "mesh/mesh.nodes": "43d913d29af2ba7a39e20d66aabc20c1b50b76f5db4a27eb40fcf87a5eb74b1a"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "control-energy",
+   "reservation": "controls",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "8bae2372e2d3ed888221a8a66e55bef1593437ef935afc19244ddb73d11208ca",
+    "deck.json": "c288c11913242984ac6c49bba736e60cb8513183384702d0afebbb0256498259",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "steady-30C-2500-0.5",
+   "reservation": "steady_baselines",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "884ecc1422d994ff35041bfafb696dc00e4779f4785672d588f5d9b1bb22748c",
+    "deck.json": "66e3e76ce527a7bf60e53b3208074a46744977aa273705d0beebed898dc04885",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "steady-40C-1500-0.8",
+   "reservation": "steady_baselines",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "71e1fe514d6a657de11ab938790e2addc4484f18b4ca1b30f9152042c36ebb1d",
+    "deck.json": "c84b4d4c1023a7b396148ea86d8437857237cc77b3e5e8451153f946af293294",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-low-cold-repeat",
+   "reservation": "cold_repeat",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "7e97eef3255d53abc8c69d7c542335cbb205ab7bd42437a06e878fbf252b7139",
+    "deck.json": "298e9a1940602c2a882b3bd378cec3149deb22d76c0bb6f98338b29bdb566b1d",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "family": "f13",
+   "case": "small-coaxial-primary",
+   "reservation": "primary_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=8; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "4cf02f9c24fe89861353ee413efdea97d85d14ba8f11eb5968412e8260020e17",
+    "deck.json": "bed9bc84756be30c15f87f2b15d6bfcb6a8b162d3e5b18ee2fd288f1135207a9",
+    "groups.json": "9f00283c9d1ec06fc08272c9cb6a2ec593b38f7d84732b46c07577f15fec099b",
+    "make_mesh.py": "fa0add981e57916d06c89217ebf62d81ef6d5739cd872a2878b1b65285fe9138",
+    "mesh.msh": "c5df0254ee09645feb879f6836cbca082926fb4f85804e3c54001a043e9ae752"
+   }
+  },
+  {
+   "family": "f13",
+   "case": "large-offset-primary",
+   "reservation": "primary_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=8; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "4cf02f9c24fe89861353ee413efdea97d85d14ba8f11eb5968412e8260020e17",
+    "deck.json": "1acbbb90c17def5a70492f8a90e5779310fc141e9c0597f9a793562217273a38",
+    "groups.json": "ec1e683143bd1e45da5b58d9eb60d817ae4fae29e12e50bb2ed23d9d7056a3d2",
+    "make_mesh.py": "22ed33fde88876319e057128daa1445bd274ab6f0cf0452ae62696d4a156a976",
+    "mesh.msh": "1f63f54ccf528014cb40f6c91a658a89d6ef510871b1210b83823b8fff98f4a8"
+   }
+  },
+  {
+   "family": "f13",
+   "case": "nominal-primary",
+   "reservation": "primary_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=8; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "4cf02f9c24fe89861353ee413efdea97d85d14ba8f11eb5968412e8260020e17",
+    "deck.json": "885dc6d87887bb5e3e1cb7c4ac74de3767a3280546286d36b9c279eb90209286",
+    "groups.json": "c1af97b7c8cdbb6dfdf8b2e81c7e872833655737bd0c84860ac899d34ccd8d57",
+    "make_mesh.py": "5e3d092f033f480d796962492586b587277f100f49f2c758341a2d755db830be",
+    "mesh.msh": "c272cf63d9d5682a035e32a9bb0417c8f5bbaa1ba6e00c8697ad6d0472e98e78"
+   }
+  },
+  {
+   "family": "f13",
+   "case": "clearance-boundary-primary",
+   "reservation": "primary_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=8; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "4cf02f9c24fe89861353ee413efdea97d85d14ba8f11eb5968412e8260020e17",
+    "deck.json": "9268c8f4702b156660632ed8119a3ecce0699a6f5ce95368e0c1627f09d338d3",
+    "groups.json": "9f9d1f05660a5f88d78c37f364b4be470a678025d4e1d91db2b3104800d6e351",
+    "make_mesh.py": "fcbe1d6480ace6978489a6cd3a9e4e06b27673ed347ce10990f0965bf34d8a07",
+    "mesh.msh": "87f3bd5c209636b1d95788b89e6077b3d6164fab3f242fa84ee19c6d03c96ddb"
+   }
+  },
+  {
+   "family": "f13",
+   "case": "unequal-chambers-primary",
+   "reservation": "primary_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=8; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "4cf02f9c24fe89861353ee413efdea97d85d14ba8f11eb5968412e8260020e17",
+    "deck.json": "f7ebc989e7694d74690f6e54ea0b68756db7a74087b6e25e06eead6032662074",
+    "groups.json": "56849fe640521d1ce66749840cba9eacccc340667f60af2b786462c623b0ea48",
+    "make_mesh.py": "5d5368a5ebf862b8ce3c458dca94d71f6fb588e96a60079bbe79f7edd5cae5ce",
+    "mesh.msh": "998d92ab59e4d5a1d94a16d5586412ff25129b51ee8c25df997d237710320c71"
+   }
+  },
+  {
+   "family": "f13",
+   "case": "reverse-unequal-primary",
+   "reservation": "primary_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=8; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "4cf02f9c24fe89861353ee413efdea97d85d14ba8f11eb5968412e8260020e17",
+    "deck.json": "7f29479ede2cc586eac1e5b01ecdf5e786cd647b145c8821b1ddcb1d29877e2d",
+    "groups.json": "863cfa7418b0f11dc24cdca4050f619eaf0881c8c043e45e23295f8722820660",
+    "make_mesh.py": "023c9ecf79c95d8ce2059f2b2da5f33fc39575ccc308b5f4307826b13dafa6ee",
+    "mesh.msh": "e0f085e26c34e350009606774784d62d5045f433417c4b11e954c75a5cca5633"
+   }
+  },
+  {
+   "family": "f13",
+   "case": "short-neck-wide-primary",
+   "reservation": "primary_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=8; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "4cf02f9c24fe89861353ee413efdea97d85d14ba8f11eb5968412e8260020e17",
+    "deck.json": "de1349711ea076e081e0f33057ed82c1c588226c130471d3727827597b13cdda",
+    "groups.json": "77646afb9bbf479ffe1e0ea5a33a7db87781c9167e9cb1b0be0ae1ff2d468557",
+    "make_mesh.py": "9e3433dca53fbfbda25c3947006cdfbc5b69ab407eec80eece8ce26a2dec80f9",
+    "mesh.msh": "3011946efda02a104b6c3f8ab9196b36da42051ddd393e3721435a470c76a783"
+   }
+  },
+  {
+   "family": "f13",
+   "case": "long-neck-small-primary",
+   "reservation": "primary_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=8; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "4cf02f9c24fe89861353ee413efdea97d85d14ba8f11eb5968412e8260020e17",
+    "deck.json": "d1ad3f030cc83cbbbc1b9f6d7da5da13420bade3ec3dbc221179b80698604c1d",
+    "groups.json": "93808b1604ce171a3888d6268f6af3c7b5634ee8c708c952e867f6f32bc6905b",
+    "make_mesh.py": "7aa7cda513d9843e0337942786517249451ad4fd3aae2e9887f5b74df33e387c",
+    "mesh.msh": "78a82212949403572ca9c0c9c9d2e331b844b006087a308320319996704b120e"
+   }
+  },
+  {
+   "family": "f13",
+   "case": "clearance-boundary-freq5hz",
+   "reservation": "fine_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=8; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "365513d45e62d8d733b8373494f2d709d18d6772fb3837a869d1d4ac1ca6ceeb",
+    "deck.json": "fa6758ff7a3ad48d0a4e6f1dde391b749e38dd5c0ce18505a705937704e7dd54",
+    "groups.json": "9f9d1f05660a5f88d78c37f364b4be470a678025d4e1d91db2b3104800d6e351",
+    "make_mesh.py": "fcbe1d6480ace6978489a6cd3a9e4e06b27673ed347ce10990f0965bf34d8a07",
+    "mesh.msh": "87f3bd5c209636b1d95788b89e6077b3d6164fab3f242fa84ee19c6d03c96ddb"
+   }
+  },
+  {
+   "family": "f13",
+   "case": "large-offset-mesh4mm",
+   "reservation": "fine_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=8; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "29ec1dd574b0c27b37b3276b1381d6c28c23c3f92de467e572f6166ba787dbe8",
+    "deck.json": "d00bdebd6ad568b07153e9260d7682649ed6981d64ea654290fd3f5df9439759",
+    "groups.json": "59972f0ed2545f4b929f049b30954c304aca5148be10da0ae06c8dbcf9ab0c10",
+    "make_mesh.py": "e4d3c29e0db03b5f60117a5ca2d41a311cc9fc8f0f418fc60306860a1941d5d2",
+    "mesh.msh": "fd0cab31bd0e34d2d67b6ff6c1dd6c46aa840b0537e8f9f818e61ae8b1abfbfe"
+   }
+  },
+  {
+   "family": "f13",
+   "case": "small-coaxial-cold-repeat",
+   "reservation": "cold_repeat",
+   "command": "export OPENBLAS_NUM_THREADS=8; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "4cf02f9c24fe89861353ee413efdea97d85d14ba8f11eb5968412e8260020e17",
+    "deck.json": "bed9bc84756be30c15f87f2b15d6bfcb6a8b162d3e5b18ee2fd288f1135207a9",
+    "groups.json": "9f00283c9d1ec06fc08272c9cb6a2ec593b38f7d84732b46c07577f15fec099b",
+    "make_mesh.py": "fa0add981e57916d06c89217ebf62d81ef6d5739cd872a2878b1b65285fe9138",
+    "mesh.msh": "c5df0254ee09645feb879f6836cbca082926fb4f85804e3c54001a043e9ae752"
+   }
+  },
+  {
+   "family": "f13",
+   "case": "small-coaxial-single-1000",
+   "reservation": "separate_frequency_smoke",
+   "command": "export OPENBLAS_NUM_THREADS=8; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "ecb0366a15ed9a19f494371d93987c3aff8c67d145d0523f96f9559cc6212e41",
+    "deck.json": "5b28ff4f2f47fdf60e6427212df9add9c9d5b8bdc1d3c443b97d128e86378b87",
+    "groups.json": "9f00283c9d1ec06fc08272c9cb6a2ec593b38f7d84732b46c07577f15fec099b",
+    "make_mesh.py": "fa0add981e57916d06c89217ebf62d81ef6d5739cd872a2878b1b65285fe9138",
+    "mesh.msh": "c5df0254ee09645feb879f6836cbca082926fb4f85804e3c54001a043e9ae752"
+   }
+  },
+  {
+   "family": "f13",
+   "case": "small-coaxial-single-1500",
+   "reservation": "separate_frequency_smoke",
+   "command": "export OPENBLAS_NUM_THREADS=8; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "e488f62052e8d9b7c5d2318eddac67b16617638948b447ca903842b3a79c6145",
+    "deck.json": "0790a5287bc3950e84a0b9bf2b400724319d36ebbf48169d549b2ab4b6da0203",
+    "groups.json": "9f00283c9d1ec06fc08272c9cb6a2ec593b38f7d84732b46c07577f15fec099b",
+    "make_mesh.py": "fa0add981e57916d06c89217ebf62d81ef6d5739cd872a2878b1b65285fe9138",
+    "mesh.msh": "c5df0254ee09645feb879f6836cbca082926fb4f85804e3c54001a043e9ae752"
+   }
+  },
+  {
+   "family": "f13",
+   "case": "small-coaxial-single-2000",
+   "reservation": "separate_frequency_smoke",
+   "command": "export OPENBLAS_NUM_THREADS=8; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "c50f726292f65126fc3be1d56aee8be6562d282b77e6d4a6cb0091d71a763bb3",
+    "deck.json": "b35f325847e78f9d97824ddd5938c3624c2e9901189ccbd4d3769d9ed76bb49e",
+    "groups.json": "9f00283c9d1ec06fc08272c9cb6a2ec593b38f7d84732b46c07577f15fec099b",
+    "make_mesh.py": "fa0add981e57916d06c89217ebf62d81ef6d5739cd872a2878b1b65285fe9138",
+    "mesh.msh": "c5df0254ee09645feb879f6836cbca082926fb4f85804e3c54001a043e9ae752"
+   }
+  },
+  {
+   "family": "f13",
+   "case": "control-duct",
+   "reservation": "controls",
+   "command": "export OPENBLAS_NUM_THREADS=8; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "4cf02f9c24fe89861353ee413efdea97d85d14ba8f11eb5968412e8260020e17",
+    "deck.json": "0eced63e820923de1a1c2dafe8c79640c25afd805262a466857cb8ad9def0fbd",
+    "groups.json": "b635fc18ef8f613e17ffca721ff925b293d7d691df25b0f32c364b9e41ffff3a",
+    "make_mesh.py": "2fce7c700c4f6f43ff9b45856487dbe10776296454a7a5c2194217dddba0bf78",
+    "mesh.msh": "3366b553ee71956d6c59f560eadf9689819a34b18f03e9af167a3123a749b2ab"
+   }
+  },
+  {
+   "family": "f13",
+   "case": "control-chamber",
+   "reservation": "controls",
+   "command": "export OPENBLAS_NUM_THREADS=8; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "4cf02f9c24fe89861353ee413efdea97d85d14ba8f11eb5968412e8260020e17",
+    "deck.json": "06bcec622c6dcaa4923ae17c5a50ad33dcf68c09d439ac32909f3cd5f4274015",
+    "groups.json": "68debb5c7259de19236e4a55e0c3e66d949947a1a01b8bd70f9bb718d9e2ce1f",
+    "make_mesh.py": "20cfab82e3eeca464803a1636a437608574bd8bcb3a56c58bee7361ca903b670",
+    "mesh.msh": "4565b2a60aa38aaa6c0ad5325cd8aa4db9b07193001b062389aac6bea09e3c5e"
+   }
+  }
+ ],
+ "counts": {
+  "f02": {
+   "cold_repeat": 1,
+   "controls": 4,
+   "mesh_and_time": 16,
+   "primary": 8,
+   "steady_baselines": 2
+  },
+  "f13": {
+   "cold_repeat": 1,
+   "controls": 2,
+   "fine_sweeps": 2,
+   "primary_sweeps": 8,
+   "separate_frequency_smoke": 3
+  }
+ }
+}

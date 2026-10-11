@@ -1,0 +1,67 @@
+{
+  "boundary_designs": {
+    "intervals_and_frontier_results": "NOT_DEMONSTRATED",
+    "recommendation": "Register physical-coordinate brackets near each hard limit in every stratum; at least 5 settled feasible AND 5 settled infeasible within TWO accepted refinement bands; no guaranteed yield, no widening",
+    "status": "HUMAN_INPUT"
+  },
+  "buyer_decision": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize decision",
+    "owner": "science/product owner",
+    "recommendation": "Choose a pole geometry meeting a full force-stroke envelope at least copper loss",
+    "sources": [],
+    "status": "HUMAN_INPUT"
+  },
+  "case_count": null,
+  "cases": [],
+  "challenge": "solenoid-pole",
+  "cost": {
+    "billed_node_hours": null,
+    "cpu_hours_if_reuse_accepted": null,
+    "cpu_hours_without_reuse": null,
+    "eur": null,
+    "omitted": [
+      "failures",
+      "setup",
+      "witnesses",
+      "new frontier actions",
+      "storage",
+      "tax",
+      "retained verification"
+    ],
+    "status": "UNKNOWN"
+  },
+  "designs": null,
+  "held_closed": "No solver, bank draw, hidden data, registration adoption or spend; DC accepts geometry/pins/reuse before execution",
+  "maturity": "DRAFT_ONLY",
+  "registration_status": "PROPOSED_NOT_DISPATCHABLE",
+  "reuse_check": {
+    "completed_matches": 0,
+    "scheduled_matches": 0,
+    "status": "UNKNOWN_NO_INDEX"
+  },
+  "schema": "carbon.onboarding.panel-draft.v1",
+  "strata": null,
+  "strata_basis": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize strata",
+    "owner": "science/product owner",
+    "recommendation": "**P \u2014 customer request population.** Joint customer distribution over rated force-envelope jobs, packaging, winding/current permissions, material lots and operating temperatures. Actual job frequencies, covariance and eligibility are HUMAN_INPUT; neither uniform gap sampling nor manufacturer catalogue frequency is P.\n\n**Q \u2014 diagnostic/acquisition proposal.** Enrich pole/air-gap designs near approved force and saturation boundaries, including the baseline's most confident disagreements. Q preserves the eligible geometric/material domain and records proposal densities or strata membership. Synthetic enrichment is not evidence of customer prevalence.\n\n**w \u2014 evidence/score use.** Sampling/evidence weighting and any correction from Q to P are **HUMAN_INPUT \u2014 scientific owner**. Prospective per-stratum admissibility and reporting precede any ranking. Equal diagnostic counts are a collection convenience, not deployment weights. No soft objective can compensate for a mandatory failure.\n\nFreeze a versioned population contract with joint variables, support, dependencies, strata/mixture probabilities, rights, exclusions, time validity and applicability. Keep request-job law distinct from the finite design menu conditional on that job. Request population and design-generation process are not interchangeable. No public draw is a hidden/protected exam draw; this researcher defines or accesses neither.",
+    "sources": [
+      {
+        "excerpt": "**P \u2014 customer request population.** Joint customer distribution over rated force-envelope jobs, packaging, winding/current permissions, material lots and operating temperatures. Actual job frequencies, covariance and eligibility are HUMAN_INPUT; neither uniform gap sampling nor manufacturer catalogue frequency is P.\n\n**Q \u2014 diagnostic/acquisition proposal.** Enrich pole/air-gap designs near approved force and saturation boundaries, including the baseline's most confident disagreements. Q preserves the eligible geometric/material domain and records proposal densities or strata membership. Synthetic enrichment is not evidence of customer prevalence.\n\n**w \u2014 evidence/score use.** Sampling/evidence weighting and any correction from Q to P are **HUMAN_INPUT \u2014 scientific owner**. Prospective per-stratum admissibility and reporting precede any ranking. Equal diagnostic counts are a collection convenience, not deployment weights. No soft objective can compensate for a mandatory failure.\n\nFreeze a versioned population contract with joint variables, support, dependencies, strata/mixture probabilities, rights, exclusions, time validity and applicability. Keep request-job law distinct from the finite design menu conditional on that job. Request population and design-generation process are not interchangeable. No public draw is a hidden/protected exam draw; this researcher defines or accesses neither.",
+        "path": "docs/development/challenge_pipeline/discovery/dossiers/solenoid-pole.md",
+        "sha256": "8ab318c38c01bdc460afa213fdbf8f6b7b679deb946ae034bc92ffe40e524bc6"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "value_measures": [
+    "complete feasible answer",
+    "both-side contested boundaries",
+    "buyer-unit margin spread",
+    "best/equivalent answer changes",
+    "cheap-baseline decision regret",
+    "CPU/wall/memory/failures"
+  ]
+}

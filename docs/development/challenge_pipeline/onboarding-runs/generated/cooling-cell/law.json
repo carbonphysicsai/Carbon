@@ -1,0 +1,107 @@
+{
+  "NONE_FEASIBLE": {
+    "recommendation": "VALID_FORWARD_NO_REDRAW only with a complete settled proof; missing/uncertain support stays UNRESOLVED",
+    "status": "HUMAN_INPUT"
+  },
+  "P": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize P",
+    "owner": "science/product owner",
+    "recommendation": "Customer-recognizable planning contexts remain cold uniform, typical load,\nwarm uniform, warm central hotspot and warm outlet-side hotspot. In v2 every\nnonuniform map is specified **at the post-spreader cold-plate interface**;\nthe source/lid definition and resulting flux map are buyer inputs, not design\nactions secretly optimized by the model. Do not choose ratio, TIM or inlet\nfrom alternatives after seeing which one passes. Freeze each scenario first.\n\nThe complete panel, supported maps and P_job/Q_job/w_job registration remain\nHUMAN_INPUT in [question-law v2](../question-laws/proposals-v2.json). Preserve\nseparate population, near-limit diagnostic enrichment and diagnostic weights.\nReport each stratum; a uniform pass cannot average away a hotspot breach.\nUnsupported reduced-supply flow stays excluded/unresolved, never clamped.\nService/input alternatives are separate clearly labelled sensitivity results,\nnot additional equivalent questions or fresh bank exposure.",
+    "sources": [
+      {
+        "excerpt": "Customer-recognizable planning contexts remain cold uniform, typical load,\nwarm uniform, warm central hotspot and warm outlet-side hotspot. In v2 every\nnonuniform map is specified **at the post-spreader cold-plate interface**;\nthe source/lid definition and resulting flux map are buyer inputs, not design\nactions secretly optimized by the model. Do not choose ratio, TIM or inlet\nfrom alternatives after seeing which one passes. Freeze each scenario first.\n\nThe complete panel, supported maps and P_job/Q_job/w_job registration remain\nHUMAN_INPUT in [question-law v2](../question-laws/proposals-v2.json). Preserve\nseparate population, near-limit diagnostic enrichment and diagnostic weights.\nReport each stratum; a uniform pass cannot average away a hotspot breach.\nUnsupported reduced-supply flow stays excluded/unresolved, never clamped.\nService/input alternatives are separate clearly labelled sensitivity results,\nnot additional equivalent questions or fresh bank exposure.",
+        "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+        "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "Q": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize Q",
+    "owner": "science/product owner",
+    "recommendation": "Customer-recognizable planning contexts remain cold uniform, typical load,\nwarm uniform, warm central hotspot and warm outlet-side hotspot. In v2 every\nnonuniform map is specified **at the post-spreader cold-plate interface**;\nthe source/lid definition and resulting flux map are buyer inputs, not design\nactions secretly optimized by the model. Do not choose ratio, TIM or inlet\nfrom alternatives after seeing which one passes. Freeze each scenario first.\n\nThe complete panel, supported maps and P_job/Q_job/w_job registration remain\nHUMAN_INPUT in [question-law v2](../question-laws/proposals-v2.json). Preserve\nseparate population, near-limit diagnostic enrichment and diagnostic weights.\nReport each stratum; a uniform pass cannot average away a hotspot breach.\nUnsupported reduced-supply flow stays excluded/unresolved, never clamped.\nService/input alternatives are separate clearly labelled sensitivity results,\nnot additional equivalent questions or fresh bank exposure.",
+    "sources": [
+      {
+        "excerpt": "Customer-recognizable planning contexts remain cold uniform, typical load,\nwarm uniform, warm central hotspot and warm outlet-side hotspot. In v2 every\nnonuniform map is specified **at the post-spreader cold-plate interface**;\nthe source/lid definition and resulting flux map are buyer inputs, not design\nactions secretly optimized by the model. Do not choose ratio, TIM or inlet\nfrom alternatives after seeing which one passes. Freeze each scenario first.\n\nThe complete panel, supported maps and P_job/Q_job/w_job registration remain\nHUMAN_INPUT in [question-law v2](../question-laws/proposals-v2.json). Preserve\nseparate population, near-limit diagnostic enrichment and diagnostic weights.\nReport each stratum; a uniform pass cannot average away a hotspot breach.\nUnsupported reduced-supply flow stays excluded/unresolved, never clamped.\nService/input alternatives are separate clearly labelled sensitivity results,\nnot additional equivalent questions or fresh bank exposure.",
+        "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+        "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "T2a": {
+    "band_widths": "HUMAN_INPUT",
+    "measured": "NOT_ASSESSED_BY_DRAFTING",
+    "minimum_distinct_feasible": 5,
+    "minimum_distinct_infeasible": 5,
+    "near_refinement_bands": 2,
+    "rule": "Both sides near the limit; add frontier resolution, never widen bands",
+    "status": "TEST_LEAD_WORKING_VALUE"
+  },
+  "action_set": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize geometry",
+    "owner": "science/product owner",
+    "recommendation": "KEEP the periodic conjugate cooling-cell scope and material/coolant\napplicability boundaries in [cold_plate](../../../../carbon/cold_plate/domain.py).\nImproved geometry proposals/evidence have their own versions; v2 does not\nchange their CAD or prove every design feasible. Cell inlet/outlet and\ntransverse-periodic conventions remain explicit. No full-plate edges,\nmanifolds, cross-channel maldistribution, turbulent/boiling/fouling or die-\njunction model is introduced.\n\nData Collection must characterize the buyer's vapour-chamber response and its\nheat-flux/temperature/orientation/capillary/dryout applicability. Effective\nisotropic conductivity in a screening model is a hypothesis, not an earned\nmaterial law. The solid-copper #817/#822 calculations remain comparison\nhistory, not adequate vapour-chamber physics by inheritance.\n\nBuyer inputs must state spreader/lid geometry/thickness, material conductivity\n(including anisotropy/temperature law where used), contacts/interfaces, raw\nsource layout/load, the post-spreader heat-map plane, flux normalization and\nthe characterization/model provenance linking them. Missing properties are\n**HUMAN_INPUT**, not guessed copper, an ideal isothermal lid or free spreading.\nAccept a separately characterized interface map only within its stated scope;\nthis packet neither builds a spreader solver nor infers one from a ratio.",
+    "sources": [
+      {
+        "excerpt": "KEEP the periodic conjugate cooling-cell scope and material/coolant\napplicability boundaries in [cold_plate](../../../../carbon/cold_plate/domain.py).\nImproved geometry proposals/evidence have their own versions; v2 does not\nchange their CAD or prove every design feasible. Cell inlet/outlet and\ntransverse-periodic conventions remain explicit. No full-plate edges,\nmanifolds, cross-channel maldistribution, turbulent/boiling/fouling or die-\njunction model is introduced.\n\nData Collection must characterize the buyer's vapour-chamber response and its\nheat-flux/temperature/orientation/capillary/dryout applicability. Effective\nisotropic conductivity in a screening model is a hypothesis, not an earned\nmaterial law. The solid-copper #817/#822 calculations remain comparison\nhistory, not adequate vapour-chamber physics by inheritance.\n\nBuyer inputs must state spreader/lid geometry/thickness, material conductivity\n(including anisotropy/temperature law where used), contacts/interfaces, raw\nsource layout/load, the post-spreader heat-map plane, flux normalization and\nthe characterization/model provenance linking them. Missing properties are\n**HUMAN_INPUT**, not guessed copper, an ideal isothermal lid or free spreading.\nAccept a separately characterized interface map only within its stated scope;\nthis packet neither builds a spreader solver nor infers one from a ratio.",
+        "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+        "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "bank": {
+    "B": null,
+    "E": null,
+    "n": null,
+    "status": "HUMAN_INPUT",
+    "threshold_variation_renews_exposure": false
+  },
+  "challenge": "cooling-cell",
+  "diversity": null,
+  "held_closed": "No law approval, bank draw, runtime registration, power acceptance or spend",
+  "k": {
+    "basis": "Power and exposure owner selects; a panel's batch size is not approval",
+    "recommendation": null,
+    "status": "HUMAN_INPUT"
+  },
+  "maturity": "DRAFT_ONLY",
+  "panel_basis": null,
+  "question": {
+    "buyer_decision": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize decision",
+      "owner": "science/product owner",
+      "recommendation": "Shortlist periodic cell geometry at a declared lid-side TIM2 case plane, not a full cold plate",
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "recommendation": "One complete buyer decision, not one solver point; indexed decisions include every mandatory band",
+    "status": "HUMAN_INPUT"
+  },
+  "schema": "carbon.onboarding.question-law-draft.v1",
+  "startup_cost": {
+    "basis": "Requires unique new physical cases/rungs, measured CPU, throughput, overhead and quote; B is not a solve count",
+    "cpu_hours": null,
+    "eur": null,
+    "status": "HUMAN_INPUT"
+  },
+  "w": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize w",
+    "owner": "science/product owner",
+    "recommendation": "Customer-recognizable planning contexts remain cold uniform, typical load,\nwarm uniform, warm central hotspot and warm outlet-side hotspot. In v2 every\nnonuniform map is specified **at the post-spreader cold-plate interface**;\nthe source/lid definition and resulting flux map are buyer inputs, not design\nactions secretly optimized by the model. Do not choose ratio, TIM or inlet\nfrom alternatives after seeing which one passes. Freeze each scenario first.\n\nThe complete panel, supported maps and P_job/Q_job/w_job registration remain\nHUMAN_INPUT in [question-law v2](../question-laws/proposals-v2.json). Preserve\nseparate population, near-limit diagnostic enrichment and diagnostic weights.\nReport each stratum; a uniform pass cannot average away a hotspot breach.\nUnsupported reduced-supply flow stays excluded/unresolved, never clamped.\nService/input alternatives are separate clearly labelled sensitivity results,\nnot additional equivalent questions or fresh bank exposure.",
+    "sources": [
+      {
+        "excerpt": "Customer-recognizable planning contexts remain cold uniform, typical load,\nwarm uniform, warm central hotspot and warm outlet-side hotspot. In v2 every\nnonuniform map is specified **at the post-spreader cold-plate interface**;\nthe source/lid definition and resulting flux map are buyer inputs, not design\nactions secretly optimized by the model. Do not choose ratio, TIM or inlet\nfrom alternatives after seeing which one passes. Freeze each scenario first.\n\nThe complete panel, supported maps and P_job/Q_job/w_job registration remain\nHUMAN_INPUT in [question-law v2](../question-laws/proposals-v2.json). Preserve\nseparate population, near-limit diagnostic enrichment and diagnostic weights.\nReport each stratum; a uniform pass cannot average away a hotspot breach.\nUnsupported reduced-supply flow stays excluded/unresolved, never clamped.\nService/input alternatives are separate clearly labelled sensitivity results,\nnot additional equivalent questions or fresh bank exposure.",
+        "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+        "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  }
+}
