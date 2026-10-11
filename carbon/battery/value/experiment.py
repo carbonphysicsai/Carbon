@@ -292,12 +292,19 @@ class Experiment:
         phase) into this root, write-once. Only members of the frozen panel
         are accepted, each with its own recipe digest and seed; a bundle
         already here is never replaced."""
+        from .. import implementation_versions
         from ..compile import compile_recipe
 
+        # As `evaluate`: a bundle verifies under the implementation version it
+        # was made under (TORCH-GPU-01), so retained predictions from an
+        # earlier registered version import, and are never reinterpreted.
         expected = {}
         for member, _label, strategy, seed in self._members():
-            _, recipe = compile_recipe(strategy)
-            expected[member] = (recipe.recipe_digest, seed)
+            digests = {
+                compile_recipe(strategy, implementation=version)[1].recipe_digest
+                for version in implementation_versions.VERSIONS
+            }
+            expected[member] = (digests, seed)
         copied, kept = [], []
         for path in sorted(Path(source).glob("*.json.gz")):
             member = path.name[: -len(".json.gz")]
@@ -305,13 +312,11 @@ class Experiment:
                 raise ExperimentError("prediction_not_in_panel", member)
             body = path.read_bytes()
             bundle = json.loads(gzip.decompress(body))
+            digests, seed = expected[member]
             if (
                 bundle.get("member") != member
-                or (
-                    bundle.get("recipe_digest"),
-                    bundle.get("seed"),
-                )
-                != expected[member]
+                or bundle.get("recipe_digest") not in digests
+                or bundle.get("seed") != seed
             ):
                 raise ExperimentError("artifact_mismatch", member)
             target = self._prediction_path(member)
