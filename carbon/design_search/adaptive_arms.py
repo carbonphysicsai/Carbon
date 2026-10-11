@@ -74,6 +74,7 @@ def validate_policy(policy, challenge):
         (
             "schema",
             "challenge",
+            "decision_rule_id",
             "calibration_digest",
             "pre_experiment_receipt",
             "direct",
@@ -202,6 +203,10 @@ def validate(panel, registration):
     if base["registrations"]["cost_plan"] != registered.registration_id:
         raise AdaptiveArmError("panel cost plan differs from registration")
     validate_policy(panel["policy"], challenge)
+    if panel["policy"]["decision_rule_id"] != base["decision_rule_id"]:
+        raise AdaptiveArmError("policy decision law differs from held-out panel")
+    if panel["policy"]["calibration_digest"] == base["source_digest"]:
+        raise AdaptiveArmError("calibration must be separate from held-out source")
     if type(panel["jobs"]) is not list or len(panel["jobs"]) != len(base["jobs"]):
         raise AdaptiveArmError("one action grammar per base job required")
     by_id = {job["job_id"]: job for job in base["jobs"]}

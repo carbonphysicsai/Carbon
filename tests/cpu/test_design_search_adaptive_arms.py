@@ -170,6 +170,7 @@ def _panel(*, cached=False, f02=False, battery=False):
         {
             "schema": adaptive.POLICY_SCHEMA,
             "challenge": challenge,
+            "decision_rule_id": "toy-rule",
             "calibration_digest": "sha256:" + "b" * 64,
             "pre_experiment_receipt": "sha256:" + "d" * 64,
             "direct": {
@@ -449,6 +450,34 @@ def test_typed_action_and_complete_cost_ledger_are_fail_closed():
         }
     )
     with pytest.raises(adaptive.AdaptiveArmError, match="ladder differs"):
+        adaptive.validate(_reseal(wrong), registration)
+
+
+def test_policy_law_and_calibration_source_are_separate_from_heldout():
+    panel, registration = _panel()
+    wrong = copy.deepcopy(panel)
+    wrong["policy"]["decision_rule_id"] = "another-law"
+    wrong["policy"] = adaptive.seal(
+        {
+            key: value
+            for key, value in wrong["policy"].items()
+            if key != "policy_digest"
+        },
+        "policy_digest",
+    )
+    with pytest.raises(adaptive.AdaptiveArmError, match="decision law differs"):
+        adaptive.validate(_reseal(wrong), registration)
+    wrong = copy.deepcopy(panel)
+    wrong["policy"]["calibration_digest"] = wrong["base_panel"]["source_digest"]
+    wrong["policy"] = adaptive.seal(
+        {
+            key: value
+            for key, value in wrong["policy"].items()
+            if key != "policy_digest"
+        },
+        "policy_digest",
+    )
+    with pytest.raises(adaptive.AdaptiveArmError, match="calibration must be separate"):
         adaptive.validate(_reseal(wrong), registration)
 
 
