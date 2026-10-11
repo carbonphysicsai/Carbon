@@ -15,6 +15,7 @@ from carbon.championship_stats import (
     PairedCase,
     PairedRound,
     confirm_noninferiority,
+    confirmation_lower_bound,
     holm,
     select_winner,
 )
@@ -189,6 +190,18 @@ def test_confirmation_needs_fresh_bounded_evidence_and_strict_margin():
         negative,
         confirmation_cases=100,
         delta_c=0.1,
+        lower=-1,
+        upper=1,
+        alpha=0.05,
+    )
+    at_boundary = -confirmation_lower_bound(
+        negative.differences, lower=-1, upper=1, alpha=0.05
+    )
+    assert not confirm_noninferiority(
+        evidence,
+        negative,
+        confirmation_cases=100,
+        delta_c=at_boundary,
         lower=-1,
         upper=1,
         alpha=0.05,
