@@ -1,0 +1,117 @@
+{
+  "schema": "carbon.design-search.equal-budget-registration.v1",
+  "registration_id": "EQUAL-BUDGET-V1",
+  "authority": "Test Lead under owner's 2026-10-10 value-bar delegation; EQUAL-BUDGET-REGISTRATION-01",
+  "evidence_scope": "DEVELOPMENT",
+  "challenge_budgets": {
+    "battery-v3": {
+      "decision_scope": "five-band ambient-indexed battery-v3 charge map, all mandatory 30-cycle conditions per candidate",
+      "basis": "ASSUMPTION",
+      "justification": "24 complete five-band maps is a prospective local-plus-global design exploration with final verification; the older 91 CPU-second single-action context does not price this v3 map. Eight allocated-host hours and 24 CPU core-hours allow startup, refinement, screening and failed proposals but are unmeasured buyer spend.",
+      "source_refs": [
+        "Business/research/equal-budget-realism/SPECIFICATION.md#battery-v3",
+        "docs/development/challenge_pipeline/cheap-baselines/battery.md#cost-stop-condition-and-credibility",
+        "https://www.nature.com/articles/s41586-020-1994-5"
+      ],
+      "tiers": {
+        "half": {
+          "solver_evaluations": 12,
+          "wall_s": 14400,
+          "core_s": 43200
+        },
+        "base": {
+          "solver_evaluations": 24,
+          "wall_s": 28800,
+          "core_s": 86400
+        },
+        "double": {
+          "solver_evaluations": 48,
+          "wall_s": 57600,
+          "core_s": 172800
+        }
+      }
+    },
+    "motor": {
+      "decision_scope": "revised motor 10p/12s double-layer and three-slice skew, complete command-angle-skew geometry panel",
+      "basis": "ASSUMPTION",
+      "justification": "No measured current full-panel cost exists. Twelve complete geometries and 24 wall/96 CPU core-hours are a prospective constrained multistart-and-DOE budget, with 6 and 24 geometry sensitivity tiers; the unrelated TEAM 25 sample count is method context, not this buyer's budget.",
+      "source_refs": [
+        "Business/research/equal-budget-realism/SPECIFICATION.md#motor",
+        "docs/development/challenge_pipeline/cheap-baselines/motor.md#cost-stop-condition-and-credibility",
+        "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md"
+      ],
+      "tiers": {
+        "half": {
+          "solver_evaluations": 6,
+          "wall_s": 43200,
+          "core_s": 172800
+        },
+        "base": {
+          "solver_evaluations": 12,
+          "wall_s": 86400,
+          "core_s": 345600
+        },
+        "double": {
+          "solver_evaluations": 24,
+          "wall_s": 172800,
+          "core_s": 691200
+        }
+      }
+    },
+    "f02": {
+      "decision_scope": "adopted nine-action burst-thermal menu for one registered condition panel; proposed continuous f02-v2 excluded",
+      "basis": "ASSUMPTION",
+      "justification": "A competent direct route can enumerate the nine discrete actions. Historical 2-3 CPU-minutes per waveform supports only a lower timing anchor, not full condition/refinement cost. Two wall and two CPU core-hours are prospective setup and verification allowance; the double tier may saturate the nine-action menu.",
+      "source_refs": [
+        "Business/research/equal-budget-realism/SPECIFICATION.md#f02",
+        "docs/development/challenge_pipeline/cheap-baselines/f02.md#cost-stop-condition-and-credibility",
+        "docs/development/challenge_pipeline/round1/f02-burst-thermal.md"
+      ],
+      "tiers": {
+        "half": {
+          "solver_evaluations": 5,
+          "wall_s": 3600,
+          "core_s": 3600
+        },
+        "base": {
+          "solver_evaluations": 9,
+          "wall_s": 7200,
+          "core_s": 7200
+        },
+        "double": {
+          "solver_evaluations": 18,
+          "wall_s": 14400,
+          "core_s": 14400
+        }
+      }
+    },
+    "f13": {
+      "decision_scope": "original offset two-chamber 3D f13 silencer, full 500-2500 Hz curve with mandatory refinement; conditional coaxial reframe excluded",
+      "basis": "ASSUMPTION",
+      "justification": "Owner-reported original full curves cost above two CPU-hours and have unresolved tails. Eight full curves, 16 wall-hours and 32 CPU core-hours are a prospective multi-core design review allowance; the doubled 16-curve tier reaches the proposed finite bank. Neither buyer allocation nor corrected-route runtime is measured.",
+      "source_refs": [
+        "docs/development/challenge_pipeline/value-cost/f13.md#part-c-one-meshprocess-many-frequency-systems",
+        "docs/development/challenge_pipeline/cheap-baselines/f13.md#cost-stop-condition-and-credibility",
+        "docs/development/challenge_pipeline/optimizers/f13-compressor-silencer.md#truth-verification-and-cost"
+      ],
+      "tiers": {
+        "half": {
+          "solver_evaluations": 4,
+          "wall_s": 28800,
+          "core_s": 57600
+        },
+        "base": {
+          "solver_evaluations": 8,
+          "wall_s": 57600,
+          "core_s": 115200
+        },
+        "double": {
+          "solver_evaluations": 16,
+          "wall_s": 115200,
+          "core_s": 230400
+        }
+      }
+    }
+  },
+  "registration_digest": "sha256:5bdadf18b7ae103ecec06d4b9c33c7efdcc83c7f178532cc06e4a1ff1b695bba"
+}
