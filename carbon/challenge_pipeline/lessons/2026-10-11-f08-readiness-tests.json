@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-f08-readiness-tests",
+  "recorded_at": "2026-10-11T16:22:20Z",
+  "challenge": "f08",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "F08-STRUCTURES-READINESS-BUILD-01", "description": "Native fixture regressions progressed from 66 passed/1 failed (closed equal-budget family inventory), to 66/2 (cost-plan binding and planned main pointers), to 67/1 (test below neutral bootstrap minimum), then 68 passed after matching the existing family, identity and bootstrap contracts. Black/Ruff passed; main-only readiness showed 1/7. No solver/build/spend."},
+  "expected": "Reuse real 3D reference and strong cross-geometry competitor without inventing numerical authority.",
+  "observed": "Generators, source-matched text decks, signed tip/probe contract, unresolved narrow peaks, all-damping safety, whole-geometry TRAIN exclusion and additive budget replay passed fixture tests. Tip objective is separate from historical combined diagnostic.",
+  "keep": ["Keep actual package and held-geometry operator comparator, including acquisition/projection/query costs."],
+  "change": ["Route registration must bind the whole neutral cost-plan identity and statistical harness requirements; software presence does not earn reference readiness."],
+  "protocol_elements": ["reference policy", "measurement authority"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

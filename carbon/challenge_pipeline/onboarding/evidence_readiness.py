@@ -35,6 +35,18 @@ OWNERS = (
     "Optimizer Codex",
 )
 BENCHMARK_ROUTES = {
+    "f08": {
+        "kind": "ROUND_ONE_DEVELOPMENT",
+        "pending": "F08-STRUCTURES-READINESS-BUILD-01",
+        "baseline": (
+            "carbon/development_comparison/reduced_baselines.py",
+            {"measure", "validate_operators", "structural_curve", "predict"},
+        ),
+        "budget": (
+            "carbon/design_search/structures_budget.py",
+            "F08-DEVELOPMENT-PROPOSED-V1",
+        ),
+    },
     "backward-facing-step": {
         "pending": "https://github.com/carbonphysicsai/Carbon/pull/1061",
         "baseline": (
