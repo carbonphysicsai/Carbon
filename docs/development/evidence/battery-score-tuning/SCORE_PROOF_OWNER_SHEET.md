@@ -1,53 +1,64 @@
 # Score proof: the owner's run (SCORE-PROOF-01)
 
 This runs on the operator host only (the AX42), against the sealed tuning
-set. It needs no new solve, training, spend or chain write. It re-scores
-stored predictions and writes aggregates only.
+set. It needs no new reference solve, spend or chain write. The new members
+rebuild on free host CPU, and only aggregates are returned.
 
 ## Before
 
-You need the tuning work directory `<W>` from
-[HIDDEN_POOL_AND_TUNING_RUNBOOK.md](../../graphite/HIDDEN_POOL_AND_TUNING_RUNBOOK.md)
-section B. Its `score` step has written `q3-regret.json`. You also need the
-development decision results, `<DEV_RESULTS>`: the same
-`ev4-dev-tuning-v1-results.json` the tuning curves used.
-
-Update the repository on the host to main after this ticket's PR merges:
+1. **The tuning work directory and quiz.** You need the tuning work
+   directory `<W>` and its quiz `<Q>` from
+   [HIDDEN_POOL_AND_TUNING_RUNBOOK.md](../../graphite/HIDDEN_POOL_AND_TUNING_RUNBOOK.md)
+   section B.
+2. **The decision results.** Copy the proof's development decision results
+   from the PC: `/home/carbon/shared/tuning-inputs/ev4-dev-proof-v1-results.json`
+   becomes `<DEV_RESULTS>` on the host. These are public development data:
+   EV4's references and no sealed case.
+3. **Main.** Update the repository on the host to main after this ticket's PR
+   merges:
 
 ```bash
 git -C ~/Carbon fetch origin && git -C ~/Carbon checkout --detach origin/main
 ```
 
-## Run (one command)
+## Run 1: rebuild the new members, then compare every rule (selection)
 
 ```bash
-cd ~/Carbon && python -m scripts.dev.battery.score_proof --work <W> --dev-results <DEV_RESULTS> --q3-regret <W>/q3-regret.json --out <W>/proof
+cd ~/Carbon && python -m scripts.dev.battery.score_proof_run --work <W> --quiz <Q> --dev-results <DEV_RESULTS> --out <W>/proof
 ```
 
-It takes about 10–20 minutes of CPU and at most about 4 GB of memory. It
-prints one line naming the output directory and the member count per
-level.
+- **The estimate.** It first prints its estimate: the registered members'
+  rebuild CPU hours. Add `--estimate-only` to see it without running.
+- **What it rebuilds.** The 11 registered Level 0 members: stage A's 5
+  bundles, and minerH's and minerI's 6 submissions. They rebuild on host
+  CPU and predict the sealed tuning set and the quiz.
+- **Then it scores and compares.** It rescores, and compares every
+  registered rule on the selection fold.
+- **Read** `<W>/proof/selection.md` and pick a rule there. Nothing on that
+  page is proof.
+
+## Run 2: the proof for your pick (confirmation)
+
+```bash
+cd ~/Carbon && python -m scripts.dev.battery.score_proof --phase confirmation --rule <RULE> --work <W> --dev-results <DEV_RESULTS> --q3-regret <W>/q3-regret.json --out <W>/proof
+```
+
+It takes about 5 minutes. The candidates are locked to your pick and the rule
+in force. It reports the proof criteria on the held-apart confirmation fold.
+`<W>/proof/confirmation.md` opens with **PROVEN** or **UNPROVEN** and names
+each failed criterion. A gate that misses an unsafe member reports FAIL with
+the cutoff range that would catch it; the cutoff stays yours.
 
 ## Return
 
-Send back only `<W>/proof/proof.md`, plus `<W>/proof/proof.json` if you want
-the detail. Both are aggregates:
-- **per rule:** τ with its 95% interval, and Δτ against the rule in force
-  (`G-FEAS/A-Q>@0.05`);
-- **known-bad and adversarial members in the top half;**
-- **top-1 regret;**
-- **gate recall on the unsafe member;**
-- **fold stability;**
-- **adversarial divergence.**
+Send back `<W>/proof/selection.md` and `<W>/proof/confirmation.md`, and the
+`.json` files if you want the detail. They are aggregates only: no case,
+input, output or reference.
 
-Each appears per level and pooled. No case, input, output or reference is
-in either file. Leave everything else in `<W>`.
+## What is not in this run
 
-## What it decides
+- **Levels 1 to 3** join through the level-aware ticket. The L1 round's
+  bundles are pre-registered at submit time.
+- **Level 4** waits for G5's acceptance.
 
-Nothing by itself. The report shows whether each registered rule ranks
-members by decision value and resists gaming, against the targets: no
-known-bad member in the top half, every unsafe member gated, and no
-adversarial divergence. Adopting a rule and choosing its cutoffs stay
-yours. Levels 1 to 4 have no members yet; their gaps and the cheapest fills
-are listed in `proof-members-v1.json` under `missing`.
+Both are listed in `proof-members-v1.json` under `missing`.

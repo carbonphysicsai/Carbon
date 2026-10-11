@@ -4,20 +4,66 @@
   "registered": "2026-10-10",
   "note": "The member set the score proof ranks. A member's level comes from the first rule whose pattern matches its name. Controls are level-agnostic anchors and join every level's pool. Roles name the registered known-bad, benign, adversarial and unsafe members. `missing` lists what each level lacks; filling it needs each member's sealed tuning-set predictions plus its development decision values, so it is an owner decision (no spend authorized here).",
   "levels": [
-    {"pattern": "^control-", "level": null, "source": "battery.value.panel controls, derived from the references"},
-    {"pattern": "^attack_", "level": 0, "source": "EV5 adversarial Track A constructions (ev4-dev-tuning attack-predictions)"},
-    {"pattern": "^graphite-run5-", "level": 0, "source": "Graphite phase-3 run 5 (graphite-run5-q1 predictions)"},
-    {"pattern": "^stage-a-", "level": 0, "source": "Graphite stage A Level 0 bundles (not yet run)"},
-    {"pattern": "^miner[HI]-", "level": 0, "source": "Launchpad rehearsal miners H and I"},
-    {"pattern": "^l1-", "level": 1, "source": "dev-ladder Level 1 constructions"},
-    {"pattern": "^l2-", "level": 2, "source": "dev-ladder Level 2 constructions"},
-    {"pattern": "^l3-", "level": 3, "source": "dev-ladder Level 3 constructions"},
-    {"pattern": "^l4-", "level": 4, "source": "dev-ladder Level 4 graph constructions"},
-    {"pattern": "^(mlp|deeponet|knn|fno)", "level": 0, "source": "EV4 exam-design members (srb1-ev4 predictions)"}
+    {
+      "pattern": "^control-",
+      "level": null,
+      "source": "battery.value.panel controls, derived from the references"
+    },
+    {
+      "pattern": "^attack_",
+      "level": 0,
+      "source": "EV5 adversarial Track A constructions (ev4-dev-tuning attack-predictions)"
+    },
+    {
+      "pattern": "^graphite-run5-",
+      "level": 0,
+      "source": "Graphite phase-3 run 5 (graphite-run5-q1 predictions)"
+    },
+    {
+      "pattern": "^stage-a-",
+      "level": 0,
+      "source": "Graphite stage A Level 0 bundles (not yet run)"
+    },
+    {
+      "pattern": "^miner[HI]-",
+      "level": 0,
+      "source": "Launchpad rehearsal miners H and I"
+    },
+    {
+      "pattern": "^l1-",
+      "level": 1,
+      "source": "dev-ladder Level 1 constructions"
+    },
+    {
+      "pattern": "^l2-",
+      "level": 2,
+      "source": "dev-ladder Level 2 constructions"
+    },
+    {
+      "pattern": "^l3-",
+      "level": 3,
+      "source": "dev-ladder Level 3 constructions"
+    },
+    {
+      "pattern": "^l4-",
+      "level": 4,
+      "source": "dev-ladder Level 4 graph constructions"
+    },
+    {
+      "pattern": "^(mlp|deeponet|knn|fno)",
+      "level": 0,
+      "source": "EV4 exam-design members (srb1-ev4 predictions)"
+    }
   ],
   "roles": {
-    "known_bad": ["control-boundary_optimist", "control-localized_sign_error"],
-    "benign": ["control-oracle", "control-rank_preserving_delay"],
+    "known_bad": [
+      "control-boundary_optimist",
+      "control-localized_sign_error"
+    ],
+    "benign": [
+      "control-oracle",
+      "control-rank_preserving_delay"
+    ],
     "adversarial": [
       "attack_rebuild_identity_backbone_a-s0",
       "attack_rebuild_identity_backbone_b-s0",
@@ -30,16 +76,44 @@
       "mlp_t6000_w256_d3_ens2-s0",
       "mlp_t6000_w512_d3-s1"
     ],
-    "unsafe": ["graphite-run5-p-1d4aaff5d292-s3718551111"]
+    "unsafe": [
+      "graphite-run5-p-1d4aaff5d292-s3718551111"
+    ]
   },
   "missing": {
     "L0": [
-      {"members": "stage A's 5 Level 0 bundles", "why": "stage A has not run (blocked on the pod environment size, #991)", "cheapest_fill": "run stage A after #991 merges (already granted); then predictions on the sealed tuning set and decision values, operator-side on free CPU"},
-      {"members": "rehearsal miners H and I", "why": "their submissions have no tuning-set predictions or decision values in ev4-dev-tuning-v1", "cheapest_fill": "rebuild each submission's recipe from its intake record on the AX42 (CPU, free), predict the sealed tuning set, add decision values with the existing decision study"}
+      {
+        "members": "none open: stage A's 5 bundles and minerH/minerI's 6 submissions are registered in carbon/battery/value/contracts/proof-panel-l0-v1.json (before any value)",
+        "fill": "the owner's score_proof_run (free host CPU)"
+      }
     ],
-    "L1": [{"members": "any Level 1 construction", "why": "no Level 1 member has tuning-set predictions or decision values", "cheapest_fill": "rebuild the dev ladder's Level 1 submissions (validator on 8469) and the level-climb-1 records operator-side; CPU, free"}],
-    "L2": [{"members": "any Level 2 construction", "why": "as Level 1", "cheapest_fill": "as Level 1, from the Level 2 variant's submissions"}],
-    "L3": [{"members": "any Level 3 construction", "why": "as Level 1", "cheapest_fill": "as Level 1, from the Level 3 numerics variant's submissions"}],
-    "L4": [{"members": "any Level 4 graph construction", "why": "graph compile and training stay fail closed until the security owner accepts the G5 profile (LEVEL4-DEV-VARIANT-01)", "cheapest_fill": "none until G5 is accepted; then rebuild the dry-run graphs (#893) operator-side"}]
+    "L1": [
+      {
+        "members": "Level 1 constructions",
+        "why": "the decision experiment compiles at Level 0 only",
+        "fill": "the level-aware ticket (required, Test Lead); the L1 round's D-G bundles are pre-registered at submit time, or the 8469 ladder's submissions if it holds any"
+      }
+    ],
+    "L2": [
+      {
+        "members": "Level 2 constructions",
+        "why": "as Level 1",
+        "fill": "as Level 1"
+      }
+    ],
+    "L3": [
+      {
+        "members": "Level 3 constructions",
+        "why": "as Level 1",
+        "fill": "as Level 1"
+      }
+    ],
+    "L4": [
+      {
+        "members": "any Level 4 graph construction",
+        "why": "graph compile and training stay fail closed until the security owner accepts the G5 profile (LEVEL4-DEV-VARIANT-01)",
+        "cheapest_fill": "none until G5 is accepted; then rebuild the dry-run graphs (#893) operator-side"
+      }
+    ]
   }
 }

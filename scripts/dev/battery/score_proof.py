@@ -1,9 +1,17 @@
 """The one-command battery score proof (SCORE-PROOF-01), off chain.
 
-    python -m scripts.dev.battery.score_proof --work TUNING_DIR \
-        --dev-results ev4-dev-tuning-v1-results.json --out PROOF_DIR
-    python -m scripts.dev.battery.score_proof --public-standin \
+    python -m scripts.dev.battery.score_proof --phase selection --work TUNING_DIR \
+        --dev-results RESULTS --q3-regret Q3 --out PROOF_DIR
+    python -m scripts.dev.battery.score_proof --phase confirmation --rule ID ...
+    python -m scripts.dev.battery.score_proof --phase selection --public-standin \
         --ev4 DIR --run5 DIR --attack DIR --dev-results ... --out DIR
+
+Selection is kept apart from proof (`proof-split-v1.json`, registered before
+any run). Every rule and cutoff is compared on the selection fold of the
+scoring cases (and of the members, where a level has enough), and the owner
+picks there. The confirmation phase reports the proof criteria for the
+picked rule only, against the rule in force, on the held-apart fold, and
+gives a PROVEN or UNPROVEN verdict naming each failed criterion.
 
 It uses the same panel as `tuning_rescore` (`assemble`: stored predictions,
 sealed references, development decision values, registry-v4's candidates
@@ -11,7 +19,7 @@ with its commit check). It adds levels and roles from the members manifest
 (`proof-members-v1.json`) and the per-case-fold legs, and writes
 `carbon.battery.value.score_proof`'s report.
 
-Outputs go to `--out`, owner-only: `proof.json` and `proof.md`, aggregates
+Outputs go to `--out`, owner-only: `<phase>.json` and `<phase>.md`, aggregates
 only, with no case, input, output or reference. `--public-standin` runs on
 the public scoring set as a plumbing check, and its numbers are not proof.
 The real run is on the sealed tuning set, operator host only
@@ -40,6 +48,7 @@ REGISTRY = ROOT / "docs/development/evidence/battery-score-tuning/registry-v5.js
 #: 0.05, recorded as "exceeds" (registry v5's `G-FEAS/A-Q>@0.05`).
 RULE_IN_FORCE = "G-FEAS/A-Q>@0.05"
 MEMBERS_SCHEMA = "carbon.battery.score-proof-members.v1"
+SPLIT = ROOT / "docs/development/evidence/battery-score-tuning/proof-split-v1.json"
 
 
 def load_members(path=MEMBERS):
@@ -56,6 +65,44 @@ def level_of(name, rules):
         if re.search(rule["pattern"], name):
             return rule["level"]
     raise SystemExit(f"refused: no level rule names a member ({len(name)} chars)")
+
+
+def load_split(path=SPLIT):
+    from carbon.battery.value import score_proof as sp
+
+    document = json.loads(Path(path).read_text(encoding="utf-8"))
+    if document.get("schema") != sp.SPLIT_SCHEMA:
+        raise SystemExit("refused: unknown split schema")
+    return document
+
+
+def phase_panel(panel, members, split, phase):
+    """The panel restricted to one phase: its members (the registered split),
+    with decision values recomputed on exactly those members. The caller has
+    already computed the legs on the phase's scoring cases."""
+    from carbon.battery.value import score_proof as sp
+    from carbon.battery.value import score_tuning as st
+
+    roles = members["roles"]
+    levels = {m: level_of(m, members["levels"]) for m in panel["names"]}
+    anchors = {m for m in panel["names"] if levels[m] is None} | {
+        m
+        for key in ("known_bad", "benign", "adversarial", "unsafe")
+        for m in roles[key]
+    }
+    names, split_levels = sp.split_members(
+        split, panel["names"], panel["recipe_of"], levels, anchors, phase
+    )
+    values, mask, outcomes = st.decision_values(panel["results"], names)
+    return {
+        **panel,
+        "names": names,
+        "legs": {m: panel["legs"][m] for m in names},
+        "values": values,
+        "mask": mask,
+        "outcomes": outcomes,
+        "split_levels": split_levels,
+    }
 
 
 def fold_legs(panel, folds):
@@ -228,36 +275,89 @@ def main(argv=None):
     parser.add_argument(
         "--candidates", help="comma-separated registered ids; default all"
     )
+    parser.add_argument("--split", type=Path, default=SPLIT)
+    parser.add_argument(
+        "--phase",
+        choices=("selection", "confirmation"),
+        required=True,
+        help="selection: compare every rule (the owner picks); confirmation: "
+        "the proof criteria for --rule only, on the held-apart fold",
+    )
+    parser.add_argument("--rule", help="confirmation: the rule the owner picked")
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
+    from carbon.battery.value import score_proof as sp
+
+    if args.phase == "confirmation" and not args.rule:
+        raise SystemExit("refused: confirmation needs --rule (the owner's pick)")
+    if args.phase == "selection" and args.rule:
+        raise SystemExit("refused: --rule is for confirmation only")
     if args.public_standin:
         store, ids, predictions = tr._standin([args.ev4, args.run5, args.attack])
     else:
         store, ids, predictions = tr._tuning(args.work)
+    split = load_split(args.split)
+    members = load_members(args.members)
     q3 = json.loads(args.q3_regret.read_text()) if args.q3_regret else None
-    panel = tr.assemble(store, ids, predictions, args.dev_results, q3)
+    cases = sp.split_cases(split, ids, args.phase)
+    panel = phase_panel(
+        tr.assemble(store, cases, predictions, args.dev_results, q3),
+        members,
+        split,
+        args.phase,
+    )
+    if args.phase == "confirmation":
+        # Candidates locked: the owner's pick and the rule in force only.
+        candidates = sorted({args.rule, args.baseline})
+    else:
+        candidates = args.candidates.split(",") if args.candidates else None
     report = proof(
         panel,
-        load_members(args.members),
+        members,
         folds=args.folds,
         n_bootstrap=args.bootstrap,
-        candidates=args.candidates.split(",") if args.candidates else None,
+        candidates=candidates,
         registry_path=args.registry,
         baseline=args.baseline,
     )
+    report["phase"] = {
+        "phase": args.phase,
+        "split": split["salt"],
+        "cases": len(cases),
+        "member_split_levels": panel["split_levels"],
+    }
+    if args.phase == "confirmation":
+        report["verdict"] = sp.verdict(
+            report, args.rule, split["minimum_level_members"]
+        )
     report["source"] = (
         "PUBLIC_STANDIN (plumbing only; not proof)"
         if args.public_standin
         else "graphite-tuning-v1 (sealed)"
     )
     args.out.mkdir(mode=0o700, parents=True, exist_ok=True)
-    header = f"# Score proof ({report['source']})\n\n{report['threshold']}\n"
+    if args.phase == "selection":
+        lead = (
+            "**SELECTION fold.** Compare the rules and pick one here; nothing on "
+            "this page is proof. Then run the confirmation phase with --rule."
+        )
+    else:
+        v = report["verdict"]
+        lead = f"**CONFIRMATION fold, {v['rule']}: {v['verdict']}.**" + "".join(
+            f"\n- {f}" for f in v["failed"]
+        )
+    phase = report["phase"]
+    header = (
+        f"# Score proof ({report['source']})\n\n{lead}\n\n"
+        f"{phase['cases']} scoring cases; member split at levels "
+        f"{phase['member_split_levels'] or 'none'}.\n\n{report['threshold']}\n"
+    )
     for name, text in (
         (
-            "proof.json",
+            f"{args.phase}.json",
             json.dumps(report, indent=1, sort_keys=True, default=str) + "\n",
         ),
-        ("proof.md", header + gate_lines(report) + table(report)),
+        (f"{args.phase}.md", header + gate_lines(report) + table(report)),
     ):
         path = args.out / name
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)

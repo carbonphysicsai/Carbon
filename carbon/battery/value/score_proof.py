@@ -389,3 +389,86 @@ def prove(
         "threshold": "HUMAN_INPUT: the owner adopts a rule and picks its cutoffs",
         "claims": "DEVELOPMENT evidence; nothing adopted; no rule, gate or reward changed",
     }
+
+
+# --- selection kept apart from proof ---------------------------------------------------
+SPLIT_SCHEMA = "carbon.battery.score-proof-split.v1"
+SELECTION, CONFIRMATION = "selection", "confirmation"
+PROVEN, UNPROVEN = "PROVEN", "UNPROVEN"
+
+
+def side(salt, kind, key):
+    """`selection` or `confirmation` for one case or recipe, by the
+    registered hash rule (`proof-split-v1.json`)."""
+    import hashlib
+
+    h = hashlib.sha256(f"{salt}:{kind}:{key}".encode()).hexdigest()
+    return SELECTION if int(h[:8], 16) % 2 == 0 else CONFIRMATION
+
+
+def split_cases(split, case_ids, phase):
+    return [c for c in case_ids if side(split["salt"], "case", c) == phase]
+
+
+def split_members(split, members, recipe_of, levels, anchors, phase):
+    """The phase's members: anchors always; within a level holding at least
+    the registered minimum of recipes, one side of the recipe split; a
+    smaller level keeps every member. Returns (members, split levels)."""
+    anchors = set(anchors)
+    by_level = {}
+    for m in members:
+        if m not in anchors and levels.get(m) is not None:
+            by_level.setdefault(levels[m], set()).add(recipe_of[m])
+    split_levels = sorted(
+        lv
+        for lv, recipes in by_level.items()
+        if len(recipes) >= split["minimum_recipes"]
+    )
+    kept = [
+        m
+        for m in members
+        if m in anchors
+        or levels.get(m) is None
+        or levels[m] not in split_levels
+        or side(split["salt"], "recipe", recipe_of[m]) == phase
+    ]
+    return kept, split_levels
+
+
+def verdict(report, rule, minimum_level_members=10):
+    """PROVEN only when the chosen rule meets every registered confirmation
+    criterion, pooled and at each level with enough members; else UNPROVEN
+    with each failed criterion named."""
+    failed = []
+    check = report["gate_recall_check"].get(rule, {})
+    for level, r in report["candidates"][rule].items():
+        if level != POOLED and r["members"] < minimum_level_members:
+            continue
+
+        def fail(what, level=level):
+            failed.append(f"{level}: {what}")
+
+        if r.get("status") != "COMPLETE":
+            fail("incomplete legs")
+            continue
+        ci = r["tau_ci95"]
+        if ci is None or ci[0] <= 0:
+            fail("tau interval does not exclude 0")
+        if r["known_bad_in_top_half"]:
+            fail("known-bad member in the top half")
+        if r["adversarial_in_top_half"]:
+            fail("adversarial member in the top half")
+        status = check.get("status")
+        if status == "FAIL":
+            fail("gate misses an unsafe member")
+        elif status == "NO_GATE" and any(
+            rank is None or 2 * rank <= n for rank, n in r["unsafe_ranks"].values()
+        ):
+            fail("no gate, and an unsafe member is not in the bottom half")
+        if r["adversarial_divergence"]:
+            fail("adversarial divergence")
+        for kind in ("scenario_folds", "case_folds"):
+            spread = r["fold_stability"][kind]
+            if spread is not None and spread["min"] <= 0:
+                fail(f"a {kind.replace('_', ' ')} tau is not above 0")
+    return {"rule": rule, "verdict": UNPROVEN if failed else PROVEN, "failed": failed}

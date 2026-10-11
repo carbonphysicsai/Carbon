@@ -184,3 +184,45 @@ def test_a_gate_that_misses_an_unsafe_member_fails_and_names_the_catching_cutoff
         {"measure": "feasibility", "comparison": "exceeds"}, [0.03, None]
     )
     assert exceeds == {"measure": "feasibility", "cutoff_below": 0.03}
+
+
+def split_doc():
+    return {"salt": "fixture-salt", "minimum_recipes": 3, "minimum_level_members": 3}
+
+
+def test_the_split_is_registered_disjoint_and_keeps_seeds_and_anchors_together():
+    legs, _values, recipe_of, levels = panel()
+    split = split_doc()
+    cases = [f"case-{i}" for i in range(200)]
+    selection = sp.split_cases(split, cases, sp.SELECTION)
+    confirmation = sp.split_cases(split, cases, sp.CONFIRMATION)
+    assert set(selection).isdisjoint(confirmation)
+    assert sorted(selection + confirmation) == sorted(cases)
+    assert 60 < len(selection) < 140  # roughly half, by the registered hash
+    anchors = {"control-bad", "gamed-s0", "unsafe-s0"}
+    picked = {
+        phase: sp.split_members(split, list(legs), recipe_of, levels, anchors, phase)
+        for phase in (sp.SELECTION, sp.CONFIRMATION)
+    }
+    (sel, split_levels), (con, _) = picked[sp.SELECTION], picked[sp.CONFIRMATION]
+    assert split_levels == [0]  # level 1 has one recipe: all its members kept
+    assert anchors <= set(sel) & set(con)
+    assert {"r5-s0", "r5-s1"} <= set(sel) & set(con)
+    for r in range(5):  # a recipe's seeds stay on one side
+        assert ({f"r{r}-s0", f"r{r}-s1"} <= set(sel)) != (
+            {f"r{r}-s0", f"r{r}-s1"} <= set(con)
+        )
+
+
+def test_confirmation_gives_a_verdict_naming_each_failed_criterion():
+    legs, values, recipe_of, levels = panel()
+    report = sp.prove(
+        registry(), legs, values, recipe_of, levels,
+        known_bad=["control-bad"], adversarial=["gamed-s0"], unsafe=["unsafe-s0"],
+        ids=["CE"], n_bootstrap=50,
+    )  # fmt: skip
+    verdict = sp.verdict(report, "CE", minimum_level_members=10)
+    assert verdict["verdict"] == sp.UNPROVEN
+    assert "pooled: known-bad member in the top half" in verdict["failed"]
+    assert "pooled: adversarial divergence" in verdict["failed"]
+    assert not any(f.startswith("L1:") for f in verdict["failed"])  # too few members
