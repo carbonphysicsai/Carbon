@@ -11,8 +11,8 @@ rebuild on free host CPU, and only aggregates are returned.
    [HIDDEN_POOL_AND_TUNING_RUNBOOK.md](../../graphite/HIDDEN_POOL_AND_TUNING_RUNBOOK.md)
    section B.
 2. **The decision results.** Copy the proof's development decision results
-   from the PC: `/home/carbon/shared/tuning-inputs/ev4-dev-proof-v1-results.json`
-   becomes `<DEV_RESULTS>` on the host. These are public development data:
+   from the PC's shared tuning inputs: `ev4-dev-proof-v1-results.json`, which
+   the Test Engineer supplies, becomes `<DEV_RESULTS>` on the host. These are public development data:
    EV4's references and no sealed case.
 3. **Main.** Update the repository on the host to main after this ticket's PR
    merges:
