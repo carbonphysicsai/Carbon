@@ -158,6 +158,19 @@ def test_special_challenge_registration_routes_keep_report_shape(
         assert "evidence_scope" not in report and "customer_result" not in report
 
 
+def test_bolted_route_still_requires_its_representative_proposal():
+    body = {
+        key: value
+        for key, value in panel("bolted-joint").items()
+        if key != "panel_digest"
+    }
+    body.update(evidence_scope="REPRESENTATIVE", customer_result=False)
+    with pytest.raises(
+        eb.EqualBudgetError, match="representative budget proposal required"
+    ):
+        eb.compare(eb.seal(body), bootstrap_replicates=100, confidence=0.95, seed=3)
+
+
 @pytest.mark.parametrize("challenge", ["battery-v3", "motor", "f02", "f13"])
 def test_three_arms_budget_and_paired_bootstrap(challenge):
     report = eb.compare(
