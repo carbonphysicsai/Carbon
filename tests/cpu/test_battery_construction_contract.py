@@ -86,7 +86,11 @@ def test_each_challenge_has_its_own_contract_and_digest():
         BURGERS: "rebuildable_development",
         BATTERY: "research_only",
     }
-    assert r.status_map("model_family.mlp") == {BATTERY: "rebuildable_development"}
+    # MOTOR-NEURAL-01 (motor expansion record 0001): motor rebuilds an MLP too.
+    assert r.status_map("model_family.mlp") == {
+        BATTERY: "rebuildable_development",
+        MOTOR: "rebuildable_development",
+    }
     with pytest.raises(r.UnknownChallenge):
         r.contract("battery-charge-degradation")
 

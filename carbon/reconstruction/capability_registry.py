@@ -1336,6 +1336,17 @@ MOTOR_RIDGE_CHOICES = (
     "ridge_1",
 )
 
+#: Motor's neural families (MOTOR-NEURAL-01): a finite Level-0 menu, as
+#: data. `carbon.motor.compile` holds each token's value.
+MOTOR_NEURAL = ("mlp", "deeponet")
+MOTOR_WIDTH_CHOICES = ("width_64", "width_128", "width_256")
+MOTOR_DEPTH_CHOICES = ("depth_2", "depth_3", "depth_4")
+MOTOR_STEPS_CHOICES = ("steps_500", "steps_1000", "steps_2000", "steps_4000")
+MOTOR_LEARNING_RATE_CHOICES = ("lr_5e_4", "lr_1e_3", "lr_2e_3", "lr_5e_3")
+MOTOR_ACTIVATION_CHOICES = ("gelu", "tanh", "silu")
+MOTOR_BASIS_CHOICES = ("basis_8", "basis_16", "basis_32")
+MOTOR_BACKENDS = ("jax", "pytorch")
+
 MOTOR_REGISTRY = (
     _family(
         "kernel_ridge",
@@ -1343,6 +1354,20 @@ MOTOR_REGISTRY = (
         "motor_kernel_ridge",
         "Gaussian kernel-ridge regression over the eight registered inputs; "
         "trained only from the pinned public Motor TRAIN records",
+    ),
+    _family(
+        "mlp",
+        "mlp",
+        "motor_mlp",
+        "Dense network from the eight registered inputs to the period's torque "
+        "curve, trained by Carbon's shared trainer on public Motor TRAIN",
+    ),
+    _family(
+        "deeponet",
+        "deeponet",
+        "motor_deeponet",
+        "DeepONet: a branch over the eight registered inputs and a trunk over the "
+        "rotor angle, trained by Carbon's shared trainer on public Motor TRAIN",
     ),
     _field(
         A,
@@ -1358,17 +1383,67 @@ MOTOR_REGISTRY = (
         "Kernel-ridge regularization selected from the published calibration grid",
         ("kernel_ridge",),
     ),
+    _field(
+        A,
+        "width",
+        Surface("model", "choice", MOTOR_WIDTH_CHOICES, None, "width_128"),
+        "Hidden width",
+        MOTOR_NEURAL,
+    ),
+    _field(
+        A,
+        "depth",
+        Surface("model", "choice", MOTOR_DEPTH_CHOICES, None, "depth_3"),
+        "Hidden layers (MLP) or branch and trunk hidden layers (DeepONet)",
+        MOTOR_NEURAL,
+    ),
+    _field(
+        A,
+        "basis_functions",
+        Surface("model", "choice", MOTOR_BASIS_CHOICES, None, "basis_16"),
+        "Trunk basis functions over the rotor angle",
+        ("deeponet",),
+    ),
+    _field(
+        A,
+        "activation",
+        Surface("model", "choice", MOTOR_ACTIVATION_CHOICES, None, "gelu"),
+        "Hidden-layer activation",
+        MOTOR_NEURAL,
+    ),
+    _field(
+        B,
+        "steps",
+        Surface("train", "choice", MOTOR_STEPS_CHOICES, None, "steps_2000"),
+        "Full-batch updates",
+        MOTOR_NEURAL,
+    ),
+    _field(
+        O,
+        "learning_rate",
+        Surface("train", "choice", MOTOR_LEARNING_RATE_CHOICES, None, "lr_2e_3"),
+        "Peak learning rate (Adam, cosine decay)",
+        MOTOR_NEURAL,
+    ),
+    _field(
+        INF,
+        "backend",
+        Surface("train", "choice", MOTOR_BACKENDS, None, "jax"),
+        "Reconstruction backend: Carbon rebuilds the recipe with its own shared "
+        "trainer in this framework (JAX or PyTorch)",
+        MOTOR_NEURAL,
+    ),
     _todo(
         M,
         "neural_operator",
-        "A Motor neural-operator family has no registered reconstruction recipe "
-        "or evidence yet",
+        "A Motor neural operator beyond the DeepONet (an FNO over the angle, "
+        "and others) has no registered reconstruction recipe yet",
     ),
     _todo(
         O,
         "learned_optimizer",
-        "Kernel ridge is a deterministic closed-form fit; trainable optimizer "
-        "freedom is not implemented for this Challenge",
+        "Optimizer freedom beyond the learning rate (families, curves, "
+        "regularization) is not registered for this Challenge yet",
     ),
     _excluded(
         M,
@@ -1457,7 +1532,10 @@ MOTOR_CONTRACT = ChallengeContract(
         (key, "float64" if key == "precision" else value)
         for key, value in _WORKER_ENVELOPE
     )
-    + (("train_cases", 150), ("batching", "closed_form_full_train")),
+    + (("train_cases", 150), ("batching", "full_train")),
+    # The research session's practice worker is the numpy image: it offers the
+    # kernel ridge only until a JAX and PyTorch practice image is wired for
+    # Motor (MOTOR-NEURAL-01).
     lanes=(("session", ("kernel_ridge",)),),
 )
 

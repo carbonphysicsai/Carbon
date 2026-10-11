@@ -403,6 +403,21 @@ class MotorPractice:
         return compile_recipe(strategy)
 
     def backend_refusal(self, strategy):
+        """The backends this host serves when `strategy` compiles to a recipe
+        it cannot practise, else None (`backend_not_served`, before anything
+        starts or is charged). The practice worker is the numpy image, so a
+        neural family (MOTOR-NEURAL-01) is refused until a JAX and PyTorch
+        practice image is wired for Motor."""
+        from carbon.development_session.research_catalog import RecipeRejected
+
+        from .compile import NEURAL_FAMILIES
+
+        try:
+            _compiled, recipe = self.compile(strategy)
+        except (RecipeRejected, ValueError, TypeError, KeyError):
+            return None
+        if recipe.family in NEURAL_FAMILIES:
+            return tuple(self.backends)
         return None
 
     def __call__(self, identity, strategy):

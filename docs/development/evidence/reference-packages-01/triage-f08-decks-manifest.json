@@ -1,0 +1,297 @@
+{
+ "schema": "carbon.reference-triage.frozen-decks.v1",
+ "ticket": "REFERENCE-PACKAGES-01",
+ "authority": "Test Lead 2026-10-08: #787 f08 triage on local free CPU, no spend",
+ "image": "sha256:d9ef68d016226a945c7eefcb6b2261c60a11249ee0f93458ae6c3aca956fd6f8",
+ "mesh_image_f08": "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+ "cases": [
+  {
+   "family": "f08",
+   "case": "small-light-primary",
+   "reservation": "primary",
+   "command": "ccx -i case > ccx.log 2>&1",
+   "mesh": {
+    "nodes": 25047,
+    "elements": 12384
+   },
+   "files": {
+    "case.inp": "9185dc3e843810194ca6af86031f0ca6259bca0d1a5e0eaf362cc803315880b8",
+    "deck.json": "2245c75f549d35c87ee64608bd436a50f40d164500c4a69531c5e98a26c081de",
+    "make_mesh.py": "f4daa12afc4b2135bb9c95a2c1d99fd94573996a236e11e593c9176e7bd6ebbb",
+    "mesh.inp": "fa4b23f29e93b780af119fe811e6f1d4c30da69515356ad118744f2a7f7b5e83",
+    "mesh.json": "17889e3fafd499d51cbe6432a20fbd85e4d6a830770fb5117248bcbc0f95de23"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "large-stiff-primary",
+   "reservation": "primary",
+   "command": "ccx -i case > ccx.log 2>&1",
+   "mesh": {
+    "nodes": 82411,
+    "elements": 46484
+   },
+   "files": {
+    "case.inp": "175eb66b6eaf0b354af9c9387ce00858db368723abf473d638d71740ddddc0b7",
+    "deck.json": "a563d47492d4f8379bcf28915c22d1af5a17af6a161ce4cf16142689357a7767",
+    "make_mesh.py": "d122c677245d47fe3397745e7d25dac918ee4fde873283855a58f8377760e71b",
+    "mesh.inp": "88e010ca486fc10dc6ed86af6ad640269d4b686c6d9575525ffbd157662498d1",
+    "mesh.json": "b6787cb56881ee469827fbe4faa3a6e0ab49de953c177c0e47e5f15e78e864d8"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "nominal-primary",
+   "reservation": "primary",
+   "command": "ccx -i case > ccx.log 2>&1",
+   "mesh": {
+    "nodes": 52038,
+    "elements": 28369
+   },
+   "files": {
+    "case.inp": "d2c5234cb82b21572231d027c881bb772ea80693c6382cb52fb8198944d20fdc",
+    "deck.json": "eec228ab2d55bb600a5119b055d0a7244e3d2509eb12f192c7a475bcd0a41821",
+    "make_mesh.py": "c4bcb62cfdda02a8dbb319b5afe2bb3d1de25d236d540b581800ca8aec3638be",
+    "mesh.inp": "bd510f80cf7de605ea4fa129a736dccd7121e75db3a4b535a3b3ddabec16e653",
+    "mesh.json": "e660e5fcc997f2bb5d4d249eb7b51eba83955ed8015509fce582d385fead7749"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "long-flexible-primary",
+   "reservation": "primary",
+   "command": "ccx -i case > ccx.log 2>&1",
+   "mesh": {
+    "nodes": 34864,
+    "elements": 17153
+   },
+   "files": {
+    "case.inp": "fd2e370390822a28a9e466cf8f1e6c4195e417a83a1fcc1f64b15e8774c000f8",
+    "deck.json": "a34dda64cc3988a5eadff3753f42455ef7c5d2f84632f88af737ac4b9a7a0992",
+    "make_mesh.py": "f64c8c878813141a76f6da0949ae6dc0f46adee7d8b1da87b5876aba112c4e09",
+    "mesh.inp": "40e7992fee3eef863fd7ed2a4411547f1955c19c4adf484d2b5965517f477563",
+    "mesh.json": "3205c03ae185b4d1d1a85fbc111ffd54c11cdd1c3a3128934457488dd2334ccc"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "short-wide-primary",
+   "reservation": "primary",
+   "command": "ccx -i case > ccx.log 2>&1",
+   "mesh": {
+    "nodes": 60738,
+    "elements": 34422
+   },
+   "files": {
+    "case.inp": "781c807591eb13692b114851286680fc8f92e9b9fea1de3adb5f976a7762150d",
+    "deck.json": "da3d47c7ca3afe573df47efdd7821c4bae9782531dd5ac2512b305b4a7f16687",
+    "make_mesh.py": "445f29238f57f2d205206e566efb7310aa10d6c4bb493401e2de99a7adcf4a44",
+    "mesh.inp": "77d736d69d4efe900ea3dc49f2ab398aff136f8242264b29874518eb653d386a",
+    "mesh.json": "980aa20e5a95d3327bdc981b933c2f647991b8cb9cf3bbce25f9e47a53f8b842"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "thin-high-ribs-primary",
+   "reservation": "primary",
+   "command": "ccx -i case > ccx.log 2>&1",
+   "mesh": {
+    "nodes": 42767,
+    "elements": 21093
+   },
+   "files": {
+    "case.inp": "3506deceadad2f4cc2c24e3370206097246da71b62afbdf1de124c0acfc9be3d",
+    "deck.json": "a6a2992896f12147d06975d45d4ac7d219c267bd43cf91528c9621277c1f0b7c",
+    "make_mesh.py": "406f793b29221a8a28f5621f62b4e693700c2bd2dfcca636681f1eec38f142ef",
+    "mesh.inp": "6fe81fb1fa76058223e9c5db103225b2f6ec4c6b0704b44f1834c45334bb8bdb",
+    "mesh.json": "aab55132e61b86f9134a99ed32133b1a79e578fd30b51da8a2d4d0de1de8211f"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "thick-low-ribs-primary",
+   "reservation": "primary",
+   "command": "ccx -i case > ccx.log 2>&1",
+   "mesh": {
+    "nodes": 53834,
+    "elements": 30488
+   },
+   "files": {
+    "case.inp": "e95e5ce9855549a09c66c404cadfdcec3e4e85fe375209b045ccaec10e694f1e",
+    "deck.json": "5ccb343cb3cc969f90819ebbe04e703fd9a13bf7607811f3aa24687aa11a8477",
+    "make_mesh.py": "1e43b52dbe1db2a573ba3f950bd14c7dde5539e8a5eeda0c64a9c06c6d92c2e5",
+    "mesh.inp": "9905bdd76bedd89c0e2cd3f26d4625d4dff6d275565c7d9135522fc6f5ee90ce",
+    "mesh.json": "33d0400fc0163875b632208c37ea119b969cedd88afbc4aa52c6a44e3b0f18e7"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "relieved-tall-primary",
+   "reservation": "primary",
+   "command": "ccx -i case > ccx.log 2>&1",
+   "mesh": {
+    "nodes": 56888,
+    "elements": 30795
+   },
+   "files": {
+    "case.inp": "fe8531d750a571b671b6d4577489f10214cba9be3d34f25c7c61109e409c3be0",
+    "deck.json": "03722a33c00b0a1c6523fe9240ed80984d34963bc9305ceb6847007a86b4f6fa",
+    "make_mesh.py": "c08ec88e0aac91216fe0da59ee21a753fcdd0ab08c7481612ae028b8c677d6d6",
+    "mesh.inp": "6c2f1f4eba1d88f92444744e61886b4d3c69eef3722ddada15a142d193978966",
+    "mesh.json": "6603f812c70f3eee560fbf99949e2ae857b137e7d57bc30d07209bb52cc4b366"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "control-oscillators",
+   "reservation": "controls",
+   "command": "ccx -i case > ccx.log 2>&1",
+   "files": {
+    "case.inp": "bee39ef2ad28140928f8c8b9e5d3f1f07901f1c3e843a620bd18780e7de7b7a7",
+    "deck.json": "3ee2a2bfe5b00f727c751eb2e141fcc5b2778d20a6ad37a6cc95011a1cbe7e5e"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "long-flexible-h2.25",
+   "reservation": "witness_studies",
+   "command": "ccx -i case > ccx.log 2>&1",
+   "mesh": {
+    "nodes": 71997,
+    "elements": 38828
+   },
+   "files": {
+    "case.inp": "2c0ab1dfce1b70ea13849e7a5fc42264e4e286f4caa4d602005a11a13e188e8b",
+    "deck.json": "2ebdfeaba8d0b3b3e90e054e11de1ff50d35ae3f7b7560b03287e5161b47354d",
+    "make_mesh.py": "72f3bff58d3aae1abf9a3cfa44bcccca18d83c25c5b7b2e4aeeeabe48954de83",
+    "mesh.inp": "524f4346b7dc4d2fc7a9194eb5c1bcfdd57528a815523d38537aa06b2642bf3f",
+    "mesh.json": "aaeffd4678ec5c3bf44d866dd002e1e114e71a7842b996b005c7e5937146a9e8"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "long-flexible-h1.7",
+   "reservation": "witness_studies",
+   "command": "ccx -i case > ccx.log 2>&1",
+   "mesh": {
+    "nodes": 137512,
+    "elements": 77105
+   },
+   "files": {
+    "case.inp": "b31f2b66d6de24be4ee027c5f994153e089ec5b89444afbef889148078df268e",
+    "deck.json": "80e2e6e777f5556aa3378141cbf62de441bee78a8776103986d7c6b789b7915f",
+    "make_mesh.py": "40fb9b51cef5a31863e5b71c964cce23599142698dad35e7b742f011cc034193",
+    "mesh.inp": "5afb11dbc48591d925c81d78586a435b3b9199f8846080210348d72946ad994d",
+    "mesh.json": "9ea1a64da5e34cecb7bc7906771d54fcb9f5872f6ad777fb48ab56abd0226873"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "relieved-tall-h2.25",
+   "reservation": "witness_studies",
+   "command": "ccx -i case > ccx.log 2>&1",
+   "mesh": {
+    "nodes": 117896,
+    "elements": 67454
+   },
+   "files": {
+    "case.inp": "8f26c2778bc46d166d37a549b6b64e2f2ebbe6fb7bf6e474395d72dc7f3b8e5c",
+    "deck.json": "76b4880fbd26be9d6f9a5edde28f843aa21c7d240ec84119fb3ac1a57aae5582",
+    "make_mesh.py": "28733972f6bd58e72c488b0ff1d5a30dad2396f71946f5755965b3e431b0c131",
+    "mesh.inp": "8f7c7c3f56f91e4543510dee4d572693171f3d8105244c794d7596585eaf9891",
+    "mesh.json": "4a3569f2167cc6e10d900fb114ee712d98435f0e07a1d5faad3197057ad40c20"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "relieved-tall-h1.7",
+   "reservation": "witness_studies",
+   "command": "ccx -i case > ccx.log 2>&1",
+   "mesh": {
+    "nodes": 241756,
+    "elements": 146031
+   },
+   "files": {
+    "case.inp": "f49052223c9d7eca6520747d425d4f34bc984ef491446fe7f5e3d5ffad836e8a",
+    "deck.json": "4ab214511b183f028f178a76411ac3b6faffc63a75be6a0f1aa243f707668074",
+    "make_mesh.py": "b7172ff137851d39f9a68386e854eada3db4d2d06b8d958dd3256ca3c0f65bd6",
+    "mesh.inp": "1ac1be54ef038d13ebce3cc54a419fb3f2778387e0b916a190895776cd5fd5a7",
+    "mesh.json": "2982fb4c9e61df88e5bee22432494c8b8f7f9f1d9d8dafa72bd622ed7483df6d"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "nominal-h2.25",
+   "reservation": "witness_studies",
+   "command": "ccx -i case > ccx.log 2>&1",
+   "mesh": {
+    "nodes": 103589,
+    "elements": 59485
+   },
+   "files": {
+    "case.inp": "3a3e09b12f565d5e6e9979a925920897bb2c24cbfd0601498da9f82c2d0f98d2",
+    "deck.json": "24f137582ee46f5401ac1aa4b8ef8221a950c51e8b5ce51166d4c322833a8dc9",
+    "make_mesh.py": "7ad1b579fd903427aae78f3035d190b86ab4d5bee8ae952082f273c1baf86eef",
+    "mesh.inp": "26c7fac9049f36cb433cc99f804fd01b63c34376934da486a71ab879a61205c0",
+    "mesh.json": "9455586e4e198809a38037d480e0e636b1f9437899a28b8faca20e165717bb6e"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "nominal-h1.7",
+   "reservation": "witness_studies",
+   "command": "ccx -i case > ccx.log 2>&1",
+   "mesh": {
+    "nodes": 211313,
+    "elements": 128078
+   },
+   "files": {
+    "case.inp": "ee7fd4ab0fb7d968fdd1f5353f8fe4f4c475bd459614aef0ec52e102c303001e",
+    "deck.json": "ff837faffea5c2be0129541b337b38279f5f6d4983daf6d759b7fed1fc9c76cb",
+    "make_mesh.py": "fb07f42326d71f459fffa17cdf4c4115a2b97942fd4f0cb3b2a2f97b0dbae829",
+    "mesh.inp": "ec2eac174649ae7a1f1411ebf04e7d8ad09bc8d54c4b3c1490609b7ab7cc3f14",
+    "mesh.json": "7a7722f322954e9675664aa8ff227a7e2ff2694e363435ac6544cc1433ec22a9"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "control-beam",
+   "reservation": "controls",
+   "command": "ccx -i case > ccx.log 2>&1",
+   "mesh": {
+    "nodes": 32116,
+    "elements": 18632
+   },
+   "files": {
+    "case.inp": "ef6bb7a31de93c33457033a21aabaaf4daca92703781c14526b383849a8d7d4a",
+    "deck.json": "16d5da35a018c0b579cda711a1a53158f4c30ee96015cc79e2df9dab69c527c5",
+    "make_mesh.py": "37cf46bff1738f5c789fca04b744152fc45eb4dfcc0c767511bd830d34e36e1c",
+    "mesh.inp": "691431245563674857775787b22212f664dba671897415410e218fb10e308bd6",
+    "mesh.json": "12d085d040e642b836d6c0c69cbaa5a1ba5b65ddb4b331aa7e4a9ab292e41cc1"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "small-light-cold-repeat",
+   "reservation": "cold_repeat",
+   "command": "ccx -i case > ccx.log 2>&1",
+   "mesh": {
+    "nodes": 25047,
+    "elements": 12384
+   },
+   "files": {
+    "case.inp": "9185dc3e843810194ca6af86031f0ca6259bca0d1a5e0eaf362cc803315880b8",
+    "deck.json": "2245c75f549d35c87ee64608bd436a50f40d164500c4a69531c5e98a26c081de",
+    "make_mesh.py": "f4daa12afc4b2135bb9c95a2c1d99fd94573996a236e11e593c9176e7bd6ebbb",
+    "mesh.inp": "fa4b23f29e93b780af119fe811e6f1d4c30da69515356ad118744f2a7f7b5e83",
+    "mesh.json": "17889e3fafd499d51cbe6432a20fbd85e4d6a830770fb5117248bcbc0f95de23"
+   }
+  }
+ ],
+ "counts": {
+  "cold_repeat": 1,
+  "controls": 2,
+  "primary": 8,
+  "witness_studies": 6
+ }
+}

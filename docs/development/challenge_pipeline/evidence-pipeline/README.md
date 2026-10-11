@@ -199,5 +199,13 @@ A row outside TRAIN's support abstains, and a fixture TRAIN set can never
 produce public predictions. The receipt records the fit cost and the
 inference cost, cold and warm. See MODEL-PREDICTIONS-FOR-EVIDENCE-01.
 
-Kits: `battery-v3`, which waits for its registered TRAIN set. Motor needs a
-10p/12s kit, and f02 has none.
+Kits:
+- **`battery-v3`** waits for its registered TRAIN set.
+- **`motor`** is the 10p/12s machine. It needs `--material` set to the curve
+  sidecar, for the panel designs' grammar. Its DEVELOPMENT TRAIN comes from
+  the sidecar's study designs
+  (`python -m carbon.development_comparison.motor_10p12s_kit`) until the
+  registered TRAIN set lands.
+- **`f02`** has 24 plain context questions. Its support is the registered
+  960-case TRAIN plan's domain, and `carbon_arm.domain_gaps` must find no
+  panel row outside it.

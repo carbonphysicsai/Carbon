@@ -395,3 +395,16 @@ def test_the_producer_serves_motor_only_under_its_approval(tmp_path):
         CHALLENGE, {"deployment": str(deployment), "approval": approval}
     )
     assert served.identities() == source.identities()
+
+
+def test_a_neural_recipe_is_not_served_and_uses_no_window(tmp_path, published):
+    """MOTOR-NEURAL-01: as the public adapter; the hotkey's window stays free."""
+    from carbon.challenge_validator.motor import NEURAL_NOT_SERVED
+
+    adapter = validator(tmp_path)
+    ak.import_local(adapter, published["key"].public_key, published["outbox"])
+    neural = {**SCAFFOLD, "backbone": "mlp", "parameters": {}}
+    with pytest.raises(Unavailable) as refused:
+        adapter.evaluate(admitted(1200, strategy=neural))
+    assert refused.value.code == NEURAL_NOT_SERVED
+    assert adapter.evaluate(admitted(1200))["state"] == "SCORED"
