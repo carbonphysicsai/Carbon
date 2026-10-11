@@ -722,7 +722,7 @@ def _bundle_matches(experiment):
         if bundle is None:
             out[member] = None
             continue
-        _, recipe = compile_recipe(strategy)
+        _, recipe = compile_recipe(experiment._base_strategy(member, strategy))
         out[member] = (bundle.get("recipe_digest"), bundle.get("seed")) == (
             recipe.recipe_digest,
             seed,

@@ -1,0 +1,10 @@
+{
+ "schema":"carbon.challenge-pipeline.lesson.v1", "lesson_id":"2026-10-11-silencer-preparation",
+ "recorded_at":"2026-10-11T12:30:34Z", "challenge":"f13", "stage":"test_iterate",
+ "execution":{"kind":"test_run", "ref":"F13-SILENCER-READINESS-BUILD-01", "description":"Offline deck/observer/generator fixtures plus affected comparator and budget regressions"},
+ "expected":"Preserve buyer planes and 3D offset decisions while using adopted longer numerical leads.",
+ "observed":"104 final native tests passed, Black/Ruff/diff passed. Two canonical-wrapper attempts refused the Windows-managed worktree root before execution; no canonical pass is claimed. GitHub pinned CI supplies acceptance. No solver ran.",
+ "keep":["Original physical package versus computational extensions", "Signed integral and plane power diagnostics", "Existing strongest modal comparator and f13 budget row"],
+ "change":["Never infer full-band adequacy from a probe closure", "Incomplete frequency/refinement evidence cannot rank buyer designs"],
+ "protocol_elements":["measurement_authority", "reference_adequacy", "equal_budget"], "proposed_revision":null, "status":"RECORDED"
+}

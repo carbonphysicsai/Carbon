@@ -860,7 +860,7 @@ def import_grids(experiment, source):
     contract = _ev4_contract(experiment)
     expected = {}
     for member, _label, strategy, seed in experiment._members():
-        _, recipe = compile_recipe(strategy)
+        _, recipe = compile_recipe(experiment._base_strategy(member, strategy))
         expected[member] = (recipe.recipe_digest, seed)
     target = _dir(experiment, "grid")
     copied, kept = [], []

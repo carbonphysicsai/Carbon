@@ -1,0 +1,59 @@
+{
+  "schema": "carbon.research.verify-aware-candidates.v1",
+  "ticket": "VERIFY-AWARE-SCORE-01",
+  "status": "PROPOSED_SELECTION_FOLD_CANDIDATES_NOT_ADOPTED",
+  "historical_registry": "docs/development/evidence/battery-score-tuning/registry-v5.json",
+  "runtime_compatibility": "PROSPECTIVE_EXTENSION_REQUIRED_NEW_v_LEG_AND_PRODUCT_VALUE_TARGET",
+  "product_contract": {
+    "list": "unique in-family actions, prediction-only order committed before reference access",
+    "k": "HUMAN_INPUT",
+    "complete_panel_attempt_cap": "HUMAN_INPUT",
+    "wall_s": "HUMAN_INPUT",
+    "core_s": "HUMAN_INPUT",
+    "planning_bounds_and_refinement_policy": "HUMAN_INPUT",
+    "regret_normalisation_in_objective_units": "HUMAN_INPUT",
+    "no_verified_return_loss": 1.0,
+    "no_verified_return_loss_basis": "MATHEMATICAL_FULL_REGRET_CONVENTION_REQUESTED_BY_OWNER; not an infeasibility label",
+    "reference_unavailability": "INSUFFICIENT_REFERENCE_NO_NUMERIC_SCIENTIFIC_SCORE",
+    "band_unresolved": "cannot return design; consumes budget; full service loss if none returned",
+    "oracle": "best settled reference-feasible design in the registered action bank; unresolved possible optimum prevents full-oracle claim",
+    "reference_gate": "unchanged registered limits, bands, solver and complete mandatory condition panel",
+    "historical_q_leg": "UNCHANGED; new v never masquerades as registry-v5 q"
+  },
+  "candidates": [
+    {
+      "id": "VERIFY-R",
+      "role": "RECOMMENDED_FOR_SELECTION_FOLD_NOT_PROVEN_SUPERIOR",
+      "weights": {"v": 1.0},
+      "leg_v": "1/(1 + weighted mean bounded best-VERIFIED-feasible regret at registered k and budget)",
+      "physical_accuracy": "report separately; any mandatory model-use gate requires owner registration",
+      "gate": "structural evidence eligibility and verifier-enforced delivery admissibility; cannot weaken existing mandatory gates without owner decision"
+    },
+    {
+      "id": "A-VERIFY-R",
+      "role": "COMPARATOR_WITH_KNOWN_FIXED_LIST_SCORE_ONLY_ACCURACY_GAIN",
+      "weights": {"a": 0.5, "v": 0.5},
+      "weights_basis": "ASSUMPTION comparator reuses registry-v5 A-Q equal weights; not adopted",
+      "score": "sqrt(a*v)",
+      "gate": "same structural eligibility and fixed verifier as VERIFY-R"
+    }
+  ],
+  "public_sensitivity": {
+    "k": {"low": 1, "base": 3, "high": 5, "basis": "ASSUMPTION diagnostic choices; no production default"},
+    "complete_panel_attempt_cap": {"low": 1, "base": 3, "high": 5, "basis": "ASSUMPTION; resource cap must also fit; count alone is not equal-budget"},
+    "normalisation_s": {"low": 60.0, "base": 120.0, "high": 240.0, "basis": "ASSUMPTION sensitivity; base equals historical EV4/EV5 minimum_useful_improvement_s"},
+    "extra_attempt_caps": {"values": [2, 10, 35], "basis": "ASSUMPTION diagnostic stress points; 35 is the sourced historical action count"},
+    "real_k_gt_1_regret_and_tau": "NOT_IDENTIFIABLE_FROM_PUBLIC_SINGLE_PICK_SUMMARIES",
+    "published_bounds": "constant-cost, historical predicted-feasible-order extensions only; not measured top-k orders or CPU budgets"
+  },
+  "selection_fold_requirements": [
+    "owner registers k, complete-panel attempt cap, wall/core cap, normalisation and unresolved/refinement semantics before selection",
+    "version new v leg and separate product-value target prospectively; keep old q and historical verdicts",
+    "retain all offered questions and report settled NONE_FEASIBLE, no-verified-return, unresolved-reference and infrastructure failure counts separately",
+    "pair candidate rules on identical members, questions, reference policy, action family and budget; move seeds with recipes",
+    "compare actual G-PLATE/A-Q and tighter scoring-set G-FEAS/A-Q only when their complete raw-derived legs exist",
+    "freeze candidate and budget on selection fold, then untouched confirmation; shared public EV4/EV5 is development exploration",
+    "report paired tau intervals, known-bad and benign placement, product-return rate, top-policy regret, resource overrun and score-only attacks",
+    "no member eligibility, solver claim, product qualification or live score change is earned by this research PR"
+  ]
+}
