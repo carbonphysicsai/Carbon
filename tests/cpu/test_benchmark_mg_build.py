@@ -163,6 +163,16 @@ def test_public_calibration_needs_each_contested_stratum_and_changed_winners():
     ]
     second = copy.deepcopy(first)
     second[0]["efficiency"] = 1
+    close = copy.deepcopy(first)
+    close[0]["efficiency"] = 0.21
+    memorized = b.calibration_check(
+        {"a": first, "b": close},
+        minimum_useful_improvement=0.05,
+        minimum_margin_spread=0.1,
+    )
+    assert memorized["status"] == "CALIBRATION_FAILS" and memorized[
+        "common_value_equivalent_pick"
+    ] == ["4"]
     assert (
         b.calibration_check(
             {"a": first, "b": second},
@@ -427,3 +437,10 @@ def test_additive_budget_route_keeps_historical_registration_closed_and_enforces
         registration=raw,
     )
     assert result["status"] == "OK"
+
+
+def test_execution_lesson_is_in_the_validated_log_not_only_a_document_folder():
+    from carbon.challenge_pipeline.lessons import LESSONS, validate
+
+    p = LESSONS / "2026-10-11-mg-preparation.json"
+    assert validate(json.loads(p.read_text()), p.stem, {})["challenge"] == b.FAMILY

@@ -677,7 +677,7 @@ def decision_novelty(challenge, witnesses):
             regret = abs(truth[predicted]["objective"] - truth[actual]["objective"])
             status = (
                 "SHORTCUT_STILL_WORKS_NOT_NOVEL"
-                if regret <= number(row["value_equivalence"])
+                if regret <= number(row["value_equivalence"], positive=True)
                 else "DECISION_NOVELTY_PASSES_PUBLIC_ONLY"
             )
         else:
