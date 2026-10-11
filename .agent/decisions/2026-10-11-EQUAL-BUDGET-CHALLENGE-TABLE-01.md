@@ -14,6 +14,11 @@ validator and flags the already-required indexed or representative schema.
 existing constant. No Challenge, budget value, evidence status, objective,
 report field, or solver-verification rule changes.
 
+Reconciliation against main's new f17 route adds its existing
+`micromixer_budget.validate` to the same table. The f17 readiness inspector
+now recognizes this table mapping as wired, preserving its prior YES/NO/PLANNED
+behavior; the mutation fixture still rejects a severed validator route.
+
 Alternative rejected: moving or rewriting per-band scientific validation.
 This ticket owns route selection only, and that validation already has tests.
 The table is reversible without data migration. No human-reserved value is

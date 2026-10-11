@@ -6,7 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from carbon.design_search import bfs_budget, bolted_budget, metagrating_budget
+from carbon.design_search import (
+    bfs_budget,
+    bolted_budget,
+    metagrating_budget,
+    micromixer_budget,
+)
 from carbon.design_search import budget_registration as br
 from carbon.design_search import equal_budget as eb
 
@@ -94,6 +99,7 @@ def test_challenge_routes_preserve_registered_validators_and_flags():
         "backward-facing-step": bfs_budget.validate,
         "bolted-joint": bolted_budget.validate,
         "metagrating-3d": metagrating_budget.validate,
+        "f17": micromixer_budget.validate,
     }
     assert eb.CHALLENGES == set(expected) == set(eb.CHALLENGE_ROUTES)
     assert {
@@ -115,6 +121,7 @@ def test_challenge_routes_preserve_registered_validators_and_flags():
         ("backward-facing-step", "benchmark-readiness/bfs/equal-budget-proposal.json"),
         ("metagrating-3d", "benchmark-readiness/mg/equal-budget-proposal.json"),
         ("bolted-joint", None),
+        ("f17", "proposal"),
     ],
 )
 def test_special_challenge_registration_routes_keep_report_shape(
@@ -122,6 +129,8 @@ def test_special_challenge_registration_routes_keep_report_shape(
 ):
     if registration_path is None:
         registration = bolted_budget.proposal()
+    elif registration_path == "proposal":
+        registration = micromixer_budget.proposal()
     else:
         registration = json.loads(
             (

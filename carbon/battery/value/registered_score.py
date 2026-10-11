@@ -26,9 +26,10 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-TERM_FIELDS = frozenset({"registry", "registry_sha256", "candidate"})
+TERM_FIELDS = frozenset({"registry", "registry_sha256", "candidate", "decision"})
 REGISTRY_DIR = "docs/development/evidence/battery-score-tuning/"
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
+_DECISION = re.compile(r"OWNER-[A-Z0-9]+(?:-[A-Z0-9]+)*-\d{2}\Z")
 
 
 class RegisteredScoreRefused(ValueError):
@@ -42,7 +43,8 @@ class RegisteredScoreRefused(ValueError):
 def check_term(term):
     """The deployment's registered-score term, shape only: exactly
     `registry` (a file under the tuning registry directory),
-    `registry_sha256` (its hex digest) and `candidate` (an id)."""
+    `registry_sha256` (its hex digest), `candidate` (an id) and `decision`
+    (the owner's record adopting the candidate, `OWNER-…-NN`)."""
     if (
         type(term) is not dict
         or set(term) != TERM_FIELDS
@@ -54,9 +56,30 @@ def check_term(term):
         or not _SHA.fullmatch(term["registry_sha256"])
         or type(term["candidate"]) is not str
         or not term["candidate"]
+        or type(term["decision"]) is not str
+        or not _DECISION.match(term["decision"])
     ):
         raise RegisteredScoreRefused("registered_score_term_malformed")
     return dict(term)
+
+
+def check_decision(term, repository):
+    """The owner's record adopting the term's candidate (the owner's #1101
+    security conditions: a candidate change is owner-only, each with a
+    decision record naming the candidate and the registry digest). The
+    record is the `.agent/decisions/*.md` file whose heading names
+    `term["decision"]`; its text must name both the candidate id and the
+    registry sha256, or the scorer is refused."""
+    decision = term["decision"]
+    heading = re.compile(rf"\A## .*\b{re.escape(decision)}\b")
+    for path in sorted((Path(repository) / ".agent" / "decisions").glob("*.md")):
+        text = path.read_text(encoding="utf-8")
+        if not heading.match(text):
+            continue
+        if term["candidate"] in text and term["registry_sha256"] in text:
+            return path
+        raise RegisteredScoreRefused("registered_score_decision_mismatch")
+    raise RegisteredScoreRefused("registered_score_decision_unrecorded")
 
 
 class RegisteredScore:
@@ -84,6 +107,7 @@ class RegisteredScore:
         candidate = candidates.get(term["candidate"])
         if candidate is None:
             raise RegisteredScoreRefused("registered_score_candidate_unknown")
+        check_decision(term, repository)
         self.term = term
         self.candidate = candidate
         self.contract = qs.contract(repository)
