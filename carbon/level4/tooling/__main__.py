@@ -118,6 +118,22 @@ def lower(spec_path, out_dir, *, challenge, interface, batch, max_bytes):
     return submission.digest(manifest)
 
 
+def envelope(out_dir, path):
+    """The lowered directory `out_dir` as one gzipped staging envelope at
+    `path` (`carbon.level4.staging`): the single file a development session's
+    Level 4 stage tool reads (GRAPHITE-L4-STAGING-01). Deterministic bytes."""
+    import gzip
+
+    from .. import staging
+
+    digest, raw_manifest, files = staging.read_directory(out_dir)
+    body = json.dumps(
+        staging.envelope(raw_manifest, files), sort_keys=True, separators=(",", ":")
+    ).encode()
+    Path(path).write_bytes(gzip.compress(body, mtime=0))
+    return digest
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m carbon.level4.tooling")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -130,7 +146,16 @@ def main(argv=None):
     low.add_argument(
         "--max-bytes", type=int, default=1 << 30, help="this tool's own parse bound"
     )
+    packed = sub.add_parser(
+        "envelope", help="pack a lowered directory as one gzipped staging envelope"
+    )
+    packed.add_argument("out")
+    packed.add_argument("path")
     args = parser.parse_args(argv)
+    if args.command == "envelope":
+        digest = envelope(args.out, args.path)
+        print(json.dumps({"submission": digest, "envelope": args.path}))
+        return 0
     digest = lower(
         args.spec,
         args.out,

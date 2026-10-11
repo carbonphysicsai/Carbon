@@ -44,6 +44,7 @@ out = io.StringIO()
 with contextlib.redirect_stdout(out):
     code = tool.main(["lower", sys.argv[2], sys.argv[3], "--challenge", "x",
                       "--interface", "sha256:" + "0" * 64, "--batch", "4"])
+    code += tool.main(["envelope", sys.argv[3], sys.argv[3] + ".json.gz"])
 print(json.dumps({"code": code, "modules": sorted(
     m for m in sys.modules if m == "carbon" or m.startswith("carbon."))}))
 """
@@ -83,6 +84,11 @@ def test_a_lowering_runs_on_the_shipped_files_alone(lowered):
     found, raw, files = staging.read_directory(root / "out")
     assert found == submission.digest(json.loads(raw))
     assert found.startswith("sha256:") and files
+    # The one file the stage tool reads: the same submission, as data.
+    import gzip
+
+    packed = json.loads(gzip.decompress((root / "out.json.gz").read_bytes()))
+    assert staging.from_envelope(packed) == (found, raw, files)
 
 
 def test_the_lowering_reaches_only_the_registered_public_tooling(lowered):

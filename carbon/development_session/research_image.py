@@ -94,6 +94,7 @@ LEVEL4_TOOLING = (
     "carbon.level4.interpret",
     "carbon.level4.named",
     "carbon.level4.params",
+    "carbon.level4.staging",
     "carbon.level4.submission",
     "carbon.level4.tooling",
     "carbon.level4.tooling.__main__",
