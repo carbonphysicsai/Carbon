@@ -446,6 +446,22 @@ def test_duty_weights_missing_negative_boolean_or_unnormalized_fail_closed(weigh
         baseline.duty_task(duty_fixture(), weights)
 
 
+def test_duty_transform_refuses_an_uncompiled_objective_and_prescaled_source():
+    task = duty_fixture()
+    with pytest.raises(ValueError, match="duty-compiled"):
+        baseline.duty_values(task, {})
+    task.pop("task_digest")
+    task["secondary"] = {
+        "quantity": baseline.DUTY_QUANTITY,
+        "unit": "Pa",
+        "sense": "min",
+        "aggregate": "mean",
+    }
+    task["task_digest"] = tasks.digest(task)
+    with pytest.raises(ValueError, match="raw source"):
+        baseline.duty_task(task, {"nominal": 0.9, "rare": 0.1})
+
+
 def test_duty_comparator_has_matched_decision_and_equal_budget_rankings():
     task = duty_fixture()
     reference = [

@@ -48,6 +48,11 @@ def duty_task(registered, weights):
         )
     if any(l["quantity"] == DUTY_QUANTITY for l in registered["limits"]):
         raise ValueError("duty weighting must never scale a hard limit")
+    if (
+        registered["secondary"] is not None
+        and registered["secondary"]["quantity"] == DUTY_QUANTITY
+    ):
+        raise ValueError("raw source task must not contain the compiled duty quantity")
     identity = deepcopy(registered["identity"])
     identity["observer_version"] = {
         "source": identity["observer_version"],
@@ -77,7 +82,11 @@ def duty_values(compiled, values):
     """
     tasks._verify_task_digest(compiled)
     observer = compiled["identity"]["observer_version"]
-    if not isinstance(observer, dict) or observer.get("compiler") != DUTY_COMPILER:
+    if (
+        not isinstance(observer, dict)
+        or observer.get("compiler") != DUTY_COMPILER
+        or compiled["objective"]["quantity"] != DUTY_QUANTITY
+    ):
         raise ValueError("duty-compiled task required")
     weights = observer["duty_weights"]
     result = {}

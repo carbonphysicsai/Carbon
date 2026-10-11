@@ -1,7 +1,7 @@
 {
   "schema": "carbon.challenge-pipeline.lesson.v1",
   "lesson_id": "2026-10-11-bfs-duty-decision",
-  "recorded_at": "2026-10-11T03:02:00Z",
+  "recorded_at": "2026-10-11T02:58:00Z",
   "challenge": "backward-facing-step",
   "stage": "test_iterate",
   "execution": {"kind": "test_run", "ref": "BENCHMARK-READINESS-BUILD-BFS-01", "description": "Native matched-duty comparator regressions; no solver or spend"},
