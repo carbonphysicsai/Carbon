@@ -186,11 +186,56 @@ def domain_for(challenge_id, level, served_backends, repository=REPOSITORY):
     }
 
 
+def variant_additions(variant):
+    """What a development variant adds over Level 0, as the brief states it:
+    each widened capability's strategy field, summary, catalog surface,
+    applicability and bounds, from the registered variant document.
+
+    The variant is what compiles at the level, so the brief must name its
+    surface even where the level's planner document declares no capability
+    (battery's Level 4: its document lists none, and a brief built from it
+    alone told the Constructor that only Level 0's names were accepted)."""
+    out = []
+    for entry in variant.document()["widened"]:
+        out.append(
+            {
+                "capability": entry["id"],
+                "field": "parameters." + entry["id"].partition(".")[2],
+                "summary": entry["summary"],
+                "surface": entry["surface"],
+                "applies_to": entry["applies_to"],
+                "bounds": entry["bounds"],
+                "source": "development variant " + variant.version,
+            }
+        )
+    return out
+
+
 def for_scoring(scoring, variant, repository=REPOSITORY):
     """The domain for a session: its Challenge's scoring record and its level
-    (a development variant's level, else 0)."""
+    (a development variant's level, else 0). At a development level the
+    variant's widened surface is listed first in `level_additions`
+    (`variant_additions`), then any capability the level's document names
+    that the variant does not."""
     level = 0 if variant is None else variant.level
-    return domain_for(scoring.challenge_id, level, scoring.served_backends, repository)
+    domain = domain_for(
+        scoring.challenge_id, level, scoring.served_backends, repository
+    )
+    if domain is None or not hasattr(variant, "widened"):
+        return domain
+    widened = variant_additions(variant)
+    named = {entry["capability"] for entry in widened}
+    domain["level_additions"] = widened + [
+        {"capability": identifier, "source": "level document"}
+        for identifier in domain["level_additions"]
+        if identifier not in named
+    ]
+    domain["note"] = (
+        "A request outside this domain is refused before any pod is reserved. "
+        "Only the names and values listed here are accepted, including each "
+        "level_additions field."
+    )
+    return domain
 
 
 def precheck(strategy, domain):

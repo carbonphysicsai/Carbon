@@ -125,10 +125,15 @@ class BankedBatterySource(BatteryBatchSource):
             raise ProducerRefused("producer_design_bank_missing")
         law = BatteryQ3Law(self.adapter.target, repository=self.repository)
         values = DESIGN_BANKS.get(law.name)
+        # A scheduled rule carries its own E for the questions (its digest
+        # pins it; OWNER-BANK-SCHEDULED-ROTATION-01); any other rule must
+        # match the bank's registered values exactly.
+        scheduled = rule.get("draw") == "scheduled"
         if (
             rule.get("bank") != PREFIX + law.name
             or values is None
-            or (values["k"], values["retire_at"]) != (rule["k"], rule["retire_at"])
+            or values["k"] != rule["k"]
+            or (not scheduled and values["retire_at"] != rule["retire_at"])
         ):
             raise ProducerRefused("producer_design_rule_mismatch")
 
@@ -287,6 +292,7 @@ class BankedBatterySource(BatteryBatchSource):
         key, active = self._window(role)
         if (kind == "finalist") != (key % 2 == 1):
             raise ProducerRefused("producer_kind_refused")
+        stride = self._stride(self.pool, keys_per_slot=2)
         try:
             drawn = self.ledger.draw_window(
                 BANK,
@@ -294,6 +300,7 @@ class BankedBatterySource(BatteryBatchSource):
                 {"all": self.pool["window_cases"]},
                 active_slots=active,
                 retire_at=self.pool["retire_at"],
+                stride=stride,
             )
         except BankRefused as refused:
             if not refused.code.startswith("bank_short"):
@@ -309,6 +316,7 @@ class BankedBatterySource(BatteryBatchSource):
                 {"all": self.pool["window_cases"]},
                 active_slots=active,
                 retire_at=self.pool["retire_at"],
+                stride=stride,
             )
         if kind == "screening" and self.design is not None:
             self._draw_design(key, active)
@@ -351,11 +359,31 @@ class BankedBatterySource(BatteryBatchSource):
 
     def bank_health(self):
         """The pool bank's live count against B: `BANK_LOW` below half of B,
-        so the refill timer is checked before a window would find it short."""
+        so the refill timer is checked before a window would find it short.
+        With a design bank, its live questions against its size too; either
+        one low is `BANK_LOW`."""
         live = self.ledger.status().get(BANK, {}).get("live", 0)
         size = self.pool["size"]
         low = live < size * self.LOW_FRACTION
-        return {"state": "BANK_LOW" if low else "OK", "live": live, "size": size}
+        health = {"state": "BANK_LOW" if low else "OK", "live": live, "size": size}
+        if self.design is not None:
+            questions = self.design.ledger.status().get(self.design.bank, {})
+            q_live, q_size = questions.get("live", 0), self.design.values()["size"]
+            q_low = q_live < q_size * self.LOW_FRACTION
+            health["design"] = {"live": q_live, "size": q_size}
+            if q_low:
+                health["state"] = "BANK_LOW"
+        return health
+
+    def _stride(self, values, *, keys_per_slot):
+        """The scheduled draw's stride in window keys, or None for a uniform
+        draw: a case's exposures fall `active_batches` slots apart, so they
+        never meet in concurrently live windows (OWNER-BANK-SCHEDULED-
+        ROTATION-01). The pool's keys interleave screening and finalist
+        windows (2 a slot); the design bank's are one a slot."""
+        if values.get("draw") != "scheduled":
+            return None
+        return keys_per_slot * self.adapter.target.rule["active_batches"]
 
     def _design_keys(self, key, active):
         """A screening window's design key and the design keys of the other
@@ -368,7 +396,11 @@ class BankedBatterySource(BatteryBatchSource):
         the same draw). A short bank is topped up first, as the pool is."""
         rule = self.adapter.target.rule["design"]
         design_key, design_active = self._design_keys(key, active)
-        options = {"active_slots": design_active, "retire_at": rule["retire_at"]}
+        options = {
+            "active_slots": design_active,
+            "retire_at": rule["retire_at"],
+            "stride": self._stride(rule, keys_per_slot=1),
+        }
         bank = self.design.bank
         try:
             return self.design.ledger.draw_window(
@@ -377,6 +409,9 @@ class BankedBatterySource(BatteryBatchSource):
         except BankRefused as refused:
             if not refused.code.startswith("bank_short"):
                 raise ProducerRefused("producer_" + refused.code) from None
+            if rule.get("top_up", True) is False:
+                # Refilled by the operator's timer, never inside a tick.
+                raise ProducerRefused("producer_design_bank_short") from None
         # Not every drawn question is live (some have no feasible design), so
         # a top-up may need more than one tranche; bounded, then refused.
         for _ in range(3):
