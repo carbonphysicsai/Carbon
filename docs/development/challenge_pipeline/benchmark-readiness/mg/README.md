@@ -152,8 +152,12 @@ not evidence that the shortcut loses. No hidden/tuning/quiz witness is used.
 
 ## Public TRAIN, coverage and cheap competitor
 
-`train_plan` requires explicit public/fixture custody, deduplicates physical
-action/hardware/condition (ignoring rung/labels), and excludes the panel.
+`train_plan` requires explicit public/fixture custody and a registered
+`allow_y_reflection` convention. It deduplicates physical action/hardware/
+condition (ignoring rung/labels), excludes translated or registered-y-mirrored
+copies of the panel, and refuses mixed canonical grids until their physical
+material mapping is supplied. X mirroring is not an equivalence. Synthetic
+rows retain their synthetic label; a planner does not promote their custody.
 It returns PLAN_NOT_TRAINED; rights, registered main tuples, retained/scheduled
 reuse and actual solved TRAIN are absent. `domain_coverage` checks registered
 mask/feature grammar identity, thickness/period/wavelength ranges and **all**

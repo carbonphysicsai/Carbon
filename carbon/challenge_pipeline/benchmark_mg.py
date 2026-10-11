@@ -501,27 +501,70 @@ def observed_orders(rows, band):
     }
 
 
-def train_plan(challenge, cases, panel, *, count):
-    if challenge != FAMILY or type(count) is not int or count <= 0:
+def train_plan(challenge, cases, panel, *, count, allow_y_reflection):
+    """Disjoint physical masks, not only different JSON labels or origins.
+
+    Source-supported normal incidence admits periodic translations. A valid
+    y-reflection convention must be registered explicitly; x reflection is
+    never admitted because it changes the desired order. Canonical-grid
+    mismatch is unresolved, not a way to publish resampled panel copies.
+    """
+    if (
+        challenge != FAMILY
+        or type(count) is not int
+        or not 1 <= count <= 10000
+        or type(allow_y_reflection) is not bool
+        or type(cases) is not list
+        or type(panel) is not list
+        or len(cases) > 10000
+        or len(panel) > 10000
+    ):
         raise PreparationError("explicit MG public TRAIN count required")
+    grids = {}
 
     def physical(row):
         if row.get("scope") not in ("PUBLIC_DEVELOPMENT", "SYNTHETIC_FIXTURE"):
             raise PreparationError("explicit public TRAIN/panel custody required")
-        return tasks.digest(
+        a, h, c = row["action"], row["hardware"], row["condition"]
+        if set(a) != {"mask", "thickness_nm"} or set(c) != {"wavelength_nm"}:
+            raise PreparationError(
+                "closed physical action and supported service point required"
+            )
+        if len(h["periods_nm"]) != 2 or h["wavelength_nm"] != c["wavelength_nm"]:
+            raise PreparationError(
+                "matched two-period hardware and service wavelength required"
+            )
+        mask = binary_mask(a["mask"])
+        group = tasks.digest(
             {
-                "action": row["action"],
-                "condition": row["condition"],
-                "hardware": row["hardware"],
+                "thickness_nm": number(a["thickness_nm"], positive=True),
+                "periods_nm": [number(v, positive=True) for v in h["periods_nm"]],
+                "n_in": number(h["n_in"], positive=True),
+                "n_out": number(h["n_out"], positive=True),
+                "n_layer": number(h.get("n_layer", 3.45), positive=True),
+                "wavelength_nm": number(c["wavelength_nm"], positive=True),
             }
         )
+        shape = (len(mask), len(mask[0]))
+        if grids.setdefault(group, shape) != shape:
+            raise PreparationError(
+                "canonical physical mask mapping required before resampling"
+            )
+        return (group, sum(sum(r) for r in mask)), mask
 
-    forbidden, seen, result = {physical(r) for r in panel}, set(), []
+    forbidden, seen, result = {}, {}, []
+    for row in panel:
+        key, mask = physical(row)
+        forbidden.setdefault(key, []).append(mask)
     for row in cases:
-        key = physical(row)
-        if key not in forbidden and key not in seen:
-            seen.add(key)
-            result.append({**row, "scope": "PUBLIC_DEVELOPMENT"})
+        key, mask = physical(row)
+        prior = forbidden.get(key, []) + seen.get(key, [])
+        if (
+            not prior
+            or mask_distance(mask, prior, allow_y_reflection=allow_y_reflection) > 0
+        ):
+            seen.setdefault(key, []).append(mask)
+            result.append(dict(row))  # Synthetic fixtures never become public evidence.
         if len(result) == count:
             break
     if len(result) != count:
@@ -530,6 +573,13 @@ def train_plan(challenge, cases, panel, *, count):
         "family": challenge,
         "status": "PLAN_NOT_TRAINED",
         "dispatchable": False,
+        "scope": (
+            "SYNTHETIC_FIXTURE"
+            if any(r["scope"] == "SYNTHETIC_FIXTURE" for r in result)
+            else "PUBLIC_DEVELOPMENT"
+        ),
+        "disjointness_basis": "MATCHED_HARDWARE_CONDITION_TRANSLATION_AND_REGISTERED_Y_REFLECTION",
+        "allow_y_reflection": allow_y_reflection,
         "rows": result,
     }
 

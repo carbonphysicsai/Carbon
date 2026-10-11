@@ -358,10 +358,27 @@ def test_train_disjointness_ignores_rung_and_domain_is_not_claimed_from_geometry
     }
     other = copy.deepcopy(row)
     other["action"]["thickness_nm"] = 350
-    plan = b.train_plan(b.FAMILY, [{**row, "rung": 2}, other], [row], count=1)
+    shifted = copy.deepcopy(row)
+    shifted["action"]["mask"] = (
+        shifted["action"]["mask"][1:] + shifted["action"]["mask"][:1]
+    )
+    plan = b.train_plan(
+        b.FAMILY,
+        [{**row, "rung": 2}, shifted, other],
+        [row],
+        count=1,
+        allow_y_reflection=True,
+    )
     assert plan["rows"][0]["action"]["thickness_nm"] == 350
+    assert plan["rows"][0]["scope"] == "SYNTHETIC_FIXTURE"
     with pytest.raises(b.PreparationError):
-        b.train_plan(b.FAMILY, [{**other, "scope": "HIDDEN_EVAL"}], [row], count=1)
+        b.train_plan(
+            b.FAMILY,
+            [{**other, "scope": "HIDDEN_EVAL"}],
+            [row],
+            count=1,
+            allow_y_reflection=True,
+        )
     assert not b.domain_coverage(b.FAMILY, [row], {"support": {}})["covered"]
 
 
@@ -485,3 +502,22 @@ def test_numeric_verification_requires_a_real_sha256_shape_not_only_length():
                 "energy_residual_fraction": 0.001,
             },
         )
+
+
+def test_train_cannot_publish_resampled_copies_or_choose_an_unregistered_symmetry():
+    row = {
+        "action": action(),
+        "hardware": hardware(),
+        "condition": {"wavelength_nm": 1050},
+        "scope": "SYNTHETIC_FIXTURE",
+    }
+    changed = copy.deepcopy(row)
+    changed["action"]["mask"] = [
+        [v for v in r for _ in range(2)]
+        for r in row["action"]["mask"]
+        for _ in range(2)
+    ]
+    with pytest.raises(b.PreparationError, match="canonical physical mask"):
+        b.train_plan(b.FAMILY, [changed], [row], count=1, allow_y_reflection=True)
+    with pytest.raises(b.PreparationError):
+        b.train_plan(b.FAMILY, [row], [], count=1, allow_y_reflection=None)
