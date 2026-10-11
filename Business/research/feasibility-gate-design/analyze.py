@@ -249,7 +249,7 @@ def main():
     args = parser.parse_args()
     data, provenance = read_inputs(args.inputs)
     result = run(data, provenance)
-    args.out.write_text(json.dumps(result, sort_keys=True, indent=1, allow_nan=False) + "\n", encoding="utf-8")
+    args.out.write_text(json.dumps(result, sort_keys=True, indent=1, allow_nan=False) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps(result["inventory"]))
 
 
