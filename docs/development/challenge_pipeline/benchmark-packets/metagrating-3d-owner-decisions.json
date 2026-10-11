@@ -1,0 +1,174 @@
+{
+  "schema": "carbon.benchmark-packet.owner-decisions.v1",
+  "ticket": "BENCHMARK-PACKETS-01",
+  "family": "metagrating-3d",
+  "maturity": "SPECIFIED",
+  "decision_status": "HUMAN_INPUT",
+  "runtime_config": false,
+  "source_basis": {
+    "research_merge": "94b193525f5d55eb20168ebbdbcf43ddf33653f1",
+    "historical_pack_merge": "21c42633f",
+    "policy_adoption": ".agent/decisions/2026-10-10-OWNER-BENCHMARK-CONTAMINATION-01.md",
+    "source_register": "Business/research/benchmark-challenge-briefs/SOURCES.md",
+    "anchor_revision": "a06518872de6ec82bb4511190e544211539f55f1"
+  },
+  "artifacts": {
+    "packet": "metagrating-3d.md",
+    "law": "metagrating-3d-law.md",
+    "panel": "metagrating-3d-panel.md",
+    "custody": "contamination-contract.md"
+  },
+  "adopted_method": {
+    "anchors_scored": false,
+    "physically_equivalent_copies_excluded": true,
+    "family_novelty_required": true,
+    "anomaly_means_misconduct": false,
+    "new_reference_changes_sealed_results": false
+  },
+  "registered_panel": {
+    "status": "PROPOSED_NOT_DISPATCHABLE",
+    "cases": [],
+    "case_count": null,
+    "reuse_status": "UNKNOWN_NO_INDEX",
+    "dispatch_authorized": false,
+    "spend_authorized": false
+  },
+  "decisions": [
+    {
+      "id": "buyer_decision_and_limits",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Product owner / buyer / Test Lead",
+      "recommendation": "Choose one genuinely full 3D periodic device across a complete operating brief. State desired efficiency, reflection/unwanted orders, fabrication limits and power/iteration value, workflow volume and latency. Published numerical masks are not accepted buyer requirements.",
+      "source": "metagrating-3d.md#1-engineering-job",
+      "blocks": "Accepted buyer question, hard limits and value claim"
+    },
+    {
+      "id": "geometry_and_action_grammar",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Science / Test Lead / buyer",
+      "recommendation": "Approve binary masks varying in x/y, finite thickness, physical periods, DOFs/precision and fabrication/minimum-feature rules; register boundary actions. Keep vector fields full 3D. Source pixel counts and stripe examples are not a silently narrowed grammar.",
+      "source": "metagrating-3d.md#2-physical-system",
+      "blocks": "Exact physical action bank and mask tuples"
+    },
+    {
+      "id": "conditions_material_support",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Science / reference owner / buyer",
+      "recommendation": "Freeze supported wavelength/incidence/polarization, substrate/silicon material and fabrication laws. Source indices are ideal nondispersive/lossless; no inferred broad hardware support. Fix each action's periods across its scenarios; nominal outgoing angle is not incidence.",
+      "source": "metagrating-3d.md#2-physical-system",
+      "blocks": "Supported hardware-consistent service tuples"
+    },
+    {
+      "id": "P",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Science / statistics / buyer",
+      "recommendation": "Register joint nominal device brief, supported service conditions and continuous buyer requirements with correlations; retain grid as audit baseline. Exclude catalogue anchors/equivalents and state independent question unit.",
+      "source": "metagrating-3d-law.md",
+      "blocks": "Population and question draw"
+    },
+    {
+      "id": "Q",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Test Lead / statistics",
+      "recommendation": "Register supported corner/frontier/order-transition and cheap-library failure allocations prospectively. Track rejection and support; diagnostic anchors never scored. No redraw of settled NONE_FEASIBLE, no weights to repair absent Q coverage.",
+      "source": "metagrating-3d-law.md",
+      "blocks": "Diagnostic sampling and power claim"
+    },
+    {
+      "id": "w",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Science / statistics / buyer",
+      "recommendation": "Set buyer usage or robust-service weighting separately from diagnostic sampling. Select mean/worst desired-order efficiency, preserving hard limits at every condition.",
+      "source": "metagrating-3d-law.md",
+      "blocks": "Aggregation and score/value weighting"
+    },
+    {
+      "id": "measurement_and_objective",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Measurement owner / Test Lead",
+      "recommendation": "Freeze incident normalization, ports, reciprocal/order/phase/flux conventions; all propagating R/T including cross-polarization, energy residual, absorption scope and cutoff uncertainty. Specify consistent fraction/percentage-point objective, constraints, aggregate and buyer-equivalent ties.",
+      "source": "metagrating-3d.md#6-output-and-measurement-contract",
+      "blocks": "Truth extraction, verdict and pick/regret"
+    },
+    {
+      "id": "reference_package_and_models",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Data Collection / reference owner",
+      "recommendation": "Complete Meep source b08d226ba311a04e59c984e97f3e88dd82bc56d1 and independent S4 source 7fd00a231610bff51f5c7de5f723e3956eab7453 build/dependency/image/deck pins. Freeze binary/material-grid mapping and spatial/time/PML/decay or harmonic ladders. RETICOLO executable rights are not assumed.",
+      "source": "metagrating-3d.md#5-reference-policy",
+      "blocks": "Pinned dispatchable full 3D reference package"
+    },
+    {
+      "id": "reference_acceptance_and_witnesses",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Science / Test Lead / buyer",
+      "recommendation": "Set analytic/code, convergence, energy and cross-tool pointwise plus verdict/pick/regret acceptance with absolute near-zero floors. Confirm buyer tool for Tier2 target. Non-hidden matched task witnesses beyond public anchors; numerical agreement is not reality or unrelated experiment validation.",
+      "source": "metagrating-3d.md#5-reference-policy",
+      "blocks": "Reference adequacy and earned credibility tier"
+    },
+    {
+      "id": "novelty_catalogue",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Research / data-rights owner / science",
+      "recommendation": "Freeze all audited reconstructable masks, interpolations, later known devices/stripes and derivative sources, rights and coverage gaps; do not select only three convenient masks or silently replace a source revision.",
+      "source": "contamination-contract.md",
+      "blocks": "Known-source coverage and clean-novelty claim"
+    },
+    {
+      "id": "novelty_equivalence_and_normalizers",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Science / Test Lead",
+      "recommendation": "Register periodic physical occupancy integral and separate period/thickness/material/excitation distances, quadrature/floors and valid translation/symmetry/scaling group. A mirror swapping desired orders is not automatically equivalent; dispersion can break scaling equivalence.",
+      "source": "metagrating-3d.md#4-case-contract",
+      "blocks": "Deterministic physical-distance and equivalent-copy audit"
+    },
+    {
+      "id": "novelty_acceptance",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Science / Test Lead",
+      "recommendation": "Freeze component thresholds/weights and far-enough predicate against all complete catalogue entries, with mandatory mask novelty; changing only thickness/angle must not rescue a copied mask. Incomplete audit or unaccepted rule means UNRESOLVED.",
+      "source": "contamination-contract.md",
+      "blocks": "Scored-case eligibility and hidden bank construction"
+    },
+    {
+      "id": "frontier_power_and_ties",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Test Lead / statistics / buyer",
+      "recommendation": "Apply Test Lead working five feasible/five infeasible within two accepted refinement bands; settle band widths, full-route edge/cutoff policy, meaningful margin spread, winner diversity, power/dependence and tie acceptance. Add frontier actions, never widen bands to pass.",
+      "source": "metagrating-3d-law.md",
+      "blocks": "T2/T3, accepted value check and decision-equivalence claim"
+    },
+    {
+      "id": "question_and_bank_counts",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Protocol / statistics / Test Lead",
+      "recommendation": "Set questions k, actions m, units n, exposure E and bank B separately; assess B=10n planning only after complete-case costs. New thresholds reuse E. Winner diversity comes from bank outcomes under an accepted law, not the size of a grid.",
+      "source": "metagrating-3d-law.md",
+      "blocks": "Bank sizing, exposure and batch-cost/power registration"
+    },
+    {
+      "id": "panel_registration_and_reuse",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Data Collection / reference owner",
+      "recommendation": "Expand exact full 3D action-condition-reference-observer-rung rows after support approval; audit completed/scheduled reuse, applicable normalization, all launches and memory/attempt costs; register digest on main. Unknown index is not zero previous solves.",
+      "source": "metagrating-3d-panel.md",
+      "blocks": "Registered, deduplicated public full-route manifest"
+    },
+    {
+      "id": "construction_training_and_rights",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Construction / security / data-rights owners",
+      "recommendation": "Provide approved disjoint TRAIN, exact kit domain coverage and bounded model/rebuild/resource contract; audit source masks/assets and licenses separately. Never disclose protected samples or permit arbitrary evaluator execution.",
+      "source": "metagrating-3d.md#7-construction-contract",
+      "blocks": "Construction readiness and permitted data use"
+    },
+    {
+      "id": "execution_and_adoption",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Carbon owner / compute / qualification owners",
+      "recommendation": "Require seven-item evidence readiness, actual memory sizing, exact resource/spend grant and retained artifacts before runs. Research high EUR419.22 exceeds EUR100 startup target. Measure strong RCWA/direct-search equal-budget value; no silent 2D reframe or automatic portfolio admission.",
+      "source": "metagrating-3d-panel.md",
+      "blocks": "Solver run, spend, bank build, adoption or qualification"
+    }
+  ]
+}

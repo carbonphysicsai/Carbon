@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-benchmark-packets-contract-diagnostic",
+  "recorded_at": "2026-10-11T01:44:03Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "BENCHMARK-PACKETS-01/first-contract-check",
+    "description": "Native structural, closed owner-inventory, source/link, policy and cost-arithmetic checks; Black and Ruff diagnostics; no reference solver execution."
+  },
+  "expected": "Document checks recognize both ten-section packets and the two-band frontier rule without depending on Markdown line wraps.",
+  "observed": "13 passed, one phrase check failed because bold markup and a line break split 'five distinct feasible'; Ruff found one import-order issue. Normalized Markdown emphasis/whitespace for semantic phrase checks, preserving counts, and corrected import order.",
+  "keep": ["Assert reserved values remain null and panels non-dispatchable", "Keep complete source cost hypotheses and no earned reference tier"],
+  "change": ["Compare document semantics after presentation-only whitespace/emphasis normalization", "Check import order before final acceptance"],
+  "protocol_elements": ["public packet contract", "reference custody", "cost accounting"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

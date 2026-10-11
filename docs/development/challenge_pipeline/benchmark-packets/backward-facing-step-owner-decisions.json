@@ -1,0 +1,174 @@
+{
+  "schema": "carbon.benchmark-packet.owner-decisions.v1",
+  "ticket": "BENCHMARK-PACKETS-01",
+  "family": "backward-facing-step",
+  "maturity": "SPECIFIED",
+  "decision_status": "HUMAN_INPUT",
+  "runtime_config": false,
+  "source_basis": {
+    "research_merge": "94b193525f5d55eb20168ebbdbcf43ddf33653f1",
+    "historical_pack_merge": "21c42633f",
+    "policy_adoption": ".agent/decisions/2026-10-10-OWNER-BENCHMARK-CONTAMINATION-01.md",
+    "source_register": "Business/research/benchmark-challenge-briefs/SOURCES.md",
+    "anchor_revision": "20a39f549dbff988a6accc421ac84dafc4487695"
+  },
+  "artifacts": {
+    "packet": "backward-facing-step.md",
+    "law": "backward-facing-step-law.md",
+    "panel": "backward-facing-step-panel.md",
+    "custody": "contamination-contract.md"
+  },
+  "adopted_method": {
+    "anchors_scored": false,
+    "physically_equivalent_copies_excluded": true,
+    "family_novelty_required": true,
+    "anomaly_means_misconduct": false,
+    "new_reference_changes_sealed_results": false
+  },
+  "registered_panel": {
+    "status": "PROPOSED_NOT_DISPATCHABLE",
+    "cases": [],
+    "case_count": null,
+    "reuse_status": "UNKNOWN_NO_INDEX",
+    "dispatch_authorized": false,
+    "spend_authorized": false
+  },
+  "decisions": [
+    {
+      "id": "buyer_decision_and_limits",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Product owner / buyer / Test Lead",
+      "recommendation": "Select one recovery contour minimizing total-pressure loss across a complete service brief, subject to buyer separation/recovery and envelope limits. State Pa/W value, duty, workflow latency and actual decision volume; adjacent published workflows do not supply acceptance numbers.",
+      "source": "backward-facing-step.md#1-engineering-job",
+      "blocks": "Accepted buyer question, hard limits and value claim"
+    },
+    {
+      "id": "geometry_and_action_grammar",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Science / Test Lead / buyer",
+      "recommendation": "Approve a connected monotone recovery-contour grammar, DOFs, dimensional envelope, precision, curvature/clearance and boundary-design registration. Research range endpoints are assumptions, not approved cases.",
+      "source": "backward-facing-step.md#2-physical-system",
+      "blocks": "Exact action bank and registered geometry tuples"
+    },
+    {
+      "id": "conditions_material_support",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Science / reference owner",
+      "recommendation": "Bind density/viscosity law, Re_H/U_ref versus Re_theta conventions, full developed inlet/turbulence profile, Mach and outlet pressure with source-supported applicability. Derive expansion ratio from source geometry.",
+      "source": "backward-facing-step.md#2-physical-system",
+      "blocks": "Supported service tuples and reference applicability"
+    },
+    {
+      "id": "P",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Science / statistics / buyer",
+      "recommendation": "Register joint service and continuous buyer-requirement distributions on accepted support, with explicit anchor/copy exclusions; grid stays an audit baseline. Document independent question unit and correlations.",
+      "source": "backward-facing-step-law.md",
+      "blocks": "Any population or question draw"
+    },
+    {
+      "id": "Q",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Test Lead / statistics",
+      "recommendation": "Register nominal/corner/frontier/transition allocations and rejection law before truth, retain supported coverage; no redraw of settled NONE_FEASIBLE and no zero-support correction by weights.",
+      "source": "backward-facing-step-law.md",
+      "blocks": "Diagnostic sampling and power claim"
+    },
+    {
+      "id": "w",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Science / statistics / buyer",
+      "recommendation": "State buyer scenario frequency versus diagnostic estimation weights; select mean or worst loss objective separately. Never compensate a mandatory stratum failure.",
+      "source": "backward-facing-step-law.md",
+      "blocks": "Aggregation and score/value weighting"
+    },
+    {
+      "id": "measurement_and_objective",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Measurement owner / Test Lead",
+      "recommendation": "Freeze mass-flow-weighted total-pressure planes/loss in Pa, dynamic-pressure normalization, signed shear/crossing policy and Cp shift metadata; shifted Cp is not total-pressure loss. Define objective aggregation, secondary and tie-equivalence units.",
+      "source": "backward-facing-step.md#6-output-and-measurement-contract",
+      "blocks": "Truth extraction, verdict and pick/regret"
+    },
+    {
+      "id": "reference_package_and_models",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Data Collection / reference owner",
+      "recommendation": "Use proposed SU2 source bc15466602a687d6fb796d5df7a12ce3fde0949a only after a dependency/image/deck/observer pin and explicit NASA SSTm option mapping. Register mesh/wall/inlet/outlet sensitivity ladder and CPU execution policy.",
+      "source": "backward-facing-step.md#5-reference-policy",
+      "blocks": "Pinned dispatchable reference package"
+    },
+    {
+      "id": "reference_acceptance_and_witnesses",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Science / Test Lead / buyer",
+      "recommendation": "Set unit-bearing code/convergence/conservation and cross-tool pointwise plus verdict/pick/regret thresholds. Target Tier 2 against the confirmed buyer tool; NASA reattachment data validate only their stated observable/scope. Independent witnesses never use hidden/tuning cases.",
+      "source": "backward-facing-step.md#5-reference-policy",
+      "blocks": "Reference adequacy and earned credibility tier"
+    },
+    {
+      "id": "novelty_catalogue",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Research / data-rights owner / science",
+      "recommendation": "Freeze audited reconstructable public anchors, tutorial geometries and derivative catalogue, rights, coverage gaps and supported exclusion scope before candidate outcomes.",
+      "source": "contamination-contract.md",
+      "blocks": "Known-source coverage and clean-novelty claim"
+    },
+    {
+      "id": "novelty_equivalence_and_normalizers",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Science / Test Lead",
+      "recommendation": "Use normalized wall-contour and expansion/feature descriptors plus separate log-Re_H, Mach and inlet-profile components; freeze x/H window, floors, quadrature and physically valid coordinate/scaling group. Remeshing is never new physics.",
+      "source": "backward-facing-step.md#4-case-contract",
+      "blocks": "Deterministic physical-distance and equivalent-copy audit"
+    },
+    {
+      "id": "novelty_acceptance",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Science / Test Lead",
+      "recommendation": "Register component weights, per-component thresholds and far-enough predicate against every complete catalogue entry, with mandatory geometry novelty; changing only Re must not rescue an anchor copy. Unknown coverage/rules are UNRESOLVED.",
+      "source": "contamination-contract.md",
+      "blocks": "Scored-case eligibility and hidden bank construction"
+    },
+    {
+      "id": "frontier_power_and_ties",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Test Lead / statistics / buyer",
+      "recommendation": "Use Test Lead working five feasible/five infeasible within two accepted refinement bands, adding frontier resolution rather than wider bands. Set band widths, meaningful margin spread, winner diversity, close-call/refinement policy, power/false-alarm/dependence and tie acceptance.",
+      "source": "backward-facing-step-law.md",
+      "blocks": "T2/T3, accepted value check and decision-equivalence claim"
+    },
+    {
+      "id": "question_and_bank_counts",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Protocol / statistics / Test Lead",
+      "recommendation": "Set questions k, actions m, independent units n, exposure E and bank B explicitly; B=10n is a plan only. Threshold-only variants reuse E. Report expected winner diversity from the bank under the accepted law, not grid cardinality.",
+      "source": "backward-facing-step-law.md",
+      "blocks": "Bank sizing, exposure and batch-cost/power registration"
+    },
+    {
+      "id": "panel_registration_and_reuse",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Data Collection / reference owner",
+      "recommendation": "Expand exact public action-condition-reference-observer-rung tuples after support acceptance; check all completed and scheduled solves, compatible reuse, total launch count and attempted costs; register digest on main. No claim of zero prior work without an index.",
+      "source": "backward-facing-step-panel.md",
+      "blocks": "Registered, deduplicated public panel manifest"
+    },
+    {
+      "id": "construction_training_and_rights",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Construction / security / data-rights owners",
+      "recommendation": "Provide training-kit domain coverage, approved disjoint TRAIN, bounded rebuild vocabulary/resources and legal source/asset use; no public access to protected data and no arbitrary reference-execution permission.",
+      "source": "backward-facing-step.md#7-construction-contract",
+      "blocks": "Construction readiness and permitted data use"
+    },
+    {
+      "id": "execution_and_adoption",
+      "status": "HUMAN_INPUT", "value": null,
+      "owner": "Carbon owner / compute / qualification owners",
+      "recommendation": "Require seven-item evidence readiness, exact resource/spend grant and retained artifacts before runs. Measure actual costs: research high EUR209.61 exceeds EUR100 startup target. Select keep/reframe/replace only after reference/value and strong-baseline/equal-budget evidence; no automatic admission.",
+      "source": "backward-facing-step-panel.md",
+      "blocks": "Solver run, spend, bank build, adoption or qualification"
+    }
+  ]
+}
