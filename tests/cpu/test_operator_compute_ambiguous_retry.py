@@ -39,7 +39,10 @@ def env(tmp_path):
         sleep=lambda _s: None,
         verify_attempts=2,
     )
-    service = ComputeService(store, adapter, clock=clock)
+    # The 60 s reconcile gap runs on this injected clock: no real sleeping.
+    service = ComputeService(
+        store, adapter, clock=clock, sleep=clock.advance, resend_gap_s=60.0
+    )
     store.start_campaign("camp-1")
     service.observe_balance("camp-1")
     yield clock, fake, store, adapter, service, tmp_path
@@ -125,7 +128,7 @@ def test_concurrent_controllers_on_one_store_create_at_most_twice(tmp_path, env)
     outcomes = []
 
     def controller():
-        service = ComputeService(store, adapter, clock=clock)
+        service = ComputeService(store, adapter, clock=clock, sleep=clock.advance)
         barrier.wait()
         try:
             outcomes.append(
@@ -174,7 +177,7 @@ def _live_backend(tmp_path, fake, clock, **options):
         clock=clock,
         transport=fake,
         http=lambda *_args: (0, b""),
-        sleep=lambda _seconds: None,
+        sleep=clock.advance,
         balance_floor=lambda: Decimal(0),
         scoring=SCORING,
         **options,
@@ -222,3 +225,120 @@ def test_the_live_phase3_command_enables_the_retry():
     from carbon.agent_campaign.graphite import phase3
 
     assert "retry_ambiguous_create=True" in inspect.getsource(phase3)
+
+
+# -- two empty reconciles at least 60 s apart, the lag, and the duplicate count -----------------
+def test_list_lag_is_adopted_on_the_second_reconcile_with_no_resend_and_the_lag_recorded(
+    env,
+):
+    clock, fake, store, _adapter, service, _root = env
+    fake.lose_next_create_response = True  # the pod exists, but the list lags
+    fake.hide_pods_for_lists = 1  # the first reconcile cannot see it yet
+    started = clock()
+    record = service.provision(request(clock), retry_ambiguous=True)
+    assert fake.creates() == 1 and len(fake.pods) == 1  # no resend
+    assert record.discovered_via == "tag_reconcile"
+    lag = store.lag("camp-1", "intent-1")
+    assert lag["reconcile_number"] == 2 and lag["seconds"] >= 60.0
+    assert clock() - started >= 60.0
+
+
+def test_two_empty_reconciles_a_minute_apart_then_exactly_one_resend(env):
+    clock, fake, store, _adapter, service, _root = env
+    fake.lose_create_requests = 1
+    started = clock()
+    record = service.provision(request(clock), retry_ambiguous=True)
+    assert fake.creates() == 2 and len(fake.pods) == 1
+    assert record.resource_id in fake.pods
+    assert clock() - started >= 60.0
+    assert store.lag("camp-1", "intent-1") is None  # nothing was ever listed
+
+
+def test_the_gap_is_enforced_on_the_injected_clock_and_fails_closed_when_it_does_not_pass(
+    env,
+):
+    clock, fake, store, adapter, _service, _root = env
+    fake.lose_create_requests = 1
+    stuck = ComputeService(
+        store, adapter, clock=clock, sleep=lambda _seconds: None, resend_gap_s=60.0
+    )
+    with pytest.raises(ComputeError) as stopped:
+        stuck.provision(request(clock), retry_ambiguous=True)
+    assert "gap did not elapse" in stopped.value.failed
+    assert fake.creates() == 1  # no resend without the gap
+
+
+def test_a_shorter_gap_is_respected_exactly(env):
+    clock, fake, store, adapter, _service, _root = env
+    fake.lose_create_requests = 1
+    slept = []
+
+    def record_sleep(seconds):
+        slept.append(seconds)
+        clock.advance(seconds)
+
+    quick = ComputeService(
+        store, adapter, clock=clock, sleep=record_sleep, resend_gap_s=5.0
+    )
+    quick.provision(request(clock), retry_ambiguous=True)
+    assert slept == [5.0] and fake.creates() == 2
+
+
+def test_a_duplicate_the_reconciler_ends_is_counted_in_the_cost_record(tmp_path, env):
+    from types import SimpleNamespace
+
+    from carbon.agent_campaign.graphite import experiment as ex
+
+    clock, fake, store, adapter, service, _root = env
+    fake.lose_create_requests = 1
+    service.provision(request(clock), retry_ambiguous=True)
+    intent = store.intent("camp-1", "intent-1")
+    fake.add_pod("latefirst", ownership_name(intent.ownership_tag))
+    fake.billing["latefirst"] = 0.07
+    reconcile(store, adapter, clock=clock)
+    assert [r.role for r in store.resources("camp-1", "intent-1")].count(
+        "duplicate"
+    ) == 1
+
+    class Backend:
+        def duplicates(self, intent_id):
+            return [{"pod_id": "latefirst", "charge_usd": "0.07"}]
+
+    ledger = ex.PodLedger(tmp_path / "pod-ledger.jsonl", clock)
+    for event, body in (
+        ("pod_reserved", {"reserved_usd": "0.25"}),
+        ("pod_launch_requested", {}),
+        ("pod_created", {"pod_id": "p", "rate_usd_per_hr": "0.49"}),
+        ("pod_terminated_verified", {"pod_id": "p"}),
+        ("pod_settled", {"charge_usd": "0.10", "basis": "provider_reported"}),
+    ):
+        ledger.append(event, intent_id="intent-1", proposal="p-1", **body)
+    ex.Experiment._count_duplicates(
+        SimpleNamespace(pods=Backend(), ledger=ledger), "p-1", "intent-1"
+    )
+    report = ex.pod_charge_report(ledger)
+    assert report["duplicate_pods"] == 1 and report["duplicate_charged_usd"] == "0.07"
+    assert report["pods"][0]["duplicates"] == 1
+    settled, _pending = ledger.committed()
+    assert str(settled) == "0.17"  # the pod and its duplicate: real spend, not hidden
+
+
+def test_a_backend_with_no_duplicates_adds_nothing_to_the_cost_record(tmp_path, env):
+    from types import SimpleNamespace
+
+    from carbon.agent_campaign.graphite import experiment as ex
+
+    clock, *_ = env
+    ledger = ex.PodLedger(tmp_path / "pod-ledger.jsonl", clock)
+
+    class Backend:
+        def duplicates(self, intent_id):
+            return []
+
+    ex.Experiment._count_duplicates(
+        SimpleNamespace(pods=Backend(), ledger=ledger), "p-1", "intent-1"
+    )
+    ex.Experiment._count_duplicates(
+        SimpleNamespace(pods=object(), ledger=ledger), "p-1", "intent-1"
+    )
+    assert not ledger.path.exists() or ledger.path.read_bytes() == b""

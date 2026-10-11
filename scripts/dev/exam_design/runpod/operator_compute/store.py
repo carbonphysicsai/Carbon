@@ -101,6 +101,14 @@ CREATE TABLE IF NOT EXISTS resend_claims (
     claimed_at REAL NOT NULL,
     PRIMARY KEY (campaign_id, intent_id)
 );
+CREATE TABLE IF NOT EXISTS reconcile_lag (
+    campaign_id TEXT NOT NULL,
+    intent_id TEXT NOT NULL,
+    reconcile_number INTEGER NOT NULL,
+    seconds REAL NOT NULL,
+    observed_at REAL NOT NULL,
+    PRIMARY KEY (campaign_id, intent_id)
+);
 CREATE TABLE IF NOT EXISTS provider_charges (
     provider TEXT NOT NULL,
     resource_id TEXT NOT NULL,
@@ -398,6 +406,31 @@ class ComputeStore:
                 (campaign_id, intent_id, self.clock()),
             ).rowcount
         return inserted == 1
+
+    def record_lag(
+        self, campaign_id: str, intent_id: str, reconcile_number: int, seconds: float
+    ) -> None:
+        """The time from an ambiguous create to the first reconcile that showed its
+        pod (the provider's list lag), once per intent."""
+
+        with self._tx() as db:
+            db.execute(
+                "INSERT OR IGNORE INTO reconcile_lag VALUES (?,?,?,?,?)",
+                (campaign_id, intent_id, reconcile_number, seconds, self.clock()),
+            )
+
+    def lag(self, campaign_id: str, intent_id: str) -> dict | None:
+        rows = self._all(
+            "SELECT reconcile_number, seconds FROM reconcile_lag "
+            "WHERE campaign_id = ? AND intent_id = ?",
+            (campaign_id, intent_id),
+        )
+        if not rows:
+            return None
+        return {
+            "reconcile_number": rows[0]["reconcile_number"],
+            "seconds": rows[0]["seconds"],
+        }
 
     # resources ----------------------------------------------------------
     def bind_resource(

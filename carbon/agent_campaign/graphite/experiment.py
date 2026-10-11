@@ -348,6 +348,10 @@ def pod_charge_report(ledger):
         "booked_at_reservation": sum(
             p["basis"] in ("reservation", "unresolved") for p in pods
         ),
+        "duplicate_pods": sum(p["duplicates"] for p in pods),
+        "duplicate_charged_usd": str(
+            sum((Decimal(p["duplicate_charged_usd"] or 0) for p in pods), Decimal(0))
+        ),
         "bases": CHARGE_BASES,
         "note": CHARGE_NOTE,
     }
@@ -414,12 +418,17 @@ class PodLedger:
                 pod["terminated"] = True
             elif event == "pod_settled":
                 pod["settled_usd"] = row["charge_usd"]
+            elif event == "pod_duplicates_counted":
+                pod["duplicates"] = row["count"]
+                pod["duplicate_usd"] = row["charged_usd"]
         return state
 
     def committed(self):
         """(settled, pending) USD across the run's pods."""
         settled = pending = Decimal(0)
         for pod in self.pods().values():
+            # A duplicate's real charge is spend even though it is not the pod.
+            settled += Decimal(pod.get("duplicate_usd") or 0)
             if pod["settled_usd"] is not None:
                 settled += Decimal(pod["settled_usd"])
             elif pod["reserved_usd"] is not None:
@@ -466,6 +475,8 @@ class PodLedger:
                     ),
                     "estimated_usd": _estimate(pod, seen),
                     "settled_basis": seen.get("settled_basis"),
+                    "duplicates": pod.get("duplicates", 0),
+                    "duplicate_charged_usd": pod.get("duplicate_usd"),
                 }
             )
         return out
@@ -938,6 +949,7 @@ class Experiment:
                     pod_id=handle.pod_id,
                 )
                 self._settle(pid, handle)
+                self._count_duplicates(pid, handle.intent_id)
                 return True
         self.ledger.append(
             "pod_terminate_unverified",
@@ -946,6 +958,29 @@ class Experiment:
             pod_id=handle.pod_id,
         )
         return False
+
+    def _count_duplicates(self, pid, intent_id):
+        """A second pod under this intent's tag (an ambiguous create that landed
+        twice) is counted in the cost record: how many, and their provider
+        charge when known. A backend that reports none counts none."""
+        found = getattr(self.pods, "duplicates", None)
+        if found is None:
+            return
+        try:
+            pods = found(intent_id)
+        except (podlib.PodFailure, OSError, ValueError):
+            return
+        if not pods:
+            return
+        known = [Decimal(p["charge_usd"]) for p in pods if p["charge_usd"] is not None]
+        self.ledger.append(
+            "pod_duplicates_counted",
+            intent_id=intent_id,
+            proposal=pid,
+            count=len(pods),
+            charged_usd=str(sum(known, Decimal(0))),
+            unknown_charges=len(pods) - len(known),
+        )
 
     def _settle(self, pid, handle):
         charge = self.pods.charge(handle)

@@ -43,10 +43,14 @@ class ComputeService:
         clock: Callable[[], float] = time.time,
         not_found_grace_s: float = 600.0,
         max_balance_age_s: float | None = None,
+        sleep: Callable[[float], None] = time.sleep,
+        resend_gap_s: float = 60.0,
     ) -> None:
         self.store = store
         self.provider = provider
         self.clock = clock
+        self.sleep = sleep
+        self.resend_gap_s = resend_gap_s
         self.not_found_grace_s = not_found_grace_s
         self.max_balance_age_s = max_balance_age_s
 
@@ -167,10 +171,11 @@ class ComputeService:
     def _reconcile_then_resend_once(
         self, intent: IntentRecord, request: ProvisionRequest, ambiguous: ComputeError
     ) -> ResourceRecord:
-        """After an ambiguous create: reconcile by ownership tag, adopt what is
-        found, resend ONCE only if the reconcile succeeded and found nothing.
-        Never a second create without that check; every other path fails
-        closed (the error says resources may remain)."""
+        """After an ambiguous create: reconcile by ownership tag and adopt what is
+        found. Resend ONCE only after TWO successful, EMPTY reconciles at least
+        ``resend_gap_s`` apart (the provider's list lag). Never a second create
+        without that check; every other path fails closed (the error says resources
+        may remain). The lag to the first reconcile that shows the pod is recorded."""
 
         def stop(failed: str) -> ComputeError:
             return ComputeError(
@@ -183,22 +188,52 @@ class ComputeService:
             )
 
         name = ownership_name(intent.ownership_tag)
-        try:
-            listed = self.provider.list_resources()
-        except ComputeError:
-            raise stop("ambiguous create and the reconcile failed; no retry") from None
-        matches = sorted(item.resource_id for item in listed if item.name == name)
-        for resource_id in matches:
-            self.store.bind_resource(
-                intent,
-                resource_id,
-                rate_usd_per_hr=None,
-                discovered_via="tag_reconcile",
+        ambiguous_at = self.clock()
+
+        def reconcile(number: int):
+            try:
+                listed = self.provider.list_resources()
+            except ComputeError:
+                raise stop(
+                    "ambiguous create and a reconcile failed; no retry"
+                ) from None
+            matches = sorted(item.resource_id for item in listed if item.name == name)
+            if not matches:
+                return None
+            lag = max(0.0, self.clock() - ambiguous_at)
+            self.store.record_lag(intent.campaign_id, intent.intent_id, number, lag)
+            log.info(
+                "compute create reconcile %d showed the pod after %.1fs campaign=%s intent=%s",
+                number,
+                lag,
+                intent.campaign_id,
+                intent.intent_id,
             )
-        if matches:
+            for resource_id in matches:
+                self.store.bind_resource(
+                    intent,
+                    resource_id,
+                    rate_usd_per_hr=None,
+                    discovered_via="tag_reconcile",
+                )
             refreshed = self.store.intent(intent.campaign_id, intent.intent_id)
             assert refreshed is not None
             return self._primary(refreshed)
+
+        first_at = self.clock()
+        found = reconcile(1)
+        if found is not None:
+            return found
+        remaining = first_at + self.resend_gap_s - self.clock()
+        if remaining > 0:
+            self.sleep(remaining)
+        if self.clock() < first_at + self.resend_gap_s:
+            raise stop(
+                "ambiguous create and the reconcile gap did not elapse; no retry"
+            )
+        found = reconcile(2)
+        if found is not None:
+            return found
         if not self.store.claim_resend(intent.campaign_id, intent.intent_id):
             raise stop("ambiguous create and the one resend was already claimed")
         log.info(
