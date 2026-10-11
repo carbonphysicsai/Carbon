@@ -1,4 +1,4 @@
-# Equal-budget design replay — battery v3, motor and f02
+# Equal-budget design replay — battery v3, motor, f02 and f13
 
 **DEVELOPMENT tooling, not a measured Carbon advantage.** This replay extends
 [`track_b.py`](../../../carbon/design_search/track_b.py)'s reference and charge
@@ -11,6 +11,12 @@ Run a supplied, digest-bound panel:
 ```text
 python -m carbon.design_search.equal_budget PANEL.json --bootstrap-replicates 2000 --confidence 0.95 --seed 17
 ```
+
+For the four Challenge decisions in EQUAL-BUDGET-V1, also pass
+`--budget-registration docs/development/challenge_pipeline/equal-budget-registration-v1.json`.
+The panel must use exactly its three-tier ladder and cost-plan ID. Each arm
+then has the same complete-panel evaluation cap as well as the same wall and
+CPU allowance. See the [registration and assumption basis](equal-budget-registration.md).
 
 The flags above illustrate an analysis run, not an adopted confidence policy.
 `equal_budget.seal(body)` computes `panel_digest` over the full JSON body.
@@ -30,7 +36,7 @@ direction determines which side of zero favours Carbon.
 
 The closed input schema is `carbon.design-search.equal-budget-panel.v1`:
 
-- `evidence_class: DEVELOPMENT`; `challenge: battery-v3|motor|f02`;
+- `evidence_class: DEVELOPMENT`; `challenge: battery-v3|motor|f02|f13`;
   `source_digest`, `decision_rule_id`, `cost_basis: MEASURED|ASSUMPTION`;
   `execution_plan: SERIAL_COMPLETE_PANELS` (one candidate's full mandatory
   condition panel completes before the next starts; wall time is additive);

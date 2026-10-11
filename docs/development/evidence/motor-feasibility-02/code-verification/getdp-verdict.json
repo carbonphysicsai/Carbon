@@ -1,0 +1,43 @@
+{
+  "schema": "carbon.code-verification.result.v1",
+  "kind": "code_verification",
+  "family": "motor",
+  "image_digest": "sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+  "source_digest": "sha256:26b864eba8d3fce48e5014482478e167f334456beb5c609b50885547db5e610f",
+  "criteria_digest": "sha256:bb7b8ef213d4069f571b6332be92b1635017c4de0b4b42ee801991ed513809e6",
+  "norms": [
+    {
+      "l2": 0.009544772349706724,
+      "linf": 0.01881824615446892,
+      "samples": 486
+    },
+    {
+      "l2": 0.0024828953829774776,
+      "linf": 0.004807429497188265,
+      "samples": 1830
+    },
+    {
+      "l2": 0.0006264084501176021,
+      "linf": 0.0012098580886296117,
+      "samples": 7182
+    }
+  ],
+  "orders": {
+    "l2": [
+      1.9426873139245577,
+      1.9868478951847124
+    ],
+    "linf": [
+      1.9687945711521677,
+      1.990427864802117
+    ]
+  },
+  "metrics": {
+    "l2_order": 1.9868478951847124,
+    "linf_order": 1.990427864802117
+  },
+  "recommendation_agrees": true,
+  "accepted_development_pass": false,
+  "state": "HUMAN_INPUT",
+  "qualified": false
+}

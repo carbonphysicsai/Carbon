@@ -16,6 +16,8 @@ import re
 import statistics
 from pathlib import Path
 
+from carbon.design_search import budget_registration
+
 EVIDENCE_SCHEMA = "carbon.challenge-value-evidence.v1"
 RULE_SCHEMA = "carbon.challenge-value-rule.v1"
 REPORT_SCHEMA = "carbon.challenge-value-report.v1"
@@ -162,13 +164,21 @@ def _owner_rule(rule):
             }:
                 raise ValueBarError("base VALUE-BAR-V1 cannot select a budget")
         else:
-            if set(item5) != {
+            expected = {
                 "budget",
                 "confidence",
                 "paired_verified_value_delta_excludes_zero",
                 "challenge",
                 "budget_registration_digest",
-            }:
+            }
+            tiered = "budget_tiers" in item5
+            if tiered:
+                expected |= {
+                    "budget_tiers",
+                    "solver_evaluation_caps",
+                    "budget_basis",
+                }
+            if set(item5) != expected:
                 raise ValueBarError("Challenge budget registration incomplete")
             budget = item5["budget"]
             if type(budget) is not dict or set(budget) != {"wall_s", "core_s"}:
@@ -178,6 +188,16 @@ def _owner_rule(rule):
             if not isinstance(item5["challenge"], str) or not item5["challenge"]:
                 raise ValueBarError("budget Challenge identity required")
             _sha(item5["budget_registration_digest"], "budget registration")
+            if tiered:
+                if rule["rule_id"] != (
+                    f"{VALUE_BAR_V1}:{item5['challenge']}:"
+                    f"{budget_registration.REGISTRATION_ID}"
+                ):
+                    raise ValueBarError("tiered budget rule identity invalid")
+                try:
+                    budget_registration.validate_rule_tiers(item5)
+                except budget_registration.BudgetRegistrationError as exc:
+                    raise ValueBarError(str(exc)) from exc
     return rule
 
 
@@ -642,6 +662,58 @@ def _speed(evidence, settings, *, value_bar_v1=False):
 def _equal_budget(evidence, settings, *, value_bar_v1=False):
     if settings is None:
         return _item(INSUFFICIENT, "owner item 5 equal-budget decision rule absent")
+    if value_bar_v1 and "budget_tiers" in settings:
+        report = evidence["equal_budget"]
+        if report is None:
+            return _item(INSUFFICIENT, "#998 equal-budget report absent")
+        if (
+            type(report) is not dict
+            or report.get("budget_registration_digest")
+            != settings["budget_registration_digest"]
+            or report.get("budget_basis") != settings["budget_basis"]
+            or report.get("budget_registration_id")
+            != budget_registration.REGISTRATION_ID
+        ):
+            raise ValueBarError("equal-budget report registration mismatch")
+        curves = report.get("curves")
+        if type(curves) is not list or len(curves) != len(budget_registration.TIERS):
+            return _item(INSUFFICIENT, "all three registered budget curves required")
+        for tier, curve in zip(budget_registration.TIERS, curves):
+            if (
+                type(curve) is not dict
+                or curve.get("tier") != tier
+                or curve.get("budget") != settings["budget_tiers"][tier]
+                or curve.get("solver_evaluation_limit")
+                != settings["solver_evaluation_caps"][tier]
+            ):
+                raise ValueBarError("equal-budget tier or evaluation cap mismatch")
+        results = {}
+        ordinary = {
+            key: value
+            for key, value in settings.items()
+            if key not in {"budget_tiers", "solver_evaluation_caps", "budget_basis"}
+        }
+        for tier in budget_registration.TIERS:
+            tier_settings = {**ordinary, "budget": settings["budget_tiers"][tier]}
+            results[tier] = _equal_budget(evidence, tier_settings, value_bar_v1=True)
+        return {
+            **results["base"],
+            "budget_basis": settings["budget_basis"],
+            "sensitivity": {
+                tier: {
+                    "status": results[tier]["status"],
+                    "reason": results[tier]["reason"],
+                    "budget": settings["budget_tiers"][tier],
+                    "solver_evaluation_limit": settings["solver_evaluation_caps"][tier],
+                    **(
+                        {"ci95": results[tier]["ci95"]}
+                        if "ci95" in results[tier]
+                        else {}
+                    ),
+                }
+                for tier in budget_registration.TIERS
+            },
+        }
     if value_bar_v1:
         if settings["budget"] is None:
             return _item(INSUFFICIENT, "Challenge-specific budget not registered")
@@ -895,6 +967,27 @@ def evidence_page(report):
             "",
             f"Item 5: model-minus-solver verified value {item5['mean_model_minus_solver_verified_value']:.6g} {item5['buyer_unit']}; paired fold-cluster 95% CI [{item5['ci95'][0]:.6g}, {item5['ci95'][1]:.6g}] at the registered wall/core budget. {item5['paired_jobs']} complete paired jobs across {item5['independent_clusters']} independent bank clusters.",
         ]
+    if "sensitivity" in item5:
+        lines += [
+            "",
+            f"Item 5 registered budget basis: {item5['budget_basis']}. The base tier alone gates VALUE-BAR-V1.",
+            "",
+            "| Budget tier | Solver panels | Wall h | CPU core-h | Outcome | Paired 95% CI |",
+            "| --- | ---: | ---: | ---: | --- | --- |",
+        ]
+        for tier, row in item5["sensitivity"].items():
+            interval = row.get("ci95")
+            ci_text = (
+                "unavailable"
+                if interval is None
+                else f"[{interval[0]:.6g}, {interval[1]:.6g}]"
+            )
+            lines.append(
+                f"| {tier} | {row['solver_evaluation_limit']} | "
+                f"{row['budget']['wall_s'] / 3600:.6g} | "
+                f"{row['budget']['core_s'] / 3600:.6g} | "
+                f"{row['status']} | {ci_text} |"
+            )
     if "p_model_beats_solver_ci_lower" in item5:
         lines += [
             "",
@@ -917,6 +1010,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--evidence", required=True)
     parser.add_argument("--rule")
+    parser.add_argument(
+        "--budget-registration", help="prospective development budget registration"
+    )
     parser.add_argument("--bootstrap-replicates", type=int, required=True)
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--output-json", required=True)
@@ -928,6 +1024,18 @@ def main(argv=None):
         if args.rule is None
         else json.loads(Path(args.rule).read_text(encoding="utf-8"))
     )
+    if args.budget_registration is not None:
+        if rule is None:
+            raise ValueBarError("VALUE-BAR-V1 base rule required with registration")
+        registration = json.loads(
+            Path(args.budget_registration).read_text(encoding="utf-8")
+        )
+        try:
+            rule = budget_registration.materialize_value_rule(
+                rule, registration, evidence["challenge"]
+            )
+        except budget_registration.BudgetRegistrationError as exc:
+            raise ValueBarError(str(exc)) from exc
     report = evaluate(
         evidence, rule, bootstrap_replicates=args.bootstrap_replicates, seed=args.seed
     )
