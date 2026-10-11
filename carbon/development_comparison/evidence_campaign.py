@@ -889,14 +889,15 @@ def _finalize(family, assembly, score, plan, workspace, registration, rule):
     outputs["ledger.json"] = ledger
     if score is not None:
         page += "\nScore plugin output is pinned locally and is not an adopted scoring rule.\n"
-    target.mkdir(exist_ok=False)
+    staging = target.with_name(target.name + f".attempt-{os.getpid()}-{time.time_ns()}")
+    staging.mkdir(exist_ok=False)
     for name, body in outputs.items():
-        (target / name).write_text(
+        (staging / name).write_text(
             json.dumps(body, indent=2, sort_keys=True, allow_nan=False) + "\n",
             encoding="utf-8",
         )
-    (target / "evidence.md").write_text(page, encoding="utf-8")
-    (target / "receipt.json").write_text(
+    (staging / "evidence.md").write_text(page, encoding="utf-8")
+    (staging / "receipt.json").write_text(
         json.dumps(
             {
                 "schema": SCHEMA + ".evidence-receipt",
@@ -910,7 +911,7 @@ def _finalize(family, assembly, score, plan, workspace, registration, rule):
                 },
                 "output_byte_pins": {
                     p.name: _sha(p.read_bytes())
-                    for p in target.iterdir()
+                    for p in staging.iterdir()
                     if p.is_file()
                 },
             },
@@ -920,6 +921,7 @@ def _finalize(family, assembly, score, plan, workspace, registration, rule):
         + "\n",
         encoding="utf-8",
     )
+    os.replace(staging, target)
     return {
         "value_status": report["status"],
         "item_5": report["items"]["5"],

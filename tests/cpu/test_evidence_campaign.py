@@ -251,6 +251,7 @@ def test_three_challenge_dry_run_and_resume(tmp_path):
     plan, path = _fixture(tmp_path)
     workspace = tmp_path / "work"
     (workspace / "motor/reference/0/attempt-1").mkdir(parents=True)
+    (workspace / "motor/evidence-pack.attempt-interrupted").mkdir()
     result = campaign.run(plan, tmp_path, workspace, dry_run=True)
     assert set(result["challenges"]) == set(campaign.FAMILIES)
     assert all(
