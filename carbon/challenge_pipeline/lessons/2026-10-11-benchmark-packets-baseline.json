@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-benchmark-packets-baseline",
+  "recorded_at": "2026-10-11T01:38:42Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "BENCHMARK-PACKETS-01/native-baseline",
+    "description": "Public onboarding, question-law and panel-generator tests on the main-based specification worktree; no reference solver runs."
+  },
+  "expected": "Historical pack checks and public drafting tests retain their identities; native diagnostics are not canonical acceptance.",
+  "observed": "34 passed, 4 Windows provenance-fixture failures: checked-out text hashes differ from Git blob bytes. The independent #1049 repair already owns this seam. #1039 and #1046 remain draft, awaiting PR Head base syncs.",
+  "keep": ["Immutable historical pack and distinct source/current provenance", "Use PR Head for the explicitly assigned base syncs"],
+  "change": ["Do not overwrite historical generated outputs to repair freshness", "Do not duplicate #1049 or count skipped draft checks as green"],
+  "protocol_elements": ["steps", "suite"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

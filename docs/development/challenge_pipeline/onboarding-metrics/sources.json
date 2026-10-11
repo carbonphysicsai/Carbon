@@ -1,0 +1,892 @@
+{
+  "schema": "carbon.onboarding.metrics-sources.v1",
+  "main": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+  "stages": [
+    {
+      "id": "brief",
+      "owner": "Owner / Research",
+      "authority_stage": "S0_brief"
+    },
+    {
+      "id": "packet",
+      "owner": "Packets / Test Lead",
+      "authority_stage": "S1_packet"
+    },
+    {
+      "id": "question_law",
+      "owner": "Packets / Owner",
+      "authority_stage": "S4_question_law"
+    },
+    {
+      "id": "panel",
+      "owner": "Data Collection / Packets",
+      "authority_stage": "S3_feasibility_value_panel"
+    },
+    {
+      "id": "generators_decks",
+      "owner": "Packets / Data Collection",
+      "authority_stage": "S2_solver_package"
+    },
+    {
+      "id": "verification_spec",
+      "owner": "Packets / Data Collection / Science",
+      "authority_stage": "S2_solver_package"
+    },
+    {
+      "id": "comparator",
+      "owner": "Packets / Optimizer",
+      "authority_stage": "S10_tested"
+    },
+    {
+      "id": "equal_budget",
+      "owner": "Optimizer / Packets",
+      "authority_stage": "S10_tested"
+    },
+    {
+      "id": "train_kit",
+      "owner": "Data Collection / Kit lane",
+      "authority_stage": "S4_question_law"
+    },
+    {
+      "id": "readiness_bindings",
+      "owner": "Packets / Test Lead",
+      "authority_stage": "S6_readiness"
+    }
+  ],
+  "challenges": [
+    {
+      "challenge": "battery-v3",
+      "stages": [
+        {
+          "id": "brief",
+          "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "packet",
+          "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "question_law",
+          "path": "docs/development/challenge_pipeline/question-laws/battery-v3-round2.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "panel",
+          "path": "docs/development/challenge_pipeline/question-laws/battery-v3-middle-bands-panel.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "generators_decks",
+          "path": "scripts/dev/battery/v3_panel_export.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "verification_spec",
+          "path": "docs/development/challenge_pipeline/code-verification/specs.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "comparator",
+          "path": "carbon/development_comparison/cheap_baselines.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "equal_budget",
+          "path": "carbon/design_search/equal_budget.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "train_kit",
+          "path": "scripts/dev/battery/v3_train.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "readiness_bindings",
+          "path": "docs/development/challenge_pipeline/evidence-readiness/bindings.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PUBLIC_FAMILY_REGISTRY_ENTRY_NOT_EVIDENCE_READINESS_ACCEPTANCE",
+          "json_entry": "battery-v3"
+        }
+      ]
+    },
+    {
+      "challenge": "motor",
+      "stages": [
+        {
+          "id": "brief",
+          "path": ".agent/decisions/2026-10-07-OWNER-FIRST-THREE-CUSTOMER-ROUND-01.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "packet",
+          "path": "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "question_law",
+          "path": "docs/development/challenge_pipeline/question-laws/motor-round2.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "panel",
+          "path": "docs/development/challenge_pipeline/question-laws/motor-round2.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "generators_decks",
+          "path": "scripts/dev/motor/feasibility02/boundary.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "verification_spec",
+          "path": "docs/development/challenge_pipeline/code-verification/specs.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "comparator",
+          "path": "carbon/development_comparison/cheap_baselines.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "equal_budget",
+          "path": "carbon/design_search/equal_budget.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "train_kit",
+          "path": "scripts/dev/motor/feasibility02/train.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "readiness_bindings",
+          "path": "docs/development/challenge_pipeline/evidence-readiness/bindings.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PUBLIC_FAMILY_REGISTRY_ENTRY_NOT_EVIDENCE_READINESS_ACCEPTANCE",
+          "json_entry": "motor"
+        }
+      ]
+    },
+    {
+      "challenge": "f02",
+      "stages": [
+        {
+          "id": "brief",
+          "path": ".agent/decisions/2026-10-06-OWNER-PORTFOLIO-DEV-ROUND-01.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "packet",
+          "path": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "question_law",
+          "path": "docs/development/challenge_pipeline/question-laws/f02-round2.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "panel",
+          "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f02/panel.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "generators_decks",
+          "path": "scripts/dev/reference_packages/elmer/f02_deck.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "verification_spec",
+          "path": "docs/development/challenge_pipeline/code-verification/specs.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "comparator",
+          "path": "carbon/development_comparison/portfolio_baselines.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "equal_budget",
+          "path": "carbon/design_search/equal_budget.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "train_kit",
+          "path": "scripts/dev/evidence_runs/f02.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "readiness_bindings",
+          "path": "docs/development/challenge_pipeline/evidence-readiness/bindings.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PUBLIC_FAMILY_REGISTRY_ENTRY_NOT_EVIDENCE_READINESS_ACCEPTANCE",
+          "json_entry": "f02"
+        }
+      ]
+    },
+    {
+      "challenge": "f13",
+      "stages": [
+        {
+          "id": "brief",
+          "path": ".agent/decisions/2026-10-06-OWNER-PORTFOLIO-DEV-ROUND-01.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "packet",
+          "path": "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "question_law",
+          "path": "docs/development/challenge_pipeline/question-laws/remaining/f13.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "panel",
+          "path": "docs/development/challenge_pipeline/silencer-readiness/measurement-pilot.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "generators_decks",
+          "path": "carbon/challenge_pipeline/silencer_readiness.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "verification_spec",
+          "path": "docs/development/challenge_pipeline/silencer-readiness/verification.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "comparator",
+          "path": "carbon/development_comparison/reduced_baselines.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "equal_budget",
+          "path": "carbon/design_search/equal_budget.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "train_kit",
+          "path": "carbon/challenge_pipeline/silencer_readiness.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "readiness_bindings",
+          "path": "docs/development/challenge_pipeline/silencer-readiness/readiness-binding.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        }
+      ]
+    },
+    {
+      "challenge": "cooling-cell",
+      "stages": [
+        {
+          "id": "brief",
+          "path": ".agent/decisions/2026-10-07-OWNER-FIRST-THREE-CUSTOMER-ROUND-01.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "packet",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "question_law",
+          "path": "docs/development/challenge_pipeline/question-laws/proposals-v2.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "panel",
+          "path": "docs/development/challenge_pipeline/onboarding-runs/generated/cooling-cell/panel.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "generators_decks",
+          "path": "carbon/challenge_pipeline/cooling_readiness.py",
+          "ref": "a227a41ba8c747a6e65f81c1d1111195b5652671",
+          "pending_pr": 1074,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "verification_spec",
+          "path": "docs/development/challenge_pipeline/cooling-readiness/verification.json",
+          "ref": "a227a41ba8c747a6e65f81c1d1111195b5652671",
+          "pending_pr": 1074,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "comparator",
+          "path": "carbon/development_comparison/portfolio_baselines.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "equal_budget",
+          "path": "carbon/design_search/cooling_budget.py",
+          "ref": "a227a41ba8c747a6e65f81c1d1111195b5652671",
+          "pending_pr": 1074,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "train_kit",
+          "path": "carbon/challenge_pipeline/cooling_readiness.py",
+          "ref": "a227a41ba8c747a6e65f81c1d1111195b5652671",
+          "pending_pr": 1074,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "readiness_bindings",
+          "path": "docs/development/challenge_pipeline/evidence-readiness/bindings.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PUBLIC_FAMILY_REGISTRY_ENTRY_NOT_EVIDENCE_READINESS_ACCEPTANCE",
+          "json_entry": "cooling-cell"
+        }
+      ]
+    },
+    {
+      "challenge": "backward-facing-step",
+      "stages": [
+        {
+          "id": "brief",
+          "path": "Business/research/benchmark-challenge-briefs/BACKWARD_FACING_STEP.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "packet",
+          "path": "docs/development/challenge_pipeline/benchmark-packets/backward-facing-step.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "question_law",
+          "path": "docs/development/challenge_pipeline/benchmark-packets/backward-facing-step-law.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "panel",
+          "path": "docs/development/challenge_pipeline/benchmark-packets/backward-facing-step-panel.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "generators_decks",
+          "path": "carbon/challenge_pipeline/benchmark_bfs.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "verification_spec",
+          "path": "docs/development/challenge_pipeline/benchmark-readiness/bfs/verification.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "comparator",
+          "path": "carbon/development_comparison/bfs_baselines.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "equal_budget",
+          "path": "carbon/design_search/bfs_budget.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "train_kit",
+          "path": "carbon/challenge_pipeline/benchmark_bfs.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "readiness_bindings",
+          "path": "docs/development/challenge_pipeline/evidence-readiness/bindings.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PUBLIC_FAMILY_REGISTRY_ENTRY_NOT_EVIDENCE_READINESS_ACCEPTANCE",
+          "json_entry": "backward-facing-step"
+        }
+      ]
+    },
+    {
+      "challenge": "metagrating-3d",
+      "stages": [
+        {
+          "id": "brief",
+          "path": "Business/research/benchmark-challenge-briefs/METAGRATING_3D.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "packet",
+          "path": "docs/development/challenge_pipeline/benchmark-packets/metagrating-3d.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "question_law",
+          "path": "docs/development/challenge_pipeline/benchmark-packets/metagrating-3d-law.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "panel",
+          "path": "docs/development/challenge_pipeline/benchmark-packets/metagrating-3d-panel.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "generators_decks",
+          "path": "carbon/challenge_pipeline/metagrating_decks.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "verification_spec",
+          "path": "docs/development/challenge_pipeline/benchmark-readiness/mg/verification.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "comparator",
+          "path": "carbon/development_comparison/metagrating_baselines.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "equal_budget",
+          "path": "carbon/design_search/metagrating_budget.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "train_kit",
+          "path": "carbon/challenge_pipeline/benchmark_mg.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "readiness_bindings",
+          "path": "docs/development/challenge_pipeline/evidence-readiness/bindings.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PUBLIC_FAMILY_REGISTRY_ENTRY_NOT_EVIDENCE_READINESS_ACCEPTANCE",
+          "json_entry": "metagrating-3d"
+        }
+      ]
+    },
+    {
+      "challenge": "bolted-joint",
+      "stages": [
+        {
+          "id": "brief",
+          "path": "docs/development/challenge_pipeline/discovery/dossiers/bolted-joint.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "packet",
+          "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/bolted-joint/packet.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "question_law",
+          "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/bolted-joint/law.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "panel",
+          "path": "docs/development/challenge_pipeline/bolted-rehearsal/measurement-pilot.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "generators_decks",
+          "path": "carbon/challenge_pipeline/bolted_rehearsal.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "verification_spec",
+          "path": "docs/development/challenge_pipeline/bolted-rehearsal/verification.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "comparator",
+          "path": "carbon/challenge_pipeline/bolted_rehearsal.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "equal_budget",
+          "path": "carbon/design_search/bolted_budget.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "train_kit",
+          "path": "carbon/challenge_pipeline/bolted_rehearsal.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "readiness_bindings",
+          "path": "docs/development/challenge_pipeline/bolted-rehearsal/readiness-binding.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        }
+      ]
+    },
+    {
+      "challenge": "package-warpage",
+      "stages": [
+        {
+          "id": "brief",
+          "path": "docs/development/challenge_pipeline/discovery/warpage-packet/README.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "packet",
+          "path": "docs/development/challenge_pipeline/discovery/warpage-packet/PACKAGE_WARPAGE_DESIGN_PACKET.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "question_law",
+          "path": "docs/development/challenge_pipeline/discovery/warpage-packet/PACKAGE_WARPAGE_DESIGN_PACKET.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "panel",
+          "path": "docs/development/challenge_pipeline/discovery/warpage-packet/feasibility-panel.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "generators_decks",
+          "path": "carbon/challenge_pipeline/warpage_rehearsal.py",
+          "ref": "592fc9bc51766a1bb9de4a25324f9cd06f017bfc",
+          "pending_pr": 1095,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "verification_spec",
+          "path": "docs/development/challenge_pipeline/warpage-rehearsal/verification.json",
+          "ref": "592fc9bc51766a1bb9de4a25324f9cd06f017bfc",
+          "pending_pr": 1095,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "comparator",
+          "path": "carbon/challenge_pipeline/warpage_rehearsal.py",
+          "ref": "592fc9bc51766a1bb9de4a25324f9cd06f017bfc",
+          "pending_pr": 1095,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "equal_budget",
+          "path": "carbon/design_search/warpage_budget.py",
+          "ref": "592fc9bc51766a1bb9de4a25324f9cd06f017bfc",
+          "pending_pr": 1095,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "train_kit",
+          "path": "carbon/challenge_pipeline/warpage_rehearsal.py",
+          "ref": "592fc9bc51766a1bb9de4a25324f9cd06f017bfc",
+          "pending_pr": 1095,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "readiness_bindings",
+          "path": "docs/development/challenge_pipeline/evidence-readiness/bindings.json",
+          "ref": "592fc9bc51766a1bb9de4a25324f9cd06f017bfc",
+          "pending_pr": 1095,
+          "basis": "PUBLIC_FAMILY_REGISTRY_ENTRY_NOT_EVIDENCE_READINESS_ACCEPTANCE",
+          "json_entry": "package-warpage"
+        }
+      ]
+    },
+    {
+      "challenge": "f17",
+      "stages": [
+        {
+          "id": "brief",
+          "path": ".agent/decisions/2026-10-06-OWNER-PORTFOLIO-DEV-ROUND-01.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "packet",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "question_law",
+          "path": "docs/development/challenge_pipeline/question-laws/remaining/f17.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "panel",
+          "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f17/panel.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "generators_decks",
+          "path": "carbon/challenge_pipeline/micromixer_readiness.py",
+          "ref": "d770f0e00c485908deff1f231b0d4f1c4cf27fe7",
+          "pending_pr": 1102,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "verification_spec",
+          "path": "docs/development/challenge_pipeline/micromixer-readiness/verification.json",
+          "ref": "d770f0e00c485908deff1f231b0d4f1c4cf27fe7",
+          "pending_pr": 1102,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "comparator",
+          "path": "carbon/challenge_pipeline/micromixer_readiness.py",
+          "ref": "d770f0e00c485908deff1f231b0d4f1c4cf27fe7",
+          "pending_pr": 1102,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "equal_budget",
+          "path": "carbon/design_search/micromixer_budget.py",
+          "ref": "d770f0e00c485908deff1f231b0d4f1c4cf27fe7",
+          "pending_pr": 1102,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "train_kit",
+          "path": "carbon/challenge_pipeline/micromixer_readiness.py",
+          "ref": "d770f0e00c485908deff1f231b0d4f1c4cf27fe7",
+          "pending_pr": 1102,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "readiness_bindings",
+          "path": "docs/development/challenge_pipeline/evidence-readiness/bindings.json",
+          "ref": "d770f0e00c485908deff1f231b0d4f1c4cf27fe7",
+          "pending_pr": 1102,
+          "basis": "PUBLIC_FAMILY_REGISTRY_ENTRY_NOT_EVIDENCE_READINESS_ACCEPTANCE",
+          "json_entry": "f17"
+        }
+      ]
+    },
+    {
+      "challenge": "f08",
+      "stages": [
+        {
+          "id": "brief",
+          "path": ".agent/decisions/2026-10-06-OWNER-PORTFOLIO-DEV-ROUND-01.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "packet",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "question_law",
+          "path": "docs/development/challenge_pipeline/question-laws/proposals.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "panel",
+          "path": "docs/development/challenge_pipeline/onboarding-runs/generated/f08/panel.json",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "generators_decks",
+          "path": "carbon/challenge_pipeline/structures_readiness.py",
+          "ref": "e103251b168c192b8711a40383d70dd9c16a8509",
+          "pending_pr": 1109,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "verification_spec",
+          "path": "docs/development/challenge_pipeline/structures-readiness/verification.json",
+          "ref": "e103251b168c192b8711a40383d70dd9c16a8509",
+          "pending_pr": 1109,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "comparator",
+          "path": "carbon/development_comparison/reduced_baselines.py",
+          "ref": "2cfc2508e267e1b794d32fa617603bcc7e122397",
+          "pending_pr": null,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "equal_budget",
+          "path": "carbon/design_search/structures_budget.py",
+          "ref": "e103251b168c192b8711a40383d70dd9c16a8509",
+          "pending_pr": 1109,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "train_kit",
+          "path": "carbon/challenge_pipeline/structures_readiness.py",
+          "ref": "e103251b168c192b8711a40383d70dd9c16a8509",
+          "pending_pr": 1109,
+          "basis": "PREPARATION_ARTIFACT_ONLY_NOT_ACCEPTED_EXIT"
+        },
+        {
+          "id": "readiness_bindings",
+          "path": "docs/development/challenge_pipeline/evidence-readiness/bindings.json",
+          "ref": "e103251b168c192b8711a40383d70dd9c16a8509",
+          "pending_pr": 1109,
+          "basis": "PUBLIC_FAMILY_REGISTRY_ENTRY_NOT_EVIDENCE_READINESS_ACCEPTANCE",
+          "json_entry": "f08"
+        }
+      ]
+    }
+  ]
+}

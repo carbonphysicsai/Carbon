@@ -1,0 +1,64 @@
+{
+  "schema": "carbon.research.cooling-operating-options.v1",
+  "ticket": "AI-CHIP-COOLING-SOURCES-01",
+  "status": "RECOMMENDATION_ONLY_NOT_REGISTERED_OR_VERIFIED",
+  "checked_date": "2026-10-11",
+  "scope": "periodic interior cell; representative interface loads, not actual GPU package",
+  "fixed_inputs": {
+    "heated_footprint_mm": [30, 30],
+    "footprint_basis": "SOURCED Carbon domain.py / OCP heater example; not current GPU lid geometry",
+    "case_limit_c": 85,
+    "limit_basis": "OWNER development choice, cooling-cell-v3; lid-side TIM2 proxy, not junction limit",
+    "TIM_areal_m2K_W": 0.000005,
+    "TIM_basis": "SOURCED current Carbon development domain; vendor-matched resistance HUMAN_INPUT",
+    "coolant": "PG25 pinned Carbon fit",
+    "supported_temperature_c": [30, 99],
+    "lid_characterization": "HUMAN_INPUT",
+    "post_spreader_map": "HUMAN_INPUT",
+    "lid_k_sensitivity_low_base_high_W_mK": [2000, 5000, 10000],
+    "lid_k_basis": "ASSUMPTION screen only; Boyd >5000 product claim is not this lid's material law",
+    "map_ratio_options_low_base_high": [1, 1.5, 2],
+    "map_ratio_basis": "ASSUMPTION, no characterized map or P/Q/w adopted"
+  },
+  "points": [
+    {
+      "id": "A",
+      "role": "lower-power warm-water anchor",
+      "all_numeric_options_basis": "ASSUMPTION representative choices, inside current domain",
+      "inlet_c_low_base_high": [30, 32, 35],
+      "interface_heat_W_low_base_high": [700, 750, 800],
+      "flow_LPM_per_kW_low_base_high": [1.25, 1.5, 2],
+      "base_total_flow_LPM": 1.125,
+      "cell_pressure_allocation_kPa_low_base_high": [15, 20, 25],
+      "mean_footprint_flux_W_cm2_low_base_high": [77.777778, 83.333333, 88.888889],
+      "derived_quantities_basis": "arithmetic from assumed interface heat and fixed 9 cm2 footprint"
+    },
+    {
+      "id": "B",
+      "role": "recommended central prospective value panel",
+      "all_numeric_options_basis": "ASSUMPTION representative choices, OCP 1kW TTV is a source anchor",
+      "inlet_c_low_base_high": [37, 40, 42],
+      "interface_heat_W_low_base_high": [900, 1000, 1100],
+      "flow_LPM_per_kW_low_base_high": [1.25, 1.5, 2],
+      "base_total_flow_LPM": 1.5,
+      "cell_pressure_allocation_kPa_low_base_high": [20, 25, 30],
+      "mean_footprint_flux_W_cm2_low_base_high": [100, 111.111111, 122.222222],
+      "derived_quantities_basis": "arithmetic from assumed interface heat and fixed 9 cm2 footprint"
+    },
+    {
+      "id": "C",
+      "role": "high-power warmest-supported stress point; hold if value or feasibility fails",
+      "all_numeric_options_basis": "ASSUMPTION representative choices, 1400W module is a source anchor only",
+      "inlet_c_low_base_high": [42, 45, 45],
+      "interface_heat_W_low_base_high": [1200, 1400, 1500],
+      "flow_LPM_per_kW_low_base_high": [1.5, 2, 2],
+      "base_total_flow_LPM": 2.8,
+      "cell_pressure_allocation_kPa_low_base_high": [25, 30, 35],
+      "mean_footprint_flux_W_cm2_low_base_high": [133.333333, 155.555556, 166.666667],
+      "derived_quantities_basis": "arithmetic; upper sensitivity stays inside current 45C/1500W/2LPM-per-kW domain"
+    }
+  ],
+  "hard_gaps": ["matched rights-clear lid characterization", "actual package-to-interface power map", "per-cell hydraulic allocation and scaling", "all-strata feasibility/contested frontier", "equal-budget advantage over cached/response-map baseline"],
+  "owner_and_test_lead_input": ["select point(s)", "freeze material/interface provenance", "register P/Q/w and limits", "approve any future run separately"],
+  "maturity": "SOURCE_REVIEW_AND_SPECIFIED_OPTIONS_ONLY"
+}

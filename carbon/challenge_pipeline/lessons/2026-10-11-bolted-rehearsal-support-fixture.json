@@ -1,0 +1,10 @@
+{
+ "schema":"carbon.challenge-pipeline.lesson.v1", "lesson_id":"2026-10-11-bolted-rehearsal-support-fixture",
+ "recorded_at":"2026-10-11T13:04:00Z", "challenge":"bolted-joint", "stage":"test_iterate",
+ "execution":{"kind":"test_run","ref":"BOLTED-JOINT-REHEARSAL-BUILD-01","description":"Native representative comparison and shared regressions after schema repair"},
+ "expected":"Supported hand-calculation toy agrees; nonlinear unsupported safety abstains.",
+ "observed":"103 passed, 1 toy agreement assertion failed. Initial suspicion of unsupported contact was not sufficient: read-only query accounting showed three invalid proposals, because number grammar canonicalizes integer action bytes to float bytes. Corrected the toy to integer lattice and added strict canonical-digest validation; no buyer limit or shared runtime changed. The repeated run also caught one Ruff set-literal issue and a wrong pipeline command, repaired explicitly.",
+ "keep":["Do not repair a comparator with held-out truth", "Unsupported closed-contact state never becomes a confident prediction"],
+ "change":["Check query accounting before changing a decision fixture; numeric equality is not canonical byte identity"],
+ "protocol_elements":["reference_adequacy","measurement_authority"], "proposed_revision":null,"status":"RECORDED"
+}
