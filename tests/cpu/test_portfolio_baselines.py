@@ -14,7 +14,7 @@ from carbon.development_comparison import portfolio_baselines as pb
 
 
 def fixture(family, payloads=None):
-    n = 5
+    n = 5 if payloads is None else len(payloads)
     if payloads is None:
         payloads = [{} for _ in range(n)]
     reducers = {
@@ -57,7 +57,7 @@ def fixture(family, payloads=None):
                         "name": "coordinate",
                         "type": "integer",
                         "min": 0,
-                        "max": 4,
+                        "max": n - 1,
                         "step": 1,
                     }
                 ],
@@ -155,9 +155,9 @@ def fixture(family, payloads=None):
     return export, material
 
 
-def thermal_payloads():
+def thermal_payloads(n=5):
     output = []
-    for i in range(5):
+    for i in range(n):
         # Independent two-source excitation, fixed amplitudes, varying durations.
         power = np.zeros((8, 2))
         power[1 : 3 + i, 0], power[4:6, 1] = 1, 1

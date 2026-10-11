@@ -262,6 +262,45 @@ def gate_lines(report):
     return "\n".join(out) + "\n"
 
 
+def pick_refusal(selection_path, rule):
+    """None, or why the confirmation refuses `rule`: the selection report
+    must exist and mark it pickable (SCORE-PROOF-PICKABLE-01)."""
+    if selection_path is None:
+        return "confirmation needs --selection (the selection run's selection.json)"
+    try:
+        selection = json.loads(Path(selection_path).read_text())
+    except (OSError, ValueError):
+        return "selection_unreadable"
+    entry = (selection.get("pickable") or {}).get(rule)
+    if entry is None:
+        return "rule_not_in_selection: " + rule
+    if not entry["pickable"]:
+        return "rule_not_pickable: " + rule + " (" + "; ".join(entry["failed"]) + ")"
+    return None
+
+
+def placement_lines(report):
+    """Where every candidate ranks each known-bad control (pooled), and
+    whether the owner may pick it (selection only)."""
+    out = ["\n## Known-bad controls, per candidate (pooled)\n"]
+    pick = report.get("pickable", {})
+    for cid, pools in report["candidates"].items():
+        r = pools.get("pooled", {})
+        ranks = ", ".join(
+            f"{m} {rank}/{n}" for m, (rank, n) in r.get("known_bad_ranks", {}).items()
+        )
+        line = f"- **{cid}**: {ranks or 'no known-bad control scored'}"
+        if cid in pick:
+            entry = pick[cid]
+            line += (
+                ". Pickable."
+                if entry["pickable"]
+                else ". **Not pickable:** " + "; ".join(entry["failed"]) + "."
+            )
+        out.append(line)
+    return "\n".join(out) + "\n"
+
+
 def table(report):
     """One table per level, the rule in force first."""
     base = report["rule_in_force"]
@@ -325,6 +364,12 @@ def main(argv=None):
         "the proof criteria for --rule only, on the held-apart fold",
     )
     parser.add_argument("--rule", help="confirmation: the rule the owner picked")
+    parser.add_argument(
+        "--selection",
+        type=Path,
+        help="confirmation: the selection run's selection.json; a rule it does "
+        "not mark pickable is refused",
+    )
     parser.add_argument("--sequential", type=Path, default=SEQUENTIAL)
     parser.add_argument(
         "--look",
@@ -343,6 +388,10 @@ def main(argv=None):
 
     if args.phase == "confirmation" and not args.rule:
         raise SystemExit("refused: confirmation needs --rule (the owner's pick)")
+    if args.phase == "confirmation" and not args.public_standin:
+        refused = pick_refusal(args.selection, args.rule)
+        if refused:
+            raise SystemExit("refused: " + refused)
     if args.phase == "selection" and args.rule:
         raise SystemExit("refused: --rule is for confirmation only")
     if args.public_standin:
@@ -388,6 +437,12 @@ def main(argv=None):
     }
     if args.phase == "confirmation":
         report["verdict"] = sp.sequential_verdict(report, args.rule, look, design)
+    else:
+        minimum = load_sequential(args.sequential)["minimum_level_members"]
+        report["pickable"] = {
+            cid: dict(zip(("pickable", "failed"), sp.pickable(report, cid, minimum)))
+            for cid in report["candidates"]
+        }
     report["source"] = (
         "PUBLIC_STANDIN (plumbing only; not proof)"
         if args.public_standin
@@ -421,7 +476,10 @@ def main(argv=None):
             f"{args.phase}.json",
             json.dumps(report, indent=1, sort_keys=True, default=str) + "\n",
         ),
-        (f"{args.phase}.md", header + gate_lines(report) + table(report)),
+        (
+            f"{args.phase}.md",
+            header + gate_lines(report) + placement_lines(report) + table(report),
+        ),
     ):
         path = args.out / name
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
