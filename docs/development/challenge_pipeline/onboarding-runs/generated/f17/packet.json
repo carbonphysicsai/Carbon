@@ -1,0 +1,479 @@
+{
+  "challenge": "f17",
+  "fields": {
+    "P": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize P",
+      "owner": "science/product owner",
+      "recommendation": "Geometry is an action; reference-input geometry law is uniform valid parameters.\nExogenous `P_dev` is uniform over the3\u00d73 flow/diffusivity conditions, w=1/9 for\na later complete decision panel, with worst condition separately mandatory.\nQ feasibility: nominal groove geometry at all nine conditions plus controls\nand refinement as caps permit. These shared conditions do not establish a\ncustomer fluid distribution or population reliability. High-Peclet behavior\nis explicitly reported, not filtered out as an inconvenient case.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three flows by three diffusivities are one cartridge operating panel.\nA future `P_job` can vary supported outlet-mixing, pressure-drop or residence\nlimits and required throughput subsets against one fully solved groove bank.\nA lab-instrument buyer recognizes each question from its assay uniformity,\npump and throughput acceptance sheet. Re-evaluating stored flow/scalar outputs\nneeds no new solve if the whole requested panel is covered and the preferred\ngroove demonstrably changes. New fluids, inlet chemistry or port interfaces\nare optional axes that may need new flow/scalar references. Outlet pixels,\nflow probes and solver seeds are not fresh questions by themselves.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and panels,\n`P_job`, protected `Q_job`, weights, answer diversity, shared-assay clustering,\nexposure and power-justified hidden `n`. The complete 3 \u00d7 3 panel stays\nmandatory for any question that claims that service envelope.",
+      "sources": [
+        {
+          "excerpt": "Geometry is an action; reference-input geometry law is uniform valid parameters.\nExogenous `P_dev` is uniform over the3\u00d73 flow/diffusivity conditions, w=1/9 for\na later complete decision panel, with worst condition separately mandatory.\nQ feasibility: nominal groove geometry at all nine conditions plus controls\nand refinement as caps permit. These shared conditions do not establish a\ncustomer fluid distribution or population reliability. High-Peclet behavior\nis explicitly reported, not filtered out as an inconvenient case.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three flows by three diffusivities are one cartridge operating panel.\nA future `P_job` can vary supported outlet-mixing, pressure-drop or residence\nlimits and required throughput subsets against one fully solved groove bank.\nA lab-instrument buyer recognizes each question from its assay uniformity,\npump and throughput acceptance sheet. Re-evaluating stored flow/scalar outputs\nneeds no new solve if the whole requested panel is covered and the preferred\ngroove demonstrably changes. New fluids, inlet chemistry or port interfaces\nare optional axes that may need new flow/scalar references. Outlet pixels,\nflow probes and solver seeds are not fresh questions by themselves.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and panels,\n`P_job`, protected `Q_job`, weights, answer diversity, shared-assay clustering,\nexposure and power-justified hidden `n`. The complete 3 \u00d7 3 panel stays\nmandatory for any question that claims that service envelope.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "Q": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize Q",
+      "owner": "science/product owner",
+      "recommendation": "Geometry is an action; reference-input geometry law is uniform valid parameters.\nExogenous `P_dev` is uniform over the3\u00d73 flow/diffusivity conditions, w=1/9 for\na later complete decision panel, with worst condition separately mandatory.\nQ feasibility: nominal groove geometry at all nine conditions plus controls\nand refinement as caps permit. These shared conditions do not establish a\ncustomer fluid distribution or population reliability. High-Peclet behavior\nis explicitly reported, not filtered out as an inconvenient case.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three flows by three diffusivities are one cartridge operating panel.\nA future `P_job` can vary supported outlet-mixing, pressure-drop or residence\nlimits and required throughput subsets against one fully solved groove bank.\nA lab-instrument buyer recognizes each question from its assay uniformity,\npump and throughput acceptance sheet. Re-evaluating stored flow/scalar outputs\nneeds no new solve if the whole requested panel is covered and the preferred\ngroove demonstrably changes. New fluids, inlet chemistry or port interfaces\nare optional axes that may need new flow/scalar references. Outlet pixels,\nflow probes and solver seeds are not fresh questions by themselves.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and panels,\n`P_job`, protected `Q_job`, weights, answer diversity, shared-assay clustering,\nexposure and power-justified hidden `n`. The complete 3 \u00d7 3 panel stays\nmandatory for any question that claims that service envelope.",
+      "sources": [
+        {
+          "excerpt": "Geometry is an action; reference-input geometry law is uniform valid parameters.\nExogenous `P_dev` is uniform over the3\u00d73 flow/diffusivity conditions, w=1/9 for\na later complete decision panel, with worst condition separately mandatory.\nQ feasibility: nominal groove geometry at all nine conditions plus controls\nand refinement as caps permit. These shared conditions do not establish a\ncustomer fluid distribution or population reliability. High-Peclet behavior\nis explicitly reported, not filtered out as an inconvenient case.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three flows by three diffusivities are one cartridge operating panel.\nA future `P_job` can vary supported outlet-mixing, pressure-drop or residence\nlimits and required throughput subsets against one fully solved groove bank.\nA lab-instrument buyer recognizes each question from its assay uniformity,\npump and throughput acceptance sheet. Re-evaluating stored flow/scalar outputs\nneeds no new solve if the whole requested panel is covered and the preferred\ngroove demonstrably changes. New fluids, inlet chemistry or port interfaces\nare optional axes that may need new flow/scalar references. Outlet pixels,\nflow probes and solver seeds are not fresh questions by themselves.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and panels,\n`P_job`, protected `Q_job`, weights, answer diversity, shared-assay clustering,\nexposure and power-justified hidden `n`. The complete 3 \u00d7 3 panel stays\nmandatory for any question that claims that service envelope.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "baseline": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize baseline",
+      "owner": "science/product owner",
+      "recommendation": "Own-seed generator/reference, diffusion-scaling/smooth-channel/network/transport\nROM baselines, outlet/flux docs and incomplete public practice. Reuse OpenFOAM\nand evidence packaging patterns from Cooling, not its fluid/steady truth or\nmetrics. Protected cases, labels and seeds stay operator-side.",
+      "sources": [
+        {
+          "excerpt": "Own-seed generator/reference, diffusion-scaling/smooth-channel/network/transport\nROM baselines, outlet/flux docs and incomplete public practice. Reuse OpenFOAM\nand evidence packaging patterns from Cooling, not its fluid/steady truth or\nmetrics. Protected cases, labels and seeds stay operator-side.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "buyer": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize buyer",
+      "owner": "science/product owner",
+      "recommendation": "Microfluidic cartridge development engineer (internal mock customer)",
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "case_identity": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize case_identity",
+      "owner": "science/product owner",
+      "recommendation": "Bind CAD, grooves, fluid/transport law, inlet profiles, units and outlet plane.\nReject intersecting grooves, invalid inlets/mesh, backflow incompatible with\nthe specified scalar outlet and nonpositive flow/diffusivity (zero-D is an\nexplicit numerical control outside P). Own-seed public identities never bind\nor reveal later protected draws. Missing velocity evidence blocks transport use.",
+      "sources": [
+        {
+          "excerpt": "Bind CAD, grooves, fluid/transport law, inlet profiles, units and outlet plane.\nReject intersecting grooves, invalid inlets/mesh, backflow incompatible with\nthe specified scalar outlet and nonpositive flow/diffusivity (zero-D is an\nexplicit numerical control outside P). Own-seed public identities never bind\nor reveal later protected draws. Missing velocity evidence blocks transport use.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "conditions": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize conditions",
+      "owner": "science/product owner",
+      "recommendation": "300\u00d7100-\u00b5m base channel,10 mm axial length, two equal-flow side-by-side inlets\nconcentrations0 and1. Bottom staggered-herringbone recessed grooves:\ndepth20\u201340 \u00b5m,width50 \u00b5m,pitch100\u2013250 \u00b5m,45\u00b0 angle, asymmetry corner at1/3 width;\nreverse orientation every6\u201310 grooves (integer). Groove ends stop10 \u00b5m before\nsidewalls. No-slip walls, zero solute wall flux, prescribed equal inlet flux,\noutlet pressure0. Synthetic Newtonian rho998 kg/m\u00b3,mu0.001 Pa s; total flow\n1,3,5 \u00b5L/min; D=0.5,1,2\u00d710\u207b\u00b9\u2070 m\u00b2/s. Independently solve and charge laminar\nvelocity before steady passive-scalar transport. No unpriced velocity oracle.",
+      "sources": [
+        {
+          "excerpt": "300\u00d7100-\u00b5m base channel,10 mm axial length, two equal-flow side-by-side inlets\nconcentrations0 and1. Bottom staggered-herringbone recessed grooves:\ndepth20\u201340 \u00b5m,width50 \u00b5m,pitch100\u2013250 \u00b5m,45\u00b0 angle, asymmetry corner at1/3 width;\nreverse orientation every6\u201310 grooves (integer). Groove ends stop10 \u00b5m before\nsidewalls. No-slip walls, zero solute wall flux, prescribed equal inlet flux,\noutlet pressure0. Synthetic Newtonian rho998 kg/m\u00b3,mu0.001 Pa s; total flow\n1,3,5 \u00b5L/min; D=0.5,1,2\u00d710\u207b\u00b9\u2070 m\u00b2/s. Independently solve and charge laminar\nvelocity before steady passive-scalar transport. No unpriced velocity oracle.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "confirmation": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize confirmation",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "controls": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize controls",
+      "owner": "science/product owner",
+      "recommendation": "Control numerical smoothing before broad learning. Preregister whole-geometry\nholdouts, common outlet sampling and equal charged flow+scalar budgets. Show\nwhether cheap mechanistic models already make the same decisions; do not\nreshape the task to manufacture learned advantage. Fresh confirmation, dye/\nfluorescence observation calibration, rights and training-budget study are later\ncontracts, not this reference-feasibility allowance.",
+      "sources": [
+        {
+          "excerpt": "Control numerical smoothing before broad learning. Preregister whole-geometry\nholdouts, common outlet sampling and equal charged flow+scalar budgets. Show\nwhether cheap mechanistic models already make the same decisions; do not\nreshape the task to manufacture learned advantage. Fresh confirmation, dye/\nfluorescence observation calibration, rights and training-budget study are later\ncontracts, not this reference-feasibility allowance.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "cost": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize cost",
+      "owner": "science/product owner",
+      "recommendation": "OpenFOAM steady laminar flow plus passive scalar transport; pin build/image/\nlicense, groove mesher, pressure/velocity convergence and scalar discretization\nbefore dispatch. [The official scalar transport implementation](https://api.openfoam.com/2506/scalarTransportFoam_8C.html)\nstates the equation; [boundedness guidance](https://doc.openfoam.com/2306/tools/post-processing/function-objects/solvers/scalarTransport/)\nmotivates checking numerics. The [original grooved-channel study](https://pubmed.ncbi.nlm.nih.gov/11809963/)\nsupports geometry motivation, not the selected synthetic parameters or adequacy.\n\nControls: smooth rectangular channel with analytical pressure/diffusion and a\nzero-D numerical-smearing case. Mass/solute balance\u22640.5%; pointwise concentration\nin[\u22120.001,1.001]; independent mesh refinement \u0394M\u22640.02 and \u0394pressure\u22645%.\nRequire a resolved scalar boundary-layer/refinement witness at maximum Pe;\nboundedness alone cannot establish low artificial diffusion. Keep raw c and\nvariance; no clipping/renormalizing to pass. 40 launches/8 node-hours/$25 caps\ninclude velocity and scalar jobs separately: nine primary pairs consume18,\nleaving22 for controls/refinements. Failure/exhaustion leaves unresolved evidence.\n\n### Reference credibility target\n\n**Buyer tool:** COMSOL Microfluidics Module is the assumed cartridge designer's\nlaminar-flow/passive-transport workflow, not verified market share. **Carbon\nreference:** proposed OpenFOAM flow plus scalar transport, **not the same\ntool**. Cooling's OpenFOAM build alone is not this groove/transport reference.\nTier 1 requires the buyer's exact tool, fluid, geometry, inlet and observer settings.\n\n**Target tier:** Tier 2 for offline cartridge design against simulator outputs.\nTier 3 calibrated dye/fluorescence and hydraulic measurements would be needed\nbefore claiming real-cartridge mixing; no chemistry/clinical validation is\nimplied. **Credibility evidence: NOT_DEMONSTRATED** for this task.\n\n**Benchmark cases:** COMSOL's published\n[Split and Recombine Mixer Benchmark](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mfl.split_recombine_mixer/split_recombine_mixer.html)\nand [Micromixer](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mph.micromixer/micromixer.html),\nwith their exact geometry/inlets/transport law reproduced in both tools.\nTheir mixing measures/geometry are not automatically this packet's groove\nlaw or positive axial-flux weighted M. Add matched smooth-channel controls\nand grooved maximum-P\u00e9clet/flow-extreme witnesses; compute the **same** outlet\nmean/variance/M from both raw fields and check artificial diffusion independently.\nNever compare an area-weighted tutorial score directly to the flux-weighted buyer score.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend absolute outlet M difference\n\u22640.02, pressure-drop difference \u22645% at declared nonzero flow, and mean hydraulic\nresidence difference \u22645% using identical fluid volume/flow definitions. Absolute\nnear-zero pressure floors remain HUMAN_INPUT. Retain concentration/flux/balance\nchecks and refinement above; bounded concentrations or coincidentally similar\nM can both conceal numerical smoothing. These are simulator-agreement targets,\nnot reaction yield or laboratory fluid-property evidence.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for the specified\nlaminar passive transport, not \u201cmatches reality\u201d, reagent performance or assay quality.",
+      "sources": [
+        {
+          "excerpt": "OpenFOAM steady laminar flow plus passive scalar transport; pin build/image/\nlicense, groove mesher, pressure/velocity convergence and scalar discretization\nbefore dispatch. [The official scalar transport implementation](https://api.openfoam.com/2506/scalarTransportFoam_8C.html)\nstates the equation; [boundedness guidance](https://doc.openfoam.com/2306/tools/post-processing/function-objects/solvers/scalarTransport/)\nmotivates checking numerics. The [original grooved-channel study](https://pubmed.ncbi.nlm.nih.gov/11809963/)\nsupports geometry motivation, not the selected synthetic parameters or adequacy.\n\nControls: smooth rectangular channel with analytical pressure/diffusion and a\nzero-D numerical-smearing case. Mass/solute balance\u22640.5%; pointwise concentration\nin[\u22120.001,1.001]; independent mesh refinement \u0394M\u22640.02 and \u0394pressure\u22645%.\nRequire a resolved scalar boundary-layer/refinement witness at maximum Pe;\nboundedness alone cannot establish low artificial diffusion. Keep raw c and\nvariance; no clipping/renormalizing to pass. 40 launches/8 node-hours/$25 caps\ninclude velocity and scalar jobs separately: nine primary pairs consume18,\nleaving22 for controls/refinements. Failure/exhaustion leaves unresolved evidence.\n\n### Reference credibility target\n\n**Buyer tool:** COMSOL Microfluidics Module is the assumed cartridge designer's\nlaminar-flow/passive-transport workflow, not verified market share. **Carbon\nreference:** proposed OpenFOAM flow plus scalar transport, **not the same\ntool**. Cooling's OpenFOAM build alone is not this groove/transport reference.\nTier 1 requires the buyer's exact tool, fluid, geometry, inlet and observer settings.\n\n**Target tier:** Tier 2 for offline cartridge design against simulator outputs.\nTier 3 calibrated dye/fluorescence and hydraulic measurements would be needed\nbefore claiming real-cartridge mixing; no chemistry/clinical validation is\nimplied. **Credibility evidence: NOT_DEMONSTRATED** for this task.\n\n**Benchmark cases:** COMSOL's published\n[Split and Recombine Mixer Benchmark](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mfl.split_recombine_mixer/split_recombine_mixer.html)\nand [Micromixer](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mph.micromixer/micromixer.html),\nwith their exact geometry/inlets/transport law reproduced in both tools.\nTheir mixing measures/geometry are not automatically this packet's groove\nlaw or positive axial-flux weighted M. Add matched smooth-channel controls\nand grooved maximum-P\u00e9clet/flow-extreme witnesses; compute the **same** outlet\nmean/variance/M from both raw fields and check artificial diffusion independently.\nNever compare an area-weighted tutorial score directly to the flux-weighted buyer score.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend absolute outlet M difference\n\u22640.02, pressure-drop difference \u22645% at declared nonzero flow, and mean hydraulic\nresidence difference \u22645% using identical fluid volume/flow definitions. Absolute\nnear-zero pressure floors remain HUMAN_INPUT. Retain concentration/flux/balance\nchecks and refinement above; bounded concentrations or coincidentally similar\nM can both conceal numerical smoothing. These are simulator-agreement targets,\nnot reaction yield or laboratory fluid-property evidence.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for the specified\nlaminar passive transport, not \u201cmatches reality\u201d, reagent performance or assay quality.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "decision": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize decision",
+      "owner": "science/product owner",
+      "recommendation": "Choose a repeated-groove mixing design under mixing, pressure and residence requirements",
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "disclosure": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize disclosure",
+      "owner": "science/product owner",
+      "recommendation": "Bind CAD, grooves, fluid/transport law, inlet profiles, units and outlet plane.\nReject intersecting grooves, invalid inlets/mesh, backflow incompatible with\nthe specified scalar outlet and nonpositive flow/diffusivity (zero-D is an\nexplicit numerical control outside P). Own-seed public identities never bind\nor reveal later protected draws. Missing velocity evidence blocks transport use.",
+      "sources": [
+        {
+          "excerpt": "Bind CAD, grooves, fluid/transport law, inlet profiles, units and outlet plane.\nReject intersecting grooves, invalid inlets/mesh, backflow incompatible with\nthe specified scalar outlet and nonpositive flow/diffusivity (zero-D is an\nexplicit numerical control outside P). Own-seed public identities never bind\nor reveal later protected draws. Missing velocity evidence blocks transport use.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "exclusions": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize exclusions",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "geometry": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize geometry",
+      "owner": "science/product owner",
+      "recommendation": "300\u00d7100-\u00b5m base channel,10 mm axial length, two equal-flow side-by-side inlets\nconcentrations0 and1. Bottom staggered-herringbone recessed grooves:\ndepth20\u201340 \u00b5m,width50 \u00b5m,pitch100\u2013250 \u00b5m,45\u00b0 angle, asymmetry corner at1/3 width;\nreverse orientation every6\u201310 grooves (integer). Groove ends stop10 \u00b5m before\nsidewalls. No-slip walls, zero solute wall flux, prescribed equal inlet flux,\noutlet pressure0. Synthetic Newtonian rho998 kg/m\u00b3,mu0.001 Pa s; total flow\n1,3,5 \u00b5L/min; D=0.5,1,2\u00d710\u207b\u00b9\u2070 m\u00b2/s. Independently solve and charge laminar\nvelocity before steady passive-scalar transport. No unpriced velocity oracle.",
+      "sources": [
+        {
+          "excerpt": "300\u00d7100-\u00b5m base channel,10 mm axial length, two equal-flow side-by-side inlets\nconcentrations0 and1. Bottom staggered-herringbone recessed grooves:\ndepth20\u201340 \u00b5m,width50 \u00b5m,pitch100\u2013250 \u00b5m,45\u00b0 angle, asymmetry corner at1/3 width;\nreverse orientation every6\u201310 grooves (integer). Groove ends stop10 \u00b5m before\nsidewalls. No-slip walls, zero solute wall flux, prescribed equal inlet flux,\noutlet pressure0. Synthetic Newtonian rho998 kg/m\u00b3,mu0.001 Pa s; total flow\n1,3,5 \u00b5L/min; D=0.5,1,2\u00d710\u207b\u00b9\u2070 m\u00b2/s. Independently solve and charge laminar\nvelocity before steady passive-scalar transport. No unpriced velocity oracle.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "hard_limits": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize hard_limits",
+      "owner": "science/product owner",
+      "recommendation": "At x=10 mm, positive axial-flux weighted c mean/variance; inlet variance0.25.\nM=1\u2212sqrt(variance_out/0.25), without clamping; negative M is a visible failure,\nnot a favorable score. Report solute/volume flux, pressure drop and concentration\nfield. Mean hydraulic residence=fluid volume /total volume flow, including\ngrooves; this is not an arrival-time distribution. Backflow invalidates that\noutlet measurement unless separately specified. All nine conditions must meet\nconstraints; missing reference evidence cannot be imputed as success.",
+      "sources": [
+        {
+          "excerpt": "At x=10 mm, positive axial-flux weighted c mean/variance; inlet variance0.25.\nM=1\u2212sqrt(variance_out/0.25), without clamping; negative M is a visible failure,\nnot a favorable score. Report solute/volume flux, pressure drop and concentration\nfield. Mean hydraulic residence=fluid volume /total volume flow, including\ngrooves; this is not an arrival-time distribution. Backflow invalidates that\noutlet measurement unless separately specified. All nine conditions must meet\nconstraints; missing reference evidence cannot be imputed as success.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "independent_unit": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize independent_unit",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "materials": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize materials",
+      "owner": "science/product owner",
+      "recommendation": "300\u00d7100-\u00b5m base channel,10 mm axial length, two equal-flow side-by-side inlets\nconcentrations0 and1. Bottom staggered-herringbone recessed grooves:\ndepth20\u201340 \u00b5m,width50 \u00b5m,pitch100\u2013250 \u00b5m,45\u00b0 angle, asymmetry corner at1/3 width;\nreverse orientation every6\u201310 grooves (integer). Groove ends stop10 \u00b5m before\nsidewalls. No-slip walls, zero solute wall flux, prescribed equal inlet flux,\noutlet pressure0. Synthetic Newtonian rho998 kg/m\u00b3,mu0.001 Pa s; total flow\n1,3,5 \u00b5L/min; D=0.5,1,2\u00d710\u207b\u00b9\u2070 m\u00b2/s. Independently solve and charge laminar\nvelocity before steady passive-scalar transport. No unpriced velocity oracle.",
+      "sources": [
+        {
+          "excerpt": "300\u00d7100-\u00b5m base channel,10 mm axial length, two equal-flow side-by-side inlets\nconcentrations0 and1. Bottom staggered-herringbone recessed grooves:\ndepth20\u201340 \u00b5m,width50 \u00b5m,pitch100\u2013250 \u00b5m,45\u00b0 angle, asymmetry corner at1/3 width;\nreverse orientation every6\u201310 grooves (integer). Groove ends stop10 \u00b5m before\nsidewalls. No-slip walls, zero solute wall flux, prescribed equal inlet flux,\noutlet pressure0. Synthetic Newtonian rho998 kg/m\u00b3,mu0.001 Pa s; total flow\n1,3,5 \u00b5L/min; D=0.5,1,2\u00d710\u207b\u00b9\u2070 m\u00b2/s. Independently solve and charge laminar\nvelocity before steady passive-scalar transport. No unpriced velocity oracle.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "next_gate": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize next_gate",
+      "owner": "science/product owner",
+      "recommendation": "Current prospective T2: [buyer value/cost scorecard](../value-cost/f17.md)\nand [owner framework](../value-cost/README.md). Require at least five feasible\nand five distinct near-limit infeasible actions per mandatory stratum. Report\nthe overall fraction; it is not a gate. Other value checks still require\nevidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.\nThe original fraction-based observations below retain their historical meaning.\n\n**Before any new hidden bank:** the owner-selected [four-check value prerequisite](../question-laws/value-check-v1.md)\nrequires per-stratum discrimination and meaningful buyer-unit spread, one\ncomplete feasible action, and changing best/equivalent answers. Numeric\nthresholds remain HUMAN_INPUT recommendations; receipt **NOT_DEMONSTRATED**.\nFor this buyer, report flux-weighted M, pressure and residence margins on the complete flow/diffusivity\npanel; artificial scalar smoothing cannot supply value.\nNo favorable redraw, exposure reset, solver grant or qualification follows.\n\n\nSelected requirements and smooth-channel dimensional screens only. Groove flow/\ntransport and reference adequacy NOT_DEMONSTRATED. Next: exact CAD/inlets/\nextractor and analytical/numerical-diffusion controls under stage permission.\nNo cartridge experiment, assay quality, clinical use, qualification or launch.",
+      "sources": [
+        {
+          "excerpt": "Current prospective T2: [buyer value/cost scorecard](../value-cost/f17.md)\nand [owner framework](../value-cost/README.md). Require at least five feasible\nand five distinct near-limit infeasible actions per mandatory stratum. Report\nthe overall fraction; it is not a gate. Other value checks still require\nevidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.\nThe original fraction-based observations below retain their historical meaning.\n\n**Before any new hidden bank:** the owner-selected [four-check value prerequisite](../question-laws/value-check-v1.md)\nrequires per-stratum discrimination and meaningful buyer-unit spread, one\ncomplete feasible action, and changing best/equivalent answers. Numeric\nthresholds remain HUMAN_INPUT recommendations; receipt **NOT_DEMONSTRATED**.\nFor this buyer, report flux-weighted M, pressure and residence margins on the complete flow/diffusivity\npanel; artificial scalar smoothing cannot supply value.\nNo favorable redraw, exposure reset, solver grant or qualification follows.\n\n\nSelected requirements and smooth-channel dimensional screens only. Groove flow/\ntransport and reference adequacy NOT_DEMONSTRATED. Next: exact CAD/inlets/\nextractor and analytical/numerical-diffusion controls under stage permission.\nNo cartridge experiment, assay quality, clinical use, qualification or launch.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "objective": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize objective",
+      "owner": "science/product owner",
+      "recommendation": "At x=10 mm, positive axial-flux weighted c mean/variance; inlet variance0.25.\nM=1\u2212sqrt(variance_out/0.25), without clamping; negative M is a visible failure,\nnot a favorable score. Report solute/volume flux, pressure drop and concentration\nfield. Mean hydraulic residence=fluid volume /total volume flow, including\ngrooves; this is not an arrival-time distribution. Backflow invalidates that\noutlet measurement unless separately specified. All nine conditions must meet\nconstraints; missing reference evidence cannot be imputed as success.",
+      "sources": [
+        {
+          "excerpt": "At x=10 mm, positive axial-flux weighted c mean/variance; inlet variance0.25.\nM=1\u2212sqrt(variance_out/0.25), without clamping; negative M is a visible failure,\nnot a favorable score. Report solute/volume flux, pressure drop and concentration\nfield. Mean hydraulic residence=fluid volume /total volume flow, including\ngrooves; this is not an arrival-time distribution. Backflow invalidates that\noutlet measurement unless separately specified. All nine conditions must meet\nconstraints; missing reference evidence cannot be imputed as success.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "omissions": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize omissions",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "outputs": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize outputs",
+      "owner": "science/product owner",
+      "recommendation": "At x=10 mm, positive axial-flux weighted c mean/variance; inlet variance0.25.\nM=1\u2212sqrt(variance_out/0.25), without clamping; negative M is a visible failure,\nnot a favorable score. Report solute/volume flux, pressure drop and concentration\nfield. Mean hydraulic residence=fluid volume /total volume flow, including\ngrooves; this is not an arrival-time distribution. Backflow invalidates that\noutlet measurement unless separately specified. All nine conditions must meet\nconstraints; missing reference evidence cannot be imputed as success.",
+      "sources": [
+        {
+          "excerpt": "At x=10 mm, positive axial-flux weighted c mean/variance; inlet variance0.25.\nM=1\u2212sqrt(variance_out/0.25), without clamping; negative M is a visible failure,\nnot a favorable score. Report solute/volume flux, pressure drop and concentration\nfield. Mean hydraulic residence=fluid volume /total volume flow, including\ngrooves; this is not an arrival-time distribution. Backflow invalidates that\noutlet measurement unless separately specified. All nine conditions must meet\nconstraints; missing reference evidence cannot be imputed as success.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "owners": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize owners",
+      "owner": "science/product owner",
+      "recommendation": "Current prospective T2: [buyer value/cost scorecard](../value-cost/f17.md)\nand [owner framework](../value-cost/README.md). Require at least five feasible\nand five distinct near-limit infeasible actions per mandatory stratum. Report\nthe overall fraction; it is not a gate. Other value checks still require\nevidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.\nThe original fraction-based observations below retain their historical meaning.\n\n**Before any new hidden bank:** the owner-selected [four-check value prerequisite](../question-laws/value-check-v1.md)\nrequires per-stratum discrimination and meaningful buyer-unit spread, one\ncomplete feasible action, and changing best/equivalent answers. Numeric\nthresholds remain HUMAN_INPUT recommendations; receipt **NOT_DEMONSTRATED**.\nFor this buyer, report flux-weighted M, pressure and residence margins on the complete flow/diffusivity\npanel; artificial scalar smoothing cannot supply value.\nNo favorable redraw, exposure reset, solver grant or qualification follows.\n\n\nSelected requirements and smooth-channel dimensional screens only. Groove flow/\ntransport and reference adequacy NOT_DEMONSTRATED. Next: exact CAD/inlets/\nextractor and analytical/numerical-diffusion controls under stage permission.\nNo cartridge experiment, assay quality, clinical use, qualification or launch.",
+      "sources": [
+        {
+          "excerpt": "Current prospective T2: [buyer value/cost scorecard](../value-cost/f17.md)\nand [owner framework](../value-cost/README.md). Require at least five feasible\nand five distinct near-limit infeasible actions per mandatory stratum. Report\nthe overall fraction; it is not a gate. Other value checks still require\nevidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.\nThe original fraction-based observations below retain their historical meaning.\n\n**Before any new hidden bank:** the owner-selected [four-check value prerequisite](../question-laws/value-check-v1.md)\nrequires per-stratum discrimination and meaningful buyer-unit spread, one\ncomplete feasible action, and changing best/equivalent answers. Numeric\nthresholds remain HUMAN_INPUT recommendations; receipt **NOT_DEMONSTRATED**.\nFor this buyer, report flux-weighted M, pressure and residence margins on the complete flow/diffusivity\npanel; artificial scalar smoothing cannot supply value.\nNo favorable redraw, exposure reset, solver grant or qualification follows.\n\n\nSelected requirements and smooth-channel dimensional screens only. Groove flow/\ntransport and reference adequacy NOT_DEMONSTRATED. Next: exact CAD/inlets/\nextractor and analytical/numerical-diffusion controls under stage permission.\nNo cartridge experiment, assay quality, clinical use, qualification or launch.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "panel": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize panel",
+      "owner": "science/product owner",
+      "recommendation": "Control numerical smoothing before broad learning. Preregister whole-geometry\nholdouts, common outlet sampling and equal charged flow+scalar budgets. Show\nwhether cheap mechanistic models already make the same decisions; do not\nreshape the task to manufacture learned advantage. Fresh confirmation, dye/\nfluorescence observation calibration, rights and training-budget study are later\ncontracts, not this reference-feasibility allowance.",
+      "sources": [
+        {
+          "excerpt": "Control numerical smoothing before broad learning. Preregister whole-geometry\nholdouts, common outlet sampling and equal charged flow+scalar budgets. Show\nwhether cheap mechanistic models already make the same decisions; do not\nreshape the task to manufacture learned advantage. Fresh confirmation, dye/\nfluorescence observation calibration, rights and training-budget study are later\ncontracts, not this reference-feasibility allowance.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "permissions": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize permissions",
+      "owner": "construction/security owner",
+      "recommendation": "Prepared Level-0 target: deterministic declarative transport ROM/surrogate using\npublic permitted TRAIN; exact vocabulary, training limits and data grants await\ntheir ticket/budget study. No arbitrary code, solver-grade authority or hidden\nstate in a model's reconstruction/prediction environment.",
+      "sources": [
+        {
+          "excerpt": "Prepared Level-0 target: deterministic declarative transport ROM/surrogate using\npublic permitted TRAIN; exact vocabulary, training limits and data grants await\ntheir ticket/budget study. No arbitrary code, solver-grade authority or hidden\nstate in a model's reconstruction/prediction environment.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "physics": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize physics",
+      "owner": "science/product owner",
+      "recommendation": "Three-dimensional incompressible flow and diffusion-resolved finite inlet-to-outlet scalar transport",
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "pins": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize pins",
+      "owner": "science/product owner",
+      "recommendation": "OpenFOAM steady laminar flow plus passive scalar transport; pin build/image/\nlicense, groove mesher, pressure/velocity convergence and scalar discretization\nbefore dispatch. [The official scalar transport implementation](https://api.openfoam.com/2506/scalarTransportFoam_8C.html)\nstates the equation; [boundedness guidance](https://doc.openfoam.com/2306/tools/post-processing/function-objects/solvers/scalarTransport/)\nmotivates checking numerics. The [original grooved-channel study](https://pubmed.ncbi.nlm.nih.gov/11809963/)\nsupports geometry motivation, not the selected synthetic parameters or adequacy.\n\nControls: smooth rectangular channel with analytical pressure/diffusion and a\nzero-D numerical-smearing case. Mass/solute balance\u22640.5%; pointwise concentration\nin[\u22120.001,1.001]; independent mesh refinement \u0394M\u22640.02 and \u0394pressure\u22645%.\nRequire a resolved scalar boundary-layer/refinement witness at maximum Pe;\nboundedness alone cannot establish low artificial diffusion. Keep raw c and\nvariance; no clipping/renormalizing to pass. 40 launches/8 node-hours/$25 caps\ninclude velocity and scalar jobs separately: nine primary pairs consume18,\nleaving22 for controls/refinements. Failure/exhaustion leaves unresolved evidence.\n\n### Reference credibility target\n\n**Buyer tool:** COMSOL Microfluidics Module is the assumed cartridge designer's\nlaminar-flow/passive-transport workflow, not verified market share. **Carbon\nreference:** proposed OpenFOAM flow plus scalar transport, **not the same\ntool**. Cooling's OpenFOAM build alone is not this groove/transport reference.\nTier 1 requires the buyer's exact tool, fluid, geometry, inlet and observer settings.\n\n**Target tier:** Tier 2 for offline cartridge design against simulator outputs.\nTier 3 calibrated dye/fluorescence and hydraulic measurements would be needed\nbefore claiming real-cartridge mixing; no chemistry/clinical validation is\nimplied. **Credibility evidence: NOT_DEMONSTRATED** for this task.\n\n**Benchmark cases:** COMSOL's published\n[Split and Recombine Mixer Benchmark](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mfl.split_recombine_mixer/split_recombine_mixer.html)\nand [Micromixer](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mph.micromixer/micromixer.html),\nwith their exact geometry/inlets/transport law reproduced in both tools.\nTheir mixing measures/geometry are not automatically this packet's groove\nlaw or positive axial-flux weighted M. Add matched smooth-channel controls\nand grooved maximum-P\u00e9clet/flow-extreme witnesses; compute the **same** outlet\nmean/variance/M from both raw fields and check artificial diffusion independently.\nNever compare an area-weighted tutorial score directly to the flux-weighted buyer score.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend absolute outlet M difference\n\u22640.02, pressure-drop difference \u22645% at declared nonzero flow, and mean hydraulic\nresidence difference \u22645% using identical fluid volume/flow definitions. Absolute\nnear-zero pressure floors remain HUMAN_INPUT. Retain concentration/flux/balance\nchecks and refinement above; bounded concentrations or coincidentally similar\nM can both conceal numerical smoothing. These are simulator-agreement targets,\nnot reaction yield or laboratory fluid-property evidence.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for the specified\nlaminar passive transport, not \u201cmatches reality\u201d, reagent performance or assay quality.",
+      "sources": [
+        {
+          "excerpt": "OpenFOAM steady laminar flow plus passive scalar transport; pin build/image/\nlicense, groove mesher, pressure/velocity convergence and scalar discretization\nbefore dispatch. [The official scalar transport implementation](https://api.openfoam.com/2506/scalarTransportFoam_8C.html)\nstates the equation; [boundedness guidance](https://doc.openfoam.com/2306/tools/post-processing/function-objects/solvers/scalarTransport/)\nmotivates checking numerics. The [original grooved-channel study](https://pubmed.ncbi.nlm.nih.gov/11809963/)\nsupports geometry motivation, not the selected synthetic parameters or adequacy.\n\nControls: smooth rectangular channel with analytical pressure/diffusion and a\nzero-D numerical-smearing case. Mass/solute balance\u22640.5%; pointwise concentration\nin[\u22120.001,1.001]; independent mesh refinement \u0394M\u22640.02 and \u0394pressure\u22645%.\nRequire a resolved scalar boundary-layer/refinement witness at maximum Pe;\nboundedness alone cannot establish low artificial diffusion. Keep raw c and\nvariance; no clipping/renormalizing to pass. 40 launches/8 node-hours/$25 caps\ninclude velocity and scalar jobs separately: nine primary pairs consume18,\nleaving22 for controls/refinements. Failure/exhaustion leaves unresolved evidence.\n\n### Reference credibility target\n\n**Buyer tool:** COMSOL Microfluidics Module is the assumed cartridge designer's\nlaminar-flow/passive-transport workflow, not verified market share. **Carbon\nreference:** proposed OpenFOAM flow plus scalar transport, **not the same\ntool**. Cooling's OpenFOAM build alone is not this groove/transport reference.\nTier 1 requires the buyer's exact tool, fluid, geometry, inlet and observer settings.\n\n**Target tier:** Tier 2 for offline cartridge design against simulator outputs.\nTier 3 calibrated dye/fluorescence and hydraulic measurements would be needed\nbefore claiming real-cartridge mixing; no chemistry/clinical validation is\nimplied. **Credibility evidence: NOT_DEMONSTRATED** for this task.\n\n**Benchmark cases:** COMSOL's published\n[Split and Recombine Mixer Benchmark](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mfl.split_recombine_mixer/split_recombine_mixer.html)\nand [Micromixer](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mph.micromixer/micromixer.html),\nwith their exact geometry/inlets/transport law reproduced in both tools.\nTheir mixing measures/geometry are not automatically this packet's groove\nlaw or positive axial-flux weighted M. Add matched smooth-channel controls\nand grooved maximum-P\u00e9clet/flow-extreme witnesses; compute the **same** outlet\nmean/variance/M from both raw fields and check artificial diffusion independently.\nNever compare an area-weighted tutorial score directly to the flux-weighted buyer score.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend absolute outlet M difference\n\u22640.02, pressure-drop difference \u22645% at declared nonzero flow, and mean hydraulic\nresidence difference \u22645% using identical fluid volume/flow definitions. Absolute\nnear-zero pressure floors remain HUMAN_INPUT. Retain concentration/flux/balance\nchecks and refinement above; bounded concentrations or coincidentally similar\nM can both conceal numerical smoothing. These are simulator-agreement targets,\nnot reaction yield or laboratory fluid-property evidence.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for the specified\nlaminar passive transport, not \u201cmatches reality\u201d, reagent performance or assay quality.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "public_kit": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize public_kit",
+      "owner": "science/product owner",
+      "recommendation": "Own-seed generator/reference, diffusion-scaling/smooth-channel/network/transport\nROM baselines, outlet/flux docs and incomplete public practice. Reuse OpenFOAM\nand evidence packaging patterns from Cooling, not its fluid/steady truth or\nmetrics. Protected cases, labels and seeds stay operator-side.",
+      "sources": [
+        {
+          "excerpt": "Own-seed generator/reference, diffusion-scaling/smooth-channel/network/transport\nROM baselines, outlet/flux docs and incomplete public practice. Reuse OpenFOAM\nand evidence packaging patterns from Cooling, not its fluid/steady truth or\nmetrics. Protected cases, labels and seeds stay operator-side.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "readiness": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize readiness",
+      "owner": "science/product owner",
+      "recommendation": "Current prospective T2: [buyer value/cost scorecard](../value-cost/f17.md)\nand [owner framework](../value-cost/README.md). Require at least five feasible\nand five distinct near-limit infeasible actions per mandatory stratum. Report\nthe overall fraction; it is not a gate. Other value checks still require\nevidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.\nThe original fraction-based observations below retain their historical meaning.\n\n**Before any new hidden bank:** the owner-selected [four-check value prerequisite](../question-laws/value-check-v1.md)\nrequires per-stratum discrimination and meaningful buyer-unit spread, one\ncomplete feasible action, and changing best/equivalent answers. Numeric\nthresholds remain HUMAN_INPUT recommendations; receipt **NOT_DEMONSTRATED**.\nFor this buyer, report flux-weighted M, pressure and residence margins on the complete flow/diffusivity\npanel; artificial scalar smoothing cannot supply value.\nNo favorable redraw, exposure reset, solver grant or qualification follows.\n\n\nSelected requirements and smooth-channel dimensional screens only. Groove flow/\ntransport and reference adequacy NOT_DEMONSTRATED. Next: exact CAD/inlets/\nextractor and analytical/numerical-diffusion controls under stage permission.\nNo cartridge experiment, assay quality, clinical use, qualification or launch.",
+      "sources": [
+        {
+          "excerpt": "Current prospective T2: [buyer value/cost scorecard](../value-cost/f17.md)\nand [owner framework](../value-cost/README.md). Require at least five feasible\nand five distinct near-limit infeasible actions per mandatory stratum. Report\nthe overall fraction; it is not a gate. Other value checks still require\nevidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.\nThe original fraction-based observations below retain their historical meaning.\n\n**Before any new hidden bank:** the owner-selected [four-check value prerequisite](../question-laws/value-check-v1.md)\nrequires per-stratum discrimination and meaningful buyer-unit spread, one\ncomplete feasible action, and changing best/equivalent answers. Numeric\nthresholds remain HUMAN_INPUT recommendations; receipt **NOT_DEMONSTRATED**.\nFor this buyer, report flux-weighted M, pressure and residence margins on the complete flow/diffusivity\npanel; artificial scalar smoothing cannot supply value.\nNo favorable redraw, exposure reset, solver grant or qualification follows.\n\n\nSelected requirements and smooth-channel dimensional screens only. Groove flow/\ntransport and reference adequacy NOT_DEMONSTRATED. Next: exact CAD/inlets/\nextractor and analytical/numerical-diffusion controls under stage permission.\nNo cartridge experiment, assay quality, clinical use, qualification or launch.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "refinement": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize refinement",
+      "owner": "science/product owner",
+      "recommendation": "OpenFOAM steady laminar flow plus passive scalar transport; pin build/image/\nlicense, groove mesher, pressure/velocity convergence and scalar discretization\nbefore dispatch. [The official scalar transport implementation](https://api.openfoam.com/2506/scalarTransportFoam_8C.html)\nstates the equation; [boundedness guidance](https://doc.openfoam.com/2306/tools/post-processing/function-objects/solvers/scalarTransport/)\nmotivates checking numerics. The [original grooved-channel study](https://pubmed.ncbi.nlm.nih.gov/11809963/)\nsupports geometry motivation, not the selected synthetic parameters or adequacy.\n\nControls: smooth rectangular channel with analytical pressure/diffusion and a\nzero-D numerical-smearing case. Mass/solute balance\u22640.5%; pointwise concentration\nin[\u22120.001,1.001]; independent mesh refinement \u0394M\u22640.02 and \u0394pressure\u22645%.\nRequire a resolved scalar boundary-layer/refinement witness at maximum Pe;\nboundedness alone cannot establish low artificial diffusion. Keep raw c and\nvariance; no clipping/renormalizing to pass. 40 launches/8 node-hours/$25 caps\ninclude velocity and scalar jobs separately: nine primary pairs consume18,\nleaving22 for controls/refinements. Failure/exhaustion leaves unresolved evidence.\n\n### Reference credibility target\n\n**Buyer tool:** COMSOL Microfluidics Module is the assumed cartridge designer's\nlaminar-flow/passive-transport workflow, not verified market share. **Carbon\nreference:** proposed OpenFOAM flow plus scalar transport, **not the same\ntool**. Cooling's OpenFOAM build alone is not this groove/transport reference.\nTier 1 requires the buyer's exact tool, fluid, geometry, inlet and observer settings.\n\n**Target tier:** Tier 2 for offline cartridge design against simulator outputs.\nTier 3 calibrated dye/fluorescence and hydraulic measurements would be needed\nbefore claiming real-cartridge mixing; no chemistry/clinical validation is\nimplied. **Credibility evidence: NOT_DEMONSTRATED** for this task.\n\n**Benchmark cases:** COMSOL's published\n[Split and Recombine Mixer Benchmark](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mfl.split_recombine_mixer/split_recombine_mixer.html)\nand [Micromixer](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mph.micromixer/micromixer.html),\nwith their exact geometry/inlets/transport law reproduced in both tools.\nTheir mixing measures/geometry are not automatically this packet's groove\nlaw or positive axial-flux weighted M. Add matched smooth-channel controls\nand grooved maximum-P\u00e9clet/flow-extreme witnesses; compute the **same** outlet\nmean/variance/M from both raw fields and check artificial diffusion independently.\nNever compare an area-weighted tutorial score directly to the flux-weighted buyer score.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend absolute outlet M difference\n\u22640.02, pressure-drop difference \u22645% at declared nonzero flow, and mean hydraulic\nresidence difference \u22645% using identical fluid volume/flow definitions. Absolute\nnear-zero pressure floors remain HUMAN_INPUT. Retain concentration/flux/balance\nchecks and refinement above; bounded concentrations or coincidentally similar\nM can both conceal numerical smoothing. These are simulator-agreement targets,\nnot reaction yield or laboratory fluid-property evidence.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for the specified\nlaminar passive transport, not \u201cmatches reality\u201d, reagent performance or assay quality.",
+      "sources": [
+        {
+          "excerpt": "OpenFOAM steady laminar flow plus passive scalar transport; pin build/image/\nlicense, groove mesher, pressure/velocity convergence and scalar discretization\nbefore dispatch. [The official scalar transport implementation](https://api.openfoam.com/2506/scalarTransportFoam_8C.html)\nstates the equation; [boundedness guidance](https://doc.openfoam.com/2306/tools/post-processing/function-objects/solvers/scalarTransport/)\nmotivates checking numerics. The [original grooved-channel study](https://pubmed.ncbi.nlm.nih.gov/11809963/)\nsupports geometry motivation, not the selected synthetic parameters or adequacy.\n\nControls: smooth rectangular channel with analytical pressure/diffusion and a\nzero-D numerical-smearing case. Mass/solute balance\u22640.5%; pointwise concentration\nin[\u22120.001,1.001]; independent mesh refinement \u0394M\u22640.02 and \u0394pressure\u22645%.\nRequire a resolved scalar boundary-layer/refinement witness at maximum Pe;\nboundedness alone cannot establish low artificial diffusion. Keep raw c and\nvariance; no clipping/renormalizing to pass. 40 launches/8 node-hours/$25 caps\ninclude velocity and scalar jobs separately: nine primary pairs consume18,\nleaving22 for controls/refinements. Failure/exhaustion leaves unresolved evidence.\n\n### Reference credibility target\n\n**Buyer tool:** COMSOL Microfluidics Module is the assumed cartridge designer's\nlaminar-flow/passive-transport workflow, not verified market share. **Carbon\nreference:** proposed OpenFOAM flow plus scalar transport, **not the same\ntool**. Cooling's OpenFOAM build alone is not this groove/transport reference.\nTier 1 requires the buyer's exact tool, fluid, geometry, inlet and observer settings.\n\n**Target tier:** Tier 2 for offline cartridge design against simulator outputs.\nTier 3 calibrated dye/fluorescence and hydraulic measurements would be needed\nbefore claiming real-cartridge mixing; no chemistry/clinical validation is\nimplied. **Credibility evidence: NOT_DEMONSTRATED** for this task.\n\n**Benchmark cases:** COMSOL's published\n[Split and Recombine Mixer Benchmark](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mfl.split_recombine_mixer/split_recombine_mixer.html)\nand [Micromixer](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mph.micromixer/micromixer.html),\nwith their exact geometry/inlets/transport law reproduced in both tools.\nTheir mixing measures/geometry are not automatically this packet's groove\nlaw or positive axial-flux weighted M. Add matched smooth-channel controls\nand grooved maximum-P\u00e9clet/flow-extreme witnesses; compute the **same** outlet\nmean/variance/M from both raw fields and check artificial diffusion independently.\nNever compare an area-weighted tutorial score directly to the flux-weighted buyer score.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend absolute outlet M difference\n\u22640.02, pressure-drop difference \u22645% at declared nonzero flow, and mean hydraulic\nresidence difference \u22645% using identical fluid volume/flow definitions. Absolute\nnear-zero pressure floors remain HUMAN_INPUT. Retain concentration/flux/balance\nchecks and refinement above; bounded concentrations or coincidentally similar\nM can both conceal numerical smoothing. These are simulator-agreement targets,\nnot reaction yield or laboratory fluid-property evidence.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for the specified\nlaminar passive transport, not \u201cmatches reality\u201d, reagent performance or assay quality.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "rights": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize rights",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "solver": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize solver",
+      "owner": "science/product owner",
+      "recommendation": "OpenFOAM steady laminar flow plus passive scalar transport; pin build/image/\nlicense, groove mesher, pressure/velocity convergence and scalar discretization\nbefore dispatch. [The official scalar transport implementation](https://api.openfoam.com/2506/scalarTransportFoam_8C.html)\nstates the equation; [boundedness guidance](https://doc.openfoam.com/2306/tools/post-processing/function-objects/solvers/scalarTransport/)\nmotivates checking numerics. The [original grooved-channel study](https://pubmed.ncbi.nlm.nih.gov/11809963/)\nsupports geometry motivation, not the selected synthetic parameters or adequacy.\n\nControls: smooth rectangular channel with analytical pressure/diffusion and a\nzero-D numerical-smearing case. Mass/solute balance\u22640.5%; pointwise concentration\nin[\u22120.001,1.001]; independent mesh refinement \u0394M\u22640.02 and \u0394pressure\u22645%.\nRequire a resolved scalar boundary-layer/refinement witness at maximum Pe;\nboundedness alone cannot establish low artificial diffusion. Keep raw c and\nvariance; no clipping/renormalizing to pass. 40 launches/8 node-hours/$25 caps\ninclude velocity and scalar jobs separately: nine primary pairs consume18,\nleaving22 for controls/refinements. Failure/exhaustion leaves unresolved evidence.\n\n### Reference credibility target\n\n**Buyer tool:** COMSOL Microfluidics Module is the assumed cartridge designer's\nlaminar-flow/passive-transport workflow, not verified market share. **Carbon\nreference:** proposed OpenFOAM flow plus scalar transport, **not the same\ntool**. Cooling's OpenFOAM build alone is not this groove/transport reference.\nTier 1 requires the buyer's exact tool, fluid, geometry, inlet and observer settings.\n\n**Target tier:** Tier 2 for offline cartridge design against simulator outputs.\nTier 3 calibrated dye/fluorescence and hydraulic measurements would be needed\nbefore claiming real-cartridge mixing; no chemistry/clinical validation is\nimplied. **Credibility evidence: NOT_DEMONSTRATED** for this task.\n\n**Benchmark cases:** COMSOL's published\n[Split and Recombine Mixer Benchmark](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mfl.split_recombine_mixer/split_recombine_mixer.html)\nand [Micromixer](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mph.micromixer/micromixer.html),\nwith their exact geometry/inlets/transport law reproduced in both tools.\nTheir mixing measures/geometry are not automatically this packet's groove\nlaw or positive axial-flux weighted M. Add matched smooth-channel controls\nand grooved maximum-P\u00e9clet/flow-extreme witnesses; compute the **same** outlet\nmean/variance/M from both raw fields and check artificial diffusion independently.\nNever compare an area-weighted tutorial score directly to the flux-weighted buyer score.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend absolute outlet M difference\n\u22640.02, pressure-drop difference \u22645% at declared nonzero flow, and mean hydraulic\nresidence difference \u22645% using identical fluid volume/flow definitions. Absolute\nnear-zero pressure floors remain HUMAN_INPUT. Retain concentration/flux/balance\nchecks and refinement above; bounded concentrations or coincidentally similar\nM can both conceal numerical smoothing. These are simulator-agreement targets,\nnot reaction yield or laboratory fluid-property evidence.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for the specified\nlaminar passive transport, not \u201cmatches reality\u201d, reagent performance or assay quality.",
+      "sources": [
+        {
+          "excerpt": "OpenFOAM steady laminar flow plus passive scalar transport; pin build/image/\nlicense, groove mesher, pressure/velocity convergence and scalar discretization\nbefore dispatch. [The official scalar transport implementation](https://api.openfoam.com/2506/scalarTransportFoam_8C.html)\nstates the equation; [boundedness guidance](https://doc.openfoam.com/2306/tools/post-processing/function-objects/solvers/scalarTransport/)\nmotivates checking numerics. The [original grooved-channel study](https://pubmed.ncbi.nlm.nih.gov/11809963/)\nsupports geometry motivation, not the selected synthetic parameters or adequacy.\n\nControls: smooth rectangular channel with analytical pressure/diffusion and a\nzero-D numerical-smearing case. Mass/solute balance\u22640.5%; pointwise concentration\nin[\u22120.001,1.001]; independent mesh refinement \u0394M\u22640.02 and \u0394pressure\u22645%.\nRequire a resolved scalar boundary-layer/refinement witness at maximum Pe;\nboundedness alone cannot establish low artificial diffusion. Keep raw c and\nvariance; no clipping/renormalizing to pass. 40 launches/8 node-hours/$25 caps\ninclude velocity and scalar jobs separately: nine primary pairs consume18,\nleaving22 for controls/refinements. Failure/exhaustion leaves unresolved evidence.\n\n### Reference credibility target\n\n**Buyer tool:** COMSOL Microfluidics Module is the assumed cartridge designer's\nlaminar-flow/passive-transport workflow, not verified market share. **Carbon\nreference:** proposed OpenFOAM flow plus scalar transport, **not the same\ntool**. Cooling's OpenFOAM build alone is not this groove/transport reference.\nTier 1 requires the buyer's exact tool, fluid, geometry, inlet and observer settings.\n\n**Target tier:** Tier 2 for offline cartridge design against simulator outputs.\nTier 3 calibrated dye/fluorescence and hydraulic measurements would be needed\nbefore claiming real-cartridge mixing; no chemistry/clinical validation is\nimplied. **Credibility evidence: NOT_DEMONSTRATED** for this task.\n\n**Benchmark cases:** COMSOL's published\n[Split and Recombine Mixer Benchmark](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mfl.split_recombine_mixer/split_recombine_mixer.html)\nand [Micromixer](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mph.micromixer/micromixer.html),\nwith their exact geometry/inlets/transport law reproduced in both tools.\nTheir mixing measures/geometry are not automatically this packet's groove\nlaw or positive axial-flux weighted M. Add matched smooth-channel controls\nand grooved maximum-P\u00e9clet/flow-extreme witnesses; compute the **same** outlet\nmean/variance/M from both raw fields and check artificial diffusion independently.\nNever compare an area-weighted tutorial score directly to the flux-weighted buyer score.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend absolute outlet M difference\n\u22640.02, pressure-drop difference \u22645% at declared nonzero flow, and mean hydraulic\nresidence difference \u22645% using identical fluid volume/flow definitions. Absolute\nnear-zero pressure floors remain HUMAN_INPUT. Retain concentration/flux/balance\nchecks and refinement above; bounded concentrations or coincidentally similar\nM can both conceal numerical smoothing. These are simulator-agreement targets,\nnot reaction yield or laboratory fluid-property evidence.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for the specified\nlaminar passive transport, not \u201cmatches reality\u201d, reagent performance or assay quality.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "strata": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize strata",
+      "owner": "science/product owner",
+      "recommendation": "Geometry is an action; reference-input geometry law is uniform valid parameters.\nExogenous `P_dev` is uniform over the3\u00d73 flow/diffusivity conditions, w=1/9 for\na later complete decision panel, with worst condition separately mandatory.\nQ feasibility: nominal groove geometry at all nine conditions plus controls\nand refinement as caps permit. These shared conditions do not establish a\ncustomer fluid distribution or population reliability. High-Peclet behavior\nis explicitly reported, not filtered out as an inconvenient case.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three flows by three diffusivities are one cartridge operating panel.\nA future `P_job` can vary supported outlet-mixing, pressure-drop or residence\nlimits and required throughput subsets against one fully solved groove bank.\nA lab-instrument buyer recognizes each question from its assay uniformity,\npump and throughput acceptance sheet. Re-evaluating stored flow/scalar outputs\nneeds no new solve if the whole requested panel is covered and the preferred\ngroove demonstrably changes. New fluids, inlet chemistry or port interfaces\nare optional axes that may need new flow/scalar references. Outlet pixels,\nflow probes and solver seeds are not fresh questions by themselves.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and panels,\n`P_job`, protected `Q_job`, weights, answer diversity, shared-assay clustering,\nexposure and power-justified hidden `n`. The complete 3 \u00d7 3 panel stays\nmandatory for any question that claims that service envelope.",
+      "sources": [
+        {
+          "excerpt": "Geometry is an action; reference-input geometry law is uniform valid parameters.\nExogenous `P_dev` is uniform over the3\u00d73 flow/diffusivity conditions, w=1/9 for\na later complete decision panel, with worst condition separately mandatory.\nQ feasibility: nominal groove geometry at all nine conditions plus controls\nand refinement as caps permit. These shared conditions do not establish a\ncustomer fluid distribution or population reliability. High-Peclet behavior\nis explicitly reported, not filtered out as an inconvenient case.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three flows by three diffusivities are one cartridge operating panel.\nA future `P_job` can vary supported outlet-mixing, pressure-drop or residence\nlimits and required throughput subsets against one fully solved groove bank.\nA lab-instrument buyer recognizes each question from its assay uniformity,\npump and throughput acceptance sheet. Re-evaluating stored flow/scalar outputs\nneeds no new solve if the whole requested panel is covered and the preferred\ngroove demonstrably changes. New fluids, inlet chemistry or port interfaces\nare optional axes that may need new flow/scalar references. Outlet pixels,\nflow probes and solver seeds are not fresh questions by themselves.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and panels,\n`P_job`, protected `Q_job`, weights, answer diversity, shared-assay clustering,\nexposure and power-justified hidden `n`. The complete 3 \u00d7 3 panel stays\nmandatory for any question that claims that service envelope.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "training": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize training",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "uncertainty": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize uncertainty",
+      "owner": "science/product owner",
+      "recommendation": "OpenFOAM steady laminar flow plus passive scalar transport; pin build/image/\nlicense, groove mesher, pressure/velocity convergence and scalar discretization\nbefore dispatch. [The official scalar transport implementation](https://api.openfoam.com/2506/scalarTransportFoam_8C.html)\nstates the equation; [boundedness guidance](https://doc.openfoam.com/2306/tools/post-processing/function-objects/solvers/scalarTransport/)\nmotivates checking numerics. The [original grooved-channel study](https://pubmed.ncbi.nlm.nih.gov/11809963/)\nsupports geometry motivation, not the selected synthetic parameters or adequacy.\n\nControls: smooth rectangular channel with analytical pressure/diffusion and a\nzero-D numerical-smearing case. Mass/solute balance\u22640.5%; pointwise concentration\nin[\u22120.001,1.001]; independent mesh refinement \u0394M\u22640.02 and \u0394pressure\u22645%.\nRequire a resolved scalar boundary-layer/refinement witness at maximum Pe;\nboundedness alone cannot establish low artificial diffusion. Keep raw c and\nvariance; no clipping/renormalizing to pass. 40 launches/8 node-hours/$25 caps\ninclude velocity and scalar jobs separately: nine primary pairs consume18,\nleaving22 for controls/refinements. Failure/exhaustion leaves unresolved evidence.\n\n### Reference credibility target\n\n**Buyer tool:** COMSOL Microfluidics Module is the assumed cartridge designer's\nlaminar-flow/passive-transport workflow, not verified market share. **Carbon\nreference:** proposed OpenFOAM flow plus scalar transport, **not the same\ntool**. Cooling's OpenFOAM build alone is not this groove/transport reference.\nTier 1 requires the buyer's exact tool, fluid, geometry, inlet and observer settings.\n\n**Target tier:** Tier 2 for offline cartridge design against simulator outputs.\nTier 3 calibrated dye/fluorescence and hydraulic measurements would be needed\nbefore claiming real-cartridge mixing; no chemistry/clinical validation is\nimplied. **Credibility evidence: NOT_DEMONSTRATED** for this task.\n\n**Benchmark cases:** COMSOL's published\n[Split and Recombine Mixer Benchmark](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mfl.split_recombine_mixer/split_recombine_mixer.html)\nand [Micromixer](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mph.micromixer/micromixer.html),\nwith their exact geometry/inlets/transport law reproduced in both tools.\nTheir mixing measures/geometry are not automatically this packet's groove\nlaw or positive axial-flux weighted M. Add matched smooth-channel controls\nand grooved maximum-P\u00e9clet/flow-extreme witnesses; compute the **same** outlet\nmean/variance/M from both raw fields and check artificial diffusion independently.\nNever compare an area-weighted tutorial score directly to the flux-weighted buyer score.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend absolute outlet M difference\n\u22640.02, pressure-drop difference \u22645% at declared nonzero flow, and mean hydraulic\nresidence difference \u22645% using identical fluid volume/flow definitions. Absolute\nnear-zero pressure floors remain HUMAN_INPUT. Retain concentration/flux/balance\nchecks and refinement above; bounded concentrations or coincidentally similar\nM can both conceal numerical smoothing. These are simulator-agreement targets,\nnot reaction yield or laboratory fluid-property evidence.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for the specified\nlaminar passive transport, not \u201cmatches reality\u201d, reagent performance or assay quality.",
+      "sources": [
+        {
+          "excerpt": "OpenFOAM steady laminar flow plus passive scalar transport; pin build/image/\nlicense, groove mesher, pressure/velocity convergence and scalar discretization\nbefore dispatch. [The official scalar transport implementation](https://api.openfoam.com/2506/scalarTransportFoam_8C.html)\nstates the equation; [boundedness guidance](https://doc.openfoam.com/2306/tools/post-processing/function-objects/solvers/scalarTransport/)\nmotivates checking numerics. The [original grooved-channel study](https://pubmed.ncbi.nlm.nih.gov/11809963/)\nsupports geometry motivation, not the selected synthetic parameters or adequacy.\n\nControls: smooth rectangular channel with analytical pressure/diffusion and a\nzero-D numerical-smearing case. Mass/solute balance\u22640.5%; pointwise concentration\nin[\u22120.001,1.001]; independent mesh refinement \u0394M\u22640.02 and \u0394pressure\u22645%.\nRequire a resolved scalar boundary-layer/refinement witness at maximum Pe;\nboundedness alone cannot establish low artificial diffusion. Keep raw c and\nvariance; no clipping/renormalizing to pass. 40 launches/8 node-hours/$25 caps\ninclude velocity and scalar jobs separately: nine primary pairs consume18,\nleaving22 for controls/refinements. Failure/exhaustion leaves unresolved evidence.\n\n### Reference credibility target\n\n**Buyer tool:** COMSOL Microfluidics Module is the assumed cartridge designer's\nlaminar-flow/passive-transport workflow, not verified market share. **Carbon\nreference:** proposed OpenFOAM flow plus scalar transport, **not the same\ntool**. Cooling's OpenFOAM build alone is not this groove/transport reference.\nTier 1 requires the buyer's exact tool, fluid, geometry, inlet and observer settings.\n\n**Target tier:** Tier 2 for offline cartridge design against simulator outputs.\nTier 3 calibrated dye/fluorescence and hydraulic measurements would be needed\nbefore claiming real-cartridge mixing; no chemistry/clinical validation is\nimplied. **Credibility evidence: NOT_DEMONSTRATED** for this task.\n\n**Benchmark cases:** COMSOL's published\n[Split and Recombine Mixer Benchmark](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mfl.split_recombine_mixer/split_recombine_mixer.html)\nand [Micromixer](https://doc.comsol.com/6.3/doc/com.comsol.help.models.mph.micromixer/micromixer.html),\nwith their exact geometry/inlets/transport law reproduced in both tools.\nTheir mixing measures/geometry are not automatically this packet's groove\nlaw or positive axial-flux weighted M. Add matched smooth-channel controls\nand grooved maximum-P\u00e9clet/flow-extreme witnesses; compute the **same** outlet\nmean/variance/M from both raw fields and check artificial diffusion independently.\nNever compare an area-weighted tutorial score directly to the flux-weighted buyer score.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend absolute outlet M difference\n\u22640.02, pressure-drop difference \u22645% at declared nonzero flow, and mean hydraulic\nresidence difference \u22645% using identical fluid volume/flow definitions. Absolute\nnear-zero pressure floors remain HUMAN_INPUT. Retain concentration/flux/balance\nchecks and refinement above; bounded concentrations or coincidentally similar\nM can both conceal numerical smoothing. These are simulator-agreement targets,\nnot reaction yield or laboratory fluid-property evidence.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for the specified\nlaminar passive transport, not \u201cmatches reality\u201d, reagent performance or assay quality.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "validity": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize validity",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "value": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize value",
+      "owner": "science/product owner",
+      "recommendation": "Hypothetical lab-cartridge engineer: select a passive groove geometry maximizing\nworst-condition outlet uniformity, targetM\u22650.8, while pressure drop\u2264250 Pa and\nmean hydraulic residence\u226420 s. Wrong decisions yield inconsistent reagent\ndelivery or pump burden. No chemistry, reaction yield, cell viability, clinical\nclaim or manufacturing/reagent compatibility qualification.",
+      "sources": [
+        {
+          "excerpt": "Hypothetical lab-cartridge engineer: select a passive groove geometry maximizing\nworst-condition outlet uniformity, targetM\u22650.8, while pressure drop\u2264250 Pa and\nmean hydraulic residence\u226420 s. Wrong decisions yield inconsistent reagent\ndelivery or pump burden. No chemistry, reaction yield, cell viability, clinical\nclaim or manufacturing/reagent compatibility qualification.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "vocabulary": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize vocabulary",
+      "owner": "science/product owner",
+      "recommendation": "Prepared Level-0 target: deterministic declarative transport ROM/surrogate using\npublic permitted TRAIN; exact vocabulary, training limits and data grants await\ntheir ticket/budget study. No arbitrary code, solver-grade authority or hidden\nstate in a model's reconstruction/prediction environment.",
+      "sources": [
+        {
+          "excerpt": "Prepared Level-0 target: deterministic declarative transport ROM/surrogate using\npublic permitted TRAIN; exact vocabulary, training limits and data grants await\ntheir ticket/budget study. No arbitrary code, solver-grade authority or hidden\nstate in a model's reconstruction/prediction environment.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "w": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize w",
+      "owner": "science/product owner",
+      "recommendation": "Geometry is an action; reference-input geometry law is uniform valid parameters.\nExogenous `P_dev` is uniform over the3\u00d73 flow/diffusivity conditions, w=1/9 for\na later complete decision panel, with worst condition separately mandatory.\nQ feasibility: nominal groove geometry at all nine conditions plus controls\nand refinement as caps permit. These shared conditions do not establish a\ncustomer fluid distribution or population reliability. High-Peclet behavior\nis explicitly reported, not filtered out as an inconvenient case.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three flows by three diffusivities are one cartridge operating panel.\nA future `P_job` can vary supported outlet-mixing, pressure-drop or residence\nlimits and required throughput subsets against one fully solved groove bank.\nA lab-instrument buyer recognizes each question from its assay uniformity,\npump and throughput acceptance sheet. Re-evaluating stored flow/scalar outputs\nneeds no new solve if the whole requested panel is covered and the preferred\ngroove demonstrably changes. New fluids, inlet chemistry or port interfaces\nare optional axes that may need new flow/scalar references. Outlet pixels,\nflow probes and solver seeds are not fresh questions by themselves.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and panels,\n`P_job`, protected `Q_job`, weights, answer diversity, shared-assay clustering,\nexposure and power-justified hidden `n`. The complete 3 \u00d7 3 panel stays\nmandatory for any question that claims that service envelope.",
+      "sources": [
+        {
+          "excerpt": "Geometry is an action; reference-input geometry law is uniform valid parameters.\nExogenous `P_dev` is uniform over the3\u00d73 flow/diffusivity conditions, w=1/9 for\na later complete decision panel, with worst condition separately mandatory.\nQ feasibility: nominal groove geometry at all nine conditions plus controls\nand refinement as caps permit. These shared conditions do not establish a\ncustomer fluid distribution or population reliability. High-Peclet behavior\nis explicitly reported, not filtered out as an inconvenient case.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three flows by three diffusivities are one cartridge operating panel.\nA future `P_job` can vary supported outlet-mixing, pressure-drop or residence\nlimits and required throughput subsets against one fully solved groove bank.\nA lab-instrument buyer recognizes each question from its assay uniformity,\npump and throughput acceptance sheet. Re-evaluating stored flow/scalar outputs\nneeds no new solve if the whole requested panel is covered and the preferred\ngroove demonstrably changes. New fluids, inlet chemistry or port interfaces\nare optional axes that may need new flow/scalar references. Outlet pixels,\nflow probes and solver seeds are not fresh questions by themselves.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\nreference-covered bank. `HUMAN_INPUT`: eligible requirements and panels,\n`P_job`, protected `Q_job`, weights, answer diversity, shared-assay clustering,\nexposure and power-justified hidden `n`. The complete 3 \u00d7 3 panel stays\nmandatory for any question that claims that service envelope.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "wrong_decision": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize wrong_decision",
+      "owner": "science/product owner",
+      "recommendation": "Hypothetical lab-cartridge engineer: select a passive groove geometry maximizing\nworst-condition outlet uniformity, targetM\u22650.8, while pressure drop\u2264250 Pa and\nmean hydraulic residence\u226420 s. Wrong decisions yield inconsistent reagent\ndelivery or pump burden. No chemistry, reaction yield, cell viability, clinical\nclaim or manufacturing/reagent compatibility qualification.",
+      "sources": [
+        {
+          "excerpt": "Hypothetical lab-cartridge engineer: select a passive groove geometry maximizing\nworst-condition outlet uniformity, targetM\u22650.8, while pressure drop\u2264250 Pa and\nmean hydraulic residence\u226420 s. Wrong decisions yield inconsistent reagent\ndelivery or pump burden. No chemistry, reaction yield, cell viability, clinical\nclaim or manufacturing/reagent compatibility qualification.",
+          "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+          "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    }
+  },
+  "maturity": "DRAFT_ONLY",
+  "schema": "carbon.onboarding.packet-draft.v1"
+}
