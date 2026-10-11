@@ -69,6 +69,24 @@ So the pod runs the truth image by its pinned digest with nothing installed
 beyond the r7 code. The image pin and the pod's termination are the
 controls.
 
+**SSH transport on the pod (the owner's own wording, same day, directly in
+the Carbon Validator session).** The truth image has no `sshd` or `rsync`,
+so a pod from it cannot receive the shard over the host-key-pinned SSH the
+procedure relies on. Asked to accept installing `openssh-server` and `rsync`
+from the pod's distribution for transport only, the owner answered:
+> Allow installing openssh-server from Ubuntu's signed apt repository at pod
+> start for the RunPod score-proof run only (SSH transport, not scoring);
+> record the package version in the run record.
+
+Therefore:
+- **`openssh-server` only**, from Ubuntu's signed apt repository, at pod
+  start. Its version (`dpkg-query -W openssh-server`) goes into the run
+  record.
+- **No `rsync`.** Transfers use SSH alone: `scp` over the SFTP server
+  `openssh-server` ships, or `tar` through `ssh`, still pinned by the host
+  key.
+- **Not an Ubuntu image** (no signed Ubuntu repository): stop.
+
 **Not permitted here:**
 - anything the earlier records don't permit;
 - any bank, validator or mainnet material on a RunPod pod;
