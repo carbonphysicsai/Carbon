@@ -179,8 +179,7 @@ from ..provider import (
 )
 from . import delivery as deliver_
 from . import experiment as ex
-from . import grant_binding, model_providers, next_level
-from . import level_domain
+from . import grant_binding, level_domain, model_providers, next_level
 from . import literature as lit
 from . import score_variant as sv
 from . import tools as toolbox
@@ -1024,6 +1023,7 @@ def session_brief(
     tool_text=TOOL_TEXT_V2,
     score_variant=None,
     study=None,
+    level_domain_text=False,
 ):
     """The Constructor's brief: the session Challenge's public development
     material only (its `ChallengeScoring`), and the session's offered
@@ -1074,7 +1074,13 @@ def session_brief(
     # The level's declared domain, intersected with the backends this Challenge's
     # pods serve (read from its scoring record now). A Challenge with no level
     # document adds nothing, so its brief is exactly as before.
-    domain = level_domain.for_scoring(scoring, variant, repository)
+    # Opt-in (`level_domain_text`): a brief recorded without it keeps its digest, so
+    # every earlier session replays byte for byte; a new live run asks for it.
+    domain = (
+        level_domain.for_scoring(scoring, variant, repository)
+        if level_domain_text
+        else None
+    )
     if domain is not None:
         observation["level_domain"] = domain
         observation["instructions"] += (
@@ -1836,6 +1842,7 @@ def command_run(args):
                 variant=variant,
                 score_variant=sv.identity_of(scored),
                 study=getattr(args, "study", None),
+                level_domain_text=True,
             )
             _install_cancel(provider, provider.run_id_for(session_key(args.session)))
             result = run_session(control, provider, brief, args.session, variant)

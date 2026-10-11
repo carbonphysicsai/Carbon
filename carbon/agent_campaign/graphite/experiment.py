@@ -1276,7 +1276,10 @@ class Experiment:
         # (the scoring record is read now, not copied). Everything else is the
         # compile step's, unchanged.
         early = level_domain.precheck(
-            strategy, level_domain.for_scoring(self.scoring, self.development_variant, self.repository)
+            strategy,
+            level_domain.for_scoring(
+                self.scoring, self.development_variant, self.repository
+            ),
         )
         if early is not None:
             return self._close(

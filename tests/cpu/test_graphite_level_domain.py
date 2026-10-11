@@ -17,13 +17,13 @@ import graphite_phase3_fixtures as p3f
 import pytest
 from graphite_phase3_fixtures import BASELINE, SCORING, propose, session, steps, text
 
+from carbon.agent_campaign.grant import SpendingGrant
 from carbon.agent_campaign.graphite import experiment as ex
 from carbon.agent_campaign.graphite import level_domain as ld
 from carbon.agent_campaign.graphite import phase3
-from carbon.agent_campaign.grant import SpendingGrant
 from carbon.battery.compile import compile_recipe
-from carbon.development_session.research_catalog import RecipeRejected
 from carbon.development_session.profile import canonical, digest
+from carbon.development_session.research_catalog import RecipeRejected
 
 BATTERY = "battery-fastcharge-ageing-development-v1"
 
@@ -249,22 +249,28 @@ def test_each_combination_rule_is_a_real_compile_refusal():
 
 
 # -- the brief and the session -------------------------------------------------------------------
-def _brief(scoring=SCORING):
+def _brief(scoring=SCORING, **options):
     budget = ex.phase3_budget(
         SpendingGrant.from_document(phase3.DRY_RUN_GRANT), scoring
     )
     return phase3.session_brief(
-        checkout_commit="0" * 40, budget=budget, scoring=scoring
+        checkout_commit="0" * 40, budget=budget, scoring=scoring, **options
     )
 
 
-def test_the_constructor_brief_carries_the_domain_from_the_scoring_record():
+def test_a_brief_without_the_opt_in_is_exactly_as_it_was():
     observation = _brief().initial_observation
+    assert "level_domain" not in observation
+    assert "level_domain" not in observation["instructions"]
+
+
+def test_the_constructor_brief_carries_the_domain_from_the_scoring_record():
+    observation = _brief(level_domain_text=True).initial_observation
     domain = observation["level_domain"]
     assert domain["served_backends"] == list(SCORING.served_backends)
     assert domain["parameters"]["ensemble_members"]["max"] == 4
     assert "level_domain" in observation["instructions"]
-    again = _brief().initial_observation
+    again = _brief(level_domain_text=True).initial_observation
     assert digest(canonical(observation)) == digest(canonical(again))
 
 
