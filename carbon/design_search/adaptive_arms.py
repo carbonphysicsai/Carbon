@@ -254,6 +254,10 @@ def validate(panel, registration):
                 for v in axis["values"]
             ):
                 raise AdaptiveArmError("finite ordinal values required")
+            if axis["type"] == "ordinal" and len(set(axis["values"])) != len(
+                axis["values"]
+            ):
+                raise AdaptiveArmError("duplicate numeric lattice value")
             if axis["type"] == "categorical" and any(
                 not isinstance(v, str) or not v for v in axis["values"]
             ):
@@ -289,13 +293,6 @@ def validate(panel, registration):
             if not isinstance(action["branch"], str) or not action["branch"]:
                 raise AdaptiveArmError("branch identity required")
             _closed(action["coordinates"], axis_names, "action coordinates")
-            key = (
-                action["branch"],
-                tuple(str(action["coordinates"][name]) for name in axis_names),
-            )
-            if key in coordinates:
-                raise AdaptiveArmError("duplicate canonical action")
-            coordinates.add(key)
             for axis in axes:
                 coordinate = action["coordinates"][axis["name"]]
                 if axis["type"] == "ordinal" and (
@@ -307,6 +304,16 @@ def validate(panel, registration):
                     raise AdaptiveArmError("typed categorical coordinate required")
                 if coordinate not in axis["values"]:
                     raise AdaptiveArmError("off-lattice action")
+            key = (
+                action["branch"],
+                tuple(
+                    axis["values"].index(action["coordinates"][axis["name"]])
+                    for axis in axes
+                ),
+            )
+            if key in coordinates:
+                raise AdaptiveArmError("duplicate canonical action")
+            coordinates.add(key)
             verdict = _margins(action["margins"], names, challenge)
             reference_status = base_rows[design_id]["reference"]["status"]
             cause = action["reference_cause"]

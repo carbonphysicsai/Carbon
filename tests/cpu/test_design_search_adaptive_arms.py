@@ -437,6 +437,10 @@ def test_typed_action_and_complete_cost_ledger_are_fail_closed():
     with pytest.raises(adaptive.AdaptiveArmError, match="typed ordinal"):
         adaptive.validate(_reseal(wrong), registration)
     wrong = copy.deepcopy(panel)
+    wrong["jobs"][0]["axes"][0]["values"] = [0, 0.0, 1, 2, 3]
+    with pytest.raises(adaptive.AdaptiveArmError, match="duplicate numeric lattice"):
+        adaptive.validate(_reseal(wrong), registration)
+    wrong = copy.deepcopy(panel)
     wrong["jobs"][0]["actions"][0]["attempts"][0]["cost"]["core_s"] -= 0.1
     with pytest.raises(adaptive.AdaptiveArmError, match="attempts must equal"):
         adaptive.validate(_reseal(wrong), registration)
