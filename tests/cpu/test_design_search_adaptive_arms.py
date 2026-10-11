@@ -51,11 +51,24 @@ def _panel(*, cached=False, f02=False, battery=False):
                         "kind": "failed_reference",
                         "cost": _cost(0.5),
                         "planning_bound": _cost(0.5),
+                        "peak_ram_bytes": 256,
                     },
-                    {"kind": "final", "cost": _cost(1.5), "planning_bound": _cost(1.5)},
+                    {
+                        "kind": "final",
+                        "cost": _cost(1.5),
+                        "planning_bound": _cost(1.5),
+                        "peak_ram_bytes": 512,
+                    },
                 ]
                 if first
-                else [{"kind": "final", "cost": _cost(1), "planning_bound": _cost(1)}]
+                else [
+                    {
+                        "kind": "final",
+                        "cost": _cost(1),
+                        "planning_bound": _cost(1),
+                        "peak_ram_bytes": 384,
+                    }
+                ]
             )
             reference = {"status": "FEASIBLE", "value": value}
             if battery:
@@ -129,6 +142,7 @@ def _panel(*, cached=False, f02=False, battery=False):
                 ),
                 "condition_panel_digest": "sha256:" + "e" * 64,
                 "cache_acquisition": _cost(0.1 if cached else 0),
+                "cache_acquisition_peak_ram_bytes": 64 if cached else 0,
             }
         )
     base = equal_budget.seal(
@@ -180,6 +194,9 @@ def _panel(*, cached=False, f02=False, battery=False):
                 "startup_cost": _cost(0.1),
                 "proposal_cost": _cost(0.01),
                 "cache_lookup_cost": _cost(0.01),
+                "startup_peak_ram_bytes": 128,
+                "proposal_peak_ram_bytes": 96,
+                "cache_lookup_peak_ram_bytes": 32,
             },
             "surrogate": {
                 "method": "branch_rbf_or_exact_lookup",
@@ -192,8 +209,16 @@ def _panel(*, cached=False, f02=False, battery=False):
                 "proposal_cost": _cost(0.01),
                 "fit_cost_per_observation": _cost(0.01),
                 "cache_lookup_cost": _cost(0.01),
+                "startup_peak_ram_bytes": 128,
+                "proposal_peak_ram_bytes": 96,
+                "fit_peak_ram_bytes": 256,
+                "cache_lookup_peak_ram_bytes": 32,
             },
-            "model": {"cache_lookup_cost": _cost(0.01)},
+            "model": {
+                "cache_lookup_cost": _cost(0.01),
+                "screen_peak_ram_bytes": 192,
+                "cache_lookup_peak_ram_bytes": 32,
+            },
         },
         "policy_digest",
     )
@@ -328,10 +353,16 @@ def test_every_attempt_is_charged_and_full_panel_preflights():
         assert direct["solver_attempts"] == 2
         assert direct["verified_count"] == 1
         assert direct["best_verified_value"] == 5.0
+        assert direct["peak_ram_bytes"] == 512
     trace = raw["producer_only_traces"][0]["events"]
     assert [
         entry["provenance"] for entry in trace if entry["event"] == "SOLVER_ATTEMPT"
     ] == ["failed_reference", "final"]
+    assert [
+        entry["event_peak_ram_bytes"]
+        for entry in trace
+        if entry["event"] == "SOLVER_ATTEMPT"
+    ] == [256, 512]
     assert any(entry["event"] == "STOP_SOLVE_OVER_BUDGET" for entry in trace)
 
 
@@ -379,6 +410,7 @@ def test_exact_cache_can_cover_entire_bank_without_unneeded_optimizer_startup():
         assert result["solver_attempts"] == 0
         assert result["verified_count"] == 5
         assert result["spent_wall_s"] == pytest.approx(0.15)
+        assert result["peak_ram_bytes"] == 64
     trace = raw["producer_only_traces"][0]["events"]
     assert not any(entry["event"] == "ARM_STARTUP" for entry in trace)
 
@@ -443,6 +475,10 @@ def test_typed_action_and_complete_cost_ledger_are_fail_closed():
     wrong = copy.deepcopy(panel)
     wrong["jobs"][0]["actions"][0]["attempts"][0]["cost"]["core_s"] -= 0.1
     with pytest.raises(adaptive.AdaptiveArmError, match="attempts must equal"):
+        adaptive.validate(_reseal(wrong), registration)
+    wrong = copy.deepcopy(panel)
+    wrong["jobs"][0]["actions"][0]["attempts"][0]["peak_ram_bytes"] = -1
+    with pytest.raises(adaptive.AdaptiveArmError, match="peak RAM bytes"):
         adaptive.validate(_reseal(wrong), registration)
     wrong = copy.deepcopy(panel)
     wrong["base_panel"]["budgets"][0]["core_s"] += 1
@@ -527,6 +563,10 @@ def test_aggregate_is_disclosure_limited_and_bootstraps_by_bank():
     )
     assert report["status"] == "OK"
     assert report["independent_clusters"] == 2
+    assert (
+        report["curves"][0]["estimates"]["adaptive_solver"]["peak_ram_bytes_mean"]
+        == 512
+    )
     assert report == adaptive.compare(
         panel, registration, confidence=0.95, bootstrap_replicates=100, seed=1
     )

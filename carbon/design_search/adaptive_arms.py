@@ -63,6 +63,12 @@ def _cost(row, label):
     return {key: _number(row[key], f"{label}.{key}") for key in row}
 
 
+def _ram(value, label):
+    if type(value) is not int or value < 0:
+        raise AdaptiveArmError(f"nonnegative integer {label} peak RAM bytes required")
+    return value
+
+
 def _sha(value, label):
     if not isinstance(value, str) or not budgets.SHA.fullmatch(value):
         raise AdaptiveArmError(f"{label} must be a sha256 digest")
@@ -102,6 +108,9 @@ def validate_policy(policy, challenge):
             "startup_cost",
             "proposal_cost",
             "cache_lookup_cost",
+            "startup_peak_ram_bytes",
+            "proposal_peak_ram_bytes",
+            "cache_lookup_peak_ram_bytes",
         ),
         "direct arm",
     )
@@ -116,6 +125,12 @@ def validate_policy(policy, challenge):
             raise AdaptiveArmError(f"positive {key} required")
     for key in ("startup_cost", "proposal_cost", "cache_lookup_cost"):
         _cost(direct[key], key)
+    for key in (
+        "startup_peak_ram_bytes",
+        "proposal_peak_ram_bytes",
+        "cache_lookup_peak_ram_bytes",
+    ):
+        _ram(direct[key], key)
     surrogate = policy["surrogate"]
     _closed(
         surrogate,
@@ -130,6 +145,10 @@ def validate_policy(policy, challenge):
             "proposal_cost",
             "fit_cost_per_observation",
             "cache_lookup_cost",
+            "startup_peak_ram_bytes",
+            "proposal_peak_ram_bytes",
+            "fit_peak_ram_bytes",
+            "cache_lookup_peak_ram_bytes",
         ),
         "surrogate arm",
     )
@@ -158,8 +177,21 @@ def validate_policy(policy, challenge):
         "cache_lookup_cost",
     ):
         _cost(surrogate[key], key)
-    _closed(policy["model"], ("cache_lookup_cost",), "model prior cost")
+    for key in (
+        "startup_peak_ram_bytes",
+        "proposal_peak_ram_bytes",
+        "fit_peak_ram_bytes",
+        "cache_lookup_peak_ram_bytes",
+    ):
+        _ram(surrogate[key], key)
+    _closed(
+        policy["model"],
+        ("cache_lookup_cost", "screen_peak_ram_bytes", "cache_lookup_peak_ram_bytes"),
+        "model prior cost",
+    )
     _cost(policy["model"]["cache_lookup_cost"], "model cache lookup")
+    _ram(policy["model"]["screen_peak_ram_bytes"], "model screen")
+    _ram(policy["model"]["cache_lookup_peak_ram_bytes"], "model cache lookup")
 
 
 def _margins(raw, names, challenge):
@@ -224,6 +256,7 @@ def validate(panel, registration):
                 "cache_source",
                 "condition_panel_digest",
                 "cache_acquisition",
+                "cache_acquisition_peak_ram_bytes",
             ),
             "adaptive job",
         )
@@ -333,7 +366,12 @@ def validate(panel, registration):
             if type(attempts) is not list or not attempts:
                 raise AdaptiveArmError("ordered complete-panel attempts required")
             for number, attempt in enumerate(attempts):
-                _closed(attempt, ("kind", "cost", "planning_bound"), "solver attempt")
+                _closed(
+                    attempt,
+                    ("kind", "cost", "planning_bound", "peak_ram_bytes"),
+                    "solver attempt",
+                )
+                _ram(attempt["peak_ram_bytes"], "solver attempt")
                 if attempt["kind"] not in (
                     "failed_infra",
                     "failed_reference",
@@ -427,6 +465,7 @@ def validate(panel, registration):
                     "warm-start provenance must be a common permitted prior"
                 )
         _cost(job["cache_acquisition"], "shared cache acquisition")
+        _ram(job["cache_acquisition_peak_ram_bytes"], "shared cache acquisition")
     return registered
 
 
@@ -628,6 +667,7 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
     }
     observed = {}
     trace = []
+    ram_peak = 0
     remaining = set(rows)
     state = {
         "stagnation": 0,
@@ -637,7 +677,10 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
         "force_global_next": False,
     }
 
-    def record(kind, design_id=None, provenance=None):
+    def record(kind, design_id=None, provenance=None, peak_ram_bytes=None):
+        nonlocal ram_peak
+        if peak_ram_bytes is not None:
+            ram_peak = max(ram_peak, peak_ram_bytes)
         entry = {
             "sequence": len(trace),
             "event": kind,
@@ -648,32 +691,43 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
             ),
             "panel_digest": action_job["condition_panel_digest"],
             "provenance": provenance,
+            "event_peak_ram_bytes": peak_ram_bytes,
             "cumulative": {
                 "wall_s": ledger.wall_s,
                 "core_s": ledger.core_s,
                 "solver_evaluations": ledger.solver_evaluations,
+                "peak_ram_bytes": ram_peak,
             },
         }
         trace.append(entry)
         return entry
 
+    def finish(status):
+        return Replay(
+            _result(observed, ledger, direction, status, ram_peak), tuple(trace)
+        )
+
     if not ledger.charge_overhead(action_job["cache_acquisition"]):
         record("STOP_CACHE_ACQUISITION_OVER_BUDGET")
-        return Replay(
-            _result(observed, ledger, direction, "OVER_BUDGET_BEFORE_SEARCH"),
-            tuple(trace),
-        )
-    record("CACHE_ACQUISITION", provenance="common_public_development")
+        return finish("OVER_BUDGET_BEFORE_SEARCH")
+    record(
+        "CACHE_ACQUISITION",
+        provenance="common_public_development",
+        peak_ram_bytes=action_job["cache_acquisition_peak_ram_bytes"],
+    )
     for cached in action_job["common_cache"]:
         design_id = cached["design_id"]
         if design_id not in remaining:
             continue
         if not ledger.charge_overhead(config["cache_lookup_cost"]):
             record("STOP_CACHE_LOOKUP_OVER_BUDGET")
-            return Replay(
-                _result(observed, ledger, direction, "BUDGET_STOP"), tuple(trace)
-            )
-        record("CACHE_LOOKUP", design_id, "common_exact_cache")
+            return finish("BUDGET_STOP")
+        record(
+            "CACHE_LOOKUP",
+            design_id,
+            "common_exact_cache",
+            config["cache_lookup_peak_ram_bytes"],
+        )
         observed[design_id] = {
             "reference": cached["reference"],
             "margins": cached["margins"],
@@ -690,10 +744,17 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
         )
         if not ledger.charge_overhead(startup):
             record("STOP_STARTUP_OVER_BUDGET")
-            return Replay(
-                _result(observed, ledger, direction, "BUDGET_STOP"), tuple(trace)
-            )
-        record("ARM_STARTUP", provenance="registered_cold_start")
+            return finish("BUDGET_STOP")
+        startup_ram = (
+            config["screen_peak_ram_bytes"]
+            if arm == "carbon_model"
+            else config["startup_peak_ram_bytes"]
+        )
+        record(
+            "ARM_STARTUP",
+            provenance="registered_cold_start",
+            peak_ram_bytes=startup_ram,
+        )
     starts = action_job["starts"]
     stop_status = None
     while remaining:
@@ -707,7 +768,11 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
                 record("STOP_FIT_OVER_BUDGET")
                 stop_status = "BUDGET_STOP"
                 break
-            record("SURROGATE_FIT", provenance="branch_objective_and_all_hard_margins")
+            record(
+                "SURROGATE_FIT",
+                provenance="branch_objective_and_all_hard_margins",
+                peak_ram_bytes=config["fit_peak_ram_bytes"],
+            )
         proposal = (
             {"wall_s": 0.0, "core_s": 0.0}
             if arm == "carbon_model"
@@ -751,6 +816,7 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
             "PROPOSAL",
             design_id,
             "registered_start" if design_id in starts else "observed_prefix_policy",
+            0 if arm == "carbon_model" else config["proposal_peak_ram_bytes"],
         )
         row = rows[design_id]
         attempts = actions[design_id]["attempts"]
@@ -767,7 +833,9 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
                 attempt["planning_bound"], attempt["cost"]
             ):
                 raise AdaptiveArmError("validated complete-panel preflight failed")
-            part = record("SOLVER_ATTEMPT", design_id, attempt["kind"])
+            part = record(
+                "SOLVER_ATTEMPT", design_id, attempt["kind"], attempt["peak_ram_bytes"]
+            )
             part["cost"] = attempt["cost"]
             part["planning_bound"] = attempt["planning_bound"]
         observed[design_id] = {
@@ -808,10 +876,10 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
         if arm == "adaptive_solver" and config["method"] == "finite_enumeration"
         else "BANK_EXHAUSTED"
     )
-    return Replay(_result(observed, ledger, direction, status), tuple(trace))
+    return finish(status)
 
 
-def _result(observed, ledger, direction, status):
+def _result(observed, ledger, direction, status, ram_peak):
     feasible = [
         row["reference"]["value"]
         for row in observed.values()
@@ -827,6 +895,7 @@ def _result(observed, ledger, direction, status):
         "solver_attempts": ledger.solver_evaluations,
         "spent_wall_s": ledger.wall_s,
         "spent_core_s": ledger.core_s,
+        "peak_ram_bytes": ram_peak,
     }
 
 
@@ -895,6 +964,7 @@ def _aggregate(rows, direction):
             ),
             "wall_s_mean": _mean([item["spent_wall_s"] for item in results]),
             "core_s_mean": _mean([item["spent_core_s"] for item in results]),
+            "peak_ram_bytes_mean": _mean([item["peak_ram_bytes"] for item in results]),
             "budget_stop_fraction": _mean(
                 [
                     item["status"] in ("BUDGET_STOP", "OVER_BUDGET_BEFORE_SEARCH")

@@ -31,7 +31,9 @@ stronger challenger policies after independent calibration.
 Every arm consumes #1047's exact half/base/double `BudgetCap` and
 `BudgetLedger`. Charge shared cache acquisition, warm-start preparation,
 optimizer/proposal work, surrogate fitting/screening, reference attempts,
-failures/retries and refinements. Stop before a complete panel that cannot fit.
+failures/retries and refinements. Record peak RAM for every workflow phase and
+solver attempt as evidence; #1047 does not make RAM a budget cap. Stop before a
+complete panel that cannot fit.
 Keep full producer-only proposal/cost histories with observed-prefix digests,
 and print aggregate-only reports. A cached answer is admissible only for an
 identical decision/reference identity and common rights-cleared source.
