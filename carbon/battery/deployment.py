@@ -159,7 +159,11 @@ def _private(path):
 
 #: The registered-score term's fields (VALIDATOR-26), checked here by shape
 #: only: the registry itself is read by the operator's setup, never here.
-SCORE_FIELDS = frozenset({"registry", "registry_sha256", "candidate"})
+#: `decision` names the owner's record that adopts this candidate (the
+#: owner's #1101 security conditions): the scorer refuses unless that record
+#: names the candidate and the registry digest.
+SCORE_FIELDS = frozenset({"registry", "registry_sha256", "candidate", "decision"})
+SCORE_DECISION = re.compile(r"OWNER-[A-Z0-9]+(?:-[A-Z0-9]+)*-\d{2}\Z")
 
 
 def rule_for(config):
@@ -178,6 +182,7 @@ def rule_for(config):
         type(term) is not dict
         or set(term) != SCORE_FIELDS
         or not all(type(v) is str and v for v in term.values())
+        or not SCORE_DECISION.match(term["decision"])
     ):
         raise EvaluationUnavailable("evaluation_config_score")
     return {**rule, "score": dict(term)}

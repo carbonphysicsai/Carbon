@@ -216,8 +216,8 @@ DEVELOPMENT_RULE_V2_BANK_SCHED = {
 
 #: A rule whose score is a registered score-tuning candidate (VALIDATOR-26):
 #: the deployment's configuration supplies the term (`score`: registry,
-#: registry_sha256, candidate), and the deployment's rule carries it, so its
-#: digest binds the term. The marker itself is never scored.
+#: registry_sha256, candidate, decision), and the deployment's rule carries
+#: it, so its digest binds the term. The marker itself is never scored.
 REGISTERED_SCORE = "REGISTERED_BY_DEPLOYMENT"
 
 #: Rule `v3-bank-sched` (VALIDATOR-26; OWNER-BATTERY-SCORE-RULE-01;
