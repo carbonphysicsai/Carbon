@@ -2,7 +2,7 @@
   "schema": "carbon.challenge-pipeline.lesson.v1",
   "lesson_id": "2026-10-11-bfs-preparation",
   "recorded_at": "2026-10-11T02:22:54Z",
-  "challenge": "protocol",
+  "challenge": "backward-facing-step",
   "stage": "test_iterate",
   "execution": {"kind": "test_run", "ref": "BENCHMARK-READINESS-BUILD-BFS-01", "description": "Native offline generator, observer, comparator and public-anchor novelty diagnostics; no solver or spend"},
   "expected": "Public anchor data can establish whether cached answers survive novel variants without accessing hidden data.",

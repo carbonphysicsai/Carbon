@@ -157,6 +157,16 @@ def test_calibration_requires_contested_frontier_and_answer_changes():
     )
     assert report["status"] == "CALIBRATION_PASSES"
     assert report["distinct_winners"] == ["0", "1"]
+    close = copy.deepcopy(designs)
+    close[1]["objective"] = -0.2
+    memorized = b.calibration_check(
+        {"a": designs, "b": close},
+        minimum_useful_improvement=1,
+        minimum_margin_spread=2,
+    )
+    assert memorized["status"] == "CALIBRATION_FAILS" and memorized[
+        "common_value_equivalent_pick"
+    ] == ["0"]
     assert (
         b.calibration_check(
             {"a": designs}, minimum_useful_improvement=1, minimum_margin_spread=2
@@ -238,10 +248,21 @@ def test_deck_binds_inlet_and_sst_mapping_without_claiming_valid_package():
 
 
 def test_train_disjointness_ignores_rung_and_domain_reports_gaps():
-    panel = [{"action": {"length_over_H": 2}, "condition": {"Re_H": 36000}, "rung": 0}]
+    panel = [
+        {
+            "action": {"length_over_H": 2},
+            "condition": {"Re_H": 36000},
+            "rung": 0,
+            "scope": "SYNTHETIC_FIXTURE",
+        }
+    ]
     generated = [
         dict(panel[0], rung=2),
-        {"action": {"length_over_H": 3}, "condition": {"Re_H": 36000}},
+        {
+            "action": {"length_over_H": 3},
+            "condition": {"Re_H": 36000},
+            "scope": "SYNTHETIC_FIXTURE",
+        },
     ]
     plan = b.train_plan(b.FAMILY, generated, panel, count=1)
     assert plan["cases"] == [generated[1]]
@@ -253,6 +274,10 @@ def test_train_disjointness_ignores_rung_and_domain_reports_gaps():
     assert b.domain_coverage(b.FAMILY, panel, domain)["covered"]
     domain["condition"] = {}
     assert not b.domain_coverage(b.FAMILY, panel, domain)["covered"]
+    with pytest.raises(b.PreparationError):
+        b.train_plan(
+            b.FAMILY, [dict(generated[1], scope="HIDDEN_EVAL")], panel, count=1
+        )
 
 
 def test_public_anchor_run_cannot_fake_variant_novelty():
@@ -335,3 +360,10 @@ def test_pressure_correlation_cannot_replace_missing_separation_limits():
             dynamic_pressure_pa=100,
             applicability={"geometry": "recovery_spline", "source": "fixture"},
         )
+
+
+def test_execution_lesson_is_in_the_validated_log_not_only_a_document_folder():
+    from carbon.challenge_pipeline.lessons import LESSONS, validate
+
+    p = LESSONS / "2026-10-11-bfs-preparation.json"
+    assert validate(json.loads(p.read_text()), p.stem, {})["challenge"] == b.FAMILY

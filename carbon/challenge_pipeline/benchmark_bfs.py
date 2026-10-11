@@ -199,7 +199,7 @@ def calibration_check(strata, *, minimum_useful_improvement, minimum_margin_spre
     if not strata:
         raise PreparationError("nonempty complete public strata required")
     rows = []
-    feasible_sets = []
+    feasible_sets, best_sets = [], []
     winners = set()
     inventory = None
     for name, designs in strata.items():
@@ -222,6 +222,16 @@ def calibration_check(strata, *, minimum_useful_improvement, minimum_margin_spre
         )
         if ranked:
             winners.add(ranked[0][1])
+            best_sets.append(
+                {
+                    d["design"]
+                    for d in designs
+                    if d["feasible"]
+                    and number(d["objective"]) - ranked[0][0] <= 0.5 * mui
+                }
+            )
+        else:
+            best_sets.append(set())
         rate = len(passing) / len(designs)
         rows.append(
             {
@@ -241,15 +251,17 @@ def calibration_check(strata, *, minimum_useful_improvement, minimum_margin_spre
         for r in rows
     )
     common = sorted(set.intersection(*feasible_sets))
+    common_best = sorted(set.intersection(*best_sets))
     return {
         "status": (
             "CALIBRATION_PASSES"
-            if passed and common and len(winners) > 1
+            if passed and common and not common_best and len(winners) > 1
             else "CALIBRATION_FAILS"
         ),
         "strata": rows,
         "common_feasible": common,
         "distinct_winners": sorted(winners),
+        "common_value_equivalent_pick": common_best,
         "dispatchable": False,
         "requires_frozen_requirement_intervals": True,
     }
@@ -442,6 +454,8 @@ def train_plan(challenge, generated, panel, *, count):
         raise PreparationError("explicit family and positive TRAIN count required")
 
     def key(row):
+        if row.get("scope") not in ("PUBLIC_DEVELOPMENT", "SYNTHETIC_FIXTURE"):
+            raise PreparationError("explicit public TRAIN/panel custody required")
         return tasks.digest({"action": row["action"], "condition": row["condition"]})
 
     excluded = {key(r) for r in panel}
@@ -583,7 +597,7 @@ def decision_novelty(challenge, witnesses):
                 regret = abs(truth[predicted]["objective"] - truth[actual]["objective"])
                 status = (
                     "SHORTCUT_STILL_WORKS_NOT_NOVEL"
-                    if regret <= number(tie)
+                    if regret <= number(tie, positive=True)
                     else "DECISION_NOVELTY_PASSES_PUBLIC_ONLY"
                 )
         else:

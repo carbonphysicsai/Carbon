@@ -185,6 +185,15 @@ holds described above. The equal-budget proposal is digest-bound in #1047's
 field shape, but its closed four-family validator still needs optimizer's
 additive BFS route; it is not a spend grant or accepted registration.
 
-Native tests: 56 passed (BFS, portfolio and #994 comparator regressions).
+Native tests: 57 passed (BFS, portfolio and #994 comparator regressions).
 Black, Ruff, pipeline validation and diff whitespace checks passed locally;
 canonical exact-head CI is the delivery gate, not native-host output.
+
+Integration holds: the branch predates #1047's merged budget registration;
+PR Head was asked for a base sync before the BFS registration/replay bridge.
+The current neutral plain task aggregates a uniform mean. A nonuniform
+per-brief duty-weighted objective needs an explicit matched task adapter;
+the duty metadata in the law is not proof that this weighting is implemented
+by that judge. Until then do not relabel a uniform-mean comparator as the
+complete nonuniform buyer decision. Calibration also rejects a common
+value-equivalent pick across all strata, not just identical raw winners.
