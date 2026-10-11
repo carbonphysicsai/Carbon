@@ -177,9 +177,9 @@ from ..provider import (
     RunStatus,
     TaskSpec,
 )
+from . import capability_log, grant_binding, level_domain, model_providers, next_level
 from . import delivery as deliver_
 from . import experiment as ex
-from . import grant_binding, level_domain, model_providers, next_level
 from . import literature as lit
 from . import score_variant as sv
 from . import tools as toolbox
@@ -1021,6 +1021,7 @@ def session_brief(
     scoring=None,
     variant=None,
     tool_text=TOOL_TEXT_V2,
+    capability_wish_text=False,
     score_variant=None,
     study=None,
     level_domain_text=False,
@@ -1069,6 +1070,10 @@ def session_brief(
             "say why."
         ),
     }
+    if capability_wish_text:
+        # Opt-in: a brief recorded without it keeps its digest (replays byte for byte).
+        observation["capability_wish"] = capability_log.WISH_BRIEF
+        observation["instructions"] += capability_log.WISH_INSTRUCTIONS
     if score_variant is not None:
         observation["score_variant"] = score_variant
     # The level's declared domain, intersected with the backends this Challenge's
@@ -1840,6 +1845,7 @@ def command_run(args):
                 literature=literature,
                 scoring=scoring,
                 variant=variant,
+                capability_wish_text=True,
                 score_variant=sv.identity_of(scored),
                 study=getattr(args, "study", None),
                 level_domain_text=True,
