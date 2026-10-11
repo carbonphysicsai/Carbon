@@ -92,6 +92,43 @@ def _number(value, stage, *, positive=False):
     return float(value)
 
 
+def _host(plan):
+    """A registered host quote, not a measured throughput or spend approval."""
+    host = plan["host"]
+    _closed(
+        host,
+        {
+            "host_id",
+            "vcpus",
+            "ram_gb",
+            "usd_per_hour",
+            "usd_to_eur",
+            "fixed_eur",
+            "basis",
+            "source",
+        },
+        "host",
+    )
+    if not isinstance(host["host_id"], str) or not host["host_id"]:
+        raise CampaignRefused("host", "HOST_ID_REQUIRED")
+    if type(host["vcpus"]) is not int or host["vcpus"] <= 0:
+        raise CampaignRefused("host", "POSITIVE_VCPUS_REQUIRED")
+    _number(host["ram_gb"], "host RAM", positive=True)
+    _number(host["usd_per_hour"], "host hourly USD")
+    _number(host["usd_to_eur"], "host USD-to-EUR", positive=True)
+    _number(host["fixed_eur"], "host fixed charges")
+    if (
+        host["basis"] not in ("ASSUMPTION", "SOURCED", "MEASURED_PILOT")
+        or not host["source"]
+    ):
+        raise CampaignRefused("host", "HOST_PROVENANCE_REQUIRED")
+    return host
+
+
+def _hourly_eur(host):
+    return host["usd_per_hour"] * host["usd_to_eur"]
+
+
 def _safe_relative(value, stage):
     if (
         not isinstance(value, str)
@@ -276,8 +313,9 @@ def validate(plan, plan_dir, *, require_ready=True, require_modules=True):
             "budget_registration",
             "value_rule",
             "stages",
-            "pricing",
+            "host",
             "hard_cap_eur",
+            "hard_wall_s",
             "analysis",
             "analysis_reserve",
             "plan_digest",
@@ -310,17 +348,9 @@ def validate(plan, plan_dir, *, require_ready=True, require_modules=True):
     value_bar._owner_rule(rule)
     if rule["rule_id"] != "VALUE-BAR-V1":
         raise CampaignRefused("rule", "VALUE_BAR_V1_REQUIRED")
-    _closed(
-        plan["pricing"],
-        {"eur_per_node_hour", "fixed_eur", "basis", "source"},
-        "pricing",
-    )
-    price = plan["pricing"]
-    _number(price["eur_per_node_hour"], "pricing", positive=True)
-    _number(price["fixed_eur"], "pricing")
-    if price["basis"] not in ("ASSUMPTION", "SOURCED") or not price["source"]:
-        raise CampaignRefused("pricing", "PRICE_PROVENANCE_REQUIRED")
-    if _number(plan["hard_cap_eur"], "cap", positive=True) <= price["fixed_eur"]:
+    host = _host(plan)
+    _number(plan["hard_wall_s"], "hard wall", positive=True)
+    if _number(plan["hard_cap_eur"], "cap", positive=True) <= host["fixed_eur"]:
         raise CampaignRefused("cap", "FIXED_CHARGES_EXCEED_CAP")
     _closed(
         plan["analysis"], {"bootstrap_replicates", "confidence", "seed"}, "analysis"
@@ -337,9 +367,14 @@ def validate(plan, plan_dir, *, require_ready=True, require_modules=True):
     _closed(plan["analysis_reserve"], FAMILIES, "analysis reserve")
     for family in FAMILIES:
         reserve = plan["analysis_reserve"][family]
-        _closed(reserve, {"wall_s", "core_s"}, "analysis reserve")
+        _closed(reserve, {"wall_s", "core_s", "peak_ram_gb"}, "analysis reserve")
         wall = _number(reserve["wall_s"], "analysis reserve", positive=True)
         core = _number(reserve["core_s"], "analysis reserve", positive=True)
+        if (
+            _number(reserve["peak_ram_gb"], "analysis RAM", positive=True)
+            > host["ram_gb"]
+        ):
+            raise CampaignRefused("analysis reserve", "HOST_RAM_EXCEEDED")
         if core > wall:
             raise CampaignRefused(
                 "analysis reserve", "ONE_CORE_ANALYSIS_RESERVE_REQUIRED"
@@ -360,6 +395,7 @@ def validate(plan, plan_dir, *, require_ready=True, require_modules=True):
                 "vcpus",
                 "planned_wall_s",
                 "planned_core_s",
+                "peak_ram_gb",
                 "inputs",
             },
             "stage",
@@ -380,8 +416,10 @@ def validate(plan, plan_dir, *, require_ready=True, require_modules=True):
         if key in seen:
             raise CampaignRefused("stage", "DUPLICATE_TASK")
         seen.add(key)
-        if type(task["vcpus"]) is not int or not 1 <= task["vcpus"] <= 48:
+        if type(task["vcpus"]) is not int or not 1 <= task["vcpus"] <= host["vcpus"]:
             raise CampaignRefused("stage", "VCPU_ALLOCATION_INVALID")
+        if _number(task["peak_ram_gb"], "stage RAM", positive=True) > host["ram_gb"]:
+            raise CampaignRefused("stage", "HOST_RAM_EXCEEDED")
         wall = _number(task["planned_wall_s"], "stage", positive=True)
         core = _number(task["planned_core_s"], "stage", positive=True)
         if core > wall * task["vcpus"] + 1e-9:
@@ -442,14 +480,18 @@ def validate(plan, plan_dir, *, require_ready=True, require_modules=True):
     return registration, rule, tasks
 
 
-def _phase_wall(tasks):
+def _phase_wall(tasks, host):
     """Deterministic list scheduling; planned values are assumptions, not timings."""
-    running, waiting, now, used = [], list(tasks), 0.0, 0
+    running, waiting, now, used_cores, used_ram = [], list(tasks), 0.0, 0, 0.0
     while waiting or running:
         for task in list(waiting):
-            if used + task["vcpus"] <= 48:
+            if (
+                used_cores + task["vcpus"] <= host["vcpus"]
+                and used_ram + task["peak_ram_gb"] <= host["ram_gb"] + 1e-9
+            ):
                 running.append((now + task["planned_wall_s"], task))
-                used += task["vcpus"]
+                used_cores += task["vcpus"]
+                used_ram += task["peak_ram_gb"]
                 waiting.remove(task)
         if not running:
             raise CampaignRefused("sheet", "UNSCHEDULABLE_TASK")
@@ -457,17 +499,18 @@ def _phase_wall(tasks):
         for end, task in list(running):
             if end == now:
                 running.remove((end, task))
-                used -= task["vcpus"]
+                used_cores -= task["vcpus"]
+                used_ram -= task["peak_ram_gb"]
     return now
 
 
 def server_sheet(plan, tasks):
-    price = plan["pricing"]
+    host = _host(plan)
     groups = {
         family: [t for t in tasks if t["family"] == family] for family in FAMILIES
     }
     phase_wall = {
-        phase: _phase_wall([t for t in tasks if t["phase"] == phase])
+        phase: _phase_wall([t for t in tasks if t["phase"] == phase], host)
         for phase in PHASES
     }
     phase_wall["analysis"] = sum(
@@ -477,8 +520,9 @@ def server_sheet(plan, tasks):
     total_core_s = sum(t["planned_core_s"] for t in tasks) + sum(
         plan["analysis_reserve"][family]["core_s"] for family in FAMILIES
     )
-    node_eur = total_wall_s / 3600 * price["eur_per_node_hour"]
-    total_eur = node_eur + price["fixed_eur"]
+    node_usd = total_wall_s / 3600 * host["usd_per_hour"]
+    node_eur = node_usd * host["usd_to_eur"]
+    total_eur = node_eur + host["fixed_eur"]
     rows = {}
     for family, group in groups.items():
         core_s = (
@@ -486,7 +530,8 @@ def server_sheet(plan, tasks):
             + plan["analysis_reserve"][family]["core_s"]
         )
         wall_s = plan["analysis_reserve"][family]["wall_s"] + sum(
-            _phase_wall([t for t in group if t["phase"] == phase]) for phase in PHASES
+            _phase_wall([t for t in group if t["phase"] == phase], host)
+            for phase in PHASES
         )
         rows[family] = {
             "planned_cpu_hours": core_s / 3600,
@@ -499,22 +544,23 @@ def server_sheet(plan, tasks):
         "scope": plan["scope"],
         "basis": "ASSUMPTION unless stage cost estimates are separately measured",
         "plan_digest": plan["plan_digest"],
-        "server_vcpus": 48,
-        "price": price,
+        "host": host,
         "by_challenge": rows,
         "total": {
             "planned_cpu_hours": total_core_s / 3600,
             "planned_wall_hours": total_wall_s / 3600,
+            "node_usd_estimate": node_usd,
             "node_eur_estimate": node_eur,
-            "fixed_eur": price["fixed_eur"],
+            "fixed_eur": host["fixed_eur"],
             "eur_estimate": total_eur,
             "hard_cap_eur_for_approval": plan["hard_cap_eur"],
             "headroom_eur": plan["hard_cap_eur"] - total_eur,
         },
         "phase_wall_hours": {k: v / 3600 for k, v in phase_wall.items()},
         "limits": [
-            "48 advertised vCPUs are allocation slots, not measured throughput",
+            "registered vCPUs and RAM are allocation limits, not measured throughput",
             "actual billed wall and fixed charges need a host quote and operator check",
+            "USD-to-EUR conversion is a registered planning input, not a live exchange rate",
             "this sheet does not authorize spend or scientific qualification",
         ],
     }
@@ -934,6 +980,7 @@ def _finalize(family, assembly, score, plan, workspace, registration, rule):
 
 def run(plan, plan_dir, workspace, *, dry_run, approval=None):
     registration, rule, tasks = validate(plan, plan_dir)
+    host = _host(plan)
     if dry_run != (plan["scope"] == "SYNTHETIC_FIXTURE"):
         raise CampaignRefused(
             "mode", "FIXTURE_DRY_RUN_OR_APPROVED_DEVELOPMENT_REQUIRED"
@@ -942,7 +989,7 @@ def run(plan, plan_dir, workspace, *, dry_run, approval=None):
         raise CampaignRefused("approval", "OWNER_APPROVAL_REQUIRED")
     if not dry_run:
         if os.name != "posix":
-            raise CampaignRefused("host", "LINUX_CCX63_REQUIRED")
+            raise CampaignRefused("host", "LINUX_HOST_REQUIRED")
         _fresh_readiness(plan, plan_dir)
         _approval(*approval, plan)
     sheet = server_sheet(plan, tasks)
@@ -970,11 +1017,15 @@ def run(plan, plan_dir, workspace, *, dry_run, approval=None):
                 raise CampaignRefused("resume", "CHECKPOINT_RECEIPT_MISMATCH")
             prior[key] = _prior_artifacts(output, receipt)
     initial = time.monotonic()
-    allowance_s = (plan["hard_cap_eur"] - plan["pricing"]["fixed_eur"]) * 3600 / plan[
-        "pricing"
-    ]["eur_per_node_hour"] - state["billed_wall_s"]
+    allowance_s = plan["hard_wall_s"] - state["billed_wall_s"]
+    if _hourly_eur(host) > 0:
+        allowance_s = min(
+            allowance_s,
+            (plan["hard_cap_eur"] - host["fixed_eur"]) * 3600 / _hourly_eur(host)
+            - state["billed_wall_s"],
+        )
     if allowance_s <= 0:
-        raise CampaignRefused("cap", "EURO_CAP_EXHAUSTED")
+        raise CampaignRefused("cap", "WALL_OR_EURO_CAP_EXHAUSTED")
     deadline = initial + allowance_s
     try:
         for phase in PHASES:
@@ -983,12 +1034,15 @@ def run(plan, plan_dir, workspace, *, dry_run, approval=None):
                 for t in tasks
                 if t["phase"] == phase and _key(t) not in state["completed"]
             ]
-            available, active = 48, {}
+            available, available_ram, active = host["vcpus"], host["ram_gb"], {}
             stop = threading.Event()
-            with ThreadPoolExecutor(max_workers=48) as pool:
+            with ThreadPoolExecutor(max_workers=host["vcpus"]) as pool:
                 while pending or active:
                     for task in list(pending):
-                        if task["vcpus"] <= available:
+                        if (
+                            task["vcpus"] <= available
+                            and task["peak_ram_gb"] <= available_ram + 1e-9
+                        ):
                             attempt = 1
                             while (
                                 workspace / _key(task) / f"attempt-{attempt}"
@@ -1007,6 +1061,7 @@ def run(plan, plan_dir, workspace, *, dry_run, approval=None):
                             )
                             active[future] = task
                             available -= task["vcpus"]
+                            available_ram -= task["peak_ram_gb"]
                             pending.remove(task)
                     if not active:
                         raise CampaignRefused("execute", "UNSCHEDULABLE_TASK")
@@ -1021,6 +1076,7 @@ def run(plan, plan_dir, workspace, *, dry_run, approval=None):
                     for future in done:
                         task = active.pop(future)
                         available += task["vcpus"]
+                        available_ram += task["peak_ram_gb"]
                         key = _key(task)
                         try:
                             receipt = future.result()
@@ -1098,9 +1154,8 @@ def run(plan, plan_dir, workspace, *, dry_run, approval=None):
                 _save(state_path, state)
             if spent_core > reserve["core_s"] or time.monotonic() >= deadline:
                 raise CampaignRefused("analysis", "ANALYSIS_OR_EURO_CAP_REACHED")
-        actual_eur = (
-            plan["pricing"]["fixed_eur"]
-            + state["billed_wall_s"] / 3600 * plan["pricing"]["eur_per_node_hour"]
+        actual_eur = host["fixed_eur"] + state["billed_wall_s"] / 3600 * _hourly_eur(
+            host
         )
         if actual_eur > plan["hard_cap_eur"]:
             raise CampaignRefused("cap", "EURO_CAP_EXHAUSTED")

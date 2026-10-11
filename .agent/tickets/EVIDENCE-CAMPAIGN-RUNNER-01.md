@@ -10,7 +10,7 @@ Challenge qualification, solver adequacy, spend or LIVE authority follows.
 ## Working contract
 
 One command coordinates battery v3, revised motor and adopted f02 development
-evidence on a 48-vCPU CCX63. An immutable plan binds seven independent
+evidence on a registered Linux host. An immutable plan binds seven independent
 readiness-item YES receipts per Challenge, the #1047 budget registration,
 VALUE-BAR-V1, trusted producer stage modules, source pins, workload estimates,
 an explicit euro hard cap and a separate approval receipt for any real run.
@@ -32,7 +32,15 @@ outcomes, and writes the #975 evidence page and receipts. A registered score
 stage may be inserted later; absent VERIFY-AWARE-SCORE-01 cannot be silently
 substituted. Per-Challenge and combined server-sheet arithmetic retains
 ASSUMPTION versus MEASURED labels, CPU/core hours separate from billable
-node wall time, and no 48x throughput shortcut.
+node wall time, and no advertised-core throughput shortcut. The host identity,
+vCPU slots, RAM, quoted USD hourly rate, registered USD-to-EUR planning rate,
+fixed charges and hard wall cap are plan inputs. A free owner-operated host
+still has a wall cap; a paid host has both wall and euro caps. The owner-provided
+RunPod 32-vCPU/256-GB $1.76/h quote, the owner-only AX42 eight-core free host,
+and a future dedicated server are host-plan alternatives, not hardcoded
+throughput or live-price facts. Planned stage costs remain ASSUMPTION until
+each Challenge's capped ≤€10 pilot measures them; the owner approves any
+real campaign from the resulting exact server sheet.
 
 ## Acceptance
 

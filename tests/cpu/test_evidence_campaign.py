@@ -193,6 +193,7 @@ def _fixture(tmp_path):
                         "module": "carbon.development_comparison.campaign_fixture",
                         "module_sha256": module_sha,
                         "vcpus": 1,
+                        "peak_ram_gb": 1.0,
                         "planned_wall_s": 30,
                         "planned_core_s": 1,
                         "inputs": inputs,
@@ -208,6 +209,7 @@ def _fixture(tmp_path):
                     "module": "carbon.development_comparison.campaign_fixture",
                     "module_sha256": module_sha,
                     "vcpus": 1,
+                    "peak_ram_gb": 1.0,
                     "planned_wall_s": 30,
                     "planned_core_s": 1,
                     "inputs": {},
@@ -228,16 +230,22 @@ def _fixture(tmp_path):
                 "sha256": campaign._sha(rule_file.read_bytes()),
             },
             "stages": stages,
-            "pricing": {
-                "eur_per_node_hour": 1.37,
+            "host": {
+                "host_id": "synthetic-32-vcpu",
+                "vcpus": 32,
+                "ram_gb": 256.0,
+                "usd_per_hour": 1.76,
+                "usd_to_eur": 0.9,
                 "fixed_eur": 0.1,
                 "basis": "ASSUMPTION",
                 "source": "synthetic-fixture",
             },
             "hard_cap_eur": 1.0,
+            "hard_wall_s": 3600.0,
             "analysis": {"bootstrap_replicates": 100, "confidence": 0.95, "seed": 7},
             "analysis_reserve": {
-                family: {"wall_s": 60, "core_s": 60} for family in campaign.FAMILIES
+                family: {"wall_s": 60, "core_s": 60, "peak_ram_gb": 1.0}
+                for family in campaign.FAMILIES
             },
         },
         "plan_digest",
@@ -417,3 +425,90 @@ def test_one_command_sheet_lists_registration_gaps(tmp_path, capsys):
     assert sheet["registration_gap_owner"] == "Data Collection"
     assert len(sheet["registration_gaps"]["motor"]) == 4
     assert sheet["total"]["eur_estimate"] > 0
+
+
+def test_host_quotes_change_sheet_without_claiming_measured_throughput(tmp_path):
+    plan, _ = _fixture(tmp_path)
+    _, _, tasks = campaign.validate(plan, tmp_path)
+    runpod = campaign.server_sheet(plan, tasks)
+    assert runpod["host"]["host_id"] == "synthetic-32-vcpu"
+    assert runpod["total"]["node_usd_estimate"] == pytest.approx(
+        runpod["total"]["planned_wall_hours"] * 1.76
+    )
+    assert runpod["total"]["node_eur_estimate"] == pytest.approx(
+        runpod["total"]["node_usd_estimate"] * 0.9
+    )
+
+    owner_host = copy.deepcopy(plan)
+    owner_host["host"].update(
+        host_id="synthetic-owner-host",
+        vcpus=8,
+        ram_gb=16.0,
+        usd_per_hour=0.0,
+        usd_to_eur=1.0,
+        fixed_eur=0.0,
+        source="synthetic fixture; no AX42 access",
+    )
+    owner_host = campaign.seal(
+        {k: v for k, v in owner_host.items() if k != "plan_digest"}, "plan_digest"
+    )
+    _, _, tasks = campaign.validate(owner_host, tmp_path)
+    free_sheet = campaign.server_sheet(owner_host, tasks)
+    assert free_sheet["host"]["vcpus"] == 8
+    assert free_sheet["total"]["eur_estimate"] == 0
+
+    future = copy.deepcopy(owner_host)
+    future["host"].update(
+        host_id="synthetic-future-server",
+        vcpus=64,
+        ram_gb=512.0,
+        usd_per_hour=2.4,
+        usd_to_eur=0.8,
+    )
+    future = campaign.seal(
+        {k: v for k, v in future.items() if k != "plan_digest"}, "plan_digest"
+    )
+    _, _, tasks = campaign.validate(future, tmp_path)
+    assert campaign.server_sheet(future, tasks)["host"]["vcpus"] == 64
+
+
+def test_ram_slots_and_host_limits_refuse_unaffordable_plan(tmp_path):
+    plan, _ = _fixture(tmp_path)
+    _, _, tasks = campaign.validate(plan, tmp_path)
+    spacious = campaign.server_sheet(plan, tasks)
+    ram_bound = copy.deepcopy(plan)
+    ram_bound["host"]["ram_gb"] = 1.0
+    ram_bound = campaign.seal(
+        {k: v for k, v in ram_bound.items() if k != "plan_digest"}, "plan_digest"
+    )
+    _, _, tasks = campaign.validate(ram_bound, tmp_path)
+    assert (
+        campaign.server_sheet(ram_bound, tasks)["total"]["planned_wall_hours"]
+        > spacious["total"]["planned_wall_hours"]
+    )
+    refused = copy.deepcopy(ram_bound)
+    refused["stages"][0]["peak_ram_gb"] = 2.0
+    refused = campaign.seal(
+        {k: v for k, v in refused.items() if k != "plan_digest"}, "plan_digest"
+    )
+    with pytest.raises(campaign.CampaignRefused, match="HOST_RAM_EXCEEDED"):
+        campaign.validate(refused, tmp_path)
+
+
+def test_paid_host_requires_explicit_fx_and_free_host_still_needs_wall_cap(tmp_path):
+    plan, _ = _fixture(tmp_path)
+    invalid = copy.deepcopy(plan)
+    invalid["host"]["usd_to_eur"] = 0
+    invalid = campaign.seal(
+        {k: v for k, v in invalid.items() if k != "plan_digest"}, "plan_digest"
+    )
+    with pytest.raises(campaign.CampaignRefused, match="POSITIVE_NUMBER_REQUIRED"):
+        campaign.validate(invalid, tmp_path)
+    invalid = copy.deepcopy(plan)
+    invalid["host"]["usd_per_hour"] = 0
+    invalid["hard_wall_s"] = 0
+    invalid = campaign.seal(
+        {k: v for k, v in invalid.items() if k != "plan_digest"}, "plan_digest"
+    )
+    with pytest.raises(campaign.CampaignRefused, match="POSITIVE_NUMBER_REQUIRED"):
+        campaign.validate(invalid, tmp_path)
