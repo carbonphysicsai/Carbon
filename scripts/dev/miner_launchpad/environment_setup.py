@@ -391,6 +391,27 @@ REMOTE_RECHECK = (
 #: Characters a path may have in the service unit: nothing systemd would
 #: expand, split or quote.
 _UNIT_PATH = re.compile(r"/[A-Za-z0-9._/@+=:,-]{1,4095}")
+#: What setup says when this install's Control Center would not come back
+#: after a reboot (MINER-SURVIVE-REBOOT-01): its user unit is not enabled, or
+#: the miner's user manager does not linger, so it starts only at a login.
+REBOOT_RECOVERY_OFF = (
+    "Your Control Center will not start again by itself after this machine "
+    "restarts: {why}. Your campaigns and setup are kept either way; your "
+    "signer is always yours to start."
+)
+#: The next step for each half of it, as the exact command.
+REBOOT_INSTALL_STEP = "install again with the service: {command}"
+REBOOT_ENABLE_STEP = "enable its service: systemctl --user enable {unit}"
+REBOOT_LINGER_STEP = (
+    "let your services start at boot without a login: loginctl enable-linger "
+    "{user} (if that is refused: sudo loginctl enable-linger {user})"
+)
+#: The unit states that do not start a unit at boot.
+_UNIT_OFF = frozenset(
+    {"disabled", "not-found", "enabled-runtime", "linked", "linked-runtime"}
+)
+#: How long each read-only reboot probe may take, in seconds.
+REBOOT_PROBE_TIMEOUT = 3
 
 
 class SetupRefused(Rejected):
@@ -988,6 +1009,13 @@ class LiveChecks:
         # Where the host device record lives (`HOST_ROOT` unless a test names
         # another directory).
         self.host_root = host_root
+
+    @staticmethod
+    def reboot_recovery(unit) -> dict:
+        """Whether `unit` and this user's linger bring the Control Center
+        back after a reboot (MINER-SURVIVE-REBOOT-01): read only, short
+        timeouts, None for anything unknown."""
+        return reboot_recovery(unit)
 
     def published_pricing(self, provider_id, model_id) -> dict:
         """The live-priced provider's published price for `model_id` (free,
@@ -1725,6 +1753,70 @@ def service_unit(state_dir, port, repo=REPO) -> str:
         "[Install]\n"
         "WantedBy=default.target\n"
     )
+
+
+def control_center_unit(state_dir, default_state_dir=None) -> str:
+    """The user unit `scripts/install_miner.sh --service` names for
+    `state_dir` (LA-F15), by the installer's own rule: the default state
+    directory's is `carbon-control-center.service`; any other's carries its
+    directory name, each byte outside [A-Za-z0-9_-] as `_`, at most 32, and
+    the first 12 hex digits of the SHA-256 of its full real path."""
+    real = os.path.realpath(state_dir)
+    default = DEFAULT_STATE_DIR if default_state_dir is None else default_state_dir
+    if real == os.path.realpath(default):
+        return "carbon-control-center.service"
+    allowed = set(b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-")
+    label = bytes(
+        byte if byte in allowed else ord("_")
+        for byte in os.fsencode(os.path.basename(real))
+    )[:32].decode("ascii")
+    digest = hashlib.sha256(os.fsencode(real)).hexdigest()[:12]
+    return f"carbon-control-center-{label}-{digest}.service"
+
+
+def _probe(command) -> str | None:
+    """The first line a read-only command prints, or None when it cannot be
+    run, times out or prints nothing (MINER-SURVIVE-REBOOT-01)."""
+    try:
+        completed = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=REBOOT_PROBE_TIMEOUT,
+            check=False,
+            stdin=subprocess.DEVNULL,
+        )
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return None
+    lines = completed.stdout.strip().splitlines()
+    return lines[0].strip() if lines else None
+
+
+def reboot_recovery(unit: str, user: str | None = None) -> dict:
+    """Whether this install's Control Center comes back after a reboot, read
+    only (MINER-SURVIVE-REBOOT-01): `unit_state`, what `systemctl --user
+    is-enabled` says of `unit` ("enabled" or one of the states that do not
+    start it at boot), and `linger`, what `loginctl` says of `user`'s
+    Linger (True or False), `user` being this process's own unless named.
+    Anything else, or anything that cannot be read, is None; off Linux both
+    are None."""
+    unknown = {"unit_state": None, "linger": None, "user": user}
+    if not sys.platform.startswith("linux"):
+        return unknown
+    if user is None:
+        import pwd
+
+        try:
+            user = pwd.getpwuid(os.getuid()).pw_name
+        except KeyError:
+            return unknown
+    state = _probe(["systemctl", "--user", "is-enabled", unit])
+    linger = _probe(["loginctl", "show-user", user, "-p", "Linger", "--value"])
+    return {
+        "unit_state": state if state == "enabled" or state in _UNIT_OFF else None,
+        "linger": {"yes": True, "no": False}.get(linger),
+        "user": user,
+    }
 
 
 class EnvironmentSetup:
@@ -2652,7 +2744,57 @@ class EnvironmentSetup:
         public facts must report that receiver, or Review refuses
         `intake_receiver_mismatch`.
         """
-        return self._review(value)
+        reviewed = self._review(value)
+        return {**reviewed, "warnings": reviewed["warnings"] + self.reboot_warnings()}
+
+    def reboot_warnings(self) -> list:
+        """`reboot_recovery_off` when this install's Control Center would not
+        start again by itself after a reboot (MINER-SURVIVE-REBOOT-01): its
+        user unit is not enabled, or this user does not linger. Read only and
+        live, never recorded; what cannot be read, or checks without the
+        probe, warn of nothing."""
+        probe = getattr(self.checks, "reboot_recovery", None)
+        if probe is None:
+            return []
+        state_dir = self.root.parent
+        unit = control_center_unit(state_dir)
+        try:
+            facts = probe(unit)
+        except Exception:  # noqa: BLE001 - a probe that fails warns of nothing
+            return []
+        if type(facts) is not dict:
+            return []
+        unit_state, linger = facts.get("unit_state"), facts.get("linger")
+        why, steps = [], []
+        if unit_state is not None and unit_state != "enabled":
+            name = unit.removesuffix(".service")
+            if unit_state == "not-found":
+                why.append("it does not run as a service")
+                installer = REPO / "scripts" / "install_miner.sh"
+                command = f"{shlex.quote(str(installer))} --service"
+                if os.path.realpath(state_dir) != os.path.realpath(DEFAULT_STATE_DIR):
+                    command = (
+                        f"CARBON_STATE_DIR={shlex.quote(str(state_dir))} {command}"
+                    )
+                steps.append(REBOOT_INSTALL_STEP.format(command=command))
+            else:
+                why.append(f"its service {name} is not enabled")
+                steps.append(REBOOT_ENABLE_STEP.format(unit=name))
+        if linger is False and type(facts.get("user")) is str:
+            why.append("your services start only when you log in (linger is off)")
+            steps.append(REBOOT_LINGER_STEP.format(user=shlex.quote(facts["user"])))
+        if not why:
+            return []
+        return [
+            {
+                "code": "reboot_recovery_off",
+                "unit": unit.removesuffix(".service"),
+                "unit_state": unit_state,
+                "linger": linger,
+                "message": REBOOT_RECOVERY_OFF.format(why=" and ".join(why)),
+                "next_step": "; then ".join(steps),
+            }
+        ]
 
     def _review(self, value, unpinned=frozenset()) -> dict:
         """Review, where `unpinned` names the Challenges whose own intake was

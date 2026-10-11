@@ -40,7 +40,9 @@
 #      changed;
 #   6. starts the Control Center on 127.0.0.1, in this terminal or, with
 #      --service, as this state directory's own systemd user service, and
-#      prints how to start, stop and follow it (LA-F15).
+#      prints how to start, stop and follow it (LA-F15). With the service it
+#      also turns on linger, or prints the sudo command that does, so the
+#      service starts again after a reboot (MINER-SURVIVE-REBOOT-01).
 #
 # It never asks for, reads or stores a key, seed phrase or password. Your
 # hotkey stays in your own wallet and `carbon-miner-signer`; registration on
@@ -561,6 +563,30 @@ if [[ "${service_mode}" == 1 ]]; then
   Its state:   systemctl --user status ${SERVICE_NAME%.service}
   Its output:  tail -f ${STATE_DIR}/control-center.log
 EOF
+  # MINER-SURVIVE-REBOOT-01: the unit is enabled, but the user manager that
+  # starts it runs at boot only when this user lingers; otherwise it waits
+  # for a login. Turned on here when loginctl allows it without sudo (many
+  # systems do, WSL included); otherwise the sudo command is printed. Never
+  # fatal: the service runs now either way. Nothing else is touched.
+  linger_user="${USER:-$(id -un)}"
+  linger_state() {
+    loginctl show-user "${linger_user}" -p Linger --value 2>/dev/null || true
+  }
+  if ! command -v loginctl >/dev/null 2>&1; then
+    echo "Could not check whether your services start at boot: loginctl was not found. If they do not, the Control Center will not start after a reboot until you run: sudo loginctl enable-linger ${linger_user}"
+  else
+    if [[ "$(linger_state)" != "yes" ]]; then
+      loginctl enable-linger "${linger_user}" >/dev/null 2>&1 || true
+      if [[ "$(linger_state)" != "yes" ]]; then
+        echo "The Control Center will not start after a reboot until you run: sudo loginctl enable-linger ${linger_user}"
+      fi
+    fi
+    linger="$(linger_state)"
+    echo "Start at boot without a login (linger) for ${linger_user}: ${linger:-unknown}."
+  fi
+  if grep -qiE 'microsoft|wsl' /proc/sys/kernel/osrelease 2>/dev/null; then
+    echo "On WSL, Windows does not start WSL at boot: see \"After a reboot\" in docs/development/FRESH_MINER_JOURNEY.md for the one-time logon task that starts this distro."
+  fi
   exit 0
 fi
 
