@@ -1,0 +1,10 @@
+{
+ "schema":"carbon.challenge-pipeline.lesson.v1", "lesson_id":"2026-10-11-bolted-rehearsal-regression",
+ "recorded_at":"2026-10-11T13:05:33Z", "challenge":"bolted-joint", "stage":"test_iterate",
+ "execution":{"kind":"test_run","ref":"BOLTED-JOINT-REHEARSAL-BUILD-01","description":"Native full representative fixture, shared comparator/budget and pipeline regression"},
+ "expected":"All representative fixtures and unchanged historical budget/comparator regressions pass; no native result becomes reference acceptance.",
+ "observed":"104 tests passed. Ruff and formatting passed; pipeline validated seven records and 589 lessons. No solver, image build, spend, hidden or customer data. Local canonical worktree wrapper remains unavailable as established in the preceding f13 ticket; GitHub canonical CI is required, not inferred.",
+ "keep":["Historical budget identity remains closed", "Seven readiness items stay PLANNED without receipts", "Full history and nonlinear safety gaps remain explicit"],
+ "change":["Require representative scope on both input and output budget replays"],
+ "protocol_elements":["measurement_authority","reference_adequacy"], "proposed_revision":null,"status":"RECORDED"
+}

@@ -1,0 +1,14 @@
+{
+ "schema":"carbon.challenge-preparation.readiness-pointers.v1","family":"bolted-joint","scope":"REPRESENTATIVE","customer_result":false,
+ "items":[
+  {"item":1,"state":"PLANNED","pointer":"carbon/challenge_pipeline/bolted_rehearsal.py:panel","owner":"Data Collection","gap":"exact main registration, retained/scheduled inventory and mesh tuples not supplied"},
+  {"item":2,"state":"PLANNED","pointer":"scripts/dev/reference_packages/calculix/sources.lock.json","owner":"Data Collection","gap":"source/image reused; no store-presence receipt or verified contact mesh/deck yet"},
+  {"item":3,"state":"PLANNED","pointer":"docs/development/challenge_pipeline/bolted-rehearsal/verification.json","owner":"Data Collection / Test Lead","gap":"no analytic/MMS/contact/convergence/balance execution or adequacy acceptance"},
+  {"item":4,"state":"PLANNED","pointer":"carbon/challenge_pipeline/bolted_rehearsal.py:kit_domain","owner":"Data Collection","gap":"no actual registered training kit or demonstrated full-history domain"},
+  {"item":5,"state":"PLANNED","pointer":"carbon/challenge_pipeline/bolted_rehearsal.py:train_plan","owner":"Data Collection","gap":"proposed geometry-disjoint TRAIN, no solve registration"},
+  {"item":6,"state":"PLANNED","pointer":"carbon/challenge_pipeline/bolted_rehearsal.py:compare","owner":"Codex / Data Collection","gap":"hand arm implemented; strongest contact-aware FE and matched stiffness material/decision panel not supplied"},
+  {"item":7,"state":"PLANNED","pointer":"carbon/design_search/bolted_budget.py:proposal","owner":"Optimizer / Test Lead","gap":"shared replay route implemented; complete registered buyer decisions and measured costs absent"}
+ ],
+ "central_tool_integration":"After #1039 main merge, bind pointers; this is preparation, not seven accepted receipts.",
+ "dispatchable":false
+}

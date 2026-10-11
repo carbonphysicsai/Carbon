@@ -1,0 +1,10 @@
+{
+ "schema":"carbon.challenge-pipeline.lesson.v1", "lesson_id":"2026-10-11-bolted-rehearsal-first-fixtures",
+ "recorded_at":"2026-10-11T13:02:29Z", "challenge":"bolted-joint", "stage":"test_iterate",
+ "execution":{"kind":"test_run","ref":"BOLTED-JOINT-REHEARSAL-BUILD-01","description":"Native representative fixture/budget replay diagnostics; no solver, spend or customer data"},
+ "expected":"Existing shared baseline passes and representative fixtures validate custody, partial-safety abstention and budget isolation.",
+ "observed":"51 baseline tests passed. First new run: 38 passed, 3 failed; fixture used float instead of canonical number grammar type and a pointer root one directory too high. Repaired fixture/schema paths without weakening production tests.",
+ "keep":["Use canonical action grammar", "Raw contact/history and missing-output abstention remain explicit"],
+ "change":["Check actual neutral schema and worktree-relative pointer roots before final validation"],
+ "protocol_elements":["reference_adequacy","measurement_authority"], "proposed_revision":null,"status":"RECORDED"
+}
