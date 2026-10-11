@@ -2770,7 +2770,8 @@ class EnvironmentSetup:
             name = unit.removesuffix(".service")
             if unit_state == "not-found":
                 why.append("it does not run as a service")
-                command = f"{shlex.quote(str(REPO / 'scripts' / 'install_miner.sh'))} --service"
+                installer = REPO / "scripts" / "install_miner.sh"
+                command = f"{shlex.quote(str(installer))} --service"
                 if os.path.realpath(state_dir) != os.path.realpath(DEFAULT_STATE_DIR):
                     command = (
                         f"CARBON_STATE_DIR={shlex.quote(str(state_dir))} {command}"
