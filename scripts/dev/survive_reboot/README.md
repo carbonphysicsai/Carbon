@@ -76,23 +76,12 @@ the Control Centers. Every unit should be `active running`, and every port
 To stop one signer: `systemctl --user stop carbon-test-signer@<lane>`. To
 keep it off after reboots as well, `disable --now` it.
 
-## Incentive runners (INCENTIVE-CANARY-01)
+## Incentive runners: scrapped (2026-10-11)
 
-The role miners' runner cycles (minerH strong, minerI degraded) run as
-`incentive-runner@<lane>.timer` on `carbon-fresh` as `miner`. The owner
-approved them on 2026-10-10. The schedule is one cycle per 1080-block
-rotation (12960 s), with the first 5 minutes after boot. Each lane needs its
-runner config at `~/.carbon/incentive-runner/<lane>/config.json` (mode 600).
-
-```bash
-scripts/dev/survive_reboot/install_incentive_runners.sh minerH minerI
-```
-
-**Before moving the shared checkout,** stop them, so a cycle frozen under the
-old revision doesn't meet LA-F19:
-
-```bash
-systemctl --user stop 'incentive-runner@*.timer'
-```
-
-Start them again after every lane is re-reviewed.
+The owner scrapped the incentive runner timers on 2026-10-11 ("If I'm making
+it harder with these timers, scrap them. Stop inhibiting testing."). They had
+been added for minerH and minerI by #1037. The timers are stopped and
+disabled on `carbon-fresh`, and their units and installer are removed here.
+The role miners' handover cycles are now run by hand, one per tempo, with
+`python -m scripts.dev.canary.runner once --config <lane config>`. Record:
+`.agent/decisions/2026-10-11-INCENTIVE-RUNNER-TIMERS-SCRAPPED.md`.
