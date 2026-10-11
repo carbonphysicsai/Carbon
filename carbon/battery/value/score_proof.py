@@ -15,7 +15,10 @@ and pooled:
   in the pool.
 - **gate recall**: the share of the known-unsafe members the candidate's gate
   fails. The target is every one. It is None for a candidate without a gate;
-  the unsafe members' ranks are reported either way.
+  the unsafe members' ranks are reported either way. A pre-registered check:
+  a gate that misses any unsafe member is FAIL, and the report names the
+  cutoff range that would catch every one (`catching_cutoff`), without
+  picking a cutoff.
 - **fold stability**: tau on each of K folds of the decision scenarios (the
   value side) and, when the caller supplies per-fold legs, on each of K
   folds of the scoring cases (the score side), with their range and
@@ -149,6 +152,42 @@ def scenario_folds(results, members, k=FOLDS, split="development"):
         for fold in folds
         if fold
     ]
+
+
+def catching_cutoff(gate, measures):
+    """The cutoffs on `gate`'s measure that fail every unsafe member, from the
+    members' measured values: FAIL is `measured >= cutoff` ("at_or_above") or
+    `measured > cutoff` ("exceeds"), and an unmeasured member always fails.
+    Reported, never picked."""
+    measured = [m for m in measures if m is not None]
+    if not measured:
+        return {"any_cutoff": True}
+    lowest = min(measured)
+    if gate.get("comparison", st.COMPARISONS[0]) == "exceeds":
+        return {"measure": gate["measure"], "cutoff_below": lowest}
+    return {"measure": gate["measure"], "cutoff_at_or_below": lowest}
+
+
+def gate_check(candidate, legs, unsafe):
+    """The pre-registered gate-recall check for one candidate over the
+    unsafe members: PASS, FAIL (with the catching cutoff) or NO_GATE."""
+    if candidate.gate is None:
+        return {"status": "NO_GATE"}
+    if not unsafe:
+        return {"status": "NO_UNSAFE_MEMBER"}
+    verdicts = {u: st.gate_verdict(candidate, legs[u]) for u in unsafe}
+    missed = sorted(u for u, v in verdicts.items() if v != admissibility.FAIL)
+    if not missed:
+        return {"status": "PASS"}
+    return {
+        "status": "FAIL",
+        "missed": missed,
+        "cutoff_in_force": candidate.gate["cutoff"],
+        "catching_cutoff": catching_cutoff(
+            candidate.gate,
+            [legs[u]["gates"][candidate.gate["measure"]] for u in unsafe],
+        ),
+    }
 
 
 def adversarial_divergence(scores, values, members, adversarial, band):
@@ -311,9 +350,12 @@ def prove(
         ]
         for cid in ids
     }
-    report = {}
+    report, gate_checks = {}, {}
     for cid in ids:
         scores, verdicts = scored[cid]
+        gate_checks[cid] = gate_check(
+            candidates[cid], legs, [u for u in unsafe if u in members]
+        )
         report[cid] = {
             name: level_report(
                 scores,
@@ -338,6 +380,7 @@ def prove(
         "rule_in_force": baseline,
         "levels": {name: len(pool) for name, pool in pools.items()},
         "candidates": report,
+        "gate_recall_check": gate_checks,
         "targets": {
             "known_bad_in_top_half": 0,
             "gate_recall_unsafe": 1.0,

@@ -156,6 +156,24 @@ def _ci(x):
     return "—" if x is None else f"[{x[0]:.3f}, {x[1]:.3f}]"
 
 
+def gate_lines(report):
+    """The pre-registered gate-recall check: every gated rule that misses an
+    unsafe member, with the cutoff range that would catch it (not picked)."""
+    out = ["\n## Gate recall on the unsafe members (pre-registered)\n"]
+    for cid, check in report["gate_recall_check"].items():
+        if check["status"] == "FAIL":
+            catch = check["catching_cutoff"]
+            bound = ", ".join(f"{k} {v}" for k, v in catch.items())
+            out.append(
+                f"- **{cid}: FAIL.** It misses {len(check['missed'])} unsafe "
+                f"member(s) at cutoff {check['cutoff_in_force']}; every one fails "
+                f"at {bound}. The cutoff stays the owner's."
+            )
+    if len(out) == 1:
+        out.append("- Every gated rule fails every unsafe member (PASS).")
+    return "\n".join(out) + "\n"
+
+
 def table(report):
     """One table per level, the rule in force first."""
     base = report["rule_in_force"]
@@ -239,7 +257,7 @@ def main(argv=None):
             "proof.json",
             json.dumps(report, indent=1, sort_keys=True, default=str) + "\n",
         ),
-        ("proof.md", header + table(report)),
+        ("proof.md", header + gate_lines(report) + table(report)),
     ):
         path = args.out / name
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)

@@ -157,3 +157,30 @@ def test_a_rule_whose_legs_are_missing_is_withheld_not_ranked():
     assert q["status"] == "INCOMPLETE_LEGS" and q["unscored"] == 15
     assert "tau" not in q and q["gate_recall_unsafe"] == 1.0
     assert report["candidates"]["CE"]["pooled"]["status"] == "COMPLETE"
+
+
+def test_a_gate_that_misses_an_unsafe_member_fails_and_names_the_catching_cutoff():
+    legs, values, recipe_of, levels = panel()
+    candidates, identity = registry()
+    candidates["CE+near9"] = st.parse_candidate(
+        {
+            "id": "CE+near9",
+            "kind": "deciding",
+            "gate": {"measure": "near", "cutoff": 9.0},
+        }
+    )
+    report = sp.prove(
+        (candidates, identity), legs, values, recipe_of, levels,
+        unsafe=["unsafe-s0"], n_bootstrap=20,
+    )  # fmt: skip
+    checks = report["gate_recall_check"]
+    assert checks["CE"] == {"status": "NO_GATE"}
+    assert checks["CE+near1"] == {"status": "PASS"}
+    missed = checks["CE+near9"]
+    assert missed["status"] == "FAIL" and missed["missed"] == ["unsafe-s0"]
+    # The unsafe member measures 5.0: any cutoff at or below it would catch it.
+    assert missed["catching_cutoff"] == {"measure": "near", "cutoff_at_or_below": 5.0}
+    exceeds = sp.catching_cutoff(
+        {"measure": "feasibility", "comparison": "exceeds"}, [0.03, None]
+    )
+    assert exceeds == {"measure": "feasibility", "cutoff_below": 0.03}
