@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-bfs-preparation",
+  "recorded_at": "2026-10-11T02:22:54Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "BENCHMARK-READINESS-BUILD-BFS-01", "description": "Native offline generator, observer, comparator and public-anchor novelty diagnostics; no solver or spend"},
+  "expected": "Public anchor data can establish whether cached answers survive novel variants without accessing hidden data.",
+  "observed": "The NASA anchor provides reattachment only, not full variant loss and admissibility truth. Anchor is excluded; variant decision novelty stays unresolved. Uniform discrete monotone actions require stars-and-bars, not sorted iid ordinates. Native test collection initially used a nonexistent regression filename; corrected from repository inventory.",
+  "keep": ["Mass-flow-weighted total pressure instead of shifted Cp", "Complete geometry held-out folds and screen-cost export", "Closed measurement-derived thresholds"],
+  "change": ["Retain public matched variant outcomes and the complete catalogue before testing novelty", "Register exact grammar, inlet and mesh mapping before physical tuple generation"],
+  "protocol_elements": ["CODE-VERIFICATION-MMS-01", "BENCHMARK-READINESS-BUILD-01"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

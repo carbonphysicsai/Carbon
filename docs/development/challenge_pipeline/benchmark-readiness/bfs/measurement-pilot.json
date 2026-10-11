@@ -1,0 +1,112 @@
+{
+  "schema": "carbon.benchmark-pilot-plan.v1",
+  "family": "backward-facing-step",
+  "scope": "PUBLIC_DEVELOPMENT",
+  "status": "PLAN_ONLY_NOT_REGISTERED_NOT_DISPATCHABLE",
+  "spend_authorized": false,
+  "cap_eur": 10,
+  "rate_eur_host_h": {
+    "value": 1.37,
+    "status": "ASSUMPTION_OWNER_PLANNING_BASIS"
+  },
+  "allocated_vcpus": 16,
+  "max_host_hours": 7.2992700729927,
+  "max_allocated_cpu_hours": 116.7883211678832,
+  "jobs": [
+    {
+      "role": "LAMINAR_MMS",
+      "unit_quad_nodes": 17,
+      "tuple_status": "mesh/BC/source/image identities required"
+    },
+    {
+      "role": "LAMINAR_MMS",
+      "unit_quad_nodes": 33,
+      "tuple_status": "mesh/BC/source/image identities required"
+    },
+    {
+      "role": "LAMINAR_MMS",
+      "unit_quad_nodes": 65,
+      "tuple_status": "mesh/BC/source/image identities required"
+    },
+    {
+      "role": "PUBLIC_NASA_ANCHOR",
+      "rung": 0,
+      "tuple_status": "exact NASA mesh/inlet/SSTm audit required",
+      "scored": false
+    },
+    {
+      "role": "PUBLIC_NASA_ANCHOR",
+      "rung": 1,
+      "tuple_status": "exact NASA mesh/inlet/SSTm audit required",
+      "scored": false
+    },
+    {
+      "role": "PUBLIC_NASA_ANCHOR",
+      "rung": 2,
+      "tuple_status": "exact NASA mesh/inlet/SSTm audit required",
+      "scored": false
+    },
+    {
+      "role": "PUBLIC_NOVEL_COST_PROBE",
+      "stratum": "nominal",
+      "rung": 0,
+      "action": null,
+      "condition": null,
+      "tuple_status": "closed pending exact grammar/support/calibration/novelty"
+    },
+    {
+      "role": "PUBLIC_NOVEL_COST_PROBE",
+      "stratum": "corner",
+      "rung": 0,
+      "action": null,
+      "condition": null,
+      "tuple_status": "closed pending exact grammar/support/calibration/novelty"
+    },
+    {
+      "role": "PUBLIC_NOVEL_COST_PROBE",
+      "stratum": "frontier",
+      "rung": 0,
+      "action": null,
+      "condition": null,
+      "tuple_status": "closed pending exact grammar/support/calibration/novelty"
+    },
+    {
+      "role": "PUBLIC_NOVEL_COST_PROBE",
+      "stratum": "transition",
+      "rung": 0,
+      "action": null,
+      "condition": null,
+      "tuple_status": "closed pending exact grammar/support/calibration/novelty"
+    }
+  ],
+  "expected_host_hours": {
+    "low": 0.65,
+    "base": 3.8,
+    "high": 8,
+    "status": "ASSUMPTION_HYPOTHESES_NOT_COST_MEASUREMENTS"
+  },
+  "expected_cpu_hours": {
+    "low": 1,
+    "base": 16,
+    "high": 100,
+    "status": "ASSUMPTION_ACTUAL_CORE_TIME_NOT_ALLOCATED_TIME"
+  },
+  "measures": [
+    "wall seconds",
+    "user+system CPU seconds summed over processes",
+    "allocated vCPU seconds",
+    "peak RSS",
+    "complete-condition/refinement/normalization/failed-launch counts",
+    "image/deck/observer/source identities",
+    "convergence/conservation and verification errors"
+  ],
+  "stop_rule": "Before each launch, refuse if remaining cap cannot cover declared launch cap; kill at individual or total time/RAM/resource ceiling; no unapproved retry; retain every attempt and partial outputs. High hypothesis EUR10.96 exceeds EUR10: stop, do not complete silently.",
+  "registration_requirements": [
+    "seven readiness prerequisites except exact approved pilot outputs",
+    "source-complete grammar/support and public rights",
+    "registered main manifest/reuse checks",
+    "pinned image/dependencies available in store",
+    "resource enforcement and exact operator grant"
+  ],
+  "owner": "Data Collection"
+}
