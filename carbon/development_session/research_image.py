@@ -75,7 +75,55 @@ def permitted_files():
             result[path.relative_to(repo).as_posix()] = path.read_bytes()
     for name in challenge_kit_files(repo):
         result.setdefault(name, (repo / name).read_bytes())
+    for name, body in level4_tooling_files(repo).items():
+        result.setdefault(name, body)
     return result
+
+
+#: The Level 4 miner tooling (`python -m carbon.level4.tooling lower`) and the
+#: exact closure a lowering imports, shipped so an agent lowers its own model
+#: in its own sandbox (GRAPHITE-L4-STAGING-01, R1): Carbon then reads the
+#: written documents as data and never runs the spec. Miner-facing public code
+#: only; `test_level4_tooling_in_image` proves a real lowering reaches nothing
+#: else.
+LEVEL4_TOOLING = (
+    "carbon.level4",
+    "carbon.level4.allowlist",
+    "carbon.level4.graph",
+    "carbon.level4.initializers",
+    "carbon.level4.interpret",
+    "carbon.level4.named",
+    "carbon.level4.params",
+    "carbon.level4.submission",
+    "carbon.level4.tooling",
+    "carbon.level4.tooling.__main__",
+    "carbon.level4.tooling.lower_jax",
+    "carbon.level4.tooling.lower_torch",
+    "carbon.challenge_validator.strict_json",
+)
+#: Data the tooling reads beside its modules.
+LEVEL4_TOOLING_DATA = ("carbon/level4/allowlist_v1.json",)
+#: `strict_json` is a leaf module (json and math only); its package ships as an
+#: empty stub, so the validator's own package (`dispatch`, `ledger`, ...) never
+#: rides along, as G5's lane stages it (`carbon.level4.compile`).
+LEVEL4_STUB_PACKAGES = ("carbon/challenge_validator/__init__.py",)
+
+
+def level4_tooling_files(repo):
+    """The Level 4 tooling's files by shipped name: each module's own bytes,
+    its data, and an empty stub for `carbon.challenge_validator`."""
+    files = {}
+    for module in LEVEL4_TOOLING:
+        package = repo / module.replace(".", "/") / "__init__.py"
+        path = (
+            package if package.is_file() else repo / (module.replace(".", "/") + ".py")
+        )
+        files[path.relative_to(repo).as_posix()] = path.read_bytes()
+    for name in LEVEL4_TOOLING_DATA:
+        files[name] = (repo / name).read_bytes()
+    for name in LEVEL4_STUB_PACKAGES:
+        files[name] = b""
+    return files
 
 
 #: Never shipped to a miner, whatever the kit's imports reach: the controller,
