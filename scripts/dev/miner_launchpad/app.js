@@ -1520,7 +1520,8 @@
     // own, on the miner's compute. Written by Review, like the intakes.
     const retryRow = el("label", undefined, "check");
     const retryAgain = el("input"); retryAgain.type = "checkbox"; retryAgain.id = "setup-practice-auto-retry";
-    retryAgain.checked = setupState.preferences?.practice_auto_retry === true;
+    const retryWas = setupState.preferences?.practice_auto_retry === true;
+    retryAgain.checked = retryWas;
     retryRow.append(retryAgain, " Send an interrupted practice again on its own, exactly as it was (at most 2 times; never a freeze, submit or commit; off unless you turn it on)");
     review.append(retryRow);
     const evaluationBox = el("div"); review.append(evaluationBox);
@@ -1552,7 +1553,10 @@
     if (!steps.review?.ready) researchNote(review, "Finish steps 3 to 5 first.", "hint");
     review.addEventListener("submit", async event => {
       event.preventDefault();
-      const request = {confirm: true, practice_auto_retry: retryAgain.checked};
+      const request = {confirm: true};
+      // Sent only when it changes the choice: omitted keeps the last one,
+      // so with the setting off (the default) the request is as before.
+      if (retryAgain.checked !== retryWas) request.practice_auto_retry = retryAgain.checked;
       if (intake.value.trim() && intakeChallenge.value) {
         request.intakes = {[intakeChallenge.value]: intake.value.trim()};
         if (receiver.value.trim()) request.receiver_hotkey = receiver.value.trim();
