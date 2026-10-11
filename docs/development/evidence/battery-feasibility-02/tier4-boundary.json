@@ -1,0 +1,2517 @@
+{
+ "bands": {
+  "T40": {
+   "actions": 137,
+   "best": {
+    "action": "c1=1.5,c2=1,h5.5",
+    "charging_t_max_c": 44.23917551607309,
+    "minutes": 35.85571076356822,
+    "outcome": "FEASIBLE",
+    "overshoot_bands": -1.521648967853821,
+    "plating_min_v": 0.014631511566895211,
+    "q30_over_q1": 0.9987692581238619,
+    "why": []
+   },
+   "contested_2_bands": true,
+   "contested_5_bands": true,
+   "feasible": 53,
+   "infeasible": 78,
+   "infeasible_within_2_bands": 30,
+   "infeasible_within_5_bands": 51,
+   "pass_fraction_reported": 0.40458015267175573,
+   "rows": [
+    {
+     "action": "c1=0.5,c2=0.4,h1",
+     "charging_t_max_c": 44.72850687810649,
+     "minutes": 89.44636409576721,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -0.542986243787027,
+     "plating_min_v": 0.04959735995552119,
+     "q30_over_q1": 0.9984051535088475,
+     "why": []
+    },
+    {
+     "action": "c1=0.5,c2=0.4,h1.1",
+     "charging_t_max_c": 44.08556981309067,
+     "minutes": 89.45837214941255,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.8288603738186566,
+     "plating_min_v": 0.049387685660820704,
+     "q30_over_q1": 0.9984179509955765,
+     "why": []
+    },
+    {
+     "action": "c1=0.5,c2=0.4,h1.3",
+     "charging_t_max_c": 43.095285759000774,
+     "minutes": 89.47770690709146,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -3.8094284819984523,
+     "plating_min_v": 0.049070665535885995,
+     "q30_over_q1": 0.9984375155840091,
+     "why": []
+    },
+    {
+     "action": "c1=0.5,c2=0.4,h2",
+     "charging_t_max_c": 41.70138137012128,
+     "minutes": 89.51953514281745,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -6.597237259757435,
+     "plating_min_v": 0.048472999353617464,
+     "q30_over_q1": 0.9984755591915672,
+     "why": []
+    },
+    {
+     "action": "c1=0.5,c2=0.4,h4",
+     "charging_t_max_c": 40.87221662359548,
+     "minutes": 89.56606725892503,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -8.255566752809045,
+     "plating_min_v": 0.04789478137970897,
+     "q30_over_q1": 0.9985106976793052,
+     "why": []
+    },
+    {
+     "action": "c1=0.71,c2=0.4,h1",
+     "charging_t_max_c": 45.601604193799005,
+     "minutes": 70.48612146378538,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.2032083875980106,
+     "plating_min_v": 0.04938619679921622,
+     "q30_over_q1": 0.9984689749000873,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=0.75,c2=0.4,h1",
+     "charging_t_max_c": 45.972260260627365,
+     "minutes": 68.35252538274898,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.9445205212547307,
+     "plating_min_v": 0.049379313914453035,
+     "q30_over_q1": 0.998474647912523,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=0.75,c2=0.4,h1.4",
+     "charging_t_max_c": 44.39919102029836,
+     "minutes": 68.63566871438151,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.2016179594032792,
+     "plating_min_v": 0.04867021660223359,
+     "q30_over_q1": 0.9985161948247655,
+     "why": []
+    },
+    {
+     "action": "c1=0.75,c2=0.4,h1.8",
+     "charging_t_max_c": 43.51028822691626,
+     "minutes": 68.84614695259337,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -2.9794235461674816,
+     "plating_min_v": 0.04830547746243137,
+     "q30_over_q1": 0.9985391430965114,
+     "why": []
+    },
+    {
+     "action": "c1=0.75,c2=0.4,h2",
+     "charging_t_max_c": 43.19275908582921,
+     "minutes": 68.92201659944686,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -3.6144818283415816,
+     "plating_min_v": 0.048179008443756575,
+     "q30_over_q1": 0.9985469326213415,
+     "why": []
+    },
+    {
+     "action": "c1=0.75,c2=0.4,h4",
+     "charging_t_max_c": 41.75439356676975,
+     "minutes": 69.26978791089826,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -6.491212866460501,
+     "plating_min_v": 0.047605630430886864,
+     "q30_over_q1": 0.998582593694111,
+     "why": []
+    },
+    {
+     "action": "c1=0.75,c2=0.7,h1",
+     "charging_t_max_c": 45.971105296955216,
+     "minutes": 58.8451041128785,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.9422105939104313,
+     "plating_min_v": 0.03250217860168221,
+     "q30_over_q1": 0.9985430093971616,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=0.75,c2=0.7,h1.4",
+     "charging_t_max_c": 44.39856203893851,
+     "minutes": 58.8682178542341,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.2028759221229848,
+     "plating_min_v": 0.030776572993597522,
+     "q30_over_q1": 0.9985685402520807,
+     "why": []
+    },
+    {
+     "action": "c1=0.75,c2=0.7,h1.8",
+     "charging_t_max_c": 43.50987876233063,
+     "minutes": 58.88539975123233,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -2.9802424753387413,
+     "plating_min_v": 0.02963796397105717,
+     "q30_over_q1": 0.9985828642748804,
+     "why": []
+    },
+    {
+     "action": "c1=0.75,c2=0.7,h2",
+     "charging_t_max_c": 43.192346465566004,
+     "minutes": 58.89159319179095,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -3.615307068867992,
+     "plating_min_v": 0.029210299397120727,
+     "q30_over_q1": 0.9985880197646192,
+     "why": []
+    },
+    {
+     "action": "c1=0.75,c2=0.7,h4",
+     "charging_t_max_c": 41.75420061606138,
+     "minutes": 58.9199826866038,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -6.491598767877235,
+     "plating_min_v": 0.027511803513706738,
+     "q30_over_q1": 0.998611873205189,
+     "why": []
+    },
+    {
+     "action": "c1=0.79,c2=0.4,h2",
+     "charging_t_max_c": 43.48432977280265,
+     "minutes": 67.16675713076003,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -3.0313404543946945,
+     "plating_min_v": 0.04817104083996719,
+     "q30_over_q1": 0.9985526583644995,
+     "why": []
+    },
+    {
+     "action": "c1=0.79,c2=0.7,h2",
+     "charging_t_max_c": 43.483923088110885,
+     "minutes": 56.74726467658486,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -3.0321538237782306,
+     "plating_min_v": 0.02915122391397724,
+     "q30_over_q1": 0.9985872621897693,
+     "why": []
+    },
+    {
+     "action": "c1=0.89,c2=0.4,h2",
+     "charging_t_max_c": 44.24325301121405,
+     "minutes": 63.89114802213539,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.5134939775718976,
+     "plating_min_v": 0.04817467711584487,
+     "q30_over_q1": 0.9985627820741044,
+     "why": []
+    },
+    {
+     "action": "c1=0.89,c2=0.7,h2",
+     "charging_t_max_c": 44.2427122558646,
+     "minutes": 52.4481844014076,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.5145754882707934,
+     "plating_min_v": 0.029021619643819437,
+     "q30_over_q1": 0.9985863383830881,
+     "why": []
+    },
+    {
+     "action": "c1=1,c2=0.4,h1",
+     "charging_t_max_c": 49.03144059910801,
+     "minutes": 60.06178714231582,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 8.062881198216019,
+     "plating_min_v": 0.049487317879243674,
+     "q30_over_q1": 0.9984967899393833,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1,c2=0.4,h1.6",
+     "charging_t_max_c": 46.151086944484405,
+     "minutes": 61.13070833538453,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.3021738889688095,
+     "plating_min_v": 0.04848064463229075,
+     "q30_over_q1": 0.9985523596361692,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1,c2=0.4,h1.7",
+     "charging_t_max_c": 45.85370458214061,
+     "minutes": 61.24041955873367,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.7074091642812164,
+     "plating_min_v": 0.04839144769450717,
+     "q30_over_q1": 0.9985575554429894,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1,c2=0.4,h2",
+     "charging_t_max_c": 45.12283880186044,
+     "minutes": 61.5048175840698,
+     "outcome": "REFERENCE_UNRESOLVED",
+     "overshoot_bands": 0.24567760372087832,
+     "plating_min_v": 0.048180001777259576,
+     "q30_over_q1": 0.9985708558472647,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1,c2=0.4,h2.5",
+     "charging_t_max_c": 44.25088315726697,
+     "minutes": 61.86489410436409,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.4982336854660616,
+     "plating_min_v": 0.047949096271767445,
+     "q30_over_q1": 0.998585324159071,
+     "why": []
+    },
+    {
+     "action": "c1=1,c2=0.4,h3.1",
+     "charging_t_max_c": 43.53126915346985,
+     "minutes": 62.207487263813285,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -2.9374616930602997,
+     "plating_min_v": 0.04777179016282638,
+     "q30_over_q1": 0.998596131763959,
+     "why": []
+    },
+    {
+     "action": "c1=1,c2=0.4,h4",
+     "charging_t_max_c": 42.831204991902496,
+     "minutes": 62.516466787431206,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -4.3375900161950085,
+     "plating_min_v": 0.04760374976905241,
+     "q30_over_q1": 0.9986075743007913,
+     "why": []
+    },
+    {
+     "action": "c1=1,c2=0.7,h1",
+     "charging_t_max_c": 49.03077050783372,
+     "minutes": 48.58908204066071,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 8.061541015667444,
+     "plating_min_v": 0.032683924332524185,
+     "q30_over_q1": 0.9985501301709434,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1,c2=0.7,h1.6",
+     "charging_t_max_c": 46.15015057541359,
+     "minutes": 48.89448809582562,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.300301150827181,
+     "plating_min_v": 0.029925430164430368,
+     "q30_over_q1": 0.9985743828011451,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1,c2=0.7,h1.7",
+     "charging_t_max_c": 45.85283473232795,
+     "minutes": 48.92583415963808,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.705669464655898,
+     "plating_min_v": 0.029622070965863917,
+     "q30_over_q1": 0.9985775166892982,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1,c2=0.7,h2",
+     "charging_t_max_c": 45.12210579933179,
+     "minutes": 49.00137645259077,
+     "outcome": "REFERENCE_UNRESOLVED",
+     "overshoot_bands": 0.24421159866358266,
+     "plating_min_v": 0.02892259542768288,
+     "q30_over_q1": 0.9985859428969031,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1,c2=0.7,h2.5",
+     "charging_t_max_c": 44.25029948245128,
+     "minutes": 49.10425545839095,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.499401035097435,
+     "plating_min_v": 0.028206209815494133,
+     "q30_over_q1": 0.9985977083096435,
+     "why": []
+    },
+    {
+     "action": "c1=1,c2=0.7,h3.1",
+     "charging_t_max_c": 43.5307862424749,
+     "minutes": 49.202139218231395,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -2.9384275150501935,
+     "plating_min_v": 0.027638477830224467,
+     "q30_over_q1": 0.9986085069029499,
+     "why": []
+    },
+    {
+     "action": "c1=1,c2=0.7,h4",
+     "charging_t_max_c": 42.83079038069087,
+     "minutes": 49.29041908212479,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -4.338419238618258,
+     "plating_min_v": 0.027108996631355253,
+     "q30_over_q1": 0.9986199930850173,
+     "why": []
+    },
+    {
+     "action": "c1=1,c2=1,h1",
+     "charging_t_max_c": 49.259172530807064,
+     "minutes": 43.999999999998444,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 8.518345061614127,
+     "plating_min_v": 0.024137814691666242,
+     "q30_over_q1": 0.9986297857575431,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1,c2=1,h1.6",
+     "charging_t_max_c": 46.20623661811953,
+     "minutes": 44.00000000000128,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.412473236239066,
+     "plating_min_v": 0.020952371894030486,
+     "q30_over_q1": 0.9987302796768313,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1,c2=1,h1.7",
+     "charging_t_max_c": 45.884218606784486,
+     "minutes": 43.999999999999616,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.7684372135689728,
+     "plating_min_v": 0.020549459381369206,
+     "q30_over_q1": 0.9987355597882209,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1,c2=1,h2",
+     "charging_t_max_c": 45.12187677376011,
+     "minutes": 43.99999999999912,
+     "outcome": "REFERENCE_UNRESOLVED",
+     "overshoot_bands": 0.24375354752021394,
+     "plating_min_v": 0.019443949236498087,
+     "q30_over_q1": 0.9987442842207571,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1,c2=1,h2.5",
+     "charging_t_max_c": 44.250129134704196,
+     "minutes": 43.99999999999857,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.4997417305916088,
+     "plating_min_v": 0.01824600371697437,
+     "q30_over_q1": 0.9987466940409104,
+     "why": []
+    },
+    {
+     "action": "c1=1,c2=1,h3.1",
+     "charging_t_max_c": 43.53065021694084,
+     "minutes": 43.99999999999807,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -2.9386995661183164,
+     "plating_min_v": 0.016989624448560104,
+     "q30_over_q1": 0.9987446302002756,
+     "why": []
+    },
+    {
+     "action": "c1=1,c2=1,h4",
+     "charging_t_max_c": 42.83067175254217,
+     "minutes": 43.99999999999978,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -4.338656494915654,
+     "plating_min_v": 0.016046026610629524,
+     "q30_over_q1": 0.9987405078311191,
+     "why": []
+    },
+    {
+     "action": "c1=1.07,c2=0.4,h2",
+     "charging_t_max_c": 45.706389773738294,
+     "minutes": 60.471042795411094,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.412779547476589,
+     "plating_min_v": 0.04819365027343532,
+     "q30_over_q1": 0.9985735243674245,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.07,c2=0.7,h2",
+     "charging_t_max_c": 45.705524131806726,
+     "minutes": 47.31708813160166,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.411048263613452,
+     "plating_min_v": 0.028873070744593183,
+     "q30_over_q1": 0.9985875834310254,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.07,c2=1,h2",
+     "charging_t_max_c": 45.70524174747351,
+     "minutes": 42.05550626607786,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.410483494947016,
+     "plating_min_v": 0.01943487756562516,
+     "q30_over_q1": 0.9987281937164106,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.1,c2=0.4,h2",
+     "charging_t_max_c": 45.96298500130945,
+     "minutes": 60.129499625428316,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.9259700026188966,
+     "plating_min_v": 0.04819845660075567,
+     "q30_over_q1": 0.998574405539797,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.1,c2=0.7,h2",
+     "charging_t_max_c": 45.96203127990799,
+     "minutes": 46.69534681646613,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.9240625598159795,
+     "plating_min_v": 0.028857591177935307,
+     "q30_over_q1": 0.9985886103222733,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.1,c2=1,h2",
+     "charging_t_max_c": 45.96174159035752,
+     "minutes": 41.321685692882966,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.9234831807150385,
+     "plating_min_v": 0.01940836137687914,
+     "q30_over_q1": 0.9987203340380184,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.13,c2=0.4,h4",
+     "charging_t_max_c": 43.47290242385441,
+     "minutes": 61.242278607550126,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -3.054195152291186,
+     "plating_min_v": 0.04410671567465446,
+     "q30_over_q1": 0.9986116224646598,
+     "why": []
+    },
+    {
+     "action": "c1=1.13,c2=0.7,h4",
+     "charging_t_max_c": 43.4723443352766,
+     "minutes": 46.598183797451874,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -3.055311329446795,
+     "plating_min_v": 0.026961695435704255,
+     "q30_over_q1": 0.9986399773744348,
+     "why": []
+    },
+    {
+     "action": "c1=1.13,c2=1,h4",
+     "charging_t_max_c": 43.47219114064973,
+     "minutes": 40.7405458734129,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -3.055617718700546,
+     "plating_min_v": 0.016018032863362376,
+     "q30_over_q1": 0.9987170322690665,
+     "why": []
+    },
+    {
+     "action": "c1=1.25,c2=0.4,h1",
+     "charging_t_max_c": 52.56056578821921,
+     "minutes": 56.71443829942666,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 15.121131576438415,
+     "plating_min_v": 0.049617981794789906,
+     "q30_over_q1": 0.9985018587706392,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=0.4,h2",
+     "charging_t_max_c": 47.294581558133586,
+     "minutes": 59.011379754326455,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 4.589163116267173,
+     "plating_min_v": 0.044796725067702076,
+     "q30_over_q1": 0.9985778079256281,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=0.4,h2.5",
+     "charging_t_max_c": 46.10202093827161,
+     "minutes": 59.632606597073035,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.204041876543215,
+     "plating_min_v": 0.042941068918056956,
+     "q30_over_q1": 0.9985926709406376,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=0.4,h2.7",
+     "charging_t_max_c": 45.7332435086995,
+     "minutes": 59.882559962141436,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.466487017399004,
+     "plating_min_v": 0.04227555956709654,
+     "q30_over_q1": 0.9985971957287562,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=0.4,h3",
+     "charging_t_max_c": 45.25903911915799,
+     "minutes": 60.18953358238356,
+     "outcome": "REFERENCE_UNRESOLVED",
+     "overshoot_bands": 0.5180782383159794,
+     "plating_min_v": 0.04139631093173132,
+     "q30_over_q1": 0.9986015589319569,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=0.4,h3.9",
+     "charging_t_max_c": 44.21403584342033,
+     "minutes": 60.8039063938967,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.571928313159333,
+     "plating_min_v": 0.03964743498749284,
+     "q30_over_q1": 0.998611326813072,
+     "why": []
+    },
+    {
+     "action": "c1=1.25,c2=0.4,h4",
+     "charging_t_max_c": 44.1224828206644,
+     "minutes": 60.85588505699988,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.755034358671196,
+     "plating_min_v": 0.03951012114799108,
+     "q30_over_q1": 0.9986122372915586,
+     "why": []
+    },
+    {
+     "action": "c1=1.25,c2=0.4,h4.8",
+     "charging_t_max_c": 43.50774328402724,
+     "minutes": 61.20011221819866,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -2.9845134319455155,
+     "plating_min_v": 0.03862452459813217,
+     "q30_over_q1": 0.998618541666043,
+     "why": []
+    },
+    {
+     "action": "c1=1.25,c2=0.4,h6",
+     "charging_t_max_c": 42.907124667329356,
+     "minutes": 61.55164299202427,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -4.185750665341288,
+     "plating_min_v": 0.03780149871824086,
+     "q30_over_q1": 0.998624263983463,
+     "why": []
+    },
+    {
+     "action": "c1=1.25,c2=0.7,h1",
+     "charging_t_max_c": 52.55945053134036,
+     "minutes": 43.407019203148664,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 15.11890106268072,
+     "plating_min_v": 0.032872612592517836,
+     "q30_over_q1": 0.9985561722367894,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=0.7,h2",
+     "charging_t_max_c": 47.29324925433269,
+     "minutes": 44.256308480591734,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 4.586498508665386,
+     "plating_min_v": 0.028762526688813534,
+     "q30_over_q1": 0.9985960276124997,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=0.7,h2.5",
+     "charging_t_max_c": 46.10092418701811,
+     "minutes": 44.48600580059724,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.201848374036217,
+     "plating_min_v": 0.027886031485536193,
+     "q30_over_q1": 0.9986199442222701,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=0.7,h2.7",
+     "charging_t_max_c": 45.73222052310166,
+     "minutes": 44.578425532218574,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.4644410462033193,
+     "plating_min_v": 0.02766092235043796,
+     "q30_over_q1": 0.9986274413756567,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=0.7,h3",
+     "charging_t_max_c": 45.25810515833126,
+     "minutes": 44.691928383402534,
+     "outcome": "REFERENCE_UNRESOLVED",
+     "overshoot_bands": 0.5162103166625229,
+     "plating_min_v": 0.027399178744483572,
+     "q30_over_q1": 0.9986371701831154,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=0.7,h3.9",
+     "charging_t_max_c": 44.21327964330919,
+     "minutes": 44.919091439759455,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.5734407133816148,
+     "plating_min_v": 0.026885013423606982,
+     "q30_over_q1": 0.9986621460862646,
+     "why": []
+    },
+    {
+     "action": "c1=1.25,c2=0.7,h4",
+     "charging_t_max_c": 44.121743850886446,
+     "minutes": 44.9383104412449,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.7565122982271077,
+     "plating_min_v": 0.026841970280521096,
+     "q30_over_q1": 0.9986643914187056,
+     "why": []
+    },
+    {
+     "action": "c1=1.25,c2=0.7,h4.8",
+     "charging_t_max_c": 43.507095043803815,
+     "minutes": 45.065587710927325,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -2.9858099123923694,
+     "plating_min_v": 0.02655096602000929,
+     "q30_over_q1": 0.9986791766250278,
+     "why": []
+    },
+    {
+     "action": "c1=1.25,c2=0.7,h6",
+     "charging_t_max_c": 42.90654705104322,
+     "minutes": 45.19556547604045,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -4.186905897913562,
+     "plating_min_v": 0.026169732015168687,
+     "q30_over_q1": 0.9986938231274852,
+     "why": []
+    },
+    {
+     "action": "c1=1.25,c2=1,h1",
+     "charging_t_max_c": 52.559033406416404,
+     "minutes": 38.08405156463704,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 15.118066812832808,
+     "plating_min_v": 0.02469398886194883,
+     "q30_over_q1": 0.9986629969910021,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=1,h2",
+     "charging_t_max_c": 47.29283438915286,
+     "minutes": 38.35427997109786,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 4.585668778305717,
+     "plating_min_v": 0.019376111745357524,
+     "q30_over_q1": 0.9986952348053325,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=1,h2.5",
+     "charging_t_max_c": 46.10060190223237,
+     "minutes": 38.427365482008604,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.2012038044647397,
+     "plating_min_v": 0.017978980178211368,
+     "q30_over_q1": 0.9987036967030526,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=1,h2.7",
+     "charging_t_max_c": 45.73192736494633,
+     "minutes": 38.456771760252224,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.4638547298926596,
+     "plating_min_v": 0.017507045223667278,
+     "q30_over_q1": 0.9987068358952209,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=1,h3",
+     "charging_t_max_c": 45.25784025942983,
+     "minutes": 38.492886303809954,
+     "outcome": "REFERENCE_UNRESOLVED",
+     "overshoot_bands": 0.5156805188596536,
+     "plating_min_v": 0.016991420755826252,
+     "q30_over_q1": 0.998711118171319,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=1,h3.9",
+     "charging_t_max_c": 44.213071608850896,
+     "minutes": 38.56516545810488,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.5738567822982077,
+     "plating_min_v": 0.01576963220613064,
+     "q30_over_q1": 0.9987224220289628,
+     "why": []
+    },
+    {
+     "action": "c1=1.25,c2=1,h4",
+     "charging_t_max_c": 44.12153917157326,
+     "minutes": 38.57128059493959,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.7569216568534785,
+     "plating_min_v": 0.015678194503856577,
+     "q30_over_q1": 0.9987232718272953,
+     "why": []
+    },
+    {
+     "action": "c1=1.25,c2=1,h4.8",
+     "charging_t_max_c": 43.50691618850891,
+     "minutes": 38.61177790802389,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -2.9861676229821796,
+     "plating_min_v": 0.015115307881961946,
+     "q30_over_q1": 0.9987302770689197,
+     "why": []
+    },
+    {
+     "action": "c1=1.25,c2=1,h6",
+     "charging_t_max_c": 42.90638540940199,
+     "minutes": 38.65389400076928,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -4.187229181196017,
+     "plating_min_v": 0.014560823171944527,
+     "q30_over_q1": 0.998738612766718,
+     "why": []
+    },
+    {
+     "action": "c1=1.27,c2=0.4,h4",
+     "charging_t_max_c": 44.233903943100586,
+     "minutes": 60.824508311584886,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.5321921137988284,
+     "plating_min_v": 0.03891222950212019,
+     "q30_over_q1": 0.9986128327374486,
+     "why": []
+    },
+    {
+     "action": "c1=1.27,c2=0.7,h4",
+     "charging_t_max_c": 44.23313001990482,
+     "minutes": 44.712623801380616,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.5337399601903599,
+     "plating_min_v": 0.026821462380505087,
+     "q30_over_q1": 0.9986692598118632,
+     "why": []
+    },
+    {
+     "action": "c1=1.27,c2=1,h4",
+     "charging_t_max_c": 44.23291461135716,
+     "minutes": 38.26786999730091,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.5341707772856807,
+     "plating_min_v": 0.015634432861419873,
+     "q30_over_q1": 0.9987268543558643,
+     "why": []
+    },
+    {
+     "action": "c1=1.32,c2=0.4,h3",
+     "charging_t_max_c": 45.74368010421307,
+     "minutes": 60.06092260710272,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.4873602084261393,
+     "plating_min_v": 0.039300088932045646,
+     "q30_over_q1": 0.9986010666770967,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.32,c2=0.7,h3",
+     "charging_t_max_c": 45.74259188167787,
+     "minutes": 43.9240819977662,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.4851837633557352,
+     "plating_min_v": 0.02733011223134472,
+     "q30_over_q1": 0.9986505383979826,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.32,c2=1,h3",
+     "charging_t_max_c": 45.74227777981798,
+     "minutes": 37.46934575403294,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.4845555596359645,
+     "plating_min_v": 0.017038569335584397,
+     "q30_over_q1": 0.9987161158426494,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.35,c2=0.4,h3",
+     "charging_t_max_c": 45.955106774017054,
+     "minutes": 60.019619707788294,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.9102135480341076,
+     "plating_min_v": 0.038629058291190045,
+     "q30_over_q1": 0.9986015302259008,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.35,c2=0.7,h3",
+     "charging_t_max_c": 45.953945774576596,
+     "minutes": 43.63173101357116,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.9078915491531916,
+     "plating_min_v": 0.027301942552634174,
+     "q30_over_q1": 0.9986561817272067,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.35,c2=1,h3",
+     "charging_t_max_c": 45.95361444976851,
+     "minutes": 37.07657553588629,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.9072288995370172,
+     "plating_min_v": 0.017036467075143013,
+     "q30_over_q1": 0.9987190533887843,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.4,c2=0.4,h6",
+     "charging_t_max_c": 43.490442255574465,
+     "minutes": 61.959072384600596,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -3.019115488851071,
+     "plating_min_v": 0.03185214203394724,
+     "q30_over_q1": 0.9986232234334395,
+     "why": []
+    },
+    {
+     "action": "c1=1.4,c2=0.7,h6",
+     "charging_t_max_c": 43.489615135324186,
+     "minutes": 43.98362895384188,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -3.0207697293516276,
+     "plating_min_v": 0.026083761090442668,
+     "q30_over_q1": 0.9987358184729388,
+     "why": []
+    },
+    {
+     "action": "c1=1.4,c2=1,h6",
+     "charging_t_max_c": 43.48938339907153,
+     "minutes": 36.79423667104467,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -3.021233201856944,
+     "plating_min_v": 0.014440536024952443,
+     "q30_over_q1": 0.9987633402192726,
+     "why": []
+    },
+    {
+     "action": "c1=1.5,c2=0.4,h1",
+     "charging_t_max_c": 56.03684522006574,
+     "minutes": 55.556792030103026,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 22.073690440131486,
+     "plating_min_v": 0.046876764606580835,
+     "q30_over_q1": 0.9984981925003853,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=0.4,h2",
+     "charging_t_max_c": 49.70286967687451,
+     "minutes": 58.617184770999025,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 9.405739353749027,
+     "plating_min_v": 0.03850342158609203,
+     "q30_over_q1": 0.9985776331901309,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=0.4,h3",
+     "charging_t_max_c": 47.0442643050236,
+     "minutes": 60.263058279543294,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 4.088528610047206,
+     "plating_min_v": 0.03429360685772795,
+     "q30_over_q1": 0.9986019948167766,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=0.4,h3.6",
+     "charging_t_max_c": 46.08132861204899,
+     "minutes": 60.960030299373656,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.162657224097984,
+     "plating_min_v": 0.03229455248867244,
+     "q30_over_q1": 0.9986065679361118,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=0.4,h3.8",
+     "charging_t_max_c": 45.81693759234429,
+     "minutes": 61.13625467102197,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.633875184688577,
+     "plating_min_v": 0.03190942016184548,
+     "q30_over_q1": 0.9986082336639259,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=0.4,h4",
+     "charging_t_max_c": 45.57482438715135,
+     "minutes": 61.29987367654624,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.1496487743027046,
+     "plating_min_v": 0.03154979360230353,
+     "q30_over_q1": 0.9986098662027554,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=0.4,h5.5",
+     "charging_t_max_c": 44.24044590928594,
+     "minutes": 62.20537572210001,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.5191081814281233,
+     "plating_min_v": 0.029367446273846895,
+     "q30_over_q1": 0.9986197802397542,
+     "why": []
+    },
+    {
+     "action": "c1=1.5,c2=0.4,h6",
+     "charging_t_max_c": 43.92300446257502,
+     "minutes": 62.42356790003303,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -2.153991074849955,
+     "plating_min_v": 0.028760726102233323,
+     "q30_over_q1": 0.9986220606776565,
+     "why": []
+    },
+    {
+     "action": "c1=1.5,c2=0.7,h1",
+     "charging_t_max_c": 56.03548718390488,
+     "minutes": 40.62100448004528,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 22.070974367809754,
+     "plating_min_v": 0.0330165685415724,
+     "q30_over_q1": 0.9985604385276599,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=0.7,h2",
+     "charging_t_max_c": 49.701287656334785,
+     "minutes": 41.89285600872707,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 9.402575312669569,
+     "plating_min_v": 0.028580859384009234,
+     "q30_over_q1": 0.9986184921929919,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=0.7,h3",
+     "charging_t_max_c": 47.04267953013027,
+     "minutes": 42.57685538890026,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 4.085359060260544,
+     "plating_min_v": 0.027202812637764646,
+     "q30_over_q1": 0.9986859975871611,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=0.7,h3.6",
+     "charging_t_max_c": 46.079973488130236,
+     "minutes": 42.866506098439366,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.1599469762604713,
+     "plating_min_v": 0.02681581847985612,
+     "q30_over_q1": 0.9987103519021315,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=0.7,h3.8",
+     "charging_t_max_c": 45.81563552692808,
+     "minutes": 42.93974220094377,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.6312710538561532,
+     "plating_min_v": 0.02671175514372649,
+     "q30_over_q1": 0.9987161950000927,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=0.7,h4",
+     "charging_t_max_c": 45.573576775276535,
+     "minutes": 43.00773970973351,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.147153550553071,
+     "plating_min_v": 0.026618152710506934,
+     "q30_over_q1": 0.9987215032973573,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=0.7,h5.5",
+     "charging_t_max_c": 44.239456111231675,
+     "minutes": 43.384052248145004,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.5210877775366498,
+     "plating_min_v": 0.026112737139311667,
+     "q30_over_q1": 0.9987504728127946,
+     "why": []
+    },
+    {
+     "action": "c1=1.5,c2=0.7,h6",
+     "charging_t_max_c": 43.92207052027061,
+     "minutes": 43.47472951689902,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -2.155858959458783,
+     "plating_min_v": 0.02599493046499194,
+     "q30_over_q1": 0.9987587200544857,
+     "why": []
+    },
+    {
+     "action": "c1=1.5,c2=1,h1",
+     "charging_t_max_c": 56.03496925012041,
+     "minutes": 34.64668946001912,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 22.069938500240823,
+     "plating_min_v": 0.02510513426963045,
+     "q30_over_q1": 0.9986558180768155,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=1,h2",
+     "charging_t_max_c": 49.7008041999851,
+     "minutes": 35.20312450381872,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 9.4016083999702,
+     "plating_min_v": 0.019413298427441578,
+     "q30_over_q1": 0.9987003283990138,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=1,h3",
+     "charging_t_max_c": 47.042212484800416,
+     "minutes": 35.502374232643795,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 4.084424969600832,
+     "plating_min_v": 0.016937647585029976,
+     "q30_over_q1": 0.998736472431971,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=1,h3.6",
+     "charging_t_max_c": 46.07958242438866,
+     "minutes": 35.62909641806754,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.1591648487773227,
+     "plating_min_v": 0.01591297582937549,
+     "q30_over_q1": 0.9987498042174299,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=1,h3.8",
+     "charging_t_max_c": 45.81526584322921,
+     "minutes": 35.66113721291278,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.6305316864584256,
+     "plating_min_v": 0.015674383102094375,
+     "q30_over_q1": 0.9987537571676467,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=1,h4",
+     "charging_t_max_c": 45.573220450355734,
+     "minutes": 35.690886123008234,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.1464409007114682,
+     "plating_min_v": 0.015484838882741693,
+     "q30_over_q1": 0.9987570967893533,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=1,h5.5",
+     "charging_t_max_c": 44.23917551607309,
+     "minutes": 35.85571076356822,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.521648967853821,
+     "plating_min_v": 0.014631511566895211,
+     "q30_over_q1": 0.9987692581238619,
+     "why": []
+    },
+    {
+     "action": "c1=1.5,c2=1,h6",
+     "charging_t_max_c": 43.921807525590566,
+     "minutes": 35.89602494319196,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -2.156384948818868,
+     "plating_min_v": 0.01428222839368378,
+     "q30_over_q1": 0.998771217541421,
+     "why": []
+    },
+    {
+     "action": "c1=1.53,c2=0.4,h4",
+     "charging_t_max_c": 45.75752987866008,
+     "minutes": 61.409916710130155,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.5150597573201594,
+     "plating_min_v": 0.03084986291182279,
+     "q30_over_q1": 0.9986094136057979,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.53,c2=0.7,h4",
+     "charging_t_max_c": 45.75620951035495,
+     "minutes": 42.86484494028377,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.512419020709899,
+     "plating_min_v": 0.026596709481584158,
+     "q30_over_q1": 0.9987269431298409,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.53,c2=1,h4",
+     "charging_t_max_c": 45.75582935787372,
+     "minutes": 35.44681623234498,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.5116587157474441,
+     "plating_min_v": 0.015476564725515552,
+     "q30_over_q1": 0.9987593731406672,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.57,c2=0.4,h4",
+     "charging_t_max_c": 46.00396740675353,
+     "minutes": 61.56621921936763,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.007934813507063,
+     "plating_min_v": 0.029879568100643517,
+     "q30_over_q1": 0.9986105280590782,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.57,c2=0.7,h4",
+     "charging_t_max_c": 46.002542447262044,
+     "minutes": 42.694803770867644,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.0050848945240887,
+     "plating_min_v": 0.026567821333594678,
+     "q30_over_q1": 0.9987359386286375,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.57,c2=1,h4",
+     "charging_t_max_c": 46.00213322385457,
+     "minutes": 35.14623759146677,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.004266447709142,
+     "plating_min_v": 0.01548375120780003,
+     "q30_over_q1": 0.9987621170918644,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.75,c2=0.4,h1",
+     "charging_t_max_c": 59.36867912369382,
+     "minutes": 55.632784180054664,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 28.737358247387647,
+     "plating_min_v": 0.042211299202777205,
+     "q30_over_q1": 0.998489674677347,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.75,c2=0.4,h2",
+     "charging_t_max_c": 52.242408623618644,
+     "minutes": 59.14011205645613,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 14.484817247237288,
+     "plating_min_v": 0.03375993888688635,
+     "q30_over_q1": 0.9985708122463314,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.75,c2=0.4,h4",
+     "charging_t_max_c": 47.148240304740625,
+     "minutes": 62.63567478600963,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 4.29648060948125,
+     "plating_min_v": 0.024637905194397992,
+     "q30_over_q1": 0.9986045182284428,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.75,c2=0.7,h1",
+     "charging_t_max_c": 59.36727228389492,
+     "minutes": 39.170126302248626,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 28.73454456778984,
+     "plating_min_v": 0.03311627415859788,
+     "q30_over_q1": 0.9985638227079032,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.75,c2=0.7,h2",
+     "charging_t_max_c": 52.24019046967436,
+     "minutes": 40.72893869176025,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 14.48038093934872,
+     "plating_min_v": 0.02848958563268673,
+     "q30_over_q1": 0.9986437922334789,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.75,c2=0.7,h4",
+     "charging_t_max_c": 47.14627075581603,
+     "minutes": 42.28252212711604,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 4.292541511632066,
+     "plating_min_v": 0.024637905194397992,
+     "q30_over_q1": 0.9987635303897079,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.75,c2=1,h1",
+     "charging_t_max_c": 59.36669048161485,
+     "minutes": 32.58506315112475,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 28.733380963229706,
+     "plating_min_v": 0.02525729504563711,
+     "q30_over_q1": 0.9986469524963646,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.75,c2=1,h2",
+     "charging_t_max_c": 52.23951252615086,
+     "minutes": 33.36446934587908,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 14.479025052301722,
+     "plating_min_v": 0.019260625888175547,
+     "q30_over_q1": 0.9987154311898291,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=1.75,c2=1,h4",
+     "charging_t_max_c": 47.145691452747826,
+     "minutes": 34.141261063557195,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 4.291382905495652,
+     "plating_min_v": 0.015570238383150328,
+     "q30_over_q1": 0.9987606208115046,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=2,c2=0.4,h1",
+     "charging_t_max_c": 62.51574803622884,
+     "minutes": 56.25857464297498,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 35.031496072457685,
+     "plating_min_v": 0.03887025521645495,
+     "q30_over_q1": 0.9984790369506438,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=2,c2=0.4,h2",
+     "charging_t_max_c": 54.785934335637194,
+     "minutes": 60.236765822571435,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 19.571868671274387,
+     "plating_min_v": 0.02903361295593655,
+     "q30_over_q1": 0.9985651392225313,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=2,c2=0.4,h4",
+     "charging_t_max_c": 48.8231815630819,
+     "minutes": 64.19492144159742,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 7.646363126163806,
+     "plating_min_v": 0.019626449662947895,
+     "q30_over_q1": 0.998597894200856,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=2,c2=0.7,h1",
+     "charging_t_max_c": 62.514967918763375,
+     "minutes": 38.44148108423828,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 35.02993583752675,
+     "plating_min_v": 0.033188364460055186,
+     "q30_over_q1": 0.9985636316862581,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=2,c2=0.7,h2",
+     "charging_t_max_c": 54.78363368176082,
+     "minutes": 40.288498417619536,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 19.567267363521637,
+     "plating_min_v": 0.02838685543410773,
+     "q30_over_q1": 0.9986725424932914,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=2,c2=0.7,h4",
+     "charging_t_max_c": 48.820216800732,
+     "minutes": 42.126213526458066,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 7.640433601463997,
+     "plating_min_v": 0.019626449662947895,
+     "q30_over_q1": 0.9987869808864093,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=2,c2=1,h1",
+     "charging_t_max_c": 62.5145018549743,
+     "minutes": 31.314643660743275,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 35.0290037099486,
+     "plating_min_v": 0.02548651047307012,
+     "q30_over_q1": 0.9986395502335731,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=2,c2=1,h2",
+     "charging_t_max_c": 54.782855904529015,
+     "minutes": 32.30919145564177,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 19.56571180905803,
+     "plating_min_v": 0.019043490777619226,
+     "q30_over_q1": 0.9987283599147412,
+     "why": [
+      "charging_temperature"
+     ]
+    },
+    {
+     "action": "c1=2,c2=1,h4",
+     "charging_t_max_c": 48.819319782292496,
+     "minutes": 33.29873036039964,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 7.638639564584992,
+     "plating_min_v": 0.015518594942893307,
+     "q30_over_q1": 0.9987381177904986,
+     "why": [
+      "charging_temperature"
+     ]
+    }
+   ],
+   "unresolved": 6,
+   "unresolved_rate": 0.043795620437956206
+  },
+  "T5": {
+   "actions": 80,
+   "best": {
+    "action": "c1=1.125,c2=0.4,h1",
+    "charging_t_max_c": 23.545159766030054,
+    "minutes": 76.89499762395104,
+    "outcome": "FEASIBLE",
+    "overshoot_bands": -0.9325660035334098,
+    "plating_min_v": 0.0018651320070668196,
+    "q30_over_q1": 0.998397016152744,
+    "why": []
+   },
+   "contested_2_bands": true,
+   "contested_5_bands": true,
+   "feasible": 17,
+   "infeasible": 62,
+   "infeasible_within_2_bands": 8,
+   "infeasible_within_5_bands": 26,
+   "pass_fraction_reported": 0.21518987341772153,
+   "rows": [
+    {
+     "action": "c1=0.25,c2=0.25,h1",
+     "charging_t_max_c": 13.52281661592508,
+     "minutes": 169.9999999999957,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -8.260148618350506,
+     "plating_min_v": 0.016520297236701013,
+     "q30_over_q1": 0.998271682461732,
+     "why": []
+    },
+    {
+     "action": "c1=0.5,c2=0.25,h1",
+     "charging_t_max_c": 13.515924979457338,
+     "minutes": 116.68924570716128,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -8.051538260770325,
+     "plating_min_v": 0.016103076521540652,
+     "q30_over_q1": 0.9982784538138084,
+     "why": []
+    },
+    {
+     "action": "c1=0.5,c2=0.36,h1",
+     "charging_t_max_c": 13.50800291242814,
+     "minutes": 97.9347066638957,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -2.50635071720196,
+     "plating_min_v": 0.00501270143440392,
+     "q30_over_q1": 0.9983522074684497,
+     "why": []
+    },
+    {
+     "action": "c1=0.5,c2=0.39,h1",
+     "charging_t_max_c": 13.506665398886582,
+     "minutes": 94.68854044766161,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.3685565552761705,
+     "plating_min_v": 0.002737113110552341,
+     "q30_over_q1": 0.9982796640432071,
+     "why": []
+    },
+    {
+     "action": "c1=0.5,c2=0.4,h1",
+     "charging_t_max_c": 13.50588083518727,
+     "minutes": 93.74821221076743,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -0.916667258411833,
+     "plating_min_v": 0.0018333345168236662,
+     "q30_over_q1": 0.9982546976357283,
+     "why": []
+    },
+    {
+     "action": "c1=0.5,c2=0.47,h1",
+     "charging_t_max_c": 13.50285668545564,
+     "minutes": 88.62489493086059,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.6737696216858688,
+     "plating_min_v": -0.0033475392433717378,
+     "q30_over_q1": 0.9982007440436418,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=0.5,c2=0.48,h1",
+     "charging_t_max_c": 13.502439846375296,
+     "minutes": 88.05198602702777,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.042185367488945,
+     "plating_min_v": -0.00408437073497789,
+     "q30_over_q1": 0.9982103663952817,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=0.5,c2=0.5,h1",
+     "charging_t_max_c": 13.501737422766155,
+     "minutes": 86.99616381355722,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.527666148650705,
+     "plating_min_v": -0.00505533229730141,
+     "q30_over_q1": 0.9982331507616358,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=0.75,c2=0.25,h1",
+     "charging_t_max_c": 16.338790581843,
+     "minutes": 109.34565710015592,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -7.570456144666002,
+     "plating_min_v": 0.015140912289332004,
+     "q30_over_q1": 0.9983347778402031,
+     "why": []
+    },
+    {
+     "action": "c1=0.75,c2=0.35,h1",
+     "charging_t_max_c": 16.337685093048776,
+     "minutes": 87.34037548580413,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -2.934898465917547,
+     "plating_min_v": 0.005869796931835094,
+     "q30_over_q1": 0.9982730126757701,
+     "why": []
+    },
+    {
+     "action": "c1=0.75,c2=0.39,h1",
+     "charging_t_max_c": 16.337348823684238,
+     "minutes": 81.72736404684794,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.2636214704525774,
+     "plating_min_v": 0.002527242940905155,
+     "q30_over_q1": 0.9982646822118945,
+     "why": []
+    },
+    {
+     "action": "c1=0.75,c2=0.4,h1",
+     "charging_t_max_c": 16.337270488564798,
+     "minutes": 80.53485107077098,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -0.9893922880059207,
+     "plating_min_v": 0.0019787845760118414,
+     "q30_over_q1": 0.9982785653780323,
+     "why": []
+    },
+    {
+     "action": "c1=0.75,c2=0.48,h1",
+     "charging_t_max_c": 16.33676770725316,
+     "minutes": 73.15145117716362,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.7937676128932862,
+     "plating_min_v": -0.0035875352257865724,
+     "q30_over_q1": 0.9983910197758736,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=0.75,c2=0.49,h1",
+     "charging_t_max_c": 16.336709926172148,
+     "minutes": 72.43109642987788,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.0906891751224217,
+     "plating_min_v": -0.004181378350244844,
+     "q30_over_q1": 0.9983995270402746,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=0.75,c2=0.5,h1",
+     "charging_t_max_c": 16.336659662092814,
+     "minutes": 71.74491868834124,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.306160280296181,
+     "plating_min_v": -0.004612320560592362,
+     "q30_over_q1": 0.9984055550497652,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=0.75,c2=0.6,h1",
+     "charging_t_max_c": 16.336173708441834,
+     "minutes": 66.31423306736738,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 4.057033454001613,
+     "plating_min_v": -0.008114066908003226,
+     "q30_over_q1": 0.9983352091996628,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=0.75,c2=0.7,h1",
+     "charging_t_max_c": 16.335732961951635,
+     "minutes": 62.607552244017405,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 5.250630939268942,
+     "plating_min_v": -0.010501261878537884,
+     "q30_over_q1": 0.9982862590647236,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1,c2=0.25,h1",
+     "charging_t_max_c": 21.17426233587628,
+     "minutes": 110.28557556062748,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -3.078462409488532,
+     "plating_min_v": 0.006156924818977064,
+     "q30_over_q1": 0.9983755411757494,
+     "why": []
+    },
+    {
+     "action": "c1=1,c2=0.26,h1",
+     "charging_t_max_c": 21.1741356211445,
+     "minutes": 106.88631527546467,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -3.078462409488532,
+     "plating_min_v": 0.006156924818977064,
+     "q30_over_q1": 0.9984009489651169,
+     "why": []
+    },
+    {
+     "action": "c1=1,c2=0.36,h1",
+     "charging_t_max_c": 21.173208785970758,
+     "minutes": 83.28034107296023,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -2.4681562072560737,
+     "plating_min_v": 0.004936312414512148,
+     "q30_over_q1": 0.9983053780215588,
+     "why": []
+    },
+    {
+     "action": "c1=1,c2=0.4,h1",
+     "charging_t_max_c": 21.17295689462395,
+     "minutes": 77.21478217937776,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -0.9531869645617814,
+     "plating_min_v": 0.0019063739291235629,
+     "q30_over_q1": 0.9983673094992322,
+     "why": []
+    },
+    {
+     "action": "c1=1,c2=0.48,h1",
+     "charging_t_max_c": 21.172530816861524,
+     "minutes": 68.63354176102243,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.6902902591787707,
+     "plating_min_v": -0.0033805805183575416,
+     "q30_over_q1": 0.9984227280125637,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1,c2=0.49,h1",
+     "charging_t_max_c": 21.172485066210925,
+     "minutes": 67.78871194914092,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.951409742706587,
+     "plating_min_v": -0.003902819485413174,
+     "q30_over_q1": 0.9984150760555854,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1,c2=0.5,h1",
+     "charging_t_max_c": 21.172433986391013,
+     "minutes": 66.98226846139174,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.159942871420373,
+     "plating_min_v": -0.004319885742840745,
+     "q30_over_q1": 0.9984043343839372,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1,c2=0.6,h1",
+     "charging_t_max_c": 21.171989768717935,
+     "minutes": 60.53068456071268,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 3.6962305867103447,
+     "plating_min_v": -0.00739246117342069,
+     "q30_over_q1": 0.9983437713672055,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1,c2=0.7,h1",
+     "charging_t_max_c": 21.171606688366865,
+     "minutes": 56.03896865303425,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 4.880674236158432,
+     "plating_min_v": -0.009761348472316866,
+     "q30_over_q1": 0.9984222142123761,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1,c2=1,h1",
+     "charging_t_max_c": 21.616641297385456,
+     "minutes": 48.230166181498056,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 9.70539406452384,
+     "plating_min_v": -0.01941078812904768,
+     "q30_over_q1": 0.9985981336443105,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.01,c2=0.25,h1",
+     "charging_t_max_c": 21.3684166529398,
+     "minutes": 110.37505616868208,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -2.951339491696912,
+     "plating_min_v": 0.0059026789833938244,
+     "q30_over_q1": 0.998375944743842,
+     "why": []
+    },
+    {
+     "action": "c1=1.12,c2=0.25,h1",
+     "charging_t_max_c": 23.454273542466183,
+     "minutes": 111.66571245792129,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.4743721080613081,
+     "plating_min_v": 0.0029487442161226164,
+     "q30_over_q1": 0.99838682814721,
+     "why": []
+    },
+    {
+     "action": "c1=1.125,c2=0.25,h1",
+     "charging_t_max_c": 23.546944719522514,
+     "minutes": 111.72570533065029,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -1.4226339101258025,
+     "plating_min_v": 0.002845267820251605,
+     "q30_over_q1": 0.9983874805550853,
+     "why": []
+    },
+    {
+     "action": "c1=1.125,c2=0.4,h1",
+     "charging_t_max_c": 23.545159766030054,
+     "minutes": 76.89499762395104,
+     "outcome": "FEASIBLE",
+     "overshoot_bands": -0.9325660035334098,
+     "plating_min_v": 0.0018651320070668196,
+     "q30_over_q1": 0.998397016152744,
+     "why": []
+    },
+    {
+     "action": "c1=1.125,c2=0.48,h1",
+     "charging_t_max_c": 23.544624138407585,
+     "minutes": 67.82523653770996,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.7596729196693208,
+     "plating_min_v": -0.0035193458393386417,
+     "q30_over_q1": 0.998417943744938,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.125,c2=0.5,h1",
+     "charging_t_max_c": 23.544505548723635,
+     "minutes": 66.07461460599878,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.1392775350215256,
+     "plating_min_v": -0.004278555070043051,
+     "q30_over_q1": 0.9983941756015347,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.125,c2=0.6,h1",
+     "charging_t_max_c": 23.543936064407035,
+     "minutes": 59.21054125609392,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 3.6064622365336487,
+     "plating_min_v": -0.007212924473067298,
+     "q30_over_q1": 0.9983862956266111,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=0.4,h1",
+     "charging_t_max_c": 25.79529551398292,
+     "minutes": 77.13179942114029,
+     "outcome": "REFERENCE_UNRESOLVED",
+     "overshoot_bands": 0.38188823218616474,
+     "plating_min_v": -0.0007637764643723295,
+     "q30_over_q1": 0.9984117822629782,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=0.4,h2",
+     "charging_t_max_c": 17.943957159332285,
+     "minutes": 82.06098133919315,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 7.185112564931695,
+     "plating_min_v": -0.014370225129863391,
+     "q30_over_q1": 0.9982176069275953,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=0.4,h4",
+     "charging_t_max_c": 12.555282507552022,
+     "minutes": 86.11086722471886,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 13.27292798821557,
+     "plating_min_v": -0.02654585597643114,
+     "q30_over_q1": 0.9980836624482627,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=0.48,h1",
+     "charging_t_max_c": 25.794665889925227,
+     "minutes": 67.59925767467945,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.7306568397686042,
+     "plating_min_v": -0.0034613136795372083,
+     "q30_over_q1": 0.9984037144429205,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=0.51,h1",
+     "charging_t_max_c": 25.79441000987606,
+     "minutes": 64.89126460269848,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.328179478488858,
+     "plating_min_v": -0.004656358956977716,
+     "q30_over_q1": 0.9983675664232109,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=0.7,h1",
+     "charging_t_max_c": 25.793286284659303,
+     "minutes": 53.418588116306225,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 4.843300004138351,
+     "plating_min_v": -0.009686600008276702,
+     "q30_over_q1": 0.9984980292918745,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=0.7,h2",
+     "charging_t_max_c": 17.944134096280322,
+     "minutes": 58.04445137809898,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 9.697844511866938,
+     "plating_min_v": -0.019395689023733877,
+     "q30_over_q1": 0.998178691295589,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=0.7,h4",
+     "charging_t_max_c": 12.55635825940061,
+     "minutes": 61.385305044849844,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 13.27292798821557,
+     "plating_min_v": -0.02654585597643114,
+     "q30_over_q1": 0.9978698750317656,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=1,h1",
+     "charging_t_max_c": 25.792113901238963,
+     "minutes": 44.375696105285364,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 8.894936300157498,
+     "plating_min_v": -0.017789872600314997,
+     "q30_over_q1": 0.9987075242475917,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=1,h2",
+     "charging_t_max_c": 17.944103156122765,
+     "minutes": 50.148694834464976,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 17.46929826911795,
+     "plating_min_v": -0.0349385965382359,
+     "q30_over_q1": 0.9980889399034173,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.25,c2=1,h4",
+     "charging_t_max_c": 12.556946717610117,
+     "minutes": 54.43227016210751,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 23.399131878248816,
+     "plating_min_v": -0.046798263756497635,
+     "q30_over_q1": 0.9974956906727105,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.32,c2=0.25,h1",
+     "charging_t_max_c": 27.00451843030305,
+     "minutes": 114.85418957511254,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.4003604155625955,
+     "plating_min_v": -0.002800720831125191,
+     "q30_over_q1": 0.9983852885590428,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.32,c2=0.4,h1",
+     "charging_t_max_c": 27.002018538155596,
+     "minutes": 77.44063400989012,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 1.4003604155625955,
+     "plating_min_v": -0.002800720831125191,
+     "q30_over_q1": 0.9984240874329695,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.36,c2=0.25,h1",
+     "charging_t_max_c": 27.675473549122444,
+     "minutes": 115.55517243349809,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.0332171845933478,
+     "plating_min_v": -0.004066434369186696,
+     "q30_over_q1": 0.998384800263432,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.36,c2=0.4,h1",
+     "charging_t_max_c": 27.672845886816447,
+     "minutes": 77.64582876243784,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.0332171845933478,
+     "plating_min_v": -0.004066434369186696,
+     "q30_over_q1": 0.9984264946671645,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.375,c2=0.25,h1",
+     "charging_t_max_c": 27.923607067983653,
+     "minutes": 115.85775511019169,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.2866657838349127,
+     "plating_min_v": -0.004573331567669825,
+     "q30_over_q1": 0.9983850035350856,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.375,c2=0.4,h1",
+     "charging_t_max_c": 27.920926074520366,
+     "minutes": 77.74858817673999,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.2866657838349127,
+     "plating_min_v": -0.004573331567669825,
+     "q30_over_q1": 0.9984287710589985,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.375,c2=0.5,h1",
+     "charging_t_max_c": 27.920020635982098,
+     "minutes": 65.84097517084415,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 2.2866657838349127,
+     "plating_min_v": -0.004573331567669825,
+     "q30_over_q1": 0.9983708340012352,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.375,c2=0.6,h1",
+     "charging_t_max_c": 27.91930965143206,
+     "minutes": 58.22892428008004,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 3.465876303618843,
+     "plating_min_v": -0.006931752607237687,
+     "q30_over_q1": 0.9984363674657344,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=0.4,h1",
+     "charging_t_max_c": 29.924815406403297,
+     "minutes": 78.74057247757773,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 6.675704842755835,
+     "plating_min_v": -0.013351409685511672,
+     "q30_over_q1": 0.9984423666598182,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=0.4,h2",
+     "charging_t_max_c": 21.111300222417526,
+     "minutes": 83.89939487408405,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 11.579430726446612,
+     "plating_min_v": -0.023158861452893222,
+     "q30_over_q1": 0.9982148831563155,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=0.4,h4",
+     "charging_t_max_c": 14.780550617802135,
+     "minutes": 88.36438766153918,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 18.7506991601072,
+     "plating_min_v": -0.0375013983202144,
+     "q30_over_q1": 0.9981047714149031,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=0.7,h1",
+     "charging_t_max_c": 29.922365358149705,
+     "minutes": 52.69850775754268,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 6.675704842755835,
+     "plating_min_v": -0.013351409685511672,
+     "q30_over_q1": 0.9985448788631677,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=0.7,h2",
+     "charging_t_max_c": 21.111093126395986,
+     "minutes": 57.63012098215305,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 11.579430726446612,
+     "plating_min_v": -0.023158861452893222,
+     "q30_over_q1": 0.9981654711992793,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=0.7,h4",
+     "charging_t_max_c": 14.781322613514362,
+     "minutes": 61.317343880348055,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 18.7506991601072,
+     "plating_min_v": -0.0375013983202144,
+     "q30_over_q1": 0.997811233185329,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=1,h1",
+     "charging_t_max_c": 29.921096349284028,
+     "minutes": 42.59150672340627,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 8.926000282978343,
+     "plating_min_v": -0.017852000565956688,
+     "q30_over_q1": 0.9987770135467002,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=1,h2",
+     "charging_t_max_c": 21.111115173442556,
+     "minutes": 48.79463613717637,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 17.608291289484015,
+     "plating_min_v": -0.03521658257896803,
+     "q30_over_q1": 0.9980225539834474,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.5,c2=1,h4",
+     "charging_t_max_c": 14.781924742265403,
+     "minutes": 53.4459339640612,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 23.618340147585823,
+     "plating_min_v": -0.04723668029517165,
+     "q30_over_q1": 0.9974017191031165,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.75,c2=0.4,h1",
+     "charging_t_max_c": 33.585990033499684,
+     "minutes": 81.51230460484302,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 19.037542819822473,
+     "plating_min_v": -0.03807508563964495,
+     "q30_over_q1": 0.9984515888380052,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.75,c2=0.4,h2",
+     "charging_t_max_c": 23.914606268540126,
+     "minutes": 86.83587853586356,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 21.140511671661912,
+     "plating_min_v": -0.04228102334332382,
+     "q30_over_q1": 0.9982231241807912,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.75,c2=0.4,h4",
+     "charging_t_max_c": 16.772861225789768,
+     "minutes": 91.59098227865269,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 25.724443858563518,
+     "plating_min_v": -0.05144888771712704,
+     "q30_over_q1": 0.9981071209228634,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.75,c2=0.7,h1",
+     "charging_t_max_c": 33.58174811564669,
+     "minutes": 53.14042449130661,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 19.037542819822473,
+     "plating_min_v": -0.03807508563964495,
+     "q30_over_q1": 0.9985845608088028,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.75,c2=0.7,h2",
+     "charging_t_max_c": 23.9136420569817,
+     "minutes": 58.263195249942456,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 21.140511671661912,
+     "plating_min_v": -0.04228102334332382,
+     "q30_over_q1": 0.9981447849517925,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.75,c2=0.7,h4",
+     "charging_t_max_c": 16.772968260330913,
+     "minutes": 62.19263263643531,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 25.724443858563518,
+     "plating_min_v": -0.05144888771712704,
+     "q30_over_q1": 0.9977968141351561,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.75,c2=1,h1",
+     "charging_t_max_c": 33.5796512753634,
+     "minutes": 42.02044462457541,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 19.037542819822473,
+     "plating_min_v": -0.03807508563964495,
+     "q30_over_q1": 0.9988037935087749,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.75,c2=1,h2",
+     "charging_t_max_c": 23.913117803342402,
+     "minutes": 48.48746668442222,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 21.140511671661912,
+     "plating_min_v": -0.04228102334332382,
+     "q30_over_q1": 0.9979168314930219,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=1.75,c2=1,h4",
+     "charging_t_max_c": 16.77305691000271,
+     "minutes": 53.373566049927184,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 25.724443858563518,
+     "plating_min_v": -0.05144888771712704,
+     "q30_over_q1": 0.997354729019079,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=2,c2=0.4,h1",
+     "charging_t_max_c": 36.81227109744816,
+     "minutes": 86.54450642626412,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 30.854183272805425,
+     "plating_min_v": -0.06170836654561085,
+     "q30_over_q1": 0.9984022010312747,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=2,c2=0.4,h2",
+     "charging_t_max_c": 26.198418310848865,
+     "minutes": 92.08224754936057,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 32.53185783195632,
+     "plating_min_v": -0.06506371566391264,
+     "q30_over_q1": 0.998169367320878,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=2,c2=0.4,h4",
+     "charging_t_max_c": 18.323949026994796,
+     "minutes": 96.46958666293378,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 35.494418947601325,
+     "plating_min_v": -0.07098883789520265,
+     "q30_over_q1": 0.9979668804804985,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=2,c2=0.7,h1",
+     "charging_t_max_c": 36.80653456660559,
+     "minutes": 55.05840108956711,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 30.854183272805425,
+     "plating_min_v": -0.06170836654561085,
+     "q30_over_q1": 0.9986057706120318,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=2,c2=0.7,h2",
+     "charging_t_max_c": 26.196849813586482,
+     "minutes": 60.326672846133334,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 32.53185783195632,
+     "plating_min_v": -0.06506371566391264,
+     "q30_over_q1": 0.9981361235877377,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=2,c2=0.7,h4",
+     "charging_t_max_c": 18.324130328003037,
+     "minutes": 64.15306398816192,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 35.494418947601325,
+     "plating_min_v": -0.07098883789520265,
+     "q30_over_q1": 0.9978384202837891,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=2,c2=1,h1",
+     "charging_t_max_c": 36.8030636095537,
+     "minutes": 42.65658376150178,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 30.854183272805425,
+     "plating_min_v": -0.06170836654561085,
+     "q30_over_q1": 0.9988107275906966,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=2,c2=1,h2",
+     "charging_t_max_c": 26.19591273345776,
+     "minutes": 49.279021693597116,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 32.53185783195632,
+     "plating_min_v": -0.06506371566391264,
+     "q30_over_q1": 0.9977908384486699,
+     "why": [
+      "plating"
+     ]
+    },
+    {
+     "action": "c1=2,c2=1,h4",
+     "charging_t_max_c": 18.32430198212387,
+     "minutes": 54.14115317837342,
+     "outcome": "INFEASIBLE",
+     "overshoot_bands": 35.494418947601325,
+     "plating_min_v": -0.07098883789520265,
+     "q30_over_q1": 0.9972541216696341,
+     "why": [
+      "plating"
+     ]
+    }
+   ],
+   "unresolved": 1,
+   "unresolved_rate": 0.0125
+  }
+ },
+ "schema": "carbon.battery.tier4-boundary.v1"
+}
