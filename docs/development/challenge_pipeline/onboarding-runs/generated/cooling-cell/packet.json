@@ -1,0 +1,479 @@
+{
+  "challenge": "cooling-cell",
+  "fields": {
+    "P": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize P",
+      "owner": "science/product owner",
+      "recommendation": "Customer-recognizable planning contexts remain cold uniform, typical load,\nwarm uniform, warm central hotspot and warm outlet-side hotspot. In v2 every\nnonuniform map is specified **at the post-spreader cold-plate interface**;\nthe source/lid definition and resulting flux map are buyer inputs, not design\nactions secretly optimized by the model. Do not choose ratio, TIM or inlet\nfrom alternatives after seeing which one passes. Freeze each scenario first.\n\nThe complete panel, supported maps and P_job/Q_job/w_job registration remain\nHUMAN_INPUT in [question-law v2](../question-laws/proposals-v2.json). Preserve\nseparate population, near-limit diagnostic enrichment and diagnostic weights.\nReport each stratum; a uniform pass cannot average away a hotspot breach.\nUnsupported reduced-supply flow stays excluded/unresolved, never clamped.\nService/input alternatives are separate clearly labelled sensitivity results,\nnot additional equivalent questions or fresh bank exposure.",
+      "sources": [
+        {
+          "excerpt": "Customer-recognizable planning contexts remain cold uniform, typical load,\nwarm uniform, warm central hotspot and warm outlet-side hotspot. In v2 every\nnonuniform map is specified **at the post-spreader cold-plate interface**;\nthe source/lid definition and resulting flux map are buyer inputs, not design\nactions secretly optimized by the model. Do not choose ratio, TIM or inlet\nfrom alternatives after seeing which one passes. Freeze each scenario first.\n\nThe complete panel, supported maps and P_job/Q_job/w_job registration remain\nHUMAN_INPUT in [question-law v2](../question-laws/proposals-v2.json). Preserve\nseparate population, near-limit diagnostic enrichment and diagnostic weights.\nReport each stratum; a uniform pass cannot average away a hotspot breach.\nUnsupported reduced-supply flow stays excluded/unresolved, never clamped.\nService/input alternatives are separate clearly labelled sensitivity results,\nnot additional equivalent questions or fresh bank exposure.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "Q": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize Q",
+      "owner": "science/product owner",
+      "recommendation": "Customer-recognizable planning contexts remain cold uniform, typical load,\nwarm uniform, warm central hotspot and warm outlet-side hotspot. In v2 every\nnonuniform map is specified **at the post-spreader cold-plate interface**;\nthe source/lid definition and resulting flux map are buyer inputs, not design\nactions secretly optimized by the model. Do not choose ratio, TIM or inlet\nfrom alternatives after seeing which one passes. Freeze each scenario first.\n\nThe complete panel, supported maps and P_job/Q_job/w_job registration remain\nHUMAN_INPUT in [question-law v2](../question-laws/proposals-v2.json). Preserve\nseparate population, near-limit diagnostic enrichment and diagnostic weights.\nReport each stratum; a uniform pass cannot average away a hotspot breach.\nUnsupported reduced-supply flow stays excluded/unresolved, never clamped.\nService/input alternatives are separate clearly labelled sensitivity results,\nnot additional equivalent questions or fresh bank exposure.",
+      "sources": [
+        {
+          "excerpt": "Customer-recognizable planning contexts remain cold uniform, typical load,\nwarm uniform, warm central hotspot and warm outlet-side hotspot. In v2 every\nnonuniform map is specified **at the post-spreader cold-plate interface**;\nthe source/lid definition and resulting flux map are buyer inputs, not design\nactions secretly optimized by the model. Do not choose ratio, TIM or inlet\nfrom alternatives after seeing which one passes. Freeze each scenario first.\n\nThe complete panel, supported maps and P_job/Q_job/w_job registration remain\nHUMAN_INPUT in [question-law v2](../question-laws/proposals-v2.json). Preserve\nseparate population, near-limit diagnostic enrichment and diagnostic weights.\nReport each stratum; a uniform pass cannot average away a hotspot breach.\nUnsupported reduced-supply flow stays excluded/unresolved, never clamped.\nService/input alternatives are separate clearly labelled sensitivity results,\nnot additional equivalent questions or fresh bank exposure.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "baseline": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize baseline",
+      "owner": "science/product owner",
+      "recommendation": "Reuse public cell generator/reference packaging and analytical controls.\nPublish the interface convention, buyer-input requirements and alternatives\nreporting rules. Own-seed research receives no protected maps/seeds/labels.\nOffline models replace first-pass **cell** sweeps, not coupled full-plate\nverification or a datacenter controller. V1 assembly throughput figures are\nnot cell measurements; cell end-to-end cost and speed remain UNMEASURED.",
+      "sources": [
+        {
+          "excerpt": "Reuse public cell generator/reference packaging and analytical controls.\nPublish the interface convention, buyer-input requirements and alternatives\nreporting rules. Own-seed research receives no protected maps/seeds/labels.\nOffline models replace first-pass **cell** sweeps, not coupled full-plate\nverification or a datacenter controller. V1 assembly throughput figures are\nnot cell measurements; cell end-to-end cost and speed remain UNMEASURED.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "buyer": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize buyer",
+      "owner": "science/product owner",
+      "recommendation": "Cold-plate OEM thermal engineer (internal mock customer)",
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "case_identity": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize case_identity",
+      "owner": "science/product owner",
+      "recommendation": "Bind geometry/flow, coolant/material laws, interface plane, spreader properties/\nsource/map provenance, total heat, normalized local flux, TIM areal resistance,\ninlet, mesh/solver/observer and dimensional scaling. Validate map integral and\nunits; source and post-spreader maps are not interchangeable identifiers.\nInclude each alternative's actual inputs, do not retain the original case ID.\nNo hidden EVAL/STRESS/quiz/tuning cases are exposed by a map revision.\n\nMissing spreader or supported interface-map identity makes the affected case\nUNRESOLVED; it is not a false prediction attributed to a candidate. A changed\nspreader/heat map or material law needs prospective reference work; threshold-\nonly reuse is allowed only for identical covered physical observables.",
+      "sources": [
+        {
+          "excerpt": "Bind geometry/flow, coolant/material laws, interface plane, spreader properties/\nsource/map provenance, total heat, normalized local flux, TIM areal resistance,\ninlet, mesh/solver/observer and dimensional scaling. Validate map integral and\nunits; source and post-spreader maps are not interchangeable identifiers.\nInclude each alternative's actual inputs, do not retain the original case ID.\nNo hidden EVAL/STRESS/quiz/tuning cases are exposed by a map revision.\n\nMissing spreader or supported interface-map identity makes the affected case\nUNRESOLVED; it is not a false prediction attributed to a candidate. A changed\nspreader/heat map or material law needs prospective reference work; threshold-\nonly reuse is allowed only for identical covered physical observables.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "conditions": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize conditions",
+      "owner": "science/product owner",
+      "recommendation": "KEEP the periodic conjugate cooling-cell scope and material/coolant\napplicability boundaries in [cold_plate](../../../../carbon/cold_plate/domain.py).\nImproved geometry proposals/evidence have their own versions; v2 does not\nchange their CAD or prove every design feasible. Cell inlet/outlet and\ntransverse-periodic conventions remain explicit. No full-plate edges,\nmanifolds, cross-channel maldistribution, turbulent/boiling/fouling or die-\njunction model is introduced.\n\nData Collection must characterize the buyer's vapour-chamber response and its\nheat-flux/temperature/orientation/capillary/dryout applicability. Effective\nisotropic conductivity in a screening model is a hypothesis, not an earned\nmaterial law. The solid-copper #817/#822 calculations remain comparison\nhistory, not adequate vapour-chamber physics by inheritance.\n\nBuyer inputs must state spreader/lid geometry/thickness, material conductivity\n(including anisotropy/temperature law where used), contacts/interfaces, raw\nsource layout/load, the post-spreader heat-map plane, flux normalization and\nthe characterization/model provenance linking them. Missing properties are\n**HUMAN_INPUT**, not guessed copper, an ideal isothermal lid or free spreading.\nAccept a separately characterized interface map only within its stated scope;\nthis packet neither builds a spreader solver nor infers one from a ratio.",
+      "sources": [
+        {
+          "excerpt": "KEEP the periodic conjugate cooling-cell scope and material/coolant\napplicability boundaries in [cold_plate](../../../../carbon/cold_plate/domain.py).\nImproved geometry proposals/evidence have their own versions; v2 does not\nchange their CAD or prove every design feasible. Cell inlet/outlet and\ntransverse-periodic conventions remain explicit. No full-plate edges,\nmanifolds, cross-channel maldistribution, turbulent/boiling/fouling or die-\njunction model is introduced.\n\nData Collection must characterize the buyer's vapour-chamber response and its\nheat-flux/temperature/orientation/capillary/dryout applicability. Effective\nisotropic conductivity in a screening model is a hypothesis, not an earned\nmaterial law. The solid-copper #817/#822 calculations remain comparison\nhistory, not adequate vapour-chamber physics by inheritance.\n\nBuyer inputs must state spreader/lid geometry/thickness, material conductivity\n(including anisotropy/temperature law where used), contacts/interfaces, raw\nsource layout/load, the post-spreader heat-map plane, flux normalization and\nthe characterization/model provenance linking them. Missing properties are\n**HUMAN_INPUT**, not guessed copper, an ideal isothermal lid or free spreading.\nAccept a separately characterized interface map only within its stated scope;\nthis packet neither builds a spreader solver nor infers one from a ratio.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "confirmation": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize confirmation",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "controls": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize controls",
+      "owner": "science/product owner",
+      "recommendation": "Before any of the held 53 jobs, Data Collection uses existing public cell\nresults and a cheap verified lid-spreading pre-solve/model to test the\n[value prerequisite](../question-laws/value-check-v1.md) in **every stratum**.\nSearch inlet/lid inputs; return 2\u20133 candidate sets (or none) with buyer\nrealism, uncertainty, the four checks and a recommendation. The owner then\nselects final parameters. The requested 25\u201345-C inlet envelope is not all\ncurrently supported: PG25 begins at 30 C. No new large CFD, hidden search or\nunverified extrapolation is authorized. If value fails, Codex prepares\ncase-plane buyer-lever options; no silent parameter relaxation/redraw.\n\n\nOwner-reported source `3ab30becb6dcee0a2ec43272883c2800fb32a64a`,\n`cooling-feasibility-02/`, 128 solves: uniform best 81.2 C is feasible in that\nstratum, while every reported hotspot is >=117 C. At ratio 3 the stated\n`R_TIM*q_local` jump is about 25 K; `85-45-25=15 K` available plate rise is below\nabout 28 K best plate rise. These approximate components explain pressure to\nrevisit the **interface input**, not a calculation reproducing 117 C or proof\nof any feasible post-spreader hotspot. Codex did not rerun these cases.\n\nForward [Q2/Q3 impacts](../question-laws/quiz-impact-v2.md) require new map/\nobserver identities and complete supported truth. Keep edge-optimist,\nover-cautious, local sign-error and optimizer/lattice-aware controls with\nphase/coordinate-correct quantities. Near-limit refinement is producer-owned\nunder separate authority; no validator reference solves. Report false-feasible\nand missed designs, cell-pressure regret and thermal margin by stratum.",
+      "sources": [
+        {
+          "excerpt": "Before any of the held 53 jobs, Data Collection uses existing public cell\nresults and a cheap verified lid-spreading pre-solve/model to test the\n[value prerequisite](../question-laws/value-check-v1.md) in **every stratum**.\nSearch inlet/lid inputs; return 2\u20133 candidate sets (or none) with buyer\nrealism, uncertainty, the four checks and a recommendation. The owner then\nselects final parameters. The requested 25\u201345-C inlet envelope is not all\ncurrently supported: PG25 begins at 30 C. No new large CFD, hidden search or\nunverified extrapolation is authorized. If value fails, Codex prepares\ncase-plane buyer-lever options; no silent parameter relaxation/redraw.\n\n\nOwner-reported source `3ab30becb6dcee0a2ec43272883c2800fb32a64a`,\n`cooling-feasibility-02/`, 128 solves: uniform best 81.2 C is feasible in that\nstratum, while every reported hotspot is >=117 C. At ratio 3 the stated\n`R_TIM*q_local` jump is about 25 K; `85-45-25=15 K` available plate rise is below\nabout 28 K best plate rise. These approximate components explain pressure to\nrevisit the **interface input**, not a calculation reproducing 117 C or proof\nof any feasible post-spreader hotspot. Codex did not rerun these cases.\n\nForward [Q2/Q3 impacts](../question-laws/quiz-impact-v2.md) require new map/\nobserver identities and complete supported truth. Keep edge-optimist,\nover-cautious, local sign-error and optimizer/lattice-aware controls with\nphase/coordinate-correct quantities. Near-limit refinement is producer-owned\nunder separate authority; no validator reference solves. Report false-feasible\nand missed designs, cell-pressure regret and thermal margin by stratum.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "cost": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize cost",
+      "owner": "science/product owner",
+      "recommendation": "KEEP pinned OpenFOAM conjugate-cell reference and applicable conservation/\nrefinement controls. Demonstrate local thermal and cell-pressure convergence\non the improved geometry and post-spreader map. Numerical agreement is not\nphysical adequacy or a granted solve. Reference failure/FAILED_INFRA never\nbecomes candidate failure.\n\nTarget **Tier2** matching of the assumed buyer Ansys Fluent/Icepak cell\nworkflow, not Tier1 (same tool/settings) or earned laboratory credibility.\nKeep v1 published conjugate-transfer benchmark candidates as verification\nrungs, then compare matched periodic-cell uniform/nonuniform/warm cases with\nidentical post-spreader maps/TIM conventions. Acceptance remains HUMAN_INPUT\nwith the existing recommendations (1-C thermal difference, 5% nonzero cell\npressure/power difference, separately accepted absolute near-zero floors).\nReport pointwise and feasibility/best-pick agreement/regret together under\nthe [common credibility contract](reference-credibility.md), using separate\nnon-hidden draws or verified retired published cases. NOT_DEMONSTRATED;\n\u201cmatches the reference simulator\u201d only after accepted evidence, never reality.",
+      "sources": [
+        {
+          "excerpt": "KEEP pinned OpenFOAM conjugate-cell reference and applicable conservation/\nrefinement controls. Demonstrate local thermal and cell-pressure convergence\non the improved geometry and post-spreader map. Numerical agreement is not\nphysical adequacy or a granted solve. Reference failure/FAILED_INFRA never\nbecomes candidate failure.\n\nTarget **Tier2** matching of the assumed buyer Ansys Fluent/Icepak cell\nworkflow, not Tier1 (same tool/settings) or earned laboratory credibility.\nKeep v1 published conjugate-transfer benchmark candidates as verification\nrungs, then compare matched periodic-cell uniform/nonuniform/warm cases with\nidentical post-spreader maps/TIM conventions. Acceptance remains HUMAN_INPUT\nwith the existing recommendations (1-C thermal difference, 5% nonzero cell\npressure/power difference, separately accepted absolute near-zero floors).\nReport pointwise and feasibility/best-pick agreement/regret together under\nthe [common credibility contract](reference-credibility.md), using separate\nnon-hidden draws or verified retired published cases. NOT_DEMONSTRATED;\n\u201cmatches the reference simulator\u201d only after accepted evidence, never reality.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "decision": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize decision",
+      "owner": "science/product owner",
+      "recommendation": "Shortlist periodic cell geometry at a declared lid-side TIM2 case plane, not a full cold plate",
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "disclosure": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize disclosure",
+      "owner": "science/product owner",
+      "recommendation": "Bind geometry/flow, coolant/material laws, interface plane, spreader properties/\nsource/map provenance, total heat, normalized local flux, TIM areal resistance,\ninlet, mesh/solver/observer and dimensional scaling. Validate map integral and\nunits; source and post-spreader maps are not interchangeable identifiers.\nInclude each alternative's actual inputs, do not retain the original case ID.\nNo hidden EVAL/STRESS/quiz/tuning cases are exposed by a map revision.\n\nMissing spreader or supported interface-map identity makes the affected case\nUNRESOLVED; it is not a false prediction attributed to a candidate. A changed\nspreader/heat map or material law needs prospective reference work; threshold-\nonly reuse is allowed only for identical covered physical observables.",
+      "sources": [
+        {
+          "excerpt": "Bind geometry/flow, coolant/material laws, interface plane, spreader properties/\nsource/map provenance, total heat, normalized local flux, TIM areal resistance,\ninlet, mesh/solver/observer and dimensional scaling. Validate map integral and\nunits; source and post-spreader maps are not interchangeable identifiers.\nInclude each alternative's actual inputs, do not retain the original case ID.\nNo hidden EVAL/STRESS/quiz/tuning cases are exposed by a map revision.\n\nMissing spreader or supported interface-map identity makes the affected case\nUNRESOLVED; it is not a false prediction attributed to a candidate. A changed\nspreader/heat map or material law needs prospective reference work; threshold-\nonly reuse is allowed only for identical covered physical observables.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "exclusions": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize exclusions",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "geometry": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize geometry",
+      "owner": "science/product owner",
+      "recommendation": "KEEP the periodic conjugate cooling-cell scope and material/coolant\napplicability boundaries in [cold_plate](../../../../carbon/cold_plate/domain.py).\nImproved geometry proposals/evidence have their own versions; v2 does not\nchange their CAD or prove every design feasible. Cell inlet/outlet and\ntransverse-periodic conventions remain explicit. No full-plate edges,\nmanifolds, cross-channel maldistribution, turbulent/boiling/fouling or die-\njunction model is introduced.\n\nData Collection must characterize the buyer's vapour-chamber response and its\nheat-flux/temperature/orientation/capillary/dryout applicability. Effective\nisotropic conductivity in a screening model is a hypothesis, not an earned\nmaterial law. The solid-copper #817/#822 calculations remain comparison\nhistory, not adequate vapour-chamber physics by inheritance.\n\nBuyer inputs must state spreader/lid geometry/thickness, material conductivity\n(including anisotropy/temperature law where used), contacts/interfaces, raw\nsource layout/load, the post-spreader heat-map plane, flux normalization and\nthe characterization/model provenance linking them. Missing properties are\n**HUMAN_INPUT**, not guessed copper, an ideal isothermal lid or free spreading.\nAccept a separately characterized interface map only within its stated scope;\nthis packet neither builds a spreader solver nor infers one from a ratio.",
+      "sources": [
+        {
+          "excerpt": "KEEP the periodic conjugate cooling-cell scope and material/coolant\napplicability boundaries in [cold_plate](../../../../carbon/cold_plate/domain.py).\nImproved geometry proposals/evidence have their own versions; v2 does not\nchange their CAD or prove every design feasible. Cell inlet/outlet and\ntransverse-periodic conventions remain explicit. No full-plate edges,\nmanifolds, cross-channel maldistribution, turbulent/boiling/fouling or die-\njunction model is introduced.\n\nData Collection must characterize the buyer's vapour-chamber response and its\nheat-flux/temperature/orientation/capillary/dryout applicability. Effective\nisotropic conductivity in a screening model is a hypothesis, not an earned\nmaterial law. The solid-copper #817/#822 calculations remain comparison\nhistory, not adequate vapour-chamber physics by inheritance.\n\nBuyer inputs must state spreader/lid geometry/thickness, material conductivity\n(including anisotropy/temperature law where used), contacts/interfaces, raw\nsource layout/load, the post-spreader heat-map plane, flux normalization and\nthe characterization/model provenance linking them. Missing properties are\n**HUMAN_INPUT**, not guessed copper, an ideal isothermal lid or free spreading.\nAccept a separately characterized interface map only within its stated scope;\nthis packet neither builds a spreader solver nor infers one from a ratio.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "hard_limits": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize hard_limits",
+      "owner": "science/product owner",
+      "recommendation": "The thermal quantity is\n`max_x [T_cold_plate_heated_face(x) + R_TIM(x) * q_interface(x)]`.\nUse local **post-spreader** q in W/m2 and areal R in m2*K/W at the same\ninterface coordinates; the increment is K. This estimates the **spreader-\nside TIM interface**, not die-junction temperature. Do not add a second lid\ntemperature drop if the supplied map/temperature convention already includes\nit, or combine a mean flux jump with an unrelated plate maximum. Retain maps,\nlocal fields, extrema coordinates, total-power/heat-balance checks and scope.\n\nReport cell pressure drop in Pa at pinned stations, flow in its declared\ncell/physical scaling, and hydraulic power only with that consistent scaling.\nThe v1 full-assembly 50 kPa / 2.5 W / 3 L/min values are context, **not adopted cell\nlimits**. #776's 20/25/30-kPa cell allocations/objective remain HUMAN_INPUT\nrecommendations. Freeze cell constraints/objective/ties before a future task.\nNo full-cold-plate solve or composition witness is part of this ticket.\n\nFor each TIM/ratio/inlet alternative retain its own input identity, peaks,\nthermal margin, flow/pressure burden and unresolved coverage. **No alternative\nis selected.** A complete settled bank with no hard-limit pass yields\nNONE_FEASIBLE; missing map/reference support yields UNRESOLVED instead.",
+      "sources": [
+        {
+          "excerpt": "The thermal quantity is\n`max_x [T_cold_plate_heated_face(x) + R_TIM(x) * q_interface(x)]`.\nUse local **post-spreader** q in W/m2 and areal R in m2*K/W at the same\ninterface coordinates; the increment is K. This estimates the **spreader-\nside TIM interface**, not die-junction temperature. Do not add a second lid\ntemperature drop if the supplied map/temperature convention already includes\nit, or combine a mean flux jump with an unrelated plate maximum. Retain maps,\nlocal fields, extrema coordinates, total-power/heat-balance checks and scope.\n\nReport cell pressure drop in Pa at pinned stations, flow in its declared\ncell/physical scaling, and hydraulic power only with that consistent scaling.\nThe v1 full-assembly 50 kPa / 2.5 W / 3 L/min values are context, **not adopted cell\nlimits**. #776's 20/25/30-kPa cell allocations/objective remain HUMAN_INPUT\nrecommendations. Freeze cell constraints/objective/ties before a future task.\nNo full-cold-plate solve or composition witness is part of this ticket.\n\nFor each TIM/ratio/inlet alternative retain its own input identity, peaks,\nthermal margin, flow/pressure burden and unresolved coverage. **No alternative\nis selected.** A complete settled bank with no hard-limit pass yields\nNONE_FEASIBLE; missing map/reference support yields UNRESOLVED instead.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "independent_unit": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize independent_unit",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "materials": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize materials",
+      "owner": "science/product owner",
+      "recommendation": "KEEP the periodic conjugate cooling-cell scope and material/coolant\napplicability boundaries in [cold_plate](../../../../carbon/cold_plate/domain.py).\nImproved geometry proposals/evidence have their own versions; v2 does not\nchange their CAD or prove every design feasible. Cell inlet/outlet and\ntransverse-periodic conventions remain explicit. No full-plate edges,\nmanifolds, cross-channel maldistribution, turbulent/boiling/fouling or die-\njunction model is introduced.\n\nData Collection must characterize the buyer's vapour-chamber response and its\nheat-flux/temperature/orientation/capillary/dryout applicability. Effective\nisotropic conductivity in a screening model is a hypothesis, not an earned\nmaterial law. The solid-copper #817/#822 calculations remain comparison\nhistory, not adequate vapour-chamber physics by inheritance.\n\nBuyer inputs must state spreader/lid geometry/thickness, material conductivity\n(including anisotropy/temperature law where used), contacts/interfaces, raw\nsource layout/load, the post-spreader heat-map plane, flux normalization and\nthe characterization/model provenance linking them. Missing properties are\n**HUMAN_INPUT**, not guessed copper, an ideal isothermal lid or free spreading.\nAccept a separately characterized interface map only within its stated scope;\nthis packet neither builds a spreader solver nor infers one from a ratio.",
+      "sources": [
+        {
+          "excerpt": "KEEP the periodic conjugate cooling-cell scope and material/coolant\napplicability boundaries in [cold_plate](../../../../carbon/cold_plate/domain.py).\nImproved geometry proposals/evidence have their own versions; v2 does not\nchange their CAD or prove every design feasible. Cell inlet/outlet and\ntransverse-periodic conventions remain explicit. No full-plate edges,\nmanifolds, cross-channel maldistribution, turbulent/boiling/fouling or die-\njunction model is introduced.\n\nData Collection must characterize the buyer's vapour-chamber response and its\nheat-flux/temperature/orientation/capillary/dryout applicability. Effective\nisotropic conductivity in a screening model is a hypothesis, not an earned\nmaterial law. The solid-copper #817/#822 calculations remain comparison\nhistory, not adequate vapour-chamber physics by inheritance.\n\nBuyer inputs must state spreader/lid geometry/thickness, material conductivity\n(including anisotropy/temperature law where used), contacts/interfaces, raw\nsource layout/load, the post-spreader heat-map plane, flux normalization and\nthe characterization/model provenance linking them. Missing properties are\n**HUMAN_INPUT**, not guessed copper, an ideal isothermal lid or free spreading.\nAccept a separately characterized interface map only within its stated scope;\nthis packet neither builds a spreader solver nor infers one from a ratio.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "next_gate": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize next_gate",
+      "owner": "science/product owner",
+      "recommendation": "Current prospective T2: [buyer value/cost scorecard](../value-cost/cooling-cell.md)\nand [owner framework](../value-cost/README.md). Require at least five feasible\nand five distinct near-limit infeasible actions per mandatory stratum. Report\nthe overall fraction; it is not a gate. Other value checks still require\nevidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.\nThe original fraction-based observations below retain their historical meaning.\n\n**New hidden-bank prerequisite:** [four-check design value](../question-laws/value-check-v1.md)\nwith per-stratum discrimination/margin spread, a common complete feasible\ndesign and meaningfully changing answers. Roughly 20\u201380% resolved passes\nand about 5 K spread are HUMAN_INPUT recommendations. Current vapour-chamber\nvalue receipt is **NOT_DEMONSTRATED**. All 53 old copper-recipe jobs remain\n**HOLD_SPREADING_AND_VALUE_CHECK**; plane selection alone is not release.\nAccepted stack, supported map/pins, final buyer settings and existing stage\nexecution authority still precede a revised panel. Die/TIM1 stays diagnostic.\n\n\nKEEP cell assets, v1 history and six unaffected question laws. NEW selected\nheat-map plane and explicit buyer-input contract. GAPS: characterized spreader\nproperties/post-interface maps, their supported distributions, numerical/\nmodel-form reference adequacy, v2 task/quiz integration and cell allocations.\nThese are SPECIFIED requirements; document tests do not establish hotspot\nfeasibility, whole-panel acceptance, Tier2 or a physical cooling claim.\nTest Lead/Carbon Validator/PR Lead coordinate on #643, science on #42. Full\ncold plate is out of scope; Battery EV5/journal14/live contract are untouched.",
+      "sources": [
+        {
+          "excerpt": "Current prospective T2: [buyer value/cost scorecard](../value-cost/cooling-cell.md)\nand [owner framework](../value-cost/README.md). Require at least five feasible\nand five distinct near-limit infeasible actions per mandatory stratum. Report\nthe overall fraction; it is not a gate. Other value checks still require\nevidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.\nThe original fraction-based observations below retain their historical meaning.\n\n**New hidden-bank prerequisite:** [four-check design value](../question-laws/value-check-v1.md)\nwith per-stratum discrimination/margin spread, a common complete feasible\ndesign and meaningfully changing answers. Roughly 20\u201380% resolved passes\nand about 5 K spread are HUMAN_INPUT recommendations. Current vapour-chamber\nvalue receipt is **NOT_DEMONSTRATED**. All 53 old copper-recipe jobs remain\n**HOLD_SPREADING_AND_VALUE_CHECK**; plane selection alone is not release.\nAccepted stack, supported map/pins, final buyer settings and existing stage\nexecution authority still precede a revised panel. Die/TIM1 stays diagnostic.\n\n\nKEEP cell assets, v1 history and six unaffected question laws. NEW selected\nheat-map plane and explicit buyer-input contract. GAPS: characterized spreader\nproperties/post-interface maps, their supported distributions, numerical/\nmodel-form reference adequacy, v2 task/quiz integration and cell allocations.\nThese are SPECIFIED requirements; document tests do not establish hotspot\nfeasibility, whole-panel acceptance, Tier2 or a physical cooling claim.\nTest Lead/Carbon Validator/PR Lead coordinate on #643, science on #42. Full\ncold plate is out of scope; Battery EV5/journal14/live contract are untouched.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "objective": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize objective",
+      "owner": "science/product owner",
+      "recommendation": "The thermal quantity is\n`max_x [T_cold_plate_heated_face(x) + R_TIM(x) * q_interface(x)]`.\nUse local **post-spreader** q in W/m2 and areal R in m2*K/W at the same\ninterface coordinates; the increment is K. This estimates the **spreader-\nside TIM interface**, not die-junction temperature. Do not add a second lid\ntemperature drop if the supplied map/temperature convention already includes\nit, or combine a mean flux jump with an unrelated plate maximum. Retain maps,\nlocal fields, extrema coordinates, total-power/heat-balance checks and scope.\n\nReport cell pressure drop in Pa at pinned stations, flow in its declared\ncell/physical scaling, and hydraulic power only with that consistent scaling.\nThe v1 full-assembly 50 kPa / 2.5 W / 3 L/min values are context, **not adopted cell\nlimits**. #776's 20/25/30-kPa cell allocations/objective remain HUMAN_INPUT\nrecommendations. Freeze cell constraints/objective/ties before a future task.\nNo full-cold-plate solve or composition witness is part of this ticket.\n\nFor each TIM/ratio/inlet alternative retain its own input identity, peaks,\nthermal margin, flow/pressure burden and unresolved coverage. **No alternative\nis selected.** A complete settled bank with no hard-limit pass yields\nNONE_FEASIBLE; missing map/reference support yields UNRESOLVED instead.",
+      "sources": [
+        {
+          "excerpt": "The thermal quantity is\n`max_x [T_cold_plate_heated_face(x) + R_TIM(x) * q_interface(x)]`.\nUse local **post-spreader** q in W/m2 and areal R in m2*K/W at the same\ninterface coordinates; the increment is K. This estimates the **spreader-\nside TIM interface**, not die-junction temperature. Do not add a second lid\ntemperature drop if the supplied map/temperature convention already includes\nit, or combine a mean flux jump with an unrelated plate maximum. Retain maps,\nlocal fields, extrema coordinates, total-power/heat-balance checks and scope.\n\nReport cell pressure drop in Pa at pinned stations, flow in its declared\ncell/physical scaling, and hydraulic power only with that consistent scaling.\nThe v1 full-assembly 50 kPa / 2.5 W / 3 L/min values are context, **not adopted cell\nlimits**. #776's 20/25/30-kPa cell allocations/objective remain HUMAN_INPUT\nrecommendations. Freeze cell constraints/objective/ties before a future task.\nNo full-cold-plate solve or composition witness is part of this ticket.\n\nFor each TIM/ratio/inlet alternative retain its own input identity, peaks,\nthermal margin, flow/pressure burden and unresolved coverage. **No alternative\nis selected.** A complete settled bank with no hard-limit pass yields\nNONE_FEASIBLE; missing map/reference support yields UNRESOLVED instead.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "omissions": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize omissions",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "outputs": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize outputs",
+      "owner": "science/product owner",
+      "recommendation": "The thermal quantity is\n`max_x [T_cold_plate_heated_face(x) + R_TIM(x) * q_interface(x)]`.\nUse local **post-spreader** q in W/m2 and areal R in m2*K/W at the same\ninterface coordinates; the increment is K. This estimates the **spreader-\nside TIM interface**, not die-junction temperature. Do not add a second lid\ntemperature drop if the supplied map/temperature convention already includes\nit, or combine a mean flux jump with an unrelated plate maximum. Retain maps,\nlocal fields, extrema coordinates, total-power/heat-balance checks and scope.\n\nReport cell pressure drop in Pa at pinned stations, flow in its declared\ncell/physical scaling, and hydraulic power only with that consistent scaling.\nThe v1 full-assembly 50 kPa / 2.5 W / 3 L/min values are context, **not adopted cell\nlimits**. #776's 20/25/30-kPa cell allocations/objective remain HUMAN_INPUT\nrecommendations. Freeze cell constraints/objective/ties before a future task.\nNo full-cold-plate solve or composition witness is part of this ticket.\n\nFor each TIM/ratio/inlet alternative retain its own input identity, peaks,\nthermal margin, flow/pressure burden and unresolved coverage. **No alternative\nis selected.** A complete settled bank with no hard-limit pass yields\nNONE_FEASIBLE; missing map/reference support yields UNRESOLVED instead.",
+      "sources": [
+        {
+          "excerpt": "The thermal quantity is\n`max_x [T_cold_plate_heated_face(x) + R_TIM(x) * q_interface(x)]`.\nUse local **post-spreader** q in W/m2 and areal R in m2*K/W at the same\ninterface coordinates; the increment is K. This estimates the **spreader-\nside TIM interface**, not die-junction temperature. Do not add a second lid\ntemperature drop if the supplied map/temperature convention already includes\nit, or combine a mean flux jump with an unrelated plate maximum. Retain maps,\nlocal fields, extrema coordinates, total-power/heat-balance checks and scope.\n\nReport cell pressure drop in Pa at pinned stations, flow in its declared\ncell/physical scaling, and hydraulic power only with that consistent scaling.\nThe v1 full-assembly 50 kPa / 2.5 W / 3 L/min values are context, **not adopted cell\nlimits**. #776's 20/25/30-kPa cell allocations/objective remain HUMAN_INPUT\nrecommendations. Freeze cell constraints/objective/ties before a future task.\nNo full-cold-plate solve or composition witness is part of this ticket.\n\nFor each TIM/ratio/inlet alternative retain its own input identity, peaks,\nthermal margin, flow/pressure burden and unresolved coverage. **No alternative\nis selected.** A complete settled bank with no hard-limit pass yields\nNONE_FEASIBLE; missing map/reference support yields UNRESOLVED instead.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "owners": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize owners",
+      "owner": "science/product owner",
+      "recommendation": "Current prospective T2: [buyer value/cost scorecard](../value-cost/cooling-cell.md)\nand [owner framework](../value-cost/README.md). Require at least five feasible\nand five distinct near-limit infeasible actions per mandatory stratum. Report\nthe overall fraction; it is not a gate. Other value checks still require\nevidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.\nThe original fraction-based observations below retain their historical meaning.\n\n**New hidden-bank prerequisite:** [four-check design value](../question-laws/value-check-v1.md)\nwith per-stratum discrimination/margin spread, a common complete feasible\ndesign and meaningfully changing answers. Roughly 20\u201380% resolved passes\nand about 5 K spread are HUMAN_INPUT recommendations. Current vapour-chamber\nvalue receipt is **NOT_DEMONSTRATED**. All 53 old copper-recipe jobs remain\n**HOLD_SPREADING_AND_VALUE_CHECK**; plane selection alone is not release.\nAccepted stack, supported map/pins, final buyer settings and existing stage\nexecution authority still precede a revised panel. Die/TIM1 stays diagnostic.\n\n\nKEEP cell assets, v1 history and six unaffected question laws. NEW selected\nheat-map plane and explicit buyer-input contract. GAPS: characterized spreader\nproperties/post-interface maps, their supported distributions, numerical/\nmodel-form reference adequacy, v2 task/quiz integration and cell allocations.\nThese are SPECIFIED requirements; document tests do not establish hotspot\nfeasibility, whole-panel acceptance, Tier2 or a physical cooling claim.\nTest Lead/Carbon Validator/PR Lead coordinate on #643, science on #42. Full\ncold plate is out of scope; Battery EV5/journal14/live contract are untouched.",
+      "sources": [
+        {
+          "excerpt": "Current prospective T2: [buyer value/cost scorecard](../value-cost/cooling-cell.md)\nand [owner framework](../value-cost/README.md). Require at least five feasible\nand five distinct near-limit infeasible actions per mandatory stratum. Report\nthe overall fraction; it is not a gate. Other value checks still require\nevidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.\nThe original fraction-based observations below retain their historical meaning.\n\n**New hidden-bank prerequisite:** [four-check design value](../question-laws/value-check-v1.md)\nwith per-stratum discrimination/margin spread, a common complete feasible\ndesign and meaningfully changing answers. Roughly 20\u201380% resolved passes\nand about 5 K spread are HUMAN_INPUT recommendations. Current vapour-chamber\nvalue receipt is **NOT_DEMONSTRATED**. All 53 old copper-recipe jobs remain\n**HOLD_SPREADING_AND_VALUE_CHECK**; plane selection alone is not release.\nAccepted stack, supported map/pins, final buyer settings and existing stage\nexecution authority still precede a revised panel. Die/TIM1 stays diagnostic.\n\n\nKEEP cell assets, v1 history and six unaffected question laws. NEW selected\nheat-map plane and explicit buyer-input contract. GAPS: characterized spreader\nproperties/post-interface maps, their supported distributions, numerical/\nmodel-form reference adequacy, v2 task/quiz integration and cell allocations.\nThese are SPECIFIED requirements; document tests do not establish hotspot\nfeasibility, whole-panel acceptance, Tier2 or a physical cooling claim.\nTest Lead/Carbon Validator/PR Lead coordinate on #643, science on #42. Full\ncold plate is out of scope; Battery EV5/journal14/live contract are untouched.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "panel": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize panel",
+      "owner": "science/product owner",
+      "recommendation": "Before any of the held 53 jobs, Data Collection uses existing public cell\nresults and a cheap verified lid-spreading pre-solve/model to test the\n[value prerequisite](../question-laws/value-check-v1.md) in **every stratum**.\nSearch inlet/lid inputs; return 2\u20133 candidate sets (or none) with buyer\nrealism, uncertainty, the four checks and a recommendation. The owner then\nselects final parameters. The requested 25\u201345-C inlet envelope is not all\ncurrently supported: PG25 begins at 30 C. No new large CFD, hidden search or\nunverified extrapolation is authorized. If value fails, Codex prepares\ncase-plane buyer-lever options; no silent parameter relaxation/redraw.\n\n\nOwner-reported source `3ab30becb6dcee0a2ec43272883c2800fb32a64a`,\n`cooling-feasibility-02/`, 128 solves: uniform best 81.2 C is feasible in that\nstratum, while every reported hotspot is >=117 C. At ratio 3 the stated\n`R_TIM*q_local` jump is about 25 K; `85-45-25=15 K` available plate rise is below\nabout 28 K best plate rise. These approximate components explain pressure to\nrevisit the **interface input**, not a calculation reproducing 117 C or proof\nof any feasible post-spreader hotspot. Codex did not rerun these cases.\n\nForward [Q2/Q3 impacts](../question-laws/quiz-impact-v2.md) require new map/\nobserver identities and complete supported truth. Keep edge-optimist,\nover-cautious, local sign-error and optimizer/lattice-aware controls with\nphase/coordinate-correct quantities. Near-limit refinement is producer-owned\nunder separate authority; no validator reference solves. Report false-feasible\nand missed designs, cell-pressure regret and thermal margin by stratum.",
+      "sources": [
+        {
+          "excerpt": "Before any of the held 53 jobs, Data Collection uses existing public cell\nresults and a cheap verified lid-spreading pre-solve/model to test the\n[value prerequisite](../question-laws/value-check-v1.md) in **every stratum**.\nSearch inlet/lid inputs; return 2\u20133 candidate sets (or none) with buyer\nrealism, uncertainty, the four checks and a recommendation. The owner then\nselects final parameters. The requested 25\u201345-C inlet envelope is not all\ncurrently supported: PG25 begins at 30 C. No new large CFD, hidden search or\nunverified extrapolation is authorized. If value fails, Codex prepares\ncase-plane buyer-lever options; no silent parameter relaxation/redraw.\n\n\nOwner-reported source `3ab30becb6dcee0a2ec43272883c2800fb32a64a`,\n`cooling-feasibility-02/`, 128 solves: uniform best 81.2 C is feasible in that\nstratum, while every reported hotspot is >=117 C. At ratio 3 the stated\n`R_TIM*q_local` jump is about 25 K; `85-45-25=15 K` available plate rise is below\nabout 28 K best plate rise. These approximate components explain pressure to\nrevisit the **interface input**, not a calculation reproducing 117 C or proof\nof any feasible post-spreader hotspot. Codex did not rerun these cases.\n\nForward [Q2/Q3 impacts](../question-laws/quiz-impact-v2.md) require new map/\nobserver identities and complete supported truth. Keep edge-optimist,\nover-cautious, local sign-error and optimizer/lattice-aware controls with\nphase/coordinate-correct quantities. Near-limit refinement is producer-owned\nunder separate authority; no validator reference solves. Report false-feasible\nand missed designs, cell-pressure regret and thermal margin by stratum.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "permissions": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize permissions",
+      "owner": "construction/security owner",
+      "recommendation": "KEEP reconstruction, permitted TRAIN provenance and existing Interface-v1\nadapter. Prospective post-spreader conditioning/observer projection needs an\nowning versioned implementation; no extra runtime input or new geometry\npermission is installed here. Commit proposed geometry/flow before truth;\nthe candidate does not choose the heat map that makes it look admissible.",
+      "sources": [
+        {
+          "excerpt": "KEEP reconstruction, permitted TRAIN provenance and existing Interface-v1\nadapter. Prospective post-spreader conditioning/observer projection needs an\nowning versioned implementation; no extra runtime input or new geometry\npermission is installed here. Commit proposed geometry/flow before truth;\nthe candidate does not choose the heat map that makes it look admissible.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "physics": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize physics",
+      "owner": "science/product owner",
+      "recommendation": "Cell-level conjugate heat transfer and hydraulics, with stated vapour-chamber interface inputs",
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "pins": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize pins",
+      "owner": "science/product owner",
+      "recommendation": "KEEP pinned OpenFOAM conjugate-cell reference and applicable conservation/\nrefinement controls. Demonstrate local thermal and cell-pressure convergence\non the improved geometry and post-spreader map. Numerical agreement is not\nphysical adequacy or a granted solve. Reference failure/FAILED_INFRA never\nbecomes candidate failure.\n\nTarget **Tier2** matching of the assumed buyer Ansys Fluent/Icepak cell\nworkflow, not Tier1 (same tool/settings) or earned laboratory credibility.\nKeep v1 published conjugate-transfer benchmark candidates as verification\nrungs, then compare matched periodic-cell uniform/nonuniform/warm cases with\nidentical post-spreader maps/TIM conventions. Acceptance remains HUMAN_INPUT\nwith the existing recommendations (1-C thermal difference, 5% nonzero cell\npressure/power difference, separately accepted absolute near-zero floors).\nReport pointwise and feasibility/best-pick agreement/regret together under\nthe [common credibility contract](reference-credibility.md), using separate\nnon-hidden draws or verified retired published cases. NOT_DEMONSTRATED;\n\u201cmatches the reference simulator\u201d only after accepted evidence, never reality.",
+      "sources": [
+        {
+          "excerpt": "KEEP pinned OpenFOAM conjugate-cell reference and applicable conservation/\nrefinement controls. Demonstrate local thermal and cell-pressure convergence\non the improved geometry and post-spreader map. Numerical agreement is not\nphysical adequacy or a granted solve. Reference failure/FAILED_INFRA never\nbecomes candidate failure.\n\nTarget **Tier2** matching of the assumed buyer Ansys Fluent/Icepak cell\nworkflow, not Tier1 (same tool/settings) or earned laboratory credibility.\nKeep v1 published conjugate-transfer benchmark candidates as verification\nrungs, then compare matched periodic-cell uniform/nonuniform/warm cases with\nidentical post-spreader maps/TIM conventions. Acceptance remains HUMAN_INPUT\nwith the existing recommendations (1-C thermal difference, 5% nonzero cell\npressure/power difference, separately accepted absolute near-zero floors).\nReport pointwise and feasibility/best-pick agreement/regret together under\nthe [common credibility contract](reference-credibility.md), using separate\nnon-hidden draws or verified retired published cases. NOT_DEMONSTRATED;\n\u201cmatches the reference simulator\u201d only after accepted evidence, never reality.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "public_kit": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize public_kit",
+      "owner": "science/product owner",
+      "recommendation": "Reuse public cell generator/reference packaging and analytical controls.\nPublish the interface convention, buyer-input requirements and alternatives\nreporting rules. Own-seed research receives no protected maps/seeds/labels.\nOffline models replace first-pass **cell** sweeps, not coupled full-plate\nverification or a datacenter controller. V1 assembly throughput figures are\nnot cell measurements; cell end-to-end cost and speed remain UNMEASURED.",
+      "sources": [
+        {
+          "excerpt": "Reuse public cell generator/reference packaging and analytical controls.\nPublish the interface convention, buyer-input requirements and alternatives\nreporting rules. Own-seed research receives no protected maps/seeds/labels.\nOffline models replace first-pass **cell** sweeps, not coupled full-plate\nverification or a datacenter controller. V1 assembly throughput figures are\nnot cell measurements; cell end-to-end cost and speed remain UNMEASURED.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "readiness": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize readiness",
+      "owner": "science/product owner",
+      "recommendation": "Current prospective T2: [buyer value/cost scorecard](../value-cost/cooling-cell.md)\nand [owner framework](../value-cost/README.md). Require at least five feasible\nand five distinct near-limit infeasible actions per mandatory stratum. Report\nthe overall fraction; it is not a gate. Other value checks still require\nevidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.\nThe original fraction-based observations below retain their historical meaning.\n\n**New hidden-bank prerequisite:** [four-check design value](../question-laws/value-check-v1.md)\nwith per-stratum discrimination/margin spread, a common complete feasible\ndesign and meaningfully changing answers. Roughly 20\u201380% resolved passes\nand about 5 K spread are HUMAN_INPUT recommendations. Current vapour-chamber\nvalue receipt is **NOT_DEMONSTRATED**. All 53 old copper-recipe jobs remain\n**HOLD_SPREADING_AND_VALUE_CHECK**; plane selection alone is not release.\nAccepted stack, supported map/pins, final buyer settings and existing stage\nexecution authority still precede a revised panel. Die/TIM1 stays diagnostic.\n\n\nKEEP cell assets, v1 history and six unaffected question laws. NEW selected\nheat-map plane and explicit buyer-input contract. GAPS: characterized spreader\nproperties/post-interface maps, their supported distributions, numerical/\nmodel-form reference adequacy, v2 task/quiz integration and cell allocations.\nThese are SPECIFIED requirements; document tests do not establish hotspot\nfeasibility, whole-panel acceptance, Tier2 or a physical cooling claim.\nTest Lead/Carbon Validator/PR Lead coordinate on #643, science on #42. Full\ncold plate is out of scope; Battery EV5/journal14/live contract are untouched.",
+      "sources": [
+        {
+          "excerpt": "Current prospective T2: [buyer value/cost scorecard](../value-cost/cooling-cell.md)\nand [owner framework](../value-cost/README.md). Require at least five feasible\nand five distinct near-limit infeasible actions per mandatory stratum. Report\nthe overall fraction; it is not a gate. Other value checks still require\nevidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.\nThe original fraction-based observations below retain their historical meaning.\n\n**New hidden-bank prerequisite:** [four-check design value](../question-laws/value-check-v1.md)\nwith per-stratum discrimination/margin spread, a common complete feasible\ndesign and meaningfully changing answers. Roughly 20\u201380% resolved passes\nand about 5 K spread are HUMAN_INPUT recommendations. Current vapour-chamber\nvalue receipt is **NOT_DEMONSTRATED**. All 53 old copper-recipe jobs remain\n**HOLD_SPREADING_AND_VALUE_CHECK**; plane selection alone is not release.\nAccepted stack, supported map/pins, final buyer settings and existing stage\nexecution authority still precede a revised panel. Die/TIM1 stays diagnostic.\n\n\nKEEP cell assets, v1 history and six unaffected question laws. NEW selected\nheat-map plane and explicit buyer-input contract. GAPS: characterized spreader\nproperties/post-interface maps, their supported distributions, numerical/\nmodel-form reference adequacy, v2 task/quiz integration and cell allocations.\nThese are SPECIFIED requirements; document tests do not establish hotspot\nfeasibility, whole-panel acceptance, Tier2 or a physical cooling claim.\nTest Lead/Carbon Validator/PR Lead coordinate on #643, science on #42. Full\ncold plate is out of scope; Battery EV5/journal14/live contract are untouched.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "refinement": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize refinement",
+      "owner": "science/product owner",
+      "recommendation": "KEEP pinned OpenFOAM conjugate-cell reference and applicable conservation/\nrefinement controls. Demonstrate local thermal and cell-pressure convergence\non the improved geometry and post-spreader map. Numerical agreement is not\nphysical adequacy or a granted solve. Reference failure/FAILED_INFRA never\nbecomes candidate failure.\n\nTarget **Tier2** matching of the assumed buyer Ansys Fluent/Icepak cell\nworkflow, not Tier1 (same tool/settings) or earned laboratory credibility.\nKeep v1 published conjugate-transfer benchmark candidates as verification\nrungs, then compare matched periodic-cell uniform/nonuniform/warm cases with\nidentical post-spreader maps/TIM conventions. Acceptance remains HUMAN_INPUT\nwith the existing recommendations (1-C thermal difference, 5% nonzero cell\npressure/power difference, separately accepted absolute near-zero floors).\nReport pointwise and feasibility/best-pick agreement/regret together under\nthe [common credibility contract](reference-credibility.md), using separate\nnon-hidden draws or verified retired published cases. NOT_DEMONSTRATED;\n\u201cmatches the reference simulator\u201d only after accepted evidence, never reality.",
+      "sources": [
+        {
+          "excerpt": "KEEP pinned OpenFOAM conjugate-cell reference and applicable conservation/\nrefinement controls. Demonstrate local thermal and cell-pressure convergence\non the improved geometry and post-spreader map. Numerical agreement is not\nphysical adequacy or a granted solve. Reference failure/FAILED_INFRA never\nbecomes candidate failure.\n\nTarget **Tier2** matching of the assumed buyer Ansys Fluent/Icepak cell\nworkflow, not Tier1 (same tool/settings) or earned laboratory credibility.\nKeep v1 published conjugate-transfer benchmark candidates as verification\nrungs, then compare matched periodic-cell uniform/nonuniform/warm cases with\nidentical post-spreader maps/TIM conventions. Acceptance remains HUMAN_INPUT\nwith the existing recommendations (1-C thermal difference, 5% nonzero cell\npressure/power difference, separately accepted absolute near-zero floors).\nReport pointwise and feasibility/best-pick agreement/regret together under\nthe [common credibility contract](reference-credibility.md), using separate\nnon-hidden draws or verified retired published cases. NOT_DEMONSTRATED;\n\u201cmatches the reference simulator\u201d only after accepted evidence, never reality.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "rights": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize rights",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "solver": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize solver",
+      "owner": "science/product owner",
+      "recommendation": "KEEP pinned OpenFOAM conjugate-cell reference and applicable conservation/\nrefinement controls. Demonstrate local thermal and cell-pressure convergence\non the improved geometry and post-spreader map. Numerical agreement is not\nphysical adequacy or a granted solve. Reference failure/FAILED_INFRA never\nbecomes candidate failure.\n\nTarget **Tier2** matching of the assumed buyer Ansys Fluent/Icepak cell\nworkflow, not Tier1 (same tool/settings) or earned laboratory credibility.\nKeep v1 published conjugate-transfer benchmark candidates as verification\nrungs, then compare matched periodic-cell uniform/nonuniform/warm cases with\nidentical post-spreader maps/TIM conventions. Acceptance remains HUMAN_INPUT\nwith the existing recommendations (1-C thermal difference, 5% nonzero cell\npressure/power difference, separately accepted absolute near-zero floors).\nReport pointwise and feasibility/best-pick agreement/regret together under\nthe [common credibility contract](reference-credibility.md), using separate\nnon-hidden draws or verified retired published cases. NOT_DEMONSTRATED;\n\u201cmatches the reference simulator\u201d only after accepted evidence, never reality.",
+      "sources": [
+        {
+          "excerpt": "KEEP pinned OpenFOAM conjugate-cell reference and applicable conservation/\nrefinement controls. Demonstrate local thermal and cell-pressure convergence\non the improved geometry and post-spreader map. Numerical agreement is not\nphysical adequacy or a granted solve. Reference failure/FAILED_INFRA never\nbecomes candidate failure.\n\nTarget **Tier2** matching of the assumed buyer Ansys Fluent/Icepak cell\nworkflow, not Tier1 (same tool/settings) or earned laboratory credibility.\nKeep v1 published conjugate-transfer benchmark candidates as verification\nrungs, then compare matched periodic-cell uniform/nonuniform/warm cases with\nidentical post-spreader maps/TIM conventions. Acceptance remains HUMAN_INPUT\nwith the existing recommendations (1-C thermal difference, 5% nonzero cell\npressure/power difference, separately accepted absolute near-zero floors).\nReport pointwise and feasibility/best-pick agreement/regret together under\nthe [common credibility contract](reference-credibility.md), using separate\nnon-hidden draws or verified retired published cases. NOT_DEMONSTRATED;\n\u201cmatches the reference simulator\u201d only after accepted evidence, never reality.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "strata": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize strata",
+      "owner": "science/product owner",
+      "recommendation": "Customer-recognizable planning contexts remain cold uniform, typical load,\nwarm uniform, warm central hotspot and warm outlet-side hotspot. In v2 every\nnonuniform map is specified **at the post-spreader cold-plate interface**;\nthe source/lid definition and resulting flux map are buyer inputs, not design\nactions secretly optimized by the model. Do not choose ratio, TIM or inlet\nfrom alternatives after seeing which one passes. Freeze each scenario first.\n\nThe complete panel, supported maps and P_job/Q_job/w_job registration remain\nHUMAN_INPUT in [question-law v2](../question-laws/proposals-v2.json). Preserve\nseparate population, near-limit diagnostic enrichment and diagnostic weights.\nReport each stratum; a uniform pass cannot average away a hotspot breach.\nUnsupported reduced-supply flow stays excluded/unresolved, never clamped.\nService/input alternatives are separate clearly labelled sensitivity results,\nnot additional equivalent questions or fresh bank exposure.",
+      "sources": [
+        {
+          "excerpt": "Customer-recognizable planning contexts remain cold uniform, typical load,\nwarm uniform, warm central hotspot and warm outlet-side hotspot. In v2 every\nnonuniform map is specified **at the post-spreader cold-plate interface**;\nthe source/lid definition and resulting flux map are buyer inputs, not design\nactions secretly optimized by the model. Do not choose ratio, TIM or inlet\nfrom alternatives after seeing which one passes. Freeze each scenario first.\n\nThe complete panel, supported maps and P_job/Q_job/w_job registration remain\nHUMAN_INPUT in [question-law v2](../question-laws/proposals-v2.json). Preserve\nseparate population, near-limit diagnostic enrichment and diagnostic weights.\nReport each stratum; a uniform pass cannot average away a hotspot breach.\nUnsupported reduced-supply flow stays excluded/unresolved, never clamped.\nService/input alternatives are separate clearly labelled sensitivity results,\nnot additional equivalent questions or fresh bank exposure.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "training": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize training",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "uncertainty": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize uncertainty",
+      "owner": "science/product owner",
+      "recommendation": "KEEP pinned OpenFOAM conjugate-cell reference and applicable conservation/\nrefinement controls. Demonstrate local thermal and cell-pressure convergence\non the improved geometry and post-spreader map. Numerical agreement is not\nphysical adequacy or a granted solve. Reference failure/FAILED_INFRA never\nbecomes candidate failure.\n\nTarget **Tier2** matching of the assumed buyer Ansys Fluent/Icepak cell\nworkflow, not Tier1 (same tool/settings) or earned laboratory credibility.\nKeep v1 published conjugate-transfer benchmark candidates as verification\nrungs, then compare matched periodic-cell uniform/nonuniform/warm cases with\nidentical post-spreader maps/TIM conventions. Acceptance remains HUMAN_INPUT\nwith the existing recommendations (1-C thermal difference, 5% nonzero cell\npressure/power difference, separately accepted absolute near-zero floors).\nReport pointwise and feasibility/best-pick agreement/regret together under\nthe [common credibility contract](reference-credibility.md), using separate\nnon-hidden draws or verified retired published cases. NOT_DEMONSTRATED;\n\u201cmatches the reference simulator\u201d only after accepted evidence, never reality.",
+      "sources": [
+        {
+          "excerpt": "KEEP pinned OpenFOAM conjugate-cell reference and applicable conservation/\nrefinement controls. Demonstrate local thermal and cell-pressure convergence\non the improved geometry and post-spreader map. Numerical agreement is not\nphysical adequacy or a granted solve. Reference failure/FAILED_INFRA never\nbecomes candidate failure.\n\nTarget **Tier2** matching of the assumed buyer Ansys Fluent/Icepak cell\nworkflow, not Tier1 (same tool/settings) or earned laboratory credibility.\nKeep v1 published conjugate-transfer benchmark candidates as verification\nrungs, then compare matched periodic-cell uniform/nonuniform/warm cases with\nidentical post-spreader maps/TIM conventions. Acceptance remains HUMAN_INPUT\nwith the existing recommendations (1-C thermal difference, 5% nonzero cell\npressure/power difference, separately accepted absolute near-zero floors).\nReport pointwise and feasibility/best-pick agreement/regret together under\nthe [common credibility contract](reference-credibility.md), using separate\nnon-hidden draws or verified retired published cases. NOT_DEMONSTRATED;\n\u201cmatches the reference simulator\u201d only after accepted evidence, never reality.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "validity": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize validity",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "value": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize value",
+      "owner": "science/product owner",
+      "recommendation": "I am the hypothetical accelerator-module thermal architect choosing channel\ngeometry and a supported flow action for an interior cooling cell. My heat\nmap describes heat **arriving at the cold-plate interface after a die-side\nspreader or lid**, not raw die-source hotspots transplanted onto the plate.\nI supply that spreader/lid definition; Carbon must not secretly buy thermal\nheadroom by changing my TIM, hotspot ratio or coolant inlet temperature.\n\n| Buyer requirement / report | Why it matters |\n| --- | --- |\n| Peak spreader-side TIM-interface estimate <=85 C in the declared cell panel | Keep the selected thermal headroom at a precisely named interface, not an unmodelled die junction |\n| Post-spreader interface heat map, total heat and stated spreader properties | Prevent an impossible raw-source assumption or arbitrary smoothing from becoming my input |\n| Report TIM, post-spreader ratio and inlet alternatives without selecting them | Let the buyer see what hardware/operating change would buy margin |\n| Separate cell pressure/flow/hydraulic quantities from full-assembly limits | Cell truth cannot certify headers, distribution, pump allocation or a full plate |\n\nThe v1 hypothetical $7,600 prototype/engineering redo and $48 lost-use event\nexplain why a false-cool prediction matters; they are **module-context\nassumptions**, not measured cell savings. Report minutes/hours and cost per\nverified cell shortlist; net dollar value remains HUMAN_INPUT until the\nreplacement workflow and actual costs are measured. Do not sell a cell pass\nas a qualified accelerator or full-assembly design.",
+      "sources": [
+        {
+          "excerpt": "I am the hypothetical accelerator-module thermal architect choosing channel\ngeometry and a supported flow action for an interior cooling cell. My heat\nmap describes heat **arriving at the cold-plate interface after a die-side\nspreader or lid**, not raw die-source hotspots transplanted onto the plate.\nI supply that spreader/lid definition; Carbon must not secretly buy thermal\nheadroom by changing my TIM, hotspot ratio or coolant inlet temperature.\n\n| Buyer requirement / report | Why it matters |\n| --- | --- |\n| Peak spreader-side TIM-interface estimate <=85 C in the declared cell panel | Keep the selected thermal headroom at a precisely named interface, not an unmodelled die junction |\n| Post-spreader interface heat map, total heat and stated spreader properties | Prevent an impossible raw-source assumption or arbitrary smoothing from becoming my input |\n| Report TIM, post-spreader ratio and inlet alternatives without selecting them | Let the buyer see what hardware/operating change would buy margin |\n| Separate cell pressure/flow/hydraulic quantities from full-assembly limits | Cell truth cannot certify headers, distribution, pump allocation or a full plate |\n\nThe v1 hypothetical $7,600 prototype/engineering redo and $48 lost-use event\nexplain why a false-cool prediction matters; they are **module-context\nassumptions**, not measured cell savings. Report minutes/hours and cost per\nverified cell shortlist; net dollar value remains HUMAN_INPUT until the\nreplacement workflow and actual costs are measured. Do not sell a cell pass\nas a qualified accelerator or full-assembly design.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "vocabulary": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize vocabulary",
+      "owner": "science/product owner",
+      "recommendation": "KEEP reconstruction, permitted TRAIN provenance and existing Interface-v1\nadapter. Prospective post-spreader conditioning/observer projection needs an\nowning versioned implementation; no extra runtime input or new geometry\npermission is installed here. Commit proposed geometry/flow before truth;\nthe candidate does not choose the heat map that makes it look admissible.",
+      "sources": [
+        {
+          "excerpt": "KEEP reconstruction, permitted TRAIN provenance and existing Interface-v1\nadapter. Prospective post-spreader conditioning/observer projection needs an\nowning versioned implementation; no extra runtime input or new geometry\npermission is installed here. Commit proposed geometry/flow before truth;\nthe candidate does not choose the heat map that makes it look admissible.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "w": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize w",
+      "owner": "science/product owner",
+      "recommendation": "Customer-recognizable planning contexts remain cold uniform, typical load,\nwarm uniform, warm central hotspot and warm outlet-side hotspot. In v2 every\nnonuniform map is specified **at the post-spreader cold-plate interface**;\nthe source/lid definition and resulting flux map are buyer inputs, not design\nactions secretly optimized by the model. Do not choose ratio, TIM or inlet\nfrom alternatives after seeing which one passes. Freeze each scenario first.\n\nThe complete panel, supported maps and P_job/Q_job/w_job registration remain\nHUMAN_INPUT in [question-law v2](../question-laws/proposals-v2.json). Preserve\nseparate population, near-limit diagnostic enrichment and diagnostic weights.\nReport each stratum; a uniform pass cannot average away a hotspot breach.\nUnsupported reduced-supply flow stays excluded/unresolved, never clamped.\nService/input alternatives are separate clearly labelled sensitivity results,\nnot additional equivalent questions or fresh bank exposure.",
+      "sources": [
+        {
+          "excerpt": "Customer-recognizable planning contexts remain cold uniform, typical load,\nwarm uniform, warm central hotspot and warm outlet-side hotspot. In v2 every\nnonuniform map is specified **at the post-spreader cold-plate interface**;\nthe source/lid definition and resulting flux map are buyer inputs, not design\nactions secretly optimized by the model. Do not choose ratio, TIM or inlet\nfrom alternatives after seeing which one passes. Freeze each scenario first.\n\nThe complete panel, supported maps and P_job/Q_job/w_job registration remain\nHUMAN_INPUT in [question-law v2](../question-laws/proposals-v2.json). Preserve\nseparate population, near-limit diagnostic enrichment and diagnostic weights.\nReport each stratum; a uniform pass cannot average away a hotspot breach.\nUnsupported reduced-supply flow stays excluded/unresolved, never clamped.\nService/input alternatives are separate clearly labelled sensitivity results,\nnot additional equivalent questions or fresh bank exposure.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "wrong_decision": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize wrong_decision",
+      "owner": "science/product owner",
+      "recommendation": "I am the hypothetical accelerator-module thermal architect choosing channel\ngeometry and a supported flow action for an interior cooling cell. My heat\nmap describes heat **arriving at the cold-plate interface after a die-side\nspreader or lid**, not raw die-source hotspots transplanted onto the plate.\nI supply that spreader/lid definition; Carbon must not secretly buy thermal\nheadroom by changing my TIM, hotspot ratio or coolant inlet temperature.\n\n| Buyer requirement / report | Why it matters |\n| --- | --- |\n| Peak spreader-side TIM-interface estimate <=85 C in the declared cell panel | Keep the selected thermal headroom at a precisely named interface, not an unmodelled die junction |\n| Post-spreader interface heat map, total heat and stated spreader properties | Prevent an impossible raw-source assumption or arbitrary smoothing from becoming my input |\n| Report TIM, post-spreader ratio and inlet alternatives without selecting them | Let the buyer see what hardware/operating change would buy margin |\n| Separate cell pressure/flow/hydraulic quantities from full-assembly limits | Cell truth cannot certify headers, distribution, pump allocation or a full plate |\n\nThe v1 hypothetical $7,600 prototype/engineering redo and $48 lost-use event\nexplain why a false-cool prediction matters; they are **module-context\nassumptions**, not measured cell savings. Report minutes/hours and cost per\nverified cell shortlist; net dollar value remains HUMAN_INPUT until the\nreplacement workflow and actual costs are measured. Do not sell a cell pass\nas a qualified accelerator or full-assembly design.",
+      "sources": [
+        {
+          "excerpt": "I am the hypothetical accelerator-module thermal architect choosing channel\ngeometry and a supported flow action for an interior cooling cell. My heat\nmap describes heat **arriving at the cold-plate interface after a die-side\nspreader or lid**, not raw die-source hotspots transplanted onto the plate.\nI supply that spreader/lid definition; Carbon must not secretly buy thermal\nheadroom by changing my TIM, hotspot ratio or coolant inlet temperature.\n\n| Buyer requirement / report | Why it matters |\n| --- | --- |\n| Peak spreader-side TIM-interface estimate <=85 C in the declared cell panel | Keep the selected thermal headroom at a precisely named interface, not an unmodelled die junction |\n| Post-spreader interface heat map, total heat and stated spreader properties | Prevent an impossible raw-source assumption or arbitrary smoothing from becoming my input |\n| Report TIM, post-spreader ratio and inlet alternatives without selecting them | Let the buyer see what hardware/operating change would buy margin |\n| Separate cell pressure/flow/hydraulic quantities from full-assembly limits | Cell truth cannot certify headers, distribution, pump allocation or a full plate |\n\nThe v1 hypothetical $7,600 prototype/engineering redo and $48 lost-use event\nexplain why a false-cool prediction matters; they are **module-context\nassumptions**, not measured cell savings. Report minutes/hours and cost per\nverified cell shortlist; net dollar value remains HUMAN_INPUT until the\nreplacement workflow and actual costs are measured. Do not sell a cell pass\nas a qualified accelerator or full-assembly design.",
+          "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+          "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    }
+  },
+  "maturity": "DRAFT_ONLY",
+  "schema": "carbon.onboarding.packet-draft.v1"
+}

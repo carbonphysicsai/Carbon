@@ -349,12 +349,16 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
             (
                 "carbon.motor.research:implementation_files",
                 "carbon.motor.practice:staged_files",
+                COST_EVIDENCE,
             ),
             "The Gaussian kernel-ridge reconstruction (learned_baseline.py, "
             "domain.py, recipes.py) is published and staged byte-identical in "
             "practice, with the pinned public TRAIN bytes, in the pinned NumPy "
-            "CPU isolated carrier. It is a closed-form fit; there is no JAX or "
-            "PyTorch trainer for this Challenge.",
+            "CPU isolated carrier; it is a closed-form fit. The neural families "
+            "(MOTOR-NEURAL-01: an MLP and a DeepONet, JAX or PyTorch) train "
+            "through Carbon's shared trainers (carbon.motor.neural), and the "
+            "training budget calculator prices them; their practice waits for a "
+            "JAX and PyTorch practice image (refused as backend_not_served).",
         ),
         "generate": Gap(
             reason=(

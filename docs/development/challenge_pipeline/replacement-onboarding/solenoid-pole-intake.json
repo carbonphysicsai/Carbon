@@ -1,0 +1,39 @@
+{
+  "schema":"carbon.onboarding.replacement-intake.v1",
+  "challenge":"solenoid-pole",
+  "disposition":"HOLD_OPEN_SET_NOT_CONFIRMED",
+  "run_authorized":false,
+  "research_basis":{"pr":1001,"commit":"2861b3bee63d8c7f143821fcbde6f2a941741775","status":"OPEN_RESEARCH_NOT_ACCEPTANCE","assessment":"https://github.com/carbonphysicsai/Carbon/blob/2861b3bee63d8c7f143821fcbde6f2a941741775/Business/research/open-data-check/ASSESSMENT.md","sources":"https://github.com/carbonphysicsai/Carbon/blob/2861b3bee63d8c7f143821fcbde6f2a941741775/Business/research/open-data-check/SOURCES.md"},
+  "inputs":[
+    {"field":"open numerical ingredients","state":"RIGHTS_IDENTIFIED_INGREDIENT","evidence":"S01 GetDP electromagnet formulation/geometry/generic steel tables, GPL-2.0-or-later, pinned upstream 259f4c38ce89c3ad4775aecf515840bd3331b0aa","gap":"Planar tutorial is not the matched non-PM axisymmetric pot geometry or measured B-H(T) family","owner":"Research supplies provenance; owner/counsel accepts rights"},
+    {"field":"benchmark witness","state":"PUBLISHED_BENCHMARK_NOT_MATCHED","evidence":"S02 TEAM 20 geometry, excitation, B-H and static force/field quantities","gap":"3D different architecture; inspected specification has no established reusable asset license; does not supply hot winding loss","owner":"Reference owner and research"},
+    {"field":"geometry and action grammar","state":"HUMAN_INPUT","gap":"Matched pot yoke/armature, fillets, pole-profile bounds, stroke and tolerances with redistribution rights","owner":"Mock owner chooses internal case; later customer may supply original job"},
+    {"field":"steel and winding calibration","state":"HUMAN_INPUT","gap":"Same-grade/process monotone B-H(T), supported interpolation domain, turns/fill/mean turn length/leads and resistance(T). Do not infer resistance from ampere-turns","owner":"Reference/science owner; research finds coherent public source or later customer supplies rights-permitted inputs"},
+    {"field":"buyer requirements and population","state":"CUSTOMER_OR_MOCK_OWNER_INPUT","gap":"Full force-stroke/current envelope, package/electrical limits, job mixture and objective units; no lowering demand to make solutions pass","owner":"Mock owner for rehearsal; actual customer for custom design"},
+    {"field":"reference implementation","state":"NOT_DEMONSTRATED","gap":"Pinned axisymmetric force/coenergy/flux/I-squared-R extractors and convergence/witness acceptance; motor GetDP package is only reusable infrastructure","owner":"Data Collection packages; Test Lead/science accepts adequacy"},
+    {"field":"permanent magnet material","state":"NOT_APPLICABLE","gap":"Non-PM pot architecture. Adding magnets is a different job, not a way to fill a missing field","owner":"Packet owner"}
+  ],
+  "question_law_review":{
+    "status":"SPECIFIED_HUMAN_INPUT",
+    "P":"Matched real actuator revision jobs and their complete force-stroke/current demands; supported temperatures and correlated winding/material conditions",
+    "Q":"Separately labelled saturation and force-stroke frontier enrichment; never substitute Q for customer P",
+    "w":"Buyer/job relevance weights independently approved; null until selected",
+    "action_set":"Owner-approved pole profile and axial-gap grammar, unchanged coil/rated envelope; exact coordinates and boundary registration absent",
+    "one_question":"One unchanged buyer job and all mandatory conditions; choose least-loss fully admissible menu action",
+    "k":{"low_base_high":[4,8,12],"basis":"Discovery section 11 ASSUMPTION sensitivity, not accepted power or law"},
+    "NONE_FEASIBLE":"Forward no redraw only when every eligible menu action has a certified mandatory failure. Unsettled reference or infrastructure is UNRESOLVED, not failure",
+    "T2a":{"working_refinement_bands":2,"minimum_feasible":5,"minimum_infeasible":5,"accepted_widths":null,"measured":false},
+    "E":null,"B":null,"distinct_winners":null,"threshold_variation_renews_E":false
+  },
+  "panel_review":{
+    "status":"PROPOSED_NOT_DISPATCHABLE",
+    "source":"Discovery dossier section 12; counts are ASSUMPTION, not registered tuples",
+    "candidate_designs":10,"mandatory_strata":3,"primary_cases":30,"refined_cases":6,"refined_cost_multiplier":2,"control_equivalents":4,"independent_witness_equivalents":4,"failed_attempt_allowance":4,"equivalent_cases":54,
+    "hypothesis_cost_eur_low_base_high":[17.40,20.04,27.09],
+    "CPU_cost":"UNMEASURED; historical proposal includes setup/tax/reserve, not an execution grant",
+    "exact_design_condition_rung_tuples":null,"accepted_pins":null,"completed_and_scheduled_reuse_inventory":null,
+    "return":"Per-stratum signed margins, TWO-band contested counts, complete feasible witness, answer diversity, strongest metamodel/circuit baseline at matched admissibility, CPU/wall/RAM/failures and rights/reference receipts"
+  },
+  "next_action":{"owner":"Research with packet owner","action":"Select and document a coherent rights-permitted pot/steel/winding source at every required condition, or return the exact missing customer-data list; do not reframe to TEAM or a planar tutorial silently"},
+  "path_to_product":"Conditional customer-data design candidate, not customer-ready executable package or adopted launch Challenge"
+}

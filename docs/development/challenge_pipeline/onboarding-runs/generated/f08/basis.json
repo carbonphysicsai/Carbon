@@ -1,0 +1,18 @@
+[
+  {
+    "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+    "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/value-cost/f08.md",
+    "sha256": "361c47b91c9c1045200239843f04c5913033ebd63fea01f67782534d8baec4d2"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/cheap-baselines/f08.md",
+    "sha256": "d50dabfcbe22b0defd88bdd822093a5800f0f5ba014777dbf09bc6729093a712"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/value-cost/reframes/f08.md",
+    "sha256": "22705c3e5895f9d4109d09bdd45601d9b2ae361bbf0d8095938020dd21dd3b18"
+  }
+]

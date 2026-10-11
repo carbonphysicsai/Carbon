@@ -172,9 +172,12 @@ def _git(root, *args):
 def _pack(tmp_path):
     """A tiny committed pack: one tool and one source at authority_main, one output."""
     (tmp_path / "pack").mkdir()
-    (tmp_path / "tool.py").write_text("TOOL = 1\n", encoding="utf-8")
-    (tmp_path / "source.md").write_text("source\n", encoding="utf-8")
+    (tmp_path / "tool.py").write_bytes(b"TOOL = 1\n")
+    (tmp_path / "source.md").write_bytes(b"source\n")
     _git(tmp_path, "init", "-q")
+    # Byte-stable digests on every platform: no end-of-line conversion.
+    _git(tmp_path, "config", "core.autocrlf", "false")
+    (tmp_path / ".gitattributes").write_bytes(b"* -text\n")
     _git(tmp_path, "add", "-A")
     _git(tmp_path, "commit", "-q", "-m", "authority")
     authority = subprocess.run(
@@ -184,8 +187,8 @@ def _pack(tmp_path):
         text=True,
         check=True,
     ).stdout.strip()
-    (tmp_path / "pack/out.md").write_text("output\n", encoding="utf-8")
-    (tmp_path / "pack/in.json").write_text("{}\n", encoding="utf-8")
+    (tmp_path / "pack/out.md").write_bytes(b"output\n")
+    (tmp_path / "pack/in.json").write_bytes(b"{}\n")
 
     def sha(relative):
         return provenance.digest((tmp_path / relative).read_bytes())
@@ -203,7 +206,7 @@ def _pack(tmp_path):
         },
         "outputs": {"pack/out.md": sha("pack/out.md")},
     }
-    (tmp_path / "pack/tool-run.json").write_text(json.dumps(run), encoding="utf-8")
+    (tmp_path / "pack/tool-run.json").write_bytes(json.dumps(run).encode())
     return run
 
 
@@ -220,7 +223,7 @@ def test_an_intact_pack_is_consistent_and_current(tmp_path):
 
 def test_a_later_change_to_a_tool_is_reported_stale_not_failed(tmp_path):
     _pack(tmp_path)
-    (tmp_path / "tool.py").write_text("TOOL = 2\n", encoding="utf-8")
+    (tmp_path / "tool.py").write_bytes(b"TOOL = 2\n")
     report = _check(tmp_path)
     assert report["provenance_problems"] == []
     assert report["freshness"] == provenance.STALE_TOOLS
@@ -229,7 +232,7 @@ def test_a_later_change_to_a_tool_is_reported_stale_not_failed(tmp_path):
 
 def test_a_tampered_output_fails_provenance(tmp_path):
     _pack(tmp_path)
-    (tmp_path / "pack/out.md").write_text("tampered\n", encoding="utf-8")
+    (tmp_path / "pack/out.md").write_bytes(b"tampered\n")
     problems = _check(tmp_path)["provenance_problems"]
     assert problems == ["output digest differs from committed bytes: pack/out.md"]
 
@@ -244,7 +247,7 @@ def test_a_bad_recorded_digest_fails_provenance(tmp_path):
     run = _pack(tmp_path)
     run["inputs_and_tools"]["tool.py"] = "not-a-digest"
     run["outputs"]["pack/out.md"] = "ab" * 31
-    (tmp_path / "pack/tool-run.json").write_text(json.dumps(run), encoding="utf-8")
+    (tmp_path / "pack/tool-run.json").write_bytes(json.dumps(run).encode())
     problems = _check(tmp_path)["provenance_problems"]
     assert "input digest malformed: tool.py" in problems
     assert "output digest malformed: pack/out.md" in problems
@@ -253,14 +256,14 @@ def test_a_bad_recorded_digest_fails_provenance(tmp_path):
 def test_an_input_digest_that_was_never_the_tool_at_authority_main_fails(tmp_path):
     run = _pack(tmp_path)
     run["inputs_and_tools"]["tool.py"] = provenance.digest(b"TOOL = 99\n")
-    (tmp_path / "pack/tool-run.json").write_text(json.dumps(run), encoding="utf-8")
+    (tmp_path / "pack/tool-run.json").write_bytes(json.dumps(run).encode())
     problems = _check(tmp_path)["provenance_problems"]
     assert "input digest differs at authority_main: tool.py" in problems
 
 
 def test_a_pack_input_that_changed_fails_because_it_is_part_of_the_record(tmp_path):
     _pack(tmp_path)
-    (tmp_path / "pack/in.json").write_text('{"changed": true}\n', encoding="utf-8")
+    (tmp_path / "pack/in.json").write_bytes(b'{"changed": true}\n')
     assert "pack input differs from committed bytes: pack/in.json" in (
         _check(tmp_path)["provenance_problems"]
     )
@@ -272,7 +275,7 @@ def test_a_pack_input_that_changed_fails_because_it_is_part_of_the_record(tmp_pa
 def test_an_incomplete_run_record_fails_provenance(tmp_path, key):
     run = _pack(tmp_path)
     del run[key]
-    (tmp_path / "pack/tool-run.json").write_text(json.dumps(run), encoding="utf-8")
+    (tmp_path / "pack/tool-run.json").write_bytes(json.dumps(run).encode())
     problems = _check(tmp_path)["provenance_problems"]
     assert any(key in problem for problem in problems), problems
 
@@ -280,7 +283,7 @@ def test_an_incomplete_run_record_fails_provenance(tmp_path, key):
 def test_a_malformed_authority_main_fails_provenance(tmp_path):
     run = _pack(tmp_path)
     run["authority_main"] = "main"
-    (tmp_path / "pack/tool-run.json").write_text(json.dumps(run), encoding="utf-8")
+    (tmp_path / "pack/tool-run.json").write_bytes(json.dumps(run).encode())
     assert "authority_main is not a 40-hex commit" in (
         _check(tmp_path)["provenance_problems"]
     )
@@ -296,9 +299,9 @@ def test_the_pack_command_reports_freshness_and_fails_only_on_provenance(
     from carbon.challenge_pipeline.onboarding.__main__ import main
 
     _pack(tmp_path)
-    (tmp_path / "tool.py").write_text("TOOL = 2\n", encoding="utf-8")
+    (tmp_path / "tool.py").write_bytes(b"TOOL = 2\n")
     assert main(["--root", str(tmp_path), "pack", "--run", "pack/tool-run.json"]) == 0
     assert "freshness: STALE_TOOLS" in capsys.readouterr().out
-    (tmp_path / "pack/out.md").write_text("tampered\n", encoding="utf-8")
+    (tmp_path / "pack/out.md").write_bytes(b"tampered\n")
     code = main(["--root", str(tmp_path), "pack", "--run", "pack/tool-run.json"])
     assert code == 1 and "PROVENANCE PROBLEMS" in capsys.readouterr().out

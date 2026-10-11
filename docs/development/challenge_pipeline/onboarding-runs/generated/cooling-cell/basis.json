@@ -1,0 +1,14 @@
+[
+  {
+    "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+    "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/value-cost/cooling-cell.md",
+    "sha256": "422f9a6e0bb21524d22f78e60d4d8cf218621405de52214fa7931009204ffe38"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/cheap-baselines/cooling-cell.md",
+    "sha256": "2930678a5d62db934d9f5cebae9f0eb6b97091e92eb10c97cd552ce24e0fc89f"
+  }
+]
