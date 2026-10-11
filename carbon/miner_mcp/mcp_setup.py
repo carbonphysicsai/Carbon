@@ -71,7 +71,9 @@ Loop until launch:
    miner's own needs its validator's public receiver hotkey beside it
    (`receiver_hotkey`); ask the miner for it. Nothing is signed for an
    intake reporting another. Review's result lists `warnings`; tell the
-   miner each one.
+   miner each one. Status lists `warnings` too (`reboot_recovery_off`: the
+   Control Center would not start again after a reboot, with the command
+   in `next_step`, which the miner runs).
 
 Order: start your signer, register on the subnet, who researches, inference
 (skipped for your own agent: it uses its own model), compute, review and

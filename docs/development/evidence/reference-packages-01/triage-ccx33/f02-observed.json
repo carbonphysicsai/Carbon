@@ -1,0 +1,170 @@
+{
+ "control-energy": {
+  "peak_top_c": 120.91114882320005,
+  "peak_time_s": 118.3,
+  "first_95c_crossing_s": 2.069481665298453,
+  "extra_energy_j": 10800.0,
+  "steps": 1600
+ },
+ "control-equilibrium": {
+  "peak_top_c": 30.000000000100044,
+  "peak_time_s": 30.4,
+  "first_95c_crossing_s": "NOT_REACHED",
+  "extra_energy_j": -2400.0,
+  "steps": 1600
+ },
+ "control-slab_pulse": {
+  "peak_top_c": 72.87352428760005,
+  "peak_time_s": 25.0,
+  "first_95c_crossing_s": "NOT_REACHED",
+  "extra_energy_j": 450.0,
+  "steps": 1802
+ },
+ "control-slab_step": {
+  "peak_top_c": 79.515669516,
+  "peak_time_s": 76.5,
+  "first_95c_crossing_s": "NOT_REACHED",
+  "extra_energy_j": 10800.0,
+  "steps": 1600
+ },
+ "cool-rect-long-high-dt0.5": {
+  "peak_top_c": 145.63179647780004,
+  "peak_time_s": 40.0,
+  "first_95c_crossing_s": 20.386856321665785,
+  "extra_energy_j": 2399.9999999999995,
+  "steps": 4802
+ },
+ "cool-rect-long-high-mesh2": {
+  "peak_top_c": 47.1806781967,
+  "peak_time_s": 0.7,
+  "first_95c_crossing_s": "NOT_REACHED",
+  "extra_energy_j": 2399.9999999999995,
+  "steps": 181
+ },
+ "cool-rect-long-high-primary": {
+  "peak_top_c": 145.63181943170002,
+  "peak_time_s": 40.0,
+  "first_95c_crossing_s": 20.386514453322427,
+  "extra_energy_j": 2399.9999999999995,
+  "steps": 2402
+ },
+ "cool-rect-low-dt0.5": {
+  "peak_top_c": 90.78042006890001,
+  "peak_time_s": 25.0,
+  "first_95c_crossing_s": "NOT_REACHED",
+  "extra_energy_j": 300.0,
+  "steps": 3602
+ },
+ "cool-rect-low-mesh2": {
+  "peak_top_c": 90.77529135830002,
+  "peak_time_s": 25.0,
+  "first_95c_crossing_s": "NOT_REACHED",
+  "extra_energy_j": 300.0,
+  "steps": 1802
+ },
+ "cool-rect-low-primary": {
+  "peak_top_c": 90.78052055710003,
+  "peak_time_s": 25.0,
+  "first_95c_crossing_s": "NOT_REACHED",
+  "extra_energy_j": 300.0,
+  "steps": 1802
+ },
+ "cool-rect-middle-dt0.5": {
+  "peak_top_c": 119.38963243760003,
+  "peak_time_s": 30.0,
+  "first_95c_crossing_s": 21.46351536065656,
+  "extra_energy_j": 899.9999999999999,
+  "steps": 4002
+ },
+ "cool-rect-middle-mesh2": {
+  "peak_top_c": 119.3810354487,
+  "peak_time_s": 30.0,
+  "first_95c_crossing_s": 21.463713631442246,
+  "extra_energy_j": 899.9999999999999,
+  "steps": 2002
+ },
+ "cool-rect-middle-primary": {
+  "peak_top_c": 119.38969691950001,
+  "peak_time_s": 30.0,
+  "first_95c_crossing_s": 21.463494917960414,
+  "extra_energy_j": 899.9999999999999,
+  "steps": 2002
+ },
+ "cool-rect-short-high-dt0.5": {
+  "peak_top_c": 135.031322842,
+  "peak_time_s": 25.0,
+  "first_95c_crossing_s": 20.38685632149536,
+  "extra_energy_j": 600.0,
+  "steps": 3602
+ },
+ "cool-rect-short-high-mesh2": {
+  "peak_top_c": 135.02269676600002,
+  "peak_time_s": 25.0,
+  "first_95c_crossing_s": 20.389437690520936,
+  "extra_energy_j": 600.0,
+  "steps": 1802
+ },
+ "cool-rect-short-high-primary": {
+  "peak_top_c": 135.0315240923,
+  "peak_time_s": 25.0,
+  "first_95c_crossing_s": 20.386514453837474,
+  "extra_energy_j": 600.0,
+  "steps": 1802
+ },
+ "warm-ramp-high-dt0.5": {
+  "peak_top_c": 190.25405259360002,
+  "peak_time_s": 30.0,
+  "first_95c_crossing_s": 23.01209864470589,
+  "extra_energy_j": 600.0000600000001,
+  "steps": 4001
+ },
+ "warm-ramp-high-primary": {
+  "peak_top_c": 190.25406230280004,
+  "peak_time_s": 30.0,
+  "first_95c_crossing_s": 23.01208631658303,
+  "extra_energy_j": 600.0000600000001,
+  "steps": 2001
+ },
+ "warm-ramp-low-dt0.5": {
+  "peak_top_c": 137.48862832360004,
+  "peak_time_s": 40.0,
+  "first_95c_crossing_s": 29.202977820842797,
+  "extra_energy_j": 600.0000299999999,
+  "steps": 4801
+ },
+ "warm-ramp-low-primary": {
+  "peak_top_c": 137.488619631,
+  "peak_time_s": 40.0,
+  "first_95c_crossing_s": 29.202977969343394,
+  "extra_energy_j": 600.0000299999999,
+  "steps": 2401
+ },
+ "warm-two-long-dt0.5": {
+  "peak_top_c": 181.5383614022,
+  "peak_time_s": 50.0,
+  "first_95c_crossing_s": 20.03159460373507,
+  "extra_energy_j": 1800.0,
+  "steps": 5604
+ },
+ "warm-two-long-primary": {
+  "peak_top_c": 181.5384270613,
+  "peak_time_s": 50.0,
+  "first_95c_crossing_s": 20.03064694322997,
+  "extra_energy_j": 1800.0,
+  "steps": 2804
+ },
+ "warm-two-short-dt0.5": {
+  "peak_top_c": 177.8540552018,
+  "peak_time_s": 35.0,
+  "first_95c_crossing_s": 20.020096795100073,
+  "extra_energy_j": 600.0,
+  "steps": 4404
+ },
+ "warm-two-short-primary": {
+  "peak_top_c": 177.8542421441,
+  "peak_time_s": 35.0,
+  "first_95c_crossing_s": 20.018597198139275,
+  "extra_energy_j": 600.0,
+  "steps": 2204
+ }
+}

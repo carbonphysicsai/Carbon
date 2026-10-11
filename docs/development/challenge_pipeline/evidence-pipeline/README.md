@@ -206,4 +206,6 @@ Kits:
   the sidecar's study designs
   (`python -m carbon.development_comparison.motor_10p12s_kit`) until the
   registered TRAIN set lands.
-- **f02** has no kit.
+- **`f02`** has 24 plain context questions. Its support is the registered
+  960-case TRAIN plan's domain, and `carbon_arm.domain_gaps` must find no
+  panel row outside it.

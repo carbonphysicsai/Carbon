@@ -63,7 +63,25 @@
   19 study designs, which are disjoint from the panel, as a DEVELOPMENT
   stand-in (`train_from_sidecar`); every record names that source.
   Leave-one-design-out over the panel is never used for value-bar claims.
-- **f02** has no kit and no export; it is a typed gap.
+- **`f02_kit`** (second amendment, same day). f02 is in the first three
+  Challenges for the combined server run (Test Lead), so its kit cannot stay
+  a gap. The axes are the panel's:
+  - **contexts:** the 24 round-one contexts, one-hot encoded;
+  - **actions:** `peak_w` and `on_time_s`;
+  - **observables:** `peak_top_c` and `extra_energy_j`;
+  - **the export's names** are Data Collection's: plain tasks, the condition
+    is the context `c{coolant}-i{initial}-s{split}-{waveform}`, and the
+    action is `{peak_w, on_time_s}`. The diagnostic `first_95c_crossing_s`
+    stays out of row values, since it can be null.
+  - **TRAIN** is the registered 960-case plan (7d0414ea6):
+    `carbon.f02.train-record.v1`.
+- **Registered-domain support.** For f02, support is the TRAIN plan's own
+  registered domain (`Kit.domain`), not TRAIN's observed range. The menu's
+  points lie on the draw boundary, and an observed-range rule would refuse
+  them. Every TRAIN record must lie in the domain.
+  `carbon_arm.domain_gaps` checks that the plan covers every panel row; the
+  run refuses otherwise (`PANEL_OUTSIDE_TRAIN_DOMAIN`). Battery v3 and motor
+  keep the observed-range rule.
 
 **Evidence (fixture, not a claim).** On the real battery-v3 export, a toy
 fixture TRAIN of 162 records and a quick recipe gave:
@@ -80,4 +98,4 @@ with the 19 study designs as TRAIN (170 cases):
 
 **Next.** Run each arm on its registered TRAIN set when it lands, with
 `--scope PUBLIC_DEVELOPMENT`: battery v3's 4,000 cases, and motor's 128
-geometries × 11 solves.
+geometries × 11 solves; f02's 960 cases.

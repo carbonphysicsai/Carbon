@@ -18,6 +18,10 @@ decision. This module produces only what its Carbon role needs:
 - **Unsupported interpolation abstains.** A row outside TRAIN's support (per
   input, its observed range; for a categorical input, its observed values)
   is an explicit abstention (`values: null`), never an extrapolated guess.
+  A kit with a registered TRAIN domain (`domain`, the TRAIN plan's own
+  sampling domain) uses that domain as its support instead. Every TRAIN record
+  must lie in it, and every panel row must too, or the run is refused
+  (`PANEL_OUTSIDE_TRAIN_DOMAIN`, `domain_gaps`).
 - **A synthetic fixture stays a fixture.** A TRAIN set marked as a fixture
   can produce only `SYNTHETIC_FIXTURE` predictions.
 
@@ -125,10 +129,27 @@ class Kit:
     outputs: tuple = ()  # the model's outputs; empty: the observables
     queries: object = None  # callable(row) -> [{name: value}, ...]
     reduce: object = None  # callable(row, [{output: value}, ...]) -> observables
+    onehot: tuple = ()  # ((name, (value, ...)), ...): one-hot encoded inputs
+    domain: object = None  # callable(inputs) -> bool: the registered TRAIN domain
 
     @property
     def names(self):
-        return tuple(name for name, _ in self.inputs)
+        return tuple(name for name, _ in self.inputs) + tuple(
+            name for name, _ in self.onehot
+        )
+
+    def valid_inputs(self, inputs):
+        """Finite numbers for the scaled inputs, a listed value for each
+        one-hot input."""
+        listed = dict(self.onehot)
+        return all(
+            (
+                inputs[name] in listed[name]
+                if name in listed
+                else type(inputs[name]) in (int, float) and math.isfinite(inputs[name])
+            )
+            for name in self.names
+        )
 
     @property
     def targets(self):
@@ -166,11 +187,10 @@ def load_train(kit, data, expected_sha256):
             or set(record.get("outputs", ())) != set(kit.targets)
         ):
             raise ArmRefused("TRAIN_RECORD_SHAPE")
-        if any(
-            type(v) not in (int, float) or not math.isfinite(v)
-            for v in record["inputs"].values()
-        ):
+        if not kit.valid_inputs(record["inputs"]):
             raise ArmRefused("TRAIN_INPUTS_NOT_FINITE")
+        if kit.domain is not None and not kit.domain(record["inputs"]):
+            raise ArmRefused("TRAIN_OUTSIDE_REGISTERED_DOMAIN")
         fixture.add(bool(record.get("fixture", False)))
         if any(
             type(v) not in (int, float) or not math.isfinite(v)
@@ -210,6 +230,9 @@ class Network:
                 v = np.log2(v)
                 low, high = math.log2(low), math.log2(high)
             out.append(2 * (v - low) / (high - low) - 1)
+        for name, values in self.kit.onehot:
+            for value in values:
+                out.append(np.asarray([float(r[name] == value) for r in rows]))
         return np.stack(out, axis=1)
 
     def fit(self, train, seed):
@@ -222,17 +245,27 @@ class Network:
         )
         self.mu, self.sd = y.mean(0), y.std(0) + 1e-9
         z = (y - self.mu) / self.sd
-        self.support = {
-            name: (
-                sorted({float(r["inputs"][name]) for r in records})
-                if name in self.kit.categorical
-                else (
-                    min(float(r["inputs"][name]) for r in records),
-                    max(float(r["inputs"][name]) for r in records),
-                )
-            )
-            for name in self.kit.names
-        }
+        self.support = (
+            "the registered TRAIN domain"
+            if self.kit.domain is not None
+            else {
+                **{
+                    name: (
+                        sorted({float(r["inputs"][name]) for r in records})
+                        if name in self.kit.categorical
+                        else (
+                            min(float(r["inputs"][name]) for r in records),
+                            max(float(r["inputs"][name]) for r in records),
+                        )
+                    )
+                    for name, _ in self.kit.inputs
+                },
+                **{
+                    name: sorted({r["inputs"][name] for r in records}, key=str)
+                    for name, _ in self.kit.onehot
+                },
+            }
+        )
         n, k = z.shape
         s = dict(self.settings, batch_size=n)
         args = (x, z, np.ones(n), np.full(k, 1.0 / k), np.arange(n))
@@ -325,7 +358,14 @@ class Network:
             return np.asarray(self._apply(self.params, x))
 
     def supported(self, inputs):
-        for name in self.kit.names:
+        if not self.kit.valid_inputs(inputs):
+            return False
+        if self.kit.domain is not None:
+            return bool(self.kit.domain(inputs))
+        for name, _ in self.kit.onehot:
+            if inputs[name] not in self.support[name]:
+                return False
+        for name, _ in self.kit.inputs:
             v = float(inputs[name])
             if name in self.kit.categorical:
                 if v not in self.support[name]:
@@ -350,6 +390,30 @@ class Network:
 
 
 # -- the arm --------------------------------------------------------------------------------
+def _gaps(kit, physical, per_row):
+    return [
+        {
+            "band": row["band"],
+            "candidate": row["candidate"],
+            "condition": row["condition"],
+        }
+        for row, queries in zip(physical, per_row)
+        if not all(kit.valid_inputs(q) and kit.domain(q) for q in queries)
+    ]
+
+
+def domain_gaps(kit, export):
+    """The export's physical rows the kit's registered TRAIN domain does not
+    cover (empty: the plan covers every panel row). Reads actions, bands and
+    conditions only, never reference values."""
+    from carbon.development_comparison import cheap_baselines as cb
+
+    if kit.domain is None:
+        raise ArmRefused("KIT_HAS_NO_REGISTERED_DOMAIN")
+    physical = cb._physical_rows(export)
+    return _gaps(kit, physical, [kit.row_queries(row) for row in physical])
+
+
 def _environment():
     import importlib.metadata as md
 
@@ -378,6 +442,8 @@ def run(kit, export, train, *, scope, seed=0, backend="jax", code=None, settings
     if any(set(row["values"]) != set(kit.observables) for row in physical):
         raise ArmRefused("OBSERVABLE_INVENTORY_MISMATCH")
     per_row = [kit.row_queries(row) for row in physical]
+    if kit.domain is not None and _gaps(kit, physical, per_row):
+        raise ArmRefused("PANEL_OUTSIDE_TRAIN_DOMAIN")
     inputs = [q for queries in per_row for q in queries]
     timings, runs = [], []
     for _ in range(2):  # cold (includes tracing and compilation), then warm
@@ -459,9 +525,11 @@ def kits():
     material bytes (None when it needs none)."""
     from . import motor_10p12s_kit
     from .battery_v3_kit import KIT as BATTERY_V3
+    from .f02_kit import KIT as F02
 
     return {
         BATTERY_V3.family: lambda material: BATTERY_V3,
+        F02.family: lambda material: F02,
         motor_10p12s_kit.FAMILY: motor_10p12s_kit.kit_from_bytes,
     }
 
@@ -477,6 +545,7 @@ def _code_identity():
         "carbon_arm.py": here,
         "battery_v3_kit.py": here.with_name("battery_v3_kit.py"),
         "motor_10p12s_kit.py": here.with_name("motor_10p12s_kit.py"),
+        "f02_kit.py": here.with_name("f02_kit.py"),
         "battery/training.py": root / "carbon/battery/training.py",
         "battery/torch_training.py": root / "carbon/battery/torch_training.py",
     }
