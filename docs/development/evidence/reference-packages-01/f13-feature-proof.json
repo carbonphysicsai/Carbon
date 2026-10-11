@@ -1,0 +1,88 @@
+{
+ "schema": "carbon.reference-package.f13-feature-proof.v1",
+ "image": "sha256:8bcd864dd60be0a80be9769c1a95c67db76eca9e718212f63dd0460cf3a08fc6",
+ "mesh_image": "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+ "straight_duct": {
+  "frequencies": 201,
+  "max_abs_tl_db": 8.807384087461214e-05,
+  "max_abs_residual": 2.0278345784552343e-05,
+  "tolerance_db": 0.25,
+  "residual_tolerance": 0.01,
+  "pass": true
+ },
+ "coaxial_chamber_r62.5_L75": {
+  "mesh_convergence_h6_vs_h8_max_db": 0.029482844625918325,
+  "mesh_halving_h4_iterative_vs_h8_at_2500hz_db": 0.0017161831564462826,
+  "transfer_matrix_diff_db": {
+   "500": -0.142,
+   "550": -0.115,
+   "600": -0.082,
+   "650": -0.043,
+   "700": 0.0,
+   "750": 0.049,
+   "800": 0.103,
+   "850": 0.161,
+   "900": 0.224,
+   "950": 0.291,
+   "1000": 0.364,
+   "1050": 0.441,
+   "1100": 0.523,
+   "1150": 0.609,
+   "1200": 0.701,
+   "1250": 0.798,
+   "1300": 0.899,
+   "1350": 1.006,
+   "1400": 1.119,
+   "1450": 1.237,
+   "1500": 1.361,
+   "1550": 1.49,
+   "1600": 1.625,
+   "1650": 1.766,
+   "1700": 1.913,
+   "1750": 2.064,
+   "1800": 2.219,
+   "1850": 2.375,
+   "1900": 2.528,
+   "1950": 2.673,
+   "2000": 2.796,
+   "2050": 2.876,
+   "2100": 2.877,
+   "2150": 2.745,
+   "2200": 2.405,
+   "2250": 1.791,
+   "2300": 0.915,
+   "2350": -0.062,
+   "2400": -0.867,
+   "2450": -1.302,
+   "2500": -1.385
+  },
+  "max_abs_residual": 0.0025945482928615426,
+  "reading": "agrees with the plane-wave transfer matrix within 0.15 dB to 700 Hz; above, the 3D result departs by up to 2.8 dB while h6, h8 and h4 agree within 0.03 dB: a physical 3D effect of this short, wide chamber (L/D 0.6), not discretization. The transfer-matrix control is valid only at low frequency here; its tolerance above ~800 Hz is HUMAN_INPUT"
+ },
+ "scan_vs_separate_parity": {
+  "1000": {
+   "separate_tl_db": 10.327541393044921,
+   "scan_tl_db": 10.327541393044921,
+   "diff_db": 0.0
+  },
+  "1500": {
+   "separate_tl_db": 10.508593379031876,
+   "scan_tl_db": 10.508593379031876,
+   "diff_db": 0.0
+  },
+  "2000": {
+   "separate_tl_db": 6.5346082704488,
+   "scan_tl_db": 6.5346082704488,
+   "diff_db": 0.0
+  }
+ },
+ "power_passivity": "residual 1 - P_ref - P_trans <= 0.0026 at every frequency and mesh (tolerance 0.01); mesh-independent, so attributed to plane-wave port extraction with evanescent content at the 10 mm stubs",
+ "iterative_fine_mesh": {
+  "h_mm": 4.0,
+  "nodes": 100915,
+  "f_hz": 2500,
+  "tl_db": 1.1062993544753112,
+  "wall_s": 46.6,
+  "note": "UMFPACK ran out of memory at h 4 on the 15 GB development host; BiCGStabl(4)+ILU2 converges"
+ }
+}

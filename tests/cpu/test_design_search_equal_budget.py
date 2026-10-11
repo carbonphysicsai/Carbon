@@ -2,9 +2,11 @@
 
 import copy
 import json
+from pathlib import Path
 
 import pytest
 
+from carbon.design_search import budget_registration as br
 from carbon.design_search import equal_budget as eb
 
 
@@ -82,7 +84,7 @@ def panel(challenge="motor", direction="min"):
     )
 
 
-@pytest.mark.parametrize("challenge", ["battery-v3", "motor", "f02"])
+@pytest.mark.parametrize("challenge", ["battery-v3", "motor", "f02", "f13"])
 def test_three_arms_budget_and_paired_bootstrap(challenge):
     report = eb.compare(
         panel(challenge), bootstrap_replicates=200, confidence=0.95, seed=7
@@ -235,3 +237,75 @@ def test_cli_prints_aggregates_without_ids(tmp_path, capsys):
     assert '"status": "OK"' in output
     assert "toy-0" not in output and "bank-0" not in output
     assert '"design_id"' not in output
+
+
+def test_registered_tiers_bind_every_arm_and_reject_changed_ladder():
+    registration = json.loads(
+        (
+            Path(__file__).resolve().parents[2]
+            / "docs/development/challenge_pipeline/equal-budget-registration-v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    body = {key: value for key, value in panel("f02").items() if key != "panel_digest"}
+    body["budgets"] = [
+        br.validate(registration).cap("f02", tier).time_compute for tier in br.TIERS
+    ]
+    body["registrations"]["cost_plan"] = br.REGISTRATION_ID
+    source = eb.seal(body)
+    report = eb.compare(
+        source,
+        bootstrap_replicates=100,
+        confidence=0.95,
+        seed=1,
+        registration=registration,
+    )
+    assert report["budget_registration_digest"] == registration["registration_digest"]
+    assert [curve["tier"] for curve in report["curves"]] == list(br.TIERS)
+    assert [curve["solver_evaluation_limit"] for curve in report["curves"]] == [
+        5,
+        9,
+        18,
+    ]
+    for curve in report["curves"]:
+        assert all(
+            curve["estimates"][arm]["mean_verified_count"]
+            <= curve["solver_evaluation_limit"]
+            for arm in eb.ARMS
+        )
+    body["budgets"][1]["wall_s"] += 1
+    with pytest.raises(eb.EqualBudgetError, match="ladder"):
+        eb.compare(
+            eb.seal(body),
+            bootstrap_replicates=100,
+            confidence=0.95,
+            seed=1,
+            registration=registration,
+        )
+
+
+def test_unresolved_registered_panel_keeps_identity_and_no_curves():
+    registration = json.loads(
+        (
+            Path(__file__).resolve().parents[2]
+            / "docs/development/challenge_pipeline/equal-budget-registration-v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    body = {key: value for key, value in panel("f02").items() if key != "panel_digest"}
+    body["budgets"] = [
+        br.validate(registration).cap("f02", tier).time_compute for tier in br.TIERS
+    ]
+    body["registrations"]["cost_plan"] = br.REGISTRATION_ID
+    body["jobs"][0]["candidates"][0]["reference"] = {
+        "status": "UNRESOLVED",
+        "value": None,
+    }
+    report = eb.compare(
+        eb.seal(body),
+        bootstrap_replicates=100,
+        confidence=0.95,
+        seed=1,
+        registration=registration,
+    )
+    assert report["status"] == "UNRESOLVED_PANEL"
+    assert report["budget_registration_digest"] == registration["registration_digest"]
+    assert report["curves"] == []

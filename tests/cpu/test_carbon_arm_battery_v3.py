@@ -219,7 +219,7 @@ def test_fixture_and_public_records_never_mix():
 def test_the_command_writes_pinned_predictions_and_never_overwrites(
     tmp_path, monkeypatch, capsys
 ):
-    monkeypatch.setattr(arm, "kits", lambda: {"battery-v3": FIXTURE_KIT})
+    monkeypatch.setattr(arm, "kits", lambda: {"battery-v3": lambda m: FIXTURE_KIT})
     monkeypatch.setattr(arm, "TRAINER_DEFAULTS", {**arm.TRAINER_DEFAULTS, **QUICK})
     export = json.dumps(fixture_export()).encode()
     (tmp_path / "export.json").write_bytes(export)
