@@ -13,3 +13,5 @@ An anchor-versus-variant performance anomaly is an audit finding, not proof of c
 Public claims should identify the exact benchmark, observables, settings and measured discrepancy. Published experimental agreement is bounded to that case; numerical code agreement is not hardware validation. Both Carbon anchor reproduction and variant adequacy remain **NOT_RUN**.
 
 The [source register](SOURCES.md) explains the literature and its limits. [policy.json](policy.json) is a non-executable proposal record with null scientific thresholds. Packets can use the metrics in the next briefs, then request scientific acceptance and implementation separately. This research accessed no protected material, ran no solver and authorized no spend. Policy adoption and launch decisions remain the owner's.
+
+**Adoption.** The owner answered yes to adopting this policy as the method on 2026-10-10 (as relayed); see [OWNER-BENCHMARK-CONTAMINATION-01](../../../.agent/decisions/2026-10-10-OWNER-BENCHMARK-CONTAMINATION-01.md). Novelty thresholds, buyer limits and P/Q/w remain HUMAN_INPUT.
