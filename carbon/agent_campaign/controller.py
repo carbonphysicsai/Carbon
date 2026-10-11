@@ -681,6 +681,7 @@ class CampaignController:
                         self.store_id,
                         idempotency_key,
                         seed_keys=[row["key"] for row in rows],
+                        clock=lambda: self.clock().timestamp(),
                     )
                 except grant_runs.SharedRunsError as error:
                     raise ControllerError(error.code, str(error)) from None
@@ -903,10 +904,23 @@ class CampaignController:
             )
         return usage if known else None
 
+    def _weekly_settle(self, key, usage):
+        """A live run's reported cost replaces its worst-case reservation in the weekly
+        window. A failure leaves the reservation (the conservative side)."""
+        if not self.shared_runs or usage is None:
+            return
+        try:
+            grant_runs.settle(
+                self.grant, self.store_id, key, usage.settled + usage.pending
+            )
+        except grant_runs.SharedRunsError:
+            return
+
     def _settle(self, key, final, status):
         with self._db() as db:
             row = self._rows(db, "WHERE key=?", (key,))[0]
         usage = self._usage(key, row)
+        self._weekly_settle(key, usage)
         with self._db() as db:
             db.execute("UPDATE runs SET phase=? WHERE key=?", (final.value, key))
             if usage is not None:

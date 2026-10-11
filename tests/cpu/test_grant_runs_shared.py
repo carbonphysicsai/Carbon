@@ -85,7 +85,7 @@ def test_different_grants_have_different_counts(tmp_path):
 def test_a_corrupt_ledger_refuses_every_launch(tmp_path, ledger):
     controller = live(tmp_path, "root-a")
     launch(controller, "k1")
-    [path] = list(ledger.glob("*.jsonl"))
+    [path] = [p for p in ledger.glob("*.jsonl") if p.name != gr.WEEKLY_FILE]
     path.write_bytes(path.read_bytes() + b"not json\n")
     with pytest.raises(ctl.ControllerError, match="grant_runs_unavailable"):
         launch(controller, "k2")
@@ -204,7 +204,7 @@ def test_the_seed_command_counts_other_roots_that_predate_the_ledger(tmp_path, c
 def test_the_ledger_holds_counts_and_ids_only(tmp_path, ledger):
     controller = live(tmp_path, "root-a")
     launch(controller, "k1")
-    [path] = list(ledger.glob("*.jsonl"))
+    [path] = [p for p in ledger.glob("*.jsonl") if p.name != gr.WEEKLY_FILE]
     body = path.read_text()
     for forbidden in ("account", "balance", "test-account", "ceiling", "USD", PROFILE):
         assert forbidden not in body
