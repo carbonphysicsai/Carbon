@@ -31,8 +31,11 @@ Test Lead's ruling: "it is the miner's compute, so it is the miner's choice."
    `seq` in the additive `launchpad_dispatch.retry_of` column, and the cap
    counts those rows, so the retry never loops.
 4. **One-step resume.** If the practice is not auto-retried (the setting is
-   off, or the cap is reached), `last_refusal` stays `operation_interrupted`,
-   and its catalog step names the one call:
+   off, or the cap is reached), `last_refusal` stays `operation_interrupted`.
+   For a practice only, its step comes from a per-operation catalog override
+   (`supervisor.OPERATION_NEXT_ACTIONS`) and names the one call. A freeze,
+   submit or any other operation keeps the code's original step unchanged.
+   The one call:
    `carbon_resume {campaign, retry_interrupted: true}`. On the browser this is
    Retry practice (`POST /api/v1/research/{id}/retry_interrupted`), and
    `recovery` offers `{action: retry_interrupted, operation: resume}`. A retry

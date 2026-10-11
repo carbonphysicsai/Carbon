@@ -190,10 +190,7 @@ NEXT_ACTIONS = {
     "operation_interrupted": (
         "The operation stopped before it finished, most likely because the "
         "process running it exited. Observe the campaign, then try again; "
-        "reconcile first if it asks for reconciliation. An interrupted "
-        "practice is sent again exactly as it was in one call: resume with "
-        "retry_interrupted=true (carbon_resume), or Retry practice in the "
-        "Control Center."
+        "reconcile first if it asks for reconciliation."
     ),
     # The one-step retry of an interrupted practice (LAUNCHPAD-PRACTICE-RETRY-01).
     "no_interrupted_practice": (
@@ -1399,6 +1396,19 @@ NEXT_ACTIONS = {
         "are kept for when the development ladder opens Level 4."
     ),
 }
+#: A code's step for one operation, where it differs from the code's own
+#: (LAUNCHPAD-PRACTICE-RETRY-01): an interrupted practice is sent again in
+#: one call; a freeze, submit or any other operation keeps the code's step.
+#: Read by `refusal`, so a `last_refusal` and the catalog agree.
+OPERATION_NEXT_ACTIONS = {
+    ("operation_interrupted", "practice"): (
+        "The practice stopped before it finished, most likely because the "
+        "process running it exited. Send it again exactly as it was in one "
+        "call: resume with retry_interrupted=true (carbon_resume {campaign, "
+        "retry_interrupted: true}), or Retry practice in the Control Center. "
+        "Reconcile first if the campaign asks for reconciliation."
+    ),
+}
 FALLBACK_ACTION = (
     "Read the code: it names what was refused. Correct what it names and try "
     "again; observe shows the campaign's state."
@@ -1432,6 +1442,12 @@ def catalog():
     return {
         "schema": CATALOG_SCHEMA,
         "next_actions": dict(NEXT_ACTIONS),
+        # A code's step for one operation, where it differs: {code:
+        # {operation: step}} (LAUNCHPAD-PRACTICE-RETRY-01).
+        "operation_next_actions": {
+            code: {operation: step}
+            for (code, operation), step in OPERATION_NEXT_ACTIONS.items()
+        },
         "fallback": FALLBACK_ACTION,
     }
 
@@ -1444,7 +1460,8 @@ def refusal(code, *, operation=None, kind="refused", at=None):
         code = "operation_refused" if kind == "refused" else "campaign_interrupted"
     return {
         "code": code,
-        "next_action": next_action(code),
+        "next_action": OPERATION_NEXT_ACTIONS.get((code, operation))
+        or next_action(code),
         "at": round(time.time() if at is None else at, 3),
         "operation": operation if operation in OPERATIONS else None,
         "kind": kind if kind in ("refused", "interrupted", "paused") else "refused",

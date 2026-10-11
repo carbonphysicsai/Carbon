@@ -187,8 +187,11 @@ def test_off_by_default_an_interrupted_practice_waits_for_the_one_step_retry(
         "practice",
         "interrupted",
     )
-    assert "retry_interrupted=true (carbon_resume)" in refused["next_action"]
-    assert refused["next_action"] == supervision.NEXT_ACTIONS["operation_interrupted"]
+    assert "retry_interrupted=true (carbon_resume" in refused["next_action"]
+    assert (
+        refused["next_action"]
+        == supervision.OPERATION_NEXT_ACTIONS[("operation_interrupted", "practice")]
+    )
     assert view["recovery"] == [RETRY]
     assert view_recovery(view) == [RETRY]  # the browser's campaign view
     assert [d["seq"] for d in dispatches(host, "practice")] == [lost]
@@ -394,6 +397,9 @@ def test_freeze_submit_and_commit_are_never_auto_retried(journey, operation, par
         "operation_interrupted",
         operation,
     )
+    # Its step is the code's own: it never points at a retry that is refused.
+    assert refused["next_action"] == supervision.NEXT_ACTIONS["operation_interrupted"]
+    assert "retry_interrupted" not in refused["next_action"]
     assert view["recovery"] == []
     assert [d["operation"] for d in dispatches(host)] == ["run", operation]
     with pytest.raises(Rejected, match="no_interrupted_practice"):
@@ -560,3 +566,39 @@ def test_existing_profiles_parse_unchanged_and_review_writes_the_field_only_when
     assert runner.validated_profile({**before, "practice_auto_retry": False})
     with pytest.raises(ValueError):
         runner.validated_profile({**before, "practice_auto_retry": "yes"})
+
+
+ORIGINAL_STEP = (
+    "The operation stopped before it finished, most likely because the "
+    "process running it exited. Observe the campaign, then try again; "
+    "reconcile first if it asks for reconciliation."
+)
+
+
+def test_only_an_interrupted_practice_names_the_one_step_retry():
+    practice = supervision.refusal(
+        "operation_interrupted", operation="practice", kind="interrupted"
+    )
+    assert "retry_interrupted: true" in practice["next_action"]
+    assert "Retry practice" in practice["next_action"]
+    # Submit, freeze and every other operation: the original text, unchanged.
+    assert supervision.NEXT_ACTIONS["operation_interrupted"] == ORIGINAL_STEP
+    for operation in ("submit", "freeze_candidate", "commit", "run", None):
+        other = supervision.refusal(
+            "operation_interrupted", operation=operation, kind="interrupted"
+        )
+        assert other["next_action"] == ORIGINAL_STEP
+    # A stored entry is read back with the same step.
+    stored = json.dumps(
+        supervision.refusal(
+            "operation_interrupted", operation="submit", kind="interrupted"
+        )
+    )
+    assert supervision.read_refusal(stored)["next_action"] == ORIGINAL_STEP
+    # The catalog serves both, the code's own step untouched.
+    listed = supervision.catalog()
+    assert listed["next_actions"]["operation_interrupted"] == ORIGINAL_STEP
+    assert (
+        listed["operation_next_actions"]["operation_interrupted"]["practice"]
+        == practice["next_action"]
+    )
