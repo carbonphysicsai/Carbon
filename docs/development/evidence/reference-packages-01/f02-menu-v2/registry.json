@@ -1,0 +1,13 @@
+{
+ "schema": "carbon.f02-menu-v2.registry.v1",
+ "registered": "2026-10-08, before any f02-v2 menu solve",
+ "authority": "Test Lead relay of #846 (CHALLENGE-VALUE-COST-01, owner-approved scorecards), 2026-10-08: measure a denser f02 schedule menu within the existing bounds on local free CPU. DIAGNOSTIC measurement for the value check; no packet adoption",
+ "fixed": "the round-one stack, materials, patches, cooling pairs (30 C, 2500 W/m2K) and (40 C, 1500 W/m2K), initial 40/55 C, splits 50/50 and 80/20, waveform families rectangular/ramp/two-pulse, base 20 W, burst start 20 s, 120 s horizon, 95 C top-die spatial maximum; Elmer 26.2.1 package image sha256:8bcd864d...; deck f02_deck at mesh 1, dt 1",
+ "menu": "peak {80, 100, 120, 140} W x on-time {5, 10, 15, 20} s = 16 actions per context, fixed before any solve, never tuned after seeing answers",
+ "contexts": 24,
+ "primary_solves": 384,
+ "refinement": "every primary whose peak is within 1 C (two 0.5 C bands) of 95 C: mesh 2 and dt/2 re-solves; PASS/FAIL only when all rungs agree, otherwise UNRESOLVED",
+ "near_limit": "a FAIL counts as near when its peak is within 1 C above 95 C; within 5 C (the packet's boundary-coverage gap) is reported too",
+ "report": "per context PASS, FAIL, near FAIL (1 C and 5 C), UNRESOLVED, contested (>= 5 PASS and >= 5 near FAIL), best action by extra joules; across contexts the distinct bests, the unresolved rate and C1 costs (p50/p95 CPU-s, peak memory) with the host profile",
+ "compute": "operator host, local free CPU, one CPU per ElmerSolver; no paid compute"
+}

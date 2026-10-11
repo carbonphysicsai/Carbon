@@ -323,6 +323,40 @@ class BankedBatterySource(BatteryBatchSource):
             raise ProducerRefused(refused.code) from None
         return fingerprint
 
+    # --- release (OWNER-AUTO-PUBLISH-RETIRED-01) ------------------------------------
+
+    def release(self, ended, directory, signer):
+        """Reveal the pool window of every ended batch (`ended`: fingerprints
+        whose scheduled window has retired) and publish every case that is
+        now publishable into `directory`, signed with the producer key. A
+        case publishes only once it has retired at E and every window that
+        drew it is revealed (`BankLedger._publishable`), so nothing drawn by
+        a live window is ever published. Idempotent. Returns public counts."""
+        if signer is None:
+            raise ProducerRefused("producer_no_signing_key")
+        revealed = 0
+        for fingerprint in ended:
+            key, _ = self._window(self._row(fingerprint)["role"])
+            self.ledger.reveal_window(BANK, key)
+            revealed += 1
+        try:
+            published = self.ledger.publish(directory, signer)
+        except BankRefused as refused:
+            raise ProducerRefused("producer_" + refused.code) from None
+        return {"revealed": revealed, "published": published}
+
+    #: The live-case level below which the bank reports `BANK_LOW`: half of B.
+    #: An engineering alert for the operator's refill, never a scientific value.
+    LOW_FRACTION = 0.5
+
+    def bank_health(self):
+        """The pool bank's live count against B: `BANK_LOW` below half of B,
+        so the refill timer is checked before a window would find it short."""
+        live = self.ledger.status().get(BANK, {}).get("live", 0)
+        size = self.pool["size"]
+        low = live < size * self.LOW_FRACTION
+        return {"state": "BANK_LOW" if low else "OK", "live": live, "size": size}
+
     def _design_keys(self, key, active):
         """A screening window's design key and the design keys of the other
         live screening windows (finalist windows carry no design

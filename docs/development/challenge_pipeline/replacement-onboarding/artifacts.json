@@ -1,0 +1,21 @@
+{
+  "schema": "carbon.onboarding.artifact-bindings.v1",
+  "challenges": {
+    "solenoid-pole": {"aliases":[],"stages":{
+      "S0_brief":["docs/development/challenge_pipeline/discovery/dossiers/solenoid-pole.md"],
+      "S1_packet":["docs/development/challenge_pipeline/discovery/dossiers/solenoid-pole.md"],
+      "S2_solver_package":["docs/development/challenge_pipeline/magnetics-first-panels/solenoid-pole.md"],
+      "S3_feasibility_value_panel":["docs/development/challenge_pipeline/value-cost/replacements/solenoid-pole.md"],
+      "S4_question_law":["docs/development/challenge_pipeline/discovery/dossiers/solenoid-pole.md"]}},
+    "bolted-joint": {"aliases":[],"stages":{
+      "S0_brief":["docs/development/challenge_pipeline/discovery/dossiers/bolted-joint.md"],
+      "S1_packet":["docs/development/challenge_pipeline/discovery/dossiers/bolted-joint.md"],
+      "S3_feasibility_value_panel":["docs/development/challenge_pipeline/value-cost/replacements/bolted-joint.md"],
+      "S4_question_law":["docs/development/challenge_pipeline/discovery/dossiers/bolted-joint.md"]}},
+    "seal-gland": {"aliases":[],"stages":{
+      "S0_brief":["docs/development/challenge_pipeline/discovery/dossiers/seal-gland.md"],
+      "S1_packet":["docs/development/challenge_pipeline/discovery/dossiers/seal-gland.md"],
+      "S3_feasibility_value_panel":["docs/development/challenge_pipeline/value-cost/replacements/seal-gland.md"],
+      "S4_question_law":["docs/development/challenge_pipeline/discovery/dossiers/seal-gland.md"]}}
+  }
+}

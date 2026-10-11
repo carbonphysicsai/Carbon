@@ -42,6 +42,15 @@
       "S1_packet": ["docs/development/challenge_pipeline/round1/f13-compressor-silencer.md"],
       "S3_feasibility_value_panel": ["docs/development/challenge_pipeline/value-cost/f13.md", "docs/development/challenge_pipeline/round1/f13-power-balance-diagnosis.json"],
       "S4_question_law": ["docs/development/challenge_pipeline/question-laws/proposals.json"]}},
+    "solenoid-pole": {"aliases": [], "stages": {
+      "S0_brief": ["docs/development/challenge_pipeline/discovery/dossiers/solenoid-pole.md"],
+      "S1_packet": ["docs/development/challenge_pipeline/discovery/dossiers/solenoid-pole.md"],
+      "S2_solver_package": ["docs/development/challenge_pipeline/magnetics-first-panels/solenoid-pole.md"],
+      "S3_feasibility_value_panel": ["docs/development/challenge_pipeline/value-cost/replacements/solenoid-pole.md", "docs/development/challenge_pipeline/magnetics-first-panels/panels.json"]}},
+    "seal-gland": {"aliases": [], "stages": {
+      "S0_brief": ["docs/development/challenge_pipeline/discovery/dossiers/seal-gland.md"],
+      "S1_packet": ["docs/development/challenge_pipeline/discovery/dossiers/seal-gland.md"],
+      "S3_feasibility_value_panel": ["docs/development/challenge_pipeline/value-cost/replacements/seal-gland.md"]}},
     "f17": {"aliases": [], "stages": {
       "S0_brief": ["docs/development/challenge_pipeline/round1/f17-passive-micromixer.md"],
       "S1_packet": ["docs/development/challenge_pipeline/round1/f17-passive-micromixer.md"],

@@ -1,0 +1,208 @@
+{
+  "NONE_FEASIBLE": {
+    "recommendation": "VALID_FORWARD_NO_REDRAW only with a complete settled proof; missing/uncertain support stays UNRESOLVED",
+    "status": "HUMAN_INPUT"
+  },
+  "P": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize P",
+    "owner": "science/product owner",
+    "recommendation": "`P_dev,decision` is uniform over 24 exogenous strata (2 cooling\u00d72 initial\u00d72\nsplit\u00d73 families); nine schedules are actions, not random customer states.\n`P_dev,reference` is uniform over all 216 condition/action pairs. This is an\nexperiment law, not deployment frequency. Q is 24 cases, one per stratum using\n110 W/10 s, plus six warm/55 \u00b0C/80:20 boundary cases: every family at80 W/5 s\nand its nearest-limit action under the frozen one-node RC screen. Exclude the\nnominal and low action from the latter; minimize absolute RC-peak distance to\n95 \u00b0C, ties by lower peak power then shorter on-time. The screen ignores\nspreading and imbalance. A nearest peak more than5 \u00b0C from95 \u00b0C is an explicit\nboundary-coverage gap, not a passed near-limit test. Persist this selection\nbefore Elmer access. Uniform stratum weights apply only to a later complete decision\ncomparison; Q diagnostic rows are reported individually without a P estimate.\n\nThe offline selection is rectangular80 W/10 s (RC peak99.406 \u00b0C), ramp80 W/20 s\n(94.136 \u00b0C), two-pulse140 W/5 s (97.392 \u00b0C), all for the warm/55 \u00b0C screen.\nThese are preregistered probe actions, **not safe schedule recommendations**.\nElmer must test actual spatial/time response; no RC value is imported as truth.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe 24 cooling/initial/split/waveform scenarios are correlated conditions of\nthe current package, but each can ask for its own schedule. A future `P_job`\ncan vary supported scenario requirements, such as a temperature ceiling or\nminimum extra-energy need, against the same fully solved schedule/scenario\nbank. A package engineer recognizes these questions from workload power\ntraces, thermal operating policy and cooling fixture limits. Requirement\nvariation costs no new Elmer solve when the bank records spatial peak and\nenergy for every eligible action; it must be checked for different right\nanswers. New die stacks, contact laws or cooling regimes are optional axes\nrequiring new reference support. Timestep samples and schedule order are not\nfresh questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\nscenario/requirement questions for a development scoping pilot and preserve\ntheir common-package cluster. `HUMAN_INPUT`: eligible limits and conditions,\n`P_job`, protected `Q_job`, weights, answer diversity, bank exposure and\npower-justified hidden `n`. The existing 50-launch grant cannot create the\nfull 216-solve physical bank; reusing a later solved bank does not reset `E`.",
+    "sources": [
+      {
+        "excerpt": "`P_dev,decision` is uniform over 24 exogenous strata (2 cooling\u00d72 initial\u00d72\nsplit\u00d73 families); nine schedules are actions, not random customer states.\n`P_dev,reference` is uniform over all 216 condition/action pairs. This is an\nexperiment law, not deployment frequency. Q is 24 cases, one per stratum using\n110 W/10 s, plus six warm/55 \u00b0C/80:20 boundary cases: every family at80 W/5 s\nand its nearest-limit action under the frozen one-node RC screen. Exclude the\nnominal and low action from the latter; minimize absolute RC-peak distance to\n95 \u00b0C, ties by lower peak power then shorter on-time. The screen ignores\nspreading and imbalance. A nearest peak more than5 \u00b0C from95 \u00b0C is an explicit\nboundary-coverage gap, not a passed near-limit test. Persist this selection\nbefore Elmer access. Uniform stratum weights apply only to a later complete decision\ncomparison; Q diagnostic rows are reported individually without a P estimate.\n\nThe offline selection is rectangular80 W/10 s (RC peak99.406 \u00b0C), ramp80 W/20 s\n(94.136 \u00b0C), two-pulse140 W/5 s (97.392 \u00b0C), all for the warm/55 \u00b0C screen.\nThese are preregistered probe actions, **not safe schedule recommendations**.\nElmer must test actual spatial/time response; no RC value is imported as truth.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe 24 cooling/initial/split/waveform scenarios are correlated conditions of\nthe current package, but each can ask for its own schedule. A future `P_job`\ncan vary supported scenario requirements, such as a temperature ceiling or\nminimum extra-energy need, against the same fully solved schedule/scenario\nbank. A package engineer recognizes these questions from workload power\ntraces, thermal operating policy and cooling fixture limits. Requirement\nvariation costs no new Elmer solve when the bank records spatial peak and\nenergy for every eligible action; it must be checked for different right\nanswers. New die stacks, contact laws or cooling regimes are optional axes\nrequiring new reference support. Timestep samples and schedule order are not\nfresh questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\nscenario/requirement questions for a development scoping pilot and preserve\ntheir common-package cluster. `HUMAN_INPUT`: eligible limits and conditions,\n`P_job`, protected `Q_job`, weights, answer diversity, bank exposure and\npower-justified hidden `n`. The existing 50-launch grant cannot create the\nfull 216-solve physical bank; reusing a later solved bank does not reset `E`.",
+        "path": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+        "sha256": "e4d3ce14fde60ed5e9e2990ceb735f62357d6b16b9fcb34e9a8df9ed63ffd4bb"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "Q": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize Q",
+    "owner": "science/product owner",
+    "recommendation": "`P_dev,decision` is uniform over 24 exogenous strata (2 cooling\u00d72 initial\u00d72\nsplit\u00d73 families); nine schedules are actions, not random customer states.\n`P_dev,reference` is uniform over all 216 condition/action pairs. This is an\nexperiment law, not deployment frequency. Q is 24 cases, one per stratum using\n110 W/10 s, plus six warm/55 \u00b0C/80:20 boundary cases: every family at80 W/5 s\nand its nearest-limit action under the frozen one-node RC screen. Exclude the\nnominal and low action from the latter; minimize absolute RC-peak distance to\n95 \u00b0C, ties by lower peak power then shorter on-time. The screen ignores\nspreading and imbalance. A nearest peak more than5 \u00b0C from95 \u00b0C is an explicit\nboundary-coverage gap, not a passed near-limit test. Persist this selection\nbefore Elmer access. Uniform stratum weights apply only to a later complete decision\ncomparison; Q diagnostic rows are reported individually without a P estimate.\n\nThe offline selection is rectangular80 W/10 s (RC peak99.406 \u00b0C), ramp80 W/20 s\n(94.136 \u00b0C), two-pulse140 W/5 s (97.392 \u00b0C), all for the warm/55 \u00b0C screen.\nThese are preregistered probe actions, **not safe schedule recommendations**.\nElmer must test actual spatial/time response; no RC value is imported as truth.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe 24 cooling/initial/split/waveform scenarios are correlated conditions of\nthe current package, but each can ask for its own schedule. A future `P_job`\ncan vary supported scenario requirements, such as a temperature ceiling or\nminimum extra-energy need, against the same fully solved schedule/scenario\nbank. A package engineer recognizes these questions from workload power\ntraces, thermal operating policy and cooling fixture limits. Requirement\nvariation costs no new Elmer solve when the bank records spatial peak and\nenergy for every eligible action; it must be checked for different right\nanswers. New die stacks, contact laws or cooling regimes are optional axes\nrequiring new reference support. Timestep samples and schedule order are not\nfresh questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\nscenario/requirement questions for a development scoping pilot and preserve\ntheir common-package cluster. `HUMAN_INPUT`: eligible limits and conditions,\n`P_job`, protected `Q_job`, weights, answer diversity, bank exposure and\npower-justified hidden `n`. The existing 50-launch grant cannot create the\nfull 216-solve physical bank; reusing a later solved bank does not reset `E`.",
+    "sources": [
+      {
+        "excerpt": "`P_dev,decision` is uniform over 24 exogenous strata (2 cooling\u00d72 initial\u00d72\nsplit\u00d73 families); nine schedules are actions, not random customer states.\n`P_dev,reference` is uniform over all 216 condition/action pairs. This is an\nexperiment law, not deployment frequency. Q is 24 cases, one per stratum using\n110 W/10 s, plus six warm/55 \u00b0C/80:20 boundary cases: every family at80 W/5 s\nand its nearest-limit action under the frozen one-node RC screen. Exclude the\nnominal and low action from the latter; minimize absolute RC-peak distance to\n95 \u00b0C, ties by lower peak power then shorter on-time. The screen ignores\nspreading and imbalance. A nearest peak more than5 \u00b0C from95 \u00b0C is an explicit\nboundary-coverage gap, not a passed near-limit test. Persist this selection\nbefore Elmer access. Uniform stratum weights apply only to a later complete decision\ncomparison; Q diagnostic rows are reported individually without a P estimate.\n\nThe offline selection is rectangular80 W/10 s (RC peak99.406 \u00b0C), ramp80 W/20 s\n(94.136 \u00b0C), two-pulse140 W/5 s (97.392 \u00b0C), all for the warm/55 \u00b0C screen.\nThese are preregistered probe actions, **not safe schedule recommendations**.\nElmer must test actual spatial/time response; no RC value is imported as truth.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe 24 cooling/initial/split/waveform scenarios are correlated conditions of\nthe current package, but each can ask for its own schedule. A future `P_job`\ncan vary supported scenario requirements, such as a temperature ceiling or\nminimum extra-energy need, against the same fully solved schedule/scenario\nbank. A package engineer recognizes these questions from workload power\ntraces, thermal operating policy and cooling fixture limits. Requirement\nvariation costs no new Elmer solve when the bank records spatial peak and\nenergy for every eligible action; it must be checked for different right\nanswers. New die stacks, contact laws or cooling regimes are optional axes\nrequiring new reference support. Timestep samples and schedule order are not\nfresh questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\nscenario/requirement questions for a development scoping pilot and preserve\ntheir common-package cluster. `HUMAN_INPUT`: eligible limits and conditions,\n`P_job`, protected `Q_job`, weights, answer diversity, bank exposure and\npower-justified hidden `n`. The existing 50-launch grant cannot create the\nfull 216-solve physical bank; reusing a later solved bank does not reset `E`.",
+        "path": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+        "sha256": "e4d3ce14fde60ed5e9e2990ceb735f62357d6b16b9fcb34e9a8df9ed63ffd4bb"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "T2a": {
+    "band_widths": "HUMAN_INPUT",
+    "measured": "NOT_ASSESSED_BY_DRAFTING",
+    "minimum_distinct_feasible": 5,
+    "minimum_distinct_infeasible": 5,
+    "near_refinement_bands": 2,
+    "rule": "Both sides near the limit; add frontier resolution, never widen bands",
+    "status": "TEST_LEAD_WORKING_VALUE"
+  },
+  "action_set": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize geometry",
+    "owner": "science/product owner",
+    "recommendation": "Fixed silicon-surrogate 20\u00d720\u00d70.5 mm, TIM-surrogate 20\u00d720\u00d70.2 mm and copper-surrogate\n30\u00d730\u00d72 mm, centered in x/y and stacked in z. Constant isotropic k/rho/cp are\nselected synthetic values in the sheet, not empirical package characterization.\nPerfect layer continuity; remaining exposed surfaces insulated; whole underside\nRobin cooling. Two 8\u00d78-mm top patches centered at x=\u22125/+5 mm, y=0. Total power\nsplit 50/50 or 80/20, with the left patch taking the larger share.\n\nCooling pairs are (30 \u00b0C, 2,500 W/m\u00b2K) and (40 \u00b0C, 1,500 W/m\u00b2K); uniform initial\nT is 40 or 55 \u00b0C. Base 20 W throughout. Burst starts at 20 s. Rectangular: peak\nfor D seconds; ramp: rise linearly from base to peak over D seconds then return\nto base; two-pulse: two rectangles of D/2 separated by 10 s. Peak={80,110,140} W,\nD={5,10,20} s. No causal future observation is available to the construction.",
+    "sources": [
+      {
+        "excerpt": "Fixed silicon-surrogate 20\u00d720\u00d70.5 mm, TIM-surrogate 20\u00d720\u00d70.2 mm and copper-surrogate\n30\u00d730\u00d72 mm, centered in x/y and stacked in z. Constant isotropic k/rho/cp are\nselected synthetic values in the sheet, not empirical package characterization.\nPerfect layer continuity; remaining exposed surfaces insulated; whole underside\nRobin cooling. Two 8\u00d78-mm top patches centered at x=\u22125/+5 mm, y=0. Total power\nsplit 50/50 or 80/20, with the left patch taking the larger share.\n\nCooling pairs are (30 \u00b0C, 2,500 W/m\u00b2K) and (40 \u00b0C, 1,500 W/m\u00b2K); uniform initial\nT is 40 or 55 \u00b0C. Base 20 W throughout. Burst starts at 20 s. Rectangular: peak\nfor D seconds; ramp: rise linearly from base to peak over D seconds then return\nto base; two-pulse: two rectangles of D/2 separated by 10 s. Peak={80,110,140} W,\nD={5,10,20} s. No causal future observation is available to the construction.",
+        "path": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+        "sha256": "e4d3ce14fde60ed5e9e2990ceb735f62357d6b16b9fcb34e9a8df9ed63ffd4bb"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "bank": {
+    "B": null,
+    "E": null,
+    "n": null,
+    "status": "HUMAN_INPUT",
+    "threshold_variation_renews_exposure": false
+  },
+  "challenge": "f02",
+  "diversity": null,
+  "held_closed": "No law approval, bank draw, runtime registration, power acceptance or spend",
+  "k": {
+    "basis": "Power and exposure owner selects; a panel's batch size is not approval",
+    "recommendation": 8,
+    "status": "HUMAN_INPUT"
+  },
+  "maturity": "DRAFT_ONLY",
+  "panel_basis": null,
+  "question": {
+    "buyer_decision": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize decision",
+      "owner": "science/product owner",
+      "recommendation": "Choose a burst-power/time schedule maximizing extra joules within the spatial peak temperature cap",
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "recommendation": "One complete buyer decision, not one solver point; indexed decisions include every mandatory band",
+    "status": "HUMAN_INPUT"
+  },
+  "schema": "carbon.onboarding.question-law-draft.v1",
+  "source_proposal_crosswalk": {
+    "NONE_FEASIBLE": "VALID_FORWARD_NO_REDRAW_PENDING_RUNTIME_INTEGRATION",
+    "P": {
+      "recommendation": {
+        "context_mass": "uniform24",
+        "dependence": "independent_product_uniform",
+        "energy_floor_j": [
+          300,
+          900
+        ],
+        "thermal_cap_c": [
+          90,
+          95
+        ]
+      },
+      "registered": null,
+      "status": "HUMAN_INPUT"
+    },
+    "Q": {
+      "recommendation": "Q3=P; separately registered diagnostic Q2/frontier",
+      "registered": null,
+      "status": "HUMAN_INPUT"
+    },
+    "action_set": {
+      "duration_s": [
+        5,
+        20
+      ],
+      "power_w": [
+        80,
+        140
+      ],
+      "registered": null,
+      "rounding": null,
+      "seed_duration_s": [
+        5,
+        10,
+        15,
+        20
+      ],
+      "seed_power_w": [
+        80,
+        100,
+        120,
+        140
+      ],
+      "status": "HUMAN_INPUT"
+    },
+    "bank": {
+      "b_questions": 160,
+      "class": "cheap",
+      "e": 5,
+      "multiplier": 20,
+      "registered": null,
+      "same_truth_resets_exposure": false
+    },
+    "cost": {
+      "basis": "OWNER_REPORTED_NOT_PINNED_RECEIPT",
+      "c2_cap_eur": 100,
+      "c2_status": "UNMEASURED",
+      "controls_and_baselines": 8,
+      "initial_refinement_jobs_recommendation": 12,
+      "node_eur_per_h_assumption": 1.37,
+      "non_node_reserve_eur_assumption": 20,
+      "refinement_cpu_h_measured": null,
+      "standard_cpu_min": [
+        2,
+        3
+      ],
+      "standard_panel_jobs": 384,
+      "tax_fraction_assumption": 0.19
+    },
+    "k": {
+      "recommendation": 8,
+      "registered": null,
+      "status": "HUMAN_INPUT"
+    },
+    "question": {
+      "recommendation": {
+        "context_mass": "uniform24",
+        "dependence": "independent_product_uniform",
+        "energy_floor_j": [
+          300,
+          900
+        ],
+        "thermal_cap_c": [
+          90,
+          95
+        ]
+      },
+      "registered": null,
+      "status": "HUMAN_INPUT"
+    },
+    "w": {
+      "recommendation": "unit for uniform P; Q2 separate",
+      "registered": null,
+      "status": "HUMAN_INPUT"
+    }
+  },
+  "source_proposal_digest": "sha256:bd62059bff690788057e12ac1863cceb3f8ed7c4ee849b142917576f9d43b741",
+  "source_proposal_status": "RETAINED_PROPOSAL_NOT_OWNER_ACCEPTANCE",
+  "startup_cost": {
+    "basis": "Requires unique new physical cases/rungs, measured CPU, throughput, overhead and quote; B is not a solve count",
+    "cpu_hours": null,
+    "eur": null,
+    "status": "HUMAN_INPUT"
+  },
+  "w": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize w",
+    "owner": "science/product owner",
+    "recommendation": "`P_dev,decision` is uniform over 24 exogenous strata (2 cooling\u00d72 initial\u00d72\nsplit\u00d73 families); nine schedules are actions, not random customer states.\n`P_dev,reference` is uniform over all 216 condition/action pairs. This is an\nexperiment law, not deployment frequency. Q is 24 cases, one per stratum using\n110 W/10 s, plus six warm/55 \u00b0C/80:20 boundary cases: every family at80 W/5 s\nand its nearest-limit action under the frozen one-node RC screen. Exclude the\nnominal and low action from the latter; minimize absolute RC-peak distance to\n95 \u00b0C, ties by lower peak power then shorter on-time. The screen ignores\nspreading and imbalance. A nearest peak more than5 \u00b0C from95 \u00b0C is an explicit\nboundary-coverage gap, not a passed near-limit test. Persist this selection\nbefore Elmer access. Uniform stratum weights apply only to a later complete decision\ncomparison; Q diagnostic rows are reported individually without a P estimate.\n\nThe offline selection is rectangular80 W/10 s (RC peak99.406 \u00b0C), ramp80 W/20 s\n(94.136 \u00b0C), two-pulse140 W/5 s (97.392 \u00b0C), all for the warm/55 \u00b0C screen.\nThese are preregistered probe actions, **not safe schedule recommendations**.\nElmer must test actual spatial/time response; no RC value is imported as truth.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe 24 cooling/initial/split/waveform scenarios are correlated conditions of\nthe current package, but each can ask for its own schedule. A future `P_job`\ncan vary supported scenario requirements, such as a temperature ceiling or\nminimum extra-energy need, against the same fully solved schedule/scenario\nbank. A package engineer recognizes these questions from workload power\ntraces, thermal operating policy and cooling fixture limits. Requirement\nvariation costs no new Elmer solve when the bank records spatial peak and\nenergy for every eligible action; it must be checked for different right\nanswers. New die stacks, contact laws or cooling regimes are optional axes\nrequiring new reference support. Timestep samples and schedule order are not\nfresh questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\nscenario/requirement questions for a development scoping pilot and preserve\ntheir common-package cluster. `HUMAN_INPUT`: eligible limits and conditions,\n`P_job`, protected `Q_job`, weights, answer diversity, bank exposure and\npower-justified hidden `n`. The existing 50-launch grant cannot create the\nfull 216-solve physical bank; reusing a later solved bank does not reset `E`.",
+    "sources": [
+      {
+        "excerpt": "`P_dev,decision` is uniform over 24 exogenous strata (2 cooling\u00d72 initial\u00d72\nsplit\u00d73 families); nine schedules are actions, not random customer states.\n`P_dev,reference` is uniform over all 216 condition/action pairs. This is an\nexperiment law, not deployment frequency. Q is 24 cases, one per stratum using\n110 W/10 s, plus six warm/55 \u00b0C/80:20 boundary cases: every family at80 W/5 s\nand its nearest-limit action under the frozen one-node RC screen. Exclude the\nnominal and low action from the latter; minimize absolute RC-peak distance to\n95 \u00b0C, ties by lower peak power then shorter on-time. The screen ignores\nspreading and imbalance. A nearest peak more than5 \u00b0C from95 \u00b0C is an explicit\nboundary-coverage gap, not a passed near-limit test. Persist this selection\nbefore Elmer access. Uniform stratum weights apply only to a later complete decision\ncomparison; Q diagnostic rows are reported individually without a P estimate.\n\nThe offline selection is rectangular80 W/10 s (RC peak99.406 \u00b0C), ramp80 W/20 s\n(94.136 \u00b0C), two-pulse140 W/5 s (97.392 \u00b0C), all for the warm/55 \u00b0C screen.\nThese are preregistered probe actions, **not safe schedule recommendations**.\nElmer must test actual spatial/time response; no RC value is imported as truth.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe 24 cooling/initial/split/waveform scenarios are correlated conditions of\nthe current package, but each can ask for its own schedule. A future `P_job`\ncan vary supported scenario requirements, such as a temperature ceiling or\nminimum extra-energy need, against the same fully solved schedule/scenario\nbank. A package engineer recognizes these questions from workload power\ntraces, thermal operating policy and cooling fixture limits. Requirement\nvariation costs no new Elmer solve when the bank records spatial peak and\nenergy for every eligible action; it must be checked for different right\nanswers. New die stacks, contact laws or cooling regimes are optional axes\nrequiring new reference support. Timestep samples and schedule order are not\nfresh questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\nscenario/requirement questions for a development scoping pilot and preserve\ntheir common-package cluster. `HUMAN_INPUT`: eligible limits and conditions,\n`P_job`, protected `Q_job`, weights, answer diversity, bank exposure and\npower-justified hidden `n`. The existing 50-launch grant cannot create the\nfull 216-solve physical bank; reusing a later solved bank does not reset `E`.",
+        "path": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+        "sha256": "e4d3ce14fde60ed5e9e2990ceb735f62357d6b16b9fcb34e9a8df9ed63ffd4bb"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  }
+}

@@ -19,8 +19,10 @@ than solving a fresh batch:
   draws each stratum's quota within that stratum. A window's draw is stored
   once.
 - **Exposure.** Each draw adds one exposure to each drawn case. At E the
-  case retires into the release queue. Releasing it stays HUMAN_INPUT
-  (OWNER-BATTERY-3B-AND-EXPOSURE-01).
+  case retires into the release queue. It publishes automatically
+  (OWNER-AUTO-PUBLISH-RETIRED-01) once every window that drew it has ended
+  and been revealed: the producer's tick reveals and publishes
+  (`BankedBatterySource.release`).
 - **Top-up.** `deficit` is what the bank needs to return to B live cases,
   counting tranches not yet sealed. The caller draws, solves and seals a
   tranche of that size.
