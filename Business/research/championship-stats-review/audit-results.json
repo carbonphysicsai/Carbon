@@ -1,0 +1,635 @@
+{
+  "ticket": "CHAMPIONSHIP-STATS-REVIEW-01",
+  "maturity": "PUBLIC_DIAGNOSTIC_NOT_PRODUCTION_VALIDATION",
+  "source_inputs": [
+    {
+      "name": "MARGIN_SIZING_02.md",
+      "bytes": 6921,
+      "sha256": "a73da558d7c5a704fa317b7085d077b006d26f7ac9dd2e89acb013fec5d893ea"
+    },
+    {
+      "name": "MARGIN_SIZING_03.md",
+      "bytes": 4727,
+      "sha256": "2e5ce65e24a1af5dade1966790a870a480887a34945088a3fd0732a221f9db11"
+    },
+    {
+      "name": "MARGIN_SIZING_04.md",
+      "bytes": 5531,
+      "sha256": "af4e5209f7165e7b35f185d10e67cdfd38ad19931fb0cb68857fbf81e8ab8a1c"
+    },
+    {
+      "name": "PROPOSAL.md",
+      "bytes": 5772,
+      "sha256": "8a35185b4c66254c6c1b8f1a4a43bd38470b816f1cc4d2ca54adb46870df9a0e"
+    },
+    {
+      "name": "margin_02.json",
+      "bytes": 8262,
+      "sha256": "57256baa1141838fbecfcfb108e400a140f5b0a894cc891e69217c0c8d002aae"
+    },
+    {
+      "name": "margin_03.json",
+      "bytes": 11889,
+      "sha256": "4b74b628920c41692e2de9fc48340070ee17b842c108d88dcace2118bbbd4f43"
+    },
+    {
+      "name": "margin_04.json",
+      "bytes": 11203,
+      "sha256": "61583cd7aa0b33496b4d09684611e0eb2745acb96c770b5dd13c53c784a04198"
+    },
+    {
+      "name": "analysis.json",
+      "bytes": 4782,
+      "sha256": "7c55d01faab9bec2759c6f068d92fd50ebd97fd4b4fd412dc793200d90a47798"
+    },
+    {
+      "name": "paired.json",
+      "bytes": 1995,
+      "sha256": "bd94c4d1c33bad766fbdd80da3c7eb153a435a0754cae391880762d1a30a68a2"
+    },
+    {
+      "name": "m04.py",
+      "bytes": 3691,
+      "sha256": "4831f3e2834b580776e2c61806b848b18b66eaf01541e76aa99cb5755c30d62a"
+    },
+    {
+      "name": "margin_02.py",
+      "bytes": 4396,
+      "sha256": "adc73240c1d960489a9a68fa3ada6986d652548bed9c7f00f1e8e994f4a7d174"
+    },
+    {
+      "name": "margin_03.py",
+      "bytes": 2952,
+      "sha256": "643e89d4449d6a05dbaa9e442722ad99d20ee9a9b6f3645cc7cdf54b61d33ebe"
+    },
+    {
+      "name": "margin_sizing.py",
+      "bytes": 6011,
+      "sha256": "689f4c64ea1baee8587172ee5941149ade6c65d4af35b05ef68b57385e1fd65c"
+    },
+    {
+      "name": "paired.py",
+      "bytes": 1893,
+      "sha256": "ea9b23eabeab2108f058d8cb6161462a5d7fccb0ffd60ca9c43963f08ad95e44"
+    }
+  ],
+  "synthetic_seed": 731,
+  "synthetic_trials_per_scenario": 40000,
+  "numeric_policy": "scenarios are ASSUMPTION; intervals are Monte Carlo uncertainty only",
+  "original_null_reproduction": {
+    "N": 2000,
+    "rounds": 14,
+    "alpha_art": 0.05,
+    "trials": 6000,
+    "false_crossings": 36,
+    "wilson95_low_point_high": [
+      0.004337221492314936,
+      0.006,
+      0.008294933993614782
+    ],
+    "supplied_rate": 0.006,
+    "matches": true
+  },
+  "synthetic_carry_stress": [
+    {
+      "scenario": "normal_variance_misspecification",
+      "N": 2000,
+      "actual_sd_multiplier": 1.0,
+      "assumption": "independent Gaussian rounds; declared proxy SD remains 0.46",
+      "false_crossings": 250,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.005523677534015104,
+        0.00625,
+        0.007071149373779248
+      ]
+    },
+    {
+      "scenario": "normal_variance_misspecification",
+      "N": 2000,
+      "actual_sd_multiplier": 1.25,
+      "assumption": "independent Gaussian rounds; declared proxy SD remains 0.46",
+      "false_crossings": 1319,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.03126939161579881,
+        0.032975,
+        0.0347703026355686
+      ]
+    },
+    {
+      "scenario": "normal_variance_misspecification",
+      "N": 2000,
+      "actual_sd_multiplier": 1.5,
+      "assumption": "independent Gaussian rounds; declared proxy SD remains 0.46",
+      "false_crossings": 3381,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.08183868515380718,
+        0.084525,
+        0.08729110868825024
+      ]
+    },
+    {
+      "scenario": "normal_variance_misspecification",
+      "N": 2000,
+      "actual_sd_multiplier": 2.0,
+      "assumption": "independent Gaussian rounds; declared proxy SD remains 0.46",
+      "false_crossings": 8587,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.21067872523517128,
+        0.214675,
+        0.2187260727141278
+      ]
+    },
+    {
+      "scenario": "stationary_AR1_round_shocks",
+      "N": 2000,
+      "phi": 0.25,
+      "assumption": "marginal round variance unchanged; carry variance ignores covariance",
+      "false_crossings": 1026,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.024145713345294067,
+        0.02565,
+        0.02724538770526239
+      ]
+    },
+    {
+      "scenario": "stationary_AR1_round_shocks",
+      "N": 2000,
+      "phi": 0.5,
+      "assumption": "marginal round variance unchanged; carry variance ignores covariance",
+      "false_crossings": 2774,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.06690150188351071,
+        0.06935,
+        0.0718812063855356
+      ]
+    },
+    {
+      "scenario": "stationary_AR1_round_shocks",
+      "N": 2000,
+      "phi": 0.75,
+      "assumption": "marginal round variance unchanged; carry variance ignores covariance",
+      "false_crossings": 5519,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.13463004715196164,
+        0.137975,
+        0.1413894813772419
+      ]
+    },
+    {
+      "scenario": "stationary_AR1_round_shocks",
+      "N": 2000,
+      "phi": 0.9,
+      "assumption": "marginal round variance unchanged; carry variance ignores covariance",
+      "false_crossings": 7241,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.1772823753220622,
+        0.181025,
+        0.18482888526105418
+      ]
+    },
+    {
+      "scenario": "rare_positive_round_shock",
+      "N": 2000,
+      "positive_probability": 0.001,
+      "assumption": "independent, zero-mean/unit-variance batch shocks, not IID case noise",
+      "false_crossings": 516,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.011839995988427528,
+        0.0129,
+        0.014053553756963112
+      ]
+    },
+    {
+      "scenario": "rare_positive_round_shock",
+      "N": 2000,
+      "positive_probability": 0.01,
+      "assumption": "independent, zero-mean/unit-variance batch shocks, not IID case noise",
+      "false_crossings": 3523,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.08533710008938206,
+        0.088075,
+        0.09089201195921173
+      ]
+    },
+    {
+      "scenario": "rare_positive_round_shock",
+      "N": 2000,
+      "positive_probability": 0.05,
+      "assumption": "independent, zero-mean/unit-variance batch shocks, not IID case noise",
+      "false_crossings": 3219,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.0778492922761852,
+        0.080475,
+        0.08318127938658426
+      ]
+    },
+    {
+      "scenario": "student_t3_round_shocks",
+      "N": 2000,
+      "assumption": "independent, zero-mean/unit-variance batch shocks; no sub-Gaussian MGF",
+      "false_crossings": 678,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.01573059583386707,
+        0.01695,
+        0.01826217609081154
+      ]
+    },
+    {
+      "scenario": "normal_variance_misspecification",
+      "N": 3000,
+      "actual_sd_multiplier": 1.0,
+      "assumption": "independent Gaussian rounds; declared proxy SD remains 0.46",
+      "false_crossings": 230,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.005055009874287646,
+        0.00575,
+        0.006539913060755105
+      ]
+    },
+    {
+      "scenario": "normal_variance_misspecification",
+      "N": 3000,
+      "actual_sd_multiplier": 1.25,
+      "assumption": "independent Gaussian rounds; declared proxy SD remains 0.46",
+      "false_crossings": 1316,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.03119632136289243,
+        0.0329,
+        0.03469338729256224
+      ]
+    },
+    {
+      "scenario": "normal_variance_misspecification",
+      "N": 3000,
+      "actual_sd_multiplier": 1.5,
+      "assumption": "independent Gaussian rounds; declared proxy SD remains 0.46",
+      "false_crossings": 3325,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.08045941835047404,
+        0.083125,
+        0.08587064436787889
+      ]
+    },
+    {
+      "scenario": "normal_variance_misspecification",
+      "N": 3000,
+      "actual_sd_multiplier": 2.0,
+      "assumption": "independent Gaussian rounds; declared proxy SD remains 0.46",
+      "false_crossings": 8451,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.20730240732283567,
+        0.211275,
+        0.2153030436117525
+      ]
+    },
+    {
+      "scenario": "stationary_AR1_round_shocks",
+      "N": 3000,
+      "phi": 0.25,
+      "assumption": "marginal round variance unchanged; carry variance ignores covariance",
+      "false_crossings": 1011,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.02378181359300739,
+        0.025275,
+        0.02685935947798537
+      ]
+    },
+    {
+      "scenario": "stationary_AR1_round_shocks",
+      "N": 3000,
+      "phi": 0.5,
+      "assumption": "marginal round variance unchanged; carry variance ignores covariance",
+      "false_crossings": 2751,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.06633613118071037,
+        0.068775,
+        0.07129668751967162
+      ]
+    },
+    {
+      "scenario": "stationary_AR1_round_shocks",
+      "N": 3000,
+      "phi": 0.75,
+      "assumption": "marginal round variance unchanged; carry variance ignores covariance",
+      "false_crossings": 5389,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.13141410451373672,
+        0.134725,
+        0.13810604819258146
+      ]
+    },
+    {
+      "scenario": "stationary_AR1_round_shocks",
+      "N": 3000,
+      "phi": 0.9,
+      "assumption": "marginal round variance unchanged; carry variance ignores covariance",
+      "false_crossings": 7195,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.17614184869794292,
+        0.179875,
+        0.1836696327478448
+      ]
+    },
+    {
+      "scenario": "rare_positive_round_shock",
+      "N": 3000,
+      "positive_probability": 0.001,
+      "assumption": "independent, zero-mean/unit-variance batch shocks, not IID case noise",
+      "false_crossings": 567,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.013062313022169866,
+        0.014175,
+        0.015380991853737355
+      ]
+    },
+    {
+      "scenario": "rare_positive_round_shock",
+      "N": 3000,
+      "positive_probability": 0.01,
+      "assumption": "independent, zero-mean/unit-variance batch shocks, not IID case noise",
+      "false_crossings": 3410,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.0825530362770035,
+        0.08525,
+        0.08802661832554376
+      ]
+    },
+    {
+      "scenario": "rare_positive_round_shock",
+      "N": 3000,
+      "positive_probability": 0.05,
+      "assumption": "independent, zero-mean/unit-variance batch shocks, not IID case noise",
+      "false_crossings": 3169,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.07661839496613257,
+        0.079225,
+        0.08191241676475788
+      ]
+    },
+    {
+      "scenario": "student_t3_round_shocks",
+      "N": 3000,
+      "assumption": "independent, zero-mean/unit-variance batch shocks; no sub-Gaussian MGF",
+      "false_crossings": 708,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.01645335497069319,
+        0.0177,
+        0.019039272913112817
+      ]
+    }
+  ],
+  "daily_Holm_stress": [
+    {
+      "scenario": "daily_fixed_round_Holm_all_null",
+      "contenders": 1,
+      "within_round_correlation": 0.0,
+      "assumption": "fresh independent rounds; no carry-forward branch or incumbent changes",
+      "day1": {
+        "false_crossings": 1963,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.047000957365361556,
+          0.049075,
+          0.051235644808607386
+        ]
+      },
+      "any_of_14_days": {
+        "false_crossings": 20487,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.5072756088145196,
+          0.512175,
+          0.5170720529219819
+        ]
+      }
+    },
+    {
+      "scenario": "daily_fixed_round_Holm_all_null",
+      "contenders": 1,
+      "within_round_correlation": 0.5,
+      "assumption": "fresh independent rounds; no carry-forward branch or incumbent changes",
+      "day1": {
+        "false_crossings": 1998,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.04785807291173938,
+          0.04995,
+          0.052128361214544866
+        ]
+      },
+      "any_of_14_days": {
+        "false_crossings": 20344,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.5037002242162821,
+          0.5086,
+          0.5134981241150455
+        ]
+      }
+    },
+    {
+      "scenario": "daily_fixed_round_Holm_all_null",
+      "contenders": 1,
+      "within_round_correlation": 0.9,
+      "assumption": "fresh independent rounds; no carry-forward branch or incumbent changes",
+      "day1": {
+        "false_crossings": 2011,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.04817647653719936,
+          0.050275,
+          0.05245989517137343
+        ]
+      },
+      "any_of_14_days": {
+        "false_crossings": 20383,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.5046753042524007,
+          0.509575,
+          0.5144728568257925
+        ]
+      }
+    },
+    {
+      "scenario": "daily_fixed_round_Holm_all_null",
+      "contenders": 5,
+      "within_round_correlation": 0.0,
+      "assumption": "fresh independent rounds; no carry-forward branch or incumbent changes",
+      "day1": {
+        "false_crossings": 1884,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.045067016075406134,
+          0.0471,
+          0.04921996540619399
+        ]
+      },
+      "any_of_14_days": {
+        "false_crossings": 20170,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.4993500941778758,
+          0.50425,
+          0.5091490895905127
+        ]
+      }
+    },
+    {
+      "scenario": "daily_fixed_round_Holm_all_null",
+      "contenders": 5,
+      "within_round_correlation": 0.5,
+      "assumption": "fresh independent rounds; no carry-forward branch or incumbent changes",
+      "day1": {
+        "false_crossings": 1624,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.038709595614360305,
+          0.0406,
+          0.04257863422146901
+        ]
+      },
+      "any_of_14_days": {
+        "false_crossings": 17502,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.4326946862189516,
+          0.43755,
+          0.4424173075843735
+        ]
+      }
+    },
+    {
+      "scenario": "daily_fixed_round_Holm_all_null",
+      "contenders": 5,
+      "within_round_correlation": 0.9,
+      "assumption": "fresh independent rounds; no carry-forward branch or incumbent changes",
+      "day1": {
+        "false_crossings": 856,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.02002711450808014,
+          0.0214,
+          0.022864802774087714
+        ]
+      },
+      "any_of_14_days": {
+        "false_crossings": 10881,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.2676860999663036,
+          0.272025,
+          0.2764076836576041
+        ]
+      }
+    },
+    {
+      "scenario": "daily_fixed_round_Holm_all_null",
+      "contenders": 20,
+      "within_round_correlation": 0.0,
+      "assumption": "fresh independent rounds; no carry-forward branch or incumbent changes",
+      "day1": {
+        "false_crossings": 1971,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.04719685326705469,
+          0.049275,
+          0.0514397104960149
+        ]
+      },
+      "any_of_14_days": {
+        "false_crossings": 20113,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.49792513222780366,
+          0.502825,
+          0.5077243252182427
+        ]
+      }
+    },
+    {
+      "scenario": "daily_fixed_round_Holm_all_null",
+      "contenders": 20,
+      "within_round_correlation": 0.5,
+      "assumption": "fresh independent rounds; no carry-forward branch or incumbent changes",
+      "day1": {
+        "false_crossings": 1353,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.032097688215383065,
+          0.033825,
+          0.03564184278966207
+        ]
+      },
+      "any_of_14_days": {
+        "false_crossings": 14960,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.3692705353558515,
+          0.374,
+          0.37875366351074513
+        ]
+      }
+    },
+    {
+      "scenario": "daily_fixed_round_Holm_all_null",
+      "contenders": 20,
+      "within_round_correlation": 0.9,
+      "assumption": "fresh independent rounds; no carry-forward branch or incumbent changes",
+      "day1": {
+        "false_crossings": 416,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.009451772517671955,
+          0.0104,
+          0.011442257363960678
+        ]
+      },
+      "any_of_14_days": {
+        "false_crossings": 5696,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.13900968726445623,
+          0.1424,
+          0.14585899142359898
+        ]
+      }
+    }
+  ],
+  "empirical_distribution_status": "GAP_PENDING_PUBLIC_PER_CASE_ROWS",
+  "implemented_in_original": [
+    "known-normal power formula",
+    "single-artifact mixture crossing"
+  ],
+  "not_implemented_in_original": [
+    "full Holm winner selection",
+    "alpha-investing ledger",
+    "incumbent changes",
+    "combined fast-lane/carry error budget",
+    "mandatory/important gates"
+  ]
+}
