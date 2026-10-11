@@ -383,6 +383,10 @@ class BatteryValidator:
         #: an operator entry point (`challenge_validator.battery_quiz.install`);
         #: None measures nothing. They never touch a score.
         self.quiz_measures = None
+        #: The registered score (VALIDATOR-26), set by an operator entry
+        #: point (`carbon.battery.value.registered_score.install`) for a rule
+        #: that names one; None otherwise.
+        self.registered_score = None
         #: The design questions' measures (VALIDATOR-23 slice 3c), injected by
         #: an operator entry point (`challenge_validator.design_scoring.install`):
         #: `inputs(designs)` and `measure(designs, predictions)`. None measures
@@ -1075,6 +1079,20 @@ class BatteryValidator:
                 "pool_version": pool["version"],
                 "rebuild": self._rebuild(incumbent_id),
             }
+            if self.rule.get("score") is not None:
+                try:
+                    inc_rec["registered"] = self._registered(
+                        incumbent_id,
+                        inc_preds,
+                        ids,
+                        store,
+                        pool,
+                        f"-for-{challenger}{tag}",
+                    )
+                except WorkerFailure as failure:
+                    raise WorkerFailure(
+                        "incumbent_registered:" + failure.code, candidate=False
+                    ) from None
         record = {
             "model_id": challenger,
             "pool_version": pool["version"],
@@ -1087,10 +1105,24 @@ class BatteryValidator:
             "coverage_rule": dict(COVERAGE_IDENTITY),
             **agg,
         }
+        if self.rule.get("score") is not None:
+            # A registered score (VALIDATOR-26): its gate decides eligibility
+            # with v2's, and its score decides nomination.
+            registered = self._registered(challenger, preds, ids, store, pool, tag)
+            record["registered"] = registered
+            record["eligible"] = bool(
+                record["eligible"]
+                and registered["eligible"]
+                and registered["gate"] in (None, "PASS")
+            )
         if inc_rec is not None and inc_rec["score"] is None:
             # The rule compares against the incumbent's score; with none on
             # this pool, "better than the incumbent" cannot be shown (M3-D15).
             nominated, why = False, "the incumbent has no scorable result on this pool"
+        elif self.rule.get("score") is not None:
+            nominated, why = exam.nominate_registered(
+                record, inc_rec, self.rule["equivalence_margin_rel"]
+            )
         else:
             nominated, why = exam.nominate(
                 record, inc_rec, self.rule["equivalence_margin_rel"]
@@ -1102,6 +1134,36 @@ class BatteryValidator:
             "incumbent_score": None if inc_rec is None else inc_rec["score"],
         }
         return record
+
+    def _registered(self, model_id, preds, ids, store, pool, tag):
+        """`model_id`'s registered score on this pool (VALIDATOR-26): its
+        legs and gate on the scored cases, with q the Q3 decision regret on
+        the active windows' design questions. A missing score, a window
+        without design questions, or a reference failure is infrastructure
+        (FAILED_INFRA, retried, never the miner's); the candidate's own
+        failure on the questions makes it ineligible."""
+        scorer = self.registered_score
+        if scorer is None:
+            raise WorkerFailure("registered_score_not_installed", candidate=False)
+        designs = {f: self.store.design(f) for f in pool["active"]}
+        if not designs or any(d is None for d in designs.values()):
+            raise WorkerFailure("registered_score_design_missing", candidate=False)
+        asked = scorer.design.inputs(designs)
+        q_predictions = self._quiz_predictions(
+            model_id,
+            asked,
+            f"score-v{pool['version']}{tag}",
+            namespace=self.DESIGN_PREDICTIONS,
+        )
+        regret, cause = scorer.pooled(
+            scorer.design.measure(designs, q_predictions)["batches"]
+        )
+        if cause == "q_unavailable":
+            raise WorkerFailure("registered_score_q_unavailable", candidate=False)
+        found = scorer.measure(preds, ids, store, regret)
+        if cause == "q_candidate_failed":
+            found = {**found, "eligible": False, "cause": cause}
+        return found
 
     def _labelled_incumbent(self):
         """The incumbent, labelled with its rebuild device class."""
@@ -1440,6 +1502,14 @@ class BatteryValidator:
         attempt = self.store.final_attempt(final_id)
         if attempt >= MAX_INFRA_ATTEMPTS:
             return {**final, "status": "FAILED_INFRA_EXHAUSTED"}
+        if self.rule.get("score") is not None and self.registered_score is None:
+            # The finals gate needs the registered score: infrastructure.
+            self.store.bump_final_attempt(final_id, attempt + 1)
+            return {
+                **final,
+                "status": "FAILED_INFRA",
+                "code": "registered_score_not_installed",
+            }
         current = self.store.incumbent()
         if current is None or current["model_id"] != final["incumbent"]:
             # Frozen against an incumbent that has since been replaced: the
@@ -1453,7 +1523,7 @@ class BatteryValidator:
         inputs = self.store.case_inputs([fingerprint])
         ids = [c["case_id"] for c in self.store.batch(fingerprint)["document"]["cases"]]
         store = self._case_store([fingerprint])
-        rows = {}
+        rows, role_preds = {}, {}
         try:
             for role, model in (
                 ("incumbent", final["incumbent"]),
@@ -1492,6 +1562,7 @@ class BatteryValidator:
                         reconstruction={**self.backend.identity, "fit": stats},
                     )
                 preds = self._infer(fresh, ids, inputs, f"final-a{attempt}")
+                role_preds[role] = preds
                 rows[role] = exam.evaluate(preds, ids, store)
         except WorkerFailure as failure:
             if failure.candidate:
@@ -1530,6 +1601,14 @@ class BatteryValidator:
             inc_components=components(inc_rows),
             chal_components=components(chal_rows),
         )
+        if self.rule.get("score") is not None:
+            # OWNER-BATTERY-V3-FINALS-01: the final is v2's accuracy
+            # comparison, and the challenger must also pass the registered
+            # candidate's gate on the finalist batch.
+            gate = self.registered_score.gate(role_preds["challenger"], ids, store)
+            outcome = {**outcome, "registered_gate": gate}
+            if gate not in (None, "PASS"):
+                outcome = {**outcome, "promotable": False}
         # The comparison above always runs and its outcome is kept. Only then
         # does the device-class partition apply: two rebuilds of different
         # classes promote nothing (TORCH-GPU-01).
