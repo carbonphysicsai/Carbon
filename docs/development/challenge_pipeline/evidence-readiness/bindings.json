@@ -106,8 +106,15 @@
         "structures"
       ],
       "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/f08.json",
-      "proposal": "docs/development/challenge_pipeline/cheap-baselines/f08.md",
-      "pending": "https://github.com/carbonphysicsai/Carbon/pull/1030"
+        "proposal": "docs/development/challenge_pipeline/structures-readiness/README.md",
+        "pending": "F08-STRUCTURES-READINESS-BUILD-01",
+        "plans": {
+          "1": {"basis": "Exact public panel generator and completed/scheduled reuse hook; registration still required", "pointers": ["carbon/challenge_pipeline/structures_readiness.py"]},
+          "2": {"basis": "Source-locked ccx2.23/image identity, no current operator-store receipt", "pointers": ["docs/development/challenge_pipeline/structures-readiness/README.md"]},
+          "3": {"basis": "MMS/analytic and separate mesh/mode/frequency/conservation spec, not solver evidence", "pointers": ["docs/development/challenge_pipeline/structures-readiness/verification.json"]},
+          "4": {"basis": "Full action/damping/band/signed-observable kit coverage hook; kit not registered", "pointers": ["carbon/challenge_pipeline/structures_readiness.py"]},
+          "5": {"basis": "Whole-geometry disjoint TRAIN plan across conditions/rungs, no registered TRAIN", "pointers": ["carbon/challenge_pipeline/structures_readiness.py"]}
+        }
     },
     {
       "challenge": "solenoid-pole",

@@ -21,6 +21,7 @@ from . import (
     budget_registration,
     metagrating_budget,
     micromixer_budget,
+    structures_budget,
     track_b,
 )
 
@@ -39,6 +40,7 @@ CHALLENGE_ROUTES = {
     },
     "metagrating-3d": {"validator": metagrating_budget.validate},
     "f17": {"validator": micromixer_budget.validate},
+    "f08": {"validator": structures_budget.validate},
 }
 CHALLENGES = set(CHALLENGE_ROUTES)
 ARMS = ("solver_alone", "model_then_solver", "baseline_then_solver")

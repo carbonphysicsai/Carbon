@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-pilot-runpod-retarget",
+  "recorded_at": "2026-10-11T16:44:27Z",
+  "challenge": "portfolio",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "PILOT-PLANS-WITHIN-CAP-01", "description": "29 native arithmetic tests then 45 pilot/equal-budget regressions passed; Black/Ruff and pipeline validate passed. Two earlier diagnostic commands used nonexistent equal-budget test filenames and collected zero tests, not passes. Generated render CRLF was normalized; diff check clean. No provider, image build, solver or spend."},
+  "expected": "Owner-proven RunPod transport and minute-rounded allocation-to-termination caps replace uncertain CCX availability without borrowing the sealed proof grant.",
+  "observed": "At conditional inclusive EUR1.25/USD plus EUR0.20 other costs, 64 GB probe40min/full8h cost <=EUR1/EUR9.80. 256 GB probe21min/full4h20 cost <=EUR0.97/EUR9.74; its full-case probe cap is only360s and may be insufficient. One profile's timing cannot certify another.",
+  "keep": ["Complete buyer tasks, retained failure ledger, same-host/base/tree identities and no dispatcher."],
+  "change": ["Treat conversion/tax/fees and confirmed termination as budget inputs; stop rather than trim physics when timing probe cannot fit."],
+  "protocol_elements": ["reference policy", "measurement authority"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
